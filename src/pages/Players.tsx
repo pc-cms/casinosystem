@@ -1,37 +1,40 @@
 import { useState, useEffect, useRef } from "react";
-import { Search, Plus, UserCheck, UserX, CreditCard, Tag } from "lucide-react";
-import { useCMS } from "@/lib/cms-context";
-import { TAG_OPTIONS, type Player } from "@/lib/store";
+import { Search, Plus, UserCheck, UserX, CreditCard, Tag, X } from "lucide-react";
+import { usePlayers, useCreatePlayer, useUpdatePlayerStatus, useAddPlayerTag, useRemovePlayerTag, useIssueCard } from "@/hooks/use-casino-data";
+import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 
+const TAG_OPTIONS = ["VIP", "No Alcohol", "Free Food", "High Roller", "Watch List"];
+
 const Players = () => {
-  const { players, addPlayer, updatePlayerStatus, updatePlayerTags, addPlayerCard, searchPlayers, getPlayerStats } = useCMS();
+  const { data: players = [], isLoading } = usePlayers();
   const [query, setQuery] = useState("");
   const [showAdd, setShowAdd] = useState(false);
-  const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
+  const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
 
-  const filtered = query ? searchPlayers(query) : players;
+  const filtered = query
+    ? players.filter(p =>
+        p.first_name.toLowerCase().includes(query.toLowerCase()) ||
+        p.last_name.toLowerCase().includes(query.toLowerCase()) ||
+        p.nickname.toLowerCase().includes(query.toLowerCase()) ||
+        p.player_cards?.some(c => c.card_number.includes(query))
+      )
+    : players;
+
+  const selectedPlayer = players.find(p => p.id === selectedPlayerId);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "/" && !showAdd && !selectedPlayer) {
-        e.preventDefault();
-        searchRef.current?.focus();
-      }
-      if (e.key === "n" && e.altKey) {
-        e.preventDefault();
-        setShowAdd(true);
-      }
+      if (e.key === "/" && !showAdd && !selectedPlayerId) { e.preventDefault(); searchRef.current?.focus(); }
+      if (e.key === "n" && e.altKey) { e.preventDefault(); setShowAdd(true); }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [showAdd, selectedPlayer]);
+  }, [showAdd, selectedPlayerId]);
 
   return (
     <div>
@@ -47,13 +50,8 @@ const Players = () => {
 
       <div className="relative mb-4">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input
-          ref={searchRef}
-          value={query}
-          onChange={e => setQuery(e.target.value)}
-          placeholder="Search by name, nickname, or card..."
-          className="pl-10 font-mono"
-        />
+        <Input ref={searchRef} value={query} onChange={e => setQuery(e.target.value)}
+          placeholder="Search by name, nickname, or card number..." className="pl-10 font-mono" />
         <span className="absolute right-3 top-1/2 -translate-y-1/2 cms-kbd">/</span>
       </div>
 
@@ -61,154 +59,127 @@ const Players = () => {
         <table className="w-full">
           <thead>
             <tr className="border-b border-border">
-              <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-4 py-3">Player</th>
-              <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-4 py-3">Nickname</th>
-              <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-4 py-3">Card</th>
-              <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-4 py-3">Status</th>
-              <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-4 py-3">Tags</th>
-              <th className="text-right text-xs font-medium text-muted-foreground uppercase tracking-wider px-4 py-3">Result</th>
+              {["Player", "Nickname", "Card", "Status", "Tags"].map(h => (
+                <th key={h} className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-4 py-3">{h}</th>
+              ))}
             </tr>
           </thead>
           <tbody>
-            {filtered.map(player => {
-              const stats = getPlayerStats(player.id);
-              return (
-                <tr
-                  key={player.id}
-                  onClick={() => setSelectedPlayer(player)}
-                  className="border-b border-border last:border-0 hover:bg-muted/50 cursor-pointer transition-colors"
-                >
-                  <td className="px-4 py-3">
-                    <span className="text-sm font-medium text-card-foreground">{player.firstName} {player.lastName}</span>
-                  </td>
+            {isLoading ? (
+              <tr><td colSpan={5} className="text-center text-muted-foreground text-sm py-8">Loading...</td></tr>
+            ) : filtered.length === 0 ? (
+              <tr><td colSpan={5} className="text-center text-muted-foreground text-sm py-8">No players found</td></tr>
+            ) : (
+              filtered.map(player => (
+                <tr key={player.id} onClick={() => setSelectedPlayerId(player.id)}
+                  className="border-b border-border last:border-0 hover:bg-muted/50 cursor-pointer transition-colors">
+                  <td className="px-4 py-3 text-sm font-medium text-card-foreground">{player.first_name} {player.last_name}</td>
                   <td className="px-4 py-3 text-sm text-muted-foreground">{player.nickname}</td>
                   <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
-                    {player.cards.find(c => c.active)?.cardNumber || "—"}
+                    {player.player_cards?.find(c => c.is_active)?.card_number || "—"}
                   </td>
                   <td className="px-4 py-3">
                     <span className={player.status === "active" ? "cms-status-active" : "cms-status-blacklist"}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${player.status === "active" ? "bg-success" : "bg-danger"}`} />
+                      <span className={`w-1.5 h-1.5 rounded-full inline-block ${player.status === "active" ? "bg-success" : "bg-danger"}`} />
                       {player.status}
                     </span>
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex gap-1 flex-wrap">
-                      {player.tags.map(tag => (
-                        <Badge key={tag} variant="outline" className="text-[10px] font-mono">{tag}</Badge>
+                      {player.player_tags?.map(t => (
+                        <Badge key={t.id} variant="outline" className="text-[10px] font-mono">{t.tag}</Badge>
                       ))}
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-right">
-                    <span className={`font-mono text-sm font-medium ${stats.result >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
-                      €{Math.abs(stats.result).toLocaleString()}
-                    </span>
-                  </td>
                 </tr>
-              );
-            })}
+              ))
+            )}
           </tbody>
         </table>
-        {filtered.length === 0 && (
-          <p className="text-center text-muted-foreground text-sm py-8">No players found</p>
-        )}
       </div>
 
       <AddPlayerDialog open={showAdd} onClose={() => setShowAdd(false)} />
       {selectedPlayer && (
-        <PlayerDetailDialog
-          player={selectedPlayer}
-          onClose={() => setSelectedPlayer(null)}
-          onStatusChange={(s) => { updatePlayerStatus(selectedPlayer.id, s); setSelectedPlayer({ ...selectedPlayer, status: s }); }}
-          onTagsChange={(t) => { updatePlayerTags(selectedPlayer.id, t); setSelectedPlayer({ ...selectedPlayer, tags: t }); }}
-          onAddCard={() => { addPlayerCard(selectedPlayer.id); }}
-        />
+        <PlayerDetailDialog player={selectedPlayer} onClose={() => setSelectedPlayerId(null)} />
       )}
     </div>
   );
 };
 
 const AddPlayerDialog = ({ open, onClose }: { open: boolean; onClose: () => void }) => {
-  const { addPlayer } = useCMS();
-  const [form, setForm] = useState({ firstName: "", lastName: "", nickname: "", phone: "" });
+  const createPlayer = useCreatePlayer();
+  const [form, setForm] = useState({ first_name: "", last_name: "", nickname: "", phone: "" });
 
   const handleSubmit = () => {
-    if (!form.firstName || !form.lastName) return;
-    addPlayer({ ...form, status: "active", tags: [], photo: null });
-    setForm({ firstName: "", lastName: "", nickname: "", phone: "" });
-    onClose();
+    if (!form.first_name || !form.last_name) return;
+    createPlayer.mutate(form, { onSuccess: () => { setForm({ first_name: "", last_name: "", nickname: "", phone: "" }); onClose(); } });
   };
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent>
-        <DialogHeader>
-          <DialogTitle>New Player</DialogTitle>
-        </DialogHeader>
+        <DialogHeader><DialogTitle>New Player</DialogTitle></DialogHeader>
         <div className="space-y-3">
-          <Input placeholder="First Name *" value={form.firstName} onChange={e => setForm(f => ({ ...f, firstName: e.target.value }))} autoFocus />
-          <Input placeholder="Last Name *" value={form.lastName} onChange={e => setForm(f => ({ ...f, lastName: e.target.value }))} />
+          <Input placeholder="First Name *" value={form.first_name} onChange={e => setForm(f => ({ ...f, first_name: e.target.value }))} autoFocus />
+          <Input placeholder="Last Name *" value={form.last_name} onChange={e => setForm(f => ({ ...f, last_name: e.target.value }))} />
           <Input placeholder="Nickname" value={form.nickname} onChange={e => setForm(f => ({ ...f, nickname: e.target.value }))} />
           <Input placeholder="Phone" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} />
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={handleSubmit} disabled={!form.firstName || !form.lastName}>Create</Button>
+          <Button onClick={handleSubmit} disabled={!form.first_name || !form.last_name || createPlayer.isPending}>Create</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 };
 
-const PlayerDetailDialog = ({ player, onClose, onStatusChange, onTagsChange, onAddCard }: {
-  player: Player; onClose: () => void;
-  onStatusChange: (s: "active" | "blacklist") => void;
-  onTagsChange: (t: string[]) => void;
-  onAddCard: () => void;
-}) => {
-  const { getPlayerStats, getPlayerTransactions } = useCMS();
-  const stats = getPlayerStats(player.id);
-  const txs = getPlayerTransactions(player.id);
+const PlayerDetailDialog = ({ player, onClose }: { player: any; onClose: () => void }) => {
+  const { isManager } = useAuth();
+  const updateStatus = useUpdatePlayerStatus();
+  const addTag = useAddPlayerTag();
+  const removeTag = useRemovePlayerTag();
+  const issueCard = useIssueCard();
+  const [rfidInput, setRfidInput] = useState("");
 
-  const toggleTag = (tag: string) => {
-    onTagsChange(player.tags.includes(tag) ? player.tags.filter(t => t !== tag) : [...player.tags, tag]);
-  };
+  const currentTags = player.player_tags?.map((t: any) => t.tag) || [];
 
   return (
     <Dialog open onOpenChange={onClose}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>{player.firstName} {player.lastName}</DialogTitle>
+          <DialogTitle>{player.first_name} {player.last_name} <span className="text-muted-foreground font-normal">({player.nickname})</span></DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
-          <div className="grid grid-cols-3 gap-3">
-            <div className="cms-panel p-3 text-center">
-              <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Drop</p>
-              <p className="font-mono text-sm font-bold text-card-foreground">€{stats.totalBuy.toLocaleString()}</p>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="cms-panel p-3">
+              <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Phone</p>
+              <p className="font-mono text-sm text-card-foreground">{player.phone || "—"}</p>
             </div>
-            <div className="cms-panel p-3 text-center">
-              <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Cashout</p>
-              <p className="font-mono text-sm font-bold text-card-foreground">€{stats.totalCashout.toLocaleString()}</p>
-            </div>
-            <div className="cms-panel p-3 text-center">
-              <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Result</p>
-              <p className={`font-mono text-sm font-bold ${stats.result >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
-                €{Math.abs(stats.result).toLocaleString()}
-              </p>
+            <div className="cms-panel p-3">
+              <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Status</p>
+              <span className={player.status === "active" ? "cms-status-active" : "cms-status-blacklist"}>
+                {player.status}
+              </span>
             </div>
           </div>
 
+          {/* Tags */}
           <div>
-            <p className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1"><Tag className="w-3 h-3" /> Tags</p>
+            <p className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1"><Tag className="w-3 h-3" /> Tags (max 5)</p>
             <div className="flex flex-wrap gap-1.5">
               {TAG_OPTIONS.map(tag => (
-                <button
-                  key={tag}
-                  onClick={() => toggleTag(tag)}
+                <button key={tag}
+                  onClick={() => {
+                    if (currentTags.includes(tag)) removeTag.mutate({ playerId: player.id, tag });
+                    else if (currentTags.length < 5) addTag.mutate({ playerId: player.id, tag });
+                  }}
+                  disabled={!currentTags.includes(tag) && currentTags.length >= 5}
                   className={`text-xs px-2 py-1 rounded-md border transition-colors ${
-                    player.tags.includes(tag)
+                    currentTags.includes(tag)
                       ? "bg-primary text-primary-foreground border-primary"
-                      : "border-border text-muted-foreground hover:border-primary/50"
+                      : "border-border text-muted-foreground hover:border-primary/50 disabled:opacity-30"
                   }`}
                 >
                   {tag}
@@ -217,48 +188,38 @@ const PlayerDetailDialog = ({ player, onClose, onStatusChange, onTagsChange, onA
             </div>
           </div>
 
+          {/* Cards */}
           <div>
             <p className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1"><CreditCard className="w-3 h-3" /> Cards</p>
             <div className="space-y-1">
-              {player.cards.map(card => (
+              {player.player_cards?.map((card: any) => (
                 <div key={card.id} className="flex items-center justify-between text-xs font-mono py-1">
-                  <span className="text-card-foreground">{card.cardNumber}</span>
-                  <span className="text-muted-foreground">{card.type} · {card.active ? "Active" : "Inactive"}</span>
+                  <span className="text-card-foreground">{card.card_number}</span>
+                  <span className="text-muted-foreground">{card.card_type} · {card.is_active ? "Active" : "Inactive"}</span>
                 </div>
               ))}
             </div>
-            <Button variant="outline" size="sm" className="mt-2 text-xs" onClick={onAddCard}>
-              <Plus className="w-3 h-3 mr-1" /> Issue Card
-            </Button>
+            <div className="flex gap-2 mt-2">
+              <Input placeholder="RFID UID (optional)" value={rfidInput} onChange={e => setRfidInput(e.target.value)} className="text-xs h-8 font-mono" />
+              <Button variant="outline" size="sm" className="text-xs h-8 shrink-0"
+                onClick={() => { issueCard.mutate({ playerId: player.id, rfidUid: rfidInput || undefined }); setRfidInput(""); }}>
+                <Plus className="w-3 h-3 mr-1" /> Issue
+              </Button>
+            </div>
           </div>
 
+          {/* Status */}
           <div className="flex gap-2">
             {player.status === "active" ? (
-              <Button variant="destructive" size="sm" onClick={() => onStatusChange("blacklist")}>
+              <Button variant="destructive" size="sm" onClick={() => updateStatus.mutate({ id: player.id, status: "blacklist" })}>
                 <UserX className="w-3 h-3 mr-1" /> Blacklist
               </Button>
             ) : (
-              <Button size="sm" onClick={() => onStatusChange("active")}>
+              <Button size="sm" onClick={() => updateStatus.mutate({ id: player.id, status: "active" })}>
                 <UserCheck className="w-3 h-3 mr-1" /> Reactivate
               </Button>
             )}
           </div>
-
-          {txs.length > 0 && (
-            <div>
-              <p className="text-xs font-medium text-muted-foreground mb-2">Recent Transactions</p>
-              <div className="max-h-32 overflow-y-auto space-y-1">
-                {txs.slice(0, 10).map(tx => (
-                  <div key={tx.id} className="flex justify-between text-xs font-mono py-1 border-b border-border last:border-0">
-                    <span className="text-muted-foreground">{tx.type.toUpperCase()} @ {tx.tableId}</span>
-                    <span className={tx.type === "buy" ? "cms-amount-negative" : "cms-amount-positive"}>
-                      €{tx.amount.toLocaleString()}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </DialogContent>
     </Dialog>
