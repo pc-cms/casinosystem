@@ -216,6 +216,111 @@ export type Database = {
         }
         Relationships: []
       }
+      chip_inventory: {
+        Row: {
+          casino_id: string
+          denomination: number
+          id: string
+          location_id: string | null
+          location_type: string
+          quantity: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          casino_id: string
+          denomination: number
+          id?: string
+          location_id?: string | null
+          location_type: string
+          quantity?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          casino_id?: string
+          denomination?: number
+          id?: string
+          location_id?: string | null
+          location_type?: string
+          quantity?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chip_inventory_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chip_inventory_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "gaming_tables"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chip_snapshots: {
+        Row: {
+          actual_quantity: number
+          casino_id: string
+          created_at: string
+          date: string
+          denomination: number
+          expected_quantity: number
+          id: string
+          location_id: string | null
+          location_type: string
+          miss: number | null
+          recorded_by: string
+        }
+        Insert: {
+          actual_quantity?: number
+          casino_id: string
+          created_at?: string
+          date: string
+          denomination: number
+          expected_quantity?: number
+          id?: string
+          location_id?: string | null
+          location_type: string
+          miss?: number | null
+          recorded_by: string
+        }
+        Update: {
+          actual_quantity?: number
+          casino_id?: string
+          created_at?: string
+          date?: string
+          denomination?: number
+          expected_quantity?: number
+          id?: string
+          location_id?: string | null
+          location_type?: string
+          miss?: number | null
+          recorded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chip_snapshots_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chip_snapshots_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "gaming_tables"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dealers: {
         Row: {
           casino_id: string
@@ -840,7 +945,18 @@ export type Database = {
     Enums: {
       app_role: "cashier" | "pit" | "manager" | "reception"
       card_type: "manual" | "rfid"
-      dealer_role: "BJ" | "BJi" | "AR1" | "AR1i" | "AR1c" | "BR"
+      dealer_role:
+        | "BJ"
+        | "BJi"
+        | "AR1"
+        | "AR1i"
+        | "AR1c"
+        | "BR"
+        | "P"
+        | "Pi"
+        | "AR"
+        | "ARi"
+        | "ARc"
       expense_category:
         | "food"
         | "alcohol"
@@ -990,7 +1106,19 @@ export const Constants = {
     Enums: {
       app_role: ["cashier", "pit", "manager", "reception"],
       card_type: ["manual", "rfid"],
-      dealer_role: ["BJ", "BJi", "AR1", "AR1i", "AR1c", "BR"],
+      dealer_role: [
+        "BJ",
+        "BJi",
+        "AR1",
+        "AR1i",
+        "AR1c",
+        "BR",
+        "P",
+        "Pi",
+        "AR",
+        "ARi",
+        "ARc",
+      ],
       expense_category: ["food", "alcohol", "taxi", "hotel", "flight", "other"],
       log_category: [
         "transaction",

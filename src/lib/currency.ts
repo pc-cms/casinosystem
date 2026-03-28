@@ -27,3 +27,51 @@ export const formatChipLabel = (value: number): string => {
 export const formatCurrency = (amount: number): string => {
   return `${CURRENCY_SYMBOL} ${amount.toLocaleString()}`;
 };
+
+// ============ TABLE STRUCTURE ============
+export interface TableConfig {
+  name: string;
+  game: string;
+  roles: string[];
+  chipCount: number; // chips per denomination at start
+}
+
+// Table roles by game type
+export const TABLE_ROLES: Record<string, string[]> = {
+  "Texas Holdem": ["P", "Pi"],
+  "Blackjack": ["BJ", "BJi"],
+  "American Roulette": ["AR", "ARi", "ARc"],
+};
+
+// All possible breaklist roles (including BR for break)
+export const ALL_ROLES = ["P", "Pi", "BJ", "BJi", "AR", "ARi", "ARc", "BR"] as const;
+
+// Chip distribution per location type
+export const CHIP_DISTRIBUTION = {
+  card: 20,     // P1-P5, BJ1: 20 chips per denomination
+  roulette: 40, // AR1-AR3: 40 chips per denomination
+  cashier: 50,  // Cashier float: 50 per denomination
+  safe: 100,    // Manager safe: 100 per denomination
+} as const;
+
+// Role display colors
+export const ROLE_COLORS: Record<string, string> = {
+  P: "bg-indigo-600/20 text-indigo-400",
+  Pi: "bg-indigo-500/15 text-indigo-300",
+  BJ: "bg-blue-600/20 text-blue-400",
+  BJi: "bg-blue-500/15 text-blue-300",
+  AR: "bg-emerald-600/20 text-emerald-400",
+  ARi: "bg-emerald-500/15 text-emerald-300",
+  ARc: "bg-emerald-400/15 text-emerald-200",
+  BR: "bg-muted text-muted-foreground",
+};
+
+// Get roles available for a specific table
+export const getRolesForTable = (tableName: string, game: string): string[] => {
+  const baseRoles = TABLE_ROLES[game] || [];
+  // Replace generic role prefix with table-specific prefix
+  return baseRoles.map(role => {
+    // Roles are already generic (P, Pi, BJ, BJi, AR, ARi, ARc)
+    return role;
+  });
+};
