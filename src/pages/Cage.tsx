@@ -166,7 +166,10 @@ const ActiveShiftView = ({ shift, players, tables }: { shift: any; players: any[
     return of?.totals?.total_tzs || 0;
   }, [shift]);
 
-  const expectedBalance = openingFloat + totalBuyIns - totalCashouts - totalExpenses;
+  // Cash flow: opening + buy-ins - cashouts - expenses = expected cash
+  const expectedCash = openingFloat + totalBuyIns - totalCashouts - totalExpenses;
+  // Shift result from transactions perspective: buy-ins - cashouts (what casino gained in cash)
+  const cashResult = totalBuyIns - totalCashouts;
 
   const shiftDuration = useMemo(() => {
     const start = new Date(shift.opened_at);
@@ -195,21 +198,41 @@ const ActiveShiftView = ({ shift, players, tables }: { shift: any; players: any[
         </Button>
       </div>
 
-      {/* Always-visible summary bar */}
-      <div className="grid grid-cols-3 md:grid-cols-6 gap-2 mb-4">
-        {[
-          { label: "Opening", value: formatCurrency(openingFloat), cls: "text-card-foreground" },
-          { label: "Buy-Ins", value: formatCurrency(totalBuyIns), cls: "cms-amount-negative" },
-          { label: "Cashouts", value: formatCurrency(totalCashouts), cls: "cms-amount-positive" },
-          { label: "Expenses", value: formatCurrency(totalExpenses), cls: "text-orange-500" },
-          { label: "Expected", value: formatCurrency(expectedBalance), cls: "text-card-foreground" },
-          { label: "Txns", value: String(shiftTransactions.length), cls: "text-card-foreground" },
-        ].map(s => (
-          <div key={s.label} className="cms-panel p-2">
-            <p className="text-[9px] uppercase text-muted-foreground tracking-wider">{s.label}</p>
-            <p className={`font-mono text-sm font-bold ${s.cls}`}>{s.value}</p>
+      {/* Cash Flow Summary - always visible */}
+      <div className="cms-panel p-3 mb-4">
+        <p className="text-[10px] uppercase text-muted-foreground tracking-wider mb-2 font-medium">Cash Flow</p>
+        <div className="grid grid-cols-3 md:grid-cols-7 gap-2">
+          <div>
+            <p className="text-[9px] uppercase text-muted-foreground">Opening</p>
+            <p className="font-mono text-sm font-bold text-card-foreground">{formatCurrency(openingFloat)}</p>
           </div>
-        ))}
+          <div>
+            <p className="text-[9px] uppercase text-muted-foreground">+ Buy-Ins</p>
+            <p className="font-mono text-sm font-bold text-green-500">+{formatCurrency(totalBuyIns)}</p>
+          </div>
+          <div>
+            <p className="text-[9px] uppercase text-muted-foreground">− Cashouts</p>
+            <p className="font-mono text-sm font-bold text-destructive">−{formatCurrency(totalCashouts)}</p>
+          </div>
+          <div>
+            <p className="text-[9px] uppercase text-muted-foreground">− Expenses</p>
+            <p className="font-mono text-sm font-bold text-orange-500">−{formatCurrency(totalExpenses)}</p>
+          </div>
+          <div>
+            <p className="text-[9px] uppercase text-muted-foreground">= Expected</p>
+            <p className="font-mono text-sm font-bold text-card-foreground">{formatCurrency(expectedCash)}</p>
+          </div>
+          <div>
+            <p className="text-[9px] uppercase text-muted-foreground">Cash Result</p>
+            <p className={`font-mono text-sm font-bold ${cashResult >= 0 ? "text-green-500" : "text-destructive"}`}>
+              {cashResult >= 0 ? "+" : ""}{formatCurrency(cashResult)}
+            </p>
+          </div>
+          <div>
+            <p className="text-[9px] uppercase text-muted-foreground">Txns</p>
+            <p className="font-mono text-sm font-bold text-card-foreground">{shiftTransactions.length}</p>
+          </div>
+        </div>
       </div>
 
       {/* Operation Tabs */}
@@ -227,7 +250,7 @@ const ActiveShiftView = ({ shift, players, tables }: { shift: any; players: any[
           <CashoutForm players={activePlayers} shiftId={shift.id} onSubmit={createTx.mutate} loading={createTx.isPending} />
         </TabsContent>
         <TabsContent value="check">
-          <CashCheckForm expectedBalance={expectedBalance} shiftId={shift.id} exchangeRates={exchangeRates} cashChecks={cashChecks} />
+          <CashCheckForm expectedBalance={expectedCash} shiftId={shift.id} exchangeRates={exchangeRates} cashChecks={cashChecks} />
         </TabsContent>
       </Tabs>
 
@@ -238,14 +261,14 @@ const ActiveShiftView = ({ shift, players, tables }: { shift: any; players: any[
           <table className="w-full">
             <thead className="sticky top-0 bg-card z-10">
               <tr className="border-b border-border">
-                {["Type", "Player", "Amount", "Time"].map(h => (
+                {["Type", "Player", "Table", "Amount", "Time"].map(h => (
                   <th key={h} className={`text-xs font-medium text-muted-foreground uppercase px-3 py-1.5 ${h === "Amount" || h === "Time" ? "text-right" : "text-left"}`}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {shiftTransactions.length === 0 ? (
-                <tr><td colSpan={4} className="text-center text-muted-foreground text-sm py-6">No transactions yet</td></tr>
+                <tr><td colSpan={5} className="text-center text-muted-foreground text-sm py-6">No transactions yet</td></tr>
               ) : [...shiftTransactions].reverse().map(tx => (
                 <tr key={tx.id} className="border-b border-border last:border-0">
                   <td className="px-3 py-1.5">
@@ -254,6 +277,9 @@ const ActiveShiftView = ({ shift, players, tables }: { shift: any; players: any[
                     </span>
                   </td>
                   <td className="px-3 py-1.5 text-xs text-card-foreground">{(tx as any).players?.first_name} {(tx as any).players?.last_name}</td>
+                  <td className="px-3 py-1.5 text-xs text-muted-foreground font-mono">
+                    {tx.table_id ? tables.find(t => t.id === tx.table_id)?.name || "—" : "—"}
+                  </td>
                   <td className={`px-3 py-1.5 text-right font-mono text-xs font-medium ${tx.type === "buy" ? "cms-amount-negative" : "cms-amount-positive"}`}>
                     {tx.type === "buy" ? "-" : "+"}{formatCurrency(Number(tx.amount))}
                   </td>
@@ -271,7 +297,12 @@ const ActiveShiftView = ({ shift, players, tables }: { shift: any; players: any[
         open={showClose}
         onClose={() => setShowClose(false)}
         shift={shift}
-        expectedBalance={expectedBalance}
+        expectedBalance={expectedCash}
+        cashResult={cashResult}
+        totalBuyIns={totalBuyIns}
+        totalCashouts={totalCashouts}
+        totalExpenses={totalExpenses}
+        openingFloat={openingFloat}
         tables={tables}
         onConfirm={(data: any) => {
           closeShift.mutate({
