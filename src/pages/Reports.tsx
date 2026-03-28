@@ -82,7 +82,7 @@ const ShiftReport = ({ from, to }: { from: string; to: string }) => {
   const shiftData = useMemo(() => {
     return filtered.map(s => {
       const sTx = transactions.filter(t => t.shift_id === s.id);
-      const sExp = expenses.filter((e: any) => e.shift_id === s.id);
+      const sExp = expenses.filter((e: any) => e.shift_id === s.id && e.approved);
       const buyTotal = sTx.filter(t => t.type === "buy").reduce((sum, t) => sum + Number(t.amount), 0);
       const cashoutTotal = sTx.filter(t => t.type === "cashout").reduce((sum, t) => sum + Number(t.amount), 0);
       const expTotal = sExp.reduce((sum: number, e: any) => sum + Number(e.amount), 0);
@@ -231,7 +231,7 @@ const PlayerReport = ({ from, to }: { from: string; to: string }) => {
     });
     const filteredExp = expenses.filter((e: any) => {
       const d = e.created_at.split("T")[0];
-      return d >= from && d <= to;
+      return d >= from && d <= to && e.approved;
     });
 
     return players.filter(p => p.status === "active").map(p => {
@@ -311,7 +311,7 @@ const GroupReport = ({ from, to }: { from: string; to: string }) => {
     });
     const filteredExp = expenses.filter((e: any) => {
       const d = e.created_at.split("T")[0];
-      return d >= from && d <= to;
+      return d >= from && d <= to && e.approved;
     });
 
     return groups.map((g: any) => {

@@ -481,6 +481,8 @@ export type Database = {
       gaming_tables: {
         Row: {
           casino_id: string
+          closing_chips: Json | null
+          closing_result: number | null
           created_at: string
           denominations: number[]
           float_amount: number
@@ -491,6 +493,8 @@ export type Database = {
         }
         Insert: {
           casino_id: string
+          closing_chips?: Json | null
+          closing_result?: number | null
           created_at?: string
           denominations?: number[]
           float_amount?: number
@@ -501,6 +505,8 @@ export type Database = {
         }
         Update: {
           casino_id?: string
+          closing_chips?: Json | null
+          closing_result?: number | null
           created_at?: string
           denominations?: number[]
           float_amount?: number

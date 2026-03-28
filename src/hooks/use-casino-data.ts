@@ -216,7 +216,11 @@ export const useCloseTable = () => {
       if (!casinoId || !user) throw new Error("Not authenticated");
       const { error } = await supabase
         .from("gaming_tables")
-        .update({ status: "closed" as any })
+        .update({
+          status: "closed" as any,
+          closing_chips: input.closing_chips as any,
+          closing_result: input.result,
+        })
         .eq("id", input.table_id);
       if (error) throw error;
       await logAction(casinoId, "system", "TABLE_CLOSED", {
@@ -241,7 +245,11 @@ export const useReopenTable = () => {
       if (!casinoId || !user) throw new Error("Not authenticated");
       const { error } = await supabase
         .from("gaming_tables")
-        .update({ status: "open" as any })
+        .update({
+          status: "open" as any,
+          closing_chips: null as any,
+          closing_result: null as any,
+        })
         .eq("id", tableId);
       if (error) throw error;
       await logAction(casinoId, "system", "TABLE_REOPENED", { table_id: tableId });
