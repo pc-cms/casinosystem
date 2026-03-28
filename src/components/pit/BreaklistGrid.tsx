@@ -148,7 +148,18 @@ const BreaklistGrid = ({ date }: { date: string }) => {
                     </td>
                     {displaySlots.map(slot => {
                       const cell = getCellData(dealer.id, slot);
-                      const tableName = cell?.table_id ? openTables.find(t => t.id === cell.table_id)?.name : null;
+                      const table = cell?.table_id ? openTables.find(t => t.id === cell.table_id) : null;
+                      const tableName = table?.name ?? null;
+                      // Build display label with role suffix: AR2I (inspector), AR2C (chipper), P1I, BJ1I
+                      const roleSuffix: Record<string, string> = {
+                        ARi: "I", ARc: "C", AR1i: "I", AR1c: "C",
+                        Pi: "I", BJi: "I",
+                      };
+                      const displayLabel = cell
+                        ? tableName
+                          ? `${tableName}${roleSuffix[cell.role] || ""}`
+                          : cell.role
+                        : "·";
                       const isActive = activeCell?.dealerId === dealer.id && activeCell?.timeSlot === slot;
                       return (
                         <td key={slot} className="px-0.5 py-0.5 text-center relative">
@@ -159,7 +170,7 @@ const BreaklistGrid = ({ date }: { date: string }) => {
                             } ${cell?.is_locked ? "ring-1 ring-yellow-500/40" : ""} ${isActive ? "ring-2 ring-primary" : ""}`}
                             title={tableName ? `${cell?.role} @ ${tableName}` : cell?.role}
                           >
-                            {cell ? (tableName ? tableName : cell.role) : "·"}
+                            {displayLabel}
                             {cell?.is_locked && <Lock className="w-2 h-2 absolute top-0.5 right-0.5 text-yellow-400" />}
                           </button>
                           {/* Inline role picker dropdown */}
