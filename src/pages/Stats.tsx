@@ -2,34 +2,51 @@ import { usePlayerEconomy, usePlayers } from "@/hooks/use-casino-data";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/currency";
 
+/**
+ * STRICT PLAYER STATS:
+ * DROP = all BUY-INs
+ * CASHOUT = all CASHOUTs
+ * RESULT = CASHOUT - DROP (financial fact only)
+ * REAL RESULT = CASHOUT - DROP - EXPENSES
+ * No gameplay tracking. No table tracking per player. Only financial facts.
+ */
 const Stats = () => {
   const { data: economy = [] } = usePlayerEconomy();
   const { data: players = [] } = usePlayers();
 
   const enriched = economy.map(e => {
     const player = players.find(p => p.id === e.player_id);
-    return { ...e, tags: player?.player_tags?.map(t => t.tag) || [] };
-  }).sort((a, b) => Number(b.total_drop) - Number(a.total_drop));
+    const drop = Number(e.total_drop || 0);
+    const cashout = Number(e.total_cashout || 0);
+    const expenses = Number(e.total_expenses || 0);
+    const result = cashout - drop;
+    const realResult = cashout - drop - expenses;
+    return {
+      ...e,
+      tags: player?.player_tags?.map(t => t.tag) || [],
+      drop, cashout, expenses, result, realResult,
+    };
+  }).sort((a, b) => b.drop - a.drop);
 
   return (
     <div>
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-foreground">Player Stats</h1>
-        <p className="text-sm text-muted-foreground">REAL RESULT = CASHOUT - DROP - EXPENSES</p>
+        <p className="text-sm text-muted-foreground">RESULT = CASHOUT - DROP · REAL RESULT = CASHOUT - DROP - EXPENSES</p>
       </div>
 
       <div className="cms-panel overflow-hidden">
         <table className="w-full">
           <thead>
             <tr className="border-b border-border">
-              {["Player", "Tags", "Drop", "Cashout", "Expenses", "Real Result"].map(h => (
-                <th key={h} className={`text-xs font-medium text-muted-foreground uppercase px-4 py-3 ${["Drop","Cashout","Expenses","Real Result"].includes(h) ? "text-right" : "text-left"}`}>{h}</th>
+              {["Player", "Tags", "Drop", "Cashout", "Result", "Expenses", "Real Result"].map(h => (
+                <th key={h} className={`text-xs font-medium text-muted-foreground uppercase px-4 py-3 ${["Drop","Cashout","Result","Expenses","Real Result"].includes(h) ? "text-right" : "text-left"}`}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {enriched.length === 0 ? (
-              <tr><td colSpan={6} className="text-center text-muted-foreground text-sm py-8">No data</td></tr>
+              <tr><td colSpan={7} className="text-center text-muted-foreground text-sm py-8">No data</td></tr>
             ) : enriched.map(p => (
               <tr key={p.player_id} className="border-b border-border last:border-0 hover:bg-muted/30">
                 <td className="px-4 py-3">
@@ -37,12 +54,17 @@ const Stats = () => {
                   {p.nickname && <span className="text-xs text-muted-foreground ml-2">({p.nickname})</span>}
                 </td>
                 <td className="px-4 py-3"><div className="flex gap-1">{p.tags.map(t => <Badge key={t} variant="outline" className="text-[10px] font-mono">{t}</Badge>)}</div></td>
-                <td className="px-4 py-3 text-right font-mono text-sm text-card-foreground">{formatCurrency(Number(p.total_drop))}</td>
-                <td className="px-4 py-3 text-right font-mono text-sm text-card-foreground">{formatCurrency(Number(p.total_cashout))}</td>
-                <td className="px-4 py-3 text-right font-mono text-sm text-card-foreground">{formatCurrency(Number(p.total_expenses))}</td>
+                <td className="px-4 py-3 text-right font-mono text-sm text-card-foreground">{formatCurrency(p.drop)}</td>
+                <td className="px-4 py-3 text-right font-mono text-sm text-card-foreground">{formatCurrency(p.cashout)}</td>
                 <td className="px-4 py-3 text-right">
-                  <span className={`font-mono text-sm font-bold ${Number(p.real_result) >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
-                    {Number(p.real_result) >= 0 ? "+" : ""}{formatCurrency(Number(p.real_result))}
+                  <span className={`font-mono text-sm font-bold ${p.result >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
+                    {p.result >= 0 ? "+" : ""}{formatCurrency(p.result)}
+                  </span>
+                </td>
+                <td className="px-4 py-3 text-right font-mono text-sm text-card-foreground">{formatCurrency(p.expenses)}</td>
+                <td className="px-4 py-3 text-right">
+                  <span className={`font-mono text-sm font-bold ${p.realResult >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
+                    {p.realResult >= 0 ? "+" : ""}{formatCurrency(p.realResult)}
                   </span>
                 </td>
               </tr>

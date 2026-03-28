@@ -26,6 +26,13 @@ const CAT_COLORS: Record<string, string> = {
   other: "bg-muted text-muted-foreground",
 };
 
+/**
+ * EXPENSES (STRICT):
+ * - General or player-linked
+ * - If player selected → expense belongs to player
+ * - Cannot edit/delete
+ * - REAL RESULT = CASHOUT - DROP - EXPENSES
+ */
 const Expenses = () => {
   const { isManager } = useAuth();
   const { data: expenses = [] } = useExpenses();
@@ -48,7 +55,7 @@ const Expenses = () => {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Expenses</h1>
-          <p className="text-sm text-muted-foreground">{expenses.length} records · {analytics.pendingCount} pending</p>
+          <p className="text-sm text-muted-foreground">Immutable · {expenses.length} records · {analytics.pendingCount} pending</p>
         </div>
         <Button onClick={() => setShowAdd(true)} size="sm"><Plus className="w-4 h-4 mr-1" /> Add Expense</Button>
       </div>
@@ -61,11 +68,11 @@ const Expenses = () => {
         </div>
         <div className="cms-panel p-3">
           <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Approved</p>
-          <p className="font-mono text-lg font-bold text-emerald-400">{formatCurrency(analytics.approvedAmount)}</p>
+          <p className="font-mono text-lg font-bold cms-amount-positive">{formatCurrency(analytics.approvedAmount)}</p>
         </div>
         <div className="cms-panel p-3">
           <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Pending</p>
-          <p className="font-mono text-lg font-bold text-yellow-400">{formatCurrency(analytics.pendingAmount)}</p>
+          <p className="font-mono text-lg font-bold text-accent">{formatCurrency(analytics.pendingAmount)}</p>
         </div>
         <div className="cms-panel p-3">
           <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Categories</p>
@@ -83,7 +90,6 @@ const Expenses = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-        {/* Category Breakdown */}
         <div className="cms-panel p-4">
           <h3 className="text-xs font-semibold text-muted-foreground uppercase mb-3 flex items-center gap-1.5">
             <TrendingUp className="w-3.5 h-3.5" /> By Category
@@ -102,7 +108,6 @@ const Expenses = () => {
           </div>
         </div>
 
-        {/* Top Players */}
         <div className="cms-panel p-4 lg:col-span-2">
           <h3 className="text-xs font-semibold text-muted-foreground uppercase mb-3">Top Players by Expenses</h3>
           <div className="space-y-2">
@@ -139,7 +144,7 @@ const Expenses = () => {
                   <span className={`text-[10px] font-mono uppercase px-1.5 py-0.5 rounded ${CAT_COLORS[exp.category] || CAT_COLORS.other}`}>{exp.category}</span>
                 </td>
                 <td className="px-4 py-2 text-sm text-card-foreground">{(exp as any).description || "—"}</td>
-                <td className="px-4 py-2 text-sm text-muted-foreground">{exp.players ? `${exp.players.first_name} ${exp.players.last_name}` : "—"}</td>
+                <td className="px-4 py-2 text-sm text-muted-foreground">{exp.players ? `${exp.players.first_name} ${exp.players.last_name}` : "General"}</td>
                 <td className="px-4 py-2 text-right font-mono text-sm text-card-foreground">{formatCurrency(Number(exp.amount))}</td>
                 <td className="px-4 py-2 text-center">
                   {exp.approved ? <span className="cms-status-active text-xs"><CheckCircle className="w-3 h-3 inline mr-0.5" /> Approved</span> : <Badge variant="secondary" className="text-[10px]">Pending</Badge>}
@@ -187,6 +192,7 @@ const AddExpenseDialog = ({ open, onClose, players }: { open: boolean; onClose: 
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader><DialogTitle>Add Expense</DialogTitle></DialogHeader>
+        <p className="text-xs text-muted-foreground">Cannot be edited or deleted after creation.</p>
         <div className="space-y-3">
           <Select value={form.category} onValueChange={v => setForm(f => ({ ...f, category: v }))}>
             <SelectTrigger><SelectValue placeholder="Category" /></SelectTrigger>
@@ -201,7 +207,7 @@ const AddExpenseDialog = ({ open, onClose, players }: { open: boolean; onClose: 
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={handleSubmit} disabled={!form.category || !form.amount || create.isPending}>Add</Button>
+          <Button onClick={handleSubmit} disabled={!form.category || !form.amount || create.isPending}>Record</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
