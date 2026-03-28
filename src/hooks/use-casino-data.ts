@@ -153,6 +153,7 @@ export const useCreateTransaction = () => {
       type: "buy" | "cashout";
       amount: number;
       chips?: Record<string, number>;
+      shift_id?: string;
     }) => {
       if (!casinoId || !user) throw new Error("Not authenticated");
       const { data, error } = await supabase
@@ -165,7 +166,8 @@ export const useCreateTransaction = () => {
           amount: input.amount,
           chips: input.chips || null,
           operator_id: user.id,
-        })
+          shift_id: input.shift_id || null,
+        } as any)
         .select()
         .single();
       if (error) throw error;
