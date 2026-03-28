@@ -1,0 +1,111 @@
+import { useState, useRef, useEffect, useMemo } from "react";
+import { Input } from "@/components/ui/input";
+
+interface Player {
+  id: string;
+  first_name: string;
+  last_name: string;
+  nickname: string;
+  player_cards?: { card_number: string }[];
+}
+
+interface PlayerSearchProps {
+  players: Player[];
+  value: string;
+  onChange: (id: string) => void;
+  placeholder?: string;
+  autoFocus?: boolean;
+}
+
+const PlayerSearch = ({ players, value, onChange, placeholder = "Search player…", autoFocus }: PlayerSearchProps) => {
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [highlightIdx, setHighlightIdx] = useState(0);
+
+  const selected = players.find(p => p.id === value);
+
+  const filtered = useMemo(() => {
+    if (!query) return players.slice(0, 20);
+    const q = query.toLowerCase();
+    return players.filter(p => {
+      const name = `${p.first_name} ${p.last_name} ${p.nickname}`.toLowerCase();
+      const cards = p.player_cards?.map(c => c.card_number).join(" ") || "";
+      return name.includes(q) || cards.toLowerCase().includes(q);
+    }).slice(0, 20);
+  }, [query, players]);
+
+  useEffect(() => setHighlightIdx(0), [filtered]);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const handleSelect = (id: string) => {
+    onChange(id);
+    setOpen(false);
+    setQuery("");
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "ArrowDown") { e.preventDefault(); setHighlightIdx(i => Math.min(i + 1, filtered.length - 1)); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); setHighlightIdx(i => Math.max(i - 1, 0)); }
+    else if (e.key === "Enter" && filtered[highlightIdx]) { e.preventDefault(); handleSelect(filtered[highlightIdx].id); }
+    else if (e.key === "Escape") { setOpen(false); }
+  };
+
+  return (
+    <div ref={ref} className="relative">
+      {selected && !open ? (
+        <button
+          onClick={() => { onChange(""); setOpen(true); setTimeout(() => inputRef.current?.focus(), 50); }}
+          className="w-full text-left flex items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background hover:bg-muted/50 transition-colors"
+        >
+          <span className="font-medium text-card-foreground">{selected.first_name} {selected.last_name}</span>
+          <span className="text-xs text-muted-foreground">{selected.nickname || ""}</span>
+        </button>
+      ) : (
+        <Input
+          ref={inputRef}
+          autoFocus={autoFocus}
+          value={query}
+          onChange={e => { setQuery(e.target.value); setOpen(true); }}
+          onFocus={() => setOpen(true)}
+          onKeyDown={handleKeyDown}
+          placeholder={placeholder}
+          className="font-mono"
+        />
+      )}
+      {open && filtered.length > 0 && (
+        <div className="absolute z-50 w-full mt-1 max-h-48 overflow-y-auto rounded-md border border-border bg-popover shadow-lg">
+          {filtered.map((p, i) => (
+            <button
+              key={p.id}
+              onClick={() => handleSelect(p.id)}
+              className={`w-full text-left px-3 py-1.5 text-sm flex items-center justify-between transition-colors ${
+                i === highlightIdx ? "bg-accent text-accent-foreground" : "text-popover-foreground hover:bg-muted/50"
+              }`}
+            >
+              <span>{p.first_name} {p.last_name}</span>
+              <span className="text-[10px] font-mono text-muted-foreground">
+                {p.player_cards?.[0]?.card_number || ""}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+      {open && filtered.length === 0 && query && (
+        <div className="absolute z-50 w-full mt-1 rounded-md border border-border bg-popover p-3 text-center text-xs text-muted-foreground">
+          No players found
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default PlayerSearch;
