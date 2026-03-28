@@ -192,13 +192,17 @@ const BreaklistGrid = ({ date }: { date: string }) => {
                                   <p className="text-[8px] text-muted-foreground uppercase px-1">Assign to table</p>
                                   {openTables.map(t => {
                                     const roles = TABLE_ROLES[t.game] || [];
+                                    const roleSuffixMap: Record<string, string> = {
+                                      ARi: "I", ARc: "C", AR1i: "I", AR1c: "C",
+                                      Pi: "I", BJi: "I",
+                                    };
                                     return (
                                       <div key={t.id} className="flex items-center gap-0.5 px-1">
                                         <span className="text-[9px] font-mono text-card-foreground min-w-[28px]">{t.name}</span>
                                         {roles.map(r => (
                                           <button key={r} onClick={() => handleRoleSelect(r, t.id)}
                                             className={`px-1 py-0.5 rounded text-[8px] font-mono font-bold ${ROLE_COLORS[r] || ""} hover:opacity-80`}>
-                                            {r}
+                                            {t.name}{roleSuffixMap[r] || ""}
                                           </button>
                                         ))}
                                       </div>
