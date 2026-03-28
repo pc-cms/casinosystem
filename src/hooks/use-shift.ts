@@ -30,7 +30,7 @@ export const useOpenShift = () => {
   return useMutation({
     mutationFn: async (input: {
       exchange_rates: Record<string, number>;
-      opening_float: Record<string, number>;
+      opening_float: Record<string, any>;
     }) => {
       if (!casinoId || !user) throw new Error("Not authenticated");
       const { data, error } = await supabase
@@ -119,7 +119,7 @@ export const useCreateCashCount = () => {
       shift_id: string;
       count_type: "opening" | "closing" | "check";
       currency: string;
-      denominations: Record<string, number>;
+      denominations: Record<string, any>;
       total: number;
     }) => {
       if (!casinoId || !user) throw new Error("Not authenticated");
