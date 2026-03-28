@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, CheckCircle, TrendingUp } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
+import { formatCurrency } from "@/lib/currency";
 
 const CATS = [
   { value: "food", label: "Food" }, { value: "alcohol", label: "Alcohol" },

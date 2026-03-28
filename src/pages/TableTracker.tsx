@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { useGamingTables, useTableTracker, useSetTableTrackerValue } from "@/hooks/use-casino-data";
 import { Input } from "@/components/ui/input";
+import { formatCurrency } from "@/lib/currency";
 
 // Time slots: every 30 min from 14:00 to 06:00
 const generateSlots = () => {

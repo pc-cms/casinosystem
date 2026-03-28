@@ -5,12 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowDownToLine, ArrowUpFromLine } from "lucide-react";
-
-const CHIP_COLORS: Record<number, string> = {
-  5: "bg-red-600 text-white", 25: "bg-green-600 text-white",
-  100: "bg-black text-white border border-white/20", 500: "bg-purple-600 text-white",
-  1000: "bg-yellow-500 text-black", 5000: "bg-orange-500 text-white",
-};
+import { CHIP_DENOMS, CHIP_COLORS, formatChipLabel, formatCurrency } from "@/lib/currency";
 
 const Cage = () => {
   const { data: players = [] } = usePlayers();
@@ -66,7 +61,7 @@ const Cage = () => {
                   <td className="px-4 py-2 text-sm text-card-foreground">{(tx as any).players?.first_name} {(tx as any).players?.last_name}</td>
                   <td className="px-4 py-2 text-sm text-muted-foreground">{(tx as any).gaming_tables?.name || "—"}</td>
                   <td className={`px-4 py-2 text-right font-mono text-sm font-medium ${tx.type === "buy" ? "cms-amount-negative" : "cms-amount-positive"}`}>
-                    €{Number(tx.amount).toLocaleString()}
+                    {formatCurrency(Number(tx.amount))}
                   </td>
                   <td className="px-4 py-2 text-right font-mono text-xs text-muted-foreground">
                     {new Date(tx.created_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
@@ -109,7 +104,7 @@ const BuyInForm = ({ players, tables, onSubmit, loading }: any) => {
         </Select>
       </div>
       <div>
-        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">Amount (€)</label>
+        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">Amount (TZS)</label>
         <Input type="number" min={0} value={amount} onChange={e => setAmount(e.target.value)} className="font-mono" placeholder="0"
           onKeyDown={e => e.key === "Enter" && handleSubmit()} />
       </div>
@@ -123,7 +118,6 @@ const BuyInForm = ({ players, tables, onSubmit, loading }: any) => {
 const CashoutForm = ({ players, onSubmit, loading }: any) => {
   const [playerId, setPlayerId] = useState("");
   const [chips, setChips] = useState<Record<number, number>>({});
-  const denoms = [5, 25, 100, 500, 1000, 5000];
   const total = Object.entries(chips).reduce((sum, [d, c]) => sum + Number(d) * (c || 0), 0);
 
   const handleSubmit = () => {
@@ -133,7 +127,7 @@ const CashoutForm = ({ players, onSubmit, loading }: any) => {
   };
 
   return (
-    <div className="cms-panel p-4 space-y-4 max-w-md">
+    <div className="cms-panel p-4 space-y-4 max-w-lg">
       <div>
         <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">Player</label>
         <Select value={playerId} onValueChange={setPlayerId}>
@@ -143,19 +137,19 @@ const CashoutForm = ({ players, onSubmit, loading }: any) => {
       </div>
       <div>
         <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2 block">Chip Count</label>
-        <div className="grid grid-cols-3 gap-2">
-          {denoms.map(d => (
-            <div key={d} className="flex items-center gap-2">
-              <span className={`cms-chip ${CHIP_COLORS[d] || ""}`}>€{d}</span>
+        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+          {CHIP_DENOMS.map(d => (
+            <div key={d} className="flex items-center gap-1.5">
+              <span className={`cms-chip text-[9px] min-w-[40px] text-center ${CHIP_COLORS[d] || ""}`}>{formatChipLabel(d)}</span>
               <Input type="number" min={0} value={chips[d] || ""} onChange={e => setChips(c => ({ ...c, [d]: Number(e.target.value) || 0 }))}
-                className="font-mono w-16 h-8 text-xs" placeholder="0" />
+                className="font-mono w-14 h-8 text-xs" placeholder="0" />
             </div>
           ))}
         </div>
       </div>
       <div className="cms-panel p-3 text-center">
         <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Total</p>
-        <p className="text-2xl font-mono font-bold cms-amount-positive">€{total.toLocaleString()}</p>
+        <p className="text-2xl font-mono font-bold cms-amount-positive">{formatCurrency(total)}</p>
       </div>
       <Button onClick={handleSubmit} disabled={!playerId || total <= 0 || loading} className="w-full">
         <ArrowUpFromLine className="w-4 h-4 mr-1.5" /> Confirm Cashout
