@@ -57,15 +57,15 @@ const Expenses = () => {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
         <div className="cms-panel p-3">
           <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Total</p>
-          <p className="font-mono text-lg font-bold text-card-foreground">€{analytics.totalAmount.toLocaleString()}</p>
+          <p className="font-mono text-lg font-bold text-card-foreground">{formatCurrency(analytics.totalAmount)}</p>
         </div>
         <div className="cms-panel p-3">
           <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Approved</p>
-          <p className="font-mono text-lg font-bold text-emerald-400">€{analytics.approvedAmount.toLocaleString()}</p>
+          <p className="font-mono text-lg font-bold text-emerald-400">{formatCurrency(analytics.approvedAmount)}</p>
         </div>
         <div className="cms-panel p-3">
           <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Pending</p>
-          <p className="font-mono text-lg font-bold text-yellow-400">€{analytics.pendingAmount.toLocaleString()}</p>
+          <p className="font-mono text-lg font-bold text-yellow-400">{formatCurrency(analytics.pendingAmount)}</p>
         </div>
         <div className="cms-panel p-3">
           <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Categories</p>

@@ -85,7 +85,7 @@ const TableTracker = () => {
                     );
                   })}
                   <td className="px-3 py-1 text-right font-mono text-xs font-bold text-card-foreground">
-                    €{getTableTotal(table.id).toLocaleString()}
+                    {formatCurrency(getTableTotal(table.id))}
                   </td>
                 </tr>
               ))}
@@ -95,11 +95,11 @@ const TableTracker = () => {
                 <td className="px-3 py-2 text-xs font-bold text-card-foreground uppercase sticky left-0 bg-muted/30 z-10">Totals</td>
                 {SLOTS.map(slot => (
                   <td key={slot} className="px-1 py-2 text-center font-mono text-[10px] font-bold text-card-foreground">
-                    {getSlotTotal(slot) ? `€${getSlotTotal(slot).toLocaleString()}` : "·"}
+                    {getSlotTotal(slot) ? formatCurrency(getSlotTotal(slot)) : "·"}
                   </td>
                 ))}
                 <td className="px-3 py-2 text-right font-mono text-sm font-bold text-primary">
-                  €{grandTotal.toLocaleString()}
+                  {formatCurrency(grandTotal)}
                 </td>
               </tr>
             </tbody>
