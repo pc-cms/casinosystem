@@ -1,5 +1,6 @@
 import { usePlayerEconomy, usePlayers } from "@/hooks/use-casino-data";
 import { Badge } from "@/components/ui/badge";
+import { formatCurrency } from "@/lib/currency";
 
 const Stats = () => {
   const { data: economy = [] } = usePlayerEconomy();
@@ -36,12 +37,12 @@ const Stats = () => {
                   {p.nickname && <span className="text-xs text-muted-foreground ml-2">({p.nickname})</span>}
                 </td>
                 <td className="px-4 py-3"><div className="flex gap-1">{p.tags.map(t => <Badge key={t} variant="outline" className="text-[10px] font-mono">{t}</Badge>)}</div></td>
-                <td className="px-4 py-3 text-right font-mono text-sm text-card-foreground">€{Number(p.total_drop).toLocaleString()}</td>
-                <td className="px-4 py-3 text-right font-mono text-sm text-card-foreground">€{Number(p.total_cashout).toLocaleString()}</td>
-                <td className="px-4 py-3 text-right font-mono text-sm text-card-foreground">€{Number(p.total_expenses).toLocaleString()}</td>
+                <td className="px-4 py-3 text-right font-mono text-sm text-card-foreground">{formatCurrency(Number(p.total_drop))}</td>
+                <td className="px-4 py-3 text-right font-mono text-sm text-card-foreground">{formatCurrency(Number(p.total_cashout))}</td>
+                <td className="px-4 py-3 text-right font-mono text-sm text-card-foreground">{formatCurrency(Number(p.total_expenses))}</td>
                 <td className="px-4 py-3 text-right">
                   <span className={`font-mono text-sm font-bold ${Number(p.real_result) >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
-                    {Number(p.real_result) >= 0 ? "+" : ""}€{Number(p.real_result).toLocaleString()}
+                    {Number(p.real_result) >= 0 ? "+" : ""}{formatCurrency(Number(p.real_result))}
                   </span>
                 </td>
               </tr>

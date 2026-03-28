@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { usePlayerGroups, useCreateGroup, useAddGroupMember, useRemoveGroupMember, usePlayers, usePlayerEconomy, useTransactions, useExpenses } from "@/hooks/use-casino-data";
+import { formatCurrency } from "@/lib/currency";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -110,12 +111,12 @@ const Groups = () => {
               </div>
 
               <div className="px-4 py-3 grid grid-cols-4 gap-3 border-b border-border">
-                <div><p className="text-[10px] uppercase text-muted-foreground">Drop</p><p className="font-mono text-sm font-bold text-card-foreground">€{stats.drop.toLocaleString()}</p></div>
-                <div><p className="text-[10px] uppercase text-muted-foreground">Cashout</p><p className="font-mono text-sm font-bold text-card-foreground">€{stats.cashout.toLocaleString()}</p></div>
-                <div><p className="text-[10px] uppercase text-muted-foreground">Expenses</p><p className="font-mono text-sm font-bold text-card-foreground">€{stats.expenses.toLocaleString()}</p></div>
+                <div><p className="text-[10px] uppercase text-muted-foreground">Drop</p><p className="font-mono text-sm font-bold text-card-foreground">{formatCurrency(stats.drop)}</p></div>
+                <div><p className="text-[10px] uppercase text-muted-foreground">Cashout</p><p className="font-mono text-sm font-bold text-card-foreground">{formatCurrency(stats.cashout)}</p></div>
+                <div><p className="text-[10px] uppercase text-muted-foreground">Expenses</p><p className="font-mono text-sm font-bold text-card-foreground">{formatCurrency(stats.expenses)}</p></div>
                 <div><p className="text-[10px] uppercase text-muted-foreground">Result</p>
                   <p className={`font-mono text-sm font-bold ${stats.result >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
-                    €{stats.result.toLocaleString()}
+                    {formatCurrency(stats.result)}
                   </p>
                 </div>
               </div>
@@ -130,9 +131,9 @@ const Groups = () => {
                         <span className="text-[10px] text-muted-foreground">joined {new Date(m.joined_at).toLocaleDateString("en-GB")}</span>
                       </div>
                       <div className="flex items-center gap-3">
-                        <span className="font-mono text-[10px] text-muted-foreground">Drop: €{Number(pe?.total_drop || 0).toLocaleString()}</span>
+                        <span className="font-mono text-[10px] text-muted-foreground">Drop: {formatCurrency(Number(pe?.total_drop || 0))}</span>
                         <span className={`font-mono text-[10px] ${Number(pe?.real_result || 0) >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                          Result: €{Number(pe?.real_result || 0).toLocaleString()}
+                          Result: {formatCurrency(Number(pe?.real_result || 0))}
                         </span>
                         {isManager && (
                           <button onClick={() => removeMember.mutate(m.id)} className="text-muted-foreground hover:text-destructive"><X className="w-3 h-3" /></button>

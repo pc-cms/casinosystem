@@ -177,7 +177,7 @@ export const useCreateTransaction = () => {
     onSuccess: (_, vars) => {
       qc.invalidateQueries({ queryKey: ["transactions"] });
       qc.invalidateQueries({ queryKey: ["player-economy"] });
-      toast.success(`${vars.type === "buy" ? "Buy-in" : "Cashout"} recorded: €${vars.amount}`);
+      toast.success(`${vars.type === "buy" ? "Buy-in" : "Cashout"} recorded: TZS ${vars.amount.toLocaleString()}`);
     },
     onError: (e) => toast.error(e.message),
   });

@@ -2,6 +2,7 @@ import { Users, Landmark, Table2, Receipt, ArrowUpRight, ArrowDownRight } from "
 import { usePlayers, useTransactions, useGamingTables, useExpenses } from "@/hooks/use-casino-data";
 import { useAuth } from "@/lib/auth-context";
 import { Link } from "react-router-dom";
+import { formatCurrency } from "@/lib/currency";
 
 const StatCard = ({ label, value, icon: Icon, href, trend }: {
   label: string; value: string | number; icon: any; href: string;
@@ -49,7 +50,7 @@ const Dashboard = () => {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <StatCard label="Active Players" value={activePlayers} icon={Users} href="/players" />
-        <StatCard label="Total Drop" value={`€${totalDrop.toLocaleString()}`} icon={Landmark} href="/cage" />
+        <StatCard label="Total Drop" value={formatCurrency(totalDrop)} icon={Landmark} href="/cage" />
         <StatCard label="Open Tables" value={`${openTables}/${tables.length}`} icon={Table2} href="/tables" />
         <StatCard label="Pending Expenses" value={pendingExpenses} icon={Receipt} href="/expenses" />
       </div>
@@ -73,7 +74,7 @@ const Dashboard = () => {
                       </span>
                     </div>
                     <span className={`font-mono text-sm font-medium ${tx.type === "buy" ? "cms-amount-negative" : "cms-amount-positive"}`}>
-                      {tx.type === "buy" ? "-" : "+"}€{Number(tx.amount).toLocaleString()}
+                      {tx.type === "buy" ? "-" : "+"}{formatCurrency(Number(tx.amount))}
                     </span>
                   </div>
                 ))}
@@ -92,7 +93,7 @@ const Dashboard = () => {
                   <span className="text-sm font-medium text-card-foreground">{table.name}</span>
                   <span className="text-xs text-muted-foreground">{table.game}</span>
                 </div>
-                <span className="font-mono text-xs text-muted-foreground">€{Number(table.float_amount).toLocaleString()}</span>
+                <span className="font-mono text-xs text-muted-foreground">{formatCurrency(Number(table.float_amount))}</span>
               </div>
             ))}
             {tables.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">No tables configured</p>}
