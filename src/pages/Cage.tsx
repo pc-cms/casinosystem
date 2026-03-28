@@ -619,8 +619,15 @@ const CloseShiftDialog = ({ open, onClose, shift, expectedBalance, cashResult, t
         bank: bankBal, mobile: mobileBal,
         totals: { TZS: chipTotal, USD: usdTotal, EUR: eurTotal, bank: bankBal, mobile: mobileBal, total_tzs: totalTzs },
       },
-      closingCash: { expected: expectedBalance, actual: totalTzs, difference: diff, table_readiness: tableReady },
-      notes: `${notes}${diff !== 0 ? ` | DIFF: ${diff >= 0 ? "+" : ""}${diff.toLocaleString()} TZS` : " | BALANCED"}${totalMissValue !== 0 ? ` | MISS: ${totalMissValue >= 0 ? "+" : ""}${totalMissValue.toLocaleString()} TZS` : ""}`,
+      closingCash: {
+        expected: expectedBalance,
+        actual: totalTzs,
+        difference: diff,
+        cash_result: cashResult,
+        shift_result: shiftResult,
+        table_readiness: tableReady,
+      },
+      notes: `${notes} | CASH: ${cashResult >= 0 ? "+" : ""}${cashResult?.toLocaleString()} | MISS: ${totalMissValue >= 0 ? "+" : ""}${totalMissValue.toLocaleString()} | RESULT: ${shiftResult >= 0 ? "+" : ""}${shiftResult.toLocaleString()} | DIFF: ${diff >= 0 ? "+" : ""}${diff.toLocaleString()} TZS`.trim(),
     });
   };
 
