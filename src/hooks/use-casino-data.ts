@@ -370,8 +370,18 @@ export const useSetPitRota = () => {
       }, { onConflict: "dealer_id,date" });
       if (error) throw error;
       await logAction(casinoId, "pit", "ROTA_SET", input);
+
+      // If S or A shift, log the auto-clear
+      if (input.shift === "S" || input.shift === "A") {
+        await logAction(casinoId, "breaklist", "AUTO_CLEARED", { 
+          dealer_id: input.dealer_id, date: input.date, reason: `Shift set to ${input.shift}` 
+        });
+      }
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["pit-rota"] }); },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["pit-rota"] });
+      qc.invalidateQueries({ queryKey: ["breaklist"] }); // S/A may clear breaklist
+    },
   });
 };
 
@@ -406,7 +416,18 @@ export const useSetBreaklistCell = () => {
       table_id: string | null;
     }) => {
       if (!casinoId || !user) throw new Error("Not authenticated");
-      const { error } = await supabase.from("breaklist").upsert({
+      
+      // Get existing cell for logging
+      const { data: existing } = await supabase
+        .from("breaklist")
+        .select("id, role, table_id")
+        .eq("casino_id", casinoId)
+        .eq("date", input.date)
+        .eq("dealer_id", input.dealer_id)
+        .eq("time_slot", input.time_slot)
+        .maybeSingle();
+
+      const { data: cell, error } = await supabase.from("breaklist").upsert({
         casino_id: casinoId,
         date: input.date,
         dealer_id: input.dealer_id,
@@ -415,8 +436,24 @@ export const useSetBreaklistCell = () => {
         table_id: input.table_id,
         created_by: user.id,
         updated_by: user.id,
-      }, { onConflict: "casino_id,date,dealer_id,time_slot" });
+      }, { onConflict: "casino_id,date,dealer_id,time_slot" }).select().single();
       if (error) throw error;
+
+      // Log to breaklist_logs
+      await supabase.from("breaklist_logs").insert({
+        casino_id: casinoId,
+        breaklist_id: cell.id,
+        dealer_id: input.dealer_id,
+        date: input.date,
+        time_slot: input.time_slot,
+        action: existing ? "CELL_UPDATED" : "CELL_CREATED",
+        old_role: existing?.role || null,
+        new_role: input.role,
+        old_table_id: existing?.table_id || null,
+        new_table_id: input.table_id,
+        operator_id: user.id,
+      });
+
       await logAction(casinoId, "breaklist", "CELL_SET", input);
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["breaklist"] }); },
