@@ -204,6 +204,56 @@ export const useGamingTables = () => {
   });
 };
 
+export const useCloseTable = () => {
+  const qc = useQueryClient();
+  const { casinoId, user } = useAuth();
+  return useMutation({
+    mutationFn: async (input: {
+      table_id: string;
+      closing_chips: Record<number, number>;
+      result: number;
+    }) => {
+      if (!casinoId || !user) throw new Error("Not authenticated");
+      const { error } = await supabase
+        .from("gaming_tables")
+        .update({ status: "closed" as any })
+        .eq("id", input.table_id);
+      if (error) throw error;
+      await logAction(casinoId, "system", "TABLE_CLOSED", {
+        table_id: input.table_id,
+        closing_chips: input.closing_chips,
+        result: input.result,
+      });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["gaming-tables"] });
+      toast.success("Table closed");
+    },
+    onError: (e) => toast.error(e.message),
+  });
+};
+
+export const useReopenTable = () => {
+  const qc = useQueryClient();
+  const { casinoId, user } = useAuth();
+  return useMutation({
+    mutationFn: async (tableId: string) => {
+      if (!casinoId || !user) throw new Error("Not authenticated");
+      const { error } = await supabase
+        .from("gaming_tables")
+        .update({ status: "open" as any })
+        .eq("id", tableId);
+      if (error) throw error;
+      await logAction(casinoId, "system", "TABLE_REOPENED", { table_id: tableId });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["gaming-tables"] });
+      toast.success("Table reopened");
+    },
+    onError: (e) => toast.error(e.message),
+  });
+};
+
 // ============ EXPENSES ============
 export const useExpenses = () => {
   const { casinoId } = useAuth();
