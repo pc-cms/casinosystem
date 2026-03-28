@@ -192,6 +192,57 @@ export type Database = {
           },
         ]
       }
+      cash_counts: {
+        Row: {
+          casino_id: string
+          count_type: string
+          counted_by: string
+          created_at: string
+          currency: string
+          denominations: Json
+          id: string
+          shift_id: string
+          total: number
+        }
+        Insert: {
+          casino_id: string
+          count_type: string
+          counted_by: string
+          created_at?: string
+          currency?: string
+          denominations?: Json
+          id?: string
+          shift_id: string
+          total?: number
+        }
+        Update: {
+          casino_id?: string
+          count_type?: string
+          counted_by?: string
+          created_at?: string
+          currency?: string
+          denominations?: Json
+          id?: string
+          shift_id?: string
+          total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cash_counts_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cash_counts_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "shifts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       casinos: {
         Row: {
           code: string
@@ -366,6 +417,7 @@ export type Database = {
           description: string
           id: string
           player_id: string | null
+          shift_id: string | null
         }
         Insert: {
           amount: number
@@ -379,6 +431,7 @@ export type Database = {
           description?: string
           id?: string
           player_id?: string | null
+          shift_id?: string | null
         }
         Update: {
           amount?: number
@@ -392,6 +445,7 @@ export type Database = {
           description?: string
           id?: string
           player_id?: string | null
+          shift_id?: string | null
         }
         Relationships: [
           {
@@ -413,6 +467,13 @@ export type Database = {
             columns: ["player_id"]
             isOneToOne: false
             referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "shifts"
             referencedColumns: ["id"]
           },
         ]
@@ -756,6 +817,62 @@ export type Database = {
           },
         ]
       }
+      shifts: {
+        Row: {
+          casino_id: string
+          closed_at: string | null
+          closed_by: string | null
+          closing_cash: Json | null
+          closing_count: Json | null
+          created_at: string
+          exchange_rates: Json
+          id: string
+          notes: string | null
+          opened_at: string
+          opened_by: string
+          opening_float: Json | null
+          status: string
+        }
+        Insert: {
+          casino_id: string
+          closed_at?: string | null
+          closed_by?: string | null
+          closing_cash?: Json | null
+          closing_count?: Json | null
+          created_at?: string
+          exchange_rates?: Json
+          id?: string
+          notes?: string | null
+          opened_at?: string
+          opened_by: string
+          opening_float?: Json | null
+          status?: string
+        }
+        Update: {
+          casino_id?: string
+          closed_at?: string | null
+          closed_by?: string | null
+          closing_cash?: Json | null
+          closing_count?: Json | null
+          created_at?: string
+          exchange_rates?: Json
+          id?: string
+          notes?: string | null
+          opened_at?: string
+          opened_by?: string
+          opening_float?: Json | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shifts_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       table_tracker: {
         Row: {
           casino_id: string
@@ -831,6 +948,7 @@ export type Database = {
           id: string
           operator_id: string
           player_id: string
+          shift_id: string | null
           table_id: string | null
           type: Database["public"]["Enums"]["transaction_type"]
         }
@@ -842,6 +960,7 @@ export type Database = {
           id?: string
           operator_id: string
           player_id: string
+          shift_id?: string | null
           table_id?: string | null
           type: Database["public"]["Enums"]["transaction_type"]
         }
@@ -853,6 +972,7 @@ export type Database = {
           id?: string
           operator_id?: string
           player_id?: string
+          shift_id?: string | null
           table_id?: string | null
           type?: Database["public"]["Enums"]["transaction_type"]
         }
@@ -876,6 +996,13 @@ export type Database = {
             columns: ["player_id"]
             isOneToOne: false
             referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "shifts"
             referencedColumns: ["id"]
           },
           {
