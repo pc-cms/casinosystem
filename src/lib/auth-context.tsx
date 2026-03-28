@@ -93,15 +93,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return { error: error?.message ?? null };
   };
 
-  const signUp = async (email: string, password: string, name: string) => {
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { display_name: name }, emailRedirectTo: window.location.origin },
-    });
-    return { error: error?.message ?? null };
-  };
-
   const signOut = async () => {
     await supabase.auth.signOut();
   };
