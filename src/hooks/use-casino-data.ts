@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { logAction } from "@/lib/logging";
+import { offlineMutation } from "@/lib/offline-mutation";
 import { toast } from "sonner";
 
 // ============ PLAYERS ============
@@ -156,30 +157,39 @@ export const useCreateTransaction = () => {
       shift_id?: string;
     }) => {
       if (!casinoId || !user) throw new Error("Not authenticated");
-      const { data, error } = await supabase
-        .from("transactions")
-        .insert({
-          casino_id: casinoId,
-          player_id: input.player_id,
-          table_id: input.table_id,
-          type: input.type,
-          amount: input.amount,
-          chips: input.chips || null,
-          operator_id: user.id,
-          shift_id: input.shift_id || null,
-        } as any)
-        .select()
-        .single();
-      if (error) throw error;
-      await logAction(casinoId, "transaction", input.type === "buy" ? "BUY_IN" : "CASHOUT", {
-        player_id: input.player_id, amount: input.amount, table_id: input.table_id,
+      const payload = {
+        casino_id: casinoId,
+        player_id: input.player_id,
+        table_id: input.table_id,
+        type: input.type,
+        amount: input.amount,
+        chips: input.chips || null,
+        operator_id: user.id,
+        shift_id: input.shift_id || null,
+      };
+
+      const result = await offlineMutation({
+        table: "transactions",
+        operation: "insert",
+        payload,
+        meta: { type: input.type, amount: input.amount },
       });
-      return data;
+
+      if (result.error) throw new Error(result.error);
+
+      if (!result.offline) {
+        await logAction(casinoId, "transaction", input.type === "buy" ? "BUY_IN" : "CASHOUT", {
+          player_id: input.player_id, amount: input.amount, table_id: input.table_id,
+        });
+      }
+      return { offline: result.offline };
     },
-    onSuccess: (_, vars) => {
+    onSuccess: (res, vars) => {
       qc.invalidateQueries({ queryKey: ["transactions"] });
       qc.invalidateQueries({ queryKey: ["player-economy"] });
-      toast.success(`${vars.type === "buy" ? "Buy-in" : "Cashout"} recorded: TZS ${vars.amount.toLocaleString()}`);
+      if (!res.offline) {
+        toast.success(`${vars.type === "buy" ? "Buy-in" : "Cashout"} recorded: TZS ${vars.amount.toLocaleString()}`);
+      }
     },
     onError: (e) => toast.error(e.message),
   });
@@ -293,7 +303,7 @@ export const useCreateExpense = () => {
       shift_id?: string | null;
     }) => {
       if (!casinoId || !user) throw new Error("Not authenticated");
-      const { error } = await supabase.from("expenses").insert({
+      const payload = {
         casino_id: casinoId,
         category: input.category as any,
         amount: input.amount,
@@ -301,11 +311,26 @@ export const useCreateExpense = () => {
         player_id: input.player_id,
         shift_id: input.shift_id || null,
         created_by: user.id,
+      };
+
+      const result = await offlineMutation({
+        table: "expenses",
+        operation: "insert",
+        payload,
+        meta: { category: input.category, amount: input.amount },
       });
-      if (error) throw error;
-      await logAction(casinoId, "expense", "EXPENSE_CREATED", { category: input.category, amount: input.amount });
+
+      if (result.error) throw new Error(result.error);
+
+      if (!result.offline) {
+        await logAction(casinoId, "expense", "EXPENSE_CREATED", { category: input.category, amount: input.amount });
+      }
+      return { offline: result.offline };
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["expenses"] }); toast.success("Expense recorded"); },
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ["expenses"] });
+      if (!res.offline) toast.success("Expense recorded");
+    },
     onError: (e) => toast.error(e.message),
   });
 };
@@ -566,15 +591,24 @@ export const useSetTableTrackerValue = () => {
   return useMutation({
     mutationFn: async (input: { table_id: string; date: string; time_slot: string; value: number }) => {
       if (!casinoId || !user) throw new Error("Not authenticated");
-      const { error } = await supabase.from("table_tracker").upsert({
+      const payload = {
         casino_id: casinoId,
         table_id: input.table_id,
         date: input.date,
         time_slot: input.time_slot,
         value: input.value,
         recorded_by: user.id,
-      }, { onConflict: "table_id,date,time_slot" });
-      if (error) throw error;
+      };
+
+      const result = await offlineMutation({
+        table: "table_tracker",
+        operation: "upsert",
+        payload,
+        upsertConflict: "table_id,date,time_slot",
+      });
+
+      if (result.error) throw new Error(result.error);
+      return { offline: result.offline };
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["table-tracker"] }); },
   });
