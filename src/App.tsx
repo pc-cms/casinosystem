@@ -17,13 +17,31 @@ import Stats from "@/pages/Stats";
 import Pit from "@/pages/Pit";
 import Groups from "@/pages/Groups";
 import TableTracker from "@/pages/TableTracker";
+import Admin from "@/pages/Admin";
 import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 30, // 30s
+      refetchOnWindowFocus: true,
+      retry: 1,
+    },
+  },
+});
 
 const ProtectedRoutes = () => {
   const { user, loading } = useAuth();
-  if (loading) return <div className="min-h-screen flex items-center justify-center bg-background"><p className="text-muted-foreground font-mono">Loading...</p></div>;
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-muted-foreground font-mono text-sm">Loading CMS...</p>
+        </div>
+      </div>
+    );
+  }
   if (!user) return <Navigate to="/login" replace />;
   return (
     <Routes>
@@ -38,6 +56,7 @@ const ProtectedRoutes = () => {
         <Route path="/tracker" element={<TableTracker />} />
         <Route path="/stats" element={<Stats />} />
         <Route path="/logs" element={<Logs />} />
+        <Route path="/admin" element={<Admin />} />
       </Route>
       <Route path="*" element={<NotFound />} />
     </Routes>
