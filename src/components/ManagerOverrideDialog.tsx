@@ -14,8 +14,8 @@ interface ManagerOverrideDialogProps {
   onConfirm: (managerId: string) => void;
   title?: string;
   description?: string;
-  actionType?: string; // For logging: "EDIT_LOCKED_CELL", "APPROVE_EXPENSE", etc.
-  actionDetails?: Record<string, any>; // Extra details to log
+  actionType?: string;
+  actionDetails?: Record<string, any>;
 }
 
 const ManagerOverrideDialog = ({
@@ -27,55 +27,42 @@ const ManagerOverrideDialog = ({
   actionType = "MANAGER_OVERRIDE",
   actionDetails = {},
 }: ManagerOverrideDialogProps) => {
-  const { user, casinoId } = useAuth();
+  const { casinoId } = useAuth();
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rfid, setRfid] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [method, setMethod] = useState<"password" | "rfid">("password");
-  const passwordRef = useRef<HTMLInputElement>(null);
+  const emailRef = useRef<HTMLInputElement>(null);
   const rfidRef = useRef<HTMLInputElement>(null);
 
-  // Auto-focus on open
   useEffect(() => {
     if (open) {
+      setEmail("");
       setPassword("");
       setRfid("");
       setError("");
       setTimeout(() => {
-        if (method === "password") passwordRef.current?.focus();
+        if (method === "password") emailRef.current?.focus();
         else rfidRef.current?.focus();
       }, 100);
     }
   }, [open, method]);
 
   const handlePasswordAuth = async () => {
-    if (!user?.email || !password) return;
+    if (!email || !password) return;
     setLoading(true);
     setError("");
 
     try {
-      // Re-authenticate to verify password
-      const { error: authError } = await supabase.auth.signInWithPassword({
-        email: user.email,
-        password,
+      // Call edge function to verify manager credentials without affecting current session
+      const { data, error: fnError } = await supabase.functions.invoke("verify-manager", {
+        body: { email, password },
       });
 
-      if (authError) {
-        setError("Invalid password");
-        setLoading(false);
-        return;
-      }
-
-      // Verify manager role
-      const { data: roles } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id);
-
-      const isManager = roles?.some(r => r.role === "manager");
-      if (!isManager) {
-        setError("You do not have manager privileges");
+      if (fnError || !data?.manager_id) {
+        setError(data?.error || "Invalid credentials");
         setLoading(false);
         return;
       }
@@ -84,13 +71,15 @@ const ManagerOverrideDialog = ({
       if (casinoId) {
         await logAction(casinoId, "system", actionType, {
           ...actionDetails,
-          manager_id: user.id,
+          manager_id: data.manager_id,
+          manager_name: data.display_name,
           auth_method: "password",
         });
       }
 
+      setEmail("");
       setPassword("");
-      onConfirm(user.id);
+      onConfirm(data.manager_id);
     } catch {
       setError("Authentication failed");
     } finally {
@@ -104,7 +93,6 @@ const ManagerOverrideDialog = ({
     setError("");
 
     try {
-      // Look up profile by RFID tag
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select("user_id, display_name")
@@ -117,7 +105,6 @@ const ManagerOverrideDialog = ({
         return;
       }
 
-      // Verify the RFID user has manager role
       const { data: roles } = await supabase
         .from("user_roles")
         .select("role")
@@ -130,7 +117,6 @@ const ManagerOverrideDialog = ({
         return;
       }
 
-      // Log the override action
       if (casinoId) {
         await logAction(casinoId, "system", actionType, {
           ...actionDetails,
@@ -150,6 +136,7 @@ const ManagerOverrideDialog = ({
   };
 
   const handleClose = () => {
+    setEmail("");
     setPassword("");
     setRfid("");
     setError("");
@@ -179,13 +166,22 @@ const ManagerOverrideDialog = ({
 
           <TabsContent value="password" className="space-y-2 mt-3">
             <Input
-              ref={passwordRef}
+              ref={emailRef}
+              type="email"
+              placeholder="Manager email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && document.getElementById("mgr-pwd")?.focus()}
+              autoComplete="off"
+            />
+            <Input
+              id="mgr-pwd"
               type="password"
-              placeholder="Enter manager password"
+              placeholder="Manager password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handlePasswordAuth()}
-              autoComplete="current-password"
+              autoComplete="off"
             />
           </TabsContent>
 
@@ -211,7 +207,7 @@ const ManagerOverrideDialog = ({
           <Button
             variant="destructive"
             onClick={method === "password" ? handlePasswordAuth : handleRfidAuth}
-            disabled={loading || (method === "password" ? !password : !rfid.trim())}
+            disabled={loading || (method === "password" ? (!email || !password) : !rfid.trim())}
           >
             {loading ? "Verifying…" : "Confirm"}
           </Button>
