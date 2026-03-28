@@ -282,6 +282,7 @@ export const useCreateExpense = () => {
       amount: number;
       description: string;
       player_id: string | null;
+      shift_id?: string | null;
     }) => {
       if (!casinoId || !user) throw new Error("Not authenticated");
       const { error } = await supabase.from("expenses").insert({
@@ -290,6 +291,7 @@ export const useCreateExpense = () => {
         amount: input.amount,
         description: input.description,
         player_id: input.player_id,
+        shift_id: input.shift_id || null,
         created_by: user.id,
       });
       if (error) throw error;

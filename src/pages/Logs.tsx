@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useActivityLogs, useTransactions, usePlayers, useGamingTables } from "@/hooks/use-casino-data";
+import { useActivityLogs } from "@/hooks/use-casino-data";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatCurrency } from "@/lib/currency";
