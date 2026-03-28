@@ -1,28 +1,87 @@
 import { useState, useMemo } from "react";
-import { useGamingTables, useTransactions } from "@/hooks/use-casino-data";
+import { useGamingTables, useTransactions, useCloseTable, useReopenTable } from "@/hooks/use-casino-data";
+import { useActiveShift } from "@/hooks/use-shift";
 import { useChipSnapshots, useBatchChipSnapshot, getExpectedChips, getInitialTotal } from "@/hooks/use-chips";
+import { useAuth } from "@/lib/auth-context";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { CHIP_DENOMS, CHIP_COLORS, formatChipLabel, formatCurrency, CHIP_DISTRIBUTION } from "@/lib/currency";
-import { AlertTriangle, CheckCircle2, Save, Coins } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Save, Coins, X, RotateCcw } from "lucide-react";
+import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
 
 const Tables = () => {
   const today = new Date().toISOString().split("T")[0];
   const [date, setDate] = useState(today);
   const { data: tables = [] } = useGamingTables();
   const { data: transactions = [] } = useTransactions(date);
+  const { data: shift } = useActiveShift();
   const { data: snapshots = [] } = useChipSnapshots(date);
   const batchSnapshot = useBatchChipSnapshot();
+  const closeTable = useCloseTable();
+  const reopenTable = useReopenTable();
+  const { isManager } = useAuth();
 
-  // Chip count state: { [locationKey]: { [denom]: actual_count } }
+  // Table close dialog
+  const [closingTable, setClosingTable] = useState<any | null>(null);
+  const [closingChips, setClosingChips] = useState<Record<number, number>>({});
+  const [pendingReopen, setPendingReopen] = useState<string | null>(null);
+
+  // Chip count state
   const [counts, setCounts] = useState<Record<string, Record<number, number>>>({});
   const [showCount, setShowCount] = useState(false);
 
   const expected = useMemo(() => getExpectedChips(tables), [tables]);
   const initialTotal = useMemo(() => getInitialTotal(tables), [tables]);
 
-  // Location keys: each table, cashier, safe
+  const shiftTransactions = useMemo(() => {
+    if (!shift) return transactions;
+    return transactions.filter(t => t.shift_id === shift.id);
+  }, [transactions, shift]);
+
+  // Per-table results
+  const tableResults = useMemo(() => {
+    const results: Record<string, { drop: number; cashout: number; result: number; txCount: number }> = {};
+    tables.forEach(t => {
+      const tableTxs = shiftTransactions.filter(tx => tx.table_id === t.id);
+      const drop = tableTxs.filter(tx => tx.type === "buy").reduce((s, tx) => s + Number(tx.amount), 0);
+      const cashout = tableTxs.filter(tx => tx.type === "cashout").reduce((s, tx) => s + Number(tx.amount), 0);
+      results[t.id] = { drop, cashout, result: drop - cashout, txCount: tableTxs.length };
+    });
+    return results;
+  }, [tables, shiftTransactions]);
+
+  // Table close: calculate result from chip difference
+  const closingTableFloat = useMemo(() => {
+    if (!closingTable) return 0;
+    return Number(closingTable.float_amount) || 0;
+  }, [closingTable]);
+
+  const closingChipTotal = useMemo(() => {
+    return Object.entries(closingChips).reduce((s, [d, c]) => s + Number(d) * (c || 0), 0);
+  }, [closingChips]);
+
+  // table_result = closing_float_value - opening_float_value
+  // If chips at table > opening float → table won (positive result for casino)
+  // If chips at table < opening float → table lost (negative result for casino)
+  const closingResult = closingChipTotal - closingTableFloat;
+
+  const handleCloseTable = () => {
+    if (!closingTable) return;
+    closeTable.mutate({
+      table_id: closingTable.id,
+      closing_chips: closingChips,
+      result: closingResult,
+    }, {
+      onSuccess: () => {
+        setClosingTable(null);
+        setClosingChips({});
+      },
+    });
+  };
+
+  // Chip count locations
   const locations = useMemo(() => {
     const locs: Array<{ key: string; label: string; type: string; id: string | null; denoms: number[]; chipsPerDenom: number }> = [];
     tables.forEach(t => {
@@ -34,7 +93,6 @@ const Tables = () => {
     return locs;
   }, [tables]);
 
-  // Calculate totals per denomination across all locations
   const actualTotals = useMemo(() => {
     const totals: Record<number, number> = {};
     CHIP_DENOMS.forEach(d => { totals[d] = 0; });
@@ -56,40 +114,27 @@ const Tables = () => {
   const totalMissValue = totalActualValue - initialTotal;
   const hasIncident = totalActualValue > initialTotal;
   const hasAnyCount = Object.values(counts).some(lc => Object.values(lc).some(v => v > 0));
-
-  // Has existing snapshot for today
   const hasSnapshotToday = snapshots.length > 0;
 
   const handleSaveCount = () => {
     const rows: Array<{
-      location_type: string;
-      location_id: string | null;
-      denomination: number;
-      expected_quantity: number;
-      actual_quantity: number;
+      location_type: string; location_id: string | null;
+      denomination: number; expected_quantity: number; actual_quantity: number;
     }> = [];
-
     locations.forEach(loc => {
       const locCounts = counts[loc.key] || {};
       loc.denoms.forEach(d => {
         const actual = locCounts[d] || 0;
-        rows.push({
-          location_type: loc.type,
-          location_id: loc.id,
-          denomination: d,
-          expected_quantity: loc.chipsPerDenom,
-          actual_quantity: actual,
-        });
+        rows.push({ location_type: loc.type, location_id: loc.id, denomination: d, expected_quantity: loc.chipsPerDenom, actual_quantity: actual });
       });
     });
-
-    batchSnapshot.mutate({ date, counts: rows }, {
-      onSuccess: () => {
-        setCounts({});
-        setShowCount(false);
-      },
-    });
+    batchSnapshot.mutate({ date, counts: rows }, { onSuccess: () => { setCounts({}); setShowCount(false); } });
   };
+
+  // Totals across all tables
+  const totalDrop = Object.values(tableResults).reduce((s, r) => s + r.drop, 0);
+  const totalCashout = Object.values(tableResults).reduce((s, r) => s + r.cashout, 0);
+  const totalResult = totalDrop - totalCashout;
 
   return (
     <div>
@@ -106,44 +151,80 @@ const Tables = () => {
         </div>
       </div>
 
+      {/* Aggregate Summary */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
+        <div className="cms-panel p-2">
+          <p className="text-[9px] uppercase text-muted-foreground tracking-wider">Total Drop</p>
+          <p className="font-mono text-sm font-bold text-card-foreground">{formatCurrency(totalDrop)}</p>
+        </div>
+        <div className="cms-panel p-2">
+          <p className="text-[9px] uppercase text-muted-foreground tracking-wider">Total Cashout</p>
+          <p className="font-mono text-sm font-bold text-card-foreground">{formatCurrency(totalCashout)}</p>
+        </div>
+        <div className="cms-panel p-2">
+          <p className="text-[9px] uppercase text-muted-foreground tracking-wider">Table Result</p>
+          <p className={`font-mono text-sm font-bold ${totalResult >= 0 ? "text-green-500" : "text-destructive"}`}>
+            {totalResult >= 0 ? "+" : ""}{formatCurrency(totalResult)}
+          </p>
+        </div>
+        <div className="cms-panel p-2">
+          <p className="text-[9px] uppercase text-muted-foreground tracking-wider">Initial Chip Total</p>
+          <p className="font-mono text-sm font-bold text-card-foreground">{formatCurrency(initialTotal)}</p>
+        </div>
+      </div>
+
       {/* Table Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         {tables.map(table => {
-          const tableTxs = transactions.filter(t => t.table_id === table.id);
-          const totalDrop = tableTxs.filter(t => t.type === "buy").reduce((s, t) => s + Number(t.amount), 0);
-          const totalCashout = tableTxs.filter(t => t.type === "cashout").reduce((s, t) => s + Number(t.amount), 0);
-          const result = totalDrop - totalCashout;
+          const r = tableResults[table.id] || { drop: 0, cashout: 0, result: 0, txCount: 0 };
+          const isOpen = table.status === "open";
 
           return (
             <div key={table.id} className="cms-panel">
               <div className="flex items-center justify-between px-4 py-3 border-b border-border">
                 <div className="flex items-center gap-3">
-                  <div className={`w-2.5 h-2.5 rounded-full ${table.status === "open" ? "bg-green-500" : "bg-destructive"}`} />
+                  <div className={`w-2.5 h-2.5 rounded-full ${isOpen ? "bg-green-500" : "bg-destructive"}`} />
                   <div>
                     <h3 className="text-sm font-semibold text-card-foreground">{table.name}</h3>
                     <p className="text-xs text-muted-foreground">{table.game}</p>
                   </div>
                 </div>
-                <Badge variant={table.status === "open" ? "default" : "secondary"} className="text-[10px] uppercase">{table.status}</Badge>
+                <div className="flex items-center gap-2">
+                  <Badge variant={isOpen ? "default" : "secondary"} className="text-[10px] uppercase">{table.status}</Badge>
+                  {isOpen && shift && (
+                    <Button variant="outline" size="sm" className="text-[10px] h-6 gap-1" onClick={() => { setClosingTable(table); setClosingChips({}); }}>
+                      <X className="w-3 h-3" /> Close
+                    </Button>
+                  )}
+                  {!isOpen && isManager && (
+                    <Button variant="outline" size="sm" className="text-[10px] h-6 gap-1" onClick={() => setPendingReopen(table.id)}>
+                      <RotateCcw className="w-3 h-3" /> Reopen
+                    </Button>
+                  )}
+                </div>
               </div>
-              <div className="px-4 py-3 grid grid-cols-4 gap-3">
+              <div className="px-4 py-3 grid grid-cols-5 gap-2">
                 <div>
                   <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Float</p>
-                  <p className="font-mono text-sm font-bold text-card-foreground">{formatCurrency(Number(table.float_amount))}</p>
+                  <p className="font-mono text-xs font-bold text-card-foreground">{formatCurrency(Number(table.float_amount))}</p>
                 </div>
                 <div>
                   <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Drop</p>
-                  <p className="font-mono text-sm font-bold text-card-foreground">{formatCurrency(totalDrop)}</p>
+                  <p className="font-mono text-xs font-bold text-card-foreground">{formatCurrency(r.drop)}</p>
                 </div>
                 <div>
                   <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Cashout</p>
-                  <p className="font-mono text-sm font-bold text-card-foreground">{formatCurrency(totalCashout)}</p>
+                  <p className="font-mono text-xs font-bold text-card-foreground">{formatCurrency(r.cashout)}</p>
                 </div>
                 <div>
                   <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Result</p>
-                  <p className={`font-mono text-sm font-bold ${result >= 0 ? "text-green-500" : "text-destructive"}`}>
-                    {result >= 0 ? "+" : ""}{formatCurrency(result)}
+                  <p className={`font-mono text-xs font-bold ${r.result >= 0 ? "text-green-500" : "text-destructive"}`}>
+                    {r.result >= 0 ? "+" : ""}{formatCurrency(r.result)}
                   </p>
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Txns</p>
+                  <p className="font-mono text-xs font-bold text-card-foreground">{r.txCount}</p>
                 </div>
               </div>
               <div className="px-4 py-2 border-t border-border flex gap-1.5 flex-wrap">
@@ -156,6 +237,86 @@ const Tables = () => {
         })}
         {tables.length === 0 && <p className="text-muted-foreground text-sm col-span-2 text-center py-8">No tables configured</p>}
       </div>
+
+      {/* Table Close Dialog */}
+      {closingTable && (
+        <Dialog open onOpenChange={() => { setClosingTable(null); setClosingChips({}); }}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Close {closingTable.name}</DialogTitle>
+            </DialogHeader>
+            <p className="text-xs text-muted-foreground">
+              Count chips remaining on the table. Result = Closing chips − Opening float ({formatCurrency(closingTableFloat)}).
+            </p>
+
+            <div className="space-y-3">
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5">
+                {(closingTable.denominations || []).map((d: number) => (
+                  <div key={d} className="flex items-center gap-1">
+                    <span className={`cms-chip text-[8px] min-w-[36px] text-center ${CHIP_COLORS[d] || ""}`}>{formatChipLabel(d)}</span>
+                    <Input type="number" min={0} value={closingChips[d] || ""}
+                      onChange={e => setClosingChips(c => ({ ...c, [d]: Number(e.target.value) || 0 }))}
+                      className="font-mono w-14 h-7 text-xs" placeholder="0"
+                      onKeyDown={e => { if (e.key === "Enter") handleCloseTable(); }} />
+                  </div>
+                ))}
+              </div>
+
+              {/* Result preview */}
+              <div className="grid grid-cols-3 gap-2 pt-2 border-t border-border">
+                <div className="text-center">
+                  <p className="text-[9px] uppercase text-muted-foreground">Opening Float</p>
+                  <p className="font-mono text-xs font-bold text-card-foreground">{formatCurrency(closingTableFloat)}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-[9px] uppercase text-muted-foreground">Closing Chips</p>
+                  <p className="font-mono text-xs font-bold text-card-foreground">{formatCurrency(closingChipTotal)}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-[9px] uppercase text-muted-foreground">Table Result</p>
+                  <p className={`font-mono text-xs font-bold ${closingResult >= 0 ? "text-green-500" : "text-destructive"}`}>
+                    {closingResult >= 0 ? "+" : ""}{formatCurrency(closingResult)}
+                  </p>
+                </div>
+              </div>
+
+              {closingResult > 0 && (
+                <p className="text-[10px] text-green-500 flex items-center gap-1">
+                  <CheckCircle2 className="w-3 h-3" /> Table won — {formatCurrency(closingResult)} more chips than start.
+                </p>
+              )}
+              {closingResult < 0 && (
+                <p className="text-[10px] text-destructive flex items-center gap-1">
+                  <AlertTriangle className="w-3 h-3" /> Table lost — {formatCurrency(Math.abs(closingResult))} fewer chips than start.
+                </p>
+              )}
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => { setClosingTable(null); setClosingChips({}); }}>Cancel</Button>
+              <Button onClick={handleCloseTable} disabled={closeTable.isPending || closingChipTotal === 0}>
+                {closeTable.isPending ? "Closing…" : `Close Table · Result: ${closingResult >= 0 ? "+" : ""}${formatCurrency(closingResult)}`}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Manager override for reopen */}
+      <ManagerOverrideDialog
+        open={!!pendingReopen}
+        onClose={() => setPendingReopen(null)}
+        onConfirm={(managerId) => {
+          if (pendingReopen) {
+            reopenTable.mutate(pendingReopen);
+            setPendingReopen(null);
+          }
+        }}
+        title="Reopen Table"
+        description="Manager authentication required to reopen a closed table."
+        actionType="TABLE_REOPEN"
+        actionDetails={{ table_id: pendingReopen }}
+      />
 
       {/* Chip Count Mode */}
       {showCount && (
@@ -189,17 +350,9 @@ const Tables = () => {
                             <span className={`cms-chip text-[8px] min-w-[36px] text-center ${CHIP_COLORS[d] || "bg-muted text-foreground"}`}>
                               {formatChipLabel(d)}
                             </span>
-                            <Input
-                              type="number"
-                              min={0}
-                              value={locCounts[d] || ""}
-                              onChange={e => setCounts(c => ({
-                                ...c,
-                                [loc.key]: { ...(c[loc.key] || {}), [d]: Number(e.target.value) || 0 }
-                              }))}
-                              className="font-mono w-14 h-7 text-xs"
-                              placeholder={String(exp)}
-                            />
+                            <Input type="number" min={0} value={locCounts[d] || ""}
+                              onChange={e => setCounts(c => ({ ...c, [loc.key]: { ...(c[loc.key] || {}), [d]: Number(e.target.value) || 0 } }))}
+                              className="font-mono w-14 h-7 text-xs" placeholder={String(exp)} />
                           </div>
                           {hasValue && diff !== 0 && (
                             <p className={`text-[9px] font-mono text-center ${diff > 0 ? "text-destructive" : "text-orange-500"}`}>
@@ -214,10 +367,9 @@ const Tables = () => {
               );
             })}
 
-            {/* MISS Summary */}
             {hasAnyCount && (
               <div className="border-t border-border pt-4">
-                <p className="text-xs font-semibold text-card-foreground mb-2">MISS Summary (per denomination)</p>
+                <p className="text-xs font-semibold text-card-foreground mb-2">MISS Summary</p>
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs">
                     <thead>
@@ -237,17 +389,11 @@ const Tables = () => {
                         if (exp === 0 && act === 0) return null;
                         return (
                           <tr key={d} className="border-b border-border last:border-0">
-                            <td className="py-1.5 px-2">
-                              <span className={`cms-chip text-[8px] ${CHIP_COLORS[d] || "bg-muted text-foreground"}`}>{formatChipLabel(d)}</span>
-                            </td>
+                            <td className="py-1.5 px-2"><span className={`cms-chip text-[8px] ${CHIP_COLORS[d] || "bg-muted text-foreground"}`}>{formatChipLabel(d)}</span></td>
                             <td className="py-1.5 px-2 text-right font-mono text-card-foreground">{exp}</td>
                             <td className="py-1.5 px-2 text-right font-mono text-card-foreground">{act}</td>
-                            <td className={`py-1.5 px-2 text-right font-mono font-bold ${miss === 0 ? "text-green-500" : miss > 0 ? "text-destructive" : "text-orange-500"}`}>
-                              {miss > 0 ? "+" : ""}{miss}
-                            </td>
-                            <td className={`py-1.5 px-2 text-right font-mono ${miss === 0 ? "text-green-500" : "text-destructive"}`}>
-                              {miss !== 0 ? `${miss > 0 ? "+" : ""}${formatCurrency(miss * d)}` : "—"}
-                            </td>
+                            <td className={`py-1.5 px-2 text-right font-mono font-bold ${miss === 0 ? "text-green-500" : "text-destructive"}`}>{miss > 0 ? "+" : ""}{miss}</td>
+                            <td className={`py-1.5 px-2 text-right font-mono ${miss === 0 ? "text-green-500" : "text-destructive"}`}>{miss !== 0 ? `${miss > 0 ? "+" : ""}${formatCurrency(miss * d)}` : "—"}</td>
                           </tr>
                         );
                       })}
@@ -255,18 +401,13 @@ const Tables = () => {
                     <tfoot>
                       <tr className="border-t-2 border-border">
                         <td colSpan={3} className="py-2 px-2 font-semibold text-card-foreground">Total</td>
-                        <td className="py-2 px-2 text-right font-mono font-bold text-card-foreground">
-                          {Object.values(missPerDenom).reduce((s, v) => s + v, 0)}
-                        </td>
-                        <td className={`py-2 px-2 text-right font-mono font-bold ${totalMissValue === 0 ? "text-green-500" : "text-destructive"}`}>
-                          {totalMissValue >= 0 ? "+" : ""}{formatCurrency(totalMissValue)}
-                        </td>
+                        <td className="py-2 px-2 text-right font-mono font-bold text-card-foreground">{Object.values(missPerDenom).reduce((s, v) => s + v, 0)}</td>
+                        <td className={`py-2 px-2 text-right font-mono font-bold ${totalMissValue === 0 ? "text-green-500" : "text-destructive"}`}>{totalMissValue >= 0 ? "+" : ""}{formatCurrency(totalMissValue)}</td>
                       </tr>
                     </tfoot>
                   </table>
                 </div>
 
-                {/* System totals */}
                 <div className="grid grid-cols-3 gap-2 mt-4">
                   <div className="cms-panel p-2 text-center">
                     <p className="text-[9px] uppercase text-muted-foreground">Initial Total</p>
@@ -278,9 +419,7 @@ const Tables = () => {
                   </div>
                   <div className={`cms-panel p-2 text-center ${hasIncident ? "border-destructive/50" : totalMissValue === 0 ? "border-green-500/30" : ""}`}>
                     <p className="text-[9px] uppercase text-muted-foreground">MISS</p>
-                    <p className={`font-mono text-xs font-bold ${totalMissValue === 0 ? "text-green-500" : "text-destructive"}`}>
-                      {totalMissValue >= 0 ? "+" : ""}{formatCurrency(totalMissValue)}
-                    </p>
+                    <p className={`font-mono text-xs font-bold ${totalMissValue === 0 ? "text-green-500" : "text-destructive"}`}>{totalMissValue >= 0 ? "+" : ""}{formatCurrency(totalMissValue)}</p>
                   </div>
                 </div>
 
@@ -289,18 +428,13 @@ const Tables = () => {
                     <AlertTriangle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
                     <div>
                       <p className="text-sm font-bold text-destructive">INCIDENT DETECTED</p>
-                      <p className="text-xs text-destructive/80">Total chips counted ({formatCurrency(totalActualValue)}) exceed initial system total ({formatCurrency(initialTotal)}). This must be investigated before closing.</p>
+                      <p className="text-xs text-destructive/80">Total chips counted ({formatCurrency(totalActualValue)}) exceed initial system total ({formatCurrency(initialTotal)}).</p>
                     </div>
                   </div>
                 )}
 
-                <Button
-                  onClick={handleSaveCount}
-                  disabled={batchSnapshot.isPending || !hasAnyCount}
-                  className="w-full mt-4 gap-1.5"
-                >
-                  <Save className="w-4 h-4" />
-                  {batchSnapshot.isPending ? "Saving…" : "Record Chip Count"}
+                <Button onClick={handleSaveCount} disabled={batchSnapshot.isPending || !hasAnyCount} className="w-full mt-4 gap-1.5">
+                  <Save className="w-4 h-4" /> {batchSnapshot.isPending ? "Saving…" : "Record Chip Count"}
                 </Button>
               </div>
             )}
@@ -332,14 +466,10 @@ const Tables = () => {
                     const miss = totalAct - totalExp;
                     return (
                       <tr key={d} className="border-b border-border last:border-0">
-                        <td className="py-1.5 px-2">
-                          <span className={`cms-chip text-[8px] ${CHIP_COLORS[d] || "bg-muted text-foreground"}`}>{formatChipLabel(d)}</span>
-                        </td>
+                        <td className="py-1.5 px-2"><span className={`cms-chip text-[8px] ${CHIP_COLORS[d] || "bg-muted text-foreground"}`}>{formatChipLabel(d)}</span></td>
                         <td className="py-1.5 px-2 text-right font-mono text-card-foreground">{totalExp}</td>
                         <td className="py-1.5 px-2 text-right font-mono text-card-foreground">{totalAct}</td>
-                        <td className={`py-1.5 px-2 text-right font-mono font-bold ${miss === 0 ? "text-green-500" : "text-destructive"}`}>
-                          {miss > 0 ? "+" : ""}{miss}
-                        </td>
+                        <td className={`py-1.5 px-2 text-right font-mono font-bold ${miss === 0 ? "text-green-500" : "text-destructive"}`}>{miss > 0 ? "+" : ""}{miss}</td>
                       </tr>
                     );
                   })}
