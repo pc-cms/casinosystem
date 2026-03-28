@@ -7,18 +7,20 @@ import {
 import { useTheme } from "@/lib/theme";
 import { useAuth } from "@/lib/auth-context";
 
-const NAV_ITEMS = [
-  { to: "/", icon: LayoutDashboard, label: "Dashboard", shortcut: "D" },
-  { to: "/players", icon: Users, label: "Players", shortcut: "P" },
-  { to: "/cage", icon: Landmark, label: "Cage", shortcut: "C" },
-  { to: "/tables", icon: Table2, label: "Tables", shortcut: "T" },
-  { to: "/expenses", icon: Receipt, label: "Expenses", shortcut: "E" },
-  { to: "/pit", icon: Gamepad2, label: "Pit", shortcut: "I" },
-  { to: "/groups", icon: UsersRound, label: "Groups", shortcut: "G" },
-  { to: "/tracker", icon: Grid3X3, label: "Tracker", shortcut: "K" },
-  { to: "/stats", icon: BarChart3, label: "Stats", shortcut: "S" },
-  { to: "/reports", icon: FileBarChart, label: "Reports", shortcut: "R" },
-  { to: "/logs", icon: ClipboardList, label: "Logs", shortcut: "L" },
+type AppRole = "cashier" | "pit" | "manager" | "reception" | "finance_manager" | "security";
+
+const NAV_ITEMS: { to: string; icon: typeof LayoutDashboard; label: string; shortcut: string; roles: AppRole[] }[] = [
+  { to: "/", icon: LayoutDashboard, label: "Dashboard", shortcut: "D", roles: ["manager", "cashier", "pit", "reception", "finance_manager", "security"] },
+  { to: "/players", icon: Users, label: "Players", shortcut: "P", roles: ["manager", "cashier", "reception", "finance_manager", "security"] },
+  { to: "/cage", icon: Landmark, label: "Cage", shortcut: "C", roles: ["manager", "cashier", "finance_manager"] },
+  { to: "/tables", icon: Table2, label: "Tables", shortcut: "T", roles: ["manager", "cashier", "pit", "finance_manager", "security"] },
+  { to: "/expenses", icon: Receipt, label: "Expenses", shortcut: "E", roles: ["manager", "cashier", "finance_manager"] },
+  { to: "/pit", icon: Gamepad2, label: "Pit", shortcut: "I", roles: ["manager", "pit", "finance_manager"] },
+  { to: "/groups", icon: UsersRound, label: "Groups", shortcut: "G", roles: ["manager", "finance_manager"] },
+  { to: "/tracker", icon: Grid3X3, label: "Tracker", shortcut: "K", roles: ["manager", "pit"] },
+  { to: "/stats", icon: BarChart3, label: "Stats", shortcut: "S", roles: ["manager", "finance_manager", "security"] },
+  { to: "/reports", icon: FileBarChart, label: "Reports", shortcut: "R", roles: ["manager", "finance_manager", "security"] },
+  { to: "/logs", icon: ClipboardList, label: "Logs", shortcut: "L", roles: ["manager", "finance_manager", "security"] },
 ];
 
 export const AppSidebar = () => {
