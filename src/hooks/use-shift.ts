@@ -69,6 +69,9 @@ export const useCloseShift = () => {
       closing_count: Record<string, any>;
       closing_cash: Record<string, any>;
       notes: string;
+      cash_result?: number;
+      miss_total?: number;
+      shift_result?: number;
     }) => {
       if (!casinoId || !user) throw new Error("Not authenticated");
       const { error } = await supabase
@@ -80,6 +83,9 @@ export const useCloseShift = () => {
           closing_count: input.closing_count,
           closing_cash: input.closing_cash,
           notes: input.notes,
+          cash_result: input.cash_result ?? null,
+          miss_total: input.miss_total ?? null,
+          shift_result: input.shift_result ?? null,
         } as any)
         .eq("id", input.shift_id);
       if (error) throw error;

@@ -157,6 +157,8 @@ export const useCreateTransaction = () => {
       shift_id?: string;
     }) => {
       if (!casinoId || !user) throw new Error("Not authenticated");
+      // Generate external_id for deduplication
+      const external_id = crypto.randomUUID();
       const payload = {
         casino_id: casinoId,
         player_id: input.player_id,
@@ -166,22 +168,19 @@ export const useCreateTransaction = () => {
         chips: input.chips || null,
         operator_id: user.id,
         shift_id: input.shift_id || null,
+        external_id,
       };
 
       const result = await offlineMutation({
         table: "transactions",
         operation: "insert",
         payload,
-        meta: { type: input.type, amount: input.amount },
+        meta: { type: input.type, amount: input.amount, external_id },
       });
 
       if (result.error) throw new Error(result.error);
 
-      if (!result.offline) {
-        await logAction(casinoId, "transaction", input.type === "buy" ? "BUY_IN" : "CASHOUT", {
-          player_id: input.player_id, amount: input.amount, table_id: input.table_id,
-        });
-      }
+      // DB trigger auto_log_transaction handles logging now — skip frontend log
       return { offline: result.offline };
     },
     onSuccess: (res, vars) => {
@@ -221,22 +220,20 @@ export const useCloseTable = () => {
     mutationFn: async (input: {
       table_id: string;
       closing_chips: Record<number, number>;
-      result: number;
     }) => {
       if (!casinoId || !user) throw new Error("Not authenticated");
+      // DB trigger calculate_table_result computes closing_result automatically
       const { error } = await supabase
         .from("gaming_tables")
         .update({
           status: "closed" as any,
           closing_chips: input.closing_chips as any,
-          closing_result: input.result,
         })
         .eq("id", input.table_id);
       if (error) throw error;
       await logAction(casinoId, "system", "TABLE_CLOSED", {
         table_id: input.table_id,
         closing_chips: input.closing_chips,
-        result: input.result,
       });
     },
     onSuccess: () => {

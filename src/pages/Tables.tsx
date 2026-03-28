@@ -83,7 +83,6 @@ const Tables = () => {
     closeTable.mutate({
       table_id: closingTable.id,
       closing_chips: closingChips,
-      result: closingResult,
     }, {
       onSuccess: () => {
         setClosingTable(null);

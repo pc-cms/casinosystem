@@ -311,6 +311,9 @@ const ActiveShiftView = ({ shift, players, tables }: { shift: any; players: any[
             closing_count: data.closingCount,
             closing_cash: data.closingCash,
             notes: data.notes,
+            cash_result: data.cashResult,
+            miss_total: data.missTotal,
+            shift_result: data.shiftResult,
           }, { onSuccess: () => setShowClose(false) });
         }}
         loading={closeShift.isPending}
@@ -630,6 +633,9 @@ const CloseShiftDialog = ({ open, onClose, shift, expectedBalance, cashResult, t
         table_readiness: tableReady,
       },
       notes: `${notes} | CASH: ${cashResult >= 0 ? "+" : ""}${cashResult?.toLocaleString()} | MISS: ${totalMissValue >= 0 ? "+" : ""}${totalMissValue.toLocaleString()} | RESULT: ${shiftResult >= 0 ? "+" : ""}${shiftResult.toLocaleString()} | DIFF: ${diff >= 0 ? "+" : ""}${diff.toLocaleString()} TZS`.trim(),
+      cashResult: cashResult,
+      missTotal: totalMissValue,
+      shiftResult: shiftResult,
     });
   };
 
