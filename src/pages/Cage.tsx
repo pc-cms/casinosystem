@@ -311,6 +311,9 @@ const ActiveShiftView = ({ shift, players, tables }: { shift: any; players: any[
             closing_count: data.closingCount,
             closing_cash: data.closingCash,
             notes: data.notes,
+            cash_result: data.cashResult,
+            miss_total: data.missTotal,
+            shift_result: data.shiftResult,
           }, { onSuccess: () => setShowClose(false) });
         }}
         loading={closeShift.isPending}
