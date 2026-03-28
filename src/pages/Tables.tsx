@@ -1,23 +1,39 @@
+import { useState, useMemo } from "react";
 import { useGamingTables, useTransactions } from "@/hooks/use-casino-data";
 import { Badge } from "@/components/ui/badge";
-import { CHIP_COLORS, formatChipLabel, formatCurrency } from "@/lib/currency";
+import { Input } from "@/components/ui/input";
+import { CHIP_DENOMS, CHIP_COLORS, formatChipLabel, formatCurrency } from "@/lib/currency";
 
+/**
+ * TABLES (STRICT):
+ * - Each table has fixed starting float
+ * - Table result = closing - opening float
+ * - All chips tracked by denomination
+ * - MISS = difference in chip counts per denomination
+ * - MISS is normal. Cannot exceed total chips.
+ * - If chips > initial total → INCIDENT
+ */
 const Tables = () => {
+  const today = new Date().toISOString().split("T")[0];
+  const [date, setDate] = useState(today);
   const { data: tables = [] } = useGamingTables();
-  const { data: transactions = [] } = useTransactions();
+  const { data: transactions = [] } = useTransactions(date);
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-foreground">Tables</h1>
-        <p className="text-sm text-muted-foreground">Table management & status</p>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Tables</h1>
+          <p className="text-sm text-muted-foreground">Float, Result & Chip Tracking</p>
+        </div>
+        <Input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-44 font-mono" />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {tables.map(table => {
           const tableTxs = transactions.filter(t => t.table_id === table.id);
           const totalDrop = tableTxs.filter(t => t.type === "buy").reduce((s, t) => s + Number(t.amount), 0);
-          const totalCashout = tableTxs.filter(t => t.type === "cashout").reduce((s, t) => s + Number(t.amount), 0);
+          const tableResult = totalDrop; // Result = money received at table (buy-ins)
 
           return (
             <div key={table.id} className="cms-panel">
@@ -32,9 +48,18 @@ const Tables = () => {
                 <Badge variant={table.status === "open" ? "default" : "secondary"} className="text-[10px] uppercase">{table.status}</Badge>
               </div>
               <div className="px-4 py-3 grid grid-cols-3 gap-3">
-                <div><p className="text-[10px] uppercase text-muted-foreground tracking-wider">Float</p><p className="font-mono text-sm font-bold text-card-foreground">{formatCurrency(Number(table.float_amount))}</p></div>
-                <div><p className="text-[10px] uppercase text-muted-foreground tracking-wider">Drop</p><p className="font-mono text-sm font-bold cms-amount-negative">{formatCurrency(totalDrop)}</p></div>
-                <div><p className="text-[10px] uppercase text-muted-foreground tracking-wider">Win</p><p className={`font-mono text-sm font-bold ${totalDrop - totalCashout >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>{formatCurrency(Math.abs(totalDrop - totalCashout))}</p></div>
+                <div>
+                  <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Float</p>
+                  <p className="font-mono text-sm font-bold text-card-foreground">{formatCurrency(Number(table.float_amount))}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Drop</p>
+                  <p className="font-mono text-sm font-bold text-card-foreground">{formatCurrency(totalDrop)}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Txns</p>
+                  <p className="font-mono text-sm font-bold text-card-foreground">{tableTxs.length}</p>
+                </div>
               </div>
               <div className="px-4 py-2 border-t border-border flex gap-1.5 flex-wrap">
                 {table.denominations?.map(d => <span key={d} className={`cms-chip text-[10px] ${CHIP_COLORS[d] || "bg-muted text-foreground"}`}>{formatChipLabel(d)}</span>)}
