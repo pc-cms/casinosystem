@@ -1,29 +1,12 @@
 import { useState } from "react";
-import { useDealers, useCreateDealer, usePitRota, useSetPitRota, useBreaklistData, useSetBreaklistCell, useLockBreaklistCell, useGamingTables } from "@/hooks/use-casino-data";
-import { useAuth } from "@/lib/auth-context";
+import { useDealers, useCreateDealer, usePitRota, useSetPitRota } from "@/hooks/use-casino-data";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Lock, Unlock, UserPlus } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { UserPlus } from "lucide-react";
+import BreaklistGrid from "@/components/pit/BreaklistGrid";
 
 const SHIFTS = ["M", "N", "A", "S", "E"] as const;
-const ROLES = ["BJ", "BJi", "AR1", "AR1i", "AR1c", "BR"] as const;
-
-// Generate time slots: 20-min intervals from 14:00 to 06:00
-const generateTimeSlots = () => {
-  const slots: string[] = [];
-  for (let h = 14; h <= 29; h++) {
-    for (let m = 0; m < 60; m += 20) {
-      const hour = h % 24;
-      slots.push(`${String(hour).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
-    }
-  }
-  return slots;
-};
-
-const TIME_SLOTS = generateTimeSlots();
 
 const Pit = () => {
   const today = new Date().toISOString().split("T")[0];
@@ -101,138 +84,6 @@ const RotaGrid = ({ date }: { date: string }) => {
         </tbody>
       </table>
     </div>
-  );
-};
-
-const BreaklistGrid = ({ date }: { date: string }) => {
-  const { data: dealers = [] } = useDealers();
-  const { data: breaklist = [] } = useBreaklistData(date);
-  const { data: tables = [] } = useGamingTables();
-  const setCell = useSetBreaklistCell();
-  const lockCell = useLockBreaklistCell();
-  const { isManager } = useAuth();
-
-  const activeDealers = dealers.filter(d => d.is_active);
-  const displaySlots = TIME_SLOTS.slice(0, 24); // Show first 8 hours (24 slots)
-
-  const [editingCell, setEditingCell] = useState<{ dealerId: string; timeSlot: string } | null>(null);
-  const [editRole, setEditRole] = useState<string>("BR");
-  const [editTable, setEditTable] = useState<string>("");
-
-  const getCellData = (dealerId: string, timeSlot: string) =>
-    breaklist.find(b => b.dealer_id === dealerId && b.time_slot === timeSlot);
-
-  const handleCellClick = (dealerId: string, timeSlot: string) => {
-    const cell = getCellData(dealerId, timeSlot);
-    if (cell?.is_locked && !isManager) return;
-    setEditingCell({ dealerId, timeSlot });
-    setEditRole(cell?.role || "BR");
-    setEditTable(cell?.table_id || "");
-  };
-
-  const handleSave = () => {
-    if (!editingCell) return;
-    setCell.mutate({
-      date,
-      dealer_id: editingCell.dealerId,
-      time_slot: editingCell.timeSlot,
-      role: editRole,
-      table_id: editTable || null,
-    });
-    setEditingCell(null);
-  };
-
-  const roleColors: Record<string, string> = {
-    BJ: "bg-blue-600/20 text-blue-400", BJi: "bg-blue-500/15 text-blue-300",
-    AR1: "bg-emerald-600/20 text-emerald-400", AR1i: "bg-emerald-500/15 text-emerald-300",
-    AR1c: "bg-emerald-400/15 text-emerald-200", BR: "bg-muted text-muted-foreground",
-  };
-
-  return (
-    <>
-      <div className="cms-panel overflow-x-auto">
-        <div className="min-w-[1200px]">
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="border-b border-border">
-                <th className="text-left text-xs font-medium text-muted-foreground uppercase px-3 py-2 sticky left-0 bg-card z-10 min-w-[120px]">Dealer</th>
-                {displaySlots.map(slot => (
-                  <th key={slot} className="text-center text-[10px] font-mono text-muted-foreground px-1 py-2 min-w-[60px]">{slot}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {activeDealers.map(dealer => (
-                <tr key={dealer.id} className="border-b border-border last:border-0">
-                  <td className="px-3 py-1 text-xs font-medium text-card-foreground sticky left-0 bg-card z-10">{dealer.name}</td>
-                  {displaySlots.map(slot => {
-                    const cell = getCellData(dealer.id, slot);
-                    return (
-                      <td key={slot} className="px-0.5 py-0.5 text-center">
-                        <button
-                          onClick={() => handleCellClick(dealer.id, slot)}
-                          className={`w-full h-7 rounded text-[9px] font-mono font-bold relative transition-colors ${
-                            cell ? roleColors[cell.role] || "bg-muted text-muted-foreground" : "bg-transparent hover:bg-muted/50 text-transparent hover:text-muted-foreground"
-                          }`}
-                        >
-                          {cell?.role || "·"}
-                          {cell?.is_locked && <Lock className="w-2 h-2 absolute top-0.5 right-0.5 text-warning" />}
-                        </button>
-                      </td>
-                    );
-                  })}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <Dialog open={!!editingCell} onOpenChange={() => setEditingCell(null)}>
-        <DialogContent className="max-w-xs">
-          <DialogHeader>
-            <DialogTitle className="text-sm">
-              {activeDealers.find(d => d.id === editingCell?.dealerId)?.name} @ {editingCell?.timeSlot}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
-            <div>
-              <label className="text-xs font-medium text-muted-foreground uppercase mb-1 block">Role</label>
-              <Select value={editRole} onValueChange={setEditRole}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{ROLES.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground uppercase mb-1 block">Table</label>
-              <Select value={editTable} onValueChange={setEditTable}>
-                <SelectTrigger><SelectValue placeholder="No table" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">No table</SelectItem>
-                  {tables.filter(t => t.status === "open").map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <DialogFooter className="gap-2">
-            {isManager && editingCell && getCellData(editingCell.dealerId, editingCell.timeSlot) && (
-              <Button variant="outline" size="sm" className="mr-auto"
-                onClick={() => {
-                  const cell = getCellData(editingCell.dealerId, editingCell.timeSlot);
-                  if (cell) lockCell.mutate({ id: cell.id, lock: !cell.is_locked });
-                  setEditingCell(null);
-                }}>
-                {getCellData(editingCell.dealerId, editingCell.timeSlot)?.is_locked
-                  ? <><Unlock className="w-3 h-3 mr-1" /> Unlock</>
-                  : <><Lock className="w-3 h-3 mr-1" /> Lock</>}
-              </Button>
-            )}
-            <Button variant="outline" onClick={() => setEditingCell(null)}>Cancel</Button>
-            <Button onClick={handleSave}>Save</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
   );
 };
 

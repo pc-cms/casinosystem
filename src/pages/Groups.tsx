@@ -1,10 +1,10 @@
-import { useState } from "react";
-import { usePlayerGroups, useCreateGroup, useAddGroupMember, useRemoveGroupMember, usePlayers, usePlayerEconomy } from "@/hooks/use-casino-data";
+import { useState, useMemo } from "react";
+import { usePlayerGroups, useCreateGroup, useAddGroupMember, useRemoveGroupMember, usePlayers, usePlayerEconomy, useTransactions, useExpenses } from "@/hooks/use-casino-data";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Users, X } from "lucide-react";
+import { Plus, Users, X, CalendarDays } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 
 const Groups = () => {
@@ -12,6 +12,8 @@ const Groups = () => {
   const { data: groups = [] } = usePlayerGroups();
   const { data: players = [] } = usePlayers();
   const { data: economy = [] } = usePlayerEconomy();
+  const { data: allTransactions = [] } = useTransactions();
+  const { data: allExpenses = [] } = useExpenses();
   const createGroup = useCreateGroup();
   const addMember = useAddGroupMember();
   const removeMember = useRemoveGroupMember();
@@ -20,8 +22,45 @@ const Groups = () => {
   const [newName, setNewName] = useState("");
   const [addingToGroup, setAddingToGroup] = useState<string | null>(null);
   const [selectedPlayer, setSelectedPlayer] = useState("");
+  const [dateRange, setDateRange] = useState({ from: "", to: "" });
 
   const getPlayerEconomy = (playerId: string) => economy.find(e => e.player_id === playerId);
+
+  // Period-filtered analytics per group
+  const getGroupPeriodAnalytics = useMemo(() => {
+    if (!dateRange.from && !dateRange.to) return null;
+
+    const filteredTx = allTransactions.filter(tx => {
+      if (dateRange.from && tx.created_at < `${dateRange.from}T00:00:00`) return false;
+      if (dateRange.to && tx.created_at > `${dateRange.to}T23:59:59`) return false;
+      return true;
+    });
+
+    const filteredExp = allExpenses.filter(exp => {
+      if (dateRange.from && exp.created_at < `${dateRange.from}T00:00:00`) return false;
+      if (dateRange.to && exp.created_at > `${dateRange.to}T23:59:59`) return false;
+      return true;
+    });
+
+    return { transactions: filteredTx, expenses: filteredExp };
+  }, [allTransactions, allExpenses, dateRange.from, dateRange.to]);
+
+  const computeGroupStats = (memberPlayerIds: string[]) => {
+    if (!getGroupPeriodAnalytics) {
+      // Use all-time from economy view
+      const drop = memberPlayerIds.reduce((s, pid) => s + Number(getPlayerEconomy(pid)?.total_drop || 0), 0);
+      const cashout = memberPlayerIds.reduce((s, pid) => s + Number(getPlayerEconomy(pid)?.total_cashout || 0), 0);
+      const expenses = memberPlayerIds.reduce((s, pid) => s + Number(getPlayerEconomy(pid)?.total_expenses || 0), 0);
+      return { drop, cashout, expenses, result: cashout - drop - expenses };
+    }
+
+    const { transactions, expenses: filteredExp } = getGroupPeriodAnalytics;
+    const pids = new Set(memberPlayerIds);
+    const drop = transactions.filter(t => t.type === "buy" && pids.has(t.player_id)).reduce((s, t) => s + Number(t.amount), 0);
+    const cashout = transactions.filter(t => t.type === "cashout" && pids.has(t.player_id)).reduce((s, t) => s + Number(t.amount), 0);
+    const expenses = filteredExp.filter(e => e.player_id && pids.has(e.player_id) && e.approved).reduce((s, e) => s + Number(e.amount), 0);
+    return { drop, cashout, expenses, result: cashout - drop - expenses };
+  };
 
   return (
     <div>
@@ -35,12 +74,25 @@ const Groups = () => {
         )}
       </div>
 
+      {/* Period Filter */}
+      <div className="flex items-center gap-2 mb-4">
+        <CalendarDays className="w-4 h-4 text-muted-foreground" />
+        <Input type="date" value={dateRange.from} onChange={e => setDateRange(d => ({ ...d, from: e.target.value }))} className="w-40 font-mono text-xs" />
+        <span className="text-muted-foreground text-xs">to</span>
+        <Input type="date" value={dateRange.to} onChange={e => setDateRange(d => ({ ...d, to: e.target.value }))} className="w-40 font-mono text-xs" />
+        {(dateRange.from || dateRange.to) && (
+          <Button variant="ghost" size="sm" onClick={() => setDateRange({ from: "", to: "" })}>Clear</Button>
+        )}
+        {(dateRange.from || dateRange.to) && (
+          <span className="text-xs text-primary font-medium ml-2">Period filter active</span>
+        )}
+      </div>
+
       <div className="space-y-4">
         {groups.map(group => {
           const activeMembers = (group as any).group_members?.filter((m: any) => !m.left_at) || [];
-          const groupDrop = activeMembers.reduce((s: number, m: any) => s + Number(getPlayerEconomy(m.player_id)?.total_drop || 0), 0);
-          const groupCashout = activeMembers.reduce((s: number, m: any) => s + Number(getPlayerEconomy(m.player_id)?.total_cashout || 0), 0);
-          const groupExpenses = activeMembers.reduce((s: number, m: any) => s + Number(getPlayerEconomy(m.player_id)?.total_expenses || 0), 0);
+          const memberPids = activeMembers.map((m: any) => m.player_id);
+          const stats = computeGroupStats(memberPids);
 
           return (
             <div key={group.id} className="cms-panel">
@@ -58,28 +110,37 @@ const Groups = () => {
               </div>
 
               <div className="px-4 py-3 grid grid-cols-4 gap-3 border-b border-border">
-                <div><p className="text-[10px] uppercase text-muted-foreground">Drop</p><p className="font-mono text-sm font-bold text-card-foreground">€{groupDrop.toLocaleString()}</p></div>
-                <div><p className="text-[10px] uppercase text-muted-foreground">Cashout</p><p className="font-mono text-sm font-bold text-card-foreground">€{groupCashout.toLocaleString()}</p></div>
-                <div><p className="text-[10px] uppercase text-muted-foreground">Expenses</p><p className="font-mono text-sm font-bold text-card-foreground">€{groupExpenses.toLocaleString()}</p></div>
+                <div><p className="text-[10px] uppercase text-muted-foreground">Drop</p><p className="font-mono text-sm font-bold text-card-foreground">€{stats.drop.toLocaleString()}</p></div>
+                <div><p className="text-[10px] uppercase text-muted-foreground">Cashout</p><p className="font-mono text-sm font-bold text-card-foreground">€{stats.cashout.toLocaleString()}</p></div>
+                <div><p className="text-[10px] uppercase text-muted-foreground">Expenses</p><p className="font-mono text-sm font-bold text-card-foreground">€{stats.expenses.toLocaleString()}</p></div>
                 <div><p className="text-[10px] uppercase text-muted-foreground">Result</p>
-                  <p className={`font-mono text-sm font-bold ${groupCashout - groupDrop - groupExpenses >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
-                    €{(groupCashout - groupDrop - groupExpenses).toLocaleString()}
+                  <p className={`font-mono text-sm font-bold ${stats.result >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
+                    €{stats.result.toLocaleString()}
                   </p>
                 </div>
               </div>
 
               <div className="px-4 py-2">
-                {activeMembers.map((m: any) => (
-                  <div key={m.id} className="flex items-center justify-between py-1.5 border-b border-border last:border-0">
-                    <div>
-                      <span className="text-xs text-card-foreground">{m.players?.first_name} {m.players?.last_name}</span>
-                      <span className="text-[10px] text-muted-foreground ml-2">joined {new Date(m.joined_at).toLocaleDateString("en-GB")}</span>
+                {activeMembers.map((m: any) => {
+                  const pe = getPlayerEconomy(m.player_id);
+                  return (
+                    <div key={m.id} className="flex items-center justify-between py-1.5 border-b border-border last:border-0">
+                      <div className="flex items-center gap-4">
+                        <span className="text-xs text-card-foreground">{m.players?.first_name} {m.players?.last_name}</span>
+                        <span className="text-[10px] text-muted-foreground">joined {new Date(m.joined_at).toLocaleDateString("en-GB")}</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="font-mono text-[10px] text-muted-foreground">Drop: €{Number(pe?.total_drop || 0).toLocaleString()}</span>
+                        <span className={`font-mono text-[10px] ${Number(pe?.real_result || 0) >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                          Result: €{Number(pe?.real_result || 0).toLocaleString()}
+                        </span>
+                        {isManager && (
+                          <button onClick={() => removeMember.mutate(m.id)} className="text-muted-foreground hover:text-destructive"><X className="w-3 h-3" /></button>
+                        )}
+                      </div>
                     </div>
-                    {isManager && (
-                      <button onClick={() => removeMember.mutate(m.id)} className="text-muted-foreground hover:text-destructive"><X className="w-3 h-3" /></button>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
                 {activeMembers.length === 0 && <p className="text-xs text-muted-foreground py-2">No members</p>}
               </div>
             </div>
@@ -107,7 +168,7 @@ const Groups = () => {
           <Select value={selectedPlayer} onValueChange={setSelectedPlayer}>
             <SelectTrigger><SelectValue placeholder="Select player" /></SelectTrigger>
             <SelectContent>
-              {players.filter(p => p.status === "active").map(p => (
+              {players.filter((p: any) => p.status === "active").map((p: any) => (
                 <SelectItem key={p.id} value={p.id}>{p.first_name} {p.last_name}</SelectItem>
               ))}
             </SelectContent>
