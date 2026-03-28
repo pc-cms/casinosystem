@@ -66,8 +66,8 @@ export const useCloseShift = () => {
   return useMutation({
     mutationFn: async (input: {
       shift_id: string;
-      closing_count: Record<string, Record<string, number>>;
-      closing_cash: Record<string, number>;
+      closing_count: Record<string, any>;
+      closing_cash: Record<string, any>;
       notes: string;
     }) => {
       if (!casinoId || !user) throw new Error("Not authenticated");
