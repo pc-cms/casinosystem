@@ -530,34 +530,73 @@ const CloseShiftDialog = ({ open, onClose, shift, expectedBalance, tables, onCon
   const [notes, setNotes] = useState("");
   const [tableReady, setTableReady] = useState<Record<string, boolean>>({});
   const allTablesReady = tables.length === 0 || tables.every((t: any) => tableReady[t.id]);
+  const batchSnapshot = useBatchChipSnapshot();
 
+  // Step 2: Chip counts per denomination (global casino total)
   const [chipCounts, setChipCounts] = useState<Record<number, number>>({});
+  // Step 3: Cash counts
   const [cashCounts, setCashCounts] = useState<Record<string, Record<number, number>>>({ USD: {}, EUR: {} });
   const [bankBal, setBankBal] = useState(0);
   const [mobileBal, setMobileBal] = useState(0);
 
+  // MISS calculation
+  const expectedChips = useMemo(() => getExpectedChips(tables), [tables]);
+  const initialTotal = useMemo(() => getInitialTotal(tables), [tables]);
+  const missPerDenom = useMemo(() => {
+    const miss: Record<number, number> = {};
+    CHIP_DENOMS.forEach(d => { miss[d] = (chipCounts[d] || 0) - (expectedChips[d] || 0); });
+    return miss;
+  }, [chipCounts, expectedChips]);
   const chipTotal = Object.entries(chipCounts).reduce((s, [d, c]) => s + Number(d) * (c || 0), 0);
+  const totalMissValue = chipTotal - initialTotal;
+  const hasIncident = chipTotal > initialTotal;
+  const hasAnyChipCount = Object.values(chipCounts).some(v => v > 0);
+
+  // Cash totals
   const usdTotal = Object.entries(cashCounts.USD || {}).reduce((s, [d, c]) => s + Number(d) * (c || 0), 0);
   const eurTotal = Object.entries(cashCounts.EUR || {}).reduce((s, [d, c]) => s + Number(d) * (c || 0), 0);
   const rates = (shift?.exchange_rates || {}) as Record<string, number>;
-  const totalTzs = chipTotal + (usdTotal * (rates.USD || 0)) + (eurTotal * (rates.EUR || 0)) + bankBal + mobileBal;
+  const cashTzs = (usdTotal * (rates.USD || 0)) + (eurTotal * (rates.EUR || 0)) + bankBal + mobileBal;
+  const totalTzs = chipTotal + cashTzs;
   const diff = totalTzs - expectedBalance;
   const isPerfect = diff === 0;
 
+  const today = new Date().toISOString().split("T")[0];
+
   const handleClose = () => {
+    // Save chip snapshot
+    if (hasAnyChipCount) {
+      const snapRows = CHIP_DENOMS.filter(d => expectedChips[d] > 0 || chipCounts[d] > 0).map(d => ({
+        location_type: "closing",
+        location_id: null,
+        denomination: d,
+        expected_quantity: expectedChips[d] || 0,
+        actual_quantity: chipCounts[d] || 0,
+      }));
+      batchSnapshot.mutate({ date: today, counts: snapRows });
+    }
+
     onConfirm({
-      closingCount: { chips: chipCounts, cash: { USD: cashCounts.USD, EUR: cashCounts.EUR }, bank: bankBal, mobile: mobileBal,
-        totals: { TZS: chipTotal, USD: usdTotal, EUR: eurTotal, bank: bankBal, mobile: mobileBal, total_tzs: totalTzs } },
+      closingCount: {
+        chips: chipCounts,
+        chip_miss: missPerDenom,
+        chip_miss_total: totalMissValue,
+        chip_incident: hasIncident,
+        cash: { USD: cashCounts.USD, EUR: cashCounts.EUR },
+        bank: bankBal, mobile: mobileBal,
+        totals: { TZS: chipTotal, USD: usdTotal, EUR: eurTotal, bank: bankBal, mobile: mobileBal, total_tzs: totalTzs },
+      },
       closingCash: { expected: expectedBalance, actual: totalTzs, difference: diff, table_readiness: tableReady },
-      notes: `${notes}${diff !== 0 ? ` | DIFF: ${diff >= 0 ? "+" : ""}${diff.toLocaleString()} TZS` : " | BALANCED"}`,
+      notes: `${notes}${diff !== 0 ? ` | DIFF: ${diff >= 0 ? "+" : ""}${diff.toLocaleString()} TZS` : " | BALANCED"}${totalMissValue !== 0 ? ` | MISS: ${totalMissValue >= 0 ? "+" : ""}${totalMissValue.toLocaleString()} TZS` : ""}`,
     });
   };
 
   return (
     <Dialog open={open} onOpenChange={v => { if (!v) { setStep(1); onClose(); } }}>
       <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
-        <DialogHeader><DialogTitle>Close Shift — Step {step}/3</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>Close Shift — Step {step}/4</DialogTitle></DialogHeader>
 
+        {/* Step 1: Table readiness */}
         {step === 1 && (
           <div className="space-y-3">
             <p className="text-xs text-muted-foreground">Confirm tables restored to base float.</p>
@@ -575,21 +614,69 @@ const CloseShiftDialog = ({ open, onClose, shift, expectedBalance, tables, onCon
           </div>
         )}
 
+        {/* Step 2: Chip Count (MISS) */}
         {step === 2 && (
           <div className="space-y-3">
-            <div>
-              <p className="text-[10px] font-medium text-muted-foreground uppercase mb-1.5">TZS Chips</p>
-              <div className="grid grid-cols-4 gap-1.5">
-                {CHIP_DENOMS.map(d => (
-                  <div key={d} className="flex items-center gap-1">
-                    <span className={`cms-chip text-[8px] min-w-[36px] text-center ${CHIP_COLORS[d] || ""}`}>{formatChipLabel(d)}</span>
-                    <Input type="number" min={0} value={chipCounts[d] || ""} onChange={e => setChipCounts(c => ({ ...c, [d]: Number(e.target.value) || 0 }))}
-                      className="font-mono w-12 h-7 text-[10px]" placeholder="0" />
+            <p className="text-xs text-muted-foreground">Count total chips per denomination across entire casino.</p>
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5">
+              {CHIP_DENOMS.map(d => {
+                const exp = expectedChips[d] || 0;
+                const act = chipCounts[d] || 0;
+                const miss = act - exp;
+                const hasVal = act > 0;
+                return (
+                  <div key={d} className="space-y-0.5">
+                    <div className="flex items-center gap-1">
+                      <span className={`cms-chip text-[8px] min-w-[36px] text-center ${CHIP_COLORS[d] || ""}`}>{formatChipLabel(d)}</span>
+                      <Input type="number" min={0} value={chipCounts[d] || ""} onChange={e => setChipCounts(c => ({ ...c, [d]: Number(e.target.value) || 0 }))}
+                        className="font-mono w-14 h-7 text-xs" placeholder={String(exp)} />
+                    </div>
+                    {hasVal && miss !== 0 && (
+                      <p className={`text-[9px] font-mono text-center ${miss > 0 ? "text-destructive" : "text-orange-500"}`}>
+                        {miss > 0 ? "+" : ""}{miss}
+                      </p>
+                    )}
                   </div>
-                ))}
-              </div>
-              <p className="text-right font-mono text-xs mt-1 text-card-foreground">= {formatCurrency(chipTotal)}</p>
+                );
+              })}
             </div>
+
+            {hasAnyChipCount && (
+              <div className="grid grid-cols-3 gap-2 pt-2 border-t border-border">
+                <div className="text-center">
+                  <p className="text-[9px] uppercase text-muted-foreground">Expected</p>
+                  <p className="font-mono text-xs font-bold text-card-foreground">{formatCurrency(initialTotal)}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-[9px] uppercase text-muted-foreground">Counted</p>
+                  <p className="font-mono text-xs font-bold text-card-foreground">{formatCurrency(chipTotal)}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-[9px] uppercase text-muted-foreground">MISS</p>
+                  <p className={`font-mono text-xs font-bold ${totalMissValue === 0 ? "text-green-500" : "text-destructive"}`}>
+                    {totalMissValue >= 0 ? "+" : ""}{formatCurrency(totalMissValue)}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {hasIncident && (
+              <div className="p-2 rounded-md bg-destructive/10 border border-destructive/30 flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-destructive shrink-0" />
+                <p className="text-xs text-destructive font-bold">INCIDENT: Chips exceed initial total</p>
+              </div>
+            )}
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setStep(1)}>← Back</Button>
+              <Button onClick={() => setStep(3)}>Next →</Button>
+            </DialogFooter>
+          </div>
+        )}
+
+        {/* Step 3: Cash Count */}
+        {step === 3 && (
+          <div className="space-y-3">
             <div>
               <p className="text-[10px] font-medium text-muted-foreground uppercase mb-1.5">USD</p>
               <div className="grid grid-cols-3 gap-1.5">
@@ -625,13 +712,14 @@ const CloseShiftDialog = ({ open, onClose, shift, expectedBalance, tables, onCon
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setStep(1)}>← Back</Button>
-              <Button onClick={() => setStep(3)}>Review →</Button>
+              <Button variant="outline" onClick={() => setStep(2)}>← Back</Button>
+              <Button onClick={() => setStep(4)}>Review →</Button>
             </DialogFooter>
           </div>
         )}
 
-        {step === 3 && (
+        {/* Step 4: Review */}
+        {step === 4 && (
           <div className="space-y-3">
             <div className={`cms-panel p-3 text-center ${isPerfect ? "border-green-500/30" : "border-destructive/30"}`}>
               {isPerfect ? <CheckCircle2 className="w-6 h-6 text-green-500 mx-auto mb-1" /> : <AlertTriangle className="w-6 h-6 text-destructive mx-auto mb-1" />}
@@ -642,6 +730,18 @@ const CloseShiftDialog = ({ open, onClose, shift, expectedBalance, tables, onCon
               <div className="text-center"><p className="text-[9px] uppercase text-muted-foreground">Counted</p><p className="font-mono text-xs font-bold text-card-foreground">{formatCurrency(totalTzs)}</p></div>
               <div className="text-center"><p className="text-[9px] uppercase text-muted-foreground">Diff</p><p className={`font-mono text-xs font-bold ${isPerfect ? "text-green-500" : "text-destructive"}`}>{diff >= 0 ? "+" : ""}{formatCurrency(diff)}</p></div>
             </div>
+
+            {/* Chip MISS summary */}
+            {hasAnyChipCount && totalMissValue !== 0 && (
+              <div className={`cms-panel p-2 ${hasIncident ? "border-destructive/50" : ""}`}>
+                <p className="text-[10px] uppercase text-muted-foreground text-center mb-1">Chip MISS</p>
+                <p className={`font-mono text-sm font-bold text-center ${totalMissValue === 0 ? "text-green-500" : "text-destructive"}`}>
+                  {totalMissValue >= 0 ? "+" : ""}{formatCurrency(totalMissValue)}
+                </p>
+                {hasIncident && <p className="text-[10px] text-destructive text-center mt-1 flex items-center justify-center gap-1"><AlertTriangle className="w-3 h-3" /> INCIDENT</p>}
+              </div>
+            )}
+
             <div>
               <p className="text-[10px] font-medium text-muted-foreground uppercase mb-1">Notes</p>
               <Textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Shift notes…" rows={2} />
@@ -650,7 +750,7 @@ const CloseShiftDialog = ({ open, onClose, shift, expectedBalance, tables, onCon
               <p className="text-[10px] text-destructive flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> Mismatch of {formatCurrency(Math.abs(diff))} will be logged.</p>
             )}
             <DialogFooter>
-              <Button variant="outline" onClick={() => setStep(2)}>← Back</Button>
+              <Button variant="outline" onClick={() => setStep(3)}>← Back</Button>
               <Button variant="destructive" onClick={handleClose} disabled={loading}>{loading ? "Closing…" : "Close Shift"}</Button>
             </DialogFooter>
           </div>
