@@ -36,6 +36,7 @@ const CAT_COLORS: Record<string, string> = {
  */
 const Expenses = () => {
   const { isManager } = useAuth();
+  const { data: shift } = useActiveShift();
   const { data: expenses = [] } = useExpenses();
   const { data: players = [] } = usePlayers();
   const approve = useApproveExpense();
@@ -161,7 +162,7 @@ const Expenses = () => {
         </table>
       </div>
 
-      <AddExpenseDialog open={showAdd} onClose={() => setShowAdd(false)} players={players} />
+      <AddExpenseDialog open={showAdd} onClose={() => setShowAdd(false)} players={players} shiftId={shift?.id || null} />
 
       <ManagerOverrideDialog
         open={!!pendingOverride}
@@ -181,13 +182,13 @@ const Expenses = () => {
   );
 };
 
-const AddExpenseDialog = ({ open, onClose, players }: { open: boolean; onClose: () => void; players: any[] }) => {
+const AddExpenseDialog = ({ open, onClose, players, shiftId }: { open: boolean; onClose: () => void; players: any[]; shiftId: string | null }) => {
   const create = useCreateExpense();
   const [form, setForm] = useState({ category: "", amount: "", description: "", player_id: "" });
 
   const handleSubmit = () => {
     if (!form.category || !form.amount) return;
-    create.mutate({ category: form.category, amount: Number(form.amount), description: form.description, player_id: form.player_id || null },
+    create.mutate({ category: form.category, amount: Number(form.amount), description: form.description, player_id: form.player_id || null, shift_id: shiftId },
       { onSuccess: () => { setForm({ category: "", amount: "", description: "", player_id: "" }); onClose(); } });
   };
 
