@@ -69,6 +69,16 @@ const Tables = () => {
 
   const handleCloseTable = () => {
     if (!closingTable) return;
+    // Validate: must have at least one chip denomination entered
+    const hasChipData = Object.values(closingChips).some(v => v > 0);
+    if (!hasChipData) {
+      toast.error("Must enter chip counts before closing table");
+      return;
+    }
+    if (closingTableFloat <= 0) {
+      toast.error("Invalid table float — cannot close");
+      return;
+    }
     closeTable.mutate({
       table_id: closingTable.id,
       closing_chips: closingChips,
