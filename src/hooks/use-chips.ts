@@ -156,7 +156,7 @@ export const useBatchChipSnapshot = () => {
       await logAction(casinoId, "system", "CHIP_COUNT_RECORDED", {
         date: input.date,
         total_denominations: input.counts.length,
-        total_miss: rows.reduce((s, r) => s + (r.miss || 0), 0),
+        total_miss: rows.reduce((s, r) => s + (r.actual_quantity - r.expected_quantity), 0),
       });
     },
     onSuccess: () => {
