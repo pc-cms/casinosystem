@@ -2,9 +2,7 @@ import { useState, useMemo } from "react";
 import { useDealers, useBreaklistData, useSetBreaklistCell, useLockBreaklistCell, useGamingTables } from "@/hooks/use-casino-data";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Lock, Unlock, LockKeyhole } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Lock, Unlock, LockKeyhole, Check } from "lucide-react";
 import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
 import { toast } from "sonner";
 import { ALL_ROLES, ROLE_COLORS, TABLE_ROLES } from "@/lib/currency";
@@ -34,23 +32,21 @@ const BreaklistGrid = ({ date }: { date: string }) => {
   const openTables = tables.filter(t => t.status === "open");
   const displaySlots = TIME_SLOTS.slice(0, 24);
 
-  const [editingCell, setEditingCell] = useState<{ dealerId: string; timeSlot: string } | null>(null);
-  const [editRole, setEditRole] = useState<string>("BR");
-  const [editTable, setEditTable] = useState<string>("");
+  // Inline role picker state — no dialog
+  const [activeCell, setActiveCell] = useState<{ dealerId: string; timeSlot: string } | null>(null);
 
-  // Manager override state
+  // Manager override
   const [overrideAction, setOverrideAction] = useState<(() => void) | null>(null);
   const [overrideTitle, setOverrideTitle] = useState("");
   const [overrideDesc, setOverrideDesc] = useState("");
 
-  // Build available roles based on selected table
-  const availableRoles = useMemo(() => {
-    if (!editTable || editTable === "none") return [...ALL_ROLES];
-    const selectedTable = openTables.find(t => t.id === editTable);
-    if (!selectedTable) return [...ALL_ROLES];
-    const gameRoles = TABLE_ROLES[selectedTable.game] || [];
-    return [...gameRoles, "BR"];
-  }, [editTable, openTables]);
+  // Build roles for a given table
+  const getRolesForTable = (tableId: string | null) => {
+    if (!tableId) return [...ALL_ROLES];
+    const t = openTables.find(t => t.id === tableId);
+    if (!t) return [...ALL_ROLES];
+    return [...(TABLE_ROLES[t.game] || []), "BR"];
+  };
 
   const getCellData = (dealerId: string, timeSlot: string) =>
     breaklist.find(b => b.dealer_id === dealerId && b.time_slot === timeSlot);
@@ -58,61 +54,49 @@ const BreaklistGrid = ({ date }: { date: string }) => {
   const handleCellClick = (dealerId: string, timeSlot: string) => {
     const cell = getCellData(dealerId, timeSlot);
     if (cell?.is_locked && !isManager) {
-      toast.error("Cell is locked. Manager override required.");
+      toast.error("Locked — manager override required");
       return;
     }
     if (cell?.is_locked && isManager) {
       setOverrideTitle("Edit Locked Cell");
-      setOverrideDesc("This cell is locked. Authenticate to override and edit.");
-      setOverrideAction(() => () => {
-        setEditingCell({ dealerId, timeSlot });
-        setEditRole(cell?.role || "BR");
-        setEditTable(cell?.table_id || "");
-      });
+      setOverrideDesc("Cell is locked. Authenticate to override.");
+      setOverrideAction(() => () => setActiveCell({ dealerId, timeSlot }));
       return;
     }
-    setEditingCell({ dealerId, timeSlot });
-    setEditRole(cell?.role || "BR");
-    setEditTable(cell?.table_id || "");
+    setActiveCell({ dealerId, timeSlot });
   };
 
-  const handleSave = () => {
-    if (!editingCell) return;
+  const handleRoleSelect = (role: string, tableId?: string) => {
+    if (!activeCell) return;
     setCell.mutate({
       date,
-      dealer_id: editingCell.dealerId,
-      time_slot: editingCell.timeSlot,
-      role: editRole,
-      table_id: editTable && editTable !== "none" ? editTable : null,
+      dealer_id: activeCell.dealerId,
+      time_slot: activeCell.timeSlot,
+      role,
+      table_id: tableId || null,
     });
-    setEditingCell(null);
+    setActiveCell(null);
+  };
+
+  // Accept button — fill all empty slots with BR
+  const handleAccept = () => {
+    activeDealers.forEach(dealer => {
+      displaySlots.forEach(slot => {
+        const existing = getCellData(dealer.id, slot);
+        if (!existing) {
+          setCell.mutate({ date, dealer_id: dealer.id, time_slot: slot, role: "BR", table_id: null });
+        }
+      });
+    });
+    toast.success("Empty slots filled with BR");
   };
 
   const handleLockRow = (dealerId: string, lock: boolean) => {
-    const dealerCells = breaklist.filter(b => b.dealer_id === dealerId);
-    if (dealerCells.length === 0) {
-      toast.error("No cells to lock for this dealer");
-      return;
-    }
-    setOverrideTitle(lock ? "Lock Entire Row" : "Unlock Entire Row");
-    setOverrideDesc(`This will ${lock ? "lock" : "unlock"} all ${dealerCells.length} cells for this dealer. Authenticate to confirm.`);
-    setOverrideAction(() => () => {
-      dealerCells.forEach(cell => {
-        lockCell.mutate({ id: cell.id, lock });
-      });
-    });
-  };
-
-  const handleToggleLock = () => {
-    if (!editingCell) return;
-    const cell = getCellData(editingCell.dealerId, editingCell.timeSlot);
-    if (!cell) return;
-    setOverrideTitle(cell.is_locked ? "Unlock Cell" : "Lock Cell");
-    setOverrideDesc("Manager authentication required to change lock status.");
-    setOverrideAction(() => () => {
-      lockCell.mutate({ id: cell.id, lock: !cell.is_locked });
-      setEditingCell(null);
-    });
+    const cells = breaklist.filter(b => b.dealer_id === dealerId);
+    if (cells.length === 0) { toast.error("No cells to lock"); return; }
+    setOverrideTitle(lock ? "Lock Row" : "Unlock Row");
+    setOverrideDesc(`${lock ? "Lock" : "Unlock"} all ${cells.length} cells. Authenticate.`);
+    setOverrideAction(() => () => cells.forEach(c => lockCell.mutate({ id: c.id, lock })));
   };
 
   const getLockedCount = (dealerId: string) =>
@@ -120,6 +104,13 @@ const BreaklistGrid = ({ date }: { date: string }) => {
 
   return (
     <>
+      {/* Accept button */}
+      <div className="flex items-center justify-end mb-2 gap-2">
+        <Button variant="outline" size="sm" onClick={handleAccept} className="gap-1 text-xs">
+          <Check className="w-3.5 h-3.5" /> Accept (fill BR)
+        </Button>
+      </div>
+
       <div className="cms-panel overflow-x-auto">
         <div className="min-w-[1200px]">
           <table className="w-full border-collapse">
@@ -146,11 +137,9 @@ const BreaklistGrid = ({ date }: { date: string }) => {
                             </span>
                           )}
                           {isManager && (
-                            <button
-                              onClick={() => handleLockRow(dealer.id, lockedCount === 0)}
+                            <button onClick={() => handleLockRow(dealer.id, lockedCount === 0)}
                               className="text-muted-foreground hover:text-primary ml-1"
-                              title={lockedCount > 0 ? "Unlock all" : "Lock all"}
-                            >
+                              title={lockedCount > 0 ? "Unlock all" : "Lock all"}>
                               {lockedCount > 0 ? <Unlock className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
                             </button>
                           )}
@@ -160,18 +149,54 @@ const BreaklistGrid = ({ date }: { date: string }) => {
                     {displaySlots.map(slot => {
                       const cell = getCellData(dealer.id, slot);
                       const tableName = cell?.table_id ? openTables.find(t => t.id === cell.table_id)?.name : null;
+                      const isActive = activeCell?.dealerId === dealer.id && activeCell?.timeSlot === slot;
                       return (
-                        <td key={slot} className="px-0.5 py-0.5 text-center">
+                        <td key={slot} className="px-0.5 py-0.5 text-center relative">
                           <button
                             onClick={() => handleCellClick(dealer.id, slot)}
                             className={`w-full h-7 rounded text-[9px] font-mono font-bold relative transition-colors ${
                               cell ? ROLE_COLORS[cell.role] || "bg-muted text-muted-foreground" : "bg-transparent hover:bg-muted/50 text-transparent hover:text-muted-foreground"
-                            } ${cell?.is_locked ? "ring-1 ring-yellow-500/40" : ""}`}
+                            } ${cell?.is_locked ? "ring-1 ring-yellow-500/40" : ""} ${isActive ? "ring-2 ring-primary" : ""}`}
                             title={tableName ? `${cell?.role} @ ${tableName}` : cell?.role}
                           >
-                            {cell ? (tableName ? `${tableName}` : cell.role) : "·"}
+                            {cell ? (tableName ? tableName : cell.role) : "·"}
                             {cell?.is_locked && <Lock className="w-2 h-2 absolute top-0.5 right-0.5 text-yellow-400" />}
                           </button>
+                          {/* Inline role picker dropdown */}
+                          {isActive && (
+                            <div className="absolute z-50 top-8 left-0 bg-popover border border-border rounded-md shadow-lg p-1 min-w-[100px]"
+                              onMouseLeave={() => setActiveCell(null)}>
+                              {/* Quick roles */}
+                              <div className="flex flex-wrap gap-0.5 mb-1">
+                                {ALL_ROLES.map(r => (
+                                  <button key={r} onClick={() => handleRoleSelect(r)}
+                                    className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold transition-colors ${ROLE_COLORS[r] || "bg-muted text-muted-foreground"} hover:opacity-80`}>
+                                    {r}
+                                  </button>
+                                ))}
+                              </div>
+                              {/* Table assignment */}
+                              {openTables.length > 0 && (
+                                <div className="border-t border-border pt-1 space-y-0.5">
+                                  <p className="text-[8px] text-muted-foreground uppercase px-1">Assign to table</p>
+                                  {openTables.map(t => {
+                                    const roles = TABLE_ROLES[t.game] || [];
+                                    return (
+                                      <div key={t.id} className="flex items-center gap-0.5 px-1">
+                                        <span className="text-[9px] font-mono text-card-foreground min-w-[28px]">{t.name}</span>
+                                        {roles.map(r => (
+                                          <button key={r} onClick={() => handleRoleSelect(r, t.id)}
+                                            className={`px-1 py-0.5 rounded text-[8px] font-mono font-bold ${ROLE_COLORS[r] || ""} hover:opacity-80`}>
+                                            {r}
+                                          </button>
+                                        ))}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </td>
                       );
                     })}
@@ -183,61 +208,10 @@ const BreaklistGrid = ({ date }: { date: string }) => {
         </div>
       </div>
 
-      {/* Edit Cell Dialog */}
-      <Dialog open={!!editingCell} onOpenChange={() => setEditingCell(null)}>
-        <DialogContent className="max-w-xs">
-          <DialogHeader>
-            <DialogTitle className="text-sm">
-              {activeDealers.find(d => d.id === editingCell?.dealerId)?.name} @ {editingCell?.timeSlot}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
-            <div>
-              <label className="text-xs font-medium text-muted-foreground uppercase mb-1 block">Table</label>
-              <Select value={editTable} onValueChange={(v) => { setEditTable(v); setEditRole("BR"); }}>
-                <SelectTrigger><SelectValue placeholder="No table" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">No table (BR)</SelectItem>
-                  {openTables.map(t => <SelectItem key={t.id} value={t.id}>{t.name} — {t.game}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground uppercase mb-1 block">Role</label>
-              <Select value={editRole} onValueChange={setEditRole}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {availableRoles.map(r => (
-                    <SelectItem key={r} value={r}>
-                      <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-mono ${ROLE_COLORS[r] || ""}`}>{r}</span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <DialogFooter className="gap-2">
-            {isManager && editingCell && getCellData(editingCell.dealerId, editingCell.timeSlot) && (
-              <Button variant="outline" size="sm" className="mr-auto" onClick={handleToggleLock}>
-                {getCellData(editingCell.dealerId, editingCell.timeSlot)?.is_locked
-                  ? <><Unlock className="w-3 h-3 mr-1" /> Unlock</>
-                  : <><Lock className="w-3 h-3 mr-1" /> Lock</>}
-              </Button>
-            )}
-            <Button variant="outline" onClick={() => setEditingCell(null)}>Cancel</Button>
-            <Button onClick={handleSave}>Save</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Manager Override Dialog */}
       <ManagerOverrideDialog
         open={!!overrideAction}
         onClose={() => setOverrideAction(null)}
-        onConfirm={() => {
-          overrideAction?.();
-          setOverrideAction(null);
-        }}
+        onConfirm={() => { overrideAction?.(); setOverrideAction(null); }}
         title={overrideTitle}
         description={overrideDesc}
       />

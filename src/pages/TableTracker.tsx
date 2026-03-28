@@ -1,9 +1,8 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { useGamingTables, useTableTracker, useSetTableTrackerValue } from "@/hooks/use-casino-data";
 import { Input } from "@/components/ui/input";
 import { formatCurrency } from "@/lib/currency";
 
-// Time slots: every 30 min from 14:00 to 06:00
 const generateSlots = () => {
   const slots: string[] = [];
   for (let h = 14; h <= 29; h++) {
@@ -30,9 +29,12 @@ const TableTracker = () => {
     return entry ? Number(entry.value) : null;
   }, [trackerData]);
 
-  const handleChange = (tableId: string, slot: string, val: string) => {
+  // Save on blur or Enter — no save button
+  const handleSave = (tableId: string, slot: string, val: string) => {
     const numVal = Number(val);
     if (isNaN(numVal)) return;
+    const current = getVal(tableId, slot);
+    if (current === numVal) return; // skip if unchanged
     setValue.mutate({ table_id: tableId, date, time_slot: slot, value: numVal });
   };
 
@@ -44,12 +46,30 @@ const TableTracker = () => {
 
   const grandTotal = trackerData.reduce((s, t) => s + Number(t.value), 0);
 
+  // Tab/Enter navigation between cells
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, tableIdx: number, slotIdx: number) => {
+    if (e.key === "Enter" || (e.key === "Tab" && !e.shiftKey)) {
+      e.preventDefault();
+      (e.target as HTMLInputElement).blur(); // triggers save
+      // Focus next cell
+      const nextSlot = slotIdx + 1;
+      const nextTable = tableIdx + 1;
+      let nextId: string;
+      if (nextSlot < SLOTS.length) {
+        nextId = `cell-${tableIdx}-${nextSlot}`;
+      } else if (nextTable < openTables.length) {
+        nextId = `cell-${nextTable}-0`;
+      } else return;
+      setTimeout(() => document.getElementById(nextId)?.focus(), 10);
+    }
+  };
+
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Table Tracker</h1>
-          <p className="text-sm text-muted-foreground">30/60 min interval recording · Auto totals</p>
+          <p className="text-xs text-muted-foreground">Enter values · auto-saves on blur/Enter</p>
         </div>
         <Input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-44 font-mono" />
       </div>
@@ -67,17 +87,20 @@ const TableTracker = () => {
               </tr>
             </thead>
             <tbody>
-              {openTables.map(table => (
+              {openTables.map((table, ti) => (
                 <tr key={table.id} className="border-b border-border last:border-0">
                   <td className="px-3 py-1 text-xs font-medium text-card-foreground sticky left-0 bg-card z-10">{table.name}</td>
-                  {SLOTS.map(slot => {
+                  {SLOTS.map((slot, si) => {
                     const val = getVal(table.id, slot);
                     return (
                       <td key={slot} className="px-0.5 py-0.5">
                         <input
+                          id={`cell-${ti}-${si}`}
                           type="number"
                           defaultValue={val ?? ""}
-                          onBlur={e => handleChange(table.id, slot, e.target.value)}
+                          key={`${table.id}-${slot}-${val}`}
+                          onBlur={e => handleSave(table.id, slot, e.target.value)}
+                          onKeyDown={e => handleKeyDown(e, ti, si)}
                           className="w-full h-7 text-center text-xs font-mono bg-transparent border border-border rounded px-1 focus:border-primary focus:outline-none text-card-foreground"
                           placeholder="·"
                         />
@@ -89,8 +112,6 @@ const TableTracker = () => {
                   </td>
                 </tr>
               ))}
-
-              {/* Totals row */}
               <tr className="border-t-2 border-primary/30 bg-muted/30">
                 <td className="px-3 py-2 text-xs font-bold text-card-foreground uppercase sticky left-0 bg-muted/30 z-10">Totals</td>
                 {SLOTS.map(slot => (
