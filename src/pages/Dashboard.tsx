@@ -3,6 +3,7 @@ import { usePlayers, useTransactions, useGamingTables, useExpenses } from "@/hoo
 import { useAuth } from "@/lib/auth-context";
 import { Link } from "react-router-dom";
 import { formatCurrency } from "@/lib/currency";
+import { canSeePlayerFinancials } from "@/lib/role-access";
 
 const StatCard = ({ label, value, icon: Icon, href, trend }: {
   label: string; value: string | number; icon: any; href: string;
@@ -34,6 +35,7 @@ const Dashboard = () => {
   const { data: tables = [] } = useGamingTables();
   const { data: expenses = [] } = useExpenses();
 
+  const showFinancials = canSeePlayerFinancials(roles);
   const activePlayers = players.filter(p => p.status === "active").length;
   const openTables = tables.filter(t => t.status === "open").length;
   const totalDrop = transactions.filter(t => t.type === "buy").reduce((s, t) => s + Number(t.amount), 0);
@@ -50,38 +52,40 @@ const Dashboard = () => {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <StatCard label="Active Players" value={activePlayers} icon={Users} href="/players" />
-        <StatCard label="Total Drop" value={formatCurrency(totalDrop)} icon={Landmark} href="/cage" />
+        {showFinancials && <StatCard label="Total Drop" value={formatCurrency(totalDrop)} icon={Landmark} href="/cage" />}
         <StatCard label="Open Tables" value={`${openTables}/${tables.length}`} icon={Table2} href="/tables" />
-        <StatCard label="Pending Expenses" value={pendingExpenses} icon={Receipt} href="/expenses" />
+        {showFinancials && <StatCard label="Pending Expenses" value={pendingExpenses} icon={Receipt} href="/expenses" />}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="cms-panel">
-          <div className="cms-header">Recent Transactions</div>
-          <div className="p-4">
-            {transactions.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-8">No transactions yet</p>
-            ) : (
-              <div className="space-y-2">
-                {transactions.slice(0, 8).map(tx => (
-                  <div key={tx.id} className="flex items-center justify-between py-2 border-b border-border last:border-0">
-                    <div>
-                      <span className="text-sm font-medium text-card-foreground">
-                        {(tx as any).players?.first_name} {(tx as any).players?.last_name}
-                      </span>
-                      <span className={`ml-2 text-xs font-mono px-1.5 py-0.5 rounded ${tx.type === "buy" ? "bg-primary/10 text-primary" : "bg-accent/10 text-accent"}`}>
-                        {tx.type.toUpperCase()}
+        {showFinancials && (
+          <div className="cms-panel">
+            <div className="cms-header">Recent Transactions</div>
+            <div className="p-4">
+              {transactions.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-8">No transactions yet</p>
+              ) : (
+                <div className="space-y-2">
+                  {transactions.slice(0, 8).map(tx => (
+                    <div key={tx.id} className="flex items-center justify-between py-2 border-b border-border last:border-0">
+                      <div>
+                        <span className="text-sm font-medium text-card-foreground">
+                          {(tx as any).players?.first_name} {(tx as any).players?.last_name}
+                        </span>
+                        <span className={`ml-2 text-xs font-mono px-1.5 py-0.5 rounded ${tx.type === "buy" ? "bg-primary/10 text-primary" : "bg-accent/10 text-accent"}`}>
+                          {tx.type.toUpperCase()}
+                        </span>
+                      </div>
+                      <span className={`font-mono text-sm font-medium ${tx.type === "buy" ? "cms-amount-negative" : "cms-amount-positive"}`}>
+                        {tx.type === "buy" ? "-" : "+"}{formatCurrency(Number(tx.amount))}
                       </span>
                     </div>
-                    <span className={`font-mono text-sm font-medium ${tx.type === "buy" ? "cms-amount-negative" : "cms-amount-positive"}`}>
-                      {tx.type === "buy" ? "-" : "+"}{formatCurrency(Number(tx.amount))}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="cms-panel">
           <div className="cms-header">Table Status</div>
@@ -93,7 +97,9 @@ const Dashboard = () => {
                   <span className="text-sm font-medium text-card-foreground">{table.name}</span>
                   <span className="text-xs text-muted-foreground">{table.game}</span>
                 </div>
-                <span className="font-mono text-xs text-muted-foreground">{formatCurrency(Number(table.float_amount))}</span>
+                {showFinancials && (
+                  <span className="font-mono text-xs text-muted-foreground">{formatCurrency(Number(table.float_amount))}</span>
+                )}
               </div>
             ))}
             {tables.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">No tables configured</p>}
