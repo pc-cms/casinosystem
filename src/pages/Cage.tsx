@@ -556,7 +556,7 @@ const CashCheckForm = ({ expectedBalance, shiftId, exchangeRates, cashChecks }: 
 };
 
 // =================== CLOSE SHIFT DIALOG ===================
-const CloseShiftDialog = ({ open, onClose, shift, expectedBalance, tables, onConfirm, loading }: any) => {
+const CloseShiftDialog = ({ open, onClose, shift, expectedBalance, cashResult, totalBuyIns, totalCashouts, totalExpenses, openingFloat, tables, onConfirm, loading }: any) => {
   const [step, setStep] = useState(1);
   const [notes, setNotes] = useState("");
   const [tableReady, setTableReady] = useState<Record<string, boolean>>({});
