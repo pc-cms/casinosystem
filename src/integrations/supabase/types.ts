@@ -840,7 +840,18 @@ export type Database = {
     Enums: {
       app_role: "cashier" | "pit" | "manager" | "reception"
       card_type: "manual" | "rfid"
-      dealer_role: "BJ" | "BJi" | "AR1" | "AR1i" | "AR1c" | "BR"
+      dealer_role:
+        | "BJ"
+        | "BJi"
+        | "AR1"
+        | "AR1i"
+        | "AR1c"
+        | "BR"
+        | "P"
+        | "Pi"
+        | "AR"
+        | "ARi"
+        | "ARc"
       expense_category:
         | "food"
         | "alcohol"
@@ -990,7 +1001,19 @@ export const Constants = {
     Enums: {
       app_role: ["cashier", "pit", "manager", "reception"],
       card_type: ["manual", "rfid"],
-      dealer_role: ["BJ", "BJi", "AR1", "AR1i", "AR1c", "BR"],
+      dealer_role: [
+        "BJ",
+        "BJi",
+        "AR1",
+        "AR1i",
+        "AR1c",
+        "BR",
+        "P",
+        "Pi",
+        "AR",
+        "ARi",
+        "ARc",
+      ],
       expense_category: ["food", "alcohol", "taxi", "hotel", "flight", "other"],
       log_category: [
         "transaction",
