@@ -1,5 +1,6 @@
 import { Users, Landmark, Table2, Receipt, ArrowUpRight, ArrowDownRight } from "lucide-react";
-import { useCMS } from "@/lib/cms-context";
+import { usePlayers, useTransactions, useGamingTables, useExpenses } from "@/hooks/use-casino-data";
+import { useAuth } from "@/lib/auth-context";
 import { Link } from "react-router-dom";
 
 const StatCard = ({ label, value, icon: Icon, href, trend }: {
@@ -26,10 +27,15 @@ const StatCard = ({ label, value, icon: Icon, href, trend }: {
 );
 
 const Dashboard = () => {
-  const { players, transactions, tables, expenses } = useCMS();
+  const { displayName, roles } = useAuth();
+  const { data: players = [] } = usePlayers();
+  const { data: transactions = [] } = useTransactions();
+  const { data: tables = [] } = useGamingTables();
+  const { data: expenses = [] } = useExpenses();
+
   const activePlayers = players.filter(p => p.status === "active").length;
   const openTables = tables.filter(t => t.status === "open").length;
-  const totalDrop = transactions.filter(t => t.type === "buy").reduce((s, t) => s + t.amount, 0);
+  const totalDrop = transactions.filter(t => t.type === "buy").reduce((s, t) => s + Number(t.amount), 0);
   const pendingExpenses = expenses.filter(e => !e.approved).length;
 
   return (
@@ -37,7 +43,7 @@ const Dashboard = () => {
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
         <p className="text-sm text-muted-foreground font-mono mt-1">
-          {new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+          {displayName} · {roles.join(", ") || "No role"} · {new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
         </p>
       </div>
 
@@ -56,16 +62,18 @@ const Dashboard = () => {
               <p className="text-sm text-muted-foreground text-center py-8">No transactions yet</p>
             ) : (
               <div className="space-y-2">
-                {transactions.slice(0, 5).map(tx => (
+                {transactions.slice(0, 8).map(tx => (
                   <div key={tx.id} className="flex items-center justify-between py-2 border-b border-border last:border-0">
                     <div>
-                      <span className="text-sm font-medium text-card-foreground">{tx.playerName}</span>
+                      <span className="text-sm font-medium text-card-foreground">
+                        {(tx as any).players?.first_name} {(tx as any).players?.last_name}
+                      </span>
                       <span className={`ml-2 text-xs font-mono px-1.5 py-0.5 rounded ${tx.type === "buy" ? "bg-primary/10 text-primary" : "bg-accent/10 text-accent"}`}>
                         {tx.type.toUpperCase()}
                       </span>
                     </div>
                     <span className={`font-mono text-sm font-medium ${tx.type === "buy" ? "cms-amount-negative" : "cms-amount-positive"}`}>
-                      {tx.type === "buy" ? "-" : "+"}€{tx.amount.toLocaleString()}
+                      {tx.type === "buy" ? "-" : "+"}€{Number(tx.amount).toLocaleString()}
                     </span>
                   </div>
                 ))}
@@ -84,9 +92,10 @@ const Dashboard = () => {
                   <span className="text-sm font-medium text-card-foreground">{table.name}</span>
                   <span className="text-xs text-muted-foreground">{table.game}</span>
                 </div>
-                <span className="font-mono text-xs text-muted-foreground">€{table.float.toLocaleString()}</span>
+                <span className="font-mono text-xs text-muted-foreground">€{Number(table.float_amount).toLocaleString()}</span>
               </div>
             ))}
+            {tables.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">No tables configured</p>}
           </div>
         </div>
       </div>
