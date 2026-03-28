@@ -17,6 +17,7 @@ import Stats from "@/pages/Stats";
 import Pit from "@/pages/Pit";
 import Groups from "@/pages/Groups";
 import TableTracker from "@/pages/TableTracker";
+import Reports from "@/pages/Reports";
 import Admin from "@/pages/Admin";
 import NotFound from "./pages/NotFound";
 
@@ -54,6 +55,7 @@ const ProtectedRoutes = () => {
         <Route path="/pit" element={<Pit />} />
         <Route path="/groups" element={<Groups />} />
         <Route path="/tracker" element={<TableTracker />} />
+        <Route path="/reports" element={<Reports />} />
         <Route path="/stats" element={<Stats />} />
         <Route path="/logs" element={<Logs />} />
         <Route path="/admin" element={<Admin />} />

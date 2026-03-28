@@ -11,6 +11,7 @@ const SHORTCUTS: Record<string, string> = {
   g: "/groups",
   k: "/tracker",
   s: "/stats",
+  r: "/reports",
   l: "/logs",
 };
 

@@ -2,7 +2,7 @@ import { NavLink } from "react-router-dom";
 import {
   LayoutDashboard, Users, Landmark, Table2, Receipt,
   ClipboardList, BarChart3, Sun, Moon, Shield, Gamepad2, 
-  UsersRound, Grid3X3, LogOut, Settings,
+  UsersRound, Grid3X3, LogOut, Settings, FileBarChart,
 } from "lucide-react";
 import { useTheme } from "@/lib/theme";
 import { useAuth } from "@/lib/auth-context";
@@ -17,6 +17,7 @@ const NAV_ITEMS = [
   { to: "/groups", icon: UsersRound, label: "Groups", shortcut: "G" },
   { to: "/tracker", icon: Grid3X3, label: "Tracker", shortcut: "K" },
   { to: "/stats", icon: BarChart3, label: "Stats", shortcut: "S" },
+  { to: "/reports", icon: FileBarChart, label: "Reports", shortcut: "R" },
   { to: "/logs", icon: ClipboardList, label: "Logs", shortcut: "L" },
 ];
 
