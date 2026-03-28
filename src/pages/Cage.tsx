@@ -591,6 +591,8 @@ const CloseShiftDialog = ({ open, onClose, shift, expectedBalance, cashResult, t
   const totalTzs = chipTotal + cashTzs;
   const diff = totalTzs - expectedBalance;
   const isPerfect = diff === 0;
+  // Shift Result = Cash difference + MISS
+  const shiftResult = (cashResult || 0) + totalMissValue;
 
   const today = new Date().toISOString().split("T")[0];
 
