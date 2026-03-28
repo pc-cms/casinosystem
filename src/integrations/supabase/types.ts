@@ -788,8 +788,6 @@ export type Database = {
           created_at: string
           display_name: string
           id: string
-          pin_hash: string | null
-          rfid_tag: string | null
           updated_at: string
           user_id: string
         }
@@ -798,8 +796,6 @@ export type Database = {
           created_at?: string
           display_name: string
           id?: string
-          pin_hash?: string | null
-          rfid_tag?: string | null
           updated_at?: string
           user_id: string
         }
@@ -808,8 +804,6 @@ export type Database = {
           created_at?: string
           display_name?: string
           id?: string
-          pin_hash?: string | null
-          rfid_tag?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -1020,6 +1014,27 @@ export type Database = {
           },
         ]
       }
+      user_credentials: {
+        Row: {
+          id: string
+          pin_hash: string | null
+          rfid_tag: string | null
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          pin_hash?: string | null
+          rfid_tag?: string | null
+          user_id: string
+        }
+        Update: {
+          id?: string
+          pin_hash?: string | null
+          rfid_tag?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
@@ -1073,6 +1088,14 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      lookup_rfid_user: {
+        Args: { rfid: string }
+        Returns: {
+          casino_id: string
+          display_name: string
+          user_id: string
+        }[]
       }
     }
     Enums: {
