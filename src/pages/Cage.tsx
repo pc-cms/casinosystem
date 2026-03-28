@@ -166,7 +166,10 @@ const ActiveShiftView = ({ shift, players, tables }: { shift: any; players: any[
     return of?.totals?.total_tzs || 0;
   }, [shift]);
 
-  const expectedBalance = openingFloat + totalBuyIns - totalCashouts - totalExpenses;
+  // Cash flow: opening + buy-ins - cashouts - expenses = expected cash
+  const expectedCash = openingFloat + totalBuyIns - totalCashouts - totalExpenses;
+  // Shift result from transactions perspective: buy-ins - cashouts (what casino gained in cash)
+  const cashResult = totalBuyIns - totalCashouts;
 
   const shiftDuration = useMemo(() => {
     const start = new Date(shift.opened_at);
@@ -195,21 +198,41 @@ const ActiveShiftView = ({ shift, players, tables }: { shift: any; players: any[
         </Button>
       </div>
 
-      {/* Always-visible summary bar */}
-      <div className="grid grid-cols-3 md:grid-cols-6 gap-2 mb-4">
-        {[
-          { label: "Opening", value: formatCurrency(openingFloat), cls: "text-card-foreground" },
-          { label: "Buy-Ins", value: formatCurrency(totalBuyIns), cls: "cms-amount-negative" },
-          { label: "Cashouts", value: formatCurrency(totalCashouts), cls: "cms-amount-positive" },
-          { label: "Expenses", value: formatCurrency(totalExpenses), cls: "text-orange-500" },
-          { label: "Expected", value: formatCurrency(expectedBalance), cls: "text-card-foreground" },
-          { label: "Txns", value: String(shiftTransactions.length), cls: "text-card-foreground" },
-        ].map(s => (
-          <div key={s.label} className="cms-panel p-2">
-            <p className="text-[9px] uppercase text-muted-foreground tracking-wider">{s.label}</p>
-            <p className={`font-mono text-sm font-bold ${s.cls}`}>{s.value}</p>
+      {/* Cash Flow Summary - always visible */}
+      <div className="cms-panel p-3 mb-4">
+        <p className="text-[10px] uppercase text-muted-foreground tracking-wider mb-2 font-medium">Cash Flow</p>
+        <div className="grid grid-cols-3 md:grid-cols-7 gap-2">
+          <div>
+            <p className="text-[9px] uppercase text-muted-foreground">Opening</p>
+            <p className="font-mono text-sm font-bold text-card-foreground">{formatCurrency(openingFloat)}</p>
           </div>
-        ))}
+          <div>
+            <p className="text-[9px] uppercase text-muted-foreground">+ Buy-Ins</p>
+            <p className="font-mono text-sm font-bold text-green-500">+{formatCurrency(totalBuyIns)}</p>
+          </div>
+          <div>
+            <p className="text-[9px] uppercase text-muted-foreground">− Cashouts</p>
+            <p className="font-mono text-sm font-bold text-destructive">−{formatCurrency(totalCashouts)}</p>
+          </div>
+          <div>
+            <p className="text-[9px] uppercase text-muted-foreground">− Expenses</p>
+            <p className="font-mono text-sm font-bold text-orange-500">−{formatCurrency(totalExpenses)}</p>
+          </div>
+          <div>
+            <p className="text-[9px] uppercase text-muted-foreground">= Expected</p>
+            <p className="font-mono text-sm font-bold text-card-foreground">{formatCurrency(expectedCash)}</p>
+          </div>
+          <div>
+            <p className="text-[9px] uppercase text-muted-foreground">Cash Result</p>
+            <p className={`font-mono text-sm font-bold ${cashResult >= 0 ? "text-green-500" : "text-destructive"}`}>
+              {cashResult >= 0 ? "+" : ""}{formatCurrency(cashResult)}
+            </p>
+          </div>
+          <div>
+            <p className="text-[9px] uppercase text-muted-foreground">Txns</p>
+            <p className="font-mono text-sm font-bold text-card-foreground">{shiftTransactions.length}</p>
+          </div>
+        </div>
       </div>
 
       {/* Operation Tabs */}
@@ -227,7 +250,7 @@ const ActiveShiftView = ({ shift, players, tables }: { shift: any; players: any[
           <CashoutForm players={activePlayers} shiftId={shift.id} onSubmit={createTx.mutate} loading={createTx.isPending} />
         </TabsContent>
         <TabsContent value="check">
-          <CashCheckForm expectedBalance={expectedBalance} shiftId={shift.id} exchangeRates={exchangeRates} cashChecks={cashChecks} />
+          <CashCheckForm expectedBalance={expectedCash} shiftId={shift.id} exchangeRates={exchangeRates} cashChecks={cashChecks} />
         </TabsContent>
       </Tabs>
 
@@ -238,14 +261,14 @@ const ActiveShiftView = ({ shift, players, tables }: { shift: any; players: any[
           <table className="w-full">
             <thead className="sticky top-0 bg-card z-10">
               <tr className="border-b border-border">
-                {["Type", "Player", "Amount", "Time"].map(h => (
+                {["Type", "Player", "Table", "Amount", "Time"].map(h => (
                   <th key={h} className={`text-xs font-medium text-muted-foreground uppercase px-3 py-1.5 ${h === "Amount" || h === "Time" ? "text-right" : "text-left"}`}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {shiftTransactions.length === 0 ? (
-                <tr><td colSpan={4} className="text-center text-muted-foreground text-sm py-6">No transactions yet</td></tr>
+                <tr><td colSpan={5} className="text-center text-muted-foreground text-sm py-6">No transactions yet</td></tr>
               ) : [...shiftTransactions].reverse().map(tx => (
                 <tr key={tx.id} className="border-b border-border last:border-0">
                   <td className="px-3 py-1.5">
@@ -254,6 +277,9 @@ const ActiveShiftView = ({ shift, players, tables }: { shift: any; players: any[
                     </span>
                   </td>
                   <td className="px-3 py-1.5 text-xs text-card-foreground">{(tx as any).players?.first_name} {(tx as any).players?.last_name}</td>
+                  <td className="px-3 py-1.5 text-xs text-muted-foreground font-mono">
+                    {tx.table_id ? tables.find(t => t.id === tx.table_id)?.name || "—" : "—"}
+                  </td>
                   <td className={`px-3 py-1.5 text-right font-mono text-xs font-medium ${tx.type === "buy" ? "cms-amount-negative" : "cms-amount-positive"}`}>
                     {tx.type === "buy" ? "-" : "+"}{formatCurrency(Number(tx.amount))}
                   </td>
@@ -271,7 +297,12 @@ const ActiveShiftView = ({ shift, players, tables }: { shift: any; players: any[
         open={showClose}
         onClose={() => setShowClose(false)}
         shift={shift}
-        expectedBalance={expectedBalance}
+        expectedBalance={expectedCash}
+        cashResult={cashResult}
+        totalBuyIns={totalBuyIns}
+        totalCashouts={totalCashouts}
+        totalExpenses={totalExpenses}
+        openingFloat={openingFloat}
         tables={tables}
         onConfirm={(data: any) => {
           closeShift.mutate({
@@ -525,7 +556,7 @@ const CashCheckForm = ({ expectedBalance, shiftId, exchangeRates, cashChecks }: 
 };
 
 // =================== CLOSE SHIFT DIALOG ===================
-const CloseShiftDialog = ({ open, onClose, shift, expectedBalance, tables, onConfirm, loading }: any) => {
+const CloseShiftDialog = ({ open, onClose, shift, expectedBalance, cashResult, totalBuyIns, totalCashouts, totalExpenses, openingFloat, tables, onConfirm, loading }: any) => {
   const [step, setStep] = useState(1);
   const [notes, setNotes] = useState("");
   const [tableReady, setTableReady] = useState<Record<string, boolean>>({});
@@ -560,6 +591,8 @@ const CloseShiftDialog = ({ open, onClose, shift, expectedBalance, tables, onCon
   const totalTzs = chipTotal + cashTzs;
   const diff = totalTzs - expectedBalance;
   const isPerfect = diff === 0;
+  // Shift Result = Cash difference + MISS
+  const shiftResult = (cashResult || 0) + totalMissValue;
 
   const today = new Date().toISOString().split("T")[0];
 
@@ -586,8 +619,15 @@ const CloseShiftDialog = ({ open, onClose, shift, expectedBalance, tables, onCon
         bank: bankBal, mobile: mobileBal,
         totals: { TZS: chipTotal, USD: usdTotal, EUR: eurTotal, bank: bankBal, mobile: mobileBal, total_tzs: totalTzs },
       },
-      closingCash: { expected: expectedBalance, actual: totalTzs, difference: diff, table_readiness: tableReady },
-      notes: `${notes}${diff !== 0 ? ` | DIFF: ${diff >= 0 ? "+" : ""}${diff.toLocaleString()} TZS` : " | BALANCED"}${totalMissValue !== 0 ? ` | MISS: ${totalMissValue >= 0 ? "+" : ""}${totalMissValue.toLocaleString()} TZS` : ""}`,
+      closingCash: {
+        expected: expectedBalance,
+        actual: totalTzs,
+        difference: diff,
+        cash_result: cashResult,
+        shift_result: shiftResult,
+        table_readiness: tableReady,
+      },
+      notes: `${notes} | CASH: ${cashResult >= 0 ? "+" : ""}${cashResult?.toLocaleString()} | MISS: ${totalMissValue >= 0 ? "+" : ""}${totalMissValue.toLocaleString()} | RESULT: ${shiftResult >= 0 ? "+" : ""}${shiftResult.toLocaleString()} | DIFF: ${diff >= 0 ? "+" : ""}${diff.toLocaleString()} TZS`.trim(),
     });
   };
 
@@ -721,24 +761,53 @@ const CloseShiftDialog = ({ open, onClose, shift, expectedBalance, tables, onCon
         {/* Step 4: Review */}
         {step === 4 && (
           <div className="space-y-3">
+            {/* Status banner */}
             <div className={`cms-panel p-3 text-center ${isPerfect ? "border-green-500/30" : "border-destructive/30"}`}>
               {isPerfect ? <CheckCircle2 className="w-6 h-6 text-green-500 mx-auto mb-1" /> : <AlertTriangle className="w-6 h-6 text-destructive mx-auto mb-1" />}
-              <p className="text-sm font-medium text-card-foreground">{isPerfect ? "Balanced" : "Mismatch"}</p>
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-              <div className="text-center"><p className="text-[9px] uppercase text-muted-foreground">Expected</p><p className="font-mono text-xs font-bold text-card-foreground">{formatCurrency(expectedBalance)}</p></div>
-              <div className="text-center"><p className="text-[9px] uppercase text-muted-foreground">Counted</p><p className="font-mono text-xs font-bold text-card-foreground">{formatCurrency(totalTzs)}</p></div>
-              <div className="text-center"><p className="text-[9px] uppercase text-muted-foreground">Diff</p><p className={`font-mono text-xs font-bold ${isPerfect ? "text-green-500" : "text-destructive"}`}>{diff >= 0 ? "+" : ""}{formatCurrency(diff)}</p></div>
+              <p className="text-sm font-medium text-card-foreground">{isPerfect ? "Balanced" : "Mismatch Detected"}</p>
             </div>
 
-            {/* Chip MISS summary */}
-            {hasAnyChipCount && totalMissValue !== 0 && (
-              <div className={`cms-panel p-2 ${hasIncident ? "border-destructive/50" : ""}`}>
-                <p className="text-[10px] uppercase text-muted-foreground text-center mb-1">Chip MISS</p>
-                <p className={`font-mono text-sm font-bold text-center ${totalMissValue === 0 ? "text-green-500" : "text-destructive"}`}>
-                  {totalMissValue >= 0 ? "+" : ""}{formatCurrency(totalMissValue)}
-                </p>
-                {hasIncident && <p className="text-[10px] text-destructive text-center mt-1 flex items-center justify-center gap-1"><AlertTriangle className="w-3 h-3" /> INCIDENT</p>}
+            {/* Cash Flow Reconciliation */}
+            <div className="cms-panel p-3">
+              <p className="text-[10px] uppercase text-muted-foreground tracking-wider mb-2 font-medium">Cash Flow</p>
+              <div className="space-y-1 text-xs font-mono">
+                <div className="flex justify-between"><span className="text-muted-foreground">Opening Float</span><span className="text-card-foreground">{formatCurrency(openingFloat || 0)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">+ Buy-Ins</span><span className="text-green-500">+{formatCurrency(totalBuyIns || 0)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">− Cashouts</span><span className="text-destructive">−{formatCurrency(totalCashouts || 0)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">− Expenses</span><span className="text-orange-500">−{formatCurrency(totalExpenses || 0)}</span></div>
+                <div className="flex justify-between border-t border-border pt-1 font-bold"><span className="text-card-foreground">= Expected</span><span className="text-card-foreground">{formatCurrency(expectedBalance)}</span></div>
+                <div className="flex justify-between"><span className="text-card-foreground">Counted</span><span className="text-card-foreground">{formatCurrency(totalTzs)}</span></div>
+                <div className="flex justify-between font-bold">
+                  <span className="text-card-foreground">Difference</span>
+                  <span className={isPerfect ? "text-green-500" : "text-destructive"}>{diff >= 0 ? "+" : ""}{formatCurrency(diff)}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Shift Result */}
+            <div className="cms-panel p-3">
+              <p className="text-[10px] uppercase text-muted-foreground tracking-wider mb-2 font-medium">Shift Result</p>
+              <div className="space-y-1 text-xs font-mono">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Cash Result (Buy − Cash)</span>
+                  <span className={`${(cashResult || 0) >= 0 ? "text-green-500" : "text-destructive"}`}>{(cashResult || 0) >= 0 ? "+" : ""}{formatCurrency(cashResult || 0)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Chip MISS</span>
+                  <span className={`${totalMissValue === 0 ? "text-green-500" : "text-destructive"}`}>{totalMissValue >= 0 ? "+" : ""}{formatCurrency(totalMissValue)}</span>
+                </div>
+                <div className="flex justify-between border-t border-border pt-1 font-bold text-sm">
+                  <span className="text-card-foreground">= Shift Result</span>
+                  <span className={`${shiftResult >= 0 ? "text-green-500" : "text-destructive"}`}>{shiftResult >= 0 ? "+" : ""}{formatCurrency(shiftResult)}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Incident warning */}
+            {hasIncident && (
+              <div className="p-2 rounded-md bg-destructive/10 border border-destructive/30 flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-destructive shrink-0" />
+                <p className="text-xs text-destructive font-bold">INCIDENT: Chip total exceeds initial system total</p>
               </div>
             )}
 
