@@ -2,36 +2,24 @@ import { useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Shield, LogIn, UserPlus } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Shield } from "lucide-react";
+
+const LOGIN_DOMAIN = "@cms.local";
 
 const Login = () => {
-  const { signIn, signUp } = useAuth();
-  const [loginEmail, setLoginEmail] = useState("");
-  const [loginPass, setLoginPass] = useState("");
-  const [signupEmail, setSignupEmail] = useState("");
-  const [signupPass, setSignupPass] = useState("");
-  const [signupName, setSignupName] = useState("");
+  const { signIn } = useAuth();
+  const [login, setLogin] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState<string | null>(null);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
-    const { error } = await signIn(loginEmail, loginPass);
-    if (error) setError(error);
-    setLoading(false);
-  };
-
-  const handleSignup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setLoading(true);
-    const { error } = await signUp(signupEmail, signupPass, signupName);
-    if (error) setError(error);
-    else setSuccess("Check your email for a confirmation link.");
+    const email = login.includes("@") ? login : `${login.toLowerCase().trim()}${LOGIN_DOMAIN}`;
+    const { error } = await signIn(email, password);
+    if (error) setError("Invalid login or password");
     setLoading(false);
   };
 
@@ -47,36 +35,37 @@ const Login = () => {
         </div>
 
         <div className="cms-panel p-6">
-          <Tabs defaultValue="login">
-            <TabsList className="w-full mb-4">
-              <TabsTrigger value="login" className="flex-1 gap-1"><LogIn className="w-3 h-3" /> Login</TabsTrigger>
-              <TabsTrigger value="signup" className="flex-1 gap-1"><UserPlus className="w-3 h-3" /> Sign Up</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="login">
-              <form onSubmit={handleLogin} className="space-y-3">
-                <Input type="email" placeholder="Email" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} required autoFocus />
-                <Input type="password" placeholder="Password" value={loginPass} onChange={e => setLoginPass(e.target.value)} required />
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? "Signing in..." : "Sign In"}
-                </Button>
-              </form>
-            </TabsContent>
-
-            <TabsContent value="signup">
-              <form onSubmit={handleSignup} className="space-y-3">
-                <Input placeholder="Display Name" value={signupName} onChange={e => setSignupName(e.target.value)} required />
-                <Input type="email" placeholder="Email" value={signupEmail} onChange={e => setSignupEmail(e.target.value)} required />
-                <Input type="password" placeholder="Password (min 6 chars)" value={signupPass} onChange={e => setSignupPass(e.target.value)} required minLength={6} />
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? "Creating..." : "Create Account"}
-                </Button>
-              </form>
-            </TabsContent>
-          </Tabs>
+          <form onSubmit={handleLogin} className="space-y-3">
+            <div>
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">Login</label>
+              <Input
+                type="text"
+                placeholder="username"
+                value={login}
+                onChange={e => setLogin(e.target.value)}
+                required
+                autoFocus
+                autoComplete="username"
+                className="font-mono"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">Password</label>
+              <Input
+                type="password"
+                placeholder="••••••"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                required
+                autoComplete="current-password"
+              />
+            </div>
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? "Signing in..." : "Sign In"}
+            </Button>
+          </form>
 
           {error && <p className="mt-3 text-xs text-destructive text-center">{error}</p>}
-          {success && <p className="mt-3 text-xs text-success text-center">{success}</p>}
         </div>
       </div>
     </div>
