@@ -1,14 +1,13 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useDealers, useBreaklistData, useSetBreaklistCell, useLockBreaklistCell, useGamingTables } from "@/hooks/use-casino-data";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Lock, Unlock, LockKeyhole, ShieldAlert } from "lucide-react";
+import { Lock, Unlock, LockKeyhole } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
 import { toast } from "sonner";
-
-const ROLES = ["BJ", "BJi", "AR1", "AR1i", "AR1c", "BR"] as const;
+import { ALL_ROLES, ROLE_COLORS, TABLE_ROLES } from "@/lib/currency";
 
 const generateTimeSlots = () => {
   const slots: string[] = [];
@@ -23,12 +22,6 @@ const generateTimeSlots = () => {
 
 const TIME_SLOTS = generateTimeSlots();
 
-const roleColors: Record<string, string> = {
-  BJ: "bg-blue-600/20 text-blue-400", BJi: "bg-blue-500/15 text-blue-300",
-  AR1: "bg-emerald-600/20 text-emerald-400", AR1i: "bg-emerald-500/15 text-emerald-300",
-  AR1c: "bg-emerald-400/15 text-emerald-200", BR: "bg-muted text-muted-foreground",
-};
-
 const BreaklistGrid = ({ date }: { date: string }) => {
   const { data: dealers = [] } = useDealers();
   const { data: breaklist = [] } = useBreaklistData(date);
@@ -38,6 +31,7 @@ const BreaklistGrid = ({ date }: { date: string }) => {
   const { isManager } = useAuth();
 
   const activeDealers = dealers.filter(d => d.is_active);
+  const openTables = tables.filter(t => t.status === "open");
   const displaySlots = TIME_SLOTS.slice(0, 24);
 
   const [editingCell, setEditingCell] = useState<{ dealerId: string; timeSlot: string } | null>(null);
@@ -49,6 +43,15 @@ const BreaklistGrid = ({ date }: { date: string }) => {
   const [overrideTitle, setOverrideTitle] = useState("");
   const [overrideDesc, setOverrideDesc] = useState("");
 
+  // Build available roles based on selected table
+  const availableRoles = useMemo(() => {
+    if (!editTable || editTable === "none") return [...ALL_ROLES];
+    const selectedTable = openTables.find(t => t.id === editTable);
+    if (!selectedTable) return [...ALL_ROLES];
+    const gameRoles = TABLE_ROLES[selectedTable.game] || [];
+    return [...gameRoles, "BR"];
+  }, [editTable, openTables]);
+
   const getCellData = (dealerId: string, timeSlot: string) =>
     breaklist.find(b => b.dealer_id === dealerId && b.time_slot === timeSlot);
 
@@ -59,7 +62,6 @@ const BreaklistGrid = ({ date }: { date: string }) => {
       return;
     }
     if (cell?.is_locked && isManager) {
-      // Manager needs to authenticate to edit locked cell
       setOverrideTitle("Edit Locked Cell");
       setOverrideDesc("This cell is locked. Authenticate to override and edit.");
       setOverrideAction(() => () => {
@@ -92,7 +94,6 @@ const BreaklistGrid = ({ date }: { date: string }) => {
       toast.error("No cells to lock for this dealer");
       return;
     }
-
     setOverrideTitle(lock ? "Lock Entire Row" : "Unlock Entire Row");
     setOverrideDesc(`This will ${lock ? "lock" : "unlock"} all ${dealerCells.length} cells for this dealer. Authenticate to confirm.`);
     setOverrideAction(() => () => {
@@ -106,7 +107,6 @@ const BreaklistGrid = ({ date }: { date: string }) => {
     if (!editingCell) return;
     const cell = getCellData(editingCell.dealerId, editingCell.timeSlot);
     if (!cell) return;
-
     setOverrideTitle(cell.is_locked ? "Unlock Cell" : "Lock Cell");
     setOverrideDesc("Manager authentication required to change lock status.");
     setOverrideAction(() => () => {
@@ -115,7 +115,6 @@ const BreaklistGrid = ({ date }: { date: string }) => {
     });
   };
 
-  // Count locked cells per dealer
   const getLockedCount = (dealerId: string) =>
     breaklist.filter(b => b.dealer_id === dealerId && b.is_locked).length;
 
@@ -160,15 +159,17 @@ const BreaklistGrid = ({ date }: { date: string }) => {
                     </td>
                     {displaySlots.map(slot => {
                       const cell = getCellData(dealer.id, slot);
+                      const tableName = cell?.table_id ? openTables.find(t => t.id === cell.table_id)?.name : null;
                       return (
                         <td key={slot} className="px-0.5 py-0.5 text-center">
                           <button
                             onClick={() => handleCellClick(dealer.id, slot)}
                             className={`w-full h-7 rounded text-[9px] font-mono font-bold relative transition-colors ${
-                              cell ? roleColors[cell.role] || "bg-muted text-muted-foreground" : "bg-transparent hover:bg-muted/50 text-transparent hover:text-muted-foreground"
+                              cell ? ROLE_COLORS[cell.role] || "bg-muted text-muted-foreground" : "bg-transparent hover:bg-muted/50 text-transparent hover:text-muted-foreground"
                             } ${cell?.is_locked ? "ring-1 ring-yellow-500/40" : ""}`}
+                            title={tableName ? `${cell?.role} @ ${tableName}` : cell?.role}
                           >
-                            {cell?.role || "·"}
+                            {cell ? (tableName ? `${tableName}` : cell.role) : "·"}
                             {cell?.is_locked && <Lock className="w-2 h-2 absolute top-0.5 right-0.5 text-yellow-400" />}
                           </button>
                         </td>
@@ -192,19 +193,25 @@ const BreaklistGrid = ({ date }: { date: string }) => {
           </DialogHeader>
           <div className="space-y-3">
             <div>
-              <label className="text-xs font-medium text-muted-foreground uppercase mb-1 block">Role</label>
-              <Select value={editRole} onValueChange={setEditRole}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{ROLES.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent>
+              <label className="text-xs font-medium text-muted-foreground uppercase mb-1 block">Table</label>
+              <Select value={editTable} onValueChange={(v) => { setEditTable(v); setEditRole("BR"); }}>
+                <SelectTrigger><SelectValue placeholder="No table" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No table (BR)</SelectItem>
+                  {openTables.map(t => <SelectItem key={t.id} value={t.id}>{t.name} — {t.game}</SelectItem>)}
+                </SelectContent>
               </Select>
             </div>
             <div>
-              <label className="text-xs font-medium text-muted-foreground uppercase mb-1 block">Table</label>
-              <Select value={editTable} onValueChange={setEditTable}>
-                <SelectTrigger><SelectValue placeholder="No table" /></SelectTrigger>
+              <label className="text-xs font-medium text-muted-foreground uppercase mb-1 block">Role</label>
+              <Select value={editRole} onValueChange={setEditRole}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">No table</SelectItem>
-                  {tables.filter(t => t.status === "open").map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
+                  {availableRoles.map(r => (
+                    <SelectItem key={r} value={r}>
+                      <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-mono ${ROLE_COLORS[r] || ""}`}>{r}</span>
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
