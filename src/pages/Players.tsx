@@ -156,6 +156,7 @@ const PlayerDetailDialog = ({ player, onClose }: { player: any; onClose: () => v
   const issueCard = useIssueCard();
   const [rfidInput, setRfidInput] = useState("");
   const [pendingTagAction, setPendingTagAction] = useState<(() => void) | null>(null);
+  const [pendingStatusAction, setPendingStatusAction] = useState<(() => void) | null>(null);
 
   const currentTags = player.player_tags?.map((t: any) => t.tag) || [];
 
