@@ -503,18 +503,8 @@ export const useSetBreaklistCell = () => {
       table_id: string | null;
     }) => {
       if (!casinoId || !user) throw new Error("Not authenticated");
-      
-      // Get existing cell for logging
-      const { data: existing } = await supabase
-        .from("breaklist")
-        .select("id, role, table_id")
-        .eq("casino_id", casinoId)
-        .eq("date", input.date)
-        .eq("dealer_id", input.dealer_id)
-        .eq("time_slot", input.time_slot)
-        .maybeSingle();
 
-      const { data: cell, error } = await supabase.from("breaklist").upsert({
+      const payload = {
         casino_id: casinoId,
         date: input.date,
         dealer_id: input.dealer_id,
@@ -523,25 +513,49 @@ export const useSetBreaklistCell = () => {
         table_id: input.table_id,
         created_by: user.id,
         updated_by: user.id,
-      }, { onConflict: "casino_id,date,dealer_id,time_slot" }).select().single();
-      if (error) throw error;
+      };
 
-      // Log to breaklist_logs
-      await supabase.from("breaklist_logs").insert({
-        casino_id: casinoId,
-        breaklist_id: cell.id,
-        dealer_id: input.dealer_id,
-        date: input.date,
-        time_slot: input.time_slot,
-        action: existing ? "CELL_UPDATED" : "CELL_CREATED",
-        old_role: existing?.role || null,
-        new_role: input.role,
-        old_table_id: existing?.table_id || null,
-        new_table_id: input.table_id,
-        operator_id: user.id,
+      const result = await offlineMutation({
+        table: "breaklist",
+        operation: "upsert",
+        payload,
+        upsertConflict: "casino_id,date,dealer_id,time_slot",
+        meta: { role: input.role, dealer_id: input.dealer_id, time_slot: input.time_slot },
       });
 
-      await logAction(casinoId, "breaklist", "CELL_SET", input);
+      if (result.error) throw new Error(result.error);
+
+      // Only do detailed logging when online (offline actions log on sync)
+      if (!result.offline) {
+        const { data: existing } = await supabase
+          .from("breaklist")
+          .select("id, role, table_id")
+          .eq("casino_id", casinoId)
+          .eq("date", input.date)
+          .eq("dealer_id", input.dealer_id)
+          .eq("time_slot", input.time_slot)
+          .maybeSingle();
+
+        if (existing) {
+          await supabase.from("breaklist_logs").insert({
+            casino_id: casinoId,
+            breaklist_id: existing.id,
+            dealer_id: input.dealer_id,
+            date: input.date,
+            time_slot: input.time_slot,
+            action: "CELL_UPDATED",
+            old_role: null,
+            new_role: input.role,
+            old_table_id: null,
+            new_table_id: input.table_id,
+            operator_id: user.id,
+          });
+        }
+
+        await logAction(casinoId, "breaklist", "CELL_SET", input);
+      }
+
+      return { offline: result.offline };
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["breaklist"] }); },
     onError: (e) => toast.error(e.message),
