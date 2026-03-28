@@ -211,9 +211,11 @@ const BreaklistGrid = ({ date }: { date: string }) => {
       <ManagerOverrideDialog
         open={!!overrideAction}
         onClose={() => setOverrideAction(null)}
-        onConfirm={() => { overrideAction?.(); setOverrideAction(null); }}
+        onConfirm={(managerId) => { overrideAction?.(); setOverrideAction(null); }}
         title={overrideTitle}
         description={overrideDesc}
+        actionType="BREAKLIST_OVERRIDE"
+        actionDetails={{ date, action: overrideTitle }}
       />
     </>
   );

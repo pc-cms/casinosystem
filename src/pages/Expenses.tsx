@@ -165,7 +165,7 @@ const Expenses = () => {
       <ManagerOverrideDialog
         open={!!pendingOverride}
         onClose={() => setPendingOverride(null)}
-        onConfirm={() => {
+        onConfirm={(managerId) => {
           if (pendingOverride) {
             approve.mutate(pendingOverride);
             setPendingOverride(null);
@@ -173,6 +173,8 @@ const Expenses = () => {
         }}
         title="Approve Expense"
         description="Manager authentication required to approve this expense."
+        actionType="APPROVE_EXPENSE"
+        actionDetails={{ expense_id: pendingOverride }}
       />
     </div>
   );

@@ -156,6 +156,7 @@ const PlayerDetailDialog = ({ player, onClose }: { player: any; onClose: () => v
   const issueCard = useIssueCard();
   const [rfidInput, setRfidInput] = useState("");
   const [pendingTagAction, setPendingTagAction] = useState<(() => void) | null>(null);
+  const [pendingStatusAction, setPendingStatusAction] = useState<(() => void) | null>(null);
 
   const currentTags = player.player_tags?.map((t: any) => t.tag) || [];
 
@@ -233,11 +234,17 @@ const PlayerDetailDialog = ({ player, onClose }: { player: any; onClose: () => v
           {/* Status */}
           <div className="flex gap-2">
             {player.status === "active" ? (
-              <Button variant="destructive" size="sm" onClick={() => updateStatus.mutate({ id: player.id, status: "blacklist" })}>
+              <Button variant="destructive" size="sm" onClick={() => {
+                if (!isManager) return;
+                setPendingStatusAction(() => () => updateStatus.mutate({ id: player.id, status: "blacklist" }));
+              }} disabled={!isManager}>
                 <UserX className="w-3 h-3 mr-1" /> Blacklist
               </Button>
             ) : (
-              <Button size="sm" onClick={() => updateStatus.mutate({ id: player.id, status: "active" })}>
+              <Button size="sm" onClick={() => {
+                if (!isManager) return;
+                setPendingStatusAction(() => () => updateStatus.mutate({ id: player.id, status: "active" }));
+              }} disabled={!isManager}>
                 <UserCheck className="w-3 h-3 mr-1" /> Reactivate
               </Button>
             )}
@@ -249,12 +256,28 @@ const PlayerDetailDialog = ({ player, onClose }: { player: any; onClose: () => v
       <ManagerOverrideDialog
         open={!!pendingTagAction}
         onClose={() => setPendingTagAction(null)}
-        onConfirm={() => {
+        onConfirm={(managerId) => {
           pendingTagAction?.();
           setPendingTagAction(null);
         }}
         title="Edit Player Tags"
         description="Manager authentication required to modify player tags."
+        actionType="EDIT_PLAYER_TAGS"
+        actionDetails={{ player_id: player.id, player_name: `${player.first_name} ${player.last_name}` }}
+      />
+
+      {/* Manager Override for status changes */}
+      <ManagerOverrideDialog
+        open={!!pendingStatusAction}
+        onClose={() => setPendingStatusAction(null)}
+        onConfirm={(managerId) => {
+          pendingStatusAction?.();
+          setPendingStatusAction(null);
+        }}
+        title="Change Player Status"
+        description="Manager authentication required to change player status."
+        actionType="CHANGE_PLAYER_STATUS"
+        actionDetails={{ player_id: player.id, player_name: `${player.first_name} ${player.last_name}` }}
       />
     </Dialog>
   );
