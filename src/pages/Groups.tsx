@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { usePlayerGroups, useCreateGroup, useAddGroupMember, useRemoveGroupMember, usePlayers, usePlayerEconomy, useTransactions, useExpenses } from "@/hooks/use-casino-data";
+import { formatCurrency } from "@/lib/currency";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

@@ -95,7 +95,7 @@ const Expenses = () => {
                   <span className={`text-[10px] font-mono uppercase px-1.5 py-0.5 rounded ${CAT_COLORS[cat] || CAT_COLORS.other}`}>{cat}</span>
                   <span className="text-xs text-muted-foreground">×{data.count}</span>
                 </div>
-                <span className="font-mono text-sm text-card-foreground">€{data.total.toLocaleString()}</span>
+                <span className="font-mono text-sm text-card-foreground">{formatCurrency(data.total)}</span>
               </div>
             ))}
             {Object.keys(analytics.byCategory).length === 0 && <p className="text-xs text-muted-foreground">No data</p>}
@@ -111,7 +111,7 @@ const Expenses = () => {
                 <span className="text-sm text-card-foreground">{data.name}</span>
                 <div className="flex items-center gap-3">
                   <span className="text-xs text-muted-foreground">×{data.count}</span>
-                  <span className="font-mono text-sm font-medium text-card-foreground">€{data.total.toLocaleString()}</span>
+                  <span className="font-mono text-sm font-medium text-card-foreground">{formatCurrency(data.total)}</span>
                 </div>
               </div>
             ))}
@@ -140,7 +140,7 @@ const Expenses = () => {
                 </td>
                 <td className="px-4 py-2 text-sm text-card-foreground">{(exp as any).description || "—"}</td>
                 <td className="px-4 py-2 text-sm text-muted-foreground">{exp.players ? `${exp.players.first_name} ${exp.players.last_name}` : "—"}</td>
-                <td className="px-4 py-2 text-right font-mono text-sm text-card-foreground">€{Number(exp.amount).toLocaleString()}</td>
+                <td className="px-4 py-2 text-right font-mono text-sm text-card-foreground">{formatCurrency(Number(exp.amount))}</td>
                 <td className="px-4 py-2 text-center">
                   {exp.approved ? <span className="cms-status-active text-xs"><CheckCircle className="w-3 h-3 inline mr-0.5" /> Approved</span> : <Badge variant="secondary" className="text-[10px]">Pending</Badge>}
                 </td>
@@ -192,7 +192,7 @@ const AddExpenseDialog = ({ open, onClose, players }: { open: boolean; onClose: 
             <SelectTrigger><SelectValue placeholder="Category" /></SelectTrigger>
             <SelectContent>{CATS.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}</SelectContent>
           </Select>
-          <Input type="number" placeholder="Amount (€)" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} className="font-mono" />
+          <Input type="number" placeholder="Amount (TZS)" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} className="font-mono" />
           <Input placeholder="Description" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
           <Select value={form.player_id} onValueChange={v => setForm(f => ({ ...f, player_id: v }))}>
             <SelectTrigger><SelectValue placeholder="Link to player (optional)" /></SelectTrigger>
