@@ -234,11 +234,17 @@ const PlayerDetailDialog = ({ player, onClose }: { player: any; onClose: () => v
           {/* Status */}
           <div className="flex gap-2">
             {player.status === "active" ? (
-              <Button variant="destructive" size="sm" onClick={() => updateStatus.mutate({ id: player.id, status: "blacklist" })}>
+              <Button variant="destructive" size="sm" onClick={() => {
+                if (!isManager) return;
+                setPendingStatusAction(() => () => updateStatus.mutate({ id: player.id, status: "blacklist" }));
+              }} disabled={!isManager}>
                 <UserX className="w-3 h-3 mr-1" /> Blacklist
               </Button>
             ) : (
-              <Button size="sm" onClick={() => updateStatus.mutate({ id: player.id, status: "active" })}>
+              <Button size="sm" onClick={() => {
+                if (!isManager) return;
+                setPendingStatusAction(() => () => updateStatus.mutate({ id: player.id, status: "active" }));
+              }} disabled={!isManager}>
                 <UserCheck className="w-3 h-3 mr-1" /> Reactivate
               </Button>
             )}
