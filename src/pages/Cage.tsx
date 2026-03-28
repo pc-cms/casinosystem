@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from "react";
+import { toast } from "sonner";
 import { usePlayers, useGamingTables, useTransactions, useCreateTransaction, useExpenses } from "@/hooks/use-casino-data";
 import { useActiveShift, useOpenShift, useCloseShift, useCreateCashCount, useCashCounts } from "@/hooks/use-shift";
 import { useBatchChipSnapshot, getExpectedChips, getInitialTotal } from "@/hooks/use-chips";
@@ -335,6 +336,7 @@ const BuyInForm = ({ players, tables, exchangeRates, shiftId, onSubmit, loading 
 
   const handleSubmit = () => {
     if (!playerId || !tableId || !amount || tzsAmount <= 0) return;
+    if (Number(amount) <= 0) { toast.error("Amount must be greater than zero"); return; }
     onSubmit({
       player_id: playerId, table_id: tableId, type: "buy" as const, amount: tzsAmount, shift_id: shiftId,
       chips: currency !== "TZS" ? { original_currency: currency, original_amount: Number(amount), rate: exchangeRates[currency] } : undefined,

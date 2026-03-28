@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { toast } from "sonner";
 import { usePlayers, useExpenses, useCreateExpense, useApproveExpense } from "@/hooks/use-casino-data";
 import { useActiveShift } from "@/hooks/use-shift";
 import { useExpenseAnalytics } from "@/hooks/use-expenses-analytics";
@@ -188,7 +189,10 @@ const AddExpenseDialog = ({ open, onClose, players, shiftId }: { open: boolean; 
 
   const handleSubmit = () => {
     if (!form.category || !form.amount) return;
-    create.mutate({ category: form.category, amount: Number(form.amount), description: form.description, player_id: form.player_id || null, shift_id: shiftId },
+    const amt = Number(form.amount);
+    if (amt <= 0) { toast.error("Amount must be greater than zero"); return; }
+    if (!shiftId) { toast.error("Cannot create expense without an active shift"); return; }
+    create.mutate({ category: form.category, amount: amt, description: form.description, player_id: form.player_id || null, shift_id: shiftId },
       { onSuccess: () => { setForm({ category: "", amount: "", description: "", player_id: "" }); onClose(); } });
   };
 

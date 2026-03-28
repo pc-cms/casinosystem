@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { toast } from "sonner";
 import { useGamingTables, useTransactions, useCloseTable, useReopenTable } from "@/hooks/use-casino-data";
 import { useActiveShift } from "@/hooks/use-shift";
 import { useChipSnapshots, useBatchChipSnapshot, getExpectedChips, getInitialTotal } from "@/hooks/use-chips";
@@ -69,6 +70,16 @@ const Tables = () => {
 
   const handleCloseTable = () => {
     if (!closingTable) return;
+    // Validate: must have at least one chip denomination entered
+    const hasChipData = Object.values(closingChips).some(v => v > 0);
+    if (!hasChipData) {
+      toast.error("Must enter chip counts before closing table");
+      return;
+    }
+    if (closingTableFloat <= 0) {
+      toast.error("Invalid table float — cannot close");
+      return;
+    }
     closeTable.mutate({
       table_id: closingTable.id,
       closing_chips: closingChips,
