@@ -103,7 +103,6 @@ export const useCreateChipSnapshot = () => {
       actual_quantity: number;
     }) => {
       if (!casinoId || !user) throw new Error("Not authenticated");
-      const miss = input.actual_quantity - input.expected_quantity;
       const { error } = await supabase
         .from("chip_snapshots")
         .insert({
@@ -114,7 +113,6 @@ export const useCreateChipSnapshot = () => {
           denomination: input.denomination,
           expected_quantity: input.expected_quantity,
           actual_quantity: input.actual_quantity,
-          miss,
           recorded_by: user.id,
         } as any);
       if (error) throw error;
@@ -149,7 +147,6 @@ export const useBatchChipSnapshot = () => {
         denomination: c.denomination,
         expected_quantity: c.expected_quantity,
         actual_quantity: c.actual_quantity,
-        miss: c.actual_quantity - c.expected_quantity,
         recorded_by: user.id,
       }));
       const { error } = await supabase
@@ -159,7 +156,7 @@ export const useBatchChipSnapshot = () => {
       await logAction(casinoId, "system", "CHIP_COUNT_RECORDED", {
         date: input.date,
         total_denominations: input.counts.length,
-        total_miss: rows.reduce((s, r) => s + (r.miss || 0), 0),
+        total_miss: rows.reduce((s, r) => s + (r.actual_quantity - r.expected_quantity), 0),
       });
     },
     onSuccess: () => {
