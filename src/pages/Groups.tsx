@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { usePlayerGroups, useCreateGroup, useAddGroupMember, useRemoveGroupMember, usePlayers, usePlayerEconomy, useTransactions, useExpenses } from "@/hooks/use-casino-data";
+import { usePlayerGroups, useCreateGroup, useAddGroupMember, useRemoveGroupMember, usePlayers, useTransactions, useExpenses } from "@/hooks/use-casino-data";
 import { formatCurrency } from "@/lib/currency";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
@@ -8,11 +8,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Users, X, CalendarDays } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 
+/**
+ * GROUPS (STRICT):
+ * - Analytical only — does NOT affect transactions
+ * - Time-based membership (join/leave)
+ * - Group result calculated only for period where players are in group
+ * - RESULT = CASHOUT - DROP
+ * - REAL RESULT = CASHOUT - DROP - EXPENSES (approved only)
+ */
 const Groups = () => {
   const { isManager } = useAuth();
   const { data: groups = [] } = usePlayerGroups();
   const { data: players = [] } = usePlayers();
-  const { data: economy = [] } = usePlayerEconomy();
   const { data: allTransactions = [] } = useTransactions();
   const { data: allExpenses = [] } = useExpenses();
   const createGroup = useCreateGroup();
@@ -25,42 +32,40 @@ const Groups = () => {
   const [selectedPlayer, setSelectedPlayer] = useState("");
   const [dateRange, setDateRange] = useState({ from: "", to: "" });
 
-  const getPlayerEconomy = (playerId: string) => economy.find(e => e.player_id === playerId);
+  // Period-filtered analytics: only count transactions within period AND while member was in group
+  const computeGroupStats = (members: any[]) => {
+    const activeMembers = members.filter((m: any) => !m.left_at);
+    let drop = 0, cashout = 0, expenses = 0;
 
-  // Period-filtered analytics per group
-  const getGroupPeriodAnalytics = useMemo(() => {
-    if (!dateRange.from && !dateRange.to) return null;
+    activeMembers.forEach((m: any) => {
+      const joinedAt = m.joined_at;
+      const leftAt = m.left_at;
 
-    const filteredTx = allTransactions.filter(tx => {
-      if (dateRange.from && tx.created_at < `${dateRange.from}T00:00:00`) return false;
-      if (dateRange.to && tx.created_at > `${dateRange.to}T23:59:59`) return false;
-      return true;
+      allTransactions.forEach(tx => {
+        // Must be within membership period
+        if (tx.created_at < joinedAt) return;
+        if (leftAt && tx.created_at > leftAt) return;
+        // Must be within date filter if set
+        if (dateRange.from && tx.created_at < `${dateRange.from}T00:00:00`) return;
+        if (dateRange.to && tx.created_at > `${dateRange.to}T23:59:59`) return;
+        if (tx.player_id !== m.player_id) return;
+
+        if (tx.type === "buy") drop += Number(tx.amount);
+        else cashout += Number(tx.amount);
+      });
+
+      allExpenses.forEach(exp => {
+        if (!exp.player_id || exp.player_id !== m.player_id) return;
+        if (!exp.approved) return;
+        if (exp.created_at < joinedAt) return;
+        if (leftAt && exp.created_at > leftAt) return;
+        if (dateRange.from && exp.created_at < `${dateRange.from}T00:00:00`) return;
+        if (dateRange.to && exp.created_at > `${dateRange.to}T23:59:59`) return;
+        expenses += Number(exp.amount);
+      });
     });
 
-    const filteredExp = allExpenses.filter(exp => {
-      if (dateRange.from && exp.created_at < `${dateRange.from}T00:00:00`) return false;
-      if (dateRange.to && exp.created_at > `${dateRange.to}T23:59:59`) return false;
-      return true;
-    });
-
-    return { transactions: filteredTx, expenses: filteredExp };
-  }, [allTransactions, allExpenses, dateRange.from, dateRange.to]);
-
-  const computeGroupStats = (memberPlayerIds: string[]) => {
-    if (!getGroupPeriodAnalytics) {
-      // Use all-time from economy view
-      const drop = memberPlayerIds.reduce((s, pid) => s + Number(getPlayerEconomy(pid)?.total_drop || 0), 0);
-      const cashout = memberPlayerIds.reduce((s, pid) => s + Number(getPlayerEconomy(pid)?.total_cashout || 0), 0);
-      const expenses = memberPlayerIds.reduce((s, pid) => s + Number(getPlayerEconomy(pid)?.total_expenses || 0), 0);
-      return { drop, cashout, expenses, result: cashout - drop - expenses };
-    }
-
-    const { transactions, expenses: filteredExp } = getGroupPeriodAnalytics;
-    const pids = new Set(memberPlayerIds);
-    const drop = transactions.filter(t => t.type === "buy" && pids.has(t.player_id)).reduce((s, t) => s + Number(t.amount), 0);
-    const cashout = transactions.filter(t => t.type === "cashout" && pids.has(t.player_id)).reduce((s, t) => s + Number(t.amount), 0);
-    const expenses = filteredExp.filter(e => e.player_id && pids.has(e.player_id) && e.approved).reduce((s, e) => s + Number(e.amount), 0);
-    return { drop, cashout, expenses, result: cashout - drop - expenses };
+    return { drop, cashout, expenses, result: cashout - drop, realResult: cashout - drop - expenses };
   };
 
   return (
@@ -68,7 +73,7 @@ const Groups = () => {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Player Groups</h1>
-          <p className="text-sm text-muted-foreground">Manager-controlled grouping with analytics</p>
+          <p className="text-sm text-muted-foreground">Analytical only · Does not affect transactions</p>
         </div>
         {isManager && (
           <Button onClick={() => setShowCreate(true)} size="sm"><Plus className="w-4 h-4 mr-1" /> New Group</Button>
@@ -91,9 +96,9 @@ const Groups = () => {
 
       <div className="space-y-4">
         {groups.map(group => {
-          const activeMembers = (group as any).group_members?.filter((m: any) => !m.left_at) || [];
-          const memberPids = activeMembers.map((m: any) => m.player_id);
-          const stats = computeGroupStats(memberPids);
+          const allMembers = (group as any).group_members || [];
+          const activeMembers = allMembers.filter((m: any) => !m.left_at);
+          const stats = computeGroupStats(allMembers);
 
           return (
             <div key={group.id} className="cms-panel">
@@ -101,7 +106,7 @@ const Groups = () => {
                 <div className="flex items-center gap-2">
                   <Users className="w-4 h-4 text-primary" />
                   <h3 className="text-sm font-semibold text-card-foreground">{group.name}</h3>
-                  <span className="text-xs text-muted-foreground">({activeMembers.length} members)</span>
+                  <span className="text-xs text-muted-foreground">({activeMembers.length} active)</span>
                 </div>
                 {isManager && (
                   <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => setAddingToGroup(group.id)}>
@@ -110,38 +115,30 @@ const Groups = () => {
                 )}
               </div>
 
-              <div className="px-4 py-3 grid grid-cols-4 gap-3 border-b border-border">
+              <div className="px-4 py-3 grid grid-cols-5 gap-3 border-b border-border">
                 <div><p className="text-[10px] uppercase text-muted-foreground">Drop</p><p className="font-mono text-sm font-bold text-card-foreground">{formatCurrency(stats.drop)}</p></div>
                 <div><p className="text-[10px] uppercase text-muted-foreground">Cashout</p><p className="font-mono text-sm font-bold text-card-foreground">{formatCurrency(stats.cashout)}</p></div>
-                <div><p className="text-[10px] uppercase text-muted-foreground">Expenses</p><p className="font-mono text-sm font-bold text-card-foreground">{formatCurrency(stats.expenses)}</p></div>
                 <div><p className="text-[10px] uppercase text-muted-foreground">Result</p>
-                  <p className={`font-mono text-sm font-bold ${stats.result >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
-                    {formatCurrency(stats.result)}
-                  </p>
+                  <p className={`font-mono text-sm font-bold ${stats.result >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>{formatCurrency(stats.result)}</p>
+                </div>
+                <div><p className="text-[10px] uppercase text-muted-foreground">Expenses</p><p className="font-mono text-sm font-bold text-card-foreground">{formatCurrency(stats.expenses)}</p></div>
+                <div><p className="text-[10px] uppercase text-muted-foreground">Real Result</p>
+                  <p className={`font-mono text-sm font-bold ${stats.realResult >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>{formatCurrency(stats.realResult)}</p>
                 </div>
               </div>
 
               <div className="px-4 py-2">
-                {activeMembers.map((m: any) => {
-                  const pe = getPlayerEconomy(m.player_id);
-                  return (
-                    <div key={m.id} className="flex items-center justify-between py-1.5 border-b border-border last:border-0">
-                      <div className="flex items-center gap-4">
-                        <span className="text-xs text-card-foreground">{m.players?.first_name} {m.players?.last_name}</span>
-                        <span className="text-[10px] text-muted-foreground">joined {new Date(m.joined_at).toLocaleDateString("en-GB")}</span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="font-mono text-[10px] text-muted-foreground">Drop: {formatCurrency(Number(pe?.total_drop || 0))}</span>
-                        <span className={`font-mono text-[10px] ${Number(pe?.real_result || 0) >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                          Result: {formatCurrency(Number(pe?.real_result || 0))}
-                        </span>
-                        {isManager && (
-                          <button onClick={() => removeMember.mutate(m.id)} className="text-muted-foreground hover:text-destructive"><X className="w-3 h-3" /></button>
-                        )}
-                      </div>
+                {activeMembers.map((m: any) => (
+                  <div key={m.id} className="flex items-center justify-between py-1.5 border-b border-border last:border-0">
+                    <div className="flex items-center gap-4">
+                      <span className="text-xs text-card-foreground">{m.players?.first_name} {m.players?.last_name}</span>
+                      <span className="text-[10px] text-muted-foreground">joined {new Date(m.joined_at).toLocaleDateString("en-GB")}</span>
                     </div>
-                  );
-                })}
+                    {isManager && (
+                      <button onClick={() => removeMember.mutate(m.id)} className="text-muted-foreground hover:text-destructive"><X className="w-3 h-3" /></button>
+                    )}
+                  </div>
+                ))}
                 {activeMembers.length === 0 && <p className="text-xs text-muted-foreground py-2">No members</p>}
               </div>
             </div>
@@ -150,7 +147,6 @@ const Groups = () => {
         {groups.length === 0 && <p className="text-muted-foreground text-sm text-center py-8">No groups created</p>}
       </div>
 
-      {/* Create Group Dialog */}
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
         <DialogContent>
           <DialogHeader><DialogTitle>Create Group</DialogTitle></DialogHeader>
@@ -162,7 +158,6 @@ const Groups = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Add Member Dialog */}
       <Dialog open={!!addingToGroup} onOpenChange={() => setAddingToGroup(null)}>
         <DialogContent>
           <DialogHeader><DialogTitle>Add Member</DialogTitle></DialogHeader>

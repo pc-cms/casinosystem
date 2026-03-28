@@ -1,14 +1,25 @@
 import { useState, useEffect, useRef } from "react";
-import { Search, Plus, UserCheck, UserX, CreditCard, Tag, X } from "lucide-react";
+import { Search, Plus, UserCheck, UserX, CreditCard, Tag } from "lucide-react";
 import { usePlayers, useCreatePlayer, useUpdatePlayerStatus, useAddPlayerTag, useRemovePlayerTag, useIssueCard } from "@/hooks/use-casino-data";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
 
-const TAG_OPTIONS = ["VIP", "No Alcohol", "Free Food", "High Roller", "Watch List"];
+const TAG_OPTIONS = ["VIP", "No Alcohol", "Alcohol Allowed", "Free Food", "High Roller", "Watch List"];
 
+/**
+ * PLAYER LOGIC (STRICT):
+ * - Player always exists before transaction
+ * - No duplicate players (enforced by search)
+ * - No deletion
+ * - Multiple cards per player, all valid
+ * - RFID = input shortcut only
+ * - Tags: max 5, conflicting tags enforced by DB trigger
+ * - Tag editing: only via Manager Access
+ */
 const Players = () => {
   const { data: players = [], isLoading } = usePlayers();
   const [query, setQuery] = useState("");
@@ -41,7 +52,7 @@ const Players = () => {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Players</h1>
-          <p className="text-sm text-muted-foreground">{players.length} registered</p>
+          <p className="text-sm text-muted-foreground">{players.length} registered · No deletion</p>
         </div>
         <Button onClick={() => setShowAdd(true)} size="sm">
           <Plus className="w-4 h-4 mr-1" /> New Player <span className="cms-kbd ml-2">Alt+N</span>
@@ -134,6 +145,9 @@ const AddPlayerDialog = ({ open, onClose }: { open: boolean; onClose: () => void
   );
 };
 
+/**
+ * Player detail: Tags require Manager Override to edit.
+ */
 const PlayerDetailDialog = ({ player, onClose }: { player: any; onClose: () => void }) => {
   const { isManager } = useAuth();
   const updateStatus = useUpdatePlayerStatus();
@@ -141,8 +155,17 @@ const PlayerDetailDialog = ({ player, onClose }: { player: any; onClose: () => v
   const removeTag = useRemovePlayerTag();
   const issueCard = useIssueCard();
   const [rfidInput, setRfidInput] = useState("");
+  const [pendingTagAction, setPendingTagAction] = useState<(() => void) | null>(null);
 
   const currentTags = player.player_tags?.map((t: any) => t.tag) || [];
+
+  const handleTagClick = (tag: string) => {
+    if (!isManager) return;
+    const action = currentTags.includes(tag)
+      ? () => removeTag.mutate({ playerId: player.id, tag })
+      : () => addTag.mutate({ playerId: player.id, tag });
+    setPendingTagAction(() => action);
+  };
 
   return (
     <Dialog open onOpenChange={onClose}>
@@ -165,17 +188,16 @@ const PlayerDetailDialog = ({ player, onClose }: { player: any; onClose: () => v
             </div>
           </div>
 
-          {/* Tags */}
+          {/* Tags - Manager Access Only */}
           <div>
-            <p className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1"><Tag className="w-3 h-3" /> Tags (max 5)</p>
+            <p className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1">
+              <Tag className="w-3 h-3" /> Tags (max 5) {!isManager && <span className="text-[10px] text-destructive ml-1">· Manager only</span>}
+            </p>
             <div className="flex flex-wrap gap-1.5">
               {TAG_OPTIONS.map(tag => (
                 <button key={tag}
-                  onClick={() => {
-                    if (currentTags.includes(tag)) removeTag.mutate({ playerId: player.id, tag });
-                    else if (currentTags.length < 5) addTag.mutate({ playerId: player.id, tag });
-                  }}
-                  disabled={!currentTags.includes(tag) && currentTags.length >= 5}
+                  onClick={() => handleTagClick(tag)}
+                  disabled={!isManager || (!currentTags.includes(tag) && currentTags.length >= 5)}
                   className={`text-xs px-2 py-1 rounded-md border transition-colors ${
                     currentTags.includes(tag)
                       ? "bg-primary text-primary-foreground border-primary"
@@ -188,7 +210,7 @@ const PlayerDetailDialog = ({ player, onClose }: { player: any; onClose: () => v
             </div>
           </div>
 
-          {/* Cards */}
+          {/* Cards - Multiple cards, all valid */}
           <div>
             <p className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1"><CreditCard className="w-3 h-3" /> Cards</p>
             <div className="space-y-1">
@@ -222,6 +244,18 @@ const PlayerDetailDialog = ({ player, onClose }: { player: any; onClose: () => v
           </div>
         </div>
       </DialogContent>
+
+      {/* Manager Override for tag changes */}
+      <ManagerOverrideDialog
+        open={!!pendingTagAction}
+        onClose={() => setPendingTagAction(null)}
+        onConfirm={() => {
+          pendingTagAction?.();
+          setPendingTagAction(null);
+        }}
+        title="Edit Player Tags"
+        description="Manager authentication required to modify player tags."
+      />
     </Dialog>
   );
 };
