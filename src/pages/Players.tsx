@@ -265,6 +265,20 @@ const PlayerDetailDialog = ({ player, onClose }: { player: any; onClose: () => v
         actionType="EDIT_PLAYER_TAGS"
         actionDetails={{ player_id: player.id, player_name: `${player.first_name} ${player.last_name}` }}
       />
+
+      {/* Manager Override for status changes */}
+      <ManagerOverrideDialog
+        open={!!pendingStatusAction}
+        onClose={() => setPendingStatusAction(null)}
+        onConfirm={(managerId) => {
+          pendingStatusAction?.();
+          setPendingStatusAction(null);
+        }}
+        title="Change Player Status"
+        description="Manager authentication required to change player status."
+        actionType="CHANGE_PLAYER_STATUS"
+        actionDetails={{ player_id: player.id, player_name: `${player.first_name} ${player.last_name}` }}
+      />
     </Dialog>
   );
 };
