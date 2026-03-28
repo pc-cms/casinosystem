@@ -31,6 +31,31 @@ const queryClient = new QueryClient({
   },
 });
 
+// Role-based route access map
+const ROUTE_ROLES: Record<string, string[]> = {
+  "/": ["manager", "cashier", "pit", "reception", "finance_manager", "security"],
+  "/players": ["manager", "cashier", "reception", "finance_manager", "security"],
+  "/cage": ["manager", "cashier", "finance_manager"],
+  "/tables": ["manager", "cashier", "pit", "finance_manager", "security"],
+  "/expenses": ["manager", "cashier", "finance_manager"],
+  "/pit": ["manager", "pit", "finance_manager"],
+  "/groups": ["manager", "finance_manager"],
+  "/tracker": ["manager", "pit"],
+  "/reports": ["manager", "finance_manager", "security"],
+  "/stats": ["manager", "finance_manager", "security"],
+  "/logs": ["manager", "finance_manager", "security"],
+  "/admin": ["manager"],
+};
+
+const RoleGuard = ({ path, children }: { path: string; children: React.ReactNode }) => {
+  const { roles } = useAuth();
+  const allowed = ROUTE_ROLES[path];
+  if (allowed && !roles.some(r => allowed.includes(r))) {
+    return <Navigate to="/" replace />;
+  }
+  return <>{children}</>;
+};
+
 const ProtectedRoutes = () => {
   const { user, loading } = useAuth();
   if (loading) {
@@ -48,17 +73,17 @@ const ProtectedRoutes = () => {
     <Routes>
       <Route element={<AppLayout />}>
         <Route path="/" element={<Dashboard />} />
-        <Route path="/players" element={<Players />} />
-        <Route path="/cage" element={<Cage />} />
-        <Route path="/tables" element={<Tables />} />
-        <Route path="/expenses" element={<Expenses />} />
-        <Route path="/pit" element={<Pit />} />
-        <Route path="/groups" element={<Groups />} />
-        <Route path="/tracker" element={<TableTracker />} />
-        <Route path="/reports" element={<Reports />} />
-        <Route path="/stats" element={<Stats />} />
-        <Route path="/logs" element={<Logs />} />
-        <Route path="/admin" element={<Admin />} />
+        <Route path="/players" element={<RoleGuard path="/players"><Players /></RoleGuard>} />
+        <Route path="/cage" element={<RoleGuard path="/cage"><Cage /></RoleGuard>} />
+        <Route path="/tables" element={<RoleGuard path="/tables"><Tables /></RoleGuard>} />
+        <Route path="/expenses" element={<RoleGuard path="/expenses"><Expenses /></RoleGuard>} />
+        <Route path="/pit" element={<RoleGuard path="/pit"><Pit /></RoleGuard>} />
+        <Route path="/groups" element={<RoleGuard path="/groups"><Groups /></RoleGuard>} />
+        <Route path="/tracker" element={<RoleGuard path="/tracker"><TableTracker /></RoleGuard>} />
+        <Route path="/reports" element={<RoleGuard path="/reports"><Reports /></RoleGuard>} />
+        <Route path="/stats" element={<RoleGuard path="/stats"><Stats /></RoleGuard>} />
+        <Route path="/logs" element={<RoleGuard path="/logs"><Logs /></RoleGuard>} />
+        <Route path="/admin" element={<RoleGuard path="/admin"><Admin /></RoleGuard>} />
       </Route>
       <Route path="*" element={<NotFound />} />
     </Routes>
