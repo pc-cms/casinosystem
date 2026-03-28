@@ -152,8 +152,8 @@ const BreaklistGrid = ({ date }: { date: string }) => {
                       const tableName = table?.name ?? null;
                       // Build display label with role suffix: AR2I (inspector), AR2C (chipper), P1I, BJ1I
                       const roleSuffix: Record<string, string> = {
-                        ARi: "I", ARc: "C", AR1i: "I", AR1c: "C",
-                        Pi: "I", BJi: "I",
+                        ARi: "i", ARc: "c", AR1i: "i", AR1c: "c",
+                        Pi: "i", BJi: "i",
                       };
                       const displayLabel = cell
                         ? tableName
@@ -193,8 +193,8 @@ const BreaklistGrid = ({ date }: { date: string }) => {
                                   {openTables.map(t => {
                                     const roles = TABLE_ROLES[t.game] || [];
                                     const roleSuffixMap: Record<string, string> = {
-                                      ARi: "I", ARc: "C", AR1i: "I", AR1c: "C",
-                                      Pi: "I", BJi: "I",
+                                      ARi: "i", ARc: "c", AR1i: "i", AR1c: "c",
+                                      Pi: "i", BJi: "i",
                                     };
                                     return (
                                       <div key={t.id} className="flex items-center gap-0.5 px-1">
