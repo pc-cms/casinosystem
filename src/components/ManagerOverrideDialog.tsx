@@ -93,13 +93,12 @@ const ManagerOverrideDialog = ({
     setError("");
 
     try {
-      const { data: profile, error: profileError } = await supabase
-        .from("profiles")
-        .select("user_id, display_name")
-        .eq("rfid_tag", rfid.trim())
-        .maybeSingle();
+      const { data: lookupResult, error: lookupError } = await supabase
+        .rpc("lookup_rfid_user", { rfid: rfid.trim() });
 
-      if (profileError || !profile) {
+      const profile = Array.isArray(lookupResult) ? lookupResult[0] : lookupResult;
+
+      if (lookupError || !profile) {
         setError("RFID tag not recognized");
         setLoading(false);
         return;
