@@ -27,6 +27,9 @@ export const AppSidebar = () => {
   const { theme, toggle } = useTheme();
   const { displayName, roles, signOut, isManager } = useAuth();
 
+  const visibleItems = NAV_ITEMS.filter(item =>
+    roles.some(r => item.roles.includes(r as AppRole))
+  );
   return (
     <aside className="w-56 h-screen flex flex-col bg-sidebar border-r border-sidebar-border shrink-0">
       <div className="px-4 py-4 border-b border-sidebar-border">
@@ -38,7 +41,7 @@ export const AppSidebar = () => {
       </div>
 
       <nav className="flex-1 py-2 px-2 space-y-0.5 overflow-y-auto">
-        {NAV_ITEMS.map(item => (
+        {visibleItems.map(item => (
           <NavLink key={item.to} to={item.to} end={item.to === "/"}
             className={({ isActive }) =>
               `flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
