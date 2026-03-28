@@ -761,24 +761,53 @@ const CloseShiftDialog = ({ open, onClose, shift, expectedBalance, cashResult, t
         {/* Step 4: Review */}
         {step === 4 && (
           <div className="space-y-3">
+            {/* Status banner */}
             <div className={`cms-panel p-3 text-center ${isPerfect ? "border-green-500/30" : "border-destructive/30"}`}>
               {isPerfect ? <CheckCircle2 className="w-6 h-6 text-green-500 mx-auto mb-1" /> : <AlertTriangle className="w-6 h-6 text-destructive mx-auto mb-1" />}
-              <p className="text-sm font-medium text-card-foreground">{isPerfect ? "Balanced" : "Mismatch"}</p>
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-              <div className="text-center"><p className="text-[9px] uppercase text-muted-foreground">Expected</p><p className="font-mono text-xs font-bold text-card-foreground">{formatCurrency(expectedBalance)}</p></div>
-              <div className="text-center"><p className="text-[9px] uppercase text-muted-foreground">Counted</p><p className="font-mono text-xs font-bold text-card-foreground">{formatCurrency(totalTzs)}</p></div>
-              <div className="text-center"><p className="text-[9px] uppercase text-muted-foreground">Diff</p><p className={`font-mono text-xs font-bold ${isPerfect ? "text-green-500" : "text-destructive"}`}>{diff >= 0 ? "+" : ""}{formatCurrency(diff)}</p></div>
+              <p className="text-sm font-medium text-card-foreground">{isPerfect ? "Balanced" : "Mismatch Detected"}</p>
             </div>
 
-            {/* Chip MISS summary */}
-            {hasAnyChipCount && totalMissValue !== 0 && (
-              <div className={`cms-panel p-2 ${hasIncident ? "border-destructive/50" : ""}`}>
-                <p className="text-[10px] uppercase text-muted-foreground text-center mb-1">Chip MISS</p>
-                <p className={`font-mono text-sm font-bold text-center ${totalMissValue === 0 ? "text-green-500" : "text-destructive"}`}>
-                  {totalMissValue >= 0 ? "+" : ""}{formatCurrency(totalMissValue)}
-                </p>
-                {hasIncident && <p className="text-[10px] text-destructive text-center mt-1 flex items-center justify-center gap-1"><AlertTriangle className="w-3 h-3" /> INCIDENT</p>}
+            {/* Cash Flow Reconciliation */}
+            <div className="cms-panel p-3">
+              <p className="text-[10px] uppercase text-muted-foreground tracking-wider mb-2 font-medium">Cash Flow</p>
+              <div className="space-y-1 text-xs font-mono">
+                <div className="flex justify-between"><span className="text-muted-foreground">Opening Float</span><span className="text-card-foreground">{formatCurrency(openingFloat || 0)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">+ Buy-Ins</span><span className="text-green-500">+{formatCurrency(totalBuyIns || 0)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">− Cashouts</span><span className="text-destructive">−{formatCurrency(totalCashouts || 0)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">− Expenses</span><span className="text-orange-500">−{formatCurrency(totalExpenses || 0)}</span></div>
+                <div className="flex justify-between border-t border-border pt-1 font-bold"><span className="text-card-foreground">= Expected</span><span className="text-card-foreground">{formatCurrency(expectedBalance)}</span></div>
+                <div className="flex justify-between"><span className="text-card-foreground">Counted</span><span className="text-card-foreground">{formatCurrency(totalTzs)}</span></div>
+                <div className="flex justify-between font-bold">
+                  <span className="text-card-foreground">Difference</span>
+                  <span className={isPerfect ? "text-green-500" : "text-destructive"}>{diff >= 0 ? "+" : ""}{formatCurrency(diff)}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Shift Result */}
+            <div className="cms-panel p-3">
+              <p className="text-[10px] uppercase text-muted-foreground tracking-wider mb-2 font-medium">Shift Result</p>
+              <div className="space-y-1 text-xs font-mono">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Cash Result (Buy − Cash)</span>
+                  <span className={`${(cashResult || 0) >= 0 ? "text-green-500" : "text-destructive"}`}>{(cashResult || 0) >= 0 ? "+" : ""}{formatCurrency(cashResult || 0)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Chip MISS</span>
+                  <span className={`${totalMissValue === 0 ? "text-green-500" : "text-destructive"}`}>{totalMissValue >= 0 ? "+" : ""}{formatCurrency(totalMissValue)}</span>
+                </div>
+                <div className="flex justify-between border-t border-border pt-1 font-bold text-sm">
+                  <span className="text-card-foreground">= Shift Result</span>
+                  <span className={`${shiftResult >= 0 ? "text-green-500" : "text-destructive"}`}>{shiftResult >= 0 ? "+" : ""}{formatCurrency(shiftResult)}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Incident warning */}
+            {hasIncident && (
+              <div className="p-2 rounded-md bg-destructive/10 border border-destructive/30 flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-destructive shrink-0" />
+                <p className="text-xs text-destructive font-bold">INCIDENT: Chip total exceeds initial system total</p>
               </div>
             )}
 
