@@ -267,6 +267,41 @@ export type Database = {
         }
         Relationships: []
       }
+      chip_baseline: {
+        Row: {
+          casino_id: string
+          denomination: number
+          expected_quantity: number
+          id: string
+          location_id: string | null
+          location_type: string
+        }
+        Insert: {
+          casino_id: string
+          denomination: number
+          expected_quantity?: number
+          id?: string
+          location_id?: string | null
+          location_type: string
+        }
+        Update: {
+          casino_id?: string
+          denomination?: number
+          expected_quantity?: number
+          id?: string
+          location_id?: string | null
+          location_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chip_baseline_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chip_inventory: {
         Row: {
           casino_id: string
@@ -819,6 +854,7 @@ export type Database = {
       }
       shifts: {
         Row: {
+          cash_result: number | null
           casino_id: string
           closed_at: string | null
           closed_by: string | null
@@ -827,13 +863,16 @@ export type Database = {
           created_at: string
           exchange_rates: Json
           id: string
+          miss_total: number | null
           notes: string | null
           opened_at: string
           opened_by: string
           opening_float: Json | null
+          shift_result: number | null
           status: string
         }
         Insert: {
+          cash_result?: number | null
           casino_id: string
           closed_at?: string | null
           closed_by?: string | null
@@ -842,13 +881,16 @@ export type Database = {
           created_at?: string
           exchange_rates?: Json
           id?: string
+          miss_total?: number | null
           notes?: string | null
           opened_at?: string
           opened_by: string
           opening_float?: Json | null
+          shift_result?: number | null
           status?: string
         }
         Update: {
+          cash_result?: number | null
           casino_id?: string
           closed_at?: string | null
           closed_by?: string | null
@@ -857,10 +899,12 @@ export type Database = {
           created_at?: string
           exchange_rates?: Json
           id?: string
+          miss_total?: number | null
           notes?: string | null
           opened_at?: string
           opened_by?: string
           opening_float?: Json | null
+          shift_result?: number | null
           status?: string
         }
         Relationships: [
@@ -1081,6 +1125,15 @@ export type Database = {
     }
     Functions: {
       generate_card_number: { Args: never; Returns: string }
+      get_expected_chips: {
+        Args: {
+          _casino_id: string
+          _denomination: number
+          _location_id: string
+          _location_type: string
+        }
+        Returns: number
+      }
       get_user_casino_id: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
@@ -1095,6 +1148,15 @@ export type Database = {
           casino_id: string
           display_name: string
           user_id: string
+        }[]
+      }
+      validate_chip_consistency: {
+        Args: { _casino_id: string }
+        Returns: {
+          difference: number
+          status: string
+          total_actual: number
+          total_expected: number
         }[]
       }
     }
