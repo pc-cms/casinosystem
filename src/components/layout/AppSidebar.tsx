@@ -1,7 +1,8 @@
 import { NavLink } from "react-router-dom";
 import {
   LayoutDashboard, Users, Landmark, Table2, Receipt,
-  ClipboardList, BarChart3, Sun, Moon, Shield, Gamepad2, UsersRound, Grid3X3, LogOut,
+  ClipboardList, BarChart3, Sun, Moon, Shield, Gamepad2, 
+  UsersRound, Grid3X3, LogOut, Settings,
 } from "lucide-react";
 import { useTheme } from "@/lib/theme";
 import { useAuth } from "@/lib/auth-context";
@@ -21,7 +22,7 @@ const NAV_ITEMS = [
 
 export const AppSidebar = () => {
   const { theme, toggle } = useTheme();
-  const { displayName, roles, signOut } = useAuth();
+  const { displayName, roles, signOut, isManager } = useAuth();
 
   return (
     <aside className="w-56 h-screen flex flex-col bg-sidebar border-r border-sidebar-border shrink-0">
@@ -46,12 +47,29 @@ export const AppSidebar = () => {
             <span className="cms-kbd">{item.shortcut}</span>
           </NavLink>
         ))}
+
+        {isManager && (
+          <NavLink to="/admin"
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors mt-2 border-t border-sidebar-border pt-3 ${
+                isActive ? "bg-sidebar-accent text-sidebar-primary font-medium" : "text-sidebar-foreground hover:bg-sidebar-accent"
+              }`
+            }>
+            <Settings className="w-4 h-4 shrink-0" />
+            <span className="flex-1">Admin</span>
+            <span className="cms-kbd">A</span>
+          </NavLink>
+        )}
       </nav>
 
       <div className="px-3 py-3 border-t border-sidebar-border space-y-1">
         <div className="px-3 py-1">
           <p className="text-xs font-medium text-sidebar-foreground truncate">{displayName}</p>
-          <p className="text-[10px] text-muted-foreground font-mono">{roles.join(", ") || "no role"}</p>
+          <div className="flex gap-1 mt-0.5 flex-wrap">
+            {roles.map(r => (
+              <span key={r} className="text-[9px] font-mono px-1 py-0.5 rounded bg-sidebar-accent text-sidebar-accent-foreground">{r}</span>
+            ))}
+          </div>
         </div>
         <button onClick={toggle}
           className="flex items-center gap-2 w-full px-3 py-1.5 rounded-md text-xs text-sidebar-foreground hover:bg-sidebar-accent transition-colors">

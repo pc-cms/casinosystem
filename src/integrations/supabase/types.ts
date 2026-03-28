@@ -122,6 +122,76 @@ export type Database = {
           },
         ]
       }
+      breaklist_logs: {
+        Row: {
+          action: string
+          breaklist_id: string | null
+          casino_id: string
+          created_at: string
+          date: string
+          dealer_id: string
+          id: string
+          new_role: string | null
+          new_table_id: string | null
+          old_role: string | null
+          old_table_id: string | null
+          operator_id: string
+          time_slot: string
+        }
+        Insert: {
+          action: string
+          breaklist_id?: string | null
+          casino_id: string
+          created_at?: string
+          date: string
+          dealer_id: string
+          id?: string
+          new_role?: string | null
+          new_table_id?: string | null
+          old_role?: string | null
+          old_table_id?: string | null
+          operator_id: string
+          time_slot: string
+        }
+        Update: {
+          action?: string
+          breaklist_id?: string | null
+          casino_id?: string
+          created_at?: string
+          date?: string
+          dealer_id?: string
+          id?: string
+          new_role?: string | null
+          new_table_id?: string | null
+          old_role?: string | null
+          old_table_id?: string | null
+          operator_id?: string
+          time_slot?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "breaklist_logs_breaklist_id_fkey"
+            columns: ["breaklist_id"]
+            isOneToOne: false
+            referencedRelation: "breaklist"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "breaklist_logs_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "breaklist_logs_dealer_id_fkey"
+            columns: ["dealer_id"]
+            isOneToOne: false
+            referencedRelation: "dealers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       casinos: {
         Row: {
           code: string
