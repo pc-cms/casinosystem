@@ -249,12 +249,14 @@ const PlayerDetailDialog = ({ player, onClose }: { player: any; onClose: () => v
       <ManagerOverrideDialog
         open={!!pendingTagAction}
         onClose={() => setPendingTagAction(null)}
-        onConfirm={() => {
+        onConfirm={(managerId) => {
           pendingTagAction?.();
           setPendingTagAction(null);
         }}
         title="Edit Player Tags"
         description="Manager authentication required to modify player tags."
+        actionType="EDIT_PLAYER_TAGS"
+        actionDetails={{ player_id: player.id, player_name: `${player.first_name} ${player.last_name}` }}
       />
     </Dialog>
   );
