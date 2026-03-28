@@ -2,6 +2,23 @@
 export const CURRENCY = "TZS";
 export const CURRENCY_SYMBOL = "TZS";
 
+// Supported currencies
+export const CURRENCIES = ["TZS", "USD", "EUR"] as const;
+export type SupportedCurrency = typeof CURRENCIES[number];
+
+// Default exchange rates (TZS per 1 unit)
+export const DEFAULT_EXCHANGE_RATES: Record<string, number> = {
+  USD: 2500,
+  EUR: 2700,
+};
+
+// Cash denominations per currency
+export const CASH_DENOMS: Record<string, number[]> = {
+  TZS: [500, 1_000, 2_000, 5_000, 10_000, 20_000, 50_000],
+  USD: [1, 5, 10, 20, 50, 100],
+  EUR: [5, 10, 20, 50, 100, 200, 500],
+};
+
 export const CHIP_DENOMS = [500, 1_000, 2_000, 5_000, 10_000, 25_000, 50_000, 100_000, 500_000, 1_000_000, 5_000_000] as const;
 
 export const CHIP_COLORS: Record<number, string> = {
@@ -24,8 +41,10 @@ export const formatChipLabel = (value: number): string => {
   return String(value);
 };
 
-export const formatCurrency = (amount: number): string => {
-  return `${CURRENCY_SYMBOL} ${amount.toLocaleString()}`;
+export const formatCurrency = (amount: number, currency: string = "TZS"): string => {
+  if (currency === "USD") return `$ ${amount.toLocaleString()}`;
+  if (currency === "EUR") return `€ ${amount.toLocaleString()}`;
+  return `TZS ${amount.toLocaleString()}`;
 };
 
 // ============ TABLE STRUCTURE ============
