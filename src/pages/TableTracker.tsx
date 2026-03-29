@@ -7,11 +7,9 @@ import { formatCurrency } from "@/lib/currency";
 const generateSlots = () => {
   const slots: string[] = [];
   for (let h = 18; h <= 28; h++) { // 28 = 04:xx next day
-    for (let m = 0; m < 60; m += 30) {
-      if (h === 29) break;
-      const hour = h % 24;
-      slots.push(`${String(hour).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
-    }
+    if (h === 29) break;
+    const hour = h % 24;
+    slots.push(`${String(hour).padStart(2, "0")}:00`);
   }
   return slots;
 };
