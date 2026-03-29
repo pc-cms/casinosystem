@@ -106,42 +106,13 @@ const Dashboard = () => {
           </Link>
         )}
         <StatCard label="Active Players" value={activePlayers} icon={Users} href="/players" />
-        {showFinancials && <StatCard label="Pending Expenses" value={pendingExpenses} icon={Receipt} href="/expenses" />}
+        {showFinancials && isManager && <StatCard label="Pending Expenses" value={pendingExpenses} icon={Receipt} href="/expenses" />}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {showFinancials && (
           <div className="cms-panel">
-            <div className="cms-header">Recent Transactions</div>
-            <div className="p-4">
-              {transactions.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-8">No transactions yet</p>
-              ) : (
-                <div className="space-y-2">
-                  {transactions.slice(0, 8).map(tx => (
-                    <div key={tx.id} className="flex items-center justify-between py-2 border-b border-border last:border-0">
-                      <div>
-                        <span className="text-sm font-medium text-card-foreground">
-                          {(tx as any).players?.first_name} {(tx as any).players?.last_name}
-                        </span>
-                        <span className={`ml-2 text-xs font-mono px-1.5 py-0.5 rounded ${tx.type === "buy" ? "bg-primary/10 text-primary" : "bg-accent/10 text-accent"}`}>
-                          {tx.type.toUpperCase()}
-                        </span>
-                      </div>
-                      <span className={`font-mono text-sm font-medium ${tx.type === "buy" ? "cms-amount-negative" : "cms-amount-positive"}`}>
-                        {tx.type === "buy" ? "-" : "+"}{formatCurrency(Number(tx.amount))}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {showFinancials && (
-          <div className="cms-panel">
-            <div className="cms-header">Top Losers</div>
+            <div className="cms-header">Top Players</div>
             <div className="p-4 space-y-1">
               {topLosers.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-4">No data</p>
@@ -160,6 +131,34 @@ const Dashboard = () => {
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+        )}
+
+        {showFinancials && (
+          <div className="cms-panel">
+            <div className="cms-header">Tables</div>
+            <div className="p-4 space-y-1">
+              {tables.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">No tables</p>
+              ) : tables.map(table => {
+                const trackerVal = tableTrackerTotals[table.id] || 0;
+                const result = table.closing_result !== null ? Number(table.closing_result) : trackerVal;
+                return (
+                  <div key={table.id} className="flex items-center justify-between py-1.5 border-b border-border last:border-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-card-foreground">{table.name}</span>
+                      <span className="text-xs text-muted-foreground">{table.game}</span>
+                      <span className={`text-xs px-1.5 py-0.5 rounded font-mono ${table.status === "open" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>
+                        {table.status}
+                      </span>
+                    </div>
+                    <span className={`font-mono text-xs font-bold ${result >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
+                      {result >= 0 ? "+" : ""}{formatCurrency(result)}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
