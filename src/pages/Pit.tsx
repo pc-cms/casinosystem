@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from "react";
-import { useDealers, useCreateDealer, usePitRotaRange, useSetPitRota, useDeletePitRota, useDealerAttendance, useSetDealerAttendance } from "@/hooks/use-casino-data";
+import { useDealers, useCreateDealer, usePitRotaRange, useSetPitRota, useDeletePitRota, useDealerAttendance, useSetDealerAttendance, useDealerAttendanceRange } from "@/hooks/use-casino-data";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
