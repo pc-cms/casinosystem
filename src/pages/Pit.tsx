@@ -128,14 +128,35 @@ const RotaGrid = ({ month }: { month: string }) => {
   const todayDay = today.getDate();
   const isCurrentMonth = today.getFullYear() === y && today.getMonth() + 1 === m;
 
-  const getShift = (dealerId: string, day: number) => {
+  const getRotaEntry = (dealerId: string, day: number) => {
     const dateStr = `${month}-${String(day).padStart(2, "0")}`;
     return rota.find(r => r.dealer_id === dealerId && r.date === dateStr);
   };
 
+  const getAttendanceEntry = (dealerId: string, day: number) => {
+    const dateStr = `${month}-${String(day).padStart(2, "0")}`;
+    return monthAttendance.find((a: any) => a.dealer_id === dealerId && a.date === dateStr);
+  };
+
+  // Display shift: rota entry, or auto-E if worked but not scheduled
+  const getDisplayShift = (dealerId: string, day: number): { shift: string; isAuto: boolean } | null => {
+    const rotaEntry = getRotaEntry(dealerId, day);
+    if (rotaEntry) return { shift: rotaEntry.shift, isAuto: false };
+
+    const att = getAttendanceEntry(dealerId, day);
+    if (att) {
+      const val = String((att as any).value);
+      const num = Number(val);
+      if (!isNaN(num) && num > 0) {
+        return { shift: "E", isAuto: true };
+      }
+    }
+    return null;
+  };
+
   const handleClick = (dealerId: string, day: number) => {
     const dateStr = `${month}-${String(day).padStart(2, "0")}`;
-    const current = getShift(dealerId, day);
+    const current = getRotaEntry(dealerId, day);
 
     if (!current) {
       setRota.mutate({ dealer_id: dealerId, date: dateStr, shift: "M" });
@@ -150,9 +171,13 @@ const RotaGrid = ({ month }: { month: string }) => {
   };
 
   const getDealerStats = (dealerId: string) => {
-    const entries = rota.filter(r => r.dealer_id === dealerId);
     const counts: Record<string, number> = {};
-    entries.forEach(e => { counts[e.shift] = (counts[e.shift] || 0) + 1; });
+    days.forEach(day => {
+      const display = getDisplayShift(dealerId, day);
+      if (display) {
+        counts[display.shift] = (counts[display.shift] || 0) + 1;
+      }
+    });
     return counts;
   };
 
