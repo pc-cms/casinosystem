@@ -722,8 +722,8 @@ const CloseShiftDialog = ({ open, onClose, shift, expectedBalance, cashResult, t
           </div>
         )}
 
-        {/* Step 4: Review */}
-        {step === 4 && (
+        {/* Step 3: Review */}
+        {step === 3 && (
           <div className="space-y-3">
             <div className={`cms-panel p-3 text-center ${isPerfect ? "border-green-500/30" : "border-destructive/30"}`}>
               {isPerfect ? <CheckCircle2 className="w-6 h-6 text-green-500 mx-auto mb-1" /> : <AlertTriangle className="w-6 h-6 text-destructive mx-auto mb-1" />}
@@ -779,7 +779,7 @@ const CloseShiftDialog = ({ open, onClose, shift, expectedBalance, cashResult, t
               <p className="text-[10px] text-destructive flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> Mismatch of {formatCurrency(Math.abs(diff))} will be logged.</p>
             )}
             <DialogFooter>
-              <Button variant="outline" onClick={() => setStep(3)}>← Back</Button>
+              <Button variant="outline" onClick={() => setStep(2)}>← Back</Button>
               <Button variant="destructive" onClick={handleClose} disabled={loading}>{loading ? "Closing…" : "Close Shift"}</Button>
             </DialogFooter>
           </div>
