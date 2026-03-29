@@ -32,6 +32,17 @@ const DEPT_BADGE_COLORS: Record<string, string> = {
   hr: "bg-orange-500/20 text-orange-400 border-orange-500/30",
 };
 
+const DEPT_BORDER_COLORS: Record<string, string> = {
+  security: "border-red-500/50",
+  cashier: "border-blue-500/50",
+  bartender: "border-amber-500/50",
+  hostess: "border-pink-500/50",
+  waiter: "border-cyan-500/50",
+  cleaner: "border-emerald-500/50",
+  it: "border-violet-500/50",
+  hr: "border-orange-500/50",
+};
+
 const DEPT_DOT_COLORS: Record<string, string> = {
   security: "bg-red-400",
   cashier: "bg-blue-400",
