@@ -286,10 +286,11 @@ const OpenShiftScreen = ({ tables }: { tables: any[] }) => {
           onChipsChange={setOpeningChips}
           cash={openingCash}
           onCashChange={(cur, v) => setOpeningCash(c => ({ ...c, [cur]: v }))}
-          bank={bankBalance}
-          onBankChange={setBankBalance}
+          banks={bankBalance}
+          onBanksChange={setBankBalance}
           mobile={mobileBalance}
           onMobileChange={setMobileBalance}
+          rates={rates}
         />
       </div>
 
@@ -626,8 +627,8 @@ const CashCheckForm = ({ expectedBalance, shiftId, exchangeRates, cashChecks }: 
   const createCount = useCreateCashCount();
   const [chipCounts, setChipCounts] = useState<Record<number, number>>({});
   const [cash, setCash] = useState<Record<string, Record<number, number>>>(emptyCash);
-  const [bankBal, setBankBal] = useState(0);
-  const [mobileBal, setMobileBal] = useState(0);
+  const [bankBal, setBankBal] = useState<Banks>(emptyBanks);
+  const [mobileBal, setMobileBal] = useState<MobileProviders>(emptyMobile);
 
   const totalTzs = calcGrandTotal(chipCounts, cash, bankBal, mobileBal, exchangeRates);
   const difference = totalTzs - expectedBalance;
@@ -646,7 +647,7 @@ const CashCheckForm = ({ expectedBalance, shiftId, exchangeRates, cashChecks }: 
       },
       total: totalTzs,
     }, {
-      onSuccess: () => { setChipCounts({}); setCash(emptyCash()); setBankBal(0); setMobileBal(0); },
+      onSuccess: () => { setChipCounts({}); setCash(emptyCash()); setBankBal(emptyBanks()); setMobileBal(emptyMobile()); },
     });
   };
 
@@ -658,10 +659,11 @@ const CashCheckForm = ({ expectedBalance, shiftId, exchangeRates, cashChecks }: 
           onChipsChange={setChipCounts}
           cash={cash}
           onCashChange={(cur, v) => setCash(c => ({ ...c, [cur]: v }))}
-          bank={bankBal}
-          onBankChange={setBankBal}
+          banks={bankBal}
+          onBanksChange={setBankBal}
           mobile={mobileBal}
           onMobileChange={setMobileBal}
+          rates={exchangeRates}
         />
 
         {/* Inline result */}
@@ -789,8 +791,8 @@ const CloseShiftDialog = ({ open, onClose, shift, expectedBalance, cashResult, t
   // Step 2: Chip + cash counts
   const [chipCounts, setChipCounts] = useState<Record<number, number>>({});
   const [cashCounts, setCashCounts] = useState<Record<string, Record<number, number>>>(emptyCash);
-  const [bankBal, setBankBal] = useState(0);
-  const [mobileBal, setMobileBal] = useState(0);
+  const [bankBal, setBankBal] = useState<Banks>(emptyBanks);
+  const [mobileBal, setMobileBal] = useState<MobileProviders>(emptyMobile);
 
   // MISS calculation
   const expectedChips = useMemo(() => getExpectedChips(tables), [tables]);
@@ -888,11 +890,12 @@ const CloseShiftDialog = ({ open, onClose, shift, expectedBalance, cashResult, t
               onChipsChange={setChipCounts}
               cash={cashCounts}
               onCashChange={(cur, v) => setCashCounts(c => ({ ...c, [cur]: v }))}
-              bank={bankBal}
-              onBankChange={setBankBal}
+              banks={bankBal}
+              onBanksChange={setBankBal}
               mobile={mobileBal}
               onMobileChange={setMobileBal}
               chipPlaceholder={expectedChips}
+              rates={rates}
             />
 
             {/* MISS summary inline */}
