@@ -65,6 +65,7 @@ const CashDenomInput = ({ values, onChange, denoms, prefix, onSubmit }: {
         <span className="font-mono text-sm font-bold text-card-foreground">{prefix}{cashSum(values).toLocaleString()}</span>
       </div>
     </div>
+  );
 };
 
 // =================== MAIN CAGE PAGE ===================
