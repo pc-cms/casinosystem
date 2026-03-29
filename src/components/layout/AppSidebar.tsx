@@ -48,7 +48,7 @@ export const AppSidebar = () => {
 
   const isPitActive = location.pathname === "/pit";
   const isStaffActive = location.pathname === "/staff";
-  const currentTab = new URLSearchParams(location.search).get("tab") || (isPitActive ? "rota" : "employee");
+  const currentTab = new URLSearchParams(location.search).get("tab") || (isPitActive ? "employee" : "employee");
 
   const visibleItems = NAV_ITEMS.filter(item =>
     roles.some(r => item.roles.includes(r as AppRole))
