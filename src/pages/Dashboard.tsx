@@ -24,7 +24,7 @@ const StatCard = ({ label, value, icon: Icon, href }: {
 );
 
 const Dashboard = () => {
-  const { displayName, roles } = useAuth();
+  const { displayName, roles, isManager } = useAuth();
   const businessDate = getBusinessDate();
   const { data: players = [] } = usePlayers();
   const { data: transactions = [] } = useTransactions();
