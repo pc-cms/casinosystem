@@ -242,8 +242,6 @@ const TablesContent = () => {
       const cpd = t.game === "American Roulette" ? CHIP_DISTRIBUTION.roulette : CHIP_DISTRIBUTION.card;
       locs.push({ key: `table-${t.id}`, label: t.name, type: "table", id: t.id, denoms: t.denominations || [], chipsPerDenom: cpd });
     });
-    locs.push({ key: "cashier", label: "Cashier", type: "cashier", id: null, denoms: [...CHIP_DENOMS], chipsPerDenom: CHIP_DISTRIBUTION.cashier });
-    locs.push({ key: "safe", label: "Manager Safe", type: "safe", id: null, denoms: [...CHIP_DENOMS], chipsPerDenom: CHIP_DISTRIBUTION.safe });
     return locs;
   }, [tables]);
 
@@ -475,7 +473,7 @@ const TablesContent = () => {
 
       {/* Chip Count Dialog */}
       <Dialog open={showCount} onOpenChange={setShowCount}>
-        <DialogContent className="max-w-[95vw] w-fit max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-[95vw] w-fit !max-h-none overflow-visible">
           <DialogHeader>
             <DialogTitle className="flex items-center justify-between">
               <span>Chip Count — Per Location</span>
