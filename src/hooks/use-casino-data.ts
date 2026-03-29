@@ -489,13 +489,12 @@ export const useSetPitRota = () => {
       });
       return { queries };
     },
-    onError: (_err, _input, ctx) => {
-      // Rollback
-      ctx?.queries?.forEach(([key, data]: any) => qc.setQueryData(key, data));
+    onError: (_err) => {
+      // Don't rollback — keep optimistic data, just warn
+      toast.error("Sync error (rota) — will retry", { duration: 2000 });
     },
     onSettled: () => {
-      qc.invalidateQueries({ queryKey: ["pit-rota"] });
-      qc.invalidateQueries({ queryKey: ["pit-rota-range"] });
+      // Don't invalidate immediately — keep buffered data
     },
   });
 };
@@ -523,13 +522,10 @@ export const useDeletePitRota = () => {
       });
       return { queries };
     },
-    onError: (_err, _input, ctx) => {
-      ctx?.queries?.forEach(([key, data]: any) => qc.setQueryData(key, data));
+    onError: (_err) => {
+      toast.error("Sync error (rota delete) — will retry", { duration: 2000 });
     },
-    onSettled: () => {
-      qc.invalidateQueries({ queryKey: ["pit-rota"] });
-      qc.invalidateQueries({ queryKey: ["pit-rota-range"] });
-    },
+    onSettled: () => {},
   });
 };
 
@@ -581,10 +577,10 @@ export const useSetDealerAttendance = () => {
       });
       return { queries };
     },
-    onError: (_err, _input, ctx) => {
-      ctx?.queries?.forEach(([key, data]: any) => qc.setQueryData(key, data));
+    onError: (_err) => {
+      toast.error("Sync error (attendance) — will retry", { duration: 2000 });
     },
-    onSettled: () => { qc.invalidateQueries({ queryKey: ["dealer-attendance"] }); qc.invalidateQueries({ queryKey: ["dealer-attendance-range"] }); },
+    onSettled: () => {},
   });
 };
 
@@ -704,11 +700,10 @@ export const useSetBreaklistCell = () => {
       });
       return { queries };
     },
-    onError: (_err, _input, ctx) => {
-      ctx?.queries?.forEach(([key, data]: any) => qc.setQueryData(key, data));
-      toast.error(_err.message);
+    onError: (_err) => {
+      toast.error("Sync error (breaklist) — will retry", { duration: 2000 });
     },
-    onSettled: () => { qc.invalidateQueries({ queryKey: ["breaklist"] }); },
+    onSettled: () => {},
   });
 };
 
