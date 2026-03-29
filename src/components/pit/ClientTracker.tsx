@@ -112,6 +112,118 @@ const PlayerSearchInput = ({
   );
 };
 
+const ActiveSessionCard = ({
+  session: s,
+  tables,
+  getPlayerName,
+  getTableName,
+  onStop,
+  stopPending,
+  casinoId,
+  queryClient,
+}: {
+  session: any;
+  tables: any[];
+  getPlayerName: (id: string) => string;
+  getTableName: (id: string) => string;
+  onStop: () => void;
+  stopPending: boolean;
+  casinoId: string;
+  queryClient: any;
+}) => {
+  const [editing, setEditing] = useState(false);
+  const [newBet, setNewBet] = useState(String(s.avg_bet || 0));
+  const [saving, setSaving] = useState(false);
+
+  const table = tables.find((t: any) => t.id === s.table_id);
+  const hph = table ? getHandsPerHour(table.game) : DEFAULT_HANDS_PER_HOUR;
+  const elapsed = (Date.now() - new Date(s.started_at).getTime()) / 3600000;
+  const liveHands = Math.round(elapsed * hph);
+  const liveTotalBet = liveHands * Number(s.avg_bet);
+
+  const handleSaveBet = async () => {
+    const val = Number(newBet);
+    if (!val || val <= 0) return;
+    setSaving(true);
+    const { error } = await supabase
+      .from("client_sessions")
+      .update({ avg_bet: val })
+      .eq("id", s.id);
+    setSaving(false);
+    if (error) {
+      toast.error(error.message);
+    } else {
+      queryClient.invalidateQueries({ queryKey: ["client_sessions"] });
+      setEditing(false);
+      toast.success("Avg Bet updated");
+    }
+  };
+
+  return (
+    <div className="px-4 py-3 flex items-center justify-between">
+      <div className="space-y-1">
+        <div className="text-sm font-medium text-card-foreground">{getPlayerName(s.player_id)}</div>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <span>{getTableName(s.table_id)}</span>
+          <span>·</span>
+          {editing ? (
+            <div className="flex items-center gap-1">
+              <span className="text-muted-foreground">Avg:</span>
+              <NumberInput
+                value={newBet}
+                onChange={setNewBet}
+                className="h-6 w-[100px] text-xs"
+                placeholder="Bet"
+              />
+              <button
+                onClick={handleSaveBet}
+                disabled={saving || !newBet || Number(newBet) <= 0}
+                className="w-5 h-5 rounded bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 transition-colors disabled:opacity-50"
+              >
+                <Check className="w-3 h-3" />
+              </button>
+              <button
+                onClick={() => { setEditing(false); setNewBet(String(s.avg_bet || 0)); }}
+                className="text-muted-foreground hover:text-foreground text-[10px]"
+              >
+                ✕
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setEditing(true)}
+              className="flex items-center gap-1 hover:text-primary transition-colors cursor-pointer"
+            >
+              <span>Avg: {formatNumberSpaces(Number(s.avg_bet))}</span>
+              <Pencil className="w-2.5 h-2.5 opacity-50" />
+            </button>
+          )}
+        </div>
+        <div className="flex items-center gap-3 mt-1">
+          <div className="flex items-center gap-1">
+            <Clock className="w-3 h-3 text-muted-foreground" />
+            <LiveTimer startedAt={s.started_at} />
+          </div>
+          <Badge variant="outline" className="text-[10px]">
+            ~{liveHands} hands
+          </Badge>
+          <span className="text-xs font-mono font-bold text-primary">
+            Total Bet: {formatNumberSpaces(liveTotalBet)}
+          </span>
+        </div>
+      </div>
+      <Button
+        variant="destructive"
+        size="sm"
+        onClick={onStop}
+        disabled={stopPending}
+      >
+        <Square className="w-3 h-3 mr-1" /> Stop
+      </Button>
+    </div>
+  );
+};
+
 const ClientTracker = () => {
   const { data: players = [] } = usePlayers();
   const { data: tables = [] } = useGamingTables();
