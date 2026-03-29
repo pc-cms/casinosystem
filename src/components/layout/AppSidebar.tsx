@@ -1,8 +1,9 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, Users, Landmark, Table2, Receipt,
   ClipboardList, BarChart3, Sun, Moon, Shield, Gamepad2, 
   UsersRound, Grid3X3, LogOut, Settings, FileBarChart,
+  CalendarDays, ClipboardCheck, ListChecks, UserCog,
 } from "lucide-react";
 import { useTheme } from "@/lib/theme";
 import { useAuth } from "@/lib/auth-context";
@@ -23,9 +24,20 @@ const NAV_ITEMS: { to: string; icon: typeof LayoutDashboard; label: string; shor
   { to: "/logs", icon: ClipboardList, label: "Logs", shortcut: "L", roles: ["manager", "finance_manager", "security"] },
 ];
 
+const PIT_SUBITEMS = [
+  { tab: "rota", icon: CalendarDays, label: "Rota" },
+  { tab: "attendance", icon: ClipboardCheck, label: "Attendance" },
+  { tab: "breaklist", icon: ListChecks, label: "Breaklist" },
+  { tab: "dealers", icon: UserCog, label: "Dealers" },
+];
+
 export const AppSidebar = () => {
   const { theme, toggle } = useTheme();
   const { displayName, roles, signOut, isManager } = useAuth();
+  const location = useLocation();
+
+  const isPitActive = location.pathname === "/pit";
+  const currentTab = new URLSearchParams(location.search).get("tab") || "rota";
 
   const visibleItems = NAV_ITEMS.filter(item =>
     roles.some(r => item.roles.includes(r as AppRole))
@@ -42,16 +54,37 @@ export const AppSidebar = () => {
 
       <nav className="flex-1 py-2 px-2 space-y-0.5 overflow-y-auto">
         {visibleItems.map(item => (
-          <NavLink key={item.to} to={item.to} end={item.to === "/"}
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
-                isActive ? "bg-sidebar-accent text-sidebar-primary font-medium" : "text-sidebar-foreground hover:bg-sidebar-accent"
-              }`
-            }>
-            <item.icon className="w-4 h-4 shrink-0" />
-            <span className="flex-1">{item.label}</span>
-            <span className="cms-kbd">{item.shortcut}</span>
-          </NavLink>
+          <div key={item.to}>
+            <NavLink to={item.to} end={item.to === "/" || item.to === "/pit"}
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
+                  isActive ? "bg-sidebar-accent text-sidebar-primary font-medium" : "text-sidebar-foreground hover:bg-sidebar-accent"
+                }`
+              }>
+              <item.icon className="w-4 h-4 shrink-0" />
+              <span className="flex-1">{item.label}</span>
+              <span className="cms-kbd">{item.shortcut}</span>
+            </NavLink>
+            {/* Pit sub-navigation */}
+            {item.to === "/pit" && isPitActive && (
+              <div className="ml-4 mt-0.5 space-y-0.5 border-l border-sidebar-border pl-2">
+                {PIT_SUBITEMS.map(sub => (
+                  <NavLink
+                    key={sub.tab}
+                    to={`/pit?tab=${sub.tab}`}
+                    className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-xs transition-colors ${
+                      currentTab === sub.tab
+                        ? "bg-sidebar-accent text-sidebar-primary font-medium"
+                        : "text-sidebar-foreground hover:bg-sidebar-accent"
+                    }`}
+                  >
+                    <sub.icon className="w-3.5 h-3.5 shrink-0" />
+                    <span>{sub.label}</span>
+                  </NavLink>
+                ))}
+              </div>
+            )}
+          </div>
         ))}
 
         {isManager && (

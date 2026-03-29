@@ -1,8 +1,8 @@
 import { useState, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useDealers, useCreateDealer, usePitRotaRange, useSetPitRota, useDeletePitRota, useSetDealerAttendance, useDealerAttendanceRange } from "@/hooks/use-casino-data";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UserPlus, ChevronLeft, ChevronRight } from "lucide-react";
 import BreaklistGrid from "@/components/pit/BreaklistGrid";
 
@@ -49,75 +49,67 @@ const Pit = () => {
     return `${MONTH_NAMES[m - 1]} ${y}`;
   }, [month]);
 
-  const [activeTab, setActiveTab] = useState("rota");
+  const [searchParams] = useSearchParams();
+  const activeTab = searchParams.get("tab") || "rota";
 
   const showMonthNav = activeTab === "rota" || activeTab === "attendance";
   const showDatePicker = activeTab === "breaklist";
 
+  // Tab titles for header
+  const TAB_TITLES: Record<string, string> = {
+    rota: "Rota",
+    attendance: "Attendance",
+    breaklist: "Breaklist",
+    dealers: "Dealers",
+  };
+
   return (
     <div>
       {/* Header row: title + month/date navigation */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-5">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Pit System</h1>
-          <p className="text-sm text-muted-foreground">Rota, Attendance & Breaklist</p>
+          <h1 className="text-2xl font-bold text-foreground">{TAB_TITLES[activeTab] || "Pit System"}</h1>
+          <p className="text-sm text-muted-foreground">Pit System</p>
         </div>
-        {showMonthNav && (
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigateMonth(-1)}>
-              <ChevronLeft className="w-4 h-4" />
-            </Button>
-            <span className="text-sm font-semibold text-card-foreground min-w-[140px] text-center">{monthLabel}</span>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigateMonth(1)}>
-              <ChevronRight className="w-4 h-4" />
-            </Button>
-          </div>
-        )}
-        {showDatePicker && (
-          <Input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-44 font-mono" />
-        )}
-      </div>
-
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        {/* Tabs row: tabs + context-specific legend/buttons */}
-        <div className="flex items-center justify-between">
-          <TabsList>
-            <TabsTrigger value="rota">Rota</TabsTrigger>
-            <TabsTrigger value="attendance">Attendance</TabsTrigger>
-            <TabsTrigger value="breaklist">Breaklist</TabsTrigger>
-            <TabsTrigger value="dealers">Dealers</TabsTrigger>
-          </TabsList>
+        <div className="flex items-center gap-3">
+          {showMonthNav && (
+            <div className="flex items-center gap-1">
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigateMonth(-1)}>
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+              <span className="text-sm font-semibold text-card-foreground min-w-[140px] text-center">{monthLabel}</span>
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigateMonth(1)}>
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+          )}
+          {showDatePicker && (
+            <Input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-44 font-mono" />
+          )}
+          {/* Legends inline with header */}
           {activeTab === "rota" && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               {ROTA_SHIFTS.map(s => (
-                <span key={s} className={`px-2 py-0.5 rounded text-[10px] font-mono ${SHIFT_COLORS[s]}`} title={SHIFT_LABELS[s]}>{s}</span>
+                <span key={s} className={`px-2 py-0.5 rounded text-[10px] font-mono ${SHIFT_COLORS[s]}`}>{s} = {SHIFT_LABELS[s]}</span>
               ))}
               <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-muted/20 text-muted-foreground">· = Off</span>
             </div>
           )}
           {activeTab === "attendance" && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-red-500/30 text-red-300">A = Absent</span>
               <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-amber-500/30 text-amber-300">S = Sick</span>
               <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-muted/20 text-muted-foreground">· = Empty</span>
             </div>
           )}
         </div>
+      </div>
 
-        <TabsContent value="rota">
-          <RotaGrid month={month} />
-        </TabsContent>
-
-        <TabsContent value="attendance">
-          <AttendanceGrid month={month} />
-        </TabsContent>
-
-        <TabsContent value="breaklist">
-          <BreaklistGrid date={date} />
-        </TabsContent>
-
-        <TabsContent value="dealers"><DealersList /></TabsContent>
-      </Tabs>
+      {/* Content */}
+      {activeTab === "rota" && <RotaGrid month={month} />}
+      {activeTab === "attendance" && <AttendanceGrid month={month} />}
+      {activeTab === "breaklist" && <BreaklistGrid date={date} />}
+      {activeTab === "dealers" && <DealersList />}
     </div>
   );
 };
