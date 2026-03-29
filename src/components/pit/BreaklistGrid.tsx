@@ -178,11 +178,9 @@ const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }
     onRegisterAccept?.(handleAccept);
   }, [breaklistDealers, breaklist]);
 
-  const scale = zoom / 100;
-
   return (
     <>
-      <div className="cms-panel overflow-auto" style={{ transformOrigin: "top left", transform: `scale(${scale})`, width: `${100 / scale}%` }}>
+      <div className="cms-panel overflow-auto" style={{ zoom: `${zoom}%` }}>
         <div className="min-w-[1400px]">
           <table className="w-full border-collapse">
             <thead>
