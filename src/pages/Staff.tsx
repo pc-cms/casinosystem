@@ -547,7 +547,7 @@ const StaffRotaGrid = ({ month }: { month: string }) => {
 
 const DepartmentBlock = ({
   dept, members, days, month, y, m, isCurrentMonth, todayDay,
-  getRotaEntry, handleClick, handleKeyDown, getStats,
+  getDisplayShift, handleClick, handleKeyDown, handlePaste, getStats,
 }: {
   dept: string;
   members: any[];
@@ -557,9 +557,10 @@ const DepartmentBlock = ({
   m: number;
   isCurrentMonth: boolean;
   todayDay: number;
-  getRotaEntry: (id: string, day: number) => any;
+  getDisplayShift: (id: string, day: number) => { shift: string; isAuto: boolean } | null;
   handleClick: (id: string, day: number) => void;
   handleKeyDown: (e: React.KeyboardEvent, id: string, day: number) => void;
+  handlePaste: (e: React.ClipboardEvent, id: string, day: number) => void;
   getStats: (id: string) => Record<string, number>;
 }) => (
   <>
@@ -580,7 +581,7 @@ const DepartmentBlock = ({
             {staff.name}
           </td>
           {days.map(day => {
-            const entry = getRotaEntry(staff.id, day);
+            const display = getDisplayShift(staff.id, day);
             const isToday = isCurrentMonth && day === todayDay;
             const dateObj = new Date(y, m - 1, day);
             const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
@@ -589,13 +590,14 @@ const DepartmentBlock = ({
                 <button
                   onClick={() => handleClick(staff.id, day)}
                   onKeyDown={e => handleKeyDown(e, staff.id, day)}
+                  onPaste={e => handlePaste(e, staff.id, day)}
                   className={`w-full h-7 rounded text-[10px] font-mono transition-colors focus:outline-none focus:ring-1 focus:ring-primary ${
-                    entry
-                      ? STAFF_SHIFT_COLORS[entry.shift] || "bg-muted text-muted-foreground"
+                    display
+                      ? `${STAFF_SHIFT_COLORS[display.shift] || "bg-muted text-muted-foreground"} ${display.isAuto ? "border border-dashed border-amber-500/50" : ""}`
                       : "bg-transparent hover:bg-muted/50 text-muted-foreground/40 hover:text-muted-foreground"
                   }`}
                 >
-                  {entry?.shift || "·"}
+                  {display?.shift || "·"}
                 </button>
               </td>
             );
