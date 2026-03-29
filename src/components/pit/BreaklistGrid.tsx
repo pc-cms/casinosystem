@@ -268,7 +268,7 @@ const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }
                             >
                               {cell.is_locked ? <Unlock className="w-2.5 h-2.5" /> : <Lock className="w-2.5 h-2.5" />}
                             </button>
-                          )
+                          )}
                           {/* Inline role picker dropdown */}
                           {isActiveCell && (
                             <div className="absolute z-50 top-8 left-0 bg-popover border border-border rounded-md shadow-lg p-1 min-w-[100px]"
