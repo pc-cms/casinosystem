@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { CHIP_DENOMS, CHIP_COLORS, formatChipLabel, formatCurrency, CHIP_DISTRIBUTION } from "@/lib/currency";
-import { AlertTriangle, CheckCircle2, Save, Coins, X, RotateCcw } from "lucide-react";
+import { AlertTriangle, Save, Coins, X, RotateCcw } from "lucide-react";
 import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
 
 const Tables = () => {
