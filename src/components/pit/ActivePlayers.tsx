@@ -132,6 +132,17 @@ const ActivePlayers = () => {
         const visit = visits.find((v: any) => v.player_id === p.id);
         const isCheckedIn = visit && !visit.checked_out_at;
 
+        // First seen: earliest of transaction, session, or visit check-in
+        const times: number[] = [];
+        const firstTx = playerTx.sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())[0];
+        if (firstTx) times.push(new Date(firstTx.created_at).getTime());
+        const playerSessions = sessions.filter((s: any) => s.player_id === p.id);
+        const firstSession = playerSessions.sort((a: any, b: any) => new Date(a.started_at).getTime() - new Date(b.started_at).getTime())[0];
+        if (firstSession) times.push(new Date(firstSession.started_at).getTime());
+        if (visit) times.push(new Date(visit.checked_in_at).getTime());
+        const firstSeenTs = times.length > 0 ? Math.min(...times) : null;
+        const firstSeen = firstSeenTs ? new Date(firstSeenTs) : null;
+
         return {
           id: p.id,
           first_name: p.first_name,
@@ -147,6 +158,7 @@ const ActivePlayers = () => {
           isLive: !!activeSession,
           isCheckedIn: !!isCheckedIn,
           hasVisit: !!visit,
+          firstSeen,
         };
       });
 
@@ -271,6 +283,7 @@ const ActivePlayers = () => {
                   <TableHead className="text-center">Type</TableHead>
                   <TableHead className="text-center">Tags</TableHead>
                   <TableHead className="text-center">Table</TableHead>
+                  <TableHead className="text-center">Arrived</TableHead>
                   <TableHead className="text-right cursor-pointer select-none hover:text-foreground" onClick={() => handleSort("drop")}>
                     <span className="flex items-center justify-end">Drop <SortIcon col="drop" /></span>
                   </TableHead>
@@ -314,6 +327,12 @@ const ActivePlayers = () => {
                         <Badge className="bg-primary/20 text-primary border-primary/30 text-[10px] px-2 py-0.5 font-mono">{p.tableName}</Badge>
                       ) : <span className="text-muted-foreground/40">·</span>}
                     </TableCell>
+                    <TableCell className="text-center text-[10px] font-mono text-muted-foreground">
+                      {p.firstSeen
+                        ? `${String(p.firstSeen.getHours()).padStart(2, "0")}:${String(p.firstSeen.getMinutes()).padStart(2, "0")}`
+                        : <span className="text-muted-foreground/40">·</span>
+                      }
+                    </TableCell>
                     <TableCell className="text-right font-mono font-bold text-card-foreground">
                       {p.drop > 0 ? formatNumberSpaces(p.drop) : <span className="text-muted-foreground/40">·</span>}
                     </TableCell>
@@ -347,7 +366,7 @@ const ActivePlayers = () => {
                 {/* Totals row */}
                 {activePlayers.length > 0 && (totalDrop > 0 || totalCashout > 0) && (
                   <TableRow className="border-t-2 border-border bg-muted/20">
-                    <TableCell className="font-bold text-xs text-card-foreground" colSpan={4}>TOTAL</TableCell>
+                    <TableCell className="font-bold text-xs text-card-foreground" colSpan={5}>TOTAL</TableCell>
                     <TableCell className="text-right font-mono font-bold text-card-foreground">{formatNumberSpaces(totalDrop)}</TableCell>
                     <TableCell className="text-right font-mono font-bold text-emerald-400">{formatNumberSpaces(totalCashout)}</TableCell>
                     <TableCell className={`text-right font-mono font-bold ${totalResult > 0 ? "text-emerald-400" : totalResult < 0 ? "text-red-400" : "text-muted-foreground"}`}>
