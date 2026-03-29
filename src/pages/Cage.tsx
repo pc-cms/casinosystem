@@ -6,6 +6,7 @@ import { useBatchChipSnapshot, getExpectedChips, getInitialTotal } from "@/hooks
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/ui/number-input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -467,8 +468,8 @@ const BuyInForm = ({ players, tables, exchangeRates, shiftId, onSubmit, loading 
         <div className="flex gap-2 items-end">
           <div className="flex-1">
             <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1 block">3. Amount</label>
-            <Input ref={amountRef} type="number" min={0} value={amount} onChange={e => setAmount(e.target.value)}
-              className="font-mono text-lg h-11" placeholder="0"
+            <NumberInput value={amount} onChange={setAmount}
+              className="text-lg h-11" placeholder="0"
               onKeyDown={e => e.key === "Enter" && handleSubmit()} />
           </div>
           <div className="w-20">
