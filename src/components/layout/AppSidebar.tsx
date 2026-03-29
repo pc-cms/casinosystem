@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { useTheme } from "@/lib/theme";
 import { useAuth } from "@/lib/auth-context";
+import { NetworkStatusIndicator } from "@/components/NetworkStatusIndicator";
 
 type AppRole = "cashier" | "pit" | "manager" | "reception" | "finance_manager" | "security";
 
@@ -101,9 +102,12 @@ export const AppSidebar = () => {
   return (
     <aside className="w-56 h-screen flex flex-col bg-sidebar border-r border-sidebar-border shrink-0">
       <div className="px-4 py-4 border-b border-sidebar-border">
-        <div className="flex items-center gap-2">
-          <Shield className="w-6 h-6 text-primary" />
-          <span className="font-bold text-lg tracking-tight text-sidebar-foreground">CMS</span>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Shield className="w-6 h-6 text-primary" />
+            <span className="font-bold text-lg tracking-tight text-sidebar-foreground">CMS</span>
+          </div>
+          <NetworkStatusIndicator />
         </div>
         <p className="text-[10px] font-mono text-muted-foreground mt-0.5 uppercase tracking-widest">Casino Ops</p>
       </div>
