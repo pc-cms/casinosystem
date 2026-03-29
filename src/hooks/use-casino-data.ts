@@ -525,13 +525,13 @@ export const useSetDealerAttendance = () => {
   const qc = useQueryClient();
   const { casinoId, user } = useAuth();
   return useMutation({
-    mutationFn: async (input: { dealer_id: string; date: string; hours: number }) => {
+    mutationFn: async (input: { dealer_id: string; date: string; value: string }) => {
       if (!casinoId || !user) throw new Error("Not authenticated");
       const { error } = await supabase.from("dealer_attendance" as any).upsert({
         casino_id: casinoId,
         dealer_id: input.dealer_id,
         date: input.date,
-        hours: input.hours,
+        value: input.value,
         recorded_by: user.id,
         updated_at: new Date().toISOString(),
       } as any, { onConflict: "casino_id,dealer_id,date" });
@@ -542,7 +542,25 @@ export const useSetDealerAttendance = () => {
   });
 };
 
-// ============ BREAKLIST ============
+export const useDealerAttendanceRange = (startDate: string, endDate: string) => {
+  const { casinoId } = useAuth();
+  return useQuery({
+    queryKey: ["dealer-attendance-range", casinoId, startDate, endDate],
+    queryFn: async () => {
+      if (!casinoId) return [];
+      const { data, error } = await supabase
+        .from("dealer_attendance" as any)
+        .select("*")
+        .eq("casino_id", casinoId)
+        .gte("date", startDate)
+        .lte("date", endDate);
+      if (error) throw error;
+      return data as any[];
+    },
+    enabled: !!casinoId,
+  });
+};
+
 export const useBreaklistData = (date: string) => {
   const { casinoId } = useAuth();
   return useQuery({

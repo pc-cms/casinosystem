@@ -413,30 +413,30 @@ export type Database = {
           created_at: string
           date: string
           dealer_id: string
-          hours: number
           id: string
           recorded_by: string
           updated_at: string
+          value: string
         }
         Insert: {
           casino_id: string
           created_at?: string
           date: string
           dealer_id: string
-          hours?: number
           id?: string
           recorded_by: string
           updated_at?: string
+          value?: string
         }
         Update: {
           casino_id?: string
           created_at?: string
           date?: string
           dealer_id?: string
-          hours?: number
           id?: string
           recorded_by?: string
           updated_at?: string
+          value?: string
         }
         Relationships: [
           {
