@@ -133,7 +133,8 @@ const TrackerContent = () => {
                     const isCurrent = slot === currentSlot && date === today;
                     return (
                       <td key={slot} className={`px-0.5 py-0.5 ${isCurrent ? "bg-primary/10" : ""}`}>
-                        <input type="text" defaultValue={val || ""} key={`${table.id}-${slot}-${val}`}
+                        <input type="text" defaultValue={val ? formatInputWithSpaces(String(val)) : ""} key={`${table.id}-${slot}-${val}`}
+                          onChange={e => { e.target.value = formatInputWithSpaces(e.target.value); }}
                           onBlur={e => handleSave(table.id, slot, e.target.value)}
                           onKeyDown={e => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
                           className="w-full h-7 rounded text-[10px] font-mono text-center border-0 bg-transparent focus:outline-none focus:ring-1 focus:ring-primary text-card-foreground"
@@ -422,7 +423,7 @@ const TablesContent = () => {
           )}
 
           {/* Chip Count — always available */}
-          <Button variant="outline" size="sm" onClick={() => handleOpenChipCount("save")} className="gap-1.5">
+          <Button size="sm" onClick={() => handleOpenChipCount("save")} className="gap-1.5 bg-cyan-600 hover:bg-cyan-700 text-white border-0">
             <Coins className="w-4 h-4" /> Chip Count
           </Button>
 

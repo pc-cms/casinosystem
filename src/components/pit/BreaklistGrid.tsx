@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { useDealers, useBreaklistData, useSetBreaklistCell, useLockBreaklistCell, useGamingTables, usePitRotaRange } from "@/hooks/use-casino-data";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
-import { Lock, Unlock, LockKeyhole, Check, RefreshCw } from "lucide-react";
+import { Lock, Unlock, LockKeyhole, Check, RefreshCw, ZoomIn, ZoomOut } from "lucide-react";
 import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
 import { toast } from "sonner";
 import { ALL_ROLES, ROLE_COLORS, TABLE_ROLES } from "@/lib/currency";
@@ -37,6 +37,7 @@ const isInWorkingHours = (slot: string) => {
 };
 
 const BreaklistGrid = ({ date }: { date: string }) => {
+  const [zoom, setZoom] = useState(100);
   const { data: dealers = [] } = useDealers();
   const { data: breaklist = [] } = useBreaklistData(date);
   const { data: tables = [] } = useGamingTables();
@@ -168,7 +169,16 @@ const BreaklistGrid = ({ date }: { date: string }) => {
 
   return (
     <>
-       <div className="flex items-center justify-end mb-2">
+       <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-1">
+          <Button variant="outline" size="sm" className="h-7 w-7 p-0" onClick={() => setZoom(z => Math.max(60, z - 10))}>
+            <ZoomOut className="w-3.5 h-3.5" />
+          </Button>
+          <span className="text-[10px] font-mono text-muted-foreground w-10 text-center">{zoom}%</span>
+          <Button variant="outline" size="sm" className="h-7 w-7 p-0" onClick={() => setZoom(z => Math.min(150, z + 10))}>
+            <ZoomIn className="w-3.5 h-3.5" />
+          </Button>
+        </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={handleRefreshFromRota} className="gap-1 text-xs">
             <RefreshCw className="w-3.5 h-3.5" /> Refresh from Rota
@@ -179,7 +189,7 @@ const BreaklistGrid = ({ date }: { date: string }) => {
         </div>
       </div>
 
-      <div className="cms-panel overflow-x-auto">
+      <div className="cms-panel overflow-x-auto" style={{ fontSize: `${zoom}%` }}>
         <div className="min-w-[1400px]">
           <table className="w-full border-collapse">
             <thead>
