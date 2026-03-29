@@ -78,19 +78,16 @@ const Expenses = () => {
           <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Pending</p>
           <p className="font-mono text-lg font-bold text-accent">{formatCurrency(analytics.pendingAmount)}</p>
         </div>
-        <div className="cms-panel p-3">
-          <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Categories</p>
-          <p className="font-mono text-lg font-bold text-card-foreground">{Object.keys(analytics.byCategory).length}</p>
+        <div className="cms-panel p-3 flex flex-col justify-center">
+          <p className="text-[10px] uppercase text-muted-foreground tracking-wider mb-1.5">Date Filter</p>
+          <div className="flex items-center gap-1.5">
+            <Input type="date" value={dateRange.from} onChange={e => setDateRange(d => ({ ...d, from: e.target.value }))} className="w-full font-mono text-[10px] h-7 px-1.5" />
+            <Input type="date" value={dateRange.to} onChange={e => setDateRange(d => ({ ...d, to: e.target.value }))} className="w-full font-mono text-[10px] h-7 px-1.5" />
+            {(dateRange.from || dateRange.to) && (
+              <Button variant="ghost" size="sm" className="h-7 px-1.5 text-[10px] shrink-0" onClick={() => setDateRange({ from: "", to: "" })}>×</Button>
+            )}
+          </div>
         </div>
-      </div>
-
-      {/* Date Filter */}
-      <div className="flex gap-2 mb-4">
-        <Input type="date" value={dateRange.from} onChange={e => setDateRange(d => ({ ...d, from: e.target.value }))} className="w-40 font-mono text-xs" placeholder="From" />
-        <Input type="date" value={dateRange.to} onChange={e => setDateRange(d => ({ ...d, to: e.target.value }))} className="w-40 font-mono text-xs" placeholder="To" />
-        {(dateRange.from || dateRange.to) && (
-          <Button variant="ghost" size="sm" onClick={() => setDateRange({ from: "", to: "" })}>Clear</Button>
-        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
