@@ -144,9 +144,14 @@ const EmployeeList = () => {
   const [name, setName] = useState("");
   const [dept, setDept] = useState<StaffDepartment>("waiter");
   const [sortBy, setSortBy] = useState<"department" | "name">("department");
+  const [filterDept, setFilterDept] = useState<string>("all");
+  const [filterStatus, setFilterStatus] = useState<string>("active");
 
   const sorted = useMemo(() => {
-    const list = [...staff];
+    let list = [...staff];
+    if (filterDept !== "all") list = list.filter(s => s.department === filterDept);
+    if (filterStatus === "active") list = list.filter(s => s.is_active);
+    else if (filterStatus === "fired") list = list.filter(s => !s.is_active);
     if (sortBy === "department") {
       list.sort((a, b) => {
         const dA = DEPARTMENT_ORDER.indexOf(a.department as StaffDepartment);
@@ -158,7 +163,7 @@ const EmployeeList = () => {
       list.sort((a, b) => a.name.localeCompare(b.name));
     }
     return list;
-  }, [staff, sortBy]);
+  }, [staff, sortBy, filterDept, filterStatus]);
 
   const calcYears = (startDate: string | null) => {
     if (!startDate) return "—";
@@ -173,18 +178,25 @@ const EmployeeList = () => {
 
   return (
     <div className="space-y-4">
-      {/* Legend */}
-      <div className="flex items-center gap-3 flex-wrap">
-        {DEPARTMENT_ORDER.map(d => {
-          const count = staff.filter(s => s.department === d).length;
-          if (count === 0) return null;
-          return (
-            <span key={d} className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-medium border ${DEPT_BADGE_COLORS[d] || ""}`}>
-              <span className={`w-2 h-2 rounded-full ${DEPT_DOT_COLORS[d] || "bg-muted-foreground"}`} />
-              {DEPARTMENT_LABELS[d]} ({count})
-            </span>
-          );
-        })}
+      {/* Filters */}
+      <div className="flex gap-2 items-center flex-wrap">
+        <Select value={filterDept} onValueChange={setFilterDept}>
+          <SelectTrigger className="w-[160px]"><SelectValue placeholder="Department" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Departments</SelectItem>
+            {DEPARTMENT_ORDER.map(d => (
+              <SelectItem key={d} value={d}>{DEPARTMENT_LABELS[d]}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={filterStatus} onValueChange={setFilterStatus}>
+          <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Status</SelectItem>
+            <SelectItem value="active">Active</SelectItem>
+            <SelectItem value="fired">Fired</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Add form */}
