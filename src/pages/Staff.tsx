@@ -144,9 +144,14 @@ const EmployeeList = () => {
   const [name, setName] = useState("");
   const [dept, setDept] = useState<StaffDepartment>("waiter");
   const [sortBy, setSortBy] = useState<"department" | "name">("department");
+  const [filterDept, setFilterDept] = useState<string>("all");
+  const [filterStatus, setFilterStatus] = useState<string>("active");
 
   const sorted = useMemo(() => {
-    const list = [...staff];
+    let list = [...staff];
+    if (filterDept !== "all") list = list.filter(s => s.department === filterDept);
+    if (filterStatus === "active") list = list.filter(s => s.is_active);
+    else if (filterStatus === "fired") list = list.filter(s => !s.is_active);
     if (sortBy === "department") {
       list.sort((a, b) => {
         const dA = DEPARTMENT_ORDER.indexOf(a.department as StaffDepartment);
@@ -158,7 +163,7 @@ const EmployeeList = () => {
       list.sort((a, b) => a.name.localeCompare(b.name));
     }
     return list;
-  }, [staff, sortBy]);
+  }, [staff, sortBy, filterDept, filterStatus]);
 
   const calcYears = (startDate: string | null) => {
     if (!startDate) return "—";
