@@ -252,6 +252,7 @@ export type Database = {
           date: string
           id: string
           player_id: string
+          position: string
         }
         Insert: {
           casino_id: string
@@ -261,6 +262,7 @@ export type Database = {
           date?: string
           id?: string
           player_id: string
+          position?: string
         }
         Update: {
           casino_id?: string
@@ -270,6 +272,7 @@ export type Database = {
           date?: string
           id?: string
           player_id?: string
+          position?: string
         }
         Relationships: [
           {

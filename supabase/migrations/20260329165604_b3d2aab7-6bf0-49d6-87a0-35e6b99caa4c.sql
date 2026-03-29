@@ -1,0 +1,1 @@
+ALTER TABLE public.casino_visits ADD COLUMN position text NOT NULL DEFAULT 'hall';
