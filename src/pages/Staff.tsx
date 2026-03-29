@@ -419,7 +419,7 @@ const DepartmentBlock = ({
   <>
     <tr>
       <td colSpan={days.length + 3} className="px-0 py-0 sticky left-0">
-        <div className={`flex items-center gap-2 px-3 py-1 border-b-2 ${DEPT_DOT_COLORS[dept] ? `border-${dept === "security" ? "red" : dept === "cashier" ? "blue" : dept === "bartender" ? "amber" : dept === "hostess" ? "pink" : dept === "waiter" ? "cyan" : dept === "cleaner" ? "emerald" : dept === "it" ? "violet" : "orange"}-500/50` : "border-muted"}`}>
+        <div className={`flex items-center gap-2 px-3 py-1 border-b-2 ${DEPT_BORDER_COLORS[dept] || "border-muted"}`}>
           <span className={`w-2 h-2 rounded-full ${DEPT_DOT_COLORS[dept] || "bg-muted-foreground"}`} />
           <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-card-foreground">{DEPARTMENT_LABELS[dept as StaffDepartment]}</span>
           <span className="text-[10px] font-mono text-muted-foreground">({members.length})</span>
