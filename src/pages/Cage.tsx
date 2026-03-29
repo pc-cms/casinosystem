@@ -66,7 +66,34 @@ const CashDenomInput = ({ values, onChange, denoms, prefix, onSubmit }: {
       </div>
     </div>
   );
-};
+;
+
+// =================== OPEN SHIFT ===================
+const OpenShiftScreen = ({ tables }: { tables: any[] }) => {
+  const openShift = useOpenShift();
+  const [rates, setRates] = useState<Record<string, number>>({ ...DEFAULT_EXCHANGE_RATES });
+  const [openingChips, setOpeningChips] = useState<Record<number, number>>({});
+  const [openingUsd, setOpeningUsd] = useState<Record<number, number>>({});
+  const [openingEur, setOpeningEur] = useState<Record<number, number>>({});
+  const [bankBalance, setBankBalance] = useState(0);
+  const [mobileBalance, setMobileBalance] = useState(0);
+
+  const chipTotal = chipSum(openingChips);
+  const usdTotal = cashSum(openingUsd);
+  const eurTotal = cashSum(openingEur);
+  const openingTotal = chipTotal + (usdTotal * (rates.USD || 0)) + (eurTotal * (rates.EUR || 0)) + bankBalance + mobileBalance;
+
+  const handleOpen = () => {
+    openShift.mutate({
+      exchange_rates: rates,
+      opening_float: {
+        chips: openingChips,
+        cash: { USD: openingUsd, EUR: openingEur },
+        bank: bankBalance,
+        mobile: mobileBalance,
+        totals: { TZS: chipTotal, USD: usdTotal, EUR: eurTotal, bank: bankBalance, mobile: mobileBalance, total_tzs: openingTotal },
+      },
+    });
   };
 
   return (
