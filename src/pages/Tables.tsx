@@ -456,7 +456,7 @@ const TablesContent = () => {
             <p className={`font-mono text-sm font-bold ${t.result >= 0 ? "text-green-500" : "text-destructive"}`}>
               {t.result >= 0 ? "+" : ""}{formatCurrency(t.result)}
             </p>
-            <p className="font-mono text-[10px] text-muted-foreground">D: {formatCurrency(t.drop)} · C: {formatCurrency(t.cashout)}</p>
+            <p className="font-mono text-[10px] text-muted-foreground">R: {formatCurrency(t.dropR)} · V: {formatCurrency(t.dropV)}</p>
           </div>
         ))}
         <div className="cms-panel p-2 border-primary/30">
@@ -464,7 +464,7 @@ const TablesContent = () => {
           <p className={`font-mono text-sm font-bold ${totalResult >= 0 ? "text-green-500" : "text-destructive"}`}>
             {totalResult >= 0 ? "+" : ""}{formatCurrency(totalResult)}
           </p>
-          <p className="font-mono text-[10px] text-muted-foreground">D: {formatCurrency(totalDrop)} · C: {formatCurrency(totalCashout)}</p>
+          <p className="font-mono text-[10px] text-muted-foreground">R: {formatCurrency(totalDropR)} · V: {formatCurrency(totalDropV)}</p>
         </div>
       </div>
 
