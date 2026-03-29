@@ -40,7 +40,7 @@ const TableTracker = () => {
   }, [trackerData]);
 
   const handleSave = (tableId: string, slot: string, val: string) => {
-    const numVal = Number(val);
+    const numVal = parseSpacedNumber(val);
     if (isNaN(numVal)) return;
     const current = getVal(tableId, slot);
     if (current === numVal) return;
@@ -118,12 +118,14 @@ const TableTracker = () => {
                       <td key={slot} className={`px-0.5 py-0.5 ${isActive ? "bg-primary/5" : ""}`}>
                         <input
                           id={`cell-${ti}-${si}`}
-                          type="number"
-                          defaultValue={val ?? ""}
+                          type="text"
+                          inputMode="numeric"
+                          defaultValue={val ? formatInputWithSpaces(String(val)) : ""}
                           key={`${table.id}-${slot}-${val}`}
+                          onChange={e => { e.target.value = formatInputWithSpaces(e.target.value); }}
                           onBlur={e => handleSave(table.id, slot, e.target.value)}
                           onKeyDown={e => handleKeyDown(e, ti, si)}
-                          className={`w-full h-7 text-center text-xs font-mono bg-transparent border border-border rounded px-1 focus:border-primary focus:outline-none text-card-foreground no-spin ${
+                          className={`w-full h-7 text-center text-xs font-mono bg-transparent border border-border rounded px-1 focus:border-primary focus:outline-none text-card-foreground ${
                             isActive ? "border-primary/30" : ""
                           }`}
                           placeholder="·"
