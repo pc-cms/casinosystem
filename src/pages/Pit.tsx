@@ -325,99 +325,137 @@ const RotaGrid = ({ month }: { month: string }) => {
 };
 
 // =================== DAILY ATTENDANCE ===================
-const AttendanceGrid = ({ date }: { date: string }) => {
+const AttendanceGrid = ({ month }: { month: string }) => {
+  const [y, m] = month.split("-").map(Number);
+  const daysInMonth = new Date(y, m, 0).getDate();
+  const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+
+  const startDate = `${month}-01`;
+  const endDate = `${month}-${String(daysInMonth).padStart(2, "0")}`;
+
   const { data: dealers = [] } = useDealers();
-  const { data: attendance = [] } = useDealerAttendance(date);
+  const { data: monthAttendance = [] } = useDealerAttendanceRange(startDate, endDate);
   const setAttendance = useSetDealerAttendance();
 
   const activeDealers = dealers.filter(d => d.is_active);
 
-  const getValue = useCallback((dealerId: string) => {
-    const entry = attendance.find((a: any) => a.dealer_id === dealerId);
-    return entry ? String((entry as any).value) : "";
-  }, [attendance]);
+  const today = new Date();
+  const todayDay = today.getDate();
+  const isCurrentMonth = today.getFullYear() === y && today.getMonth() + 1 === m;
 
-  const handleSave = (dealerId: string, val: string) => {
+  const getValue = (dealerId: string, day: number) => {
+    const dateStr = `${month}-${String(day).padStart(2, "0")}`;
+    const entry = monthAttendance.find((a: any) => a.dealer_id === dealerId && a.date === dateStr);
+    return entry ? String((entry as any).value) : "";
+  };
+
+  const handleSave = (dealerId: string, day: number, val: string) => {
+    const dateStr = `${month}-${String(day).padStart(2, "0")}`;
     const trimmed = val.trim().toUpperCase();
-    // Validate: must be a number, A, or S
     if (trimmed === "") {
-      // Clear — save empty
-      setAttendance.mutate({ dealer_id: dealerId, date, value: "" });
+      setAttendance.mutate({ dealer_id: dealerId, date: dateStr, value: "" });
       return;
     }
     if (trimmed === "A" || trimmed === "S") {
-      setAttendance.mutate({ dealer_id: dealerId, date, value: trimmed });
+      setAttendance.mutate({ dealer_id: dealerId, date: dateStr, value: trimmed });
       return;
     }
     const num = Number(trimmed);
     if (!isNaN(num) && num >= 0 && num <= 24) {
-      setAttendance.mutate({ dealer_id: dealerId, date, value: String(num) });
-      return;
+      setAttendance.mutate({ dealer_id: dealerId, date: dateStr, value: String(num) });
     }
-    // Invalid — ignore
   };
 
-  const totalHours = attendance.reduce((s: number, a: any) => {
-    const n = Number(a.value);
-    return s + (isNaN(n) ? 0 : n);
-  }, 0);
-  const workedCount = attendance.filter((a: any) => !isNaN(Number(a.value)) && Number(a.value) > 0).length;
-  const absentCount = attendance.filter((a: any) => a.value === "A").length;
-  const sickCount = attendance.filter((a: any) => a.value === "S").length;
+  const getDealerTotal = (dealerId: string) => {
+    return days.reduce((sum, day) => {
+      const val = getValue(dealerId, day);
+      const num = Number(val);
+      return sum + (isNaN(num) ? 0 : num);
+    }, 0);
+  };
 
   return (
-    <div className="cms-panel">
-      <div className="max-w-lg">
-        <div className="flex items-center justify-between px-4 py-2 border-b border-border">
-          <span className="text-xs font-medium text-muted-foreground uppercase">Dealer</span>
-          <div className="flex items-center gap-3">
-            <span className="text-[10px] text-muted-foreground">Hours or A/S</span>
-            <span className="text-xs font-medium text-muted-foreground uppercase w-24 text-center">Value</span>
-          </div>
-        </div>
-        {activeDealers.length === 0 ? (
-          <p className="text-center text-muted-foreground text-sm py-8">No dealers</p>
-        ) : activeDealers.map((dealer, idx) => {
-          const val = getValue(dealer.id);
-          const isStatus = val === "A" || val === "S";
-          return (
-            <div
-              key={dealer.id}
-              className={`flex items-center justify-between px-4 py-2 border-b border-border last:border-0 ${idx % 2 === 1 ? "bg-muted/10" : ""}`}
-            >
-              <span className="text-sm text-card-foreground">{dealer.name}</span>
-              <div className="flex items-center gap-2">
-                {isStatus && (
-                  <span className={`px-2 py-0.5 rounded text-[10px] font-mono ${ATT_COLORS[val]}`}>
-                    {val === "A" ? "Absent" : "Sick"}
-                  </span>
-                )}
-                <input
-                  type="text"
-                  defaultValue={val}
-                  key={`${dealer.id}-${date}-${val}`}
-                  onBlur={e => handleSave(dealer.id, e.target.value)}
-                  onKeyDown={e => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
-                  className={`w-24 h-8 text-center text-sm font-mono bg-transparent border border-border rounded px-2 focus:border-primary focus:outline-none text-card-foreground ${
-                    isStatus ? "border-destructive/30" : ""
-                  }`}
-                  placeholder="0"
-                />
-              </div>
-            </div>
-          );
-        })}
-        <div className="flex items-center justify-between px-4 py-3 bg-muted/30 border-t-2 border-primary/30">
-          <span className="text-xs font-bold text-card-foreground uppercase">
-            Summary
-          </span>
-          <div className="flex items-center gap-4 text-xs font-mono">
-            <span className="text-card-foreground">{workedCount} worked</span>
-            <span className="font-bold text-primary">{totalHours}h</span>
-            {absentCount > 0 && <span className="text-red-400">{absentCount} A</span>}
-            {sickCount > 0 && <span className="text-amber-400">{sickCount} S</span>}
-          </div>
-        </div>
+    <div className="cms-panel overflow-x-auto">
+      <div className="min-w-[1200px]">
+        <table className="w-full border-collapse">
+          <thead>
+            <tr className="border-b border-border">
+              <th className="text-left text-xs font-medium text-muted-foreground uppercase px-3 py-2 sticky left-0 bg-card z-10 min-w-[120px]">
+                Dealer
+              </th>
+              {days.map(day => {
+                const dateObj = new Date(y, m - 1, day);
+                const weekday = WEEKDAYS[dateObj.getDay()];
+                const isToday = isCurrentMonth && day === todayDay;
+                const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
+                return (
+                  <th
+                    key={day}
+                    className={`text-center px-0.5 py-1 min-w-[36px] ${
+                      isToday ? "bg-primary/20" : isWeekend ? "bg-muted/30" : ""
+                    }`}
+                  >
+                    <div className="text-[9px] text-muted-foreground">{weekday}</div>
+                    <div className={`text-xs font-mono ${isToday ? "text-primary font-bold" : "text-card-foreground"}`}>{day}</div>
+                  </th>
+                );
+              })}
+              <th className="text-center text-xs font-medium text-muted-foreground uppercase px-2 py-2 min-w-[50px]">Σh</th>
+            </tr>
+          </thead>
+          <tbody>
+            {activeDealers.length === 0 ? (
+              <tr><td colSpan={daysInMonth + 2} className="text-center text-muted-foreground text-sm py-8">No dealers — add dealers first</td></tr>
+            ) : activeDealers.map((dealer, idx) => {
+              const total = getDealerTotal(dealer.id);
+              return (
+                <tr
+                  key={dealer.id}
+                  className={`border-b border-border last:border-0 ${idx % 2 === 0 ? "" : "bg-muted/10"}`}
+                >
+                  <td className={`px-3 py-1 text-xs font-medium text-card-foreground sticky left-0 z-10 ${idx % 2 === 0 ? "bg-card" : "bg-card/95"}`}>
+                    {dealer.name}
+                  </td>
+                  {days.map(day => {
+                    const val = getValue(dealer.id, day);
+                    const isToday = isCurrentMonth && day === todayDay;
+                    const dateObj = new Date(y, m - 1, day);
+                    const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
+                    const isStatus = val === "A" || val === "S";
+                    const isHours = val !== "" && !isStatus;
+                    return (
+                      <td
+                        key={day}
+                        className={`px-0.5 py-0.5 text-center ${
+                          isToday ? "bg-primary/10" : isWeekend ? "bg-muted/15" : ""
+                        }`}
+                      >
+                        <input
+                          type="text"
+                          defaultValue={val}
+                          key={`${dealer.id}-${month}-${day}-${val}`}
+                          onBlur={e => handleSave(dealer.id, day, e.target.value)}
+                          onKeyDown={e => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+                          className={`w-full h-7 rounded text-[10px] font-mono text-center bg-transparent border-0 focus:outline-none focus:ring-1 focus:ring-primary transition-colors ${
+                            isStatus
+                              ? ATT_COLORS[val]
+                              : isHours
+                                ? "text-card-foreground font-bold"
+                                : "text-transparent hover:text-muted-foreground"
+                          }`}
+                          placeholder="·"
+                        />
+                      </td>
+                    );
+                  })}
+                  <td className="px-2 py-1 text-center">
+                    <span className="text-[10px] font-mono font-bold text-primary">{total || ""}</span>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
     </div>
   );
