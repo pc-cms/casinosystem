@@ -243,6 +243,58 @@ export type Database = {
           },
         ]
       }
+      casino_visits: {
+        Row: {
+          casino_id: string
+          checked_in_at: string
+          checked_in_by: string
+          checked_out_at: string | null
+          date: string
+          id: string
+          player_id: string
+        }
+        Insert: {
+          casino_id: string
+          checked_in_at?: string
+          checked_in_by: string
+          checked_out_at?: string | null
+          date?: string
+          id?: string
+          player_id: string
+        }
+        Update: {
+          casino_id?: string
+          checked_in_at?: string
+          checked_in_by?: string
+          checked_out_at?: string | null
+          date?: string
+          id?: string
+          player_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "casino_visits_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "casino_visits_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "player_economy"
+            referencedColumns: ["player_id"]
+          },
+          {
+            foreignKeyName: "casino_visits_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       casinos: {
         Row: {
           code: string
