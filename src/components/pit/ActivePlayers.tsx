@@ -132,6 +132,17 @@ const ActivePlayers = () => {
         const visit = visits.find((v: any) => v.player_id === p.id);
         const isCheckedIn = visit && !visit.checked_out_at;
 
+        // First seen: earliest of transaction, session, or visit check-in
+        const times: number[] = [];
+        const firstTx = playerTx.sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())[0];
+        if (firstTx) times.push(new Date(firstTx.created_at).getTime());
+        const playerSessions = sessions.filter((s: any) => s.player_id === p.id);
+        const firstSession = playerSessions.sort((a: any, b: any) => new Date(a.started_at).getTime() - new Date(b.started_at).getTime())[0];
+        if (firstSession) times.push(new Date(firstSession.started_at).getTime());
+        if (visit) times.push(new Date(visit.checked_in_at).getTime());
+        const firstSeenTs = times.length > 0 ? Math.min(...times) : null;
+        const firstSeen = firstSeenTs ? new Date(firstSeenTs) : null;
+
         return {
           id: p.id,
           first_name: p.first_name,
@@ -147,6 +158,7 @@ const ActivePlayers = () => {
           isLive: !!activeSession,
           isCheckedIn: !!isCheckedIn,
           hasVisit: !!visit,
+          firstSeen,
         };
       });
 
