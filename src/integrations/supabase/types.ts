@@ -532,24 +532,39 @@ export type Database = {
       dealers: {
         Row: {
           casino_id: string
+          category: Database["public"]["Enums"]["dealer_category"]
+          contract_end: string | null
+          contract_start: string | null
           created_at: string
           id: string
           is_active: boolean
+          is_pit_boss: boolean
           name: string
+          salary: number | null
         }
         Insert: {
           casino_id: string
+          category?: Database["public"]["Enums"]["dealer_category"]
+          contract_end?: string | null
+          contract_start?: string | null
           created_at?: string
           id?: string
           is_active?: boolean
+          is_pit_boss?: boolean
           name: string
+          salary?: number | null
         }
         Update: {
           casino_id?: string
+          category?: Database["public"]["Enums"]["dealer_category"]
+          contract_end?: string | null
+          contract_start?: string | null
           created_at?: string
           id?: string
           is_active?: boolean
+          is_pit_boss?: boolean
           name?: string
+          salary?: number | null
         }
         Relationships: [
           {
@@ -1090,27 +1105,36 @@ export type Database = {
       staff_members: {
         Row: {
           casino_id: string
+          contract_end: string | null
+          contract_start: string | null
           created_at: string
           department: Database["public"]["Enums"]["staff_department"]
           id: string
           is_active: boolean
           name: string
+          salary: number | null
         }
         Insert: {
           casino_id: string
+          contract_end?: string | null
+          contract_start?: string | null
           created_at?: string
           department: Database["public"]["Enums"]["staff_department"]
           id?: string
           is_active?: boolean
           name: string
+          salary?: number | null
         }
         Update: {
           casino_id?: string
+          contract_end?: string | null
+          contract_start?: string | null
           created_at?: string
           department?: Database["public"]["Enums"]["staff_department"]
           id?: string
           is_active?: boolean
           name?: string
+          salary?: number | null
         }
         Relationships: [
           {
@@ -1429,6 +1453,7 @@ export type Database = {
         | "finance_manager"
         | "security"
       card_type: "manual" | "rfid"
+      dealer_category: "trainee" | "dealer" | "inspector" | "expert"
       dealer_role:
         | "BJ"
         | "BJi"
@@ -1606,6 +1631,7 @@ export const Constants = {
         "security",
       ],
       card_type: ["manual", "rfid"],
+      dealer_category: ["trainee", "dealer", "inspector", "expert"],
       dealer_role: [
         "BJ",
         "BJi",
