@@ -88,10 +88,23 @@ const Pit = () => {
         </TabsContent>
 
         <TabsContent value="attendance">
-          <div className="flex items-center justify-end mb-2">
-            <Input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-44 font-mono" />
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigateMonth(-1)}>
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+              <span className="text-sm font-semibold text-card-foreground min-w-[140px] text-center">{monthLabel}</span>
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigateMonth(1)}>
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-red-500/30 text-red-300">A = Absent</span>
+              <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-amber-500/30 text-amber-300">S = Sick</span>
+              <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-muted/20 text-muted-foreground">· = Empty</span>
+            </div>
           </div>
-          <AttendanceGrid date={date} />
+          <AttendanceGrid month={month} />
         </TabsContent>
 
         <TabsContent value="breaklist">
