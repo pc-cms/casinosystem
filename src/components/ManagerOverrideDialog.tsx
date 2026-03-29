@@ -28,35 +28,35 @@ const ManagerOverrideDialog = ({
   actionDetails = {},
 }: ManagerOverrideDialogProps) => {
   const { casinoId } = useAuth();
-  const [email, setEmail] = useState("");
+  const [login, setLogin] = useState("");
   const [password, setPassword] = useState("");
   const [rfid, setRfid] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [method, setMethod] = useState<"password" | "rfid">("password");
-  const emailRef = useRef<HTMLInputElement>(null);
+  const loginRef = useRef<HTMLInputElement>(null);
   const rfidRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (open) {
-      setEmail("");
+      setLogin("");
       setPassword("");
       setRfid("");
       setError("");
       setTimeout(() => {
-        if (method === "password") emailRef.current?.focus();
+        if (method === "password") loginRef.current?.focus();
         else rfidRef.current?.focus();
       }, 100);
     }
   }, [open, method]);
 
   const handlePasswordAuth = async () => {
-    if (!email || !password) return;
+    if (!login || !password) return;
     setLoading(true);
     setError("");
 
     try {
-      // Call edge function to verify manager credentials without affecting current session
+      const email = login.includes("@") ? login : `${login.toLowerCase().trim()}@cms.local`;
       const { data, error: fnError } = await supabase.functions.invoke("verify-manager", {
         body: { email, password },
       });
@@ -67,7 +67,6 @@ const ManagerOverrideDialog = ({
         return;
       }
 
-      // Log the override action
       if (casinoId) {
         await logAction(casinoId, "system", actionType, {
           ...actionDetails,
@@ -77,7 +76,7 @@ const ManagerOverrideDialog = ({
         });
       }
 
-      setEmail("");
+      setLogin("");
       setPassword("");
       onConfirm(data.manager_id);
     } catch {
@@ -135,7 +134,7 @@ const ManagerOverrideDialog = ({
   };
 
   const handleClose = () => {
-    setEmail("");
+    setLogin("");
     setPassword("");
     setRfid("");
     setError("");
@@ -165,13 +164,14 @@ const ManagerOverrideDialog = ({
 
           <TabsContent value="password" className="space-y-2 mt-3">
             <Input
-              ref={emailRef}
-              type="email"
-              placeholder="Manager email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              ref={loginRef}
+              type="text"
+              placeholder="Login"
+              value={login}
+              onChange={(e) => setLogin(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && document.getElementById("mgr-pwd")?.focus()}
               autoComplete="off"
+              className="font-mono"
             />
             <Input
               id="mgr-pwd"
@@ -206,7 +206,7 @@ const ManagerOverrideDialog = ({
           <Button
             variant="destructive"
             onClick={method === "password" ? handlePasswordAuth : handleRfidAuth}
-            disabled={loading || (method === "password" ? (!email || !password) : !rfid.trim())}
+            disabled={loading || (method === "password" ? (!login || !password) : !rfid.trim())}
           >
             {loading ? "Verifying…" : "Confirm"}
           </Button>
