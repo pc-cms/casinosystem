@@ -94,6 +94,25 @@ export const AppSidebar = () => {
                 ))}
               </div>
             )}
+            {/* Staff sub-navigation */}
+            {item.to === "/staff" && isStaffActive && (
+              <div className="ml-4 mt-0.5 space-y-0.5 border-l border-sidebar-border pl-2">
+                {STAFF_SUBITEMS.map(sub => (
+                  <NavLink
+                    key={sub.tab}
+                    to={`/staff?tab=${sub.tab}`}
+                    className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-xs transition-colors ${
+                      currentTab === sub.tab
+                        ? "bg-sidebar-accent text-sidebar-primary font-medium"
+                        : "text-sidebar-foreground hover:bg-sidebar-accent"
+                    }`}
+                  >
+                    <sub.icon className="w-3.5 h-3.5 shrink-0" />
+                    <span>{sub.label}</span>
+                  </NavLink>
+                ))}
+              </div>
+            )}
           </div>
         ))}
 
