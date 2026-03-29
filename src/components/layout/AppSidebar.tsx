@@ -170,12 +170,16 @@ export const AppSidebar = () => {
                     <span className="text-[9px] font-mono text-muted-foreground uppercase tracking-widest">{sectionLabel}</span>
                   </div>
                 )}
-                <NavLink to={item.to} end={item.to === "/" || item.to === "/pit" || item.to === "/staff" || item.to === "/tables"}
-                  className={({ isActive }) =>
-                    `flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
-                      isActive ? "bg-sidebar-accent text-sidebar-primary font-medium" : "text-sidebar-foreground hover:bg-sidebar-accent"
-                    }`
-                  }>
+                <NavLink to={item.to} end={item.to === "/" || item.to === "/pit" || item.to === "/staff" || item.to === "/tables" || item.to === BREAKLIST_PATH}
+                  className={({ isActive }) => {
+                    // For breaklist shortcut, check manually
+                    const isBreaklistItem = item.to === BREAKLIST_PATH;
+                    const isBreaklistActive = isBreaklistItem && location.pathname === "/pit" && currentTab === "breaklist";
+                    const active = isBreaklistItem ? isBreaklistActive : isActive;
+                    return `flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
+                      active ? "bg-sidebar-accent text-sidebar-primary font-medium" : "text-sidebar-foreground hover:bg-sidebar-accent"
+                    }`;
+                  }}>
                   <item.icon className="w-4 h-4 shrink-0" />
                   <span className="flex-1">{item.label}</span>
                   <span className="cms-kbd">{item.shortcut}</span>
