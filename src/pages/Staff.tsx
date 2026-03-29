@@ -237,7 +237,7 @@ const EmployeeList = () => {
       </div>
     </div>
   );
-
+};
 
 
 // =================== STAFF ROTA GRID ===================
