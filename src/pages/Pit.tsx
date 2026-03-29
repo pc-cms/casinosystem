@@ -226,7 +226,7 @@ const RotaGrid = ({ month }: { month: string }) => {
                     {dealer.name}
                   </td>
                   {days.map(day => {
-                    const entry = getShift(dealer.id, day);
+                    const display = getDisplayShift(dealer.id, day);
                     const isToday = isCurrentMonth && day === todayDay;
                     const dateObj = new Date(y, m - 1, day);
                     const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
@@ -240,12 +240,12 @@ const RotaGrid = ({ month }: { month: string }) => {
                         <button
                           onClick={() => handleClick(dealer.id, day)}
                           className={`w-full h-7 rounded text-[10px] font-mono transition-colors ${
-                            entry
-                              ? SHIFT_COLORS[entry.shift] || "bg-muted text-muted-foreground"
+                            display
+                              ? `${SHIFT_COLORS[display.shift] || "bg-muted text-muted-foreground"} ${display.isAuto ? "border border-dashed border-emerald-500/50" : ""}`
                               : "bg-transparent hover:bg-muted/50 text-transparent hover:text-muted-foreground"
                           }`}
                         >
-                          {entry?.shift || "·"}
+                          {display?.shift || "·"}
                         </button>
                       </td>
                     );
