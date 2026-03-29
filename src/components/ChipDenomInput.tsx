@@ -40,7 +40,7 @@ const ChipDenomInput = ({ values, onChange, denoms = CHIP_DENOMS, showValue = tr
 
   return (
     <div>
-      <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+      <div className="space-y-1">
         {denoms.map((d, idx) => {
           const val = values[d] || 0;
           const chipValue = val * d;
