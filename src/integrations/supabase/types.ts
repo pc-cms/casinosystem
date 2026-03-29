@@ -407,6 +407,54 @@ export type Database = {
           },
         ]
       }
+      dealer_attendance: {
+        Row: {
+          casino_id: string
+          created_at: string
+          date: string
+          dealer_id: string
+          hours: number
+          id: string
+          recorded_by: string
+          updated_at: string
+        }
+        Insert: {
+          casino_id: string
+          created_at?: string
+          date: string
+          dealer_id: string
+          hours?: number
+          id?: string
+          recorded_by: string
+          updated_at?: string
+        }
+        Update: {
+          casino_id?: string
+          created_at?: string
+          date?: string
+          dealer_id?: string
+          hours?: number
+          id?: string
+          recorded_by?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dealer_attendance_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dealer_attendance_dealer_id_fkey"
+            columns: ["dealer_id"]
+            isOneToOne: false
+            referencedRelation: "dealers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dealers: {
         Row: {
           casino_id: string
@@ -1208,7 +1256,7 @@ export type Database = {
         | "breaklist"
         | "pit"
       player_status: "active" | "blacklist"
-      shift_type: "M" | "N" | "A" | "S" | "E"
+      shift_type: "M" | "N" | "A" | "S" | "E" | "L"
       table_status: "open" | "closed"
       transaction_type: "buy" | "cashout"
     }
@@ -1372,7 +1420,7 @@ export const Constants = {
         "pit",
       ],
       player_status: ["active", "blacklist"],
-      shift_type: ["M", "N", "A", "S", "E"],
+      shift_type: ["M", "N", "A", "S", "E", "L"],
       table_status: ["open", "closed"],
       transaction_type: ["buy", "cashout"],
     },
