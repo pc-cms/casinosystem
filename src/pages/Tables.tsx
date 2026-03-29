@@ -214,68 +214,43 @@ const Tables = () => {
       </div>
 
       {/* Table Close Dialog */}
-      {closingTable && (
-        <Dialog open onOpenChange={() => { setClosingTable(null); setClosingChips({}); }}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>Close {closingTable.name}</DialogTitle>
-            </DialogHeader>
-            <p className="text-xs text-muted-foreground">
-              Count chips remaining on the table. Result = Closing chips − Opening float ({formatCurrency(closingTableFloat)}).
-            </p>
-
-            <div className="space-y-3">
-              <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5">
-                {(closingTable.denominations || []).map((d: number) => (
-                  <div key={d} className="flex items-center gap-1">
-                    <span className={`cms-chip text-[8px] min-w-[36px] text-center ${CHIP_COLORS[d] || ""}`}>{formatChipLabel(d)}</span>
-                    <Input type="number" min={0} value={closingChips[d] || ""}
-                      onChange={e => setClosingChips(c => ({ ...c, [d]: Number(e.target.value) || 0 }))}
-                      className="font-mono w-14 h-7 text-xs" placeholder="0"
-                      onKeyDown={e => { if (e.key === "Enter") handleCloseTable(); }} />
-                  </div>
-                ))}
-              </div>
-
-              {/* Result preview */}
+      {closingTable && (() => {
+        const r = tableResults[closingTable.id] || { drop: 0, cashout: 0, result: 0 };
+        return (
+          <Dialog open onOpenChange={() => setClosingTable(null)}>
+            <DialogContent className="max-w-sm">
+              <DialogHeader>
+                <DialogTitle>Close {closingTable.name}</DialogTitle>
+              </DialogHeader>
+              <p className="text-xs text-muted-foreground">
+                Confirm closing this table. Result is based on transactions (Drop − Cashout).
+              </p>
               <div className="grid grid-cols-3 gap-2 pt-2 border-t border-border">
                 <div className="text-center">
-                  <p className="text-[9px] uppercase text-muted-foreground">Opening Float</p>
-                  <p className="font-mono text-xs font-bold text-card-foreground">{formatCurrency(closingTableFloat)}</p>
+                  <p className="text-[9px] uppercase text-muted-foreground">Drop</p>
+                  <p className="font-mono text-xs font-bold text-card-foreground">{formatCurrency(r.drop)}</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-[9px] uppercase text-muted-foreground">Closing Chips</p>
-                  <p className="font-mono text-xs font-bold text-card-foreground">{formatCurrency(closingChipTotal)}</p>
+                  <p className="text-[9px] uppercase text-muted-foreground">Cashout</p>
+                  <p className="font-mono text-xs font-bold text-card-foreground">{formatCurrency(r.cashout)}</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-[9px] uppercase text-muted-foreground">Table Result</p>
-                  <p className={`font-mono text-xs font-bold ${closingResult >= 0 ? "text-green-500" : "text-destructive"}`}>
-                    {closingResult >= 0 ? "+" : ""}{formatCurrency(closingResult)}
+                  <p className="text-[9px] uppercase text-muted-foreground">Result</p>
+                  <p className={`font-mono text-xs font-bold ${r.result >= 0 ? "text-green-500" : "text-destructive"}`}>
+                    {r.result >= 0 ? "+" : ""}{formatCurrency(r.result)}
                   </p>
                 </div>
               </div>
-
-              {closingResult > 0 && (
-                <p className="text-[10px] text-green-500 flex items-center gap-1">
-                  <CheckCircle2 className="w-3 h-3" /> Table won — {formatCurrency(closingResult)} more chips than start.
-                </p>
-              )}
-              {closingResult < 0 && (
-                <p className="text-[10px] text-destructive flex items-center gap-1">
-                  <AlertTriangle className="w-3 h-3" /> Table lost — {formatCurrency(Math.abs(closingResult))} fewer chips than start.
-                </p>
-              )}
-            </div>
-
-            <DialogFooter>
-              <Button variant="outline" onClick={() => { setClosingTable(null); setClosingChips({}); }}>Cancel</Button>
-              <Button onClick={handleCloseTable} disabled={closeTable.isPending || closingChipTotal === 0}>
-                {closeTable.isPending ? "Closing…" : `Close Table · Result: ${closingResult >= 0 ? "+" : ""}${formatCurrency(closingResult)}`}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setClosingTable(null)}>Cancel</Button>
+                <Button onClick={handleCloseTable} disabled={closeTable.isPending}>
+                  {closeTable.isPending ? "Closing…" : "Close Table"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        );
+      })()}
 
       {/* Manager override for reopen */}
       <ManagerOverrideDialog
