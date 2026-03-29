@@ -439,6 +439,25 @@ export const usePitRota = (date: string) => {
   });
 };
 
+export const usePitRotaRange = (startDate: string, endDate: string) => {
+  const { casinoId } = useAuth();
+  return useQuery({
+    queryKey: ["pit-rota-range", casinoId, startDate, endDate],
+    queryFn: async () => {
+      if (!casinoId) return [];
+      const { data, error } = await supabase
+        .from("pit_rota")
+        .select("*, dealers(name)")
+        .eq("casino_id", casinoId)
+        .gte("date", startDate)
+        .lte("date", endDate);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!casinoId,
+  });
+};
+
 export const useSetPitRota = () => {
   const qc = useQueryClient();
   const { casinoId, user } = useAuth();
@@ -455,16 +474,37 @@ export const useSetPitRota = () => {
       if (error) throw error;
       await logAction(casinoId, "pit", "ROTA_SET", input);
 
-      // If S or A shift, log the auto-clear
       if (input.shift === "S" || input.shift === "A") {
-        await logAction(casinoId, "breaklist", "AUTO_CLEARED", { 
-          dealer_id: input.dealer_id, date: input.date, reason: `Shift set to ${input.shift}` 
+        await logAction(casinoId, "breaklist", "AUTO_CLEARED", {
+          dealer_id: input.dealer_id, date: input.date, reason: `Shift set to ${input.shift}`,
         });
       }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["pit-rota"] });
-      qc.invalidateQueries({ queryKey: ["breaklist"] }); // S/A may clear breaklist
+      qc.invalidateQueries({ queryKey: ["pit-rota-range"] });
+      qc.invalidateQueries({ queryKey: ["breaklist"] });
+    },
+  });
+};
+
+export const useDeletePitRota = () => {
+  const qc = useQueryClient();
+  const { casinoId } = useAuth();
+  return useMutation({
+    mutationFn: async ({ dealer_id, date }: { dealer_id: string; date: string }) => {
+      if (!casinoId) throw new Error("No casino");
+      const { error } = await supabase
+        .from("pit_rota")
+        .delete()
+        .eq("casino_id", casinoId)
+        .eq("dealer_id", dealer_id)
+        .eq("date", date);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["pit-rota"] });
+      qc.invalidateQueries({ queryKey: ["pit-rota-range"] });
     },
   });
 };
