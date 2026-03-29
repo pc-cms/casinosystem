@@ -23,13 +23,18 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 type SortKey = "name" | "dropR" | "dropT" | "cashout" | "result";
 type SortDir = "asc" | "desc";
 
+const PLAYER_TYPES = ["table", "mix", "slots"] as const;
+const COMMON_TAGS = ["VIP", "Alcohol Allowed", "Alcohol Banned", "Self-Excluded", "High Roller", "Suspicious"];
+
 const ActivePlayers = () => {
   const { data: players = [] } = usePlayers();
   const { data: tables = [] } = useGamingTables();
   const today = new Date().toISOString().split("T")[0];
   const { data: transactions = [] } = useTransactions(today);
-  const { casinoId, user } = useAuth();
+  const { casinoId, user, isManager } = useAuth();
   const queryClient = useQueryClient();
+  const addTag = useAddPlayerTag();
+  const removeTag = useRemovePlayerTag();
 
   const [sortKey, setSortKey] = useState<SortKey>("dropR");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
