@@ -19,6 +19,7 @@ type AppRole = "cashier" | "pit" | "manager" | "reception" | "finance_manager" |
 const NAV_ITEMS: { to: string; icon: typeof LayoutDashboard; label: string; shortcut: string; roles: AppRole[] }[] = [
   // — Overview —
   { to: "/", icon: LayoutDashboard, label: "Dashboard", shortcut: "D", roles: ["manager", "cashier", "pit", "reception", "finance_manager", "security"] },
+  { to: "/pit?tab=breaklist", icon: ListChecks, label: "Breaklist", shortcut: "B", roles: ["manager", "pit", "finance_manager"] },
   // — Operations (alphabetical) —
   { to: "/cage", icon: Landmark, label: "Cage", shortcut: "C", roles: ["manager", "cashier", "finance_manager"] },
   { to: "/expenses", icon: Receipt, label: "Expenses", shortcut: "E", roles: ["manager", "cashier", "finance_manager"] },
@@ -61,6 +62,9 @@ const SECTION_LABELS: Record<string, string> = {
   "/staff": "HR",
   "/logs": "ANALYTICS",
 };
+
+// Breaklist is a direct link, not part of pit subitems for "end" matching
+const BREAKLIST_PATH = "/pit?tab=breaklist";
 
 export const AppSidebar = () => {
   const { theme, toggle } = useTheme();
