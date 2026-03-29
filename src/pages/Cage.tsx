@@ -15,7 +15,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowDownToLine, ArrowUpFromLine, Calculator, Play, Square, AlertTriangle, CheckCircle2, Package } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import {
-  CHIP_DENOMS, formatCurrency, formatNumberSpaces, CURRENCIES, FOREIGN_CURRENCIES,
+  CHIP_DENOMS, CHIP_COLORS, formatChipLabel, formatCurrency, formatNumberSpaces, CURRENCIES, FOREIGN_CURRENCIES,
   DEFAULT_EXCHANGE_RATES, CASH_DENOMS, CURRENCY_SYMBOLS, formatCashDenomLabel,
 } from "@/lib/currency";
 import PlayerSearch from "@/components/cage/PlayerSearch";
