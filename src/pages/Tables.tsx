@@ -473,113 +473,145 @@ const TablesContent = () => {
         actionDetails={{ table_id: pendingReopen }}
       />
 
-      {/* Chip Count Mode */}
-      {showCount && (
-        <div className="cms-panel mb-6">
-          <div className="cms-header flex items-center justify-between">
-            <span>Chip Count — Per Location</span>
-            {hasIncident && (
-              <span className="flex items-center gap-1 text-destructive text-xs font-bold">
-                <AlertTriangle className="w-4 h-4" /> INCIDENT: Chips exceed initial total
-              </span>
-            )}
-          </div>
-          <div className="p-4 space-y-6">
-            {locations.map(loc => {
-              const locCounts = counts[loc.key] || {};
-              const placeholders: Record<number, number> = {};
-              loc.denoms.forEach(d => { placeholders[d] = loc.chipsPerDenom; });
-              return (
-                <div key={loc.key}>
-                  <p className="text-xs font-semibold text-card-foreground mb-2 flex items-center gap-2">
-                    {loc.label}
-                    <span className="text-[10px] text-muted-foreground font-normal">({loc.chipsPerDenom} expected per denom)</span>
-                  </p>
-                  <ChipDenomInput
-                    values={locCounts}
-                    onChange={v => setCounts(c => ({ ...c, [loc.key]: v }))}
-                    denoms={loc.denoms}
-                    showValue={false}
-                    placeholder={placeholders}
-                  />
-                </div>
-              );
-            })}
+      {/* Chip Count Dialog */}
+      <Dialog open={showCount} onOpenChange={setShowCount}>
+        <DialogContent className="max-w-[95vw] w-fit max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center justify-between">
+              <span>Chip Count — Per Location</span>
+              {hasIncident && (
+                <span className="flex items-center gap-1 text-destructive text-xs font-bold">
+                  <AlertTriangle className="w-4 h-4" /> INCIDENT: Chips exceed initial total
+                </span>
+              )}
+            </DialogTitle>
+          </DialogHeader>
 
-            {hasAnyCount && (
-              <div className="border-t border-border pt-4">
-                <p className="text-xs font-semibold text-card-foreground mb-2">MISS Summary</p>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-xs">
-                    <thead>
-                      <tr className="border-b border-border">
-                        <th className="text-left py-1.5 px-2 text-muted-foreground font-medium">Denom</th>
-                        <th className="text-right py-1.5 px-2 text-muted-foreground font-medium">Expected</th>
-                        <th className="text-right py-1.5 px-2 text-muted-foreground font-medium">Actual</th>
-                        <th className="text-right py-1.5 px-2 text-muted-foreground font-medium">MISS</th>
-                        <th className="text-right py-1.5 px-2 text-muted-foreground font-medium">Value</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {CHIP_DENOMS.map(d => {
-                        const exp = expected[d] || 0;
-                        const act = actualTotals[d] || 0;
-                        const miss = missPerDenom[d] || 0;
-                        if (exp === 0 && act === 0) return null;
+          <div className="overflow-x-auto">
+            <table className="text-xs border-collapse">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="text-left py-2 px-2 text-muted-foreground font-medium sticky left-0 bg-background z-10 min-w-[70px]">Denom</th>
+                  {locations.map(loc => (
+                    <th key={loc.key} className="text-center py-2 px-3 text-muted-foreground font-medium min-w-[80px] whitespace-nowrap">
+                      {loc.label}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {CHIP_DENOMS.map(d => {
+                  const anyLocationHasDenom = locations.some(loc => loc.denoms.includes(d));
+                  if (!anyLocationHasDenom) return null;
+                  return (
+                    <tr key={d} className="border-b border-border last:border-0">
+                      <td className="py-1 px-2 sticky left-0 bg-background z-10">
+                        <span className={`cms-chip text-[8px] ${CHIP_COLORS[d] || "bg-muted text-foreground"}`}>{formatChipLabel(d)}</span>
+                      </td>
+                      {locations.map(loc => {
+                        if (!loc.denoms.includes(d)) {
+                          return <td key={loc.key} className="px-1 py-0.5 text-center text-muted-foreground/30">—</td>;
+                        }
+                        const locCounts = counts[loc.key] || {};
                         return (
-                          <tr key={d} className="border-b border-border last:border-0">
-                            <td className="py-1.5 px-2"><span className={`cms-chip text-[8px] ${CHIP_COLORS[d] || "bg-muted text-foreground"}`}>{formatChipLabel(d)}</span></td>
-                            <td className="py-1.5 px-2 text-right font-mono text-card-foreground">{exp}</td>
-                            <td className="py-1.5 px-2 text-right font-mono text-card-foreground">{act}</td>
-                            <td className={`py-1.5 px-2 text-right font-mono font-bold ${miss === 0 ? "text-green-500" : "text-destructive"}`}>{miss > 0 ? "+" : ""}{miss}</td>
-                            <td className={`py-1.5 px-2 text-right font-mono ${miss === 0 ? "text-green-500" : "text-destructive"}`}>{miss !== 0 ? `${miss > 0 ? "+" : ""}${formatCurrency(miss * d)}` : "—"}</td>
-                          </tr>
+                          <td key={loc.key} className="px-1 py-0.5">
+                            <input
+                              type="number"
+                              min="0"
+                              value={locCounts[d] ?? ""}
+                              onChange={e => {
+                                const val = e.target.value === "" ? 0 : parseInt(e.target.value, 10);
+                                setCounts(c => ({ ...c, [loc.key]: { ...(c[loc.key] || {}), [d]: isNaN(val) ? 0 : val } }));
+                              }}
+                              className="w-16 h-7 rounded text-[11px] font-mono text-center border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary text-card-foreground mx-auto block"
+                              placeholder={String(loc.chipsPerDenom)}
+                            />
+                          </td>
                         );
                       })}
-                    </tbody>
-                    <tfoot>
-                      <tr className="border-t-2 border-border">
-                        <td colSpan={3} className="py-2 px-2 font-semibold text-card-foreground">Total</td>
-                        <td className="py-2 px-2 text-right font-mono font-bold text-card-foreground">{Object.values(missPerDenom).reduce((s, v) => s + v, 0)}</td>
-                        <td className={`py-2 px-2 text-right font-mono font-bold ${totalMissValue === 0 ? "text-green-500" : "text-destructive"}`}>{totalMissValue >= 0 ? "+" : ""}{formatCurrency(totalMissValue)}</td>
-                      </tr>
-                    </tfoot>
-                  </table>
-                </div>
-
-                <div className="grid grid-cols-3 gap-2 mt-4">
-                  <div className="cms-panel p-2 text-center">
-                    <p className="text-[9px] uppercase text-muted-foreground">Initial Total</p>
-                    <p className="font-mono text-xs font-bold text-card-foreground">{formatCurrency(initialTotal)}</p>
-                  </div>
-                  <div className="cms-panel p-2 text-center">
-                    <p className="text-[9px] uppercase text-muted-foreground">Counted Total</p>
-                    <p className="font-mono text-xs font-bold text-card-foreground">{formatCurrency(totalActualValue)}</p>
-                  </div>
-                  <div className={`cms-panel p-2 text-center ${hasIncident ? "border-destructive/50" : totalMissValue === 0 ? "border-green-500/30" : ""}`}>
-                    <p className="text-[9px] uppercase text-muted-foreground">MISS</p>
-                    <p className={`font-mono text-xs font-bold ${totalMissValue === 0 ? "text-green-500" : "text-destructive"}`}>{totalMissValue >= 0 ? "+" : ""}{formatCurrency(totalMissValue)}</p>
-                  </div>
-                </div>
-
-                {hasIncident && (
-                  <div className="mt-3 p-3 rounded-md bg-destructive/10 border border-destructive/30 flex items-start gap-2">
-                    <AlertTriangle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-sm font-bold text-destructive">INCIDENT DETECTED</p>
-                      <p className="text-xs text-destructive/80">Total chips counted ({formatCurrency(totalActualValue)}) exceed initial system total ({formatCurrency(initialTotal)}).</p>
-                    </div>
-                  </div>
-                )}
-
-                <Button onClick={handleSaveCount} disabled={batchSnapshot.isPending || !hasAnyCount} className="w-full mt-4 gap-1.5">
-                  <Save className="w-4 h-4" /> {batchSnapshot.isPending ? "Saving…" : "Record Chip Count"}
-                </Button>
-              </div>
-            )}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
-        </div>
-      )}
+
+          {hasAnyCount && (
+            <div className="border-t border-border pt-4 space-y-4">
+              <p className="text-xs font-semibold text-card-foreground">MISS Summary</p>
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b border-border">
+                      <th className="text-left py-1.5 px-2 text-muted-foreground font-medium">Denom</th>
+                      <th className="text-right py-1.5 px-2 text-muted-foreground font-medium">Expected</th>
+                      <th className="text-right py-1.5 px-2 text-muted-foreground font-medium">Actual</th>
+                      <th className="text-right py-1.5 px-2 text-muted-foreground font-medium">MISS</th>
+                      <th className="text-right py-1.5 px-2 text-muted-foreground font-medium">Value</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {CHIP_DENOMS.map(d => {
+                      const exp = expected[d] || 0;
+                      const act = actualTotals[d] || 0;
+                      const miss = missPerDenom[d] || 0;
+                      if (exp === 0 && act === 0) return null;
+                      return (
+                        <tr key={d} className="border-b border-border last:border-0">
+                          <td className="py-1.5 px-2"><span className={`cms-chip text-[8px] ${CHIP_COLORS[d] || "bg-muted text-foreground"}`}>{formatChipLabel(d)}</span></td>
+                          <td className="py-1.5 px-2 text-right font-mono text-card-foreground">{exp}</td>
+                          <td className="py-1.5 px-2 text-right font-mono text-card-foreground">{act}</td>
+                          <td className={`py-1.5 px-2 text-right font-mono font-bold ${miss === 0 ? "text-green-500" : "text-destructive"}`}>{miss > 0 ? "+" : ""}{miss}</td>
+                          <td className={`py-1.5 px-2 text-right font-mono ${miss === 0 ? "text-green-500" : "text-destructive"}`}>{miss !== 0 ? `${miss > 0 ? "+" : ""}${formatCurrency(miss * d)}` : "—"}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                  <tfoot>
+                    <tr className="border-t-2 border-border">
+                      <td colSpan={3} className="py-2 px-2 font-semibold text-card-foreground">Total</td>
+                      <td className="py-2 px-2 text-right font-mono font-bold text-card-foreground">{Object.values(missPerDenom).reduce((s, v) => s + v, 0)}</td>
+                      <td className={`py-2 px-2 text-right font-mono font-bold ${totalMissValue === 0 ? "text-green-500" : "text-destructive"}`}>{totalMissValue >= 0 ? "+" : ""}{formatCurrency(totalMissValue)}</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2">
+                <div className="cms-panel p-2 text-center">
+                  <p className="text-[9px] uppercase text-muted-foreground">Initial Total</p>
+                  <p className="font-mono text-xs font-bold text-card-foreground">{formatCurrency(initialTotal)}</p>
+                </div>
+                <div className="cms-panel p-2 text-center">
+                  <p className="text-[9px] uppercase text-muted-foreground">Counted Total</p>
+                  <p className="font-mono text-xs font-bold text-card-foreground">{formatCurrency(totalActualValue)}</p>
+                </div>
+                <div className={`cms-panel p-2 text-center ${hasIncident ? "border-destructive/50" : totalMissValue === 0 ? "border-green-500/30" : ""}`}>
+                  <p className="text-[9px] uppercase text-muted-foreground">MISS</p>
+                  <p className={`font-mono text-xs font-bold ${totalMissValue === 0 ? "text-green-500" : "text-destructive"}`}>{totalMissValue >= 0 ? "+" : ""}{formatCurrency(totalMissValue)}</p>
+                </div>
+              </div>
+
+              {hasIncident && (
+                <div className="p-3 rounded-md bg-destructive/10 border border-destructive/30 flex items-start gap-2">
+                  <AlertTriangle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-bold text-destructive">INCIDENT DETECTED</p>
+                    <p className="text-xs text-destructive/80">Total chips counted ({formatCurrency(totalActualValue)}) exceed initial system total ({formatCurrency(initialTotal)}).</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCount(false)}>Cancel</Button>
+            <Button onClick={handleSaveCount} disabled={batchSnapshot.isPending || !hasAnyCount} className="gap-1.5">
+              <Save className="w-4 h-4" /> {batchSnapshot.isPending ? "Saving…" : "Record Chip Count"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Previous Snapshots */}
       {hasSnapshotToday && !showCount && (
