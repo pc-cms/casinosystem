@@ -347,7 +347,7 @@ const ActivePlayers = () => {
                 {/* Totals row */}
                 {activePlayers.length > 0 && (totalDrop > 0 || totalCashout > 0) && (
                   <TableRow className="border-t-2 border-border bg-muted/20">
-                    <TableCell className="font-bold text-xs text-card-foreground" colSpan={3}>TOTAL</TableCell>
+                    <TableCell className="font-bold text-xs text-card-foreground" colSpan={4}>TOTAL</TableCell>
                     <TableCell className="text-right font-mono font-bold text-card-foreground">{formatNumberSpaces(totalDrop)}</TableCell>
                     <TableCell className="text-right font-mono font-bold text-emerald-400">{formatNumberSpaces(totalCashout)}</TableCell>
                     <TableCell className={`text-right font-mono font-bold ${totalResult > 0 ? "text-emerald-400" : totalResult < 0 ? "text-red-400" : "text-muted-foreground"}`}>
