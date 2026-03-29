@@ -10,6 +10,9 @@ export interface StaffMember {
   name: string;
   department: StaffDepartment;
   is_active: boolean;
+  salary: number | null;
+  contract_start: string | null;
+  contract_end: string | null;
   created_at: string;
 }
 
@@ -70,6 +73,20 @@ export const useCreateStaffMember = () => {
       const { error } = await supabase
         .from("staff_members")
         .insert({ casino_id: casinoId!, name, department });
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["staff_members"] }),
+  });
+};
+
+export const useUpdateStaffMember = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...fields }: { id: string; salary?: number | null; contract_start?: string | null; contract_end?: string | null; is_active?: boolean }) => {
+      const { error } = await supabase
+        .from("staff_members")
+        .update(fields)
+        .eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["staff_members"] }),
