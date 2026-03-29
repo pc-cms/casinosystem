@@ -68,20 +68,19 @@ const CashDenomInput = ({ values, onChange, denoms, currency, onSubmit }: {
   onSubmit?: () => void;
 }) => {
   const refs = useRef<Record<number, HTMLInputElement | null>>({});
-  const sym = CURRENCY_SYMBOLS[currency] || currency;
   const total = cashSum(values);
 
   return (
-    <div className="space-y-1">
+    <div className="space-y-2">
       {denoms.map((d, idx) => (
-        <div key={d} className="flex items-center gap-1.5">
-          <span className="cms-chip text-[9px] bg-muted text-foreground shrink-0 min-w-[36px] text-center">
+        <div key={d} className="grid grid-cols-[4rem_minmax(0,1fr)] items-center gap-2">
+          <span className="cms-chip text-[9px] bg-muted text-foreground h-8 w-16 shrink-0 justify-center">
             {formatCashDenomLabel(d, currency)}
           </span>
           <input
             ref={el => { refs.current[d] = el; }}
             type="number"
-            className="no-spin font-mono text-sm h-8 w-16 rounded border border-border bg-background px-2 text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            className="no-spin font-mono text-sm h-8 w-full min-w-0 rounded border border-border bg-background px-2 text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
             value={values[d] || ""}
             onChange={e => onChange({ ...values, [d]: Number(e.target.value) || 0 })}
             onKeyDown={e => {
@@ -97,10 +96,10 @@ const CashDenomInput = ({ values, onChange, denoms, currency, onSubmit }: {
           />
         </div>
       ))}
-      <div className="flex items-center gap-2 pt-1 border-t border-border">
+      <div className="flex items-center justify-between gap-2 pt-2 border-t border-border">
         <span className="text-xs font-medium text-muted-foreground">Total</span>
         <span className="font-mono text-sm font-bold text-card-foreground">
-          {currency === "TZS" ? `TZS ${formatNumberSpaces(total)}` : `${sym}${formatNumberSpaces(total)}`}
+          {currency === "TZS" ? `TZS ${formatNumberSpaces(total)}` : `${CURRENCY_SYMBOLS[currency] || currency}${formatNumberSpaces(total)}`}
         </span>
       </div>
     </div>
@@ -130,82 +129,74 @@ const CashCountGrid = ({
   const mobTotal = mobileTotal(mobile);
 
   return (
-    <div className="space-y-4">
-      {/* Main grid: 3 columns */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-6">
-
-        {/* Column 1: TZS Chips + TZS Cash */}
-        <div className="space-y-4">
-          <div>
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">TZS Chips</p>
+    <div className="space-y-5">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+        <div className="grid gap-4 content-start">
+          <section className="rounded-xl border border-border bg-background/40 p-4 space-y-3">
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.22em]">TZS Chips</p>
             <ChipDenomInput values={chips} onChange={onChipsChange} showValue={false} placeholder={chipPlaceholder} />
-          </div>
-          <div className="pt-3 border-t border-border">
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">TZS Cash</p>
+          </section>
+          <section className="rounded-xl border border-border bg-background/40 p-4 space-y-3">
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.22em]">TZS Cash</p>
             <CashDenomInput values={cash["TZS"] || {}} onChange={v => onCashChange("TZS", v)} denoms={CASH_DENOMS["TZS"] || []} currency="TZS" />
-          </div>
+          </section>
         </div>
 
-        {/* Column 2: EUR + GBP */}
-        <div className="space-y-4">
-          <div>
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">EUR Cash</p>
+        <div className="grid gap-4 content-start">
+          <section className="rounded-xl border border-border bg-background/40 p-4 space-y-3">
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.22em]">EUR Cash</p>
             <CashDenomInput values={cash["EUR"] || {}} onChange={v => onCashChange("EUR", v)} denoms={CASH_DENOMS["EUR"] || []} currency="EUR" />
-          </div>
-          <div className="pt-3 border-t border-border">
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">GBP Cash</p>
+          </section>
+          <section className="rounded-xl border border-border bg-background/40 p-4 space-y-3">
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.22em]">GBP Cash</p>
             <CashDenomInput values={cash["GBP"] || {}} onChange={v => onCashChange("GBP", v)} denoms={CASH_DENOMS["GBP"] || []} currency="GBP" />
-          </div>
+          </section>
         </div>
 
-        {/* Column 3: USD + KES */}
-        <div className="space-y-4">
-          <div>
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">USD Cash</p>
+        <div className="grid gap-4 content-start">
+          <section className="rounded-xl border border-border bg-background/40 p-4 space-y-3">
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.22em]">USD Cash</p>
             <CashDenomInput values={cash["USD"] || {}} onChange={v => onCashChange("USD", v)} denoms={CASH_DENOMS["USD"] || []} currency="USD" />
-          </div>
-          <div className="pt-3 border-t border-border">
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">KES Cash</p>
+          </section>
+          <section className="rounded-xl border border-border bg-background/40 p-4 space-y-3">
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.22em]">KES Cash</p>
             <CashDenomInput values={cash["KES"] || {}} onChange={v => onCashChange("KES", v)} denoms={CASH_DENOMS["KES"] || []} currency="KES" />
-          </div>
+          </section>
         </div>
       </div>
 
-      {/* Bottom section: Mobile Money + Banks */}
-      <div className="pt-3 border-t border-border">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Mobile Providers */}
+      <section className="rounded-xl border border-border bg-background/40 p-4 space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.22em]">Mobile Money</p>
+          <span className="font-mono text-sm font-bold text-card-foreground">TZS {formatNumberSpaces(mobTotal)}</span>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
           {MOBILE_PROVIDERS.map(provider => (
-            <div key={provider}>
-              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">{provider}</p>
+            <div key={provider} className="rounded-lg border border-border bg-background/60 p-3 space-y-2">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.18em]">{provider}</p>
               <NumberInput
                 value={mobile[provider] || ""}
                 onChange={v => onMobileChange({ ...mobile, [provider]: Number(v) || 0 })}
-                className="no-spin h-9 font-mono text-sm"
+                className="no-spin h-9 w-full min-w-0 font-mono text-sm text-right"
                 placeholder="0"
               />
             </div>
           ))}
         </div>
-        <div className="flex items-center gap-2 pt-2 mt-2 border-t border-dashed border-border">
-          <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Mobile Total</span>
-          <span className="font-mono text-sm font-bold text-card-foreground">TZS {formatNumberSpaces(mobTotal)}</span>
-        </div>
-      </div>
+      </section>
 
-      {/* Banks row */}
-      <div className="grid grid-cols-2 gap-4 pt-3 border-t border-border">
-        <div>
-          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Bank TZS</p>
-          <NumberInput value={banks.tzs || ""} onChange={v => onBanksChange({ ...banks, tzs: Number(v) || 0 })} className="no-spin" placeholder="0" />
-        </div>
-        <div>
-          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Bank USD</p>
-          <NumberInput value={banks.usd || ""} onChange={v => onBanksChange({ ...banks, usd: Number(v) || 0 })} className="no-spin" placeholder="0" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <section className="rounded-xl border border-border bg-background/40 p-4 space-y-2">
+          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.22em]">Bank TZS</p>
+          <NumberInput value={banks.tzs || ""} onChange={v => onBanksChange({ ...banks, tzs: Number(v) || 0 })} className="no-spin h-10 w-full min-w-0 text-right" placeholder="0" />
+        </section>
+        <section className="rounded-xl border border-border bg-background/40 p-4 space-y-2">
+          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.22em]">Bank USD</p>
+          <NumberInput value={banks.usd || ""} onChange={v => onBanksChange({ ...banks, usd: Number(v) || 0 })} className="no-spin h-10 w-full min-w-0 text-right" placeholder="0" />
           {banks.usd > 0 && rates?.["USD"] ? (
-            <p className="text-[10px] font-mono text-muted-foreground mt-0.5">= TZS {formatNumberSpaces(banks.usd * (rates["USD"] || 0))}</p>
+            <p className="text-[10px] font-mono text-muted-foreground">= TZS {formatNumberSpaces(banks.usd * (rates["USD"] || 0))}</p>
           ) : null}
-        </div>
+        </section>
       </div>
     </div>
   );
