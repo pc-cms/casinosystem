@@ -52,40 +52,15 @@ const Tables = () => {
     return results;
   }, [tables, shiftTransactions]);
 
-  // Table close: calculate result from chip difference
-  const closingTableFloat = useMemo(() => {
-    if (!closingTable) return 0;
-    return Number(closingTable.float_amount) || 0;
-  }, [closingTable]);
-
-  const closingChipTotal = useMemo(() => {
-    return Object.entries(closingChips).reduce((s, [d, c]) => s + Number(d) * (c || 0), 0);
-  }, [closingChips]);
-
-  // table_result = closing_float_value - opening_float_value
-  // If chips at table > opening float → table won (positive result for casino)
-  // If chips at table < opening float → table lost (negative result for casino)
-  const closingResult = closingChipTotal - closingTableFloat;
-
   const handleCloseTable = () => {
     if (!closingTable) return;
-    // Validate: must have at least one chip denomination entered
-    const hasChipData = Object.values(closingChips).some(v => v > 0);
-    if (!hasChipData) {
-      toast.error("Must enter chip counts before closing table");
-      return;
-    }
-    if (closingTableFloat <= 0) {
-      toast.error("Invalid table float — cannot close");
-      return;
-    }
+    const r = tableResults[closingTable.id] || { drop: 0, cashout: 0, result: 0 };
     closeTable.mutate({
       table_id: closingTable.id,
-      closing_chips: closingChips,
+      closing_chips: {},
     }, {
       onSuccess: () => {
         setClosingTable(null);
-        setClosingChips({});
       },
     });
   };
@@ -201,7 +176,7 @@ const Tables = () => {
                 <div className="flex items-center gap-2">
                   <Badge variant={isOpen ? "default" : "secondary"} className="text-[10px] uppercase">{table.status}</Badge>
                   {isOpen && shift && (
-                    <Button variant="outline" size="sm" className="text-[10px] h-6 gap-1" onClick={() => { setClosingTable(table); setClosingChips({}); }}>
+                    <Button variant="outline" size="sm" className="text-[10px] h-6 gap-1" onClick={() => setClosingTable(table)}>
                       <X className="w-3 h-3" /> Close
                     </Button>
                   )}
