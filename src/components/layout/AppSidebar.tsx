@@ -19,6 +19,7 @@ type AppRole = "cashier" | "pit" | "manager" | "reception" | "finance_manager" |
 const NAV_ITEMS: { to: string; icon: typeof LayoutDashboard; label: string; shortcut: string; roles: AppRole[] }[] = [
   // — Overview —
   { to: "/", icon: LayoutDashboard, label: "Dashboard", shortcut: "D", roles: ["manager", "cashier", "pit", "reception", "finance_manager", "security"] },
+  { to: "/pit?tab=breaklist", icon: ListChecks, label: "Breaklist", shortcut: "B", roles: ["manager", "pit", "finance_manager"] },
   // — Operations (alphabetical) —
   { to: "/cage", icon: Landmark, label: "Cage", shortcut: "C", roles: ["manager", "cashier", "finance_manager"] },
   { to: "/expenses", icon: Receipt, label: "Expenses", shortcut: "E", roles: ["manager", "cashier", "finance_manager"] },
@@ -61,6 +62,9 @@ const SECTION_LABELS: Record<string, string> = {
   "/staff": "HR",
   "/logs": "ANALYTICS",
 };
+
+// Breaklist is a direct link, not part of pit subitems for "end" matching
+const BREAKLIST_PATH = "/pit?tab=breaklist";
 
 export const AppSidebar = () => {
   const { theme, toggle } = useTheme();
@@ -129,6 +133,30 @@ export const AppSidebar = () => {
             <NetworkStatusIndicator />
           </div>
           <p className="text-[10px] font-mono text-muted-foreground mt-0.5 uppercase tracking-widest">Casino Ops</p>
+
+          {/* Manager Access - in header for non-manager users */}
+          {!nativeManager && (
+            <div className="mt-2">
+              {managerOverride.active ? (
+                <button
+                  onClick={handleDeactivate}
+                  className="flex items-center gap-2 w-full px-3 py-2 rounded-md text-xs font-medium bg-primary/15 text-primary border border-primary/30 hover:bg-primary/25 transition-colors"
+                >
+                  <ShieldCheck className="w-4 h-4" />
+                  <span className="flex-1 text-left">Manager Active</span>
+                  <ShieldOff className="w-3.5 h-3.5 opacity-60" />
+                </button>
+              ) : (
+                <button
+                  onClick={() => setShowOverrideDialog(true)}
+                  className="flex items-center gap-2 w-full px-3 py-2 rounded-md text-xs font-medium text-sidebar-foreground hover:bg-sidebar-accent border border-sidebar-border transition-colors"
+                >
+                  <ShieldCheck className="w-4 h-4" />
+                  <span className="flex-1 text-left">Manager Access</span>
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         <nav className="flex-1 py-2 px-2 overflow-y-auto">
@@ -142,12 +170,16 @@ export const AppSidebar = () => {
                     <span className="text-[9px] font-mono text-muted-foreground uppercase tracking-widest">{sectionLabel}</span>
                   </div>
                 )}
-                <NavLink to={item.to} end={item.to === "/" || item.to === "/pit" || item.to === "/staff" || item.to === "/tables"}
-                  className={({ isActive }) =>
-                    `flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
-                      isActive ? "bg-sidebar-accent text-sidebar-primary font-medium" : "text-sidebar-foreground hover:bg-sidebar-accent"
-                    }`
-                  }>
+                <NavLink to={item.to} end={item.to === "/" || item.to === "/pit" || item.to === "/staff" || item.to === "/tables" || item.to === BREAKLIST_PATH}
+                  className={({ isActive }) => {
+                    // For breaklist shortcut, check manually
+                    const isBreaklistItem = item.to === BREAKLIST_PATH;
+                    const isBreaklistActive = isBreaklistItem && location.pathname === "/pit" && currentTab === "breaklist";
+                    const active = isBreaklistItem ? isBreaklistActive : isActive;
+                    return `flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
+                      active ? "bg-sidebar-accent text-sidebar-primary font-medium" : "text-sidebar-foreground hover:bg-sidebar-accent"
+                    }`;
+                  }}>
                   <item.icon className="w-4 h-4 shrink-0" />
                   <span className="flex-1">{item.label}</span>
                   <span className="cms-kbd">{item.shortcut}</span>
@@ -179,30 +211,6 @@ export const AppSidebar = () => {
         </nav>
 
         <div className="px-3 py-3 border-t border-sidebar-border space-y-1">
-          {/* Manager Access button - only show for non-manager users */}
-          {!nativeManager && (
-            <div className="mb-1">
-              {managerOverride.active ? (
-                <button
-                  onClick={handleDeactivate}
-                  className="flex items-center gap-2 w-full px-3 py-2 rounded-md text-xs font-medium bg-primary/15 text-primary border border-primary/30 hover:bg-primary/25 transition-colors"
-                >
-                  <ShieldCheck className="w-4 h-4" />
-                  <span className="flex-1 text-left">Manager Active</span>
-                  <ShieldOff className="w-3.5 h-3.5 opacity-60" />
-                </button>
-              ) : (
-                <button
-                  onClick={() => setShowOverrideDialog(true)}
-                  className="flex items-center gap-2 w-full px-3 py-2 rounded-md text-xs font-medium text-sidebar-foreground hover:bg-sidebar-accent border border-sidebar-border transition-colors"
-                >
-                  <ShieldCheck className="w-4 h-4" />
-                  <span className="flex-1 text-left">Manager Access</span>
-                </button>
-              )}
-            </div>
-          )}
-
           <div className="px-3 py-1">
             <p className="text-xs font-medium text-sidebar-foreground truncate">{displayName}</p>
             <div className="flex gap-1 mt-0.5 flex-wrap">
