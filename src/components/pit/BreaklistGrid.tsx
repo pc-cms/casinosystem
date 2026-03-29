@@ -56,10 +56,22 @@ const BreaklistGrid = ({ date }: { date: string }) => {
   }, [rota]);
 
   // Only show dealers that are in the rota for this date
+  const [sortBy, setSortBy] = useState<"name" | "shift">("shift");
+
   const breaklistDealers = useMemo(() => {
     const rotaDealerIds = new Set(rotaDealers.map(r => r.dealerId));
-    return activeDealers.filter(d => rotaDealerIds.has(d.id));
-  }, [activeDealers, rotaDealers]);
+    const filtered = activeDealers.filter(d => rotaDealerIds.has(d.id));
+    if (sortBy === "name") {
+      return filtered.sort((a, b) => a.name.localeCompare(b.name));
+    }
+    const shiftOrder: Record<string, number> = { M: 0, N: 1, E: 2 };
+    return filtered.sort((a, b) => {
+      const sa = rotaDealers.find(r => r.dealerId === a.id)?.shift || "Z";
+      const sb = rotaDealers.find(r => r.dealerId === b.id)?.shift || "Z";
+      const diff = (shiftOrder[sa] ?? 9) - (shiftOrder[sb] ?? 9);
+      return diff !== 0 ? diff : a.name.localeCompare(b.name);
+    });
+  }, [activeDealers, rotaDealers, sortBy]);
 
   const getDealerShift = (dealerId: string) => {
     return rotaDealers.find(r => r.dealerId === dealerId)?.shift || null;
@@ -157,11 +169,17 @@ const BreaklistGrid = ({ date }: { date: string }) => {
   return (
     <>
       <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2">
-          {breaklistDealers.length === 0 && (
-            <span className="text-xs text-muted-foreground">No dealers in rota for this date</span>
-          )}
-        </div>
+        <div className="flex items-center gap-1 text-[10px]">
+            <span className="text-muted-foreground">Sort:</span>
+            <button onClick={() => setSortBy("shift")}
+              className={`px-1.5 py-0.5 rounded font-mono ${sortBy === "shift" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
+              Shift
+            </button>
+            <button onClick={() => setSortBy("name")}
+              className={`px-1.5 py-0.5 rounded font-mono ${sortBy === "name" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
+              Name
+            </button>
+          </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={handleRefreshFromRota} className="gap-1 text-xs">
             <RefreshCw className="w-3.5 h-3.5" /> Refresh from Rota
