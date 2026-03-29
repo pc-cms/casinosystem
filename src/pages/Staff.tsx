@@ -178,18 +178,25 @@ const EmployeeList = () => {
 
   return (
     <div className="space-y-4">
-      {/* Legend */}
-      <div className="flex items-center gap-3 flex-wrap">
-        {DEPARTMENT_ORDER.map(d => {
-          const count = staff.filter(s => s.department === d).length;
-          if (count === 0) return null;
-          return (
-            <span key={d} className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-medium border ${DEPT_BADGE_COLORS[d] || ""}`}>
-              <span className={`w-2 h-2 rounded-full ${DEPT_DOT_COLORS[d] || "bg-muted-foreground"}`} />
-              {DEPARTMENT_LABELS[d]} ({count})
-            </span>
-          );
-        })}
+      {/* Filters */}
+      <div className="flex gap-2 items-center flex-wrap">
+        <Select value={filterDept} onValueChange={setFilterDept}>
+          <SelectTrigger className="w-[160px]"><SelectValue placeholder="Department" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Departments</SelectItem>
+            {DEPARTMENT_ORDER.map(d => (
+              <SelectItem key={d} value={d}>{DEPARTMENT_LABELS[d]}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={filterStatus} onValueChange={setFilterStatus}>
+          <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Status</SelectItem>
+            <SelectItem value="active">Active</SelectItem>
+            <SelectItem value="fired">Fired</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Add form */}
