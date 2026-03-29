@@ -153,7 +153,7 @@ const ActivePlayers = () => {
 
   const updatePlayerType = useMutation({
     mutationFn: async ({ id, player_type }: { id: string; player_type: string }) => {
-      const { error } = await supabase.from("players").update({ player_type }).eq("id", id);
+      const { error } = await supabase.from("players").update({ player_type: player_type as any }).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
