@@ -168,18 +168,7 @@ const BreaklistGrid = ({ date }: { date: string }) => {
 
   return (
     <>
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-1 text-[10px]">
-            <span className="text-muted-foreground">Sort:</span>
-            <button onClick={() => setSortBy("shift")}
-              className={`px-1.5 py-0.5 rounded font-mono ${sortBy === "shift" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
-              Shift
-            </button>
-            <button onClick={() => setSortBy("name")}
-              className={`px-1.5 py-0.5 rounded font-mono ${sortBy === "name" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
-              Name
-            </button>
-          </div>
+       <div className="flex items-center justify-end mb-2">
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={handleRefreshFromRota} className="gap-1 text-xs">
             <RefreshCw className="w-3.5 h-3.5" /> Refresh from Rota
@@ -195,8 +184,17 @@ const BreaklistGrid = ({ date }: { date: string }) => {
           <table className="w-full border-collapse">
             <thead>
               <tr className="border-b border-border">
-                <th className="text-left text-xs font-medium text-muted-foreground uppercase px-3 py-2 sticky left-0 bg-card z-10 min-w-[130px]">
-                  Dealer
+                <th
+                  onClick={() => setSortBy("name")}
+                  className="text-left text-xs font-medium text-muted-foreground uppercase px-3 py-2 sticky left-0 bg-card z-10 min-w-[130px] cursor-pointer hover:text-foreground select-none"
+                >
+                  Dealer {sortBy === "name" && "↓"}
+                </th>
+                <th
+                  onClick={() => setSortBy("shift")}
+                  className="text-center text-[9px] font-medium text-muted-foreground uppercase px-1 py-2 min-w-[32px] cursor-pointer hover:text-foreground select-none"
+                >
+                  S {sortBy === "shift" && "↓"}
                 </th>
                 {TIME_SLOTS.map(slot => {
                   const isActive = isToday && slot === currentSlot;

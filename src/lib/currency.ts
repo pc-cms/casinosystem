@@ -98,10 +98,10 @@ export const CHIP_DISTRIBUTION = {
 
 // Role display colors
 export const ROLE_COLORS: Record<string, string> = {
-  P: "bg-indigo-600/20 text-indigo-400",
-  Pi: "bg-indigo-500/15 text-indigo-300",
-  BJ: "bg-blue-600/20 text-blue-400",
-  BJi: "bg-blue-500/15 text-blue-300",
+  P: "bg-violet-600/25 text-violet-300",
+  Pi: "bg-violet-500/20 text-violet-200",
+  BJ: "bg-sky-600/25 text-sky-300",
+  BJi: "bg-sky-500/20 text-sky-200",
   AR: "bg-emerald-600/20 text-emerald-400",
   ARi: "bg-emerald-500/15 text-emerald-300",
   ARc: "bg-emerald-400/15 text-emerald-200",
