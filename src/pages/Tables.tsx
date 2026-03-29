@@ -121,7 +121,7 @@ const TrackerContent = () => {
                     </th>
                   );
                 })}
-                <th className="text-center text-xs font-medium text-muted-foreground uppercase px-2 py-2 min-w-[80px]">Σ</th>
+                <th className="text-center text-xs font-medium text-muted-foreground uppercase px-2 py-2 min-w-[90px]">Result</th>
               </tr>
             </thead>
             <tbody>
@@ -143,7 +143,13 @@ const TrackerContent = () => {
                     );
                   })}
                   <td className="px-2 py-1 text-center">
-                    <span className="text-[10px] font-mono font-bold text-primary">{tableSlotTotals[table.id] ? formatCurrency(tableSlotTotals[table.id]) : ""}</span>
+                    {table.closing_result !== null ? (
+                      <span className={`text-[10px] font-mono font-bold ${Number(table.closing_result) >= 0 ? "text-green-500" : "text-destructive"}`}>
+                        {Number(table.closing_result) >= 0 ? "+" : ""}{formatCurrency(Number(table.closing_result))}
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-mono text-muted-foreground/40">—</span>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -155,7 +161,11 @@ const TrackerContent = () => {
                   </td>
                 ))}
                 <td className="px-2 py-2 text-center">
-                  <span className="text-xs font-mono font-bold text-primary">{grandTotal ? formatCurrency(grandTotal) : ""}</span>
+                  <span className="text-xs font-mono font-bold text-primary">
+                    {tables.some(t => t.closing_result !== null)
+                      ? formatCurrency(tables.reduce((s, t) => s + Number(t.closing_result || 0), 0))
+                      : ""}
+                  </span>
                 </td>
               </tr>
             </tbody>

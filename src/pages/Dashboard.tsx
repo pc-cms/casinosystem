@@ -1,9 +1,11 @@
+import { useMemo } from "react";
 import { Users, Landmark, Table2, Receipt, ArrowUpRight, ArrowDownRight } from "lucide-react";
-import { usePlayers, useTransactions, useGamingTables, useExpenses, useClientSessionsTotalBet } from "@/hooks/use-casino-data";
+import { usePlayers, useTransactions, useGamingTables, useExpenses, useClientSessionsTotalBet, useTableTracker } from "@/hooks/use-casino-data";
 import { useAuth } from "@/lib/auth-context";
 import { Link } from "react-router-dom";
 import { formatCurrency } from "@/lib/currency";
 import { canSeePlayerFinancials } from "@/lib/role-access";
+import { getBusinessDate } from "@/lib/business-day";
 
 const StatCard = ({ label, value, icon: Icon, href, trend }: {
   label: string; value: string | number; icon: any; href: string;
@@ -30,11 +32,13 @@ const StatCard = ({ label, value, icon: Icon, href, trend }: {
 
 const Dashboard = () => {
   const { displayName, roles } = useAuth();
+  const businessDate = getBusinessDate();
   const { data: players = [] } = usePlayers();
   const { data: transactions = [] } = useTransactions();
   const { data: tables = [] } = useGamingTables();
   const { data: expenses = [] } = useExpenses();
   const { data: sessionsTotalBet = 0 } = useClientSessionsTotalBet();
+  const { data: trackerData = [] } = useTableTracker(businessDate);
 
   const showFinancials = canSeePlayerFinancials(roles);
   const activePlayers = players.filter(p => p.status === "active").length;
@@ -42,6 +46,15 @@ const Dashboard = () => {
   const buyInDrop = transactions.filter(t => t.type === "buy").reduce((s, t) => s + Number(t.amount), 0);
   const totalDrop = buyInDrop + sessionsTotalBet;
   const pendingExpenses = expenses.filter(e => !e.approved).length;
+
+  // Per-table tracker totals (running result from hourly tracker)
+  const tableTrackerTotals = useMemo(() => {
+    const totals: Record<string, number> = {};
+    trackerData.forEach((d: any) => {
+      totals[d.table_id] = (totals[d.table_id] || 0) + Number(d.value);
+    });
+    return totals;
+  }, [trackerData]);
 
   return (
     <div>
@@ -99,9 +112,18 @@ const Dashboard = () => {
                   <span className="text-sm font-medium text-card-foreground">{table.name}</span>
                   <span className="text-xs text-muted-foreground">{table.game}</span>
                 </div>
-                {showFinancials && (
-                  <span className="font-mono text-xs text-muted-foreground">{formatCurrency(Number(table.float_amount))}</span>
-                )}
+                {showFinancials && (() => {
+                  const trackerVal = tableTrackerTotals[table.id] || 0;
+                  const resultVal = table.closing_result !== null ? Number(table.closing_result) : null;
+                  const displayVal = resultVal !== null ? resultVal : trackerVal;
+                  return displayVal !== 0 || resultVal !== null ? (
+                    <span className={`font-mono text-xs font-bold ${displayVal >= 0 ? "text-green-500" : "text-destructive"}`}>
+                      {displayVal >= 0 ? "+" : ""}{formatCurrency(displayVal)}
+                    </span>
+                  ) : (
+                    <span className="font-mono text-xs text-muted-foreground">—</span>
+                  );
+                })()}
               </div>
             ))}
             {tables.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">No tables configured</p>}
