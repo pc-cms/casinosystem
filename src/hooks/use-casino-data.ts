@@ -187,7 +187,7 @@ export const useCreateTransaction = () => {
       qc.invalidateQueries({ queryKey: ["transactions"] });
       qc.invalidateQueries({ queryKey: ["player-economy"] });
       if (!res.offline) {
-        toast.success(`${vars.type === "buy" ? "Buy-in" : "Cashout"} recorded: TZS ${vars.amount.toLocaleString()}`);
+        toast.success(`${vars.type === "buy" ? "Buy-in" : "Cashout"} recorded: TZS ${formatNumberSpaces(vars.amount)}`);
       }
     },
     onError: (e) => toast.error(e.message),
