@@ -387,7 +387,7 @@ const StaffRotaGrid = ({ month }: { month: string }) => {
     if (att) {
       const val = String((att as any).value);
       const num = Number(val);
-      if (!isNaN(num) && num > 0) return { shift: "D", isAuto: true };
+      if (!isNaN(num) && num > 0) return { shift: "E", isAuto: true };
     }
     return null;
   };
