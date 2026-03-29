@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { usePlayers, useTransactions, useGamingTables, useAddPlayerTag, useRemovePlayerTag } from "@/hooks/use-casino-data";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
