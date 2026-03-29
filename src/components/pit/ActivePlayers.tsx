@@ -555,50 +555,72 @@ const ActivePlayers = () => {
                       </div>
                     </TableCell>
                     <TableCell className="text-center">
-                      {p.isLive && p.tableName ? (
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <button className="inline-flex items-center gap-1 cursor-pointer">
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <button className="inline-flex items-center gap-1 cursor-pointer">
+                            {p.isLive && p.tableName ? (
                               <Badge className="bg-primary/20 text-primary border-primary/30 text-[10px] px-2 py-0.5 font-mono hover:bg-primary/30 transition-colors">{p.tableName}</Badge>
-                              <ChevronDown className="w-3 h-3 text-muted-foreground" />
+                            ) : p.isCheckedIn ? (
+                              <Badge variant="outline" className="text-[10px] px-2 py-0.5 font-mono">Hall</Badge>
+                            ) : (
+                              <span className="text-muted-foreground/40"><MapPin className="w-3.5 h-3.5 inline" /></span>
+                            )}
+                            <ChevronDown className="w-3 h-3 text-muted-foreground" />
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-1" align="center">
+                          <div className="flex flex-col gap-0.5 max-h-[200px] overflow-y-auto">
+                            {tables.filter(t => t.status === "open").map(t => (
+                              <button
+                                key={t.id}
+                                onClick={() => changeTable.mutate({ playerId: p.id, tableId: t.id, avgBet: 0 })}
+                                className={`px-3 py-1 text-xs rounded hover:bg-muted transition-colors text-left font-mono ${p.tableName === t.name ? "bg-primary/10 text-primary font-medium" : "text-foreground"}`}
+                              >
+                                {t.name}
+                              </button>
+                            ))}
+                            <div className="border-t border-border my-0.5" />
+                            <button
+                              onClick={() => {
+                                if (p.isLive) {
+                                  supabase
+                                    .from("client_sessions")
+                                    .update({ stopped_at: new Date().toISOString() })
+                                    .eq("casino_id", casinoId!)
+                                    .eq("player_id", p.id)
+                                    .is("stopped_at", null)
+                                    .then(() => {
+                                      queryClient.invalidateQueries({ queryKey: ["client_sessions"] });
+                                      toast.success("Moved to Hall");
+                                    });
+                                }
+                              }}
+                              className={`px-3 py-1 text-xs rounded hover:bg-muted transition-colors text-left ${!p.isLive && p.isCheckedIn ? "bg-primary/10 text-primary font-medium" : "text-foreground"}`}
+                            >
+                              Hall
                             </button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-1" align="center">
-                            <div className="flex flex-col gap-0.5 max-h-[200px] overflow-y-auto">
-                              {tables.filter(t => t.status === "open" && t.name !== p.tableName).map(t => (
-                                <button
-                                  key={t.id}
-                                  onClick={() => changeTable.mutate({ playerId: p.id, tableId: t.id, avgBet: 0 })}
-                                  className="px-3 py-1 text-xs rounded hover:bg-muted transition-colors text-left font-mono text-foreground"
-                                >
-                                  {t.name}
-                                </button>
-                              ))}
-                            </div>
-                          </PopoverContent>
-                        </Popover>
-                      ) : (
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <button className="text-muted-foreground/40 hover:text-primary transition-colors cursor-pointer">
-                              <MapPin className="w-3.5 h-3.5 inline" />
+                            <button
+                              onClick={() => {
+                                if (p.isLive) {
+                                  supabase
+                                    .from("client_sessions")
+                                    .update({ stopped_at: new Date().toISOString() })
+                                    .eq("casino_id", casinoId!)
+                                    .eq("player_id", p.id)
+                                    .is("stopped_at", null)
+                                    .then(() => {
+                                      queryClient.invalidateQueries({ queryKey: ["client_sessions"] });
+                                    });
+                                }
+                                toast.success("Moved to Slots");
+                              }}
+                              className="px-3 py-1 text-xs rounded hover:bg-muted transition-colors text-left text-foreground"
+                            >
+                              Slots
                             </button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-1" align="center">
-                            <div className="flex flex-col gap-0.5 max-h-[200px] overflow-y-auto">
-                              {tables.filter(t => t.status === "open").map(t => (
-                                <button
-                                  key={t.id}
-                                  onClick={() => changeTable.mutate({ playerId: p.id, tableId: t.id, avgBet: 0 })}
-                                  className="px-3 py-1 text-xs rounded hover:bg-muted transition-colors text-left font-mono text-foreground"
-                                >
-                                  {t.name}
-                                </button>
-                              ))}
-                            </div>
-                          </PopoverContent>
-                        </Popover>
-                      )}
+                          </div>
+                        </PopoverContent>
+                      </Popover>
                     </TableCell>
                     <TableCell className="text-center text-[10px] font-mono text-muted-foreground">
                       {p.firstSeen
