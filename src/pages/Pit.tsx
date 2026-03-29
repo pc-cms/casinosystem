@@ -391,11 +391,14 @@ const RotaGrid = ({ month }: { month: string }) => {
     return counts;
   };
 
-  const renderDealerRows = (dealerList: any[], label: string, badgeClass: string) => (
+  const renderDealerRows = (dealerList: any[], label: string, accentColor: string) => (
     <>
-      <tr className="bg-muted/20">
-        <td colSpan={days.length + 5} className="px-3 py-1.5 sticky left-0">
-          <Badge variant="outline" className={`text-[10px] ${badgeClass}`}>{label} ({dealerList.length})</Badge>
+      <tr>
+        <td colSpan={days.length + 5} className="px-0 py-0 sticky left-0">
+          <div className={`flex items-center gap-2 px-3 py-1 border-b-2 ${accentColor}`}>
+            <span className="text-[10px] font-mono font-semibold uppercase tracking-wider">{label}</span>
+            <span className="text-[10px] font-mono text-muted-foreground">({dealerList.length})</span>
+          </div>
         </td>
       </tr>
       {dealerList.map((dealer: any, idx: number) => {
@@ -467,8 +470,8 @@ const RotaGrid = ({ month }: { month: string }) => {
             </tr>
           </thead>
           <tbody>
-            {renderDealerRows(activeDealers, "Dealers", "bg-blue-500/20 text-blue-400 border-blue-500/30")}
-            {pitBosses.length > 0 && renderDealerRows(pitBosses, "Pit Bosses", "bg-purple-500/20 text-purple-400 border-purple-500/30")}
+            {renderDealerRows(activeDealers, "Dealers", "border-blue-500/50 text-blue-400")}
+            {pitBosses.length > 0 && renderDealerRows(pitBosses, "Pit Bosses", "border-purple-500/50 text-purple-400")}
           </tbody>
         </table>
       </div>
@@ -528,11 +531,14 @@ const AttendanceGrid = ({ month }: { month: string }) => {
     }, 0);
   };
 
-  const renderAttendanceRows = (dealerList: any[], label: string, badgeClass: string) => (
+  const renderAttendanceRows = (dealerList: any[], label: string, accentColor: string) => (
     <>
-      <tr className="bg-muted/20">
-        <td colSpan={days.length + 3} className="px-3 py-1.5 sticky left-0">
-          <Badge variant="outline" className={`text-[10px] ${badgeClass}`}>{label} ({dealerList.length})</Badge>
+      <tr>
+        <td colSpan={days.length + 3} className="px-0 py-0 sticky left-0">
+          <div className={`flex items-center gap-2 px-3 py-1 border-b-2 ${accentColor}`}>
+            <span className="text-[10px] font-mono font-semibold uppercase tracking-wider">{label}</span>
+            <span className="text-[10px] font-mono text-muted-foreground">({dealerList.length})</span>
+          </div>
         </td>
       </tr>
       {dealerList.map((dealer: any, idx: number) => {
@@ -610,8 +616,8 @@ const AttendanceGrid = ({ month }: { month: string }) => {
             </tr>
           </thead>
           <tbody>
-            {renderAttendanceRows(activeDealers, "Dealers", "bg-blue-500/20 text-blue-400 border-blue-500/30")}
-            {pitBosses.length > 0 && renderAttendanceRows(pitBosses, "Pit Bosses", "bg-purple-500/20 text-purple-400 border-purple-500/30")}
+            {renderAttendanceRows(activeDealers, "Dealers", "border-blue-500/50 text-blue-400")}
+            {pitBosses.length > 0 && renderAttendanceRows(pitBosses, "Pit Bosses", "border-purple-500/50 text-purple-400")}
           </tbody>
         </table>
       </div>
