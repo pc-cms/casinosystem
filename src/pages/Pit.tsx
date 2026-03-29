@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChevronLeft, ChevronRight, UserPlus, ArrowUpDown, ZoomIn, ZoomOut, RefreshCw, Check } from "lucide-react";
 import BreaklistGrid from "@/components/pit/BreaklistGrid";
+import { isBusinessToday } from "@/lib/business-day";
 
 const ROTA_SHIFTS = ["M", "N", "L", "E"] as const;
 
