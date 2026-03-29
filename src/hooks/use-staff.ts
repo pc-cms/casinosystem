@@ -10,6 +10,9 @@ export interface StaffMember {
   name: string;
   department: StaffDepartment;
   is_active: boolean;
+  salary: number | null;
+  contract_start: string | null;
+  contract_end: string | null;
   created_at: string;
 }
 
