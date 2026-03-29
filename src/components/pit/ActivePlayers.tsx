@@ -581,41 +581,39 @@ const ActivePlayers = () => {
                             ))}
                             <div className="border-t border-border my-0.5" />
                             <button
-                              onClick={() => {
+                              onClick={async () => {
                                 if (p.isLive) {
-                                  supabase
+                                  await supabase
                                     .from("client_sessions")
                                     .update({ stopped_at: new Date().toISOString() })
                                     .eq("casino_id", casinoId!)
                                     .eq("player_id", p.id)
-                                    .is("stopped_at", null)
-                                    .then(() => {
-                                      queryClient.invalidateQueries({ queryKey: ["client_sessions"] });
-                                      toast.success("Moved to Hall");
-                                    });
+                                    .is("stopped_at", null);
+                                  queryClient.invalidateQueries({ queryKey: ["client_sessions"] });
                                 }
+                                toast.success("Moved to Hall");
                               }}
-                              className={`px-3 py-1 text-xs rounded hover:bg-muted transition-colors text-left ${!p.isLive && p.isCheckedIn ? "bg-primary/10 text-primary font-medium" : "text-foreground"}`}
+                              className={`px-3 py-1 text-xs rounded transition-colors text-left flex items-center gap-1.5 ${!p.isLive && p.isCheckedIn ? "bg-sky-500/15 text-sky-400 font-medium" : "text-foreground hover:bg-sky-500/10 hover:text-sky-400"}`}
                             >
+                              <span className="w-1.5 h-1.5 rounded-full bg-sky-400 shrink-0" />
                               Hall
                             </button>
                             <button
-                              onClick={() => {
+                              onClick={async () => {
                                 if (p.isLive) {
-                                  supabase
+                                  await supabase
                                     .from("client_sessions")
                                     .update({ stopped_at: new Date().toISOString() })
                                     .eq("casino_id", casinoId!)
                                     .eq("player_id", p.id)
-                                    .is("stopped_at", null)
-                                    .then(() => {
-                                      queryClient.invalidateQueries({ queryKey: ["client_sessions"] });
-                                    });
+                                    .is("stopped_at", null);
+                                  queryClient.invalidateQueries({ queryKey: ["client_sessions"] });
                                 }
                                 toast.success("Moved to Slots");
                               }}
-                              className="px-3 py-1 text-xs rounded hover:bg-muted transition-colors text-left text-foreground"
+                              className="px-3 py-1 text-xs rounded transition-colors text-left flex items-center gap-1.5 text-foreground hover:bg-amber-500/10 hover:text-amber-400"
                             >
+                              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
                               Slots
                             </button>
                           </div>
