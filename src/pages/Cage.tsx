@@ -71,16 +71,17 @@ const CashDenomInput = ({ values, onChange, denoms, currency, onSubmit }: {
   const total = cashSum(values);
 
   return (
-    <div className="space-y-2">
+    <div>
+      <div className="space-y-0.5">
       {denoms.map((d, idx) => (
-        <div key={d} className="grid grid-cols-[4rem_minmax(0,1fr)] items-center gap-2">
-          <span className="cms-chip text-[9px] bg-muted text-foreground h-8 w-16 shrink-0 justify-center">
+        <div key={d} className="grid grid-cols-[3.5rem_minmax(0,1fr)] items-center gap-1.5">
+          <span className="cms-chip text-[8px] bg-muted text-foreground h-6 w-14 shrink-0 justify-center">
             {formatCashDenomLabel(d, currency)}
           </span>
           <input
             ref={el => { refs.current[d] = el; }}
             type="number"
-            className="no-spin font-mono text-sm h-8 w-full min-w-0 rounded border border-border bg-background px-2 text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            className="no-spin font-mono text-xs h-6 w-full min-w-0 rounded border border-border bg-background px-1.5 text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
             value={values[d] || ""}
             onChange={e => onChange({ ...values, [d]: Number(e.target.value) || 0 })}
             onKeyDown={e => {
@@ -96,9 +97,10 @@ const CashDenomInput = ({ values, onChange, denoms, currency, onSubmit }: {
           />
         </div>
       ))}
-      <div className="flex items-center justify-between gap-2 pt-2 border-t border-border">
-        <span className="text-xs font-medium text-muted-foreground">Total</span>
-        <span className="font-mono text-sm font-bold text-card-foreground">
+      </div>
+      <div className="flex items-center justify-between gap-2 pt-1 mt-1 border-t border-border">
+        <span className="text-[10px] font-medium text-muted-foreground">Total</span>
+        <span className="font-mono text-xs font-bold text-card-foreground">
           {currency === "TZS" ? `TZS ${formatNumberSpaces(total)}` : `${CURRENCY_SYMBOLS[currency] || currency}${formatNumberSpaces(total)}`}
         </span>
       </div>
@@ -216,19 +218,19 @@ const LockableSection = ({
 }: {
   title: string; locked: boolean; onToggleLock: () => void; children: React.ReactNode; isManagerOverride?: boolean;
 }) => (
-  <section className={`rounded-xl border p-4 space-y-3 transition-colors ${locked ? "border-primary/40 bg-primary/5" : "border-border bg-background/40"}`}>
+  <section className={`rounded-lg border px-3 py-2 space-y-1.5 transition-colors ${locked ? "border-primary/40 bg-primary/5" : "border-border bg-background/40"}`}>
     <div className="flex items-center justify-between gap-2">
-      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.22em]">{title}</p>
+      <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-[0.22em]">{title}</p>
       <button
         type="button"
         onClick={onToggleLock}
-        className={`flex items-center gap-1 text-[10px] font-medium uppercase tracking-wider px-2 py-1 rounded-md transition-colors ${
+        className={`flex items-center gap-0.5 text-[9px] font-medium uppercase tracking-wider px-1.5 py-0.5 rounded transition-colors ${
           locked
             ? "bg-primary/10 text-primary"
             : "bg-muted/50 text-muted-foreground hover:bg-muted"
         }`}
       >
-        {locked ? <Lock className="w-3 h-3" /> : <Unlock className="w-3 h-3" />}
+        {locked ? <Lock className="w-2.5 h-2.5" /> : <Unlock className="w-2.5 h-2.5" />}
         {locked ? "Locked" : "Lock"}
       </button>
     </div>
