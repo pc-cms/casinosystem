@@ -99,7 +99,7 @@ const CashDenomInput = ({ values, onChange, denoms, currency, onSubmit }: {
       <div className="flex items-center justify-between gap-2 pt-2 border-t border-border">
         <span className="text-xs font-medium text-muted-foreground">Total</span>
         <span className="font-mono text-sm font-bold text-card-foreground">
-          {currency === "TZS" ? `TZS ${formatNumberSpaces(total)}` : `${sym}${formatNumberSpaces(total)}`}
+          {currency === "TZS" ? `TZS ${formatNumberSpaces(total)}` : `${CURRENCY_SYMBOLS[currency] || currency}${formatNumberSpaces(total)}`}
         </span>
       </div>
     </div>
