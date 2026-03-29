@@ -1,19 +1,29 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useGamingTables, useTableTracker, useSetTableTrackerValue } from "@/hooks/use-casino-data";
 import { Input } from "@/components/ui/input";
 import { formatCurrency } from "@/lib/currency";
 
+// 18:00 → 05:00, 30-minute intervals
 const generateSlots = () => {
   const slots: string[] = [];
-  for (let h = 14; h <= 29; h++) {
+  for (let h = 18; h <= 28; h++) { // 28 = 04:xx next day
     for (let m = 0; m < 60; m += 30) {
-      slots.push(`${String(h % 24).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
+      if (h === 29) break;
+      const hour = h % 24;
+      slots.push(`${String(hour).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
     }
   }
   return slots;
 };
 
 const SLOTS = generateSlots();
+
+const getCurrentSlot = () => {
+  const now = new Date();
+  const h = now.getHours();
+  const m = Math.floor(now.getMinutes() / 30) * 30;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+};
 
 const TableTracker = () => {
   const today = new Date().toISOString().split("T")[0];
@@ -23,18 +33,19 @@ const TableTracker = () => {
   const setValue = useSetTableTrackerValue();
 
   const openTables = tables.filter(t => t.status === "open");
+  const isToday = date === today;
+  const currentSlot = useMemo(() => getCurrentSlot(), []);
 
   const getVal = useCallback((tableId: string, slot: string) => {
     const entry = trackerData.find(t => t.table_id === tableId && t.time_slot === slot);
     return entry ? Number(entry.value) : null;
   }, [trackerData]);
 
-  // Save on blur or Enter — no save button
   const handleSave = (tableId: string, slot: string, val: string) => {
     const numVal = Number(val);
     if (isNaN(numVal)) return;
     const current = getVal(tableId, slot);
-    if (current === numVal) return; // skip if unchanged
+    if (current === numVal) return;
     setValue.mutate({ table_id: tableId, date, time_slot: slot, value: numVal });
   };
 
@@ -46,12 +57,10 @@ const TableTracker = () => {
 
   const grandTotal = trackerData.reduce((s, t) => s + Number(t.value), 0);
 
-  // Tab/Enter navigation between cells
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, tableIdx: number, slotIdx: number) => {
     if (e.key === "Enter" || (e.key === "Tab" && !e.shiftKey)) {
       e.preventDefault();
-      (e.target as HTMLInputElement).blur(); // triggers save
-      // Focus next cell
+      (e.target as HTMLInputElement).blur();
       const nextSlot = slotIdx + 1;
       const nextTable = tableIdx + 1;
       let nextId: string;
@@ -79,21 +88,36 @@ const TableTracker = () => {
           <table className="w-full border-collapse">
             <thead>
               <tr className="border-b border-border">
-                <th className="text-left text-xs font-medium text-muted-foreground uppercase px-3 py-2 sticky left-0 bg-card z-10 min-w-[100px]">Table</th>
-                {SLOTS.map(slot => (
-                  <th key={slot} className="text-center text-[10px] font-mono text-muted-foreground px-1 py-2 min-w-[70px]">{slot}</th>
-                ))}
+                <th className="text-left text-xs font-medium text-muted-foreground uppercase px-3 py-2 sticky left-0 bg-card z-10 min-w-[100px]">
+                  Table
+                </th>
+                {SLOTS.map(slot => {
+                  const isActive = isToday && slot === currentSlot;
+                  return (
+                    <th
+                      key={slot}
+                      className={`text-center text-[10px] font-mono px-1 py-2 min-w-[70px] ${
+                        isActive ? "bg-primary/20 text-primary font-bold" : "text-muted-foreground"
+                      }`}
+                    >
+                      {slot}
+                    </th>
+                  );
+                })}
                 <th className="text-right text-xs font-medium text-muted-foreground uppercase px-3 py-2 min-w-[80px]">Total</th>
               </tr>
             </thead>
             <tbody>
               {openTables.map((table, ti) => (
-                <tr key={table.id} className="border-b border-border last:border-0">
-                  <td className="px-3 py-1 text-xs font-medium text-card-foreground sticky left-0 bg-card z-10">{table.name}</td>
+                <tr key={table.id} className={`border-b border-border last:border-0 ${ti % 2 === 1 ? "bg-muted/10" : ""}`}>
+                  <td className={`px-3 py-1 text-xs font-medium text-card-foreground sticky left-0 z-10 ${ti % 2 === 1 ? "bg-card/95" : "bg-card"}`}>
+                    {table.name}
+                  </td>
                   {SLOTS.map((slot, si) => {
                     const val = getVal(table.id, slot);
+                    const isActive = isToday && slot === currentSlot;
                     return (
-                      <td key={slot} className="px-0.5 py-0.5">
+                      <td key={slot} className={`px-0.5 py-0.5 ${isActive ? "bg-primary/5" : ""}`}>
                         <input
                           id={`cell-${ti}-${si}`}
                           type="number"
@@ -101,7 +125,9 @@ const TableTracker = () => {
                           key={`${table.id}-${slot}-${val}`}
                           onBlur={e => handleSave(table.id, slot, e.target.value)}
                           onKeyDown={e => handleKeyDown(e, ti, si)}
-                          className="w-full h-7 text-center text-xs font-mono bg-transparent border border-border rounded px-1 focus:border-primary focus:outline-none text-card-foreground"
+                          className={`w-full h-7 text-center text-xs font-mono bg-transparent border border-border rounded px-1 focus:border-primary focus:outline-none text-card-foreground no-spin ${
+                            isActive ? "border-primary/30" : ""
+                          }`}
                           placeholder="·"
                         />
                       </td>
@@ -114,11 +140,14 @@ const TableTracker = () => {
               ))}
               <tr className="border-t-2 border-primary/30 bg-muted/30">
                 <td className="px-3 py-2 text-xs font-bold text-card-foreground uppercase sticky left-0 bg-muted/30 z-10">Totals</td>
-                {SLOTS.map(slot => (
-                  <td key={slot} className="px-1 py-2 text-center font-mono text-[10px] font-bold text-card-foreground">
-                    {getSlotTotal(slot) ? formatCurrency(getSlotTotal(slot)) : "·"}
-                  </td>
-                ))}
+                {SLOTS.map(slot => {
+                  const isActive = isToday && slot === currentSlot;
+                  return (
+                    <td key={slot} className={`px-1 py-2 text-center font-mono text-[10px] font-bold text-card-foreground ${isActive ? "bg-primary/10" : ""}`}>
+                      {getSlotTotal(slot) ? formatCurrency(getSlotTotal(slot)) : "·"}
+                    </td>
+                  );
+                })}
                 <td className="px-3 py-2 text-right font-mono text-sm font-bold text-primary">
                   {formatCurrency(grandTotal)}
                 </td>
