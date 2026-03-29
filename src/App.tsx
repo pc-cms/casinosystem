@@ -53,9 +53,18 @@ const RoleGuard = ({ path, children }: { path: string; children: React.ReactNode
   const { roles } = useAuth();
   const allowed = ROUTE_ROLES[path];
   if (allowed && !roles.some(r => allowed.includes(r))) {
-    return <Navigate to="/" replace />;
+    // Cashiers blocked from dashboard → send to cage
+    const fallback = roles.includes("cashier") ? "/cage" : "/";
+    return <Navigate to={path === "/" ? fallback : "/"} replace />;
   }
   return <>{children}</>;
+};
+
+const getDefaultRoute = (roles: string[]) => {
+  if (roles.includes("cashier") && !roles.some(r => ["manager", "pit", "reception", "finance_manager", "security"].includes(r))) {
+    return "/cage";
+  }
+  return "/";
 };
 
 const ProtectedRoutes = () => {
