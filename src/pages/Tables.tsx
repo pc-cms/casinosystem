@@ -179,55 +179,22 @@ const TrackerContent = () => {
 // ========== TABLES CONTENT ==========
 const TablesContent = () => {
   const today = new Date().toISOString().split("T")[0];
-  const [date, setDate] = useState(today);
+  const [date] = useState(today);
   const { data: tables = [] } = useGamingTables();
-  const { data: transactions = [] } = useTransactions(date);
-  const { data: shift } = useActiveShift();
-  const { data: snapshots = [] } = useChipSnapshots(date);
   const { data: baseline = [] } = useChipBaseline();
   const batchSnapshot = useBatchChipSnapshot();
-  const openAllTables = useOpenAllTables();
   const setTableResults = useSetTableResults();
 
   const [counts, setCounts] = useState<Record<string, Record<number, number>>>({});
   const [showCount, setShowCount] = useState(false);
   const [countMode, setCountMode] = useState<"save" | "result">("save");
-  const [showResultSummary, setShowResultSummary] = useState(false);
 
   // Baseline map: { tableId: { denom: qty } }
   const baselineMap = useMemo(() => baselineToMap(baseline), [baseline]);
 
-  const closedTables = useMemo(() => tables.filter(t => t.status === "closed"), [tables]);
   const openTables = useMemo(() => tables.filter(t => t.status === "open"), [tables]);
-  const allClosed = closedTables.length === tables.length && tables.length > 0;
-  const allOpen = openTables.length === tables.length && tables.length > 0;
   const tablesWithResults = useMemo(() => tables.filter(t => t.closing_result !== null && t.status === "open"), [tables]);
   const hasResults = tablesWithResults.length > 0;
-
-  const { data: trackerData = [] } = useTableTracker(date);
-
-  const shiftTransactions = useMemo(() => {
-    if (!shift) return transactions;
-    return transactions.filter(t => t.shift_id === shift.id);
-  }, [transactions, shift]);
-
-  const tableStats = useMemo(() => {
-    const stats: Record<string, { dropR: number; dropV: number; result: number }> = {};
-    tables.forEach(t => {
-      // Drop R = buy-ins from cashier
-      const dropR = shiftTransactions
-        .filter(tx => tx.table_id === t.id && tx.type === "buy")
-        .reduce((s, tx) => s + Number(tx.amount), 0);
-      // Drop V = sum from tracker
-      const dropV = trackerData
-        .filter(tr => tr.table_id === t.id)
-        .reduce((s, tr) => s + Number(tr.value), 0);
-      // Result = from chip count if available, otherwise from tracker
-      const result = t.closing_result !== null ? Number(t.closing_result) : dropV;
-      stats[t.id] = { dropR, dropV, result };
-    });
-    return stats;
-  }, [tables, shiftTransactions, trackerData]);
 
   // Locations for chip count dialog (only tables)
   const locations = useMemo(() => {
