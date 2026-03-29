@@ -769,7 +769,22 @@ export const useSetTableTrackerValue = () => {
       if (result.error) throw new Error(result.error);
       return { offline: result.offline };
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["table-tracker"] }); },
+    onMutate: async (input) => {
+      await qc.cancelQueries({ queryKey: ["table-tracker"] });
+      const queries = qc.getQueriesData<any[]>({ queryKey: ["table-tracker"] });
+      queries.forEach(([key, data]) => {
+        if (!data) return;
+        const idx = data.findIndex((t: any) => t.table_id === input.table_id && t.time_slot === input.time_slot);
+        const updated = [...data];
+        const entry = { table_id: input.table_id, date: input.date, time_slot: input.time_slot, value: input.value, casino_id: casinoId, id: `temp-${Date.now()}` };
+        if (idx >= 0) { updated[idx] = { ...updated[idx], value: input.value }; } else { updated.push(entry); }
+        qc.setQueryData(key, updated);
+      });
+    },
+    onError: (_err) => {
+      toast.error("Sync error (tracker) — will retry", { duration: 2000 });
+    },
+    onSettled: () => {},
   });
 };
 
