@@ -13,6 +13,7 @@ export interface StaffMember {
   salary: number | null;
   contract_start: string | null;
   contract_end: string | null;
+  onboarding_date: string | null;
   created_at: string;
 }
 
@@ -82,7 +83,7 @@ export const useCreateStaffMember = () => {
 export const useUpdateStaffMember = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, ...fields }: { id: string; salary?: number | null; contract_start?: string | null; contract_end?: string | null; is_active?: boolean }) => {
+    mutationFn: async ({ id, ...fields }: { id: string; salary?: number | null; contract_start?: string | null; contract_end?: string | null; onboarding_date?: string | null; is_active?: boolean }) => {
       const { error } = await supabase
         .from("staff_members")
         .update(fields)

@@ -412,12 +412,23 @@ export const useCreateDealer = () => {
   const qc = useQueryClient();
   const { casinoId } = useAuth();
   return useMutation({
-    mutationFn: async (name: string) => {
+    mutationFn: async ({ name, category, is_pit_boss }: { name: string; category: string; is_pit_boss: boolean }) => {
       if (!casinoId) throw new Error("No casino");
-      const { error } = await supabase.from("dealers").insert({ casino_id: casinoId, name });
+      const { error } = await supabase.from("dealers").insert({ casino_id: casinoId, name, category: category as any, is_pit_boss });
       if (error) throw error;
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["dealers"] }); toast.success("Dealer added"); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["dealers"] }); toast.success("Staff added"); },
+  });
+};
+
+export const useUpdateDealer = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...fields }: { id: string; salary?: number | null; contract_start?: string | null; contract_end?: string | null; onboarding_date?: string | null; is_active?: boolean; category?: string; is_pit_boss?: boolean }) => {
+      const { error } = await supabase.from("dealers").update(fields as any).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["dealers"] }),
   });
 };
 

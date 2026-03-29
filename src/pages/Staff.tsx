@@ -138,33 +138,50 @@ const Staff = () => {
 };
 
 // =================== EMPLOYEE LIST (UNIFIED TABLE WITH SORTING) ===================
+const getDaysLeft = (contractEnd: string | null): number | null => {
+  if (!contractEnd) return null;
+  const end = new Date(contractEnd);
+  const now = new Date();
+  return Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+};
+
 const EmployeeList = () => {
   const { data: staff = [] } = useStaffMembers();
   const createStaff = useCreateStaffMember();
   const updateStaff = useUpdateStaffMember();
   const [name, setName] = useState("");
   const [dept, setDept] = useState<StaffDepartment>("waiter");
-  const [sortBy, setSortBy] = useState<"department" | "name">("department");
+  const [sortBy, setSortBy] = useState<string>("department");
   const [filterDept, setFilterDept] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("active");
   const [editingCell, setEditingCell] = useState<{ id: string; field: string } | null>(null);
   const [editValue, setEditValue] = useState("");
 
   const sorted = useMemo(() => {
-    let list = [...staff];
+    let list = [...staff] as any[];
     if (filterDept !== "all") list = list.filter(s => s.department === filterDept);
     if (filterStatus === "active") list = list.filter(s => s.is_active);
     else if (filterStatus === "fired") list = list.filter(s => !s.is_active);
-    if (sortBy === "department") {
-      list.sort((a, b) => {
-        const dA = DEPARTMENT_ORDER.indexOf(a.department as StaffDepartment);
-        const dB = DEPARTMENT_ORDER.indexOf(b.department as StaffDepartment);
-        if (dA !== dB) return dA - dB;
-        return a.name.localeCompare(b.name);
-      });
-    } else {
-      list.sort((a, b) => a.name.localeCompare(b.name));
-    }
+
+    list.sort((a, b) => {
+      switch (sortBy) {
+        case "department": {
+          const dA = DEPARTMENT_ORDER.indexOf(a.department as StaffDepartment);
+          const dB = DEPARTMENT_ORDER.indexOf(b.department as StaffDepartment);
+          return dA !== dB ? dA - dB : a.name.localeCompare(b.name);
+        }
+        case "name": return a.name.localeCompare(b.name);
+        case "salary": return (b.salary || 0) - (a.salary || 0);
+        case "onboarding": return (a.onboarding_date || "9999").localeCompare(b.onboarding_date || "9999");
+        case "contract_end": return (a.contract_end || "9999").localeCompare(b.contract_end || "9999");
+        case "days_left": {
+          const daysA = getDaysLeft(a.contract_end);
+          const daysB = getDaysLeft(b.contract_end);
+          return (daysA ?? 99999) - (daysB ?? 99999);
+        }
+        default: return 0;
+      }
+    });
     return list;
   }, [staff, sortBy, filterDept, filterStatus]);
 
@@ -172,12 +189,8 @@ const EmployeeList = () => {
     if (!startDate) return "—";
     const start = new Date(startDate);
     const now = new Date();
-    const diffMs = now.getTime() - start.getTime();
-    const years = diffMs / (1000 * 60 * 60 * 24 * 365.25);
-    if (years < 1) {
-      const months = Math.floor(years * 12);
-      return `${months}m`;
-    }
+    const years = (now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
+    if (years < 1) return `${Math.floor(years * 12)}m`;
     return `${Math.floor(years)}y ${Math.floor((years % 1) * 12)}m`;
   };
 
@@ -197,7 +210,7 @@ const EmployeeList = () => {
     if (field === "salary") {
       const num = parseInt(editValue.replace(/\s/g, ""), 10);
       updateStaff.mutate({ id, salary: isNaN(num) ? null : num });
-    } else if (field === "contract_start" || field === "contract_end") {
+    } else if (field === "contract_start" || field === "contract_end" || field === "onboarding_date") {
       updateStaff.mutate({ id, [field]: editValue || null });
     }
     setEditingCell(null);
@@ -208,13 +221,15 @@ const EmployeeList = () => {
     if (e.key === "Escape") setEditingCell(null);
   };
 
-  const toggleStatus = (id: string, currentActive: boolean) => {
-    updateStaff.mutate({ id, is_active: !currentActive });
-  };
+  const SortHeader = ({ field, label }: { field: string; label: string }) => (
+    <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-2 cursor-pointer select-none hover:text-foreground transition-colors"
+      onClick={() => setSortBy(field)}>
+      <span className="inline-flex items-center gap-1">{label} {sortBy === field && <ArrowUpDown className="w-3 h-3" />}</span>
+    </th>
+  );
 
   return (
     <div className="space-y-4">
-      {/* Filters + Add form in one row */}
       <div className="flex gap-2 items-center flex-wrap">
         <Select value={filterDept} onValueChange={setFilterDept}>
           <SelectTrigger className="w-[160px]"><SelectValue placeholder="Department" /></SelectTrigger>
@@ -233,9 +248,7 @@ const EmployeeList = () => {
             <SelectItem value="fired">Fired</SelectItem>
           </SelectContent>
         </Select>
-
         <div className="w-px h-6 bg-border mx-1" />
-
         <Input placeholder="Name" value={name} onChange={e => setName(e.target.value)} className="w-[200px]"
           onKeyDown={e => { if (e.key === "Enter" && name) { createStaff.mutate({ name, department: dept }); setName(""); } }}
         />
@@ -252,68 +265,76 @@ const EmployeeList = () => {
         </Button>
       </div>
 
-      {/* Unified table */}
       <div className="cms-panel overflow-x-auto">
         <table className="w-full">
           <thead>
             <tr className="border-b border-border">
-              <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-2 cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => setSortBy("name")}>
-                <span className="inline-flex items-center gap-1">Name {sortBy === "name" && <ArrowUpDown className="w-3 h-3" />}</span>
-              </th>
-              <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-2 cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => setSortBy("department")}>
-                <span className="inline-flex items-center gap-1">Department {sortBy === "department" && <ArrowUpDown className="w-3 h-3" />}</span>
-              </th>
-              <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-2">Salary</th>
+              <SortHeader field="name" label="Name" />
+              <SortHeader field="department" label="Department" />
+              <SortHeader field="salary" label="Salary" />
+              <SortHeader field="onboarding" label="Onboarding" />
               <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-2">Contract Start</th>
-              <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-2">Contract End</th>
+              <SortHeader field="contract_end" label="Contract End" />
               <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-2">Years</th>
+              <SortHeader field="days_left" label="Days Left" />
               <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-2">Status</th>
             </tr>
           </thead>
           <tbody>
-            {sorted.map((s: any) => (
-              <tr key={s.id} className={`border-b border-border last:border-0 ${DEPT_ROW_COLORS[s.department] || ""}`}>
-                <td className="px-4 py-2 text-sm text-card-foreground font-medium">{s.name}</td>
-                <td className="px-4 py-2">
-                  <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-medium border ${DEPT_BADGE_COLORS[s.department] || ""}`}>
-                    <span className={`w-1.5 h-1.5 rounded-full ${DEPT_DOT_COLORS[s.department] || "bg-muted-foreground"}`} />
-                    {DEPARTMENT_LABELS[s.department as StaffDepartment]}
-                  </span>
-                </td>
-                {/* Salary - editable */}
-                <td className="px-4 py-2 text-sm text-card-foreground font-mono cursor-pointer hover:bg-muted/30"
-                  onClick={() => startEdit(s.id, "salary", s.salary?.toString() || "")}>
-                  {editingCell?.id === s.id && editingCell.field === "salary" ? (
-                    <Input className="h-7 w-24 font-mono text-sm" value={editValue} autoFocus
-                      onChange={e => setEditValue(e.target.value)} onBlur={saveEdit} onKeyDown={handleEditKeyDown} />
-                  ) : formatSalary(s.salary)}
-                </td>
-                {/* Contract Start - editable */}
-                <td className="px-4 py-2 text-sm text-muted-foreground font-mono cursor-pointer hover:bg-muted/30"
-                  onClick={() => startEdit(s.id, "contract_start", s.contract_start || "")}>
-                  {editingCell?.id === s.id && editingCell.field === "contract_start" ? (
-                    <input type="date" className="h-7 bg-background border border-border rounded px-2 text-sm font-mono text-foreground"
-                      value={editValue} autoFocus onChange={e => { setEditValue(e.target.value); }} onBlur={saveEdit} onKeyDown={handleEditKeyDown} />
-                  ) : s.contract_start || "—"}
-                </td>
-                {/* Contract End - editable */}
-                <td className="px-4 py-2 text-sm text-muted-foreground font-mono cursor-pointer hover:bg-muted/30"
-                  onClick={() => startEdit(s.id, "contract_end", s.contract_end || "")}>
-                  {editingCell?.id === s.id && editingCell.field === "contract_end" ? (
-                    <input type="date" className="h-7 bg-background border border-border rounded px-2 text-sm font-mono text-foreground"
-                      value={editValue} autoFocus onChange={e => { setEditValue(e.target.value); }} onBlur={saveEdit} onKeyDown={handleEditKeyDown} />
-                  ) : s.contract_end || "—"}
-                </td>
-                <td className="px-4 py-2 text-sm text-muted-foreground font-mono">{calcYears(s.contract_start)}</td>
-                {/* Status - clickable toggle */}
-                <td className="px-4 py-2">
-                  <button onClick={() => toggleStatus(s.id, s.is_active)}
-                    className={`text-xs font-medium cursor-pointer hover:underline ${s.is_active ? "text-emerald-400" : "text-red-400"}`}>
-                    {s.is_active ? "Active" : "Fired"}
-                  </button>
-                </td>
-              </tr>
-            ))}
+            {sorted.map((s: any) => {
+              const daysLeft = getDaysLeft(s.contract_end);
+              return (
+                <tr key={s.id} className={`border-b border-border last:border-0 ${DEPT_ROW_COLORS[s.department] || ""}`}>
+                  <td className="px-4 py-2 text-sm text-card-foreground font-medium">{s.name}</td>
+                  <td className="px-4 py-2">
+                    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-medium border ${DEPT_BADGE_COLORS[s.department] || ""}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${DEPT_DOT_COLORS[s.department] || "bg-muted-foreground"}`} />
+                      {DEPARTMENT_LABELS[s.department as StaffDepartment]}
+                    </span>
+                  </td>
+                  <td className="px-4 py-2 text-sm text-card-foreground font-mono cursor-pointer hover:bg-muted/30"
+                    onClick={() => startEdit(s.id, "salary", s.salary?.toString() || "")}>
+                    {editingCell?.id === s.id && editingCell.field === "salary" ? (
+                      <Input className="h-7 w-24 font-mono text-sm" value={editValue} autoFocus
+                        onChange={e => setEditValue(e.target.value)} onBlur={saveEdit} onKeyDown={handleEditKeyDown} />
+                    ) : formatSalary(s.salary)}
+                  </td>
+                  <td className="px-4 py-2 text-sm text-muted-foreground font-mono cursor-pointer hover:bg-muted/30"
+                    onClick={() => startEdit(s.id, "onboarding_date", s.onboarding_date || "")}>
+                    {editingCell?.id === s.id && editingCell.field === "onboarding_date" ? (
+                      <input type="date" className="h-7 bg-background border border-border rounded px-2 text-sm font-mono text-foreground"
+                        value={editValue} autoFocus onChange={e => setEditValue(e.target.value)} onBlur={saveEdit} onKeyDown={handleEditKeyDown} />
+                    ) : s.onboarding_date || "—"}
+                  </td>
+                  <td className="px-4 py-2 text-sm text-muted-foreground font-mono cursor-pointer hover:bg-muted/30"
+                    onClick={() => startEdit(s.id, "contract_start", s.contract_start || "")}>
+                    {editingCell?.id === s.id && editingCell.field === "contract_start" ? (
+                      <input type="date" className="h-7 bg-background border border-border rounded px-2 text-sm font-mono text-foreground"
+                        value={editValue} autoFocus onChange={e => setEditValue(e.target.value)} onBlur={saveEdit} onKeyDown={handleEditKeyDown} />
+                    ) : s.contract_start || "—"}
+                  </td>
+                  <td className="px-4 py-2 text-sm text-muted-foreground font-mono cursor-pointer hover:bg-muted/30"
+                    onClick={() => startEdit(s.id, "contract_end", s.contract_end || "")}>
+                    {editingCell?.id === s.id && editingCell.field === "contract_end" ? (
+                      <input type="date" className="h-7 bg-background border border-border rounded px-2 text-sm font-mono text-foreground"
+                        value={editValue} autoFocus onChange={e => setEditValue(e.target.value)} onBlur={saveEdit} onKeyDown={handleEditKeyDown} />
+                    ) : s.contract_end || "—"}
+                  </td>
+                  <td className="px-4 py-2 text-sm text-muted-foreground font-mono">{calcYears(s.onboarding_date)}</td>
+                  <td className="px-4 py-2">
+                    <span className={`font-mono text-xs font-bold ${daysLeft === null ? "text-muted-foreground" : daysLeft <= 40 ? "text-red-400" : daysLeft <= 90 ? "text-amber-400" : "text-emerald-400"}`}>
+                      {daysLeft === null ? "—" : `${daysLeft}d`}
+                    </span>
+                  </td>
+                  <td className="px-4 py-2">
+                    <button onClick={() => updateStaff.mutate({ id: s.id, is_active: !s.is_active })}
+                      className={`text-xs font-medium cursor-pointer hover:underline ${s.is_active ? "text-emerald-400" : "text-red-400"}`}>
+                      {s.is_active ? "Active" : "Fired"}
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

@@ -607,6 +607,7 @@ export type Database = {
           is_active: boolean
           is_pit_boss: boolean
           name: string
+          onboarding_date: string | null
           salary: number | null
         }
         Insert: {
@@ -619,6 +620,7 @@ export type Database = {
           is_active?: boolean
           is_pit_boss?: boolean
           name: string
+          onboarding_date?: string | null
           salary?: number | null
         }
         Update: {
@@ -631,6 +633,7 @@ export type Database = {
           is_active?: boolean
           is_pit_boss?: boolean
           name?: string
+          onboarding_date?: string | null
           salary?: number | null
         }
         Relationships: [
@@ -1182,6 +1185,7 @@ export type Database = {
           id: string
           is_active: boolean
           name: string
+          onboarding_date: string | null
           salary: number | null
         }
         Insert: {
@@ -1193,6 +1197,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           name: string
+          onboarding_date?: string | null
           salary?: number | null
         }
         Update: {
@@ -1204,6 +1209,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           name?: string
+          onboarding_date?: string | null
           salary?: number | null
         }
         Relationships: [
@@ -1523,7 +1529,12 @@ export type Database = {
         | "finance_manager"
         | "security"
       card_type: "manual" | "rfid"
-      dealer_category: "trainee" | "dealer" | "inspector" | "expert"
+      dealer_category:
+        | "trainee"
+        | "dealer"
+        | "inspector"
+        | "expert"
+        | "pit_boss"
       dealer_role:
         | "BJ"
         | "BJi"
@@ -1702,7 +1713,7 @@ export const Constants = {
         "security",
       ],
       card_type: ["manual", "rfid"],
-      dealer_category: ["trainee", "dealer", "inspector", "expert"],
+      dealer_category: ["trainee", "dealer", "inspector", "expert", "pit_boss"],
       dealer_role: [
         "BJ",
         "BJi",
