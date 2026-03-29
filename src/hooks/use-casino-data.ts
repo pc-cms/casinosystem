@@ -848,3 +848,22 @@ export const useRemoveGroupMember = () => {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["player-groups"] }); },
   });
 };
+
+// ============ CLIENT SESSIONS (for analytics drop) ============
+export const useClientSessionsTotalBet = () => {
+  const { casinoId } = useAuth();
+  return useQuery({
+    queryKey: ["client-sessions-total-bet", casinoId],
+    queryFn: async () => {
+      if (!casinoId) return 0;
+      const { data, error } = await supabase
+        .from("client_sessions")
+        .select("total_bet")
+        .eq("casino_id", casinoId)
+        .not("stopped_at", "is", null);
+      if (error) throw error;
+      return (data || []).reduce((sum, s) => sum + Number(s.total_bet || 0), 0);
+    },
+    enabled: !!casinoId,
+  });
+};

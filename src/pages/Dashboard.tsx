@@ -1,5 +1,5 @@
 import { Users, Landmark, Table2, Receipt, ArrowUpRight, ArrowDownRight } from "lucide-react";
-import { usePlayers, useTransactions, useGamingTables, useExpenses } from "@/hooks/use-casino-data";
+import { usePlayers, useTransactions, useGamingTables, useExpenses, useClientSessionsTotalBet } from "@/hooks/use-casino-data";
 import { useAuth } from "@/lib/auth-context";
 import { Link } from "react-router-dom";
 import { formatCurrency } from "@/lib/currency";
@@ -34,11 +34,13 @@ const Dashboard = () => {
   const { data: transactions = [] } = useTransactions();
   const { data: tables = [] } = useGamingTables();
   const { data: expenses = [] } = useExpenses();
+  const { data: sessionsTotalBet = 0 } = useClientSessionsTotalBet();
 
   const showFinancials = canSeePlayerFinancials(roles);
   const activePlayers = players.filter(p => p.status === "active").length;
   const openTables = tables.filter(t => t.status === "open").length;
-  const totalDrop = transactions.filter(t => t.type === "buy").reduce((s, t) => s + Number(t.amount), 0);
+  const buyInDrop = transactions.filter(t => t.type === "buy").reduce((s, t) => s + Number(t.amount), 0);
+  const totalDrop = buyInDrop + sessionsTotalBet;
   const pendingExpenses = expenses.filter(e => !e.approved).length;
 
   return (
