@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo, useRef } from "react";
 import { toast } from "sonner";
 import { usePlayers, useGamingTables, useTransactions, useCreateTransaction, useExpenses } from "@/hooks/use-casino-data";
 import { useActiveShift, useOpenShift, useCloseShift, useCreateCashCount, useCashCounts } from "@/hooks/use-shift";
@@ -10,38 +10,66 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowDownToLine, ArrowUpFromLine, Calculator, Play, Square, AlertTriangle, CheckCircle2, ClipboardCheck } from "lucide-react";
+import { ArrowDownToLine, ArrowUpFromLine, Calculator, Play, Square, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { CHIP_DENOMS, CHIP_COLORS, formatChipLabel, formatCurrency, CURRENCIES, DEFAULT_EXCHANGE_RATES, CASH_DENOMS } from "@/lib/currency";
+import {
+  CHIP_DENOMS, formatCurrency, CURRENCIES, FOREIGN_CURRENCIES,
+  DEFAULT_EXCHANGE_RATES, CASH_DENOMS, CURRENCY_SYMBOLS, formatCashDenomLabel,
+} from "@/lib/currency";
 import PlayerSearch from "@/components/cage/PlayerSearch";
 import ChipDenomInput from "@/components/ChipDenomInput";
 
-// Helper: sum chip values
+// ========== HELPERS ==========
 const chipSum = (chips: Record<number, number>) =>
   Object.entries(chips).reduce((s, [d, c]) => s + Number(d) * (c || 0), 0);
 
-// Helper: sum cash values
 const cashSum = (cash: Record<number, number>) =>
   Object.entries(cash).reduce((s, [d, c]) => s + Number(d) * (c || 0), 0);
 
-// Cash denomination input (single column, no spinners, keyboard-friendly)
-const CashDenomInput = ({ values, onChange, denoms, prefix, onSubmit }: {
+const emptyCash = (): Record<string, Record<number, number>> =>
+  Object.fromEntries(CURRENCIES.map(c => [c, {}]));
+
+const calcCashTotalTzs = (
+  cash: Record<string, Record<number, number>>,
+  rates: Record<string, number>,
+) =>
+  Object.entries(cash).reduce((sum, [cur, denoms]) => {
+    const t = cashSum(denoms);
+    const rate = cur === "TZS" ? 1 : (rates[cur] || 0);
+    return sum + t * rate;
+  }, 0);
+
+const calcGrandTotal = (
+  chips: Record<number, number>,
+  cash: Record<string, Record<number, number>>,
+  bank: number,
+  mobile: number,
+  rates: Record<string, number>,
+) => chipSum(chips) + calcCashTotalTzs(cash, rates) + bank + mobile;
+
+// ========== CASH DENOM INPUT ==========
+const CashDenomInput = ({ values, onChange, denoms, currency, onSubmit }: {
   values: Record<number, number>;
   onChange: (v: Record<number, number>) => void;
   denoms: number[];
-  prefix: string;
+  currency: string;
   onSubmit?: () => void;
 }) => {
   const refs = useRef<Record<number, HTMLInputElement | null>>({});
+  const sym = CURRENCY_SYMBOLS[currency] || currency;
+  const total = cashSum(values);
+
   return (
     <div className="space-y-1">
       {denoms.map((d, idx) => (
-        <div key={d} className="flex items-center gap-2">
-          <span className="cms-chip text-[9px] bg-muted text-foreground shrink-0 w-[40px] text-center">{prefix}{d.toLocaleString()}</span>
+        <div key={d} className="flex items-center gap-1.5">
+          <span className="cms-chip text-[9px] bg-muted text-foreground shrink-0 min-w-[36px] text-center">
+            {formatCashDenomLabel(d, currency)}
+          </span>
           <input
             ref={el => { refs.current[d] = el; }}
             type="number"
-            className="no-spin font-mono text-sm h-8 w-20 rounded border border-border bg-background px-2 text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            className="no-spin font-mono text-sm h-8 w-16 rounded border border-border bg-background px-2 text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
             value={values[d] || ""}
             onChange={e => onChange({ ...values, [d]: Number(e.target.value) || 0 })}
             onKeyDown={e => {
@@ -55,18 +83,68 @@ const CashDenomInput = ({ values, onChange, denoms, prefix, onSubmit }: {
             placeholder="0"
             inputMode="numeric"
           />
-          {(values[d] || 0) > 0 && (
-            <span className="text-[10px] font-mono text-muted-foreground">= {prefix}{((values[d] || 0) * d).toLocaleString()}</span>
-          )}
         </div>
       ))}
       <div className="flex items-center gap-2 pt-1 border-t border-border">
-        <span className="text-xs font-medium text-muted-foreground w-[40px] text-center">Total</span>
-        <span className="font-mono text-sm font-bold text-card-foreground">{prefix}{cashSum(values).toLocaleString()}</span>
+        <span className="text-xs font-medium text-muted-foreground">Total</span>
+        <span className="font-mono text-sm font-bold text-card-foreground">
+          {currency === "TZS" ? `TZS ${total.toLocaleString()}` : `${sym}${total.toLocaleString()}`}
+        </span>
       </div>
     </div>
   );
 };
+
+// ========== CASH COUNT GRID (shared across Open/Check/Close) ==========
+const CashCountGrid = ({
+  chips, onChipsChange,
+  cash, onCashChange,
+  bank, onBankChange,
+  mobile, onMobileChange,
+  chipPlaceholder,
+}: {
+  chips: Record<number, number>;
+  onChipsChange: (v: Record<number, number>) => void;
+  cash: Record<string, Record<number, number>>;
+  onCashChange: (currency: string, v: Record<number, number>) => void;
+  bank: number;
+  onBankChange: (v: number) => void;
+  mobile: number;
+  onMobileChange: (v: number) => void;
+  chipPlaceholder?: Record<number, number>;
+}) => (
+  <div>
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      {/* Column 1: TZS Chips */}
+      <div>
+        <p className="text-xs font-semibold text-card-foreground mb-2">TZS Chips</p>
+        <ChipDenomInput values={chips} onChange={onChipsChange} showValue={false} placeholder={chipPlaceholder} />
+      </div>
+      {/* Columns 2-6: Cash per currency */}
+      {CURRENCIES.map(cur => (
+        <div key={cur}>
+          <p className="text-xs font-semibold text-card-foreground mb-2">{cur} Cash</p>
+          <CashDenomInput
+            values={cash[cur] || {}}
+            onChange={v => onCashChange(cur, v)}
+            denoms={CASH_DENOMS[cur] || []}
+            currency={cur}
+          />
+        </div>
+      ))}
+    </div>
+    <div className="grid grid-cols-2 gap-3 mt-3">
+      <div>
+        <p className="text-[10px] font-medium text-muted-foreground uppercase mb-1">Bank (TZS)</p>
+        <Input type="number" min={0} value={bank || ""} onChange={e => onBankChange(Number(e.target.value) || 0)} className="font-mono no-spin" placeholder="0" />
+      </div>
+      <div>
+        <p className="text-[10px] font-medium text-muted-foreground uppercase mb-1">Mobile (TZS)</p>
+        <Input type="number" min={0} value={mobile || ""} onChange={e => onMobileChange(Number(e.target.value) || 0)} className="font-mono no-spin" placeholder="0" />
+      </div>
+    </div>
+  </div>
+);
 
 // =================== MAIN CAGE PAGE ===================
 const Cage = () => {
@@ -83,31 +161,34 @@ const OpenShiftScreen = ({ tables }: { tables: any[] }) => {
   const openShift = useOpenShift();
   const [rates, setRates] = useState<Record<string, number>>({ ...DEFAULT_EXCHANGE_RATES });
   const [openingChips, setOpeningChips] = useState<Record<number, number>>({});
-  const [openingUsd, setOpeningUsd] = useState<Record<number, number>>({});
-  const [openingEur, setOpeningEur] = useState<Record<number, number>>({});
+  const [openingCash, setOpeningCash] = useState<Record<string, Record<number, number>>>(emptyCash);
   const [bankBalance, setBankBalance] = useState(0);
   const [mobileBalance, setMobileBalance] = useState(0);
 
   const chipTotal = chipSum(openingChips);
-  const usdTotal = cashSum(openingUsd);
-  const eurTotal = cashSum(openingEur);
-  const openingTotal = chipTotal + (usdTotal * (rates.USD || 0)) + (eurTotal * (rates.EUR || 0)) + bankBalance + mobileBalance;
+  const openingTotal = calcGrandTotal(openingChips, openingCash, bankBalance, mobileBalance, rates);
 
   const handleOpen = () => {
     openShift.mutate({
       exchange_rates: rates,
       opening_float: {
         chips: openingChips,
-        cash: { USD: openingUsd, EUR: openingEur },
+        cash: openingCash,
         bank: bankBalance,
         mobile: mobileBalance,
-        totals: { TZS: chipTotal, USD: usdTotal, EUR: eurTotal, bank: bankBalance, mobile: mobileBalance, total_tzs: openingTotal },
+        totals: {
+          chips_tzs: chipTotal,
+          ...Object.fromEntries(CURRENCIES.map(c => [c, cashSum(openingCash[c] || {})])),
+          bank: bankBalance,
+          mobile: mobileBalance,
+          total_tzs: openingTotal,
+        },
       },
     });
   };
 
   return (
-    <div className="max-w-5xl mx-auto mt-8">
+    <div className="max-w-7xl mx-auto mt-8">
       <div className="cms-panel p-6">
         <div className="text-center mb-6">
           <Play className="w-12 h-12 text-primary mx-auto mb-4" />
@@ -118,10 +199,10 @@ const OpenShiftScreen = ({ tables }: { tables: any[] }) => {
         {/* Exchange Rates */}
         <div className="space-y-3 mb-6">
           <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider block">Exchange Rates (per 1 unit → TZS)</label>
-          <div className="grid grid-cols-2 gap-3">
-            {CURRENCIES.filter(c => c !== "TZS").map(c => (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {FOREIGN_CURRENCIES.map(c => (
               <div key={c} className="flex items-center gap-2">
-                <span className="text-sm font-mono font-medium text-card-foreground w-12">{c}</span>
+                <span className="text-sm font-mono font-medium text-card-foreground w-10">{c}</span>
                 <Input type="number" min={0} value={rates[c] || ""} onChange={e => setRates(r => ({ ...r, [c]: Number(e.target.value) || 0 }))} className="font-mono" placeholder="0" />
                 <span className="text-xs text-muted-foreground">TZS</span>
               </div>
@@ -129,31 +210,19 @@ const OpenShiftScreen = ({ tables }: { tables: any[] }) => {
           </div>
         </div>
 
-        {/* Opening Count: 3 columns */}
+        {/* Opening Count Grid */}
         <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider block mb-3">Opening Cash Count</label>
-        <div className="grid grid-cols-3 gap-6 mb-4">
-          <div>
-            <p className="text-xs font-semibold text-card-foreground mb-2">TZS Chips</p>
-            <ChipDenomInput values={openingChips} onChange={setOpeningChips} />
-          </div>
-          <div>
-            <p className="text-xs font-semibold text-card-foreground mb-2">USD Cash</p>
-            <CashDenomInput values={openingUsd} onChange={setOpeningUsd} denoms={CASH_DENOMS.USD || []} prefix="$" />
-          </div>
-          <div>
-            <p className="text-xs font-semibold text-card-foreground mb-2">EUR Cash</p>
-            <CashDenomInput values={openingEur} onChange={setOpeningEur} denoms={CASH_DENOMS.EUR || []} prefix="€" />
-          </div>
-        </div>
-        <div className="grid grid-cols-2 gap-3 mb-6">
-          <div>
-            <p className="text-[10px] font-medium text-muted-foreground uppercase mb-1">Bank (TZS)</p>
-            <Input type="number" min={0} value={bankBalance || ""} onChange={e => setBankBalance(Number(e.target.value) || 0)} className="font-mono no-spin" placeholder="0" />
-          </div>
-          <div>
-            <p className="text-[10px] font-medium text-muted-foreground uppercase mb-1">Mobile (TZS)</p>
-            <Input type="number" min={0} value={mobileBalance || ""} onChange={e => setMobileBalance(Number(e.target.value) || 0)} className="font-mono no-spin" placeholder="0" />
-          </div>
+        <div className="mb-6">
+          <CashCountGrid
+            chips={openingChips}
+            onChipsChange={setOpeningChips}
+            cash={openingCash}
+            onCashChange={(cur, v) => setOpeningCash(c => ({ ...c, [cur]: v }))}
+            bank={bankBalance}
+            onBankChange={setBankBalance}
+            mobile={mobileBalance}
+            onMobileChange={setMobileBalance}
+          />
         </div>
 
         {/* Opening Total */}
@@ -216,7 +285,7 @@ const ActiveShiftView = ({ shift, players, tables }: { shift: any; players: any[
               <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
               <span className="text-muted-foreground">{shiftDuration}</span>
             </span>
-            {CURRENCIES.filter(c => c !== "TZS").map(c => (
+            {FOREIGN_CURRENCIES.map(c => (
               <span key={c} className="text-[10px] font-mono text-muted-foreground">{c}: {(exchangeRates[c] || 0).toLocaleString()}</span>
             ))}
           </div>
@@ -457,53 +526,44 @@ const CashCheckForm = ({ expectedBalance, shiftId, exchangeRates, cashChecks }: 
 }) => {
   const createCount = useCreateCashCount();
   const [chipCounts, setChipCounts] = useState<Record<number, number>>({});
-  const [usdCash, setUsdCash] = useState<Record<number, number>>({});
-  const [eurCash, setEurCash] = useState<Record<number, number>>({});
+  const [cash, setCash] = useState<Record<string, Record<number, number>>>(emptyCash);
   const [bankBal, setBankBal] = useState(0);
   const [mobileBal, setMobileBal] = useState(0);
 
-  const chipTotal = chipSum(chipCounts);
-  const usdTotal = cashSum(usdCash);
-  const eurTotal = cashSum(eurCash);
-  const totalTzs = chipTotal + (usdTotal * (exchangeRates.USD || 0)) + (eurTotal * (exchangeRates.EUR || 0)) + bankBal + mobileBal;
+  const totalTzs = calcGrandTotal(chipCounts, cash, bankBal, mobileBal, exchangeRates);
   const difference = totalTzs - expectedBalance;
 
   const handleRecord = () => {
     createCount.mutate({
       shift_id: shiftId, count_type: "check", currency: "ALL",
-      denominations: { chips: chipCounts, cash: { USD: usdCash, EUR: eurCash }, bank: bankBal, mobile: mobileBal,
-        totals: { TZS: chipTotal, USD: usdTotal, EUR: eurTotal, bank: bankBal, mobile: mobileBal } },
+      denominations: {
+        chips: chipCounts, cash,
+        bank: bankBal, mobile: mobileBal,
+        totals: {
+          chips_tzs: chipSum(chipCounts),
+          ...Object.fromEntries(CURRENCIES.map(c => [c, cashSum(cash[c] || {})])),
+          bank: bankBal, mobile: mobileBal,
+        },
+      },
       total: totalTzs,
-    }, { onSuccess: () => { setChipCounts({}); setUsdCash({}); setEurCash({}); setBankBal(0); setMobileBal(0); } });
+    }, {
+      onSuccess: () => { setChipCounts({}); setCash(emptyCash()); setBankBal(0); setMobileBal(0); },
+    });
   };
 
   return (
     <div className="space-y-3">
       <div className="cms-panel p-4">
-        <div className="grid grid-cols-3 gap-6">
-          <div>
-            <p className="text-xs font-semibold text-card-foreground mb-2">TZS Chips</p>
-            <ChipDenomInput values={chipCounts} onChange={setChipCounts} />
-          </div>
-          <div>
-            <p className="text-xs font-semibold text-card-foreground mb-2">USD Cash</p>
-            <CashDenomInput values={usdCash} onChange={setUsdCash} denoms={CASH_DENOMS.USD || []} prefix="$" />
-          </div>
-          <div>
-            <p className="text-xs font-semibold text-card-foreground mb-2">EUR Cash</p>
-            <CashDenomInput values={eurCash} onChange={setEurCash} denoms={CASH_DENOMS.EUR || []} prefix="€" />
-          </div>
-        </div>
-        <div className="grid grid-cols-2 gap-3 mt-4">
-          <div>
-            <p className="text-[10px] font-medium text-muted-foreground uppercase mb-1">Bank (TZS)</p>
-            <Input type="number" min={0} value={bankBal || ""} onChange={e => setBankBal(Number(e.target.value) || 0)} className="font-mono no-spin" placeholder="0" />
-          </div>
-          <div>
-            <p className="text-[10px] font-medium text-muted-foreground uppercase mb-1">Mobile (TZS)</p>
-            <Input type="number" min={0} value={mobileBal || ""} onChange={e => setMobileBal(Number(e.target.value) || 0)} className="font-mono no-spin" placeholder="0" />
-          </div>
-        </div>
+        <CashCountGrid
+          chips={chipCounts}
+          onChipsChange={setChipCounts}
+          cash={cash}
+          onCashChange={(cur, v) => setCash(c => ({ ...c, [cur]: v }))}
+          bank={bankBal}
+          onBankChange={setBankBal}
+          mobile={mobileBal}
+          onMobileChange={setMobileBal}
+        />
 
         {/* Inline result */}
         <div className="grid grid-cols-3 gap-2 pt-3 mt-3 border-t border-border">
@@ -555,10 +615,9 @@ const CloseShiftDialog = ({ open, onClose, shift, expectedBalance, cashResult, t
   const allTablesReady = tables.length === 0 || tables.every((t: any) => tableReady[t.id]);
   const batchSnapshot = useBatchChipSnapshot();
 
-  // Step 2: Chip counts
+  // Step 2: Chip + cash counts
   const [chipCounts, setChipCounts] = useState<Record<number, number>>({});
-  // Step 3: Cash counts
-  const [cashCounts, setCashCounts] = useState<{ USD: Record<number, number>; EUR: Record<number, number> }>({ USD: {}, EUR: {} });
+  const [cashCounts, setCashCounts] = useState<Record<string, Record<number, number>>>(emptyCash);
   const [bankBal, setBankBal] = useState(0);
   const [mobileBal, setMobileBal] = useState(0);
 
@@ -576,11 +635,8 @@ const CloseShiftDialog = ({ open, onClose, shift, expectedBalance, cashResult, t
   const hasAnyChipCount = Object.values(chipCounts).some(v => v > 0);
 
   // Cash totals
-  const usdTotal = cashSum(cashCounts.USD || {});
-  const eurTotal = cashSum(cashCounts.EUR || {});
   const rates = (shift?.exchange_rates || {}) as Record<string, number>;
-  const cashTzs = (usdTotal * (rates.USD || 0)) + (eurTotal * (rates.EUR || 0)) + bankBal + mobileBal;
-  const totalTzs = chipTotal + cashTzs;
+  const totalTzs = calcGrandTotal(chipCounts, cashCounts, bankBal, mobileBal, rates);
   const diff = totalTzs - expectedBalance;
   const isPerfect = diff === 0;
   const shiftResult = (cashResult || 0) + totalMissValue;
@@ -605,9 +661,13 @@ const CloseShiftDialog = ({ open, onClose, shift, expectedBalance, cashResult, t
         chip_miss: missPerDenom,
         chip_miss_total: totalMissValue,
         chip_incident: hasIncident,
-        cash: { USD: cashCounts.USD, EUR: cashCounts.EUR },
+        cash: cashCounts,
         bank: bankBal, mobile: mobileBal,
-        totals: { TZS: chipTotal, USD: usdTotal, EUR: eurTotal, bank: bankBal, mobile: mobileBal, total_tzs: totalTzs },
+        totals: {
+          chips_tzs: chipTotal,
+          ...Object.fromEntries(CURRENCIES.map(c => [c, cashSum(cashCounts[c] || {})])),
+          bank: bankBal, mobile: mobileBal, total_tzs: totalTzs,
+        },
       },
       closingCash: {
         expected: expectedBalance,
@@ -626,7 +686,7 @@ const CloseShiftDialog = ({ open, onClose, shift, expectedBalance, cashResult, t
 
   return (
     <Dialog open={open} onOpenChange={v => { if (!v) { setStep(1); onClose(); } }}>
-      <DialogContent className="max-w-5xl max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-w-[1280px] max-h-[85vh] overflow-y-auto">
         <DialogHeader><DialogTitle>Close Shift — Step {step}/3</DialogTitle></DialogHeader>
 
         {/* Step 1: Table readiness */}
@@ -647,34 +707,22 @@ const CloseShiftDialog = ({ open, onClose, shift, expectedBalance, cashResult, t
           </div>
         )}
 
-        {/* Step 2: Chips + Cash side by side */}
+        {/* Step 2: Full cash count grid */}
         {step === 2 && (
           <div className="space-y-3">
             <p className="text-xs text-muted-foreground">Count chips and cash across the entire casino.</p>
-            <div className="grid grid-cols-3 gap-6">
-              <div>
-                <p className="text-xs font-semibold text-card-foreground mb-2">TZS Chips</p>
-                <ChipDenomInput values={chipCounts} onChange={setChipCounts} placeholder={expectedChips} />
-              </div>
-              <div>
-                <p className="text-xs font-semibold text-card-foreground mb-2">USD Cash</p>
-                <CashDenomInput values={cashCounts.USD} onChange={v => setCashCounts(c => ({ ...c, USD: v }))} denoms={CASH_DENOMS.USD || []} prefix="$" />
-              </div>
-              <div>
-                <p className="text-xs font-semibold text-card-foreground mb-2">EUR Cash</p>
-                <CashDenomInput values={cashCounts.EUR} onChange={v => setCashCounts(c => ({ ...c, EUR: v }))} denoms={CASH_DENOMS.EUR || []} prefix="€" />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3 mt-4">
-              <div>
-                <p className="text-[10px] font-medium text-muted-foreground uppercase mb-1">Bank (TZS)</p>
-                <Input type="number" min={0} value={bankBal || ""} onChange={e => setBankBal(Number(e.target.value) || 0)} className="font-mono no-spin" placeholder="0" />
-              </div>
-              <div>
-                <p className="text-[10px] font-medium text-muted-foreground uppercase mb-1">Mobile (TZS)</p>
-                <Input type="number" min={0} value={mobileBal || ""} onChange={e => setMobileBal(Number(e.target.value) || 0)} className="font-mono no-spin" placeholder="0" />
-              </div>
-            </div>
+
+            <CashCountGrid
+              chips={chipCounts}
+              onChipsChange={setChipCounts}
+              cash={cashCounts}
+              onCashChange={(cur, v) => setCashCounts(c => ({ ...c, [cur]: v }))}
+              bank={bankBal}
+              onBankChange={setBankBal}
+              mobile={mobileBal}
+              onMobileChange={setMobileBal}
+              chipPlaceholder={expectedChips}
+            />
 
             {/* MISS summary inline */}
             {hasAnyChipCount && (
