@@ -1,11 +1,17 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useDealers, useBreaklistData, useSetBreaklistCell, useLockBreaklistCell, useGamingTables, usePitRotaRange } from "@/hooks/use-casino-data";
 import { useAuth } from "@/lib/auth-context";
-import { Button } from "@/components/ui/button";
-import { Lock, Unlock, LockKeyhole, Check, RefreshCw, ZoomIn, ZoomOut } from "lucide-react";
+import { Lock, Unlock, LockKeyhole } from "lucide-react";
 import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
 import { toast } from "sonner";
 import { ALL_ROLES, ROLE_COLORS, TABLE_ROLES } from "@/lib/currency";
+
+interface BreaklistGridProps {
+  date: string;
+  zoom?: number;
+  onRegisterRefresh?: (fn: () => void) => void;
+  onRegisterAccept?: (fn: () => void) => void;
+}
 
 // 18:00 → 05:00, 20-minute intervals
 const generateTimeSlots = () => {
@@ -36,8 +42,7 @@ const isInWorkingHours = (slot: string) => {
   return h >= 18 || h < 5;
 };
 
-const BreaklistGrid = ({ date }: { date: string }) => {
-  const [zoom, setZoom] = useState(100);
+const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }: BreaklistGridProps) => {
   const { data: dealers = [] } = useDealers();
   const { data: breaklist = [] } = useBreaklistData(date);
   const { data: tables = [] } = useGamingTables();
@@ -167,27 +172,17 @@ const BreaklistGrid = ({ date }: { date: string }) => {
     Pi: "i", BJi: "i",
   };
 
+  // Register callbacks for parent controls
+  useEffect(() => {
+    onRegisterRefresh?.(handleRefreshFromRota);
+    onRegisterAccept?.(handleAccept);
+  }, [breaklistDealers, breaklist]);
+
+  const scale = zoom / 100;
+
   return (
     <>
-       <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" className="h-7 w-7 p-0" onClick={() => setZoom(z => Math.max(60, z - 10))}>
-            <ZoomOut className="w-3.5 h-3.5" />
-          </Button>
-          <span className="text-[10px] font-mono text-muted-foreground w-10 text-center">{zoom}%</span>
-          <Button variant="outline" size="sm" className="h-7 w-7 p-0" onClick={() => setZoom(z => Math.min(200, z + 10))}>
-            <ZoomIn className="w-3.5 h-3.5" />
-          </Button>
-          <Button variant="outline" size="sm" onClick={handleRefreshFromRota} className="gap-1 text-xs">
-            <RefreshCw className="w-3.5 h-3.5" /> Refresh from Rota
-          </Button>
-          <Button variant="outline" size="sm" onClick={handleAccept} className="gap-1 text-xs">
-            <Check className="w-3.5 h-3.5" /> Accept (fill BR)
-          </Button>
-        </div>
-      </div>
-
-      <div className="cms-panel overflow-x-auto" style={{ fontSize: `${zoom}%` }}>
+      <div className="cms-panel overflow-auto" style={{ transformOrigin: "top left", transform: `scale(${scale})`, width: `${100 / scale}%` }}>
         <div className="min-w-[1400px]">
           <table className="w-full border-collapse">
             <thead>

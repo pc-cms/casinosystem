@@ -1,11 +1,11 @@
-import { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useDealers, useCreateDealer, usePitRotaRange, useSetPitRota, useDeletePitRota, useSetDealerAttendance, useDealerAttendanceRange } from "@/hooks/use-casino-data";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChevronLeft, ChevronRight, UserPlus, ArrowUpDown } from "lucide-react";
+import { ChevronLeft, ChevronRight, UserPlus, ArrowUpDown, ZoomIn, ZoomOut, RefreshCw, Check } from "lucide-react";
 import BreaklistGrid from "@/components/pit/BreaklistGrid";
 
 const ROTA_SHIFTS = ["M", "N", "L", "E"] as const;
@@ -87,14 +87,22 @@ const Pit = () => {
     breaklist: "Breaklist",
   };
 
+  // Breaklist zoom + action callbacks
+  const [breaklistZoom, setBreaklistZoom] = useState(100);
+  const breaklistRefreshRef = React.useRef<(() => void) | null>(null);
+  const breaklistAcceptRef = React.useRef<(() => void) | null>(null);
+
   return (
     <div>
       <div className="flex items-center justify-between mb-5">
-        <div>
+        {/* LEFT: Title */}
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold text-foreground">{TAB_TITLES[activeTab] || "Live Game"}</h1>
           <p className="text-sm text-muted-foreground">Live Game Management</p>
         </div>
-        <div className="flex items-center gap-3">
+
+        {/* CENTER: Date or Month nav */}
+        <div className="flex items-center justify-center flex-1">
           {showMonthNav && (
             <div className="flex items-center gap-1">
               <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigateMonth(-1)}>
@@ -108,6 +116,27 @@ const Pit = () => {
           )}
           {showDatePicker && (
             <Input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-44 font-mono" />
+          )}
+        </div>
+
+        {/* RIGHT: Controls */}
+        <div className="flex items-center gap-2">
+          {activeTab === "breaklist" && (
+            <>
+              <Button variant="outline" size="sm" className="h-7 w-7 p-0" onClick={() => setBreaklistZoom(z => Math.max(60, z - 10))}>
+                <ZoomOut className="w-3.5 h-3.5" />
+              </Button>
+              <span className="text-[10px] font-mono text-muted-foreground w-10 text-center">{breaklistZoom}%</span>
+              <Button variant="outline" size="sm" className="h-7 w-7 p-0" onClick={() => setBreaklistZoom(z => Math.min(200, z + 10))}>
+                <ZoomIn className="w-3.5 h-3.5" />
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => breaklistRefreshRef.current?.()} className="gap-1 text-xs">
+                <RefreshCw className="w-3.5 h-3.5" /> Refresh
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => breaklistAcceptRef.current?.()} className="gap-1 text-xs">
+                <Check className="w-3.5 h-3.5" /> Accept
+              </Button>
+            </>
           )}
           {activeTab === "rota" && (
             <div className="flex items-center gap-1.5">
@@ -129,7 +158,14 @@ const Pit = () => {
       {activeTab === "employee" && <DealerEmployeeList />}
       {activeTab === "rota" && <RotaGrid month={month} />}
       {activeTab === "attendance" && <AttendanceGrid month={month} />}
-      {activeTab === "breaklist" && <BreaklistGrid date={date} />}
+      {activeTab === "breaklist" && (
+        <BreaklistGrid
+          date={date}
+          zoom={breaklistZoom}
+          onRegisterRefresh={(fn) => { breaklistRefreshRef.current = fn; }}
+          onRegisterAccept={(fn) => { breaklistAcceptRef.current = fn; }}
+        />
+      )}
     </div>
   );
 };
