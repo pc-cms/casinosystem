@@ -229,8 +229,8 @@ const OpenShiftScreen = ({ tables }: { tables: any[] }) => {
   const [rates, setRates] = useState<Record<string, number>>({ ...DEFAULT_EXCHANGE_RATES });
   const [openingChips, setOpeningChips] = useState<Record<number, number>>({});
   const [openingCash, setOpeningCash] = useState<Record<string, Record<number, number>>>(emptyCash);
-  const [bankBalance, setBankBalance] = useState(0);
-  const [mobileBalance, setMobileBalance] = useState(0);
+  const [bankBalance, setBankBalance] = useState<Banks>(emptyBanks);
+  const [mobileBalance, setMobileBalance] = useState<MobileProviders>(emptyMobile);
   const [showRates, setShowRates] = useState(false);
 
   const chipTotal = chipSum(openingChips);
