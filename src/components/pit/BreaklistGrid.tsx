@@ -85,7 +85,8 @@ const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }
   };
 
   const currentSlot = useMemo(() => getCurrentSlot(), []);
-  const isToday = date === new Date().toISOString().split("T")[0];
+  const isToday = isBusinessToday(date);
+  const isEditable = isToday; // Only current business day is editable
 
   // Inline role picker state
   const [activeCell, setActiveCell] = useState<{ dealerId: string; timeSlot: string } | null>(null);
