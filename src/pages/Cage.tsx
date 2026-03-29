@@ -131,8 +131,8 @@ const CashCountGrid = ({
 
   return (
     <div className="space-y-4">
-      {/* Main grid: 4 columns */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* Main grid: 3 columns */}
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-6">
 
         {/* Column 1: TZS Chips + TZS Cash */}
         <div className="space-y-4">
@@ -169,35 +169,31 @@ const CashCountGrid = ({
             <CashDenomInput values={cash["KES"] || {}} onChange={v => onCashChange("KES", v)} denoms={CASH_DENOMS["KES"] || []} currency="KES" />
           </div>
         </div>
+      </div>
 
-        {/* Column 4: Mobile Providers */}
-        <div className="space-y-4">
-          <div>
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Mobile Money</p>
-            <div className="space-y-1.5">
-              {MOBILE_PROVIDERS.map(provider => (
-                <div key={provider} className="flex items-center gap-1.5">
-                  <span className="cms-chip text-[9px] bg-muted text-foreground shrink-0 min-w-[44px] text-center">
-                    {provider}
-                  </span>
-                  <NumberInput
-                    value={mobile[provider] || ""}
-                    onChange={v => onMobileChange({ ...mobile, [provider]: Number(v) || 0 })}
-                    className="no-spin h-8 w-full font-mono text-sm"
-                    placeholder="0"
-                  />
-                </div>
-              ))}
+      {/* Bottom section: Mobile Money + Banks */}
+      <div className="pt-3 border-t border-border">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Mobile Providers */}
+          {MOBILE_PROVIDERS.map(provider => (
+            <div key={provider}>
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">{provider}</p>
+              <NumberInput
+                value={mobile[provider] || ""}
+                onChange={v => onMobileChange({ ...mobile, [provider]: Number(v) || 0 })}
+                className="no-spin h-9 font-mono text-sm"
+                placeholder="0"
+              />
             </div>
-            <div className="flex items-center gap-2 pt-1.5 mt-1.5 border-t border-border">
-              <span className="text-xs font-medium text-muted-foreground">Mobile</span>
-              <span className="font-mono text-sm font-bold text-card-foreground">TZS {formatNumberSpaces(mobTotal)}</span>
-            </div>
-          </div>
+          ))}
+        </div>
+        <div className="flex items-center gap-2 pt-2 mt-2 border-t border-dashed border-border">
+          <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Mobile Total</span>
+          <span className="font-mono text-sm font-bold text-card-foreground">TZS {formatNumberSpaces(mobTotal)}</span>
         </div>
       </div>
 
-      {/* Bottom row: Banks */}
+      {/* Banks row */}
       <div className="grid grid-cols-2 gap-4 pt-3 border-t border-border">
         <div>
           <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Bank TZS</p>
