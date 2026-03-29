@@ -313,7 +313,7 @@ const TablesContent = () => {
     openAllTables.mutate(ids);
   };
 
-  const hasAnyCount = Object.values(counts).some(lc => Object.values(lc).some(v => v > 0));
+  const hasAnyCount = Object.keys(counts).length > 0;
 
   // Compute result summary per table for the dialog
   const resultSummary = useMemo(() => {
