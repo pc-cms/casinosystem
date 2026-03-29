@@ -596,11 +596,13 @@ const AttendanceDepartmentBlock = ({
   getTotal: (id: string) => number;
 }) => (
   <>
-    <tr className="bg-muted/20">
-      <td colSpan={days.length + 2} className="px-3 py-1.5 sticky left-0">
-        <Badge variant="outline" className={`text-[10px] ${DEPT_BADGE_COLORS[dept] || ""}`}>
-          {DEPARTMENT_LABELS[dept as StaffDepartment]} ({members.length})
-        </Badge>
+    <tr>
+      <td colSpan={days.length + 2} className="px-0 py-0 sticky left-0">
+        <div className={`flex items-center gap-2 px-3 py-1 border-b-2 ${DEPT_BORDER_COLORS[dept] || "border-muted"}`}>
+          <span className={`w-2 h-2 rounded-full ${DEPT_DOT_COLORS[dept] || "bg-muted-foreground"}`} />
+          <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-card-foreground">{DEPARTMENT_LABELS[dept as StaffDepartment]}</span>
+          <span className="text-[10px] font-mono text-muted-foreground">({members.length})</span>
+        </div>
       </td>
     </tr>
     {members.map((staff, idx) => {
