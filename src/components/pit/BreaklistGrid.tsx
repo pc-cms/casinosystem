@@ -128,8 +128,14 @@ const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }
   };
 
   const handleAccept = () => {
+    // Only fill BR in time slots that already have at least one assignment
+    const activeSlots = new Set(breaklist.map(b => b.time_slot));
+    if (activeSlots.size === 0) {
+      toast.error("No assigned slots to fill");
+      return;
+    }
     breaklistDealers.forEach(dealer => {
-      TIME_SLOTS.forEach(slot => {
+      activeSlots.forEach(slot => {
         const existing = getCellData(dealer.id, slot);
         if (!existing) {
           setCell.mutate({ date, dealer_id: dealer.id, time_slot: slot, role: "BR", table_id: null });
