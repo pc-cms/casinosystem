@@ -1,11 +1,17 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useDealers, useBreaklistData, useSetBreaklistCell, useLockBreaklistCell, useGamingTables, usePitRotaRange } from "@/hooks/use-casino-data";
 import { useAuth } from "@/lib/auth-context";
-import { Button } from "@/components/ui/button";
-import { Lock, Unlock, LockKeyhole, Check, RefreshCw, ZoomIn, ZoomOut } from "lucide-react";
+import { Lock, Unlock, LockKeyhole } from "lucide-react";
 import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
 import { toast } from "sonner";
 import { ALL_ROLES, ROLE_COLORS, TABLE_ROLES } from "@/lib/currency";
+
+interface BreaklistGridProps {
+  date: string;
+  zoom?: number;
+  onRegisterRefresh?: (fn: () => void) => void;
+  onRegisterAccept?: (fn: () => void) => void;
+}
 
 // 18:00 → 05:00, 20-minute intervals
 const generateTimeSlots = () => {
@@ -36,8 +42,7 @@ const isInWorkingHours = (slot: string) => {
   return h >= 18 || h < 5;
 };
 
-const BreaklistGrid = ({ date }: { date: string }) => {
-  const [zoom, setZoom] = useState(100);
+const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }: BreaklistGridProps) => {
   const { data: dealers = [] } = useDealers();
   const { data: breaklist = [] } = useBreaklistData(date);
   const { data: tables = [] } = useGamingTables();
