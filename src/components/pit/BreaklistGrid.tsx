@@ -230,7 +230,7 @@ const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }
                               <LockKeyhole className="w-2.5 h-2.5" />{lockedCount}
                             </span>
                           )}
-                          {isManager && (
+                          {isEditable && isManager && (
                             <button onClick={() => handleLockRow(dealer.id, lockedCount === 0)}
                               className="text-muted-foreground hover:text-primary ml-1"
                               title={lockedCount > 0 ? "Unlock all" : "Lock all"}>
