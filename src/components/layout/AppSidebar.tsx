@@ -4,6 +4,7 @@ import {
   ClipboardList, BarChart3, Sun, Moon, Shield, Gamepad2, 
   UsersRound, Grid3X3, LogOut, Settings, FileBarChart,
   CalendarDays, ClipboardCheck, ListChecks, UserCog, Eye, Target,
+  Building2, UserCheck, ClipboardPen,
 } from "lucide-react";
 import { useTheme } from "@/lib/theme";
 import { useAuth } from "@/lib/auth-context";
@@ -17,6 +18,7 @@ const NAV_ITEMS: { to: string; icon: typeof LayoutDashboard; label: string; shor
   { to: "/tables", icon: Table2, label: "Tables", shortcut: "T", roles: ["manager", "cashier", "pit", "finance_manager", "security"] },
   { to: "/expenses", icon: Receipt, label: "Expenses", shortcut: "E", roles: ["manager", "cashier", "finance_manager"] },
   { to: "/pit", icon: Gamepad2, label: "Pit", shortcut: "I", roles: ["manager", "pit", "finance_manager"] },
+  { to: "/staff", icon: Building2, label: "Staff", shortcut: "F", roles: ["manager", "pit", "finance_manager"] },
   { to: "/groups", icon: UsersRound, label: "Groups", shortcut: "G", roles: ["manager", "finance_manager"] },
   { to: "/tracker", icon: Grid3X3, label: "Tracker", shortcut: "K", roles: ["manager", "pit"] },
   { to: "/stats", icon: BarChart3, label: "Stats", shortcut: "S", roles: ["manager", "finance_manager", "security"] },
