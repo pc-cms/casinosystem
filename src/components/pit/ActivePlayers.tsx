@@ -283,6 +283,7 @@ const ActivePlayers = () => {
                   <TableHead className="text-center">Type</TableHead>
                   <TableHead className="text-center">Tags</TableHead>
                   <TableHead className="text-center">Table</TableHead>
+                  <TableHead className="text-center">Arrived</TableHead>
                   <TableHead className="text-right cursor-pointer select-none hover:text-foreground" onClick={() => handleSort("drop")}>
                     <span className="flex items-center justify-end">Drop <SortIcon col="drop" /></span>
                   </TableHead>
