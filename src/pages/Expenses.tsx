@@ -138,15 +138,16 @@ const Expenses = () => {
 
 const AddExpenseDialog = ({ open, onClose, players, shiftId }: { open: boolean; onClose: () => void; players: any[]; shiftId: string | null }) => {
   const create = useCreateExpense();
-  const [form, setForm] = useState({ category: "", amount: "", description: "", player_id: "" });
+  const [form, setForm] = useState({ target: "" as "casino" | "player" | "", category: "", amount: "", description: "", player_id: "" });
 
   const handleSubmit = () => {
-    if (!form.category || !form.amount) return;
+    if (!form.category || !form.amount || !form.target) return;
     const amt = Number(form.amount);
     if (amt <= 0) { toast.error("Amount must be greater than zero"); return; }
     if (!shiftId) { toast.error("Cannot create expense without an active shift"); return; }
-    create.mutate({ category: form.category, amount: amt, description: form.description, player_id: form.player_id || null, shift_id: shiftId },
-      { onSuccess: () => { setForm({ category: "", amount: "", description: "", player_id: "" }); onClose(); } });
+    if (form.target === "player" && !form.player_id) { toast.error("Select a player"); return; }
+    create.mutate({ category: form.category, amount: amt, description: form.description, player_id: form.target === "player" ? form.player_id : null, shift_id: shiftId },
+      { onSuccess: () => { setForm({ target: "", category: "", amount: "", description: "", player_id: "" }); onClose(); } });
   };
 
   return (
@@ -155,20 +156,33 @@ const AddExpenseDialog = ({ open, onClose, players, shiftId }: { open: boolean; 
         <DialogHeader><DialogTitle>Add Expense</DialogTitle></DialogHeader>
         <p className="text-xs text-muted-foreground">Cannot be edited or deleted after creation.</p>
         <div className="space-y-3">
+          {/* Target: Casino or Player */}
+          <Select value={form.target} onValueChange={v => setForm(f => ({ ...f, target: v as "casino" | "player", player_id: "" }))}>
+            <SelectTrigger><SelectValue placeholder="Target" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="casino">Casino</SelectItem>
+              <SelectItem value="player">Player</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {/* Player selector — only when target is "player" */}
+          {form.target === "player" && (
+            <Select value={form.player_id} onValueChange={v => setForm(f => ({ ...f, player_id: v }))}>
+              <SelectTrigger><SelectValue placeholder="Select player" /></SelectTrigger>
+              <SelectContent>{players.filter((p: any) => p.status === "active").map((p: any) => <SelectItem key={p.id} value={p.id}>{p.first_name} {p.last_name}</SelectItem>)}</SelectContent>
+            </Select>
+          )}
+
           <Select value={form.category} onValueChange={v => setForm(f => ({ ...f, category: v }))}>
             <SelectTrigger><SelectValue placeholder="Category" /></SelectTrigger>
             <SelectContent>{CATS.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}</SelectContent>
           </Select>
           <NumberInput placeholder="Amount (TZS)" value={form.amount} onChange={v => setForm(f => ({ ...f, amount: v }))} />
           <Input placeholder="Description" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
-          <Select value={form.player_id} onValueChange={v => setForm(f => ({ ...f, player_id: v }))}>
-            <SelectTrigger><SelectValue placeholder="Link to player (optional)" /></SelectTrigger>
-            <SelectContent>{players.filter((p: any) => p.status === "active").map((p: any) => <SelectItem key={p.id} value={p.id}>{p.first_name} {p.last_name}</SelectItem>)}</SelectContent>
-          </Select>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={handleSubmit} disabled={!form.category || !form.amount || create.isPending}>Record</Button>
+          <Button onClick={handleSubmit} disabled={!form.target || !form.category || !form.amount || create.isPending}>Record</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
