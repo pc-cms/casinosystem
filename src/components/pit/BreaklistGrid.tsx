@@ -56,10 +56,22 @@ const BreaklistGrid = ({ date }: { date: string }) => {
   }, [rota]);
 
   // Only show dealers that are in the rota for this date
+  const [sortBy, setSortBy] = useState<"name" | "shift">("shift");
+
   const breaklistDealers = useMemo(() => {
     const rotaDealerIds = new Set(rotaDealers.map(r => r.dealerId));
-    return activeDealers.filter(d => rotaDealerIds.has(d.id));
-  }, [activeDealers, rotaDealers]);
+    const filtered = activeDealers.filter(d => rotaDealerIds.has(d.id));
+    if (sortBy === "name") {
+      return filtered.sort((a, b) => a.name.localeCompare(b.name));
+    }
+    const shiftOrder: Record<string, number> = { M: 0, N: 1, E: 2 };
+    return filtered.sort((a, b) => {
+      const sa = rotaDealers.find(r => r.dealerId === a.id)?.shift || "Z";
+      const sb = rotaDealers.find(r => r.dealerId === b.id)?.shift || "Z";
+      const diff = (shiftOrder[sa] ?? 9) - (shiftOrder[sb] ?? 9);
+      return diff !== 0 ? diff : a.name.localeCompare(b.name);
+    });
+  }, [activeDealers, rotaDealers, sortBy]);
 
   const getDealerShift = (dealerId: string) => {
     return rotaDealers.find(r => r.dealerId === dealerId)?.shift || null;
