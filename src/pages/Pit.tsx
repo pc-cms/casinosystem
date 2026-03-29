@@ -179,6 +179,13 @@ const Pit = () => {
 };
 
 // =================== EMPLOYEE LIST (TABLE FORMAT) ===================
+const getDaysLeft = (contractEnd: string | null): number | null => {
+  if (!contractEnd) return null;
+  const end = new Date(contractEnd);
+  const now = new Date();
+  return Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+};
+
 const DEALER_CATEGORIES: DealerCategory[] = ["trainee", "dealer", "inspector", "expert", "pit_boss"];
 
 const DealerEmployeeList = () => {
