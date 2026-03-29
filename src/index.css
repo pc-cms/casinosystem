@@ -141,8 +141,19 @@
   .cms-chip {
     @apply inline-flex items-center justify-center rounded-full font-mono text-xs font-bold min-w-[40px] h-7 px-2;
   }
+  .cms-chip {
+    @apply inline-flex items-center justify-center rounded-full font-mono text-xs font-bold min-w-[40px] h-6 px-2;
+  }
+  /* Hide number input spinners */
+  input[type="number"].no-spin::-webkit-outer-spin-button,
+  input[type="number"].no-spin::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type="number"].no-spin {
+    -moz-appearance: textfield;
+  }
 }
-
 @layer utilities {
   .animate-fade-in {
     animation: fadeIn 0.15s ease-out;

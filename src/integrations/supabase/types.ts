@@ -1125,15 +1125,25 @@ export type Database = {
     }
     Functions: {
       generate_card_number: { Args: never; Returns: string }
-      get_expected_chips: {
-        Args: {
-          _casino_id: string
-          _denomination: number
-          _location_id: string
-          _location_type: string
-        }
-        Returns: number
-      }
+      get_expected_chips:
+        | {
+            Args: {
+              _casino_id: string
+              _denomination: number
+              _location_id: string
+              _location_type: string
+            }
+            Returns: number
+          }
+        | {
+            Args: {
+              _casino_id: string
+              _denomination: number
+              _location_id: string
+              _location_type: string
+            }
+            Returns: number
+          }
       get_user_casino_id: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
