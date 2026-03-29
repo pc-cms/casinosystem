@@ -452,7 +452,7 @@ const ActivePlayers = () => {
                   </TableHead>
                   <TableHead className="text-center">Type</TableHead>
                   <TableHead className="text-center">Tags</TableHead>
-                  <TableHead className="text-center">Table</TableHead>
+                  <TableHead className="text-center">Position</TableHead>
                   <TableHead className="text-center">Arrived</TableHead>
                   <TableHead className="text-right cursor-pointer select-none hover:text-foreground" onClick={() => handleSort("dropR")}>
                     <span className="flex items-center justify-end">Drop R <SortIcon col="dropR" /></span>
