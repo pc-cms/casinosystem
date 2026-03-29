@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { UserPlus, ChevronLeft, ChevronRight, ArrowUpDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
-  useStaffMembers, useCreateStaffMember, useStaffRotaRange, useSetStaffRota,
+  useStaffMembers, useCreateStaffMember, useUpdateStaffMember, useStaffRotaRange, useSetStaffRota,
   useDeleteStaffRota, useStaffAttendanceRange, useSetStaffAttendance,
   DEPARTMENT_LABELS, DEPARTMENT_ORDER, STAFF_SHIFT_LABELS, STAFF_SHIFT_COLORS,
   type StaffDepartment,
