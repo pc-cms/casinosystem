@@ -219,14 +219,7 @@ const BreaklistGrid = ({ date }: { date: string }) => {
                   <tr key={dealer.id} className={`border-b border-border last:border-0 ${idx % 2 === 1 ? "bg-muted/10" : ""}`}>
                     <td className={`px-3 py-1 text-xs font-medium text-card-foreground sticky left-0 z-10 ${idx % 2 === 1 ? "bg-card/95" : "bg-card"}`}>
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1.5">
-                          <span>{dealer.name}</span>
-                          {shift && (
-                            <span className={`px-1 py-0 rounded text-[8px] font-mono font-bold ${
-                              shift === "M" ? "bg-blue-500/30 text-blue-300" : shift === "N" ? "bg-indigo-500/30 text-indigo-300" : "bg-emerald-500/30 text-emerald-300"
-                            }`}>{shift}</span>
-                          )}
-                        </div>
+                        <span>{dealer.name}</span>
                         <div className="flex items-center gap-1">
                           {lockedCount > 0 && (
                             <span className="text-[9px] text-yellow-400 flex items-center gap-0.5">
@@ -242,6 +235,13 @@ const BreaklistGrid = ({ date }: { date: string }) => {
                           )}
                         </div>
                       </div>
+                    </td>
+                    <td className={`text-center py-1 ${idx % 2 === 1 ? "bg-card/95" : "bg-card"}`}>
+                      {shift && (
+                        <span className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold ${
+                          shift === "M" ? "bg-amber-500/30 text-amber-300" : shift === "N" ? "bg-blue-500/30 text-blue-300" : "bg-emerald-500/30 text-emerald-300"
+                        }`}>{shift}</span>
+                      )}
                     </td>
                     {TIME_SLOTS.map(slot => {
                       const cell = getCellData(dealer.id, slot);
