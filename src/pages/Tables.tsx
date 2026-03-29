@@ -473,7 +473,7 @@ const TablesContent = () => {
 
       {/* Chip Count Dialog */}
       <Dialog open={showCount} onOpenChange={setShowCount}>
-        <DialogContent className="max-w-[95vw] w-fit !max-h-none overflow-visible">
+        <DialogContent className="max-w-none w-auto overflow-visible" style={{ maxHeight: 'none' }}>
           <DialogHeader>
             <DialogTitle className="flex items-center justify-between">
               <span>Chip Count — Per Location</span>
@@ -485,7 +485,7 @@ const TablesContent = () => {
             </DialogTitle>
           </DialogHeader>
 
-          <div className="overflow-x-auto">
+          <div>
             <table className="text-xs border-collapse">
               <thead>
                 <tr className="border-b border-border">
