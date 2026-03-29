@@ -44,7 +44,6 @@ const TABLE_SUBITEMS = [
 
 const PIT_SUBITEMS = [
   { tab: "attendance", icon: ClipboardCheck, label: "Attendance" },
-  { tab: "breaklist", icon: ListChecks, label: "Breaklist" },
   { tab: "employee", icon: UserCheck, label: "Employee" },
   { tab: "rota", icon: CalendarDays, label: "Rota" },
 ];
