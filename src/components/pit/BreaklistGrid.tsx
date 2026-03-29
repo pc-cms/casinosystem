@@ -196,13 +196,21 @@ const BreaklistGrid = ({ date }: { date: string }) => {
               </tr>
             </thead>
             <tbody>
-              {activeDealers.map((dealer, idx) => {
+              {breaklistDealers.map((dealer, idx) => {
                 const lockedCount = getLockedCount(dealer.id);
+                const shift = getDealerShift(dealer.id);
                 return (
                   <tr key={dealer.id} className={`border-b border-border last:border-0 ${idx % 2 === 1 ? "bg-muted/10" : ""}`}>
                     <td className={`px-3 py-1 text-xs font-medium text-card-foreground sticky left-0 z-10 ${idx % 2 === 1 ? "bg-card/95" : "bg-card"}`}>
                       <div className="flex items-center justify-between">
-                        <span>{dealer.name}</span>
+                        <div className="flex items-center gap-1.5">
+                          <span>{dealer.name}</span>
+                          {shift && (
+                            <span className={`px-1 py-0 rounded text-[8px] font-mono font-bold ${
+                              shift === "M" ? "bg-blue-500/30 text-blue-300" : shift === "N" ? "bg-indigo-500/30 text-indigo-300" : "bg-emerald-500/30 text-emerald-300"
+                            }`}>{shift}</span>
+                          )}
+                        </div>
                         <div className="flex items-center gap-1">
                           {lockedCount > 0 && (
                             <span className="text-[9px] text-yellow-400 flex items-center gap-0.5">
