@@ -6,8 +6,9 @@ import { formatNumberSpaces } from "@/lib/currency";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth-context";
-import { ArrowUpDown, ArrowUp, ArrowDown, LogIn, LogOut, Search } from "lucide-react";
+import { ArrowUpDown, ArrowUp, ArrowDown, LogIn, LogOut, Search, MapPin, Play } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/ui/number-input";
 import {
   Table,
   TableBody,
@@ -33,6 +34,9 @@ const ActivePlayers = () => {
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<Set<string>>(new Set(["slots", "table", "mix"]));
+  const [placingPlayer, setPlacingPlayer] = useState<string | null>(null);
+  const [placingTable, setPlacingTable] = useState<string | null>(null);
+  const [placingBet, setPlacingBet] = useState("");
 
   const { data: allTags = [] } = useQuery({
     queryKey: ["player_tags", casinoId],
@@ -72,24 +76,56 @@ const ActivePlayers = () => {
     refetchInterval: 15000,
   });
 
-  const checkIn = useMutation({
+   const checkIn = useMutation({
     mutationFn: async (playerId: string) => {
-      const { error } = await supabase.from("casino_visits").insert({
-        casino_id: casinoId!,
-        player_id: playerId,
-        date: today,
-        checked_in_by: user!.id,
-      });
+      const { error } = await supabase.from("casino_visits").upsert(
+        {
+          casino_id: casinoId!,
+          player_id: playerId,
+          date: today,
+          checked_in_by: user!.id,
+        },
+        { onConflict: "casino_id,player_id,date" }
+      );
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["casino_visits"] });
       toast.success("Player checked in");
     },
-    onError: (e: any) => {
-      if (e.message?.includes("duplicate")) toast.info("Already checked in today");
-      else toast.error(e.message);
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const placeAtTable = useMutation({
+    mutationFn: async ({ playerId, tableId, avgBet }: { playerId: string; tableId: string; avgBet: number }) => {
+      const { error } = await supabase.from("client_sessions").insert({
+        casino_id: casinoId!,
+        player_id: playerId,
+        table_id: tableId,
+        avg_bet: avgBet,
+        created_by: user!.id,
+      });
+      if (error) throw error;
+      await supabase.from("casino_visits").upsert(
+        {
+          casino_id: casinoId!,
+          player_id: playerId,
+          date: today,
+          checked_in_by: user!.id,
+        },
+        { onConflict: "casino_id,player_id,date" }
+      );
     },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["client_sessions"] });
+      queryClient.invalidateQueries({ queryKey: ["casino_visits"] });
+      setPlacingPlayer(null);
+      setPlacingTable(null);
+      setPlacingBet("");
+      setSearch("");
+      toast.success("Session started & player checked in");
+    },
+    onError: (e: any) => toast.error(e.message),
   });
 
   const checkOut = useMutation({
@@ -260,25 +296,102 @@ const ActivePlayers = () => {
           </div>
         </div>
 
-        {/* Check-in suggestions for inactive players */}
+        {/* Player placement panel */}
         {inactivePlayers.length > 0 && (
-          <div className="px-4 py-2 border-b border-border bg-muted/10">
-            <p className="text-[10px] text-muted-foreground uppercase mb-1">Check in player</p>
+          <div className="px-4 py-3 border-b border-border bg-muted/10 space-y-2">
+            <p className="text-[10px] text-muted-foreground uppercase">Add active player</p>
             <div className="flex flex-wrap gap-2">
               {inactivePlayers.map(p => (
                 <Button
                   key={p.id}
-                  variant="outline"
+                  variant={placingPlayer === p.id ? "default" : "outline"}
                   size="sm"
                   className="h-7 text-xs gap-1"
-                  onClick={() => checkIn.mutate(p.id)}
-                  disabled={checkIn.isPending}
+                  onClick={() => {
+                    setPlacingPlayer(placingPlayer === p.id ? null : p.id);
+                    setPlacingTable(null);
+                    setPlacingBet("");
+                  }}
                 >
                   <LogIn className="w-3 h-3" />
                   {p.first_name} {p.last_name}
                 </Button>
               ))}
             </div>
+
+            {/* Table/Hall selection for selected player */}
+            {placingPlayer && (
+              <div className="pt-2 space-y-2">
+                <p className="text-[10px] text-muted-foreground uppercase">
+                  Where is {inactivePlayers.find(p => p.id === placingPlayer)?.first_name}?
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  <Button
+                    variant={placingTable === "hall" ? "default" : "outline"}
+                    size="sm"
+                    className="h-7 text-xs gap-1"
+                    onClick={() => { setPlacingTable("hall"); setPlacingBet(""); }}
+                  >
+                    <MapPin className="w-3 h-3" /> В зале
+                  </Button>
+                  {tables.filter(t => t.status === "open").map(t => (
+                    <Button
+                      key={t.id}
+                      variant={placingTable === t.id ? "default" : "outline"}
+                      size="sm"
+                      className="h-7 text-xs font-mono"
+                      onClick={() => setPlacingTable(t.id)}
+                    >
+                      {t.name}
+                    </Button>
+                  ))}
+                </div>
+
+                {/* Avg bet input for table placement */}
+                {placingTable && placingTable !== "hall" && (
+                  <div className="flex items-center gap-2 pt-1">
+                    <label className="text-xs text-muted-foreground shrink-0">Avg Bet:</label>
+                    <NumberInput
+                      placeholder="e.g. 5 000"
+                      value={placingBet}
+                      onChange={setPlacingBet}
+                      className="h-8 w-[140px]"
+                    />
+                    <Button
+                      size="sm"
+                      className="h-8 gap-1"
+                      disabled={!placingBet || Number(placingBet) <= 0 || placeAtTable.isPending}
+                      onClick={() => placeAtTable.mutate({
+                        playerId: placingPlayer,
+                        tableId: placingTable,
+                        avgBet: Number(placingBet),
+                      })}
+                    >
+                      <Play className="w-3 h-3" /> Start
+                    </Button>
+                  </div>
+                )}
+
+                {/* Hall check-in confirm */}
+                {placingTable === "hall" && (
+                  <div className="pt-1">
+                    <Button
+                      size="sm"
+                      className="h-8 gap-1"
+                      disabled={checkIn.isPending}
+                      onClick={() => {
+                        checkIn.mutate(placingPlayer);
+                        setPlacingPlayer(null);
+                        setPlacingTable(null);
+                        setSearch("");
+                      }}
+                    >
+                      <LogIn className="w-3 h-3" /> Check In
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
