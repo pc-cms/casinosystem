@@ -34,7 +34,7 @@ const queryClient = new QueryClient({
 
 // Role-based route access map
 const ROUTE_ROLES: Record<string, string[]> = {
-  "/": ["manager", "cashier", "pit", "reception", "finance_manager", "security"],
+  "/": ["manager", "pit", "reception", "finance_manager", "security"],
   "/players": ["manager", "cashier", "reception", "finance_manager", "security"],
   "/cage": ["manager", "cashier", "finance_manager"],
   "/tables": ["manager", "cashier", "pit", "finance_manager", "security"],
@@ -53,9 +53,18 @@ const RoleGuard = ({ path, children }: { path: string; children: React.ReactNode
   const { roles } = useAuth();
   const allowed = ROUTE_ROLES[path];
   if (allowed && !roles.some(r => allowed.includes(r))) {
-    return <Navigate to="/" replace />;
+    // Cashiers blocked from dashboard → send to cage
+    const fallback = roles.includes("cashier") ? "/cage" : "/";
+    return <Navigate to={path === "/" ? fallback : "/"} replace />;
   }
   return <>{children}</>;
+};
+
+const getDefaultRoute = (roles: string[]) => {
+  if (roles.includes("cashier") && !roles.some(r => ["manager", "pit", "reception", "finance_manager", "security"].includes(r))) {
+    return "/cage";
+  }
+  return "/";
 };
 
 const ProtectedRoutes = () => {
@@ -74,7 +83,7 @@ const ProtectedRoutes = () => {
   return (
     <Routes>
       <Route element={<AppLayout />}>
-        <Route path="/" element={<Dashboard />} />
+        <Route path="/" element={<RoleGuard path="/"><Dashboard /></RoleGuard>} />
         <Route path="/players" element={<RoleGuard path="/players"><Players /></RoleGuard>} />
         <Route path="/cage" element={<RoleGuard path="/cage"><Cage /></RoleGuard>} />
         <Route path="/tables" element={<RoleGuard path="/tables"><Tables /></RoleGuard>} />
@@ -95,11 +104,12 @@ const ProtectedRoutes = () => {
 };
 
 const AppRoutes = () => {
-  const { user, loading } = useAuth();
+  const { user, loading, roles } = useAuth();
   if (loading) return null;
+  const defaultRoute = user ? getDefaultRoute(roles) : "/";
   return (
     <Routes>
-      <Route path="/login" element={user ? <Navigate to="/" replace /> : <Login />} />
+      <Route path="/login" element={user ? <Navigate to={defaultRoute} replace /> : <Login />} />
       <Route path="/*" element={<ProtectedRoutes />} />
     </Routes>
   );

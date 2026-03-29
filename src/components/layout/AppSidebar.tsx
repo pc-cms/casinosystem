@@ -18,7 +18,7 @@ type AppRole = "cashier" | "pit" | "manager" | "reception" | "finance_manager" |
 // Logical grouping: Operations → Analytics → Admin
 const NAV_ITEMS: { to: string; icon: typeof LayoutDashboard; label: string; shortcut: string; roles: AppRole[] }[] = [
   // — Overview —
-  { to: "/", icon: LayoutDashboard, label: "Dashboard", shortcut: "D", roles: ["manager", "cashier", "pit", "reception", "finance_manager", "security"] },
+  { to: "/", icon: LayoutDashboard, label: "Dashboard", shortcut: "D", roles: ["manager", "pit", "reception", "finance_manager", "security"] },
   { to: "/pit?tab=breaklist", icon: ListChecks, label: "Breaklist", shortcut: "B", roles: ["manager", "pit", "finance_manager"] },
   // — Operations (alphabetical) —
   { to: "/cage", icon: Landmark, label: "Cage", shortcut: "C", roles: ["manager", "cashier", "finance_manager"] },
