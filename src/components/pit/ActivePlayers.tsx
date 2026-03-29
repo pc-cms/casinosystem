@@ -32,7 +32,7 @@ const ActivePlayers = () => {
   const [sortKey, setSortKey] = useState<SortKey>("drop");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [search, setSearch] = useState("");
-  const [typeFilter, setTypeFilter] = useState<"all" | "table" | "mix">("all");
+  const [typeFilter, setTypeFilter] = useState<Set<string>>(new Set(["slots", "table", "mix"]));
 
   const { data: allTags = [] } = useQuery({
     queryKey: ["player_tags", casinoId],
@@ -163,9 +163,9 @@ const ActivePlayers = () => {
       });
 
     // Filter by type
-    const typeFiltered = typeFilter === "all"
+    const typeFiltered = typeFilter.size === 3
       ? list
-      : list.filter(p => p.player_type === typeFilter || p.player_type === "mix");
+      : list.filter(p => typeFilter.has(p.player_type));
 
     // Filter by search
     const filtered = search
@@ -222,17 +222,22 @@ const ActivePlayers = () => {
           </h3>
           <div className="flex items-center gap-2">
             <div className="flex items-center rounded-md border border-border overflow-hidden">
-              {(["all", "table", "mix"] as const).map(f => (
+              {([["table", "TBL"], ["mix", "MIX"], ["slots", "SLT"]] as const).map(([key, label]) => (
                 <button
-                  key={f}
-                  onClick={() => setTypeFilter(f)}
+                  key={key}
+                  onClick={() => setTypeFilter(prev => {
+                    const next = new Set(prev);
+                    if (next.has(key)) { if (next.size > 1) next.delete(key); }
+                    else next.add(key);
+                    return next;
+                  })}
                   className={`px-2.5 py-1 text-[10px] font-medium uppercase transition-colors ${
-                    typeFilter === f
+                    typeFilter.has(key)
                       ? "bg-primary text-primary-foreground"
                       : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                   }`}
                 >
-                  {f === "all" ? "All" : f === "table" ? "Table" : "Mix"}
+                  {label}
                 </button>
               ))}
             </div>
