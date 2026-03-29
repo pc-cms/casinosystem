@@ -49,6 +49,7 @@ const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }
   const { data: breaklist = [] } = useBreaklistData(date);
   const { data: tables = [] } = useGamingTables();
   const { data: rota = [] } = usePitRotaRange(date, date);
+  const { data: casino } = useCasinoInfo();
   const setCell = useSetBreaklistCell();
   const lockCell = useLockBreaklistCell();
   const { isManager } = useAuth();
@@ -86,8 +87,11 @@ const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }
   };
 
   const currentSlot = useMemo(() => getCurrentSlot(), []);
-  const isToday = isBusinessToday(date);
-  const isEditable = isToday; // Only current business day is editable
+  const shiftEndHour = casino?.shift_end ? parseInt(casino.shift_end.split(":")[0]) : 5;
+  const isToday = isBusinessToday(date, shiftEndHour);
+  const pastLock = isToday && isAfterBreaklistLock(casino?.breaklist_lock || "05:30");
+  // Editable if it's today AND not past lock time (or if manager)
+  const isEditable = isToday && (!pastLock || isManager);
 
   // Inline role picker state
   const [activeCell, setActiveCell] = useState<{ dealerId: string; timeSlot: string } | null>(null);
