@@ -1,12 +1,12 @@
-import { useState, useMemo } from "react";
-import { usePlayers, useTransactions, useGamingTables } from "@/hooks/use-casino-data";
+import { useState, useMemo, useRef, useEffect } from "react";
+import { usePlayers, useTransactions, useGamingTables, useAddPlayerTag, useRemovePlayerTag } from "@/hooks/use-casino-data";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatNumberSpaces } from "@/lib/currency";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth-context";
-import { ArrowUpDown, ArrowUp, ArrowDown, LogIn, LogOut, Search, MapPin, Play } from "lucide-react";
+import { ArrowUpDown, ArrowUp, ArrowDown, LogIn, LogOut, Search, MapPin, Play, X, Plus, ChevronDown } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { NumberInput } from "@/components/ui/number-input";
 import {
@@ -18,6 +18,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { toast } from "sonner";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 type SortKey = "name" | "dropR" | "dropT" | "cashout" | "result";
 type SortDir = "asc" | "desc";
