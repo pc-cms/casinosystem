@@ -972,6 +972,7 @@ export type Database = {
           nickname: string
           phone: string
           photo_url: string | null
+          player_type: Database["public"]["Enums"]["player_type"]
           status: Database["public"]["Enums"]["player_status"]
           updated_at: string
         }
@@ -984,6 +985,7 @@ export type Database = {
           nickname?: string
           phone?: string
           photo_url?: string | null
+          player_type?: Database["public"]["Enums"]["player_type"]
           status?: Database["public"]["Enums"]["player_status"]
           updated_at?: string
         }
@@ -996,6 +998,7 @@ export type Database = {
           nickname?: string
           phone?: string
           photo_url?: string | null
+          player_type?: Database["public"]["Enums"]["player_type"]
           status?: Database["public"]["Enums"]["player_status"]
           updated_at?: string
         }
@@ -1538,6 +1541,7 @@ export type Database = {
         | "breaklist"
         | "pit"
       player_status: "active" | "blacklist"
+      player_type: "slots" | "table" | "mix"
       shift_type: "M" | "N" | "A" | "S" | "E" | "L"
       staff_department:
         | "security"
@@ -1712,6 +1716,7 @@ export const Constants = {
         "pit",
       ],
       player_status: ["active", "blacklist"],
+      player_type: ["slots", "table", "mix"],
       shift_type: ["M", "N", "A", "S", "E", "L"],
       staff_department: [
         "security",

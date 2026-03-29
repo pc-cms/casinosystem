@@ -32,6 +32,7 @@ const ActivePlayers = () => {
   const [sortKey, setSortKey] = useState<SortKey>("drop");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [search, setSearch] = useState("");
+  const [typeFilter, setTypeFilter] = useState<"all" | "table" | "mix">("all");
 
   const { data: allTags = [] } = useQuery({
     queryKey: ["player_tags", casinoId],
@@ -137,6 +138,7 @@ const ActivePlayers = () => {
           last_name: p.last_name,
           nickname: p.nickname,
           status: p.status,
+          player_type: (p as any).player_type as string || "table",
           drop,
           cashout,
           result,
@@ -148,10 +150,15 @@ const ActivePlayers = () => {
         };
       });
 
+    // Filter by type
+    const typeFiltered = typeFilter === "all"
+      ? list
+      : list.filter(p => p.player_type === typeFilter || p.player_type === "mix");
+
     // Filter by search
     const filtered = search
-      ? list.filter(p => `${p.first_name} ${p.last_name} ${p.nickname}`.toLowerCase().includes(search.toLowerCase()))
-      : list;
+      ? typeFiltered.filter(p => `${p.first_name} ${p.last_name} ${p.nickname}`.toLowerCase().includes(search.toLowerCase()))
+      : typeFiltered;
 
     // Sort
     filtered.sort((a, b) => {
@@ -166,7 +173,7 @@ const ActivePlayers = () => {
     });
 
     return filtered;
-  }, [players, transactions, allTags, sessions, tables, visits, sortKey, sortDir, search]);
+  }, [players, transactions, allTags, sessions, tables, visits, sortKey, sortDir, search, typeFilter]);
 
   // Players not yet active — for check-in search
   const activeIds = new Set(activePlayers.map(p => p.id));
@@ -201,14 +208,31 @@ const ActivePlayers = () => {
           <h3 className="text-sm font-semibold text-card-foreground shrink-0">
             Active Players ({activePlayers.length})
           </h3>
-          <div className="relative max-w-[240px] w-full">
-            <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Search / Check in..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="h-8 pl-8 text-xs"
-            />
+          <div className="flex items-center gap-2">
+            <div className="flex items-center rounded-md border border-border overflow-hidden">
+              {(["all", "table", "mix"] as const).map(f => (
+                <button
+                  key={f}
+                  onClick={() => setTypeFilter(f)}
+                  className={`px-2.5 py-1 text-[10px] font-medium uppercase transition-colors ${
+                    typeFilter === f
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                  }`}
+                >
+                  {f === "all" ? "All" : f === "table" ? "Table" : "Mix"}
+                </button>
+              ))}
+            </div>
+            <div className="relative max-w-[200px] w-full">
+              <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Search / Check in..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="h-8 pl-8 text-xs"
+              />
+            </div>
           </div>
         </div>
 
@@ -244,6 +268,7 @@ const ActivePlayers = () => {
                   <TableHead className="cursor-pointer select-none hover:text-foreground" onClick={() => handleSort("name")}>
                     <span className="flex items-center">Player <SortIcon col="name" /></span>
                   </TableHead>
+                  <TableHead className="text-center">Type</TableHead>
                   <TableHead className="text-center">Tags</TableHead>
                   <TableHead className="text-center">Table</TableHead>
                   <TableHead className="text-right cursor-pointer select-none hover:text-foreground" onClick={() => handleSort("drop")}>
@@ -267,6 +292,13 @@ const ActivePlayers = () => {
                         <span className="font-medium text-card-foreground">{p.first_name} {p.last_name}</span>
                         {p.nickname && <span className="text-xs text-muted-foreground">"{p.nickname}"</span>}
                       </div>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <span className={`text-[9px] font-mono font-bold uppercase px-1.5 py-0.5 rounded ${
+                        p.player_type === "table" ? "bg-sky-500/20 text-sky-400"
+                        : p.player_type === "mix" ? "bg-violet-500/20 text-violet-400"
+                        : "bg-amber-500/20 text-amber-400"
+                      }`}>{p.player_type === "table" ? "TBL" : p.player_type === "mix" ? "MIX" : "SLT"}</span>
                     </TableCell>
                     <TableCell className="text-center">
                       {p.tags.length > 0 ? (
@@ -315,7 +347,7 @@ const ActivePlayers = () => {
                 {/* Totals row */}
                 {activePlayers.length > 0 && (totalDrop > 0 || totalCashout > 0) && (
                   <TableRow className="border-t-2 border-border bg-muted/20">
-                    <TableCell className="font-bold text-xs text-card-foreground" colSpan={3}>TOTAL</TableCell>
+                    <TableCell className="font-bold text-xs text-card-foreground" colSpan={4}>TOTAL</TableCell>
                     <TableCell className="text-right font-mono font-bold text-card-foreground">{formatNumberSpaces(totalDrop)}</TableCell>
                     <TableCell className="text-right font-mono font-bold text-emerald-400">{formatNumberSpaces(totalCashout)}</TableCell>
                     <TableCell className={`text-right font-mono font-bold ${totalResult > 0 ? "text-emerald-400" : totalResult < 0 ? "text-red-400" : "text-muted-foreground"}`}>
