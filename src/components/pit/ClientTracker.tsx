@@ -318,7 +318,13 @@ const ClientTracker = () => {
       const table = tables.find(t => t.id === session.table_id);
       const hph = table ? getHandsPerHour(table.game) : DEFAULT_HANDS_PER_HOUR;
       const handsPlayed = Math.round((durationMinutes / 60) * hph);
-      const totalBet = handsPlayed * Number(session.avg_bet);
+      
+      // Segmented total bet: locked amount + hands since last bet change
+      const referenceTime = session.bet_changed_at || session.started_at;
+      const elapsedSinceRef = (stoppedAt.getTime() - new Date(referenceTime).getTime()) / 3600000;
+      const handsSinceRef = Math.round(elapsedSinceRef * hph);
+      const lockedTotalBet = Number(session.total_bet) || 0;
+      const totalBet = lockedTotalBet + handsSinceRef * Number(session.avg_bet);
 
       const { error } = await supabase
         .from("client_sessions")
