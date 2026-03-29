@@ -360,6 +360,7 @@ const StaffRotaGrid = ({ month }: { month: string }) => {
 
   const { data: staff = [] } = useStaffMembers();
   const { data: rota = [] } = useStaffRotaRange(startDate, endDate);
+  const { data: monthAttendance = [] } = useStaffAttendanceRange(startDate, endDate);
   const setRota = useSetStaffRota();
   const deleteRota = useDeleteStaffRota();
 
@@ -372,6 +373,23 @@ const StaffRotaGrid = ({ month }: { month: string }) => {
   const getRotaEntry = (staffId: string, day: number) => {
     const dateStr = `${month}-${String(day).padStart(2, "0")}`;
     return rota.find((r: any) => r.staff_id === staffId && r.date === dateStr);
+  };
+
+  const getAttendanceEntry = (staffId: string, day: number) => {
+    const dateStr = `${month}-${String(day).padStart(2, "0")}`;
+    return monthAttendance.find((a: any) => a.staff_id === staffId && a.date === dateStr);
+  };
+
+  const getDisplayShift = (staffId: string, day: number): { shift: string; isAuto: boolean } | null => {
+    const rotaEntry = getRotaEntry(staffId, day);
+    if (rotaEntry) return { shift: rotaEntry.shift, isAuto: false };
+    const att = getAttendanceEntry(staffId, day);
+    if (att) {
+      const val = String((att as any).value);
+      const num = Number(val);
+      if (!isNaN(num) && num > 0) return { shift: "D", isAuto: true };
+    }
+    return null;
   };
 
   const handleClick = (staffId: string, day: number) => {
@@ -389,21 +407,33 @@ const StaffRotaGrid = ({ month }: { month: string }) => {
     }
   };
 
+  const focusNextCell = (current: HTMLElement) => {
+    const td = current.closest("td");
+    const nextTd = td?.nextElementSibling;
+    const nextBtn = nextTd?.querySelector("button") as HTMLElement;
+    if (nextBtn) { nextBtn.focus(); return; }
+    const tr = td?.closest("tr");
+    const nextRow = tr?.nextElementSibling;
+    const firstBtn = nextRow?.querySelector("td:nth-child(2) button") as HTMLElement;
+    firstBtn?.focus();
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent, staffId: string, day: number) => {
     const key = e.key.toUpperCase();
     const dateStr = `${month}-${String(day).padStart(2, "0")}`;
     if (STAFF_SHIFTS.includes(key as typeof STAFF_SHIFTS[number])) {
       e.preventDefault();
       setRota.mutate({ staff_id: staffId, date: dateStr, shift: key });
-      const next = (e.target as HTMLElement)?.closest("td")?.nextElementSibling?.querySelector("button") as HTMLElement;
-      next?.focus();
+      focusNextCell(e.target as HTMLElement);
+    } else if (key === " " || e.code === "Space") {
+      e.preventDefault();
+      focusNextCell(e.target as HTMLElement);
     } else if (key === "BACKSPACE" || key === "DELETE") {
       e.preventDefault();
       deleteRota.mutate({ staff_id: staffId, date: dateStr });
     } else if (key === "ARROWRIGHT" || key === "TAB") {
       e.preventDefault();
-      const next = (e.target as HTMLElement)?.closest("td")?.nextElementSibling?.querySelector("button") as HTMLElement;
-      next?.focus();
+      focusNextCell(e.target as HTMLElement);
     } else if (key === "ARROWLEFT") {
       e.preventDefault();
       const prev = (e.target as HTMLElement)?.closest("td")?.previousElementSibling?.querySelector("button") as HTMLElement;
@@ -423,6 +453,24 @@ const StaffRotaGrid = ({ month }: { month: string }) => {
     }
   };
 
+  const handlePaste = (e: React.ClipboardEvent, staffId: string, day: number) => {
+    e.preventDefault();
+    const text = e.clipboardData.getData("text").trim().toUpperCase();
+    const dateStr = `${month}-${String(day).padStart(2, "0")}`;
+    const values = text.split(/[\s,]+/);
+    if (values.length === 1 && STAFF_SHIFTS.includes(values[0] as typeof STAFF_SHIFTS[number])) {
+      setRota.mutate({ staff_id: staffId, date: dateStr, shift: values[0] });
+    } else if (values.length > 1) {
+      values.forEach((v, i) => {
+        const d = day + i;
+        if (d <= daysInMonth && STAFF_SHIFTS.includes(v as typeof STAFF_SHIFTS[number])) {
+          const ds = `${month}-${String(d).padStart(2, "0")}`;
+          setRota.mutate({ staff_id: staffId, date: ds, shift: v });
+        }
+      });
+    }
+  };
+
   const grouped = useMemo(() => {
     const groups: Record<string, typeof activeStaff> = {};
     DEPARTMENT_ORDER.forEach(d => { groups[d] = []; });
@@ -436,8 +484,8 @@ const StaffRotaGrid = ({ month }: { month: string }) => {
   const getStats = (staffId: string) => {
     const counts: Record<string, number> = {};
     days.forEach(day => {
-      const entry = getRotaEntry(staffId, day);
-      if (entry) counts[entry.shift] = (counts[entry.shift] || 0) + 1;
+      const display = getDisplayShift(staffId, day);
+      if (display) counts[display.shift] = (counts[display.shift] || 0) + 1;
     });
     return counts;
   };
@@ -482,9 +530,10 @@ const StaffRotaGrid = ({ month }: { month: string }) => {
                   m={m}
                   isCurrentMonth={isCurrentMonth}
                   todayDay={todayDay}
-                  getRotaEntry={getRotaEntry}
+                  getDisplayShift={getDisplayShift}
                   handleClick={handleClick}
                   handleKeyDown={handleKeyDown}
+                  handlePaste={handlePaste}
                   getStats={getStats}
                 />
               );
