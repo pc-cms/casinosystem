@@ -248,28 +248,27 @@ const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }
                       const isActiveCell = activeCell?.dealerId === dealer.id && activeCell?.timeSlot === slot;
                       const isCurrentCol = isToday && slot === currentSlot;
                       return (
-                        <td key={slot} className={`px-0.5 py-0.5 text-center relative ${isCurrentCol ? "bg-primary/5" : ""}`}>
-                          <button
+                        <td key={slot} className={`px-0.5 py-0.5 text-center relative group ${isCurrentCol ? "bg-primary/5" : ""}`}>
+                          <div
                             onClick={() => isEditable && handleCellClick(dealer.id, slot)}
-                            disabled={!isEditable}
-                            className={`w-full h-7 rounded text-[9px] font-mono font-bold relative transition-colors ${
+                            className={`w-full h-7 rounded text-[9px] font-mono font-bold relative transition-colors cursor-pointer flex items-center justify-center ${
                               cell ? ROLE_COLORS[cell.role] || "bg-muted text-muted-foreground" : isEditable ? "bg-transparent hover:bg-muted/50 text-transparent hover:text-muted-foreground" : "bg-transparent text-transparent"
                             } ${cell?.is_locked ? "ring-1 ring-yellow-500/40" : ""} ${isActiveCell ? "ring-2 ring-primary" : ""} ${!isEditable ? "cursor-default" : ""}`}
                             title={tableName ? `${cell?.role} @ ${tableName}` : cell?.role}
                           >
                             {displayLabel}
                             {cell?.is_locked && <Lock className="w-2 h-2 absolute top-0.5 right-0.5 text-yellow-400" />}
-                            {/* Per-cell lock toggle for managers */}
-                            {isEditable && isManager && cell && !isActiveCell && (
-                              <button
-                                onClick={(e) => { e.stopPropagation(); handleToggleCellLock(dealer.id, slot); }}
-                                className="absolute bottom-0 right-0 p-0.5 opacity-0 group-hover:opacity-100 hover:opacity-100 text-muted-foreground hover:text-yellow-400 transition-opacity"
-                                title={cell.is_locked ? "Unlock cell" : "Lock cell"}
-                              >
-                                {cell.is_locked ? <Unlock className="w-2 h-2" /> : <Lock className="w-2 h-2" />}
-                              </button>
-                            )}
-                          </button>
+                          </div>
+                          {/* Per-cell lock toggle for managers */}
+                          {isEditable && isManager && cell && !isActiveCell && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleToggleCellLock(dealer.id, slot); }}
+                              className="absolute bottom-0.5 right-0.5 p-0.5 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-yellow-400 transition-opacity z-10"
+                              title={cell.is_locked ? "Unlock cell" : "Lock cell"}
+                            >
+                              {cell.is_locked ? <Unlock className="w-2.5 h-2.5" /> : <Lock className="w-2.5 h-2.5" />}
+                            </button>
+                          )
                           {/* Inline role picker dropdown */}
                           {isActiveCell && (
                             <div className="absolute z-50 top-8 left-0 bg-popover border border-border rounded-md shadow-lg p-1 min-w-[100px]"
