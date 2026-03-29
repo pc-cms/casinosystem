@@ -222,8 +222,8 @@ const TablesContent = () => {
       const dropV = trackerData
         .filter(tr => tr.table_id === t.id)
         .reduce((s, tr) => s + Number(tr.value), 0);
-      // Result = from chip count (closing_result)
-      const result = t.closing_result !== null ? Number(t.closing_result) : 0;
+      // Result = from chip count if available, otherwise from tracker
+      const result = t.closing_result !== null ? Number(t.closing_result) : dropV;
       stats[t.id] = { dropR, dropV, result };
     });
     return stats;
