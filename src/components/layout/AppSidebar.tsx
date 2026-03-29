@@ -36,10 +36,10 @@ const NAV_ITEMS: { to: string; icon: typeof LayoutDashboard; label: string; shor
 ];
 
 const TABLE_SUBITEMS = [
-  { tab: "client-tracker", icon: Target, label: "Client Tracker" },
   { tab: "players", icon: Eye, label: "Active Players" },
-  { tab: "tables", icon: Coins, label: "Tables & Chip" },
+  { tab: "client-tracker", icon: Target, label: "Client Tracker" },
   { tab: "tracker", icon: Grid3X3, label: "Table Tracker" },
+  { tab: "tables", icon: Coins, label: "Tables & Chip" },
 ];
 
 const PIT_SUBITEMS = [
