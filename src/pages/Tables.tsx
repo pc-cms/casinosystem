@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { useGamingTables, useTransactions, useCloseTable, useReopenTable } from "@/hooks/use-casino-data";
 import { useActiveShift } from "@/hooks/use-shift";
@@ -12,8 +13,187 @@ import { CHIP_DENOMS, CHIP_COLORS, formatChipLabel, formatCurrency, CHIP_DISTRIB
 import { AlertTriangle, Save, Coins, X, RotateCcw } from "lucide-react";
 import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
 import ChipDenomInput from "@/components/ChipDenomInput";
+import ActivePlayers from "@/components/pit/ActivePlayers";
+import ClientTracker from "@/components/pit/ClientTracker";
+
+// Lazy import TableTracker content
+import { useState as useStateTracker, useCallback, useMemo as useMemoTracker } from "react";
+import { useTableTracker, useSetTableTrackerValue } from "@/hooks/use-casino-data";
+import { formatInputWithSpaces, parseSpacedNumber } from "@/lib/currency";
+
+// ========== TABLE TRACKER (inlined) ==========
+const generateSlots = () => {
+  const slots: string[] = [];
+  for (let h = 18; h <= 28; h++) {
+    if (h === 29) break;
+    const hour = h % 24;
+    slots.push(`${String(hour).padStart(2, "0")}:00`);
+  }
+  return slots;
+};
+const TRACKER_SLOTS = generateSlots();
+
+const getCurrentSlot = () => {
+  const now = new Date();
+  const h = now.getHours();
+  return `${String(h).padStart(2, "0")}:00`;
+};
 
 const Tables = () => {
+  const [searchParams] = useSearchParams();
+  const activeTab = searchParams.get("tab") || "tables";
+
+  const TAB_TITLES: Record<string, string> = {
+    tables: "Tables & Chip Accounting",
+    tracker: "Table Tracker",
+    players: "Active Players",
+    "client-tracker": "Client Tracker",
+  };
+
+  return (
+    <div>
+      {activeTab === "tables" && <TablesContent />}
+      {activeTab === "tracker" && <TrackerContent />}
+      {activeTab === "players" && (
+        <div>
+          <div className="mb-5">
+            <h1 className="text-2xl font-bold text-foreground">Active Players</h1>
+            <p className="text-sm text-muted-foreground">Players currently in the hall</p>
+          </div>
+          <ActivePlayers />
+        </div>
+      )}
+      {activeTab === "client-tracker" && (
+        <div>
+          <div className="mb-5">
+            <h1 className="text-2xl font-bold text-foreground">Client Tracker</h1>
+            <p className="text-sm text-muted-foreground">Track player sessions and total bet</p>
+          </div>
+          <ClientTracker />
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ========== TRACKER CONTENT ==========
+const TrackerContent = () => {
+  const today = new Date().toISOString().split("T")[0];
+  const [date, setDate] = useState(today);
+  const { data: tables = [] } = useGamingTables();
+  const { data: trackerData = [] } = useTableTracker(date);
+  const setTrackerValue = useSetTableTrackerValue();
+
+  const currentSlot = getCurrentSlot();
+
+  const getValue = useCallback((tableId: string, slot: string) => {
+    const entry = trackerData.find((d: any) => d.table_id === tableId && d.time_slot === slot);
+    return entry ? Number(entry.value) : 0;
+  }, [trackerData]);
+
+  const handleSave = useCallback((tableId: string, slot: string, raw: string) => {
+    const num = parseSpacedNumber(raw);
+    if (isNaN(num) || num < 0) return;
+    setTrackerValue.mutate({ table_id: tableId, date, time_slot: slot, value: num });
+  }, [date, setTrackerValue]);
+
+  const tableSlotTotals = useMemo(() => {
+    const totals: Record<string, number> = {};
+    tables.forEach(t => {
+      totals[t.id] = TRACKER_SLOTS.reduce((s, slot) => s + getValue(t.id, slot), 0);
+    });
+    return totals;
+  }, [tables, getValue]);
+
+  const slotTotals = useMemo(() => {
+    const totals: Record<string, number> = {};
+    TRACKER_SLOTS.forEach(slot => {
+      totals[slot] = tables.reduce((s, t) => s + getValue(t.id, slot), 0);
+    });
+    return totals;
+  }, [tables, getValue]);
+
+  const grandTotal = Object.values(tableSlotTotals).reduce((s, v) => s + v, 0);
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-5">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Table Tracker</h1>
+          <p className="text-sm text-muted-foreground">Hourly table results</p>
+        </div>
+        <Input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-44 font-mono" />
+      </div>
+      <div className="cms-panel overflow-x-auto">
+        <div className="min-w-[1000px]">
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="border-b border-border">
+                <th className="text-left text-xs font-medium text-muted-foreground uppercase px-3 py-2 sticky left-0 bg-card z-10 min-w-[120px]">Table</th>
+                {TRACKER_SLOTS.map(slot => {
+                  const isCurrent = slot === currentSlot && date === today;
+                  return (
+                    <th key={slot} className={`text-center px-1 py-2 min-w-[80px] text-xs font-mono ${isCurrent ? "bg-primary/20 text-primary font-bold" : "text-muted-foreground"}`}>
+                      {slot}
+                    </th>
+                  );
+                })}
+                <th className="text-center text-xs font-medium text-muted-foreground uppercase px-2 py-2 min-w-[80px]">Σ</th>
+              </tr>
+            </thead>
+            <tbody>
+              {tables.map((table, idx) => (
+                <tr key={table.id} className={`border-b border-border ${idx % 2 === 1 ? "bg-muted/10" : ""}`}>
+                  <td className={`px-3 py-1 text-xs font-medium text-card-foreground sticky left-0 z-10 ${idx % 2 === 0 ? "bg-card" : "bg-card/95"}`}>
+                    {table.name}
+                  </td>
+                  {TRACKER_SLOTS.map(slot => {
+                    const val = getValue(table.id, slot);
+                    const isCurrent = slot === currentSlot && date === today;
+                    return (
+                      <td key={slot} className={`px-0.5 py-0.5 ${isCurrent ? "bg-primary/10" : ""}`}>
+                        <input
+                          type="text"
+                          defaultValue={val || ""}
+                          key={`${table.id}-${slot}-${val}`}
+                          onBlur={e => handleSave(table.id, slot, e.target.value)}
+                          onKeyDown={e => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+                          className="w-full h-7 rounded text-[10px] font-mono text-center border-0 bg-transparent focus:outline-none focus:ring-1 focus:ring-primary text-card-foreground"
+                          placeholder="0"
+                        />
+                      </td>
+                    );
+                  })}
+                  <td className="px-2 py-1 text-center">
+                    <span className="text-[10px] font-mono font-bold text-primary">
+                      {tableSlotTotals[table.id] ? formatCurrency(tableSlotTotals[table.id]) : ""}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+              <tr className="border-t-2 border-border bg-muted/20">
+                <td className="px-3 py-2 text-xs font-bold text-card-foreground sticky left-0 bg-muted/20 z-10">TOTAL</td>
+                {TRACKER_SLOTS.map(slot => (
+                  <td key={slot} className="px-1 py-2 text-center">
+                    <span className="text-[10px] font-mono font-bold text-muted-foreground">
+                      {slotTotals[slot] ? formatCurrency(slotTotals[slot]) : ""}
+                    </span>
+                  </td>
+                ))}
+                <td className="px-2 py-2 text-center">
+                  <span className="text-xs font-mono font-bold text-primary">{grandTotal ? formatCurrency(grandTotal) : ""}</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ========== TABLES CONTENT (original) ==========
+const TablesContent = () => {
   const today = new Date().toISOString().split("T")[0];
   const [date, setDate] = useState(today);
   const { data: tables = [] } = useGamingTables();
@@ -25,11 +205,8 @@ const Tables = () => {
   const reopenTable = useReopenTable();
   const { isManager } = useAuth();
 
-  // Table close dialog
   const [closingTable, setClosingTable] = useState<any | null>(null);
   const [pendingReopen, setPendingReopen] = useState<string | null>(null);
-
-  // Chip count state
   const [counts, setCounts] = useState<Record<string, Record<number, number>>>({});
   const [showCount, setShowCount] = useState(false);
 
@@ -41,7 +218,6 @@ const Tables = () => {
     return transactions.filter(t => t.shift_id === shift.id);
   }, [transactions, shift]);
 
-  // Per-table results
   const tableResults = useMemo(() => {
     const results: Record<string, { drop: number; cashout: number; result: number; txCount: number }> = {};
     tables.forEach(t => {
@@ -55,18 +231,11 @@ const Tables = () => {
 
   const handleCloseTable = () => {
     if (!closingTable) return;
-    const r = tableResults[closingTable.id] || { drop: 0, cashout: 0, result: 0 };
-    closeTable.mutate({
-      table_id: closingTable.id,
-      closing_chips: {},
-    }, {
-      onSuccess: () => {
-        setClosingTable(null);
-      },
+    closeTable.mutate({ table_id: closingTable.id, closing_chips: {} }, {
+      onSuccess: () => setClosingTable(null),
     });
   };
 
-  // Chip count locations
   const locations = useMemo(() => {
     const locs: Array<{ key: string; label: string; type: string; id: string | null; denoms: number[]; chipsPerDenom: number }> = [];
     tables.forEach(t => {
@@ -116,7 +285,6 @@ const Tables = () => {
     batchSnapshot.mutate({ date, counts: rows }, { onSuccess: () => { setCounts({}); setShowCount(false); } });
   };
 
-  // Group tables by game type
   const gameGroups = useMemo(() => {
     const groups: Record<string, typeof tables> = {};
     tables.forEach(t => {
@@ -127,7 +295,6 @@ const Tables = () => {
     return groups;
   }, [tables]);
 
-  // Game-type totals
   const gameTypeTotals = useMemo(() => {
     const totals: Record<string, { drop: number; cashout: number; result: number; label: string }> = {};
     const gameLabels: Record<string, string> = {
@@ -150,7 +317,6 @@ const Tables = () => {
   const totalCashout = Object.values(tableResults).reduce((s, r) => s + r.cashout, 0);
   const totalResult = totalDrop - totalCashout;
 
-  // Separate AR/BJ tables (left column) from Poker (right column)
   const pokerGames = ["Poker", "Texas Holdem", "Omaha", "PLO"];
   const leftTables = tables.filter(t => !pokerGames.includes(t.game)).sort((a, b) => a.name.localeCompare(b.name));
   const rightTables = tables.filter(t => pokerGames.includes(t.game)).sort((a, b) => a.name.localeCompare(b.name));
@@ -222,7 +388,7 @@ const Tables = () => {
       </div>
 
       {/* Game-type Summary */}
-      <div className={`grid gap-2 mb-4`} style={{ gridTemplateColumns: `repeat(${Object.keys(gameTypeTotals).length + 1}, minmax(0, 1fr))` }}>
+      <div className="grid gap-2 mb-4" style={{ gridTemplateColumns: `repeat(${Object.keys(gameTypeTotals).length + 1}, minmax(0, 1fr))` }}>
         {Object.entries(gameTypeTotals).map(([game, t]) => (
           <div key={game} className="cms-panel p-2">
             <p className="text-[9px] uppercase text-muted-foreground tracking-wider">{t.label}</p>
@@ -245,7 +411,7 @@ const Tables = () => {
         </div>
       </div>
 
-      {/* Two-column Table Cards: Left = AR/BJ, Right = Poker */}
+      {/* Two-column Table Cards */}
       <div className="grid grid-cols-2 gap-6 mb-6">
         <div className="space-y-3">
           <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-1 border-b border-border pb-1">AR / BJ</h3>
@@ -266,12 +432,8 @@ const Tables = () => {
         return (
           <Dialog open onOpenChange={() => setClosingTable(null)}>
             <DialogContent className="max-w-sm">
-              <DialogHeader>
-                <DialogTitle>Close {closingTable.name}</DialogTitle>
-              </DialogHeader>
-              <p className="text-xs text-muted-foreground">
-                Confirm closing this table. Result is based on transactions (Drop − Cashout).
-              </p>
+              <DialogHeader><DialogTitle>Close {closingTable.name}</DialogTitle></DialogHeader>
+              <p className="text-xs text-muted-foreground">Confirm closing this table.</p>
               <div className="grid grid-cols-3 gap-2 pt-2 border-t border-border">
                 <div className="text-center">
                   <p className="text-[9px] uppercase text-muted-foreground">Drop</p>
@@ -299,15 +461,11 @@ const Tables = () => {
         );
       })()}
 
-      {/* Manager override for reopen */}
       <ManagerOverrideDialog
         open={!!pendingReopen}
         onClose={() => setPendingReopen(null)}
-        onConfirm={(managerId) => {
-          if (pendingReopen) {
-            reopenTable.mutate(pendingReopen);
-            setPendingReopen(null);
-          }
+        onConfirm={() => {
+          if (pendingReopen) { reopenTable.mutate(pendingReopen); setPendingReopen(null); }
         }}
         title="Reopen Table"
         description="Manager authentication required to reopen a closed table."

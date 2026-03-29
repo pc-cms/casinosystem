@@ -16,7 +16,7 @@ import Logs from "@/pages/Logs";
 import Stats from "@/pages/Stats";
 import Pit from "@/pages/Pit";
 import Groups from "@/pages/Groups";
-import TableTracker from "@/pages/TableTracker";
+// TableTracker is now embedded in Tables page
 import Reports from "@/pages/Reports";
 import Admin from "@/pages/Admin";
 import Staff from "@/pages/Staff";
@@ -42,7 +42,7 @@ const ROUTE_ROLES: Record<string, string[]> = {
   "/pit": ["manager", "pit", "finance_manager"],
   "/floor": ["manager", "pit", "finance_manager"],
   "/groups": ["manager", "finance_manager"],
-  "/tracker": ["manager", "pit"],
+  // tracker is now under /tables?tab=tracker
   "/reports": ["manager", "finance_manager", "security"],
   "/stats": ["manager", "finance_manager", "security"],
   "/logs": ["manager", "finance_manager", "security"],
@@ -83,7 +83,7 @@ const ProtectedRoutes = () => {
         <Route path="/staff" element={<RoleGuard path="/floor"><Staff /></RoleGuard>} />
         <Route path="/floor" element={<RoleGuard path="/floor"><Staff /></RoleGuard>} />
         <Route path="/groups" element={<RoleGuard path="/groups"><Groups /></RoleGuard>} />
-        <Route path="/tracker" element={<RoleGuard path="/tracker"><TableTracker /></RoleGuard>} />
+        {/* tracker is now under /tables?tab=tracker */}
         <Route path="/reports" element={<RoleGuard path="/reports"><Reports /></RoleGuard>} />
         <Route path="/stats" element={<RoleGuard path="/stats"><Stats /></RoleGuard>} />
         <Route path="/logs" element={<RoleGuard path="/logs"><Logs /></RoleGuard>} />

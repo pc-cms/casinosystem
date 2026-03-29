@@ -4,7 +4,7 @@ import {
   ClipboardList, BarChart3, Sun, Moon, Shield, Gamepad2, 
   UsersRound, Grid3X3, LogOut, Settings, FileBarChart,
   CalendarDays, ClipboardCheck, ListChecks, UserCog, Eye, Target,
-  Building2, UserCheck, ClipboardPen,
+  Building2, UserCheck, ClipboardPen, Coins,
 } from "lucide-react";
 import { useTheme } from "@/lib/theme";
 import { useAuth } from "@/lib/auth-context";
@@ -20,7 +20,6 @@ const NAV_ITEMS: { to: string; icon: typeof LayoutDashboard; label: string; shor
   { to: "/pit", icon: Gamepad2, label: "Live Game", shortcut: "I", roles: ["manager", "pit", "finance_manager"] },
   { to: "/staff", icon: Building2, label: "Floor", shortcut: "F", roles: ["manager", "pit", "finance_manager"] },
   { to: "/groups", icon: UsersRound, label: "Groups", shortcut: "G", roles: ["manager", "finance_manager"] },
-  { to: "/tracker", icon: Grid3X3, label: "Tracker", shortcut: "K", roles: ["manager", "pit"] },
   { to: "/stats", icon: BarChart3, label: "Stats", shortcut: "S", roles: ["manager", "finance_manager", "security"] },
   { to: "/reports", icon: FileBarChart, label: "Reports", shortcut: "R", roles: ["manager", "finance_manager", "security"] },
   { to: "/logs", icon: ClipboardList, label: "Logs", shortcut: "L", roles: ["manager", "finance_manager", "security"] },
@@ -31,6 +30,11 @@ const PIT_SUBITEMS = [
   { tab: "rota", icon: CalendarDays, label: "Rota" },
   { tab: "attendance", icon: ClipboardCheck, label: "Attendance" },
   { tab: "breaklist", icon: ListChecks, label: "Breaklist" },
+];
+
+const TABLE_SUBITEMS = [
+  { tab: "tables", icon: Coins, label: "Tables" },
+  { tab: "tracker", icon: Grid3X3, label: "Tracker" },
   { tab: "players", icon: Eye, label: "Players" },
   { tab: "client-tracker", icon: Target, label: "Client Tracker" },
 ];
@@ -48,7 +52,9 @@ export const AppSidebar = () => {
 
   const isPitActive = location.pathname === "/pit";
   const isStaffActive = location.pathname === "/staff";
-  const currentTab = new URLSearchParams(location.search).get("tab") || (isPitActive ? "employee" : "employee");
+  const isTablesActive = location.pathname === "/tables";
+  const currentTab = new URLSearchParams(location.search).get("tab") || 
+    (isPitActive ? "employee" : isTablesActive ? "tables" : "employee");
 
   const visibleItems = NAV_ITEMS.filter(item =>
     roles.some(r => item.roles.includes(r as AppRole))
@@ -66,7 +72,7 @@ export const AppSidebar = () => {
       <nav className="flex-1 py-2 px-2 space-y-0.5 overflow-y-auto">
         {visibleItems.map(item => (
           <div key={item.to}>
-            <NavLink to={item.to} end={item.to === "/" || item.to === "/pit" || item.to === "/staff"}
+            <NavLink to={item.to} end={item.to === "/" || item.to === "/pit" || item.to === "/staff" || item.to === "/tables"}
               className={({ isActive }) =>
                 `flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
                   isActive ? "bg-sidebar-accent text-sidebar-primary font-medium" : "text-sidebar-foreground hover:bg-sidebar-accent"
@@ -76,6 +82,25 @@ export const AppSidebar = () => {
               <span className="flex-1">{item.label}</span>
               <span className="cms-kbd">{item.shortcut}</span>
             </NavLink>
+            {/* Tables sub-navigation */}
+            {item.to === "/tables" && isTablesActive && (
+              <div className="ml-4 mt-0.5 space-y-0.5 border-l border-sidebar-border pl-2">
+                {TABLE_SUBITEMS.map(sub => (
+                  <NavLink
+                    key={sub.tab}
+                    to={`/tables?tab=${sub.tab}`}
+                    className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-xs transition-colors ${
+                      currentTab === sub.tab
+                        ? "bg-sidebar-accent text-sidebar-primary font-medium"
+                        : "text-sidebar-foreground hover:bg-sidebar-accent"
+                    }`}
+                  >
+                    <sub.icon className="w-3.5 h-3.5 shrink-0" />
+                    <span>{sub.label}</span>
+                  </NavLink>
+                ))}
+              </div>
+            )}
             {/* Pit sub-navigation */}
             {item.to === "/pit" && isPitActive && (
               <div className="ml-4 mt-0.5 space-y-0.5 border-l border-sidebar-border pl-2">
