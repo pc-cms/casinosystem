@@ -409,11 +409,6 @@ const TablesContent = () => {
       </div>
     );
   };
-          </div>
-        </div>
-      </div>
-    );
-  };
 
   return (
     <div>
