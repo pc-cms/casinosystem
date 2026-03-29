@@ -118,14 +118,9 @@ const RotaGrid = ({ month }: { month: string }) => {
 
   const { data: dealers = [] } = useDealers();
   const { data: rota = [] } = usePitRotaRange(startDate, endDate);
+  const { data: monthAttendance = [] } = useDealerAttendanceRange(startDate, endDate);
   const setRota = useSetPitRota();
   const deleteRota = useDeletePitRota();
-
-  // Fetch attendance for the whole month to detect Extra shifts
-  const { data: attendanceData = [] } = useDealerAttendance(startDate);
-  // We need attendance for each day — fetch range. For simplicity, we'll load per-month.
-  // Actually useDealerAttendance only takes a single date. We need a range hook or load all days.
-  // For now, we'll show E from rota data + manual. Auto-E detection works best with range query.
 
   const activeDealers = dealers.filter(d => d.is_active);
 
