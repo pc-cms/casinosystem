@@ -474,7 +474,25 @@ export const useSetPitRota = () => {
       if (error) throw error;
       await logAction(casinoId, "pit", "ROTA_SET", input);
     },
-    onSuccess: () => {
+    onMutate: async (input) => {
+      // Optimistic update for all matching rota-range queries
+      await qc.cancelQueries({ queryKey: ["pit-rota-range"] });
+      const queries = qc.getQueriesData<any[]>({ queryKey: ["pit-rota-range"] });
+      queries.forEach(([key, data]) => {
+        if (!data) return;
+        const idx = data.findIndex((r: any) => r.dealer_id === input.dealer_id && r.date === input.date);
+        const newEntry = { dealer_id: input.dealer_id, date: input.date, shift: input.shift, casino_id: casinoId, id: `temp-${Date.now()}`, created_by: user?.id };
+        const updated = [...data];
+        if (idx >= 0) { updated[idx] = { ...updated[idx], shift: input.shift }; } else { updated.push(newEntry); }
+        qc.setQueryData(key, updated);
+      });
+      return { queries };
+    },
+    onError: (_err, _input, ctx) => {
+      // Rollback
+      ctx?.queries?.forEach(([key, data]: any) => qc.setQueryData(key, data));
+    },
+    onSettled: () => {
       qc.invalidateQueries({ queryKey: ["pit-rota"] });
       qc.invalidateQueries({ queryKey: ["pit-rota-range"] });
     },
@@ -495,7 +513,19 @@ export const useDeletePitRota = () => {
         .eq("date", date);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onMutate: async ({ dealer_id, date }) => {
+      await qc.cancelQueries({ queryKey: ["pit-rota-range"] });
+      const queries = qc.getQueriesData<any[]>({ queryKey: ["pit-rota-range"] });
+      queries.forEach(([key, data]) => {
+        if (!data) return;
+        qc.setQueryData(key, data.filter((r: any) => !(r.dealer_id === dealer_id && r.date === date)));
+      });
+      return { queries };
+    },
+    onError: (_err, _input, ctx) => {
+      ctx?.queries?.forEach(([key, data]: any) => qc.setQueryData(key, data));
+    },
+    onSettled: () => {
       qc.invalidateQueries({ queryKey: ["pit-rota"] });
       qc.invalidateQueries({ queryKey: ["pit-rota-range"] });
     },
@@ -537,8 +567,23 @@ export const useSetDealerAttendance = () => {
       } as any, { onConflict: "casino_id,dealer_id,date" });
       if (error) throw error;
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["dealer-attendance"] }); },
-    onError: (e) => toast.error(e.message),
+    onMutate: async (input) => {
+      await qc.cancelQueries({ queryKey: ["dealer-attendance-range"] });
+      const queries = qc.getQueriesData<any[]>({ queryKey: ["dealer-attendance-range"] });
+      queries.forEach(([key, data]) => {
+        if (!data) return;
+        const idx = data.findIndex((a: any) => a.dealer_id === input.dealer_id && a.date === input.date);
+        const updated = [...data];
+        const entry = { dealer_id: input.dealer_id, date: input.date, value: input.value, casino_id: casinoId };
+        if (idx >= 0) { updated[idx] = { ...updated[idx], value: input.value }; } else { updated.push(entry); }
+        qc.setQueryData(key, updated);
+      });
+      return { queries };
+    },
+    onError: (_err, _input, ctx) => {
+      ctx?.queries?.forEach(([key, data]: any) => qc.setQueryData(key, data));
+    },
+    onSettled: () => { qc.invalidateQueries({ queryKey: ["dealer-attendance"] }); qc.invalidateQueries({ queryKey: ["dealer-attendance-range"] }); },
   });
 };
 
@@ -645,8 +690,24 @@ export const useSetBreaklistCell = () => {
 
       return { offline: result.offline };
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["breaklist"] }); },
-    onError: (e) => toast.error(e.message),
+    onMutate: async (input) => {
+      await qc.cancelQueries({ queryKey: ["breaklist"] });
+      const queries = qc.getQueriesData<any[]>({ queryKey: ["breaklist"] });
+      queries.forEach(([key, data]) => {
+        if (!data) return;
+        const idx = data.findIndex((b: any) => b.dealer_id === input.dealer_id && b.time_slot === input.time_slot);
+        const updated = [...data];
+        const entry = { dealer_id: input.dealer_id, time_slot: input.time_slot, role: input.role, table_id: input.table_id, date: input.date, casino_id: casinoId, id: `temp-${Date.now()}`, is_locked: false };
+        if (idx >= 0) { updated[idx] = { ...updated[idx], role: input.role, table_id: input.table_id }; } else { updated.push(entry); }
+        qc.setQueryData(key, updated);
+      });
+      return { queries };
+    },
+    onError: (_err, _input, ctx) => {
+      ctx?.queries?.forEach(([key, data]: any) => qc.setQueryData(key, data));
+      toast.error(_err.message);
+    },
+    onSettled: () => { qc.invalidateQueries({ queryKey: ["breaklist"] }); },
   });
 };
 

@@ -177,23 +177,53 @@ const RotaGrid = ({ month }: { month: string }) => {
     }
   };
 
+  const focusNextCell = (current: HTMLElement) => {
+    // Try next sibling cell's button first, then wrap to next row
+    const td = current.closest("td");
+    const nextTd = td?.nextElementSibling;
+    const nextBtn = nextTd?.querySelector("button") as HTMLElement;
+    if (nextBtn) { nextBtn.focus(); return; }
+    // Try first cell of next row
+    const tr = td?.closest("tr");
+    const nextRow = tr?.nextElementSibling;
+    const firstBtn = nextRow?.querySelector("td:nth-child(2) button") as HTMLElement;
+    firstBtn?.focus();
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent, dealerId: string, day: number) => {
     const key = e.key.toUpperCase();
     const dateStr = `${month}-${String(day).padStart(2, "0")}`;
     if (ROTA_SHIFTS.includes(key as typeof ROTA_SHIFTS[number])) {
       e.preventDefault();
       setRota.mutate({ dealer_id: dealerId, date: dateStr, shift: key as typeof ROTA_SHIFTS[number] });
+      focusNextCell(e.target as HTMLElement);
+    } else if (key === " " || e.code === "Space") {
+      e.preventDefault();
+      focusNextCell(e.target as HTMLElement);
     } else if (key === "BACKSPACE" || key === "DELETE") {
       e.preventDefault();
       deleteRota.mutate({ dealer_id: dealerId, date: dateStr });
-    } else if (key === "ARROWRIGHT") {
+    } else if (key === "ARROWRIGHT" || key === "TAB") {
       e.preventDefault();
-      const next = (e.target as HTMLElement)?.nextElementSibling?.querySelector("button") as HTMLElement;
-      next?.focus();
+      focusNextCell(e.target as HTMLElement);
     } else if (key === "ARROWLEFT") {
       e.preventDefault();
-      const prev = (e.target as HTMLElement)?.parentElement?.previousElementSibling?.querySelector("button") as HTMLElement;
+      const prev = (e.target as HTMLElement)?.closest("td")?.previousElementSibling?.querySelector("button") as HTMLElement;
       prev?.focus();
+    } else if (key === "ARROWDOWN") {
+      e.preventDefault();
+      const td = (e.target as HTMLElement).closest("td");
+      const idx = td ? Array.from(td.parentElement!.children).indexOf(td) : -1;
+      const nextRow = td?.closest("tr")?.nextElementSibling;
+      const btn = nextRow?.children[idx]?.querySelector("button") as HTMLElement;
+      btn?.focus();
+    } else if (key === "ARROWUP") {
+      e.preventDefault();
+      const td = (e.target as HTMLElement).closest("td");
+      const idx = td ? Array.from(td.parentElement!.children).indexOf(td) : -1;
+      const prevRow = td?.closest("tr")?.previousElementSibling;
+      const btn = prevRow?.children[idx]?.querySelector("button") as HTMLElement;
+      btn?.focus();
     }
   };
 
