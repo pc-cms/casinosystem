@@ -49,8 +49,8 @@ const FloatManagement = () => {
         denoms: t.denominations || CHIP_DENOMS,
       });
     });
-    locs.push({ key: "cashier", label: "Касса", type: "cashier", id: null, denoms: CHIP_DENOMS });
-    locs.push({ key: "safe", label: "Сейф", type: "safe", id: null, denoms: CHIP_DENOMS });
+    locs.push({ key: "cashier", label: "Cashier", type: "cashier", id: null, denoms: CHIP_DENOMS });
+    locs.push({ key: "safe", label: "Safe", type: "safe", id: null, denoms: CHIP_DENOMS });
     return locs;
   }, [tables]);
 
@@ -134,19 +134,19 @@ const FloatManagement = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-bold text-foreground">Флот казино (Baseline)</h2>
+          <h2 className="text-lg font-bold text-foreground">Casino Float (Baseline)</h2>
           <p className="text-xs text-muted-foreground">
-            Количество фишек по умолчанию для каждого стола, кассы и сейфа
+            Default chip quantities for each table, cashier and safe
           </p>
         </div>
         <div className="flex items-center gap-2">
           {isLocked ? (
             <Badge className="gap-1 bg-green-600/20 text-green-500 border-green-500/30">
-              <Lock className="w-3 h-3" /> Флот зафиксирован
+              <Lock className="w-3 h-3" /> Float Locked
             </Badge>
           ) : (
             <Badge variant="outline" className="gap-1 border-orange-500/50 text-orange-500">
-              <AlertTriangle className="w-3 h-3" /> Флот не зафиксирован
+              <AlertTriangle className="w-3 h-3" /> Float Not Locked
             </Badge>
           )}
         </div>
@@ -159,7 +159,7 @@ const FloatManagement = () => {
             <thead>
               <tr className="border-b border-border">
                 <th className="text-left py-2 px-3 text-muted-foreground font-medium sticky left-0 bg-card z-10 min-w-[70px]">
-                  Номинал
+                  Denom
                 </th>
                 {locations.map(loc => (
                   <th key={loc.key} className="text-center py-2 px-2 text-muted-foreground font-medium min-w-[80px] whitespace-nowrap">
@@ -205,7 +205,7 @@ const FloatManagement = () => {
             <tfoot>
               <tr className="border-t-2 border-border bg-muted/20">
                 <td className="py-2 px-3 text-xs font-bold text-card-foreground sticky left-0 bg-muted/20 z-10">
-                  Итого
+                  Total
                 </td>
                 {locations.map(loc => {
                   const total = locationTotal(loc.key, loc.denoms);
@@ -226,7 +226,7 @@ const FloatManagement = () => {
       {/* Grand total & actions */}
       <div className="flex items-center justify-between">
         <div className="cms-panel p-3 inline-flex items-center gap-3">
-          <span className="text-xs font-medium text-muted-foreground uppercase">Общий флот казино</span>
+          <span className="text-xs font-medium text-muted-foreground uppercase">Total Casino Float</span>
           <span className="font-mono text-lg font-bold text-primary">{formatCurrency(grandTotal)}</span>
         </div>
 
@@ -241,7 +241,7 @@ const FloatManagement = () => {
                 className="gap-1.5"
               >
                 <Save className="w-4 h-4" />
-                {upsertBaseline.isPending ? "Сохранение…" : "Сохранить"}
+                {upsertBaseline.isPending ? "Saving…" : "Save"}
               </Button>
               <Button
                 size="sm"
@@ -249,7 +249,7 @@ const FloatManagement = () => {
                 disabled={grandTotal === 0}
                 className="gap-1.5 bg-orange-600 hover:bg-orange-700"
               >
-                <Lock className="w-4 h-4" /> Зафиксировать флот казино
+                <Lock className="w-4 h-4" /> Lock Casino Float
               </Button>
             </>
           )}
@@ -262,28 +262,28 @@ const FloatManagement = () => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <AlertTriangle className="w-5 h-5 text-orange-500" />
-              Зафиксировать флот?
+              Lock Float?
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-3 text-sm text-muted-foreground">
             <p>
-              После фиксации общее количество фишек в системе <strong className="text-card-foreground">может только уменьшаться</strong> (потеря, повреждение).
+              Once locked, the total chip count in the system <strong className="text-card-foreground">can only decrease</strong> (loss, damage).
             </p>
-            <p>Увеличить количество фишек выше начального значения будет невозможно.</p>
+            <p>Increasing chip quantities above the baseline will not be possible.</p>
             <div className="cms-panel p-3 text-center">
-              <span className="text-xs text-muted-foreground">Общий флот</span>
+              <span className="text-xs text-muted-foreground">Total Float</span>
               <p className="font-mono text-lg font-bold text-primary">{formatCurrency(grandTotal)}</p>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowLockConfirm(false)}>Отмена</Button>
+            <Button variant="outline" onClick={() => setShowLockConfirm(false)}>Cancel</Button>
             <Button
               onClick={handleLock}
               disabled={lockFloat.isPending}
               className="gap-1.5 bg-orange-600 hover:bg-orange-700"
             >
               <Lock className="w-4 h-4" />
-              {lockFloat.isPending ? "Фиксация…" : "Зафиксировать"}
+              {lockFloat.isPending ? "Locking…" : "Lock Float"}
             </Button>
           </DialogFooter>
         </DialogContent>
