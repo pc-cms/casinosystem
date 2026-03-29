@@ -116,10 +116,94 @@ const Tables = () => {
     batchSnapshot.mutate({ date, counts: rows }, { onSuccess: () => { setCounts({}); setShowCount(false); } });
   };
 
-  // Totals across all tables
+  // Group tables by game type
+  const gameGroups = useMemo(() => {
+    const groups: Record<string, typeof tables> = {};
+    tables.forEach(t => {
+      const key = t.game;
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(t);
+    });
+    return groups;
+  }, [tables]);
+
+  // Game-type totals
+  const gameTypeTotals = useMemo(() => {
+    const totals: Record<string, { drop: number; cashout: number; result: number; label: string }> = {};
+    const gameLabels: Record<string, string> = {
+      "American Roulette": "Total ARs",
+      "Poker": "Total P",
+      "Blackjack": "Total BJ",
+    };
+    tables.forEach(t => {
+      const label = gameLabels[t.game] || `Total ${t.game}`;
+      if (!totals[t.game]) totals[t.game] = { drop: 0, cashout: 0, result: 0, label };
+      const r = tableResults[t.id] || { drop: 0, cashout: 0, result: 0 };
+      totals[t.game].drop += r.drop;
+      totals[t.game].cashout += r.cashout;
+      totals[t.game].result += r.result;
+    });
+    return totals;
+  }, [tables, tableResults]);
+
   const totalDrop = Object.values(tableResults).reduce((s, r) => s + r.drop, 0);
   const totalCashout = Object.values(tableResults).reduce((s, r) => s + r.cashout, 0);
   const totalResult = totalDrop - totalCashout;
+
+  // Separate AR/BJ tables (left column) from Poker (right column)
+  const leftTables = tables.filter(t => t.game !== "Poker").sort((a, b) => a.name.localeCompare(b.name));
+  const rightTables = tables.filter(t => t.game === "Poker").sort((a, b) => a.name.localeCompare(b.name));
+
+  const renderTableCard = (table: typeof tables[0]) => {
+    const r = tableResults[table.id] || { drop: 0, cashout: 0, result: 0, txCount: 0 };
+    const isOpen = table.status === "open";
+    return (
+      <div key={table.id} className="cms-panel">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+          <div className="flex items-center gap-3">
+            <div className={`w-2.5 h-2.5 rounded-full ${isOpen ? "bg-green-500" : "bg-destructive"}`} />
+            <div>
+              <h3 className="text-sm font-semibold text-card-foreground">{table.name}</h3>
+              <p className="text-xs text-muted-foreground">{table.game}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge variant={isOpen ? "default" : "secondary"} className="text-[10px] uppercase">{table.status}</Badge>
+            {isOpen && shift && (
+              <Button variant="outline" size="sm" className="text-[10px] h-6 gap-1" onClick={() => setClosingTable(table)}>
+                <X className="w-3 h-3" /> Close
+              </Button>
+            )}
+            {!isOpen && isManager && (
+              <Button variant="outline" size="sm" className="text-[10px] h-6 gap-1" onClick={() => setPendingReopen(table.id)}>
+                <RotateCcw className="w-3 h-3" /> Reopen
+              </Button>
+            )}
+          </div>
+        </div>
+        <div className="px-4 py-3 grid grid-cols-4 gap-2">
+          <div>
+            <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Drop</p>
+            <p className="font-mono text-xs font-bold text-card-foreground">{formatCurrency(r.drop)}</p>
+          </div>
+          <div>
+            <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Cashout</p>
+            <p className="font-mono text-xs font-bold text-card-foreground">{formatCurrency(r.cashout)}</p>
+          </div>
+          <div>
+            <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Result</p>
+            <p className={`font-mono text-xs font-bold ${r.result >= 0 ? "text-green-500" : "text-destructive"}`}>
+              {r.result >= 0 ? "+" : ""}{formatCurrency(r.result)}
+            </p>
+          </div>
+          <div>
+            <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Txns</p>
+            <p className="font-mono text-xs font-bold text-card-foreground">{r.txCount}</p>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div>
@@ -136,83 +220,40 @@ const Tables = () => {
         </div>
       </div>
 
-      {/* Aggregate Summary */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
-        <div className="cms-panel p-2">
-          <p className="text-[9px] uppercase text-muted-foreground tracking-wider">Total Drop</p>
-          <p className="font-mono text-sm font-bold text-card-foreground">{formatCurrency(totalDrop)}</p>
-        </div>
-        <div className="cms-panel p-2">
-          <p className="text-[9px] uppercase text-muted-foreground tracking-wider">Total Cashout</p>
-          <p className="font-mono text-sm font-bold text-card-foreground">{formatCurrency(totalCashout)}</p>
-        </div>
-        <div className="cms-panel p-2">
-          <p className="text-[9px] uppercase text-muted-foreground tracking-wider">Table Result</p>
+      {/* Game-type Summary */}
+      <div className={`grid gap-2 mb-4`} style={{ gridTemplateColumns: `repeat(${Object.keys(gameTypeTotals).length + 1}, minmax(0, 1fr))` }}>
+        {Object.entries(gameTypeTotals).map(([game, t]) => (
+          <div key={game} className="cms-panel p-2">
+            <p className="text-[9px] uppercase text-muted-foreground tracking-wider">{t.label}</p>
+            <p className={`font-mono text-sm font-bold ${t.result >= 0 ? "text-green-500" : "text-destructive"}`}>
+              {t.result >= 0 ? "+" : ""}{formatCurrency(t.result)}
+            </p>
+            <p className="font-mono text-[10px] text-muted-foreground">
+              D: {formatCurrency(t.drop)} · C: {formatCurrency(t.cashout)}
+            </p>
+          </div>
+        ))}
+        <div className="cms-panel p-2 border-primary/30">
+          <p className="text-[9px] uppercase text-muted-foreground tracking-wider">Total Casino</p>
           <p className={`font-mono text-sm font-bold ${totalResult >= 0 ? "text-green-500" : "text-destructive"}`}>
             {totalResult >= 0 ? "+" : ""}{formatCurrency(totalResult)}
           </p>
-        </div>
-        <div className="cms-panel p-2">
-          <p className="text-[9px] uppercase text-muted-foreground tracking-wider">Initial Chip Total</p>
-          <p className="font-mono text-sm font-bold text-card-foreground">{formatCurrency(initialTotal)}</p>
+          <p className="font-mono text-[10px] text-muted-foreground">
+            D: {formatCurrency(totalDrop)} · C: {formatCurrency(totalCashout)}
+          </p>
         </div>
       </div>
 
-      {/* Table Cards */}
+      {/* Two-column Table Cards: Left = AR/BJ, Right = Poker */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        {tables.map(table => {
-          const r = tableResults[table.id] || { drop: 0, cashout: 0, result: 0, txCount: 0 };
-          const isOpen = table.status === "open";
-
-          return (
-            <div key={table.id} className="cms-panel">
-              <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-                <div className="flex items-center gap-3">
-                  <div className={`w-2.5 h-2.5 rounded-full ${isOpen ? "bg-green-500" : "bg-destructive"}`} />
-                  <div>
-                    <h3 className="text-sm font-semibold text-card-foreground">{table.name}</h3>
-                    <p className="text-xs text-muted-foreground">{table.game}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Badge variant={isOpen ? "default" : "secondary"} className="text-[10px] uppercase">{table.status}</Badge>
-                  {isOpen && shift && (
-                    <Button variant="outline" size="sm" className="text-[10px] h-6 gap-1" onClick={() => setClosingTable(table)}>
-                      <X className="w-3 h-3" /> Close
-                    </Button>
-                  )}
-                  {!isOpen && isManager && (
-                    <Button variant="outline" size="sm" className="text-[10px] h-6 gap-1" onClick={() => setPendingReopen(table.id)}>
-                      <RotateCcw className="w-3 h-3" /> Reopen
-                    </Button>
-                  )}
-                </div>
-              </div>
-              <div className="px-4 py-3 grid grid-cols-4 gap-2">
-                <div>
-                  <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Drop</p>
-                  <p className="font-mono text-xs font-bold text-card-foreground">{formatCurrency(r.drop)}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Cashout</p>
-                  <p className="font-mono text-xs font-bold text-card-foreground">{formatCurrency(r.cashout)}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Result</p>
-                  <p className={`font-mono text-xs font-bold ${r.result >= 0 ? "text-green-500" : "text-destructive"}`}>
-                    {r.result >= 0 ? "+" : ""}{formatCurrency(r.result)}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Txns</p>
-                  <p className="font-mono text-xs font-bold text-card-foreground">{r.txCount}</p>
-                </div>
-              </div>
-            </div>
-          );
-        })}
-        {tables.length === 0 && <p className="text-muted-foreground text-sm col-span-2 text-center py-8">No tables configured</p>}
+        <div className="space-y-4">
+          {leftTables.map(renderTableCard)}
+        </div>
+        <div className="space-y-4">
+          {rightTables.map(renderTableCard)}
+        </div>
       </div>
+      {tables.length === 0 && <p className="text-muted-foreground text-sm text-center py-8">No tables configured</p>}
 
       {/* Table Close Dialog */}
       {closingTable && (() => {
