@@ -137,17 +137,34 @@ const ActiveSessionCard = ({
 
   const table = tables.find((t: any) => t.id === s.table_id);
   const hph = table ? getHandsPerHour(table.game) : DEFAULT_HANDS_PER_HOUR;
-  const elapsed = (Date.now() - new Date(s.started_at).getTime()) / 3600000;
-  const liveHands = Math.round(elapsed * hph);
-  const liveTotalBet = liveHands * Number(s.avg_bet);
+  
+  // Calculate live total bet accounting for bet changes
+  // If bet was changed, total_bet holds accumulated amount before the change
+  // and we only calculate new hands since bet_changed_at with current avg_bet
+  const referenceTime = s.bet_changed_at || s.started_at;
+  const elapsedSinceRef = (Date.now() - new Date(referenceTime).getTime()) / 3600000;
+  const handsSinceRef = Math.round(elapsedSinceRef * hph);
+  const lockedTotalBet = Number(s.total_bet) || 0;
+  const liveTotalBet = lockedTotalBet + handsSinceRef * Number(s.avg_bet);
+
+  // Total hands = locked hands + hands since reference
+  const elapsedTotal = (Date.now() - new Date(s.started_at).getTime()) / 3600000;
+  const liveHands = Math.round(elapsedTotal * hph);
 
   const handleSaveBet = async () => {
     const val = Number(newBet);
     if (!val || val <= 0) return;
     setSaving(true);
+    
+    // Lock the current accumulated total_bet before changing the rate
+    const now = new Date().toISOString();
     const { error } = await supabase
       .from("client_sessions")
-      .update({ avg_bet: val })
+      .update({ 
+        avg_bet: val,
+        total_bet: liveTotalBet,
+        bet_changed_at: now,
+      })
       .eq("id", s.id);
     setSaving(false);
     if (error) {
@@ -301,7 +318,13 @@ const ClientTracker = () => {
       const table = tables.find(t => t.id === session.table_id);
       const hph = table ? getHandsPerHour(table.game) : DEFAULT_HANDS_PER_HOUR;
       const handsPlayed = Math.round((durationMinutes / 60) * hph);
-      const totalBet = handsPlayed * Number(session.avg_bet);
+      
+      // Segmented total bet: locked amount + hands since last bet change
+      const referenceTime = session.bet_changed_at || session.started_at;
+      const elapsedSinceRef = (stoppedAt.getTime() - new Date(referenceTime).getTime()) / 3600000;
+      const handsSinceRef = Math.round(elapsedSinceRef * hph);
+      const lockedTotalBet = Number(session.total_bet) || 0;
+      const totalBet = lockedTotalBet + handsSinceRef * Number(session.avg_bet);
 
       const { error } = await supabase
         .from("client_sessions")

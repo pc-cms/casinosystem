@@ -1,0 +1,1 @@
+ALTER TABLE public.client_sessions ADD COLUMN bet_changed_at timestamp with time zone;
