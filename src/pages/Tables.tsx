@@ -1,22 +1,18 @@
 import { useState, useMemo, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
-import { useGamingTables, useTransactions } from "@/hooks/use-casino-data";
-import { useActiveShift } from "@/hooks/use-shift";
-import { useChipSnapshots, useBatchChipSnapshot } from "@/hooks/use-chips";
-import { useChipBaseline, useOpenAllTables, useSetTableResults, baselineToMap } from "@/hooks/use-table-lifecycle";
-import { useAuth } from "@/lib/auth-context";
+import { useGamingTables, useTableTracker, useSetTableTrackerValue } from "@/hooks/use-casino-data";
+import { useBatchChipSnapshot } from "@/hooks/use-chips";
+import { useChipBaseline, useSetTableResults, baselineToMap } from "@/hooks/use-table-lifecycle";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { CHIP_DENOMS, CHIP_COLORS, formatChipLabel, formatCurrency } from "@/lib/currency";
-import { Save, Coins, Play, BarChart3, Lock } from "lucide-react";
+import { CHIP_DENOMS, CHIP_COLORS, formatChipLabel, formatCurrency, formatInputWithSpaces, parseSpacedNumber } from "@/lib/currency";
+import { Save, BarChart3, Lock } from "lucide-react";
 import ChipDenomInput from "@/components/ChipDenomInput";
 import ActivePlayers from "@/components/pit/ActivePlayers";
 import ClientTracker from "@/components/pit/ClientTracker";
-import { useTableTracker, useSetTableTrackerValue } from "@/hooks/use-casino-data";
-import { formatInputWithSpaces, parseSpacedNumber } from "@/lib/currency";
 
 // ========== TABLE TRACKER ==========
 const generateSlots = () => {
@@ -179,55 +175,22 @@ const TrackerContent = () => {
 // ========== TABLES CONTENT ==========
 const TablesContent = () => {
   const today = new Date().toISOString().split("T")[0];
-  const [date, setDate] = useState(today);
+  const [date] = useState(today);
   const { data: tables = [] } = useGamingTables();
-  const { data: transactions = [] } = useTransactions(date);
-  const { data: shift } = useActiveShift();
-  const { data: snapshots = [] } = useChipSnapshots(date);
   const { data: baseline = [] } = useChipBaseline();
   const batchSnapshot = useBatchChipSnapshot();
-  const openAllTables = useOpenAllTables();
   const setTableResults = useSetTableResults();
 
   const [counts, setCounts] = useState<Record<string, Record<number, number>>>({});
   const [showCount, setShowCount] = useState(false);
   const [countMode, setCountMode] = useState<"save" | "result">("save");
-  const [showResultSummary, setShowResultSummary] = useState(false);
 
   // Baseline map: { tableId: { denom: qty } }
   const baselineMap = useMemo(() => baselineToMap(baseline), [baseline]);
 
-  const closedTables = useMemo(() => tables.filter(t => t.status === "closed"), [tables]);
   const openTables = useMemo(() => tables.filter(t => t.status === "open"), [tables]);
-  const allClosed = closedTables.length === tables.length && tables.length > 0;
-  const allOpen = openTables.length === tables.length && tables.length > 0;
   const tablesWithResults = useMemo(() => tables.filter(t => t.closing_result !== null && t.status === "open"), [tables]);
   const hasResults = tablesWithResults.length > 0;
-
-  const { data: trackerData = [] } = useTableTracker(date);
-
-  const shiftTransactions = useMemo(() => {
-    if (!shift) return transactions;
-    return transactions.filter(t => t.shift_id === shift.id);
-  }, [transactions, shift]);
-
-  const tableStats = useMemo(() => {
-    const stats: Record<string, { dropR: number; dropV: number; result: number }> = {};
-    tables.forEach(t => {
-      // Drop R = buy-ins from cashier
-      const dropR = shiftTransactions
-        .filter(tx => tx.table_id === t.id && tx.type === "buy")
-        .reduce((s, tx) => s + Number(tx.amount), 0);
-      // Drop V = sum from tracker
-      const dropV = trackerData
-        .filter(tr => tr.table_id === t.id)
-        .reduce((s, tr) => s + Number(tr.value), 0);
-      // Result = from chip count if available, otherwise from tracker
-      const result = t.closing_result !== null ? Number(t.closing_result) : dropV;
-      stats[t.id] = { dropR, dropV, result };
-    });
-    return stats;
-  }, [tables, shiftTransactions, trackerData]);
 
   // Locations for chip count dialog (only tables)
   const locations = useMemo(() => {
@@ -283,7 +246,7 @@ const TablesContent = () => {
             return { table_id: loc.id!, closing_chips: chipMap, closing_result: resultValue };
           });
           setTableResults.mutate(results, {
-            onSuccess: () => setShowResultSummary(true),
+            onSuccess: () => { setCounts({}); setShowCount(false); },
           });
         }
       },
@@ -323,15 +286,10 @@ const TablesContent = () => {
 
     batchSnapshot.mutate({ date, counts: snapRows });
     setTableResults.mutate(results, {
-      onSuccess: () => { setCounts({}); setShowCount(false); setShowResultSummary(true); },
+      onSuccess: () => { setCounts({}); setShowCount(false); },
     });
   };
 
-  // Open all closed tables
-  const handleOpenAll = () => {
-    const ids = closedTables.map(t => t.id);
-    openAllTables.mutate(ids);
-  };
 
   const hasAnyCount = Object.keys(counts).length > 0;
 
@@ -353,95 +311,17 @@ const TablesContent = () => {
     });
   }, [locations, counts, baselineMap, countMode]);
 
-  // Game type grouping & totals
-  const gameTypeTotals = useMemo(() => {
-    const totals: Record<string, { dropR: number; dropV: number; result: number; label: string }> = {};
-    const gameLabels: Record<string, string> = { "American Roulette": "Total ARs", "Poker": "Total P", "Blackjack": "Total BJ" };
-    tables.forEach(t => {
-      const label = gameLabels[t.game] || `Total ${t.game}`;
-      if (!totals[t.game]) totals[t.game] = { dropR: 0, dropV: 0, result: 0, label };
-      const r = tableStats[t.id] || { dropR: 0, dropV: 0, result: 0 };
-      totals[t.game].dropR += r.dropR;
-      totals[t.game].dropV += r.dropV;
-      totals[t.game].result += r.result;
-    });
-    return totals;
-  }, [tables, tableStats]);
 
-  const totalDropR = Object.values(tableStats).reduce((s, r) => s + r.dropR, 0);
-  const totalDropV = Object.values(tableStats).reduce((s, r) => s + r.dropV, 0);
-  const totalResult = Object.values(tableStats).reduce((s, r) => s + r.result, 0);
 
-  const pokerGames = ["Poker", "Texas Holdem", "Omaha", "PLO"];
-  const leftTables = tables.filter(t => !pokerGames.includes(t.game)).sort((a, b) => a.name.localeCompare(b.name));
-  const rightTables = tables.filter(t => pokerGames.includes(t.game)).sort((a, b) => a.name.localeCompare(b.name));
-
-  const renderTableCard = (table: typeof tables[0]) => {
-    const r = tableStats[table.id] || { dropR: 0, dropV: 0, result: 0 };
-    const isOpen = table.status === "open";
-    const hasTableResult = table.closing_result !== null;
-
-    return (
-      <div key={table.id} className="cms-panel">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-          <div className="flex items-center gap-3">
-            <div className={`w-2.5 h-2.5 rounded-full ${isOpen ? "bg-green-500" : "bg-destructive"}`} />
-            <div>
-              <h3 className="text-sm font-semibold text-card-foreground">{table.name}</h3>
-              <p className="text-xs text-muted-foreground">{table.game}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Badge variant={isOpen ? "default" : "secondary"} className="text-[10px] uppercase">{table.status}</Badge>
-            {hasTableResult && (
-              <Badge variant={Number(table.closing_result) >= 0 ? "default" : "destructive"} className="text-[10px] font-mono">
-                Result: {Number(table.closing_result) >= 0 ? "+" : ""}{formatCurrency(Number(table.closing_result))}
-              </Badge>
-            )}
-          </div>
-        </div>
-        <div className="px-4 py-3 grid grid-cols-3 gap-2">
-          <div>
-            <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Drop R</p>
-            <p className="font-mono text-xs font-bold text-card-foreground">{formatCurrency(r.dropR)}</p>
-          </div>
-          <div>
-            <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Drop V</p>
-            <p className="font-mono text-xs font-bold text-card-foreground">{formatCurrency(r.dropV)}</p>
-          </div>
-          <div>
-            <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Result</p>
-            <p className={`font-mono text-xs font-bold ${r.result >= 0 ? "text-green-500" : "text-destructive"}`}>
-              {r.result >= 0 ? "+" : ""}{formatCurrency(r.result)}
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  };
 
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Tables & Chip Accounting</h1>
-          <p className="text-sm text-muted-foreground">Float, Result & Tracking</p>
+          <h1 className="text-2xl font-bold text-foreground">Tables</h1>
+          <p className="text-sm text-muted-foreground">Close tables · Record chip results</p>
         </div>
         <div className="flex items-center gap-2">
-          <Input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-44 font-mono" />
-
-          {/* Open All — when all/some tables are closed */}
-          {closedTables.length > 0 && (
-            <Button variant="default" size="sm" onClick={handleOpenAll} disabled={openAllTables.isPending} className="gap-1.5">
-              <Play className="w-4 h-4" /> Open{closedTables.length < tables.length ? ` (${closedTables.length})` : " All"}
-            </Button>
-          )}
-
-          {/* Chip Count — always available */}
-          <Button size="sm" onClick={() => handleOpenChipCount("save")} className="gap-1.5 bg-cyan-600 hover:bg-cyan-700 text-white border-0">
-            <Coins className="w-4 h-4" /> Chip Count
-          </Button>
-
           {/* Result — only when tables are open and no result set yet */}
           {openTables.length > 0 && !hasResults && (
             <Button variant="default" size="sm" onClick={() => handleOpenChipCount("result")} className="gap-1.5 bg-orange-600 hover:bg-orange-700">
@@ -455,26 +335,6 @@ const TablesContent = () => {
               <Lock className="w-3 h-3" /> Results set — waiting for Cashier
             </Badge>
           )}
-        </div>
-      </div>
-
-      {/* Game-type Summary */}
-      <div className="grid gap-2 mb-4" style={{ gridTemplateColumns: `repeat(${Object.keys(gameTypeTotals).length + 1}, minmax(0, 1fr))` }}>
-        {Object.entries(gameTypeTotals).map(([game, t]) => (
-          <div key={game} className="cms-panel p-2">
-            <p className="text-[9px] uppercase text-muted-foreground tracking-wider">{t.label}</p>
-            <p className={`font-mono text-sm font-bold ${t.result >= 0 ? "text-green-500" : "text-destructive"}`}>
-              {t.result >= 0 ? "+" : ""}{formatCurrency(t.result)}
-            </p>
-            <p className="font-mono text-[10px] text-muted-foreground">R: {formatCurrency(t.dropR)} · V: {formatCurrency(t.dropV)}</p>
-          </div>
-        ))}
-        <div className="cms-panel p-2 border-primary/30">
-          <p className="text-[9px] uppercase text-muted-foreground tracking-wider">Total Casino</p>
-          <p className={`font-mono text-sm font-bold ${totalResult >= 0 ? "text-green-500" : "text-destructive"}`}>
-            {totalResult >= 0 ? "+" : ""}{formatCurrency(totalResult)}
-          </p>
-          <p className="font-mono text-[10px] text-muted-foreground">R: {formatCurrency(totalDropR)} · V: {formatCurrency(totalDropV)}</p>
         </div>
       </div>
 
@@ -498,20 +358,9 @@ const TablesContent = () => {
         </div>
       )}
 
-      {/* Two-column Table Cards */}
-      <div className="grid grid-cols-2 gap-6 mb-6">
-        <div className="space-y-3">
-          <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-1 border-b border-border pb-1">AR / BJ</h3>
-          {leftTables.map(renderTableCard)}
-          {leftTables.length === 0 && <p className="text-xs text-muted-foreground text-center py-4">No AR/BJ tables</p>}
-        </div>
-        <div className="space-y-3">
-          <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-1 border-b border-border pb-1">Poker</h3>
-          {rightTables.map(renderTableCard)}
-          {rightTables.length === 0 && <p className="text-xs text-muted-foreground text-center py-4">No Poker tables</p>}
-        </div>
-      </div>
-      {tables.length === 0 && <p className="text-muted-foreground text-sm text-center py-8">No tables configured</p>}
+      {!hasResults && openTables.length === 0 && (
+        <p className="text-muted-foreground text-sm text-center py-8">No open tables to close</p>
+      )}
 
       {/* Chip Count / Result Dialog */}
       <Dialog open={showCount} onOpenChange={setShowCount}>
