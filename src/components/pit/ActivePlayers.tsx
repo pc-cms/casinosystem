@@ -244,6 +244,7 @@ const ActivePlayers = () => {
           isLive: !!activeSession,
           isCheckedIn: !!isCheckedIn,
           hasVisit: !!visit,
+          position: (visit as any)?.position as string || "hall",
           firstSeen,
         };
       });
@@ -560,8 +561,10 @@ const ActivePlayers = () => {
                           <button className="inline-flex items-center gap-1 cursor-pointer">
                             {p.isLive && p.tableName ? (
                               <Badge className="bg-primary/20 text-primary border-primary/30 text-[10px] px-2 py-0.5 font-mono hover:bg-primary/30 transition-colors">{p.tableName}</Badge>
+                            ) : p.isCheckedIn && p.position === "slots" ? (
+                              <Badge variant="outline" className="text-[10px] px-2 py-0.5 font-mono border-amber-500/30 bg-amber-500/10 text-amber-400">Slots</Badge>
                             ) : p.isCheckedIn ? (
-                              <Badge variant="outline" className="text-[10px] px-2 py-0.5 font-mono">Hall</Badge>
+                              <Badge variant="outline" className="text-[10px] px-2 py-0.5 font-mono border-sky-500/30 bg-sky-500/10 text-sky-400">Hall</Badge>
                             ) : (
                               <span className="text-muted-foreground/40"><MapPin className="w-3.5 h-3.5 inline" /></span>
                             )}
@@ -573,7 +576,11 @@ const ActivePlayers = () => {
                             {tables.filter(t => t.status === "open").map(t => (
                               <button
                                 key={t.id}
-                                onClick={() => changeTable.mutate({ playerId: p.id, tableId: t.id, avgBet: 0 })}
+                                onClick={async () => {
+                                  // Update position to table
+                                  await supabase.from("casino_visits").update({ position: "table" }).eq("casino_id", casinoId!).eq("player_id", p.id).eq("date", today);
+                                  changeTable.mutate({ playerId: p.id, tableId: t.id, avgBet: 0 });
+                                }}
                                 className={`px-3 py-1 text-xs rounded hover:bg-muted transition-colors text-left font-mono ${p.tableName === t.name ? "bg-primary/10 text-primary font-medium" : "text-foreground"}`}
                               >
                                 {t.name}
@@ -589,11 +596,13 @@ const ActivePlayers = () => {
                                     .eq("casino_id", casinoId!)
                                     .eq("player_id", p.id)
                                     .is("stopped_at", null);
-                                  queryClient.invalidateQueries({ queryKey: ["client_sessions"] });
                                 }
+                                await supabase.from("casino_visits").update({ position: "hall" }).eq("casino_id", casinoId!).eq("player_id", p.id).eq("date", today);
+                                queryClient.invalidateQueries({ queryKey: ["client_sessions"] });
+                                queryClient.invalidateQueries({ queryKey: ["casino_visits"] });
                                 toast.success("Moved to Hall");
                               }}
-                              className={`px-3 py-1 text-xs rounded transition-colors text-left flex items-center gap-1.5 ${!p.isLive && p.isCheckedIn ? "bg-sky-500/15 text-sky-400 font-medium" : "text-foreground hover:bg-sky-500/10 hover:text-sky-400"}`}
+                              className={`px-3 py-1 text-xs rounded transition-colors text-left flex items-center gap-1.5 ${!p.isLive && p.position === "hall" ? "bg-sky-500/15 text-sky-400 font-medium" : "text-foreground hover:bg-sky-500/10 hover:text-sky-400"}`}
                             >
                               <span className="w-1.5 h-1.5 rounded-full bg-sky-400 shrink-0" />
                               Hall
@@ -607,11 +616,13 @@ const ActivePlayers = () => {
                                     .eq("casino_id", casinoId!)
                                     .eq("player_id", p.id)
                                     .is("stopped_at", null);
-                                  queryClient.invalidateQueries({ queryKey: ["client_sessions"] });
                                 }
+                                await supabase.from("casino_visits").update({ position: "slots" }).eq("casino_id", casinoId!).eq("player_id", p.id).eq("date", today);
+                                queryClient.invalidateQueries({ queryKey: ["client_sessions"] });
+                                queryClient.invalidateQueries({ queryKey: ["casino_visits"] });
                                 toast.success("Moved to Slots");
                               }}
-                              className="px-3 py-1 text-xs rounded transition-colors text-left flex items-center gap-1.5 text-foreground hover:bg-amber-500/10 hover:text-amber-400"
+                              className={`px-3 py-1 text-xs rounded transition-colors text-left flex items-center gap-1.5 ${!p.isLive && p.position === "slots" ? "bg-amber-500/15 text-amber-400 font-medium" : "text-foreground hover:bg-amber-500/10 hover:text-amber-400"}`}
                             >
                               <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
                               Slots
