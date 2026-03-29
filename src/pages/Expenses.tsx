@@ -43,10 +43,10 @@ const Expenses = () => {
   const { data: players = [] } = usePlayers();
   const approve = useApproveExpense();
   const [showAdd, setShowAdd] = useState(false);
-  const [dateRange, setDateRange] = useState({ from: "", to: "" });
+  
   const [pendingOverride, setPendingOverride] = useState<string | null>(null);
 
-  const analytics = useExpenseAnalytics(expenses as any, dateRange.from ? dateRange : undefined);
+  const analytics = useExpenseAnalytics(expenses as any);
 
   const handleApprove = (id: string) => {
     if (isManager) {
@@ -59,13 +59,13 @@ const Expenses = () => {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Expenses</h1>
-          <p className="text-sm text-muted-foreground">Immutable · {expenses.length} records · {analytics.pendingCount} pending</p>
+          <p className="text-sm text-muted-foreground">Immutable · {expenses.length} records · {analytics.pendingCount} pending · {new Date().toLocaleDateString()}</p>
         </div>
         <Button onClick={() => setShowAdd(true)} size="sm"><Plus className="w-4 h-4 mr-1" /> Add Expense</Button>
       </div>
 
       {/* Analytics Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+      <div className="grid grid-cols-3 gap-3 mb-6">
         <div className="cms-panel p-3">
           <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Total</p>
           <p className="font-mono text-lg font-bold text-card-foreground">{formatCurrency(analytics.totalAmount)}</p>
@@ -77,16 +77,6 @@ const Expenses = () => {
         <div className="cms-panel p-3">
           <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Pending</p>
           <p className="font-mono text-lg font-bold text-accent">{formatCurrency(analytics.pendingAmount)}</p>
-        </div>
-        <div className="cms-panel p-3 flex flex-col justify-center">
-          <p className="text-[10px] uppercase text-muted-foreground tracking-wider mb-1.5">Date Filter</p>
-          <div className="flex items-center gap-1.5">
-            <Input type="date" value={dateRange.from} onChange={e => setDateRange(d => ({ ...d, from: e.target.value }))} className="w-full font-mono text-[10px] h-7 px-1.5" />
-            <Input type="date" value={dateRange.to} onChange={e => setDateRange(d => ({ ...d, to: e.target.value }))} className="w-full font-mono text-[10px] h-7 px-1.5" />
-            {(dateRange.from || dateRange.to) && (
-              <Button variant="ghost" size="sm" className="h-7 px-1.5 text-[10px] shrink-0" onClick={() => setDateRange({ from: "", to: "" })}>×</Button>
-            )}
-          </div>
         </div>
       </div>
 
