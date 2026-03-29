@@ -7,10 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Shield, Trash2, UserPlus } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Plus, Shield, Trash2, UserPlus, Coins } from "lucide-react";
 import { toast } from "sonner";
 import { logAction } from "@/lib/logging";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import FloatManagement from "@/components/admin/FloatManagement";
 
 const ROLES = ["manager", "cashier", "pit", "reception", "finance_manager", "security"] as const;
 
