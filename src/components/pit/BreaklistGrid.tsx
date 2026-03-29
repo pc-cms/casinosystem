@@ -95,27 +95,17 @@ const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }
   // Inline role picker state
   const [activeCell, setActiveCell] = useState<{ dealerId: string; timeSlot: string } | null>(null);
 
-  // Manager override
-  const [overrideAction, setOverrideAction] = useState<(() => void) | null>(null);
-  const [overrideTitle, setOverrideTitle] = useState("");
-  const [overrideDesc, setOverrideDesc] = useState("");
-
   const getCellData = (dealerId: string, timeSlot: string) =>
     breaklist.find(b => b.dealer_id === dealerId && b.time_slot === timeSlot);
 
   const handleCellClick = (dealerId: string, timeSlot: string) => {
-    if (!isEditable) return; // Read-only for past dates
+    if (!isEditable) return;
     const cell = getCellData(dealerId, timeSlot);
     if (cell?.is_locked && !isManager) {
-      toast.error("Locked — manager override required");
+      toast.error("Locked — manager access required");
       return;
     }
-    if (cell?.is_locked && isManager) {
-      setOverrideTitle("Edit Locked Cell");
-      setOverrideDesc("Cell is locked. Authenticate to override.");
-      setOverrideAction(() => () => setActiveCell({ dealerId, timeSlot }));
-      return;
-    }
+    // If manager, can edit locked cells directly (session-based access)
     setActiveCell({ dealerId, timeSlot });
   };
 
@@ -169,12 +159,10 @@ const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }
     toast.success("Breaklist refreshed from rota");
   };
 
-  const handleLockRow = (dealerId: string, lock: boolean) => {
-    const cells = breaklist.filter(b => b.dealer_id === dealerId);
-    if (cells.length === 0) { toast.error("No cells to lock"); return; }
-    setOverrideTitle(lock ? "Lock Row" : "Unlock Row");
-    setOverrideDesc(`${lock ? "Lock" : "Unlock"} all ${cells.length} cells. Authenticate.`);
-    setOverrideAction(() => () => cells.forEach(c => lockCell.mutate({ id: c.id, lock })));
+  const handleToggleCellLock = (dealerId: string, timeSlot: string) => {
+    const cell = getCellData(dealerId, timeSlot);
+    if (!cell) return;
+    lockCell.mutate({ id: cell.id, lock: !cell.is_locked });
   };
 
   const getLockedCount = (dealerId: string) =>
@@ -234,20 +222,11 @@ const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }
                     <td className={`px-3 py-1 text-xs font-medium text-card-foreground sticky left-0 z-10 ${idx % 2 === 1 ? "bg-card/95" : "bg-card"}`}>
                       <div className="flex items-center justify-between">
                         <span>{dealer.name}</span>
-                        <div className="flex items-center gap-1">
-                          {lockedCount > 0 && (
-                            <span className="text-[9px] text-yellow-400 flex items-center gap-0.5">
-                              <LockKeyhole className="w-2.5 h-2.5" />{lockedCount}
-                            </span>
-                          )}
-                          {isEditable && isManager && (
-                            <button onClick={() => handleLockRow(dealer.id, lockedCount === 0)}
-                              className="text-muted-foreground hover:text-primary ml-1"
-                              title={lockedCount > 0 ? "Unlock all" : "Lock all"}>
-                              {lockedCount > 0 ? <Unlock className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
-                            </button>
-                          )}
-                        </div>
+                        {lockedCount > 0 && (
+                          <span className="text-[9px] text-yellow-400 flex items-center gap-0.5">
+                            <LockKeyhole className="w-2.5 h-2.5" />{lockedCount}
+                          </span>
+                        )}
                       </div>
                     </td>
                     <td className={`text-center py-1 ${idx % 2 === 1 ? "bg-card/95" : "bg-card"}`}>
@@ -280,6 +259,16 @@ const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }
                           >
                             {displayLabel}
                             {cell?.is_locked && <Lock className="w-2 h-2 absolute top-0.5 right-0.5 text-yellow-400" />}
+                            {/* Per-cell lock toggle for managers */}
+                            {isEditable && isManager && cell && !isActiveCell && (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleToggleCellLock(dealer.id, slot); }}
+                                className="absolute bottom-0 right-0 p-0.5 opacity-0 group-hover:opacity-100 hover:opacity-100 text-muted-foreground hover:text-yellow-400 transition-opacity"
+                                title={cell.is_locked ? "Unlock cell" : "Lock cell"}
+                              >
+                                {cell.is_locked ? <Unlock className="w-2 h-2" /> : <Lock className="w-2 h-2" />}
+                              </button>
+                            )}
                           </button>
                           {/* Inline role picker dropdown */}
                           {isActiveCell && (
@@ -327,15 +316,6 @@ const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }
         </div>
       </div>
 
-      <ManagerOverrideDialog
-        open={!!overrideAction}
-        onClose={() => setOverrideAction(null)}
-        onConfirm={(managerId) => { overrideAction?.(); setOverrideAction(null); }}
-        title={overrideTitle}
-        description={overrideDesc}
-        actionType="BREAKLIST_OVERRIDE"
-        actionDetails={{ date, action: overrideTitle }}
-      />
     </>
   );
 };
