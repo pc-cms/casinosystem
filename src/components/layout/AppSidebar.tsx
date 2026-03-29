@@ -15,47 +15,47 @@ type AppRole = "cashier" | "pit" | "manager" | "reception" | "finance_manager" |
 const NAV_ITEMS: { to: string; icon: typeof LayoutDashboard; label: string; shortcut: string; roles: AppRole[] }[] = [
   // — Overview —
   { to: "/", icon: LayoutDashboard, label: "Dashboard", shortcut: "D", roles: ["manager", "cashier", "pit", "reception", "finance_manager", "security"] },
-  // — Operations —
+  // — Operations (alphabetical) —
   { to: "/cage", icon: Landmark, label: "Cage", shortcut: "C", roles: ["manager", "cashier", "finance_manager"] },
-  { to: "/tables", icon: Table2, label: "Tables", shortcut: "T", roles: ["manager", "cashier", "pit", "finance_manager", "security"] },
-  { to: "/players", icon: Users, label: "Players", shortcut: "P", roles: ["manager", "cashier", "reception", "finance_manager", "security"] },
   { to: "/expenses", icon: Receipt, label: "Expenses", shortcut: "E", roles: ["manager", "cashier", "finance_manager"] },
   { to: "/groups", icon: UsersRound, label: "Groups", shortcut: "G", roles: ["manager", "finance_manager"] },
-  // — HR / Staff —
-  { to: "/pit", icon: Gamepad2, label: "Live Game", shortcut: "L", roles: ["manager", "pit", "finance_manager"] },
+  { to: "/players", icon: Users, label: "Players", shortcut: "P", roles: ["manager", "cashier", "reception", "finance_manager", "security"] },
+  { to: "/tables", icon: Table2, label: "Tables", shortcut: "T", roles: ["manager", "cashier", "pit", "finance_manager", "security"] },
+  // — HR / Staff (alphabetical) —
   { to: "/staff", icon: Building2, label: "Floor", shortcut: "F", roles: ["manager", "pit", "finance_manager"] },
-  // — Analytics —
-  { to: "/stats", icon: BarChart3, label: "Stats", shortcut: "S", roles: ["manager", "finance_manager", "security"] },
-  { to: "/reports", icon: FileBarChart, label: "Reports", shortcut: "R", roles: ["manager", "finance_manager", "security"] },
+  { to: "/pit", icon: Gamepad2, label: "Live Game", shortcut: "L", roles: ["manager", "pit", "finance_manager"] },
+  // — Analytics (alphabetical) —
   { to: "/logs", icon: ClipboardList, label: "Logs", shortcut: "O", roles: ["manager", "finance_manager", "security"] },
+  { to: "/reports", icon: FileBarChart, label: "Reports", shortcut: "R", roles: ["manager", "finance_manager", "security"] },
+  { to: "/stats", icon: BarChart3, label: "Stats", shortcut: "S", roles: ["manager", "finance_manager", "security"] },
 ];
 
 const TABLE_SUBITEMS = [
+  { tab: "client-tracker", icon: Target, label: "Client Tracker" },
+  { tab: "players", icon: Eye, label: "Players" },
   { tab: "tables", icon: Coins, label: "Tables" },
   { tab: "tracker", icon: Grid3X3, label: "Tracker" },
-  { tab: "players", icon: Eye, label: "Players" },
-  { tab: "client-tracker", icon: Target, label: "Client Tracker" },
 ];
 
 const PIT_SUBITEMS = [
-  { tab: "employee", icon: UserCheck, label: "Employee" },
-  { tab: "rota", icon: CalendarDays, label: "Rota" },
   { tab: "attendance", icon: ClipboardCheck, label: "Attendance" },
   { tab: "breaklist", icon: ListChecks, label: "Breaklist" },
+  { tab: "employee", icon: UserCheck, label: "Employee" },
+  { tab: "rota", icon: CalendarDays, label: "Rota" },
 ];
 
 const STAFF_SUBITEMS = [
+  { tab: "attendance", icon: ClipboardPen, label: "Attendance" },
   { tab: "employee", icon: UserCheck, label: "Employee" },
   { tab: "rota", icon: CalendarDays, label: "Rota" },
-  { tab: "attendance", icon: ClipboardPen, label: "Attendance" },
 ];
 
 // Section separators by index in visible items
 const SECTION_LABELS: Record<string, string> = {
   "/": "OVERVIEW",
   "/cage": "OPERATIONS",
-  "/pit": "HR",
-  "/stats": "ANALYTICS",
+  "/staff": "HR",
+  "/logs": "ANALYTICS",
 };
 
 export const AppSidebar = () => {
