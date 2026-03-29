@@ -268,6 +268,7 @@ const ActivePlayers = () => {
                   <TableHead className="cursor-pointer select-none hover:text-foreground" onClick={() => handleSort("name")}>
                     <span className="flex items-center">Player <SortIcon col="name" /></span>
                   </TableHead>
+                  <TableHead className="text-center">Type</TableHead>
                   <TableHead className="text-center">Tags</TableHead>
                   <TableHead className="text-center">Table</TableHead>
                   <TableHead className="text-right cursor-pointer select-none hover:text-foreground" onClick={() => handleSort("drop")}>
@@ -291,6 +292,13 @@ const ActivePlayers = () => {
                         <span className="font-medium text-card-foreground">{p.first_name} {p.last_name}</span>
                         {p.nickname && <span className="text-xs text-muted-foreground">"{p.nickname}"</span>}
                       </div>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <span className={`text-[9px] font-mono font-bold uppercase px-1.5 py-0.5 rounded ${
+                        p.player_type === "table" ? "bg-sky-500/20 text-sky-400"
+                        : p.player_type === "mix" ? "bg-violet-500/20 text-violet-400"
+                        : "bg-amber-500/20 text-amber-400"
+                      }`}>{p.player_type === "table" ? "TBL" : p.player_type === "mix" ? "MIX" : "SLT"}</span>
                     </TableCell>
                     <TableCell className="text-center">
                       {p.tags.length > 0 ? (
