@@ -179,20 +179,66 @@ const Pit = () => {
 };
 
 // =================== EMPLOYEE LIST (TABLE FORMAT) ===================
+const DEALER_CATEGORIES: DealerCategory[] = ["trainee", "dealer", "inspector", "expert", "pit_boss"];
+
 const DealerEmployeeList = () => {
   const { data: dealers = [] } = useDealers();
   const createDealer = useCreateDealer();
+  const updateDealer = useUpdateDealer();
   const [name, setName] = useState("");
   const [category, setCategory] = useState<DealerCategory>("dealer");
-  const [isPitBoss, setIsPitBoss] = useState(false);
+  const [sortBy, setSortBy] = useState<string>("category");
+  const [filterCat, setFilterCat] = useState<string>("all");
+  const [filterStatus, setFilterStatus] = useState<string>("active");
+  const [editingCell, setEditingCell] = useState<{ id: string; field: string } | null>(null);
+  const [editValue, setEditValue] = useState("");
 
-  const activeDealers = dealers.filter((d: any) => d.is_active && !d.is_pit_boss);
-  const pitBosses = dealers.filter((d: any) => d.is_active && d.is_pit_boss);
+  const sorted = useMemo(() => {
+    let list = [...dealers] as any[];
+    if (filterCat !== "all") {
+      if (filterCat === "pit_boss") list = list.filter(d => d.is_pit_boss);
+      else list = list.filter(d => d.category === filterCat && !d.is_pit_boss);
+    }
+    if (filterStatus === "active") list = list.filter(d => d.is_active);
+    else if (filterStatus === "fired") list = list.filter(d => !d.is_active);
+
+    list.sort((a, b) => {
+      const getCat = (d: any) => d.is_pit_boss ? "pit_boss" : d.category;
+      switch (sortBy) {
+        case "category": {
+          const iA = DEALER_CATEGORIES.indexOf(getCat(a));
+          const iB = DEALER_CATEGORIES.indexOf(getCat(b));
+          return iA !== iB ? iA - iB : a.name.localeCompare(b.name);
+        }
+        case "name": return a.name.localeCompare(b.name);
+        case "salary": return (b.salary || 0) - (a.salary || 0);
+        case "onboarding": return (a.onboarding_date || "9999").localeCompare(b.onboarding_date || "9999");
+        case "contract_end": return (a.contract_end || "9999").localeCompare(b.contract_end || "9999");
+        case "days_left": {
+          const daysA = getDaysLeft(a.contract_end);
+          const daysB = getDaysLeft(b.contract_end);
+          return (daysA ?? 99999) - (daysB ?? 99999);
+        }
+        default: return 0;
+      }
+    });
+    return list;
+  }, [dealers, sortBy, filterCat, filterStatus]);
+
+  const handleAdd = () => {
+    if (!name) return;
+    const isPitBoss = category === "pit_boss";
+    createDealer.mutate({ name, category: isPitBoss ? "dealer" : category, is_pit_boss: isPitBoss });
+    setName("");
+  };
 
   const calcYears = (startDate: string | null) => {
     if (!startDate) return "—";
-    const diff = new Date().getFullYear() - new Date(startDate).getFullYear();
-    return `${diff}y`;
+    const start = new Date(startDate);
+    const now = new Date();
+    const years = (now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
+    if (years < 1) return `${Math.floor(years * 12)}m`;
+    return `${Math.floor(years)}y ${Math.floor((years % 1) * 12)}m`;
   };
 
   const formatSalary = (s: number | null) => {
@@ -200,102 +246,142 @@ const DealerEmployeeList = () => {
     return s.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
   };
 
+  const startEdit = (id: string, field: string, currentValue: string) => {
+    setEditingCell({ id, field });
+    setEditValue(currentValue);
+  };
+
+  const saveEdit = () => {
+    if (!editingCell) return;
+    const { id, field } = editingCell;
+    if (field === "salary") {
+      const num = parseInt(editValue.replace(/\s/g, ""), 10);
+      updateDealer.mutate({ id, salary: isNaN(num) ? null : num });
+    } else if (field === "contract_start" || field === "contract_end" || field === "onboarding_date") {
+      updateDealer.mutate({ id, [field]: editValue || null });
+    }
+    setEditingCell(null);
+  };
+
+  const handleEditKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") saveEdit();
+    if (e.key === "Escape") setEditingCell(null);
+  };
+
+  const SortHeader = ({ field, label }: { field: string; label: string }) => (
+    <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-2 cursor-pointer select-none hover:text-foreground transition-colors"
+      onClick={() => setSortBy(field)}>
+      <span className="inline-flex items-center gap-1">{label} {sortBy === field && <ArrowUpDown className="w-3 h-3" />}</span>
+    </th>
+  );
+
   return (
     <div className="space-y-4">
-      <div className="flex gap-2 max-w-2xl">
-        <Input
-          placeholder="Name"
-          value={name}
-          onChange={e => setName(e.target.value)}
-          onKeyDown={e => { if (e.key === "Enter" && name) { createDealer.mutate(name); setName(""); } }}
-        />
-        <Select value={category} onValueChange={v => setCategory(v as DealerCategory)}>
-          <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
+      <div className="flex gap-2 items-center flex-wrap">
+        <Select value={filterCat} onValueChange={setFilterCat}>
+          <SelectTrigger className="w-[150px]"><SelectValue placeholder="Category" /></SelectTrigger>
           <SelectContent>
-            {(["trainee", "dealer", "inspector", "expert"] as DealerCategory[]).map(c => (
+            <SelectItem value="all">All Categories</SelectItem>
+            {DEALER_CATEGORIES.map(c => (
               <SelectItem key={c} value={c}>{CATEGORY_LABELS[c]}</SelectItem>
             ))}
           </SelectContent>
         </Select>
-        <Button onClick={() => { if (name) { createDealer.mutate(name); setName(""); } }} disabled={!name}>
+        <Select value={filterStatus} onValueChange={setFilterStatus}>
+          <SelectTrigger className="w-[130px]"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Status</SelectItem>
+            <SelectItem value="active">Active</SelectItem>
+            <SelectItem value="fired">Fired</SelectItem>
+          </SelectContent>
+        </Select>
+        <div className="w-px h-6 bg-border mx-1" />
+        <Input placeholder="Name" value={name} onChange={e => setName(e.target.value)} className="w-[200px]"
+          onKeyDown={e => { if (e.key === "Enter") handleAdd(); }}
+        />
+        <Select value={category} onValueChange={v => setCategory(v as DealerCategory)}>
+          <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {DEALER_CATEGORIES.map(c => (
+              <SelectItem key={c} value={c}>{CATEGORY_LABELS[c]}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Button onClick={handleAdd} disabled={!name}>
           <UserPlus className="w-4 h-4 mr-1" /> Add
         </Button>
       </div>
 
-      {/* Dealers table */}
       <div className="cms-panel overflow-x-auto">
-        <div className="px-4 py-2 border-b border-border flex items-center gap-2">
-          <Badge variant="outline" className="text-[10px] bg-blue-500/20 text-blue-400 border-blue-500/30">Dealers</Badge>
-          <span className="text-xs text-muted-foreground">{activeDealers.length} members</span>
-        </div>
         <table className="w-full">
           <thead>
             <tr className="border-b border-border">
-              <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-2 w-8">Cat</th>
-              <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-2">Name</th>
-              <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-2">Salary</th>
+              <SortHeader field="category" label="Cat" />
+              <SortHeader field="name" label="Name" />
+              <SortHeader field="salary" label="Salary" />
+              <SortHeader field="onboarding" label="Onboarding" />
               <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-2">Contract Start</th>
-              <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-2">Contract End</th>
+              <SortHeader field="contract_end" label="Contract End" />
               <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-2">Years</th>
+              <SortHeader field="days_left" label="Days Left" />
               <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-2">Status</th>
             </tr>
           </thead>
           <tbody>
-            {activeDealers.map((d: any, idx: number) => (
-              <tr key={d.id} className={`border-b border-border last:border-0 ${idx % 2 === 1 ? "bg-muted/10" : ""}`}>
-                <td className="px-4 py-2">
-                  <span className={`inline-flex items-center justify-center w-6 h-6 rounded text-[10px] font-mono font-bold ${CATEGORY_COLORS[d.category] || "text-muted-foreground bg-muted/20"}`}>
-                    {CATEGORY_LETTER[d.category] || "?"}
-                  </span>
-                </td>
-                <td className="px-4 py-2 text-sm text-card-foreground font-medium">{d.name}</td>
-                <td className="px-4 py-2 text-sm text-card-foreground font-mono">{formatSalary(d.salary)}</td>
-                <td className="px-4 py-2 text-sm text-muted-foreground font-mono">{d.contract_start || "—"}</td>
-                <td className="px-4 py-2 text-sm text-muted-foreground font-mono">{d.contract_end || "—"}</td>
-                <td className="px-4 py-2 text-sm text-muted-foreground font-mono">{calcYears(d.contract_start)}</td>
-                <td className="px-4 py-2">
-                  <span className={`text-xs ${d.is_active ? "text-emerald-400" : "text-red-400"}`}>
-                    {d.is_active ? "Active" : "Inactive"}
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Pit Bosses table */}
-      <div className="cms-panel overflow-x-auto">
-        <div className="px-4 py-2 border-b border-border flex items-center gap-2">
-          <Badge variant="outline" className="text-[10px] bg-purple-500/20 text-purple-400 border-purple-500/30">Pit Bosses</Badge>
-          <span className="text-xs text-muted-foreground">{pitBosses.length} members</span>
-        </div>
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-border">
-              <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-2">Name</th>
-              <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-2">Salary</th>
-              <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-2">Contract Start</th>
-              <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-2">Contract End</th>
-              <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-2">Years</th>
-              <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-2">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {pitBosses.map((d: any, idx: number) => (
-              <tr key={d.id} className={`border-b border-border last:border-0 ${idx % 2 === 1 ? "bg-muted/10" : ""}`}>
-                <td className="px-4 py-2 text-sm text-card-foreground font-medium">{d.name}</td>
-                <td className="px-4 py-2 text-sm text-card-foreground font-mono">{formatSalary(d.salary)}</td>
-                <td className="px-4 py-2 text-sm text-muted-foreground font-mono">{d.contract_start || "—"}</td>
-                <td className="px-4 py-2 text-sm text-muted-foreground font-mono">{d.contract_end || "—"}</td>
-                <td className="px-4 py-2 text-sm text-muted-foreground font-mono">{calcYears(d.contract_start)}</td>
-                <td className="px-4 py-2">
-                  <span className={`text-xs ${d.is_active ? "text-emerald-400" : "text-red-400"}`}>
-                    {d.is_active ? "Active" : "Inactive"}
-                  </span>
-                </td>
-              </tr>
-            ))}
+            {sorted.map((d: any) => {
+              const catKey = d.is_pit_boss ? "pit_boss" : d.category;
+              const daysLeft = getDaysLeft(d.contract_end);
+              return (
+                <tr key={d.id} className="border-b border-border last:border-0 hover:bg-muted/20">
+                  <td className="px-4 py-2">
+                    <span className={`inline-flex items-center justify-center min-w-[24px] h-6 rounded px-1 text-[10px] font-mono font-bold ${CATEGORY_COLORS[catKey] || "text-muted-foreground bg-muted/20"}`}>
+                      {CATEGORY_LETTER[catKey] || "?"}
+                    </span>
+                  </td>
+                  <td className="px-4 py-2 text-sm text-card-foreground font-medium">{d.name}</td>
+                  <td className="px-4 py-2 text-sm text-card-foreground font-mono cursor-pointer hover:bg-muted/30"
+                    onClick={() => startEdit(d.id, "salary", d.salary?.toString() || "")}>
+                    {editingCell?.id === d.id && editingCell.field === "salary" ? (
+                      <Input className="h-7 w-24 font-mono text-sm" value={editValue} autoFocus
+                        onChange={e => setEditValue(e.target.value)} onBlur={saveEdit} onKeyDown={handleEditKeyDown} />
+                    ) : formatSalary(d.salary)}
+                  </td>
+                  <td className="px-4 py-2 text-sm text-muted-foreground font-mono cursor-pointer hover:bg-muted/30"
+                    onClick={() => startEdit(d.id, "onboarding_date", d.onboarding_date || "")}>
+                    {editingCell?.id === d.id && editingCell.field === "onboarding_date" ? (
+                      <input type="date" className="h-7 bg-background border border-border rounded px-2 text-sm font-mono text-foreground"
+                        value={editValue} autoFocus onChange={e => setEditValue(e.target.value)} onBlur={saveEdit} onKeyDown={handleEditKeyDown} />
+                    ) : d.onboarding_date || "—"}
+                  </td>
+                  <td className="px-4 py-2 text-sm text-muted-foreground font-mono cursor-pointer hover:bg-muted/30"
+                    onClick={() => startEdit(d.id, "contract_start", d.contract_start || "")}>
+                    {editingCell?.id === d.id && editingCell.field === "contract_start" ? (
+                      <input type="date" className="h-7 bg-background border border-border rounded px-2 text-sm font-mono text-foreground"
+                        value={editValue} autoFocus onChange={e => setEditValue(e.target.value)} onBlur={saveEdit} onKeyDown={handleEditKeyDown} />
+                    ) : d.contract_start || "—"}
+                  </td>
+                  <td className="px-4 py-2 text-sm text-muted-foreground font-mono cursor-pointer hover:bg-muted/30"
+                    onClick={() => startEdit(d.id, "contract_end", d.contract_end || "")}>
+                    {editingCell?.id === d.id && editingCell.field === "contract_end" ? (
+                      <input type="date" className="h-7 bg-background border border-border rounded px-2 text-sm font-mono text-foreground"
+                        value={editValue} autoFocus onChange={e => setEditValue(e.target.value)} onBlur={saveEdit} onKeyDown={handleEditKeyDown} />
+                    ) : d.contract_end || "—"}
+                  </td>
+                  <td className="px-4 py-2 text-sm text-muted-foreground font-mono">{calcYears(d.onboarding_date)}</td>
+                  <td className="px-4 py-2">
+                    <span className={`font-mono text-xs font-bold ${daysLeft === null ? "text-muted-foreground" : daysLeft <= 40 ? "text-red-400" : daysLeft <= 90 ? "text-amber-400" : "text-emerald-400"}`}>
+                      {daysLeft === null ? "—" : `${daysLeft}d`}
+                    </span>
+                  </td>
+                  <td className="px-4 py-2">
+                    <button onClick={() => updateDealer.mutate({ id: d.id, is_active: !d.is_active })}
+                      className={`text-xs font-medium cursor-pointer hover:underline ${d.is_active ? "text-emerald-400" : "text-red-400"}`}>
+                      {d.is_active ? "Active" : "Fired"}
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
