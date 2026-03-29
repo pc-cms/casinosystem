@@ -204,7 +204,7 @@ const OpenShiftScreen = ({ tables }: { tables: any[] }) => {
             {FOREIGN_CURRENCIES.map(c => (
               <div key={c} className="flex items-center gap-2">
                 <span className="text-sm font-mono font-medium text-card-foreground w-10">{c}</span>
-                <Input type="number" min={0} value={rates[c] || ""} onChange={e => setRates(r => ({ ...r, [c]: Number(e.target.value) || 0 }))} className="font-mono" placeholder="0" />
+                <NumberInput value={rates[c] || ""} onChange={v => setRates(r => ({ ...r, [c]: Number(v) || 0 }))} placeholder="0" />
                 <span className="text-xs text-muted-foreground">TZS</span>
               </div>
             ))}
