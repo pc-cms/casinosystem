@@ -194,21 +194,30 @@ const TablesContent = () => {
   const tablesWithResults = useMemo(() => tables.filter(t => t.closing_result !== null && t.status === "open"), [tables]);
   const hasResults = tablesWithResults.length > 0;
 
+  const { data: trackerData = [] } = useTableTracker(date);
+
   const shiftTransactions = useMemo(() => {
     if (!shift) return transactions;
     return transactions.filter(t => t.shift_id === shift.id);
   }, [transactions, shift]);
 
-  const tableResults = useMemo(() => {
-    const results: Record<string, { drop: number; cashout: number; result: number; txCount: number }> = {};
+  const tableStats = useMemo(() => {
+    const stats: Record<string, { dropR: number; dropV: number; result: number }> = {};
     tables.forEach(t => {
-      const tableTxs = shiftTransactions.filter(tx => tx.table_id === t.id);
-      const drop = tableTxs.filter(tx => tx.type === "buy").reduce((s, tx) => s + Number(tx.amount), 0);
-      const cashout = tableTxs.filter(tx => tx.type === "cashout").reduce((s, tx) => s + Number(tx.amount), 0);
-      results[t.id] = { drop, cashout, result: drop - cashout, txCount: tableTxs.length };
+      // Drop R = buy-ins from cashier
+      const dropR = shiftTransactions
+        .filter(tx => tx.table_id === t.id && tx.type === "buy")
+        .reduce((s, tx) => s + Number(tx.amount), 0);
+      // Drop V = sum from tracker
+      const dropV = trackerData
+        .filter(tr => tr.table_id === t.id)
+        .reduce((s, tr) => s + Number(tr.value), 0);
+      // Result = from chip count (closing_result)
+      const result = t.closing_result !== null ? Number(t.closing_result) : 0;
+      stats[t.id] = { dropR, dropV, result };
     });
-    return results;
-  }, [tables, shiftTransactions]);
+    return stats;
+  }, [tables, shiftTransactions, trackerData]);
 
   // Locations for chip count dialog (only tables)
   const locations = useMemo(() => {
