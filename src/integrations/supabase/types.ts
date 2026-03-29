@@ -297,27 +297,39 @@ export type Database = {
       }
       casinos: {
         Row: {
+          breaklist_lock: string
           code: string
           created_at: string
           float_locked: boolean
           id: string
           name: string
+          shift_end: string
+          shift_start: string
+          tables_open: string
           timezone: string
         }
         Insert: {
+          breaklist_lock?: string
           code: string
           created_at?: string
           float_locked?: boolean
           id?: string
           name: string
+          shift_end?: string
+          shift_start?: string
+          tables_open?: string
           timezone?: string
         }
         Update: {
+          breaklist_lock?: string
           code?: string
           created_at?: string
           float_locked?: boolean
           id?: string
           name?: string
+          shift_end?: string
+          shift_start?: string
+          tables_open?: string
           timezone?: string
         }
         Relationships: []
