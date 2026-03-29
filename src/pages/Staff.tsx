@@ -216,21 +216,8 @@ const EmployeeList = () => {
       </div>
     </div>
   );
-                    <td className="px-4 py-2">
-                      <span className={`text-xs ${s.is_active ? "text-emerald-400" : "text-red-400"}`}>
-                        {s.is_active ? "Active" : "Inactive"}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        );
-      })}
-    </div>
-  );
-};
+
+
 
 // =================== STAFF ROTA GRID ===================
 const StaffRotaGrid = ({ month }: { month: string }) => {
