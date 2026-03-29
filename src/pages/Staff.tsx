@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { UserPlus, ChevronLeft, ChevronRight } from "lucide-react";
+import { UserPlus, ChevronLeft, ChevronRight, ArrowUpDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
   useStaffMembers, useCreateStaffMember, useStaffRotaRange, useSetStaffRota,
@@ -104,22 +104,28 @@ const Staff = () => {
   );
 };
 
-// =================== EMPLOYEE LIST (TABLE FORMAT) ===================
+// =================== EMPLOYEE LIST (UNIFIED TABLE WITH SORTING) ===================
 const EmployeeList = () => {
   const { data: staff = [] } = useStaffMembers();
   const createStaff = useCreateStaffMember();
   const [name, setName] = useState("");
   const [dept, setDept] = useState<StaffDepartment>("waiter");
+  const [sortBy, setSortBy] = useState<"department" | "name">("department");
 
-  const grouped = useMemo(() => {
-    const groups: Record<string, typeof staff> = {};
-    DEPARTMENT_ORDER.forEach(d => { groups[d] = []; });
-    staff.forEach(s => {
-      if (!groups[s.department]) groups[s.department] = [];
-      groups[s.department].push(s);
-    });
-    return groups;
-  }, [staff]);
+  const sorted = useMemo(() => {
+    const list = [...staff];
+    if (sortBy === "department") {
+      list.sort((a, b) => {
+        const dA = DEPARTMENT_ORDER.indexOf(a.department as StaffDepartment);
+        const dB = DEPARTMENT_ORDER.indexOf(b.department as StaffDepartment);
+        if (dA !== dB) return dA - dB;
+        return a.name.localeCompare(b.name);
+      });
+    } else {
+      list.sort((a, b) => a.name.localeCompare(b.name));
+    }
+    return list;
+  }, [staff, sortBy]);
 
   const calcYears = (startDate: string | null) => {
     if (!startDate) return "—";
@@ -134,6 +140,21 @@ const EmployeeList = () => {
 
   return (
     <div className="space-y-4">
+      {/* Legend */}
+      <div className="flex items-center gap-3 flex-wrap">
+        {DEPARTMENT_ORDER.map(d => {
+          const count = staff.filter(s => s.department === d).length;
+          if (count === 0) return null;
+          return (
+            <span key={d} className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-medium border ${DEPT_BADGE_COLORS[d] || ""}`}>
+              <span className={`w-2 h-2 rounded-full ${DEPT_DOT_COLORS[d] || "bg-muted-foreground"}`} />
+              {DEPARTMENT_LABELS[d]} ({count})
+            </span>
+          );
+        })}
+      </div>
+
+      {/* Add form */}
       <div className="flex gap-2 max-w-lg">
         <Input placeholder="Name" value={name} onChange={e => setName(e.target.value)}
           onKeyDown={e => { if (e.key === "Enter" && name) { createStaff.mutate({ name, department: dept }); setName(""); } }}
@@ -151,38 +172,50 @@ const EmployeeList = () => {
         </Button>
       </div>
 
-      {DEPARTMENT_ORDER.map(dept => {
-        const members = grouped[dept] || [];
-        if (members.length === 0) return null;
-        return (
-          <div key={dept} className="cms-panel overflow-x-auto">
-            <div className="px-4 py-2 border-b border-border flex items-center gap-2">
-              <Badge variant="outline" className={`text-[10px] ${DEPT_BADGE_COLORS[dept] || ""}`}>
-                {DEPARTMENT_LABELS[dept]}
-              </Badge>
-              <span className="text-xs text-muted-foreground">{members.length} staff</span>
-            </div>
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-border">
-                  <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-2">Name</th>
-                  <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-2">Position</th>
-                  <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-2">Salary</th>
-                  <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-2">Contract Start</th>
-                  <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-2">Contract End</th>
-                  <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-2">Years</th>
-                  <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-2">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {members.map((s: any, idx: number) => (
-                  <tr key={s.id} className={`border-b border-border last:border-0 ${idx % 2 === 1 ? "bg-muted/10" : ""}`}>
-                    <td className="px-4 py-2 text-sm text-card-foreground font-medium">{s.name}</td>
-                    <td className="px-4 py-2 text-sm text-muted-foreground">{DEPARTMENT_LABELS[s.department as StaffDepartment]}</td>
-                    <td className="px-4 py-2 text-sm text-card-foreground font-mono">{formatSalary(s.salary)}</td>
-                    <td className="px-4 py-2 text-sm text-muted-foreground font-mono">{s.contract_start || "—"}</td>
-                    <td className="px-4 py-2 text-sm text-muted-foreground font-mono">{s.contract_end || "—"}</td>
-                    <td className="px-4 py-2 text-sm text-muted-foreground font-mono">{calcYears(s.contract_start)}</td>
+      {/* Unified table */}
+      <div className="cms-panel overflow-x-auto">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-border">
+              <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-2 cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => setSortBy("name")}>
+                <span className="inline-flex items-center gap-1">Name {sortBy === "name" && <ArrowUpDown className="w-3 h-3" />}</span>
+              </th>
+              <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-2 cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => setSortBy("department")}>
+                <span className="inline-flex items-center gap-1">Department {sortBy === "department" && <ArrowUpDown className="w-3 h-3" />}</span>
+              </th>
+              <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-2">Salary</th>
+              <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-2">Contract Start</th>
+              <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-2">Contract End</th>
+              <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-2">Years</th>
+              <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-2">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sorted.map((s: any, idx: number) => (
+              <tr key={s.id} className={`border-b border-border last:border-0 ${DEPT_ROW_COLORS[s.department] || ""}`}>
+                <td className="px-4 py-2 text-sm text-card-foreground font-medium">{s.name}</td>
+                <td className="px-4 py-2">
+                  <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-medium border ${DEPT_BADGE_COLORS[s.department] || ""}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${DEPT_DOT_COLORS[s.department] || "bg-muted-foreground"}`} />
+                    {DEPARTMENT_LABELS[s.department as StaffDepartment]}
+                  </span>
+                </td>
+                <td className="px-4 py-2 text-sm text-card-foreground font-mono">{formatSalary(s.salary)}</td>
+                <td className="px-4 py-2 text-sm text-muted-foreground font-mono">{s.contract_start || "—"}</td>
+                <td className="px-4 py-2 text-sm text-muted-foreground font-mono">{s.contract_end || "—"}</td>
+                <td className="px-4 py-2 text-sm text-muted-foreground font-mono">{calcYears(s.contract_start)}</td>
+                <td className="px-4 py-2">
+                  <span className={`text-xs ${s.is_active ? "text-emerald-400" : "text-red-400"}`}>
+                    {s.is_active ? "Active" : "Inactive"}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
                     <td className="px-4 py-2">
                       <span className={`text-xs ${s.is_active ? "text-emerald-400" : "text-red-400"}`}>
                         {s.is_active ? "Active" : "Inactive"}
