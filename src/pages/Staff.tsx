@@ -640,10 +640,12 @@ const StaffAttendanceGrid = ({ month }: { month: string }) => {
     return entry ? String(entry.value) : "";
   };
 
-  const getRotaShift = (staffId: string, day: number) => {
+  const getRotaShift = (staffId: string, day: number): string | null => {
     const dateStr = `${month}-${String(day).padStart(2, "0")}`;
     const entry = rota.find((r: any) => r.staff_id === staffId && r.date === dateStr);
-    return entry?.shift || null;
+    if (!entry) return null;
+    const s = entry.shift as string;
+    return (s === "D" || s === "N") ? s : null;
   };
 
   const handleSave = (staffId: string, day: number, val: string) => {
