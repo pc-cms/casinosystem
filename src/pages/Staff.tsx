@@ -1,0 +1,574 @@
+import { useState, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { UserPlus, ChevronLeft, ChevronRight } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import {
+  useStaffMembers, useCreateStaffMember, useStaffRotaRange, useSetStaffRota,
+  useDeleteStaffRota, useStaffAttendanceRange, useSetStaffAttendance,
+  DEPARTMENT_LABELS, DEPARTMENT_ORDER, STAFF_SHIFT_LABELS, STAFF_SHIFT_COLORS,
+  type StaffDepartment,
+} from "@/hooks/use-staff";
+
+const STAFF_SHIFTS = ["D", "N", "L", "O"] as const;
+const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+const ATT_COLORS: Record<string, string> = {
+  A: "bg-red-500/30 text-red-300",
+  S: "bg-amber-500/30 text-amber-300",
+};
+
+const DEPT_BADGE_COLORS: Record<string, string> = {
+  security: "bg-red-500/20 text-red-400 border-red-500/30",
+  cashier: "bg-blue-500/20 text-blue-400 border-blue-500/30",
+  bartender: "bg-amber-500/20 text-amber-400 border-amber-500/30",
+  hostess: "bg-pink-500/20 text-pink-400 border-pink-500/30",
+  waiter: "bg-cyan-500/20 text-cyan-400 border-cyan-500/30",
+  cleaner: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
+  it: "bg-violet-500/20 text-violet-400 border-violet-500/30",
+  hr: "bg-orange-500/20 text-orange-400 border-orange-500/30",
+};
+
+const Staff = () => {
+  const [month, setMonth] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  });
+
+  const navigateMonth = (delta: number) => {
+    const [y, m] = month.split("-").map(Number);
+    const d = new Date(y, m - 1 + delta, 1);
+    setMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+  };
+
+  const monthLabel = useMemo(() => {
+    const [y, m] = month.split("-").map(Number);
+    return `${MONTH_NAMES[m - 1]} ${y}`;
+  }, [month]);
+
+  const [searchParams] = useSearchParams();
+  const activeTab = searchParams.get("tab") || "employee";
+
+  const showMonthNav = activeTab === "rota" || activeTab === "attendance";
+
+  const TAB_TITLES: Record<string, string> = {
+    employee: "Employee",
+    rota: "Staff Rota",
+    attendance: "Staff Attendance",
+  };
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-5">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">{TAB_TITLES[activeTab] || "Staff"}</h1>
+          <p className="text-sm text-muted-foreground">Staff Management</p>
+        </div>
+        <div className="flex items-center gap-3">
+          {showMonthNav && (
+            <div className="flex items-center gap-1">
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigateMonth(-1)}>
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+              <span className="text-sm font-semibold text-card-foreground min-w-[140px] text-center">{monthLabel}</span>
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigateMonth(1)}>
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+          )}
+          {activeTab === "rota" && (
+            <div className="flex items-center gap-1.5">
+              {STAFF_SHIFTS.map(s => (
+                <span key={s} className={`px-2 py-0.5 rounded text-[10px] font-mono ${STAFF_SHIFT_COLORS[s]}`}>
+                  {s} = {STAFF_SHIFT_LABELS[s]}
+                </span>
+              ))}
+            </div>
+          )}
+          {activeTab === "attendance" && (
+            <div className="flex items-center gap-1.5">
+              <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-red-500/30 text-red-300">A = Absent</span>
+              <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-amber-500/30 text-amber-300">S = Sick</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {activeTab === "employee" && <EmployeeList />}
+      {activeTab === "rota" && <StaffRotaGrid month={month} />}
+      {activeTab === "attendance" && <StaffAttendanceGrid month={month} />}
+    </div>
+  );
+};
+
+// =================== EMPLOYEE LIST ===================
+const EmployeeList = () => {
+  const { data: staff = [] } = useStaffMembers();
+  const createStaff = useCreateStaffMember();
+  const [name, setName] = useState("");
+  const [dept, setDept] = useState<StaffDepartment>("waiter");
+
+  const grouped = useMemo(() => {
+    const groups: Record<string, typeof staff> = {};
+    DEPARTMENT_ORDER.forEach(d => { groups[d] = []; });
+    staff.forEach(s => {
+      if (!groups[s.department]) groups[s.department] = [];
+      groups[s.department].push(s);
+    });
+    return groups;
+  }, [staff]);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex gap-2 max-w-lg">
+        <Input placeholder="Name" value={name} onChange={e => setName(e.target.value)}
+          onKeyDown={e => { if (e.key === "Enter" && name) { createStaff.mutate({ name, department: dept }); setName(""); } }}
+        />
+        <Select value={dept} onValueChange={v => setDept(v as StaffDepartment)}>
+          <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {DEPARTMENT_ORDER.map(d => (
+              <SelectItem key={d} value={d}>{DEPARTMENT_LABELS[d]}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Button onClick={() => { if (name) { createStaff.mutate({ name, department: dept }); setName(""); } }} disabled={!name}>
+          <UserPlus className="w-4 h-4 mr-1" /> Add
+        </Button>
+      </div>
+
+      {DEPARTMENT_ORDER.map(dept => {
+        const members = grouped[dept] || [];
+        if (members.length === 0) return null;
+        return (
+          <div key={dept} className="cms-panel">
+            <div className="px-4 py-2 border-b border-border flex items-center gap-2">
+              <Badge variant="outline" className={`text-[10px] ${DEPT_BADGE_COLORS[dept] || ""}`}>
+                {DEPARTMENT_LABELS[dept]}
+              </Badge>
+              <span className="text-xs text-muted-foreground">{members.length} staff</span>
+            </div>
+            {members.map((s, idx) => (
+              <div key={s.id} className={`flex items-center justify-between px-4 py-2 border-b border-border last:border-0 ${idx % 2 === 1 ? "bg-muted/10" : ""}`}>
+                <span className="text-sm text-card-foreground">{s.name}</span>
+                <span className={`text-xs ${s.is_active ? "text-emerald-400" : "text-red-400"}`}>
+                  {s.is_active ? "Active" : "Inactive"}
+                </span>
+              </div>
+            ))}
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
+// =================== STAFF ROTA GRID ===================
+const StaffRotaGrid = ({ month }: { month: string }) => {
+  const [y, m] = month.split("-").map(Number);
+  const daysInMonth = new Date(y, m, 0).getDate();
+  const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+
+  const startDate = `${month}-01`;
+  const endDate = `${month}-${String(daysInMonth).padStart(2, "0")}`;
+
+  const { data: staff = [] } = useStaffMembers();
+  const { data: rota = [] } = useStaffRotaRange(startDate, endDate);
+  const setRota = useSetStaffRota();
+  const deleteRota = useDeleteStaffRota();
+
+  const activeStaff = staff.filter(s => s.is_active);
+
+  const today = new Date();
+  const todayDay = today.getDate();
+  const isCurrentMonth = today.getFullYear() === y && today.getMonth() + 1 === m;
+
+  const getRotaEntry = (staffId: string, day: number) => {
+    const dateStr = `${month}-${String(day).padStart(2, "0")}`;
+    return rota.find((r: any) => r.staff_id === staffId && r.date === dateStr);
+  };
+
+  const handleClick = (staffId: string, day: number) => {
+    const dateStr = `${month}-${String(day).padStart(2, "0")}`;
+    const current = getRotaEntry(staffId, day);
+    if (!current) {
+      setRota.mutate({ staff_id: staffId, date: dateStr, shift: "D" });
+    } else {
+      const idx = STAFF_SHIFTS.indexOf(current.shift as typeof STAFF_SHIFTS[number]);
+      if (idx >= 0 && idx < STAFF_SHIFTS.length - 1) {
+        setRota.mutate({ staff_id: staffId, date: dateStr, shift: STAFF_SHIFTS[idx + 1] });
+      } else {
+        deleteRota.mutate({ staff_id: staffId, date: dateStr });
+      }
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent, staffId: string, day: number) => {
+    const key = e.key.toUpperCase();
+    const dateStr = `${month}-${String(day).padStart(2, "0")}`;
+    if (STAFF_SHIFTS.includes(key as typeof STAFF_SHIFTS[number])) {
+      e.preventDefault();
+      setRota.mutate({ staff_id: staffId, date: dateStr, shift: key });
+      const next = (e.target as HTMLElement)?.closest("td")?.nextElementSibling?.querySelector("button") as HTMLElement;
+      next?.focus();
+    } else if (key === "BACKSPACE" || key === "DELETE") {
+      e.preventDefault();
+      deleteRota.mutate({ staff_id: staffId, date: dateStr });
+    } else if (key === "ARROWRIGHT" || key === "TAB") {
+      e.preventDefault();
+      const next = (e.target as HTMLElement)?.closest("td")?.nextElementSibling?.querySelector("button") as HTMLElement;
+      next?.focus();
+    } else if (key === "ARROWLEFT") {
+      e.preventDefault();
+      const prev = (e.target as HTMLElement)?.closest("td")?.previousElementSibling?.querySelector("button") as HTMLElement;
+      prev?.focus();
+    } else if (key === "ARROWDOWN") {
+      e.preventDefault();
+      const td = (e.target as HTMLElement).closest("td");
+      const idx2 = td ? Array.from(td.parentElement!.children).indexOf(td) : -1;
+      const nextRow = td?.closest("tr")?.nextElementSibling;
+      (nextRow?.children[idx2]?.querySelector("button") as HTMLElement)?.focus();
+    } else if (key === "ARROWUP") {
+      e.preventDefault();
+      const td = (e.target as HTMLElement).closest("td");
+      const idx2 = td ? Array.from(td.parentElement!.children).indexOf(td) : -1;
+      const prevRow = td?.closest("tr")?.previousElementSibling;
+      (prevRow?.children[idx2]?.querySelector("button") as HTMLElement)?.focus();
+    }
+  };
+
+  const grouped = useMemo(() => {
+    const groups: Record<string, typeof activeStaff> = {};
+    DEPARTMENT_ORDER.forEach(d => { groups[d] = []; });
+    activeStaff.forEach(s => {
+      if (!groups[s.department]) groups[s.department] = [];
+      groups[s.department].push(s);
+    });
+    return groups;
+  }, [activeStaff]);
+
+  const getStats = (staffId: string) => {
+    const counts: Record<string, number> = {};
+    days.forEach(day => {
+      const entry = getRotaEntry(staffId, day);
+      if (entry) counts[entry.shift] = (counts[entry.shift] || 0) + 1;
+    });
+    return counts;
+  };
+
+  return (
+    <div className="cms-panel overflow-x-auto">
+      <div className="min-w-[1200px]">
+        <table className="w-full border-collapse">
+          <thead>
+            <tr className="border-b border-border">
+              <th className="text-left text-xs font-medium text-muted-foreground uppercase px-3 py-2 sticky left-0 bg-card z-10 min-w-[140px]">
+                Staff
+              </th>
+              {days.map(day => {
+                const dateObj = new Date(y, m - 1, day);
+                const weekday = WEEKDAYS[dateObj.getDay()];
+                const isToday = isCurrentMonth && day === todayDay;
+                const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
+                return (
+                  <th key={day} className={`text-center px-0.5 py-1 min-w-[36px] ${isToday ? "bg-primary/20" : isWeekend ? "bg-muted/30" : ""}`}>
+                    <div className="text-[9px] text-muted-foreground">{weekday}</div>
+                    <div className={`text-xs font-mono ${isToday ? "text-primary font-bold" : "text-card-foreground"}`}>{day}</div>
+                  </th>
+                );
+              })}
+              <th className="text-center text-xs font-medium text-muted-foreground uppercase px-2 py-2 min-w-[40px]">D</th>
+              <th className="text-center text-xs font-medium text-muted-foreground uppercase px-2 py-2 min-w-[40px]">N</th>
+            </tr>
+          </thead>
+          <tbody>
+            {DEPARTMENT_ORDER.map(dept => {
+              const members = grouped[dept] || [];
+              if (members.length === 0) return null;
+              return (
+                <DepartmentBlock
+                  key={dept}
+                  dept={dept}
+                  members={members}
+                  days={days}
+                  month={month}
+                  y={y}
+                  m={m}
+                  isCurrentMonth={isCurrentMonth}
+                  todayDay={todayDay}
+                  getRotaEntry={getRotaEntry}
+                  handleClick={handleClick}
+                  handleKeyDown={handleKeyDown}
+                  getStats={getStats}
+                />
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+
+const DepartmentBlock = ({
+  dept, members, days, month, y, m, isCurrentMonth, todayDay,
+  getRotaEntry, handleClick, handleKeyDown, getStats,
+}: {
+  dept: string;
+  members: any[];
+  days: number[];
+  month: string;
+  y: number;
+  m: number;
+  isCurrentMonth: boolean;
+  todayDay: number;
+  getRotaEntry: (id: string, day: number) => any;
+  handleClick: (id: string, day: number) => void;
+  handleKeyDown: (e: React.KeyboardEvent, id: string, day: number) => void;
+  getStats: (id: string) => Record<string, number>;
+}) => (
+  <>
+    <tr className="bg-muted/20">
+      <td colSpan={days.length + 3} className="px-3 py-1.5 sticky left-0">
+        <Badge variant="outline" className={`text-[10px] ${DEPT_BADGE_COLORS[dept] || ""}`}>
+          {DEPARTMENT_LABELS[dept as StaffDepartment]} ({members.length})
+        </Badge>
+      </td>
+    </tr>
+    {members.map((staff, idx) => {
+      const stats = getStats(staff.id);
+      return (
+        <tr key={staff.id} className={`border-b border-border last:border-0 ${idx % 2 === 0 ? "" : "bg-muted/10"}`}>
+          <td className={`px-3 py-1 text-xs font-medium text-card-foreground sticky left-0 z-10 ${idx % 2 === 0 ? "bg-card" : "bg-card/95"}`}>
+            {staff.name}
+          </td>
+          {days.map(day => {
+            const entry = getRotaEntry(staff.id, day);
+            const isToday = isCurrentMonth && day === todayDay;
+            const dateObj = new Date(y, m - 1, day);
+            const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
+            return (
+              <td key={day} className={`px-0.5 py-0.5 text-center ${isToday ? "bg-primary/10" : isWeekend ? "bg-muted/15" : ""}`}>
+                <button
+                  onClick={() => handleClick(staff.id, day)}
+                  onKeyDown={e => handleKeyDown(e, staff.id, day)}
+                  className={`w-full h-7 rounded text-[10px] font-mono transition-colors focus:outline-none focus:ring-1 focus:ring-primary ${
+                    entry
+                      ? STAFF_SHIFT_COLORS[entry.shift] || "bg-muted text-muted-foreground"
+                      : "bg-transparent hover:bg-muted/50 text-transparent hover:text-muted-foreground"
+                  }`}
+                >
+                  {entry?.shift || "·"}
+                </button>
+              </td>
+            );
+          })}
+          <td className="px-2 py-1 text-center">
+            <span className="text-[10px] font-mono font-bold text-amber-400">{stats["D"] || ""}</span>
+          </td>
+          <td className="px-2 py-1 text-center">
+            <span className="text-[10px] font-mono font-bold text-indigo-400">{stats["N"] || ""}</span>
+          </td>
+        </tr>
+      );
+    })}
+  </>
+);
+
+// =================== STAFF ATTENDANCE GRID ===================
+const StaffAttendanceGrid = ({ month }: { month: string }) => {
+  const [y, m] = month.split("-").map(Number);
+  const daysInMonth = new Date(y, m, 0).getDate();
+  const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+
+  const startDate = `${month}-01`;
+  const endDate = `${month}-${String(daysInMonth).padStart(2, "0")}`;
+
+  const { data: staff = [] } = useStaffMembers();
+  const { data: attendance = [] } = useStaffAttendanceRange(startDate, endDate);
+  const { data: rota = [] } = useStaffRotaRange(startDate, endDate);
+  const setAttendance = useSetStaffAttendance();
+
+  const activeStaff = staff.filter(s => s.is_active);
+
+  const today = new Date();
+  const todayDay = today.getDate();
+  const isCurrentMonth = today.getFullYear() === y && today.getMonth() + 1 === m;
+
+  const getValue = (staffId: string, day: number) => {
+    const dateStr = `${month}-${String(day).padStart(2, "0")}`;
+    const entry = attendance.find((a: any) => a.staff_id === staffId && a.date === dateStr);
+    return entry ? String(entry.value) : "";
+  };
+
+  const getRotaShift = (staffId: string, day: number) => {
+    const dateStr = `${month}-${String(day).padStart(2, "0")}`;
+    const entry = rota.find((r: any) => r.staff_id === staffId && r.date === dateStr);
+    return entry?.shift || null;
+  };
+
+  const handleSave = (staffId: string, day: number, val: string) => {
+    const dateStr = `${month}-${String(day).padStart(2, "0")}`;
+    const trimmed = val.trim().toUpperCase();
+    if (trimmed === "") {
+      setAttendance.mutate({ staff_id: staffId, date: dateStr, value: "" });
+      return;
+    }
+    if (trimmed === "A" || trimmed === "S") {
+      setAttendance.mutate({ staff_id: staffId, date: dateStr, value: trimmed });
+      return;
+    }
+    const num = Number(trimmed);
+    if (!isNaN(num) && num >= 0 && num <= 24) {
+      setAttendance.mutate({ staff_id: staffId, date: dateStr, value: String(num) });
+    }
+  };
+
+  const getTotal = (staffId: string) => {
+    return days.reduce((sum, day) => {
+      const val = getValue(staffId, day);
+      const num = Number(val);
+      return sum + (isNaN(num) ? 0 : num);
+    }, 0);
+  };
+
+  const grouped = useMemo(() => {
+    const groups: Record<string, typeof activeStaff> = {};
+    DEPARTMENT_ORDER.forEach(d => { groups[d] = []; });
+    activeStaff.forEach(s => {
+      if (!groups[s.department]) groups[s.department] = [];
+      groups[s.department].push(s);
+    });
+    return groups;
+  }, [activeStaff]);
+
+  return (
+    <div className="cms-panel overflow-x-auto">
+      <div className="min-w-[1200px]">
+        <table className="w-full border-collapse">
+          <thead>
+            <tr className="border-b border-border">
+              <th className="text-left text-xs font-medium text-muted-foreground uppercase px-3 py-2 sticky left-0 bg-card z-10 min-w-[140px]">
+                Staff
+              </th>
+              {days.map(day => {
+                const dateObj = new Date(y, m - 1, day);
+                const weekday = WEEKDAYS[dateObj.getDay()];
+                const isToday = isCurrentMonth && day === todayDay;
+                const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
+                return (
+                  <th key={day} className={`text-center px-0.5 py-1 min-w-[36px] ${isToday ? "bg-primary/20" : isWeekend ? "bg-muted/30" : ""}`}>
+                    <div className="text-[9px] text-muted-foreground">{weekday}</div>
+                    <div className={`text-xs font-mono ${isToday ? "text-primary font-bold" : "text-card-foreground"}`}>{day}</div>
+                  </th>
+                );
+              })}
+              <th className="text-center text-xs font-medium text-muted-foreground uppercase px-2 py-2 min-w-[50px]">Σh</th>
+            </tr>
+          </thead>
+          <tbody>
+            {DEPARTMENT_ORDER.map(dept => {
+              const members = grouped[dept] || [];
+              if (members.length === 0) return null;
+              return (
+                <AttendanceDepartmentBlock
+                  key={dept}
+                  dept={dept}
+                  members={members}
+                  days={days}
+                  month={month}
+                  y={y}
+                  m={m}
+                  isCurrentMonth={isCurrentMonth}
+                  todayDay={todayDay}
+                  getValue={getValue}
+                  getRotaShift={getRotaShift}
+                  handleSave={handleSave}
+                  getTotal={getTotal}
+                />
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+
+const AttendanceDepartmentBlock = ({
+  dept, members, days, month, y, m, isCurrentMonth, todayDay,
+  getValue, getRotaShift, handleSave, getTotal,
+}: {
+  dept: string;
+  members: any[];
+  days: number[];
+  month: string;
+  y: number;
+  m: number;
+  isCurrentMonth: boolean;
+  todayDay: number;
+  getValue: (id: string, day: number) => string;
+  getRotaShift: (id: string, day: number) => string | null;
+  handleSave: (id: string, day: number, val: string) => void;
+  getTotal: (id: string) => number;
+}) => (
+  <>
+    <tr className="bg-muted/20">
+      <td colSpan={days.length + 2} className="px-3 py-1.5 sticky left-0">
+        <Badge variant="outline" className={`text-[10px] ${DEPT_BADGE_COLORS[dept] || ""}`}>
+          {DEPARTMENT_LABELS[dept as StaffDepartment]} ({members.length})
+        </Badge>
+      </td>
+    </tr>
+    {members.map((staff, idx) => {
+      const total = getTotal(staff.id);
+      return (
+        <tr key={staff.id} className={`border-b border-border last:border-0 ${idx % 2 === 0 ? "" : "bg-muted/10"}`}>
+          <td className={`px-3 py-1 text-xs font-medium text-card-foreground sticky left-0 z-10 ${idx % 2 === 0 ? "bg-card" : "bg-card/95"}`}>
+            {staff.name}
+          </td>
+          {days.map(day => {
+            const val = getValue(staff.id, day);
+            const isToday = isCurrentMonth && day === todayDay;
+            const dateObj = new Date(y, m - 1, day);
+            const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
+            const isStatus = val === "A" || val === "S";
+            const isHours = val !== "" && !isStatus;
+            const rotaShift = getRotaShift(staff.id, day);
+            const isScheduled = !!rotaShift;
+            const isEmpty = val === "";
+            return (
+              <td key={day} className={`px-0.5 py-0.5 text-center ${isToday ? "bg-primary/10" : isWeekend ? "bg-muted/15" : ""}`}>
+                <input
+                  type="text"
+                  defaultValue={val}
+                  key={`${staff.id}-${month}-${day}-${val}`}
+                  onBlur={e => handleSave(staff.id, day, e.target.value)}
+                  onKeyDown={e => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+                  className={`w-full h-7 rounded text-[10px] font-mono text-center border-0 focus:outline-none focus:ring-1 focus:ring-primary transition-colors ${
+                    isStatus
+                      ? ATT_COLORS[val]
+                      : isHours
+                        ? "bg-transparent text-card-foreground font-bold"
+                        : isScheduled && isEmpty
+                          ? "bg-amber-500/15 text-amber-400 placeholder:text-current"
+                          : "bg-transparent text-transparent hover:text-muted-foreground"
+                  }`}
+                  placeholder={isScheduled && isEmpty ? rotaShift! : "·"}
+                />
+              </td>
+            );
+          })}
+          <td className="px-2 py-1 text-center">
+            <span className="text-[10px] font-mono font-bold text-primary">{total || ""}</span>
+          </td>
+        </tr>
+      );
+    })}
+  </>
+);
+
+export default Staff;

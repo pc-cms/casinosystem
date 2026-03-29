@@ -4,6 +4,7 @@ import {
   ClipboardList, BarChart3, Sun, Moon, Shield, Gamepad2, 
   UsersRound, Grid3X3, LogOut, Settings, FileBarChart,
   CalendarDays, ClipboardCheck, ListChecks, UserCog, Eye, Target,
+  Building2, UserCheck, ClipboardPen,
 } from "lucide-react";
 import { useTheme } from "@/lib/theme";
 import { useAuth } from "@/lib/auth-context";
@@ -17,6 +18,7 @@ const NAV_ITEMS: { to: string; icon: typeof LayoutDashboard; label: string; shor
   { to: "/tables", icon: Table2, label: "Tables", shortcut: "T", roles: ["manager", "cashier", "pit", "finance_manager", "security"] },
   { to: "/expenses", icon: Receipt, label: "Expenses", shortcut: "E", roles: ["manager", "cashier", "finance_manager"] },
   { to: "/pit", icon: Gamepad2, label: "Pit", shortcut: "I", roles: ["manager", "pit", "finance_manager"] },
+  { to: "/staff", icon: Building2, label: "Staff", shortcut: "F", roles: ["manager", "pit", "finance_manager"] },
   { to: "/groups", icon: UsersRound, label: "Groups", shortcut: "G", roles: ["manager", "finance_manager"] },
   { to: "/tracker", icon: Grid3X3, label: "Tracker", shortcut: "K", roles: ["manager", "pit"] },
   { to: "/stats", icon: BarChart3, label: "Stats", shortcut: "S", roles: ["manager", "finance_manager", "security"] },
@@ -30,7 +32,12 @@ const PIT_SUBITEMS = [
   { tab: "breaklist", icon: ListChecks, label: "Breaklist" },
   { tab: "players", icon: Eye, label: "Players" },
   { tab: "client-tracker", icon: Target, label: "Client Tracker" },
-  { tab: "dealers", icon: UserCog, label: "Dealers" },
+];
+
+const STAFF_SUBITEMS = [
+  { tab: "employee", icon: UserCheck, label: "Employee" },
+  { tab: "rota", icon: CalendarDays, label: "Rota" },
+  { tab: "attendance", icon: ClipboardPen, label: "Attendance" },
 ];
 
 export const AppSidebar = () => {
@@ -39,7 +46,8 @@ export const AppSidebar = () => {
   const location = useLocation();
 
   const isPitActive = location.pathname === "/pit";
-  const currentTab = new URLSearchParams(location.search).get("tab") || "rota";
+  const isStaffActive = location.pathname === "/staff";
+  const currentTab = new URLSearchParams(location.search).get("tab") || (isPitActive ? "rota" : "employee");
 
   const visibleItems = NAV_ITEMS.filter(item =>
     roles.some(r => item.roles.includes(r as AppRole))
@@ -57,7 +65,7 @@ export const AppSidebar = () => {
       <nav className="flex-1 py-2 px-2 space-y-0.5 overflow-y-auto">
         {visibleItems.map(item => (
           <div key={item.to}>
-            <NavLink to={item.to} end={item.to === "/" || item.to === "/pit"}
+            <NavLink to={item.to} end={item.to === "/" || item.to === "/pit" || item.to === "/staff"}
               className={({ isActive }) =>
                 `flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
                   isActive ? "bg-sidebar-accent text-sidebar-primary font-medium" : "text-sidebar-foreground hover:bg-sidebar-accent"
@@ -74,6 +82,25 @@ export const AppSidebar = () => {
                   <NavLink
                     key={sub.tab}
                     to={`/pit?tab=${sub.tab}`}
+                    className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-xs transition-colors ${
+                      currentTab === sub.tab
+                        ? "bg-sidebar-accent text-sidebar-primary font-medium"
+                        : "text-sidebar-foreground hover:bg-sidebar-accent"
+                    }`}
+                  >
+                    <sub.icon className="w-3.5 h-3.5 shrink-0" />
+                    <span>{sub.label}</span>
+                  </NavLink>
+                ))}
+              </div>
+            )}
+            {/* Staff sub-navigation */}
+            {item.to === "/staff" && isStaffActive && (
+              <div className="ml-4 mt-0.5 space-y-0.5 border-l border-sidebar-border pl-2">
+                {STAFF_SUBITEMS.map(sub => (
+                  <NavLink
+                    key={sub.tab}
+                    to={`/staff?tab=${sub.tab}`}
                     className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-xs transition-colors ${
                       currentTab === sub.tab
                         ? "bg-sidebar-accent text-sidebar-primary font-medium"

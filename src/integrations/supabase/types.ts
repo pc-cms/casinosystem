@@ -1039,6 +1039,134 @@ export type Database = {
           },
         ]
       }
+      staff_attendance: {
+        Row: {
+          casino_id: string
+          created_at: string
+          date: string
+          id: string
+          recorded_by: string
+          staff_id: string
+          updated_at: string
+          value: string
+        }
+        Insert: {
+          casino_id: string
+          created_at?: string
+          date: string
+          id?: string
+          recorded_by: string
+          staff_id: string
+          updated_at?: string
+          value?: string
+        }
+        Update: {
+          casino_id?: string
+          created_at?: string
+          date?: string
+          id?: string
+          recorded_by?: string
+          staff_id?: string
+          updated_at?: string
+          value?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_attendance_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_attendance_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      staff_members: {
+        Row: {
+          casino_id: string
+          created_at: string
+          department: Database["public"]["Enums"]["staff_department"]
+          id: string
+          is_active: boolean
+          name: string
+        }
+        Insert: {
+          casino_id: string
+          created_at?: string
+          department: Database["public"]["Enums"]["staff_department"]
+          id?: string
+          is_active?: boolean
+          name: string
+        }
+        Update: {
+          casino_id?: string
+          created_at?: string
+          department?: Database["public"]["Enums"]["staff_department"]
+          id?: string
+          is_active?: boolean
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_members_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      staff_rota: {
+        Row: {
+          casino_id: string
+          created_at: string
+          created_by: string
+          date: string
+          id: string
+          shift: string
+          staff_id: string
+        }
+        Insert: {
+          casino_id: string
+          created_at?: string
+          created_by: string
+          date: string
+          id?: string
+          shift?: string
+          staff_id: string
+        }
+        Update: {
+          casino_id?: string
+          created_at?: string
+          created_by?: string
+          date?: string
+          id?: string
+          shift?: string
+          staff_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_rota_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_rota_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       table_tracker: {
         Row: {
           casino_id: string
@@ -1331,6 +1459,15 @@ export type Database = {
         | "pit"
       player_status: "active" | "blacklist"
       shift_type: "M" | "N" | "A" | "S" | "E" | "L"
+      staff_department:
+        | "security"
+        | "cashier"
+        | "bartender"
+        | "hostess"
+        | "waiter"
+        | "cleaner"
+        | "it"
+        | "hr"
       table_status: "open" | "closed"
       transaction_type: "buy" | "cashout"
     }
@@ -1495,6 +1632,16 @@ export const Constants = {
       ],
       player_status: ["active", "blacklist"],
       shift_type: ["M", "N", "A", "S", "E", "L"],
+      staff_department: [
+        "security",
+        "cashier",
+        "bartender",
+        "hostess",
+        "waiter",
+        "cleaner",
+        "it",
+        "hr",
+      ],
       table_status: ["open", "closed"],
       transaction_type: ["buy", "cashout"],
     },
