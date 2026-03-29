@@ -690,8 +690,24 @@ export const useSetBreaklistCell = () => {
 
       return { offline: result.offline };
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["breaklist"] }); },
-    onError: (e) => toast.error(e.message),
+    onMutate: async (input) => {
+      await qc.cancelQueries({ queryKey: ["breaklist"] });
+      const queries = qc.getQueriesData<any[]>({ queryKey: ["breaklist"] });
+      queries.forEach(([key, data]) => {
+        if (!data) return;
+        const idx = data.findIndex((b: any) => b.dealer_id === input.dealer_id && b.time_slot === input.time_slot);
+        const updated = [...data];
+        const entry = { dealer_id: input.dealer_id, time_slot: input.time_slot, role: input.role, table_id: input.table_id, date: input.date, casino_id: casinoId, id: `temp-${Date.now()}`, is_locked: false };
+        if (idx >= 0) { updated[idx] = { ...updated[idx], role: input.role, table_id: input.table_id }; } else { updated.push(entry); }
+        qc.setQueryData(key, updated);
+      });
+      return { queries };
+    },
+    onError: (_err, _input, ctx) => {
+      ctx?.queries?.forEach(([key, data]: any) => qc.setQueryData(key, data));
+      toast.error(_err.message);
+    },
+    onSettled: () => { qc.invalidateQueries({ queryKey: ["breaklist"] }); },
   });
 };
 
