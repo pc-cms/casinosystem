@@ -170,6 +170,46 @@ const RotaGrid = ({ month }: { month: string }) => {
     }
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent, dealerId: string, day: number) => {
+    const key = e.key.toUpperCase();
+    const dateStr = `${month}-${String(day).padStart(2, "0")}`;
+    if (ROTA_SHIFTS.includes(key as typeof ROTA_SHIFTS[number])) {
+      e.preventDefault();
+      setRota.mutate({ dealer_id: dealerId, date: dateStr, shift: key as typeof ROTA_SHIFTS[number] });
+    } else if (key === "BACKSPACE" || key === "DELETE") {
+      e.preventDefault();
+      deleteRota.mutate({ dealer_id: dealerId, date: dateStr });
+    } else if (key === "ARROWRIGHT") {
+      e.preventDefault();
+      const next = (e.target as HTMLElement)?.nextElementSibling?.querySelector("button") as HTMLElement;
+      next?.focus();
+    } else if (key === "ARROWLEFT") {
+      e.preventDefault();
+      const prev = (e.target as HTMLElement)?.parentElement?.previousElementSibling?.querySelector("button") as HTMLElement;
+      prev?.focus();
+    }
+  };
+
+  const handlePaste = (e: React.ClipboardEvent, dealerId: string, day: number) => {
+    e.preventDefault();
+    const text = e.clipboardData.getData("text").trim().toUpperCase();
+    const dateStr = `${month}-${String(day).padStart(2, "0")}`;
+    // Support pasting multiple shifts separated by space/tab/comma
+    const values = text.split(/[\s,]+/);
+    if (values.length === 1 && ROTA_SHIFTS.includes(values[0] as typeof ROTA_SHIFTS[number])) {
+      setRota.mutate({ dealer_id: dealerId, date: dateStr, shift: values[0] as typeof ROTA_SHIFTS[number] });
+    } else if (values.length > 1) {
+      // Paste sequence starting from this day
+      values.forEach((v, i) => {
+        const d = day + i;
+        if (d <= daysInMonth && ROTA_SHIFTS.includes(v as typeof ROTA_SHIFTS[number])) {
+          const ds = `${month}-${String(d).padStart(2, "0")}`;
+          setRota.mutate({ dealer_id: dealerId, date: ds, shift: v as typeof ROTA_SHIFTS[number] });
+        }
+      });
+    }
+  };
+
   const getDealerStats = (dealerId: string) => {
     const counts: Record<string, number> = {};
     days.forEach(day => {
@@ -239,7 +279,9 @@ const RotaGrid = ({ month }: { month: string }) => {
                       >
                         <button
                           onClick={() => handleClick(dealer.id, day)}
-                          className={`w-full h-7 rounded text-[10px] font-mono transition-colors ${
+                          onKeyDown={e => handleKeyDown(e, dealer.id, day)}
+                          onPaste={e => handlePaste(e, dealer.id, day)}
+                          className={`w-full h-7 rounded text-[10px] font-mono transition-colors focus:outline-none focus:ring-1 focus:ring-primary ${
                             display
                               ? `${SHIFT_COLORS[display.shift] || "bg-muted text-muted-foreground"} ${display.isAuto ? "border border-dashed border-emerald-500/50" : ""}`
                               : "bg-transparent hover:bg-muted/50 text-transparent hover:text-muted-foreground"
