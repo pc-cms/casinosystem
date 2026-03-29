@@ -14,12 +14,12 @@ export const DEFAULT_EXCHANGE_RATES: Record<string, number> = {
 
 // Cash denominations per currency
 export const CASH_DENOMS: Record<string, number[]> = {
-  TZS: [500, 1_000, 2_000, 5_000, 10_000, 20_000, 50_000],
-  USD: [1, 5, 10, 20, 50, 100],
-  EUR: [5, 10, 20, 50, 100, 200, 500],
+  TZS: [50_000, 20_000, 10_000, 5_000, 2_000, 1_000, 500],
+  USD: [100, 50, 20, 10, 5, 1],
+  EUR: [500, 200, 100, 50, 20, 10, 5],
 };
 
-export const CHIP_DENOMS = [500, 1_000, 2_000, 5_000, 10_000, 25_000, 50_000, 100_000, 500_000, 1_000_000, 5_000_000] as const;
+export const CHIP_DENOMS = [5_000_000, 1_000_000, 500_000, 100_000, 50_000, 25_000, 10_000, 5_000, 2_000, 1_000, 500] as const;
 
 export const CHIP_COLORS: Record<number, string> = {
   500: "bg-red-600 text-white",

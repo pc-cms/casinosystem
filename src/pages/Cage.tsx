@@ -24,36 +24,49 @@ const chipSum = (chips: Record<number, number>) =>
 const cashSum = (cash: Record<number, number>) =>
   Object.entries(cash).reduce((s, [d, c]) => s + Number(d) * (c || 0), 0);
 
-// Cash denomination input (single column, no spinners)
-const CashDenomInput = ({ values, onChange, denoms, prefix }: {
+// Cash denomination input (single column, no spinners, keyboard-friendly)
+const CashDenomInput = ({ values, onChange, denoms, prefix, onSubmit }: {
   values: Record<number, number>;
   onChange: (v: Record<number, number>) => void;
   denoms: number[];
   prefix: string;
-}) => (
-  <div className="space-y-1">
-    {denoms.map(d => (
-      <div key={d} className="flex items-center gap-2">
-        <span className="cms-chip text-[9px] bg-muted text-foreground shrink-0">{prefix}{d}</span>
-        <input
-          type="number"
-          className="no-spin font-mono text-sm h-8 w-20 rounded border border-border bg-background px-2 text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-          value={values[d] || ""}
-          onChange={e => onChange({ ...values, [d]: Number(e.target.value) || 0 })}
-          placeholder="0"
-          inputMode="numeric"
-        />
-        {(values[d] || 0) > 0 && (
-          <span className="text-[10px] font-mono text-muted-foreground">= {prefix}{((values[d] || 0) * d).toLocaleString()}</span>
-        )}
+  onSubmit?: () => void;
+}) => {
+  const refs = useRef<Record<number, HTMLInputElement | null>>({});
+  return (
+    <div className="space-y-1">
+      {denoms.map((d, idx) => (
+        <div key={d} className="flex items-center gap-2">
+          <span className="cms-chip text-[9px] bg-muted text-foreground shrink-0 w-[40px] text-center">{prefix}{d.toLocaleString()}</span>
+          <input
+            ref={el => { refs.current[d] = el; }}
+            type="number"
+            className="no-spin font-mono text-sm h-8 w-20 rounded border border-border bg-background px-2 text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            value={values[d] || ""}
+            onChange={e => onChange({ ...values, [d]: Number(e.target.value) || 0 })}
+            onKeyDown={e => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                const next = denoms[idx + 1];
+                if (next !== undefined) refs.current[next]?.focus();
+                else onSubmit?.();
+              }
+            }}
+            placeholder="0"
+            inputMode="numeric"
+          />
+          {(values[d] || 0) > 0 && (
+            <span className="text-[10px] font-mono text-muted-foreground">= {prefix}{((values[d] || 0) * d).toLocaleString()}</span>
+          )}
+        </div>
+      ))}
+      <div className="flex items-center gap-2 pt-1 border-t border-border">
+        <span className="text-xs font-medium text-muted-foreground w-[40px] text-center">Total</span>
+        <span className="font-mono text-sm font-bold text-card-foreground">{prefix}{cashSum(values).toLocaleString()}</span>
       </div>
-    ))}
-    <div className="flex items-center gap-2 pt-1 border-t border-border">
-      <span className="text-xs font-medium text-muted-foreground w-[40px] text-center">Total</span>
-      <span className="font-mono text-sm font-bold text-card-foreground">{prefix}{cashSum(values).toLocaleString()}</span>
     </div>
-  </div>
-);
+  );
+};
 
 // =================== MAIN CAGE PAGE ===================
 const Cage = () => {
