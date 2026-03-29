@@ -284,46 +284,19 @@ const ClientTracker = () => {
             </h3>
           </div>
           <div className="divide-y divide-border">
-            {activeSessions.map((s: any) => {
-              const table = tables.find(t => t.id === s.table_id);
-              const hph = table ? getHandsPerHour(table.game) : DEFAULT_HANDS_PER_HOUR;
-              const elapsed = (Date.now() - new Date(s.started_at).getTime()) / 3600000;
-              const liveHands = Math.round(elapsed * hph);
-              const liveTotalBet = liveHands * Number(s.avg_bet);
-
-              return (
-                <div key={s.id} className="px-4 py-3 flex items-center justify-between">
-                  <div className="space-y-1">
-                    <div className="text-sm font-medium text-card-foreground">{getPlayerName(s.player_id)}</div>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <span>{getTableName(s.table_id)}</span>
-                      <span>·</span>
-                      <span>Avg: {formatNumberSpaces(Number(s.avg_bet))}</span>
-                    </div>
-                    <div className="flex items-center gap-3 mt-1">
-                      <div className="flex items-center gap-1">
-                        <Clock className="w-3 h-3 text-muted-foreground" />
-                        <LiveTimer startedAt={s.started_at} />
-                      </div>
-                      <Badge variant="outline" className="text-[10px]">
-                        ~{liveHands} hands
-                      </Badge>
-                      <span className="text-xs font-mono font-bold text-primary">
-                        Total Bet: {formatNumberSpaces(liveTotalBet)}
-                      </span>
-                    </div>
-                  </div>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => stopSession.mutate(s.id)}
-                    disabled={stopSession.isPending}
-                  >
-                    <Square className="w-3 h-3 mr-1" /> Stop
-                  </Button>
-                </div>
-              );
-            })}
+            {activeSessions.map((s: any) => (
+              <ActiveSessionCard
+                key={s.id}
+                session={s}
+                tables={tables}
+                getPlayerName={getPlayerName}
+                getTableName={getTableName}
+                onStop={() => stopSession.mutate(s.id)}
+                stopPending={stopSession.isPending}
+                casinoId={casinoId!}
+                queryClient={queryClient}
+              />
+            ))}
           </div>
         </div>
       )}
