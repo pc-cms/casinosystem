@@ -40,12 +40,30 @@ const BreaklistGrid = ({ date }: { date: string }) => {
   const { data: dealers = [] } = useDealers();
   const { data: breaklist = [] } = useBreaklistData(date);
   const { data: tables = [] } = useGamingTables();
+  const { data: rota = [] } = usePitRotaRange(date, date);
   const setCell = useSetBreaklistCell();
   const lockCell = useLockBreaklistCell();
   const { isManager } = useAuth();
 
   const activeDealers = dealers.filter(d => d.is_active);
   const openTables = tables.filter(t => t.status === "open");
+
+  // Dealers scheduled in rota for this date (M or N only)
+  const rotaDealers = useMemo(() => {
+    return rota
+      .filter((r: any) => r.shift === "M" || r.shift === "N" || r.shift === "E")
+      .map((r: any) => ({ dealerId: r.dealer_id, shift: r.shift as string }));
+  }, [rota]);
+
+  // Only show dealers that are in the rota for this date
+  const breaklistDealers = useMemo(() => {
+    const rotaDealerIds = new Set(rotaDealers.map(r => r.dealerId));
+    return activeDealers.filter(d => rotaDealerIds.has(d.id));
+  }, [activeDealers, rotaDealers]);
+
+  const getDealerShift = (dealerId: string) => {
+    return rotaDealers.find(r => r.dealerId === dealerId)?.shift || null;
+  };
 
   const currentSlot = useMemo(() => getCurrentSlot(), []);
   const isToday = date === new Date().toISOString().split("T")[0];
