@@ -1,8 +1,8 @@
 import { useState, useMemo } from "react";
-import { useDealers, useBreaklistData, useSetBreaklistCell, useLockBreaklistCell, useGamingTables } from "@/hooks/use-casino-data";
+import { useDealers, useBreaklistData, useSetBreaklistCell, useLockBreaklistCell, useGamingTables, usePitRotaRange } from "@/hooks/use-casino-data";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
-import { Lock, Unlock, LockKeyhole, Check } from "lucide-react";
+import { Lock, Unlock, LockKeyhole, Check, RefreshCw } from "lucide-react";
 import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
 import { toast } from "sonner";
 import { ALL_ROLES, ROLE_COLORS, TABLE_ROLES } from "@/lib/currency";
@@ -40,12 +40,30 @@ const BreaklistGrid = ({ date }: { date: string }) => {
   const { data: dealers = [] } = useDealers();
   const { data: breaklist = [] } = useBreaklistData(date);
   const { data: tables = [] } = useGamingTables();
+  const { data: rota = [] } = usePitRotaRange(date, date);
   const setCell = useSetBreaklistCell();
   const lockCell = useLockBreaklistCell();
   const { isManager } = useAuth();
 
   const activeDealers = dealers.filter(d => d.is_active);
   const openTables = tables.filter(t => t.status === "open");
+
+  // Dealers scheduled in rota for this date (M or N only)
+  const rotaDealers = useMemo(() => {
+    return rota
+      .filter((r: any) => r.shift === "M" || r.shift === "N" || r.shift === "E")
+      .map((r: any) => ({ dealerId: r.dealer_id, shift: r.shift as string }));
+  }, [rota]);
+
+  // Only show dealers that are in the rota for this date
+  const breaklistDealers = useMemo(() => {
+    const rotaDealerIds = new Set(rotaDealers.map(r => r.dealerId));
+    return activeDealers.filter(d => rotaDealerIds.has(d.id));
+  }, [activeDealers, rotaDealers]);
+
+  const getDealerShift = (dealerId: string) => {
+    return rotaDealers.find(r => r.dealerId === dealerId)?.shift || null;
+  };
 
   const currentSlot = useMemo(() => getCurrentSlot(), []);
   const isToday = date === new Date().toISOString().split("T")[0];
@@ -89,7 +107,7 @@ const BreaklistGrid = ({ date }: { date: string }) => {
   };
 
   const handleAccept = () => {
-    activeDealers.forEach(dealer => {
+    breaklistDealers.forEach(dealer => {
       TIME_SLOTS.forEach(slot => {
         const existing = getCellData(dealer.id, slot);
         if (!existing) {
@@ -98,6 +116,26 @@ const BreaklistGrid = ({ date }: { date: string }) => {
       });
     });
     toast.success("Empty slots filled with BR");
+  };
+
+  const handleRefreshFromRota = () => {
+    // Add any rota dealers that don't have breaklist entries yet
+    breaklistDealers.forEach(dealer => {
+      const hasAnyCell = breaklist.some(b => b.dealer_id === dealer.id);
+      if (!hasAnyCell) {
+        const shift = getDealerShift(dealer.id);
+        // M starts at 18:00, N starts at 21:00, E starts at 18:00
+        const startSlot = shift === "N" ? "21:00" : "18:00";
+        TIME_SLOTS.forEach(slot => {
+          if (slot >= startSlot || slot < "05:00") {
+            // For N shift, only slots from 21:00 onwards; for M/E all slots
+            if (shift === "N" && slot >= "05:00" && slot < "21:00") return;
+            setCell.mutate({ date, dealer_id: dealer.id, time_slot: slot, role: "BR", table_id: null });
+          }
+        });
+      }
+    });
+    toast.success("Breaklist refreshed from rota");
   };
 
   const handleLockRow = (dealerId: string, lock: boolean) => {
@@ -118,10 +156,20 @@ const BreaklistGrid = ({ date }: { date: string }) => {
 
   return (
     <>
-      <div className="flex items-center justify-end mb-2 gap-2">
-        <Button variant="outline" size="sm" onClick={handleAccept} className="gap-1 text-xs">
-          <Check className="w-3.5 h-3.5" /> Accept (fill BR)
-        </Button>
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          {breaklistDealers.length === 0 && (
+            <span className="text-xs text-muted-foreground">No dealers in rota for this date</span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={handleRefreshFromRota} className="gap-1 text-xs">
+            <RefreshCw className="w-3.5 h-3.5" /> Refresh from Rota
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleAccept} className="gap-1 text-xs">
+            <Check className="w-3.5 h-3.5" /> Accept (fill BR)
+          </Button>
+        </div>
       </div>
 
       <div className="cms-panel overflow-x-auto">
@@ -148,13 +196,21 @@ const BreaklistGrid = ({ date }: { date: string }) => {
               </tr>
             </thead>
             <tbody>
-              {activeDealers.map((dealer, idx) => {
+              {breaklistDealers.map((dealer, idx) => {
                 const lockedCount = getLockedCount(dealer.id);
+                const shift = getDealerShift(dealer.id);
                 return (
                   <tr key={dealer.id} className={`border-b border-border last:border-0 ${idx % 2 === 1 ? "bg-muted/10" : ""}`}>
                     <td className={`px-3 py-1 text-xs font-medium text-card-foreground sticky left-0 z-10 ${idx % 2 === 1 ? "bg-card/95" : "bg-card"}`}>
                       <div className="flex items-center justify-between">
-                        <span>{dealer.name}</span>
+                        <div className="flex items-center gap-1.5">
+                          <span>{dealer.name}</span>
+                          {shift && (
+                            <span className={`px-1 py-0 rounded text-[8px] font-mono font-bold ${
+                              shift === "M" ? "bg-blue-500/30 text-blue-300" : shift === "N" ? "bg-indigo-500/30 text-indigo-300" : "bg-emerald-500/30 text-emerald-300"
+                            }`}>{shift}</span>
+                          )}
+                        </div>
                         <div className="flex items-center gap-1">
                           {lockedCount > 0 && (
                             <span className="text-[9px] text-yellow-400 flex items-center gap-0.5">
