@@ -367,7 +367,7 @@ const TablesContent = () => {
   const rightTables = tables.filter(t => pokerGames.includes(t.game)).sort((a, b) => a.name.localeCompare(b.name));
 
   const renderTableCard = (table: typeof tables[0]) => {
-    const r = tableResults[table.id] || { drop: 0, cashout: 0, result: 0, txCount: 0 };
+    const r = tableStats[table.id] || { dropR: 0, dropV: 0, result: 0 };
     const isOpen = table.status === "open";
     const hasTableResult = table.closing_result !== null;
 
@@ -390,14 +390,14 @@ const TablesContent = () => {
             )}
           </div>
         </div>
-        <div className="px-4 py-3 grid grid-cols-4 gap-2">
+        <div className="px-4 py-3 grid grid-cols-3 gap-2">
           <div>
-            <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Drop</p>
-            <p className="font-mono text-xs font-bold text-card-foreground">{formatCurrency(r.drop)}</p>
+            <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Drop R</p>
+            <p className="font-mono text-xs font-bold text-card-foreground">{formatCurrency(r.dropR)}</p>
           </div>
           <div>
-            <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Cashout</p>
-            <p className="font-mono text-xs font-bold text-card-foreground">{formatCurrency(r.cashout)}</p>
+            <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Drop V</p>
+            <p className="font-mono text-xs font-bold text-card-foreground">{formatCurrency(r.dropV)}</p>
           </div>
           <div>
             <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Result</p>
@@ -405,9 +405,10 @@ const TablesContent = () => {
               {r.result >= 0 ? "+" : ""}{formatCurrency(r.result)}
             </p>
           </div>
-          <div>
-            <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Txns</p>
-            <p className="font-mono text-xs font-bold text-card-foreground">{r.txCount}</p>
+        </div>
+      </div>
+    );
+  };
           </div>
         </div>
       </div>
