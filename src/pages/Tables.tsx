@@ -353,72 +353,8 @@ const TablesContent = () => {
     });
   }, [locations, counts, baselineMap, countMode]);
 
-  // Game type grouping & totals
-  const gameTypeTotals = useMemo(() => {
-    const totals: Record<string, { dropR: number; dropV: number; result: number; label: string }> = {};
-    const gameLabels: Record<string, string> = { "American Roulette": "Total ARs", "Poker": "Total P", "Blackjack": "Total BJ" };
-    tables.forEach(t => {
-      const label = gameLabels[t.game] || `Total ${t.game}`;
-      if (!totals[t.game]) totals[t.game] = { dropR: 0, dropV: 0, result: 0, label };
-      const r = tableStats[t.id] || { dropR: 0, dropV: 0, result: 0 };
-      totals[t.game].dropR += r.dropR;
-      totals[t.game].dropV += r.dropV;
-      totals[t.game].result += r.result;
-    });
-    return totals;
-  }, [tables, tableStats]);
 
-  const totalDropR = Object.values(tableStats).reduce((s, r) => s + r.dropR, 0);
-  const totalDropV = Object.values(tableStats).reduce((s, r) => s + r.dropV, 0);
-  const totalResult = Object.values(tableStats).reduce((s, r) => s + r.result, 0);
 
-  const pokerGames = ["Poker", "Texas Holdem", "Omaha", "PLO"];
-  const leftTables = tables.filter(t => !pokerGames.includes(t.game)).sort((a, b) => a.name.localeCompare(b.name));
-  const rightTables = tables.filter(t => pokerGames.includes(t.game)).sort((a, b) => a.name.localeCompare(b.name));
-
-  const renderTableCard = (table: typeof tables[0]) => {
-    const r = tableStats[table.id] || { dropR: 0, dropV: 0, result: 0 };
-    const isOpen = table.status === "open";
-    const hasTableResult = table.closing_result !== null;
-
-    return (
-      <div key={table.id} className="cms-panel">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-          <div className="flex items-center gap-3">
-            <div className={`w-2.5 h-2.5 rounded-full ${isOpen ? "bg-green-500" : "bg-destructive"}`} />
-            <div>
-              <h3 className="text-sm font-semibold text-card-foreground">{table.name}</h3>
-              <p className="text-xs text-muted-foreground">{table.game}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Badge variant={isOpen ? "default" : "secondary"} className="text-[10px] uppercase">{table.status}</Badge>
-            {hasTableResult && (
-              <Badge variant={Number(table.closing_result) >= 0 ? "default" : "destructive"} className="text-[10px] font-mono">
-                Result: {Number(table.closing_result) >= 0 ? "+" : ""}{formatCurrency(Number(table.closing_result))}
-              </Badge>
-            )}
-          </div>
-        </div>
-        <div className="px-4 py-3 grid grid-cols-3 gap-2">
-          <div>
-            <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Drop R</p>
-            <p className="font-mono text-xs font-bold text-card-foreground">{formatCurrency(r.dropR)}</p>
-          </div>
-          <div>
-            <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Drop V</p>
-            <p className="font-mono text-xs font-bold text-card-foreground">{formatCurrency(r.dropV)}</p>
-          </div>
-          <div>
-            <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Result</p>
-            <p className={`font-mono text-xs font-bold ${r.result >= 0 ? "text-green-500" : "text-destructive"}`}>
-              {r.result >= 0 ? "+" : ""}{formatCurrency(r.result)}
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  };
 
   return (
     <div>
