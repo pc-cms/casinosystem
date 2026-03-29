@@ -567,8 +567,23 @@ export const useSetDealerAttendance = () => {
       } as any, { onConflict: "casino_id,dealer_id,date" });
       if (error) throw error;
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["dealer-attendance"] }); },
-    onError: (e) => toast.error(e.message),
+    onMutate: async (input) => {
+      await qc.cancelQueries({ queryKey: ["dealer-attendance-range"] });
+      const queries = qc.getQueriesData<any[]>({ queryKey: ["dealer-attendance-range"] });
+      queries.forEach(([key, data]) => {
+        if (!data) return;
+        const idx = data.findIndex((a: any) => a.dealer_id === input.dealer_id && a.date === input.date);
+        const updated = [...data];
+        const entry = { dealer_id: input.dealer_id, date: input.date, value: input.value, casino_id: casinoId };
+        if (idx >= 0) { updated[idx] = { ...updated[idx], value: input.value }; } else { updated.push(entry); }
+        qc.setQueryData(key, updated);
+      });
+      return { queries };
+    },
+    onError: (_err, _input, ctx) => {
+      ctx?.queries?.forEach(([key, data]: any) => qc.setQueryData(key, data));
+    },
+    onSettled: () => { qc.invalidateQueries({ queryKey: ["dealer-attendance"] }); qc.invalidateQueries({ queryKey: ["dealer-attendance-range"] }); },
   });
 };
 
