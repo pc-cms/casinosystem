@@ -79,7 +79,6 @@ const Expenses = () => {
           <p className="font-mono text-lg font-bold text-accent">{formatCurrency(analytics.pendingAmount)}</p>
         </div>
       </div>
-      </div>
 
 
       {/* Expenses Table */}
