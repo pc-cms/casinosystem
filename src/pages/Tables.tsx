@@ -151,8 +151,9 @@ const Tables = () => {
   const totalResult = totalDrop - totalCashout;
 
   // Separate AR/BJ tables (left column) from Poker (right column)
-  const leftTables = tables.filter(t => t.game !== "Poker").sort((a, b) => a.name.localeCompare(b.name));
-  const rightTables = tables.filter(t => t.game === "Poker").sort((a, b) => a.name.localeCompare(b.name));
+  const pokerGames = ["Poker", "Texas Holdem", "Omaha", "PLO"];
+  const leftTables = tables.filter(t => !pokerGames.includes(t.game)).sort((a, b) => a.name.localeCompare(b.name));
+  const rightTables = tables.filter(t => pokerGames.includes(t.game)).sort((a, b) => a.name.localeCompare(b.name));
 
   const renderTableCard = (table: typeof tables[0]) => {
     const r = tableResults[table.id] || { drop: 0, cashout: 0, result: 0, txCount: 0 };
