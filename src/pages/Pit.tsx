@@ -132,12 +132,16 @@ const Pit = () => {
               <Button variant="outline" size="sm" className="h-7 w-7 p-0" onClick={() => setBreaklistZoom(z => Math.min(200, z + 10))}>
                 <ZoomIn className="w-3.5 h-3.5" />
               </Button>
-              <Button variant="outline" size="sm" onClick={() => breaklistRefreshRef.current?.()} className="gap-1 text-xs">
-                <RefreshCw className="w-3.5 h-3.5" /> Refresh
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => breaklistAcceptRef.current?.()} className="gap-1 text-xs">
-                <Check className="w-3.5 h-3.5" /> Accept
-              </Button>
+              {isBusinessToday(date) && (
+                <>
+                  <Button variant="outline" size="sm" onClick={() => breaklistRefreshRef.current?.()} className="gap-1 text-xs">
+                    <RefreshCw className="w-3.5 h-3.5" /> Refresh
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => breaklistAcceptRef.current?.()} className="gap-1 text-xs">
+                    <Check className="w-3.5 h-3.5" /> Accept
+                  </Button>
+                </>
+              )}
             </>
           )}
           {activeTab === "rota" && (

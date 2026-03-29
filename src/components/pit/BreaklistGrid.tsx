@@ -100,6 +100,7 @@ const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }
     breaklist.find(b => b.dealer_id === dealerId && b.time_slot === timeSlot);
 
   const handleCellClick = (dealerId: string, timeSlot: string) => {
+    if (!isEditable) return; // Read-only for past dates
     const cell = getCellData(dealerId, timeSlot);
     if (cell?.is_locked && !isManager) {
       toast.error("Locked — manager override required");
