@@ -1,11 +1,13 @@
 import { useState, useMemo } from "react";
 import { usePlayers, useTransactions, useGamingTables } from "@/hooks/use-casino-data";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { formatNumberSpaces } from "@/lib/currency";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth-context";
-import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { ArrowUpDown, ArrowUp, ArrowDown, LogIn, LogOut, Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -14,44 +16,32 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { toast } from "sonner";
 
 type SortKey = "name" | "drop" | "cashout" | "result";
 type SortDir = "asc" | "desc";
-
-const CATEGORY_BADGES: Record<string, string> = {
-  active: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
-  blacklist: "bg-red-500/20 text-red-400 border-red-500/30",
-};
 
 const ActivePlayers = () => {
   const { data: players = [] } = usePlayers();
   const { data: tables = [] } = useGamingTables();
   const today = new Date().toISOString().split("T")[0];
   const { data: transactions = [] } = useTransactions(today);
-  const { casinoId } = useAuth();
+  const { casinoId, user } = useAuth();
+  const queryClient = useQueryClient();
 
   const [sortKey, setSortKey] = useState<SortKey>("drop");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const [search, setSearch] = useState("");
 
   const { data: allTags = [] } = useQuery({
     queryKey: ["player_tags", casinoId],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("player_tags")
-        .select("player_id, tag");
+      const { data } = await supabase.from("player_tags").select("player_id, tag");
       return data || [];
     },
     enabled: !!casinoId,
   });
 
-  // Active client sessions for today
   const { data: sessions = [] } = useQuery({
     queryKey: ["client_sessions", casinoId, today],
     queryFn: async () => {
@@ -67,52 +57,81 @@ const ActivePlayers = () => {
     refetchInterval: 15000,
   });
 
-  const openTables = useMemo(() => tables.filter(t => t.status === "open"), [tables]);
+  const { data: visits = [] } = useQuery({
+    queryKey: ["casino_visits", casinoId, today],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("casino_visits")
+        .select("*")
+        .eq("casino_id", casinoId!)
+        .eq("date", today);
+      return (data || []) as any[];
+    },
+    enabled: !!casinoId,
+    refetchInterval: 15000,
+  });
+
+  const checkIn = useMutation({
+    mutationFn: async (playerId: string) => {
+      const { error } = await supabase.from("casino_visits").insert({
+        casino_id: casinoId!,
+        player_id: playerId,
+        date: today,
+        checked_in_by: user!.id,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["casino_visits"] });
+      toast.success("Player checked in");
+    },
+    onError: (e: any) => {
+      if (e.message?.includes("duplicate")) toast.info("Already checked in today");
+      else toast.error(e.message);
+    },
+  });
+
+  const checkOut = useMutation({
+    mutationFn: async (playerId: string) => {
+      const { error } = await supabase
+        .from("casino_visits")
+        .update({ checked_out_at: new Date().toISOString() })
+        .eq("casino_id", casinoId!)
+        .eq("player_id", playerId)
+        .eq("date", today);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["casino_visits"] });
+      toast.success("Player checked out");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
 
   const activePlayers = useMemo(() => {
-    const playerMap = new Map<string, {
-      id: string;
-      first_name: string;
-      last_name: string;
-      nickname: string;
-      status: string;
-      drop: number;
-      cashout: number;
-      result: number;
-      tags: string[];
-      tableId: string | null;
-      tableName: string | null;
-      isLive: boolean;
-    }>();
-
-    // Players with transactions today
     const txPlayerIds = new Set(transactions.map((t: any) => t.player_id));
-    // Players with active sessions
     const activeSessions = sessions.filter((s: any) => !s.stopped_at);
     const sessionPlayerIds = new Set(activeSessions.map((s: any) => s.player_id));
+    const visitPlayerIds = new Set(
+      visits.filter((v: any) => !v.checked_out_at).map((v: any) => v.player_id)
+    );
 
-    const relevantIds = new Set([...txPlayerIds, ...sessionPlayerIds]);
+    const relevantIds = new Set([...txPlayerIds, ...sessionPlayerIds, ...visitPlayerIds]);
 
-    players
+    const list = players
       .filter(p => relevantIds.has(p.id))
-      .forEach(p => {
+      .map(p => {
         const playerTx = transactions.filter((t: any) => t.player_id === p.id);
-        const drop = playerTx
-          .filter((t: any) => t.type === "buy")
-          .reduce((s: number, t: any) => s + Number(t.amount), 0);
-        const cashout = playerTx
-          .filter((t: any) => t.type === "cashout")
-          .reduce((s: number, t: any) => s + Number(t.amount), 0);
+        const drop = playerTx.filter((t: any) => t.type === "buy").reduce((s: number, t: any) => s + Number(t.amount), 0);
+        const cashout = playerTx.filter((t: any) => t.type === "cashout").reduce((s: number, t: any) => s + Number(t.amount), 0);
         const result = drop - cashout;
         const tags = allTags.filter(t => t.player_id === p.id).map(t => t.tag);
-
-        // Find active session → current table
         const activeSession = activeSessions.find((s: any) => s.player_id === p.id);
-        const tableId = activeSession?.table_id || null;
-        const table = tableId ? tables.find(t => t.id === tableId) : null;
-        const tableName = table ? table.name : null;
+        const table = activeSession?.table_id ? tables.find(t => t.id === activeSession.table_id) : null;
+        const visit = visits.find((v: any) => v.player_id === p.id);
+        const isCheckedIn = visit && !visit.checked_out_at;
 
-        playerMap.set(p.id, {
+        return {
           id: p.id,
           first_name: p.first_name,
           last_name: p.last_name,
@@ -122,44 +141,46 @@ const ActivePlayers = () => {
           cashout,
           result,
           tags,
-          tableId,
-          tableName,
+          tableName: table?.name || null,
           isLive: !!activeSession,
-        });
+          isCheckedIn: !!isCheckedIn,
+          hasVisit: !!visit,
+        };
       });
 
-    const list = Array.from(playerMap.values());
+    // Filter by search
+    const filtered = search
+      ? list.filter(p => `${p.first_name} ${p.last_name} ${p.nickname}`.toLowerCase().includes(search.toLowerCase()))
+      : list;
 
     // Sort
-    list.sort((a, b) => {
+    filtered.sort((a, b) => {
       let cmp = 0;
       switch (sortKey) {
-        case "name":
-          cmp = `${a.first_name} ${a.last_name}`.localeCompare(`${b.first_name} ${b.last_name}`);
-          break;
-        case "drop":
-          cmp = a.drop - b.drop;
-          break;
-        case "cashout":
-          cmp = a.cashout - b.cashout;
-          break;
-        case "result":
-          cmp = a.result - b.result;
-          break;
+        case "name": cmp = `${a.first_name} ${a.last_name}`.localeCompare(`${b.first_name} ${b.last_name}`); break;
+        case "drop": cmp = a.drop - b.drop; break;
+        case "cashout": cmp = a.cashout - b.cashout; break;
+        case "result": cmp = a.result - b.result; break;
       }
       return sortDir === "desc" ? -cmp : cmp;
     });
 
-    return list;
-  }, [players, transactions, allTags, sessions, tables, sortKey, sortDir]);
+    return filtered;
+  }, [players, transactions, allTags, sessions, tables, visits, sortKey, sortDir, search]);
+
+  // Players not yet active — for check-in search
+  const activeIds = new Set(activePlayers.map(p => p.id));
+  const inactivePlayers = useMemo(() => {
+    if (!search) return [];
+    return players
+      .filter(p => p.status === "active" && !activeIds.has(p.id))
+      .filter(p => `${p.first_name} ${p.last_name} ${p.nickname}`.toLowerCase().includes(search.toLowerCase()))
+      .slice(0, 5);
+  }, [players, activeIds, search]);
 
   const handleSort = (key: SortKey) => {
-    if (sortKey === key) {
-      setSortDir(d => (d === "desc" ? "asc" : "desc"));
-    } else {
-      setSortKey(key);
-      setSortDir("desc");
-    }
+    if (sortKey === key) setSortDir(d => (d === "desc" ? "asc" : "desc"));
+    else { setSortKey(key); setSortDir("desc"); }
   };
 
   const SortIcon = ({ col }: { col: SortKey }) => {
@@ -169,109 +190,97 @@ const ActivePlayers = () => {
       : <ArrowUp className="w-3 h-3 ml-1 text-primary" />;
   };
 
+  const totalDrop = activePlayers.reduce((s, p) => s + p.drop, 0);
+  const totalCashout = activePlayers.reduce((s, p) => s + p.cashout, 0);
+  const totalResult = totalDrop - totalCashout;
+
   return (
     <div className="space-y-4">
       <div className="cms-panel">
-        <div className="px-4 py-2 border-b border-border flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-card-foreground">
-            Active Players Today ({activePlayers.length})
+        <div className="px-4 py-2 border-b border-border flex items-center justify-between gap-3">
+          <h3 className="text-sm font-semibold text-card-foreground shrink-0">
+            Active Players ({activePlayers.length})
           </h3>
+          <div className="relative max-w-[240px] w-full">
+            <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Search / Check in..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="h-8 pl-8 text-xs"
+            />
+          </div>
         </div>
 
+        {/* Check-in suggestions for inactive players */}
+        {inactivePlayers.length > 0 && (
+          <div className="px-4 py-2 border-b border-border bg-muted/10">
+            <p className="text-[10px] text-muted-foreground uppercase mb-1">Check in player</p>
+            <div className="flex flex-wrap gap-2">
+              {inactivePlayers.map(p => (
+                <Button
+                  key={p.id}
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-xs gap-1"
+                  onClick={() => checkIn.mutate(p.id)}
+                  disabled={checkIn.isPending}
+                >
+                  <LogIn className="w-3 h-3" />
+                  {p.first_name} {p.last_name}
+                </Button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {activePlayers.length === 0 ? (
-          <p className="text-center text-muted-foreground text-sm py-8">
-            No player activity today
-          </p>
+          <p className="text-center text-muted-foreground text-sm py-8">No active players today</p>
         ) : (
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead
-                    className="cursor-pointer select-none hover:text-foreground"
-                    onClick={() => handleSort("name")}
-                  >
-                    <span className="flex items-center">
-                      Player <SortIcon col="name" />
-                    </span>
+                  <TableHead className="cursor-pointer select-none hover:text-foreground" onClick={() => handleSort("name")}>
+                    <span className="flex items-center">Player <SortIcon col="name" /></span>
                   </TableHead>
-                  <TableHead className="text-center">Status</TableHead>
                   <TableHead className="text-center">Tags</TableHead>
                   <TableHead className="text-center">Table</TableHead>
-                  <TableHead
-                    className="text-right cursor-pointer select-none hover:text-foreground"
-                    onClick={() => handleSort("drop")}
-                  >
-                    <span className="flex items-center justify-end">
-                      Drop <SortIcon col="drop" />
-                    </span>
+                  <TableHead className="text-right cursor-pointer select-none hover:text-foreground" onClick={() => handleSort("drop")}>
+                    <span className="flex items-center justify-end">Drop <SortIcon col="drop" /></span>
                   </TableHead>
-                  <TableHead
-                    className="text-right cursor-pointer select-none hover:text-foreground"
-                    onClick={() => handleSort("cashout")}
-                  >
-                    <span className="flex items-center justify-end">
-                      Cash Out <SortIcon col="cashout" />
-                    </span>
+                  <TableHead className="text-right cursor-pointer select-none hover:text-foreground" onClick={() => handleSort("cashout")}>
+                    <span className="flex items-center justify-end">Cash Out <SortIcon col="cashout" /></span>
                   </TableHead>
-                  <TableHead
-                    className="text-right cursor-pointer select-none hover:text-foreground"
-                    onClick={() => handleSort("result")}
-                  >
-                    <span className="flex items-center justify-end">
-                      Result <SortIcon col="result" />
-                    </span>
+                  <TableHead className="text-right cursor-pointer select-none hover:text-foreground" onClick={() => handleSort("result")}>
+                    <span className="flex items-center justify-end">Result <SortIcon col="result" /></span>
                   </TableHead>
+                  <TableHead className="text-center w-[60px]">In/Out</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {activePlayers.map((p) => (
+                {activePlayers.map(p => (
                   <TableRow key={p.id}>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <span className="font-medium text-card-foreground">
-                          {p.first_name} {p.last_name}
-                        </span>
-                        {p.nickname && (
-                          <span className="text-xs text-muted-foreground">
-                            "{p.nickname}"
-                          </span>
-                        )}
+                        {p.isCheckedIn && <span className="w-1.5 h-1.5 rounded-full bg-green-500 shrink-0" />}
+                        <span className="font-medium text-card-foreground">{p.first_name} {p.last_name}</span>
+                        {p.nickname && <span className="text-xs text-muted-foreground">"{p.nickname}"</span>}
                       </div>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Badge
-                        variant="outline"
-                        className={`text-[9px] px-1.5 py-0 capitalize ${CATEGORY_BADGES[p.status] || ""}`}
-                      >
-                        {p.status}
-                      </Badge>
                     </TableCell>
                     <TableCell className="text-center">
                       {p.tags.length > 0 ? (
                         <div className="flex gap-1 flex-wrap justify-center">
-                          {p.tags.map((tag) => (
-                            <Badge
-                              key={tag}
-                              variant="outline"
-                              className="text-[9px] px-1.5 py-0"
-                            >
-                              {tag}
-                            </Badge>
+                          {p.tags.map(tag => (
+                            <Badge key={tag} variant="outline" className="text-[9px] px-1.5 py-0">{tag}</Badge>
                           ))}
                         </div>
-                      ) : (
-                        <span className="text-muted-foreground/40">·</span>
-                      )}
+                      ) : <span className="text-muted-foreground/40">·</span>}
                     </TableCell>
                     <TableCell className="text-center">
                       {p.isLive && p.tableName ? (
-                        <Badge className="bg-primary/20 text-primary border-primary/30 text-[10px] px-2 py-0.5 font-mono">
-                          {p.tableName}
-                        </Badge>
-                      ) : (
-                        <span className="text-muted-foreground/40">·</span>
-                      )}
+                        <Badge className="bg-primary/20 text-primary border-primary/30 text-[10px] px-2 py-0.5 font-mono">{p.tableName}</Badge>
+                      ) : <span className="text-muted-foreground/40">·</span>}
                     </TableCell>
                     <TableCell className="text-right font-mono font-bold text-card-foreground">
                       {p.drop > 0 ? formatNumberSpaces(p.drop) : <span className="text-muted-foreground/40">·</span>}
@@ -280,17 +289,41 @@ const ActivePlayers = () => {
                       {p.cashout > 0 ? formatNumberSpaces(p.cashout) : <span className="text-muted-foreground/40">·</span>}
                     </TableCell>
                     <TableCell className={`text-right font-mono font-bold ${p.result > 0 ? "text-emerald-400" : p.result < 0 ? "text-red-400" : "text-muted-foreground"}`}>
-                      {p.result !== 0 ? (
-                        <>
-                          {p.result > 0 ? "+" : ""}
-                          {formatNumberSpaces(p.result)}
-                        </>
+                      {p.result !== 0 ? <>{p.result > 0 ? "+" : ""}{formatNumberSpaces(p.result)}</> : <span className="text-muted-foreground/40">·</span>}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {p.isCheckedIn ? (
+                        <button
+                          onClick={() => checkOut.mutate(p.id)}
+                          className="text-muted-foreground hover:text-red-400 transition-colors"
+                          title="Check out"
+                        >
+                          <LogOut className="w-3.5 h-3.5" />
+                        </button>
                       ) : (
-                        <span className="text-muted-foreground/40">·</span>
+                        <button
+                          onClick={() => checkIn.mutate(p.id)}
+                          className="text-muted-foreground hover:text-emerald-400 transition-colors"
+                          title="Check in"
+                        >
+                          <LogIn className="w-3.5 h-3.5" />
+                        </button>
                       )}
                     </TableCell>
                   </TableRow>
                 ))}
+                {/* Totals row */}
+                {activePlayers.length > 0 && (totalDrop > 0 || totalCashout > 0) && (
+                  <TableRow className="border-t-2 border-border bg-muted/20">
+                    <TableCell className="font-bold text-xs text-card-foreground" colSpan={3}>TOTAL</TableCell>
+                    <TableCell className="text-right font-mono font-bold text-card-foreground">{formatNumberSpaces(totalDrop)}</TableCell>
+                    <TableCell className="text-right font-mono font-bold text-emerald-400">{formatNumberSpaces(totalCashout)}</TableCell>
+                    <TableCell className={`text-right font-mono font-bold ${totalResult > 0 ? "text-emerald-400" : totalResult < 0 ? "text-red-400" : "text-muted-foreground"}`}>
+                      {totalResult > 0 ? "+" : ""}{formatNumberSpaces(totalResult)}
+                    </TableCell>
+                    <TableCell />
+                  </TableRow>
+                )}
               </TableBody>
             </Table>
           </div>
