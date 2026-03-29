@@ -32,7 +32,12 @@ const PIT_SUBITEMS = [
   { tab: "breaklist", icon: ListChecks, label: "Breaklist" },
   { tab: "players", icon: Eye, label: "Players" },
   { tab: "client-tracker", icon: Target, label: "Client Tracker" },
-  { tab: "dealers", icon: UserCog, label: "Dealers" },
+];
+
+const STAFF_SUBITEMS = [
+  { tab: "employee", icon: UserCheck, label: "Employee" },
+  { tab: "rota", icon: CalendarDays, label: "Rota" },
+  { tab: "attendance", icon: ClipboardPen, label: "Attendance" },
 ];
 
 export const AppSidebar = () => {
