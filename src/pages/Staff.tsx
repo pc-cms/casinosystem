@@ -141,11 +141,14 @@ const Staff = () => {
 const EmployeeList = () => {
   const { data: staff = [] } = useStaffMembers();
   const createStaff = useCreateStaffMember();
+  const updateStaff = useUpdateStaffMember();
   const [name, setName] = useState("");
   const [dept, setDept] = useState<StaffDepartment>("waiter");
   const [sortBy, setSortBy] = useState<"department" | "name">("department");
   const [filterDept, setFilterDept] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("active");
+  const [editingCell, setEditingCell] = useState<{ id: string; field: string } | null>(null);
+  const [editValue, setEditValue] = useState("");
 
   const sorted = useMemo(() => {
     let list = [...staff];
@@ -167,8 +170,15 @@ const EmployeeList = () => {
 
   const calcYears = (startDate: string | null) => {
     if (!startDate) return "—";
-    const diff = new Date().getFullYear() - new Date(startDate).getFullYear();
-    return `${diff}y`;
+    const start = new Date(startDate);
+    const now = new Date();
+    const diffMs = now.getTime() - start.getTime();
+    const years = diffMs / (1000 * 60 * 60 * 24 * 365.25);
+    if (years < 1) {
+      const months = Math.floor(years * 12);
+      return `${months}m`;
+    }
+    return `${Math.floor(years)}y ${Math.floor((years % 1) * 12)}m`;
   };
 
   const formatSalary = (s: number | null) => {
@@ -176,9 +186,35 @@ const EmployeeList = () => {
     return s.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
   };
 
+  const startEdit = (id: string, field: string, currentValue: string) => {
+    setEditingCell({ id, field });
+    setEditValue(currentValue);
+  };
+
+  const saveEdit = () => {
+    if (!editingCell) return;
+    const { id, field } = editingCell;
+    if (field === "salary") {
+      const num = parseInt(editValue.replace(/\s/g, ""), 10);
+      updateStaff.mutate({ id, salary: isNaN(num) ? null : num });
+    } else if (field === "contract_start" || field === "contract_end") {
+      updateStaff.mutate({ id, [field]: editValue || null });
+    }
+    setEditingCell(null);
+  };
+
+  const handleEditKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") saveEdit();
+    if (e.key === "Escape") setEditingCell(null);
+  };
+
+  const toggleStatus = (id: string, currentActive: boolean) => {
+    updateStaff.mutate({ id, is_active: !currentActive });
+  };
+
   return (
     <div className="space-y-4">
-      {/* Filters */}
+      {/* Filters + Add form in one row */}
       <div className="flex gap-2 items-center flex-wrap">
         <Select value={filterDept} onValueChange={setFilterDept}>
           <SelectTrigger className="w-[160px]"><SelectValue placeholder="Department" /></SelectTrigger>
@@ -190,22 +226,21 @@ const EmployeeList = () => {
           </SelectContent>
         </Select>
         <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-[130px]"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Status</SelectItem>
             <SelectItem value="active">Active</SelectItem>
             <SelectItem value="fired">Fired</SelectItem>
           </SelectContent>
         </Select>
-      </div>
 
-      {/* Add form */}
-      <div className="flex gap-2 max-w-lg">
-        <Input placeholder="Name" value={name} onChange={e => setName(e.target.value)}
+        <div className="w-px h-6 bg-border mx-1" />
+
+        <Input placeholder="Name" value={name} onChange={e => setName(e.target.value)} className="w-[200px]"
           onKeyDown={e => { if (e.key === "Enter" && name) { createStaff.mutate({ name, department: dept }); setName(""); } }}
         />
         <Select value={dept} onValueChange={v => setDept(v as StaffDepartment)}>
-          <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
           <SelectContent>
             {DEPARTMENT_ORDER.map(d => (
               <SelectItem key={d} value={d}>{DEPARTMENT_LABELS[d]}</SelectItem>
@@ -236,7 +271,7 @@ const EmployeeList = () => {
             </tr>
           </thead>
           <tbody>
-            {sorted.map((s: any, idx: number) => (
+            {sorted.map((s: any) => (
               <tr key={s.id} className={`border-b border-border last:border-0 ${DEPT_ROW_COLORS[s.department] || ""}`}>
                 <td className="px-4 py-2 text-sm text-card-foreground font-medium">{s.name}</td>
                 <td className="px-4 py-2">
@@ -245,14 +280,37 @@ const EmployeeList = () => {
                     {DEPARTMENT_LABELS[s.department as StaffDepartment]}
                   </span>
                 </td>
-                <td className="px-4 py-2 text-sm text-card-foreground font-mono">{formatSalary(s.salary)}</td>
-                <td className="px-4 py-2 text-sm text-muted-foreground font-mono">{s.contract_start || "—"}</td>
-                <td className="px-4 py-2 text-sm text-muted-foreground font-mono">{s.contract_end || "—"}</td>
+                {/* Salary - editable */}
+                <td className="px-4 py-2 text-sm text-card-foreground font-mono cursor-pointer hover:bg-muted/30"
+                  onClick={() => startEdit(s.id, "salary", s.salary?.toString() || "")}>
+                  {editingCell?.id === s.id && editingCell.field === "salary" ? (
+                    <Input className="h-7 w-24 font-mono text-sm" value={editValue} autoFocus
+                      onChange={e => setEditValue(e.target.value)} onBlur={saveEdit} onKeyDown={handleEditKeyDown} />
+                  ) : formatSalary(s.salary)}
+                </td>
+                {/* Contract Start - editable */}
+                <td className="px-4 py-2 text-sm text-muted-foreground font-mono cursor-pointer hover:bg-muted/30"
+                  onClick={() => startEdit(s.id, "contract_start", s.contract_start || "")}>
+                  {editingCell?.id === s.id && editingCell.field === "contract_start" ? (
+                    <input type="date" className="h-7 bg-background border border-border rounded px-2 text-sm font-mono text-foreground"
+                      value={editValue} autoFocus onChange={e => { setEditValue(e.target.value); }} onBlur={saveEdit} onKeyDown={handleEditKeyDown} />
+                  ) : s.contract_start || "—"}
+                </td>
+                {/* Contract End - editable */}
+                <td className="px-4 py-2 text-sm text-muted-foreground font-mono cursor-pointer hover:bg-muted/30"
+                  onClick={() => startEdit(s.id, "contract_end", s.contract_end || "")}>
+                  {editingCell?.id === s.id && editingCell.field === "contract_end" ? (
+                    <input type="date" className="h-7 bg-background border border-border rounded px-2 text-sm font-mono text-foreground"
+                      value={editValue} autoFocus onChange={e => { setEditValue(e.target.value); }} onBlur={saveEdit} onKeyDown={handleEditKeyDown} />
+                  ) : s.contract_end || "—"}
+                </td>
                 <td className="px-4 py-2 text-sm text-muted-foreground font-mono">{calcYears(s.contract_start)}</td>
+                {/* Status - clickable toggle */}
                 <td className="px-4 py-2">
-                  <span className={`text-xs ${s.is_active ? "text-emerald-400" : "text-red-400"}`}>
-                    {s.is_active ? "Active" : "Inactive"}
-                  </span>
+                  <button onClick={() => toggleStatus(s.id, s.is_active)}
+                    className={`text-xs font-medium cursor-pointer hover:underline ${s.is_active ? "text-emerald-400" : "text-red-400"}`}>
+                    {s.is_active ? "Active" : "Fired"}
+                  </button>
                 </td>
               </tr>
             ))}
