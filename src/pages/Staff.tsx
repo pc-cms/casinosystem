@@ -54,6 +54,7 @@ const DEPT_ROW_COLORS: Record<string, string> = {
   hr: "bg-orange-500/5",
 };
 
+const Staff = () => {
   const [month, setMonth] = useState(() => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
