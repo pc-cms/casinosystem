@@ -482,33 +482,39 @@ const CashCheckForm = ({ expectedBalance, shiftId, exchangeRates, cashChecks }: 
   };
 
   return (
-    <div className="space-y-3 max-w-md">
-      <div className="cms-panel p-4 space-y-4">
-        <div>
-          <p className="text-[10px] font-medium text-muted-foreground uppercase mb-1.5">TZS Chips</p>
-          <ChipDenomInput values={chipCounts} onChange={setChipCounts} />
-        </div>
-        <div>
-          <p className="text-[10px] font-medium text-muted-foreground uppercase mb-1.5">USD Cash</p>
-          <CashDenomInput values={usdCash} onChange={setUsdCash} denoms={CASH_DENOMS.USD || []} prefix="$" />
-        </div>
-        <div>
-          <p className="text-[10px] font-medium text-muted-foreground uppercase mb-1.5">EUR Cash</p>
-          <CashDenomInput values={eurCash} onChange={setEurCash} denoms={CASH_DENOMS.EUR || []} prefix="€" />
-        </div>
-        <div className="grid grid-cols-2 gap-3">
+    <div className="space-y-3">
+      <div className="cms-panel p-4">
+        <div className="grid grid-cols-2 gap-6">
+          {/* LEFT: Chips */}
           <div>
-            <p className="text-[10px] font-medium text-muted-foreground uppercase mb-1">Bank (TZS)</p>
-            <Input type="number" min={0} value={bankBal || ""} onChange={e => setBankBal(Number(e.target.value) || 0)} className="font-mono" placeholder="0" />
+            <p className="text-xs font-semibold text-card-foreground mb-2">TZS Chips</p>
+            <ChipDenomInput values={chipCounts} onChange={setChipCounts} />
           </div>
-          <div>
-            <p className="text-[10px] font-medium text-muted-foreground uppercase mb-1">Mobile (TZS)</p>
-            <Input type="number" min={0} value={mobileBal || ""} onChange={e => setMobileBal(Number(e.target.value) || 0)} className="font-mono" placeholder="0" />
+          {/* RIGHT: Cash */}
+          <div className="space-y-4">
+            <div>
+              <p className="text-xs font-semibold text-card-foreground mb-2">USD Cash</p>
+              <CashDenomInput values={usdCash} onChange={setUsdCash} denoms={CASH_DENOMS.USD || []} prefix="$" />
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-card-foreground mb-2">EUR Cash</p>
+              <CashDenomInput values={eurCash} onChange={setEurCash} denoms={CASH_DENOMS.EUR || []} prefix="€" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <p className="text-[10px] font-medium text-muted-foreground uppercase mb-1">Bank (TZS)</p>
+                <Input type="number" min={0} value={bankBal || ""} onChange={e => setBankBal(Number(e.target.value) || 0)} className="font-mono no-spin" placeholder="0" />
+              </div>
+              <div>
+                <p className="text-[10px] font-medium text-muted-foreground uppercase mb-1">Mobile (TZS)</p>
+                <Input type="number" min={0} value={mobileBal || ""} onChange={e => setMobileBal(Number(e.target.value) || 0)} className="font-mono no-spin" placeholder="0" />
+              </div>
+            </div>
           </div>
         </div>
 
         {/* Inline result */}
-        <div className="grid grid-cols-3 gap-2 pt-2 border-t border-border">
+        <div className="grid grid-cols-3 gap-2 pt-3 mt-3 border-t border-border">
           <div className="text-center">
             <p className="text-[9px] uppercase text-muted-foreground">Expected</p>
             <p className="font-mono text-xs font-bold text-card-foreground">{formatCurrency(expectedBalance)}</p>
@@ -525,7 +531,7 @@ const CashCheckForm = ({ expectedBalance, shiftId, exchangeRates, cashChecks }: 
           </div>
         </div>
 
-        <Button variant="outline" onClick={handleRecord} disabled={createCount.isPending} className="w-full">
+        <Button variant="outline" onClick={handleRecord} disabled={createCount.isPending} className="w-full mt-3">
           <Calculator className="w-4 h-4 mr-1.5" /> Record Check
         </Button>
       </div>
