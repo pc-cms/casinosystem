@@ -209,7 +209,8 @@ const Admin = () => {
               <thead>
                 <tr className="border-b border-border">
                   <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-3">User</th>
-                  <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-3">Roles</th>
+                  <th className="text-right text-xs font-medium text-muted-foreground uppercase px-4 py-3">Roles</th>
+                  <th className="w-[60px]"></th>
                 </tr>
               </thead>
               <tbody>
@@ -223,23 +224,29 @@ const Admin = () => {
                           <span className="text-[10px] text-muted-foreground ml-2">(you)</span>
                         )}
                       </td>
-                      <td className="px-4 py-3">
-                        <div className="flex gap-1.5 flex-wrap">
+                      <td className="px-4 py-3 text-right">
+                        <div className="flex gap-1.5 flex-wrap justify-end">
                           {userRoles.map(role => (
-                            <Badge key={role} variant="outline" className="text-[10px] font-mono gap-1">
+                            <span key={role} className="text-xs font-medium text-muted-foreground">
                               {ROLE_LABELS[role] || role}
-                              {profile.user_id !== user?.id && (
-                                <button onClick={() => removeRole.mutate({ userId: profile.user_id, role })}
-                                  className="hover:text-destructive ml-0.5">
-                                  <Trash2 className="w-2.5 h-2.5" />
-                                </button>
-                              )}
-                            </Badge>
+                            </span>
                           ))}
                           {userRoles.length === 0 && (
-                            <span className="text-xs text-muted-foreground">No roles</span>
+                            <span className="text-xs text-muted-foreground/40">No roles</span>
                           )}
                         </div>
+                      </td>
+                      <td className="px-2 py-3">
+                        {profile.user_id !== user?.id && userRoles.length > 0 && (
+                          <div className="flex gap-0.5 justify-end">
+                            {userRoles.map(role => (
+                              <button key={role} onClick={() => removeRole.mutate({ userId: profile.user_id, role })}
+                                className="text-muted-foreground/40 hover:text-destructive transition-colors" title={`Remove ${ROLE_LABELS[role]}`}>
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            ))}
+                          </div>
+                        )}
                       </td>
                     </tr>
                   );
