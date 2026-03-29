@@ -250,7 +250,7 @@ const TablesContent = () => {
             return { table_id: loc.id!, closing_chips: chipMap, closing_result: resultValue };
           });
           setTableResults.mutate(results, {
-            onSuccess: () => setShowResultSummary(true),
+            onSuccess: () => { setCounts({}); setShowCount(false); },
           });
         }
       },
@@ -290,15 +290,10 @@ const TablesContent = () => {
 
     batchSnapshot.mutate({ date, counts: snapRows });
     setTableResults.mutate(results, {
-      onSuccess: () => { setCounts({}); setShowCount(false); setShowResultSummary(true); },
+      onSuccess: () => { setCounts({}); setShowCount(false); },
     });
   };
 
-  // Open all closed tables
-  const handleOpenAll = () => {
-    const ids = closedTables.map(t => t.id);
-    openAllTables.mutate(ids);
-  };
 
   const hasAnyCount = Object.keys(counts).length > 0;
 
