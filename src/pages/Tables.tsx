@@ -283,37 +283,21 @@ const Tables = () => {
           <div className="p-4 space-y-6">
             {locations.map(loc => {
               const locCounts = counts[loc.key] || {};
+              const placeholders: Record<number, number> = {};
+              loc.denoms.forEach(d => { placeholders[d] = loc.chipsPerDenom; });
               return (
                 <div key={loc.key}>
                   <p className="text-xs font-semibold text-card-foreground mb-2 flex items-center gap-2">
                     {loc.label}
                     <span className="text-[10px] text-muted-foreground font-normal">({loc.chipsPerDenom} expected per denom)</span>
                   </p>
-                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-1.5">
-                    {loc.denoms.map(d => {
-                      const actual = locCounts[d] || 0;
-                      const exp = loc.chipsPerDenom;
-                      const diff = actual - exp;
-                      const hasValue = actual > 0;
-                      return (
-                        <div key={d} className="space-y-0.5">
-                          <div className="flex items-center gap-1">
-                            <span className={`cms-chip text-[8px] min-w-[36px] text-center ${CHIP_COLORS[d] || "bg-muted text-foreground"}`}>
-                              {formatChipLabel(d)}
-                            </span>
-                            <Input type="number" min={0} value={locCounts[d] || ""}
-                              onChange={e => setCounts(c => ({ ...c, [loc.key]: { ...(c[loc.key] || {}), [d]: Number(e.target.value) || 0 } }))}
-                              className="font-mono w-14 h-7 text-xs" placeholder={String(exp)} />
-                          </div>
-                          {hasValue && diff !== 0 && (
-                            <p className={`text-[9px] font-mono text-center ${diff > 0 ? "text-destructive" : "text-orange-500"}`}>
-                              {diff > 0 ? "+" : ""}{diff}
-                            </p>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
+                  <ChipDenomInput
+                    values={locCounts}
+                    onChange={v => setCounts(c => ({ ...c, [loc.key]: v }))}
+                    denoms={loc.denoms}
+                    showValue={false}
+                    placeholder={placeholders}
+                  />
                 </div>
               );
             })}
