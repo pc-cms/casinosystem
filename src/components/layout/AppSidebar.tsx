@@ -133,6 +133,30 @@ export const AppSidebar = () => {
             <NetworkStatusIndicator />
           </div>
           <p className="text-[10px] font-mono text-muted-foreground mt-0.5 uppercase tracking-widest">Casino Ops</p>
+
+          {/* Manager Access - in header for non-manager users */}
+          {!nativeManager && (
+            <div className="mt-2">
+              {managerOverride.active ? (
+                <button
+                  onClick={handleDeactivate}
+                  className="flex items-center gap-2 w-full px-3 py-2 rounded-md text-xs font-medium bg-primary/15 text-primary border border-primary/30 hover:bg-primary/25 transition-colors"
+                >
+                  <ShieldCheck className="w-4 h-4" />
+                  <span className="flex-1 text-left">Manager Active</span>
+                  <ShieldOff className="w-3.5 h-3.5 opacity-60" />
+                </button>
+              ) : (
+                <button
+                  onClick={() => setShowOverrideDialog(true)}
+                  className="flex items-center gap-2 w-full px-3 py-2 rounded-md text-xs font-medium text-sidebar-foreground hover:bg-sidebar-accent border border-sidebar-border transition-colors"
+                >
+                  <ShieldCheck className="w-4 h-4" />
+                  <span className="flex-1 text-left">Manager Access</span>
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         <nav className="flex-1 py-2 px-2 overflow-y-auto">
