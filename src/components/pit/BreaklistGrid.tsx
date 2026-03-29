@@ -170,16 +170,14 @@ const BreaklistGrid = ({ date }: { date: string }) => {
   return (
     <>
        <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" className="h-7 w-7 p-0" onClick={() => setZoom(z => Math.max(60, z - 10))}>
             <ZoomOut className="w-3.5 h-3.5" />
           </Button>
           <span className="text-[10px] font-mono text-muted-foreground w-10 text-center">{zoom}%</span>
-          <Button variant="outline" size="sm" className="h-7 w-7 p-0" onClick={() => setZoom(z => Math.min(150, z + 10))}>
+          <Button variant="outline" size="sm" className="h-7 w-7 p-0" onClick={() => setZoom(z => Math.min(200, z + 10))}>
             <ZoomIn className="w-3.5 h-3.5" />
           </Button>
-        </div>
-        <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={handleRefreshFromRota} className="gap-1 text-xs">
             <RefreshCw className="w-3.5 h-3.5" /> Refresh from Rota
           </Button>
