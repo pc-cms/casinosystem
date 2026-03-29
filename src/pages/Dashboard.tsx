@@ -1,27 +1,20 @@
 import { useMemo } from "react";
-import { Users, Landmark, Table2, Receipt, ArrowUpRight, ArrowDownRight } from "lucide-react";
-import { usePlayers, useTransactions, useGamingTables, useExpenses, useClientSessionsTotalBet, useTableTracker } from "@/hooks/use-casino-data";
+import { Users, Landmark, Receipt, TrendingDown } from "lucide-react";
+import { usePlayers, useTransactions, useGamingTables, useExpenses, useClientSessionsTotalBet, useTableTracker, usePlayerEconomy } from "@/hooks/use-casino-data";
 import { useAuth } from "@/lib/auth-context";
 import { Link } from "react-router-dom";
 import { formatCurrency } from "@/lib/currency";
 import { canSeePlayerFinancials } from "@/lib/role-access";
 import { getBusinessDate } from "@/lib/business-day";
 
-const StatCard = ({ label, value, icon: Icon, href, trend }: {
+const StatCard = ({ label, value, icon: Icon, href }: {
   label: string; value: string | number; icon: any; href: string;
-  trend?: { value: string; positive: boolean };
 }) => (
   <Link to={href} className="cms-panel p-4 hover:border-primary/30 transition-colors group">
     <div className="flex items-start justify-between">
       <div>
         <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{label}</p>
         <p className="text-2xl font-bold font-mono mt-1 text-card-foreground">{value}</p>
-        {trend && (
-          <div className={`flex items-center gap-1 mt-1 text-xs ${trend.positive ? "cms-amount-positive" : "cms-amount-negative"}`}>
-            {trend.positive ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
-            {trend.value}
-          </div>
-        )}
       </div>
       <div className="p-2 rounded-md bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors">
         <Icon className="w-5 h-5" />
@@ -39,15 +32,15 @@ const Dashboard = () => {
   const { data: expenses = [] } = useExpenses();
   const { data: sessionsTotalBet = 0 } = useClientSessionsTotalBet();
   const { data: trackerData = [] } = useTableTracker(businessDate);
+  const { data: economy = [] } = usePlayerEconomy();
 
   const showFinancials = canSeePlayerFinancials(roles);
   const activePlayers = players.filter(p => p.status === "active").length;
-  const openTables = tables.filter(t => t.status === "open").length;
   const buyInDrop = transactions.filter(t => t.type === "buy").reduce((s, t) => s + Number(t.amount), 0);
   const totalDrop = buyInDrop + sessionsTotalBet;
   const pendingExpenses = expenses.filter(e => !e.approved).length;
 
-  // Per-table tracker totals (running result from hourly tracker)
+  // Per-table tracker totals
   const tableTrackerTotals = useMemo(() => {
     const totals: Record<string, number> = {};
     trackerData.forEach((d: any) => {
@@ -55,6 +48,36 @@ const Dashboard = () => {
     });
     return totals;
   }, [trackerData]);
+
+  // Total result: closing_result if available, otherwise tracker sum
+  const totalResult = useMemo(() => {
+    return tables.reduce((sum, table) => {
+      const trackerVal = tableTrackerTotals[table.id] || 0;
+      const resultVal = table.closing_result !== null ? Number(table.closing_result) : trackerVal;
+      return sum + resultVal;
+    }, 0);
+  }, [tables, tableTrackerTotals]);
+
+  // Top losers from player economy
+  const topLosers = useMemo(() => {
+    return economy
+      .map(e => {
+        const drop = Number(e.total_drop || 0);
+        const cashout = Number(e.total_cashout || 0);
+        const result = cashout - drop;
+        return {
+          player_id: e.player_id,
+          name: `${e.first_name || ""} ${e.last_name || ""}`.trim(),
+          nickname: e.nickname,
+          drop,
+          cashout,
+          result,
+        };
+      })
+      .filter(p => p.drop > 0)
+      .sort((a, b) => a.result - b.result)
+      .slice(0, 20);
+  }, [economy]);
 
   return (
     <div>
@@ -66,9 +89,23 @@ const Dashboard = () => {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <StatCard label="Active Players" value={activePlayers} icon={Users} href="/players" />
         {showFinancials && <StatCard label="Total Drop" value={formatCurrency(totalDrop)} icon={Landmark} href="/cage" />}
-        <StatCard label="Open Tables" value={`${openTables}/${tables.length}`} icon={Table2} href="/tables" />
+        {showFinancials && (
+          <Link to="/tables?tab=tracker" className="cms-panel p-4 hover:border-primary/30 transition-colors group">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Result</p>
+                <p className={`text-2xl font-bold font-mono mt-1 ${totalResult >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
+                  {totalResult >= 0 ? "+" : ""}{formatCurrency(totalResult)}
+                </p>
+              </div>
+              <div className="p-2 rounded-md bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors">
+                <TrendingDown className="w-5 h-5" />
+              </div>
+            </div>
+          </Link>
+        )}
+        <StatCard label="Active Players" value={activePlayers} icon={Users} href="/players" />
         {showFinancials && <StatCard label="Pending Expenses" value={pendingExpenses} icon={Receipt} href="/expenses" />}
       </div>
 
@@ -102,33 +139,30 @@ const Dashboard = () => {
           </div>
         )}
 
-        <div className="cms-panel">
-          <div className="cms-header">Table Status</div>
-          <div className="p-4 space-y-2">
-            {tables.map(table => (
-              <div key={table.id} className="flex items-center justify-between py-2 border-b border-border last:border-0">
-                <div className="flex items-center gap-3">
-                  <div className={`w-2 h-2 rounded-full ${table.status === "open" ? "bg-success" : "bg-danger"}`} />
-                  <span className="text-sm font-medium text-card-foreground">{table.name}</span>
-                  <span className="text-xs text-muted-foreground">{table.game}</span>
-                </div>
-                {showFinancials && (() => {
-                  const trackerVal = tableTrackerTotals[table.id] || 0;
-                  const resultVal = table.closing_result !== null ? Number(table.closing_result) : null;
-                  const displayVal = resultVal !== null ? resultVal : trackerVal;
-                  return displayVal !== 0 || resultVal !== null ? (
-                    <span className={`font-mono text-xs font-bold ${displayVal >= 0 ? "text-green-500" : "text-destructive"}`}>
-                      {displayVal >= 0 ? "+" : ""}{formatCurrency(displayVal)}
+        {showFinancials && (
+          <div className="cms-panel">
+            <div className="cms-header">Top Losers</div>
+            <div className="p-4 space-y-1">
+              {topLosers.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">No data</p>
+              ) : topLosers.map((p, i) => (
+                <div key={p.player_id} className="flex items-center justify-between py-1.5 border-b border-border last:border-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-mono text-muted-foreground w-5">{i + 1}</span>
+                    <span className="text-sm font-medium text-card-foreground">{p.name}</span>
+                    {p.nickname && <span className="text-xs text-muted-foreground">({p.nickname})</span>}
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <span className="font-mono text-xs text-muted-foreground">{formatCurrency(p.drop)}</span>
+                    <span className={`font-mono text-xs font-bold ${p.result >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
+                      {p.result >= 0 ? "+" : ""}{formatCurrency(p.result)}
                     </span>
-                  ) : (
-                    <span className="font-mono text-xs text-muted-foreground">—</span>
-                  );
-                })()}
-              </div>
-            ))}
-            {tables.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">No tables configured</p>}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
