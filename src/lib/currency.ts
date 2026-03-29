@@ -65,9 +65,30 @@ export const formatCashDenomLabel = (denom: number, currency: string): string =>
   return `${sym}${denom}`;
 };
 
+// Format number with space-separated thousands (global rule: no commas or dots)
+export const formatNumberSpaces = (num: number): string => {
+  if (num === 0) return "0";
+  const isNeg = num < 0;
+  const abs = Math.abs(Math.round(num));
+  const str = abs.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+  return isNeg ? `-${str}` : str;
+};
+
 export const formatCurrency = (amount: number, currency: string = "TZS"): string => {
   const sym = CURRENCY_SYMBOLS[currency] || currency;
-  return `${sym} ${amount.toLocaleString()}`;
+  return `${sym} ${formatNumberSpaces(amount)}`;
+};
+
+// Parse a space-formatted string back to number
+export const parseSpacedNumber = (str: string): number => {
+  return Number(str.replace(/\s/g, "")) || 0;
+};
+
+// Format an input value with spaces as user types
+export const formatInputWithSpaces = (value: string): string => {
+  const digits = value.replace(/[^\d]/g, "");
+  if (!digits) return "";
+  return digits.replace(/\B(?=(\d{3})+(?!\d))/g, " ");
 };
 
 // ============ TABLE STRUCTURE ============

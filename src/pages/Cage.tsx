@@ -13,7 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowDownToLine, ArrowUpFromLine, Calculator, Play, Square, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import {
-  CHIP_DENOMS, formatCurrency, CURRENCIES, FOREIGN_CURRENCIES,
+  CHIP_DENOMS, formatCurrency, formatNumberSpaces, CURRENCIES, FOREIGN_CURRENCIES,
   DEFAULT_EXCHANGE_RATES, CASH_DENOMS, CURRENCY_SYMBOLS, formatCashDenomLabel,
 } from "@/lib/currency";
 import PlayerSearch from "@/components/cage/PlayerSearch";
@@ -88,7 +88,7 @@ const CashDenomInput = ({ values, onChange, denoms, currency, onSubmit }: {
       <div className="flex items-center gap-2 pt-1 border-t border-border">
         <span className="text-xs font-medium text-muted-foreground">Total</span>
         <span className="font-mono text-sm font-bold text-card-foreground">
-          {currency === "TZS" ? `TZS ${total.toLocaleString()}` : `${sym}${total.toLocaleString()}`}
+          {currency === "TZS" ? `TZS ${formatNumberSpaces(total)}` : `${sym}${formatNumberSpaces(total)}`}
         </span>
       </div>
     </div>
@@ -286,7 +286,7 @@ const ActiveShiftView = ({ shift, players, tables }: { shift: any; players: any[
               <span className="text-muted-foreground">{shiftDuration}</span>
             </span>
             {FOREIGN_CURRENCIES.map(c => (
-              <span key={c} className="text-[10px] font-mono text-muted-foreground">{c}: {(exchangeRates[c] || 0).toLocaleString()}</span>
+              <span key={c} className="text-[10px] font-mono text-muted-foreground">{c}: {formatNumberSpaces(exchangeRates[c] || 0)}</span>
             ))}
           </div>
         </div>
@@ -479,7 +479,7 @@ const BuyInForm = ({ players, tables, exchangeRates, shiftId, onSubmit, loading 
           </div>
         </div>
         {currency !== "TZS" && tzsAmount > 0 && (
-          <p className="text-xs font-mono text-muted-foreground text-right">= {formatCurrency(tzsAmount)} (1 {currency} = {(exchangeRates[currency] || 0).toLocaleString()} TZS)</p>
+          <p className="text-xs font-mono text-muted-foreground text-right">= {formatCurrency(tzsAmount)} (1 {currency} = {formatNumberSpaces(exchangeRates[currency] || 0)} TZS)</p>
         )}
       </div>
       <Button onClick={handleSubmit} disabled={!playerId || !tableId || tzsAmount <= 0 || loading} className="w-full mt-4 gap-1.5">
@@ -677,7 +677,7 @@ const CloseShiftDialog = ({ open, onClose, shift, expectedBalance, cashResult, t
         shift_result: shiftResult,
         table_readiness: tableReady,
       },
-      notes: `${notes} | CASH: ${cashResult >= 0 ? "+" : ""}${cashResult?.toLocaleString()} | MISS: ${totalMissValue >= 0 ? "+" : ""}${totalMissValue.toLocaleString()} | RESULT: ${shiftResult >= 0 ? "+" : ""}${shiftResult.toLocaleString()} | DIFF: ${diff >= 0 ? "+" : ""}${diff.toLocaleString()} TZS`.trim(),
+      notes: `${notes} | CASH: ${cashResult >= 0 ? "+" : ""}${formatNumberSpaces(cashResult)} | MISS: ${totalMissValue >= 0 ? "+" : ""}${formatNumberSpaces(totalMissValue)} | RESULT: ${shiftResult >= 0 ? "+" : ""}${formatNumberSpaces(shiftResult)} | DIFF: ${diff >= 0 ? "+" : ""}${formatNumberSpaces(diff)} TZS`.trim(),
       cashResult: cashResult,
       missTotal: totalMissValue,
       shiftResult: shiftResult,
