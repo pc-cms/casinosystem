@@ -22,6 +22,16 @@ import PlayerSearch from "@/components/cage/PlayerSearch";
 import ChipDenomInput from "@/components/ChipDenomInput";
 
 // ========== HELPERS ==========
+const MOBILE_PROVIDERS = ["Mpesa", "Tigo", "Halo", "AirTel"] as const;
+
+type MobileProviders = Record<string, number>;
+type Banks = { tzs: number; usd: number };
+
+const emptyMobile = (): MobileProviders => Object.fromEntries(MOBILE_PROVIDERS.map(p => [p, 0]));
+const emptyBanks = (): Banks => ({ tzs: 0, usd: 0 });
+const mobileTotal = (m: MobileProviders) => Object.values(m).reduce((s, v) => s + (v || 0), 0);
+const bankTotalTzs = (b: Banks, rates: Record<string, number>) => (b.tzs || 0) + (b.usd || 0) * (rates["USD"] || 0);
+
 const chipSum = (chips: Record<number, number>) =>
   Object.entries(chips).reduce((s, [d, c]) => s + Number(d) * (c || 0), 0);
 
@@ -44,10 +54,10 @@ const calcCashTotalTzs = (
 const calcGrandTotal = (
   chips: Record<number, number>,
   cash: Record<string, Record<number, number>>,
-  bank: number,
-  mobile: number,
+  banks: Banks,
+  mobile: MobileProviders,
   rates: Record<string, number>,
-) => chipSum(chips) + calcCashTotalTzs(cash, rates) + bank + mobile;
+) => chipSum(chips) + calcCashTotalTzs(cash, rates) + bankTotalTzs(banks, rates) + mobileTotal(mobile);
 
 // ========== CASH DENOM INPUT ==========
 const CashDenomInput = ({ values, onChange, denoms, currency, onSubmit }: {
