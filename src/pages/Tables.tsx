@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { CHIP_DENOMS, CHIP_COLORS, formatChipLabel, formatCurrency, CHIP_DISTRIBUTION } from "@/lib/currency";
 import { AlertTriangle, Save, Coins, X, RotateCcw } from "lucide-react";
 import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
+import ChipDenomInput from "@/components/ChipDenomInput";
 
 const Tables = () => {
   const today = new Date().toISOString().split("T")[0];
