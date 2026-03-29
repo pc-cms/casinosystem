@@ -114,7 +114,7 @@ const Pit = () => {
       {activeTab === "breaklist" && <BreaklistGrid date={date} />}
       {activeTab === "players" && <ActivePlayers />}
       {activeTab === "client-tracker" && <ClientTracker />}
-      {activeTab === "dealers" && <DealersList />}
+      
     </div>
   );
 };
