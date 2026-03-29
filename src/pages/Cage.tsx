@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowDownToLine, ArrowUpFromLine, Calculator, Play, Square, AlertTriangle, CheckCircle2, Package } from "lucide-react";
+import { ArrowDownToLine, ArrowUpFromLine, Calculator, Play, Square, AlertTriangle, CheckCircle2, Package, Settings2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import {
   CHIP_DENOMS, CHIP_COLORS, formatChipLabel, formatCurrency, formatNumberSpaces, CURRENCIES, FOREIGN_CURRENCIES,
@@ -166,6 +166,7 @@ const OpenShiftScreen = ({ tables }: { tables: any[] }) => {
   const [openingCash, setOpeningCash] = useState<Record<string, Record<number, number>>>(emptyCash);
   const [bankBalance, setBankBalance] = useState(0);
   const [mobileBalance, setMobileBalance] = useState(0);
+  const [showRates, setShowRates] = useState(false);
 
   const chipTotal = chipSum(openingChips);
   const openingTotal = calcGrandTotal(openingChips, openingCash, bankBalance, mobileBalance, rates);
@@ -190,53 +191,80 @@ const OpenShiftScreen = ({ tables }: { tables: any[] }) => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto mt-8">
-      <div className="cms-panel p-6">
-        <div className="text-center mb-6">
-          <Play className="w-12 h-12 text-primary mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-foreground mb-1">No Active Shift</h2>
-          <p className="text-sm text-muted-foreground">Open a new shift to start operations.</p>
+    <div>
+      {/* Header with status and rates hint */}
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Cage</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">Open a new shift to start operations</p>
         </div>
+        <Button variant="outline" size="sm" onClick={() => setShowRates(true)} className="gap-1.5 font-mono text-xs">
+          <Settings2 className="w-3.5 h-3.5" /> Rates
+        </Button>
+      </div>
 
-        {/* Exchange Rates */}
-        <div className="space-y-3 mb-6">
-          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider block">Exchange Rates (per 1 unit → TZS)</label>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {FOREIGN_CURRENCIES.map(c => (
-              <div key={c} className="flex items-center gap-2">
-                <span className="text-sm font-mono font-medium text-card-foreground w-10">{c}</span>
-                <NumberInput value={rates[c] || ""} onChange={v => setRates(r => ({ ...r, [c]: Number(v) || 0 }))} placeholder="0" />
-                <span className="text-xs text-muted-foreground">TZS</span>
-              </div>
-            ))}
-          </div>
-        </div>
+      {/* Exchange Rates Hint Bar */}
+      <div className="flex items-center gap-4 px-3 py-1.5 rounded-md bg-muted/50 border border-border mb-4">
+        <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Rates</span>
+        {FOREIGN_CURRENCIES.map(c => (
+          <span key={c} className="text-xs font-mono text-card-foreground">
+            <span className="text-muted-foreground">{c}</span> {formatNumberSpaces(rates[c] || 0)}
+          </span>
+        ))}
+      </div>
 
-        {/* Opening Count Grid */}
-        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider block mb-3">Opening Cash Count</label>
-        <div className="mb-6">
-          <CashCountGrid
-            chips={openingChips}
-            onChipsChange={setOpeningChips}
-            cash={openingCash}
-            onCashChange={(cur, v) => setOpeningCash(c => ({ ...c, [cur]: v }))}
-            bank={bankBalance}
-            onBankChange={setBankBalance}
-            mobile={mobileBalance}
-            onMobileChange={setMobileBalance}
-          />
-        </div>
+      {/* Opening Count Grid */}
+      <div className="cms-panel p-4 mb-4">
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Opening Cash Count</p>
+        <CashCountGrid
+          chips={openingChips}
+          onChipsChange={setOpeningChips}
+          cash={openingCash}
+          onCashChange={(cur, v) => setOpeningCash(c => ({ ...c, [cur]: v }))}
+          bank={bankBalance}
+          onBankChange={setBankBalance}
+          mobile={mobileBalance}
+          onMobileChange={setMobileBalance}
+        />
+      </div>
 
-        {/* Opening Total */}
-        <div className="cms-panel p-3 text-center mb-6">
+      {/* Opening Total + Open button */}
+      <div className="cms-panel p-4 flex items-center justify-between">
+        <div>
           <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Opening Total (TZS)</p>
           <p className="text-2xl font-mono font-bold text-card-foreground">{formatCurrency(openingTotal)}</p>
         </div>
-
-        <Button onClick={handleOpen} disabled={openShift.isPending} className="w-full gap-1.5" size="lg">
+        <Button onClick={handleOpen} disabled={openShift.isPending} className="gap-1.5 h-11 px-8" size="lg">
           <Play className="w-4 h-4" /> {openShift.isPending ? "Opening…" : "Open Shift"}
         </Button>
       </div>
+
+      {/* Exchange Rates Dialog */}
+      <Dialog open={showRates} onOpenChange={setShowRates}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Exchange Rates</DialogTitle>
+          </DialogHeader>
+          <p className="text-xs text-muted-foreground mb-3">Set how many TZS per 1 unit of foreign currency</p>
+          <div className="space-y-3">
+            {FOREIGN_CURRENCIES.map(c => (
+              <div key={c} className="flex items-center gap-3">
+                <span className="text-sm font-mono font-bold text-card-foreground w-10">{c}</span>
+                <NumberInput
+                  value={rates[c] || ""}
+                  onChange={v => setRates(r => ({ ...r, [c]: Number(v) || 0 }))}
+                  placeholder="0"
+                  className="flex-1"
+                />
+                <span className="text-xs text-muted-foreground font-mono">TZS</span>
+              </div>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setShowRates(false)} className="w-full">Done</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
