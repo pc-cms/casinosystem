@@ -255,12 +255,10 @@ const BreaklistGrid = ({ date }: { date: string }) => {
                             <div className="absolute z-50 top-8 left-0 bg-popover border border-border rounded-md shadow-lg p-1 min-w-[100px]"
                               onMouseLeave={() => setActiveCell(null)}>
                               <div className="flex flex-wrap gap-0.5 mb-1">
-                                {ALL_ROLES.map(r => (
-                                  <button key={r} onClick={() => handleRoleSelect(r)}
-                                    className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold transition-colors ${ROLE_COLORS[r] || "bg-muted text-muted-foreground"} hover:opacity-80`}>
-                                    {r}
-                                  </button>
-                                ))}
+                                <button onClick={() => handleRoleSelect("BR")}
+                                  className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold transition-colors ${ROLE_COLORS["BR"] || "bg-muted text-muted-foreground"} hover:opacity-80`}>
+                                  BR
+                                </button>
                               </div>
                               {openTables.length > 0 && (
                                 <div className="border-t border-border pt-1 space-y-0.5">
