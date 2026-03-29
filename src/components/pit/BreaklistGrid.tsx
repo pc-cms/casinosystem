@@ -172,27 +172,17 @@ const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }
     Pi: "i", BJi: "i",
   };
 
+  // Register callbacks for parent controls
+  useEffect(() => {
+    onRegisterRefresh?.(handleRefreshFromRota);
+    onRegisterAccept?.(handleAccept);
+  }, [breaklistDealers, breaklist]);
+
+  const scale = zoom / 100;
+
   return (
     <>
-       <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" className="h-7 w-7 p-0" onClick={() => setZoom(z => Math.max(60, z - 10))}>
-            <ZoomOut className="w-3.5 h-3.5" />
-          </Button>
-          <span className="text-[10px] font-mono text-muted-foreground w-10 text-center">{zoom}%</span>
-          <Button variant="outline" size="sm" className="h-7 w-7 p-0" onClick={() => setZoom(z => Math.min(200, z + 10))}>
-            <ZoomIn className="w-3.5 h-3.5" />
-          </Button>
-          <Button variant="outline" size="sm" onClick={handleRefreshFromRota} className="gap-1 text-xs">
-            <RefreshCw className="w-3.5 h-3.5" /> Refresh from Rota
-          </Button>
-          <Button variant="outline" size="sm" onClick={handleAccept} className="gap-1 text-xs">
-            <Check className="w-3.5 h-3.5" /> Accept (fill BR)
-          </Button>
-        </div>
-      </div>
-
-      <div className="cms-panel overflow-x-auto" style={{ fontSize: `${zoom}%` }}>
+      <div className="cms-panel overflow-auto" style={{ transformOrigin: "top left", transform: `scale(${scale})`, width: `${100 / scale}%` }}>
         <div className="min-w-[1400px]">
           <table className="w-full border-collapse">
             <thead>
