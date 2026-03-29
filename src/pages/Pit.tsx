@@ -427,6 +427,9 @@ const AttendanceGrid = ({ month }: { month: string }) => {
                     const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
                     const isStatus = val === "A" || val === "S";
                     const isHours = val !== "" && !isStatus;
+                    const rotaShift = getRotaShift(dealer.id, day);
+                    const isScheduled = !!rotaShift;
+                    const isEmpty = val === "";
                     return (
                       <td
                         key={day}
@@ -434,21 +437,25 @@ const AttendanceGrid = ({ month }: { month: string }) => {
                           isToday ? "bg-primary/10" : isWeekend ? "bg-muted/15" : ""
                         }`}
                       >
-                        <input
-                          type="text"
-                          defaultValue={val}
-                          key={`${dealer.id}-${month}-${day}-${val}`}
-                          onBlur={e => handleSave(dealer.id, day, e.target.value)}
-                          onKeyDown={e => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
-                          className={`w-full h-7 rounded text-[10px] font-mono text-center bg-transparent border-0 focus:outline-none focus:ring-1 focus:ring-primary transition-colors ${
-                            isStatus
-                              ? ATT_COLORS[val]
-                              : isHours
-                                ? "text-card-foreground font-bold"
-                                : "text-transparent hover:text-muted-foreground"
-                          }`}
-                          placeholder="·"
-                        />
+                        <div className="relative">
+                          <input
+                            type="text"
+                            defaultValue={val}
+                            key={`${dealer.id}-${month}-${day}-${val}`}
+                            onBlur={e => handleSave(dealer.id, day, e.target.value)}
+                            onKeyDown={e => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+                            className={`w-full h-7 rounded text-[10px] font-mono text-center border-0 focus:outline-none focus:ring-1 focus:ring-primary transition-colors ${
+                              isStatus
+                                ? ATT_COLORS[val]
+                                : isHours
+                                  ? "bg-transparent text-card-foreground font-bold"
+                                  : isScheduled && isEmpty
+                                    ? `${rotaShift === "M" ? "bg-blue-500/15 text-blue-400" : rotaShift === "N" ? "bg-indigo-500/15 text-indigo-400" : "bg-emerald-500/15 text-emerald-400"} placeholder:text-current`
+                                    : "bg-transparent text-transparent hover:text-muted-foreground"
+                            }`}
+                            placeholder={isScheduled && isEmpty ? rotaShift! : "·"}
+                          />
+                        </div>
                       </td>
                     );
                   })}
