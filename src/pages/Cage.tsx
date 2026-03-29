@@ -65,8 +65,17 @@ const CashDenomInput = ({ values, onChange, denoms, prefix, onSubmit }: {
         <span className="font-mono text-sm font-bold text-card-foreground">{prefix}{cashSum(values).toLocaleString()}</span>
       </div>
     </div>
-  );
-;
+};
+
+// =================== MAIN CAGE PAGE ===================
+const Cage = () => {
+  const { data: shift } = useActiveShift();
+  const { data: players = [] } = usePlayers();
+  const { data: tables = [] } = useGamingTables();
+
+  if (!shift) return <OpenShiftScreen tables={tables} />;
+  return <ActiveShiftView shift={shift} players={players} tables={tables} />;
+};
 
 // =================== OPEN SHIFT ===================
 const OpenShiftScreen = ({ tables }: { tables: any[] }) => {
