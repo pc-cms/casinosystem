@@ -32,6 +32,17 @@ const DEPT_BADGE_COLORS: Record<string, string> = {
   hr: "bg-orange-500/20 text-orange-400 border-orange-500/30",
 };
 
+const DEPT_BORDER_COLORS: Record<string, string> = {
+  security: "border-red-500/50",
+  cashier: "border-blue-500/50",
+  bartender: "border-amber-500/50",
+  hostess: "border-pink-500/50",
+  waiter: "border-cyan-500/50",
+  cleaner: "border-emerald-500/50",
+  it: "border-violet-500/50",
+  hr: "border-orange-500/50",
+};
+
 const DEPT_DOT_COLORS: Record<string, string> = {
   security: "bg-red-400",
   cashier: "bg-blue-400",
@@ -406,11 +417,13 @@ const DepartmentBlock = ({
   getStats: (id: string) => Record<string, number>;
 }) => (
   <>
-    <tr className="bg-muted/20">
-      <td colSpan={days.length + 3} className="px-3 py-1.5 sticky left-0">
-        <Badge variant="outline" className={`text-[10px] ${DEPT_BADGE_COLORS[dept] || ""}`}>
-          {DEPARTMENT_LABELS[dept as StaffDepartment]} ({members.length})
-        </Badge>
+    <tr>
+      <td colSpan={days.length + 3} className="px-0 py-0 sticky left-0">
+        <div className={`flex items-center gap-2 px-3 py-1 border-b-2 ${DEPT_BORDER_COLORS[dept] || "border-muted"}`}>
+          <span className={`w-2 h-2 rounded-full ${DEPT_DOT_COLORS[dept] || "bg-muted-foreground"}`} />
+          <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-card-foreground">{DEPARTMENT_LABELS[dept as StaffDepartment]}</span>
+          <span className="text-[10px] font-mono text-muted-foreground">({members.length})</span>
+        </div>
       </td>
     </tr>
     {members.map((staff, idx) => {
@@ -583,11 +596,13 @@ const AttendanceDepartmentBlock = ({
   getTotal: (id: string) => number;
 }) => (
   <>
-    <tr className="bg-muted/20">
-      <td colSpan={days.length + 2} className="px-3 py-1.5 sticky left-0">
-        <Badge variant="outline" className={`text-[10px] ${DEPT_BADGE_COLORS[dept] || ""}`}>
-          {DEPARTMENT_LABELS[dept as StaffDepartment]} ({members.length})
-        </Badge>
+    <tr>
+      <td colSpan={days.length + 2} className="px-0 py-0 sticky left-0">
+        <div className={`flex items-center gap-2 px-3 py-1 border-b-2 ${DEPT_BORDER_COLORS[dept] || "border-muted"}`}>
+          <span className={`w-2 h-2 rounded-full ${DEPT_DOT_COLORS[dept] || "bg-muted-foreground"}`} />
+          <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-card-foreground">{DEPARTMENT_LABELS[dept as StaffDepartment]}</span>
+          <span className="text-[10px] font-mono text-muted-foreground">({members.length})</span>
+        </div>
       </td>
     </tr>
     {members.map((staff, idx) => {
