@@ -8,11 +8,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Shield, Trash2, UserPlus, Coins } from "lucide-react";
+import { Plus, Shield, Trash2, UserPlus, Coins, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { logAction } from "@/lib/logging";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import FloatManagement from "@/components/admin/FloatManagement";
+import { useCasinoInfo, useUpdateCasinoSchedule } from "@/hooks/use-table-lifecycle";
 
 const ROLES = ["manager", "cashier", "pit", "reception", "finance_manager", "security"] as const;
 
@@ -164,6 +165,9 @@ const Admin = () => {
           <TabsTrigger value="users" className="gap-1.5">
             <Shield className="w-3.5 h-3.5" /> Users & Roles
           </TabsTrigger>
+          <TabsTrigger value="schedule" className="gap-1.5">
+            <Clock className="w-3.5 h-3.5" /> Working Hours
+          </TabsTrigger>
           <TabsTrigger value="float" className="gap-1.5">
             <Coins className="w-3.5 h-3.5" /> Float Management
           </TabsTrigger>
@@ -256,6 +260,10 @@ const Admin = () => {
           </div>
         </TabsContent>
 
+        <TabsContent value="schedule">
+          <ScheduleSettings />
+        </TabsContent>
+
         <TabsContent value="float">
           <FloatManagement />
         </TabsContent>
@@ -310,6 +318,61 @@ const Admin = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+};
+
+// =================== SCHEDULE SETTINGS ===================
+const ScheduleSettings = () => {
+  const { data: casino } = useCasinoInfo();
+  const updateSchedule = useUpdateCasinoSchedule();
+
+  const [tablesOpen, setTablesOpen] = useState("");
+  const [shiftStart, setShiftStart] = useState("");
+  const [shiftEnd, setShiftEnd] = useState("");
+  const [breaklistLock, setBreaklistLock] = useState("");
+  const [loaded, setLoaded] = useState(false);
+
+  // Initialize from DB once
+  if (casino && !loaded) {
+    setTablesOpen(casino.tables_open || "17:30");
+    setShiftStart(casino.shift_start || "18:00");
+    setShiftEnd(casino.shift_end || "05:00");
+    setBreaklistLock(casino.breaklist_lock || "05:30");
+    setLoaded(true);
+  }
+
+  const handleSave = () => {
+    updateSchedule.mutate({
+      tables_open: tablesOpen,
+      shift_start: shiftStart,
+      shift_end: shiftEnd,
+      breaklist_lock: breaklistLock,
+    });
+  };
+
+  const fields = [
+    { label: "Tables Open (Cage/Pit)", value: tablesOpen, set: setTablesOpen, hint: "When cashiers/pit can open tables" },
+    { label: "Shift Start (Dealers)", value: shiftStart, set: setShiftStart, hint: "When dealer breaklist starts" },
+    { label: "Shift End", value: shiftEnd, set: setShiftEnd, hint: "When shift operations end" },
+    { label: "Breaklist Lock", value: breaklistLock, set: setBreaklistLock, hint: "After this time breaklist requires manager override" },
+  ];
+
+  return (
+    <div className="cms-panel p-6 max-w-lg">
+      <h3 className="text-sm font-semibold text-card-foreground mb-4">Casino Working Hours</h3>
+      <div className="space-y-4">
+        {fields.map(f => (
+          <div key={f.label}>
+            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1 block">{f.label}</label>
+            <Input type="time" value={f.value} onChange={e => f.set(e.target.value)} className="w-32 font-mono" />
+            <p className="text-[10px] text-muted-foreground mt-0.5">{f.hint}</p>
+          </div>
+        ))}
+      </div>
+      <Button onClick={handleSave} className="mt-5" disabled={updateSchedule.isPending}>
+        {updateSchedule.isPending ? "Saving..." : "Save Schedule"}
+      </Button>
     </div>
   );
 };

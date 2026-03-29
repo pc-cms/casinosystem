@@ -125,6 +125,26 @@ export const useLockFloat = () => {
   });
 };
 
+export const useUpdateCasinoSchedule = () => {
+  const qc = useQueryClient();
+  const { casinoId } = useAuth();
+  return useMutation({
+    mutationFn: async (input: { shift_start: string; shift_end: string; tables_open: string; breaklist_lock: string }) => {
+      if (!casinoId) throw new Error("No casino");
+      const { error } = await supabase
+        .from("casinos")
+        .update(input as any)
+        .eq("id", casinoId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["casino-info"] });
+      toast.success("Schedule updated");
+    },
+    onError: (e) => toast.error(e.message),
+  });
+};
+
 // ============ TABLE LIFECYCLE ============
 
 // Open a single table (Pit action) — clears closing data

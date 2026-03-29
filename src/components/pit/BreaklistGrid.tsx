@@ -1,11 +1,12 @@
 import { useState, useMemo, useEffect } from "react";
 import { useDealers, useBreaklistData, useSetBreaklistCell, useLockBreaklistCell, useGamingTables, usePitRotaRange } from "@/hooks/use-casino-data";
+import { useCasinoInfo } from "@/hooks/use-table-lifecycle";
 import { useAuth } from "@/lib/auth-context";
 import { Lock, Unlock, LockKeyhole } from "lucide-react";
 import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
 import { toast } from "sonner";
 import { ALL_ROLES, ROLE_COLORS, TABLE_ROLES } from "@/lib/currency";
-import { isBusinessToday } from "@/lib/business-day";
+import { isBusinessToday, isAfterBreaklistLock } from "@/lib/business-day";
 
 interface BreaklistGridProps {
   date: string;
@@ -48,6 +49,7 @@ const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }
   const { data: breaklist = [] } = useBreaklistData(date);
   const { data: tables = [] } = useGamingTables();
   const { data: rota = [] } = usePitRotaRange(date, date);
+  const { data: casino } = useCasinoInfo();
   const setCell = useSetBreaklistCell();
   const lockCell = useLockBreaklistCell();
   const { isManager } = useAuth();
@@ -85,8 +87,11 @@ const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }
   };
 
   const currentSlot = useMemo(() => getCurrentSlot(), []);
-  const isToday = isBusinessToday(date);
-  const isEditable = isToday; // Only current business day is editable
+  const shiftEndHour = casino?.shift_end ? parseInt(casino.shift_end.split(":")[0]) : 5;
+  const isToday = isBusinessToday(date, shiftEndHour);
+  const pastLock = isToday && isAfterBreaklistLock(casino?.breaklist_lock || "05:30");
+  // Editable if it's today AND not past lock time (or if manager)
+  const isEditable = isToday && (!pastLock || isManager);
 
   // Inline role picker state
   const [activeCell, setActiveCell] = useState<{ dealerId: string; timeSlot: string } | null>(null);
@@ -128,8 +133,14 @@ const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }
   };
 
   const handleAccept = () => {
+    // Only fill BR in time slots that already have at least one assignment
+    const activeSlots = new Set(breaklist.map(b => b.time_slot));
+    if (activeSlots.size === 0) {
+      toast.error("No assigned slots to fill");
+      return;
+    }
     breaklistDealers.forEach(dealer => {
-      TIME_SLOTS.forEach(slot => {
+      activeSlots.forEach(slot => {
         const existing = getCellData(dealer.id, slot);
         if (!existing) {
           setCell.mutate({ date, dealer_id: dealer.id, time_slot: slot, role: "BR", table_id: null });
