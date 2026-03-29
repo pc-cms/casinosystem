@@ -345,22 +345,22 @@ const TablesContent = () => {
 
   // Game type grouping & totals
   const gameTypeTotals = useMemo(() => {
-    const totals: Record<string, { drop: number; cashout: number; result: number; label: string }> = {};
+    const totals: Record<string, { dropR: number; dropV: number; result: number; label: string }> = {};
     const gameLabels: Record<string, string> = { "American Roulette": "Total ARs", "Poker": "Total P", "Blackjack": "Total BJ" };
     tables.forEach(t => {
       const label = gameLabels[t.game] || `Total ${t.game}`;
-      if (!totals[t.game]) totals[t.game] = { drop: 0, cashout: 0, result: 0, label };
-      const r = tableResults[t.id] || { drop: 0, cashout: 0, result: 0 };
-      totals[t.game].drop += r.drop;
-      totals[t.game].cashout += r.cashout;
+      if (!totals[t.game]) totals[t.game] = { dropR: 0, dropV: 0, result: 0, label };
+      const r = tableStats[t.id] || { dropR: 0, dropV: 0, result: 0 };
+      totals[t.game].dropR += r.dropR;
+      totals[t.game].dropV += r.dropV;
       totals[t.game].result += r.result;
     });
     return totals;
-  }, [tables, tableResults]);
+  }, [tables, tableStats]);
 
-  const totalDrop = Object.values(tableResults).reduce((s, r) => s + r.drop, 0);
-  const totalCashout = Object.values(tableResults).reduce((s, r) => s + r.cashout, 0);
-  const totalResult = totalDrop - totalCashout;
+  const totalDropR = Object.values(tableStats).reduce((s, r) => s + r.dropR, 0);
+  const totalDropV = Object.values(tableStats).reduce((s, r) => s + r.dropV, 0);
+  const totalResult = Object.values(tableStats).reduce((s, r) => s + r.result, 0);
 
   const pokerGames = ["Poker", "Texas Holdem", "Omaha", "PLO"];
   const leftTables = tables.filter(t => !pokerGames.includes(t.game)).sort((a, b) => a.name.localeCompare(b.name));
