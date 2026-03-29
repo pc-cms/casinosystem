@@ -165,6 +165,9 @@ const Admin = () => {
           <TabsTrigger value="users" className="gap-1.5">
             <Shield className="w-3.5 h-3.5" /> Users & Roles
           </TabsTrigger>
+          <TabsTrigger value="schedule" className="gap-1.5">
+            <Clock className="w-3.5 h-3.5" /> Working Hours
+          </TabsTrigger>
           <TabsTrigger value="float" className="gap-1.5">
             <Coins className="w-3.5 h-3.5" /> Float Management
           </TabsTrigger>
