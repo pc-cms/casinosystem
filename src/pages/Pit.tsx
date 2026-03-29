@@ -82,8 +82,8 @@ const Pit = () => {
 
   const TAB_TITLES: Record<string, string> = {
     employee: "Live Game Staff",
-    rota: "Rota",
-    attendance: "Attendance",
+    rota: "Live Game Rota",
+    attendance: "Live Game Attendance",
     breaklist: "Breaklist",
   };
 
