@@ -634,8 +634,8 @@ const CloseShiftDialog = ({ open, onClose, shift, expectedBalance, cashResult, t
 
   return (
     <Dialog open={open} onOpenChange={v => { if (!v) { setStep(1); onClose(); } }}>
-      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
-        <DialogHeader><DialogTitle>Close Shift — Step {step}/4</DialogTitle></DialogHeader>
+      <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+        <DialogHeader><DialogTitle>Close Shift — Step {step}/3</DialogTitle></DialogHeader>
 
         {/* Step 1: Table readiness */}
         {step === 1 && (
@@ -655,24 +655,48 @@ const CloseShiftDialog = ({ open, onClose, shift, expectedBalance, cashResult, t
           </div>
         )}
 
-        {/* Step 2: Chip Count (MISS) */}
+        {/* Step 2: Chips + Cash side by side */}
         {step === 2 && (
           <div className="space-y-3">
-            <p className="text-xs text-muted-foreground">Count total chips per denomination across entire casino.</p>
-            <ChipDenomInput
-              values={chipCounts}
-              onChange={setChipCounts}
-              placeholder={expectedChips}
-            />
+            <p className="text-xs text-muted-foreground">Count chips and cash across the entire casino.</p>
+            <div className="grid grid-cols-2 gap-6">
+              {/* LEFT: Chips */}
+              <div>
+                <p className="text-xs font-semibold text-card-foreground mb-2">TZS Chips</p>
+                <ChipDenomInput values={chipCounts} onChange={setChipCounts} placeholder={expectedChips} />
+              </div>
+              {/* RIGHT: Cash */}
+              <div className="space-y-4">
+                <div>
+                  <p className="text-xs font-semibold text-card-foreground mb-2">USD Cash</p>
+                  <CashDenomInput values={cashCounts.USD} onChange={v => setCashCounts(c => ({ ...c, USD: v }))} denoms={CASH_DENOMS.USD || []} prefix="$" />
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-card-foreground mb-2">EUR Cash</p>
+                  <CashDenomInput values={cashCounts.EUR} onChange={v => setCashCounts(c => ({ ...c, EUR: v }))} denoms={CASH_DENOMS.EUR || []} prefix="€" />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-[10px] font-medium text-muted-foreground uppercase mb-1">Bank (TZS)</p>
+                    <Input type="number" min={0} value={bankBal || ""} onChange={e => setBankBal(Number(e.target.value) || 0)} className="font-mono no-spin" placeholder="0" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-medium text-muted-foreground uppercase mb-1">Mobile (TZS)</p>
+                    <Input type="number" min={0} value={mobileBal || ""} onChange={e => setMobileBal(Number(e.target.value) || 0)} className="font-mono no-spin" placeholder="0" />
+                  </div>
+                </div>
+              </div>
+            </div>
 
+            {/* MISS summary inline */}
             {hasAnyChipCount && (
               <div className="grid grid-cols-3 gap-2 pt-2 border-t border-border">
                 <div className="text-center">
-                  <p className="text-[9px] uppercase text-muted-foreground">Expected</p>
+                  <p className="text-[9px] uppercase text-muted-foreground">Chip Expected</p>
                   <p className="font-mono text-xs font-bold text-card-foreground">{formatCurrency(initialTotal)}</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-[9px] uppercase text-muted-foreground">Counted</p>
+                  <p className="text-[9px] uppercase text-muted-foreground">Chip Counted</p>
                   <p className="font-mono text-xs font-bold text-card-foreground">{formatCurrency(chipTotal)}</p>
                 </div>
                 <div className="text-center">
@@ -693,35 +717,7 @@ const CloseShiftDialog = ({ open, onClose, shift, expectedBalance, cashResult, t
 
             <DialogFooter>
               <Button variant="outline" onClick={() => setStep(1)}>← Back</Button>
-              <Button onClick={() => setStep(3)}>Next →</Button>
-            </DialogFooter>
-          </div>
-        )}
-
-        {/* Step 3: Cash Count */}
-        {step === 3 && (
-          <div className="space-y-4">
-            <div>
-              <p className="text-[10px] font-medium text-muted-foreground uppercase mb-1.5">USD</p>
-              <CashDenomInput values={cashCounts.USD} onChange={v => setCashCounts(c => ({ ...c, USD: v }))} denoms={CASH_DENOMS.USD || []} prefix="$" />
-            </div>
-            <div>
-              <p className="text-[10px] font-medium text-muted-foreground uppercase mb-1.5">EUR</p>
-              <CashDenomInput values={cashCounts.EUR} onChange={v => setCashCounts(c => ({ ...c, EUR: v }))} denoms={CASH_DENOMS.EUR || []} prefix="€" />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <p className="text-[10px] font-medium text-muted-foreground uppercase mb-1">Bank (TZS)</p>
-                <Input type="number" min={0} value={bankBal || ""} onChange={e => setBankBal(Number(e.target.value) || 0)} className="font-mono" placeholder="0" />
-              </div>
-              <div>
-                <p className="text-[10px] font-medium text-muted-foreground uppercase mb-1">Mobile (TZS)</p>
-                <Input type="number" min={0} value={mobileBal || ""} onChange={e => setMobileBal(Number(e.target.value) || 0)} className="font-mono" placeholder="0" />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setStep(2)}>← Back</Button>
-              <Button onClick={() => setStep(4)}>Review →</Button>
+              <Button onClick={() => setStep(3)}>Review →</Button>
             </DialogFooter>
           </div>
         )}
