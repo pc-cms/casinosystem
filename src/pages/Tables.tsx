@@ -213,11 +213,7 @@ const Tables = () => {
                   )}
                 </div>
               </div>
-              <div className="px-4 py-3 grid grid-cols-5 gap-2">
-                <div>
-                  <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Float</p>
-                  <p className="font-mono text-xs font-bold text-card-foreground">{formatCurrency(Number(table.float_amount))}</p>
-                </div>
+              <div className="px-4 py-3 grid grid-cols-4 gap-2">
                 <div>
                   <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Drop</p>
                   <p className="font-mono text-xs font-bold text-card-foreground">{formatCurrency(r.drop)}</p>
@@ -236,11 +232,6 @@ const Tables = () => {
                   <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Txns</p>
                   <p className="font-mono text-xs font-bold text-card-foreground">{r.txCount}</p>
                 </div>
-              </div>
-              <div className="px-4 py-2 border-t border-border flex gap-1.5 flex-wrap">
-                {table.denominations?.map(d => (
-                  <span key={d} className={`cms-chip text-[10px] ${CHIP_COLORS[d] || "bg-muted text-foreground"}`}>{formatChipLabel(d)}</span>
-                ))}
               </div>
             </div>
           );
