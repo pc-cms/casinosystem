@@ -151,6 +151,45 @@ const ActivePlayers = () => {
     onError: (e: any) => toast.error(e.message),
   });
 
+  const updatePlayerType = useMutation({
+    mutationFn: async ({ id, player_type }: { id: string; player_type: string }) => {
+      const { error } = await supabase.from("players").update({ player_type }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["players"] });
+      queryClient.invalidateQueries({ queryKey: ["player_tags"] });
+      toast.success("Player type updated");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const changeTable = useMutation({
+    mutationFn: async ({ playerId, tableId, avgBet }: { playerId: string; tableId: string; avgBet: number }) => {
+      // Stop existing active sessions for this player
+      await supabase
+        .from("client_sessions")
+        .update({ stopped_at: new Date().toISOString() })
+        .eq("casino_id", casinoId!)
+        .eq("player_id", playerId)
+        .is("stopped_at", null);
+      // Start new session
+      const { error } = await supabase.from("client_sessions").insert({
+        casino_id: casinoId!,
+        player_id: playerId,
+        table_id: tableId,
+        avg_bet: avgBet,
+        created_by: user!.id,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["client_sessions"] });
+      toast.success("Table changed");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
   const activePlayers = useMemo(() => {
     const txPlayerIds = new Set(transactions.map((t: any) => t.player_id));
     const activeSessions = sessions.filter((s: any) => !s.stopped_at);
