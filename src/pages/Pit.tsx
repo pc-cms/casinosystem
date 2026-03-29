@@ -33,13 +33,14 @@ const ATT_COLORS: Record<string, string> = {
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
-type DealerCategory = "trainee" | "dealer" | "inspector" | "expert";
+type DealerCategory = "trainee" | "dealer" | "inspector" | "expert" | "pit_boss";
 
 const CATEGORY_LABELS: Record<DealerCategory, string> = {
   trainee: "Trainee",
   dealer: "Dealer",
   inspector: "Inspector",
   expert: "Expert",
+  pit_boss: "Pit Boss",
 };
 
 const CATEGORY_LETTER: Record<string, string> = {
@@ -47,6 +48,7 @@ const CATEGORY_LETTER: Record<string, string> = {
   dealer: "D",
   inspector: "I",
   expert: "E",
+  pit_boss: "PB",
 };
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -54,6 +56,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   dealer: "text-blue-400 bg-blue-500/20",
   inspector: "text-amber-400 bg-amber-500/20",
   expert: "text-emerald-400 bg-emerald-500/20",
+  pit_boss: "text-purple-400 bg-purple-500/20",
 };
 
 const Pit = () => {
