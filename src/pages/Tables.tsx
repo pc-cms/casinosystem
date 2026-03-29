@@ -194,21 +194,30 @@ const TablesContent = () => {
   const tablesWithResults = useMemo(() => tables.filter(t => t.closing_result !== null && t.status === "open"), [tables]);
   const hasResults = tablesWithResults.length > 0;
 
+  const { data: trackerData = [] } = useTableTracker(date);
+
   const shiftTransactions = useMemo(() => {
     if (!shift) return transactions;
     return transactions.filter(t => t.shift_id === shift.id);
   }, [transactions, shift]);
 
-  const tableResults = useMemo(() => {
-    const results: Record<string, { drop: number; cashout: number; result: number; txCount: number }> = {};
+  const tableStats = useMemo(() => {
+    const stats: Record<string, { dropR: number; dropV: number; result: number }> = {};
     tables.forEach(t => {
-      const tableTxs = shiftTransactions.filter(tx => tx.table_id === t.id);
-      const drop = tableTxs.filter(tx => tx.type === "buy").reduce((s, tx) => s + Number(tx.amount), 0);
-      const cashout = tableTxs.filter(tx => tx.type === "cashout").reduce((s, tx) => s + Number(tx.amount), 0);
-      results[t.id] = { drop, cashout, result: drop - cashout, txCount: tableTxs.length };
+      // Drop R = buy-ins from cashier
+      const dropR = shiftTransactions
+        .filter(tx => tx.table_id === t.id && tx.type === "buy")
+        .reduce((s, tx) => s + Number(tx.amount), 0);
+      // Drop V = sum from tracker
+      const dropV = trackerData
+        .filter(tr => tr.table_id === t.id)
+        .reduce((s, tr) => s + Number(tr.value), 0);
+      // Result = from chip count (closing_result)
+      const result = t.closing_result !== null ? Number(t.closing_result) : 0;
+      stats[t.id] = { dropR, dropV, result };
     });
-    return results;
-  }, [tables, shiftTransactions]);
+    return stats;
+  }, [tables, shiftTransactions, trackerData]);
 
   // Locations for chip count dialog (only tables)
   const locations = useMemo(() => {
@@ -336,29 +345,29 @@ const TablesContent = () => {
 
   // Game type grouping & totals
   const gameTypeTotals = useMemo(() => {
-    const totals: Record<string, { drop: number; cashout: number; result: number; label: string }> = {};
+    const totals: Record<string, { dropR: number; dropV: number; result: number; label: string }> = {};
     const gameLabels: Record<string, string> = { "American Roulette": "Total ARs", "Poker": "Total P", "Blackjack": "Total BJ" };
     tables.forEach(t => {
       const label = gameLabels[t.game] || `Total ${t.game}`;
-      if (!totals[t.game]) totals[t.game] = { drop: 0, cashout: 0, result: 0, label };
-      const r = tableResults[t.id] || { drop: 0, cashout: 0, result: 0 };
-      totals[t.game].drop += r.drop;
-      totals[t.game].cashout += r.cashout;
+      if (!totals[t.game]) totals[t.game] = { dropR: 0, dropV: 0, result: 0, label };
+      const r = tableStats[t.id] || { dropR: 0, dropV: 0, result: 0 };
+      totals[t.game].dropR += r.dropR;
+      totals[t.game].dropV += r.dropV;
       totals[t.game].result += r.result;
     });
     return totals;
-  }, [tables, tableResults]);
+  }, [tables, tableStats]);
 
-  const totalDrop = Object.values(tableResults).reduce((s, r) => s + r.drop, 0);
-  const totalCashout = Object.values(tableResults).reduce((s, r) => s + r.cashout, 0);
-  const totalResult = totalDrop - totalCashout;
+  const totalDropR = Object.values(tableStats).reduce((s, r) => s + r.dropR, 0);
+  const totalDropV = Object.values(tableStats).reduce((s, r) => s + r.dropV, 0);
+  const totalResult = Object.values(tableStats).reduce((s, r) => s + r.result, 0);
 
   const pokerGames = ["Poker", "Texas Holdem", "Omaha", "PLO"];
   const leftTables = tables.filter(t => !pokerGames.includes(t.game)).sort((a, b) => a.name.localeCompare(b.name));
   const rightTables = tables.filter(t => pokerGames.includes(t.game)).sort((a, b) => a.name.localeCompare(b.name));
 
   const renderTableCard = (table: typeof tables[0]) => {
-    const r = tableResults[table.id] || { drop: 0, cashout: 0, result: 0, txCount: 0 };
+    const r = tableStats[table.id] || { dropR: 0, dropV: 0, result: 0 };
     const isOpen = table.status === "open";
     const hasTableResult = table.closing_result !== null;
 
@@ -381,24 +390,20 @@ const TablesContent = () => {
             )}
           </div>
         </div>
-        <div className="px-4 py-3 grid grid-cols-4 gap-2">
+        <div className="px-4 py-3 grid grid-cols-3 gap-2">
           <div>
-            <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Drop</p>
-            <p className="font-mono text-xs font-bold text-card-foreground">{formatCurrency(r.drop)}</p>
+            <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Drop R</p>
+            <p className="font-mono text-xs font-bold text-card-foreground">{formatCurrency(r.dropR)}</p>
           </div>
           <div>
-            <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Cashout</p>
-            <p className="font-mono text-xs font-bold text-card-foreground">{formatCurrency(r.cashout)}</p>
+            <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Drop V</p>
+            <p className="font-mono text-xs font-bold text-card-foreground">{formatCurrency(r.dropV)}</p>
           </div>
           <div>
             <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Result</p>
             <p className={`font-mono text-xs font-bold ${r.result >= 0 ? "text-green-500" : "text-destructive"}`}>
               {r.result >= 0 ? "+" : ""}{formatCurrency(r.result)}
             </p>
-          </div>
-          <div>
-            <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Txns</p>
-            <p className="font-mono text-xs font-bold text-card-foreground">{r.txCount}</p>
           </div>
         </div>
       </div>
@@ -451,7 +456,7 @@ const TablesContent = () => {
             <p className={`font-mono text-sm font-bold ${t.result >= 0 ? "text-green-500" : "text-destructive"}`}>
               {t.result >= 0 ? "+" : ""}{formatCurrency(t.result)}
             </p>
-            <p className="font-mono text-[10px] text-muted-foreground">D: {formatCurrency(t.drop)} · C: {formatCurrency(t.cashout)}</p>
+            <p className="font-mono text-[10px] text-muted-foreground">R: {formatCurrency(t.dropR)} · V: {formatCurrency(t.dropV)}</p>
           </div>
         ))}
         <div className="cms-panel p-2 border-primary/30">
@@ -459,7 +464,7 @@ const TablesContent = () => {
           <p className={`font-mono text-sm font-bold ${totalResult >= 0 ? "text-green-500" : "text-destructive"}`}>
             {totalResult >= 0 ? "+" : ""}{formatCurrency(totalResult)}
           </p>
-          <p className="font-mono text-[10px] text-muted-foreground">D: {formatCurrency(totalDrop)} · C: {formatCurrency(totalCashout)}</p>
+          <p className="font-mono text-[10px] text-muted-foreground">R: {formatCurrency(totalDropR)} · V: {formatCurrency(totalDropV)}</p>
         </div>
       </div>
 
