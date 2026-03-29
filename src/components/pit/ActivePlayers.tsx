@@ -327,6 +327,12 @@ const ActivePlayers = () => {
                         <Badge className="bg-primary/20 text-primary border-primary/30 text-[10px] px-2 py-0.5 font-mono">{p.tableName}</Badge>
                       ) : <span className="text-muted-foreground/40">·</span>}
                     </TableCell>
+                    <TableCell className="text-center text-[10px] font-mono text-muted-foreground">
+                      {p.firstSeen
+                        ? `${String(p.firstSeen.getHours()).padStart(2, "0")}:${String(p.firstSeen.getMinutes()).padStart(2, "0")}`
+                        : <span className="text-muted-foreground/40">·</span>
+                      }
+                    </TableCell>
                     <TableCell className="text-right font-mono font-bold text-card-foreground">
                       {p.drop > 0 ? formatNumberSpaces(p.drop) : <span className="text-muted-foreground/40">·</span>}
                     </TableCell>
