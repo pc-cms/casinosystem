@@ -238,8 +238,8 @@ const TablesContent = () => {
       const locCounts = counts[loc.key] || {};
       const tableBaseline = baselineMap[loc.id!] || {};
       loc.denoms.forEach(d => {
-        const actual = locCounts[d] || 0;
         const expected = tableBaseline[d] || 0;
+        const actual = locCounts[d] !== undefined ? locCounts[d] : expected;
         rows.push({ location_type: loc.type, location_id: loc.id, denomination: d, expected_quantity: expected, actual_quantity: actual });
       });
     });
@@ -250,16 +250,16 @@ const TablesContent = () => {
         if (countMode === "result") {
           // Also save closing_chips + closing_result per table
           const results = locations.map(loc => {
-            const locCounts = counts[loc.key] || {};
-            const tableBaseline = baselineMap[loc.id!] || {};
-            let resultValue = 0;
-            const chipMap: Record<string, number> = {};
-            loc.denoms.forEach(d => {
-              const actual = locCounts[d] || 0;
-              const expected = tableBaseline[d] || 0;
-              chipMap[String(d)] = actual;
-              resultValue += (actual - expected) * d;
-            });
+          const locCounts = counts[loc.key] || {};
+          const tableBaseline = baselineMap[loc.id!] || {};
+          let resultValue = 0;
+          const chipMap: Record<string, number> = {};
+          loc.denoms.forEach(d => {
+            const expected = tableBaseline[d] || 0;
+            const actual = locCounts[d] !== undefined ? locCounts[d] : expected;
+            chipMap[String(d)] = actual;
+            resultValue += (actual - expected) * d;
+          });
             return { table_id: loc.id!, closing_chips: chipMap, closing_result: resultValue };
           });
           setTableResults.mutate(results, {
@@ -278,8 +278,8 @@ const TablesContent = () => {
       let resultValue = 0;
       const chipMap: Record<string, number> = {};
       loc.denoms.forEach(d => {
-        const actual = locCounts[d] || 0;
         const expected = tableBaseline[d] || 0;
+        const actual = locCounts[d] !== undefined ? locCounts[d] : expected;
         chipMap[String(d)] = actual;
         resultValue += (actual - expected) * d;
       });
@@ -295,8 +295,8 @@ const TablesContent = () => {
       const locCounts = counts[loc.key] || {};
       const tableBaseline = baselineMap[loc.id!] || {};
       loc.denoms.forEach(d => {
-        const actual = locCounts[d] || 0;
         const expected = tableBaseline[d] || 0;
+        const actual = locCounts[d] !== undefined ? locCounts[d] : expected;
         snapRows.push({ location_type: loc.type, location_id: loc.id, denomination: d, expected_quantity: expected, actual_quantity: actual });
       });
     });
@@ -313,7 +313,7 @@ const TablesContent = () => {
     openAllTables.mutate(ids);
   };
 
-  const hasAnyCount = Object.values(counts).some(lc => Object.values(lc).some(v => v > 0));
+  const hasAnyCount = Object.keys(counts).length > 0;
 
   // Compute result summary per table for the dialog
   const resultSummary = useMemo(() => {
@@ -323,8 +323,8 @@ const TablesContent = () => {
       const tableBaseline = baselineMap[loc.id!] || {};
       let total = 0;
       const denoms = loc.denoms.map(d => {
-        const actual = locCounts[d] || 0;
         const expected = tableBaseline[d] || 0;
+        const actual = locCounts[d] !== undefined ? locCounts[d] : expected;
         const diff = actual - expected;
         total += diff * d;
         return { denom: d, expected, actual, diff };
