@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
-import { useDealers, useCreateDealer, usePitRotaRange, useSetPitRota, useDeletePitRota, useSetDealerAttendance, useDealerAttendanceRange } from "@/hooks/use-casino-data";
+import { useDealers, usePitRotaRange, useSetPitRota, useDeletePitRota, useSetDealerAttendance, useDealerAttendanceRange } from "@/hooks/use-casino-data";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { UserPlus, ChevronLeft, ChevronRight } from "lucide-react";
@@ -507,34 +507,5 @@ const AttendanceGrid = ({ month }: { month: string }) => {
   );
 };
 
-// =================== DEALERS LIST ===================
-const DealersList = () => {
-  const { data: dealers = [] } = useDealers();
-  const createDealer = useCreateDealer();
-  const [name, setName] = useState("");
-
-  return (
-    <div className="max-w-md space-y-4">
-      <div className="flex gap-2">
-        <Input placeholder="Dealer name" value={name} onChange={e => setName(e.target.value)}
-          onKeyDown={e => { if (e.key === "Enter" && name) { createDealer.mutate(name); setName(""); } }} />
-        <Button onClick={() => { if (name) { createDealer.mutate(name); setName(""); } }} disabled={!name}>
-          <UserPlus className="w-4 h-4 mr-1" /> Add
-        </Button>
-      </div>
-      <div className="cms-panel">
-        {dealers.map((d, idx) => (
-          <div key={d.id} className={`flex items-center justify-between px-4 py-2 border-b border-border last:border-0 ${idx % 2 === 1 ? "bg-muted/10" : ""}`}>
-            <span className="text-sm text-card-foreground">{d.name}</span>
-            <span className={`text-xs ${d.is_active ? "cms-status-active" : "cms-status-blacklist"}`}>
-              {d.is_active ? "Active" : "Inactive"}
-            </span>
-          </div>
-        ))}
-        {dealers.length === 0 && <p className="text-center text-muted-foreground text-sm py-4">No dealers</p>}
-      </div>
-    </div>
-  );
-};
 
 export default Pit;
