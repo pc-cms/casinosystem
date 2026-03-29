@@ -310,7 +310,7 @@ const ActivePlayers = () => {
           </h3>
           <div className="flex items-center gap-2">
             <div className="flex items-center rounded-md border border-border overflow-hidden">
-              {([["table", "TBL"], ["mix", "MIX"], ["slots", "SLT"]] as const).map(([key, label]) => (
+              {([["table", "Table"], ["mix", "Mix"], ["slots", "Slot"]] as const).map(([key, label]) => (
                 <button
                   key={key}
                   onClick={() => setTypeFilter(prev => {
