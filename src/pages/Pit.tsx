@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChevronLeft, ChevronRight, UserPlus, ArrowUpDown, ZoomIn, ZoomOut, RefreshCw, Check } from "lucide-react";
 import BreaklistGrid from "@/components/pit/BreaklistGrid";
+import { getBusinessDate, isBusinessToday } from "@/lib/business-day";
 
 const ROTA_SHIFTS = ["M", "N", "L", "E"] as const;
 
@@ -56,8 +57,8 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 const Pit = () => {
-  const today = new Date().toISOString().split("T")[0];
-  const [date, setDate] = useState(today);
+  const businessToday = getBusinessDate();
+  const [date, setDate] = useState(businessToday);
   const [month, setMonth] = useState(() => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
@@ -130,12 +131,16 @@ const Pit = () => {
               <Button variant="outline" size="sm" className="h-7 w-7 p-0" onClick={() => setBreaklistZoom(z => Math.min(200, z + 10))}>
                 <ZoomIn className="w-3.5 h-3.5" />
               </Button>
-              <Button variant="outline" size="sm" onClick={() => breaklistRefreshRef.current?.()} className="gap-1 text-xs">
-                <RefreshCw className="w-3.5 h-3.5" /> Refresh
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => breaklistAcceptRef.current?.()} className="gap-1 text-xs">
-                <Check className="w-3.5 h-3.5" /> Accept
-              </Button>
+              {isBusinessToday(date) && (
+                <>
+                  <Button variant="outline" size="sm" onClick={() => breaklistRefreshRef.current?.()} className="gap-1 text-xs">
+                    <RefreshCw className="w-3.5 h-3.5" /> Refresh
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => breaklistAcceptRef.current?.()} className="gap-1 text-xs">
+                    <Check className="w-3.5 h-3.5" /> Accept
+                  </Button>
+                </>
+              )}
             </>
           )}
           {activeTab === "rota" && (

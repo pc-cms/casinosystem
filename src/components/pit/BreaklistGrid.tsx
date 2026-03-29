@@ -5,6 +5,7 @@ import { Lock, Unlock, LockKeyhole } from "lucide-react";
 import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
 import { toast } from "sonner";
 import { ALL_ROLES, ROLE_COLORS, TABLE_ROLES } from "@/lib/currency";
+import { isBusinessToday } from "@/lib/business-day";
 
 interface BreaklistGridProps {
   date: string;
@@ -84,7 +85,8 @@ const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }
   };
 
   const currentSlot = useMemo(() => getCurrentSlot(), []);
-  const isToday = date === new Date().toISOString().split("T")[0];
+  const isToday = isBusinessToday(date);
+  const isEditable = isToday; // Only current business day is editable
 
   // Inline role picker state
   const [activeCell, setActiveCell] = useState<{ dealerId: string; timeSlot: string } | null>(null);
@@ -98,6 +100,7 @@ const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }
     breaklist.find(b => b.dealer_id === dealerId && b.time_slot === timeSlot);
 
   const handleCellClick = (dealerId: string, timeSlot: string) => {
+    if (!isEditable) return; // Read-only for past dates
     const cell = getCellData(dealerId, timeSlot);
     if (cell?.is_locked && !isManager) {
       toast.error("Locked — manager override required");
@@ -227,7 +230,7 @@ const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }
                               <LockKeyhole className="w-2.5 h-2.5" />{lockedCount}
                             </span>
                           )}
-                          {isManager && (
+                          {isEditable && isManager && (
                             <button onClick={() => handleLockRow(dealer.id, lockedCount === 0)}
                               className="text-muted-foreground hover:text-primary ml-1"
                               title={lockedCount > 0 ? "Unlock all" : "Lock all"}>
@@ -258,10 +261,11 @@ const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }
                       return (
                         <td key={slot} className={`px-0.5 py-0.5 text-center relative ${isCurrentCol ? "bg-primary/5" : ""}`}>
                           <button
-                            onClick={() => handleCellClick(dealer.id, slot)}
+                            onClick={() => isEditable && handleCellClick(dealer.id, slot)}
+                            disabled={!isEditable}
                             className={`w-full h-7 rounded text-[9px] font-mono font-bold relative transition-colors ${
-                              cell ? ROLE_COLORS[cell.role] || "bg-muted text-muted-foreground" : "bg-transparent hover:bg-muted/50 text-transparent hover:text-muted-foreground"
-                            } ${cell?.is_locked ? "ring-1 ring-yellow-500/40" : ""} ${isActiveCell ? "ring-2 ring-primary" : ""}`}
+                              cell ? ROLE_COLORS[cell.role] || "bg-muted text-muted-foreground" : isEditable ? "bg-transparent hover:bg-muted/50 text-transparent hover:text-muted-foreground" : "bg-transparent text-transparent"
+                            } ${cell?.is_locked ? "ring-1 ring-yellow-500/40" : ""} ${isActiveCell ? "ring-2 ring-primary" : ""} ${!isEditable ? "cursor-default" : ""}`}
                             title={tableName ? `${cell?.role} @ ${tableName}` : cell?.role}
                           >
                             {displayLabel}
