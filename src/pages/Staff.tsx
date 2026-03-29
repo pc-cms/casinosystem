@@ -5,6 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { UserPlus, ChevronLeft, ChevronRight, ArrowUpDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/lib/auth-context";
+import { toast } from "sonner";
 import {
   useStaffMembers, useCreateStaffMember, useUpdateStaffMember, useStaffRotaRange, useSetStaffRota,
   useDeleteStaffRota, useStaffAttendanceRange, useSetStaffAttendance,
@@ -146,6 +148,7 @@ const getDaysLeft = (contractEnd: string | null): number | null => {
 };
 
 const EmployeeList = () => {
+  const { isManager } = useAuth();
   const { data: staff = [] } = useStaffMembers();
   const createStaff = useCreateStaffMember();
   const updateStaff = useUpdateStaffMember();
@@ -249,10 +252,10 @@ const EmployeeList = () => {
           </SelectContent>
         </Select>
         <div className="w-px h-6 bg-border mx-1" />
-        <Input placeholder="Name" value={name} onChange={e => setName(e.target.value)} className="w-[200px]"
-          onKeyDown={e => { if (e.key === "Enter" && name) { createStaff.mutate({ name, department: dept }); setName(""); } }}
+        <Input placeholder="Name" value={name} onChange={e => setName(e.target.value)} className="w-[200px]" disabled={!isManager}
+          onKeyDown={e => { if (e.key === "Enter" && name && isManager) { createStaff.mutate({ name, department: dept }); setName(""); } }}
         />
-        <Select value={dept} onValueChange={v => setDept(v as StaffDepartment)}>
+        <Select value={dept} onValueChange={v => setDept(v as StaffDepartment)} disabled={!isManager}>
           <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
           <SelectContent>
             {DEPARTMENT_ORDER.map(d => (
@@ -260,7 +263,7 @@ const EmployeeList = () => {
             ))}
           </SelectContent>
         </Select>
-        <Button onClick={() => { if (name) { createStaff.mutate({ name, department: dept }); setName(""); } }} disabled={!name}>
+        <Button onClick={() => { if (name && isManager) { createStaff.mutate({ name, department: dept }); setName(""); } else if (!isManager) { toast.error("Manager access required"); } }} disabled={!name || !isManager}>
           <UserPlus className="w-4 h-4 mr-1" /> Add
         </Button>
       </div>
@@ -327,7 +330,10 @@ const EmployeeList = () => {
                     </span>
                   </td>
                   <td className="px-4 py-2">
-                    <button onClick={() => updateStaff.mutate({ id: s.id, is_active: !s.is_active })}
+                    <button onClick={() => {
+                      if (!isManager) { toast.error("Manager access required"); return; }
+                      updateStaff.mutate({ id: s.id, is_active: !s.is_active });
+                    }}
                       className={`text-xs font-medium cursor-pointer hover:underline ${s.is_active ? "text-emerald-400" : "text-red-400"}`}>
                       {s.is_active ? "Active" : "Fired"}
                     </button>

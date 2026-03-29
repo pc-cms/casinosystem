@@ -1,6 +1,8 @@
 import React, { useState, useMemo, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useDealers, useCreateDealer, useUpdateDealer, usePitRotaRange, useSetPitRota, useDeletePitRota, useSetDealerAttendance, useDealerAttendanceRange } from "@/hooks/use-casino-data";
+import { useAuth } from "@/lib/auth-context";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -189,6 +191,7 @@ const getDaysLeft = (contractEnd: string | null): number | null => {
 const DEALER_CATEGORIES: DealerCategory[] = ["trainee", "dealer", "inspector", "expert", "pit_boss"];
 
 const DealerEmployeeList = () => {
+  const { isManager } = useAuth();
   const { data: dealers = [] } = useDealers();
   const createDealer = useCreateDealer();
   const updateDealer = useUpdateDealer();
@@ -234,6 +237,7 @@ const DealerEmployeeList = () => {
 
   const handleAdd = () => {
     if (!name) return;
+    if (!isManager) { toast.error("Manager access required"); return; }
     const isPitBoss = category === "pit_boss";
     createDealer.mutate({ name, category: isPitBoss ? "dealer" : category, is_pit_boss: isPitBoss });
     setName("");
@@ -303,10 +307,10 @@ const DealerEmployeeList = () => {
           </SelectContent>
         </Select>
         <div className="w-px h-6 bg-border mx-1" />
-        <Input placeholder="Name" value={name} onChange={e => setName(e.target.value)} className="w-[200px]"
+        <Input placeholder="Name" value={name} onChange={e => setName(e.target.value)} className="w-[200px]" disabled={!isManager}
           onKeyDown={e => { if (e.key === "Enter") handleAdd(); }}
         />
-        <Select value={category} onValueChange={v => setCategory(v as DealerCategory)}>
+        <Select value={category} onValueChange={v => setCategory(v as DealerCategory)} disabled={!isManager}>
           <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
           <SelectContent>
             {DEALER_CATEGORIES.map(c => (
@@ -314,7 +318,7 @@ const DealerEmployeeList = () => {
             ))}
           </SelectContent>
         </Select>
-        <Button onClick={handleAdd} disabled={!name}>
+        <Button onClick={handleAdd} disabled={!name || !isManager}>
           <UserPlus className="w-4 h-4 mr-1" /> Add
         </Button>
       </div>
@@ -381,7 +385,10 @@ const DealerEmployeeList = () => {
                     </span>
                   </td>
                   <td className="px-4 py-2">
-                    <button onClick={() => updateDealer.mutate({ id: d.id, is_active: !d.is_active })}
+                    <button onClick={() => {
+                      if (!isManager) { toast.error("Manager access required"); return; }
+                      updateDealer.mutate({ id: d.id, is_active: !d.is_active });
+                    }}
                       className={`text-xs font-medium cursor-pointer hover:underline ${d.is_active ? "text-emerald-400" : "text-red-400"}`}>
                       {d.is_active ? "Active" : "Fired"}
                     </button>
