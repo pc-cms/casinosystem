@@ -1,8 +1,8 @@
 import { useState, useMemo } from "react";
-import { useDealers, useBreaklistData, useSetBreaklistCell, useLockBreaklistCell, useGamingTables } from "@/hooks/use-casino-data";
+import { useDealers, useBreaklistData, useSetBreaklistCell, useLockBreaklistCell, useGamingTables, usePitRotaRange } from "@/hooks/use-casino-data";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
-import { Lock, Unlock, LockKeyhole, Check } from "lucide-react";
+import { Lock, Unlock, LockKeyhole, Check, RefreshCw } from "lucide-react";
 import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
 import { toast } from "sonner";
 import { ALL_ROLES, ROLE_COLORS, TABLE_ROLES } from "@/lib/currency";
