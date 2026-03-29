@@ -480,25 +480,125 @@ const ActivePlayers = () => {
                       </div>
                     </TableCell>
                     <TableCell className="text-center">
-                      <span className={`text-[9px] font-mono font-bold uppercase px-1.5 py-0.5 rounded ${
-                        p.player_type === "table" ? "bg-sky-500/20 text-sky-400"
-                        : p.player_type === "mix" ? "bg-violet-500/20 text-violet-400"
-                        : "bg-amber-500/20 text-amber-400"
-                      }`}>{p.player_type === "table" ? "TBL" : p.player_type === "mix" ? "MIX" : "SLT"}</span>
+                      {isManager ? (
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <button className={`text-[9px] font-mono font-bold uppercase px-1.5 py-0.5 rounded cursor-pointer hover:ring-1 hover:ring-primary/50 transition-all ${
+                              p.player_type === "table" ? "bg-sky-500/20 text-sky-400"
+                              : p.player_type === "mix" ? "bg-violet-500/20 text-violet-400"
+                              : "bg-amber-500/20 text-amber-400"
+                            }`}>{p.player_type === "table" ? "TBL" : p.player_type === "mix" ? "MIX" : "SLT"}</button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-1" align="center">
+                            <div className="flex flex-col gap-0.5">
+                              {PLAYER_TYPES.map(t => (
+                                <button
+                                  key={t}
+                                  onClick={() => updatePlayerType.mutate({ id: p.id, player_type: t })}
+                                  className={`px-3 py-1 text-xs rounded hover:bg-muted transition-colors text-left capitalize ${p.player_type === t ? "bg-primary/10 text-primary font-medium" : "text-foreground"}`}
+                                >
+                                  {t}
+                                </button>
+                              ))}
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                      ) : (
+                        <span className={`text-[9px] font-mono font-bold uppercase px-1.5 py-0.5 rounded ${
+                          p.player_type === "table" ? "bg-sky-500/20 text-sky-400"
+                          : p.player_type === "mix" ? "bg-violet-500/20 text-violet-400"
+                          : "bg-amber-500/20 text-amber-400"
+                        }`}>{p.player_type === "table" ? "TBL" : p.player_type === "mix" ? "MIX" : "SLT"}</span>
+                      )}
                     </TableCell>
                     <TableCell className="text-center">
-                      {p.tags.length > 0 ? (
-                        <div className="flex gap-1 flex-wrap justify-center">
-                          {p.tags.map(tag => (
-                            <Badge key={tag} variant="outline" className="text-[9px] px-1.5 py-0">{tag}</Badge>
-                          ))}
-                        </div>
-                      ) : <span className="text-muted-foreground/40">·</span>}
+                      <div className="flex gap-1 flex-wrap justify-center items-center">
+                        {p.tags.map(tag => (
+                          <Badge key={tag} variant="outline" className="text-[9px] px-1.5 py-0 gap-0.5 group/tag">
+                            {tag}
+                            {isManager && (
+                              <button
+                                onClick={() => removeTag.mutate({ playerId: p.id, tag })}
+                                className="opacity-0 group-hover/tag:opacity-100 transition-opacity ml-0.5"
+                              >
+                                <X className="w-2.5 h-2.5 text-destructive" />
+                              </button>
+                            )}
+                          </Badge>
+                        ))}
+                        {isManager && (
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <button className="w-4 h-4 rounded-full border border-dashed border-muted-foreground/40 flex items-center justify-center hover:border-primary hover:text-primary transition-colors text-muted-foreground/40">
+                                <Plus className="w-2.5 h-2.5" />
+                              </button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-1" align="center">
+                              <div className="flex flex-col gap-0.5 max-h-[200px] overflow-y-auto">
+                                {COMMON_TAGS.filter(t => !p.tags.includes(t)).map(tag => (
+                                  <button
+                                    key={tag}
+                                    onClick={() => {
+                                      addTag.mutate({ playerId: p.id, tag });
+                                      queryClient.invalidateQueries({ queryKey: ["player_tags"] });
+                                    }}
+                                    className="px-3 py-1 text-xs rounded hover:bg-muted transition-colors text-left text-foreground"
+                                  >
+                                    {tag}
+                                  </button>
+                                ))}
+                              </div>
+                            </PopoverContent>
+                          </Popover>
+                        )}
+                        {!isManager && p.tags.length === 0 && <span className="text-muted-foreground/40">·</span>}
+                      </div>
                     </TableCell>
                     <TableCell className="text-center">
                       {p.isLive && p.tableName ? (
-                        <Badge className="bg-primary/20 text-primary border-primary/30 text-[10px] px-2 py-0.5 font-mono">{p.tableName}</Badge>
-                      ) : <span className="text-muted-foreground/40">·</span>}
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <button className="inline-flex items-center gap-1 cursor-pointer">
+                              <Badge className="bg-primary/20 text-primary border-primary/30 text-[10px] px-2 py-0.5 font-mono hover:bg-primary/30 transition-colors">{p.tableName}</Badge>
+                              <ChevronDown className="w-3 h-3 text-muted-foreground" />
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-1" align="center">
+                            <div className="flex flex-col gap-0.5 max-h-[200px] overflow-y-auto">
+                              {tables.filter(t => t.status === "open" && t.name !== p.tableName).map(t => (
+                                <button
+                                  key={t.id}
+                                  onClick={() => changeTable.mutate({ playerId: p.id, tableId: t.id, avgBet: 0 })}
+                                  className="px-3 py-1 text-xs rounded hover:bg-muted transition-colors text-left font-mono text-foreground"
+                                >
+                                  {t.name}
+                                </button>
+                              ))}
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                      ) : (
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <button className="text-muted-foreground/40 hover:text-primary transition-colors cursor-pointer">
+                              <MapPin className="w-3.5 h-3.5 inline" />
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-1" align="center">
+                            <div className="flex flex-col gap-0.5 max-h-[200px] overflow-y-auto">
+                              {tables.filter(t => t.status === "open").map(t => (
+                                <button
+                                  key={t.id}
+                                  onClick={() => changeTable.mutate({ playerId: p.id, tableId: t.id, avgBet: 0 })}
+                                  className="px-3 py-1 text-xs rounded hover:bg-muted transition-colors text-left font-mono text-foreground"
+                                >
+                                  {t.name}
+                                </button>
+                              ))}
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                      )}
                     </TableCell>
                     <TableCell className="text-center text-[10px] font-mono text-muted-foreground">
                       {p.firstSeen
