@@ -106,7 +106,24 @@ const Dashboard = () => {
           </Link>
         )}
         <StatCard label="Active Players" value={activePlayers} icon={Users} href="/players" />
-        {showFinancials && isManager && <StatCard label="Pending Expenses" value={pendingExpenses} icon={Receipt} href="/expenses" />}
+        {showFinancials && (
+          isManager ? (
+            <StatCard label="Pending Expenses" value={pendingExpenses} icon={Receipt} href="/expenses" />
+          ) : (
+            <div className="cms-panel p-4 opacity-75">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Pending Expenses</p>
+                  <p className="text-2xl font-bold font-mono mt-1 text-card-foreground">{pendingExpenses}</p>
+                </div>
+                <div className="p-2 rounded-md bg-muted text-muted-foreground">
+                  <Receipt className="w-5 h-5" />
+                </div>
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-1">Manager access required</p>
+            </div>
+          )
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
