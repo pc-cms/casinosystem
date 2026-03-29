@@ -525,13 +525,13 @@ export const useSetDealerAttendance = () => {
   const qc = useQueryClient();
   const { casinoId, user } = useAuth();
   return useMutation({
-    mutationFn: async (input: { dealer_id: string; date: string; hours: number }) => {
+    mutationFn: async (input: { dealer_id: string; date: string; value: string }) => {
       if (!casinoId || !user) throw new Error("Not authenticated");
       const { error } = await supabase.from("dealer_attendance" as any).upsert({
         casino_id: casinoId,
         dealer_id: input.dealer_id,
         date: input.date,
-        hours: input.hours,
+        value: input.value,
         recorded_by: user.id,
         updated_at: new Date().toISOString(),
       } as any, { onConflict: "casino_id,dealer_id,date" });
