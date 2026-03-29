@@ -5,6 +5,7 @@ import { Lock, Unlock, LockKeyhole } from "lucide-react";
 import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
 import { toast } from "sonner";
 import { ALL_ROLES, ROLE_COLORS, TABLE_ROLES } from "@/lib/currency";
+import { isBusinessToday } from "@/lib/business-day";
 
 interface BreaklistGridProps {
   date: string;

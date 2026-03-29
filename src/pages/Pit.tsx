@@ -55,9 +55,11 @@ const CATEGORY_COLORS: Record<string, string> = {
   expert: "text-emerald-400 bg-emerald-500/20",
 };
 
+import { getBusinessDate, isBusinessToday } from "@/lib/business-day";
+
 const Pit = () => {
-  const today = new Date().toISOString().split("T")[0];
-  const [date, setDate] = useState(today);
+  const businessToday = getBusinessDate();
+  const [date, setDate] = useState(businessToday);
   const [month, setMonth] = useState(() => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
