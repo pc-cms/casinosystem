@@ -1,14 +1,17 @@
+import { useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, Users, Landmark, Table2, Receipt,
   ClipboardList, BarChart3, Sun, Moon, Shield, Gamepad2, 
   UsersRound, Grid3X3, LogOut, Settings, FileBarChart,
   CalendarDays, ClipboardCheck, ListChecks, Eye, Target,
-  Building2, UserCheck, ClipboardPen, Coins,
+  Building2, UserCheck, ClipboardPen, Coins, ShieldCheck, ShieldOff,
 } from "lucide-react";
 import { useTheme } from "@/lib/theme";
 import { useAuth } from "@/lib/auth-context";
 import { NetworkStatusIndicator } from "@/components/NetworkStatusIndicator";
+import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
+import { toast } from "sonner";
 
 type AppRole = "cashier" | "pit" | "manager" | "reception" | "finance_manager" | "security";
 
@@ -61,8 +64,9 @@ const SECTION_LABELS: Record<string, string> = {
 
 export const AppSidebar = () => {
   const { theme, toggle } = useTheme();
-  const { displayName, roles, signOut, isManager } = useAuth();
+  const { displayName, roles, signOut, isManager, managerOverride, activateManagerOverride, deactivateManagerOverride } = useAuth();
   const location = useLocation();
+  const [showOverrideDialog, setShowOverrideDialog] = useState(false);
 
   const isPitActive = location.pathname === "/pit";
   const isStaffActive = location.pathname === "/staff";
@@ -79,6 +83,20 @@ export const AppSidebar = () => {
   visibleItems.forEach(item => {
     if (SECTION_LABELS[item.to]) sectionBreaks.add(item.to);
   });
+
+  const nativeManager = roles.includes("manager" as AppRole);
+
+  const handleManagerOverrideConfirm = (managerId: string) => {
+    // Get manager name from the dialog response - we'll extract from the log
+    activateManagerOverride(managerId, "Manager");
+    setShowOverrideDialog(false);
+    toast.success("Manager Access activated");
+  };
+
+  const handleDeactivate = () => {
+    deactivateManagerOverride();
+    toast.info("Manager Access deactivated");
+  };
 
   const renderSubItems = (basePath: string, items: typeof TABLE_SUBITEMS) => (
     <div className="ml-4 mt-0.5 space-y-0.5 border-l border-sidebar-border pl-2">
@@ -100,84 +118,123 @@ export const AppSidebar = () => {
   );
 
   return (
-    <aside className="w-56 h-screen flex flex-col bg-sidebar border-r border-sidebar-border shrink-0">
-      <div className="px-4 py-4 border-b border-sidebar-border">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Shield className="w-6 h-6 text-primary" />
-            <span className="font-bold text-lg tracking-tight text-sidebar-foreground">CMS</span>
+    <>
+      <aside className="w-56 h-screen flex flex-col bg-sidebar border-r border-sidebar-border shrink-0">
+        <div className="px-4 py-4 border-b border-sidebar-border">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Shield className="w-6 h-6 text-primary" />
+              <span className="font-bold text-lg tracking-tight text-sidebar-foreground">CMS</span>
+            </div>
+            <NetworkStatusIndicator />
           </div>
-          <NetworkStatusIndicator />
+          <p className="text-[10px] font-mono text-muted-foreground mt-0.5 uppercase tracking-widest">Casino Ops</p>
         </div>
-        <p className="text-[10px] font-mono text-muted-foreground mt-0.5 uppercase tracking-widest">Casino Ops</p>
-      </div>
 
-      <nav className="flex-1 py-2 px-2 overflow-y-auto">
-        {visibleItems.map((item, idx) => {
-          const sectionLabel = SECTION_LABELS[item.to];
-          const showLabel = sectionLabel && sectionBreaks.has(item.to);
-          return (
-            <div key={item.to}>
-              {showLabel && (
-                <div className={`px-3 pt-3 pb-1 ${idx > 0 ? "mt-1 border-t border-sidebar-border" : ""}`}>
-                  <span className="text-[9px] font-mono text-muted-foreground uppercase tracking-widest">{sectionLabel}</span>
-                </div>
-              )}
-              <NavLink to={item.to} end={item.to === "/" || item.to === "/pit" || item.to === "/staff" || item.to === "/tables"}
+        <nav className="flex-1 py-2 px-2 overflow-y-auto">
+          {visibleItems.map((item, idx) => {
+            const sectionLabel = SECTION_LABELS[item.to];
+            const showLabel = sectionLabel && sectionBreaks.has(item.to);
+            return (
+              <div key={item.to}>
+                {showLabel && (
+                  <div className={`px-3 pt-3 pb-1 ${idx > 0 ? "mt-1 border-t border-sidebar-border" : ""}`}>
+                    <span className="text-[9px] font-mono text-muted-foreground uppercase tracking-widest">{sectionLabel}</span>
+                  </div>
+                )}
+                <NavLink to={item.to} end={item.to === "/" || item.to === "/pit" || item.to === "/staff" || item.to === "/tables"}
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
+                      isActive ? "bg-sidebar-accent text-sidebar-primary font-medium" : "text-sidebar-foreground hover:bg-sidebar-accent"
+                    }`
+                  }>
+                  <item.icon className="w-4 h-4 shrink-0" />
+                  <span className="flex-1">{item.label}</span>
+                  <span className="cms-kbd">{item.shortcut}</span>
+                </NavLink>
+                {item.to === "/tables" && isTablesActive && renderSubItems("/tables", TABLE_SUBITEMS)}
+                {item.to === "/pit" && isPitActive && renderSubItems("/pit", PIT_SUBITEMS)}
+                {item.to === "/staff" && isStaffActive && renderSubItems("/staff", STAFF_SUBITEMS)}
+              </div>
+            );
+          })}
+
+          {isManager && (
+            <>
+              <div className="px-3 pt-3 pb-1 mt-1 border-t border-sidebar-border">
+                <span className="text-[9px] font-mono text-muted-foreground uppercase tracking-widest">SYSTEM</span>
+              </div>
+              <NavLink to="/admin"
                 className={({ isActive }) =>
                   `flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
                     isActive ? "bg-sidebar-accent text-sidebar-primary font-medium" : "text-sidebar-foreground hover:bg-sidebar-accent"
                   }`
                 }>
-                <item.icon className="w-4 h-4 shrink-0" />
-                <span className="flex-1">{item.label}</span>
-                <span className="cms-kbd">{item.shortcut}</span>
+                <Settings className="w-4 h-4 shrink-0" />
+                <span className="flex-1">Admin</span>
+                <span className="cms-kbd">A</span>
               </NavLink>
-              {item.to === "/tables" && isTablesActive && renderSubItems("/tables", TABLE_SUBITEMS)}
-              {item.to === "/pit" && isPitActive && renderSubItems("/pit", PIT_SUBITEMS)}
-              {item.to === "/staff" && isStaffActive && renderSubItems("/staff", STAFF_SUBITEMS)}
-            </div>
-          );
-        })}
+            </>
+          )}
+        </nav>
 
-        {isManager && (
-          <>
-            <div className="px-3 pt-3 pb-1 mt-1 border-t border-sidebar-border">
-              <span className="text-[9px] font-mono text-muted-foreground uppercase tracking-widest">SYSTEM</span>
+        <div className="px-3 py-3 border-t border-sidebar-border space-y-1">
+          {/* Manager Access button - only show for non-manager users */}
+          {!nativeManager && (
+            <div className="mb-1">
+              {managerOverride.active ? (
+                <button
+                  onClick={handleDeactivate}
+                  className="flex items-center gap-2 w-full px-3 py-2 rounded-md text-xs font-medium bg-primary/15 text-primary border border-primary/30 hover:bg-primary/25 transition-colors"
+                >
+                  <ShieldCheck className="w-4 h-4" />
+                  <span className="flex-1 text-left">Manager Active</span>
+                  <ShieldOff className="w-3.5 h-3.5 opacity-60" />
+                </button>
+              ) : (
+                <button
+                  onClick={() => setShowOverrideDialog(true)}
+                  className="flex items-center gap-2 w-full px-3 py-2 rounded-md text-xs font-medium text-sidebar-foreground hover:bg-sidebar-accent border border-sidebar-border transition-colors"
+                >
+                  <ShieldCheck className="w-4 h-4" />
+                  <span className="flex-1 text-left">Manager Access</span>
+                </button>
+              )}
             </div>
-            <NavLink to="/admin"
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
-                  isActive ? "bg-sidebar-accent text-sidebar-primary font-medium" : "text-sidebar-foreground hover:bg-sidebar-accent"
-                }`
-              }>
-              <Settings className="w-4 h-4 shrink-0" />
-              <span className="flex-1">Admin</span>
-              <span className="cms-kbd">A</span>
-            </NavLink>
-          </>
-        )}
-      </nav>
+          )}
 
-      <div className="px-3 py-3 border-t border-sidebar-border space-y-1">
-        <div className="px-3 py-1">
-          <p className="text-xs font-medium text-sidebar-foreground truncate">{displayName}</p>
-          <div className="flex gap-1 mt-0.5 flex-wrap">
-            {roles.map(r => (
-              <span key={r} className="text-[9px] font-mono px-1 py-0.5 rounded bg-sidebar-accent text-sidebar-accent-foreground">{r}</span>
-            ))}
+          <div className="px-3 py-1">
+            <p className="text-xs font-medium text-sidebar-foreground truncate">{displayName}</p>
+            <div className="flex gap-1 mt-0.5 flex-wrap">
+              {roles.map(r => (
+                <span key={r} className="text-[9px] font-mono px-1 py-0.5 rounded bg-sidebar-accent text-sidebar-accent-foreground">{r}</span>
+              ))}
+              {managerOverride.active && !nativeManager && (
+                <span className="text-[9px] font-mono px-1 py-0.5 rounded bg-primary/20 text-primary font-bold">manager ↑</span>
+              )}
+            </div>
           </div>
+          <button onClick={toggle}
+            className="flex items-center gap-2 w-full px-3 py-1.5 rounded-md text-xs text-sidebar-foreground hover:bg-sidebar-accent transition-colors">
+            {theme === "dark" ? <Sun className="w-3 h-3" /> : <Moon className="w-3 h-3" />}
+            {theme === "dark" ? "Light" : "Dark"}
+          </button>
+          <button onClick={signOut}
+            className="flex items-center gap-2 w-full px-3 py-1.5 rounded-md text-xs text-sidebar-foreground hover:bg-sidebar-accent transition-colors">
+            <LogOut className="w-3 h-3" /> Sign Out
+          </button>
         </div>
-        <button onClick={toggle}
-          className="flex items-center gap-2 w-full px-3 py-1.5 rounded-md text-xs text-sidebar-foreground hover:bg-sidebar-accent transition-colors">
-          {theme === "dark" ? <Sun className="w-3 h-3" /> : <Moon className="w-3 h-3" />}
-          {theme === "dark" ? "Light" : "Dark"}
-        </button>
-        <button onClick={signOut}
-          className="flex items-center gap-2 w-full px-3 py-1.5 rounded-md text-xs text-sidebar-foreground hover:bg-sidebar-accent transition-colors">
-          <LogOut className="w-3 h-3" /> Sign Out
-        </button>
-      </div>
-    </aside>
+      </aside>
+
+      <ManagerOverrideDialog
+        open={showOverrideDialog}
+        onClose={() => setShowOverrideDialog(false)}
+        onConfirm={handleManagerOverrideConfirm}
+        title="Manager Access"
+        description="Authenticate as a manager to unlock elevated permissions."
+        actionType="MANAGER_ACCESS_ACTIVATE"
+        actionDetails={{ activated_by: displayName }}
+      />
+    </>
   );
 };

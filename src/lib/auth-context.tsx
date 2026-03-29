@@ -4,6 +4,12 @@ import type { User, Session } from "@supabase/supabase-js";
 
 type AppRole = "cashier" | "pit" | "manager" | "reception" | "finance_manager" | "security";
 
+type ManagerOverride = {
+  active: boolean;
+  managerId: string | null;
+  managerName: string | null;
+};
+
 type AuthState = {
   user: User | null;
   session: Session | null;
@@ -15,6 +21,9 @@ type AuthState = {
   isManager: boolean;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
+  managerOverride: ManagerOverride;
+  activateManagerOverride: (managerId: string, managerName: string) => void;
+  deactivateManagerOverride: () => void;
 };
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -32,6 +41,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [casinoId, setCasinoId] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [managerOverride, setManagerOverride] = useState<ManagerOverride>({
+    active: false,
+    managerId: null,
+    managerName: null,
+  });
 
   const fetchProfile = useCallback(async (userId: string) => {
     const { data: profile } = await supabase
@@ -62,12 +76,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          // Defer profile fetch to avoid deadlock
           setTimeout(() => fetchProfile(session.user.id), 0);
         } else {
           setRoles([]);
           setCasinoId(null);
           setDisplayName(null);
+          setManagerOverride({ active: false, managerId: null, managerName: null });
         }
         setLoading(false);
       }
@@ -85,8 +99,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => subscription.unsubscribe();
   }, [fetchProfile]);
 
-  const hasRole = useCallback((role: AppRole) => roles.includes(role), [roles]);
-  const isManager = roles.includes("manager");
+  const hasRole = useCallback(
+    (role: AppRole) => roles.includes(role) || (role === "manager" && managerOverride.active),
+    [roles, managerOverride.active]
+  );
+
+  const isManager = roles.includes("manager") || managerOverride.active;
+
+  const activateManagerOverride = useCallback((managerId: string, managerName: string) => {
+    setManagerOverride({ active: true, managerId, managerName });
+  }, []);
+
+  const deactivateManagerOverride = useCallback(() => {
+    setManagerOverride({ active: false, managerId: null, managerName: null });
+  }, []);
 
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -94,6 +120,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signOut = async () => {
+    setManagerOverride({ active: false, managerId: null, managerName: null });
     await supabase.auth.signOut();
   };
 
@@ -101,6 +128,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     <AuthContext.Provider value={{
       user, session, roles, casinoId, displayName, loading,
       hasRole, isManager, signIn, signOut,
+      managerOverride, activateManagerOverride, deactivateManagerOverride,
     }}>
       {children}
     </AuthContext.Provider>
