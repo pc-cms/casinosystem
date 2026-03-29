@@ -26,7 +26,6 @@ const Tables = () => {
 
   // Table close dialog
   const [closingTable, setClosingTable] = useState<any | null>(null);
-  const [closingChips, setClosingChips] = useState<Record<number, number>>({});
   const [pendingReopen, setPendingReopen] = useState<string | null>(null);
 
   // Chip count state
