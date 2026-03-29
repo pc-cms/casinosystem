@@ -4,7 +4,7 @@ import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/ui/number-input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Play, Square, Clock } from "lucide-react";
@@ -179,11 +179,10 @@ const ClientTracker = () => {
           </div>
           <div className="w-[140px]">
             <label className="text-xs text-muted-foreground mb-1 block">Avg Bet</label>
-            <Input
-              type="number"
-              placeholder="e.g. 5000"
+            <NumberInput
+              placeholder="e.g. 5 000"
               value={avgBet}
-              onChange={e => setAvgBet(e.target.value)}
+              onChange={setAvgBet}
             />
           </div>
           <Button onClick={() => startSession.mutate()} disabled={!canStart || startSession.isPending}>
