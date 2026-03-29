@@ -6,8 +6,9 @@ import { formatNumberSpaces } from "@/lib/currency";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth-context";
-import { ArrowUpDown, ArrowUp, ArrowDown, LogIn, LogOut, Search } from "lucide-react";
+import { ArrowUpDown, ArrowUp, ArrowDown, LogIn, LogOut, Search, MapPin, Play } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/ui/number-input";
 import {
   Table,
   TableBody,
@@ -33,6 +34,9 @@ const ActivePlayers = () => {
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<Set<string>>(new Set(["slots", "table", "mix"]));
+  const [placingPlayer, setPlacingPlayer] = useState<string | null>(null);
+  const [placingTable, setPlacingTable] = useState<string | null>(null);
+  const [placingBet, setPlacingBet] = useState("");
 
   const { data: allTags = [] } = useQuery({
     queryKey: ["player_tags", casinoId],
@@ -72,24 +76,56 @@ const ActivePlayers = () => {
     refetchInterval: 15000,
   });
 
-  const checkIn = useMutation({
+   const checkIn = useMutation({
     mutationFn: async (playerId: string) => {
-      const { error } = await supabase.from("casino_visits").insert({
-        casino_id: casinoId!,
-        player_id: playerId,
-        date: today,
-        checked_in_by: user!.id,
-      });
+      const { error } = await supabase.from("casino_visits").upsert(
+        {
+          casino_id: casinoId!,
+          player_id: playerId,
+          date: today,
+          checked_in_by: user!.id,
+        },
+        { onConflict: "casino_id,player_id,date" }
+      );
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["casino_visits"] });
       toast.success("Player checked in");
     },
-    onError: (e: any) => {
-      if (e.message?.includes("duplicate")) toast.info("Already checked in today");
-      else toast.error(e.message);
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const placeAtTable = useMutation({
+    mutationFn: async ({ playerId, tableId, avgBet }: { playerId: string; tableId: string; avgBet: number }) => {
+      const { error } = await supabase.from("client_sessions").insert({
+        casino_id: casinoId!,
+        player_id: playerId,
+        table_id: tableId,
+        avg_bet: avgBet,
+        created_by: user!.id,
+      });
+      if (error) throw error;
+      await supabase.from("casino_visits").upsert(
+        {
+          casino_id: casinoId!,
+          player_id: playerId,
+          date: today,
+          checked_in_by: user!.id,
+        },
+        { onConflict: "casino_id,player_id,date" }
+      );
     },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["client_sessions"] });
+      queryClient.invalidateQueries({ queryKey: ["casino_visits"] });
+      setPlacingPlayer(null);
+      setPlacingTable(null);
+      setPlacingBet("");
+      setSearch("");
+      toast.success("Session started & player checked in");
+    },
+    onError: (e: any) => toast.error(e.message),
   });
 
   const checkOut = useMutation({
