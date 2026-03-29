@@ -296,25 +296,102 @@ const ActivePlayers = () => {
           </div>
         </div>
 
-        {/* Check-in suggestions for inactive players */}
+        {/* Player placement panel */}
         {inactivePlayers.length > 0 && (
-          <div className="px-4 py-2 border-b border-border bg-muted/10">
-            <p className="text-[10px] text-muted-foreground uppercase mb-1">Check in player</p>
+          <div className="px-4 py-3 border-b border-border bg-muted/10 space-y-2">
+            <p className="text-[10px] text-muted-foreground uppercase">Add active player</p>
             <div className="flex flex-wrap gap-2">
               {inactivePlayers.map(p => (
                 <Button
                   key={p.id}
-                  variant="outline"
+                  variant={placingPlayer === p.id ? "default" : "outline"}
                   size="sm"
                   className="h-7 text-xs gap-1"
-                  onClick={() => checkIn.mutate(p.id)}
-                  disabled={checkIn.isPending}
+                  onClick={() => {
+                    setPlacingPlayer(placingPlayer === p.id ? null : p.id);
+                    setPlacingTable(null);
+                    setPlacingBet("");
+                  }}
                 >
                   <LogIn className="w-3 h-3" />
                   {p.first_name} {p.last_name}
                 </Button>
               ))}
             </div>
+
+            {/* Table/Hall selection for selected player */}
+            {placingPlayer && (
+              <div className="pt-2 space-y-2">
+                <p className="text-[10px] text-muted-foreground uppercase">
+                  Where is {inactivePlayers.find(p => p.id === placingPlayer)?.first_name}?
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  <Button
+                    variant={placingTable === "hall" ? "default" : "outline"}
+                    size="sm"
+                    className="h-7 text-xs gap-1"
+                    onClick={() => { setPlacingTable("hall"); setPlacingBet(""); }}
+                  >
+                    <MapPin className="w-3 h-3" /> В зале
+                  </Button>
+                  {tables.filter(t => t.status === "open").map(t => (
+                    <Button
+                      key={t.id}
+                      variant={placingTable === t.id ? "default" : "outline"}
+                      size="sm"
+                      className="h-7 text-xs font-mono"
+                      onClick={() => setPlacingTable(t.id)}
+                    >
+                      {t.name}
+                    </Button>
+                  ))}
+                </div>
+
+                {/* Avg bet input for table placement */}
+                {placingTable && placingTable !== "hall" && (
+                  <div className="flex items-center gap-2 pt-1">
+                    <label className="text-xs text-muted-foreground shrink-0">Avg Bet:</label>
+                    <NumberInput
+                      placeholder="e.g. 5 000"
+                      value={placingBet}
+                      onChange={setPlacingBet}
+                      className="h-8 w-[140px]"
+                    />
+                    <Button
+                      size="sm"
+                      className="h-8 gap-1"
+                      disabled={!placingBet || Number(placingBet) <= 0 || placeAtTable.isPending}
+                      onClick={() => placeAtTable.mutate({
+                        playerId: placingPlayer,
+                        tableId: placingTable,
+                        avgBet: Number(placingBet),
+                      })}
+                    >
+                      <Play className="w-3 h-3" /> Start
+                    </Button>
+                  </div>
+                )}
+
+                {/* Hall check-in confirm */}
+                {placingTable === "hall" && (
+                  <div className="pt-1">
+                    <Button
+                      size="sm"
+                      className="h-8 gap-1"
+                      disabled={checkIn.isPending}
+                      onClick={() => {
+                        checkIn.mutate(placingPlayer);
+                        setPlacingPlayer(null);
+                        setPlacingTable(null);
+                        setSearch("");
+                      }}
+                    >
+                      <LogIn className="w-3 h-3" /> Check In
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
