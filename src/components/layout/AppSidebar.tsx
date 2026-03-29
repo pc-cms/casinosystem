@@ -211,30 +211,6 @@ export const AppSidebar = () => {
         </nav>
 
         <div className="px-3 py-3 border-t border-sidebar-border space-y-1">
-          {/* Manager Access button - only show for non-manager users */}
-          {!nativeManager && (
-            <div className="mb-1">
-              {managerOverride.active ? (
-                <button
-                  onClick={handleDeactivate}
-                  className="flex items-center gap-2 w-full px-3 py-2 rounded-md text-xs font-medium bg-primary/15 text-primary border border-primary/30 hover:bg-primary/25 transition-colors"
-                >
-                  <ShieldCheck className="w-4 h-4" />
-                  <span className="flex-1 text-left">Manager Active</span>
-                  <ShieldOff className="w-3.5 h-3.5 opacity-60" />
-                </button>
-              ) : (
-                <button
-                  onClick={() => setShowOverrideDialog(true)}
-                  className="flex items-center gap-2 w-full px-3 py-2 rounded-md text-xs font-medium text-sidebar-foreground hover:bg-sidebar-accent border border-sidebar-border transition-colors"
-                >
-                  <ShieldCheck className="w-4 h-4" />
-                  <span className="flex-1 text-left">Manager Access</span>
-                </button>
-              )}
-            </div>
-          )}
-
           <div className="px-3 py-1">
             <p className="text-xs font-medium text-sidebar-foreground truncate">{displayName}</p>
             <div className="flex gap-1 mt-0.5 flex-wrap">
