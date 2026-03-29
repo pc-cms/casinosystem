@@ -25,7 +25,7 @@ export const DEFAULT_EXCHANGE_RATES: Record<string, number> = {
 
 // Cash denominations per currency
 export const CASH_DENOMS: Record<string, number[]> = {
-  TZS: [50_000, 20_000, 10_000, 5_000, 2_000, 1_000, 500],
+  TZS: [10_000, 5_000, 2_000, 1_000],
   USD: [100, 50, 20, 10, 5, 1],
   EUR: [500, 200, 100, 50, 20, 10, 5],
   GBP: [50, 20, 10, 5],
