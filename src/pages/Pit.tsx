@@ -329,9 +329,19 @@ const AttendanceGrid = ({ month }: { month: string }) => {
 
   const { data: dealers = [] } = useDealers();
   const { data: monthAttendance = [] } = useDealerAttendanceRange(startDate, endDate);
+  const { data: rota = [] } = usePitRotaRange(startDate, endDate);
   const setAttendance = useSetDealerAttendance();
 
   const activeDealers = dealers.filter(d => d.is_active);
+
+  // Get rota shift for a dealer on a specific day
+  const getRotaShift = (dealerId: string, day: number): string | null => {
+    const dateStr = `${month}-${String(day).padStart(2, "0")}`;
+    const entry = rota.find((r: any) => r.dealer_id === dealerId && r.date === dateStr);
+    if (!entry) return null;
+    const s = entry.shift as string;
+    return (s === "M" || s === "N" || s === "E") ? s : null;
+  };
 
   const today = new Date();
   const todayDay = today.getDate();
