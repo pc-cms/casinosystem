@@ -1,9 +1,11 @@
 import { useState, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
-import { useDealers, usePitRotaRange, useSetPitRota, useDeletePitRota, useSetDealerAttendance, useDealerAttendanceRange } from "@/hooks/use-casino-data";
+import { useDealers, useCreateDealer, usePitRotaRange, useSetPitRota, useDeletePitRota, useSetDealerAttendance, useDealerAttendanceRange } from "@/hooks/use-casino-data";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ChevronLeft, ChevronRight, UserPlus } from "lucide-react";
 import BreaklistGrid from "@/components/pit/BreaklistGrid";
 import ActivePlayers from "@/components/pit/ActivePlayers";
 import ClientTracker from "@/components/pit/ClientTracker";
@@ -32,6 +34,29 @@ const ATT_COLORS: Record<string, string> = {
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
+type DealerCategory = "trainee" | "dealer" | "inspector" | "expert";
+
+const CATEGORY_LABELS: Record<DealerCategory, string> = {
+  trainee: "Trainee",
+  dealer: "Dealer",
+  inspector: "Inspector",
+  expert: "Expert",
+};
+
+const CATEGORY_LETTER: Record<string, string> = {
+  trainee: "T",
+  dealer: "D",
+  inspector: "I",
+  expert: "E",
+};
+
+const CATEGORY_COLORS: Record<string, string> = {
+  trainee: "text-cyan-400 bg-cyan-500/20",
+  dealer: "text-blue-400 bg-blue-500/20",
+  inspector: "text-amber-400 bg-amber-500/20",
+  expert: "text-emerald-400 bg-emerald-500/20",
+};
+
 const Pit = () => {
   const today = new Date().toISOString().split("T")[0];
   const [date, setDate] = useState(today);
@@ -52,13 +77,13 @@ const Pit = () => {
   }, [month]);
 
   const [searchParams] = useSearchParams();
-  const activeTab = searchParams.get("tab") || "rota";
+  const activeTab = searchParams.get("tab") || "employee";
 
   const showMonthNav = activeTab === "rota" || activeTab === "attendance";
   const showDatePicker = activeTab === "breaklist";
 
-  // Tab titles for header
   const TAB_TITLES: Record<string, string> = {
+    employee: "Live Game Staff",
     rota: "Rota",
     attendance: "Attendance",
     breaklist: "Breaklist",
@@ -68,11 +93,10 @@ const Pit = () => {
 
   return (
     <div>
-      {/* Header row: title + month/date navigation */}
       <div className="flex items-center justify-between mb-5">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">{TAB_TITLES[activeTab] || "Pit System"}</h1>
-          <p className="text-sm text-muted-foreground">Pit System</p>
+          <h1 className="text-2xl font-bold text-foreground">{TAB_TITLES[activeTab] || "Live Game"}</h1>
+          <p className="text-sm text-muted-foreground">Live Game Management</p>
         </div>
         <div className="flex items-center gap-3">
           {showMonthNav && (
@@ -89,7 +113,6 @@ const Pit = () => {
           {showDatePicker && (
             <Input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-44 font-mono" />
           )}
-          {/* Legends inline with header */}
           {activeTab === "rota" && (
             <div className="flex items-center gap-1.5">
               {ROTA_SHIFTS.map(s => (
@@ -102,19 +125,142 @@ const Pit = () => {
             <div className="flex items-center gap-1.5">
               <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-red-500/30 text-red-300">A = Absent</span>
               <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-amber-500/30 text-amber-300">S = Sick</span>
-              <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-muted/20 text-muted-foreground">· = Empty</span>
             </div>
           )}
         </div>
       </div>
 
-      {/* Content */}
+      {activeTab === "employee" && <DealerEmployeeList />}
       {activeTab === "rota" && <RotaGrid month={month} />}
       {activeTab === "attendance" && <AttendanceGrid month={month} />}
       {activeTab === "breaklist" && <BreaklistGrid date={date} />}
       {activeTab === "players" && <ActivePlayers />}
       {activeTab === "client-tracker" && <ClientTracker />}
-      
+    </div>
+  );
+};
+
+// =================== EMPLOYEE LIST (TABLE FORMAT) ===================
+const DealerEmployeeList = () => {
+  const { data: dealers = [] } = useDealers();
+  const createDealer = useCreateDealer();
+  const [name, setName] = useState("");
+  const [category, setCategory] = useState<DealerCategory>("dealer");
+  const [isPitBoss, setIsPitBoss] = useState(false);
+
+  const activeDealers = dealers.filter((d: any) => d.is_active && !d.is_pit_boss);
+  const pitBosses = dealers.filter((d: any) => d.is_active && d.is_pit_boss);
+
+  const calcYears = (startDate: string | null) => {
+    if (!startDate) return "—";
+    const diff = new Date().getFullYear() - new Date(startDate).getFullYear();
+    return `${diff}y`;
+  };
+
+  const formatSalary = (s: number | null) => {
+    if (!s) return "—";
+    return s.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex gap-2 max-w-2xl">
+        <Input
+          placeholder="Name"
+          value={name}
+          onChange={e => setName(e.target.value)}
+          onKeyDown={e => { if (e.key === "Enter" && name) { createDealer.mutate(name); setName(""); } }}
+        />
+        <Select value={category} onValueChange={v => setCategory(v as DealerCategory)}>
+          <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {(["trainee", "dealer", "inspector", "expert"] as DealerCategory[]).map(c => (
+              <SelectItem key={c} value={c}>{CATEGORY_LABELS[c]}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Button onClick={() => { if (name) { createDealer.mutate(name); setName(""); } }} disabled={!name}>
+          <UserPlus className="w-4 h-4 mr-1" /> Add
+        </Button>
+      </div>
+
+      {/* Dealers table */}
+      <div className="cms-panel overflow-x-auto">
+        <div className="px-4 py-2 border-b border-border flex items-center gap-2">
+          <Badge variant="outline" className="text-[10px] bg-blue-500/20 text-blue-400 border-blue-500/30">Dealers</Badge>
+          <span className="text-xs text-muted-foreground">{activeDealers.length} members</span>
+        </div>
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-border">
+              <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-2 w-8">Cat</th>
+              <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-2">Name</th>
+              <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-2">Salary</th>
+              <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-2">Contract Start</th>
+              <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-2">Contract End</th>
+              <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-2">Years</th>
+              <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-2">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {activeDealers.map((d: any, idx: number) => (
+              <tr key={d.id} className={`border-b border-border last:border-0 ${idx % 2 === 1 ? "bg-muted/10" : ""}`}>
+                <td className="px-4 py-2">
+                  <span className={`inline-flex items-center justify-center w-6 h-6 rounded text-[10px] font-mono font-bold ${CATEGORY_COLORS[d.category] || "text-muted-foreground bg-muted/20"}`}>
+                    {CATEGORY_LETTER[d.category] || "?"}
+                  </span>
+                </td>
+                <td className="px-4 py-2 text-sm text-card-foreground font-medium">{d.name}</td>
+                <td className="px-4 py-2 text-sm text-card-foreground font-mono">{formatSalary(d.salary)}</td>
+                <td className="px-4 py-2 text-sm text-muted-foreground font-mono">{d.contract_start || "—"}</td>
+                <td className="px-4 py-2 text-sm text-muted-foreground font-mono">{d.contract_end || "—"}</td>
+                <td className="px-4 py-2 text-sm text-muted-foreground font-mono">{calcYears(d.contract_start)}</td>
+                <td className="px-4 py-2">
+                  <span className={`text-xs ${d.is_active ? "text-emerald-400" : "text-red-400"}`}>
+                    {d.is_active ? "Active" : "Inactive"}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Pit Bosses table */}
+      <div className="cms-panel overflow-x-auto">
+        <div className="px-4 py-2 border-b border-border flex items-center gap-2">
+          <Badge variant="outline" className="text-[10px] bg-purple-500/20 text-purple-400 border-purple-500/30">Pit Bosses</Badge>
+          <span className="text-xs text-muted-foreground">{pitBosses.length} members</span>
+        </div>
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-border">
+              <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-2">Name</th>
+              <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-2">Salary</th>
+              <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-2">Contract Start</th>
+              <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-2">Contract End</th>
+              <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-2">Years</th>
+              <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-2">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {pitBosses.map((d: any, idx: number) => (
+              <tr key={d.id} className={`border-b border-border last:border-0 ${idx % 2 === 1 ? "bg-muted/10" : ""}`}>
+                <td className="px-4 py-2 text-sm text-card-foreground font-medium">{d.name}</td>
+                <td className="px-4 py-2 text-sm text-card-foreground font-mono">{formatSalary(d.salary)}</td>
+                <td className="px-4 py-2 text-sm text-muted-foreground font-mono">{d.contract_start || "—"}</td>
+                <td className="px-4 py-2 text-sm text-muted-foreground font-mono">{d.contract_end || "—"}</td>
+                <td className="px-4 py-2 text-sm text-muted-foreground font-mono">{calcYears(d.contract_start)}</td>
+                <td className="px-4 py-2">
+                  <span className={`text-xs ${d.is_active ? "text-emerald-400" : "text-red-400"}`}>
+                    {d.is_active ? "Active" : "Inactive"}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 };
@@ -134,7 +280,8 @@ const RotaGrid = ({ month }: { month: string }) => {
   const setRota = useSetPitRota();
   const deleteRota = useDeletePitRota();
 
-  const activeDealers = dealers.filter(d => d.is_active);
+  const activeDealers = dealers.filter((d: any) => d.is_active && !d.is_pit_boss);
+  const pitBosses = dealers.filter((d: any) => d.is_active && d.is_pit_boss);
 
   const today = new Date();
   const todayDay = today.getDate();
@@ -150,18 +297,14 @@ const RotaGrid = ({ month }: { month: string }) => {
     return monthAttendance.find((a: any) => a.dealer_id === dealerId && a.date === dateStr);
   };
 
-  // Display shift: rota entry, or auto-E if worked but not scheduled
   const getDisplayShift = (dealerId: string, day: number): { shift: string; isAuto: boolean } | null => {
     const rotaEntry = getRotaEntry(dealerId, day);
     if (rotaEntry) return { shift: rotaEntry.shift, isAuto: false };
-
     const att = getAttendanceEntry(dealerId, day);
     if (att) {
       const val = String((att as any).value);
       const num = Number(val);
-      if (!isNaN(num) && num > 0) {
-        return { shift: "E", isAuto: true };
-      }
+      if (!isNaN(num) && num > 0) return { shift: "E", isAuto: true };
     }
     return null;
   };
@@ -169,7 +312,6 @@ const RotaGrid = ({ month }: { month: string }) => {
   const handleClick = (dealerId: string, day: number) => {
     const dateStr = `${month}-${String(day).padStart(2, "0")}`;
     const current = getRotaEntry(dealerId, day);
-
     if (!current) {
       setRota.mutate({ dealer_id: dealerId, date: dateStr, shift: "M" });
     } else {
@@ -183,15 +325,13 @@ const RotaGrid = ({ month }: { month: string }) => {
   };
 
   const focusNextCell = (current: HTMLElement) => {
-    // Try next sibling cell's button first, then wrap to next row
     const td = current.closest("td");
     const nextTd = td?.nextElementSibling;
     const nextBtn = nextTd?.querySelector("button") as HTMLElement;
     if (nextBtn) { nextBtn.focus(); return; }
-    // Try first cell of next row
     const tr = td?.closest("tr");
     const nextRow = tr?.nextElementSibling;
-    const firstBtn = nextRow?.querySelector("td:nth-child(2) button") as HTMLElement;
+    const firstBtn = nextRow?.querySelector("td:nth-child(3) button") as HTMLElement;
     firstBtn?.focus();
   };
 
@@ -218,17 +358,15 @@ const RotaGrid = ({ month }: { month: string }) => {
     } else if (key === "ARROWDOWN") {
       e.preventDefault();
       const td = (e.target as HTMLElement).closest("td");
-      const idx = td ? Array.from(td.parentElement!.children).indexOf(td) : -1;
+      const idx2 = td ? Array.from(td.parentElement!.children).indexOf(td) : -1;
       const nextRow = td?.closest("tr")?.nextElementSibling;
-      const btn = nextRow?.children[idx]?.querySelector("button") as HTMLElement;
-      btn?.focus();
+      (nextRow?.children[idx2]?.querySelector("button") as HTMLElement)?.focus();
     } else if (key === "ARROWUP") {
       e.preventDefault();
       const td = (e.target as HTMLElement).closest("td");
-      const idx = td ? Array.from(td.parentElement!.children).indexOf(td) : -1;
+      const idx2 = td ? Array.from(td.parentElement!.children).indexOf(td) : -1;
       const prevRow = td?.closest("tr")?.previousElementSibling;
-      const btn = prevRow?.children[idx]?.querySelector("button") as HTMLElement;
-      btn?.focus();
+      (prevRow?.children[idx2]?.querySelector("button") as HTMLElement)?.focus();
     }
   };
 
@@ -236,12 +374,10 @@ const RotaGrid = ({ month }: { month: string }) => {
     e.preventDefault();
     const text = e.clipboardData.getData("text").trim().toUpperCase();
     const dateStr = `${month}-${String(day).padStart(2, "0")}`;
-    // Support pasting multiple shifts separated by space/tab/comma
     const values = text.split(/[\s,]+/);
     if (values.length === 1 && ROTA_SHIFTS.includes(values[0] as typeof ROTA_SHIFTS[number])) {
       setRota.mutate({ dealer_id: dealerId, date: dateStr, shift: values[0] as typeof ROTA_SHIFTS[number] });
     } else if (values.length > 1) {
-      // Paste sequence starting from this day
       values.forEach((v, i) => {
         const d = day + i;
         if (d <= daysInMonth && ROTA_SHIFTS.includes(v as typeof ROTA_SHIFTS[number])) {
@@ -256,12 +392,60 @@ const RotaGrid = ({ month }: { month: string }) => {
     const counts: Record<string, number> = {};
     days.forEach(day => {
       const display = getDisplayShift(dealerId, day);
-      if (display) {
-        counts[display.shift] = (counts[display.shift] || 0) + 1;
-      }
+      if (display) counts[display.shift] = (counts[display.shift] || 0) + 1;
     });
     return counts;
   };
+
+  const renderDealerRows = (dealerList: any[], label: string, badgeClass: string) => (
+    <>
+      <tr className="bg-muted/20">
+        <td colSpan={days.length + 5} className="px-3 py-1.5 sticky left-0">
+          <Badge variant="outline" className={`text-[10px] ${badgeClass}`}>{label} ({dealerList.length})</Badge>
+        </td>
+      </tr>
+      {dealerList.map((dealer: any, idx: number) => {
+        const stats = getDealerStats(dealer.id);
+        return (
+          <tr key={dealer.id} className={`border-b border-border last:border-0 ${idx % 2 === 0 ? "" : "bg-muted/10"}`}>
+            <td className={`px-1 py-1 text-center sticky left-0 z-10 ${idx % 2 === 0 ? "bg-card" : "bg-card/95"}`}>
+              <span className={`inline-flex items-center justify-center w-5 h-5 rounded text-[9px] font-mono font-bold ${CATEGORY_COLORS[dealer.category] || "text-muted-foreground bg-muted/20"}`}>
+                {CATEGORY_LETTER[dealer.category] || "?"}
+              </span>
+            </td>
+            <td className={`px-3 py-1 text-xs font-medium text-card-foreground sticky left-[28px] z-10 ${idx % 2 === 0 ? "bg-card" : "bg-card/95"}`}>
+              {dealer.name}
+            </td>
+            {days.map(day => {
+              const display = getDisplayShift(dealer.id, day);
+              const isToday = isCurrentMonth && day === todayDay;
+              const dateObj = new Date(y, m - 1, day);
+              const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
+              return (
+                <td key={day} className={`px-0.5 py-0.5 text-center ${isToday ? "bg-primary/10" : isWeekend ? "bg-muted/15" : ""}`}>
+                  <button
+                    onClick={() => handleClick(dealer.id, day)}
+                    onKeyDown={e => handleKeyDown(e, dealer.id, day)}
+                    onPaste={e => handlePaste(e, dealer.id, day)}
+                    className={`w-full h-7 rounded text-[10px] font-mono transition-colors focus:outline-none focus:ring-1 focus:ring-primary ${
+                      display
+                        ? `${SHIFT_COLORS[display.shift] || "bg-muted text-muted-foreground"} ${display.isAuto ? "border border-dashed border-emerald-500/50" : ""}`
+                        : "bg-transparent hover:bg-muted/50 text-transparent hover:text-muted-foreground"
+                    }`}
+                  >
+                    {display?.shift || "·"}
+                  </button>
+                </td>
+              );
+            })}
+            <td className="px-2 py-1 text-center"><span className="text-[10px] font-mono font-bold text-blue-400">{stats["M"] || ""}</span></td>
+            <td className="px-2 py-1 text-center"><span className="text-[10px] font-mono font-bold text-indigo-400">{stats["N"] || ""}</span></td>
+            <td className="px-2 py-1 text-center"><span className="text-[10px] font-mono font-bold text-emerald-400">{stats["E"] || ""}</span></td>
+          </tr>
+        );
+      })}
+    </>
+  );
 
   return (
     <div className="cms-panel overflow-x-auto">
@@ -269,21 +453,15 @@ const RotaGrid = ({ month }: { month: string }) => {
         <table className="w-full border-collapse">
           <thead>
             <tr className="border-b border-border">
-              <th className="text-left text-xs font-medium text-muted-foreground uppercase px-3 py-2 sticky left-0 bg-card z-10 min-w-[120px]">
-                Dealer
-              </th>
+              <th className="text-center text-xs font-medium text-muted-foreground uppercase px-1 py-2 sticky left-0 bg-card z-10 w-7">C</th>
+              <th className="text-left text-xs font-medium text-muted-foreground uppercase px-3 py-2 sticky left-[28px] bg-card z-10 min-w-[120px]">Name</th>
               {days.map(day => {
                 const dateObj = new Date(y, m - 1, day);
                 const weekday = WEEKDAYS[dateObj.getDay()];
                 const isToday = isCurrentMonth && day === todayDay;
                 const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
                 return (
-                  <th
-                    key={day}
-                    className={`text-center px-0.5 py-1 min-w-[36px] ${
-                      isToday ? "bg-primary/20" : isWeekend ? "bg-muted/30" : ""
-                    }`}
-                  >
+                  <th key={day} className={`text-center px-0.5 py-1 min-w-[36px] ${isToday ? "bg-primary/20" : isWeekend ? "bg-muted/30" : ""}`}>
                     <div className="text-[9px] text-muted-foreground">{weekday}</div>
                     <div className={`text-xs font-mono ${isToday ? "text-primary font-bold" : "text-card-foreground"}`}>{day}</div>
                   </th>
@@ -295,57 +473,8 @@ const RotaGrid = ({ month }: { month: string }) => {
             </tr>
           </thead>
           <tbody>
-            {activeDealers.length === 0 ? (
-              <tr><td colSpan={daysInMonth + 4} className="text-center text-muted-foreground text-sm py-8">No dealers — add dealers first</td></tr>
-            ) : activeDealers.map((dealer, idx) => {
-              const stats = getDealerStats(dealer.id);
-              return (
-                <tr
-                  key={dealer.id}
-                  className={`border-b border-border last:border-0 ${idx % 2 === 0 ? "" : "bg-muted/10"}`}
-                >
-                  <td className={`px-3 py-1 text-xs font-medium text-card-foreground sticky left-0 z-10 ${idx % 2 === 0 ? "bg-card" : "bg-card/95"}`}>
-                    {dealer.name}
-                  </td>
-                  {days.map(day => {
-                    const display = getDisplayShift(dealer.id, day);
-                    const isToday = isCurrentMonth && day === todayDay;
-                    const dateObj = new Date(y, m - 1, day);
-                    const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
-                    return (
-                      <td
-                        key={day}
-                        className={`px-0.5 py-0.5 text-center ${
-                          isToday ? "bg-primary/10" : isWeekend ? "bg-muted/15" : ""
-                        }`}
-                      >
-                        <button
-                          onClick={() => handleClick(dealer.id, day)}
-                          onKeyDown={e => handleKeyDown(e, dealer.id, day)}
-                          onPaste={e => handlePaste(e, dealer.id, day)}
-                          className={`w-full h-7 rounded text-[10px] font-mono transition-colors focus:outline-none focus:ring-1 focus:ring-primary ${
-                            display
-                              ? `${SHIFT_COLORS[display.shift] || "bg-muted text-muted-foreground"} ${display.isAuto ? "border border-dashed border-emerald-500/50" : ""}`
-                              : "bg-transparent hover:bg-muted/50 text-transparent hover:text-muted-foreground"
-                          }`}
-                        >
-                          {display?.shift || "·"}
-                        </button>
-                      </td>
-                    );
-                  })}
-                  <td className="px-2 py-1 text-center">
-                    <span className="text-[10px] font-mono font-bold text-blue-400">{stats["M"] || ""}</span>
-                  </td>
-                  <td className="px-2 py-1 text-center">
-                    <span className="text-[10px] font-mono font-bold text-indigo-400">{stats["N"] || ""}</span>
-                  </td>
-                  <td className="px-2 py-1 text-center">
-                    <span className="text-[10px] font-mono font-bold text-emerald-400">{stats["E"] || ""}</span>
-                  </td>
-                </tr>
-              );
-            })}
+            {renderDealerRows(activeDealers, "Dealers", "bg-blue-500/20 text-blue-400 border-blue-500/30")}
+            {pitBosses.length > 0 && renderDealerRows(pitBosses, "Pit Bosses", "bg-purple-500/20 text-purple-400 border-purple-500/30")}
           </tbody>
         </table>
       </div>
@@ -367,9 +496,9 @@ const AttendanceGrid = ({ month }: { month: string }) => {
   const { data: rota = [] } = usePitRotaRange(startDate, endDate);
   const setAttendance = useSetDealerAttendance();
 
-  const activeDealers = dealers.filter(d => d.is_active);
+  const activeDealers = dealers.filter((d: any) => d.is_active && !d.is_pit_boss);
+  const pitBosses = dealers.filter((d: any) => d.is_active && d.is_pit_boss);
 
-  // Get rota shift for a dealer on a specific day
   const getRotaShift = (dealerId: string, day: number): string | null => {
     const dateStr = `${month}-${String(day).padStart(2, "0")}`;
     const entry = rota.find((r: any) => r.dealer_id === dealerId && r.date === dateStr);
@@ -391,18 +520,10 @@ const AttendanceGrid = ({ month }: { month: string }) => {
   const handleSave = (dealerId: string, day: number, val: string) => {
     const dateStr = `${month}-${String(day).padStart(2, "0")}`;
     const trimmed = val.trim().toUpperCase();
-    if (trimmed === "") {
-      setAttendance.mutate({ dealer_id: dealerId, date: dateStr, value: "" });
-      return;
-    }
-    if (trimmed === "A" || trimmed === "S") {
-      setAttendance.mutate({ dealer_id: dealerId, date: dateStr, value: trimmed });
-      return;
-    }
+    if (trimmed === "") { setAttendance.mutate({ dealer_id: dealerId, date: dateStr, value: "" }); return; }
+    if (trimmed === "A" || trimmed === "S") { setAttendance.mutate({ dealer_id: dealerId, date: dateStr, value: trimmed }); return; }
     const num = Number(trimmed);
-    if (!isNaN(num) && num >= 0 && num <= 24) {
-      setAttendance.mutate({ dealer_id: dealerId, date: dateStr, value: String(num) });
-    }
+    if (!isNaN(num) && num >= 0 && num <= 24) { setAttendance.mutate({ dealer_id: dealerId, date: dateStr, value: String(num) }); }
   };
 
   const getDealerTotal = (dealerId: string) => {
@@ -413,27 +534,79 @@ const AttendanceGrid = ({ month }: { month: string }) => {
     }, 0);
   };
 
+  const renderAttendanceRows = (dealerList: any[], label: string, badgeClass: string) => (
+    <>
+      <tr className="bg-muted/20">
+        <td colSpan={days.length + 3} className="px-3 py-1.5 sticky left-0">
+          <Badge variant="outline" className={`text-[10px] ${badgeClass}`}>{label} ({dealerList.length})</Badge>
+        </td>
+      </tr>
+      {dealerList.map((dealer: any, idx: number) => {
+        const total = getDealerTotal(dealer.id);
+        return (
+          <tr key={dealer.id} className={`border-b border-border last:border-0 ${idx % 2 === 0 ? "" : "bg-muted/10"}`}>
+            <td className={`px-1 py-1 text-center sticky left-0 z-10 ${idx % 2 === 0 ? "bg-card" : "bg-card/95"}`}>
+              <span className={`inline-flex items-center justify-center w-5 h-5 rounded text-[9px] font-mono font-bold ${CATEGORY_COLORS[dealer.category] || "text-muted-foreground bg-muted/20"}`}>
+                {CATEGORY_LETTER[dealer.category] || "?"}
+              </span>
+            </td>
+            <td className={`px-3 py-1 text-xs font-medium text-card-foreground sticky left-[28px] z-10 ${idx % 2 === 0 ? "bg-card" : "bg-card/95"}`}>
+              {dealer.name}
+            </td>
+            {days.map(day => {
+              const val = getValue(dealer.id, day);
+              const isToday = isCurrentMonth && day === todayDay;
+              const dateObj = new Date(y, m - 1, day);
+              const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
+              const isStatus = val === "A" || val === "S";
+              const isHours = val !== "" && !isStatus;
+              const rotaShift = getRotaShift(dealer.id, day);
+              const isScheduled = !!rotaShift;
+              const isEmpty = val === "";
+              return (
+                <td key={day} className={`px-0.5 py-0.5 text-center ${isToday ? "bg-primary/10" : isWeekend ? "bg-muted/15" : ""}`}>
+                  <input
+                    type="text"
+                    defaultValue={val}
+                    key={`${dealer.id}-${month}-${day}-${val}`}
+                    onBlur={e => handleSave(dealer.id, day, e.target.value)}
+                    onKeyDown={e => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+                    className={`w-full h-7 rounded text-[10px] font-mono text-center border-0 focus:outline-none focus:ring-1 focus:ring-primary transition-colors ${
+                      isStatus ? ATT_COLORS[val]
+                        : isHours ? "bg-transparent text-card-foreground font-bold"
+                        : isScheduled && isEmpty
+                          ? `${rotaShift === "M" ? "bg-blue-500/15 text-blue-400" : rotaShift === "N" ? "bg-indigo-500/15 text-indigo-400" : "bg-emerald-500/15 text-emerald-400"} placeholder:text-current`
+                          : "bg-transparent text-transparent hover:text-muted-foreground"
+                    }`}
+                    placeholder={isScheduled && isEmpty ? rotaShift! : "·"}
+                  />
+                </td>
+              );
+            })}
+            <td className="px-2 py-1 text-center">
+              <span className="text-[10px] font-mono font-bold text-primary">{total || ""}</span>
+            </td>
+          </tr>
+        );
+      })}
+    </>
+  );
+
   return (
     <div className="cms-panel overflow-x-auto">
       <div className="min-w-[1200px]">
         <table className="w-full border-collapse">
           <thead>
             <tr className="border-b border-border">
-              <th className="text-left text-xs font-medium text-muted-foreground uppercase px-3 py-2 sticky left-0 bg-card z-10 min-w-[120px]">
-                Dealer
-              </th>
+              <th className="text-center text-xs font-medium text-muted-foreground uppercase px-1 py-2 sticky left-0 bg-card z-10 w-7">C</th>
+              <th className="text-left text-xs font-medium text-muted-foreground uppercase px-3 py-2 sticky left-[28px] bg-card z-10 min-w-[120px]">Name</th>
               {days.map(day => {
                 const dateObj = new Date(y, m - 1, day);
                 const weekday = WEEKDAYS[dateObj.getDay()];
                 const isToday = isCurrentMonth && day === todayDay;
                 const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
                 return (
-                  <th
-                    key={day}
-                    className={`text-center px-0.5 py-1 min-w-[36px] ${
-                      isToday ? "bg-primary/20" : isWeekend ? "bg-muted/30" : ""
-                    }`}
-                  >
+                  <th key={day} className={`text-center px-0.5 py-1 min-w-[36px] ${isToday ? "bg-primary/20" : isWeekend ? "bg-muted/30" : ""}`}>
                     <div className="text-[9px] text-muted-foreground">{weekday}</div>
                     <div className={`text-xs font-mono ${isToday ? "text-primary font-bold" : "text-card-foreground"}`}>{day}</div>
                   </th>
@@ -443,69 +616,13 @@ const AttendanceGrid = ({ month }: { month: string }) => {
             </tr>
           </thead>
           <tbody>
-            {activeDealers.length === 0 ? (
-              <tr><td colSpan={daysInMonth + 2} className="text-center text-muted-foreground text-sm py-8">No dealers — add dealers first</td></tr>
-            ) : activeDealers.map((dealer, idx) => {
-              const total = getDealerTotal(dealer.id);
-              return (
-                <tr
-                  key={dealer.id}
-                  className={`border-b border-border last:border-0 ${idx % 2 === 0 ? "" : "bg-muted/10"}`}
-                >
-                  <td className={`px-3 py-1 text-xs font-medium text-card-foreground sticky left-0 z-10 ${idx % 2 === 0 ? "bg-card" : "bg-card/95"}`}>
-                    {dealer.name}
-                  </td>
-                  {days.map(day => {
-                    const val = getValue(dealer.id, day);
-                    const isToday = isCurrentMonth && day === todayDay;
-                    const dateObj = new Date(y, m - 1, day);
-                    const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
-                    const isStatus = val === "A" || val === "S";
-                    const isHours = val !== "" && !isStatus;
-                    const rotaShift = getRotaShift(dealer.id, day);
-                    const isScheduled = !!rotaShift;
-                    const isEmpty = val === "";
-                    return (
-                      <td
-                        key={day}
-                        className={`px-0.5 py-0.5 text-center ${
-                          isToday ? "bg-primary/10" : isWeekend ? "bg-muted/15" : ""
-                        }`}
-                      >
-                        <div className="relative">
-                          <input
-                            type="text"
-                            defaultValue={val}
-                            key={`${dealer.id}-${month}-${day}-${val}`}
-                            onBlur={e => handleSave(dealer.id, day, e.target.value)}
-                            onKeyDown={e => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
-                            className={`w-full h-7 rounded text-[10px] font-mono text-center border-0 focus:outline-none focus:ring-1 focus:ring-primary transition-colors ${
-                              isStatus
-                                ? ATT_COLORS[val]
-                                : isHours
-                                  ? "bg-transparent text-card-foreground font-bold"
-                                  : isScheduled && isEmpty
-                                    ? `${rotaShift === "M" ? "bg-blue-500/15 text-blue-400" : rotaShift === "N" ? "bg-indigo-500/15 text-indigo-400" : "bg-emerald-500/15 text-emerald-400"} placeholder:text-current`
-                                    : "bg-transparent text-transparent hover:text-muted-foreground"
-                            }`}
-                            placeholder={isScheduled && isEmpty ? rotaShift! : "·"}
-                          />
-                        </div>
-                      </td>
-                    );
-                  })}
-                  <td className="px-2 py-1 text-center">
-                    <span className="text-[10px] font-mono font-bold text-primary">{total || ""}</span>
-                  </td>
-                </tr>
-              );
-            })}
+            {renderAttendanceRows(activeDealers, "Dealers", "bg-blue-500/20 text-blue-400 border-blue-500/30")}
+            {pitBosses.length > 0 && renderAttendanceRows(pitBosses, "Pit Bosses", "bg-purple-500/20 text-purple-400 border-purple-500/30")}
           </tbody>
         </table>
       </div>
     </div>
   );
 };
-
 
 export default Pit;

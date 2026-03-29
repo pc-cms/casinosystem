@@ -17,8 +17,8 @@ const NAV_ITEMS: { to: string; icon: typeof LayoutDashboard; label: string; shor
   { to: "/cage", icon: Landmark, label: "Cage", shortcut: "C", roles: ["manager", "cashier", "finance_manager"] },
   { to: "/tables", icon: Table2, label: "Tables", shortcut: "T", roles: ["manager", "cashier", "pit", "finance_manager", "security"] },
   { to: "/expenses", icon: Receipt, label: "Expenses", shortcut: "E", roles: ["manager", "cashier", "finance_manager"] },
-  { to: "/pit", icon: Gamepad2, label: "Pit", shortcut: "I", roles: ["manager", "pit", "finance_manager"] },
-  { to: "/staff", icon: Building2, label: "Staff", shortcut: "F", roles: ["manager", "pit", "finance_manager"] },
+  { to: "/pit", icon: Gamepad2, label: "Live Game", shortcut: "I", roles: ["manager", "pit", "finance_manager"] },
+  { to: "/staff", icon: Building2, label: "Floor", shortcut: "F", roles: ["manager", "pit", "finance_manager"] },
   { to: "/groups", icon: UsersRound, label: "Groups", shortcut: "G", roles: ["manager", "finance_manager"] },
   { to: "/tracker", icon: Grid3X3, label: "Tracker", shortcut: "K", roles: ["manager", "pit"] },
   { to: "/stats", icon: BarChart3, label: "Stats", shortcut: "S", roles: ["manager", "finance_manager", "security"] },
@@ -27,6 +27,7 @@ const NAV_ITEMS: { to: string; icon: typeof LayoutDashboard; label: string; shor
 ];
 
 const PIT_SUBITEMS = [
+  { tab: "employee", icon: UserCheck, label: "Employee" },
   { tab: "rota", icon: CalendarDays, label: "Rota" },
   { tab: "attendance", icon: ClipboardCheck, label: "Attendance" },
   { tab: "breaklist", icon: ListChecks, label: "Breaklist" },
@@ -47,7 +48,7 @@ export const AppSidebar = () => {
 
   const isPitActive = location.pathname === "/pit";
   const isStaffActive = location.pathname === "/staff";
-  const currentTab = new URLSearchParams(location.search).get("tab") || (isPitActive ? "rota" : "employee");
+  const currentTab = new URLSearchParams(location.search).get("tab") || (isPitActive ? "employee" : "employee");
 
   const visibleItems = NAV_ITEMS.filter(item =>
     roles.some(r => item.roles.includes(r as AppRole))

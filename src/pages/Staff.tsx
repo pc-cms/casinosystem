@@ -55,17 +55,17 @@ const Staff = () => {
   const showMonthNav = activeTab === "rota" || activeTab === "attendance";
 
   const TAB_TITLES: Record<string, string> = {
-    employee: "Employee",
-    rota: "Staff Rota",
-    attendance: "Staff Attendance",
+    employee: "Floor Staff",
+    rota: "Floor Rota",
+    attendance: "Floor Attendance",
   };
 
   return (
     <div>
       <div className="flex items-center justify-between mb-5">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">{TAB_TITLES[activeTab] || "Staff"}</h1>
-          <p className="text-sm text-muted-foreground">Staff Management</p>
+          <h1 className="text-2xl font-bold text-foreground">{TAB_TITLES[activeTab] || "Floor"}</h1>
+          <p className="text-sm text-muted-foreground">Floor Management</p>
         </div>
         <div className="flex items-center gap-3">
           {showMonthNav && (
@@ -104,7 +104,7 @@ const Staff = () => {
   );
 };
 
-// =================== EMPLOYEE LIST ===================
+// =================== EMPLOYEE LIST (TABLE FORMAT) ===================
 const EmployeeList = () => {
   const { data: staff = [] } = useStaffMembers();
   const createStaff = useCreateStaffMember();
@@ -120,6 +120,17 @@ const EmployeeList = () => {
     });
     return groups;
   }, [staff]);
+
+  const calcYears = (startDate: string | null) => {
+    if (!startDate) return "—";
+    const diff = new Date().getFullYear() - new Date(startDate).getFullYear();
+    return `${diff}y`;
+  };
+
+  const formatSalary = (s: number | null) => {
+    if (!s) return "—";
+    return s.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+  };
 
   return (
     <div className="space-y-4">
@@ -144,21 +155,43 @@ const EmployeeList = () => {
         const members = grouped[dept] || [];
         if (members.length === 0) return null;
         return (
-          <div key={dept} className="cms-panel">
+          <div key={dept} className="cms-panel overflow-x-auto">
             <div className="px-4 py-2 border-b border-border flex items-center gap-2">
               <Badge variant="outline" className={`text-[10px] ${DEPT_BADGE_COLORS[dept] || ""}`}>
                 {DEPARTMENT_LABELS[dept]}
               </Badge>
               <span className="text-xs text-muted-foreground">{members.length} staff</span>
             </div>
-            {members.map((s, idx) => (
-              <div key={s.id} className={`flex items-center justify-between px-4 py-2 border-b border-border last:border-0 ${idx % 2 === 1 ? "bg-muted/10" : ""}`}>
-                <span className="text-sm text-card-foreground">{s.name}</span>
-                <span className={`text-xs ${s.is_active ? "text-emerald-400" : "text-red-400"}`}>
-                  {s.is_active ? "Active" : "Inactive"}
-                </span>
-              </div>
-            ))}
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-2">Name</th>
+                  <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-2">Position</th>
+                  <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-2">Salary</th>
+                  <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-2">Contract Start</th>
+                  <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-2">Contract End</th>
+                  <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-2">Years</th>
+                  <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-2">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {members.map((s: any, idx: number) => (
+                  <tr key={s.id} className={`border-b border-border last:border-0 ${idx % 2 === 1 ? "bg-muted/10" : ""}`}>
+                    <td className="px-4 py-2 text-sm text-card-foreground font-medium">{s.name}</td>
+                    <td className="px-4 py-2 text-sm text-muted-foreground">{DEPARTMENT_LABELS[s.department as StaffDepartment]}</td>
+                    <td className="px-4 py-2 text-sm text-card-foreground font-mono">{formatSalary(s.salary)}</td>
+                    <td className="px-4 py-2 text-sm text-muted-foreground font-mono">{s.contract_start || "—"}</td>
+                    <td className="px-4 py-2 text-sm text-muted-foreground font-mono">{s.contract_end || "—"}</td>
+                    <td className="px-4 py-2 text-sm text-muted-foreground font-mono">{calcYears(s.contract_start)}</td>
+                    <td className="px-4 py-2">
+                      <span className={`text-xs ${s.is_active ? "text-emerald-400" : "text-red-400"}`}>
+                        {s.is_active ? "Active" : "Inactive"}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         );
       })}
@@ -413,18 +446,10 @@ const StaffAttendanceGrid = ({ month }: { month: string }) => {
   const handleSave = (staffId: string, day: number, val: string) => {
     const dateStr = `${month}-${String(day).padStart(2, "0")}`;
     const trimmed = val.trim().toUpperCase();
-    if (trimmed === "") {
-      setAttendance.mutate({ staff_id: staffId, date: dateStr, value: "" });
-      return;
-    }
-    if (trimmed === "A" || trimmed === "S") {
-      setAttendance.mutate({ staff_id: staffId, date: dateStr, value: trimmed });
-      return;
-    }
+    if (trimmed === "") { setAttendance.mutate({ staff_id: staffId, date: dateStr, value: "" }); return; }
+    if (trimmed === "A" || trimmed === "S") { setAttendance.mutate({ staff_id: staffId, date: dateStr, value: trimmed }); return; }
     const num = Number(trimmed);
-    if (!isNaN(num) && num >= 0 && num <= 24) {
-      setAttendance.mutate({ staff_id: staffId, date: dateStr, value: String(num) });
-    }
+    if (!isNaN(num) && num >= 0 && num <= 24) { setAttendance.mutate({ staff_id: staffId, date: dateStr, value: String(num) }); }
   };
 
   const getTotal = (staffId: string) => {

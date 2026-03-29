@@ -40,7 +40,7 @@ const ROUTE_ROLES: Record<string, string[]> = {
   "/tables": ["manager", "cashier", "pit", "finance_manager", "security"],
   "/expenses": ["manager", "cashier", "finance_manager"],
   "/pit": ["manager", "pit", "finance_manager"],
-  "/staff": ["manager", "pit", "finance_manager"],
+  "/floor": ["manager", "pit", "finance_manager"],
   "/groups": ["manager", "finance_manager"],
   "/tracker": ["manager", "pit"],
   "/reports": ["manager", "finance_manager", "security"],
@@ -80,7 +80,8 @@ const ProtectedRoutes = () => {
         <Route path="/tables" element={<RoleGuard path="/tables"><Tables /></RoleGuard>} />
         <Route path="/expenses" element={<RoleGuard path="/expenses"><Expenses /></RoleGuard>} />
         <Route path="/pit" element={<RoleGuard path="/pit"><Pit /></RoleGuard>} />
-        <Route path="/staff" element={<RoleGuard path="/staff"><Staff /></RoleGuard>} />
+        <Route path="/staff" element={<RoleGuard path="/floor"><Staff /></RoleGuard>} />
+        <Route path="/floor" element={<RoleGuard path="/floor"><Staff /></RoleGuard>} />
         <Route path="/groups" element={<RoleGuard path="/groups"><Groups /></RoleGuard>} />
         <Route path="/tracker" element={<RoleGuard path="/tracker"><TableTracker /></RoleGuard>} />
         <Route path="/reports" element={<RoleGuard path="/reports"><Reports /></RoleGuard>} />
