@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Users, Landmark, Table2, Receipt,
   ClipboardList, BarChart3, Sun, Moon, Shield, Gamepad2, 
   UsersRound, Grid3X3, LogOut, Settings, FileBarChart,
-  CalendarDays, ClipboardCheck, ListChecks, UserCog,
+  CalendarDays, ClipboardCheck, ListChecks, UserCog, Eye, Target,
 } from "lucide-react";
 import { useTheme } from "@/lib/theme";
 import { useAuth } from "@/lib/auth-context";
@@ -28,6 +28,8 @@ const PIT_SUBITEMS = [
   { tab: "rota", icon: CalendarDays, label: "Rota" },
   { tab: "attendance", icon: ClipboardCheck, label: "Attendance" },
   { tab: "breaklist", icon: ListChecks, label: "Breaklist" },
+  { tab: "players", icon: Eye, label: "Players" },
+  { tab: "client-tracker", icon: Target, label: "Client Tracker" },
   { tab: "dealers", icon: UserCog, label: "Dealers" },
 ];
 
