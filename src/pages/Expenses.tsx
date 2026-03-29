@@ -6,6 +6,7 @@ import { useExpenseAnalytics } from "@/hooks/use-expenses-analytics";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/ui/number-input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Plus, CheckCircle, TrendingUp } from "lucide-react";
@@ -206,7 +207,7 @@ const AddExpenseDialog = ({ open, onClose, players, shiftId }: { open: boolean; 
             <SelectTrigger><SelectValue placeholder="Category" /></SelectTrigger>
             <SelectContent>{CATS.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}</SelectContent>
           </Select>
-          <Input type="number" placeholder="Amount (TZS)" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} className="font-mono" />
+          <NumberInput placeholder="Amount (TZS)" value={form.amount} onChange={v => setForm(f => ({ ...f, amount: v }))} />
           <Input placeholder="Description" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
           <Select value={form.player_id} onValueChange={v => setForm(f => ({ ...f, player_id: v }))}>
             <SelectTrigger><SelectValue placeholder="Link to player (optional)" /></SelectTrigger>

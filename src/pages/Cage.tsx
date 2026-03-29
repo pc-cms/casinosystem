@@ -6,6 +6,7 @@ import { useBatchChipSnapshot, getExpectedChips, getInitialTotal } from "@/hooks
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/ui/number-input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -136,11 +137,11 @@ const CashCountGrid = ({
     <div className="grid grid-cols-2 gap-3 mt-3">
       <div>
         <p className="text-[10px] font-medium text-muted-foreground uppercase mb-1">Bank (TZS)</p>
-        <Input type="number" min={0} value={bank || ""} onChange={e => onBankChange(Number(e.target.value) || 0)} className="font-mono no-spin" placeholder="0" />
+        <NumberInput value={bank || ""} onChange={v => onBankChange(Number(v) || 0)} className="no-spin" placeholder="0" />
       </div>
       <div>
         <p className="text-[10px] font-medium text-muted-foreground uppercase mb-1">Mobile (TZS)</p>
-        <Input type="number" min={0} value={mobile || ""} onChange={e => onMobileChange(Number(e.target.value) || 0)} className="font-mono no-spin" placeholder="0" />
+        <NumberInput value={mobile || ""} onChange={v => onMobileChange(Number(v) || 0)} className="no-spin" placeholder="0" />
       </div>
     </div>
   </div>
@@ -203,7 +204,7 @@ const OpenShiftScreen = ({ tables }: { tables: any[] }) => {
             {FOREIGN_CURRENCIES.map(c => (
               <div key={c} className="flex items-center gap-2">
                 <span className="text-sm font-mono font-medium text-card-foreground w-10">{c}</span>
-                <Input type="number" min={0} value={rates[c] || ""} onChange={e => setRates(r => ({ ...r, [c]: Number(e.target.value) || 0 }))} className="font-mono" placeholder="0" />
+                <NumberInput value={rates[c] || ""} onChange={v => setRates(r => ({ ...r, [c]: Number(v) || 0 }))} placeholder="0" />
                 <span className="text-xs text-muted-foreground">TZS</span>
               </div>
             ))}
@@ -467,8 +468,8 @@ const BuyInForm = ({ players, tables, exchangeRates, shiftId, onSubmit, loading 
         <div className="flex gap-2 items-end">
           <div className="flex-1">
             <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1 block">3. Amount</label>
-            <Input ref={amountRef} type="number" min={0} value={amount} onChange={e => setAmount(e.target.value)}
-              className="font-mono text-lg h-11" placeholder="0"
+            <NumberInput value={amount} onChange={setAmount}
+              className="text-lg h-11" placeholder="0"
               onKeyDown={e => e.key === "Enter" && handleSubmit()} />
           </div>
           <div className="w-20">
