@@ -137,11 +137,11 @@ const CashCountGrid = ({
     <div className="grid grid-cols-2 gap-3 mt-3">
       <div>
         <p className="text-[10px] font-medium text-muted-foreground uppercase mb-1">Bank (TZS)</p>
-        <Input type="number" min={0} value={bank || ""} onChange={e => onBankChange(Number(e.target.value) || 0)} className="font-mono no-spin" placeholder="0" />
+        <NumberInput value={bank || ""} onChange={v => onBankChange(Number(v) || 0)} className="no-spin" placeholder="0" />
       </div>
       <div>
         <p className="text-[10px] font-medium text-muted-foreground uppercase mb-1">Mobile (TZS)</p>
-        <Input type="number" min={0} value={mobile || ""} onChange={e => onMobileChange(Number(e.target.value) || 0)} className="font-mono no-spin" placeholder="0" />
+        <NumberInput value={mobile || ""} onChange={v => onMobileChange(Number(v) || 0)} className="no-spin" placeholder="0" />
       </div>
     </div>
   </div>
