@@ -40,7 +40,7 @@ const ROUTE_ROLES: Record<string, string[]> = {
   "/tables": ["manager", "cashier", "pit", "finance_manager", "security"],
   "/expenses": ["manager", "cashier", "finance_manager"],
   "/pit": ["manager", "pit", "finance_manager"],
-  "/staff": ["manager", "pit", "finance_manager"],
+  "/floor": ["manager", "pit", "finance_manager"],
   "/groups": ["manager", "finance_manager"],
   "/tracker": ["manager", "pit"],
   "/reports": ["manager", "finance_manager", "security"],
