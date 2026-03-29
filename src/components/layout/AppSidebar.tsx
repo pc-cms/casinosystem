@@ -46,7 +46,8 @@ export const AppSidebar = () => {
   const location = useLocation();
 
   const isPitActive = location.pathname === "/pit";
-  const currentTab = new URLSearchParams(location.search).get("tab") || "rota";
+  const isStaffActive = location.pathname === "/staff";
+  const currentTab = new URLSearchParams(location.search).get("tab") || (isPitActive ? "rota" : "employee");
 
   const visibleItems = NAV_ITEMS.filter(item =>
     roles.some(r => item.roles.includes(r as AppRole))
@@ -64,7 +65,7 @@ export const AppSidebar = () => {
       <nav className="flex-1 py-2 px-2 space-y-0.5 overflow-y-auto">
         {visibleItems.map(item => (
           <div key={item.to}>
-            <NavLink to={item.to} end={item.to === "/" || item.to === "/pit"}
+            <NavLink to={item.to} end={item.to === "/" || item.to === "/pit" || item.to === "/staff"}
               className={({ isActive }) =>
                 `flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
                   isActive ? "bg-sidebar-accent text-sidebar-primary font-medium" : "text-sidebar-foreground hover:bg-sidebar-accent"
