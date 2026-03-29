@@ -473,17 +473,10 @@ export const useSetPitRota = () => {
       }, { onConflict: "dealer_id,date" });
       if (error) throw error;
       await logAction(casinoId, "pit", "ROTA_SET", input);
-
-      if (input.shift === "S" || input.shift === "A") {
-        await logAction(casinoId, "breaklist", "AUTO_CLEARED", {
-          dealer_id: input.dealer_id, date: input.date, reason: `Shift set to ${input.shift}`,
-        });
-      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["pit-rota"] });
       qc.invalidateQueries({ queryKey: ["pit-rota-range"] });
-      qc.invalidateQueries({ queryKey: ["breaklist"] });
     },
   });
 };
@@ -506,6 +499,46 @@ export const useDeletePitRota = () => {
       qc.invalidateQueries({ queryKey: ["pit-rota"] });
       qc.invalidateQueries({ queryKey: ["pit-rota-range"] });
     },
+  });
+};
+
+// ============ DEALER ATTENDANCE ============
+export const useDealerAttendance = (date: string) => {
+  const { casinoId } = useAuth();
+  return useQuery({
+    queryKey: ["dealer-attendance", casinoId, date],
+    queryFn: async () => {
+      if (!casinoId) return [];
+      const { data, error } = await supabase
+        .from("dealer_attendance" as any)
+        .select("*")
+        .eq("casino_id", casinoId)
+        .eq("date", date);
+      if (error) throw error;
+      return data as any[];
+    },
+    enabled: !!casinoId,
+  });
+};
+
+export const useSetDealerAttendance = () => {
+  const qc = useQueryClient();
+  const { casinoId, user } = useAuth();
+  return useMutation({
+    mutationFn: async (input: { dealer_id: string; date: string; hours: number }) => {
+      if (!casinoId || !user) throw new Error("Not authenticated");
+      const { error } = await supabase.from("dealer_attendance" as any).upsert({
+        casino_id: casinoId,
+        dealer_id: input.dealer_id,
+        date: input.date,
+        hours: input.hours,
+        recorded_by: user.id,
+        updated_at: new Date().toISOString(),
+      } as any, { onConflict: "casino_id,dealer_id,date" });
+      if (error) throw error;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["dealer-attendance"] }); },
+    onError: (e) => toast.error(e.message),
   });
 };
 
