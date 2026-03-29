@@ -613,6 +613,78 @@ const CashCheckForm = ({ expectedBalance, shiftId, exchangeRates, cashChecks }: 
   );
 };
 
+// =================== CLOSE TABLES FORM ===================
+const CloseTablesForm = ({ tables }: { tables: any[] }) => {
+  const { data: baseline = [] } = useChipBaseline();
+  const closeAllTables = useCloseAllTables();
+  const [confirmed, setConfirmed] = useState<Record<string, boolean>>({});
+  const baselineMap = useMemo(() => baselineToMap(baseline), [baseline]);
+  const tablesWithResults = useMemo(() => tables.filter(t => t.closing_result !== null && t.status === "open"), [tables]);
+  const allConfirmed = tablesWithResults.length > 0 && tablesWithResults.every(t => confirmed[t.id]);
+
+  const handleClose = () => {
+    closeAllTables.mutate(tablesWithResults.map(t => t.id), { onSuccess: () => setConfirmed({}) });
+  };
+
+  if (tablesWithResults.length === 0) {
+    return (
+      <div className="cms-panel p-6 text-center">
+        <Package className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+        <p className="text-sm font-medium text-card-foreground">No tables ready to close</p>
+        <p className="text-xs text-muted-foreground mt-1">Pit Boss must record Result before tables can be closed.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <p className="text-xs text-muted-foreground">Distribute chips to restore baseline float, then confirm each table.</p>
+      {tablesWithResults.map(table => {
+        const closingChips = (table.closing_chips || {}) as Record<string, number>;
+        const tableBaseline = baselineMap[table.id] || {};
+        const result = Number(table.closing_result) || 0;
+        const distribution = (table.denominations || []).map((d: number) => {
+          const actual = Number(closingChips[String(d)]) || 0;
+          const expected = tableBaseline[d] || 0;
+          return { denom: d, diff: actual - expected };
+        }).filter(r => r.diff !== 0);
+
+        return (
+          <div key={table.id} className="cms-panel p-3">
+            <div className="flex items-center gap-3 mb-2">
+              <Checkbox checked={!!confirmed[table.id]} onCheckedChange={c => setConfirmed(r => ({ ...r, [table.id]: !!c }))} id={`close-${table.id}`} />
+              <label htmlFor={`close-${table.id}`} className="flex-1 cursor-pointer">
+                <span className="text-sm font-semibold text-card-foreground">{table.name}</span>
+                <span className="text-xs text-muted-foreground ml-2">({table.game})</span>
+              </label>
+              <span className={`font-mono text-sm font-bold ${result >= 0 ? "text-green-500" : "text-destructive"}`}>
+                {result >= 0 ? "+" : ""}{formatCurrency(result)}
+              </span>
+            </div>
+            {distribution.length > 0 ? (
+              <div className="ml-8 space-y-0.5">
+                {distribution.map(r => (
+                  <div key={r.denom} className="flex items-center gap-2 text-xs">
+                    <span className={`cms-chip text-[8px] ${(CHIP_COLORS as any)[r.denom] || "bg-muted text-foreground"}`}>{formatChipLabel(r.denom)}</span>
+                    {r.diff > 0
+                      ? <span className="text-orange-500 font-mono">← Take {r.diff} from table</span>
+                      : <span className="text-blue-500 font-mono">→ Give {Math.abs(r.diff)} to table</span>}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="ml-8 text-[10px] text-green-500 font-mono">✓ At baseline</p>
+            )}
+          </div>
+        );
+      })}
+      <Button onClick={handleClose} disabled={!allConfirmed || closeAllTables.isPending} className="w-full gap-1.5" variant="destructive">
+        <Package className="w-4 h-4" /> {closeAllTables.isPending ? "Closing…" : `Close ${tablesWithResults.length} Table(s)`}
+      </Button>
+    </div>
+  );
+};
+
 // =================== CLOSE SHIFT DIALOG ===================
 const CloseShiftDialog = ({ open, onClose, shift, expectedBalance, cashResult, totalBuyIns, totalCashouts, totalExpenses, openingFloat, tables, onConfirm, loading }: any) => {
   const [step, setStep] = useState(1);
