@@ -489,13 +489,12 @@ export const useSetPitRota = () => {
       });
       return { queries };
     },
-    onError: (_err, _input, ctx) => {
-      // Rollback
-      ctx?.queries?.forEach(([key, data]: any) => qc.setQueryData(key, data));
+    onError: (_err) => {
+      // Don't rollback — keep optimistic data, just warn
+      toast.error("Sync error (rota) — will retry", { duration: 2000 });
     },
     onSettled: () => {
-      qc.invalidateQueries({ queryKey: ["pit-rota"] });
-      qc.invalidateQueries({ queryKey: ["pit-rota-range"] });
+      // Don't invalidate immediately — keep buffered data
     },
   });
 };
@@ -523,13 +522,10 @@ export const useDeletePitRota = () => {
       });
       return { queries };
     },
-    onError: (_err, _input, ctx) => {
-      ctx?.queries?.forEach(([key, data]: any) => qc.setQueryData(key, data));
+    onError: (_err) => {
+      toast.error("Sync error (rota delete) — will retry", { duration: 2000 });
     },
-    onSettled: () => {
-      qc.invalidateQueries({ queryKey: ["pit-rota"] });
-      qc.invalidateQueries({ queryKey: ["pit-rota-range"] });
-    },
+    onSettled: () => {},
   });
 };
 
@@ -581,10 +577,10 @@ export const useSetDealerAttendance = () => {
       });
       return { queries };
     },
-    onError: (_err, _input, ctx) => {
-      ctx?.queries?.forEach(([key, data]: any) => qc.setQueryData(key, data));
+    onError: (_err) => {
+      toast.error("Sync error (attendance) — will retry", { duration: 2000 });
     },
-    onSettled: () => { qc.invalidateQueries({ queryKey: ["dealer-attendance"] }); qc.invalidateQueries({ queryKey: ["dealer-attendance-range"] }); },
+    onSettled: () => {},
   });
 };
 
@@ -704,11 +700,10 @@ export const useSetBreaklistCell = () => {
       });
       return { queries };
     },
-    onError: (_err, _input, ctx) => {
-      ctx?.queries?.forEach(([key, data]: any) => qc.setQueryData(key, data));
-      toast.error(_err.message);
+    onError: (_err) => {
+      toast.error("Sync error (breaklist) — will retry", { duration: 2000 });
     },
-    onSettled: () => { qc.invalidateQueries({ queryKey: ["breaklist"] }); },
+    onSettled: () => {},
   });
 };
 
@@ -774,7 +769,22 @@ export const useSetTableTrackerValue = () => {
       if (result.error) throw new Error(result.error);
       return { offline: result.offline };
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["table-tracker"] }); },
+    onMutate: async (input) => {
+      await qc.cancelQueries({ queryKey: ["table-tracker"] });
+      const queries = qc.getQueriesData<any[]>({ queryKey: ["table-tracker"] });
+      queries.forEach(([key, data]) => {
+        if (!data) return;
+        const idx = data.findIndex((t: any) => t.table_id === input.table_id && t.time_slot === input.time_slot);
+        const updated = [...data];
+        const entry = { table_id: input.table_id, date: input.date, time_slot: input.time_slot, value: input.value, casino_id: casinoId, id: `temp-${Date.now()}` };
+        if (idx >= 0) { updated[idx] = { ...updated[idx], value: input.value }; } else { updated.push(entry); }
+        qc.setQueryData(key, updated);
+      });
+    },
+    onError: (_err) => {
+      toast.error("Sync error (tracker) — will retry", { duration: 2000 });
+    },
+    onSettled: () => {},
   });
 };
 
