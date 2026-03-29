@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { NumberInput } from "@/components/ui/number-input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Plus, CheckCircle, TrendingUp } from "lucide-react";
+import { Plus, CheckCircle } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
 import { formatCurrency } from "@/lib/currency";
@@ -90,48 +90,13 @@ const Expenses = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-        <div className="cms-panel p-4">
-          <h3 className="text-xs font-semibold text-muted-foreground uppercase mb-3 flex items-center gap-1.5">
-            <TrendingUp className="w-3.5 h-3.5" /> By Category
-          </h3>
-          <div className="space-y-2">
-            {Object.entries(analytics.byCategory).sort((a, b) => b[1].total - a[1].total).map(([cat, data]) => (
-              <div key={cat} className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className={`text-[10px] font-mono uppercase px-1.5 py-0.5 rounded ${CAT_COLORS[cat] || CAT_COLORS.other}`}>{cat}</span>
-                  <span className="text-xs text-muted-foreground">×{data.count}</span>
-                </div>
-                <span className="font-mono text-sm text-card-foreground">{formatCurrency(data.total)}</span>
-              </div>
-            ))}
-            {Object.keys(analytics.byCategory).length === 0 && <p className="text-xs text-muted-foreground">No data</p>}
-          </div>
-        </div>
-
-        <div className="cms-panel p-4 lg:col-span-2">
-          <h3 className="text-xs font-semibold text-muted-foreground uppercase mb-3">Top Players by Expenses</h3>
-          <div className="space-y-2">
-            {analytics.topPlayers.map(([pid, data]) => (
-              <div key={pid} className="flex items-center justify-between">
-                <span className="text-sm text-card-foreground">{data.name}</span>
-                <div className="flex items-center gap-3">
-                  <span className="text-xs text-muted-foreground">×{data.count}</span>
-                  <span className="font-mono text-sm font-medium text-card-foreground">{formatCurrency(data.total)}</span>
-                </div>
-              </div>
-            ))}
-            {analytics.topPlayers.length === 0 && <p className="text-xs text-muted-foreground">No player-linked expenses</p>}
-          </div>
-        </div>
-      </div>
 
       {/* Expenses Table */}
       <div className="cms-panel overflow-hidden">
         <table className="w-full">
           <thead>
             <tr className="border-b border-border">
-              {["Category", "Description", "Player", "Amount", "Status", "Action"].map(h => (
+              {["Category", "Description", "Target", "Amount", "Status", "Action"].map(h => (
                 <th key={h} className={`text-xs font-medium text-muted-foreground uppercase px-4 py-3 ${h === "Amount" ? "text-right" : h === "Status" || h === "Action" ? "text-center" : "text-left"}`}>{h}</th>
               ))}
             </tr>
