@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/table";
 import { toast } from "sonner";
 
-type SortKey = "name" | "drop" | "cashout" | "result";
+type SortKey = "name" | "dropR" | "dropT" | "cashout" | "result";
 type SortDir = "asc" | "desc";
 
 const ActivePlayers = () => {
@@ -29,7 +29,7 @@ const ActivePlayers = () => {
   const { casinoId, user } = useAuth();
   const queryClient = useQueryClient();
 
-  const [sortKey, setSortKey] = useState<SortKey>("drop");
+  const [sortKey, setSortKey] = useState<SortKey>("dropR");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<Set<string>>(new Set(["slots", "table", "mix"]));
@@ -123,9 +123,12 @@ const ActivePlayers = () => {
       .filter(p => relevantIds.has(p.id))
       .map(p => {
         const playerTx = transactions.filter((t: any) => t.player_id === p.id);
-        const drop = playerTx.filter((t: any) => t.type === "buy").reduce((s: number, t: any) => s + Number(t.amount), 0);
+        const dropR = playerTx.filter((t: any) => t.type === "buy").reduce((s: number, t: any) => s + Number(t.amount), 0);
         const cashout = playerTx.filter((t: any) => t.type === "cashout").reduce((s: number, t: any) => s + Number(t.amount), 0);
-        const result = drop - cashout;
+        const playerAllSessions = sessions.filter((s: any) => s.player_id === p.id);
+        const dropV = playerAllSessions.reduce((s: number, ses: any) => s + Number(ses.total_bet || 0), 0);
+        const dropT = dropR + dropV;
+        const result = dropR - cashout;
         const tags = allTags.filter(t => t.player_id === p.id).map(t => t.tag);
         const activeSession = activeSessions.find((s: any) => s.player_id === p.id);
         const table = activeSession?.table_id ? tables.find(t => t.id === activeSession.table_id) : null;
@@ -150,7 +153,9 @@ const ActivePlayers = () => {
           nickname: p.nickname,
           status: p.status,
           player_type: (p as any).player_type as string || "table",
-          drop,
+          dropR,
+          dropV,
+          dropT,
           cashout,
           result,
           tags,
@@ -177,7 +182,8 @@ const ActivePlayers = () => {
       let cmp = 0;
       switch (sortKey) {
         case "name": cmp = `${a.first_name} ${a.last_name}`.localeCompare(`${b.first_name} ${b.last_name}`); break;
-        case "drop": cmp = a.drop - b.drop; break;
+        case "dropR": cmp = a.dropR - b.dropR; break;
+        case "dropT": cmp = a.dropT - b.dropT; break;
         case "cashout": cmp = a.cashout - b.cashout; break;
         case "result": cmp = a.result - b.result; break;
       }
@@ -209,9 +215,10 @@ const ActivePlayers = () => {
       : <ArrowUp className="w-3 h-3 ml-1 text-primary" />;
   };
 
-  const totalDrop = activePlayers.reduce((s, p) => s + p.drop, 0);
+  const totalDropR = activePlayers.reduce((s, p) => s + p.dropR, 0);
+  const totalDropT = activePlayers.reduce((s, p) => s + p.dropT, 0);
   const totalCashout = activePlayers.reduce((s, p) => s + p.cashout, 0);
-  const totalResult = totalDrop - totalCashout;
+  const totalResult = totalDropR - totalCashout;
 
   return (
     <div className="space-y-4">
@@ -289,8 +296,11 @@ const ActivePlayers = () => {
                   <TableHead className="text-center">Tags</TableHead>
                   <TableHead className="text-center">Table</TableHead>
                   <TableHead className="text-center">Arrived</TableHead>
-                  <TableHead className="text-right cursor-pointer select-none hover:text-foreground" onClick={() => handleSort("drop")}>
-                    <span className="flex items-center justify-end">Drop <SortIcon col="drop" /></span>
+                  <TableHead className="text-right cursor-pointer select-none hover:text-foreground" onClick={() => handleSort("dropR")}>
+                    <span className="flex items-center justify-end">Drop R <SortIcon col="dropR" /></span>
+                  </TableHead>
+                  <TableHead className="text-right cursor-pointer select-none hover:text-foreground" onClick={() => handleSort("dropT")}>
+                    <span className="flex items-center justify-end">Drop T <SortIcon col="dropT" /></span>
                   </TableHead>
                   <TableHead className="text-right cursor-pointer select-none hover:text-foreground" onClick={() => handleSort("cashout")}>
                     <span className="flex items-center justify-end">Cash Out <SortIcon col="cashout" /></span>
@@ -339,7 +349,10 @@ const ActivePlayers = () => {
                       }
                     </TableCell>
                     <TableCell className="text-right font-mono font-bold text-card-foreground">
-                      {p.drop > 0 ? formatNumberSpaces(p.drop) : <span className="text-muted-foreground/40">·</span>}
+                      {p.dropR > 0 ? formatNumberSpaces(p.dropR) : <span className="text-muted-foreground/40">·</span>}
+                    </TableCell>
+                    <TableCell className="text-right font-mono font-bold text-muted-foreground">
+                      {p.dropT > 0 ? formatNumberSpaces(p.dropT) : <span className="text-muted-foreground/40">·</span>}
                     </TableCell>
                     <TableCell className="text-right font-mono font-bold text-emerald-400">
                       {p.cashout > 0 ? formatNumberSpaces(p.cashout) : <span className="text-muted-foreground/40">·</span>}
@@ -369,10 +382,11 @@ const ActivePlayers = () => {
                   </TableRow>
                 ))}
                 {/* Totals row */}
-                {activePlayers.length > 0 && (totalDrop > 0 || totalCashout > 0) && (
+                {activePlayers.length > 0 && (totalDropR > 0 || totalCashout > 0) && (
                   <TableRow className="border-t-2 border-border bg-muted/20">
                     <TableCell className="font-bold text-xs text-card-foreground" colSpan={5}>TOTAL</TableCell>
-                    <TableCell className="text-right font-mono font-bold text-card-foreground">{formatNumberSpaces(totalDrop)}</TableCell>
+                    <TableCell className="text-right font-mono font-bold text-card-foreground">{formatNumberSpaces(totalDropR)}</TableCell>
+                    <TableCell className="text-right font-mono font-bold text-muted-foreground">{formatNumberSpaces(totalDropT)}</TableCell>
                     <TableCell className="text-right font-mono font-bold text-emerald-400">{formatNumberSpaces(totalCashout)}</TableCell>
                     <TableCell className={`text-right font-mono font-bold ${totalResult > 0 ? "text-emerald-400" : totalResult < 0 ? "text-red-400" : "text-muted-foreground"}`}>
                       {totalResult > 0 ? "+" : ""}{formatNumberSpaces(totalResult)}
