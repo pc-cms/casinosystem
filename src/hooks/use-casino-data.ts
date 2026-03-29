@@ -542,7 +542,25 @@ export const useSetDealerAttendance = () => {
   });
 };
 
-// ============ BREAKLIST ============
+export const useDealerAttendanceRange = (startDate: string, endDate: string) => {
+  const { casinoId } = useAuth();
+  return useQuery({
+    queryKey: ["dealer-attendance-range", casinoId, startDate, endDate],
+    queryFn: async () => {
+      if (!casinoId) return [];
+      const { data, error } = await supabase
+        .from("dealer_attendance" as any)
+        .select("*")
+        .eq("casino_id", casinoId)
+        .gte("date", startDate)
+        .lte("date", endDate);
+      if (error) throw error;
+      return data as any[];
+    },
+    enabled: !!casinoId,
+  });
+};
+
 export const useBreaklistData = (date: string) => {
   const { casinoId } = useAuth();
   return useQuery({
