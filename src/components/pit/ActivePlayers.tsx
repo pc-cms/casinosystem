@@ -332,7 +332,7 @@ const ActivePlayers = () => {
                     className="h-7 text-xs gap-1"
                     onClick={() => { setPlacingTable("hall"); setPlacingBet(""); }}
                   >
-                    <MapPin className="w-3 h-3" /> В зале
+                    <MapPin className="w-3 h-3" /> In Hall
                   </Button>
                   {tables.filter(t => t.status === "open").map(t => (
                     <Button
