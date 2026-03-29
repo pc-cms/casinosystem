@@ -245,12 +245,16 @@ const Tables = () => {
       </div>
 
       {/* Two-column Table Cards: Left = AR/BJ, Right = Poker */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-6 mb-6">
+        <div className="space-y-3">
+          <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-1 border-b border-border pb-1">AR / BJ</h3>
           {leftTables.map(renderTableCard)}
+          {leftTables.length === 0 && <p className="text-xs text-muted-foreground text-center py-4">No AR/BJ tables</p>}
         </div>
-        <div className="space-y-4">
+        <div className="space-y-3">
+          <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-1 border-b border-border pb-1">Poker</h3>
           {rightTables.map(renderTableCard)}
+          {rightTables.length === 0 && <p className="text-xs text-muted-foreground text-center py-4">No Poker tables</p>}
         </div>
       </div>
       {tables.length === 0 && <p className="text-muted-foreground text-sm text-center py-8">No tables configured</p>}
