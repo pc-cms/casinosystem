@@ -260,6 +260,10 @@ const Admin = () => {
           </div>
         </TabsContent>
 
+        <TabsContent value="schedule">
+          <ScheduleSettings />
+        </TabsContent>
+
         <TabsContent value="float">
           <FloatManagement />
         </TabsContent>
