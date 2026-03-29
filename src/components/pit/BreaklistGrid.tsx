@@ -169,11 +169,17 @@ const BreaklistGrid = ({ date }: { date: string }) => {
   return (
     <>
       <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2">
-          {breaklistDealers.length === 0 && (
-            <span className="text-xs text-muted-foreground">No dealers in rota for this date</span>
-          )}
-        </div>
+        <div className="flex items-center gap-1 text-[10px]">
+            <span className="text-muted-foreground">Sort:</span>
+            <button onClick={() => setSortBy("shift")}
+              className={`px-1.5 py-0.5 rounded font-mono ${sortBy === "shift" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
+              Shift
+            </button>
+            <button onClick={() => setSortBy("name")}
+              className={`px-1.5 py-0.5 rounded font-mono ${sortBy === "name" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
+              Name
+            </button>
+          </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={handleRefreshFromRota} className="gap-1 text-xs">
             <RefreshCw className="w-3.5 h-3.5" /> Refresh from Rota
