@@ -279,7 +279,9 @@ const RotaGrid = ({ month }: { month: string }) => {
                       >
                         <button
                           onClick={() => handleClick(dealer.id, day)}
-                          className={`w-full h-7 rounded text-[10px] font-mono transition-colors ${
+                          onKeyDown={e => handleKeyDown(e, dealer.id, day)}
+                          onPaste={e => handlePaste(e, dealer.id, day)}
+                          className={`w-full h-7 rounded text-[10px] font-mono transition-colors focus:outline-none focus:ring-1 focus:ring-primary ${
                             display
                               ? `${SHIFT_COLORS[display.shift] || "bg-muted text-muted-foreground"} ${display.isAuto ? "border border-dashed border-emerald-500/50" : ""}`
                               : "bg-transparent hover:bg-muted/50 text-transparent hover:text-muted-foreground"
