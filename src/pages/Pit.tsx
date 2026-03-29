@@ -64,7 +64,6 @@ const Pit = () => {
     breaklist: "Breaklist",
     players: "Active Players",
     "client-tracker": "Client Tracker",
-    dealers: "Dealers",
   };
 
   return (
