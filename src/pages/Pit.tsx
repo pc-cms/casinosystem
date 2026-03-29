@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChevronLeft, ChevronRight, UserPlus, ArrowUpDown, ZoomIn, ZoomOut, RefreshCw, Check } from "lucide-react";
 import BreaklistGrid from "@/components/pit/BreaklistGrid";
-import { isBusinessToday } from "@/lib/business-day";
+import { getBusinessDate, isBusinessToday } from "@/lib/business-day";
 
 const ROTA_SHIFTS = ["M", "N", "L", "E"] as const;
 
@@ -55,8 +55,6 @@ const CATEGORY_COLORS: Record<string, string> = {
   inspector: "text-amber-400 bg-amber-500/20",
   expert: "text-emerald-400 bg-emerald-500/20",
 };
-
-import { getBusinessDate, isBusinessToday } from "@/lib/business-day";
 
 const Pit = () => {
   const businessToday = getBusinessDate();
