@@ -261,10 +261,11 @@ const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }
                       return (
                         <td key={slot} className={`px-0.5 py-0.5 text-center relative ${isCurrentCol ? "bg-primary/5" : ""}`}>
                           <button
-                            onClick={() => handleCellClick(dealer.id, slot)}
+                            onClick={() => isEditable && handleCellClick(dealer.id, slot)}
+                            disabled={!isEditable}
                             className={`w-full h-7 rounded text-[9px] font-mono font-bold relative transition-colors ${
-                              cell ? ROLE_COLORS[cell.role] || "bg-muted text-muted-foreground" : "bg-transparent hover:bg-muted/50 text-transparent hover:text-muted-foreground"
-                            } ${cell?.is_locked ? "ring-1 ring-yellow-500/40" : ""} ${isActiveCell ? "ring-2 ring-primary" : ""}`}
+                              cell ? ROLE_COLORS[cell.role] || "bg-muted text-muted-foreground" : isEditable ? "bg-transparent hover:bg-muted/50 text-transparent hover:text-muted-foreground" : "bg-transparent text-transparent"
+                            } ${cell?.is_locked ? "ring-1 ring-yellow-500/40" : ""} ${isActiveCell ? "ring-2 ring-primary" : ""} ${!isEditable ? "cursor-default" : ""}`}
                             title={tableName ? `${cell?.role} @ ${tableName}` : cell?.role}
                           >
                             {displayLabel}
