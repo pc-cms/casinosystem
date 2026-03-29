@@ -6,18 +6,25 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UserPlus, ChevronLeft, ChevronRight } from "lucide-react";
 import BreaklistGrid from "@/components/pit/BreaklistGrid";
 
-const ROTA_SHIFTS = ["M", "N", "L"] as const;
+const ROTA_SHIFTS = ["M", "N", "L", "E"] as const;
 
 const SHIFT_COLORS: Record<string, string> = {
   M: "bg-blue-500/30 text-blue-300 font-bold",
   N: "bg-indigo-500/30 text-indigo-300 font-bold",
   L: "bg-amber-500/30 text-amber-300 font-bold",
+  E: "bg-emerald-500/30 text-emerald-300 font-bold",
 };
 
 const SHIFT_LABELS: Record<string, string> = {
   M: "Middle (18:00)",
   N: "Night (21:00)",
   L: "Leave",
+  E: "Extra",
+};
+
+const ATT_COLORS: Record<string, string> = {
+  A: "bg-red-500/30 text-red-300",
+  S: "bg-amber-500/30 text-amber-300",
 };
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -114,6 +121,12 @@ const RotaGrid = ({ month }: { month: string }) => {
   const setRota = useSetPitRota();
   const deleteRota = useDeletePitRota();
 
+  // Fetch attendance for the whole month to detect Extra shifts
+  const { data: attendanceData = [] } = useDealerAttendance(startDate);
+  // We need attendance for each day — fetch range. For simplicity, we'll load per-month.
+  // Actually useDealerAttendance only takes a single date. We need a range hook or load all days.
+  // For now, we'll show E from rota data + manual. Auto-E detection works best with range query.
+
   const activeDealers = dealers.filter(d => d.is_active);
 
   const today = new Date();
@@ -174,13 +187,14 @@ const RotaGrid = ({ month }: { month: string }) => {
                   </th>
                 );
               })}
-              <th className="text-center text-xs font-medium text-muted-foreground uppercase px-2 py-2 min-w-[60px]">M</th>
-              <th className="text-center text-xs font-medium text-muted-foreground uppercase px-2 py-2 min-w-[60px]">N</th>
+              <th className="text-center text-xs font-medium text-muted-foreground uppercase px-2 py-2 min-w-[40px]">M</th>
+              <th className="text-center text-xs font-medium text-muted-foreground uppercase px-2 py-2 min-w-[40px]">N</th>
+              <th className="text-center text-xs font-medium text-muted-foreground uppercase px-2 py-2 min-w-[40px]">E</th>
             </tr>
           </thead>
           <tbody>
             {activeDealers.length === 0 ? (
-              <tr><td colSpan={daysInMonth + 3} className="text-center text-muted-foreground text-sm py-8">No dealers — add dealers first</td></tr>
+              <tr><td colSpan={daysInMonth + 4} className="text-center text-muted-foreground text-sm py-8">No dealers — add dealers first</td></tr>
             ) : activeDealers.map((dealer, idx) => {
               const stats = getDealerStats(dealer.id);
               return (
@@ -222,6 +236,9 @@ const RotaGrid = ({ month }: { month: string }) => {
                   <td className="px-2 py-1 text-center">
                     <span className="text-[10px] font-mono font-bold text-indigo-400">{stats["N"] || ""}</span>
                   </td>
+                  <td className="px-2 py-1 text-center">
+                    <span className="text-[10px] font-mono font-bold text-emerald-400">{stats["E"] || ""}</span>
+                  </td>
                 </tr>
               );
             })}
@@ -240,59 +257,91 @@ const AttendanceGrid = ({ date }: { date: string }) => {
 
   const activeDealers = dealers.filter(d => d.is_active);
 
-  const getHours = useCallback((dealerId: string) => {
+  const getValue = useCallback((dealerId: string) => {
     const entry = attendance.find((a: any) => a.dealer_id === dealerId);
-    return entry ? Number((entry as any).hours) : null;
+    return entry ? String((entry as any).value) : "";
   }, [attendance]);
 
   const handleSave = (dealerId: string, val: string) => {
-    const num = Number(val);
-    if (isNaN(num) || num < 0 || num > 24) return;
-    const current = getHours(dealerId);
-    if (current === num) return;
-    setAttendance.mutate({ dealer_id: dealerId, date, hours: num });
+    const trimmed = val.trim().toUpperCase();
+    // Validate: must be a number, A, or S
+    if (trimmed === "") {
+      // Clear — save empty
+      setAttendance.mutate({ dealer_id: dealerId, date, value: "" });
+      return;
+    }
+    if (trimmed === "A" || trimmed === "S") {
+      setAttendance.mutate({ dealer_id: dealerId, date, value: trimmed });
+      return;
+    }
+    const num = Number(trimmed);
+    if (!isNaN(num) && num >= 0 && num <= 24) {
+      setAttendance.mutate({ dealer_id: dealerId, date, value: String(num) });
+      return;
+    }
+    // Invalid — ignore
   };
 
-  const totalHours = attendance.reduce((s: number, a: any) => s + Number(a.hours || 0), 0);
-  const filledCount = attendance.filter((a: any) => Number(a.hours) > 0).length;
+  const totalHours = attendance.reduce((s: number, a: any) => {
+    const n = Number(a.value);
+    return s + (isNaN(n) ? 0 : n);
+  }, 0);
+  const workedCount = attendance.filter((a: any) => !isNaN(Number(a.value)) && Number(a.value) > 0).length;
+  const absentCount = attendance.filter((a: any) => a.value === "A").length;
+  const sickCount = attendance.filter((a: any) => a.value === "S").length;
 
   return (
     <div className="cms-panel">
       <div className="max-w-lg">
         <div className="flex items-center justify-between px-4 py-2 border-b border-border">
           <span className="text-xs font-medium text-muted-foreground uppercase">Dealer</span>
-          <span className="text-xs font-medium text-muted-foreground uppercase w-20 text-center">Hours</span>
+          <div className="flex items-center gap-3">
+            <span className="text-[10px] text-muted-foreground">Hours or A/S</span>
+            <span className="text-xs font-medium text-muted-foreground uppercase w-24 text-center">Value</span>
+          </div>
         </div>
         {activeDealers.length === 0 ? (
           <p className="text-center text-muted-foreground text-sm py-8">No dealers</p>
         ) : activeDealers.map((dealer, idx) => {
-          const hours = getHours(dealer.id);
+          const val = getValue(dealer.id);
+          const isStatus = val === "A" || val === "S";
           return (
             <div
               key={dealer.id}
               className={`flex items-center justify-between px-4 py-2 border-b border-border last:border-0 ${idx % 2 === 1 ? "bg-muted/10" : ""}`}
             >
               <span className="text-sm text-card-foreground">{dealer.name}</span>
-              <input
-                type="number"
-                min="0"
-                max="24"
-                step="0.5"
-                defaultValue={hours ?? ""}
-                key={`${dealer.id}-${date}-${hours}`}
-                onBlur={e => handleSave(dealer.id, e.target.value)}
-                onKeyDown={e => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
-                className="w-20 h-8 text-center text-sm font-mono bg-transparent border border-border rounded px-2 focus:border-primary focus:outline-none text-card-foreground no-spin"
-                placeholder="0"
-              />
+              <div className="flex items-center gap-2">
+                {isStatus && (
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-mono ${ATT_COLORS[val]}`}>
+                    {val === "A" ? "Absent" : "Sick"}
+                  </span>
+                )}
+                <input
+                  type="text"
+                  defaultValue={val}
+                  key={`${dealer.id}-${date}-${val}`}
+                  onBlur={e => handleSave(dealer.id, e.target.value)}
+                  onKeyDown={e => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+                  className={`w-24 h-8 text-center text-sm font-mono bg-transparent border border-border rounded px-2 focus:border-primary focus:outline-none text-card-foreground ${
+                    isStatus ? "border-destructive/30" : ""
+                  }`}
+                  placeholder="0"
+                />
+              </div>
             </div>
           );
         })}
         <div className="flex items-center justify-between px-4 py-3 bg-muted/30 border-t-2 border-primary/30">
           <span className="text-xs font-bold text-card-foreground uppercase">
-            Total ({filledCount} dealers)
+            Summary
           </span>
-          <span className="text-sm font-mono font-bold text-primary w-20 text-center">{totalHours}h</span>
+          <div className="flex items-center gap-4 text-xs font-mono">
+            <span className="text-card-foreground">{workedCount} worked</span>
+            <span className="font-bold text-primary">{totalHours}h</span>
+            {absentCount > 0 && <span className="text-red-400">{absentCount} A</span>}
+            {sickCount > 0 && <span className="text-amber-400">{sickCount} S</span>}
+          </div>
         </div>
       </div>
     </div>
