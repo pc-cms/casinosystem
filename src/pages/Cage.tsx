@@ -107,7 +107,7 @@ const OpenShiftScreen = ({ tables }: { tables: any[] }) => {
   };
 
   return (
-    <div className="max-w-3xl mx-auto mt-8">
+    <div className="max-w-5xl mx-auto mt-8">
       <div className="cms-panel p-6">
         <div className="text-center mb-6">
           <Play className="w-12 h-12 text-primary mx-auto mb-4" />
@@ -626,7 +626,7 @@ const CloseShiftDialog = ({ open, onClose, shift, expectedBalance, cashResult, t
 
   return (
     <Dialog open={open} onOpenChange={v => { if (!v) { setStep(1); onClose(); } }}>
-      <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-w-5xl max-h-[85vh] overflow-y-auto">
         <DialogHeader><DialogTitle>Close Shift — Step {step}/3</DialogTitle></DialogHeader>
 
         {/* Step 1: Table readiness */}
