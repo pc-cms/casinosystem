@@ -156,10 +156,20 @@ const BreaklistGrid = ({ date }: { date: string }) => {
 
   return (
     <>
-      <div className="flex items-center justify-end mb-2 gap-2">
-        <Button variant="outline" size="sm" onClick={handleAccept} className="gap-1 text-xs">
-          <Check className="w-3.5 h-3.5" /> Accept (fill BR)
-        </Button>
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          {breaklistDealers.length === 0 && (
+            <span className="text-xs text-muted-foreground">No dealers in rota for this date</span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={handleRefreshFromRota} className="gap-1 text-xs">
+            <RefreshCw className="w-3.5 h-3.5" /> Refresh from Rota
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleAccept} className="gap-1 text-xs">
+            <Check className="w-3.5 h-3.5" /> Accept (fill BR)
+          </Button>
+        </div>
       </div>
 
       <div className="cms-panel overflow-x-auto">
