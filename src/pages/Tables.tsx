@@ -1,10 +1,9 @@
 import { useState, useMemo, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
-import { useGamingTables, useTransactions } from "@/hooks/use-casino-data";
-import { useActiveShift } from "@/hooks/use-shift";
-import { useChipSnapshots, useBatchChipSnapshot } from "@/hooks/use-chips";
-import { useChipBaseline, useOpenAllTables, useSetTableResults, baselineToMap } from "@/hooks/use-table-lifecycle";
+import { useGamingTables } from "@/hooks/use-casino-data";
+import { useBatchChipSnapshot } from "@/hooks/use-chips";
+import { useChipBaseline, useSetTableResults, baselineToMap } from "@/hooks/use-table-lifecycle";
 import { useAuth } from "@/lib/auth-context";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
