@@ -424,24 +424,10 @@ const TablesContent = () => {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Tables & Chip Accounting</h1>
-          <p className="text-sm text-muted-foreground">Float, Result & Tracking</p>
+          <h1 className="text-2xl font-bold text-foreground">Tables</h1>
+          <p className="text-sm text-muted-foreground">Close tables · Record chip results</p>
         </div>
         <div className="flex items-center gap-2">
-          <Input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-44 font-mono" />
-
-          {/* Open All — when all/some tables are closed */}
-          {closedTables.length > 0 && (
-            <Button variant="default" size="sm" onClick={handleOpenAll} disabled={openAllTables.isPending} className="gap-1.5">
-              <Play className="w-4 h-4" /> Open{closedTables.length < tables.length ? ` (${closedTables.length})` : " All"}
-            </Button>
-          )}
-
-          {/* Chip Count — always available */}
-          <Button size="sm" onClick={() => handleOpenChipCount("save")} className="gap-1.5 bg-cyan-600 hover:bg-cyan-700 text-white border-0">
-            <Coins className="w-4 h-4" /> Chip Count
-          </Button>
-
           {/* Result — only when tables are open and no result set yet */}
           {openTables.length > 0 && !hasResults && (
             <Button variant="default" size="sm" onClick={() => handleOpenChipCount("result")} className="gap-1.5 bg-orange-600 hover:bg-orange-700">
@@ -455,26 +441,6 @@ const TablesContent = () => {
               <Lock className="w-3 h-3" /> Results set — waiting for Cashier
             </Badge>
           )}
-        </div>
-      </div>
-
-      {/* Game-type Summary */}
-      <div className="grid gap-2 mb-4" style={{ gridTemplateColumns: `repeat(${Object.keys(gameTypeTotals).length + 1}, minmax(0, 1fr))` }}>
-        {Object.entries(gameTypeTotals).map(([game, t]) => (
-          <div key={game} className="cms-panel p-2">
-            <p className="text-[9px] uppercase text-muted-foreground tracking-wider">{t.label}</p>
-            <p className={`font-mono text-sm font-bold ${t.result >= 0 ? "text-green-500" : "text-destructive"}`}>
-              {t.result >= 0 ? "+" : ""}{formatCurrency(t.result)}
-            </p>
-            <p className="font-mono text-[10px] text-muted-foreground">R: {formatCurrency(t.dropR)} · V: {formatCurrency(t.dropV)}</p>
-          </div>
-        ))}
-        <div className="cms-panel p-2 border-primary/30">
-          <p className="text-[9px] uppercase text-muted-foreground tracking-wider">Total Casino</p>
-          <p className={`font-mono text-sm font-bold ${totalResult >= 0 ? "text-green-500" : "text-destructive"}`}>
-            {totalResult >= 0 ? "+" : ""}{formatCurrency(totalResult)}
-          </p>
-          <p className="font-mono text-[10px] text-muted-foreground">R: {formatCurrency(totalDropR)} · V: {formatCurrency(totalDropV)}</p>
         </div>
       </div>
 
@@ -498,20 +464,9 @@ const TablesContent = () => {
         </div>
       )}
 
-      {/* Two-column Table Cards */}
-      <div className="grid grid-cols-2 gap-6 mb-6">
-        <div className="space-y-3">
-          <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-1 border-b border-border pb-1">AR / BJ</h3>
-          {leftTables.map(renderTableCard)}
-          {leftTables.length === 0 && <p className="text-xs text-muted-foreground text-center py-4">No AR/BJ tables</p>}
-        </div>
-        <div className="space-y-3">
-          <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-1 border-b border-border pb-1">Poker</h3>
-          {rightTables.map(renderTableCard)}
-          {rightTables.length === 0 && <p className="text-xs text-muted-foreground text-center py-4">No Poker tables</p>}
-        </div>
-      </div>
-      {tables.length === 0 && <p className="text-muted-foreground text-sm text-center py-8">No tables configured</p>}
+      {!hasResults && openTables.length === 0 && (
+        <p className="text-muted-foreground text-sm text-center py-8">No open tables to close</p>
+      )}
 
       {/* Chip Count / Result Dialog */}
       <Dialog open={showCount} onOpenChange={setShowCount}>
