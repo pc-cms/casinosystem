@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { UserPlus, ChevronLeft, ChevronRight } from "lucide-react";
 import BreaklistGrid from "@/components/pit/BreaklistGrid";
+import ActivePlayers from "@/components/pit/ActivePlayers";
+import ClientTracker from "@/components/pit/ClientTracker";
 
 const ROTA_SHIFTS = ["M", "N", "L", "E"] as const;
 
@@ -60,6 +62,8 @@ const Pit = () => {
     rota: "Rota",
     attendance: "Attendance",
     breaklist: "Breaklist",
+    players: "Active Players",
+    "client-tracker": "Client Tracker",
     dealers: "Dealers",
   };
 
@@ -109,6 +113,8 @@ const Pit = () => {
       {activeTab === "rota" && <RotaGrid month={month} />}
       {activeTab === "attendance" && <AttendanceGrid month={month} />}
       {activeTab === "breaklist" && <BreaklistGrid date={date} />}
+      {activeTab === "players" && <ActivePlayers />}
+      {activeTab === "client-tracker" && <ClientTracker />}
       {activeTab === "dealers" && <DealersList />}
     </div>
   );

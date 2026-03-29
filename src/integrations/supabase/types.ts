@@ -407,6 +407,80 @@ export type Database = {
           },
         ]
       }
+      client_sessions: {
+        Row: {
+          avg_bet: number
+          casino_id: string
+          created_at: string
+          created_by: string
+          duration_minutes: number
+          hands_played: number
+          id: string
+          player_id: string
+          started_at: string
+          stopped_at: string | null
+          table_id: string
+          total_bet: number
+        }
+        Insert: {
+          avg_bet?: number
+          casino_id: string
+          created_at?: string
+          created_by: string
+          duration_minutes?: number
+          hands_played?: number
+          id?: string
+          player_id: string
+          started_at?: string
+          stopped_at?: string | null
+          table_id: string
+          total_bet?: number
+        }
+        Update: {
+          avg_bet?: number
+          casino_id?: string
+          created_at?: string
+          created_by?: string
+          duration_minutes?: number
+          hands_played?: number
+          id?: string
+          player_id?: string
+          started_at?: string
+          stopped_at?: string | null
+          table_id?: string
+          total_bet?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_sessions_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_sessions_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "player_economy"
+            referencedColumns: ["player_id"]
+          },
+          {
+            foreignKeyName: "client_sessions_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_sessions_table_id_fkey"
+            columns: ["table_id"]
+            isOneToOne: false
+            referencedRelation: "gaming_tables"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dealer_attendance: {
         Row: {
           casino_id: string
