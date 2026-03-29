@@ -9,8 +9,6 @@ import {
 import { useTheme } from "@/lib/theme";
 import { useAuth } from "@/lib/auth-context";
 import { NetworkStatusIndicator } from "@/components/NetworkStatusIndicator";
-import { useTheme } from "@/lib/theme";
-import { useAuth } from "@/lib/auth-context";
 
 type AppRole = "cashier" | "pit" | "manager" | "reception" | "finance_manager" | "security";
 
