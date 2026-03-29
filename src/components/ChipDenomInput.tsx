@@ -1,10 +1,10 @@
 /**
  * ChipDenomInput — single-column chip denomination input list.
- * Each row: [colored chip label] [input field] [= value]
- * Keyboard-friendly: no spinners, Enter moves to next row.
+ * Each row: [colored chip label] [input field]
+ * Always shows total. Per-row values controlled by showValue.
  */
 import { useRef, useCallback } from "react";
-import { CHIP_DENOMS, CHIP_COLORS, formatChipLabel, formatCurrency } from "@/lib/currency";
+import { CHIP_DENOMS, CHIP_COLORS, formatChipLabel } from "@/lib/currency";
 
 type Props = {
   values: Record<number, number>;
@@ -61,19 +61,17 @@ const ChipDenomInput = ({ values, onChange, denoms = CHIP_DENOMS, showValue = tr
               />
               {showValue && val > 0 && (
                 <span className="text-[10px] font-mono text-muted-foreground whitespace-nowrap">
-                  ={formatCurrency(chipValue)}
+                  ={`TZS ${chipValue.toLocaleString()}`}
                 </span>
               )}
             </div>
           );
         })}
       </div>
-      {showValue && (
-        <div className="flex items-center gap-2 pt-1 mt-1 border-t border-border">
-          <span className="text-xs font-medium text-muted-foreground">Total</span>
-          <span className="font-mono text-sm font-bold text-card-foreground">TZS {total.toLocaleString()}</span>
-        </div>
-      )}
+      <div className="flex items-center gap-2 pt-1 mt-1 border-t border-border">
+        <span className="text-xs font-medium text-muted-foreground">Total</span>
+        <span className="font-mono text-sm font-bold text-card-foreground">TZS {total.toLocaleString()}</span>
+      </div>
     </div>
   );
 };

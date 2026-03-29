@@ -3,13 +3,24 @@ export const CURRENCY = "TZS";
 export const CURRENCY_SYMBOL = "TZS";
 
 // Supported currencies
-export const CURRENCIES = ["TZS", "USD", "EUR"] as const;
+export const CURRENCIES = ["TZS", "USD", "EUR", "GBP", "KES"] as const;
 export type SupportedCurrency = typeof CURRENCIES[number];
+
+// Currency symbols for display
+export const CURRENCY_SYMBOLS: Record<string, string> = {
+  TZS: "TZS",
+  USD: "$",
+  EUR: "€",
+  GBP: "£",
+  KES: "KSh",
+};
 
 // Default exchange rates (TZS per 1 unit)
 export const DEFAULT_EXCHANGE_RATES: Record<string, number> = {
   USD: 2500,
   EUR: 2700,
+  GBP: 3200,
+  KES: 18,
 };
 
 // Cash denominations per currency
@@ -17,7 +28,12 @@ export const CASH_DENOMS: Record<string, number[]> = {
   TZS: [50_000, 20_000, 10_000, 5_000, 2_000, 1_000, 500],
   USD: [100, 50, 20, 10, 5, 1],
   EUR: [500, 200, 100, 50, 20, 10, 5],
+  GBP: [50, 20, 10, 5],
+  KES: [1000, 500, 200, 100, 50],
 };
+
+// Non-TZS currencies (for exchange rate inputs)
+export const FOREIGN_CURRENCIES = CURRENCIES.filter(c => c !== "TZS");
 
 export const CHIP_DENOMS = [5_000_000, 1_000_000, 500_000, 100_000, 50_000, 25_000, 10_000, 5_000, 2_000, 1_000, 500] as const;
 
@@ -41,10 +57,17 @@ export const formatChipLabel = (value: number): string => {
   return String(value);
 };
 
+// Format a cash denomination label (e.g. "$100", "€50", "50K" for TZS)
+export const formatCashDenomLabel = (denom: number, currency: string): string => {
+  if (currency === "TZS") return formatChipLabel(denom);
+  const sym = CURRENCY_SYMBOLS[currency] || "";
+  if (denom >= 1000) return `${sym}${denom / 1000}K`;
+  return `${sym}${denom}`;
+};
+
 export const formatCurrency = (amount: number, currency: string = "TZS"): string => {
-  if (currency === "USD") return `$ ${amount.toLocaleString()}`;
-  if (currency === "EUR") return `€ ${amount.toLocaleString()}`;
-  return `TZS ${amount.toLocaleString()}`;
+  const sym = CURRENCY_SYMBOLS[currency] || currency;
+  return `${sym} ${amount.toLocaleString()}`;
 };
 
 // ============ TABLE STRUCTURE ============
@@ -52,7 +75,7 @@ export interface TableConfig {
   name: string;
   game: string;
   roles: string[];
-  chipCount: number; // chips per denomination at start
+  chipCount: number;
 }
 
 // Table roles by game type
@@ -67,10 +90,10 @@ export const ALL_ROLES = ["P", "Pi", "BJ", "BJi", "AR", "ARi", "ARc", "BR"] as c
 
 // Chip distribution per location type
 export const CHIP_DISTRIBUTION = {
-  card: 20,     // P1-P5, BJ1: 20 chips per denomination
-  roulette: 40, // AR1-AR3: 40 chips per denomination
-  cashier: 50,  // Cashier float: 50 per denomination
-  safe: 100,    // Manager safe: 100 per denomination
+  card: 20,
+  roulette: 40,
+  cashier: 50,
+  safe: 100,
 } as const;
 
 // Role display colors
@@ -88,9 +111,5 @@ export const ROLE_COLORS: Record<string, string> = {
 // Get roles available for a specific table
 export const getRolesForTable = (tableName: string, game: string): string[] => {
   const baseRoles = TABLE_ROLES[game] || [];
-  // Replace generic role prefix with table-specific prefix
-  return baseRoles.map(role => {
-    // Roles are already generic (P, Pi, BJ, BJi, AR, ARi, ARc)
-    return role;
-  });
+  return baseRoles.map(role => role);
 };
