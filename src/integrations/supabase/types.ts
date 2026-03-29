@@ -480,6 +480,7 @@ export type Database = {
       client_sessions: {
         Row: {
           avg_bet: number
+          bet_changed_at: string | null
           casino_id: string
           created_at: string
           created_by: string
@@ -494,6 +495,7 @@ export type Database = {
         }
         Insert: {
           avg_bet?: number
+          bet_changed_at?: string | null
           casino_id: string
           created_at?: string
           created_by: string
@@ -508,6 +510,7 @@ export type Database = {
         }
         Update: {
           avg_bet?: number
+          bet_changed_at?: string | null
           casino_id?: string
           created_at?: string
           created_by?: string
