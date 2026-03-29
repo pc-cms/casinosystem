@@ -1,21 +1,18 @@
 import { useState, useMemo, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
-import { useGamingTables } from "@/hooks/use-casino-data";
+import { useGamingTables, useTableTracker, useSetTableTrackerValue } from "@/hooks/use-casino-data";
 import { useBatchChipSnapshot } from "@/hooks/use-chips";
 import { useChipBaseline, useSetTableResults, baselineToMap } from "@/hooks/use-table-lifecycle";
-import { useAuth } from "@/lib/auth-context";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { CHIP_DENOMS, CHIP_COLORS, formatChipLabel, formatCurrency } from "@/lib/currency";
+import { CHIP_DENOMS, CHIP_COLORS, formatChipLabel, formatCurrency, formatInputWithSpaces, parseSpacedNumber } from "@/lib/currency";
 import { Save, BarChart3, Lock } from "lucide-react";
 import ChipDenomInput from "@/components/ChipDenomInput";
 import ActivePlayers from "@/components/pit/ActivePlayers";
 import ClientTracker from "@/components/pit/ClientTracker";
-import { useTableTracker, useSetTableTrackerValue } from "@/hooks/use-casino-data";
-import { formatInputWithSpaces, parseSpacedNumber } from "@/lib/currency";
 
 // ========== TABLE TRACKER ==========
 const generateSlots = () => {
