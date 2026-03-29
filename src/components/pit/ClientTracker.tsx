@@ -1,17 +1,17 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { usePlayers, useGamingTables } from "@/hooks/use-casino-data";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { NumberInput } from "@/components/ui/number-input";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Play, Square, Clock } from "lucide-react";
+import { Play, Square, Clock, Search } from "lucide-react";
 import { formatNumberSpaces } from "@/lib/currency";
 import { toast } from "sonner";
 
-// Hands per hour by game type
 const HANDS_PER_HOUR: Record<string, number> = {
   "Blackjack": 35,
   "BJ": 35,
@@ -39,6 +39,76 @@ const LiveTimer = ({ startedAt }: { startedAt: string }) => {
     <span className="font-mono text-sm text-primary font-bold">
       {String(h).padStart(2, "0")}:{String(m).padStart(2, "0")}:{String(s).padStart(2, "0")}
     </span>
+  );
+};
+
+// Searchable player picker
+const PlayerSearchInput = ({
+  players,
+  value,
+  onChange,
+}: {
+  players: { id: string; first_name: string; last_name: string; nickname: string }[];
+  value: string;
+  onChange: (id: string) => void;
+}) => {
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  const selected = players.find(p => p.id === value);
+
+  const filtered = useMemo(() => {
+    if (!query) return players.slice(0, 10);
+    const q = query.toLowerCase();
+    return players.filter(p =>
+      `${p.first_name} ${p.last_name} ${p.nickname}`.toLowerCase().includes(q)
+    ).slice(0, 10);
+  }, [players, query]);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  return (
+    <div className="relative" ref={ref}>
+      <div className="relative">
+        <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          placeholder={selected ? `${selected.first_name} ${selected.last_name}` : "Search player..."}
+          value={query}
+          onChange={e => { setQuery(e.target.value); setOpen(true); if (!e.target.value && value) onChange(""); }}
+          onFocus={() => setOpen(true)}
+          className={`h-9 pl-8 text-xs ${selected ? "border-primary/50" : ""}`}
+        />
+        {selected && !query && (
+          <span className="absolute left-8 top-1/2 -translate-y-1/2 text-xs text-card-foreground pointer-events-none">
+            {selected.first_name} {selected.last_name}
+            {selected.nickname ? ` "${selected.nickname}"` : ""}
+          </span>
+        )}
+      </div>
+      {open && filtered.length > 0 && (
+        <div className="absolute z-50 top-10 left-0 right-0 bg-popover border border-border rounded-md shadow-lg max-h-[200px] overflow-y-auto">
+          {filtered.map(p => (
+            <button
+              key={p.id}
+              onClick={() => { onChange(p.id); setQuery(""); setOpen(false); }}
+              className={`w-full text-left px-3 py-2 text-xs hover:bg-muted/50 transition-colors ${
+                p.id === value ? "bg-primary/10 text-primary" : "text-card-foreground"
+              }`}
+            >
+              {p.first_name} {p.last_name}
+              {p.nickname ? <span className="text-muted-foreground ml-1">"{p.nickname}"</span> : ""}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 };
 
@@ -74,6 +144,7 @@ const ClientTracker = () => {
 
   const startSession = useMutation({
     mutationFn: async () => {
+      // Start the client session
       const { error } = await supabase.from("client_sessions").insert({
         casino_id: casinoId!,
         player_id: selectedPlayer,
@@ -82,9 +153,21 @@ const ClientTracker = () => {
         created_by: user!.id,
       });
       if (error) throw error;
+
+      // Auto check-in if not already checked in today
+      await supabase.from("casino_visits").upsert(
+        {
+          casino_id: casinoId!,
+          player_id: selectedPlayer,
+          date: today,
+          checked_in_by: user!.id,
+        },
+        { onConflict: "casino_id,player_id,date" }
+      );
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["client_sessions"] });
+      queryClient.invalidateQueries({ queryKey: ["casino_visits"] });
       setSelectedPlayer("");
       setSelectedTable("");
       setAvgBet("");
@@ -103,7 +186,6 @@ const ClientTracker = () => {
       const durationMs = stoppedAt.getTime() - startedAt.getTime();
       const durationMinutes = Math.round(durationMs / 60000);
 
-      // Find table to get game type
       const table = tables.find(t => t.id === session.table_id);
       const hph = table ? getHandsPerHour(table.game) : DEFAULT_HANDS_PER_HOUR;
       const handsPlayed = Math.round((durationMinutes / 60) * hph);
@@ -151,18 +233,13 @@ const ClientTracker = () => {
       <div className="cms-panel p-4">
         <h3 className="text-sm font-semibold text-card-foreground mb-3">Start New Session</h3>
         <div className="flex items-end gap-3 flex-wrap">
-          <div className="min-w-[200px]">
+          <div className="min-w-[220px]">
             <label className="text-xs text-muted-foreground mb-1 block">Player</label>
-            <Select value={selectedPlayer} onValueChange={setSelectedPlayer}>
-              <SelectTrigger><SelectValue placeholder="Select player" /></SelectTrigger>
-              <SelectContent>
-                {activePlayers.map(p => (
-                  <SelectItem key={p.id} value={p.id}>
-                    {p.first_name} {p.last_name} {p.nickname ? `"${p.nickname}"` : ""}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <PlayerSearchInput
+              players={activePlayers}
+              value={selectedPlayer}
+              onChange={setSelectedPlayer}
+            />
           </div>
           <div className="min-w-[200px]">
             <label className="text-xs text-muted-foreground mb-1 block">Table</label>
