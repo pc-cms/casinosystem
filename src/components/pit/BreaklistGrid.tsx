@@ -107,7 +107,7 @@ const BreaklistGrid = ({ date }: { date: string }) => {
   };
 
   const handleAccept = () => {
-    activeDealers.forEach(dealer => {
+    breaklistDealers.forEach(dealer => {
       TIME_SLOTS.forEach(slot => {
         const existing = getCellData(dealer.id, slot);
         if (!existing) {
@@ -116,6 +116,26 @@ const BreaklistGrid = ({ date }: { date: string }) => {
       });
     });
     toast.success("Empty slots filled with BR");
+  };
+
+  const handleRefreshFromRota = () => {
+    // Add any rota dealers that don't have breaklist entries yet
+    breaklistDealers.forEach(dealer => {
+      const hasAnyCell = breaklist.some(b => b.dealer_id === dealer.id);
+      if (!hasAnyCell) {
+        const shift = getDealerShift(dealer.id);
+        // M starts at 18:00, N starts at 21:00, E starts at 18:00
+        const startSlot = shift === "N" ? "21:00" : "18:00";
+        TIME_SLOTS.forEach(slot => {
+          if (slot >= startSlot || slot < "05:00") {
+            // For N shift, only slots from 21:00 onwards; for M/E all slots
+            if (shift === "N" && slot >= "05:00" && slot < "21:00") return;
+            setCell.mutate({ date, dealer_id: dealer.id, time_slot: slot, role: "BR", table_id: null });
+          }
+        });
+      }
+    });
+    toast.success("Breaklist refreshed from rota");
   };
 
   const handleLockRow = (dealerId: string, lock: boolean) => {
