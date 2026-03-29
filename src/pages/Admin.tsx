@@ -7,10 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Shield, Trash2, UserPlus } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Plus, Shield, Trash2, UserPlus, Coins } from "lucide-react";
 import { toast } from "sonner";
 import { logAction } from "@/lib/logging";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import FloatManagement from "@/components/admin/FloatManagement";
 
 const ROLES = ["manager", "cashier", "pit", "reception", "finance_manager", "security"] as const;
 
@@ -153,88 +155,105 @@ const Admin = () => {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Administration</h1>
-          <p className="text-sm text-muted-foreground">User & Role Management</p>
-        </div>
-        <Button onClick={() => setShowCreate(true)} className="gap-1.5">
-          <UserPlus className="w-4 h-4" /> Create User
-        </Button>
-      </div>
-
-      {/* Assign Role */}
-      <div className="cms-panel p-4 max-w-lg mb-6">
-        <h3 className="text-sm font-semibold text-card-foreground mb-3">Assign Role</h3>
-        <div className="flex gap-2">
-          <Select value={selectedUser} onValueChange={setSelectedUser}>
-            <SelectTrigger className="flex-1"><SelectValue placeholder="Select user" /></SelectTrigger>
-            <SelectContent>
-              {profiles.map(p => (
-                <SelectItem key={p.user_id} value={p.user_id}>{p.display_name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={selectedRole} onValueChange={setSelectedRole}>
-            <SelectTrigger className="w-40"><SelectValue placeholder="Role" /></SelectTrigger>
-            <SelectContent>
-              {ROLES.map(r => <SelectItem key={r} value={r}>{ROLE_LABELS[r]}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <Button onClick={() => {
-            if (selectedUser && selectedRole) {
-              assignRole.mutate({ userId: selectedUser, role: selectedRole });
-              setSelectedRole("");
-            }
-          }} disabled={!selectedUser || !selectedRole}>
-            <Plus className="w-4 h-4" />
-          </Button>
+          <p className="text-sm text-muted-foreground">User, Role & Float Management</p>
         </div>
       </div>
 
-      {/* Users Table */}
-      <div className="cms-panel overflow-hidden">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-border">
-              <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-3">User</th>
-              <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-3">Roles</th>
-            </tr>
-          </thead>
-          <tbody>
-            {profiles.map(profile => {
-              const userRoles = allRoles[profile.user_id] || [];
-              return (
-                <tr key={profile.user_id} className="border-b border-border last:border-0">
-                  <td className="px-4 py-3">
-                    <span className="text-sm font-medium text-card-foreground">{profile.display_name}</span>
-                    {profile.user_id === user?.id && (
-                      <span className="text-[10px] text-muted-foreground ml-2">(you)</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex gap-1.5 flex-wrap">
-                      {userRoles.map(role => (
-                        <Badge key={role} variant="outline" className="text-[10px] font-mono gap-1">
-                          {ROLE_LABELS[role] || role}
-                          {profile.user_id !== user?.id && (
-                            <button onClick={() => removeRole.mutate({ userId: profile.user_id, role })}
-                              className="hover:text-destructive ml-0.5">
-                              <Trash2 className="w-2.5 h-2.5" />
-                            </button>
-                          )}
-                        </Badge>
-                      ))}
-                      {userRoles.length === 0 && (
-                        <span className="text-xs text-muted-foreground">No roles</span>
-                      )}
-                    </div>
-                  </td>
+      <Tabs defaultValue="users" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="users" className="gap-1.5">
+            <Shield className="w-3.5 h-3.5" /> Users & Roles
+          </TabsTrigger>
+          <TabsTrigger value="float" className="gap-1.5">
+            <Coins className="w-3.5 h-3.5" /> Float Management
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="users" className="space-y-6">
+          <div className="flex justify-end">
+            <Button onClick={() => setShowCreate(true)} className="gap-1.5">
+              <UserPlus className="w-4 h-4" /> Create User
+            </Button>
+          </div>
+
+          <div className="cms-panel p-4 max-w-lg">
+            <h3 className="text-sm font-semibold text-card-foreground mb-3">Assign Role</h3>
+            <div className="flex gap-2">
+              <Select value={selectedUser} onValueChange={setSelectedUser}>
+                <SelectTrigger className="flex-1"><SelectValue placeholder="Select user" /></SelectTrigger>
+                <SelectContent>
+                  {profiles.map(p => (
+                    <SelectItem key={p.user_id} value={p.user_id}>{p.display_name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={selectedRole} onValueChange={setSelectedRole}>
+                <SelectTrigger className="w-40"><SelectValue placeholder="Role" /></SelectTrigger>
+                <SelectContent>
+                  {ROLES.map(r => <SelectItem key={r} value={r}>{ROLE_LABELS[r]}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Button onClick={() => {
+                if (selectedUser && selectedRole) {
+                  assignRole.mutate({ userId: selectedUser, role: selectedRole });
+                  setSelectedRole("");
+                }
+              }} disabled={!selectedUser || !selectedRole}>
+                <Plus className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+
+          <div className="cms-panel overflow-hidden">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-3">User</th>
+                  <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-3">Roles</th>
                 </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+              </thead>
+              <tbody>
+                {profiles.map(profile => {
+                  const userRoles = allRoles[profile.user_id] || [];
+                  return (
+                    <tr key={profile.user_id} className="border-b border-border last:border-0">
+                      <td className="px-4 py-3">
+                        <span className="text-sm font-medium text-card-foreground">{profile.display_name}</span>
+                        {profile.user_id === user?.id && (
+                          <span className="text-[10px] text-muted-foreground ml-2">(you)</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex gap-1.5 flex-wrap">
+                          {userRoles.map(role => (
+                            <Badge key={role} variant="outline" className="text-[10px] font-mono gap-1">
+                              {ROLE_LABELS[role] || role}
+                              {profile.user_id !== user?.id && (
+                                <button onClick={() => removeRole.mutate({ userId: profile.user_id, role })}
+                                  className="hover:text-destructive ml-0.5">
+                                  <Trash2 className="w-2.5 h-2.5" />
+                                </button>
+                              )}
+                            </Badge>
+                          ))}
+                          {userRoles.length === 0 && (
+                            <span className="text-xs text-muted-foreground">No roles</span>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </TabsContent>
 
-      {/* Create User Dialog */}
+        <TabsContent value="float">
+          <FloatManagement />
+        </TabsContent>
+      </Tabs>
+
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
