@@ -39,20 +39,20 @@ const ChipDenomInput = ({ values, onChange, denoms = CHIP_DENOMS, showValue = tr
   const total = Object.entries(values).reduce((s, [d, c]) => s + Number(d) * (c || 0), 0);
 
   return (
-    <div className="space-y-2">
-      <div className="space-y-1.5">
+    <div>
+      <div className="space-y-0.5">
         {denoms.map((d, idx) => {
           const val = values[d] || 0;
           const chipValue = val * d;
           return (
-            <div key={d} className="grid grid-cols-[4rem_minmax(0,1fr)] items-center gap-2">
-              <span className={`cms-chip text-[9px] h-8 w-16 shrink-0 justify-center ${CHIP_COLORS[d] || "bg-muted text-foreground"}`}>
+            <div key={d} className="grid grid-cols-[3.5rem_minmax(0,1fr)] items-center gap-1.5">
+              <span className={`cms-chip text-[8px] h-6 w-14 shrink-0 justify-center ${CHIP_COLORS[d] || "bg-muted text-foreground"}`}>
                 {formatChipLabel(d)}
               </span>
               <input
                 ref={el => { inputRefs.current[d] = el; }}
                 type="number"
-                className="no-spin font-mono text-sm h-8 w-full min-w-0 rounded border border-border bg-background px-2 text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                className="no-spin font-mono text-xs h-6 w-full min-w-0 rounded border border-border bg-background px-1.5 text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
                 value={values[d] || ""}
                 onChange={e => handleChange(d, e.target.value)}
                 onKeyDown={e => handleKeyDown(e, idx)}
@@ -60,7 +60,7 @@ const ChipDenomInput = ({ values, onChange, denoms = CHIP_DENOMS, showValue = tr
                 inputMode="numeric"
               />
               {showValue && val > 0 && (
-                <span className="col-span-2 text-[10px] font-mono text-muted-foreground whitespace-nowrap text-right">
+                <span className="col-span-2 text-[9px] font-mono text-muted-foreground whitespace-nowrap text-right">
                   ={`TZS ${formatNumberSpaces(chipValue)}`}
                 </span>
               )}
@@ -68,9 +68,9 @@ const ChipDenomInput = ({ values, onChange, denoms = CHIP_DENOMS, showValue = tr
           );
         })}
       </div>
-      <div className="flex items-center justify-between gap-2 pt-2 mt-2 border-t border-border">
-        <span className="text-xs font-medium text-muted-foreground">Total</span>
-        <span className="font-mono text-sm font-bold text-card-foreground">TZS {formatNumberSpaces(total)}</span>
+      <div className="flex items-center justify-between gap-2 pt-1 mt-1 border-t border-border">
+        <span className="text-[10px] font-medium text-muted-foreground">Total</span>
+        <span className="font-mono text-xs font-bold text-card-foreground">TZS {formatNumberSpaces(total)}</span>
       </div>
     </div>
   );

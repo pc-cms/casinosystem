@@ -71,16 +71,17 @@ const CashDenomInput = ({ values, onChange, denoms, currency, onSubmit }: {
   const total = cashSum(values);
 
   return (
-    <div className="space-y-2">
+    <div>
+      <div className="space-y-0.5">
       {denoms.map((d, idx) => (
-        <div key={d} className="grid grid-cols-[4rem_minmax(0,1fr)] items-center gap-2">
-          <span className="cms-chip text-[9px] bg-muted text-foreground h-8 w-16 shrink-0 justify-center">
+        <div key={d} className="grid grid-cols-[3.5rem_minmax(0,1fr)] items-center gap-1.5">
+          <span className="cms-chip text-[8px] bg-muted text-foreground h-6 w-14 shrink-0 justify-center">
             {formatCashDenomLabel(d, currency)}
           </span>
           <input
             ref={el => { refs.current[d] = el; }}
             type="number"
-            className="no-spin font-mono text-sm h-8 w-full min-w-0 rounded border border-border bg-background px-2 text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            className="no-spin font-mono text-xs h-6 w-full min-w-0 rounded border border-border bg-background px-1.5 text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
             value={values[d] || ""}
             onChange={e => onChange({ ...values, [d]: Number(e.target.value) || 0 })}
             onKeyDown={e => {
@@ -96,9 +97,10 @@ const CashDenomInput = ({ values, onChange, denoms, currency, onSubmit }: {
           />
         </div>
       ))}
-      <div className="flex items-center justify-between gap-2 pt-2 border-t border-border">
-        <span className="text-xs font-medium text-muted-foreground">Total</span>
-        <span className="font-mono text-sm font-bold text-card-foreground">
+      </div>
+      <div className="flex items-center justify-between gap-2 pt-1 mt-1 border-t border-border">
+        <span className="text-[10px] font-medium text-muted-foreground">Total</span>
+        <span className="font-mono text-xs font-bold text-card-foreground">
           {currency === "TZS" ? `TZS ${formatNumberSpaces(total)}` : `${CURRENCY_SYMBOLS[currency] || currency}${formatNumberSpaces(total)}`}
         </span>
       </div>
@@ -216,19 +218,19 @@ const LockableSection = ({
 }: {
   title: string; locked: boolean; onToggleLock: () => void; children: React.ReactNode; isManagerOverride?: boolean;
 }) => (
-  <section className={`rounded-xl border p-4 space-y-3 transition-colors ${locked ? "border-primary/40 bg-primary/5" : "border-border bg-background/40"}`}>
+  <section className={`rounded-lg border px-3 py-2 space-y-1.5 transition-colors ${locked ? "border-primary/40 bg-primary/5" : "border-border bg-background/40"}`}>
     <div className="flex items-center justify-between gap-2">
-      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.22em]">{title}</p>
+      <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-[0.22em]">{title}</p>
       <button
         type="button"
         onClick={onToggleLock}
-        className={`flex items-center gap-1 text-[10px] font-medium uppercase tracking-wider px-2 py-1 rounded-md transition-colors ${
+        className={`flex items-center gap-0.5 text-[9px] font-medium uppercase tracking-wider px-1.5 py-0.5 rounded transition-colors ${
           locked
             ? "bg-primary/10 text-primary"
             : "bg-muted/50 text-muted-foreground hover:bg-muted"
         }`}
       >
-        {locked ? <Lock className="w-3 h-3" /> : <Unlock className="w-3 h-3" />}
+        {locked ? <Lock className="w-2.5 h-2.5" /> : <Unlock className="w-2.5 h-2.5" />}
         {locked ? "Locked" : "Lock"}
       </button>
     </div>
@@ -298,127 +300,105 @@ const OpenShiftScreen = ({ tables }: { tables: any[] }) => {
   return (
     <div>
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-2">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Cage</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            Open a new shift — Step {step} of 2
-          </p>
+          <h1 className="text-xl font-bold text-foreground">Cage</h1>
+          <p className="text-xs text-muted-foreground">Step {step} of 2</p>
         </div>
-        <Button variant="outline" size="sm" onClick={() => setShowRates(true)} className="gap-1.5 font-mono text-xs">
-          <Settings2 className="w-3.5 h-3.5" /> Rates
+        <Button variant="outline" size="sm" onClick={() => setShowRates(true)} className="gap-1 font-mono text-[10px] h-7 px-2">
+          <Settings2 className="w-3 h-3" /> Rates
         </Button>
       </div>
 
       {/* Rates hint bar */}
-      <div className="flex items-center gap-4 px-3 py-1.5 rounded-md bg-muted/50 border border-border mb-4">
-        <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Rates</span>
+      <div className="flex items-center gap-3 px-2 py-1 rounded bg-muted/50 border border-border mb-2 text-[10px]">
+        <span className="font-medium text-muted-foreground uppercase tracking-wider">Rates</span>
         {FOREIGN_CURRENCIES.map(c => (
-          <span key={c} className="text-xs font-mono text-card-foreground">
+          <span key={c} className="font-mono text-card-foreground">
             <span className="text-muted-foreground">{c}</span> {formatNumberSpaces(rates[c] || 0)}
           </span>
         ))}
       </div>
 
       {/* Step indicator */}
-      <div className="flex items-center gap-2 mb-5">
+      <div className="flex items-center gap-1.5 mb-3">
         <button
           type="button"
           onClick={() => setStep(1)}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+          className={`flex items-center gap-1 px-2 py-1 rounded text-[10px] font-semibold transition-colors ${
             step === 1 ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground hover:bg-muted"
           }`}
         >
-          <span className="w-5 h-5 rounded-full bg-background/20 flex items-center justify-center text-[10px] font-bold">1</span>
+          <span className="w-4 h-4 rounded-full bg-background/20 flex items-center justify-center text-[9px] font-bold">1</span>
           Chips · TZS · Mobile
         </button>
-        <ChevronRight className="w-4 h-4 text-muted-foreground" />
+        <ChevronRight className="w-3 h-3 text-muted-foreground" />
         <button
           type="button"
           onClick={() => setStep(2)}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+          className={`flex items-center gap-1 px-2 py-1 rounded text-[10px] font-semibold transition-colors ${
             step === 2 ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground hover:bg-muted"
           }`}
         >
-          <span className="w-5 h-5 rounded-full bg-background/20 flex items-center justify-center text-[10px] font-bold">2</span>
-          Foreign Currency · Banks
+          <span className="w-4 h-4 rounded-full bg-background/20 flex items-center justify-center text-[9px] font-bold">2</span>
+          Foreign · Banks
         </button>
       </div>
 
       {/* ===== STEP 1 ===== */}
       {step === 1 && (
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {/* Closing chips (read-only unless manager) */}
-            <LockableSection
-              title="Chips from Closing"
-              locked={locks.closingChips}
-              onToggleLock={() => toggleLock("closingChips")}
-            >
+        <div className="space-y-2">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
+            <LockableSection title="Chips from Closing" locked={locks.closingChips} onToggleLock={() => toggleLock("closingChips")}>
               <div className={!managerOverride.active ? "opacity-50 pointer-events-none" : ""}>
                 <ChipDenomInput values={closingChips} onChange={setClosingChips} showValue={false} />
               </div>
               {!managerOverride.active && (
-                <p className="text-[10px] text-destructive font-medium mt-1">Manager access required to edit</p>
+                <p className="text-[9px] text-destructive font-medium">Manager access required</p>
               )}
             </LockableSection>
 
-            {/* Opening chips */}
-            <LockableSection
-              title="Opening Chips"
-              locked={locks.openingChips}
-              onToggleLock={() => toggleLock("openingChips")}
-            >
+            <LockableSection title="Opening Chips" locked={locks.openingChips} onToggleLock={() => toggleLock("openingChips")}>
               <ChipDenomInput values={openingChips} onChange={setOpeningChips} showValue={false} />
             </LockableSection>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {/* TZS Cash */}
-            <LockableSection
-              title="TZS Cash"
-              locked={locks.tzsCash}
-              onToggleLock={() => toggleLock("tzsCash")}
-            >
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
+            <LockableSection title="TZS Cash" locked={locks.tzsCash} onToggleLock={() => toggleLock("tzsCash")}>
               <CashDenomInput values={openingCash["TZS"] || {}} onChange={v => setOpeningCash(c => ({ ...c, TZS: v }))} denoms={CASH_DENOMS["TZS"] || []} currency="TZS" />
             </LockableSection>
 
-            {/* Mobile Money */}
-            <LockableSection
-              title="Mobile Money"
-              locked={locks.mobile}
-              onToggleLock={() => toggleLock("mobile")}
-            >
-              <div className="grid grid-cols-2 gap-3">
+            <LockableSection title="Mobile Money" locked={locks.mobile} onToggleLock={() => toggleLock("mobile")}>
+              <div className="grid grid-cols-2 gap-2">
                 {MOBILE_PROVIDERS.map(provider => (
-                  <div key={provider} className="space-y-1">
-                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.18em]">{provider}</p>
+                  <div key={provider} className="space-y-0.5">
+                    <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-[0.18em]">{provider}</p>
                     <NumberInput
                       value={mobileBalance[provider] || ""}
                       onChange={v => setMobileBalance(m => ({ ...m, [provider]: Number(v) || 0 }))}
-                      className="no-spin h-9 w-full min-w-0 font-mono text-sm text-right"
+                      className="no-spin h-7 w-full min-w-0 font-mono text-xs text-right"
                       placeholder="0"
                     />
                   </div>
                 ))}
               </div>
-              <div className="flex items-center justify-between pt-2 border-t border-border">
-                <span className="text-xs font-medium text-muted-foreground">Mobile Total</span>
-                <span className="font-mono text-sm font-bold text-card-foreground">TZS {formatNumberSpaces(mobTotal)}</span>
+              <div className="flex items-center justify-between pt-1 border-t border-border">
+                <span className="text-[10px] font-medium text-muted-foreground">Mobile Total</span>
+                <span className="font-mono text-xs font-bold text-card-foreground">TZS {formatNumberSpaces(mobTotal)}</span>
               </div>
             </LockableSection>
           </div>
 
           {/* Step 1 footer */}
-          <div className="cms-panel p-4 flex items-center justify-between">
+          <div className="cms-panel px-3 py-2 flex items-center justify-between">
             <div>
-              <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Step 1 Subtotal (TZS)</p>
-              <p className="text-xl font-mono font-bold text-card-foreground">
+              <p className="text-[9px] uppercase text-muted-foreground tracking-wider">Step 1 Subtotal (TZS)</p>
+              <p className="text-lg font-mono font-bold text-card-foreground">
                 {formatCurrency(openingChipTotal + cashSum(openingCash["TZS"] || {}) + mobTotal)}
               </p>
             </div>
-            <Button onClick={() => setStep(2)} className="gap-1.5 h-10 px-6">
-              Next <ChevronRight className="w-4 h-4" />
+            <Button onClick={() => setStep(2)} size="sm" className="gap-1 h-8 px-4">
+              Next <ChevronRight className="w-3.5 h-3.5" />
             </Button>
           </div>
         </div>
@@ -426,8 +406,8 @@ const OpenShiftScreen = ({ tables }: { tables: any[] }) => {
 
       {/* ===== STEP 2 ===== */}
       {step === 2 && (
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
             <LockableSection title="EUR Cash" locked={locks.eurCash} onToggleLock={() => toggleLock("eurCash")}>
               <CashDenomInput values={openingCash["EUR"] || {}} onChange={v => setOpeningCash(c => ({ ...c, EUR: v }))} denoms={CASH_DENOMS["EUR"] || []} currency="EUR" />
             </LockableSection>
@@ -436,7 +416,7 @@ const OpenShiftScreen = ({ tables }: { tables: any[] }) => {
             </LockableSection>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
             <LockableSection title="GBP Cash" locked={locks.gbpCash} onToggleLock={() => toggleLock("gbpCash")}>
               <CashDenomInput values={openingCash["GBP"] || {}} onChange={v => setOpeningCash(c => ({ ...c, GBP: v }))} denoms={CASH_DENOMS["GBP"] || []} currency="GBP" />
             </LockableSection>
@@ -445,42 +425,42 @@ const OpenShiftScreen = ({ tables }: { tables: any[] }) => {
             </LockableSection>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
             <LockableSection title="Bank TZS" locked={locks.bankTzs} onToggleLock={() => toggleLock("bankTzs")}>
-              <NumberInput value={bankBalance.tzs || ""} onChange={v => setBankBalance(b => ({ ...b, tzs: Number(v) || 0 }))} className="no-spin h-10 w-full text-right" placeholder="0" />
+              <NumberInput value={bankBalance.tzs || ""} onChange={v => setBankBalance(b => ({ ...b, tzs: Number(v) || 0 }))} className="no-spin h-7 w-full text-right text-xs" placeholder="0" />
             </LockableSection>
             <LockableSection title="Bank USD" locked={locks.bankUsd} onToggleLock={() => toggleLock("bankUsd")}>
-              <NumberInput value={bankBalance.usd || ""} onChange={v => setBankBalance(b => ({ ...b, usd: Number(v) || 0 }))} className="no-spin h-10 w-full text-right" placeholder="0" />
+              <NumberInput value={bankBalance.usd || ""} onChange={v => setBankBalance(b => ({ ...b, usd: Number(v) || 0 }))} className="no-spin h-7 w-full text-right text-xs" placeholder="0" />
               {bankBalance.usd > 0 && rates?.["USD"] ? (
-                <p className="text-[10px] font-mono text-muted-foreground">= TZS {formatNumberSpaces(bankBalance.usd * (rates["USD"] || 0))}</p>
+                <p className="text-[9px] font-mono text-muted-foreground">= TZS {formatNumberSpaces(bankBalance.usd * (rates["USD"] || 0))}</p>
               ) : null}
             </LockableSection>
           </div>
 
           {/* Step 2 summary + Open */}
-          <div className="cms-panel p-4 space-y-3">
-            <div className="grid grid-cols-2 gap-4">
+          <div className="cms-panel px-3 py-2 space-y-2">
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Total Opening Chips</p>
-                <p className="text-lg font-mono font-bold text-card-foreground">TZS {formatNumberSpaces(openingChipTotal)}</p>
+                <p className="text-[9px] uppercase text-muted-foreground tracking-wider">Total Opening Chips</p>
+                <p className="text-base font-mono font-bold text-card-foreground">TZS {formatNumberSpaces(openingChipTotal)}</p>
               </div>
               <div>
-                <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Total Cash (all → TZS)</p>
-                <p className="text-lg font-mono font-bold text-card-foreground">TZS {formatNumberSpaces(cashTotalTzs + mobTotal + bankTotal)}</p>
+                <p className="text-[9px] uppercase text-muted-foreground tracking-wider">Total Cash (all → TZS)</p>
+                <p className="text-base font-mono font-bold text-card-foreground">TZS {formatNumberSpaces(cashTotalTzs + mobTotal + bankTotal)}</p>
               </div>
             </div>
-            <div className="flex items-center justify-between pt-3 border-t border-border">
-              <div className="flex items-center gap-3">
-                <Button variant="outline" onClick={() => setStep(1)} className="gap-1.5">
-                  <ChevronLeft className="w-4 h-4" /> Back
+            <div className="flex items-center justify-between pt-2 border-t border-border">
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={() => setStep(1)} className="gap-1 h-8">
+                  <ChevronLeft className="w-3.5 h-3.5" /> Back
                 </Button>
                 <div>
-                  <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Grand Total (TZS)</p>
-                  <p className="text-2xl font-mono font-bold text-card-foreground">{formatCurrency(openingTotal)}</p>
+                  <p className="text-[9px] uppercase text-muted-foreground tracking-wider">Grand Total (TZS)</p>
+                  <p className="text-xl font-mono font-bold text-card-foreground">{formatCurrency(openingTotal)}</p>
                 </div>
               </div>
-              <Button onClick={handleOpen} disabled={openShift.isPending} className="gap-1.5 h-11 px-8" size="lg">
-                <Play className="w-4 h-4" /> {openShift.isPending ? "Opening…" : "Open Shift"}
+              <Button onClick={handleOpen} disabled={openShift.isPending} className="gap-1 h-9 px-6" size="sm">
+                <Play className="w-3.5 h-3.5" /> {openShift.isPending ? "Opening…" : "Open Shift"}
               </Button>
             </div>
           </div>
