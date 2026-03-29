@@ -300,50 +300,48 @@ const OpenShiftScreen = ({ tables }: { tables: any[] }) => {
   return (
     <div>
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-2">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Cage</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            Open a new shift — Step {step} of 2
-          </p>
+          <h1 className="text-xl font-bold text-foreground">Cage</h1>
+          <p className="text-xs text-muted-foreground">Step {step} of 2</p>
         </div>
-        <Button variant="outline" size="sm" onClick={() => setShowRates(true)} className="gap-1.5 font-mono text-xs">
-          <Settings2 className="w-3.5 h-3.5" /> Rates
+        <Button variant="outline" size="sm" onClick={() => setShowRates(true)} className="gap-1 font-mono text-[10px] h-7 px-2">
+          <Settings2 className="w-3 h-3" /> Rates
         </Button>
       </div>
 
       {/* Rates hint bar */}
-      <div className="flex items-center gap-4 px-3 py-1.5 rounded-md bg-muted/50 border border-border mb-4">
-        <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Rates</span>
+      <div className="flex items-center gap-3 px-2 py-1 rounded bg-muted/50 border border-border mb-2 text-[10px]">
+        <span className="font-medium text-muted-foreground uppercase tracking-wider">Rates</span>
         {FOREIGN_CURRENCIES.map(c => (
-          <span key={c} className="text-xs font-mono text-card-foreground">
+          <span key={c} className="font-mono text-card-foreground">
             <span className="text-muted-foreground">{c}</span> {formatNumberSpaces(rates[c] || 0)}
           </span>
         ))}
       </div>
 
       {/* Step indicator */}
-      <div className="flex items-center gap-2 mb-5">
+      <div className="flex items-center gap-1.5 mb-3">
         <button
           type="button"
           onClick={() => setStep(1)}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+          className={`flex items-center gap-1 px-2 py-1 rounded text-[10px] font-semibold transition-colors ${
             step === 1 ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground hover:bg-muted"
           }`}
         >
-          <span className="w-5 h-5 rounded-full bg-background/20 flex items-center justify-center text-[10px] font-bold">1</span>
+          <span className="w-4 h-4 rounded-full bg-background/20 flex items-center justify-center text-[9px] font-bold">1</span>
           Chips · TZS · Mobile
         </button>
-        <ChevronRight className="w-4 h-4 text-muted-foreground" />
+        <ChevronRight className="w-3 h-3 text-muted-foreground" />
         <button
           type="button"
           onClick={() => setStep(2)}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+          className={`flex items-center gap-1 px-2 py-1 rounded text-[10px] font-semibold transition-colors ${
             step === 2 ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground hover:bg-muted"
           }`}
         >
-          <span className="w-5 h-5 rounded-full bg-background/20 flex items-center justify-center text-[10px] font-bold">2</span>
-          Foreign Currency · Banks
+          <span className="w-4 h-4 rounded-full bg-background/20 flex items-center justify-center text-[9px] font-bold">2</span>
+          Foreign · Banks
         </button>
       </div>
 
