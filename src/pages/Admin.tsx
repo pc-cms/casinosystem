@@ -322,4 +322,59 @@ const Admin = () => {
   );
 };
 
+// =================== SCHEDULE SETTINGS ===================
+const ScheduleSettings = () => {
+  const { data: casino } = useCasinoInfo();
+  const updateSchedule = useUpdateCasinoSchedule();
+
+  const [tablesOpen, setTablesOpen] = useState("");
+  const [shiftStart, setShiftStart] = useState("");
+  const [shiftEnd, setShiftEnd] = useState("");
+  const [breaklistLock, setBreaklistLock] = useState("");
+  const [loaded, setLoaded] = useState(false);
+
+  // Initialize from DB once
+  if (casino && !loaded) {
+    setTablesOpen(casino.tables_open || "17:30");
+    setShiftStart(casino.shift_start || "18:00");
+    setShiftEnd(casino.shift_end || "05:00");
+    setBreaklistLock(casino.breaklist_lock || "05:30");
+    setLoaded(true);
+  }
+
+  const handleSave = () => {
+    updateSchedule.mutate({
+      tables_open: tablesOpen,
+      shift_start: shiftStart,
+      shift_end: shiftEnd,
+      breaklist_lock: breaklistLock,
+    });
+  };
+
+  const fields = [
+    { label: "Tables Open (Cage/Pit)", value: tablesOpen, set: setTablesOpen, hint: "When cashiers/pit can open tables" },
+    { label: "Shift Start (Dealers)", value: shiftStart, set: setShiftStart, hint: "When dealer breaklist starts" },
+    { label: "Shift End", value: shiftEnd, set: setShiftEnd, hint: "When shift operations end" },
+    { label: "Breaklist Lock", value: breaklistLock, set: setBreaklistLock, hint: "After this time breaklist requires manager override" },
+  ];
+
+  return (
+    <div className="cms-panel p-6 max-w-lg">
+      <h3 className="text-sm font-semibold text-card-foreground mb-4">Casino Working Hours</h3>
+      <div className="space-y-4">
+        {fields.map(f => (
+          <div key={f.label}>
+            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1 block">{f.label}</label>
+            <Input type="time" value={f.value} onChange={e => f.set(e.target.value)} className="w-32 font-mono" />
+            <p className="text-[10px] text-muted-foreground mt-0.5">{f.hint}</p>
+          </div>
+        ))}
+      </div>
+      <Button onClick={handleSave} className="mt-5" disabled={updateSchedule.isPending}>
+        {updateSchedule.isPending ? "Saving..." : "Save Schedule"}
+      </Button>
+    </div>
+  );
+};
+
 export default Admin;
