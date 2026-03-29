@@ -599,46 +599,6 @@ const TablesContent = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Previous Snapshots */}
-      {snapshots.length > 0 && !showCount && (
-        <div className="cms-panel">
-          <div className="cms-header">Today's Chip Count</div>
-          <div className="p-4">
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="border-b border-border">
-                    <th className="text-left py-1.5 px-2 text-muted-foreground font-medium">Denom</th>
-                    <th className="text-right py-1.5 px-2 text-muted-foreground font-medium">Expected</th>
-                    <th className="text-right py-1.5 px-2 text-muted-foreground font-medium">Actual</th>
-                    <th className="text-right py-1.5 px-2 text-muted-foreground font-medium">Diff</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {CHIP_DENOMS.map(d => {
-                    const denomSnaps = snapshots.filter(s => s.denomination === d);
-                    if (denomSnaps.length === 0) return null;
-                    const totalExp = denomSnaps.reduce((s, sn) => s + sn.expected_quantity, 0);
-                    const totalAct = denomSnaps.reduce((s, sn) => s + sn.actual_quantity, 0);
-                    const diff = totalAct - totalExp;
-                    return (
-                      <tr key={d} className="border-b border-border last:border-0">
-                        <td className="py-1.5 px-2"><span className={`cms-chip text-[8px] ${CHIP_COLORS[d] || "bg-muted text-foreground"}`}>{formatChipLabel(d)}</span></td>
-                        <td className="py-1.5 px-2 text-right font-mono text-card-foreground">{totalExp}</td>
-                        <td className="py-1.5 px-2 text-right font-mono text-card-foreground">{totalAct}</td>
-                        <td className={`py-1.5 px-2 text-right font-mono font-bold ${diff === 0 ? "text-green-500" : diff > 0 ? "text-green-500" : "text-destructive"}`}>{diff > 0 ? "+" : ""}{diff}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-            <p className="text-[10px] text-muted-foreground mt-2">
-              Recorded at {snapshots[0] && new Date(snapshots[0].created_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
-            </p>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
