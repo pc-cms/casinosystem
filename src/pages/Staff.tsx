@@ -32,7 +32,28 @@ const DEPT_BADGE_COLORS: Record<string, string> = {
   hr: "bg-orange-500/20 text-orange-400 border-orange-500/30",
 };
 
-const Staff = () => {
+const DEPT_DOT_COLORS: Record<string, string> = {
+  security: "bg-red-400",
+  cashier: "bg-blue-400",
+  bartender: "bg-amber-400",
+  hostess: "bg-pink-400",
+  waiter: "bg-cyan-400",
+  cleaner: "bg-emerald-400",
+  it: "bg-violet-400",
+  hr: "bg-orange-400",
+};
+
+const DEPT_ROW_COLORS: Record<string, string> = {
+  security: "bg-red-500/5",
+  cashier: "bg-blue-500/5",
+  bartender: "bg-amber-500/5",
+  hostess: "bg-pink-500/5",
+  waiter: "bg-cyan-500/5",
+  cleaner: "bg-emerald-500/5",
+  it: "bg-violet-500/5",
+  hr: "bg-orange-500/5",
+};
+
   const [month, setMonth] = useState(() => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
