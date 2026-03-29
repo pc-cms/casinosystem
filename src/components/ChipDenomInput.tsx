@@ -71,7 +71,7 @@ const ChipDenomInput = ({ values, onChange, denoms = CHIP_DENOMS, showValue = tr
       {showValue && (
         <div className="flex items-center gap-2 pt-1 mt-1 border-t border-border">
           <span className="text-xs font-medium text-muted-foreground">Total</span>
-          <span className="font-mono text-sm font-bold text-card-foreground">{formatCurrency(total)}</span>
+          <span className="font-mono text-sm font-bold text-card-foreground">TZS {total.toLocaleString()}</span>
         </div>
       )}
     </div>
