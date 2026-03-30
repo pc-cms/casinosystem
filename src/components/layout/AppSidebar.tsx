@@ -38,9 +38,11 @@ const NAV_ITEMS: { to: string; icon: typeof LayoutDashboard; label: string; shor
 const TABLE_SUBITEMS: typeof PIT_SUBITEMS = [];
 
 const PIT_SUBITEMS = [
+  { tab: "activeplayers", icon: Users, label: "Active Players" },
   { tab: "attendance", icon: ClipboardCheck, label: "Attendance" },
   { tab: "employee", icon: UserCheck, label: "Employee" },
   { tab: "rota", icon: CalendarDays, label: "Rota" },
+  { tab: "tracker", icon: Eye, label: "Client Tracker" },
 ];
 
 const STAFF_SUBITEMS = [
