@@ -11,6 +11,7 @@ import { ChevronLeft, ChevronRight, UserPlus, ArrowUpDown, ZoomIn, ZoomOut, Refr
 import BreaklistGrid from "@/components/pit/BreaklistGrid";
 import ActivePlayers from "@/components/pit/ActivePlayers";
 import ClientTracker from "@/components/pit/ClientTracker";
+import TableTracker from "@/pages/TableTracker";
 import { getBusinessDate, isBusinessToday } from "@/lib/business-day";
 
 const ROTA_SHIFTS = ["M", "N", "L", "E"] as const;
@@ -95,6 +96,7 @@ const Pit = () => {
     breaklist: "Breaklist",
     activeplayers: "Active Players",
     tracker: "Client Tracker",
+    tabletracker: "Table Tracker",
   };
 
   // Breaklist zoom + action callbacks
@@ -182,6 +184,7 @@ const Pit = () => {
       )}
       {activeTab === "activeplayers" && <ActivePlayers />}
       {activeTab === "tracker" && <ClientTracker />}
+      {activeTab === "tabletracker" && <TableTracker />}
     </div>
   );
 };
