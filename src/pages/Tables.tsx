@@ -1,18 +1,34 @@
 import { useState, useMemo, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { useGamingTables, useTransactions, useTableTracker } from "@/hooks/use-casino-data";
 import { useActiveShift } from "@/hooks/use-shift";
 import { useChipSnapshots, useBatchChipSnapshot } from "@/hooks/use-chips";
 import { useChipBaseline, useOpenAllTables, useSetTableResults, baselineToMap } from "@/hooks/use-table-lifecycle";
+import { useAuth } from "@/lib/auth-context";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { CHIP_DENOMS, CHIP_COLORS, formatChipLabel, formatCurrency } from "@/lib/currency";
-import { Save, Coins, Play, BarChart3, Lock } from "lucide-react";
+import { Save, Coins, Play, BarChart3, Lock, Users, Eye, Target } from "lucide-react";
 import ChipDenomInput from "@/components/ChipDenomInput";
+import ActivePlayers from "@/components/pit/ActivePlayers";
+import ClientTracker from "@/components/pit/ClientTracker";
+import TableTracker from "@/pages/TableTracker";
+
+const PIT_TABS = [
+  { key: "tables", label: "Tables", icon: BarChart3 },
+  { key: "activeplayers", label: "Active Players", icon: Users },
+  { key: "tracker", label: "Client Tracker", icon: Eye },
+  { key: "tabletracker", label: "Table Tracker", icon: Target },
+] as const;
 
 const Tables = () => {
+  const { roles } = useAuth();
+  const isPit = roles.includes("pit") || roles.includes("manager") || roles.includes("finance_manager");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get("tab") || "tables";
   const today = new Date().toISOString().split("T")[0];
   const [date, setDate] = useState(today);
   const { data: tables = [] } = useGamingTables();
