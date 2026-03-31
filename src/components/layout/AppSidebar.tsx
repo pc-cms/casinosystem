@@ -35,7 +35,11 @@ const NAV_ITEMS: { to: string; icon: typeof LayoutDashboard; label: string; shor
   { to: "/stats", icon: BarChart3, label: "Stats", shortcut: "S", roles: ["manager", "finance_manager", "security"] },
 ];
 
-const TABLE_SUBITEMS: typeof PIT_SUBITEMS = [];
+const TABLE_SUBITEMS = [
+  { tab: "activeplayers", icon: Users, label: "Active Players" },
+  { tab: "tracker", icon: Eye, label: "Client Tracker" },
+  { tab: "tabletracker", icon: Target, label: "Table Tracker" },
+];
 
 const PIT_SUBITEMS = [
   { tab: "activeplayers", icon: Users, label: "Active Players" },
@@ -181,7 +185,7 @@ export const AppSidebar = () => {
                   <span className="flex-1">{item.label}</span>
                   <span className="cms-kbd">{item.shortcut}</span>
                 </NavLink>
-                {item.to === "/tables" && isTablesActive && renderSubItems("/tables", TABLE_SUBITEMS)}
+                {item.to === "/tables" && isTablesActive && (roles.includes("pit" as AppRole) || roles.includes("manager" as AppRole) || roles.includes("finance_manager" as AppRole)) && renderSubItems("/tables", TABLE_SUBITEMS)}
                 {item.to === "/pit" && isPitActive && renderSubItems("/pit", PIT_SUBITEMS)}
                 {item.to === "/staff" && isStaffActive && renderSubItems("/staff", STAFF_SUBITEMS)}
               </div>

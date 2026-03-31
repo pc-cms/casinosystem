@@ -1,18 +1,34 @@
 import { useState, useMemo, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { useGamingTables, useTransactions, useTableTracker } from "@/hooks/use-casino-data";
 import { useActiveShift } from "@/hooks/use-shift";
 import { useChipSnapshots, useBatchChipSnapshot } from "@/hooks/use-chips";
 import { useChipBaseline, useOpenAllTables, useSetTableResults, baselineToMap } from "@/hooks/use-table-lifecycle";
+import { useAuth } from "@/lib/auth-context";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { CHIP_DENOMS, CHIP_COLORS, formatChipLabel, formatCurrency } from "@/lib/currency";
-import { Save, Coins, Play, BarChart3, Lock } from "lucide-react";
+import { Save, Coins, Play, BarChart3, Lock, Users, Eye, Target } from "lucide-react";
 import ChipDenomInput from "@/components/ChipDenomInput";
+import ActivePlayers from "@/components/pit/ActivePlayers";
+import ClientTracker from "@/components/pit/ClientTracker";
+import TableTracker from "@/pages/TableTracker";
+
+const PIT_TABS = [
+  { key: "tables", label: "Tables", icon: BarChart3 },
+  { key: "activeplayers", label: "Active Players", icon: Users },
+  { key: "tracker", label: "Client Tracker", icon: Eye },
+  { key: "tabletracker", label: "Table Tracker", icon: Target },
+] as const;
 
 const Tables = () => {
+  const { roles } = useAuth();
+  const isPit = roles.includes("pit") || roles.includes("manager") || roles.includes("finance_manager");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get("tab") || "tables";
   const today = new Date().toISOString().split("T")[0];
   const [date, setDate] = useState(today);
   const { data: tables = [] } = useGamingTables();
@@ -271,7 +287,34 @@ const Tables = () => {
         </div>
       </div>
 
-      {/* Game-type Summary */}
+      {/* Pit-role tabs */}
+      {isPit && (
+        <div className="flex gap-1 mb-4 border-b border-border pb-2">
+          {PIT_TABS.map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => setSearchParams(tab.key === "tables" ? {} : { tab: tab.key })}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                activeTab === tab.key
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+              }`}
+            >
+              <tab.icon className="w-3.5 h-3.5" />
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {activeTab === "activeplayers" && isPit && <ActivePlayers />}
+      {activeTab === "tracker" && isPit && <ClientTracker />}
+      {activeTab === "tabletracker" && isPit && <TableTracker />}
+
+      {activeTab === "tables" && (
+      <>
+
+
       <div className="grid gap-2 mb-4" style={{ gridTemplateColumns: `repeat(${Object.keys(gameTypeTotals).length + 1}, minmax(0, 1fr))` }}>
         {Object.entries(gameTypeTotals).map(([game, t]) => (
           <div key={game} className="cms-panel p-2">
@@ -425,6 +468,8 @@ const Tables = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      </>
+      )}
     </div>
   );
 };
