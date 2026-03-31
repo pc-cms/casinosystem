@@ -185,7 +185,7 @@ export const AppSidebar = () => {
                   <span className="flex-1">{item.label}</span>
                   <span className="cms-kbd">{item.shortcut}</span>
                 </NavLink>
-                {item.to === "/tables" && isTablesActive && renderSubItems("/tables", TABLE_SUBITEMS)}
+                {item.to === "/tables" && isTablesActive && (roles.includes("pit" as AppRole) || roles.includes("manager" as AppRole) || roles.includes("finance_manager" as AppRole)) && renderSubItems("/tables", TABLE_SUBITEMS)}
                 {item.to === "/pit" && isPitActive && renderSubItems("/pit", PIT_SUBITEMS)}
                 {item.to === "/staff" && isStaffActive && renderSubItems("/staff", STAFF_SUBITEMS)}
               </div>
