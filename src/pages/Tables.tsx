@@ -468,6 +468,8 @@ const Tables = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      </>
+      )}
     </div>
   );
 };
