@@ -42,12 +42,9 @@ const TABLE_SUBITEMS = [
 ];
 
 const PIT_SUBITEMS = [
-  { tab: "activeplayers", icon: Users, label: "Active Players" },
   { tab: "attendance", icon: ClipboardCheck, label: "Attendance" },
-  { tab: "tracker", icon: Eye, label: "Client Tracker" },
   { tab: "employee", icon: UserCheck, label: "Employee" },
   { tab: "rota", icon: CalendarDays, label: "Rota" },
-  { tab: "tabletracker", icon: Target, label: "Table Tracker" },
 ];
 
 const STAFF_SUBITEMS = [
