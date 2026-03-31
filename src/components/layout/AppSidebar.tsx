@@ -35,7 +35,11 @@ const NAV_ITEMS: { to: string; icon: typeof LayoutDashboard; label: string; shor
   { to: "/stats", icon: BarChart3, label: "Stats", shortcut: "S", roles: ["manager", "finance_manager", "security"] },
 ];
 
-const TABLE_SUBITEMS: typeof PIT_SUBITEMS = [];
+const TABLE_SUBITEMS = [
+  { tab: "activeplayers", icon: Users, label: "Active Players" },
+  { tab: "tracker", icon: Eye, label: "Client Tracker" },
+  { tab: "tabletracker", icon: Target, label: "Table Tracker" },
+];
 
 const PIT_SUBITEMS = [
   { tab: "activeplayers", icon: Users, label: "Active Players" },
