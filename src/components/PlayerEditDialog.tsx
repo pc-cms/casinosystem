@@ -1,12 +1,16 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { AlertTriangle, Camera, User } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { AlertTriangle, Camera, User, FileImage, StickyNote, Send } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/lib/auth-context";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { format } from "date-fns";
 
 interface PlayerEditDialogProps {
   player: {
@@ -14,30 +18,76 @@ interface PlayerEditDialogProps {
     first_name: string;
     last_name: string;
     nickname?: string;
+    phone?: string;
     photo_url?: string | null;
     id_number?: string;
+    id_document_url?: string | null;
+    player_type?: string;
   } | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
 const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps) => {
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  const [nickname, setNickname] = useState("");
+  const [phone, setPhone] = useState("");
   const [idNumber, setIdNumber] = useState("");
+  const [playerType, setPlayerType] = useState("table");
   const [uploading, setUploading] = useState(false);
+  const [uploadingDoc, setUploadingDoc] = useState(false);
   const [saving, setSaving] = useState(false);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [docUrl, setDocUrl] = useState<string | null>(null);
+  const [newNote, setNewNote] = useState("");
+  const [addingNote, setAddingNote] = useState(false);
 
-  // Reset form when player changes
-  const resetForm = () => {
-    if (player) {
+  useEffect(() => {
+    if (player && open) {
       setFirstName(player.first_name || "");
       setLastName(player.last_name || "");
+      setNickname(player.nickname || "");
+      setPhone(player.phone || "");
       setIdNumber(player.id_number || "");
+      setPlayerType(player.player_type || "table");
       setPhotoUrl(player.photo_url || null);
+      setDocUrl(player.id_document_url || null);
+      setNewNote("");
     }
+  }, [player, open]);
+
+  // Fetch notes
+  const { data: notes = [], refetch: refetchNotes } = useQuery({
+    queryKey: ["player_notes", player?.id],
+    queryFn: async () => {
+      if (!player) return [];
+      const { data, error } = await supabase
+        .from("player_notes")
+        .select("*")
+        .eq("player_id", player.id)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!player && open,
+  });
+
+  // Fetch profiles for note author names
+  const { data: profiles = [] } = useQuery({
+    queryKey: ["profiles_for_notes"],
+    queryFn: async () => {
+      const { data } = await supabase.from("profiles").select("user_id, display_name");
+      return data || [];
+    },
+    enabled: open && notes.length > 0,
+  });
+
+  const getAuthorName = (userId: string) => {
+    const p = profiles.find((pr: any) => pr.user_id === userId);
+    return p ? (p as any).display_name : "Staff";
   };
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -61,6 +111,51 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
     }
   };
 
+  const handleDocUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !player) return;
+    setUploadingDoc(true);
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `players/${player.id}/id_document.${ext}`;
+      const { error: upErr } = await supabase.storage.from("player-documents").upload(path, file, { upsert: true });
+      if (upErr) throw upErr;
+      const { data: urlData } = supabase.storage.from("player-documents").getPublicUrl(path);
+      const url = `${urlData.publicUrl}?t=${Date.now()}`;
+      await supabase.from("players").update({ id_document_url: url } as any).eq("id", player.id);
+      setDocUrl(url);
+      toast.success("ID document uploaded");
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setUploadingDoc(false);
+    }
+  };
+
+  const handleAddNote = async () => {
+    if (!player || !newNote.trim() || !user) return;
+    setAddingNote(true);
+    try {
+      // Get casino_id from player
+      const { data: playerData } = await supabase.from("players").select("casino_id").eq("id", player.id).single();
+      if (!playerData) throw new Error("Player not found");
+      const { error } = await supabase.from("player_notes").insert({
+        player_id: player.id,
+        casino_id: playerData.casino_id,
+        content: newNote.trim(),
+        created_by: user.id,
+      });
+      if (error) throw error;
+      setNewNote("");
+      refetchNotes();
+      toast.success("Note added");
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setAddingNote(false);
+    }
+  };
+
   const handleSave = async () => {
     if (!player) return;
     setSaving(true);
@@ -68,12 +163,16 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
       const updates: Record<string, string> = {};
       if (firstName && firstName !== player.first_name) updates.first_name = firstName;
       if (lastName && lastName !== player.last_name) updates.last_name = lastName;
+      if (nickname !== (player.nickname || "")) updates.nickname = nickname;
+      if (phone !== (player.phone || "")) updates.phone = phone;
       if (idNumber !== (player.id_number || "")) updates.id_number = idNumber;
+      if (playerType !== (player.player_type || "table")) updates.player_type = playerType;
       if (Object.keys(updates).length > 0) {
         const { error } = await supabase.from("players").update(updates).eq("id", player.id);
         if (error) throw error;
       }
       queryClient.invalidateQueries({ queryKey: ["players"] });
+      queryClient.invalidateQueries({ queryKey: ["casino_visits"] });
       toast.success("Player updated");
       onOpenChange(false);
     } catch (err: any) {
@@ -83,11 +182,14 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
     }
   };
 
-  const incomplete = player && (!player.photo_url && !photoUrl || !player.first_name || !player.last_name || !player.id_number);
+  const hasPhoto = photoUrl || player?.photo_url;
+  const hasDoc = docUrl || player?.id_document_url;
+  const hasId = idNumber || player?.id_number;
+  const incomplete = player && (!hasPhoto || !hasDoc || !hasId);
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { if (v) resetForm(); onOpenChange(v); }}>
-      <DialogContent className="max-w-sm">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             Edit Player
@@ -96,25 +198,43 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
         </DialogHeader>
 
         {player && (
-          <div className="space-y-4">
-            {/* Photo */}
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center overflow-hidden shrink-0">
-                {(photoUrl || player.photo_url) ? (
-                  <img src={photoUrl || player.photo_url!} className="w-full h-full object-cover" alt="" />
-                ) : (
-                  <User className="w-8 h-8 text-muted-foreground" />
-                )}
-              </div>
-              <div className="flex-1">
-                <Label htmlFor="photo-upload" className="cursor-pointer">
-                  <Button variant="outline" size="sm" className="gap-1 text-xs" asChild disabled={uploading}>
-                    <span>
-                      <Camera className="w-3 h-3" /> {uploading ? "Uploading…" : "Upload Photo"}
-                    </span>
+          <div className="space-y-5">
+            {/* Photo & ID Document side by side */}
+            <div className="grid grid-cols-2 gap-4">
+              {/* Profile Photo */}
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground">Profile Photo</Label>
+                <div className="w-full aspect-square rounded-lg bg-muted flex items-center justify-center overflow-hidden border border-border">
+                  {(photoUrl || player.photo_url) ? (
+                    <img src={photoUrl || player.photo_url!} className="w-full h-full object-cover" alt="" />
+                  ) : (
+                    <User className="w-10 h-10 text-muted-foreground" />
+                  )}
+                </div>
+                <Label htmlFor="photo-upload" className="cursor-pointer w-full">
+                  <Button variant="outline" size="sm" className="gap-1 text-xs w-full" asChild disabled={uploading}>
+                    <span><Camera className="w-3 h-3" /> {uploading ? "Uploading…" : "Upload Photo"}</span>
                   </Button>
                 </Label>
                 <input id="photo-upload" type="file" accept="image/*" capture="environment" className="hidden" onChange={handlePhotoUpload} />
+              </div>
+
+              {/* ID Document */}
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground">ID / Passport Scan</Label>
+                <div className="w-full aspect-square rounded-lg bg-muted flex items-center justify-center overflow-hidden border border-border">
+                  {(docUrl || player.id_document_url) ? (
+                    <img src={docUrl || player.id_document_url!} className="w-full h-full object-cover" alt="" />
+                  ) : (
+                    <FileImage className="w-10 h-10 text-muted-foreground" />
+                  )}
+                </div>
+                <Label htmlFor="doc-upload" className="cursor-pointer w-full">
+                  <Button variant="outline" size="sm" className="gap-1 text-xs w-full" asChild disabled={uploadingDoc}>
+                    <span><FileImage className="w-3 h-3" /> {uploadingDoc ? "Uploading…" : "Upload ID Doc"}</span>
+                  </Button>
+                </Label>
+                <input id="doc-upload" type="file" accept="image/*" capture="environment" className="hidden" onChange={handleDocUpload} />
               </div>
             </div>
 
@@ -130,10 +250,70 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
               </div>
             </div>
 
-            {/* ID */}
-            <div className="space-y-1">
-              <Label className="text-xs">ID Number</Label>
-              <Input value={idNumber} onChange={e => setIdNumber(e.target.value)} className="h-9 font-mono" placeholder="Passport / ID" />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Nickname</Label>
+                <Input value={nickname} onChange={e => setNickname(e.target.value)} className="h-9" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Phone</Label>
+                <Input value={phone} onChange={e => setPhone(e.target.value)} className="h-9" />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">ID / Passport Number</Label>
+                <Input value={idNumber} onChange={e => setIdNumber(e.target.value)} className="h-9 font-mono" placeholder="Enter ID" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Player Type</Label>
+                <Select value={playerType} onValueChange={setPlayerType}>
+                  <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="table">Table</SelectItem>
+                    <SelectItem value="slots">Slots</SelectItem>
+                    <SelectItem value="mix">Mix</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Notes */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-1">
+                <StickyNote className="w-3 h-3 text-muted-foreground" />
+                <Label className="text-xs text-muted-foreground">Notes ({notes.length})</Label>
+              </div>
+              <div className="flex gap-2">
+                <Textarea
+                  value={newNote}
+                  onChange={e => setNewNote(e.target.value)}
+                  placeholder="Add a note..."
+                  className="text-xs min-h-[60px] resize-none"
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="shrink-0 self-end h-8"
+                  onClick={handleAddNote}
+                  disabled={!newNote.trim() || addingNote}
+                >
+                  <Send className="w-3 h-3" />
+                </Button>
+              </div>
+              {notes.length > 0 && (
+                <div className="space-y-1 max-h-40 overflow-y-auto">
+                  {notes.map((note: any) => (
+                    <div key={note.id} className="text-xs p-2 rounded bg-muted/50 border border-border">
+                      <p className="text-card-foreground">{note.content}</p>
+                      <p className="text-[10px] text-muted-foreground mt-1">
+                        {getAuthorName(note.created_by)} · {format(new Date(note.created_at), "dd MMM HH:mm")}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}
