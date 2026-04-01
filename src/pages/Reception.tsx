@@ -251,6 +251,10 @@ const CheckInTab = () => {
                     {p.player_cards?.[0]?.card_number || "No card"}
                   </p>
                 </div>
+                <CategoryBadge category={((p as any).category as PlayerCategory) || "guest"} />
+                {p.player_tags?.length > 0 && (
+                  <FlagBadges tags={p.player_tags.map((t: any) => t.tag)} compact />
+                )}
                 {incomplete.length > 0 && (
                   <AlertTriangle className="w-4 h-4 text-yellow-500 shrink-0" />
                 )}
