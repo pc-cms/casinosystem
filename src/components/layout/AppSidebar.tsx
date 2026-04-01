@@ -155,13 +155,13 @@ export const AppSidebar = () => {
 
         <nav className="flex-1 py-2 px-2 overflow-y-auto">
           {visibleItems.map((item, idx) => {
-            const sectionLabel = SECTION_LABELS[item.to];
-            const showLabel = sectionLabel && sectionBreaks.has(item.to);
+            const showLabel = item.section !== lastSection;
+            if (showLabel) lastSection = item.section;
             return (
               <div key={item.to}>
                 {showLabel && (
                   <div className={`px-3 pt-3 pb-1 ${idx > 0 ? "mt-1 border-t border-sidebar-border" : ""}`}>
-                    <span className="text-[9px] font-mono text-muted-foreground uppercase tracking-widest">{sectionLabel}</span>
+                    <span className="text-[9px] font-mono text-muted-foreground uppercase tracking-widest">{item.section}</span>
                   </div>
                 )}
                 <NavLink to={item.to} end={item.to === "/" || item.to === "/pit" || item.to === "/staff" || item.to === "/tables" || item.to === BREAKLIST_PATH}
