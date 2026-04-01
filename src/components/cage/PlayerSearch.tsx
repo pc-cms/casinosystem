@@ -6,6 +6,7 @@ interface Player {
   first_name: string;
   last_name: string;
   nickname: string;
+  status?: string;
   player_cards?: { card_number: string }[];
 }
 
