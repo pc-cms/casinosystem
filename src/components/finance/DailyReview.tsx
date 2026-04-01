@@ -52,8 +52,8 @@ export const DailyReview = () => {
     });
   };
 
-  const prevDay = () => setSelectedDate(format(subDays(new Date(selectedDate), 1), "yyyy-MM-dd"));
-  const nextDay = () => setSelectedDate(format(addDays(new Date(selectedDate), 1), "yyyy-MM-dd"));
+  const prevDay = () => handleDateChange(format(subDays(new Date(selectedDate), 1), "yyyy-MM-dd"));
+  const nextDay = () => handleDateChange(format(addDays(new Date(selectedDate), 1), "yyyy-MM-dd"));
 
   return (
     <div className="space-y-4 mt-4">
