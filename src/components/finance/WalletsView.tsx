@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useWallets, useCreateWalletTransaction, WALLET_LABELS, WalletType, EXPENSE_CATEGORY_GROUPS, CATEGORY_LABELS } from "@/hooks/use-finance";
 import { formatNumberSpaces, formatInputWithSpaces, parseSpacedNumber } from "@/lib/currency";
-import { ArrowRightLeft, PiggyBank, Wallet, ArrowUpFromLine } from "lucide-react";
+import { ArrowRightLeft, PiggyBank, Wallet, ArrowUpFromLine, ArrowDownToLine } from "lucide-react";
 import { WalletSetup } from "./WalletSetup";
 
 const MAIN_WALLETS: WalletType[] = ["main_cash", "office_safe"];
