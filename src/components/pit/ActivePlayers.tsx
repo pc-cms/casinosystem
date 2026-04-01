@@ -270,12 +270,12 @@ const ActivePlayers = () => {
     const filtered = search
       ? catFiltered.filter(p => `${p.first_name} ${p.last_name} ${p.nickname}`.toLowerCase().includes(search.toLowerCase()))
       : catFiltered;
-      : typeFiltered;
 
     // Sort
     filtered.sort((a, b) => {
       let cmp = 0;
       switch (sortKey) {
+        case "category": cmp = CATEGORY_PRIORITY[a.category] - CATEGORY_PRIORITY[b.category]; break;
         case "name": cmp = `${a.first_name} ${a.last_name}`.localeCompare(`${b.first_name} ${b.last_name}`); break;
         case "dropR": cmp = a.dropR - b.dropR; break;
         case "dropT": cmp = a.dropT - b.dropT; break;
@@ -286,7 +286,7 @@ const ActivePlayers = () => {
     });
 
     return filtered;
-  }, [players, transactions, allTags, sessions, tables, visits, sortKey, sortDir, search, typeFilter]);
+  }, [players, transactions, allTags, sessions, tables, visits, sortKey, sortDir, search, typeFilter, categoryFilter]);
 
   // Players not yet active — for check-in search
   const activeIds = new Set(activePlayers.map(p => p.id));
