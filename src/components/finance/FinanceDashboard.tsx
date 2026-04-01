@@ -71,20 +71,21 @@ export const FinanceDashboard = () => {
     .reduce((s, tx) => s + Number(tx.amount), 0);
 
   // === GLOBAL RECONCILIATION ===
-  // Expected = sum of main wallets (not reserves)
-  const expectedMainCash = MAIN_WALLETS.reduce((s, wt) => {
+  // Expected = sum of main + operational wallets (not reserves)
+  const ALL_RECONCILED: WalletType[] = [...MAIN_WALLETS, ...OPERATIONAL_WALLETS];
+  const expectedTotal = ALL_RECONCILED.reduce((s, wt) => {
     const w = wallets.find(w => w.wallet_type === wt);
     return s + Number(w?.current_balance || 0);
   }, 0);
 
-  // Physical = latest cash count snapshots for main wallets
-  const physicalMainCash = MAIN_WALLETS.reduce((s, wt) => {
+  // Physical = latest cash count snapshots for all reconciled wallets
+  const physicalTotal = ALL_RECONCILED.reduce((s, wt) => {
     const snap = latestCounts.find(c => c.wallet_type === wt);
     return s + (snap ? Number(snap.physical_total_tzs) : 0);
   }, 0);
 
-  const hasMainCounts = latestCounts.some(c => MAIN_WALLETS.includes(c.wallet_type as WalletType));
-  const mainDiscrepancy = expectedMainCash - physicalMainCash;
+  const hasAnyCounts = latestCounts.some(c => ALL_RECONCILED.includes(c.wallet_type as WalletType));
+  const mainDiscrepancy = expectedTotal - physicalTotal;
 
   // Reserve reconciliation
   const reserveReconciliation = RESERVE_WALLETS.map(wt => {
