@@ -497,50 +497,223 @@ const RegisterTab = () => {
 
 // ============ UPDATE DATA TAB ============
 const UpdateDataTab = () => {
+  const { casinoId } = useAuth();
   const { data: players = [] } = usePlayers();
+  const { data: visits = [] } = useVisitsToday();
+  const queryClient = useQueryClient();
+  const [query, setQuery] = useState("");
+  const [sortBy, setSortBy] = useState<"newest" | "last_visit">("last_visit");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
 
-  const incomplete = useMemo(
-    () => players.filter(p => isProfileIncomplete(p).length > 0).map(p => ({
-      ...p,
-      missing: isProfileIncomplete(p),
-    })),
-    [players]
-  );
+  // Map player_id -> latest check-in time from today's visits
+  const visitMap = useMemo(() => {
+    const map = new Map<string, string>();
+    visits.forEach((v: any) => {
+      const existing = map.get(v.player_id);
+      if (!existing || v.checked_in_at > existing) map.set(v.player_id, v.checked_in_at);
+    });
+    return map;
+  }, [visits]);
+
+  const incomplete = useMemo(() => {
+    let list = players
+      .filter(p => isProfileIncomplete(p).length > 0)
+      .map(p => ({
+        ...p,
+        missing: isProfileIncomplete(p),
+        lastVisit: visitMap.get(p.id) || null,
+      }));
+
+    // Filter by search
+    if (query) {
+      const q = query.toLowerCase();
+      list = list.filter(p =>
+        p.first_name?.toLowerCase().includes(q) ||
+        p.last_name?.toLowerCase().includes(q) ||
+        p.nickname?.toLowerCase().includes(q) ||
+        p.player_cards?.some((c: any) => c.card_number?.includes(query))
+      );
+    }
+
+    // Sort
+    if (sortBy === "last_visit") {
+      list.sort((a, b) => {
+        if (a.lastVisit && !b.lastVisit) return -1;
+        if (!a.lastVisit && b.lastVisit) return 1;
+        if (a.lastVisit && b.lastVisit) return b.lastVisit.localeCompare(a.lastVisit);
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      });
+    } else {
+      list.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    }
+
+    return list;
+  }, [players, query, sortBy, visitMap]);
+
+  const handlePhotoUpload = async (playerId: string, file: File) => {
+    if (!casinoId) return;
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `${casinoId}/${playerId}/photo.${ext}`;
+      const { error: uploadErr } = await supabase.storage
+        .from("player-documents")
+        .upload(path, file, { upsert: true });
+      if (uploadErr) throw uploadErr;
+      const { data: urlData } = supabase.storage
+        .from("player-documents")
+        .getPublicUrl(path);
+      const { error } = await supabase.from("players").update({ photo_url: urlData.publicUrl }).eq("id", playerId);
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ["players"] });
+      toast.success("Photo updated");
+      setEditingId(null);
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleFieldUpdate = async (playerId: string, field: string, value: string) => {
+    try {
+      const { error } = await supabase.from("players").update({ [field]: value } as any).eq("id", playerId);
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ["players"] });
+      toast.success("Updated");
+    } catch (e: any) {
+      toast.error(e.message);
+    }
+  };
 
   return (
     <div className="space-y-4">
+      <div className="flex items-center gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            placeholder="Search player..."
+            className="pl-10"
+          />
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setSortBy(s => s === "newest" ? "last_visit" : "newest")}
+          className="text-xs shrink-0"
+        >
+          {sortBy === "last_visit" ? "Last Visit ↓" : "Newest ↓"}
+        </Button>
+      </div>
+
       <p className="text-sm text-muted-foreground">
         {incomplete.length} players with incomplete profiles
       </p>
 
       {incomplete.length === 0 ? (
-        <div className="cms-panel p-8 text-center text-muted-foreground">All player profiles are complete</div>
+        <div className="cms-panel p-8 text-center text-muted-foreground">
+          {query ? "No matching players" : "All player profiles are complete"}
+        </div>
       ) : (
-        <div className="cms-panel divide-y divide-border">
+        <div className="cms-panel divide-y divide-border max-h-[600px] overflow-y-auto">
           {incomplete.map(p => (
-            <div key={p.id} className="flex items-center gap-3 px-4 py-3">
-              <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center overflow-hidden shrink-0">
-                {p.photo_url ? (
-                  <img src={p.photo_url} className="w-full h-full object-cover" alt="" />
-                ) : (
-                  <User className="w-5 h-5 text-muted-foreground" />
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground truncate">
-                  {p.first_name} {p.last_name}
-                </p>
-                <div className="flex gap-1 mt-0.5 flex-wrap">
-                  {p.missing.map(m => (
-                    <Badge key={m} variant="outline" className="text-[9px] border-yellow-500/30 text-yellow-500 gap-0.5">
-                      <AlertTriangle className="w-2.5 h-2.5" /> {m}
-                    </Badge>
-                  ))}
+            <div key={p.id} className="px-4 py-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center overflow-hidden shrink-0">
+                  {p.photo_url ? (
+                    <img src={p.photo_url} className="w-full h-full object-cover" alt="" />
+                  ) : (
+                    <User className="w-5 h-5 text-muted-foreground" />
+                  )}
                 </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">
+                    {p.first_name} {p.last_name}
+                    {p.nickname && <span className="text-muted-foreground ml-1">({p.nickname})</span>}
+                  </p>
+                  <div className="flex gap-1 mt-0.5 flex-wrap">
+                    {p.missing.map((m: string) => (
+                      <Badge key={m} variant="outline" className="text-[9px] border-yellow-500/30 text-yellow-500 gap-0.5">
+                        <AlertTriangle className="w-2.5 h-2.5" /> {m}
+                      </Badge>
+                    ))}
+                    {p.lastVisit && (
+                      <span className="text-[10px] text-primary font-mono">IN today</span>
+                    )}
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setEditingId(editingId === p.id ? null : p.id)}
+                  className="shrink-0 text-xs gap-1"
+                >
+                  <Camera className="w-3.5 h-3.5" />
+                  Edit
+                </Button>
               </div>
-              <p className="text-xs text-muted-foreground font-mono shrink-0">
-                {p.player_cards?.[0]?.card_number || "—"}
-              </p>
+
+              {/* Inline edit panel */}
+              {editingId === p.id && (
+                <div className="mt-3 ml-13 space-y-3 pl-[52px]">
+                  {p.missing.includes("photo") && (
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-muted-foreground">Upload Photo</label>
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        disabled={uploading}
+                        onChange={e => {
+                          const file = e.target.files?.[0];
+                          if (file) handlePhotoUpload(p.id, file);
+                        }}
+                        className="text-xs"
+                      />
+                    </div>
+                  )}
+                  {p.missing.includes("name") && (
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-1">
+                        <label className="text-xs font-medium text-muted-foreground">First Name</label>
+                        <Input
+                          defaultValue={p.first_name}
+                          onBlur={e => {
+                            if (e.target.value && e.target.value !== p.first_name) handleFieldUpdate(p.id, "first_name", e.target.value);
+                          }}
+                          className="text-sm"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-xs font-medium text-muted-foreground">Last Name</label>
+                        <Input
+                          defaultValue={p.last_name}
+                          onBlur={e => {
+                            if (e.target.value && e.target.value !== p.last_name) handleFieldUpdate(p.id, "last_name", e.target.value);
+                          }}
+                          className="text-sm"
+                        />
+                      </div>
+                    </div>
+                  )}
+                  {p.missing.includes("ID document") && (
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-muted-foreground">ID / Passport Number</label>
+                      <Input
+                        defaultValue={p.id_number || ""}
+                        onBlur={e => {
+                          if (e.target.value) handleFieldUpdate(p.id, "id_number", e.target.value);
+                        }}
+                        placeholder="Enter ID number"
+                        className="text-sm"
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           ))}
         </div>
