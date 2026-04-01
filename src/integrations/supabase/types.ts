@@ -396,6 +396,62 @@ export type Database = {
           },
         ]
       }
+      cash_count_snapshots: {
+        Row: {
+          casino_id: string
+          counted_by: string
+          created_at: string
+          currency: string
+          denominations: Json
+          discrepancy: number
+          exchange_rate: number
+          expected_balance: number
+          id: string
+          note: string
+          physical_total: number
+          physical_total_tzs: number
+          wallet_type: Database["public"]["Enums"]["wallet_type"]
+        }
+        Insert: {
+          casino_id: string
+          counted_by: string
+          created_at?: string
+          currency?: string
+          denominations?: Json
+          discrepancy?: number
+          exchange_rate?: number
+          expected_balance?: number
+          id?: string
+          note?: string
+          physical_total?: number
+          physical_total_tzs?: number
+          wallet_type: Database["public"]["Enums"]["wallet_type"]
+        }
+        Update: {
+          casino_id?: string
+          counted_by?: string
+          created_at?: string
+          currency?: string
+          denominations?: Json
+          discrepancy?: number
+          exchange_rate?: number
+          expected_balance?: number
+          id?: string
+          note?: string
+          physical_total?: number
+          physical_total_tzs?: number
+          wallet_type?: Database["public"]["Enums"]["wallet_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cash_count_snapshots_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cash_counts: {
         Row: {
           casino_id: string
