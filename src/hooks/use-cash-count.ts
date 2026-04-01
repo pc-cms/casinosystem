@@ -39,13 +39,13 @@ export function useCashCountHistory(limit = 50) {
   });
 }
 
+/** Get the latest snapshot for each (wallet_type, currency) combo */
 export function useLatestCashCounts() {
   const { casinoId } = useAuth() as any;
   return useQuery({
     queryKey: ["cash_count_latest", casinoId],
     queryFn: async () => {
       if (!casinoId) return [];
-      // Get all snapshots ordered by date, then pick latest per wallet_type
       const { data, error } = await supabase
         .from("cash_count_snapshots")
         .select("*")
@@ -55,8 +55,9 @@ export function useLatestCashCounts() {
       if (error) throw error;
       const latest = new Map<string, CashCountSnapshot>();
       for (const snap of (data || []) as CashCountSnapshot[]) {
-        if (!latest.has(snap.wallet_type)) {
-          latest.set(snap.wallet_type, snap);
+        const key = `${snap.wallet_type}__${snap.currency}`;
+        if (!latest.has(key)) {
+          latest.set(key, snap);
         }
       }
       return Array.from(latest.values());
@@ -99,6 +100,7 @@ export function useCreateCashCount() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["cash_count_snapshots"] });
+      qc.invalidateQueries({ queryKey: ["cash_count_latest"] });
       toast.success("Cash count recorded");
     },
     onError: (e: any) => toast.error(e.message),
