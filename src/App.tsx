@@ -38,6 +38,7 @@ const queryClient = new QueryClient({
 const ROUTE_ROLES: Record<string, string[]> = {
   "/": ["manager", "pit", "reception", "finance_manager", "security"],
   "/players": ["manager", "cashier", "reception", "finance_manager", "security"],
+  "/reception": ["manager", "reception", "finance_manager"],
   "/cage": ["manager", "cashier", "finance_manager"],
   "/tables": ["manager", "cashier", "pit", "finance_manager", "security"],
   "/expenses": ["manager", "cashier", "finance_manager"],
@@ -45,7 +46,6 @@ const ROUTE_ROLES: Record<string, string[]> = {
   "/floor": ["manager", "pit", "finance_manager"],
   "/groups": ["manager", "finance_manager"],
   "/finance": ["manager", "finance_manager"],
-  // tracker is now under /tables?tab=tracker
   "/reports": ["manager", "finance_manager", "security"],
   "/stats": ["manager", "finance_manager", "security"],
   "/logs": ["manager", "finance_manager", "security"],
