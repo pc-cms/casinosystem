@@ -153,6 +153,11 @@ const CheckInTab = () => {
     setSelectedPlayer(player);
     const missing = isProfileIncomplete(player);
     setIncompleteWarning(missing.length > 0 ? missing : null);
+    // Check for flags
+    const flags = player.player_tags?.map((t: any) => t.tag) || [];
+    if (flags.length > 0 && player.status !== "blacklist") {
+      toast.warning(`⚠️ Player flagged: ${flags.join(", ")}`, { duration: 5000 });
+    }
   };
 
   const checkIn = useMutation({
