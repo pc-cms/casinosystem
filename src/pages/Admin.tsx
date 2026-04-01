@@ -350,6 +350,7 @@ const ScheduleSettings = () => {
       shift_start: shiftStart,
       shift_end: shiftEnd,
       breaklist_lock: breaklistLock,
+      cage_float: Number(cageFloat) || 0,
     });
   };
 
