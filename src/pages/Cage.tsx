@@ -761,6 +761,8 @@ const CashoutForm = ({ players, shiftId, onSubmit, loading }: any) => {
 
   const handleSubmit = () => {
     if (!playerId || total <= 0) return;
+    const player = players.find((p: any) => p.id === playerId);
+    if (player?.status === "blacklist") { toast.error("BLOCKED — Player is blacklisted"); return; }
     onSubmit({ player_id: playerId, table_id: null, type: "cashout" as const, amount: total, chips, shift_id: shiftId },
       { onSuccess: () => setChips({}) });
   };
