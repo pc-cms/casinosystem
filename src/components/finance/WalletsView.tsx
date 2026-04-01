@@ -323,3 +323,59 @@ const CollectionDialog = () => {
     </Dialog>
   );
 };
+
+const ExternalIncomeDialog = () => {
+  const [open, setOpen] = useState(false);
+  const [to, setTo] = useState<WalletType>("main_cash");
+  const [amount, setAmount] = useState("");
+  const [desc, setDesc] = useState("");
+  const create = useCreateWalletTransaction();
+
+  const handleSubmit = () => {
+    create.mutate({
+      tx_type: "external_income" as any,
+      to_wallet: to,
+      amount: parseSpacedNumber(amount),
+      description: desc || "External income",
+      business_date: new Date().toISOString().slice(0, 10),
+    }, {
+      onSuccess: () => { setOpen(false); setAmount(""); setDesc(""); },
+    });
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" className="gap-2 h-auto py-3 border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/10">
+          <ArrowDownToLine className="w-4 h-4" /> Income
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader><DialogTitle>Record External Income</DialogTitle></DialogHeader>
+        <div className="space-y-3">
+          <div>
+            <label className="text-xs text-muted-foreground">To Wallet</label>
+            <Select value={to} onValueChange={v => setTo(v as WalletType)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {MAIN_WALLETS.map(w => <SelectItem key={w} value={w}>{WALLET_LABELS[w]}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground">Amount</label>
+            <Input className="font-mono" value={amount} onChange={e => setAmount(formatInputWithSpaces(e.target.value))} placeholder="0" />
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground">Description</label>
+            <Input value={desc} onChange={e => setDesc(e.target.value)} placeholder="Source of income" />
+          </div>
+          <p className="text-xs text-muted-foreground">
+            External income increases wallet balance and is included in global reconciliation.
+          </p>
+          <Button onClick={handleSubmit} disabled={create.isPending || !parseSpacedNumber(amount)} className="w-full">Record Income</Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
