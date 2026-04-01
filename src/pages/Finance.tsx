@@ -28,12 +28,14 @@ const Finance = () => {
           <TabsTrigger value="wallets">Wallets</TabsTrigger>
           <TabsTrigger value="expenses">Expenses</TabsTrigger>
           <TabsTrigger value="budget">Budget</TabsTrigger>
+          <TabsTrigger value="cashcount">Cash Count</TabsTrigger>
         </TabsList>
         <TabsContent value="dashboard"><FinanceDashboard /></TabsContent>
         <TabsContent value="review"><DailyReview /></TabsContent>
         <TabsContent value="wallets"><WalletsView /></TabsContent>
         <TabsContent value="expenses"><FinanceExpenses /></TabsContent>
         <TabsContent value="budget"><BudgetPlanning /></TabsContent>
+        <TabsContent value="cashcount"><CashCount /></TabsContent>
       </Tabs>
     </div>
   );
