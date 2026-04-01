@@ -196,12 +196,19 @@ const AllocateReserveDialog = () => {
 const UseReserveDialog = () => {
   const [open, setOpen] = useState(false);
   const [reserve, setReserve] = useState<WalletType>("rent_reserve");
+  const [category, setCategory] = useState<string>("rent");
   const [amount, setAmount] = useState("");
   const [desc, setDesc] = useState("");
   const create = useCreateWalletTransaction();
 
   const handleSubmit = () => {
-    create.mutate({ tx_type: "use_reserve", from_wallet: reserve, amount: parseSpacedNumber(amount), description: desc }, {
+    create.mutate({
+      tx_type: "use_reserve",
+      from_wallet: reserve,
+      amount: parseSpacedNumber(amount),
+      expense_category: category as any,
+      description: desc,
+    }, {
       onSuccess: () => { setOpen(false); setAmount(""); setDesc(""); },
     });
   };
@@ -220,6 +227,22 @@ const UseReserveDialog = () => {
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 {RESERVE_WALLETS.map(w => <SelectItem key={w} value={w}>{WALLET_LABELS[w]}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground">Expense Category</label>
+            <Select value={category} onValueChange={setCategory}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {Object.entries(EXPENSE_CATEGORY_GROUPS).map(([key, group]) => (
+                  <div key={key}>
+                    <div className="px-2 py-1 text-[10px] font-mono text-muted-foreground uppercase">{group.label}</div>
+                    {group.categories.map(cat => (
+                      <SelectItem key={cat} value={cat}>{CATEGORY_LABELS[cat]}</SelectItem>
+                    ))}
+                  </div>
+                ))}
               </SelectContent>
             </Select>
           </div>
