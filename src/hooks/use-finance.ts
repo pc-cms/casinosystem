@@ -254,7 +254,7 @@ export function useUpsertDailySummary() {
   });
 }
 
-// Get shift closing money breakdown for a date
+// Get shift closing money breakdown for a date (opening + closing data)
 export function useShiftClosingForDate(date: string) {
   const { casinoId } = useAuth() as any;
   return useQuery({
@@ -266,7 +266,7 @@ export function useShiftClosingForDate(date: string) {
       const nextDayStr = nextDay.toISOString().slice(0, 10);
       const { data, error } = await supabase
         .from("shifts")
-        .select("id, closing_count, closing_cash, exchange_rates, status")
+        .select("id, opening_float, closing_count, closing_cash, exchange_rates, status")
         .eq("casino_id", casinoId)
         .gte("opened_at", `${date}T00:00:00`)
         .lt("opened_at", `${nextDayStr}T00:00:00`)
