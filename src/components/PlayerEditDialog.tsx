@@ -5,12 +5,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AlertTriangle, Camera, User, FileImage, StickyNote, Send } from "lucide-react";
+import { AlertTriangle, Camera, User, FileImage, StickyNote, Send, Shield } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import CategoryBadge, { ALL_CATEGORIES, type PlayerCategory } from "@/components/player/CategoryBadge";
+import FlagBadges from "@/components/player/FlagBadges";
 
 interface PlayerEditDialogProps {
   player: {
@@ -23,13 +25,23 @@ interface PlayerEditDialogProps {
     id_number?: string;
     id_document_url?: string | null;
     player_type?: string;
+    category?: string;
   } | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
+const NOTE_TYPES = ["info", "vip", "warning", "suspicious", "incident"] as const;
+const NOTE_TYPE_COLORS: Record<string, string> = {
+  info: "border-l-blue-500",
+  vip: "border-l-amber-500",
+  warning: "border-l-orange-500",
+  suspicious: "border-l-red-500",
+  incident: "border-l-destructive",
+};
+
 const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps) => {
-  const { user } = useAuth();
+  const { user, roles, isManager } = useAuth();
   const queryClient = useQueryClient();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -37,13 +49,18 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
   const [phone, setPhone] = useState("");
   const [idNumber, setIdNumber] = useState("");
   const [playerType, setPlayerType] = useState("table");
+  const [category, setCategory] = useState<PlayerCategory>("guest");
   const [uploading, setUploading] = useState(false);
   const [uploadingDoc, setUploadingDoc] = useState(false);
   const [saving, setSaving] = useState(false);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [docUrl, setDocUrl] = useState<string | null>(null);
   const [newNote, setNewNote] = useState("");
+  const [noteType, setNoteType] = useState<string>("info");
   const [addingNote, setAddingNote] = useState(false);
+
+  const canSeeNotes = roles.some(r => ["pit", "security", "manager"].includes(r)) || isManager;
+  const canEditCategory = isManager;
 
   useEffect(() => {
     if (player && open) {
@@ -53,13 +70,15 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
       setPhone(player.phone || "");
       setIdNumber(player.id_number || "");
       setPlayerType(player.player_type || "table");
+      setCategory((player.category as PlayerCategory) || "guest");
       setPhotoUrl(player.photo_url || null);
       setDocUrl(player.id_document_url || null);
       setNewNote("");
+      setNoteType("info");
     }
   }, [player, open]);
 
-  // Fetch notes
+  // Fetch notes (only for authorized roles)
   const { data: notes = [], refetch: refetchNotes } = useQuery({
     queryKey: ["player_notes", player?.id],
     queryFn: async () => {
@@ -72,10 +91,20 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
       if (error) throw error;
       return data;
     },
+    enabled: !!player && open && canSeeNotes,
+  });
+
+  // Fetch tags
+  const { data: playerTags = [] } = useQuery({
+    queryKey: ["player_tags_dialog", player?.id],
+    queryFn: async () => {
+      if (!player) return [];
+      const { data } = await supabase.from("player_tags").select("tag").eq("player_id", player.id);
+      return (data || []).map(t => t.tag);
+    },
     enabled: !!player && open,
   });
 
-  // Fetch profiles for note author names
   const { data: profiles = [] } = useQuery({
     queryKey: ["profiles_for_notes"],
     queryFn: async () => {
@@ -136,7 +165,6 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
     if (!player || !newNote.trim() || !user) return;
     setAddingNote(true);
     try {
-      // Get casino_id from player
       const { data: playerData } = await supabase.from("players").select("casino_id").eq("id", player.id).single();
       if (!playerData) throw new Error("Player not found");
       const { error } = await supabase.from("player_notes").insert({
@@ -144,9 +172,11 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
         casino_id: playerData.casino_id,
         content: newNote.trim(),
         created_by: user.id,
-      });
+        note_type: noteType,
+      } as any);
       if (error) throw error;
       setNewNote("");
+      setNoteType("info");
       refetchNotes();
       toast.success("Note added");
     } catch (err: any) {
@@ -160,13 +190,14 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
     if (!player) return;
     setSaving(true);
     try {
-      const updates: Record<string, string> = {};
+      const updates: Record<string, any> = {};
       if (firstName && firstName !== player.first_name) updates.first_name = firstName;
       if (lastName && lastName !== player.last_name) updates.last_name = lastName;
       if (nickname !== (player.nickname || "")) updates.nickname = nickname;
       if (phone !== (player.phone || "")) updates.phone = phone;
       if (idNumber !== (player.id_number || "")) updates.id_number = idNumber;
       if (playerType !== (player.player_type || "table")) updates.player_type = playerType;
+      if (canEditCategory && category !== ((player.category as PlayerCategory) || "guest")) updates.category = category;
       if (Object.keys(updates).length > 0) {
         const { error } = await supabase.from("players").update(updates).eq("id", player.id);
         if (error) throw error;
@@ -193,15 +224,22 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             Edit Player
+            {player && <CategoryBadge category={(player.category as PlayerCategory) || "guest"} size="md" />}
             {incomplete && <AlertTriangle className="w-4 h-4 text-yellow-500" />}
           </DialogTitle>
         </DialogHeader>
 
         {player && (
           <div className="space-y-5">
+            {/* Flags */}
+            {playerTags.length > 0 && (
+              <div>
+                <FlagBadges tags={playerTags} />
+              </div>
+            )}
+
             {/* Photo & ID Document side by side */}
             <div className="grid grid-cols-2 gap-4">
-              {/* Profile Photo */}
               <div className="space-y-2">
                 <Label className="text-xs text-muted-foreground">Profile Photo</Label>
                 <div className="w-full aspect-square rounded-lg bg-muted flex items-center justify-center overflow-hidden border border-border">
@@ -218,8 +256,6 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
                 </Label>
                 <input id="photo-upload" type="file" accept="image/*" capture="environment" className="hidden" onChange={handlePhotoUpload} />
               </div>
-
-              {/* ID Document */}
               <div className="space-y-2">
                 <Label className="text-xs text-muted-foreground">ID / Passport Scan</Label>
                 <div className="w-full aspect-square rounded-lg bg-muted flex items-center justify-center overflow-hidden border border-border">
@@ -261,9 +297,9 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-3">
               <div className="space-y-1">
-                <Label className="text-xs">ID / Passport Number</Label>
+                <Label className="text-xs">ID / Passport</Label>
                 <Input value={idNumber} onChange={e => setIdNumber(e.target.value)} className="h-9 font-mono" placeholder="Enter ID" />
               </div>
               <div className="space-y-1">
@@ -277,44 +313,71 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
                   </SelectContent>
                 </Select>
               </div>
+              <div className="space-y-1">
+                <Label className="text-xs flex items-center gap-1">
+                  Category
+                  {!canEditCategory && <Shield className="w-3 h-3 text-muted-foreground" />}
+                </Label>
+                <Select value={category} onValueChange={v => setCategory(v as PlayerCategory)} disabled={!canEditCategory}>
+                  <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {ALL_CATEGORIES.map(cat => (
+                      <SelectItem key={cat} value={cat} className="capitalize">{cat.charAt(0).toUpperCase() + cat.slice(1)}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
-            {/* Notes */}
-            <div className="space-y-2">
-              <div className="flex items-center gap-1">
-                <StickyNote className="w-3 h-3 text-muted-foreground" />
-                <Label className="text-xs text-muted-foreground">Notes ({notes.length})</Label>
-              </div>
-              <div className="flex gap-2">
-                <Textarea
-                  value={newNote}
-                  onChange={e => setNewNote(e.target.value)}
-                  placeholder="Add a note..."
-                  className="text-xs min-h-[60px] resize-none"
-                />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="shrink-0 self-end h-8"
-                  onClick={handleAddNote}
-                  disabled={!newNote.trim() || addingNote}
-                >
-                  <Send className="w-3 h-3" />
-                </Button>
-              </div>
-              {notes.length > 0 && (
-                <div className="space-y-1 max-h-40 overflow-y-auto">
-                  {notes.map((note: any) => (
-                    <div key={note.id} className="text-xs p-2 rounded bg-muted/50 border border-border">
-                      <p className="text-card-foreground">{note.content}</p>
-                      <p className="text-[10px] text-muted-foreground mt-1">
-                        {getAuthorName(note.created_by)} · {format(new Date(note.created_at), "dd MMM HH:mm")}
-                      </p>
-                    </div>
-                  ))}
+            {/* Notes — only for Pit, Security, Manager */}
+            {canSeeNotes && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-1">
+                  <StickyNote className="w-3 h-3 text-muted-foreground" />
+                  <Label className="text-xs text-muted-foreground">Intelligence Notes ({notes.length})</Label>
                 </div>
-              )}
-            </div>
+                <div className="flex gap-2">
+                  <Select value={noteType} onValueChange={setNoteType}>
+                    <SelectTrigger className="h-9 w-[110px] text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {NOTE_TYPES.map(t => (
+                        <SelectItem key={t} value={t} className="capitalize text-xs">{t}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Textarea
+                    value={newNote}
+                    onChange={e => setNewNote(e.target.value)}
+                    placeholder="Add intelligence note..."
+                    className="text-xs min-h-[50px] resize-none flex-1"
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="shrink-0 self-end h-8"
+                    onClick={handleAddNote}
+                    disabled={!newNote.trim() || addingNote}
+                  >
+                    <Send className="w-3 h-3" />
+                  </Button>
+                </div>
+                {notes.length > 0 && (
+                  <div className="space-y-1 max-h-40 overflow-y-auto">
+                    {notes.map((note: any) => (
+                      <div key={note.id} className={`text-xs p-2 rounded bg-muted/50 border border-border border-l-2 ${NOTE_TYPE_COLORS[note.note_type] || NOTE_TYPE_COLORS.info}`}>
+                        <div className="flex items-center gap-1.5 mb-0.5">
+                          <span className="text-[9px] font-mono uppercase text-muted-foreground">{note.note_type || "info"}</span>
+                        </div>
+                        <p className="text-card-foreground">{note.content}</p>
+                        <p className="text-[10px] text-muted-foreground mt-1">
+                          {getAuthorName(note.created_by)} · {format(new Date(note.created_at), "dd MMM HH:mm")}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
