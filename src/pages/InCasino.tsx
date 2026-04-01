@@ -32,8 +32,20 @@ const InCasino = () => {
   });
 
   // Split: still in vs checked out (awaiting confirm or already confirmed)
-  const stillIn = useMemo(() => visits.filter(v => !v.checked_out_at), [visits]);
-  const checkedOut = useMemo(() => visits.filter(v => !!v.checked_out_at), [visits]);
+  const stillIn = useMemo(() => visits.filter(v => !v.checked_out_at).sort((a, b) => {
+    const pA = (a.players as any);
+    const pB = (b.players as any);
+    const nameA = `${pA?.first_name || ""} ${pA?.last_name || ""}`.toLowerCase();
+    const nameB = `${pB?.first_name || ""} ${pB?.last_name || ""}`.toLowerCase();
+    return nameA.localeCompare(nameB);
+  }), [visits]);
+  const checkedOut = useMemo(() => visits.filter(v => !!v.checked_out_at).sort((a, b) => {
+    const pA = (a.players as any);
+    const pB = (b.players as any);
+    const nameA = `${pA?.first_name || ""} ${pA?.last_name || ""}`.toLowerCase();
+    const nameB = `${pB?.first_name || ""} ${pB?.last_name || ""}`.toLowerCase();
+    return nameA.localeCompare(nameB);
+  }), [visits]);
 
   const confirmExit = useMutation({
     mutationFn: async (visitId: string) => {
