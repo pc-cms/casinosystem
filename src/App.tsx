@@ -43,6 +43,7 @@ const ROUTE_ROLES: Record<string, string[]> = {
   "/pit": ["manager", "pit", "finance_manager"],
   "/floor": ["manager", "pit", "finance_manager"],
   "/groups": ["manager", "finance_manager"],
+  "/finance": ["manager", "finance_manager"],
   // tracker is now under /tables?tab=tracker
   "/reports": ["manager", "finance_manager", "security"],
   "/stats": ["manager", "finance_manager", "security"],
