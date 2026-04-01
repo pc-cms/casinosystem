@@ -24,7 +24,7 @@ import {
 import { toast } from "sonner";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
-type SortKey = "name" | "dropR" | "dropT" | "cashout" | "result";
+type SortKey = "name" | "dropR" | "dropT" | "cashout" | "result" | "category";
 type SortDir = "asc" | "desc";
 
 const PLAYER_TYPES = ["table", "mix", "slots"] as const;
