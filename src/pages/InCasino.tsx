@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
@@ -6,13 +6,19 @@ import { logAction } from "@/lib/logging";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { LogOut, User, CheckCircle2, Clock } from "lucide-react";
+import { LogOut, User, CheckCircle2, Clock, ArrowUpDown } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
+
+type SortKey = "name" | "in" | "out" | "type";
+type TypeFilter = "all" | "slots" | "table" | "mix";
 
 const InCasino = () => {
   const { casinoId, user } = useAuth();
   const queryClient = useQueryClient();
   const today = format(new Date(), "yyyy-MM-dd");
+  const [sortKey, setSortKey] = useState<SortKey>("name");
+  const [sortAsc, setSortAsc] = useState(true);
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
 
   const { data: visits = [] } = useQuery({
     queryKey: ["casino_visits", casinoId, today],
@@ -20,7 +26,7 @@ const InCasino = () => {
       if (!casinoId) return [];
       const { data, error } = await supabase
         .from("casino_visits")
-        .select("*, players(first_name, last_name, nickname, photo_url, status)")
+        .select("*, players(first_name, last_name, nickname, photo_url, status, player_type)")
         .eq("casino_id", casinoId)
         .eq("date", today)
         .order("checked_in_at", { ascending: false });
@@ -31,21 +37,40 @@ const InCasino = () => {
     refetchInterval: 10000,
   });
 
-  // Split: still in vs checked out (awaiting confirm or already confirmed)
-  const stillIn = useMemo(() => visits.filter(v => !v.checked_out_at).sort((a, b) => {
-    const pA = (a.players as any);
-    const pB = (b.players as any);
-    const nameA = `${pA?.first_name || ""} ${pA?.last_name || ""}`.toLowerCase();
-    const nameB = `${pB?.first_name || ""} ${pB?.last_name || ""}`.toLowerCase();
-    return nameA.localeCompare(nameB);
-  }), [visits]);
-  const checkedOut = useMemo(() => visits.filter(v => !!v.checked_out_at).sort((a, b) => {
-    const pA = (a.players as any);
-    const pB = (b.players as any);
-    const nameA = `${pA?.first_name || ""} ${pA?.last_name || ""}`.toLowerCase();
-    const nameB = `${pB?.first_name || ""} ${pB?.last_name || ""}`.toLowerCase();
-    return nameA.localeCompare(nameB);
-  }), [visits]);
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) setSortAsc(!sortAsc);
+    else { setSortKey(key); setSortAsc(true); }
+  };
+
+  const sortFn = (a: any, b: any) => {
+    const pA = a.players as any;
+    const pB = b.players as any;
+    let cmp = 0;
+    switch (sortKey) {
+      case "name": {
+        const nA = `${pA?.first_name || ""} ${pA?.last_name || ""}`.toLowerCase();
+        const nB = `${pB?.first_name || ""} ${pB?.last_name || ""}`.toLowerCase();
+        cmp = nA.localeCompare(nB);
+        break;
+      }
+      case "in":
+        cmp = new Date(a.checked_in_at).getTime() - new Date(b.checked_in_at).getTime();
+        break;
+      case "out":
+        cmp = (a.checked_out_at ? new Date(a.checked_out_at).getTime() : 0) - (b.checked_out_at ? new Date(b.checked_out_at).getTime() : 0);
+        break;
+      case "type":
+        cmp = (pA?.player_type || "").localeCompare(pB?.player_type || "");
+        break;
+    }
+    return sortAsc ? cmp : -cmp;
+  };
+
+  const filterByType = (list: any[]) =>
+    typeFilter === "all" ? list : list.filter(v => (v.players as any)?.player_type === typeFilter);
+
+  const stillIn = useMemo(() => filterByType(visits.filter(v => !v.checked_out_at)).sort(sortFn), [visits, sortKey, sortAsc, typeFilter]);
+  const checkedOut = useMemo(() => filterByType(visits.filter(v => !!v.checked_out_at)).sort(sortFn), [visits, sortKey, sortAsc, typeFilter]);
 
   const confirmExit = useMutation({
     mutationFn: async (visitId: string) => {
