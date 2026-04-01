@@ -7,34 +7,42 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
+import CategoryBadge, { CATEGORY_PRIORITY, type PlayerCategory } from "@/components/player/CategoryBadge";
+import CategoryFilter from "@/components/player/CategoryFilter";
+import FlagBadges from "@/components/player/FlagBadges";
 
 const TAG_OPTIONS = ["VIP", "No Alcohol", "Alcohol Allowed", "Free Food", "High Roller", "Watch List"];
 
-/**
- * PLAYER LOGIC (STRICT):
- * - Player always exists before transaction
- * - No duplicate players (enforced by search)
- * - No deletion
- * - Multiple cards per player, all valid
- * - RFID = input shortcut only
- * - Tags: max 5, conflicting tags enforced by DB trigger
- * - Tag editing: only via Manager Access
- */
 const Players = () => {
   const { data: players = [], isLoading } = usePlayers();
   const [query, setQuery] = useState("");
   const [showAdd, setShowAdd] = useState(false);
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
+  const [categoryFilter, setCategoryFilter] = useState<Set<PlayerCategory>>(new Set(["diamond", "platinum", "gold", "guest"]));
+  const [sortByCategory, setSortByCategory] = useState(true);
   const searchRef = useRef<HTMLInputElement>(null);
 
-  const filtered = query
-    ? players.filter(p =>
+  const filtered = (() => {
+    let list = players;
+    if (query) {
+      list = list.filter(p =>
         p.first_name.toLowerCase().includes(query.toLowerCase()) ||
         p.last_name.toLowerCase().includes(query.toLowerCase()) ||
         p.nickname.toLowerCase().includes(query.toLowerCase()) ||
         p.player_cards?.some(c => c.card_number.includes(query))
-      )
-    : players;
+      );
+    }
+    list = list.filter(p => categoryFilter.has(((p as any).category as PlayerCategory) || "guest"));
+    if (sortByCategory) {
+      list = [...list].sort((a, b) => {
+        const catA = CATEGORY_PRIORITY[((a as any).category as PlayerCategory) || "guest"];
+        const catB = CATEGORY_PRIORITY[((b as any).category as PlayerCategory) || "guest"];
+        if (catA !== catB) return catA - catB;
+        return `${a.first_name} ${a.last_name}`.localeCompare(`${b.first_name} ${b.last_name}`);
+      });
+    }
+    return list;
+  })();
 
   const selectedPlayer = players.find(p => p.id === selectedPlayerId);
 
@@ -59,31 +67,40 @@ const Players = () => {
         </Button>
       </div>
 
-      <div className="relative mb-4">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input ref={searchRef} value={query} onChange={e => setQuery(e.target.value)}
-          placeholder="Search by name, nickname, or card number..." className="pl-10 font-mono" />
-        <span className="absolute right-3 top-1/2 -translate-y-1/2 cms-kbd">/</span>
+      <div className="flex items-center gap-3 mb-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input ref={searchRef} value={query} onChange={e => setQuery(e.target.value)}
+            placeholder="Search by name, nickname, or card number..." className="pl-10 font-mono" />
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 cms-kbd">/</span>
+        </div>
+        <CategoryFilter selected={categoryFilter} onChange={setCategoryFilter} />
+        <Button variant={sortByCategory ? "secondary" : "ghost"} size="sm" className="text-xs h-7 shrink-0" onClick={() => setSortByCategory(!sortByCategory)}>
+          Sort: Category
+        </Button>
       </div>
 
       <div className="cms-panel overflow-hidden">
         <table className="w-full">
           <thead>
             <tr className="border-b border-border">
-              {["Player", "Nickname", "Card", "Status", "Tags"].map(h => (
-                <th key={h} className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-4 py-3">{h}</th>
+              {["", "Player", "Nickname", "Card", "Status", "Tags"].map(h => (
+                <th key={h || "cat"} className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-4 py-3">{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {isLoading ? (
-              <tr><td colSpan={5} className="text-center text-muted-foreground text-sm py-8">Loading...</td></tr>
+              <tr><td colSpan={6} className="text-center text-muted-foreground text-sm py-8">Loading...</td></tr>
             ) : filtered.length === 0 ? (
-              <tr><td colSpan={5} className="text-center text-muted-foreground text-sm py-8">No players found</td></tr>
+              <tr><td colSpan={6} className="text-center text-muted-foreground text-sm py-8">No players found</td></tr>
             ) : (
               filtered.map(player => (
                 <tr key={player.id} onClick={() => setSelectedPlayerId(player.id)}
                   className="border-b border-border last:border-0 hover:bg-muted/50 cursor-pointer transition-colors">
+                  <td className="px-4 py-3">
+                    <CategoryBadge category={((player as any).category as PlayerCategory) || "guest"} />
+                  </td>
                   <td className="px-4 py-3 text-sm font-medium text-card-foreground">{player.first_name} {player.last_name}</td>
                   <td className="px-4 py-3 text-sm text-muted-foreground">{player.nickname}</td>
                   <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
@@ -96,11 +113,7 @@ const Players = () => {
                     </span>
                   </td>
                   <td className="px-4 py-3">
-                    <div className="flex gap-1 flex-wrap">
-                      {player.player_tags?.map(t => (
-                        <Badge key={t.id} variant="outline" className="text-[10px] font-mono">{t.tag}</Badge>
-                      ))}
-                    </div>
+                    <FlagBadges tags={player.player_tags?.map(t => t.tag) || []} compact />
                   </td>
                 </tr>
               ))
@@ -145,9 +158,6 @@ const AddPlayerDialog = ({ open, onClose }: { open: boolean; onClose: () => void
   );
 };
 
-/**
- * Player detail: Tags require Manager Override to edit.
- */
 const PlayerDetailDialog = ({ player, onClose }: { player: any; onClose: () => void }) => {
   const { isManager } = useAuth();
   const updateStatus = useUpdatePlayerStatus();
@@ -172,7 +182,11 @@ const PlayerDetailDialog = ({ player, onClose }: { player: any; onClose: () => v
     <Dialog open onOpenChange={onClose}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>{player.first_name} {player.last_name} <span className="text-muted-foreground font-normal">({player.nickname})</span></DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <CategoryBadge category={((player as any).category as PlayerCategory) || "guest"} size="md" />
+            {player.first_name} {player.last_name}
+            <span className="text-muted-foreground font-normal">({player.nickname})</span>
+          </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -189,7 +203,6 @@ const PlayerDetailDialog = ({ player, onClose }: { player: any; onClose: () => v
             </div>
           </div>
 
-          {/* Tags - Manager Access Only */}
           <div>
             <p className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1">
               <Tag className="w-3 h-3" /> Tags (max 5) {!isManager && <span className="text-[10px] text-destructive ml-1">· Manager only</span>}
@@ -211,7 +224,6 @@ const PlayerDetailDialog = ({ player, onClose }: { player: any; onClose: () => v
             </div>
           </div>
 
-          {/* Cards - Multiple cards, all valid */}
           <div>
             <p className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1"><CreditCard className="w-3 h-3" /> Cards</p>
             <div className="space-y-1">
@@ -231,7 +243,6 @@ const PlayerDetailDialog = ({ player, onClose }: { player: any; onClose: () => v
             </div>
           </div>
 
-          {/* Status */}
           <div className="flex gap-2">
             {player.status === "active" ? (
               <Button variant="destructive" size="sm" onClick={() => {
@@ -252,28 +263,20 @@ const PlayerDetailDialog = ({ player, onClose }: { player: any; onClose: () => v
         </div>
       </DialogContent>
 
-      {/* Manager Override for tag changes */}
       <ManagerOverrideDialog
         open={!!pendingTagAction}
         onClose={() => setPendingTagAction(null)}
-        onConfirm={(managerId) => {
-          pendingTagAction?.();
-          setPendingTagAction(null);
-        }}
+        onConfirm={() => { pendingTagAction?.(); setPendingTagAction(null); }}
         title="Edit Player Tags"
         description="Manager authentication required to modify player tags."
         actionType="EDIT_PLAYER_TAGS"
         actionDetails={{ player_id: player.id, player_name: `${player.first_name} ${player.last_name}` }}
       />
 
-      {/* Manager Override for status changes */}
       <ManagerOverrideDialog
         open={!!pendingStatusAction}
         onClose={() => setPendingStatusAction(null)}
-        onConfirm={(managerId) => {
-          pendingStatusAction?.();
-          setPendingStatusAction(null);
-        }}
+        onConfirm={() => { pendingStatusAction?.(); setPendingStatusAction(null); }}
         title="Change Player Status"
         description="Manager authentication required to change player status."
         actionType="CHANGE_PLAYER_STATUS"
