@@ -697,6 +697,8 @@ const BuyInForm = ({ players, tables, exchangeRates, shiftId, onSubmit, loading 
   const handleSubmit = () => {
     if (!playerId || !tableId || !amount || tzsAmount <= 0) return;
     if (Number(amount) <= 0) { toast.error("Amount must be greater than zero"); return; }
+    const player = players.find((p: any) => p.id === playerId);
+    if (player?.status === "blacklist") { toast.error("BLOCKED — Player is blacklisted"); return; }
     onSubmit({
       player_id: playerId, table_id: tableId, type: "buy" as const, amount: tzsAmount, shift_id: shiftId,
       chips: currency !== "TZS" ? { original_currency: currency, original_amount: Number(amount), rate: exchangeRates[currency] } : undefined,
