@@ -30,7 +30,7 @@ export const MoneyBreakdown = ({ closingCount, closingCash, exchangeRates }: Mon
 
   // Mobile total
   const mobileProviders = Object.entries(mobile).filter(([, v]) => (v as number) !== 0);
-  const mobileTotal: number = Object.values(mobile).reduce((s: number, v: any) => s + (Number(v) || 0), 0);
+  const mobileTotal: number = (Object.values(mobile) as number[]).reduce((s, v) => s + (v || 0), 0);
 
   // Bank total
   const bankTzs = bank.tzs || 0;
