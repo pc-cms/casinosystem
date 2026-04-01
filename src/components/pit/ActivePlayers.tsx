@@ -697,6 +697,7 @@ const ActivePlayers = () => {
                     </TableCell>
                     <TableCell />
                     <TableCell />
+                  </TableRow>
                 )}
               </TableBody>
             </Table>
