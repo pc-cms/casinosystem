@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { useWallets, useCreateWalletTransaction, WALLET_LABELS, WalletType } from "@/hooks/use-finance";
+import { useWallets, useCreateWalletTransaction, WALLET_LABELS, WalletType, EXPENSE_CATEGORY_GROUPS, CATEGORY_LABELS } from "@/hooks/use-finance";
 import { formatNumberSpaces, formatInputWithSpaces, parseSpacedNumber } from "@/lib/currency";
 import { ArrowRightLeft, PiggyBank, Wallet, ArrowUpFromLine } from "lucide-react";
 import { WalletSetup } from "./WalletSetup";
