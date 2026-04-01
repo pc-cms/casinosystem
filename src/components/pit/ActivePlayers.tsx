@@ -702,6 +702,7 @@ const ActivePlayers = () => {
           </div>
         )}
       </div>
+      <PlayerEditDialog player={editPlayer} open={!!editPlayer} onOpenChange={(v) => { if (!v) setEditPlayer(null); }} />
     </div>
   );
 };
