@@ -9,8 +9,8 @@ export const FinanceDashboard = () => {
   const { data: wallets = [], isLoading } = useWallets();
   const { data: summaries = [] } = useDailySummaries();
   const { data: transactions = [] } = useWalletTransactions(30);
-  const currentMonth = new Date().toISOString().slice(0, 7);
-  const { data: budgetPeriod } = useBudgetPeriod(currentMonth);
+  const budgetMonth = new Date().toISOString().slice(0, 7);
+  const { data: budgetPeriod } = useBudgetPeriod(budgetMonth);
   const { data: budgetItems = [] } = useBudgetItems(budgetPeriod?.id);
 
   if (isLoading) {
