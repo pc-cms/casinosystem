@@ -90,7 +90,9 @@ export const MoneyBreakdown = ({ closingCount, closingCash, exchangeRates }: Mon
                     {val >= 0 ? "+" : ""}{formatNumberSpaces(val)}
                   </span>
                 </div>
-              ))}
+                );
+              })}
+
             </div>
           ) : (
             <p className="text-xs text-muted-foreground">No mobile money</p>
