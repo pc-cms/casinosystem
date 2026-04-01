@@ -246,8 +246,6 @@ export function useUpdateBudgetItem() {
       id: string;
       periodId: string;
       monthly_amount?: number;
-      actual_amount?: number;
-      reserved_amount?: number;
       status?: string;
       item_name?: string;
       category_id?: string;
@@ -273,7 +271,7 @@ export function useUpdateBudgetItem() {
   });
 }
 
-// ─── Monthly actuals from wallet transactions ───
+// ─── Monthly actuals from wallet transactions (real-time, no manual sync) ───
 
 export function useMonthlyActuals(month: string) {
   const { casinoId } = useAuth();
@@ -283,7 +281,6 @@ export function useMonthlyActuals(month: string) {
       if (!casinoId || !month) return {};
       const startDate = `${month}-01`;
       const [y, m] = month.split("-").map(Number);
-      // First day of next month for proper boundary
       const nextMonth = new Date(y, m, 1);
       const nextMonthStr = nextMonth.toISOString().slice(0, 10);
 
@@ -303,6 +300,40 @@ export function useMonthlyActuals(month: string) {
         }
       }
       return actuals;
+    },
+    enabled: !!casinoId && !!month,
+  });
+}
+
+// ─── Monthly reserves from wallet transactions (real-time, single source of truth) ───
+
+export function useMonthlyReserves(month: string) {
+  const { casinoId } = useAuth();
+  return useQuery({
+    queryKey: ["monthly_reserves", casinoId, month],
+    queryFn: async () => {
+      if (!casinoId || !month) return {};
+      const startDate = `${month}-01`;
+      const [y, m] = month.split("-").map(Number);
+      const nextMonth = new Date(y, m, 1);
+      const nextMonthStr = nextMonth.toISOString().slice(0, 10);
+
+      const { data, error } = await supabase
+        .from("wallet_transactions")
+        .select("expense_category, amount")
+        .eq("casino_id", casinoId)
+        .eq("tx_type", "allocate_reserve")
+        .gte("created_at", `${startDate}T00:00:00`)
+        .lt("created_at", `${nextMonthStr}T00:00:00`);
+      if (error) throw error;
+
+      const reserves: Record<string, number> = {};
+      for (const tx of data || []) {
+        if (tx.expense_category) {
+          reserves[tx.expense_category] = (reserves[tx.expense_category] || 0) + Number(tx.amount);
+        }
+      }
+      return reserves;
     },
     enabled: !!casinoId && !!month,
   });

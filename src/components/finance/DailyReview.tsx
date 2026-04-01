@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,7 +8,6 @@ import {
   useDailySummaries, useUpsertDailySummary, useTablesResultForDate,
   useCageExpensesForDate, useCreateWalletTransaction,
 } from "@/hooks/use-finance";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { formatNumberSpaces, formatInputWithSpaces, parseSpacedNumber } from "@/lib/currency";
 import { Check, ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
@@ -52,24 +51,18 @@ export const DailyReview = () => {
         comment: comment || existing?.comment || "",
       });
 
-      // 2. Create wallet transaction for daily result (prevent duplicates)
+      // 2. Create wallet transaction for daily result with business_date for dedup
+      // The unique index on (casino_id, business_date) WHERE tx_type='daily_result'
+      // will reject duplicates at DB level
       if (casinoId && netResult !== 0) {
-        const { data: existingTx } = await supabase
-          .from("wallet_transactions")
-          .select("id")
-          .eq("casino_id", casinoId)
-          .eq("tx_type", "daily_result" as any)
-          .gte("created_at", `${selectedDate}T00:00:00`)
-          .lt("created_at", `${selectedDate}T23:59:59.999`)
-          .limit(1);
-
-        if (!existingTx?.length) {
+        try {
           if (netResult > 0) {
             await createTx.mutateAsync({
               tx_type: "daily_result",
               to_wallet: "main_cash",
               amount: netResult,
               description: `Daily result ${selectedDate} (income)`,
+              business_date: selectedDate,
             });
           } else {
             await createTx.mutateAsync({
@@ -77,7 +70,15 @@ export const DailyReview = () => {
               from_wallet: "main_cash",
               amount: Math.abs(netResult),
               description: `Daily result ${selectedDate} (loss)`,
+              business_date: selectedDate,
             });
+          }
+        } catch (txErr: any) {
+          // If duplicate (unique constraint violation), it's expected on re-confirm
+          if (txErr.message?.includes("idx_wallet_tx_daily_result_unique") || txErr.message?.includes("duplicate")) {
+            // Already exists — skip silently
+          } else {
+            throw txErr;
           }
         }
       }
