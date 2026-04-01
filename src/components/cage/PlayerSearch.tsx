@@ -28,6 +28,7 @@ const PlayerSearch = ({ players, value, onChange, placeholder = "Search playerâ€
   const ref = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [highlightIdx, setHighlightIdx] = useState(0);
+  const [editPlayer, setEditPlayer] = useState<Player | null>(null);
 
   const selected = players.find(p => p.id === value);
 
