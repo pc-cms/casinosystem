@@ -225,7 +225,7 @@ const CheckInTab = () => {
                 {isBlacklisted ? (
                   <Badge variant="destructive" className="shrink-0">BLACKLISTED</Badge>
                 ) : isIn ? (
-                  <Badge className="bg-emerald-500/15 text-emerald-600 border-emerald-500/30 shrink-0">IN</Badge>
+              <Badge className="bg-primary/15 text-primary border-primary/30 shrink-0">IN</Badge>
                 ) : null}
               </button>
             );
