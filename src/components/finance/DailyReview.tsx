@@ -6,9 +6,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import {
   useDailySummaries, useUpsertDailySummary, useTablesResultForDate,
-  useCageExpensesForDate, useCreateWalletTransaction,
+  useCageExpensesForDate, useCreateWalletTransaction, useShiftClosingForDate,
 } from "@/hooks/use-finance";
 import { useAuth } from "@/lib/auth-context";
+import { MoneyBreakdown } from "@/components/finance/daily-review/MoneyBreakdown";
 import { formatNumberSpaces, formatInputWithSpaces, parseSpacedNumber } from "@/lib/currency";
 import { Check, ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
 import { format, subDays, addDays } from "date-fns";
@@ -26,6 +27,7 @@ export const DailyReview = () => {
   const { data: cageExpenses = 0 } = useCageExpensesForDate(selectedDate);
   const upsert = useUpsertDailySummary();
   const createTx = useCreateWalletTransaction();
+  const { data: shiftClosing } = useShiftClosingForDate(selectedDate);
 
   const existing = summaries.find(s => s.date === selectedDate);
   const slotsValue = existing ? existing.slots_result : parseSpacedNumber(slotsInput);
@@ -188,6 +190,15 @@ export const DailyReview = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Money Breakdown from Cage */}
+      {shiftClosing?.closing_count && (
+        <MoneyBreakdown
+          closingCount={shiftClosing.closing_count}
+          closingCash={shiftClosing.closing_cash}
+          exchangeRates={(shiftClosing.exchange_rates || {}) as Record<string, number>}
+        />
+      )}
 
       {/* History */}
       <Card>
