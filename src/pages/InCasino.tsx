@@ -12,6 +12,7 @@ import PlayerEditDialog from "@/components/PlayerEditDialog";
 import CategoryBadge, { CATEGORY_PRIORITY, type PlayerCategory } from "@/components/player/CategoryBadge";
 import FlagBadges from "@/components/player/FlagBadges";
 import CategoryFilter from "@/components/player/CategoryFilter";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 type SortKey = "name" | "in" | "out" | "type" | "category";
 type TypeFilter = "all" | "slots" | "table" | "mix";
@@ -20,6 +21,7 @@ const InCasino = () => {
   const { casinoId, user } = useAuth();
   const queryClient = useQueryClient();
   const today = format(new Date(), "yyyy-MM-dd");
+  const isMobile = useIsMobile();
   const [sortKey, setSortKey] = useState<SortKey>("category");
   const [sortAsc, setSortAsc] = useState(true);
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
@@ -43,7 +45,6 @@ const InCasino = () => {
     refetchInterval: 10000,
   });
 
-  // Fetch tags for all players in visits
   const playerIds = useMemo(() => visits.map(v => v.player_id), [visits]);
   const { data: allTags = [] } = useQuery({
     queryKey: ["player_tags_guests", playerIds],
@@ -160,6 +161,71 @@ const InCasino = () => {
     if (!p) return null;
     const category = (p.category as PlayerCategory) || "guest";
     const tags = tagsByPlayer.get(p.id) || [];
+
+    if (isMobile) {
+      return (
+        <div className="px-3 py-3 space-y-2">
+          <div className="flex items-center gap-2">
+            <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center overflow-hidden shrink-0">
+              {p.photo_url ? (
+                <img src={p.photo_url} className="w-full h-full object-cover" alt="" />
+              ) : (
+                <User className="w-5 h-5 text-muted-foreground" />
+              )}
+            </div>
+            <CategoryBadge category={category} />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-foreground truncate">
+                {p.first_name} {p.last_name}
+              </p>
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <Clock className="w-3 h-3" />
+                {showOut ? (
+                  <span>{format(new Date(visit.checked_in_at), "HH:mm")} → {format(new Date(visit.checked_out_at!), "HH:mm")}</span>
+                ) : (
+                  <span>{format(new Date(visit.checked_in_at), "HH:mm")} · {formatDistanceToNow(new Date(visit.checked_in_at), { addSuffix: false })}</span>
+                )}
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5 pl-12 flex-wrap">
+            {tags.length > 0 && <FlagBadges tags={tags} compact />}
+            {p.player_type && <TypeBadge type={p.player_type} />}
+            {!showOut && (
+              <Badge className="bg-primary/15 text-primary border-primary/30 shrink-0 gap-0.5 text-[10px]">
+                <CheckCircle2 className="w-2.5 h-2.5" /> {visit.position?.toUpperCase() || "HALL"}
+              </Badge>
+            )}
+            {showOut && (
+              <Badge variant="outline" className="shrink-0 text-[10px] gap-0.5">
+                <LogOut className="w-2.5 h-2.5" /> OUT
+              </Badge>
+            )}
+            <div className="flex-1" />
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-xs shrink-0 gap-1 h-7 px-2 text-muted-foreground"
+              onClick={() => setProfilePlayer(p)}
+            >
+              <Eye className="w-3 h-3" />
+            </Button>
+            {!showOut && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-xs shrink-0 gap-1 h-7"
+                onClick={() => confirmExit.mutate(visit.id)}
+                disabled={confirmExit.isPending}
+              >
+                <LogOut className="w-3 h-3" /> Out
+              </Button>
+            )}
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="flex items-center gap-3 px-4 py-3">
         <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center overflow-hidden shrink-0">
@@ -227,37 +293,40 @@ const InCasino = () => {
 
   return (
     <div>
-      <div className="mb-4">
-        <h1 className="text-2xl font-bold text-foreground">Guests</h1>
-        <p className="text-sm text-muted-foreground">
-          {stillIn.length} currently inside · {checkedOut.length} checked out today
+      <div className="mb-3 sm:mb-4">
+        <h1 className="text-xl sm:text-2xl font-bold text-foreground">Guests</h1>
+        <p className="text-xs sm:text-sm text-muted-foreground">
+          {stillIn.length} inside · {checkedOut.length} checked out
         </p>
       </div>
 
       {/* Sort & Filter toolbar */}
-      <div className="flex flex-wrap items-center gap-2 mb-4">
-        <span className="text-xs text-muted-foreground mr-1">Sort:</span>
-        <SortBtn k="category" label="Category" />
+      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-3 sm:mb-4">
+        {!isMobile && <span className="text-xs text-muted-foreground mr-1">Sort:</span>}
+        <SortBtn k="category" label="Cat" />
         <SortBtn k="name" label="Name" />
-        <SortBtn k="in" label="Check-in" />
-        <SortBtn k="out" label="Check-out" />
-        <SortBtn k="type" label="Type" />
-        <div className="w-px h-5 bg-border mx-1" />
-        <span className="text-xs text-muted-foreground mr-1">Type:</span>
-        {(["all", "slots", "table", "mix"] as TypeFilter[]).map(t => (
-          <Button key={t} variant={typeFilter === t ? "secondary" : "ghost"} size="sm" className="text-xs h-7" onClick={() => setTypeFilter(t)}>
-            {t === "all" ? "All" : typeLabels[t]}
-          </Button>
-        ))}
-        <div className="w-px h-5 bg-border mx-1" />
-        <span className="text-xs text-muted-foreground mr-1">Category:</span>
+        <SortBtn k="in" label="In" />
+        {!isMobile && <SortBtn k="out" label="Out" />}
+        {!isMobile && <SortBtn k="type" label="Type" />}
+        <div className="w-px h-5 bg-border mx-0.5" />
+        {!isMobile && (
+          <>
+            <span className="text-xs text-muted-foreground mr-1">Type:</span>
+            {(["all", "slots", "table", "mix"] as TypeFilter[]).map(t => (
+              <Button key={t} variant={typeFilter === t ? "secondary" : "ghost"} size="sm" className="text-xs h-7" onClick={() => setTypeFilter(t)}>
+                {t === "all" ? "All" : typeLabels[t]}
+              </Button>
+            ))}
+            <div className="w-px h-5 bg-border mx-1" />
+          </>
+        )}
         <CategoryFilter selected={categoryFilter} onChange={setCategoryFilter} />
       </div>
 
       {stillIn.length === 0 && checkedOut.length === 0 ? (
-        <div className="cms-panel p-8 text-center text-muted-foreground">No visitors today</div>
+        <div className="cms-panel p-6 sm:p-8 text-center text-muted-foreground">No visitors today</div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           {stillIn.length > 0 && (
             <div className="space-y-2">
               <h3 className="text-xs font-mono text-muted-foreground uppercase tracking-widest">Currently Inside</h3>
