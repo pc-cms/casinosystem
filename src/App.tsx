@@ -92,6 +92,7 @@ const ProtectedRoutes = () => {
         <Route path="/" element={<RoleGuard path="/"><Dashboard /></RoleGuard>} />
         <Route path="/players" element={<RoleGuard path="/players"><Players /></RoleGuard>} />
         <Route path="/cage" element={<RoleGuard path="/cage"><Cage /></RoleGuard>} />
+        <Route path="/reception" element={<RoleGuard path="/reception"><Reception /></RoleGuard>} />
         <Route path="/tables" element={<RoleGuard path="/tables"><Tables /></RoleGuard>} />
         <Route path="/expenses" element={<RoleGuard path="/expenses"><Expenses /></RoleGuard>} />
         <Route path="/pit" element={<RoleGuard path="/pit"><Pit /></RoleGuard>} />
