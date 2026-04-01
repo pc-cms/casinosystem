@@ -142,7 +142,7 @@ export const FinanceDashboard = () => {
       </div>
 
       {/* Global Reconciliation Card */}
-      {hasMainCounts && (
+      {hasAnyCounts && (
         <Card className={mainDiscrepancy === 0 ? "border-emerald-500/30" : "border-destructive/30"}>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-1">
@@ -153,11 +153,11 @@ export const FinanceDashboard = () => {
             <div className="grid grid-cols-3 gap-4 text-center">
               <div>
                 <p className="text-xs text-muted-foreground">Expected (Ledger)</p>
-                <p className="text-lg font-bold font-mono">{formatNumberSpaces(expectedMainCash)}</p>
+                <p className="text-lg font-bold font-mono">{formatNumberSpaces(expectedTotal)}</p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Physical (Cash Count)</p>
-                <p className="text-lg font-bold font-mono">{formatNumberSpaces(physicalMainCash)}</p>
+                <p className="text-lg font-bold font-mono">{formatNumberSpaces(physicalTotal)}</p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Discrepancy</p>
@@ -165,6 +165,23 @@ export const FinanceDashboard = () => {
                   {mainDiscrepancy > 0 ? "+" : ""}{formatNumberSpaces(mainDiscrepancy)}
                 </p>
               </div>
+            </div>
+            {/* Per-wallet breakdown */}
+            <div className="grid grid-cols-3 md:grid-cols-6 gap-2 mt-3 pt-2 border-t border-border">
+              {ALL_RECONCILED.map(wt => {
+                const expected = Number(wallets.find(w => w.wallet_type === wt)?.current_balance || 0);
+                const snap = latestCounts.find(c => c.wallet_type === wt);
+                const physical = snap ? Number(snap.physical_total_tzs) : 0;
+                const diff = expected - physical;
+                return (
+                  <div key={wt} className="text-center">
+                    <p className="text-[9px] text-muted-foreground">{WALLET_LABELS[wt]}</p>
+                    <p className={`text-xs font-mono font-semibold ${!snap ? "text-muted-foreground" : diff === 0 ? "text-emerald-500" : "text-destructive"}`}>
+                      {snap ? (diff === 0 ? "✓" : formatNumberSpaces(diff)) : "—"}
+                    </p>
+                  </div>
+                );
+              })}
             </div>
             <p className="text-[10px] text-muted-foreground mt-2 text-center">
               Based on latest cash count per wallet. Perform a new cash count to update.
