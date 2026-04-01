@@ -21,6 +21,7 @@ import Reports from "@/pages/Reports";
 import Admin from "@/pages/Admin";
 import Staff from "@/pages/Staff";
 import Finance from "@/pages/Finance";
+import Reception from "@/pages/Reception";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -37,6 +38,7 @@ const queryClient = new QueryClient({
 const ROUTE_ROLES: Record<string, string[]> = {
   "/": ["manager", "pit", "reception", "finance_manager", "security"],
   "/players": ["manager", "cashier", "reception", "finance_manager", "security"],
+  "/reception": ["manager", "reception", "finance_manager"],
   "/cage": ["manager", "cashier", "finance_manager"],
   "/tables": ["manager", "cashier", "pit", "finance_manager", "security"],
   "/expenses": ["manager", "cashier", "finance_manager"],
@@ -44,7 +46,6 @@ const ROUTE_ROLES: Record<string, string[]> = {
   "/floor": ["manager", "pit", "finance_manager"],
   "/groups": ["manager", "finance_manager"],
   "/finance": ["manager", "finance_manager"],
-  // tracker is now under /tables?tab=tracker
   "/reports": ["manager", "finance_manager", "security"],
   "/stats": ["manager", "finance_manager", "security"],
   "/logs": ["manager", "finance_manager", "security"],
@@ -63,6 +64,9 @@ const RoleGuard = ({ path, children }: { path: string; children: React.ReactNode
 };
 
 const getDefaultRoute = (roles: string[]) => {
+  if (roles.includes("reception") && !roles.some(r => ["manager", "pit", "cashier", "finance_manager", "security"].includes(r))) {
+    return "/reception";
+  }
   if (roles.includes("cashier") && !roles.some(r => ["manager", "pit", "reception", "finance_manager", "security"].includes(r))) {
     return "/cage";
   }
@@ -88,6 +92,7 @@ const ProtectedRoutes = () => {
         <Route path="/" element={<RoleGuard path="/"><Dashboard /></RoleGuard>} />
         <Route path="/players" element={<RoleGuard path="/players"><Players /></RoleGuard>} />
         <Route path="/cage" element={<RoleGuard path="/cage"><Cage /></RoleGuard>} />
+        <Route path="/reception" element={<RoleGuard path="/reception"><Reception /></RoleGuard>} />
         <Route path="/tables" element={<RoleGuard path="/tables"><Tables /></RoleGuard>} />
         <Route path="/expenses" element={<RoleGuard path="/expenses"><Expenses /></RoleGuard>} />
         <Route path="/pit" element={<RoleGuard path="/pit"><Pit /></RoleGuard>} />

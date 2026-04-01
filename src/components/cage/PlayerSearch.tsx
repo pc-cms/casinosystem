@@ -6,6 +6,7 @@ interface Player {
   first_name: string;
   last_name: string;
   nickname: string;
+  status?: string;
   player_cards?: { card_number: string }[];
 }
 
@@ -91,8 +92,9 @@ const PlayerSearch = ({ players, value, onChange, placeholder = "Search playerâ€
                 i === highlightIdx ? "bg-accent text-accent-foreground" : "text-popover-foreground hover:bg-muted/50"
               }`}
             >
-              <span>{p.first_name} {p.last_name}</span>
-              <span className="text-[10px] font-mono text-muted-foreground">
+              <span className={p.status === "blacklist" ? "text-destructive font-medium" : ""}>{p.first_name} {p.last_name}</span>
+              <span className="text-[10px] font-mono text-muted-foreground flex items-center gap-1">
+                {p.status === "blacklist" && <span className="text-destructive font-bold">BL</span>}
                 {p.player_cards?.[0]?.card_number || ""}
               </span>
             </button>

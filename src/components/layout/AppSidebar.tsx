@@ -6,7 +6,7 @@ import {
   UsersRound, Grid3X3, LogOut, Settings, FileBarChart,
   CalendarDays, ClipboardCheck, ListChecks, Eye, Target,
   Building2, UserCheck, ClipboardPen, Coins, ShieldCheck, ShieldOff,
-  Wallet,
+  Wallet, DoorOpen,
 } from "lucide-react";
 import { useTheme } from "@/lib/theme";
 import { useAuth } from "@/lib/auth-context";
@@ -26,6 +26,7 @@ const NAV_ITEMS: { to: string; icon: typeof LayoutDashboard; label: string; shor
   { to: "/expenses", icon: Receipt, label: "Expenses", shortcut: "E", roles: ["manager", "cashier", "finance_manager"] },
   { to: "/groups", icon: UsersRound, label: "Groups", shortcut: "G", roles: ["manager", "finance_manager"] },
   { to: "/players", icon: Users, label: "Players", shortcut: "P", roles: ["manager", "cashier", "reception", "finance_manager", "security"] },
+  { to: "/reception", icon: DoorOpen, label: "Reception", shortcut: "N", roles: ["manager", "reception", "finance_manager"] },
   { to: "/tables", icon: Table2, label: "Tables", shortcut: "T", roles: ["manager", "cashier", "pit", "finance_manager", "security"] },
   // — Finance —
   { to: "/finance", icon: Wallet, label: "Finance", shortcut: "W", roles: ["manager", "finance_manager"] },
