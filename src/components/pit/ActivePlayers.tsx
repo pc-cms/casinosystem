@@ -6,7 +6,8 @@ import { formatNumberSpaces } from "@/lib/currency";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth-context";
-import { ArrowUpDown, ArrowUp, ArrowDown, LogIn, LogOut, Search, MapPin, Play, X, Plus, ChevronDown } from "lucide-react";
+import { ArrowUpDown, ArrowUp, ArrowDown, LogIn, LogOut, Search, MapPin, Play, X, Plus, ChevronDown, Pencil } from "lucide-react";
+import PlayerEditDialog from "@/components/PlayerEditDialog";
 import { Input } from "@/components/ui/input";
 import { NumberInput } from "@/components/ui/number-input";
 import {
