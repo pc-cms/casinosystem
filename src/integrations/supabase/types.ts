@@ -554,6 +554,62 @@ export type Database = {
           },
         ]
       }
+      daily_summaries: {
+        Row: {
+          casino_id: string
+          comment: string
+          confirmed: boolean
+          confirmed_at: string | null
+          confirmed_by: string | null
+          created_at: string
+          date: string
+          id: string
+          slots_result: number
+          tables_result: number
+          total_expenses: number
+          total_result: number
+          updated_at: string
+        }
+        Insert: {
+          casino_id: string
+          comment?: string
+          confirmed?: boolean
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          date: string
+          id?: string
+          slots_result?: number
+          tables_result?: number
+          total_expenses?: number
+          total_result?: number
+          updated_at?: string
+        }
+        Update: {
+          casino_id?: string
+          comment?: string
+          confirmed?: boolean
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          date?: string
+          id?: string
+          slots_result?: number
+          tables_result?: number
+          total_expenses?: number
+          total_result?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_summaries_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dealer_attendance: {
         Row: {
           casino_id: string
@@ -722,6 +778,41 @@ export type Database = {
             columns: ["shift_id"]
             isOneToOne: false
             referencedRelation: "shifts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      financial_wallets: {
+        Row: {
+          casino_id: string
+          created_at: string
+          current_balance: number
+          id: string
+          updated_at: string
+          wallet_type: Database["public"]["Enums"]["wallet_type"]
+        }
+        Insert: {
+          casino_id: string
+          created_at?: string
+          current_balance?: number
+          id?: string
+          updated_at?: string
+          wallet_type: Database["public"]["Enums"]["wallet_type"]
+        }
+        Update: {
+          casino_id?: string
+          created_at?: string
+          current_balance?: number
+          id?: string
+          updated_at?: string
+          wallet_type?: Database["public"]["Enums"]["wallet_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financial_wallets_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
             referencedColumns: ["id"]
           },
         ]
@@ -1453,6 +1544,59 @@ export type Database = {
         }
         Relationships: []
       }
+      wallet_transactions: {
+        Row: {
+          amount: number
+          casino_id: string
+          created_at: string
+          description: string
+          expense_category:
+            | Database["public"]["Enums"]["office_expense_category"]
+            | null
+          from_wallet: Database["public"]["Enums"]["wallet_type"] | null
+          id: string
+          operator_id: string
+          to_wallet: Database["public"]["Enums"]["wallet_type"] | null
+          tx_type: Database["public"]["Enums"]["wallet_tx_type"]
+        }
+        Insert: {
+          amount: number
+          casino_id: string
+          created_at?: string
+          description?: string
+          expense_category?:
+            | Database["public"]["Enums"]["office_expense_category"]
+            | null
+          from_wallet?: Database["public"]["Enums"]["wallet_type"] | null
+          id?: string
+          operator_id: string
+          to_wallet?: Database["public"]["Enums"]["wallet_type"] | null
+          tx_type: Database["public"]["Enums"]["wallet_tx_type"]
+        }
+        Update: {
+          amount?: number
+          casino_id?: string
+          created_at?: string
+          description?: string
+          expense_category?:
+            | Database["public"]["Enums"]["office_expense_category"]
+            | null
+          from_wallet?: Database["public"]["Enums"]["wallet_type"] | null
+          id?: string
+          operator_id?: string
+          to_wallet?: Database["public"]["Enums"]["wallet_type"] | null
+          tx_type?: Database["public"]["Enums"]["wallet_tx_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wallet_transactions_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       player_economy: {
@@ -1569,6 +1713,27 @@ export type Database = {
         | "system"
         | "breaklist"
         | "pit"
+      office_expense_category:
+        | "salary"
+        | "bonus"
+        | "fuel"
+        | "transport"
+        | "repairs"
+        | "internet_it"
+        | "security_expense"
+        | "cleaning"
+        | "rent"
+        | "utilities"
+        | "office"
+        | "gaming_tax"
+        | "fixed_tax"
+        | "license"
+        | "visa"
+        | "machines"
+        | "parts"
+        | "debts"
+        | "adjustments"
+        | "other_office"
       player_status: "active" | "blacklist"
       player_type: "slots" | "table" | "mix"
       shift_type: "M" | "N" | "A" | "S" | "E" | "L"
@@ -1583,6 +1748,20 @@ export type Database = {
         | "hr"
       table_status: "open" | "closed"
       transaction_type: "buy" | "cashout"
+      wallet_tx_type:
+        | "transfer"
+        | "allocate_reserve"
+        | "use_reserve"
+        | "manual_expense"
+        | "daily_result"
+        | "initial_balance"
+      wallet_type:
+        | "main_cash"
+        | "office_safe"
+        | "rent_reserve"
+        | "license_reserve"
+        | "tax_reserve"
+        | "other_reserve"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1744,6 +1923,28 @@ export const Constants = {
         "breaklist",
         "pit",
       ],
+      office_expense_category: [
+        "salary",
+        "bonus",
+        "fuel",
+        "transport",
+        "repairs",
+        "internet_it",
+        "security_expense",
+        "cleaning",
+        "rent",
+        "utilities",
+        "office",
+        "gaming_tax",
+        "fixed_tax",
+        "license",
+        "visa",
+        "machines",
+        "parts",
+        "debts",
+        "adjustments",
+        "other_office",
+      ],
       player_status: ["active", "blacklist"],
       player_type: ["slots", "table", "mix"],
       shift_type: ["M", "N", "A", "S", "E", "L"],
@@ -1759,6 +1960,22 @@ export const Constants = {
       ],
       table_status: ["open", "closed"],
       transaction_type: ["buy", "cashout"],
+      wallet_tx_type: [
+        "transfer",
+        "allocate_reserve",
+        "use_reserve",
+        "manual_expense",
+        "daily_result",
+        "initial_balance",
+      ],
+      wallet_type: [
+        "main_cash",
+        "office_safe",
+        "rent_reserve",
+        "license_reserve",
+        "tax_reserve",
+        "other_reserve",
+      ],
     },
   },
 } as const

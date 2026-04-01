@@ -20,6 +20,7 @@ import Groups from "@/pages/Groups";
 import Reports from "@/pages/Reports";
 import Admin from "@/pages/Admin";
 import Staff from "@/pages/Staff";
+import Finance from "@/pages/Finance";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -42,6 +43,7 @@ const ROUTE_ROLES: Record<string, string[]> = {
   "/pit": ["manager", "pit", "finance_manager"],
   "/floor": ["manager", "pit", "finance_manager"],
   "/groups": ["manager", "finance_manager"],
+  "/finance": ["manager", "finance_manager"],
   // tracker is now under /tables?tab=tracker
   "/reports": ["manager", "finance_manager", "security"],
   "/stats": ["manager", "finance_manager", "security"],
@@ -92,6 +94,7 @@ const ProtectedRoutes = () => {
         <Route path="/staff" element={<RoleGuard path="/floor"><Staff /></RoleGuard>} />
         <Route path="/floor" element={<RoleGuard path="/floor"><Staff /></RoleGuard>} />
         <Route path="/groups" element={<RoleGuard path="/groups"><Groups /></RoleGuard>} />
+        <Route path="/finance" element={<RoleGuard path="/finance"><Finance /></RoleGuard>} />
         {/* tracker is now under /tables?tab=tracker */}
         <Route path="/reports" element={<RoleGuard path="/reports"><Reports /></RoleGuard>} />
         <Route path="/stats" element={<RoleGuard path="/stats"><Stats /></RoleGuard>} />
