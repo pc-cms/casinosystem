@@ -119,14 +119,14 @@ export const FinanceDashboard = () => {
       )}
 
       {/* Global Reconciliation Alert */}
-      {hasMainCounts && mainDiscrepancy !== 0 && (
+      {hasAnyCounts && mainDiscrepancy !== 0 && (
         <Card className="border-destructive bg-destructive/5">
           <CardContent className="p-4 flex items-center gap-3">
             <Scale className="w-5 h-5 text-destructive shrink-0" />
             <div>
               <p className="text-sm font-semibold text-destructive">Cash mismatch detected</p>
               <p className="text-xs text-destructive/80">
-                Expected: {formatNumberSpaces(expectedMainCash)} TZS · Physical: {formatNumberSpaces(physicalMainCash)} TZS · Difference: {formatNumberSpaces(mainDiscrepancy)} TZS
+                Expected: {formatNumberSpaces(expectedTotal)} TZS · Physical: {formatNumberSpaces(physicalTotal)} TZS · Difference: {formatNumberSpaces(mainDiscrepancy)} TZS
               </p>
             </div>
           </CardContent>
