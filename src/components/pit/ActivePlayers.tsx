@@ -462,6 +462,9 @@ const ActivePlayers = () => {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-[30px] cursor-pointer select-none hover:text-foreground" onClick={() => handleSort("category")}>
+                    <span className="flex items-center">Cat <SortIcon col="category" /></span>
+                  </TableHead>
                   <TableHead className="cursor-pointer select-none hover:text-foreground" onClick={() => handleSort("name")}>
                     <span className="flex items-center">Player <SortIcon col="name" /></span>
                   </TableHead>
