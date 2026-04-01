@@ -142,7 +142,7 @@ export const DailyReview = () => {
             {summaries.slice(0, 14).map(s => (
               <button
                 key={s.id}
-                onClick={() => setSelectedDate(s.date)}
+                onClick={() => handleDateChange(s.date)}
                 className={`w-full flex items-center justify-between py-2 px-3 rounded-md text-sm transition-colors ${
                   s.date === selectedDate ? "bg-primary/10 text-primary" : "hover:bg-muted/50"
                 }`}
