@@ -191,6 +191,15 @@ export const DailyReview = () => {
         </CardContent>
       </Card>
 
+      {/* Money Breakdown from Cage */}
+      {shiftClosing?.closing_count && (
+        <MoneyBreakdown
+          closingCount={shiftClosing.closing_count}
+          closingCash={shiftClosing.closing_cash}
+          exchangeRates={(shiftClosing.exchange_rates || {}) as Record<string, number>}
+        />
+      )}
+
       {/* History */}
       <Card>
         <CardHeader className="pb-2">
