@@ -1,8 +1,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useWallets, useWalletTransactions, useDailySummaries, WALLET_LABELS, WalletType } from "@/hooks/use-finance";
 import { formatNumberSpaces } from "@/lib/currency";
-import { Wallet, TrendingUp, Building2, ShieldCheck } from "lucide-react";
+import { Wallet, TrendingUp, Building2, ShieldCheck, Target } from "lucide-react";
 import { WalletSetup } from "./WalletSetup";
+import { useBudgetPeriod, useBudgetItems } from "@/hooks/use-budget";
 
 export const FinanceDashboard = () => {
   const { data: wallets = [], isLoading } = useWallets();
