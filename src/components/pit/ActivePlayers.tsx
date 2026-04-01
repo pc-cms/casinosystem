@@ -240,6 +240,7 @@ const ActivePlayers = () => {
           nickname: p.nickname,
           status: p.status,
           player_type: (p as any).player_type as string || "table",
+          category: ((p as any).category as PlayerCategory) || "guest",
           dropR,
           dropV,
           dropT,
