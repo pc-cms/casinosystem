@@ -32,8 +32,20 @@ const InCasino = () => {
   });
 
   // Split: still in vs checked out (awaiting confirm or already confirmed)
-  const stillIn = useMemo(() => visits.filter(v => !v.checked_out_at), [visits]);
-  const checkedOut = useMemo(() => visits.filter(v => !!v.checked_out_at), [visits]);
+  const stillIn = useMemo(() => visits.filter(v => !v.checked_out_at).sort((a, b) => {
+    const pA = (a.players as any);
+    const pB = (b.players as any);
+    const nameA = `${pA?.first_name || ""} ${pA?.last_name || ""}`.toLowerCase();
+    const nameB = `${pB?.first_name || ""} ${pB?.last_name || ""}`.toLowerCase();
+    return nameA.localeCompare(nameB);
+  }), [visits]);
+  const checkedOut = useMemo(() => visits.filter(v => !!v.checked_out_at).sort((a, b) => {
+    const pA = (a.players as any);
+    const pB = (b.players as any);
+    const nameA = `${pA?.first_name || ""} ${pA?.last_name || ""}`.toLowerCase();
+    const nameB = `${pB?.first_name || ""} ${pB?.last_name || ""}`.toLowerCase();
+    return nameA.localeCompare(nameB);
+  }), [visits]);
 
   const confirmExit = useMutation({
     mutationFn: async (visitId: string) => {
@@ -63,7 +75,7 @@ const InCasino = () => {
   return (
     <div>
       <div className="mb-4">
-        <h1 className="text-2xl font-bold text-foreground">in Casino</h1>
+        <h1 className="text-2xl font-bold text-foreground">Guests</h1>
         <p className="text-sm text-muted-foreground">
           {stillIn.length} currently inside · {checkedOut.length} checked out today
         </p>

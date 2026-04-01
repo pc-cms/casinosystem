@@ -40,7 +40,7 @@ const queryClient = new QueryClient({
 const ROUTE_ROLES: Record<string, string[]> = {
   "/": ["manager", "pit", "reception", "finance_manager", "security"],
   "/players": ["manager", "cashier", "finance_manager", "security"],
-  "/in-casino": ["manager", "reception", "pit", "finance_manager", "security"],
+  "/guests": ["manager", "reception", "pit", "finance_manager", "security"],
   "/blacklist": ["manager", "reception", "finance_manager", "security"],
   "/reception": ["manager", "reception", "finance_manager"],
   "/cage": ["manager", "cashier", "finance_manager"],
@@ -97,7 +97,7 @@ const ProtectedRoutes = () => {
         <Route path="/players" element={<RoleGuard path="/players"><Players /></RoleGuard>} />
         <Route path="/cage" element={<RoleGuard path="/cage"><Cage /></RoleGuard>} />
         <Route path="/reception" element={<RoleGuard path="/reception"><Reception /></RoleGuard>} />
-        <Route path="/in-casino" element={<RoleGuard path="/in-casino"><InCasino /></RoleGuard>} />
+        <Route path="/guests" element={<RoleGuard path="/guests"><InCasino /></RoleGuard>} />
         <Route path="/blacklist" element={<RoleGuard path="/blacklist"><Blacklist /></RoleGuard>} />
         <Route path="/tables" element={<RoleGuard path="/tables"><Tables /></RoleGuard>} />
         <Route path="/expenses" element={<RoleGuard path="/expenses"><Expenses /></RoleGuard>} />

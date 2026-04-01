@@ -26,7 +26,7 @@ const NAV_ITEMS: { to: string; icon: typeof LayoutDashboard; label: string; shor
   { to: "/expenses", icon: Receipt, label: "Expenses", shortcut: "E", roles: ["manager", "cashier", "finance_manager"] },
   { to: "/groups", icon: UsersRound, label: "Groups", shortcut: "G", roles: ["manager", "finance_manager"] },
   { to: "/blacklist", icon: ShieldAlert, label: "Blacklist", shortcut: "K", roles: ["manager", "reception", "finance_manager", "security"] },
-  { to: "/in-casino", icon: Users, label: "in Casino", shortcut: "I", roles: ["manager", "reception", "pit", "finance_manager", "security"] },
+  { to: "/guests", icon: Users, label: "Guests", shortcut: "I", roles: ["manager", "reception", "pit", "finance_manager", "security"] },
   { to: "/players", icon: Users, label: "Players", shortcut: "P", roles: ["manager", "cashier", "finance_manager", "security"] },
   { to: "/reception", icon: DoorOpen, label: "Reception", shortcut: "N", roles: ["manager", "reception", "finance_manager"] },
   { to: "/tables", icon: Table2, label: "Tables", shortcut: "T", roles: ["manager", "cashier", "pit", "finance_manager", "security"] },

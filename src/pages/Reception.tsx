@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo, useCallback } from "react";
+import { useState, useRef, useMemo, useCallback, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -69,6 +69,20 @@ const Reception = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const tab = searchParams.get("tab") || "checkin";
 
+  // Keyboard shortcuts: C → Check-in, R → Register, U → Update Data
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      const key = e.key.toLowerCase();
+      if (key === "c" && tab !== "checkin") { e.preventDefault(); setSearchParams({ tab: "checkin" }); }
+      else if (key === "r" && tab !== "register") { e.preventDefault(); setSearchParams({ tab: "register" }); }
+      else if (key === "u" && tab !== "update") { e.preventDefault(); setSearchParams({ tab: "update" }); }
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [tab, setSearchParams]);
+
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
@@ -82,12 +96,15 @@ const Reception = () => {
         <TabsList className="mb-4">
           <TabsTrigger value="checkin" className="gap-1.5">
             <LogIn className="w-3.5 h-3.5" /> Check-in
+            <span className="cms-kbd ml-1">C</span>
           </TabsTrigger>
           <TabsTrigger value="register" className="gap-1.5">
             <UserPlus className="w-3.5 h-3.5" /> Register
+            <span className="cms-kbd ml-1">R</span>
           </TabsTrigger>
           <TabsTrigger value="update" className="gap-1.5">
             <AlertTriangle className="w-3.5 h-3.5" /> Update Data
+            <span className="cms-kbd ml-1">U</span>
           </TabsTrigger>
         </TabsList>
 
