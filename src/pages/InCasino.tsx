@@ -228,6 +228,7 @@ const InCasino = () => {
                           <span>→ Out: {format(new Date(visit.checked_out_at!), "HH:mm")}</span>
                         </div>
                       </div>
+                      {p.player_type && <TypeBadge type={p.player_type} />}
                       <Badge variant="outline" className="shrink-0 text-xs gap-1">
                         <LogOut className="w-3 h-3" /> OUT
                       </Badge>
