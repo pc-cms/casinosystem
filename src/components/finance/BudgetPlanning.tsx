@@ -85,16 +85,21 @@ export const BudgetPlanning = () => {
   const handleInlineUpdate = (item: BudgetItem, field: string, value: any) => {
     if (!period) return;
     const updates: Record<string, any> = { [field]: value };
-    if (field === "actual_amount") {
-      const actual = Number(value);
-      if (actual >= Number(item.monthly_amount)) updates.status = "completed";
-      else if (actual > 0) updates.status = "in_progress";
-      else updates.status = "planned";
-    }
-    if (field === "reserved_amount" && item.logic_type === "reserve") {
-      const reserved = Number(value);
-      if (reserved >= Number(item.monthly_amount)) updates.status = "completed";
-      else if (reserved > 0) updates.status = "in_progress";
+    // Auto-calculate status based on logic type
+    if (field === "actual_amount" || field === "reserved_amount" || field === "monthly_amount") {
+      const monthly = Number(field === "monthly_amount" ? value : item.monthly_amount);
+      if (item.logic_type === "reserve") {
+        const reserved = Number(field === "reserved_amount" ? value : item.reserved_amount);
+        const actual = Number(field === "actual_amount" ? value : item.actual_amount);
+        if (reserved >= monthly && actual >= monthly) updates.status = "completed";
+        else if (reserved > 0 || actual > 0) updates.status = "in_progress";
+        else updates.status = "planned";
+      } else {
+        const actual = Number(field === "actual_amount" ? value : item.actual_amount);
+        if (actual >= monthly) updates.status = "completed";
+        else if (actual > 0) updates.status = "in_progress";
+        else updates.status = "planned";
+      }
     }
     updateItem.mutate({ id: item.id, periodId: period.id, ...updates });
   };

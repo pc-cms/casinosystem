@@ -23,6 +23,13 @@ export const DailyReview = () => {
   const slotsValue = existing ? existing.slots_result : parseSpacedNumber(slotsInput);
   const totalResult = tablesResult + slotsValue;
 
+  // Reset inputs when date changes
+  const handleDateChange = (newDate: string) => {
+    setSelectedDate(newDate);
+    setSlotsInput("");
+    setComment("");
+  };
+
   const handleConfirm = () => {
     upsert.mutate({
       date: selectedDate,

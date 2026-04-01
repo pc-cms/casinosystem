@@ -276,13 +276,17 @@ export function useCageExpensesForDate(date: string) {
     queryKey: ["cage_expenses_date", casinoId, date],
     queryFn: async () => {
       if (!casinoId) return 0;
+      // Calculate next day for proper boundary
+      const nextDay = new Date(date);
+      nextDay.setDate(nextDay.getDate() + 1);
+      const nextDayStr = nextDay.toISOString().slice(0, 10);
       const { data, error } = await supabase
         .from("expenses")
         .select("amount")
         .eq("casino_id", casinoId)
         .eq("approved", true)
         .gte("created_at", `${date}T00:00:00`)
-        .lt("created_at", `${date}T23:59:59`);
+        .lt("created_at", `${nextDayStr}T00:00:00`);
       if (error) throw error;
       return (data || []).reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
     },
