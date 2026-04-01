@@ -469,8 +469,8 @@ const ActivePlayers = () => {
                   <TableHead className="text-right cursor-pointer select-none hover:text-foreground" onClick={() => handleSort("result")}>
                     <span className="flex items-center justify-end">Result <SortIcon col="result" /></span>
                   </TableHead>
-                  <TableHead className="text-center w-[60px]">In/Out</TableHead>
-                </TableRow>
+                   <TableHead className="text-center w-[60px]">In/Out</TableHead>
+                   <TableHead className="w-[40px]" />
               </TableHeader>
               <TableBody>
                 {activePlayers.map(p => (
