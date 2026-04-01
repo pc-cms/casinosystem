@@ -58,13 +58,7 @@ const STAFF_SUBITEMS = [
   { tab: "rota", icon: CalendarDays, label: "Rota" },
 ];
 
-// Section separators by index in visible items
-const SECTION_LABELS: Record<string, string> = {
-  "/": "OVERVIEW",
-  "/cage": "OPERATIONS",
-  "/staff": "HR",
-  "/logs": "ANALYTICS",
-};
+// Section labels derived from item.section field
 
 // Breaklist is a direct link, not part of pit subitems for "end" matching
 const BREAKLIST_PATH = "/pit?tab=breaklist";
