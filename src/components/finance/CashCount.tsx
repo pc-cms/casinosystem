@@ -112,13 +112,19 @@ export const CashCount = () => {
 
   const totalRealMoney = mainCashTzs + cageTotal + mobileTotal + bankTotalTzs;
 
-  const grandExpected = useMemo(() =>
-    COUNTABLE_WALLETS.reduce((sum, wt) => {
+  const grandExpected = useMemo(() => {
+    const allWallets: WalletType[] = [...COUNTABLE_WALLETS, "cage_slot", "cage_table", "mobile_money", "bank_account"];
+    return allWallets.reduce((sum, wt) => {
       const w = wallets.find(w => w.wallet_type === wt);
       return sum + Number(w?.current_balance || 0);
-    }, 0),
-    [wallets]
-  );
+    }, 0);
+  }, [wallets]);
+
+  // Per-section expected balances
+  const cageSlotExpected = Number(wallets.find(w => w.wallet_type === "cage_slot")?.current_balance || 0);
+  const cageTableExpected = Number(wallets.find(w => w.wallet_type === "cage_table")?.current_balance || 0);
+  const mobileExpected = Number(wallets.find(w => w.wallet_type === "mobile_money")?.current_balance || 0);
+  const bankExpected = Number(wallets.find(w => w.wallet_type === "bank_account")?.current_balance || 0);
 
   const grandDiscrepancy = grandExpected - totalRealMoney;
 
