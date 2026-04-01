@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Lock, Unlock, ChevronLeft, ChevronRight, Plus, Target, RefreshCw } from "lucide-react";
+import { Lock, Unlock, ChevronLeft, ChevronRight, Plus, Target } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { formatNumberSpaces } from "@/lib/currency";
 import { DEFAULT_EXCHANGE_RATES } from "@/lib/currency";
@@ -13,7 +13,7 @@ import { BudgetCategories } from "./BudgetCategories";
 import {
   useBudgetCategories, useBudgetPeriod, useCreateBudgetPeriod,
   useToggleBudgetLock, useBudgetItems, useCreateBudgetItem,
-  useUpdateBudgetItem, useMonthlyActuals, PARENT_GROUP_LABELS,
+  useUpdateBudgetItem, useMonthlyActuals, useMonthlyReserves, PARENT_GROUP_LABELS,
   type BudgetCategory, type BudgetItem,
 } from "@/hooks/use-budget";
 
@@ -28,6 +28,7 @@ export const BudgetPlanning = () => {
   const toggleLock = useToggleBudgetLock();
   const { data: items = [] } = useBudgetItems(period?.id);
   const { data: monthlyActuals = {} } = useMonthlyActuals(currentMonth);
+  const { data: monthlyReserves = {} } = useMonthlyReserves(currentMonth);
   const createItem = useCreateBudgetItem();
   const updateItem = useUpdateBudgetItem();
 
@@ -54,13 +55,38 @@ export const BudgetPlanning = () => {
     return m;
   }, [categories]);
 
-  // Auto-compute actual for each item from wallet_transactions via expense_mapping
-  const getAutoActual = (item: BudgetItem): number => {
+  // Real-time actual from wallet_transactions (single source of truth)
+  const getLiveActual = (item: BudgetItem): number => {
     const cat = categoryMap[item.category_id];
     if (cat?.expense_mapping && monthlyActuals[cat.expense_mapping] !== undefined) {
       return monthlyActuals[cat.expense_mapping];
     }
-    return Number(item.actual_amount);
+    return 0;
+  };
+
+  // Real-time reserved from wallet_transactions (single source of truth)
+  const getLiveReserved = (item: BudgetItem): number => {
+    const cat = categoryMap[item.category_id];
+    if (cat?.expense_mapping && monthlyReserves[cat.expense_mapping] !== undefined) {
+      return monthlyReserves[cat.expense_mapping];
+    }
+    return 0;
+  };
+
+  // Compute live status based on real transaction data
+  const getLiveStatus = (item: BudgetItem): string => {
+    const monthly = Number(item.monthly_amount);
+    const actual = getLiveActual(item);
+    if (item.logic_type === "reserve") {
+      const reserved = getLiveReserved(item);
+      if (reserved >= monthly && actual >= monthly) return "completed";
+      if (reserved > 0 || actual > 0) return "in_progress";
+      return "planned";
+    } else {
+      if (actual >= monthly) return "completed";
+      if (actual > 0) return "in_progress";
+      return "planned";
+    }
   };
 
   const groupedItems = useMemo(() => {
@@ -75,8 +101,8 @@ export const BudgetPlanning = () => {
   }, [items, categoryMap]);
 
   const totalPlanned = items.reduce((s, i) => s + Number(i.monthly_amount), 0);
-  const totalActual = items.reduce((s, i) => s + getAutoActual(i), 0);
-  const totalReserved = items.filter(i => i.logic_type === "reserve").reduce((s, i) => s + Number(i.reserved_amount), 0);
+  const totalActual = items.reduce((s, i) => s + getLiveActual(i), 0);
+  const totalReserved = items.filter(i => i.logic_type === "reserve").reduce((s, i) => s + getLiveReserved(i), 0);
   const totalReserveRequired = items.filter(i => i.logic_type === "reserve").reduce((s, i) => s + Number(i.monthly_amount), 0);
   const variance = totalActual - totalPlanned;
   const completionPct = totalPlanned > 0 ? Math.round((totalActual / totalPlanned) * 100) : 0;
@@ -101,47 +127,9 @@ export const BudgetPlanning = () => {
 
   const handleInlineUpdate = (item: BudgetItem, field: string, value: any) => {
     if (!period) return;
+    // Only structural fields can be updated manually now
     const updates: Record<string, any> = { [field]: value };
-    if (field === "actual_amount" || field === "reserved_amount" || field === "monthly_amount") {
-      const monthly = Number(field === "monthly_amount" ? value : item.monthly_amount);
-      if (item.logic_type === "reserve") {
-        const reserved = Number(field === "reserved_amount" ? value : item.reserved_amount);
-        const actual = Number(field === "actual_amount" ? value : item.actual_amount);
-        if (reserved >= monthly && actual >= monthly) updates.status = "completed";
-        else if (reserved > 0 || actual > 0) updates.status = "in_progress";
-        else updates.status = "planned";
-      } else {
-        const actual = Number(field === "actual_amount" ? value : item.actual_amount);
-        if (actual >= monthly) updates.status = "completed";
-        else if (actual > 0) updates.status = "in_progress";
-        else updates.status = "planned";
-      }
-    }
     updateItem.mutate({ id: item.id, periodId: period.id, ...updates });
-  };
-
-  // Sync auto-actuals: push wallet_transaction actuals into budget_items.actual_amount
-  const handleSyncActuals = () => {
-    if (!period) return;
-    items.forEach(item => {
-      const cat = categoryMap[item.category_id];
-      if (cat?.expense_mapping && monthlyActuals[cat.expense_mapping] !== undefined) {
-        const autoVal = monthlyActuals[cat.expense_mapping];
-        if (autoVal !== Number(item.actual_amount)) {
-          const monthly = Number(item.monthly_amount);
-          let status = "planned";
-          if (item.logic_type === "reserve") {
-            const reserved = Number(item.reserved_amount);
-            if (reserved >= monthly && autoVal >= monthly) status = "completed";
-            else if (reserved > 0 || autoVal > 0) status = "in_progress";
-          } else {
-            if (autoVal >= monthly) status = "completed";
-            else if (autoVal > 0) status = "in_progress";
-          }
-          updateItem.mutate({ id: item.id, periodId: period.id, actual_amount: autoVal, status });
-        }
-      }
-    });
   };
 
   const statusBadge = (status: string) => {
@@ -187,9 +175,6 @@ export const BudgetPlanning = () => {
           </Badge>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={handleSyncActuals} className="gap-1">
-            <RefreshCw className="w-3 h-3" /> Sync Actuals
-          </Button>
           {isFinanceManager && (
             <Button
               variant="outline" size="sm"
@@ -243,7 +228,7 @@ export const BudgetPlanning = () => {
         <Card><CardContent className="p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs text-muted-foreground">Reserve Coverage</p>
+              <p className="text-xs text-muted-foreground">Reserve Coverage (from ledger)</p>
               <p className="text-sm font-mono text-foreground">
                 {formatNumberSpaces(totalReserved)} / {formatNumberSpaces(totalReserveRequired)}
               </p>
@@ -287,9 +272,11 @@ export const BudgetPlanning = () => {
                   </TableRow>,
                   ...groupItems.map(item => {
                     const cat = categoryMap[item.category_id];
-                    const autoActual = getAutoActual(item);
-                    const diff = autoActual - Number(item.monthly_amount);
-                    const hasAutoMapping = !!(cat?.expense_mapping && monthlyActuals[cat.expense_mapping] !== undefined);
+                    const liveActual = getLiveActual(item);
+                    const liveReserved = getLiveReserved(item);
+                    const diff = liveActual - Number(item.monthly_amount);
+                    const liveStatus = getLiveStatus(item);
+                    const hasMapping = !!cat?.expense_mapping;
                     return (
                       <TableRow key={item.id}>
                         <TableCell className="text-xs text-muted-foreground">{cat?.name || "—"}</TableCell>
@@ -326,30 +313,26 @@ export const BudgetPlanning = () => {
                         </TableCell>
                         <TableCell className="text-right font-mono">
                           <div className="flex items-center justify-end gap-1">
-                            {hasAutoMapping && (
-                              <Badge variant="outline" className="text-[8px] px-1 py-0 border-primary/30 text-primary">auto</Badge>
+                            {hasMapping && (
+                              <Badge variant="outline" className="text-[8px] px-1 py-0 border-primary/30 text-primary">live</Badge>
                             )}
-                            <span>{formatNumberSpaces(autoActual)}</span>
+                            <span>{formatNumberSpaces(liveActual)}</span>
                           </div>
                         </TableCell>
                         <TableCell className="text-right font-mono">
                           {item.logic_type === "reserve" ? (
-                            canEdit ? (
-                              <Input
-                                type="number" className="h-7 text-sm text-right w-24 ml-auto"
-                                defaultValue={item.reserved_amount}
-                                onBlur={e => {
-                                  const v = Number(e.target.value);
-                                  if (v !== Number(item.reserved_amount)) handleInlineUpdate(item, "reserved_amount", v);
-                                }}
-                              />
-                            ) : formatNumberSpaces(item.reserved_amount)
+                            <div className="flex items-center justify-end gap-1">
+                              {hasMapping && (
+                                <Badge variant="outline" className="text-[8px] px-1 py-0 border-primary/30 text-primary">live</Badge>
+                              )}
+                              <span>{formatNumberSpaces(liveReserved)}</span>
+                            </div>
                           ) : <span className="text-muted-foreground">—</span>}
                         </TableCell>
                         <TableCell className={`text-right font-mono ${diff > 0 ? "text-destructive" : diff < 0 ? "text-green-500" : ""}`}>
                           {formatNumberSpaces(diff)}
                         </TableCell>
-                        <TableCell>{statusBadge(item.status)}</TableCell>
+                        <TableCell>{statusBadge(liveStatus)}</TableCell>
                       </TableRow>
                     );
                   }),

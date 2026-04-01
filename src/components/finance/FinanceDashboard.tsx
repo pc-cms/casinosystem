@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useWallets, useWalletTransactions, useDailySummaries, WALLET_LABELS } from "@/hooks/use-finance";
 import { formatNumberSpaces, DEFAULT_EXCHANGE_RATES } from "@/lib/currency";
-import { Wallet, TrendingUp, Building2, ShieldCheck, Target, DollarSign } from "lucide-react";
+import { Wallet, TrendingUp, Building2, ShieldCheck, Target, DollarSign, AlertTriangle } from "lucide-react";
 import { WalletSetup } from "./WalletSetup";
 import { useBudgetPeriod, useBudgetItems, useMonthlyActuals } from "@/hooks/use-budget";
 
@@ -27,6 +27,8 @@ export const FinanceDashboard = () => {
   const officeSafe = wallets.find(w => w.wallet_type === "office_safe");
   const reserves = wallets.filter(w => w.wallet_type.endsWith("_reserve"));
   const totalReserves = reserves.reduce((s, w) => s + Number(w.current_balance), 0);
+  const mainCashBalance = Number(mainCash?.current_balance || 0);
+  const isNegativeCash = mainCashBalance < 0;
 
   const today = new Date().toISOString().slice(0, 10);
   const todaySummary = summaries.find(s => s.date === today);
@@ -36,7 +38,7 @@ export const FinanceDashboard = () => {
   const monthlyExpenses = monthSummaries.reduce((s, d) => s + Number(d.total_expenses), 0);
   const monthlyNet = monthlyIncome - monthlyExpenses;
 
-  // Budget calculations with auto-actuals
+  // Budget calculations with live actuals
   const budgetPlanned = budgetItems.reduce((s, i) => s + Number(i.monthly_amount), 0);
   const budgetActual = Object.values(monthlyActuals).reduce((s: number, v) => s + Number(v), 0);
   const budgetVariance = budgetActual - budgetPlanned;
@@ -58,10 +60,25 @@ export const FinanceDashboard = () => {
 
   return (
     <div className="space-y-6 mt-4">
+      {/* Negative cash alert */}
+      {isNegativeCash && (
+        <Card className="border-destructive bg-destructive/5">
+          <CardContent className="p-4 flex items-center gap-3">
+            <AlertTriangle className="w-5 h-5 text-destructive shrink-0" />
+            <div>
+              <p className="text-sm font-semibold text-destructive">Negative cash balance</p>
+              <p className="text-xs text-destructive/80">
+                Main Cash is {formatNumberSpaces(mainCashBalance)} TZS. This indicates more was spent/lost than received.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Top metrics */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <MetricCard icon={Wallet} label="Total Balance" value={totalBalance} sub={`≈ $${totalBalanceUsd.toLocaleString()} USD`} />
-        <MetricCard icon={Building2} label="Cash / Safe" value={Number(mainCash?.current_balance || 0)} sub={`Safe: ${formatNumberSpaces(Number(officeSafe?.current_balance || 0))}`} />
+        <MetricCard icon={Building2} label="Cash / Safe" value={mainCashBalance} sub={`Safe: ${formatNumberSpaces(Number(officeSafe?.current_balance || 0))}`} colored={isNegativeCash} />
         <MetricCard icon={ShieldCheck} label="Total Reserves" value={totalReserves} />
         <MetricCard icon={TrendingUp} label="Monthly Net" value={monthlyNet} colored />
       </div>
@@ -186,9 +203,15 @@ export const FinanceDashboard = () => {
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {wallets.map(w => (
-              <div key={w.id} className="p-3 rounded-lg bg-muted/50 border border-border">
+              <div key={w.id} className={`p-3 rounded-lg border ${
+                w.wallet_type === "main_cash" && Number(w.current_balance) < 0
+                  ? "bg-destructive/5 border-destructive/30"
+                  : "bg-muted/50 border-border"
+              }`}>
                 <p className="text-xs text-muted-foreground">{WALLET_LABELS[w.wallet_type]}</p>
-                <p className="text-base font-bold font-mono">{formatNumberSpaces(Number(w.current_balance))}</p>
+                <p className={`text-base font-bold font-mono ${
+                  w.wallet_type === "main_cash" && Number(w.current_balance) < 0 ? "text-destructive" : ""
+                }`}>{formatNumberSpaces(Number(w.current_balance))}</p>
               </div>
             ))}
           </div>

@@ -57,6 +57,7 @@ export interface WalletTransaction {
   description: string;
   operator_id: string;
   created_at: string;
+  business_date: string | null;
 }
 
 export interface DailySummary {
@@ -100,7 +101,6 @@ export function useInitializeWallets() {
       if (!user) throw new Error("Not authenticated");
 
       const walletTypes: WalletType[] = ["main_cash", "office_safe", "rent_reserve", "license_reserve", "tax_reserve", "other_reserve"];
-      // Create wallets
       const wallets = walletTypes.map(wt => ({
         casino_id: casinoId,
         wallet_type: wt,
@@ -109,7 +109,6 @@ export function useInitializeWallets() {
       const { error } = await supabase.from("financial_wallets").upsert(wallets, { onConflict: "casino_id,wallet_type" });
       if (error) throw error;
 
-      // Insert initial balance transactions for non-zero balances
       const txs = Object.entries(initialBalances)
         .filter(([, amount]) => amount && amount > 0)
         .map(([wt, amount]) => ({
@@ -164,6 +163,7 @@ export function useCreateWalletTransaction() {
       amount: number;
       expense_category?: OfficeExpenseCategory | null;
       description?: string;
+      business_date?: string | null;
     }) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user || !casinoId) throw new Error("Not authenticated");
@@ -176,12 +176,15 @@ export function useCreateWalletTransaction() {
         expense_category: tx.expense_category || null,
         description: tx.description || "",
         operator_id: user.id,
+        business_date: tx.business_date || null,
       });
       if (error) throw error;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["financial_wallets"] });
       qc.invalidateQueries({ queryKey: ["wallet_transactions"] });
+      qc.invalidateQueries({ queryKey: ["monthly_actuals"] });
+      qc.invalidateQueries({ queryKey: ["monthly_reserves"] });
       toast.success("Transaction recorded");
     },
     onError: (e: any) => toast.error(e.message),
@@ -254,13 +257,15 @@ export function useTablesResultForDate(date: string) {
     queryKey: ["tables_result_date", casinoId, date],
     queryFn: async () => {
       if (!casinoId) return 0;
-      // Get shifts that were opened on this business day and have a result
+      const nextDay = new Date(date);
+      nextDay.setDate(nextDay.getDate() + 1);
+      const nextDayStr = nextDay.toISOString().slice(0, 10);
       const { data, error } = await supabase
         .from("shifts")
         .select("shift_result")
         .eq("casino_id", casinoId)
         .gte("opened_at", `${date}T00:00:00`)
-        .lt("opened_at", `${date}T23:59:59.999`)
+        .lt("opened_at", `${nextDayStr}T00:00:00`)
         .not("shift_result", "is", null);
       if (error) throw error;
       return (data || []).reduce((sum, s) => sum + (Number(s.shift_result) || 0), 0);
@@ -276,7 +281,6 @@ export function useCageExpensesForDate(date: string) {
     queryKey: ["cage_expenses_date", casinoId, date],
     queryFn: async () => {
       if (!casinoId) return 0;
-      // Calculate next day for proper boundary
       const nextDay = new Date(date);
       nextDay.setDate(nextDay.getDate() + 1);
       const nextDayStr = nextDay.toISOString().slice(0, 10);
