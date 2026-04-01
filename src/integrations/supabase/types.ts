@@ -1298,6 +1298,55 @@ export type Database = {
           },
         ]
       }
+      player_notes: {
+        Row: {
+          casino_id: string
+          content: string
+          created_at: string
+          created_by: string
+          id: string
+          player_id: string
+        }
+        Insert: {
+          casino_id: string
+          content: string
+          created_at?: string
+          created_by: string
+          id?: string
+          player_id: string
+        }
+        Update: {
+          casino_id?: string
+          content?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          player_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "player_notes_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "player_notes_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "player_economy"
+            referencedColumns: ["player_id"]
+          },
+          {
+            foreignKeyName: "player_notes_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       player_tags: {
         Row: {
           created_at: string
@@ -1343,6 +1392,7 @@ export type Database = {
           created_at: string
           first_name: string
           id: string
+          id_document_url: string | null
           id_number: string
           last_name: string
           nickname: string
@@ -1357,6 +1407,7 @@ export type Database = {
           created_at?: string
           first_name: string
           id?: string
+          id_document_url?: string | null
           id_number?: string
           last_name: string
           nickname?: string
@@ -1371,6 +1422,7 @@ export type Database = {
           created_at?: string
           first_name?: string
           id?: string
+          id_document_url?: string | null
           id_number?: string
           last_name?: string
           nickname?: string
