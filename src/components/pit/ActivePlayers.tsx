@@ -261,6 +261,11 @@ const ActivePlayers = () => {
       ? list
       : list.filter(p => typeFilter.has(p.player_type));
 
+    // Filter by category
+    const catFiltered = categoryFilter.size === 4
+      ? typeFiltered
+      : typeFiltered.filter(p => categoryFilter.has(p.category));
+
     // Filter by search
     const filtered = search
       ? typeFiltered.filter(p => `${p.first_name} ${p.last_name} ${p.nickname}`.toLowerCase().includes(search.toLowerCase()))
