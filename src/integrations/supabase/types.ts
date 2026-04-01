@@ -1305,6 +1305,7 @@ export type Database = {
           created_at: string
           created_by: string
           id: string
+          note_type: string
           player_id: string
         }
         Insert: {
@@ -1313,6 +1314,7 @@ export type Database = {
           created_at?: string
           created_by: string
           id?: string
+          note_type?: string
           player_id: string
         }
         Update: {
@@ -1321,6 +1323,7 @@ export type Database = {
           created_at?: string
           created_by?: string
           id?: string
+          note_type?: string
           player_id?: string
         }
         Relationships: [
@@ -1389,6 +1392,7 @@ export type Database = {
       players: {
         Row: {
           casino_id: string
+          category: Database["public"]["Enums"]["player_category"]
           created_at: string
           first_name: string
           id: string
@@ -1404,6 +1408,7 @@ export type Database = {
         }
         Insert: {
           casino_id: string
+          category?: Database["public"]["Enums"]["player_category"]
           created_at?: string
           first_name: string
           id?: string
@@ -1419,6 +1424,7 @@ export type Database = {
         }
         Update: {
           casino_id?: string
+          category?: Database["public"]["Enums"]["player_category"]
           created_at?: string
           first_name?: string
           id?: string
@@ -2055,6 +2061,7 @@ export type Database = {
         | "debts"
         | "adjustments"
         | "other_office"
+      player_category: "diamond" | "platinum" | "gold" | "guest"
       player_status: "active" | "blacklist"
       player_type: "slots" | "table" | "mix"
       shift_type: "M" | "N" | "A" | "S" | "E" | "L"
@@ -2273,6 +2280,7 @@ export const Constants = {
         "adjustments",
         "other_office",
       ],
+      player_category: ["diamond", "platinum", "gold", "guest"],
       player_status: ["active", "blacklist"],
       player_type: ["slots", "table", "mix"],
       shift_type: ["M", "N", "A", "S", "E", "L"],

@@ -10,6 +10,9 @@ import { ArrowUpDown, ArrowUp, ArrowDown, LogIn, LogOut, Search, MapPin, Play, X
 import PlayerEditDialog from "@/components/PlayerEditDialog";
 import { Input } from "@/components/ui/input";
 import { NumberInput } from "@/components/ui/number-input";
+import CategoryBadge, { CATEGORY_PRIORITY, type PlayerCategory } from "@/components/player/CategoryBadge";
+import FlagBadges from "@/components/player/FlagBadges";
+import CategoryFilter from "@/components/player/CategoryFilter";
 import {
   Table,
   TableBody,
@@ -21,7 +24,7 @@ import {
 import { toast } from "sonner";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
-type SortKey = "name" | "dropR" | "dropT" | "cashout" | "result";
+type SortKey = "name" | "dropR" | "dropT" | "cashout" | "result" | "category";
 type SortDir = "asc" | "desc";
 
 const PLAYER_TYPES = ["table", "mix", "slots"] as const;
@@ -37,10 +40,11 @@ const ActivePlayers = () => {
   const addTag = useAddPlayerTag();
   const removeTag = useRemovePlayerTag();
 
-  const [sortKey, setSortKey] = useState<SortKey>("dropR");
+  const [sortKey, setSortKey] = useState<SortKey>("category");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<Set<string>>(new Set(["slots", "table", "mix"]));
+  const [categoryFilter, setCategoryFilter] = useState<Set<PlayerCategory>>(new Set(["diamond", "platinum", "gold", "guest"]));
   const [placingPlayer, setPlacingPlayer] = useState<string | null>(null);
   const [placingTable, setPlacingTable] = useState<string | null>(null);
   const [placingBet, setPlacingBet] = useState("");
@@ -236,6 +240,7 @@ const ActivePlayers = () => {
           nickname: p.nickname,
           status: p.status,
           player_type: (p as any).player_type as string || "table",
+          category: ((p as any).category as PlayerCategory) || "guest",
           dropR,
           dropV,
           dropT,
@@ -256,15 +261,21 @@ const ActivePlayers = () => {
       ? list
       : list.filter(p => typeFilter.has(p.player_type));
 
+    // Filter by category
+    const catFiltered = categoryFilter.size === 4
+      ? typeFiltered
+      : typeFiltered.filter(p => categoryFilter.has(p.category));
+
     // Filter by search
     const filtered = search
-      ? typeFiltered.filter(p => `${p.first_name} ${p.last_name} ${p.nickname}`.toLowerCase().includes(search.toLowerCase()))
-      : typeFiltered;
+      ? catFiltered.filter(p => `${p.first_name} ${p.last_name} ${p.nickname}`.toLowerCase().includes(search.toLowerCase()))
+      : catFiltered;
 
     // Sort
     filtered.sort((a, b) => {
       let cmp = 0;
       switch (sortKey) {
+        case "category": cmp = CATEGORY_PRIORITY[a.category] - CATEGORY_PRIORITY[b.category]; break;
         case "name": cmp = `${a.first_name} ${a.last_name}`.localeCompare(`${b.first_name} ${b.last_name}`); break;
         case "dropR": cmp = a.dropR - b.dropR; break;
         case "dropT": cmp = a.dropT - b.dropT; break;
@@ -275,7 +286,7 @@ const ActivePlayers = () => {
     });
 
     return filtered;
-  }, [players, transactions, allTags, sessions, tables, visits, sortKey, sortDir, search, typeFilter]);
+  }, [players, transactions, allTags, sessions, tables, visits, sortKey, sortDir, search, typeFilter, categoryFilter]);
 
   // Players not yet active — for check-in search
   const activeIds = new Set(activePlayers.map(p => p.id));
@@ -332,6 +343,7 @@ const ActivePlayers = () => {
                 </button>
               ))}
             </div>
+            <CategoryFilter selected={categoryFilter} onChange={setCategoryFilter} />
             <div className="relative max-w-[200px] w-full">
               <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <Input
@@ -450,6 +462,9 @@ const ActivePlayers = () => {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-[30px] cursor-pointer select-none hover:text-foreground" onClick={() => handleSort("category")}>
+                    <span className="flex items-center">Cat <SortIcon col="category" /></span>
+                  </TableHead>
                   <TableHead className="cursor-pointer select-none hover:text-foreground" onClick={() => handleSort("name")}>
                     <span className="flex items-center">Player <SortIcon col="name" /></span>
                   </TableHead>
@@ -476,6 +491,9 @@ const ActivePlayers = () => {
               <TableBody>
                 {activePlayers.map(p => (
                   <TableRow key={p.id}>
+                    <TableCell className="text-center">
+                      <CategoryBadge category={p.category} />
+                    </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         {p.isCheckedIn && <span className="w-1.5 h-1.5 rounded-full bg-green-500 shrink-0" />}
@@ -688,7 +706,7 @@ const ActivePlayers = () => {
                 {/* Totals row */}
                 {activePlayers.length > 0 && (totalDropR > 0 || totalCashout > 0) && (
                   <TableRow className="border-t-2 border-border bg-muted/20">
-                    <TableCell className="font-bold text-xs text-card-foreground" colSpan={5}>TOTAL</TableCell>
+                    <TableCell className="font-bold text-xs text-card-foreground" colSpan={6}>TOTAL</TableCell>
                     <TableCell className="text-right font-mono font-bold text-card-foreground">{formatNumberSpaces(totalDropR)}</TableCell>
                     <TableCell className="text-right font-mono font-bold text-muted-foreground">{formatNumberSpaces(totalDropT)}</TableCell>
                     <TableCell className="text-right font-mono font-bold text-emerald-400">{formatNumberSpaces(totalCashout)}</TableCell>
