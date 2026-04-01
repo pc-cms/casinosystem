@@ -561,6 +561,7 @@ export type Database = {
       casinos: {
         Row: {
           breaklist_lock: string
+          cage_float: number
           code: string
           created_at: string
           float_locked: boolean
@@ -573,6 +574,7 @@ export type Database = {
         }
         Insert: {
           breaklist_lock?: string
+          cage_float?: number
           code: string
           created_at?: string
           float_locked?: boolean
@@ -585,6 +587,7 @@ export type Database = {
         }
         Update: {
           breaklist_lock?: string
+          cage_float?: number
           code?: string
           created_at?: string
           float_locked?: boolean

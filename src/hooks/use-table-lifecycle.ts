@@ -129,7 +129,7 @@ export const useUpdateCasinoSchedule = () => {
   const qc = useQueryClient();
   const { casinoId } = useAuth();
   return useMutation({
-    mutationFn: async (input: { shift_start: string; shift_end: string; tables_open: string; breaklist_lock: string }) => {
+    mutationFn: async (input: { shift_start: string; shift_end: string; tables_open: string; breaklist_lock: string; cage_float?: number }) => {
       if (!casinoId) throw new Error("No casino");
       const { error } = await supabase
         .from("casinos")

@@ -8,12 +8,24 @@ import {
   useDailySummaries, useUpsertDailySummary,
   useCageExpensesForDate, useCreateWalletTransaction, useShiftClosingForDate,
 } from "@/hooks/use-finance";
+import { useCasinoInfo } from "@/hooks/use-table-lifecycle";
 import { useAuth } from "@/lib/auth-context";
 import { MoneyBreakdown } from "@/components/finance/daily-review/MoneyBreakdown";
 import { formatNumberSpaces, formatInputWithSpaces, parseSpacedNumber } from "@/lib/currency";
-import { Check, ChevronLeft, ChevronRight, CalendarDays, AlertTriangle } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, CalendarDays, AlertTriangle, ArrowDownToLine } from "lucide-react";
 import { format, subDays, addDays } from "date-fns";
 import { toast } from "sonner";
+
+// Calculate physical cash in cage from closing_count (excludes chips, mobile, bank)
+const getClosingCashOnly = (closingCount: any, rates: Record<string, number>): number => {
+  if (!closingCount?.cash) return 0;
+  const cash = closingCount.cash as Record<string, Record<number, number>>;
+  return Object.entries(cash).reduce((sum, [cur, denoms]) => {
+    const t = Object.entries(denoms || {}).reduce((s, [d, c]) => s + Number(d) * (Number(c) || 0), 0);
+    const rate = cur === "TZS" ? 1 : (rates[cur] || 0);
+    return sum + t * rate;
+  }, 0);
+};
 
 export const DailyReview = () => {
   const { casinoId } = useAuth();
@@ -21,22 +33,30 @@ export const DailyReview = () => {
   const [slotsInput, setSlotsInput] = useState("");
   const [comment, setComment] = useState("");
   const [confirming, setConfirming] = useState(false);
+  const [equalizing, setEqualizing] = useState(false);
 
   const { data: summaries = [] } = useDailySummaries();
   const { data: cageExpenses = 0 } = useCageExpensesForDate(selectedDate);
   const { data: shiftClosing } = useShiftClosingForDate(selectedDate);
+  const { data: casinoInfo } = useCasinoInfo();
   const upsert = useUpsertDailySummary();
   const createTx = useCreateWalletTransaction();
 
   const existing = summaries.find(s => s.date === selectedDate);
 
-  // Cash result from cage shift (buy-ins − cashouts = net cash earned from tables)
+  // Cash result from cage shift (buy-ins − cashouts)
   const cashResult = Number((shiftClosing?.closing_cash as any)?.cash_result) || 0;
   const hasShiftData = !!shiftClosing;
+  const rates = (shiftClosing?.exchange_rates || {}) as Record<string, number>;
 
   const slotsValue = existing?.confirmed ? existing.slots_result : parseSpacedNumber(slotsInput);
   const totalResult = cashResult + slotsValue;
   const netResult = totalResult - cageExpenses;
+
+  // Float equalization
+  const cageFloatTarget = Number((casinoInfo as any)?.cage_float) || 0;
+  const closingCashAmount = getClosingCashOnly(shiftClosing?.closing_count, rates);
+  const floatDeficit = cageFloatTarget - closingCashAmount; // >0 means manager must bring cash
 
   const handleDateChange = (newDate: string) => {
     setSelectedDate(newDate);
@@ -47,7 +67,6 @@ export const DailyReview = () => {
   const handleConfirm = async () => {
     setConfirming(true);
     try {
-      // 1. Upsert daily summary
       await upsert.mutateAsync({
         date: selectedDate,
         tables_result: cashResult,
@@ -57,11 +76,9 @@ export const DailyReview = () => {
         comment: comment || existing?.comment || "",
       });
 
-      // 2. Transfer net result to office_safe (all cash goes to main safe)
       if (casinoId && netResult !== 0) {
         try {
           if (netResult > 0) {
-            // Income → transfer to office_safe
             await createTx.mutateAsync({
               tx_type: "daily_result",
               to_wallet: "main_cash",
@@ -69,7 +86,6 @@ export const DailyReview = () => {
               description: `Daily result ${selectedDate} (income)`,
               business_date: selectedDate,
             });
-            // Auto-transfer to office safe
             await createTx.mutateAsync({
               tx_type: "transfer",
               from_wallet: "main_cash",
@@ -79,7 +95,6 @@ export const DailyReview = () => {
               business_date: selectedDate,
             });
           } else {
-            // Loss → deduct from main_cash
             await createTx.mutateAsync({
               tx_type: "daily_result",
               from_wallet: "main_cash",
@@ -90,7 +105,7 @@ export const DailyReview = () => {
           }
         } catch (txErr: any) {
           if (txErr.message?.includes("idx_wallet_tx_daily_result_unique") || txErr.message?.includes("duplicate")) {
-            // Already exists — skip silently
+            // Already exists — skip
           } else {
             throw txErr;
           }
@@ -101,6 +116,39 @@ export const DailyReview = () => {
       toast.error(e.message || "Failed to confirm");
     } finally {
       setConfirming(false);
+    }
+  };
+
+  const handleEqualize = async () => {
+    if (!casinoId || floatDeficit === 0) return;
+    setEqualizing(true);
+    try {
+      if (floatDeficit > 0) {
+        // Manager brings cash from safe to cage
+        await createTx.mutateAsync({
+          tx_type: "transfer",
+          from_wallet: "office_safe",
+          to_wallet: "main_cash",
+          amount: floatDeficit,
+          description: `Equalize cage float ${selectedDate} (top-up)`,
+          business_date: selectedDate,
+        });
+      } else {
+        // Excess cash goes from cage to safe
+        await createTx.mutateAsync({
+          tx_type: "transfer",
+          from_wallet: "main_cash",
+          to_wallet: "office_safe",
+          amount: Math.abs(floatDeficit),
+          description: `Equalize cage float ${selectedDate} (excess)`,
+          business_date: selectedDate,
+        });
+      }
+      toast.success("Float equalized");
+    } catch (e: any) {
+      toast.error(e.message || "Failed to equalize");
+    } finally {
+      setEqualizing(false);
     }
   };
 
@@ -215,13 +263,56 @@ export const DailyReview = () => {
         </CardContent>
       </Card>
 
+      {/* Equalize Float — shown after confirm when cage float target is set */}
+      {existing?.confirmed && hasShiftData && cageFloatTarget > 0 && floatDeficit !== 0 && (
+        <Card className={floatDeficit > 0 ? "border-destructive/30" : "border-green-500/30"}>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <ArrowDownToLine className="w-4 h-4" /> Equalize Float
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="grid grid-cols-3 gap-3">
+              <div className="p-3 rounded-lg bg-muted/50 border border-border text-center">
+                <p className="text-[10px] text-muted-foreground mb-1">Float Target</p>
+                <p className="text-sm font-bold font-mono">{formatNumberSpaces(cageFloatTarget)}</p>
+              </div>
+              <div className="p-3 rounded-lg bg-muted/50 border border-border text-center">
+                <p className="text-[10px] text-muted-foreground mb-1">Cash in Cage</p>
+                <p className="text-sm font-bold font-mono">{formatNumberSpaces(closingCashAmount)}</p>
+              </div>
+              <div className={`p-3 rounded-lg border text-center ${floatDeficit > 0 ? "bg-destructive/5 border-destructive/20" : "bg-green-500/5 border-green-500/20"}`}>
+                <p className="text-[10px] text-muted-foreground mb-1">
+                  {floatDeficit > 0 ? "Manager Must Bring" : "Excess to Safe"}
+                </p>
+                <p className={`text-sm font-bold font-mono ${floatDeficit > 0 ? "text-destructive" : "text-green-500"}`}>
+                  {formatNumberSpaces(Math.abs(floatDeficit))}
+                </p>
+              </div>
+            </div>
+
+            <p className="text-xs text-muted-foreground">
+              {floatDeficit > 0
+                ? `Manager transfers ${formatNumberSpaces(floatDeficit)} TZS from Office Safe → Cage to restore the float.`
+                : `Excess ${formatNumberSpaces(Math.abs(floatDeficit))} TZS transferred from Cage → Office Safe.`
+              }
+            </p>
+
+            <Button onClick={handleEqualize} disabled={equalizing} className="gap-1 w-full">
+              <ArrowDownToLine className="w-4 h-4" />
+              {equalizing ? "Processing…" : floatDeficit > 0 ? "Top-Up Cage Float" : "Transfer Excess to Safe"}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Income Breakdown from Cage */}
       {shiftClosing?.closing_count && (
         <MoneyBreakdown
           openingFloat={shiftClosing.opening_float}
           closingCount={shiftClosing.closing_count}
           closingCash={shiftClosing.closing_cash}
-          exchangeRates={(shiftClosing.exchange_rates || {}) as Record<string, number>}
+          exchangeRates={rates}
         />
       )}
 

@@ -1,0 +1,1 @@
+ALTER TABLE public.casinos ADD COLUMN cage_float numeric NOT NULL DEFAULT 0;
