@@ -268,7 +268,8 @@ const ActivePlayers = () => {
 
     // Filter by search
     const filtered = search
-      ? typeFiltered.filter(p => `${p.first_name} ${p.last_name} ${p.nickname}`.toLowerCase().includes(search.toLowerCase()))
+      ? catFiltered.filter(p => `${p.first_name} ${p.last_name} ${p.nickname}`.toLowerCase().includes(search.toLowerCase()))
+      : catFiltered;
       : typeFiltered;
 
     // Sort
