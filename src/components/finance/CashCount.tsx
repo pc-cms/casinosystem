@@ -62,21 +62,20 @@ export const CashCount = () => {
 
   const handleAdjustment = async (snap: typeof history[0]) => {
     if (snap.discrepancy === 0) return;
-    // If discrepancy > 0: system has more than physical → reduce wallet
-    // If discrepancy < 0: system has less than physical → increase wallet
     const absDisc = Math.abs(snap.discrepancy);
     if (snap.discrepancy > 0) {
+      // System > physical → reduce wallet
       await createAdjustment.mutateAsync({
-        tx_type: "manual_expense",
+        tx_type: "adjustment" as any,
         from_wallet: snap.wallet_type,
         amount: absDisc,
-        expense_category: "adjustments",
         description: `Cash count adjustment — system reduced by TZS ${formatNumberSpaces(absDisc)}`,
         business_date: new Date().toISOString().slice(0, 10),
       });
     } else {
+      // Physical > system → increase wallet
       await createAdjustment.mutateAsync({
-        tx_type: "daily_result",
+        tx_type: "adjustment" as any,
         to_wallet: snap.wallet_type,
         amount: absDisc,
         description: `Cash count adjustment — system increased by TZS ${formatNumberSpaces(absDisc)}`,
