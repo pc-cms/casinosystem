@@ -122,6 +122,7 @@ const PlayerSearch = ({ players, value, onChange, placeholder = "Search playerâ€
           No players found
         </div>
       )}
+      <PlayerEditDialog player={editPlayer} open={!!editPlayer} onOpenChange={(v) => { if (!v) setEditPlayer(null); }} />
     </div>
   );
 };
