@@ -290,7 +290,7 @@ const PlayerConfirmCard = ({
                 <Ban className="w-3 h-3" /> BLACKLISTED
               </Badge>
             ) : isCheckedIn ? (
-              <Badge className="bg-emerald-500/15 text-emerald-600 border-emerald-500/30 gap-1">
+              <Badge className="bg-primary/15 text-primary border-primary/30 gap-1">
                 <CheckCircle2 className="w-3 h-3" /> Currently IN
               </Badge>
             ) : (
