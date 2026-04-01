@@ -22,6 +22,8 @@ import Admin from "@/pages/Admin";
 import Staff from "@/pages/Staff";
 import Finance from "@/pages/Finance";
 import Reception from "@/pages/Reception";
+import InCasino from "@/pages/InCasino";
+import Blacklist from "@/pages/Blacklist";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
