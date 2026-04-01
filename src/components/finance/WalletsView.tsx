@@ -38,6 +38,25 @@ export const WalletsView = () => {
         ))}
       </div>
 
+      {/* Operational wallets */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+            <Wallet className="w-4 h-4" /> Operational
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {OPERATIONAL_WALLETS.map(wt => (
+              <div key={wt} className="p-3 rounded-lg bg-muted/50 border border-border">
+                <p className="text-xs text-muted-foreground">{WALLET_LABELS[wt]}</p>
+                <p className="text-base font-bold font-mono">{formatNumberSpaces(getBalance(wt))}</p>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Reserves */}
       <Card>
         <CardHeader className="pb-2">
