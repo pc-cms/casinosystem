@@ -5,13 +5,13 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import {
-  useDailySummaries, useUpsertDailySummary, useTablesResultForDate,
+  useDailySummaries, useUpsertDailySummary,
   useCageExpensesForDate, useCreateWalletTransaction, useShiftClosingForDate,
 } from "@/hooks/use-finance";
 import { useAuth } from "@/lib/auth-context";
 import { MoneyBreakdown } from "@/components/finance/daily-review/MoneyBreakdown";
 import { formatNumberSpaces, formatInputWithSpaces, parseSpacedNumber } from "@/lib/currency";
-import { Check, ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, CalendarDays, AlertTriangle } from "lucide-react";
 import { format, subDays, addDays } from "date-fns";
 import { toast } from "sonner";
 
@@ -23,15 +23,19 @@ export const DailyReview = () => {
   const [confirming, setConfirming] = useState(false);
 
   const { data: summaries = [] } = useDailySummaries();
-  const { data: tablesResult = 0 } = useTablesResultForDate(selectedDate);
   const { data: cageExpenses = 0 } = useCageExpensesForDate(selectedDate);
+  const { data: shiftClosing } = useShiftClosingForDate(selectedDate);
   const upsert = useUpsertDailySummary();
   const createTx = useCreateWalletTransaction();
-  const { data: shiftClosing } = useShiftClosingForDate(selectedDate);
 
   const existing = summaries.find(s => s.date === selectedDate);
-  const slotsValue = existing ? existing.slots_result : parseSpacedNumber(slotsInput);
-  const totalResult = tablesResult + slotsValue;
+
+  // Cash result from cage shift (buy-ins − cashouts = net cash earned from tables)
+  const cashResult = Number((shiftClosing?.closing_cash as any)?.cash_result) || 0;
+  const hasShiftData = !!shiftClosing;
+
+  const slotsValue = existing?.confirmed ? existing.slots_result : parseSpacedNumber(slotsInput);
+  const totalResult = cashResult + slotsValue;
   const netResult = totalResult - cageExpenses;
 
   const handleDateChange = (newDate: string) => {
@@ -46,19 +50,18 @@ export const DailyReview = () => {
       // 1. Upsert daily summary
       await upsert.mutateAsync({
         date: selectedDate,
-        tables_result: tablesResult,
+        tables_result: cashResult,
         slots_result: slotsValue,
         total_expenses: cageExpenses,
         confirmed: true,
         comment: comment || existing?.comment || "",
       });
 
-      // 2. Create wallet transaction for daily result with business_date for dedup
-      // The unique index on (casino_id, business_date) WHERE tx_type='daily_result'
-      // will reject duplicates at DB level
+      // 2. Transfer net result to office_safe (all cash goes to main safe)
       if (casinoId && netResult !== 0) {
         try {
           if (netResult > 0) {
+            // Income → transfer to office_safe
             await createTx.mutateAsync({
               tx_type: "daily_result",
               to_wallet: "main_cash",
@@ -66,7 +69,17 @@ export const DailyReview = () => {
               description: `Daily result ${selectedDate} (income)`,
               business_date: selectedDate,
             });
+            // Auto-transfer to office safe
+            await createTx.mutateAsync({
+              tx_type: "transfer",
+              from_wallet: "main_cash",
+              amount: netResult,
+              to_wallet: "office_safe",
+              description: `Transfer to safe ${selectedDate}`,
+              business_date: selectedDate,
+            });
           } else {
+            // Loss → deduct from main_cash
             await createTx.mutateAsync({
               tx_type: "daily_result",
               from_wallet: "main_cash",
@@ -76,7 +89,6 @@ export const DailyReview = () => {
             });
           }
         } catch (txErr: any) {
-          // If duplicate (unique constraint violation), it's expected on re-confirm
           if (txErr.message?.includes("idx_wallet_tx_daily_result_unique") || txErr.message?.includes("duplicate")) {
             // Already exists — skip silently
           } else {
@@ -84,7 +96,7 @@ export const DailyReview = () => {
           }
         }
       }
-      toast.success("Day confirmed & wallet updated");
+      toast.success("Day confirmed & transferred to safe");
     } catch (e: any) {
       toast.error(e.message || "Failed to confirm");
     } finally {
@@ -95,7 +107,7 @@ export const DailyReview = () => {
   const handleSave = () => {
     upsert.mutate({
       date: selectedDate,
-      tables_result: tablesResult,
+      tables_result: cashResult,
       slots_result: slotsValue,
       total_expenses: cageExpenses,
       confirmed: false,
@@ -124,6 +136,14 @@ export const DailyReview = () => {
         {existing?.confirmed && <Badge className="bg-green-500/10 text-green-500 border-green-500/30">Confirmed</Badge>}
       </div>
 
+      {/* No shift warning */}
+      {!hasShiftData && (
+        <div className="flex items-center gap-2 p-3 rounded-lg border border-border bg-muted/50">
+          <AlertTriangle className="w-4 h-4 text-muted-foreground" />
+          <p className="text-xs text-muted-foreground">No closed shift found for this date</p>
+        </div>
+      )}
+
       {/* Results card */}
       <Card>
         <CardHeader className="pb-2">
@@ -132,8 +152,11 @@ export const DailyReview = () => {
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="p-3 rounded-lg bg-muted/50 border border-border">
-              <p className="text-xs text-muted-foreground mb-1">Tables Result (auto)</p>
-              <p className="text-lg font-bold font-mono">{formatNumberSpaces(tablesResult)}</p>
+              <p className="text-xs text-muted-foreground mb-1">Cash Result (from Cage)</p>
+              <p className={`text-lg font-bold font-mono ${cashResult >= 0 ? "text-foreground" : "text-destructive"}`}>
+                {formatNumberSpaces(cashResult)}
+              </p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Buy-ins − Cashouts</p>
             </div>
             <div className="p-3 rounded-lg bg-muted/50 border border-border">
               <p className="text-xs text-muted-foreground mb-1">Slots Result (manual)</p>
@@ -160,10 +183,11 @@ export const DailyReview = () => {
               <p className="text-lg font-bold font-mono">{formatNumberSpaces(cageExpenses)}</p>
             </div>
             <div className="p-3 rounded-lg bg-muted/50 border border-border">
-              <p className="text-xs text-muted-foreground mb-1">Net → Main Cash</p>
+              <p className="text-xs text-muted-foreground mb-1">Net → Office Safe</p>
               <p className={`text-lg font-bold font-mono ${netResult >= 0 ? "text-green-500" : "text-destructive"}`}>
                 {formatNumberSpaces(netResult)}
               </p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Auto-transfer on confirm</p>
             </div>
           </div>
 
@@ -183,7 +207,7 @@ export const DailyReview = () => {
           {!existing?.confirmed && (
             <div className="flex gap-2">
               <Button variant="outline" onClick={handleSave} disabled={upsert.isPending || confirming}>Save Draft</Button>
-              <Button onClick={handleConfirm} disabled={upsert.isPending || confirming} className="gap-1">
+              <Button onClick={handleConfirm} disabled={upsert.isPending || confirming || !hasShiftData} className="gap-1">
                 <Check className="w-4 h-4" /> Confirm Day
               </Button>
             </div>
@@ -191,7 +215,7 @@ export const DailyReview = () => {
         </CardContent>
       </Card>
 
-      {/* Money Breakdown from Cage */}
+      {/* Income Breakdown from Cage */}
       {shiftClosing?.closing_count && (
         <MoneyBreakdown
           openingFloat={shiftClosing.opening_float}
