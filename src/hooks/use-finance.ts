@@ -254,6 +254,32 @@ export function useUpsertDailySummary() {
   });
 }
 
+// Get shift closing money breakdown for a date
+export function useShiftClosingForDate(date: string) {
+  const { casinoId } = useAuth() as any;
+  return useQuery({
+    queryKey: ["shift_closing_date", casinoId, date],
+    queryFn: async () => {
+      if (!casinoId) return null;
+      const nextDay = new Date(date);
+      nextDay.setDate(nextDay.getDate() + 1);
+      const nextDayStr = nextDay.toISOString().slice(0, 10);
+      const { data, error } = await supabase
+        .from("shifts")
+        .select("id, closing_count, closing_cash, exchange_rates, status")
+        .eq("casino_id", casinoId)
+        .gte("opened_at", `${date}T00:00:00`)
+        .lt("opened_at", `${nextDayStr}T00:00:00`)
+        .eq("status", "closed")
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!casinoId && !!date,
+  });
+}
+
 // Get auto-calculated tables result for a date
 export function useTablesResultForDate(date: string) {
   const { casinoId } = useAuth() as any;
