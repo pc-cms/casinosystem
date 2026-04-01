@@ -1,11 +1,15 @@
 import { useMemo } from "react";
-import { Users, Landmark, Receipt, TrendingDown } from "lucide-react";
+import { Users, Landmark, Receipt, TrendingDown, AlertTriangle, Clock } from "lucide-react";
 import { usePlayers, useTransactions, useGamingTables, useExpenses, useClientSessionsTotalBet, useTableTracker, usePlayerEconomy } from "@/hooks/use-casino-data";
 import { useAuth } from "@/lib/auth-context";
 import { Link } from "react-router-dom";
 import { formatCurrency } from "@/lib/currency";
 import { canSeePlayerFinancials } from "@/lib/role-access";
 import { getBusinessDate } from "@/lib/business-day";
+import { useStaffMembers, useStaffRotaRange, DEPARTMENT_LABELS, STAFF_SHIFT_LABELS, STAFF_SHIFT_COLORS } from "@/hooks/use-staff";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { format, formatDistanceToNow } from "date-fns";
 
 const StatCard = ({ label, value, icon: Icon, href }: {
   label: string; value: string | number; icon: any; href: string;
@@ -23,8 +27,28 @@ const StatCard = ({ label, value, icon: Icon, href }: {
   </Link>
 );
 
+const useTodayVisits = () => {
+  const { casinoId } = useAuth();
+  const today = getBusinessDate();
+  return useQuery({
+    queryKey: ["casino-visits-today", casinoId, today],
+    queryFn: async () => {
+      if (!casinoId) return [];
+      const { data, error } = await supabase
+        .from("casino_visits")
+        .select("*, players(first_name, last_name, nickname, photo_url, status, player_tags(tag), id_number)")
+        .eq("casino_id", casinoId)
+        .eq("date", today)
+        .is("checked_out_at", null);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!casinoId,
+  });
+};
+
 const Dashboard = () => {
-  const { displayName, roles, isManager } = useAuth();
+  const { displayName, roles, isManager, casinoId } = useAuth();
   const businessDate = getBusinessDate();
   const { data: players = [] } = usePlayers();
   const { data: transactions = [] } = useTransactions();
@@ -33,12 +57,47 @@ const Dashboard = () => {
   const { data: sessionsTotalBet = 0 } = useClientSessionsTotalBet();
   const { data: trackerData = [] } = useTableTracker(businessDate);
   const { data: economy = [] } = usePlayerEconomy();
+  const { data: staffMembers = [] } = useStaffMembers();
+  const { data: staffRota = [] } = useStaffRotaRange(businessDate, businessDate);
+  const { data: visits = [] } = useTodayVisits();
 
   const showFinancials = canSeePlayerFinancials(roles);
   const activePlayers = players.filter(p => p.status === "active").length;
   const buyInDrop = transactions.filter(t => t.type === "buy").reduce((s, t) => s + Number(t.amount), 0);
   const totalDrop = buyInDrop + sessionsTotalBet;
   const pendingExpenses = expenses.filter(e => !e.approved).length;
+
+  // Floor staff on shift today
+  const floorStaffOnShift = useMemo(() => {
+    const rotaMap = new Map<string, string>();
+    staffRota.forEach((r: any) => { rotaMap.set(r.staff_id, r.shift); });
+    return staffMembers
+      .filter(s => s.is_active && rotaMap.has(s.id) && rotaMap.get(s.id) !== "O" && rotaMap.get(s.id) !== "L")
+      .map(s => ({ ...s, shift: rotaMap.get(s.id)! }));
+  }, [staffMembers, staffRota]);
+
+  // Players in casino with incomplete data flag
+  const playersInCasino = useMemo(() => {
+    return visits.map((v: any) => {
+      const p = v.players;
+      const missing: string[] = [];
+      if (!p?.photo_url) missing.push("photo");
+      if (!p?.first_name || !p?.last_name) missing.push("name");
+      if (!p?.id_number) missing.push("ID");
+      return {
+        visitId: v.id,
+        playerId: v.player_id,
+        name: `${p?.first_name || ""} ${p?.last_name || ""}`.trim() || "Unknown",
+        nickname: p?.nickname,
+        photoUrl: p?.photo_url,
+        status: p?.status,
+        position: v.position,
+        checkedInAt: v.checked_in_at,
+        tags: (p?.player_tags || []).map((t: any) => t.tag),
+        incomplete: missing,
+      };
+    });
+  }, [visits]);
 
   // Per-table tracker totals
   const tableTrackerTotals = useMemo(() => {
@@ -105,7 +164,7 @@ const Dashboard = () => {
             </div>
           </Link>
         )}
-        <StatCard label="Active Players" value={activePlayers} icon={Users} href="/players" />
+        <StatCard label="Active Players" value={playersInCasino.length} icon={Users} href="/in-casino" />
         {showFinancials && (
           isManager ? (
             <StatCard label="Pending Expenses" value={pendingExpenses} icon={Receipt} href="/expenses" />
@@ -127,6 +186,77 @@ const Dashboard = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Players in Casino */}
+        <div className="cms-panel">
+          <div className="cms-header flex items-center justify-between">
+            <span>In Casino</span>
+            <span className="text-xs font-mono text-muted-foreground">{playersInCasino.length} players</span>
+          </div>
+          <div className="p-4 space-y-1 max-h-[400px] overflow-y-auto">
+            {playersInCasino.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">No players checked in</p>
+            ) : playersInCasino.map((p) => (
+              <div key={p.visitId} className="flex items-center justify-between py-1.5 border-b border-border last:border-0">
+                <div className="flex items-center gap-2 min-w-0">
+                  {p.photoUrl ? (
+                    <img src={p.photoUrl} alt="" className="w-7 h-7 rounded-full object-cover flex-shrink-0" />
+                  ) : (
+                    <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                      <Users className="w-3.5 h-3.5 text-muted-foreground" />
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-sm font-medium text-card-foreground truncate">{p.name}</span>
+                      {p.nickname && <span className="text-xs text-muted-foreground">({p.nickname})</span>}
+                        <AlertTriangle className="w-3.5 h-3.5 text-yellow-400 flex-shrink-0" />
+                    </div>
+                    <div className="flex items-center gap-1 flex-wrap">
+                      <span className={`text-[10px] px-1 py-0.5 rounded ${
+                        p.status === "blacklist" ? "bg-destructive/20 text-destructive" :
+                        p.position === "hall" ? "bg-muted text-muted-foreground" :
+                        "bg-primary/10 text-primary"
+                      }`}>
+                        {p.position || "hall"}
+                      </span>
+                      {p.tags.slice(0, 3).map((tag: string) => (
+                        <span key={tag} className="text-[10px] px-1 py-0.5 rounded bg-accent text-accent-foreground">{tag}</span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 text-xs text-muted-foreground flex-shrink-0">
+                  <Clock className="w-3 h-3" />
+                  <span className="font-mono">{formatDistanceToNow(new Date(p.checkedInAt), { addSuffix: false })}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Floor Staff on Shift */}
+        <div className="cms-panel">
+          <div className="cms-header flex items-center justify-between">
+            <span>Floor Staff on Shift</span>
+            <span className="text-xs font-mono text-muted-foreground">{floorStaffOnShift.length} staff</span>
+          </div>
+          <div className="p-4 space-y-1 max-h-[400px] overflow-y-auto">
+            {floorStaffOnShift.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">No rota data for today</p>
+            ) : floorStaffOnShift.map((s) => (
+              <div key={s.id} className="flex items-center justify-between py-1.5 border-b border-border last:border-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-card-foreground">{s.name}</span>
+                  <span className="text-xs text-muted-foreground">{DEPARTMENT_LABELS[s.department]}</span>
+                </div>
+                <span className={`text-xs px-1.5 py-0.5 rounded font-mono ${STAFF_SHIFT_COLORS[s.shift] || "bg-muted text-muted-foreground"}`}>
+                  {STAFF_SHIFT_LABELS[s.shift] || s.shift}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
         {showFinancials && (
           <div className="cms-panel">
             <div className="cms-header">Top Players</div>
