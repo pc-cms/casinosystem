@@ -194,6 +194,7 @@ export const DailyReview = () => {
       {/* Money Breakdown from Cage */}
       {shiftClosing?.closing_count && (
         <MoneyBreakdown
+          openingFloat={shiftClosing.opening_float}
           closingCount={shiftClosing.closing_count}
           closingCash={shiftClosing.closing_cash}
           exchangeRates={(shiftClosing.exchange_rates || {}) as Record<string, number>}
