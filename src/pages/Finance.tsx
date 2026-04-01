@@ -5,6 +5,7 @@ import { DailyReview } from "@/components/finance/DailyReview";
 import { WalletsView } from "@/components/finance/WalletsView";
 import { FinanceExpenses } from "@/components/finance/FinanceExpenses";
 import { BudgetPlanning } from "@/components/finance/BudgetPlanning";
+import { CashCount } from "@/components/finance/CashCount";
 
 const Finance = () => {
   const [searchParams, setSearchParams] = useSearchParams();
