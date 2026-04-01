@@ -695,7 +695,7 @@ const ActivePlayers = () => {
                       {totalResult > 0 ? "+" : ""}{formatNumberSpaces(totalResult)}
                     </TableCell>
                     <TableCell />
-                  </TableRow>
+                    <TableCell />
                 )}
               </TableBody>
             </Table>
