@@ -37,6 +37,10 @@ export const WALLET_LABELS: Record<WalletType, string> = {
   license_reserve: "License Reserve",
   tax_reserve: "Tax Reserve",
   other_reserve: "Other Reserve",
+  cage_slot: "Cage Slot",
+  cage_table: "Cage Table",
+  mobile_money: "Mobile Money",
+  bank_account: "Bank Account",
 };
 
 export interface Wallet {
