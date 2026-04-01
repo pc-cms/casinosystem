@@ -5,7 +5,7 @@ import { toast } from "sonner";
 
 // Types matching DB enums
 export type WalletType = "main_cash" | "office_safe" | "rent_reserve" | "license_reserve" | "tax_reserve" | "other_reserve";
-export type WalletTxType = "transfer" | "allocate_reserve" | "use_reserve" | "manual_expense" | "daily_result" | "initial_balance" | "collection";
+export type WalletTxType = "transfer" | "allocate_reserve" | "use_reserve" | "manual_expense" | "daily_result" | "initial_balance" | "collection" | "adjustment" | "external_income";
 export type OfficeExpenseCategory =
   | "salary" | "bonus" | "fuel" | "transport" | "repairs" | "internet_it" | "security_expense" | "cleaning"
   | "rent" | "utilities" | "office"

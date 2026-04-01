@@ -39,6 +39,32 @@ export function useCashCountHistory(limit = 50) {
   });
 }
 
+export function useLatestCashCounts() {
+  const { casinoId } = useAuth() as any;
+  return useQuery({
+    queryKey: ["cash_count_latest", casinoId],
+    queryFn: async () => {
+      if (!casinoId) return [];
+      // Get all snapshots ordered by date, then pick latest per wallet_type
+      const { data, error } = await supabase
+        .from("cash_count_snapshots")
+        .select("*")
+        .eq("casino_id", casinoId)
+        .order("created_at", { ascending: false })
+        .limit(200);
+      if (error) throw error;
+      const latest = new Map<string, CashCountSnapshot>();
+      for (const snap of (data || []) as CashCountSnapshot[]) {
+        if (!latest.has(snap.wallet_type)) {
+          latest.set(snap.wallet_type, snap);
+        }
+      }
+      return Array.from(latest.values());
+    },
+    enabled: !!casinoId,
+  });
+}
+
 export function useCreateCashCount() {
   const { casinoId } = useAuth() as any;
   const qc = useQueryClient();
