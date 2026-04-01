@@ -6,7 +6,8 @@ import { formatNumberSpaces } from "@/lib/currency";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth-context";
-import { ArrowUpDown, ArrowUp, ArrowDown, LogIn, LogOut, Search, MapPin, Play, X, Plus, ChevronDown } from "lucide-react";
+import { ArrowUpDown, ArrowUp, ArrowDown, LogIn, LogOut, Search, MapPin, Play, X, Plus, ChevronDown, Pencil } from "lucide-react";
+import PlayerEditDialog from "@/components/PlayerEditDialog";
 import { Input } from "@/components/ui/input";
 import { NumberInput } from "@/components/ui/number-input";
 import {
@@ -43,6 +44,7 @@ const ActivePlayers = () => {
   const [placingPlayer, setPlacingPlayer] = useState<string | null>(null);
   const [placingTable, setPlacingTable] = useState<string | null>(null);
   const [placingBet, setPlacingBet] = useState("");
+  const [editPlayer, setEditPlayer] = useState<any>(null);
 
   const { data: allTags = [] } = useQuery({
     queryKey: ["player_tags", casinoId],
@@ -467,8 +469,9 @@ const ActivePlayers = () => {
                   <TableHead className="text-right cursor-pointer select-none hover:text-foreground" onClick={() => handleSort("result")}>
                     <span className="flex items-center justify-end">Result <SortIcon col="result" /></span>
                   </TableHead>
-                  <TableHead className="text-center w-[60px]">In/Out</TableHead>
-                </TableRow>
+                   <TableHead className="text-center w-[60px]">In/Out</TableHead>
+                   <TableHead className="w-[40px]" />
+                 </TableRow>
               </TableHeader>
               <TableBody>
                 {activePlayers.map(p => (
@@ -668,6 +671,18 @@ const ActivePlayers = () => {
                         </button>
                       )}
                     </TableCell>
+                    <TableCell className="text-center">
+                      <button
+                        onClick={() => {
+                          const pl = players.find(pl => pl.id === p.id);
+                          if (pl) setEditPlayer(pl);
+                        }}
+                        className="text-muted-foreground hover:text-primary transition-colors"
+                        title="Edit player"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+                    </TableCell>
                   </TableRow>
                 ))}
                 {/* Totals row */}
@@ -681,6 +696,7 @@ const ActivePlayers = () => {
                       {totalResult > 0 ? "+" : ""}{formatNumberSpaces(totalResult)}
                     </TableCell>
                     <TableCell />
+                    <TableCell />
                   </TableRow>
                 )}
               </TableBody>
@@ -688,6 +704,7 @@ const ActivePlayers = () => {
           </div>
         )}
       </div>
+      <PlayerEditDialog player={editPlayer} open={!!editPlayer} onOpenChange={(v) => { if (!v) setEditPlayer(null); }} />
     </div>
   );
 };
