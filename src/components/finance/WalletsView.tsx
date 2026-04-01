@@ -10,6 +10,7 @@ import { ArrowRightLeft, PiggyBank, Wallet, ArrowUpFromLine, ArrowDownToLine } f
 import { WalletSetup } from "./WalletSetup";
 
 const MAIN_WALLETS: WalletType[] = ["main_cash", "office_safe"];
+const OPERATIONAL_WALLETS: WalletType[] = ["cage_slot", "cage_table", "mobile_money", "bank_account"];
 const RESERVE_WALLETS: WalletType[] = ["rent_reserve", "license_reserve", "tax_reserve", "other_reserve"];
 
 export const WalletsView = () => {
