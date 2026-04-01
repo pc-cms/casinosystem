@@ -1,11 +1,15 @@
 import { useMemo } from "react";
-import { Users, Landmark, Receipt, TrendingDown } from "lucide-react";
+import { Users, Landmark, Receipt, TrendingDown, AlertTriangle, Clock } from "lucide-react";
 import { usePlayers, useTransactions, useGamingTables, useExpenses, useClientSessionsTotalBet, useTableTracker, usePlayerEconomy } from "@/hooks/use-casino-data";
 import { useAuth } from "@/lib/auth-context";
 import { Link } from "react-router-dom";
 import { formatCurrency } from "@/lib/currency";
 import { canSeePlayerFinancials } from "@/lib/role-access";
 import { getBusinessDate } from "@/lib/business-day";
+import { useStaffMembers, useStaffRotaRange, DEPARTMENT_LABELS, STAFF_SHIFT_LABELS, STAFF_SHIFT_COLORS } from "@/hooks/use-staff";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { format, formatDistanceToNow } from "date-fns";
 
 const StatCard = ({ label, value, icon: Icon, href }: {
   label: string; value: string | number; icon: any; href: string;
