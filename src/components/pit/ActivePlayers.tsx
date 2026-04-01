@@ -343,6 +343,7 @@ const ActivePlayers = () => {
                 </button>
               ))}
             </div>
+            <CategoryFilter selected={categoryFilter} onChange={setCategoryFilter} />
             <div className="relative max-w-[200px] w-full">
               <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <Input
