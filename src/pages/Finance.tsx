@@ -1,10 +1,10 @@
-import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSearchParams } from "react-router-dom";
 import { FinanceDashboard } from "@/components/finance/FinanceDashboard";
 import { DailyReview } from "@/components/finance/DailyReview";
 import { WalletsView } from "@/components/finance/WalletsView";
 import { FinanceExpenses } from "@/components/finance/FinanceExpenses";
+import { BudgetPlanning } from "@/components/finance/BudgetPlanning";
 
 const Finance = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -26,11 +26,13 @@ const Finance = () => {
           <TabsTrigger value="review">Daily Review</TabsTrigger>
           <TabsTrigger value="wallets">Wallets</TabsTrigger>
           <TabsTrigger value="expenses">Expenses</TabsTrigger>
+          <TabsTrigger value="budget">Budget</TabsTrigger>
         </TabsList>
         <TabsContent value="dashboard"><FinanceDashboard /></TabsContent>
         <TabsContent value="review"><DailyReview /></TabsContent>
         <TabsContent value="wallets"><WalletsView /></TabsContent>
         <TabsContent value="expenses"><FinanceExpenses /></TabsContent>
+        <TabsContent value="budget"><BudgetPlanning /></TabsContent>
       </Tabs>
     </div>
   );

@@ -1,13 +1,17 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useWallets, useWalletTransactions, useDailySummaries, WALLET_LABELS, WalletType } from "@/hooks/use-finance";
 import { formatNumberSpaces } from "@/lib/currency";
-import { Wallet, TrendingUp, Building2, ShieldCheck } from "lucide-react";
+import { Wallet, TrendingUp, Building2, ShieldCheck, Target } from "lucide-react";
 import { WalletSetup } from "./WalletSetup";
+import { useBudgetPeriod, useBudgetItems } from "@/hooks/use-budget";
 
 export const FinanceDashboard = () => {
   const { data: wallets = [], isLoading } = useWallets();
   const { data: summaries = [] } = useDailySummaries();
   const { data: transactions = [] } = useWalletTransactions(30);
+  const budgetMonth = new Date().toISOString().slice(0, 7);
+  const { data: budgetPeriod } = useBudgetPeriod(budgetMonth);
+  const { data: budgetItems = [] } = useBudgetItems(budgetPeriod?.id);
 
   if (isLoading) {
     return <div className="flex justify-center py-12"><div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>;
@@ -68,6 +72,48 @@ export const FinanceDashboard = () => {
           </CardContent>
         </Card>
       )}
+
+      {/* Budget overview */}
+      {budgetItems.length > 0 && (() => {
+        const budgetPlanned = budgetItems.reduce((s, i) => s + Number(i.monthly_amount), 0);
+        const budgetActual = budgetItems.reduce((s, i) => s + Number(i.actual_amount), 0);
+        const budgetVariance = budgetActual - budgetPlanned;
+        const budgetPct = budgetPlanned > 0 ? Math.round((budgetActual / budgetPlanned) * 100) : 0;
+        return (
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+                <Target className="w-3.5 h-3.5" /> Budget Overview
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-4 gap-4 text-center">
+                <div>
+                  <p className="text-xs text-muted-foreground">Planned</p>
+                  <p className="text-lg font-bold font-mono">{formatNumberSpaces(budgetPlanned)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Actual</p>
+                  <p className="text-lg font-bold font-mono">{formatNumberSpaces(budgetActual)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Variance</p>
+                  <p className={`text-lg font-bold font-mono ${budgetVariance > 0 ? "text-destructive" : "text-green-500"}`}>
+                    {formatNumberSpaces(budgetVariance)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Completion</p>
+                  <p className="text-lg font-bold font-mono">{budgetPct}%</p>
+                  <div className="w-full h-1.5 bg-muted rounded-full mt-1 overflow-hidden">
+                    <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${Math.min(100, budgetPct)}%` }} />
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })()}
 
       {/* Wallet balances */}
       <Card>
