@@ -39,7 +39,9 @@ const queryClient = new QueryClient({
 // Role-based route access map
 const ROUTE_ROLES: Record<string, string[]> = {
   "/": ["manager", "pit", "reception", "finance_manager", "security"],
-  "/players": ["manager", "cashier", "reception", "finance_manager", "security"],
+  "/players": ["manager", "cashier", "finance_manager", "security"],
+  "/in-casino": ["manager", "reception", "pit", "finance_manager", "security"],
+  "/blacklist": ["manager", "reception", "finance_manager", "security"],
   "/reception": ["manager", "reception", "finance_manager"],
   "/cage": ["manager", "cashier", "finance_manager"],
   "/tables": ["manager", "cashier", "pit", "finance_manager", "security"],
