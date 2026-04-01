@@ -327,11 +327,19 @@ const PlayerConfirmCard = ({
           )}
         </div>
         <div className="flex-1">
-          <h2 className="text-xl font-bold text-foreground">
-            {player.first_name} {player.last_name}
-          </h2>
+          <div className="flex items-center gap-2">
+            <CategoryBadge category={((player as any).category as PlayerCategory) || "guest"} size="md" />
+            <h2 className="text-xl font-bold text-foreground">
+              {player.first_name} {player.last_name}
+            </h2>
+          </div>
           {player.nickname && (
             <p className="text-sm text-muted-foreground">"{player.nickname}"</p>
+          )}
+          {player.player_tags?.length > 0 && !isBlacklisted && (
+            <div className="mt-1">
+              <FlagBadges tags={player.player_tags.map((t: any) => t.tag)} />
+            </div>
           )}
           <div className="flex items-center gap-2 mt-1">
             {isBlacklisted ? (
