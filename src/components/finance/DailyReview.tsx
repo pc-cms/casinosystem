@@ -27,6 +27,7 @@ export const DailyReview = () => {
   const { data: cageExpenses = 0 } = useCageExpensesForDate(selectedDate);
   const upsert = useUpsertDailySummary();
   const createTx = useCreateWalletTransaction();
+  const { data: shiftClosing } = useShiftClosingForDate(selectedDate);
 
   const existing = summaries.find(s => s.date === selectedDate);
   const slotsValue = existing ? existing.slots_result : parseSpacedNumber(slotsInput);
