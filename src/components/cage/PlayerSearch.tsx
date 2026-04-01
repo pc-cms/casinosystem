@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { Input } from "@/components/ui/input";
+import { Pencil } from "lucide-react";
+import PlayerEditDialog from "@/components/PlayerEditDialog";
 
 interface Player {
   id: string;
@@ -7,6 +9,8 @@ interface Player {
   last_name: string;
   nickname: string;
   status?: string;
+  photo_url?: string | null;
+  id_number?: string;
   player_cards?: { card_number: string }[];
 }
 
