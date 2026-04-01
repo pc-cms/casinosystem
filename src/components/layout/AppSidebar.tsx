@@ -216,15 +216,31 @@ export const AppSidebar = () => {
 
         <div className="px-3 py-3 border-t border-sidebar-border space-y-1">
           <div className="px-3 py-1">
-            <p className="text-xs font-medium text-sidebar-foreground truncate">{displayName}</p>
-            <div className="flex gap-1 mt-0.5 flex-wrap">
-              {roles.map(r => (
-                <span key={r} className="text-[9px] font-mono px-1 py-0.5 rounded bg-sidebar-accent text-sidebar-accent-foreground">{r}</span>
-              ))}
-              {managerOverride.active && !nativeManager && (
-                <span className="text-[9px] font-mono px-1 py-0.5 rounded bg-primary/20 text-primary font-bold">manager ↑</span>
-              )}
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs font-medium text-sidebar-foreground truncate">{displayName}</p>
+              <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded shrink-0 ${
+                roles.includes("manager") ? "bg-primary/20 text-primary" :
+                roles.includes("finance_manager") ? "bg-emerald-500/20 text-emerald-400" :
+                roles.includes("pit") ? "bg-sky-500/20 text-sky-400" :
+                roles.includes("cashier") ? "bg-amber-500/20 text-amber-400" :
+                roles.includes("reception") ? "bg-violet-500/20 text-violet-400" :
+                roles.includes("security") ? "bg-rose-500/20 text-rose-400" :
+                "bg-sidebar-accent text-sidebar-accent-foreground"
+              }`}>
+                {(() => {
+                  const priority: AppRole[] = ["manager", "finance_manager", "pit", "cashier", "reception", "security"];
+                  const primary = priority.find(r => roles.includes(r)) || roles[0] || "user";
+                  const labels: Record<string, string> = {
+                    manager: "Manager", finance_manager: "Finance", pit: "Pit",
+                    cashier: "Cashier", reception: "Reception", security: "Security",
+                  };
+                  return labels[primary] || primary.charAt(0).toUpperCase() + primary.slice(1);
+                })()}
+              </span>
             </div>
+            {managerOverride.active && !nativeManager && (
+              <span className="text-[9px] font-mono px-1 py-0.5 rounded bg-primary/20 text-primary font-bold mt-1 inline-block">Manager ↑</span>
+            )}
           </div>
           <button onClick={toggle}
             className="flex items-center gap-2 w-full px-3 py-1.5 rounded-md text-xs text-sidebar-foreground hover:bg-sidebar-accent transition-colors">
