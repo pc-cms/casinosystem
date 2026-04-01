@@ -20,6 +20,7 @@ import Groups from "@/pages/Groups";
 import Reports from "@/pages/Reports";
 import Admin from "@/pages/Admin";
 import Staff from "@/pages/Staff";
+import Finance from "@/pages/Finance";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
