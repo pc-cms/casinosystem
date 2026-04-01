@@ -2028,6 +2028,10 @@ export type Database = {
         | "license_reserve"
         | "tax_reserve"
         | "other_reserve"
+        | "cage_slot"
+        | "cage_table"
+        | "mobile_money"
+        | "bank_account"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2244,6 +2248,10 @@ export const Constants = {
         "license_reserve",
         "tax_reserve",
         "other_reserve",
+        "cage_slot",
+        "cage_table",
+        "mobile_money",
+        "bank_account",
       ],
     },
   },
