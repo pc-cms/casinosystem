@@ -40,10 +40,11 @@ const ActivePlayers = () => {
   const addTag = useAddPlayerTag();
   const removeTag = useRemovePlayerTag();
 
-  const [sortKey, setSortKey] = useState<SortKey>("dropR");
+  const [sortKey, setSortKey] = useState<SortKey>("category");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<Set<string>>(new Set(["slots", "table", "mix"]));
+  const [categoryFilter, setCategoryFilter] = useState<Set<PlayerCategory>>(new Set(["diamond", "platinum", "gold", "guest"]));
   const [placingPlayer, setPlacingPlayer] = useState<string | null>(null);
   const [placingTable, setPlacingTable] = useState<string | null>(null);
   const [placingBet, setPlacingBet] = useState("");
