@@ -17,28 +17,27 @@ import { toast } from "sonner";
 type AppRole = "cashier" | "pit" | "manager" | "reception" | "finance_manager" | "security";
 
 // Logical grouping: Operations → Analytics → Admin
-const NAV_ITEMS: { to: string; icon: typeof LayoutDashboard; label: string; shortcut: string; roles: AppRole[] }[] = [
+const NAV_ITEMS: { to: string; icon: typeof LayoutDashboard; label: string; shortcut: string; roles: AppRole[]; section: string }[] = [
   // — Overview —
-  { to: "/", icon: LayoutDashboard, label: "Dashboard", shortcut: "D", roles: ["manager", "pit", "reception", "finance_manager", "security"] },
-  { to: "/pit?tab=breaklist", icon: ListChecks, label: "Breaklist", shortcut: "B", roles: ["manager", "pit", "finance_manager"] },
+  { to: "/", icon: LayoutDashboard, label: "Dashboard", shortcut: "D", roles: ["manager", "pit", "reception", "finance_manager", "security"], section: "OVERVIEW" },
   // — Operations (alphabetical) —
-  { to: "/cage", icon: Landmark, label: "Cage", shortcut: "C", roles: ["manager", "cashier", "finance_manager"] },
-  { to: "/expenses", icon: Receipt, label: "Expenses", shortcut: "E", roles: ["manager", "cashier", "finance_manager"] },
-  { to: "/groups", icon: UsersRound, label: "Groups", shortcut: "G", roles: ["manager", "finance_manager"] },
-  { to: "/blacklist", icon: ShieldAlert, label: "Blacklist", shortcut: "K", roles: ["manager", "reception", "finance_manager", "security"] },
-  { to: "/guests", icon: Users, label: "Guests", shortcut: "I", roles: ["manager", "reception", "pit", "finance_manager", "security"] },
-  { to: "/players", icon: Users, label: "Players", shortcut: "P", roles: ["manager", "cashier", "finance_manager", "security"] },
-  { to: "/reception", icon: DoorOpen, label: "Reception", shortcut: "N", roles: ["manager", "reception", "finance_manager"] },
-  { to: "/tables", icon: Table2, label: "Tables", shortcut: "T", roles: ["manager", "cashier", "pit", "finance_manager", "security"] },
-  // — Finance —
-  { to: "/finance", icon: Wallet, label: "Finance", shortcut: "W", roles: ["manager", "finance_manager"] },
-  // — HR / Staff (alphabetical) —
-  { to: "/staff", icon: Building2, label: "Floor", shortcut: "F", roles: ["manager", "pit", "finance_manager"] },
-  { to: "/pit", icon: Gamepad2, label: "Live Game", shortcut: "L", roles: ["manager", "pit", "finance_manager"] },
+  { to: "/blacklist", icon: ShieldAlert, label: "Blacklist", shortcut: "B", roles: ["manager", "reception", "finance_manager", "security"], section: "OPERATIONS" },
+  { to: "/pit?tab=breaklist", icon: ListChecks, label: "Breaklist", shortcut: "K", roles: ["manager", "pit", "finance_manager"], section: "OPERATIONS" },
+  { to: "/cage", icon: Landmark, label: "Cage", shortcut: "C", roles: ["manager", "cashier", "finance_manager"], section: "OPERATIONS" },
+  { to: "/expenses", icon: Receipt, label: "Expenses", shortcut: "E", roles: ["manager", "cashier", "finance_manager"], section: "OPERATIONS" },
+  { to: "/finance", icon: Wallet, label: "Finance", shortcut: "F", roles: ["manager", "finance_manager"], section: "OPERATIONS" },
+  { to: "/groups", icon: UsersRound, label: "Groups", shortcut: "G", roles: ["manager", "finance_manager"], section: "OPERATIONS" },
+  { to: "/guests", icon: Users, label: "Guests", shortcut: "U", roles: ["manager", "reception", "pit", "finance_manager", "security"], section: "OPERATIONS" },
+  { to: "/pit", icon: Gamepad2, label: "Live Game", shortcut: "L", roles: ["manager", "pit", "finance_manager"], section: "OPERATIONS" },
+  { to: "/players", icon: Users, label: "Players", shortcut: "P", roles: ["manager", "cashier", "finance_manager", "security"], section: "OPERATIONS" },
+  { to: "/reception", icon: DoorOpen, label: "Reception", shortcut: "R", roles: ["manager", "reception", "finance_manager"], section: "OPERATIONS" },
+  { to: "/tables", icon: Table2, label: "Tables", shortcut: "T", roles: ["manager", "cashier", "pit", "finance_manager", "security"], section: "OPERATIONS" },
+  // — HR / Staff —
+  { to: "/staff", icon: Building2, label: "Floor Staff", shortcut: "W", roles: ["manager", "pit", "finance_manager"], section: "HR" },
   // — Analytics (alphabetical) —
-  { to: "/logs", icon: ClipboardList, label: "Logs", shortcut: "O", roles: ["manager", "finance_manager", "security"] },
-  { to: "/reports", icon: FileBarChart, label: "Reports", shortcut: "R", roles: ["manager", "finance_manager", "security"] },
-  { to: "/stats", icon: BarChart3, label: "Stats", shortcut: "S", roles: ["manager", "finance_manager", "security"] },
+  { to: "/logs", icon: ClipboardList, label: "Logs", shortcut: "O", roles: ["manager", "finance_manager", "security"], section: "ANALYTICS" },
+  { to: "/reports", icon: FileBarChart, label: "Reports", shortcut: "I", roles: ["manager", "finance_manager", "security"], section: "ANALYTICS" },
+  { to: "/stats", icon: BarChart3, label: "Stats", shortcut: "S", roles: ["manager", "finance_manager", "security"], section: "ANALYTICS" },
 ];
 
 const TABLE_SUBITEMS = [
