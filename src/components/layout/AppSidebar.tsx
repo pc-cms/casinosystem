@@ -79,8 +79,6 @@ export const AppSidebar = () => {
     roles.some(r => item.roles.includes(r as AppRole))
   );
 
-  // Track which sections appear to show labels at first item of each section
-  let lastSection = "";
 
   const nativeManager = roles.includes("manager" as AppRole);
 
