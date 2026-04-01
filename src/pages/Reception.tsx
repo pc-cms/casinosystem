@@ -15,6 +15,8 @@ import {
   User, Ban, CheckCircle2, XCircle, CreditCard, AlertTriangle,
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
+import CategoryBadge, { type PlayerCategory } from "@/components/player/CategoryBadge";
+import FlagBadges from "@/components/player/FlagBadges";
 
 // ============ HOOKS ============
 
