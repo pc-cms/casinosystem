@@ -1,5 +1,8 @@
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerFooter, DrawerClose,
+} from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,6 +16,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import CategoryBadge, { ALL_CATEGORIES, type PlayerCategory } from "@/components/player/CategoryBadge";
 import FlagBadges from "@/components/player/FlagBadges";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface PlayerEditDialogProps {
   player: {
@@ -41,6 +45,7 @@ const NOTE_TYPE_COLORS: Record<string, string> = {
 };
 
 const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps) => {
+  const isMobile = useIsMobile();
   const { user, roles, isManager } = useAuth();
   const queryClient = useQueryClient();
   const [firstName, setFirstName] = useState("");
@@ -78,7 +83,6 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
     }
   }, [player, open]);
 
-  // Fetch notes (only for authorized roles)
   const { data: notes = [], refetch: refetchNotes } = useQuery({
     queryKey: ["player_notes", player?.id],
     queryFn: async () => {
@@ -94,7 +98,6 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
     enabled: !!player && open && canSeeNotes,
   });
 
-  // Fetch tags
   const { data: playerTags = [] } = useQuery({
     queryKey: ["player_tags_dialog", player?.id],
     queryFn: async () => {
@@ -218,172 +221,198 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
   const hasId = idNumber || player?.id_number;
   const incomplete = player && (!hasPhoto || !hasDoc || !hasId);
 
+  const formContent = player ? (
+    <div className="space-y-4 px-1">
+      {/* Flags */}
+      {playerTags.length > 0 && (
+        <div><FlagBadges tags={playerTags} /></div>
+      )}
+
+      {/* Photo & ID Document */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1.5">
+          <Label className="text-xs text-muted-foreground">Profile Photo</Label>
+          <div className="w-full aspect-square rounded-lg bg-muted flex items-center justify-center overflow-hidden border border-border">
+            {(photoUrl || player.photo_url) ? (
+              <img src={photoUrl || player.photo_url!} className="w-full h-full object-cover" alt="" />
+            ) : (
+              <User className="w-8 h-8 text-muted-foreground" />
+            )}
+          </div>
+          <Label htmlFor="photo-upload-m" className="cursor-pointer w-full">
+            <Button variant="outline" size="sm" className="gap-1 text-xs w-full h-9" asChild disabled={uploading}>
+              <span><Camera className="w-3.5 h-3.5" /> {uploading ? "…" : "Photo"}</span>
+            </Button>
+          </Label>
+          <input id="photo-upload-m" type="file" accept="image/*" capture="environment" className="hidden" onChange={handlePhotoUpload} />
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-xs text-muted-foreground">ID / Passport</Label>
+          <div className="w-full aspect-square rounded-lg bg-muted flex items-center justify-center overflow-hidden border border-border">
+            {(docUrl || player.id_document_url) ? (
+              <img src={docUrl || player.id_document_url!} className="w-full h-full object-cover" alt="" />
+            ) : (
+              <FileImage className="w-8 h-8 text-muted-foreground" />
+            )}
+          </div>
+          <Label htmlFor="doc-upload-m" className="cursor-pointer w-full">
+            <Button variant="outline" size="sm" className="gap-1 text-xs w-full h-9" asChild disabled={uploadingDoc}>
+              <span><FileImage className="w-3.5 h-3.5" /> {uploadingDoc ? "…" : "ID Doc"}</span>
+            </Button>
+          </Label>
+          <input id="doc-upload-m" type="file" accept="image/*" capture="environment" className="hidden" onChange={handleDocUpload} />
+        </div>
+      </div>
+
+      {/* Name fields */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1">
+          <Label className="text-xs">First Name</Label>
+          <Input value={firstName} onChange={e => setFirstName(e.target.value)} className="h-10" />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">Last Name</Label>
+          <Input value={lastName} onChange={e => setLastName(e.target.value)} className="h-10" />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1">
+          <Label className="text-xs">Nickname</Label>
+          <Input value={nickname} onChange={e => setNickname(e.target.value)} className="h-10" />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">Phone</Label>
+          <Input value={phone} onChange={e => setPhone(e.target.value)} className="h-10" type="tel" />
+        </div>
+      </div>
+
+      <div className={`grid gap-3 ${isMobile ? "grid-cols-1" : "grid-cols-3"}`}>
+        <div className="space-y-1">
+          <Label className="text-xs">ID / Passport</Label>
+          <Input value={idNumber} onChange={e => setIdNumber(e.target.value)} className="h-10 font-mono" placeholder="Enter ID" />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">Player Type</Label>
+          <Select value={playerType} onValueChange={setPlayerType}>
+            <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="table">Table</SelectItem>
+              <SelectItem value="slots">Slots</SelectItem>
+              <SelectItem value="mix">Mix</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs flex items-center gap-1">
+            Category
+            {!canEditCategory && <Shield className="w-3 h-3 text-muted-foreground" />}
+          </Label>
+          <Select value={category} onValueChange={v => setCategory(v as PlayerCategory)} disabled={!canEditCategory}>
+            <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {ALL_CATEGORIES.map(cat => (
+                <SelectItem key={cat} value={cat} className="capitalize">{cat.charAt(0).toUpperCase() + cat.slice(1)}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {/* Notes */}
+      {canSeeNotes && (
+        <div className="space-y-2">
+          <div className="flex items-center gap-1">
+            <StickyNote className="w-3 h-3 text-muted-foreground" />
+            <Label className="text-xs text-muted-foreground">Intelligence Notes ({notes.length})</Label>
+          </div>
+          <div className="flex gap-2">
+            <Select value={noteType} onValueChange={setNoteType}>
+              <SelectTrigger className="h-10 w-[100px] text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {NOTE_TYPES.map(t => (
+                  <SelectItem key={t} value={t} className="capitalize text-xs">{t}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Textarea
+              value={newNote}
+              onChange={e => setNewNote(e.target.value)}
+              placeholder="Add note..."
+              className="text-xs min-h-[44px] resize-none flex-1"
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              className="shrink-0 self-end h-10 w-10 p-0"
+              onClick={handleAddNote}
+              disabled={!newNote.trim() || addingNote}
+            >
+              <Send className="w-3.5 h-3.5" />
+            </Button>
+          </div>
+          {notes.length > 0 && (
+            <div className="space-y-1 max-h-40 overflow-y-auto">
+              {notes.map((note: any) => (
+                <div key={note.id} className={`text-xs p-2 rounded bg-muted/50 border border-border border-l-2 ${NOTE_TYPE_COLORS[note.note_type] || NOTE_TYPE_COLORS.info}`}>
+                  <div className="flex items-center gap-1.5 mb-0.5">
+                    <span className="text-[9px] font-mono uppercase text-muted-foreground">{note.note_type || "info"}</span>
+                  </div>
+                  <p className="text-card-foreground">{note.content}</p>
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    {getAuthorName(note.created_by)} · {format(new Date(note.created_at), "dd MMM HH:mm")}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  ) : null;
+
+  const titleContent = (
+    <span className="flex items-center gap-2">
+      Edit Player
+      {player && <CategoryBadge category={(player.category as PlayerCategory) || "guest"} size="md" />}
+      {incomplete && <AlertTriangle className="w-4 h-4 text-yellow-500" />}
+    </span>
+  );
+
+  const footerContent = (
+    <>
+      <Button variant="outline" size="sm" onClick={() => onOpenChange(false)} className="flex-1 sm:flex-none h-10">Cancel</Button>
+      <Button size="sm" onClick={handleSave} disabled={saving} className="flex-1 sm:flex-none h-10">{saving ? "Saving…" : "Save"}</Button>
+    </>
+  );
+
+  if (isMobile) {
+    return (
+      <Drawer open={open} onOpenChange={onOpenChange}>
+        <DrawerContent className="max-h-[92vh]">
+          <DrawerHeader>
+            <DrawerTitle>{titleContent}</DrawerTitle>
+          </DrawerHeader>
+          <div className="overflow-y-auto flex-1 px-4 pb-2">
+            {formContent}
+          </div>
+          <DrawerFooter className="flex-row gap-2">
+            {footerContent}
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
+    );
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            Edit Player
-            {player && <CategoryBadge category={(player.category as PlayerCategory) || "guest"} size="md" />}
-            {incomplete && <AlertTriangle className="w-4 h-4 text-yellow-500" />}
-          </DialogTitle>
+          <DialogTitle>{titleContent}</DialogTitle>
         </DialogHeader>
-
-        {player && (
-          <div className="space-y-5">
-            {/* Flags */}
-            {playerTags.length > 0 && (
-              <div>
-                <FlagBadges tags={playerTags} />
-              </div>
-            )}
-
-            {/* Photo & ID Document side by side */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">Profile Photo</Label>
-                <div className="w-full aspect-square rounded-lg bg-muted flex items-center justify-center overflow-hidden border border-border">
-                  {(photoUrl || player.photo_url) ? (
-                    <img src={photoUrl || player.photo_url!} className="w-full h-full object-cover" alt="" />
-                  ) : (
-                    <User className="w-10 h-10 text-muted-foreground" />
-                  )}
-                </div>
-                <Label htmlFor="photo-upload" className="cursor-pointer w-full">
-                  <Button variant="outline" size="sm" className="gap-1 text-xs w-full" asChild disabled={uploading}>
-                    <span><Camera className="w-3 h-3" /> {uploading ? "Uploading…" : "Upload Photo"}</span>
-                  </Button>
-                </Label>
-                <input id="photo-upload" type="file" accept="image/*" capture="environment" className="hidden" onChange={handlePhotoUpload} />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">ID / Passport Scan</Label>
-                <div className="w-full aspect-square rounded-lg bg-muted flex items-center justify-center overflow-hidden border border-border">
-                  {(docUrl || player.id_document_url) ? (
-                    <img src={docUrl || player.id_document_url!} className="w-full h-full object-cover" alt="" />
-                  ) : (
-                    <FileImage className="w-10 h-10 text-muted-foreground" />
-                  )}
-                </div>
-                <Label htmlFor="doc-upload" className="cursor-pointer w-full">
-                  <Button variant="outline" size="sm" className="gap-1 text-xs w-full" asChild disabled={uploadingDoc}>
-                    <span><FileImage className="w-3 h-3" /> {uploadingDoc ? "Uploading…" : "Upload ID Doc"}</span>
-                  </Button>
-                </Label>
-                <input id="doc-upload" type="file" accept="image/*" capture="environment" className="hidden" onChange={handleDocUpload} />
-              </div>
-            </div>
-
-            {/* Name fields */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label className="text-xs">First Name</Label>
-                <Input value={firstName} onChange={e => setFirstName(e.target.value)} className="h-9" />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Last Name</Label>
-                <Input value={lastName} onChange={e => setLastName(e.target.value)} className="h-9" />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label className="text-xs">Nickname</Label>
-                <Input value={nickname} onChange={e => setNickname(e.target.value)} className="h-9" />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Phone</Label>
-                <Input value={phone} onChange={e => setPhone(e.target.value)} className="h-9" />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-3 gap-3">
-              <div className="space-y-1">
-                <Label className="text-xs">ID / Passport</Label>
-                <Input value={idNumber} onChange={e => setIdNumber(e.target.value)} className="h-9 font-mono" placeholder="Enter ID" />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Player Type</Label>
-                <Select value={playerType} onValueChange={setPlayerType}>
-                  <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="table">Table</SelectItem>
-                    <SelectItem value="slots">Slots</SelectItem>
-                    <SelectItem value="mix">Mix</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs flex items-center gap-1">
-                  Category
-                  {!canEditCategory && <Shield className="w-3 h-3 text-muted-foreground" />}
-                </Label>
-                <Select value={category} onValueChange={v => setCategory(v as PlayerCategory)} disabled={!canEditCategory}>
-                  <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {ALL_CATEGORIES.map(cat => (
-                      <SelectItem key={cat} value={cat} className="capitalize">{cat.charAt(0).toUpperCase() + cat.slice(1)}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {/* Notes — only for Pit, Security, Manager */}
-            {canSeeNotes && (
-              <div className="space-y-2">
-                <div className="flex items-center gap-1">
-                  <StickyNote className="w-3 h-3 text-muted-foreground" />
-                  <Label className="text-xs text-muted-foreground">Intelligence Notes ({notes.length})</Label>
-                </div>
-                <div className="flex gap-2">
-                  <Select value={noteType} onValueChange={setNoteType}>
-                    <SelectTrigger className="h-9 w-[110px] text-xs"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {NOTE_TYPES.map(t => (
-                        <SelectItem key={t} value={t} className="capitalize text-xs">{t}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Textarea
-                    value={newNote}
-                    onChange={e => setNewNote(e.target.value)}
-                    placeholder="Add intelligence note..."
-                    className="text-xs min-h-[50px] resize-none flex-1"
-                  />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="shrink-0 self-end h-8"
-                    onClick={handleAddNote}
-                    disabled={!newNote.trim() || addingNote}
-                  >
-                    <Send className="w-3 h-3" />
-                  </Button>
-                </div>
-                {notes.length > 0 && (
-                  <div className="space-y-1 max-h-40 overflow-y-auto">
-                    {notes.map((note: any) => (
-                      <div key={note.id} className={`text-xs p-2 rounded bg-muted/50 border border-border border-l-2 ${NOTE_TYPE_COLORS[note.note_type] || NOTE_TYPE_COLORS.info}`}>
-                        <div className="flex items-center gap-1.5 mb-0.5">
-                          <span className="text-[9px] font-mono uppercase text-muted-foreground">{note.note_type || "info"}</span>
-                        </div>
-                        <p className="text-card-foreground">{note.content}</p>
-                        <p className="text-[10px] text-muted-foreground mt-1">
-                          {getAuthorName(note.created_by)} · {format(new Date(note.created_at), "dd MMM HH:mm")}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-
+        {formContent}
         <DialogFooter>
-          <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button size="sm" onClick={handleSave} disabled={saving}>{saving ? "Saving…" : "Save"}</Button>
+          {footerContent}
         </DialogFooter>
       </DialogContent>
     </Dialog>
