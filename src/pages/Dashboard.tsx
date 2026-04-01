@@ -164,7 +164,7 @@ const Dashboard = () => {
             </div>
           </Link>
         )}
-        <StatCard label="Active Players" value={playersInCasino.length} icon={Users} href="/in-casino" />
+        <StatCard label="Guests" value={playersInCasino.length} icon={Users} href="/guests" />
         {showFinancials && (
           isManager ? (
             <StatCard label="Pending Expenses" value={pendingExpenses} icon={Receipt} href="/expenses" />
