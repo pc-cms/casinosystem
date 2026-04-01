@@ -1,14 +1,19 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useWallets, useWalletTransactions, useDailySummaries, WALLET_LABELS } from "@/hooks/use-finance";
+import { useWallets, useWalletTransactions, useDailySummaries, WALLET_LABELS, WalletType } from "@/hooks/use-finance";
 import { formatNumberSpaces, DEFAULT_EXCHANGE_RATES } from "@/lib/currency";
-import { Wallet, TrendingUp, Building2, ShieldCheck, Target, DollarSign, AlertTriangle } from "lucide-react";
+import { Wallet, TrendingUp, Building2, ShieldCheck, Target, DollarSign, AlertTriangle, Scale } from "lucide-react";
 import { WalletSetup } from "./WalletSetup";
 import { useBudgetPeriod, useBudgetItems, useMonthlyActuals } from "@/hooks/use-budget";
+import { useLatestCashCounts } from "@/hooks/use-cash-count";
+
+const MAIN_WALLETS: WalletType[] = ["main_cash", "office_safe"];
+const RESERVE_WALLETS: WalletType[] = ["rent_reserve", "license_reserve", "tax_reserve", "other_reserve"];
 
 export const FinanceDashboard = () => {
   const { data: wallets = [], isLoading } = useWallets();
   const { data: summaries = [] } = useDailySummaries();
   const { data: transactions = [] } = useWalletTransactions(30);
+  const { data: latestCounts = [] } = useLatestCashCounts();
   const budgetMonth = new Date().toISOString().slice(0, 7);
   const { data: budgetPeriod } = useBudgetPeriod(budgetMonth);
   const { data: budgetItems = [] } = useBudgetItems(budgetPeriod?.id);
@@ -38,13 +43,13 @@ export const FinanceDashboard = () => {
   const monthlyExpenses = monthSummaries.reduce((s, d) => s + Number(d.total_expenses), 0);
   const monthlyNet = monthlyIncome - monthlyExpenses;
 
-  // Budget calculations with live actuals
+  // Budget calculations
   const budgetPlanned = budgetItems.reduce((s, i) => s + Number(i.monthly_amount), 0);
   const budgetActual = Object.values(monthlyActuals).reduce((s: number, v) => s + Number(v), 0);
   const budgetVariance = budgetActual - budgetPlanned;
   const budgetPct = budgetPlanned > 0 ? Math.round((budgetActual / budgetPlanned) * 100) : 0;
 
-  // Break-even analysis
+  // Break-even
   const breakEvenDiff = monthlyIncome - budgetPlanned;
   const breakEvenMet = breakEvenDiff >= 0;
 
@@ -57,6 +62,36 @@ export const FinanceDashboard = () => {
   const totalCollections = monthTxs
     .filter(tx => tx.tx_type === "collection")
     .reduce((s, tx) => s + Number(tx.amount), 0);
+
+  // === GLOBAL RECONCILIATION ===
+  // Expected = sum of main wallets (not reserves)
+  const expectedMainCash = MAIN_WALLETS.reduce((s, wt) => {
+    const w = wallets.find(w => w.wallet_type === wt);
+    return s + Number(w?.current_balance || 0);
+  }, 0);
+
+  // Physical = latest cash count snapshots for main wallets
+  const physicalMainCash = MAIN_WALLETS.reduce((s, wt) => {
+    const snap = latestCounts.find(c => c.wallet_type === wt);
+    return s + (snap ? Number(snap.physical_total_tzs) : 0);
+  }, 0);
+
+  const hasMainCounts = latestCounts.some(c => MAIN_WALLETS.includes(c.wallet_type as WalletType));
+  const mainDiscrepancy = expectedMainCash - physicalMainCash;
+
+  // Reserve reconciliation
+  const reserveReconciliation = RESERVE_WALLETS.map(wt => {
+    const w = wallets.find(w => w.wallet_type === wt);
+    const expected = Number(w?.current_balance || 0);
+    const snap = latestCounts.find(c => c.wallet_type === wt);
+    const physical = snap ? Number(snap.physical_total_tzs) : 0;
+    const hasCashCount = !!snap;
+    // Required = sum of budget items that map to this reserve
+    const budgetRequired = budgetItems
+      .filter(i => i.logic_type === "reserve")
+      .reduce((s, i) => s + Number(i.monthly_amount), 0);
+    return { wallet_type: wt, expected, physical, hasCashCount, discrepancy: expected - physical, budgetRequired };
+  }).filter(r => r.expected !== 0 || r.hasCashCount);
 
   return (
     <div className="space-y-6 mt-4">
@@ -75,6 +110,21 @@ export const FinanceDashboard = () => {
         </Card>
       )}
 
+      {/* Global Reconciliation Alert */}
+      {hasMainCounts && mainDiscrepancy !== 0 && (
+        <Card className="border-destructive bg-destructive/5">
+          <CardContent className="p-4 flex items-center gap-3">
+            <Scale className="w-5 h-5 text-destructive shrink-0" />
+            <div>
+              <p className="text-sm font-semibold text-destructive">Cash mismatch detected</p>
+              <p className="text-xs text-destructive/80">
+                Expected: {formatNumberSpaces(expectedMainCash)} TZS · Physical: {formatNumberSpaces(physicalMainCash)} TZS · Difference: {formatNumberSpaces(mainDiscrepancy)} TZS
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Top metrics */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <MetricCard icon={Wallet} label="Total Balance" value={totalBalance} sub={`≈ $${totalBalanceUsd.toLocaleString()} USD`} />
@@ -83,11 +133,90 @@ export const FinanceDashboard = () => {
         <MetricCard icon={TrendingUp} label="Monthly Net" value={monthlyNet} colored />
       </div>
 
+      {/* Global Reconciliation Card */}
+      {hasMainCounts && (
+        <Card className={mainDiscrepancy === 0 ? "border-emerald-500/30" : "border-destructive/30"}>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+              <Scale className="w-3.5 h-3.5" /> Global Cash Reconciliation
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-3 gap-4 text-center">
+              <div>
+                <p className="text-xs text-muted-foreground">Expected (Ledger)</p>
+                <p className="text-lg font-bold font-mono">{formatNumberSpaces(expectedMainCash)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Physical (Cash Count)</p>
+                <p className="text-lg font-bold font-mono">{formatNumberSpaces(physicalMainCash)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Discrepancy</p>
+                <p className={`text-lg font-bold font-mono ${mainDiscrepancy === 0 ? "text-emerald-500" : "text-destructive"}`}>
+                  {mainDiscrepancy > 0 ? "+" : ""}{formatNumberSpaces(mainDiscrepancy)}
+                </p>
+              </div>
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-2 text-center">
+              Based on latest cash count per wallet. Perform a new cash count to update.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Reserve Reconciliation */}
+      {reserveReconciliation.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+              <ShieldCheck className="w-3.5 h-3.5" /> Reserve Control
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {reserveReconciliation.map(r => {
+                const underfunded = r.expected < r.budgetRequired && r.budgetRequired > 0;
+                return (
+                  <div key={r.wallet_type} className={`p-2 rounded-lg border ${
+                    underfunded ? "border-amber-500/30 bg-amber-500/5" : "border-border bg-muted/30"
+                  }`}>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-medium">{WALLET_LABELS[r.wallet_type as WalletType]}</span>
+                      {underfunded && (
+                        <span className="text-[10px] text-amber-600 font-medium">Reserve underfunded</span>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 mt-1 text-xs">
+                      <div>
+                        <span className="text-muted-foreground">Ledger</span>
+                        <p className="font-mono font-semibold">{formatNumberSpaces(r.expected)}</p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Required</span>
+                        <p className="font-mono font-semibold">{formatNumberSpaces(r.budgetRequired)}</p>
+                      </div>
+                      {r.hasCashCount && (
+                        <div>
+                          <span className="text-muted-foreground">Physical</span>
+                          <p className={`font-mono font-semibold ${r.discrepancy !== 0 ? "text-destructive" : ""}`}>
+                            {formatNumberSpaces(r.physical)}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Break-even + Budget */}
       {budgetPlanned > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {/* Break-even card */}
-          <Card className={breakEvenMet ? "border-green-500/30" : "border-destructive/30"}>
+          <Card className={breakEvenMet ? "border-emerald-500/30" : "border-destructive/30"}>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-1">
                 <Target className="w-3.5 h-3.5" /> Break-even Analysis
@@ -104,10 +233,10 @@ export const FinanceDashboard = () => {
                   <span className="font-mono font-medium">{formatNumberSpaces(budgetPlanned)}</span>
                 </div>
                 <div className="border-t border-border pt-2 flex justify-between text-sm font-bold">
-                  <span className={breakEvenMet ? "text-green-500" : "text-destructive"}>
+                  <span className={breakEvenMet ? "text-emerald-500" : "text-destructive"}>
                     {breakEvenMet ? "✓ Above break-even" : "✗ Below break-even"}
                   </span>
-                  <span className={`font-mono ${breakEvenMet ? "text-green-500" : "text-destructive"}`}>
+                  <span className={`font-mono ${breakEvenMet ? "text-emerald-500" : "text-destructive"}`}>
                     {formatNumberSpaces(breakEvenDiff)}
                   </span>
                 </div>
@@ -115,7 +244,6 @@ export const FinanceDashboard = () => {
             </CardContent>
           </Card>
 
-          {/* Budget overview */}
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-1">
@@ -134,7 +262,7 @@ export const FinanceDashboard = () => {
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Variance</p>
-                  <p className={`text-lg font-bold font-mono ${budgetVariance > 0 ? "text-destructive" : "text-green-500"}`}>
+                  <p className={`text-lg font-bold font-mono ${budgetVariance > 0 ? "text-destructive" : "text-emerald-500"}`}>
                     {formatNumberSpaces(budgetVariance)}
                   </p>
                 </div>
@@ -231,12 +359,12 @@ export const FinanceDashboard = () => {
               {transactions.slice(0, 15).map(tx => (
                 <div key={tx.id} className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-muted/50 text-sm">
                   <div>
-                    <span className={`font-medium capitalize ${tx.tx_type === "collection" ? "text-destructive" : ""}`}>
+                    <span className={`font-medium capitalize ${tx.tx_type === "collection" ? "text-destructive" : tx.tx_type === "external_income" ? "text-emerald-500" : tx.tx_type === "adjustment" ? "text-amber-500" : ""}`}>
                       {tx.tx_type.replace(/_/g, " ")}
                     </span>
                     {tx.description && <span className="text-muted-foreground ml-2">— {tx.description}</span>}
                   </div>
-                  <span className={`font-mono font-medium ${tx.tx_type === "collection" ? "text-destructive" : ""}`}>
+                  <span className={`font-mono font-medium ${tx.tx_type === "collection" ? "text-destructive" : tx.tx_type === "external_income" ? "text-emerald-500" : ""}`}>
                     {tx.tx_type === "collection" ? "-" : ""}{formatNumberSpaces(tx.amount)}
                   </span>
                 </div>
@@ -256,7 +384,7 @@ const MetricCard = ({ icon: Icon, label, value, sub, colored }: { icon: any; lab
         <Icon className="w-4 h-4 text-muted-foreground" />
         <span className="text-xs text-muted-foreground">{label}</span>
       </div>
-      <p className={`text-xl font-bold font-mono ${colored ? (value >= 0 ? "text-green-500" : "text-destructive") : ""}`}>
+      <p className={`text-xl font-bold font-mono ${colored ? (value >= 0 ? "text-emerald-500" : "text-destructive") : ""}`}>
         {formatNumberSpaces(value)}
       </p>
       {sub && <p className="text-[10px] text-muted-foreground mt-0.5">{sub}</p>}
