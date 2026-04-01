@@ -7,6 +7,7 @@ import { useBudgetPeriod, useBudgetItems, useMonthlyActuals } from "@/hooks/use-
 import { useLatestCashCounts } from "@/hooks/use-cash-count";
 
 const MAIN_WALLETS: WalletType[] = ["main_cash", "office_safe"];
+const OPERATIONAL_WALLETS: WalletType[] = ["cage_slot", "cage_table", "mobile_money", "bank_account"];
 const RESERVE_WALLETS: WalletType[] = ["rent_reserve", "license_reserve", "tax_reserve", "other_reserve"];
 
 export const FinanceDashboard = () => {
