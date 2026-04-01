@@ -254,16 +254,16 @@ export function useTablesResultForDate(date: string) {
     queryKey: ["tables_result_date", casinoId, date],
     queryFn: async () => {
       if (!casinoId) return 0;
-      // Sum closing_result from all tables that were closed on this date
+      // Get shifts that were opened on this business day and have a result
       const { data, error } = await supabase
-        .from("gaming_tables")
-        .select("closing_result")
+        .from("shifts")
+        .select("shift_result")
         .eq("casino_id", casinoId)
-        .not("closing_result", "is", null);
+        .gte("opened_at", `${date}T00:00:00`)
+        .lt("opened_at", `${date}T23:59:59.999`)
+        .not("shift_result", "is", null);
       if (error) throw error;
-      // We need to check by shift dates - for now sum all closing results
-      // In a real scenario, this would filter by the business day
-      return (data || []).reduce((sum, t) => sum + (Number(t.closing_result) || 0), 0);
+      return (data || []).reduce((sum, s) => sum + (Number(s.shift_result) || 0), 0);
     },
     enabled: !!casinoId && !!date,
   });
@@ -276,13 +276,17 @@ export function useCageExpensesForDate(date: string) {
     queryKey: ["cage_expenses_date", casinoId, date],
     queryFn: async () => {
       if (!casinoId) return 0;
+      // Calculate next day for proper boundary
+      const nextDay = new Date(date);
+      nextDay.setDate(nextDay.getDate() + 1);
+      const nextDayStr = nextDay.toISOString().slice(0, 10);
       const { data, error } = await supabase
         .from("expenses")
         .select("amount")
         .eq("casino_id", casinoId)
         .eq("approved", true)
         .gte("created_at", `${date}T00:00:00`)
-        .lt("created_at", `${date}T23:59:59`);
+        .lt("created_at", `${nextDayStr}T00:00:00`);
       if (error) throw error;
       return (data || []).reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
     },

@@ -283,8 +283,9 @@ export function useMonthlyActuals(month: string) {
       if (!casinoId || !month) return {};
       const startDate = `${month}-01`;
       const [y, m] = month.split("-").map(Number);
-      const lastDay = new Date(y, m, 0).getDate();
-      const endDate = `${month}-${String(lastDay).padStart(2, "0")}`;
+      // First day of next month for proper boundary
+      const nextMonth = new Date(y, m, 1);
+      const nextMonthStr = nextMonth.toISOString().slice(0, 10);
 
       const { data, error } = await supabase
         .from("wallet_transactions")
@@ -292,7 +293,7 @@ export function useMonthlyActuals(month: string) {
         .eq("casino_id", casinoId)
         .in("tx_type", ["manual_expense", "use_reserve"])
         .gte("created_at", `${startDate}T00:00:00`)
-        .lte("created_at", `${endDate}T23:59:59`);
+        .lt("created_at", `${nextMonthStr}T00:00:00`);
       if (error) throw error;
 
       const actuals: Record<string, number> = {};

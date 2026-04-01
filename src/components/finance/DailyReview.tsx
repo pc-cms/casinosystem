@@ -23,6 +23,13 @@ export const DailyReview = () => {
   const slotsValue = existing ? existing.slots_result : parseSpacedNumber(slotsInput);
   const totalResult = tablesResult + slotsValue;
 
+  // Reset inputs when date changes
+  const handleDateChange = (newDate: string) => {
+    setSelectedDate(newDate);
+    setSlotsInput("");
+    setComment("");
+  };
+
   const handleConfirm = () => {
     upsert.mutate({
       date: selectedDate,
@@ -45,8 +52,8 @@ export const DailyReview = () => {
     });
   };
 
-  const prevDay = () => setSelectedDate(format(subDays(new Date(selectedDate), 1), "yyyy-MM-dd"));
-  const nextDay = () => setSelectedDate(format(addDays(new Date(selectedDate), 1), "yyyy-MM-dd"));
+  const prevDay = () => handleDateChange(format(subDays(new Date(selectedDate), 1), "yyyy-MM-dd"));
+  const nextDay = () => handleDateChange(format(addDays(new Date(selectedDate), 1), "yyyy-MM-dd"));
 
   return (
     <div className="space-y-4 mt-4">
@@ -58,7 +65,7 @@ export const DailyReview = () => {
           <Input
             type="date"
             value={selectedDate}
-            onChange={e => setSelectedDate(e.target.value)}
+            onChange={e => handleDateChange(e.target.value)}
             className="border-0 bg-transparent p-0 h-auto text-sm font-mono w-32"
           />
         </div>
@@ -135,7 +142,7 @@ export const DailyReview = () => {
             {summaries.slice(0, 14).map(s => (
               <button
                 key={s.id}
-                onClick={() => setSelectedDate(s.date)}
+                onClick={() => handleDateChange(s.date)}
                 className={`w-full flex items-center justify-between py-2 px-3 rounded-md text-sm transition-colors ${
                   s.date === selectedDate ? "bg-primary/10 text-primary" : "hover:bg-muted/50"
                 }`}
