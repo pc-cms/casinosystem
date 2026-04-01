@@ -331,6 +331,7 @@ const ScheduleSettings = () => {
   const [shiftStart, setShiftStart] = useState("");
   const [shiftEnd, setShiftEnd] = useState("");
   const [breaklistLock, setBreaklistLock] = useState("");
+  const [cageFloat, setCageFloat] = useState("");
   const [loaded, setLoaded] = useState(false);
 
   // Initialize from DB once
@@ -339,6 +340,7 @@ const ScheduleSettings = () => {
     setShiftStart(casino.shift_start || "18:00");
     setShiftEnd(casino.shift_end || "05:00");
     setBreaklistLock(casino.breaklist_lock || "05:30");
+    setCageFloat(String(casino.cage_float || 0));
     setLoaded(true);
   }
 
