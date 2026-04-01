@@ -8,13 +8,11 @@ import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
 import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
 import {
-  Search, UserPlus, LogIn, LogOut, ShieldAlert, Camera, Clock,
-  User, Ban, CheckCircle2, XCircle, Grid3X3, CreditCard,
+  Search, UserPlus, LogIn, LogOut, ShieldAlert, Camera,
+  User, Ban, CheckCircle2, XCircle, CreditCard, AlertTriangle,
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 
@@ -58,6 +56,15 @@ const useVisitsToday = () => {
   });
 };
 
+/** Check if a player profile is incomplete (missing photo, full name, or ID) */
+const isProfileIncomplete = (player: any): string[] => {
+  const missing: string[] = [];
+  if (!player.photo_url) missing.push("photo");
+  if (!player.first_name || !player.last_name) missing.push("name");
+  if (!player.id_number) missing.push("ID document");
+  return missing;
+};
+
 const Reception = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const tab = searchParams.get("tab") || "checkin";
@@ -76,25 +83,17 @@ const Reception = () => {
           <TabsTrigger value="checkin" className="gap-1.5">
             <LogIn className="w-3.5 h-3.5" /> Check-in
           </TabsTrigger>
-          <TabsTrigger value="active" className="gap-1.5">
-            <Clock className="w-3.5 h-3.5" /> Active
-          </TabsTrigger>
           <TabsTrigger value="register" className="gap-1.5">
             <UserPlus className="w-3.5 h-3.5" /> Register
           </TabsTrigger>
-          <TabsTrigger value="blacklist" className="gap-1.5">
-            <ShieldAlert className="w-3.5 h-3.5" /> Blacklist
-          </TabsTrigger>
-          <TabsTrigger value="catalog" className="gap-1.5">
-            <Grid3X3 className="w-3.5 h-3.5" /> CCTV
+          <TabsTrigger value="update" className="gap-1.5">
+            <AlertTriangle className="w-3.5 h-3.5" /> Update Data
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="checkin"><CheckInTab /></TabsContent>
-        <TabsContent value="active"><ActivePlayersTab /></TabsContent>
         <TabsContent value="register"><RegisterTab /></TabsContent>
-        <TabsContent value="blacklist"><BlacklistTab /></TabsContent>
-        <TabsContent value="catalog"><CCTVCatalog /></TabsContent>
+        <TabsContent value="update"><UpdateDataTab /></TabsContent>
       </Tabs>
     </div>
   );
@@ -108,6 +107,7 @@ const CheckInTab = () => {
   const queryClient = useQueryClient();
   const [query, setQuery] = useState("");
   const [selectedPlayer, setSelectedPlayer] = useState<any | null>(null);
+  const [incompleteWarning, setIncompleteWarning] = useState<string[] | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const today = format(new Date(), "yyyy-MM-dd");
 
@@ -130,12 +130,16 @@ const CheckInTab = () => {
     ).slice(0, 20);
   }, [query, players]);
 
+  const handleSelectPlayer = (player: any) => {
+    setSelectedPlayer(player);
+    const missing = isProfileIncomplete(player);
+    setIncompleteWarning(missing.length > 0 ? missing : null);
+  };
+
   const checkIn = useMutation({
     mutationFn: async (playerId: string) => {
       if (!casinoId || !user) throw new Error("Not authenticated");
-      // Check not already in
       if (activePlayers.has(playerId)) throw new Error("Player already checked in");
-      // Check not blacklisted
       const player = players.find(p => p.id === playerId);
       if (player?.status === "blacklist") throw new Error("BLACKLISTED — entry denied");
 
@@ -152,8 +156,9 @@ const CheckInTab = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["casino_visits"] });
       setSelectedPlayer(null);
+      setIncompleteWarning(null);
       setQuery("");
-      toast.success("Player checked in");
+      toast.success("Player checked in → In Hall");
     },
     onError: (e) => toast.error(e.message),
   });
@@ -174,6 +179,7 @@ const CheckInTab = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["casino_visits"] });
       setSelectedPlayer(null);
+      setIncompleteWarning(null);
       toast.success("Player checked out");
     },
     onError: (e) => toast.error(e.message),
@@ -181,29 +187,28 @@ const CheckInTab = () => {
 
   return (
     <div className="space-y-4">
-      {/* Search */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
         <Input
           ref={searchRef}
           value={query}
-          onChange={e => { setQuery(e.target.value); setSelectedPlayer(null); }}
+          onChange={e => { setQuery(e.target.value); setSelectedPlayer(null); setIncompleteWarning(null); }}
           placeholder="Search player or scan RFID..."
           className="pl-10 font-mono text-lg h-12"
           autoFocus
         />
       </div>
 
-      {/* Search results */}
       {query && filtered.length > 0 && !selectedPlayer && (
         <div className="cms-panel divide-y divide-border max-h-[400px] overflow-y-auto">
           {filtered.map(p => {
             const isIn = activePlayers.has(p.id);
             const isBlacklisted = p.status === "blacklist";
+            const incomplete = isProfileIncomplete(p);
             return (
               <button
                 key={p.id}
-                onClick={() => setSelectedPlayer(p)}
+                onClick={() => handleSelectPlayer(p)}
                 className="flex items-center gap-3 w-full px-4 py-3 text-left hover:bg-muted/50 transition-colors"
               >
                 <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center shrink-0 overflow-hidden">
@@ -222,10 +227,13 @@ const CheckInTab = () => {
                     {p.player_cards?.[0]?.card_number || "No card"}
                   </p>
                 </div>
+                {incomplete.length > 0 && (
+                  <AlertTriangle className="w-4 h-4 text-yellow-500 shrink-0" />
+                )}
                 {isBlacklisted ? (
                   <Badge variant="destructive" className="shrink-0">BLACKLISTED</Badge>
                 ) : isIn ? (
-              <Badge className="bg-primary/15 text-primary border-primary/30 shrink-0">IN</Badge>
+                  <Badge className="bg-primary/15 text-primary border-primary/30 shrink-0">IN</Badge>
                 ) : null}
               </button>
             );
@@ -240,16 +248,29 @@ const CheckInTab = () => {
         </div>
       )}
 
-      {/* Selected player confirmation */}
       {selectedPlayer && (
-        <PlayerConfirmCard
-          player={selectedPlayer}
-          isCheckedIn={activePlayers.has(selectedPlayer.id)}
-          onCheckIn={() => checkIn.mutate(selectedPlayer.id)}
-          onCheckOut={() => checkOut.mutate(selectedPlayer.id)}
-          onCancel={() => setSelectedPlayer(null)}
-          isPending={checkIn.isPending || checkOut.isPending}
-        />
+        <>
+          {/* Incomplete profile warning */}
+          {incompleteWarning && incompleteWarning.length > 0 && (
+            <div className="rounded-lg bg-yellow-500/10 border border-yellow-500/30 p-3 flex items-start gap-2">
+              <AlertTriangle className="w-4 h-4 text-yellow-500 mt-0.5 shrink-0" />
+              <div>
+                <p className="text-sm font-medium text-yellow-500">Update data required</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Missing: {incompleteWarning.join(", ")}. Player can still enter — please update after check-in.
+                </p>
+              </div>
+            </div>
+          )}
+          <PlayerConfirmCard
+            player={selectedPlayer}
+            isCheckedIn={activePlayers.has(selectedPlayer.id)}
+            onCheckIn={() => checkIn.mutate(selectedPlayer.id)}
+            onCheckOut={() => checkOut.mutate(selectedPlayer.id)}
+            onCancel={() => { setSelectedPlayer(null); setIncompleteWarning(null); }}
+            isPending={checkIn.isPending || checkOut.isPending}
+          />
+        </>
       )}
     </div>
   );
@@ -330,87 +351,6 @@ const PlayerConfirmCard = ({
   );
 };
 
-// ============ ACTIVE PLAYERS TAB ============
-const ActivePlayersTab = () => {
-  const { data: visits = [] } = useVisitsToday();
-  const { casinoId, user } = useAuth();
-  const queryClient = useQueryClient();
-  const today = format(new Date(), "yyyy-MM-dd");
-
-  const activeVisits = useMemo(
-    () => visits.filter(v => !v.checked_out_at),
-    [visits]
-  );
-
-  const checkOut = useMutation({
-    mutationFn: async (playerId: string) => {
-      if (!casinoId) throw new Error("No casino");
-      const { error } = await supabase
-        .from("casino_visits")
-        .update({ checked_out_at: new Date().toISOString() })
-        .eq("casino_id", casinoId)
-        .eq("player_id", playerId)
-        .eq("date", today)
-        .is("checked_out_at", null);
-      if (error) throw error;
-      await logAction(casinoId, "player", "PLAYER_CHECKED_OUT", { player_id: playerId });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["casino_visits"] });
-      toast.success("Player checked out");
-    },
-  });
-
-  return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">{activeVisits.length} players currently in casino</p>
-      </div>
-
-      {activeVisits.length === 0 ? (
-        <div className="cms-panel p-8 text-center text-muted-foreground">No players currently in casino</div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-          {activeVisits.map(visit => {
-            const p = visit.players as any;
-            if (!p) return null;
-            return (
-              <div key={visit.id} className="cms-panel p-3 space-y-2">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center overflow-hidden shrink-0">
-                    {p.photo_url ? (
-                      <img src={p.photo_url} className="w-full h-full object-cover" alt="" />
-                    ) : (
-                      <User className="w-6 h-6 text-muted-foreground" />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate">
-                      {p.first_name} {p.last_name}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground">
-                      In since {format(new Date(visit.checked_in_at), "HH:mm")} · {formatDistanceToNow(new Date(visit.checked_in_at), { addSuffix: false })}
-                    </p>
-                  </div>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full gap-1 text-xs"
-                  onClick={() => checkOut.mutate(visit.player_id)}
-                  disabled={checkOut.isPending}
-                >
-                  <LogOut className="w-3 h-3" /> Check Out
-                </Button>
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-};
-
 // ============ REGISTER TAB ============
 const RegisterTab = () => {
   const { casinoId, user } = useAuth();
@@ -426,7 +366,6 @@ const RegisterTab = () => {
     if (!form.first_name || !form.last_name || !casinoId || !user) return;
     setSubmitting(true);
     try {
-      // Create player
       const { data: player, error } = await supabase
         .from("players")
         .insert({
@@ -441,7 +380,6 @@ const RegisterTab = () => {
         .single();
       if (error) throw error;
 
-      // Upload photo
       if (photoFile) {
         const ext = photoFile.name.split(".").pop();
         const path = `${casinoId}/${player.id}/photo.${ext}`;
@@ -456,14 +394,12 @@ const RegisterTab = () => {
         }
       }
 
-      // Upload document scans
       for (const doc of docFiles) {
         const ext = doc.name.split(".").pop();
         const path = `${casinoId}/${player.id}/docs/${Date.now()}.${ext}`;
         await supabase.storage.from("player-documents").upload(path, doc);
       }
 
-      // Generate card
       const { data: cardNum } = await supabase.rpc("generate_card_number" as any);
       await supabase.from("player_cards").insert({
         player_id: player.id,
@@ -527,6 +463,7 @@ const RegisterTab = () => {
           <Input
             type="file"
             accept="image/*"
+            capture="environment"
             onChange={e => setPhotoFile(e.target.files?.[0] || null)}
             className="text-xs"
           />
@@ -540,6 +477,7 @@ const RegisterTab = () => {
           <Input
             type="file"
             accept="image/*"
+            capture="environment"
             multiple
             onChange={e => setDocFiles(Array.from(e.target.files || []))}
             className="text-xs"
@@ -557,124 +495,52 @@ const RegisterTab = () => {
   );
 };
 
-// ============ BLACKLIST TAB ============
-const BlacklistTab = () => {
+// ============ UPDATE DATA TAB ============
+const UpdateDataTab = () => {
   const { data: players = [] } = usePlayers();
-  const { isManager } = useAuth();
-  const queryClient = useQueryClient();
-  const [pendingAction, setPendingAction] = useState<{ player: any; action: "blacklist" | "reactivate" } | null>(null);
 
-  const blacklisted = useMemo(
-    () => players.filter(p => p.status === "blacklist"),
+  const incomplete = useMemo(
+    () => players.filter(p => isProfileIncomplete(p).length > 0).map(p => ({
+      ...p,
+      missing: isProfileIncomplete(p),
+    })),
     [players]
   );
-
-  const updateStatus = useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: "active" | "blacklist" }) => {
-      const { error } = await supabase.from("players").update({ status }).eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["players"] });
-      toast.success("Player status updated");
-    },
-    onError: (e) => toast.error(e.message),
-  });
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-muted-foreground">{blacklisted.length} blacklisted players</p>
+      <p className="text-sm text-muted-foreground">
+        {incomplete.length} players with incomplete profiles
+      </p>
 
-      {blacklisted.length === 0 ? (
-        <div className="cms-panel p-8 text-center text-muted-foreground">No blacklisted players</div>
+      {incomplete.length === 0 ? (
+        <div className="cms-panel p-8 text-center text-muted-foreground">All player profiles are complete</div>
       ) : (
         <div className="cms-panel divide-y divide-border">
-          {blacklisted.map(p => (
+          {incomplete.map(p => (
             <div key={p.id} className="flex items-center gap-3 px-4 py-3">
-              <div className="w-10 h-10 rounded-full bg-destructive/10 flex items-center justify-center overflow-hidden shrink-0">
+              <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center overflow-hidden shrink-0">
                 {p.photo_url ? (
                   <img src={p.photo_url} className="w-full h-full object-cover" alt="" />
                 ) : (
-                  <Ban className="w-5 h-5 text-destructive" />
+                  <User className="w-5 h-5 text-muted-foreground" />
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground">{p.first_name} {p.last_name}</p>
-                <p className="text-xs text-muted-foreground">{p.nickname || "—"}</p>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-xs shrink-0"
-                onClick={() => setPendingAction({ player: p, action: "reactivate" })}
-              >
-                Reactivate
-              </Button>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Manager override for blacklist changes */}
-      <ManagerOverrideDialog
-        open={!!pendingAction}
-        onClose={() => setPendingAction(null)}
-        onConfirm={() => {
-          if (pendingAction) {
-            updateStatus.mutate({
-              id: pendingAction.player.id,
-              status: pendingAction.action === "blacklist" ? "blacklist" : "active",
-            });
-          }
-          setPendingAction(null);
-        }}
-        title={pendingAction?.action === "blacklist" ? "Blacklist Player" : "Reactivate Player"}
-        description="Manager authentication required to change blacklist status."
-        actionType="CHANGE_PLAYER_STATUS"
-        actionDetails={{
-          player_id: pendingAction?.player?.id,
-          player_name: pendingAction ? `${pendingAction.player.first_name} ${pendingAction.player.last_name}` : "",
-          new_status: pendingAction?.action === "blacklist" ? "blacklist" : "active",
-        }}
-      />
-    </div>
-  );
-};
-
-// ============ CCTV CATALOG ============
-const CCTVCatalog = () => {
-  const { data: players = [] } = usePlayers();
-
-  const blacklisted = useMemo(
-    () => players.filter(p => p.status === "blacklist"),
-    [players]
-  );
-
-  return (
-    <div className="space-y-3">
-      <p className="text-sm text-muted-foreground">
-        Visual blacklist identification · {blacklisted.length} entries
-      </p>
-
-      {blacklisted.length === 0 ? (
-        <div className="cms-panel p-8 text-center text-muted-foreground">No blacklisted players</div>
-      ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
-          {blacklisted.map(p => (
-            <div key={p.id} className="cms-panel overflow-hidden">
-              <div className="aspect-square bg-muted flex items-center justify-center overflow-hidden">
-                {p.photo_url ? (
-                  <img src={p.photo_url} className="w-full h-full object-cover" alt="" />
-                ) : (
-                  <User className="w-12 h-12 text-muted-foreground" />
-                )}
-              </div>
-              <div className="p-2 text-center">
                 <p className="text-sm font-medium text-foreground truncate">
                   {p.first_name} {p.last_name}
                 </p>
-                <Badge variant="destructive" className="text-[9px] mt-1">BLACKLISTED</Badge>
+                <div className="flex gap-1 mt-0.5 flex-wrap">
+                  {p.missing.map(m => (
+                    <Badge key={m} variant="outline" className="text-[9px] border-yellow-500/30 text-yellow-500 gap-0.5">
+                      <AlertTriangle className="w-2.5 h-2.5" /> {m}
+                    </Badge>
+                  ))}
+                </div>
               </div>
+              <p className="text-xs text-muted-foreground font-mono shrink-0">
+                {p.player_cards?.[0]?.card_number || "—"}
+              </p>
             </div>
           ))}
         </div>
