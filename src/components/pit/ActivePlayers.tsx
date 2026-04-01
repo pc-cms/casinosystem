@@ -471,6 +471,7 @@ const ActivePlayers = () => {
                   </TableHead>
                    <TableHead className="text-center w-[60px]">In/Out</TableHead>
                    <TableHead className="w-[40px]" />
+                 </TableRow>
               </TableHeader>
               <TableBody>
                 {activePlayers.map(p => (
