@@ -73,6 +73,48 @@ export const FinanceDashboard = () => {
         </Card>
       )}
 
+      {/* Budget overview */}
+      {budgetItems.length > 0 && (() => {
+        const budgetPlanned = budgetItems.reduce((s, i) => s + Number(i.monthly_amount), 0);
+        const budgetActual = budgetItems.reduce((s, i) => s + Number(i.actual_amount), 0);
+        const budgetVariance = budgetActual - budgetPlanned;
+        const budgetPct = budgetPlanned > 0 ? Math.round((budgetActual / budgetPlanned) * 100) : 0;
+        return (
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+                <Target className="w-3.5 h-3.5" /> Budget Overview
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-4 gap-4 text-center">
+                <div>
+                  <p className="text-xs text-muted-foreground">Planned</p>
+                  <p className="text-lg font-bold font-mono">{formatNumberSpaces(budgetPlanned)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Actual</p>
+                  <p className="text-lg font-bold font-mono">{formatNumberSpaces(budgetActual)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Variance</p>
+                  <p className={`text-lg font-bold font-mono ${budgetVariance > 0 ? "text-destructive" : "text-green-500"}`}>
+                    {formatNumberSpaces(budgetVariance)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Completion</p>
+                  <p className="text-lg font-bold font-mono">{budgetPct}%</p>
+                  <div className="w-full h-1.5 bg-muted rounded-full mt-1 overflow-hidden">
+                    <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${Math.min(100, budgetPct)}%` }} />
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })()}
+
       {/* Wallet balances */}
       <Card>
         <CardHeader className="pb-2">
