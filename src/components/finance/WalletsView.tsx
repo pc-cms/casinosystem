@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useWallets, useCreateWalletTransaction, WALLET_LABELS, WalletType } from "@/hooks/use-finance";
 import { formatNumberSpaces, formatInputWithSpaces, parseSpacedNumber } from "@/lib/currency";
-import { ArrowRightLeft, PiggyBank, Wallet } from "lucide-react";
+import { ArrowRightLeft, PiggyBank, Wallet, ArrowUpFromLine } from "lucide-react";
 import { WalletSetup } from "./WalletSetup";
 
 const MAIN_WALLETS: WalletType[] = ["main_cash", "office_safe"];
@@ -57,10 +57,11 @@ export const WalletsView = () => {
       </Card>
 
       {/* Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <TransferDialog />
         <AllocateReserveDialog />
         <UseReserveDialog />
+        <CollectionDialog />
       </div>
     </div>
   );
@@ -139,7 +140,7 @@ const AllocateReserveDialog = () => {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="gap-2 h-auto py-3"><PiggyBank className="w-4 h-4" /> Allocate Reserve</Button>
+        <Button variant="outline" className="gap-2 h-auto py-3"><PiggyBank className="w-4 h-4" /> Allocate</Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader><DialogTitle>Allocate to Reserve</DialogTitle></DialogHeader>
@@ -207,6 +208,68 @@ const UseReserveDialog = () => {
             <Input value={desc} onChange={e => setDesc(e.target.value)} placeholder="What for?" />
           </div>
           <Button onClick={handleSubmit} disabled={create.isPending || !parseSpacedNumber(amount)} className="w-full">Spend</Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+const CollectionDialog = () => {
+  const [open, setOpen] = useState(false);
+  const [from, setFrom] = useState<WalletType>("main_cash");
+  const [amount, setAmount] = useState("");
+  const [desc, setDesc] = useState("");
+  const create = useCreateWalletTransaction();
+
+  const handleSubmit = () => {
+    create.mutate({
+      tx_type: "collection" as any,
+      from_wallet: from,
+      amount: parseSpacedNumber(amount),
+      description: desc || "Owner collection",
+    }, {
+      onSuccess: () => { setOpen(false); setAmount(""); setDesc(""); },
+    });
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" className="gap-2 h-auto py-3 border-destructive/30 text-destructive hover:bg-destructive/10">
+          <ArrowUpFromLine className="w-4 h-4" /> Collection
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader><DialogTitle>Owner Collection (Withdrawal)</DialogTitle></DialogHeader>
+        <div className="space-y-3">
+          <div>
+            <label className="text-xs text-muted-foreground">From Wallet</label>
+            <Select value={from} onValueChange={v => setFrom(v as WalletType)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {MAIN_WALLETS.map(w => <SelectItem key={w} value={w}>{WALLET_LABELS[w]}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground">Amount</label>
+            <Input className="font-mono" value={amount} onChange={e => setAmount(formatInputWithSpaces(e.target.value))} placeholder="0" />
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground">Description</label>
+            <Input value={desc} onChange={e => setDesc(e.target.value)} placeholder="Collection note" />
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Collection is NOT an expense. It reduces cash balance but is not tracked against budget.
+          </p>
+          <Button
+            onClick={handleSubmit}
+            disabled={create.isPending || !parseSpacedNumber(amount)}
+            className="w-full"
+            variant="destructive"
+          >
+            Withdraw
+          </Button>
         </div>
       </DialogContent>
     </Dialog>

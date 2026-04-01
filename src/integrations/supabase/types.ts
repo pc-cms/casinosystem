@@ -1959,6 +1959,7 @@ export type Database = {
         | "manual_expense"
         | "daily_result"
         | "initial_balance"
+        | "collection"
       wallet_type:
         | "main_cash"
         | "office_safe"
@@ -2171,6 +2172,7 @@ export const Constants = {
         "manual_expense",
         "daily_result",
         "initial_balance",
+        "collection",
       ],
       wallet_type: [
         "main_cash",
