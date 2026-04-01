@@ -670,6 +670,18 @@ const ActivePlayers = () => {
                         </button>
                       )}
                     </TableCell>
+                    <TableCell className="text-center">
+                      <button
+                        onClick={() => {
+                          const pl = players.find(pl => pl.id === p.id);
+                          if (pl) setEditPlayer(pl);
+                        }}
+                        className="text-muted-foreground hover:text-primary transition-colors"
+                        title="Edit player"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+                    </TableCell>
                   </TableRow>
                 ))}
                 {/* Totals row */}
