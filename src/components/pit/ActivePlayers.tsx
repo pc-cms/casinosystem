@@ -491,6 +491,9 @@ const ActivePlayers = () => {
               <TableBody>
                 {activePlayers.map(p => (
                   <TableRow key={p.id}>
+                    <TableCell className="text-center">
+                      <CategoryBadge category={p.category} />
+                    </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         {p.isCheckedIn && <span className="w-1.5 h-1.5 rounded-full bg-green-500 shrink-0" />}
