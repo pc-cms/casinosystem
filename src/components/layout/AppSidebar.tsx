@@ -153,8 +153,8 @@ export const AppSidebar = () => {
 
         <nav className="flex-1 py-2 px-2 overflow-y-auto">
           {visibleItems.map((item, idx) => {
-            const showLabel = item.section !== lastSection;
-            if (showLabel) lastSection = item.section;
+            const prevSection = idx > 0 ? visibleItems[idx - 1].section : "";
+            const showLabel = item.section !== prevSection;
             return (
               <div key={item.to}>
                 {showLabel && (
