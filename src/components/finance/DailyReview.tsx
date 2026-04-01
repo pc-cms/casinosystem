@@ -6,9 +6,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import {
   useDailySummaries, useUpsertDailySummary, useTablesResultForDate,
-  useCageExpensesForDate, useCreateWalletTransaction,
+  useCageExpensesForDate, useCreateWalletTransaction, useShiftClosingForDate,
 } from "@/hooks/use-finance";
 import { useAuth } from "@/lib/auth-context";
+import { MoneyBreakdown } from "@/components/finance/daily-review/MoneyBreakdown";
 import { formatNumberSpaces, formatInputWithSpaces, parseSpacedNumber } from "@/lib/currency";
 import { Check, ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
 import { format, subDays, addDays } from "date-fns";
