@@ -10,6 +10,9 @@ import { ArrowUpDown, ArrowUp, ArrowDown, LogIn, LogOut, Search, MapPin, Play, X
 import PlayerEditDialog from "@/components/PlayerEditDialog";
 import { Input } from "@/components/ui/input";
 import { NumberInput } from "@/components/ui/number-input";
+import CategoryBadge, { CATEGORY_PRIORITY, type PlayerCategory } from "@/components/player/CategoryBadge";
+import FlagBadges from "@/components/player/FlagBadges";
+import CategoryFilter from "@/components/player/CategoryFilter";
 import {
   Table,
   TableBody,
