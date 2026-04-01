@@ -192,7 +192,7 @@ export const AppSidebar = () => {
                 }>
                 <Settings className="w-4 h-4 shrink-0" />
                 <span className="flex-1">Admin</span>
-                <span className="cms-kbd">A</span>
+                <span className="cms-kbd">Alt+A</span>
               </NavLink>
             </>
           )}
