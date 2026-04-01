@@ -97,6 +97,28 @@ const InCasino = () => {
     onError: (e) => toast.error(e.message),
   });
 
+  const SortBtn = ({ k, label }: { k: SortKey; label: string }) => (
+    <Button
+      variant={sortKey === k ? "secondary" : "ghost"}
+      size="sm"
+      className="text-xs gap-1 h-7"
+      onClick={() => toggleSort(k)}
+    >
+      {label}
+      {sortKey === k && <ArrowUpDown className="w-3 h-3" />}
+    </Button>
+  );
+
+  const typeLabels: Record<string, string> = { slots: "Slots", table: "Table", mix: "Mix" };
+  const TypeBadge = ({ type }: { type: string }) => {
+    const colors: Record<string, string> = {
+      slots: "bg-blue-500/15 text-blue-400 border-blue-500/30",
+      table: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
+      mix: "bg-amber-500/15 text-amber-400 border-amber-500/30",
+    };
+    return <Badge className={`${colors[type] || ""} text-[10px] shrink-0`}>{typeLabels[type] || type}</Badge>;
+  };
+
   return (
     <div>
       <div className="mb-4">
@@ -104,6 +126,28 @@ const InCasino = () => {
         <p className="text-sm text-muted-foreground">
           {stillIn.length} currently inside · {checkedOut.length} checked out today
         </p>
+      </div>
+
+      {/* Sort & Filter toolbar */}
+      <div className="flex flex-wrap items-center gap-2 mb-4">
+        <span className="text-xs text-muted-foreground mr-1">Sort:</span>
+        <SortBtn k="name" label="Name" />
+        <SortBtn k="in" label="Check-in" />
+        <SortBtn k="out" label="Check-out" />
+        <SortBtn k="type" label="Type" />
+        <div className="w-px h-5 bg-border mx-1" />
+        <span className="text-xs text-muted-foreground mr-1">Filter:</span>
+        {(["all", "slots", "table", "mix"] as TypeFilter[]).map(t => (
+          <Button
+            key={t}
+            variant={typeFilter === t ? "secondary" : "ghost"}
+            size="sm"
+            className="text-xs h-7"
+            onClick={() => setTypeFilter(t)}
+          >
+            {t === "all" ? "All" : typeLabels[t]}
+          </Button>
+        ))}
       </div>
 
       {/* Currently IN */}
