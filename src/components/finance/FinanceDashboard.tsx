@@ -36,6 +36,12 @@ export const FinanceDashboard = () => {
   const mainCashBalance = Number(mainCash?.current_balance || 0);
   const isNegativeCash = mainCashBalance < 0;
 
+  // Operational wallets (cage, mobile, bank)
+  const totalOperational = OPERATIONAL_WALLETS.reduce((s, wt) => {
+    const w = wallets.find(w => w.wallet_type === wt);
+    return s + Number(w?.current_balance || 0);
+  }, 0);
+
   const today = new Date().toISOString().slice(0, 10);
   const todaySummary = summaries.find(s => s.date === today);
   const currentMonth = today.slice(0, 7);
