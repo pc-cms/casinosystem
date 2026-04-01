@@ -94,6 +94,7 @@ const ProtectedRoutes = () => {
         <Route path="/staff" element={<RoleGuard path="/floor"><Staff /></RoleGuard>} />
         <Route path="/floor" element={<RoleGuard path="/floor"><Staff /></RoleGuard>} />
         <Route path="/groups" element={<RoleGuard path="/groups"><Groups /></RoleGuard>} />
+        <Route path="/finance" element={<RoleGuard path="/finance"><Finance /></RoleGuard>} />
         {/* tracker is now under /tables?tab=tracker */}
         <Route path="/reports" element={<RoleGuard path="/reports"><Reports /></RoleGuard>} />
         <Route path="/stats" element={<RoleGuard path="/stats"><Stats /></RoleGuard>} />
