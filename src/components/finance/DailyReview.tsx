@@ -4,41 +4,89 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { useDailySummaries, useUpsertDailySummary, useTablesResultForDate, useCageExpensesForDate } from "@/hooks/use-finance";
+import {
+  useDailySummaries, useUpsertDailySummary, useTablesResultForDate,
+  useCageExpensesForDate, useCreateWalletTransaction,
+} from "@/hooks/use-finance";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth-context";
 import { formatNumberSpaces, formatInputWithSpaces, parseSpacedNumber } from "@/lib/currency";
 import { Check, ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
 import { format, subDays, addDays } from "date-fns";
+import { toast } from "sonner";
 
 export const DailyReview = () => {
+  const { casinoId } = useAuth();
   const [selectedDate, setSelectedDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [slotsInput, setSlotsInput] = useState("");
   const [comment, setComment] = useState("");
+  const [confirming, setConfirming] = useState(false);
 
   const { data: summaries = [] } = useDailySummaries();
   const { data: tablesResult = 0 } = useTablesResultForDate(selectedDate);
   const { data: cageExpenses = 0 } = useCageExpensesForDate(selectedDate);
   const upsert = useUpsertDailySummary();
+  const createTx = useCreateWalletTransaction();
 
   const existing = summaries.find(s => s.date === selectedDate);
   const slotsValue = existing ? existing.slots_result : parseSpacedNumber(slotsInput);
   const totalResult = tablesResult + slotsValue;
+  const netResult = totalResult - cageExpenses;
 
-  // Reset inputs when date changes
   const handleDateChange = (newDate: string) => {
     setSelectedDate(newDate);
     setSlotsInput("");
     setComment("");
   };
 
-  const handleConfirm = () => {
-    upsert.mutate({
-      date: selectedDate,
-      tables_result: tablesResult,
-      slots_result: slotsValue,
-      total_expenses: cageExpenses,
-      confirmed: true,
-      comment: comment || existing?.comment || "",
-    });
+  const handleConfirm = async () => {
+    setConfirming(true);
+    try {
+      // 1. Upsert daily summary
+      await upsert.mutateAsync({
+        date: selectedDate,
+        tables_result: tablesResult,
+        slots_result: slotsValue,
+        total_expenses: cageExpenses,
+        confirmed: true,
+        comment: comment || existing?.comment || "",
+      });
+
+      // 2. Create wallet transaction for daily result (prevent duplicates)
+      if (casinoId && netResult !== 0) {
+        const { data: existingTx } = await supabase
+          .from("wallet_transactions")
+          .select("id")
+          .eq("casino_id", casinoId)
+          .eq("tx_type", "daily_result" as any)
+          .gte("created_at", `${selectedDate}T00:00:00`)
+          .lt("created_at", `${selectedDate}T23:59:59.999`)
+          .limit(1);
+
+        if (!existingTx?.length) {
+          if (netResult > 0) {
+            await createTx.mutateAsync({
+              tx_type: "daily_result",
+              to_wallet: "main_cash",
+              amount: netResult,
+              description: `Daily result ${selectedDate} (income)`,
+            });
+          } else {
+            await createTx.mutateAsync({
+              tx_type: "daily_result",
+              from_wallet: "main_cash",
+              amount: Math.abs(netResult),
+              description: `Daily result ${selectedDate} (loss)`,
+            });
+          }
+        }
+      }
+      toast.success("Day confirmed & wallet updated");
+    } catch (e: any) {
+      toast.error(e.message || "Failed to confirm");
+    } finally {
+      setConfirming(false);
+    }
   };
 
   const handleSave = () => {
@@ -103,9 +151,17 @@ export const DailyReview = () => {
             </div>
           </div>
 
-          <div className="p-3 rounded-lg bg-muted/50 border border-border">
-            <p className="text-xs text-muted-foreground mb-1">Expenses (from Cage)</p>
-            <p className="text-lg font-bold font-mono">{formatNumberSpaces(cageExpenses)}</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="p-3 rounded-lg bg-muted/50 border border-border">
+              <p className="text-xs text-muted-foreground mb-1">Expenses (from Cage)</p>
+              <p className="text-lg font-bold font-mono">{formatNumberSpaces(cageExpenses)}</p>
+            </div>
+            <div className="p-3 rounded-lg bg-muted/50 border border-border">
+              <p className="text-xs text-muted-foreground mb-1">Net → Main Cash</p>
+              <p className={`text-lg font-bold font-mono ${netResult >= 0 ? "text-green-500" : "text-destructive"}`}>
+                {formatNumberSpaces(netResult)}
+              </p>
+            </div>
           </div>
 
           {/* Comment */}
@@ -123,8 +179,8 @@ export const DailyReview = () => {
           {/* Actions */}
           {!existing?.confirmed && (
             <div className="flex gap-2">
-              <Button variant="outline" onClick={handleSave} disabled={upsert.isPending}>Save Draft</Button>
-              <Button onClick={handleConfirm} disabled={upsert.isPending} className="gap-1">
+              <Button variant="outline" onClick={handleSave} disabled={upsert.isPending || confirming}>Save Draft</Button>
+              <Button onClick={handleConfirm} disabled={upsert.isPending || confirming} className="gap-1">
                 <Check className="w-4 h-4" /> Confirm Day
               </Button>
             </div>

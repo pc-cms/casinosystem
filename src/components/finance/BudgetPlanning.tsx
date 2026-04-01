@@ -5,14 +5,16 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Lock, Unlock, ChevronLeft, ChevronRight, Plus, Target } from "lucide-react";
+import { Lock, Unlock, ChevronLeft, ChevronRight, Plus, Target, RefreshCw } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { formatNumberSpaces } from "@/lib/currency";
+import { DEFAULT_EXCHANGE_RATES } from "@/lib/currency";
 import { BudgetCategories } from "./BudgetCategories";
 import {
   useBudgetCategories, useBudgetPeriod, useCreateBudgetPeriod,
   useToggleBudgetLock, useBudgetItems, useCreateBudgetItem,
-  useUpdateBudgetItem, PARENT_GROUP_LABELS, type BudgetCategory, type BudgetItem,
+  useUpdateBudgetItem, useMonthlyActuals, PARENT_GROUP_LABELS,
+  type BudgetCategory, type BudgetItem,
 } from "@/hooks/use-budget";
 
 export const BudgetPlanning = () => {
@@ -25,6 +27,7 @@ export const BudgetPlanning = () => {
   const createPeriod = useCreateBudgetPeriod();
   const toggleLock = useToggleBudgetLock();
   const { data: items = [] } = useBudgetItems(period?.id);
+  const { data: monthlyActuals = {} } = useMonthlyActuals(currentMonth);
   const createItem = useCreateBudgetItem();
   const updateItem = useUpdateBudgetItem();
 
@@ -51,6 +54,15 @@ export const BudgetPlanning = () => {
     return m;
   }, [categories]);
 
+  // Auto-compute actual for each item from wallet_transactions via expense_mapping
+  const getAutoActual = (item: BudgetItem): number => {
+    const cat = categoryMap[item.category_id];
+    if (cat?.expense_mapping && monthlyActuals[cat.expense_mapping] !== undefined) {
+      return monthlyActuals[cat.expense_mapping];
+    }
+    return Number(item.actual_amount);
+  };
+
   const groupedItems = useMemo(() => {
     const groups: Record<string, BudgetItem[]> = {};
     items.forEach(item => {
@@ -63,11 +75,16 @@ export const BudgetPlanning = () => {
   }, [items, categoryMap]);
 
   const totalPlanned = items.reduce((s, i) => s + Number(i.monthly_amount), 0);
-  const totalActual = items.reduce((s, i) => s + Number(i.actual_amount), 0);
+  const totalActual = items.reduce((s, i) => s + getAutoActual(i), 0);
   const totalReserved = items.filter(i => i.logic_type === "reserve").reduce((s, i) => s + Number(i.reserved_amount), 0);
   const totalReserveRequired = items.filter(i => i.logic_type === "reserve").reduce((s, i) => s + Number(i.monthly_amount), 0);
   const variance = totalActual - totalPlanned;
   const completionPct = totalPlanned > 0 ? Math.round((totalActual / totalPlanned) * 100) : 0;
+
+  // USD conversion
+  const usdRate = DEFAULT_EXCHANGE_RATES?.USD || 2500;
+  const totalPlannedUsd = Math.round(totalPlanned / usdRate);
+  const totalActualUsd = Math.round(totalActual / usdRate);
 
   const handleAddItem = () => {
     if (!period || !newItem.category_id || !newItem.item_name || !newItem.monthly_amount) return;
@@ -85,7 +102,6 @@ export const BudgetPlanning = () => {
   const handleInlineUpdate = (item: BudgetItem, field: string, value: any) => {
     if (!period) return;
     const updates: Record<string, any> = { [field]: value };
-    // Auto-calculate status based on logic type
     if (field === "actual_amount" || field === "reserved_amount" || field === "monthly_amount") {
       const monthly = Number(field === "monthly_amount" ? value : item.monthly_amount);
       if (item.logic_type === "reserve") {
@@ -102,6 +118,30 @@ export const BudgetPlanning = () => {
       }
     }
     updateItem.mutate({ id: item.id, periodId: period.id, ...updates });
+  };
+
+  // Sync auto-actuals: push wallet_transaction actuals into budget_items.actual_amount
+  const handleSyncActuals = () => {
+    if (!period) return;
+    items.forEach(item => {
+      const cat = categoryMap[item.category_id];
+      if (cat?.expense_mapping && monthlyActuals[cat.expense_mapping] !== undefined) {
+        const autoVal = monthlyActuals[cat.expense_mapping];
+        if (autoVal !== Number(item.actual_amount)) {
+          const monthly = Number(item.monthly_amount);
+          let status = "planned";
+          if (item.logic_type === "reserve") {
+            const reserved = Number(item.reserved_amount);
+            if (reserved >= monthly && autoVal >= monthly) status = "completed";
+            else if (reserved > 0 || autoVal > 0) status = "in_progress";
+          } else {
+            if (autoVal >= monthly) status = "completed";
+            else if (autoVal > 0) status = "in_progress";
+          }
+          updateItem.mutate({ id: item.id, periodId: period.id, actual_amount: autoVal, status });
+        }
+      }
+    });
   };
 
   const statusBadge = (status: string) => {
@@ -147,6 +187,9 @@ export const BudgetPlanning = () => {
           </Badge>
         </div>
         <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={handleSyncActuals} className="gap-1">
+            <RefreshCw className="w-3 h-3" /> Sync Actuals
+          </Button>
           {isFinanceManager && (
             <Button
               variant="outline" size="sm"
@@ -161,14 +204,16 @@ export const BudgetPlanning = () => {
       </div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <Card><CardContent className="p-4">
           <p className="text-xs text-muted-foreground">Monthly Budget</p>
           <p className="text-xl font-bold font-mono text-foreground">{formatNumberSpaces(totalPlanned)}</p>
+          <p className="text-[10px] text-muted-foreground">≈ ${totalPlannedUsd.toLocaleString()} USD</p>
         </CardContent></Card>
         <Card><CardContent className="p-4">
           <p className="text-xs text-muted-foreground">Actual Expenses</p>
           <p className="text-xl font-bold font-mono text-foreground">{formatNumberSpaces(totalActual)}</p>
+          <p className="text-[10px] text-muted-foreground">≈ ${totalActualUsd.toLocaleString()} USD</p>
         </CardContent></Card>
         <Card><CardContent className="p-4">
           <p className="text-xs text-muted-foreground">Variance</p>
@@ -183,6 +228,13 @@ export const BudgetPlanning = () => {
           </div>
           <p className="text-xl font-bold font-mono text-foreground">{formatNumberSpaces(totalPlanned)}</p>
           <p className="text-[10px] text-muted-foreground">Min. required income</p>
+        </CardContent></Card>
+        <Card><CardContent className="p-4">
+          <p className="text-xs text-muted-foreground">Completion</p>
+          <p className="text-xl font-bold font-mono text-foreground">{completionPct}%</p>
+          <div className="w-full h-1.5 bg-muted rounded-full mt-1 overflow-hidden">
+            <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${Math.min(100, completionPct)}%` }} />
+          </div>
         </CardContent></Card>
       </div>
 
@@ -235,7 +287,9 @@ export const BudgetPlanning = () => {
                   </TableRow>,
                   ...groupItems.map(item => {
                     const cat = categoryMap[item.category_id];
-                    const diff = Number(item.actual_amount) - Number(item.monthly_amount);
+                    const autoActual = getAutoActual(item);
+                    const diff = autoActual - Number(item.monthly_amount);
+                    const hasAutoMapping = !!(cat?.expense_mapping && monthlyActuals[cat.expense_mapping] !== undefined);
                     return (
                       <TableRow key={item.id}>
                         <TableCell className="text-xs text-muted-foreground">{cat?.name || "—"}</TableCell>
@@ -271,16 +325,12 @@ export const BudgetPlanning = () => {
                           {formatNumberSpaces(Number(item.monthly_amount) * 12)}
                         </TableCell>
                         <TableCell className="text-right font-mono">
-                          {canEdit ? (
-                            <Input
-                              type="number" className="h-7 text-sm text-right w-24 ml-auto"
-                              defaultValue={item.actual_amount}
-                              onBlur={e => {
-                                const v = Number(e.target.value);
-                                if (v !== Number(item.actual_amount)) handleInlineUpdate(item, "actual_amount", v);
-                              }}
-                            />
-                          ) : formatNumberSpaces(item.actual_amount)}
+                          <div className="flex items-center justify-end gap-1">
+                            {hasAutoMapping && (
+                              <Badge variant="outline" className="text-[8px] px-1 py-0 border-primary/30 text-primary">auto</Badge>
+                            )}
+                            <span>{formatNumberSpaces(autoActual)}</span>
+                          </div>
                         </TableCell>
                         <TableCell className="text-right font-mono">
                           {item.logic_type === "reserve" ? (
@@ -365,8 +415,8 @@ export const BudgetPlanning = () => {
 
       {canEdit && categories.length === 0 && (
         <Card>
-          <CardContent className="py-6 text-center">
-            <p className="text-sm text-muted-foreground mb-2">Create categories first to add budget items</p>
+          <CardContent className="py-8 text-center">
+            <p className="text-muted-foreground text-sm mb-2">Create budget categories first</p>
             {isFinanceManager && <BudgetCategories />}
           </CardContent>
         </Card>
