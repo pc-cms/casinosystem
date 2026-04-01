@@ -182,6 +182,7 @@ const InCasino = () => {
                           <span>· {formatDistanceToNow(new Date(visit.checked_in_at), { addSuffix: false })}</span>
                         </div>
                       </div>
+                      {p.player_type && <TypeBadge type={p.player_type} />}
                       <Badge className="bg-primary/15 text-primary border-primary/30 shrink-0 gap-1">
                         <CheckCircle2 className="w-3 h-3" /> {visit.position?.toUpperCase() || "HALL"}
                       </Badge>
