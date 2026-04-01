@@ -363,8 +363,9 @@ const ScheduleSettings = () => {
 
   return (
     <div className="cms-panel p-6 max-w-lg">
-      <h3 className="text-sm font-semibold text-card-foreground mb-4">Casino Working Hours</h3>
+      <h3 className="text-sm font-semibold text-card-foreground mb-4">Casino Settings</h3>
       <div className="space-y-4">
+        <p className="text-[10px] uppercase text-muted-foreground tracking-wider font-medium">Working Hours</p>
         {fields.map(f => (
           <div key={f.label}>
             <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1 block">{f.label}</label>
@@ -372,9 +373,24 @@ const ScheduleSettings = () => {
             <p className="text-[10px] text-muted-foreground mt-0.5">{f.hint}</p>
           </div>
         ))}
+
+        <div className="border-t border-border pt-4 mt-4">
+          <p className="text-[10px] uppercase text-muted-foreground tracking-wider font-medium mb-3">Finance</p>
+          <div>
+            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1 block">Cage Float Target (TZS)</label>
+            <Input
+              type="number"
+              value={cageFloat}
+              onChange={e => setCageFloat(e.target.value)}
+              className="w-48 font-mono"
+              placeholder="e.g. 10000000"
+            />
+            <p className="text-[10px] text-muted-foreground mt-0.5">Target cash amount in cage at all times</p>
+          </div>
+        </div>
       </div>
       <Button onClick={handleSave} className="mt-5" disabled={updateSchedule.isPending}>
-        {updateSchedule.isPending ? "Saving..." : "Save Schedule"}
+        {updateSchedule.isPending ? "Saving..." : "Save Settings"}
       </Button>
     </div>
   );
