@@ -44,6 +44,7 @@ const ActivePlayers = () => {
   const [placingPlayer, setPlacingPlayer] = useState<string | null>(null);
   const [placingTable, setPlacingTable] = useState<string | null>(null);
   const [placingBet, setPlacingBet] = useState("");
+  const [editPlayer, setEditPlayer] = useState<any>(null);
 
   const { data: allTags = [] } = useQuery({
     queryKey: ["player_tags", casinoId],
