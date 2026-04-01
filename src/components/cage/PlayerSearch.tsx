@@ -90,19 +90,30 @@ const PlayerSearch = ({ players, value, onChange, placeholder = "Search playerâ€
       {open && filtered.length > 0 && (
         <div className="absolute z-50 w-full mt-1 max-h-48 overflow-y-auto rounded-md border border-border bg-popover shadow-lg">
           {filtered.map((p, i) => (
-            <button
+            <div
               key={p.id}
-              onClick={() => handleSelect(p.id)}
-              className={`w-full text-left px-3 py-1.5 text-sm flex items-center justify-between transition-colors ${
+              className={`w-full flex items-center transition-colors ${
                 i === highlightIdx ? "bg-accent text-accent-foreground" : "text-popover-foreground hover:bg-muted/50"
               }`}
             >
-              <span className={p.status === "blacklist" ? "text-destructive font-medium" : ""}>{p.first_name} {p.last_name}</span>
-              <span className="text-[10px] font-mono text-muted-foreground flex items-center gap-1">
-                {p.status === "blacklist" && <span className="text-destructive font-bold">BL</span>}
-                {p.player_cards?.[0]?.card_number || ""}
-              </span>
-            </button>
+              <button
+                onClick={() => handleSelect(p.id)}
+                className="flex-1 text-left px-3 py-1.5 text-sm flex items-center justify-between"
+              >
+                <span className={p.status === "blacklist" ? "text-destructive font-medium" : ""}>{p.first_name} {p.last_name}</span>
+                <span className="text-[10px] font-mono text-muted-foreground flex items-center gap-1">
+                  {p.status === "blacklist" && <span className="text-destructive font-bold">BL</span>}
+                  {p.player_cards?.[0]?.card_number || ""}
+                </span>
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); setEditPlayer(p); setOpen(false); }}
+                className="px-2 py-1.5 text-muted-foreground hover:text-primary transition-colors shrink-0"
+                title="Edit player"
+              >
+                <Pencil className="w-3 h-3" />
+              </button>
+            </div>
           ))}
         </div>
       )}
