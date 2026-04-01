@@ -7,6 +7,7 @@ import { useBudgetPeriod, useBudgetItems, useMonthlyActuals } from "@/hooks/use-
 import { useLatestCashCounts } from "@/hooks/use-cash-count";
 
 const MAIN_WALLETS: WalletType[] = ["main_cash", "office_safe"];
+const OPERATIONAL_WALLETS: WalletType[] = ["cage_slot", "cage_table", "mobile_money", "bank_account"];
 const RESERVE_WALLETS: WalletType[] = ["rent_reserve", "license_reserve", "tax_reserve", "other_reserve"];
 
 export const FinanceDashboard = () => {
@@ -34,6 +35,12 @@ export const FinanceDashboard = () => {
   const totalReserves = reserves.reduce((s, w) => s + Number(w.current_balance), 0);
   const mainCashBalance = Number(mainCash?.current_balance || 0);
   const isNegativeCash = mainCashBalance < 0;
+
+  // Operational wallets (cage, mobile, bank)
+  const totalOperational = OPERATIONAL_WALLETS.reduce((s, wt) => {
+    const w = wallets.find(w => w.wallet_type === wt);
+    return s + Number(w?.current_balance || 0);
+  }, 0);
 
   const today = new Date().toISOString().slice(0, 10);
   const todaySummary = summaries.find(s => s.date === today);
@@ -64,20 +71,21 @@ export const FinanceDashboard = () => {
     .reduce((s, tx) => s + Number(tx.amount), 0);
 
   // === GLOBAL RECONCILIATION ===
-  // Expected = sum of main wallets (not reserves)
-  const expectedMainCash = MAIN_WALLETS.reduce((s, wt) => {
+  // Expected = sum of main + operational wallets (not reserves)
+  const ALL_RECONCILED: WalletType[] = [...MAIN_WALLETS, ...OPERATIONAL_WALLETS];
+  const expectedTotal = ALL_RECONCILED.reduce((s, wt) => {
     const w = wallets.find(w => w.wallet_type === wt);
     return s + Number(w?.current_balance || 0);
   }, 0);
 
-  // Physical = latest cash count snapshots for main wallets
-  const physicalMainCash = MAIN_WALLETS.reduce((s, wt) => {
+  // Physical = latest cash count snapshots for all reconciled wallets
+  const physicalTotal = ALL_RECONCILED.reduce((s, wt) => {
     const snap = latestCounts.find(c => c.wallet_type === wt);
     return s + (snap ? Number(snap.physical_total_tzs) : 0);
   }, 0);
 
-  const hasMainCounts = latestCounts.some(c => MAIN_WALLETS.includes(c.wallet_type as WalletType));
-  const mainDiscrepancy = expectedMainCash - physicalMainCash;
+  const hasAnyCounts = latestCounts.some(c => ALL_RECONCILED.includes(c.wallet_type as WalletType));
+  const mainDiscrepancy = expectedTotal - physicalTotal;
 
   // Reserve reconciliation
   const reserveReconciliation = RESERVE_WALLETS.map(wt => {
@@ -111,14 +119,14 @@ export const FinanceDashboard = () => {
       )}
 
       {/* Global Reconciliation Alert */}
-      {hasMainCounts && mainDiscrepancy !== 0 && (
+      {hasAnyCounts && mainDiscrepancy !== 0 && (
         <Card className="border-destructive bg-destructive/5">
           <CardContent className="p-4 flex items-center gap-3">
             <Scale className="w-5 h-5 text-destructive shrink-0" />
             <div>
               <p className="text-sm font-semibold text-destructive">Cash mismatch detected</p>
               <p className="text-xs text-destructive/80">
-                Expected: {formatNumberSpaces(expectedMainCash)} TZS · Physical: {formatNumberSpaces(physicalMainCash)} TZS · Difference: {formatNumberSpaces(mainDiscrepancy)} TZS
+                Expected: {formatNumberSpaces(expectedTotal)} TZS · Physical: {formatNumberSpaces(physicalTotal)} TZS · Difference: {formatNumberSpaces(mainDiscrepancy)} TZS
               </p>
             </div>
           </CardContent>
@@ -134,7 +142,7 @@ export const FinanceDashboard = () => {
       </div>
 
       {/* Global Reconciliation Card */}
-      {hasMainCounts && (
+      {hasAnyCounts && (
         <Card className={mainDiscrepancy === 0 ? "border-emerald-500/30" : "border-destructive/30"}>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-1">
@@ -145,11 +153,11 @@ export const FinanceDashboard = () => {
             <div className="grid grid-cols-3 gap-4 text-center">
               <div>
                 <p className="text-xs text-muted-foreground">Expected (Ledger)</p>
-                <p className="text-lg font-bold font-mono">{formatNumberSpaces(expectedMainCash)}</p>
+                <p className="text-lg font-bold font-mono">{formatNumberSpaces(expectedTotal)}</p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Physical (Cash Count)</p>
-                <p className="text-lg font-bold font-mono">{formatNumberSpaces(physicalMainCash)}</p>
+                <p className="text-lg font-bold font-mono">{formatNumberSpaces(physicalTotal)}</p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Discrepancy</p>
@@ -157,6 +165,23 @@ export const FinanceDashboard = () => {
                   {mainDiscrepancy > 0 ? "+" : ""}{formatNumberSpaces(mainDiscrepancy)}
                 </p>
               </div>
+            </div>
+            {/* Per-wallet breakdown */}
+            <div className="grid grid-cols-3 md:grid-cols-6 gap-2 mt-3 pt-2 border-t border-border">
+              {ALL_RECONCILED.map(wt => {
+                const expected = Number(wallets.find(w => w.wallet_type === wt)?.current_balance || 0);
+                const snap = latestCounts.find(c => c.wallet_type === wt);
+                const physical = snap ? Number(snap.physical_total_tzs) : 0;
+                const diff = expected - physical;
+                return (
+                  <div key={wt} className="text-center">
+                    <p className="text-[9px] text-muted-foreground">{WALLET_LABELS[wt]}</p>
+                    <p className={`text-xs font-mono font-semibold ${!snap ? "text-muted-foreground" : diff === 0 ? "text-emerald-500" : "text-destructive"}`}>
+                      {snap ? (diff === 0 ? "✓" : formatNumberSpaces(diff)) : "—"}
+                    </p>
+                  </div>
+                );
+              })}
             </div>
             <p className="text-[10px] text-muted-foreground mt-2 text-center">
               Based on latest cash count per wallet. Perform a new cash count to update.

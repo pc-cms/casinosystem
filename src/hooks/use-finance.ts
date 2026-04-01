@@ -4,7 +4,7 @@ import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
 
 // Types matching DB enums
-export type WalletType = "main_cash" | "office_safe" | "rent_reserve" | "license_reserve" | "tax_reserve" | "other_reserve";
+export type WalletType = "main_cash" | "office_safe" | "rent_reserve" | "license_reserve" | "tax_reserve" | "other_reserve" | "cage_slot" | "cage_table" | "mobile_money" | "bank_account";
 export type WalletTxType = "transfer" | "allocate_reserve" | "use_reserve" | "manual_expense" | "daily_result" | "initial_balance" | "collection" | "adjustment" | "external_income";
 export type OfficeExpenseCategory =
   | "salary" | "bonus" | "fuel" | "transport" | "repairs" | "internet_it" | "security_expense" | "cleaning"
@@ -37,6 +37,10 @@ export const WALLET_LABELS: Record<WalletType, string> = {
   license_reserve: "License Reserve",
   tax_reserve: "Tax Reserve",
   other_reserve: "Other Reserve",
+  cage_slot: "Cage Slot",
+  cage_table: "Cage Table",
+  mobile_money: "Mobile Money",
+  bank_account: "Bank Account",
 };
 
 export interface Wallet {
@@ -100,7 +104,7 @@ export function useInitializeWallets() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      const walletTypes: WalletType[] = ["main_cash", "office_safe", "rent_reserve", "license_reserve", "tax_reserve", "other_reserve"];
+      const walletTypes: WalletType[] = ["main_cash", "office_safe", "rent_reserve", "license_reserve", "tax_reserve", "other_reserve", "cage_slot", "cage_table", "mobile_money", "bank_account"];
       const wallets = walletTypes.map(wt => ({
         casino_id: casinoId,
         wallet_type: wt,

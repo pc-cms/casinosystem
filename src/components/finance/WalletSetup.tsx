@@ -6,7 +6,7 @@ import { useInitializeWallets, WALLET_LABELS, WalletType } from "@/hooks/use-fin
 import { formatInputWithSpaces, parseSpacedNumber } from "@/lib/currency";
 import { ShieldCheck } from "lucide-react";
 
-const WALLET_TYPES: WalletType[] = ["main_cash", "office_safe", "rent_reserve", "license_reserve", "tax_reserve", "other_reserve"];
+const WALLET_TYPES: WalletType[] = ["main_cash", "office_safe", "rent_reserve", "license_reserve", "tax_reserve", "other_reserve", "cage_slot", "cage_table", "mobile_money", "bank_account"];
 
 export const WalletSetup = () => {
   const [balances, setBalances] = useState<Record<string, string>>({});

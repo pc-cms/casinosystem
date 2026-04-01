@@ -112,13 +112,19 @@ export const CashCount = () => {
 
   const totalRealMoney = mainCashTzs + cageTotal + mobileTotal + bankTotalTzs;
 
-  const grandExpected = useMemo(() =>
-    COUNTABLE_WALLETS.reduce((sum, wt) => {
+  const grandExpected = useMemo(() => {
+    const allWallets: WalletType[] = [...COUNTABLE_WALLETS, "cage_slot", "cage_table", "mobile_money", "bank_account"];
+    return allWallets.reduce((sum, wt) => {
       const w = wallets.find(w => w.wallet_type === wt);
       return sum + Number(w?.current_balance || 0);
-    }, 0),
-    [wallets]
-  );
+    }, 0);
+  }, [wallets]);
+
+  // Per-section expected balances
+  const cageSlotExpected = Number(wallets.find(w => w.wallet_type === "cage_slot")?.current_balance || 0);
+  const cageTableExpected = Number(wallets.find(w => w.wallet_type === "cage_table")?.current_balance || 0);
+  const mobileExpected = Number(wallets.find(w => w.wallet_type === "mobile_money")?.current_balance || 0);
+  const bankExpected = Number(wallets.find(w => w.wallet_type === "bank_account")?.current_balance || 0);
 
   const grandDiscrepancy = grandExpected - totalRealMoney;
 
@@ -162,8 +168,8 @@ export const CashCount = () => {
         currency: "TZS",
         denominations: denomMap,
         physical_total: cageSlotTotal,
-        expected_balance: 0,
-        discrepancy: 0,
+        expected_balance: cageSlotExpected,
+        discrepancy: cageSlotExpected - cageSlotTotal,
         exchange_rate: 1,
         physical_total_tzs: cageSlotTotal,
         note,
@@ -179,8 +185,8 @@ export const CashCount = () => {
         currency: "TZS",
         denominations: denomMap,
         physical_total: cageTableTotal,
-        expected_balance: 0,
-        discrepancy: 0,
+        expected_balance: cageTableExpected,
+        discrepancy: cageTableExpected - cageTableTotal,
         exchange_rate: 1,
         physical_total_tzs: cageTableTotal,
         note,
@@ -196,8 +202,8 @@ export const CashCount = () => {
         currency: "TZS",
         denominations: mobileMap,
         physical_total: mobileTotal,
-        expected_balance: 0,
-        discrepancy: 0,
+        expected_balance: mobileExpected,
+        discrepancy: mobileExpected - mobileTotal,
         exchange_rate: 1,
         physical_total_tzs: mobileTotal,
         note,
@@ -213,8 +219,8 @@ export const CashCount = () => {
         currency: "TZS",
         denominations: bankMap,
         physical_total: bankTotalTzs,
-        expected_balance: 0,
-        discrepancy: 0,
+        expected_balance: bankExpected,
+        discrepancy: bankExpected - bankTotalTzs,
         exchange_rate: 1,
         physical_total_tzs: bankTotalTzs,
         note,
