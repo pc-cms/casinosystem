@@ -75,7 +75,7 @@ const InCasino = () => {
   return (
     <div>
       <div className="mb-4">
-        <h1 className="text-2xl font-bold text-foreground">in Casino</h1>
+        <h1 className="text-2xl font-bold text-foreground">Guests</h1>
         <p className="text-sm text-muted-foreground">
           {stillIn.length} currently inside · {checkedOut.length} checked out today
         </p>

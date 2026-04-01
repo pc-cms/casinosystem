@@ -189,7 +189,7 @@ const Dashboard = () => {
         {/* Players in Casino */}
         <div className="cms-panel">
           <div className="cms-header flex items-center justify-between">
-            <span>In Casino</span>
+            <span>Guests</span>
             <span className="text-xs font-mono text-muted-foreground">{playersInCasino.length} players</span>
           </div>
           <div className="p-4 space-y-1 max-h-[400px] overflow-y-auto">
