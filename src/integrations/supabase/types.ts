@@ -192,6 +192,210 @@ export type Database = {
           },
         ]
       }
+      budget_categories: {
+        Row: {
+          casino_id: string
+          created_at: string
+          created_by: string
+          expense_mapping: string | null
+          id: string
+          name: string
+          parent_group: string
+        }
+        Insert: {
+          casino_id: string
+          created_at?: string
+          created_by: string
+          expense_mapping?: string | null
+          id?: string
+          name: string
+          parent_group: string
+        }
+        Update: {
+          casino_id?: string
+          created_at?: string
+          created_by?: string
+          expense_mapping?: string | null
+          id?: string
+          name?: string
+          parent_group?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budget_categories_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      budget_items: {
+        Row: {
+          actual_amount: number
+          casino_id: string
+          category_id: string
+          created_at: string
+          id: string
+          item_name: string
+          logic_type: string
+          monthly_amount: number
+          period_id: string
+          reserved_amount: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          actual_amount?: number
+          casino_id: string
+          category_id: string
+          created_at?: string
+          id?: string
+          item_name: string
+          logic_type: string
+          monthly_amount?: number
+          period_id: string
+          reserved_amount?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          actual_amount?: number
+          casino_id?: string
+          category_id?: string
+          created_at?: string
+          id?: string
+          item_name?: string
+          logic_type?: string
+          monthly_amount?: number
+          period_id?: string
+          reserved_amount?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budget_items_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "budget_items_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "budget_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "budget_items_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "budget_periods"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      budget_logs: {
+        Row: {
+          action: string
+          casino_id: string
+          created_at: string
+          details: Json
+          id: string
+          item_id: string | null
+          operator_id: string
+          period_id: string | null
+        }
+        Insert: {
+          action: string
+          casino_id: string
+          created_at?: string
+          details?: Json
+          id?: string
+          item_id?: string | null
+          operator_id: string
+          period_id?: string | null
+        }
+        Update: {
+          action?: string
+          casino_id?: string
+          created_at?: string
+          details?: Json
+          id?: string
+          item_id?: string | null
+          operator_id?: string
+          period_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budget_logs_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "budget_logs_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "budget_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "budget_logs_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "budget_periods"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      budget_periods: {
+        Row: {
+          casino_id: string
+          created_at: string
+          id: string
+          is_locked: boolean
+          locked_by: string | null
+          month: string
+          unlocked_at: string | null
+          unlocked_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          casino_id: string
+          created_at?: string
+          id?: string
+          is_locked?: boolean
+          locked_by?: string | null
+          month: string
+          unlocked_at?: string | null
+          unlocked_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          casino_id?: string
+          created_at?: string
+          id?: string
+          is_locked?: boolean
+          locked_by?: string | null
+          month?: string
+          unlocked_at?: string | null
+          unlocked_by?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budget_periods_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cash_counts: {
         Row: {
           casino_id: string
