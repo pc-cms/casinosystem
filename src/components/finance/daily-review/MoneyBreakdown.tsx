@@ -81,11 +81,13 @@ export const MoneyBreakdown = ({ closingCount, closingCash, exchangeRates }: Mon
           </div>
           {mobileProviders.length > 0 ? (
             <div className="space-y-1 text-xs font-mono">
-              {mobileProviders.map(([provider, value]) => (
+              {mobileProviders.map(([provider, rawValue]) => {
+                const val = Number(rawValue) || 0;
+                return (
                 <div key={provider} className="flex justify-between">
                   <span className="text-muted-foreground">{provider}</span>
-                  <span className={Number(value) >= 0 ? "text-foreground" : "text-destructive"}>
-                    {Number(value) >= 0 ? "+" : ""}{formatNumberSpaces(Number(value))}
+                  <span className={val >= 0 ? "text-foreground" : "text-destructive"}>
+                    {val >= 0 ? "+" : ""}{formatNumberSpaces(val)}
                   </span>
                 </div>
               ))}
