@@ -65,7 +65,7 @@ export const DailyReview = () => {
           <Input
             type="date"
             value={selectedDate}
-            onChange={e => setSelectedDate(e.target.value)}
+            onChange={e => handleDateChange(e.target.value)}
             className="border-0 bg-transparent p-0 h-auto text-sm font-mono w-32"
           />
         </div>
