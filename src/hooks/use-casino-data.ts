@@ -143,6 +143,7 @@ export const useTransactions = (date?: string) => {
       return data;
     },
     enabled: !!casinoId,
+    staleTime: 1000 * 30, // 30s
   });
 };
 
