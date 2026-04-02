@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Users, Landmark, Receipt, TrendingDown, AlertTriangle, Clock } from "lucide-react";
+import { CardSkeleton, PlayerListSkeleton } from "@/components/LoadingSkeletons";
 import { usePlayers, useTransactions, useGamingTables, useExpenses, useClientSessionsTotalBet, useTableTracker, usePlayerEconomy } from "@/hooks/use-casino-data";
 import { useAuth } from "@/lib/auth-context";
 import { Link } from "react-router-dom";
