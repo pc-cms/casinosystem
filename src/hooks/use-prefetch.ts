@@ -14,34 +14,38 @@ export function usePrefetchCriticalData() {
   useEffect(() => {
     if (!casinoId || !user) return;
 
-    // Prefetch players (needed by cage, reception, pit, guests)
+    // Prefetch players — must match usePlayers() select & queryKey exactly
     qc.prefetchQuery({
       queryKey: ["players", casinoId],
       queryFn: async () => {
         const { data } = await supabase
           .from("players")
-          .select("*, player_tags(tag), player_cards(card_number, rfid_uid, is_active)")
-          .eq("casino_id", casinoId);
+          .select("*, player_cards(*), player_tags(*)")
+          .eq("casino_id", casinoId)
+          .order("last_name");
         return data ?? [];
       },
-      staleTime: 1000 * 60 * 5, // 5 min
+      staleTime: 1000 * 60 * 5,
     });
 
-    // Prefetch active visits (reception, guests)
+    // Prefetch active visits — align key with Dashboard's useTodayVisits
+    const { getBusinessDate } = require("@/lib/business-day");
+    const today = getBusinessDate();
     qc.prefetchQuery({
-      queryKey: ["casino-visits-active", casinoId],
+      queryKey: ["casino-visits-today", casinoId, today],
       queryFn: async () => {
         const { data } = await supabase
           .from("casino_visits")
-          .select("*")
+          .select("*, players(first_name, last_name, nickname, photo_url, status, player_tags(tag), id_number)")
           .eq("casino_id", casinoId)
+          .eq("date", today)
           .is("checked_out_at", null);
         return data ?? [];
       },
       staleTime: 1000 * 60 * 2,
     });
 
-    // Prefetch tables (cage, pit)
+    // Prefetch tables — must match useGamingTables() exactly
     if (roles.some(r => ["cashier", "pit", "manager", "finance_manager"].includes(r))) {
       qc.prefetchQuery({
         queryKey: ["gaming-tables", casinoId],
@@ -49,14 +53,15 @@ export function usePrefetchCriticalData() {
           const { data } = await supabase
             .from("gaming_tables")
             .select("*")
-            .eq("casino_id", casinoId);
+            .eq("casino_id", casinoId)
+            .order("name");
           return data ?? [];
         },
         staleTime: 1000 * 60 * 5,
       });
     }
 
-    // Prefetch dealers (pit)
+    // Prefetch dealers — must match useDealers() exactly
     if (roles.some(r => ["pit", "manager"].includes(r))) {
       qc.prefetchQuery({
         queryKey: ["dealers", casinoId],
@@ -65,7 +70,7 @@ export function usePrefetchCriticalData() {
             .from("dealers")
             .select("*")
             .eq("casino_id", casinoId)
-            .eq("is_active", true);
+            .order("name");
           return data ?? [];
         },
         staleTime: 1000 * 60 * 10,

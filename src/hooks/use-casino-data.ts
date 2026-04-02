@@ -184,7 +184,8 @@ export const useCreateTransaction = () => {
     // Optimistic update — instant UI feedback before server confirms
     onMutate: async (vars) => {
       await qc.cancelQueries({ queryKey: ["transactions"] });
-      const today = new Date().toISOString().split("T")[0];
+      const { getBusinessDate } = await import("@/lib/business-day");
+      const today = getBusinessDate();
       const prevTxs = qc.getQueryData(["transactions", casinoId, today]);
 
       const optimisticTx = {

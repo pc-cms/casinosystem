@@ -40,7 +40,7 @@ export const useRealtimeSubscriptions = () => {
     if (tier === "offline") return;
 
     if (tier === "fast") {
-      // Full realtime — all critical tables
+      // Full realtime — all critical tables with casino_id filter where possible
       const channel = supabase
         .channel("cms-realtime")
         .on(
@@ -77,7 +77,8 @@ export const useRealtimeSubscriptions = () => {
         .on(
           "postgres_changes",
           { event: "*", schema: "public", table: "player_tags" },
-          () => {
+          (payload) => {
+            // player_tags has no casino_id — invalidate players which will re-fetch with casino filter
             qc.invalidateQueries({ queryKey: ["players"] });
           }
         )
@@ -85,6 +86,7 @@ export const useRealtimeSubscriptions = () => {
           "postgres_changes",
           { event: "*", schema: "public", table: "player_cards" },
           () => {
+            // player_cards has no casino_id — invalidate players
             qc.invalidateQueries({ queryKey: ["players"] });
           }
         )
@@ -107,6 +109,13 @@ export const useRealtimeSubscriptions = () => {
           { event: "*", schema: "public", table: "activity_logs", filter: `casino_id=eq.${casinoId}` },
           () => {
             qc.invalidateQueries({ queryKey: ["activity-logs"] });
+          }
+        )
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "casino_visits", filter: `casino_id=eq.${casinoId}` },
+          () => {
+            qc.invalidateQueries({ queryKey: ["casino-visits-today"] });
           }
         )
         .subscribe();
@@ -142,6 +151,7 @@ export const useRealtimeSubscriptions = () => {
           qc.invalidateQueries({ queryKey: ["expenses"] });
           qc.invalidateQueries({ queryKey: ["table-tracker"] });
           qc.invalidateQueries({ queryKey: ["pit-rota"] });
+          qc.invalidateQueries({ queryKey: ["casino-visits-today"] });
         }
       }, 60_000);
     }

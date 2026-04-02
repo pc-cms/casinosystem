@@ -119,30 +119,32 @@ const ProtectedRoutes = () => {
   }
   if (!user) return <Navigate to="/login" replace />;
   return (
-    <Suspense fallback={<PageLoader />}>
-      <Routes>
-        <Route element={<AppLayout />}>
-          <Route path="/" element={<RoleGuard path="/"><Dashboard /></RoleGuard>} />
-          <Route path="/players" element={<RoleGuard path="/players"><Players /></RoleGuard>} />
-          <Route path="/cage" element={<RoleGuard path="/cage"><Cage /></RoleGuard>} />
-          <Route path="/reception" element={<RoleGuard path="/reception"><Reception /></RoleGuard>} />
-          <Route path="/guests" element={<RoleGuard path="/guests"><InCasino /></RoleGuard>} />
-          <Route path="/blacklist" element={<RoleGuard path="/blacklist"><Blacklist /></RoleGuard>} />
-          <Route path="/tables" element={<RoleGuard path="/tables"><Tables /></RoleGuard>} />
-          <Route path="/expenses" element={<RoleGuard path="/expenses"><Expenses /></RoleGuard>} />
-          <Route path="/pit" element={<RoleGuard path="/pit"><Pit /></RoleGuard>} />
-          <Route path="/staff" element={<RoleGuard path="/floor"><Staff /></RoleGuard>} />
-          <Route path="/floor" element={<RoleGuard path="/floor"><Staff /></RoleGuard>} />
-          <Route path="/groups" element={<RoleGuard path="/groups"><Groups /></RoleGuard>} />
-          <Route path="/finance" element={<RoleGuard path="/finance"><Finance /></RoleGuard>} />
-          <Route path="/reports" element={<RoleGuard path="/reports"><Reports /></RoleGuard>} />
-          <Route path="/stats" element={<RoleGuard path="/stats"><Stats /></RoleGuard>} />
-          <Route path="/logs" element={<RoleGuard path="/logs"><Logs /></RoleGuard>} />
-          <Route path="/admin" element={<RoleGuard path="/admin"><Admin /></RoleGuard>} />
-        </Route>
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </Suspense>
+    <ErrorBoundary>
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          <Route element={<AppLayout />}>
+            <Route path="/" element={<RoleGuard path="/"><Dashboard /></RoleGuard>} />
+            <Route path="/players" element={<RoleGuard path="/players"><Players /></RoleGuard>} />
+            <Route path="/cage" element={<RoleGuard path="/cage"><Cage /></RoleGuard>} />
+            <Route path="/reception" element={<RoleGuard path="/reception"><Reception /></RoleGuard>} />
+            <Route path="/guests" element={<RoleGuard path="/guests"><InCasino /></RoleGuard>} />
+            <Route path="/blacklist" element={<RoleGuard path="/blacklist"><Blacklist /></RoleGuard>} />
+            <Route path="/tables" element={<RoleGuard path="/tables"><Tables /></RoleGuard>} />
+            <Route path="/expenses" element={<RoleGuard path="/expenses"><Expenses /></RoleGuard>} />
+            <Route path="/pit" element={<RoleGuard path="/pit"><Pit /></RoleGuard>} />
+            <Route path="/staff" element={<RoleGuard path="/floor"><Staff /></RoleGuard>} />
+            <Route path="/floor" element={<RoleGuard path="/floor"><Staff /></RoleGuard>} />
+            <Route path="/groups" element={<RoleGuard path="/groups"><Groups /></RoleGuard>} />
+            <Route path="/finance" element={<RoleGuard path="/finance"><Finance /></RoleGuard>} />
+            <Route path="/reports" element={<RoleGuard path="/reports"><Reports /></RoleGuard>} />
+            <Route path="/stats" element={<RoleGuard path="/stats"><Stats /></RoleGuard>} />
+            <Route path="/logs" element={<RoleGuard path="/logs"><Logs /></RoleGuard>} />
+            <Route path="/admin" element={<RoleGuard path="/admin"><Admin /></RoleGuard>} />
+          </Route>
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </Suspense>
+    </ErrorBoundary>
   );
 };
 
