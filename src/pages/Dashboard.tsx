@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { Users, Landmark, Receipt, TrendingDown, AlertTriangle, Clock } from "lucide-react";
+import { CardSkeleton, PlayerListSkeleton } from "@/components/LoadingSkeletons";
 import { usePlayers, useTransactions, useGamingTables, useExpenses, useClientSessionsTotalBet, useTableTracker, usePlayerEconomy } from "@/hooks/use-casino-data";
 import { useAuth } from "@/lib/auth-context";
 import { Link } from "react-router-dom";
@@ -50,8 +51,8 @@ const useTodayVisits = () => {
 const Dashboard = () => {
   const { displayName, roles, isManager, casinoId } = useAuth();
   const businessDate = getBusinessDate();
-  const { data: players = [] } = usePlayers();
-  const { data: transactions = [] } = useTransactions();
+  const { data: players = [], isLoading: loadingPlayers } = usePlayers();
+  const { data: transactions = [], isLoading: loadingTx } = useTransactions();
   const { data: tables = [] } = useGamingTables();
   const { data: expenses = [] } = useExpenses();
   const { data: sessionsTotalBet = 0 } = useClientSessionsTotalBet();
@@ -61,6 +62,8 @@ const Dashboard = () => {
   const { data: staffRota = [] } = useStaffRotaRange(businessDate, businessDate);
   const { data: visits = [] } = useTodayVisits();
 
+  // Show skeleton while critical data loads
+  const isInitialLoading = loadingPlayers && loadingTx;
   const showFinancials = canSeePlayerFinancials(roles);
   const activePlayers = players.filter(p => p.status === "active").length;
   const buyInDrop = transactions.filter(t => t.type === "buy").reduce((s, t) => s + Number(t.amount), 0);
@@ -137,6 +140,19 @@ const Dashboard = () => {
       .sort((a, b) => a.result - b.result)
       .slice(0, 20);
   }, [economy]);
+
+  if (isInitialLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
+          <p className="text-sm text-muted-foreground font-mono mt-1">Loading...</p>
+        </div>
+        <CardSkeleton count={4} />
+        <PlayerListSkeleton count={4} />
+      </div>
+    );
+  }
 
   return (
     <div>

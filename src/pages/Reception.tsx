@@ -56,7 +56,8 @@ const useVisitsToday = () => {
       return data;
     },
     enabled: !!casinoId,
-    refetchInterval: 10000,
+    refetchInterval: 30000, // 30s — gentler on slow connections
+    staleTime: 1000 * 15,
   });
 };
 

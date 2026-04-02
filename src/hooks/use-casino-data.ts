@@ -22,6 +22,7 @@ export const usePlayers = () => {
       return data;
     },
     enabled: !!casinoId,
+    staleTime: 1000 * 60 * 5, // 5 min — players rarely change
   });
 };
 
@@ -142,6 +143,7 @@ export const useTransactions = (date?: string) => {
       return data;
     },
     enabled: !!casinoId,
+    staleTime: 1000 * 30, // 30s
   });
 };
 
@@ -211,6 +213,7 @@ export const useGamingTables = () => {
       return data;
     },
     enabled: !!casinoId,
+    staleTime: 1000 * 60 * 5, // 5 min
   });
 };
 
