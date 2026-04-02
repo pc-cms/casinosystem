@@ -160,7 +160,6 @@ export const useCreateTransaction = () => {
       shift_id?: string;
     }) => {
       if (!casinoId || !user) throw new Error("Not authenticated");
-      const external_id = crypto.randomUUID();
       const payload = {
         casino_id: casinoId,
         player_id: input.player_id,
@@ -170,14 +169,13 @@ export const useCreateTransaction = () => {
         chips: input.chips || null,
         operator_id: user.id,
         shift_id: input.shift_id || null,
-        external_id,
       };
 
       const result = await offlineMutation({
         table: "transactions",
         operation: "insert",
         payload,
-        meta: { type: input.type, amount: input.amount, external_id },
+        meta: { type: input.type, amount: input.amount },
       });
 
       if (result.error) throw new Error(result.error);
