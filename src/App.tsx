@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { QueryClient } from "@tanstack/react-query";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
@@ -10,6 +10,8 @@ import { AuthProvider, useAuth } from "@/lib/auth-context";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { createIDBPersister } from "@/lib/query-persister";
 import { usePrefetchCriticalData } from "@/hooks/use-prefetch";
+import { useRealtimeSubscriptions } from "@/hooks/use-realtime";
+import { initSyncEngine } from "@/lib/sync-engine";
 import Login from "@/pages/Login";
 
 // Lazy-loaded pages — each becomes a separate chunk
