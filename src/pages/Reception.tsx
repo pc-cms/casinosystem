@@ -24,7 +24,7 @@ import { getBusinessDate } from "@/lib/business-day";
 
 const useVisitsToday = () => {
   const { casinoId } = useAuth();
-  const today = format(new Date(), "yyyy-MM-dd");
+  const today = getBusinessDate();
   return useQuery({
     queryKey: ["casino_visits", casinoId, today],
     queryFn: async () => {
@@ -38,7 +38,7 @@ const useVisitsToday = () => {
       return data;
     },
     enabled: !!casinoId,
-    refetchInterval: 30000, // 30s — gentler on slow connections
+    refetchInterval: 30000,
     staleTime: 1000 * 15,
   });
 };

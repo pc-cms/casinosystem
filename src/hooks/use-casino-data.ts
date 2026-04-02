@@ -402,6 +402,7 @@ export const usePlayerEconomy = () => {
       return data;
     },
     enabled: !!casinoId,
+    staleTime: 1000 * 60 * 3, // 3 min — heavy view, cache longer
   });
 };
 
