@@ -101,6 +101,11 @@ const ProtectedRoutes = () => {
   // Prefetch critical data in background
   usePrefetchCriticalData();
 
+  // Adaptive realtime subscriptions (full/polling/off based on connection quality)
+  useRealtimeSubscriptions();
+
+  // Initialize offline sync engine on mount
+  useEffect(() => { initSyncEngine(); }, []);
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
