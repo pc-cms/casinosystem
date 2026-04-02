@@ -141,6 +141,19 @@ const Dashboard = () => {
       .slice(0, 20);
   }, [economy]);
 
+  if (isInitialLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
+          <p className="text-sm text-muted-foreground font-mono mt-1">Loading...</p>
+        </div>
+        <CardSkeleton count={4} />
+        <PlayerListSkeleton count={4} />
+      </div>
+    );
+  }
+
   return (
     <div>
       <div className="mb-6">
