@@ -52,9 +52,9 @@ const Dashboard = () => {
   const { displayName, roles, isManager, casinoId } = useAuth();
   const businessDate = getBusinessDate();
   const { data: players = [], isLoading: loadingPlayers } = usePlayers();
-  const { data: transactions = [], isLoading: loadingTx } = useTransactions();
+  const { data: transactions = [], isLoading: loadingTx } = useTransactions(businessDate);
   const { data: tables = [] } = useGamingTables();
-  const { data: expenses = [] } = useExpenses();
+  const { data: expenses = [] } = useExpenses(businessDate);
   const { data: sessionsTotalBet = 0 } = useClientSessionsTotalBet();
   const { data: trackerData = [] } = useTableTracker(businessDate);
   const { data: economy = [] } = usePlayerEconomy();
