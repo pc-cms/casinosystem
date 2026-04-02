@@ -58,6 +58,7 @@ const useVisitsToday = () => {
     enabled: !!casinoId,
     refetchInterval: 30000, // 30s — gentler on slow connections
     staleTime: 1000 * 15,
+  });
 };
 
 const isProfileIncomplete = (player: any): string[] => {

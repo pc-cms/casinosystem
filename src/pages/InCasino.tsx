@@ -44,6 +44,7 @@ const InCasino = () => {
     enabled: !!casinoId,
     refetchInterval: 30000, // 30s — gentler on slow connections
     staleTime: 1000 * 15,
+  });
 
   const playerIds = useMemo(() => visits.map(v => v.player_id), [visits]);
   const { data: allTags = [] } = useQuery({
