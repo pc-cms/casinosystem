@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
+import { usePlayers } from "@/hooks/use-casino-data";
 import { logAction } from "@/lib/logging";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -19,30 +20,12 @@ import { format, formatDistanceToNow } from "date-fns";
 import CategoryBadge, { type PlayerCategory } from "@/components/player/CategoryBadge";
 import FlagBadges from "@/components/player/FlagBadges";
 import { useIsMobile } from "@/hooks/use-mobile";
-
-// ============ HOOKS ============
-
-const usePlayers = () => {
-  const { casinoId } = useAuth();
-  return useQuery({
-    queryKey: ["players", casinoId],
-    queryFn: async () => {
-      if (!casinoId) return [];
-      const { data, error } = await supabase
-        .from("players")
-        .select("*, player_cards(*), player_tags(*)")
-        .eq("casino_id", casinoId)
-        .order("last_name");
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!casinoId,
-  });
-};
+import { getBusinessDate } from "@/lib/business-day";
+import { compressImage, thumbnailPath } from "@/lib/image-compress";
 
 const useVisitsToday = () => {
   const { casinoId } = useAuth();
-  const today = format(new Date(), "yyyy-MM-dd");
+  const today = getBusinessDate();
   return useQuery({
     queryKey: ["casino_visits", casinoId, today],
     queryFn: async () => {
@@ -56,7 +39,7 @@ const useVisitsToday = () => {
       return data;
     },
     enabled: !!casinoId,
-    refetchInterval: 30000, // 30s — gentler on slow connections
+    refetchInterval: 30000,
     staleTime: 1000 * 15,
   });
 };
@@ -137,7 +120,7 @@ const CheckInTab = () => {
   const [incompleteWarning, setIncompleteWarning] = useState<string[] | null>(null);
   const [profilePlayer, setProfilePlayer] = useState<any>(null);
   const searchRef = useRef<HTMLInputElement>(null);
-  const today = format(new Date(), "yyyy-MM-dd");
+  const today = getBusinessDate();
 
   const activePlayers = useMemo(() => {
     return new Set(visits.filter(v => !v.checked_out_at).map(v => v.player_id));
@@ -443,15 +426,17 @@ const RegisterTab = () => {
       if (error) throw error;
 
       if (photoFile) {
-        const ext = photoFile.name.split(".").pop();
-        const path = `${casinoId}/${player.id}/photo.${ext}`;
-        const { error: uploadErr } = await supabase.storage
-          .from("player-documents")
-          .upload(path, photoFile, { upsert: true });
-        if (!uploadErr) {
-          const { data: urlData } = supabase.storage.from("player-documents").getPublicUrl(path);
-          await supabase.from("players").update({ photo_url: urlData.publicUrl }).eq("id", player.id);
-        }
+        const compressed = await compressImage(photoFile);
+        // Upload thumbnail (fast, used in lists)
+        const thumbPath = `${casinoId}/${player.id}/photo_thumb.jpg`;
+        await supabase.storage.from("player-photos").upload(thumbPath, compressed.thumbnail, { upsert: true, contentType: "image/jpeg" });
+        // Upload original (full quality, used in profile view)
+        const origExt = photoFile.name.split(".").pop() || "jpg";
+        const origPath = `${casinoId}/${player.id}/photo_original.${origExt}`;
+        await supabase.storage.from("player-photos").upload(origPath, compressed.original, { upsert: true });
+        // Set photo_url to thumbnail for fast loading
+        const { data: urlData } = supabase.storage.from("player-photos").getPublicUrl(thumbPath);
+        await supabase.from("players").update({ photo_url: urlData.publicUrl }).eq("id", player.id);
       }
 
       for (const doc of docFiles) {

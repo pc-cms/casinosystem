@@ -52,9 +52,9 @@ const Dashboard = () => {
   const { displayName, roles, isManager, casinoId } = useAuth();
   const businessDate = getBusinessDate();
   const { data: players = [], isLoading: loadingPlayers } = usePlayers();
-  const { data: transactions = [], isLoading: loadingTx } = useTransactions();
+  const { data: transactions = [], isLoading: loadingTx } = useTransactions(businessDate);
   const { data: tables = [] } = useGamingTables();
-  const { data: expenses = [] } = useExpenses();
+  const { data: expenses = [] } = useExpenses(businessDate);
   const { data: sessionsTotalBet = 0 } = useClientSessionsTotalBet();
   const { data: trackerData = [] } = useTableTracker(businessDate);
   const { data: economy = [] } = usePlayerEconomy();
@@ -225,7 +225,7 @@ const Dashboard = () => {
                     <div className="flex items-center gap-1.5">
                       <span className="text-sm font-medium text-card-foreground truncate">{p.name}</span>
                       {p.nickname && <span className="text-xs text-muted-foreground">({p.nickname})</span>}
-                        <AlertTriangle className="w-3.5 h-3.5 text-yellow-400 flex-shrink-0" />
+                      {p.incomplete.length > 0 && <AlertTriangle className="w-3.5 h-3.5 text-yellow-400 flex-shrink-0" />}
                     </div>
                     <div className="flex items-center gap-1 flex-wrap">
                       <span className={`text-[10px] px-1 py-0.5 rounded ${

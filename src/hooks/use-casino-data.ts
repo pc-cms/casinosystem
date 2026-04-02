@@ -298,21 +298,30 @@ export const useReopenTable = () => {
 };
 
 // ============ EXPENSES ============
-export const useExpenses = () => {
+export const useExpenses = (date?: string) => {
   const { casinoId } = useAuth();
   return useQuery({
-    queryKey: ["expenses", casinoId],
+    queryKey: ["expenses", casinoId, date],
     queryFn: async () => {
       if (!casinoId) return [];
-      const { data, error } = await supabase
+      let query = supabase
         .from("expenses")
         .select("*, players(first_name, last_name)")
         .eq("casino_id", casinoId)
         .order("created_at", { ascending: false });
+      
+      if (date) {
+        query = query.gte("created_at", `${date}T00:00:00`).lte("created_at", `${date}T23:59:59`);
+      } else {
+        query = query.limit(200);
+      }
+      
+      const { data, error } = await query;
       if (error) throw error;
       return data;
     },
     enabled: !!casinoId,
+    staleTime: 1000 * 60 * 2,
   });
 };
 
@@ -393,6 +402,7 @@ export const usePlayerEconomy = () => {
       return data;
     },
     enabled: !!casinoId,
+    staleTime: 1000 * 60 * 3, // 3 min — heavy view, cache longer
   });
 };
 
