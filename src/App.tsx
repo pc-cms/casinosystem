@@ -1,4 +1,6 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { lazy, Suspense } from "react";
+import { QueryClient } from "@tanstack/react-query";
+import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
@@ -6,35 +8,50 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/lib/theme";
 import { AuthProvider, useAuth } from "@/lib/auth-context";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { createIDBPersister } from "@/lib/query-persister";
+import { usePrefetchCriticalData } from "@/hooks/use-prefetch";
 import Login from "@/pages/Login";
-import Dashboard from "@/pages/Dashboard";
-import Players from "@/pages/Players";
-import Cage from "@/pages/Cage";
-import Tables from "@/pages/Tables";
-import Expenses from "@/pages/Expenses";
-import Logs from "@/pages/Logs";
-import Stats from "@/pages/Stats";
-import Pit from "@/pages/Pit";
-import Groups from "@/pages/Groups";
-// TableTracker is now embedded in Tables page
-import Reports from "@/pages/Reports";
-import Admin from "@/pages/Admin";
-import Staff from "@/pages/Staff";
-import Finance from "@/pages/Finance";
-import Reception from "@/pages/Reception";
-import InCasino from "@/pages/InCasino";
-import Blacklist from "@/pages/Blacklist";
-import NotFound from "./pages/NotFound";
+
+// Lazy-loaded pages — each becomes a separate chunk
+const Dashboard = lazy(() => import("@/pages/Dashboard"));
+const Players = lazy(() => import("@/pages/Players"));
+const Cage = lazy(() => import("@/pages/Cage"));
+const Tables = lazy(() => import("@/pages/Tables"));
+const Expenses = lazy(() => import("@/pages/Expenses"));
+const Logs = lazy(() => import("@/pages/Logs"));
+const Stats = lazy(() => import("@/pages/Stats"));
+const Pit = lazy(() => import("@/pages/Pit"));
+const Groups = lazy(() => import("@/pages/Groups"));
+const Reports = lazy(() => import("@/pages/Reports"));
+const Admin = lazy(() => import("@/pages/Admin"));
+const Staff = lazy(() => import("@/pages/Staff"));
+const Finance = lazy(() => import("@/pages/Finance"));
+const Reception = lazy(() => import("@/pages/Reception"));
+const InCasino = lazy(() => import("@/pages/InCasino"));
+const Blacklist = lazy(() => import("@/pages/Blacklist"));
+const NotFound = lazy(() => import("@/pages/NotFound"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 30, // 30s
-      refetchOnWindowFocus: true,
-      retry: 1,
+      staleTime: 1000 * 60 * 2, // 2 min — better for slow connections
+      gcTime: 1000 * 60 * 60 * 24, // 24h — keep in cache for offline
+      refetchOnWindowFocus: false, // avoid refetch storms on tab switch
+      refetchOnReconnect: true,
+      retry: 2,
+      retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 15000),
     },
   },
 });
+
+const persister = createIDBPersister();
+
+// Loading spinner for lazy-loaded pages
+const PageLoader = () => (
+  <div className="flex items-center justify-center py-20">
+    <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+  </div>
+);
 
 // Role-based route access map
 const ROUTE_ROLES: Record<string, string[]> = {
@@ -60,7 +77,6 @@ const RoleGuard = ({ path, children }: { path: string; children: React.ReactNode
   const { roles } = useAuth();
   const allowed = ROUTE_ROLES[path];
   if (allowed && !roles.some(r => allowed.includes(r))) {
-    // Cashiers blocked from dashboard → send to cage
     const fallback = roles.includes("cashier") ? "/cage" : "/";
     return <Navigate to={path === "/" ? fallback : "/"} replace />;
   }
@@ -79,6 +95,10 @@ const getDefaultRoute = (roles: string[]) => {
 
 const ProtectedRoutes = () => {
   const { user, loading } = useAuth();
+
+  // Prefetch critical data in background
+  usePrefetchCriticalData();
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -91,29 +111,30 @@ const ProtectedRoutes = () => {
   }
   if (!user) return <Navigate to="/login" replace />;
   return (
-    <Routes>
-      <Route element={<AppLayout />}>
-        <Route path="/" element={<RoleGuard path="/"><Dashboard /></RoleGuard>} />
-        <Route path="/players" element={<RoleGuard path="/players"><Players /></RoleGuard>} />
-        <Route path="/cage" element={<RoleGuard path="/cage"><Cage /></RoleGuard>} />
-        <Route path="/reception" element={<RoleGuard path="/reception"><Reception /></RoleGuard>} />
-        <Route path="/guests" element={<RoleGuard path="/guests"><InCasino /></RoleGuard>} />
-        <Route path="/blacklist" element={<RoleGuard path="/blacklist"><Blacklist /></RoleGuard>} />
-        <Route path="/tables" element={<RoleGuard path="/tables"><Tables /></RoleGuard>} />
-        <Route path="/expenses" element={<RoleGuard path="/expenses"><Expenses /></RoleGuard>} />
-        <Route path="/pit" element={<RoleGuard path="/pit"><Pit /></RoleGuard>} />
-        <Route path="/staff" element={<RoleGuard path="/floor"><Staff /></RoleGuard>} />
-        <Route path="/floor" element={<RoleGuard path="/floor"><Staff /></RoleGuard>} />
-        <Route path="/groups" element={<RoleGuard path="/groups"><Groups /></RoleGuard>} />
-        <Route path="/finance" element={<RoleGuard path="/finance"><Finance /></RoleGuard>} />
-        {/* tracker is now under /tables?tab=tracker */}
-        <Route path="/reports" element={<RoleGuard path="/reports"><Reports /></RoleGuard>} />
-        <Route path="/stats" element={<RoleGuard path="/stats"><Stats /></RoleGuard>} />
-        <Route path="/logs" element={<RoleGuard path="/logs"><Logs /></RoleGuard>} />
-        <Route path="/admin" element={<RoleGuard path="/admin"><Admin /></RoleGuard>} />
-      </Route>
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+    <Suspense fallback={<PageLoader />}>
+      <Routes>
+        <Route element={<AppLayout />}>
+          <Route path="/" element={<RoleGuard path="/"><Dashboard /></RoleGuard>} />
+          <Route path="/players" element={<RoleGuard path="/players"><Players /></RoleGuard>} />
+          <Route path="/cage" element={<RoleGuard path="/cage"><Cage /></RoleGuard>} />
+          <Route path="/reception" element={<RoleGuard path="/reception"><Reception /></RoleGuard>} />
+          <Route path="/guests" element={<RoleGuard path="/guests"><InCasino /></RoleGuard>} />
+          <Route path="/blacklist" element={<RoleGuard path="/blacklist"><Blacklist /></RoleGuard>} />
+          <Route path="/tables" element={<RoleGuard path="/tables"><Tables /></RoleGuard>} />
+          <Route path="/expenses" element={<RoleGuard path="/expenses"><Expenses /></RoleGuard>} />
+          <Route path="/pit" element={<RoleGuard path="/pit"><Pit /></RoleGuard>} />
+          <Route path="/staff" element={<RoleGuard path="/floor"><Staff /></RoleGuard>} />
+          <Route path="/floor" element={<RoleGuard path="/floor"><Staff /></RoleGuard>} />
+          <Route path="/groups" element={<RoleGuard path="/groups"><Groups /></RoleGuard>} />
+          <Route path="/finance" element={<RoleGuard path="/finance"><Finance /></RoleGuard>} />
+          <Route path="/reports" element={<RoleGuard path="/reports"><Reports /></RoleGuard>} />
+          <Route path="/stats" element={<RoleGuard path="/stats"><Stats /></RoleGuard>} />
+          <Route path="/logs" element={<RoleGuard path="/logs"><Logs /></RoleGuard>} />
+          <Route path="/admin" element={<RoleGuard path="/admin"><Admin /></RoleGuard>} />
+        </Route>
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </Suspense>
   );
 };
 
@@ -131,7 +152,14 @@ const AppRoutes = () => {
 
 const App = () => (
   <ThemeProvider>
-    <QueryClientProvider client={queryClient}>
+    <PersistQueryClientProvider
+      client={queryClient}
+      persistOptions={{
+        persister,
+        maxAge: 1000 * 60 * 60 * 24, // 24h
+        buster: "v1",
+      }}
+    >
       <TooltipProvider>
         <AuthProvider>
           <Toaster />
@@ -141,7 +169,7 @@ const App = () => (
           </BrowserRouter>
         </AuthProvider>
       </TooltipProvider>
-    </QueryClientProvider>
+    </PersistQueryClientProvider>
   </ThemeProvider>
 );
 
