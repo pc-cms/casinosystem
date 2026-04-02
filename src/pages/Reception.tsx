@@ -426,15 +426,17 @@ const RegisterTab = () => {
       if (error) throw error;
 
       if (photoFile) {
-        const ext = photoFile.name.split(".").pop();
-        const path = `${casinoId}/${player.id}/photo.${ext}`;
-        const { error: uploadErr } = await supabase.storage
-          .from("player-documents")
-          .upload(path, photoFile, { upsert: true });
-        if (!uploadErr) {
-          const { data: urlData } = supabase.storage.from("player-documents").getPublicUrl(path);
-          await supabase.from("players").update({ photo_url: urlData.publicUrl }).eq("id", player.id);
-        }
+        const compressed = await compressImage(photoFile);
+        // Upload thumbnail (fast, used in lists)
+        const thumbPath = `${casinoId}/${player.id}/photo_thumb.jpg`;
+        await supabase.storage.from("player-photos").upload(thumbPath, compressed.thumbnail, { upsert: true, contentType: "image/jpeg" });
+        // Upload original (full quality, used in profile view)
+        const origExt = photoFile.name.split(".").pop() || "jpg";
+        const origPath = `${casinoId}/${player.id}/photo_original.${origExt}`;
+        await supabase.storage.from("player-photos").upload(origPath, compressed.original, { upsert: true });
+        // Set photo_url to thumbnail for fast loading
+        const { data: urlData } = supabase.storage.from("player-photos").getPublicUrl(thumbPath);
+        await supabase.from("players").update({ photo_url: urlData.publicUrl }).eq("id", player.id);
       }
 
       for (const doc of docFiles) {
