@@ -160,7 +160,6 @@ export const useCreateTransaction = () => {
       shift_id?: string;
     }) => {
       if (!casinoId || !user) throw new Error("Not authenticated");
-      // Generate external_id for deduplication
       const external_id = crypto.randomUUID();
       const payload = {
         casino_id: casinoId,
@@ -182,18 +181,43 @@ export const useCreateTransaction = () => {
       });
 
       if (result.error) throw new Error(result.error);
-
-      // DB trigger auto_log_transaction handles logging now — skip frontend log
       return { offline: result.offline };
     },
-    onSuccess: (res, vars) => {
+    // Optimistic update — instant UI feedback before server confirms
+    onMutate: async (vars) => {
+      await qc.cancelQueries({ queryKey: ["transactions"] });
+      const today = new Date().toISOString().split("T")[0];
+      const prevTxs = qc.getQueryData(["transactions", casinoId, today]);
+
+      const optimisticTx = {
+        id: `optimistic-${Date.now()}`,
+        casino_id: casinoId,
+        player_id: vars.player_id,
+        table_id: vars.table_id,
+        type: vars.type,
+        amount: vars.amount,
+        chips: vars.chips || null,
+        operator_id: user?.id,
+        shift_id: vars.shift_id || null,
+        created_at: new Date().toISOString(),
+        _optimistic: true,
+      };
+
+      qc.setQueryData(["transactions", casinoId, today], (old: any[] = []) => [optimisticTx, ...old]);
+      toast.success(`${vars.type === "buy" ? "Buy-in" : "Cashout"} recorded: TZS ${formatNumberSpaces(vars.amount)}`);
+      return { prevTxs, today };
+    },
+    onError: (e, _vars, context) => {
+      // Rollback optimistic update
+      if (context?.prevTxs !== undefined) {
+        qc.setQueryData(["transactions", casinoId, context.today], context.prevTxs);
+      }
+      toast.error(e.message);
+    },
+    onSettled: () => {
       qc.invalidateQueries({ queryKey: ["transactions"] });
       qc.invalidateQueries({ queryKey: ["player-economy"] });
-      if (!res.offline) {
-        toast.success(`${vars.type === "buy" ? "Buy-in" : "Cashout"} recorded: TZS ${formatNumberSpaces(vars.amount)}`);
-      }
     },
-    onError: (e) => toast.error(e.message),
   });
 };
 
