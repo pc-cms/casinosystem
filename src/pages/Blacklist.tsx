@@ -120,7 +120,7 @@ const Blacklist = () => {
         <div className="flex items-center gap-2">
           <p className="text-sm text-muted-foreground">{displayList.length} blacklisted players</p>
           {!navigator.onLine && cachedPlayers.length > 0 && (
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 font-medium">
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent/10 text-accent-foreground font-medium">
               Offline cache
             </span>
           )}
