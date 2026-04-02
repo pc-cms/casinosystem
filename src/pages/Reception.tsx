@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
+import { usePlayers } from "@/hooks/use-casino-data";
 import { logAction } from "@/lib/logging";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -19,26 +20,7 @@ import { format, formatDistanceToNow } from "date-fns";
 import CategoryBadge, { type PlayerCategory } from "@/components/player/CategoryBadge";
 import FlagBadges from "@/components/player/FlagBadges";
 import { useIsMobile } from "@/hooks/use-mobile";
-
-// ============ HOOKS ============
-
-const usePlayers = () => {
-  const { casinoId } = useAuth();
-  return useQuery({
-    queryKey: ["players", casinoId],
-    queryFn: async () => {
-      if (!casinoId) return [];
-      const { data, error } = await supabase
-        .from("players")
-        .select("*, player_cards(*), player_tags(*)")
-        .eq("casino_id", casinoId)
-        .order("last_name");
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!casinoId,
-  });
-};
+import { getBusinessDate } from "@/lib/business-day";
 
 const useVisitsToday = () => {
   const { casinoId } = useAuth();
