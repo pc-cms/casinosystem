@@ -50,8 +50,8 @@ const useTodayVisits = () => {
 const Dashboard = () => {
   const { displayName, roles, isManager, casinoId } = useAuth();
   const businessDate = getBusinessDate();
-  const { data: players = [] } = usePlayers();
-  const { data: transactions = [] } = useTransactions();
+  const { data: players = [], isLoading: loadingPlayers } = usePlayers();
+  const { data: transactions = [], isLoading: loadingTx } = useTransactions();
   const { data: tables = [] } = useGamingTables();
   const { data: expenses = [] } = useExpenses();
   const { data: sessionsTotalBet = 0 } = useClientSessionsTotalBet();
@@ -61,6 +61,8 @@ const Dashboard = () => {
   const { data: staffRota = [] } = useStaffRotaRange(businessDate, businessDate);
   const { data: visits = [] } = useTodayVisits();
 
+  // Show skeleton while critical data loads
+  const isInitialLoading = loadingPlayers && loadingTx;
   const showFinancials = canSeePlayerFinancials(roles);
   const activePlayers = players.filter(p => p.status === "active").length;
   const buyInDrop = transactions.filter(t => t.type === "buy").reduce((s, t) => s + Number(t.amount), 0);
