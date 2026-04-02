@@ -119,7 +119,7 @@ const CheckInTab = () => {
   const [incompleteWarning, setIncompleteWarning] = useState<string[] | null>(null);
   const [profilePlayer, setProfilePlayer] = useState<any>(null);
   const searchRef = useRef<HTMLInputElement>(null);
-  const today = format(new Date(), "yyyy-MM-dd");
+  const today = getBusinessDate();
 
   const activePlayers = useMemo(() => {
     return new Set(visits.filter(v => !v.checked_out_at).map(v => v.player_id));
