@@ -22,6 +22,7 @@ export const usePlayers = () => {
       return data;
     },
     enabled: !!casinoId,
+    staleTime: 1000 * 60 * 5, // 5 min — players rarely change
   });
 };
 
