@@ -21,6 +21,7 @@ import CategoryBadge, { type PlayerCategory } from "@/components/player/Category
 import FlagBadges from "@/components/player/FlagBadges";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { getBusinessDate } from "@/lib/business-day";
+import { compressImage, thumbnailPath } from "@/lib/image-compress";
 
 const useVisitsToday = () => {
   const { casinoId } = useAuth();
