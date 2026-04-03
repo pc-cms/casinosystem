@@ -188,7 +188,7 @@ const CheckInTab = () => {
       await logAction(casinoId, "player", "PLAYER_CHECKED_OUT", { player_id: playerId });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["casino_visits"] });
+      queryClient.invalidateQueries({ queryKey: ["casino-visits-today"] });
       setSelectedPlayer(null);
       setIncompleteWarning(null);
       toast.success("Player checked out");
