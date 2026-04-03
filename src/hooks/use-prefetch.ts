@@ -6,6 +6,7 @@ import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
+import { getBusinessDate } from "@/lib/business-day";
 
 export function usePrefetchCriticalData() {
   const qc = useQueryClient();
@@ -29,7 +30,6 @@ export function usePrefetchCriticalData() {
     });
 
     // Prefetch active visits — align key with Dashboard's useTodayVisits
-    const { getBusinessDate } = require("@/lib/business-day");
     const today = getBusinessDate();
     qc.prefetchQuery({
       queryKey: ["casino-visits-today", casinoId, today],

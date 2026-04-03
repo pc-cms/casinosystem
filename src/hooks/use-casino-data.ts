@@ -387,16 +387,17 @@ export const useApproveExpense = () => {
 };
 
 // ============ PLAYER ECONOMY ============
-export const usePlayerEconomy = () => {
+export const usePlayerEconomy = (limit = 500) => {
   const { casinoId } = useAuth();
   return useQuery({
-    queryKey: ["player-economy", casinoId],
+    queryKey: ["player-economy", casinoId, limit],
     queryFn: async () => {
       if (!casinoId) return [];
       const { data, error } = await supabase
         .from("player_economy")
         .select("*")
-        .eq("casino_id", casinoId);
+        .eq("casino_id", casinoId)
+        .limit(limit);
       if (error) throw error;
       return data;
     },
@@ -897,20 +898,25 @@ export const useRemoveGroupMember = () => {
 };
 
 // ============ CLIENT SESSIONS (for analytics drop) ============
-export const useClientSessionsTotalBet = () => {
+export const useClientSessionsTotalBet = (date?: string) => {
   const { casinoId } = useAuth();
   return useQuery({
-    queryKey: ["client-sessions-total-bet", casinoId],
+    queryKey: ["client-sessions-total-bet", casinoId, date],
     queryFn: async () => {
       if (!casinoId) return 0;
-      const { data, error } = await supabase
+      let query = supabase
         .from("client_sessions")
         .select("total_bet")
         .eq("casino_id", casinoId)
         .not("stopped_at", "is", null);
+      if (date) {
+        query = query.gte("started_at", `${date}T00:00:00`).lte("started_at", `${date}T23:59:59`);
+      }
+      const { data, error } = await query;
       if (error) throw error;
       return (data || []).reduce((sum, s) => sum + Number(s.total_bet || 0), 0);
     },
     enabled: !!casinoId,
+    staleTime: 1000 * 60 * 2,
   });
 };

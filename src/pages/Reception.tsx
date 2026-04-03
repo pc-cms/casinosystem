@@ -27,7 +27,7 @@ const useVisitsToday = () => {
   const { casinoId } = useAuth();
   const today = getBusinessDate();
   return useQuery({
-    queryKey: ["casino_visits", casinoId, today],
+    queryKey: ["casino-visits-today", casinoId, today],
     queryFn: async () => {
       if (!casinoId) return [];
       const { data, error } = await supabase
@@ -165,7 +165,7 @@ const CheckInTab = () => {
       await logAction(casinoId, "player", "PLAYER_CHECKED_IN", { player_id: playerId });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["casino_visits"] });
+      queryClient.invalidateQueries({ queryKey: ["casino-visits-today"] });
       setSelectedPlayer(null);
       setIncompleteWarning(null);
       setQuery("");
@@ -188,7 +188,7 @@ const CheckInTab = () => {
       await logAction(casinoId, "player", "PLAYER_CHECKED_OUT", { player_id: playerId });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["casino_visits"] });
+      queryClient.invalidateQueries({ queryKey: ["casino-visits-today"] });
       setSelectedPlayer(null);
       setIncompleteWarning(null);
       toast.success("Player checked out");
@@ -440,9 +440,17 @@ const RegisterTab = () => {
       }
 
       for (const doc of docFiles) {
-        const ext = doc.name.split(".").pop();
-        const path = `${casinoId}/${player.id}/docs/${Date.now()}.${ext}`;
-        await supabase.storage.from("player-documents").upload(path, doc);
+        const ext = doc.name.split(".").pop()?.toLowerCase();
+        const isImage = doc.type.startsWith("image/");
+        let uploadBlob: Blob = doc;
+        if (isImage && doc.size > 500 * 1024) {
+          const compressed = await compressImage(doc);
+          uploadBlob = compressed.thumbnail;
+        }
+        const path = `${casinoId}/${player.id}/docs/${Date.now()}.${isImage ? "jpg" : ext}`;
+        await supabase.storage.from("player-documents").upload(path, uploadBlob, {
+          contentType: isImage ? "image/jpeg" : doc.type,
+        });
       }
 
       const { data: cardNum } = await supabase.rpc("generate_card_number" as any);

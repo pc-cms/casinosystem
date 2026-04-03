@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { getBusinessDate } from "@/lib/business-day";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
@@ -20,7 +21,7 @@ type TypeFilter = "all" | "slots" | "table" | "mix";
 const InCasino = () => {
   const { casinoId, user } = useAuth();
   const queryClient = useQueryClient();
-  const today = format(new Date(), "yyyy-MM-dd");
+  const today = getBusinessDate();
   const isMobile = useIsMobile();
   const [sortKey, setSortKey] = useState<SortKey>("category");
   const [sortAsc, setSortAsc] = useState(true);
@@ -29,7 +30,7 @@ const InCasino = () => {
   const [profilePlayer, setProfilePlayer] = useState<any>(null);
 
   const { data: visits = [] } = useQuery({
-    queryKey: ["casino_visits", casinoId, today],
+    queryKey: ["casino-visits-today", casinoId, today],
     queryFn: async () => {
       if (!casinoId) return [];
       const { data, error } = await supabase
@@ -42,7 +43,7 @@ const InCasino = () => {
       return data;
     },
     enabled: !!casinoId,
-    refetchInterval: 30000, // 30s — gentler on slow connections
+    refetchInterval: 30000,
     staleTime: 1000 * 15,
   });
 
@@ -134,7 +135,7 @@ const InCasino = () => {
       await logAction(casinoId, "player", "PLAYER_EXIT_CONFIRMED", { visit_id: visitId, player_id: visit.player_id });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["casino_visits"] });
+      queryClient.invalidateQueries({ queryKey: ["casino-visits-today"] });
       toast.success("Exit confirmed");
     },
     onError: (e) => toast.error(e.message),
