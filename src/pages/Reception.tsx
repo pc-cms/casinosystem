@@ -108,16 +108,16 @@ const CheckInTab = () => {
   }, [visits]);
 
   const filtered = useMemo(() => {
-    if (!query) return [];
-    const q = query.toLowerCase();
+    if (!debouncedQuery) return [];
+    const q = debouncedQuery.toLowerCase();
     return players.filter(p =>
       p.first_name.toLowerCase().includes(q) ||
       p.last_name.toLowerCase().includes(q) ||
       p.nickname?.toLowerCase().includes(q) ||
-      p.player_cards?.some((c: any) => c.card_number.includes(query)) ||
-      p.player_cards?.some((c: any) => c.rfid_uid?.includes(query))
+      p.player_cards?.some((c: any) => c.card_number.includes(debouncedQuery)) ||
+      p.player_cards?.some((c: any) => c.rfid_uid?.includes(debouncedQuery))
     ).slice(0, 20);
-  }, [query, players]);
+  }, [debouncedQuery, players]);
 
   const handleSelectPlayer = (player: any) => {
     setSelectedPlayer(player);
