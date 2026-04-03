@@ -6,6 +6,7 @@ import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
+import { getBusinessDate } from "@/lib/business-day";
 
 export function usePrefetchCriticalData() {
   const qc = useQueryClient();
