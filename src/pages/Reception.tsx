@@ -300,7 +300,7 @@ const PlayerConfirmCard = ({
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <CategoryBadge category={((player as any).category as PlayerCategory) || "guest"} size="md" />
+            <CategoryBadge category={(player.category as PlayerCategory) || "guest"} size="md" />
             <h2 className="text-lg sm:text-xl font-bold text-foreground truncate">
               {player.first_name} {player.last_name}
             </h2>
