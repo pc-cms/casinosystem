@@ -30,8 +30,7 @@ export function usePrefetchCriticalData() {
     });
 
     // Prefetch active visits — align key with Dashboard's useTodayVisits
-    const { getBusinessDate: getBD } = await import("@/lib/business-day");
-    const today = getBD();
+    const today = getBusinessDate();
     qc.prefetchQuery({
       queryKey: ["casino-visits-today", casinoId, today],
       queryFn: async () => {
