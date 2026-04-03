@@ -24,27 +24,6 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { getBusinessDate } from "@/lib/business-day";
 import { compressImage, thumbnailPath } from "@/lib/image-compress";
 
-const useVisitsToday = () => {
-  const { casinoId } = useAuth();
-  const today = getBusinessDate();
-  return useQuery({
-    queryKey: ["casino-visits-today", casinoId, today],
-    queryFn: async () => {
-      if (!casinoId) return [];
-      const { data, error } = await supabase
-        .from("casino_visits")
-        .select("*, players(first_name, last_name, nickname, photo_url, status, id_number, category, player_type)")
-        .eq("casino_id", casinoId)
-        .eq("date", today);
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!casinoId,
-    refetchInterval: 30000,
-    staleTime: 1000 * 15,
-  });
-};
-
 const isProfileIncomplete = (player: any): string[] => {
   const missing: string[] = [];
   if (!player.photo_url) missing.push("photo");
