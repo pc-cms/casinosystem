@@ -27,7 +27,7 @@ const useVisitsToday = () => {
   const { casinoId } = useAuth();
   const today = getBusinessDate();
   return useQuery({
-    queryKey: ["casino_visits", casinoId, today],
+    queryKey: ["casino-visits-today", casinoId, today],
     queryFn: async () => {
       if (!casinoId) return [];
       const { data, error } = await supabase
