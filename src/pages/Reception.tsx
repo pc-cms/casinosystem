@@ -96,6 +96,7 @@ const CheckInTab = () => {
   const { data: visits = [] } = useVisitsToday();
   const queryClient = useQueryClient();
   const [query, setQuery] = useState("");
+  const debouncedQuery = useDebouncedValue(query, 200);
   const [selectedPlayer, setSelectedPlayer] = useState<any | null>(null);
   const [incompleteWarning, setIncompleteWarning] = useState<string[] | null>(null);
   const [profilePlayer, setProfilePlayer] = useState<any>(null);
