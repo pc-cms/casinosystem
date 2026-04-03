@@ -220,7 +220,7 @@ const CheckInTab = () => {
                   </p>
                 </div>
                 <div className="flex items-center gap-1 shrink-0 flex-wrap justify-end">
-                  <CategoryBadge category={((p as any).category as PlayerCategory) || "guest"} />
+                  <CategoryBadge category={(p.category as PlayerCategory) || "guest"} />
                   {incomplete.length > 0 && <AlertTriangle className="w-3.5 h-3.5 text-yellow-500" />}
                   {isBlacklisted ? (
                     <Badge variant="destructive" className="text-[10px] shrink-0">BL</Badge>
