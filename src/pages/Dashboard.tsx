@@ -1,15 +1,13 @@
 import { useMemo } from "react";
 import { Users, Landmark, Receipt, TrendingDown, AlertTriangle, Clock } from "lucide-react";
 import { CardSkeleton, PlayerListSkeleton } from "@/components/LoadingSkeletons";
-import { usePlayers, useTransactions, useGamingTables, useExpenses, useClientSessionsTotalBet, useTableTracker, usePlayerEconomy } from "@/hooks/use-casino-data";
+import { usePlayers, useTransactions, useGamingTables, useExpenses, useClientSessionsTotalBet, useTableTracker, usePlayerEconomy, useVisitsToday } from "@/hooks/use-casino-data";
 import { useAuth } from "@/lib/auth-context";
 import { Link } from "react-router-dom";
 import { formatCurrency } from "@/lib/currency";
 import { canSeePlayerFinancials } from "@/lib/role-access";
 import { getBusinessDate } from "@/lib/business-day";
 import { useStaffMembers, useStaffRotaRange, DEPARTMENT_LABELS, STAFF_SHIFT_LABELS, STAFF_SHIFT_COLORS } from "@/hooks/use-staff";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { format, formatDistanceToNow } from "date-fns";
 
 const StatCard = ({ label, value, icon: Icon, href }: {
@@ -28,26 +26,6 @@ const StatCard = ({ label, value, icon: Icon, href }: {
   </Link>
 );
 
-const useTodayVisits = () => {
-  const { casinoId } = useAuth();
-  const today = getBusinessDate();
-  return useQuery({
-    queryKey: ["casino-visits-today", casinoId, today],
-    queryFn: async () => {
-      if (!casinoId) return [];
-      const { data, error } = await supabase
-        .from("casino_visits")
-        .select("*, players(first_name, last_name, nickname, photo_url, status, player_tags(tag), id_number)")
-        .eq("casino_id", casinoId)
-        .eq("date", today)
-        .is("checked_out_at", null);
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!casinoId,
-  });
-};
-
 const Dashboard = () => {
   const { displayName, roles, isManager, casinoId } = useAuth();
   const businessDate = getBusinessDate();
@@ -60,7 +38,8 @@ const Dashboard = () => {
   const { data: economy = [] } = usePlayerEconomy();
   const { data: staffMembers = [] } = useStaffMembers();
   const { data: staffRota = [] } = useStaffRotaRange(businessDate, businessDate);
-  const { data: visits = [] } = useTodayVisits();
+  const { data: allVisits = [] } = useVisitsToday("*, players(first_name, last_name, nickname, photo_url, status, player_tags(tag), id_number)") as { data: any[] };
+  const visits = useMemo(() => allVisits.filter((v: any) => !v.checked_out_at), [allVisits]);
 
   // Show skeleton while critical data loads
   const isInitialLoading = loadingPlayers && loadingTx;

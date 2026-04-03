@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Search, Plus } from "lucide-react";
 import { usePlayers, useCreatePlayer } from "@/hooks/use-casino-data";
+import { useDebouncedValue } from "@/hooks/use-debounce";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -12,6 +13,7 @@ import PlayerDetailDialog from "@/components/player/PlayerDetailDialog";
 const Players = () => {
   const { data: players = [], isLoading } = usePlayers();
   const [query, setQuery] = useState("");
+  const debouncedQuery = useDebouncedValue(query, 250);
   const [showAdd, setShowAdd] = useState(false);
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<Set<PlayerCategory>>(new Set(["diamond", "platinum", "gold", "guest"]));
@@ -20,20 +22,20 @@ const Players = () => {
 
   const filtered = (() => {
     let list = players;
-    if (query) {
-      const q = query.toLowerCase();
+    if (debouncedQuery) {
+      const q = debouncedQuery.toLowerCase();
       list = list.filter(p =>
         p.first_name.toLowerCase().includes(q) ||
         p.last_name.toLowerCase().includes(q) ||
         p.nickname.toLowerCase().includes(q) ||
-        p.player_cards?.some(c => c.card_number.includes(query))
+        p.player_cards?.some(c => c.card_number.includes(debouncedQuery))
       );
     }
-    list = list.filter(p => categoryFilter.has(((p as any).category as PlayerCategory) || "guest"));
+    list = list.filter(p => categoryFilter.has((p.category as PlayerCategory) || "guest"));
     if (sortByCategory) {
       list = [...list].sort((a, b) => {
-        const catA = CATEGORY_PRIORITY[((a as any).category as PlayerCategory) || "guest"];
-        const catB = CATEGORY_PRIORITY[((b as any).category as PlayerCategory) || "guest"];
+        const catA = CATEGORY_PRIORITY[(a.category as PlayerCategory) || "guest"];
+        const catB = CATEGORY_PRIORITY[(b.category as PlayerCategory) || "guest"];
         if (catA !== catB) return catA - catB;
         return `${a.first_name} ${a.last_name}`.localeCompare(`${b.first_name} ${b.last_name}`);
       });
@@ -96,7 +98,7 @@ const Players = () => {
                 <tr key={player.id} onClick={() => setSelectedPlayerId(player.id)}
                   className="border-b border-border last:border-0 hover:bg-muted/50 cursor-pointer transition-colors">
                   <td className="px-4 py-3">
-                    <CategoryBadge category={((player as any).category as PlayerCategory) || "guest"} />
+                    <CategoryBadge category={(player.category as PlayerCategory) || "guest"} />
                   </td>
                   <td className="px-4 py-3 text-sm font-medium text-card-foreground">{player.first_name} {player.last_name}</td>
                   <td className="px-4 py-3 text-sm text-muted-foreground">{player.nickname}</td>

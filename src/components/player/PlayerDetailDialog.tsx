@@ -36,7 +36,7 @@ const PlayerDetailDialog = ({ player, onClose }: { player: any; onClose: () => v
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <CategoryBadge category={((player as any).category as PlayerCategory) || "guest"} size="md" />
+            <CategoryBadge category={(player.category as PlayerCategory) || "guest"} size="md" />
             {player.first_name} {player.last_name}
             <span className="text-muted-foreground font-normal">({player.nickname})</span>
           </DialogTitle>

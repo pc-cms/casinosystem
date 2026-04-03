@@ -3,7 +3,8 @@ import { useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
-import { usePlayers } from "@/hooks/use-casino-data";
+import { usePlayers, useVisitsToday } from "@/hooks/use-casino-data";
+import { useDebouncedValue } from "@/hooks/use-debounce";
 import { logAction } from "@/lib/logging";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -22,27 +23,6 @@ import FlagBadges from "@/components/player/FlagBadges";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { getBusinessDate } from "@/lib/business-day";
 import { compressImage, thumbnailPath } from "@/lib/image-compress";
-
-const useVisitsToday = () => {
-  const { casinoId } = useAuth();
-  const today = getBusinessDate();
-  return useQuery({
-    queryKey: ["casino-visits-today", casinoId, today],
-    queryFn: async () => {
-      if (!casinoId) return [];
-      const { data, error } = await supabase
-        .from("casino_visits")
-        .select("*, players(first_name, last_name, nickname, photo_url, status, id_number, category, player_type)")
-        .eq("casino_id", casinoId)
-        .eq("date", today);
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!casinoId,
-    refetchInterval: 30000,
-    staleTime: 1000 * 15,
-  });
-};
 
 const isProfileIncomplete = (player: any): string[] => {
   const missing: string[] = [];
@@ -113,9 +93,10 @@ const Reception = () => {
 const CheckInTab = () => {
   const { casinoId, user } = useAuth();
   const { data: players = [] } = usePlayers();
-  const { data: visits = [] } = useVisitsToday();
+  const { data: visits = [] } = useVisitsToday("*, players(first_name, last_name, nickname, photo_url, status, id_number, category, player_type)") as { data: any[] };
   const queryClient = useQueryClient();
   const [query, setQuery] = useState("");
+  const debouncedQuery = useDebouncedValue(query, 200);
   const [selectedPlayer, setSelectedPlayer] = useState<any | null>(null);
   const [incompleteWarning, setIncompleteWarning] = useState<string[] | null>(null);
   const [profilePlayer, setProfilePlayer] = useState<any>(null);
@@ -127,16 +108,16 @@ const CheckInTab = () => {
   }, [visits]);
 
   const filtered = useMemo(() => {
-    if (!query) return [];
-    const q = query.toLowerCase();
+    if (!debouncedQuery) return [];
+    const q = debouncedQuery.toLowerCase();
     return players.filter(p =>
       p.first_name.toLowerCase().includes(q) ||
       p.last_name.toLowerCase().includes(q) ||
       p.nickname?.toLowerCase().includes(q) ||
-      p.player_cards?.some((c: any) => c.card_number.includes(query)) ||
-      p.player_cards?.some((c: any) => c.rfid_uid?.includes(query))
+      p.player_cards?.some((c: any) => c.card_number.includes(debouncedQuery)) ||
+      p.player_cards?.some((c: any) => c.rfid_uid?.includes(debouncedQuery))
     ).slice(0, 20);
-  }, [query, players]);
+  }, [debouncedQuery, players]);
 
   const handleSelectPlayer = (player: any) => {
     setSelectedPlayer(player);
@@ -239,7 +220,7 @@ const CheckInTab = () => {
                   </p>
                 </div>
                 <div className="flex items-center gap-1 shrink-0 flex-wrap justify-end">
-                  <CategoryBadge category={((p as any).category as PlayerCategory) || "guest"} />
+                  <CategoryBadge category={(p.category as PlayerCategory) || "guest"} />
                   {incomplete.length > 0 && <AlertTriangle className="w-3.5 h-3.5 text-yellow-500" />}
                   {isBlacklisted ? (
                     <Badge variant="destructive" className="text-[10px] shrink-0">BL</Badge>
@@ -319,7 +300,7 @@ const PlayerConfirmCard = ({
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <CategoryBadge category={((player as any).category as PlayerCategory) || "guest"} size="md" />
+            <CategoryBadge category={(player.category as PlayerCategory) || "guest"} size="md" />
             <h2 className="text-lg sm:text-xl font-bold text-foreground truncate">
               {player.first_name} {player.last_name}
             </h2>

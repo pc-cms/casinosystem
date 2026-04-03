@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef, useCallback } from "react";
 import { toast } from "sonner";
+import { CardSkeleton, TableSkeleton } from "@/components/LoadingSkeletons";
 import { usePlayers, useGamingTables, useTransactions, useCreateTransaction, useExpenses } from "@/hooks/use-casino-data";
 import { useActiveShift, useOpenShift, useCloseShift, useCreateCashCount, useCashCounts } from "@/hooks/use-shift";
 import { useBatchChipSnapshot, getExpectedChips, getInitialTotal } from "@/hooks/use-chips";
@@ -30,12 +31,27 @@ import {
 } from "@/components/cage/CageHelpers";
 
 const Cage = () => {
-  const { data: shift } = useActiveShift();
-  const { data: players = [] } = usePlayers();
+  const { data: shift, isLoading: loadingShift } = useActiveShift();
+  const { data: players = [], isLoading: loadingPlayers } = usePlayers();
   const { data: tables = [] } = useGamingTables();
 
+  if (loadingShift || loadingPlayers) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between mb-2">
+          <div>
+            <h1 className="text-xl font-bold text-foreground">Cage</h1>
+            <p className="text-xs text-muted-foreground">Loading shift data...</p>
+          </div>
+        </div>
+        <CardSkeleton count={4} />
+        <TableSkeleton rows={3} cols={3} />
+      </div>
+    );
+  }
+
   if (!shift) return <OpenShiftScreen tables={tables} />;
-  return <ActiveShiftView shift={shift} players={players} tables={tables} />;
+  return <ActiveShiftView shift={shift as any} players={players} tables={tables} />;
 };
 
 // =================== OPEN SHIFT (2-STEP WIZARD) ===================
