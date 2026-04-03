@@ -93,7 +93,7 @@ const Reception = () => {
 const CheckInTab = () => {
   const { casinoId, user } = useAuth();
   const { data: players = [] } = usePlayers();
-  const { data: visits = [] } = useVisitsToday();
+  const { data: visits = [] } = useVisitsToday("*, players(first_name, last_name, nickname, photo_url, status, id_number, category, player_type)") as { data: any[] };
   const queryClient = useQueryClient();
   const [query, setQuery] = useState("");
   const debouncedQuery = useDebouncedValue(query, 200);
