@@ -20,7 +20,7 @@ type TypeFilter = "all" | "slots" | "table" | "mix";
 const InCasino = () => {
   const { casinoId, user } = useAuth();
   const queryClient = useQueryClient();
-  const today = format(new Date(), "yyyy-MM-dd");
+  const today = getBusinessDate();
   const isMobile = useIsMobile();
   const [sortKey, setSortKey] = useState<SortKey>("category");
   const [sortAsc, setSortAsc] = useState(true);
