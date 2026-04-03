@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Search, Plus } from "lucide-react";
 import { usePlayers, useCreatePlayer } from "@/hooks/use-casino-data";
+import { useDebouncedValue } from "@/hooks/use-debounce";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
