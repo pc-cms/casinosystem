@@ -920,3 +920,25 @@ export const useClientSessionsTotalBet = (date?: string) => {
     staleTime: 1000 * 60 * 2,
   });
 };
+
+// ============ VISITS TODAY (shared hook) ============
+export const useVisitsToday = (selectFields = "*, players(first_name, last_name, nickname, photo_url, status, id_number, category, player_type, player_cards(*), player_tags(*))") => {
+  const { casinoId } = useAuth();
+  const today = getBusinessDate();
+  return useQuery({
+    queryKey: ["casino-visits-today", casinoId, today],
+    queryFn: async () => {
+      if (!casinoId) return [];
+      const { data, error } = await supabase
+        .from("casino_visits")
+        .select(selectFields)
+        .eq("casino_id", casinoId)
+        .eq("date", today);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!casinoId,
+    refetchInterval: 30000,
+    staleTime: 1000 * 15,
+  });
+};
