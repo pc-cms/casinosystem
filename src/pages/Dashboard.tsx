@@ -38,7 +38,8 @@ const Dashboard = () => {
   const { data: economy = [] } = usePlayerEconomy();
   const { data: staffMembers = [] } = useStaffMembers();
   const { data: staffRota = [] } = useStaffRotaRange(businessDate, businessDate);
-  const { data: visits = [] } = useTodayVisits();
+  const { data: allVisits = [] } = useVisitsToday("*, players(first_name, last_name, nickname, photo_url, status, player_tags(tag), id_number)") as { data: any[] };
+  const visits = useMemo(() => allVisits.filter((v: any) => !v.checked_out_at), [allVisits]);
 
   // Show skeleton while critical data loads
   const isInitialLoading = loadingPlayers && loadingTx;

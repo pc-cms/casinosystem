@@ -35,7 +35,7 @@ const Cage = () => {
   const { data: tables = [] } = useGamingTables();
 
   if (!shift) return <OpenShiftScreen tables={tables} />;
-  return <ActiveShiftView shift={shift} players={players} tables={tables} />;
+  return <ActiveShiftView shift={shift as any} players={players} tables={tables} />;
 };
 
 // =================== OPEN SHIFT (2-STEP WIZARD) ===================
