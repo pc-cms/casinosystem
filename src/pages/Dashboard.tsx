@@ -26,26 +26,6 @@ const StatCard = ({ label, value, icon: Icon, href }: {
   </Link>
 );
 
-const useTodayVisits = () => {
-  const { casinoId } = useAuth();
-  const today = getBusinessDate();
-  return useQuery({
-    queryKey: ["casino-visits-today", casinoId, today],
-    queryFn: async () => {
-      if (!casinoId) return [];
-      const { data, error } = await supabase
-        .from("casino_visits")
-        .select("*, players(first_name, last_name, nickname, photo_url, status, player_tags(tag), id_number)")
-        .eq("casino_id", casinoId)
-        .eq("date", today)
-        .is("checked_out_at", null);
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!casinoId,
-  });
-};
-
 const Dashboard = () => {
   const { displayName, roles, isManager, casinoId } = useAuth();
   const businessDate = getBusinessDate();
