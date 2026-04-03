@@ -55,7 +55,7 @@ const Dashboard = () => {
   const { data: transactions = [], isLoading: loadingTx } = useTransactions(businessDate);
   const { data: tables = [] } = useGamingTables();
   const { data: expenses = [] } = useExpenses(businessDate);
-  const { data: sessionsTotalBet = 0 } = useClientSessionsTotalBet();
+  const { data: sessionsTotalBet = 0 } = useClientSessionsTotalBet(businessDate);
   const { data: trackerData = [] } = useTableTracker(businessDate);
   const { data: economy = [] } = usePlayerEconomy();
   const { data: staffMembers = [] } = useStaffMembers();

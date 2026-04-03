@@ -387,16 +387,17 @@ export const useApproveExpense = () => {
 };
 
 // ============ PLAYER ECONOMY ============
-export const usePlayerEconomy = () => {
+export const usePlayerEconomy = (limit = 500) => {
   const { casinoId } = useAuth();
   return useQuery({
-    queryKey: ["player-economy", casinoId],
+    queryKey: ["player-economy", casinoId, limit],
     queryFn: async () => {
       if (!casinoId) return [];
       const { data, error } = await supabase
         .from("player_economy")
         .select("*")
-        .eq("casino_id", casinoId);
+        .eq("casino_id", casinoId)
+        .limit(limit);
       if (error) throw error;
       return data;
     },

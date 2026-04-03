@@ -440,9 +440,17 @@ const RegisterTab = () => {
       }
 
       for (const doc of docFiles) {
-        const ext = doc.name.split(".").pop();
-        const path = `${casinoId}/${player.id}/docs/${Date.now()}.${ext}`;
-        await supabase.storage.from("player-documents").upload(path, doc);
+        const ext = doc.name.split(".").pop()?.toLowerCase();
+        const isImage = doc.type.startsWith("image/");
+        let uploadBlob: Blob = doc;
+        if (isImage && doc.size > 500 * 1024) {
+          const compressed = await compressImage(doc);
+          uploadBlob = compressed.thumbnail;
+        }
+        const path = `${casinoId}/${player.id}/docs/${Date.now()}.${isImage ? "jpg" : ext}`;
+        await supabase.storage.from("player-documents").upload(path, uploadBlob, {
+          contentType: isImage ? "image/jpeg" : doc.type,
+        });
       }
 
       const { data: cardNum } = await supabase.rpc("generate_card_number" as any);
