@@ -3,13 +3,11 @@ import { toast } from "sonner";
 import { CardSkeleton, TableSkeleton } from "@/components/LoadingSkeletons";
 import { usePlayers, useGamingTables, useTransactions, useCreateTransaction, useExpenses } from "@/hooks/use-casino-data";
 import { useActiveShift, useOpenShift, useCloseShift, useCreateCashCount, useCashCounts } from "@/hooks/use-shift";
-import { useBatchChipSnapshot, getExpectedChips, getInitialTotal } from "@/hooks/use-chips";
 import { useChipBaseline, useCloseAllTables, baselineToMap } from "@/hooks/use-table-lifecycle";
 import { useAuth } from "@/lib/auth-context";
 import { getBusinessDate } from "@/lib/business-day";
 import { Button } from "@/components/ui/button";
 import { NumberInput } from "@/components/ui/number-input";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -24,11 +22,13 @@ import ChipDenomInput from "@/components/ChipDenomInput";
 import CashDenomInput, { cashSum } from "@/components/cage/CashDenomInput";
 import CashCountGrid from "@/components/cage/CashCountGrid";
 import LockableSection from "@/components/cage/LockableSection";
+import CloseShiftDialog from "@/components/cage/CloseShiftDialog";
 import {
   MOBILE_PROVIDERS, emptyMobile, emptyBanks, mobileTotal, bankTotalTzs,
   chipSum, emptyCash, calcCashTotalTzs, calcGrandTotal,
   type MobileProviders, type Banks,
 } from "@/components/cage/CageHelpers";
+import type { Tables } from "@/integrations/supabase/types";
 
 const Cage = () => {
   const { data: shift, isLoading: loadingShift } = useActiveShift();
@@ -51,11 +51,11 @@ const Cage = () => {
   }
 
   if (!shift) return <OpenShiftScreen tables={tables} />;
-  return <ActiveShiftView shift={shift as any} players={players} tables={tables} />;
+  return <ActiveShiftView shift={shift} players={players} tables={tables} />;
 };
 
 // =================== OPEN SHIFT (2-STEP WIZARD) ===================
-const OpenShiftScreen = ({ tables }: { tables: any[] }) => {
+const OpenShiftScreen = ({ tables }: { tables: Tables<"gaming_tables">[] }) => {
   const openShift = useOpenShift();
   const { managerOverride } = useAuth();
   const [step, setStep] = useState<1 | 2>(1);
@@ -278,7 +278,11 @@ const OpenShiftScreen = ({ tables }: { tables: any[] }) => {
 };
 
 // =================== ACTIVE SHIFT VIEW ===================
-const ActiveShiftView = ({ shift, players, tables }: { shift: any; players: any[]; tables: any[] }) => {
+const ActiveShiftView = ({ shift, players, tables }: {
+  shift: Tables<"shifts">;
+  players: Tables<"players">[];
+  tables: Tables<"gaming_tables">[];
+}) => {
   const businessDate = getBusinessDate();
   const { data: transactions = [] } = useTransactions(businessDate);
   const { data: expenses = [] } = useExpenses(businessDate);
@@ -292,15 +296,16 @@ const ActiveShiftView = ({ shift, players, tables }: { shift: any; players: any[
   const exchangeRates = (shift.exchange_rates || {}) as Record<string, number>;
 
   const shiftTransactions = useMemo(() => transactions.filter(t => t.shift_id === shift.id), [transactions, shift.id]);
-  const shiftExpenses = useMemo(() => expenses.filter((e: any) => e.shift_id === shift.id), [expenses, shift.id]);
+  const shiftExpenses = useMemo(() => expenses.filter(e => e.shift_id === shift.id), [expenses, shift.id]);
 
   const totalBuyIns = useMemo(() => shiftTransactions.filter(t => t.type === "buy").reduce((s, t) => s + Number(t.amount), 0), [shiftTransactions]);
   const totalCashouts = useMemo(() => shiftTransactions.filter(t => t.type === "cashout").reduce((s, t) => s + Number(t.amount), 0), [shiftTransactions]);
-  const totalExpenses = useMemo(() => shiftExpenses.reduce((s: number, e: any) => s + Number(e.amount), 0), [shiftExpenses]);
+  const totalExpenses = useMemo(() => shiftExpenses.reduce((s, e) => s + Number(e.amount), 0), [shiftExpenses]);
 
   const openingFloat = useMemo(() => {
-    const of = shift.opening_float as any;
-    return of?.totals?.total_tzs || 0;
+    const of = shift.opening_float as Record<string, unknown> | null;
+    const totals = of?.totals as Record<string, number> | undefined;
+    return totals?.total_tzs || 0;
   }, [shift]);
 
   const expectedCash = openingFloat + totalBuyIns - totalCashouts - totalExpenses;
@@ -312,7 +317,6 @@ const ActiveShiftView = ({ shift, players, tables }: { shift: any; players: any[
     return `${Math.floor(diff / 60)}h ${diff % 60}m`;
   }, [shift.opened_at]);
 
-  // Pre-build table lookup map instead of .find() in render
   const tableMap = useMemo(() => new Map(tables.map(t => [t.id, t])), [tables]);
 
   return (
@@ -384,25 +388,28 @@ const ActiveShiftView = ({ shift, players, tables }: { shift: any; players: any[
             <tbody>
               {shiftTransactions.length === 0 ? (
                 <tr><td colSpan={5} className="text-center text-muted-foreground text-sm py-6">No transactions yet</td></tr>
-              ) : shiftTransactions.map(tx => (
-                <tr key={tx.id} className="border-b border-border last:border-0">
-                  <td className="px-3 py-1.5">
-                    <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${tx.type === "buy" ? "bg-primary/10 text-primary" : "bg-accent/10 text-accent"}`}>
-                      {tx.type === "buy" ? "BUY" : "CASH"}
-                    </span>
-                  </td>
-                  <td className="px-3 py-1.5 text-xs text-card-foreground">{(tx as any).players?.first_name} {(tx as any).players?.last_name}</td>
-                  <td className="px-3 py-1.5 text-xs text-muted-foreground font-mono">
-                    {tx.table_id ? tableMap.get(tx.table_id)?.name || "—" : "—"}
-                  </td>
-                  <td className={`px-3 py-1.5 text-right font-mono text-xs font-medium ${tx.type === "buy" ? "cms-amount-negative" : "cms-amount-positive"}`}>
-                    {tx.type === "buy" ? "-" : "+"}{formatCurrency(Number(tx.amount))}
-                  </td>
-                  <td className="px-3 py-1.5 text-right font-mono text-[10px] text-muted-foreground">
-                    {new Date(tx.created_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
-                  </td>
-                </tr>
-              ))}
+              ) : shiftTransactions.map(tx => {
+                const txWithPlayer = tx as typeof tx & { players?: { first_name: string; last_name: string } };
+                return (
+                  <tr key={tx.id} className="border-b border-border last:border-0">
+                    <td className="px-3 py-1.5">
+                      <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${tx.type === "buy" ? "bg-primary/10 text-primary" : "bg-accent/10 text-accent"}`}>
+                        {tx.type === "buy" ? "BUY" : "CASH"}
+                      </span>
+                    </td>
+                    <td className="px-3 py-1.5 text-xs text-card-foreground">{txWithPlayer.players?.first_name} {txWithPlayer.players?.last_name}</td>
+                    <td className="px-3 py-1.5 text-xs text-muted-foreground font-mono">
+                      {tx.table_id ? tableMap.get(tx.table_id)?.name || "—" : "—"}
+                    </td>
+                    <td className={`px-3 py-1.5 text-right font-mono text-xs font-medium ${tx.type === "buy" ? "cms-amount-negative" : "cms-amount-positive"}`}>
+                      {tx.type === "buy" ? "-" : "+"}{formatCurrency(Number(tx.amount))}
+                    </td>
+                    <td className="px-3 py-1.5 text-right font-mono text-[10px] text-muted-foreground">
+                      {new Date(tx.created_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -419,7 +426,7 @@ const ActiveShiftView = ({ shift, players, tables }: { shift: any; players: any[
         totalExpenses={totalExpenses}
         openingFloat={openingFloat}
         tables={tables}
-        onConfirm={(data: any) => {
+        onConfirm={(data) => {
           closeShift.mutate({
             shift_id: shift.id,
             closing_count: data.closingCount,
@@ -437,7 +444,14 @@ const ActiveShiftView = ({ shift, players, tables }: { shift: any; players: any[
 };
 
 // =================== BUY-IN FORM ===================
-const BuyInForm = ({ players, tables, exchangeRates, shiftId, onSubmit, loading }: any) => {
+const BuyInForm = ({ players, tables, exchangeRates, shiftId, onSubmit, loading }: {
+  players: Tables<"players">[];
+  tables: Tables<"gaming_tables">[];
+  exchangeRates: Record<string, number>;
+  shiftId: string;
+  onSubmit: (data: Record<string, unknown>, opts?: Record<string, unknown>) => void;
+  loading: boolean;
+}) => {
   const [playerId, setPlayerId] = useState("");
   const [tableId, setTableId] = useState("");
   const [amount, setAmount] = useState("");
@@ -453,7 +467,7 @@ const BuyInForm = ({ players, tables, exchangeRates, shiftId, onSubmit, loading 
   const handleSubmit = () => {
     if (!playerId || !tableId || !amount || tzsAmount <= 0) return;
     if (Number(amount) <= 0) { toast.error("Amount must be greater than zero"); return; }
-    const player = players.find((p: any) => p.id === playerId);
+    const player = players.find(p => p.id === playerId);
     if (player?.status === "blacklist") { toast.error("BLOCKED — Player is blacklisted"); return; }
     onSubmit({
       player_id: playerId, table_id: tableId, type: "buy" as const, amount: tzsAmount, shift_id: shiftId,
@@ -471,7 +485,7 @@ const BuyInForm = ({ players, tables, exchangeRates, shiftId, onSubmit, loading 
         <div>
           <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1 block">2. Table</label>
           <div className="flex flex-wrap gap-1.5">
-            {tables.map((t: any) => (
+            {tables.map(t => (
               <button key={t.id} onClick={() => setTableId(t.id)}
                 className={`px-2.5 py-1 rounded text-xs font-mono transition-colors ${tableId === t.id ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-primary/20"}`}>
                 {t.name}
@@ -503,14 +517,19 @@ const BuyInForm = ({ players, tables, exchangeRates, shiftId, onSubmit, loading 
 };
 
 // =================== CASHOUT FORM ===================
-const CashoutForm = ({ players, shiftId, onSubmit, loading }: any) => {
+const CashoutForm = ({ players, shiftId, onSubmit, loading }: {
+  players: Tables<"players">[];
+  shiftId: string;
+  onSubmit: (data: Record<string, unknown>, opts?: Record<string, unknown>) => void;
+  loading: boolean;
+}) => {
   const [playerId, setPlayerId] = useState("");
   const [chips, setChips] = useState<Record<number, number>>({});
-  const total = chipSum(chips);
+  const total = useMemo(() => chipSum(chips), [chips]);
 
   const handleSubmit = () => {
     if (!playerId || total <= 0) return;
-    const player = players.find((p: any) => p.id === playerId);
+    const player = players.find(p => p.id === playerId);
     if (player?.status === "blacklist") { toast.error("BLOCKED — Player is blacklisted"); return; }
     onSubmit({ player_id: playerId, table_id: null, type: "cashout" as const, amount: total, chips, shift_id: shiftId },
       { onSuccess: () => setChips({}) });
@@ -537,7 +556,10 @@ const CashoutForm = ({ players, shiftId, onSubmit, loading }: any) => {
 
 // =================== CASH CHECK ===================
 const CashCheckForm = ({ expectedBalance, shiftId, exchangeRates, cashChecks }: {
-  expectedBalance: number; shiftId: string; exchangeRates: Record<string, number>; cashChecks: any[];
+  expectedBalance: number;
+  shiftId: string;
+  exchangeRates: Record<string, number>;
+  cashChecks: Tables<"cash_counts">[];
 }) => {
   const createCount = useCreateCashCount();
   const [chipCounts, setChipCounts] = useState<Record<number, number>>({});
@@ -588,7 +610,7 @@ const CashCheckForm = ({ expectedBalance, shiftId, exchangeRates, cashChecks }: 
         <div className="cms-panel">
           <div className="cms-header text-xs">Previous ({cashChecks.length})</div>
           <div className="divide-y divide-border">
-            {cashChecks.slice(0, 5).map((cc: any) => (
+            {cashChecks.slice(0, 5).map(cc => (
               <div key={cc.id} className="px-3 py-1.5 flex items-center justify-between">
                 <span className="text-[10px] text-muted-foreground font-mono">{new Date(cc.created_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}</span>
                 <span className="font-mono text-xs font-medium text-card-foreground">{formatCurrency(Number(cc.total))}</span>
@@ -602,7 +624,7 @@ const CashCheckForm = ({ expectedBalance, shiftId, exchangeRates, cashChecks }: 
 };
 
 // =================== CLOSE TABLES FORM ===================
-const CloseTablesForm = ({ tables }: { tables: any[] }) => {
+const CloseTablesForm = ({ tables }: { tables: Tables<"gaming_tables">[] }) => {
   const { data: baseline = [] } = useChipBaseline();
   const closeAllTables = useCloseAllTables();
   const [confirmed, setConfirmed] = useState<Record<string, boolean>>({});
@@ -653,7 +675,7 @@ const CloseTablesForm = ({ tables }: { tables: any[] }) => {
               <div className="ml-8 space-y-0.5">
                 {distribution.map(r => (
                   <div key={r.denom} className="flex items-center gap-2 text-xs">
-                    <span className={`cms-chip text-[8px] ${(CHIP_COLORS as any)[r.denom] || "bg-muted text-foreground"}`}>{formatChipLabel(r.denom)}</span>
+                    <span className={`cms-chip text-[8px] ${(CHIP_COLORS as Record<number, string>)[r.denom] || "bg-muted text-foreground"}`}>{formatChipLabel(r.denom)}</span>
                     {r.diff > 0
                       ? <span className="text-orange-500 font-mono">← Take {r.diff} from table</span>
                       : <span className="text-blue-500 font-mono">→ Give {Math.abs(r.diff)} to table</span>}
@@ -670,177 +692,6 @@ const CloseTablesForm = ({ tables }: { tables: any[] }) => {
         <Package className="w-4 h-4" /> {closeAllTables.isPending ? "Closing…" : `Close ${tablesWithResults.length} Table(s)`}
       </Button>
     </div>
-  );
-};
-
-// =================== CLOSE SHIFT DIALOG ===================
-const CloseShiftDialog = ({ open, onClose, shift, expectedBalance, cashResult, totalBuyIns, totalCashouts, totalExpenses, openingFloat, tables, onConfirm, loading }: any) => {
-  const [step, setStep] = useState(1);
-  const [notes, setNotes] = useState("");
-  const [tableReady, setTableReady] = useState<Record<string, boolean>>({});
-  const allTablesReady = tables.length === 0 || tables.every((t: any) => tableReady[t.id]);
-  const batchSnapshot = useBatchChipSnapshot();
-
-  const [chipCounts, setChipCounts] = useState<Record<number, number>>({});
-  const [cashCounts, setCashCounts] = useState<Record<string, Record<number, number>>>(emptyCash);
-  const [bankBal, setBankBal] = useState<Banks>(emptyBanks);
-  const [mobileBal, setMobileBal] = useState<MobileProviders>(emptyMobile);
-
-  const expectedChips = useMemo(() => getExpectedChips(tables), [tables]);
-  const initialTotal = useMemo(() => getInitialTotal(tables), [tables]);
-  const missPerDenom = useMemo(() => {
-    const miss: Record<number, number> = {};
-    CHIP_DENOMS.forEach(d => { miss[d] = (chipCounts[d] || 0) - (expectedChips[d] || 0); });
-    return miss;
-  }, [chipCounts, expectedChips]);
-  const chipTotal = chipSum(chipCounts);
-  const totalMissValue = chipTotal - initialTotal;
-  const hasIncident = chipTotal > initialTotal;
-  const hasAnyChipCount = Object.values(chipCounts).some(v => v > 0);
-
-  const rates = (shift?.exchange_rates || {}) as Record<string, number>;
-  const totalTzs = useMemo(() => calcGrandTotal(chipCounts, cashCounts, bankBal, mobileBal, rates), [chipCounts, cashCounts, bankBal, mobileBal, rates]);
-  const diff = totalTzs - expectedBalance;
-  const isPerfect = diff === 0;
-  const shiftResult = (cashResult || 0) + totalMissValue;
-
-  const businessDate = getBusinessDate();
-
-  const handleClose = () => {
-    if (hasAnyChipCount) {
-      const snapRows = CHIP_DENOMS.filter(d => expectedChips[d] > 0 || chipCounts[d] > 0).map(d => ({
-        location_type: "closing",
-        location_id: null,
-        denomination: d,
-        expected_quantity: expectedChips[d] || 0,
-        actual_quantity: chipCounts[d] || 0,
-      }));
-      batchSnapshot.mutate({ date: businessDate, counts: snapRows });
-    }
-
-    onConfirm({
-      closingCount: {
-        chips: chipCounts, chip_miss: missPerDenom, chip_miss_total: totalMissValue, chip_incident: hasIncident,
-        cash: cashCounts, bank: bankBal, mobile: mobileBal,
-        totals: {
-          chips_tzs: chipTotal,
-          ...Object.fromEntries(CURRENCIES.map(c => [c, cashSum(cashCounts[c] || {})])),
-          bank: bankBal, mobile: mobileBal, total_tzs: totalTzs,
-        },
-      },
-      closingCash: {
-        expected: expectedBalance, actual: totalTzs, difference: diff,
-        cash_result: cashResult, shift_result: shiftResult, table_readiness: tableReady,
-      },
-      notes: `${notes} | CASH: ${cashResult >= 0 ? "+" : ""}${formatNumberSpaces(cashResult)} | MISS: ${totalMissValue >= 0 ? "+" : ""}${formatNumberSpaces(totalMissValue)} | RESULT: ${shiftResult >= 0 ? "+" : ""}${formatNumberSpaces(shiftResult)} | DIFF: ${diff >= 0 ? "+" : ""}${formatNumberSpaces(diff)} TZS`.trim(),
-      cashResult: cashResult,
-      missTotal: totalMissValue,
-      shiftResult: shiftResult,
-    });
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={v => { if (!v) { setStep(1); onClose(); } }}>
-      <DialogContent className="max-w-[1280px] max-h-[85vh] overflow-y-auto">
-        <DialogHeader><DialogTitle>Close Shift — Step {step}/3</DialogTitle></DialogHeader>
-
-        {step === 1 && (
-          <div className="space-y-3">
-            <p className="text-xs text-muted-foreground">Confirm tables restored to base float.</p>
-            {tables.map((t: any) => (
-              <div key={t.id} className="flex items-center gap-3 cms-panel p-2.5">
-                <Checkbox checked={!!tableReady[t.id]} onCheckedChange={c => setTableReady(r => ({ ...r, [t.id]: !!c }))} id={`t-${t.id}`} />
-                <label htmlFor={`t-${t.id}`} className="flex-1 cursor-pointer text-sm text-card-foreground">{t.name} <span className="text-xs text-muted-foreground">({t.game})</span></label>
-                {tableReady[t.id] && <CheckCircle2 className="w-4 h-4 text-green-500" />}
-              </div>
-            ))}
-            <DialogFooter>
-              <Button variant="outline" onClick={onClose}>Cancel</Button>
-              <Button onClick={() => setStep(2)} disabled={!allTablesReady}>Next →</Button>
-            </DialogFooter>
-          </div>
-        )}
-
-        {step === 2 && (
-          <div className="space-y-3">
-            <p className="text-xs text-muted-foreground">Count chips and cash across the entire casino.</p>
-            <CashCountGrid chips={chipCounts} onChipsChange={setChipCounts} cash={cashCounts}
-              onCashChange={(cur, v) => setCashCounts(c => ({ ...c, [cur]: v }))} banks={bankBal} onBanksChange={setBankBal}
-              mobile={mobileBal} onMobileChange={setMobileBal} chipPlaceholder={expectedChips} rates={rates} />
-
-            {hasAnyChipCount && (
-              <div className="grid grid-cols-3 gap-2 pt-2 border-t border-border">
-                <div className="text-center"><p className="text-[9px] uppercase text-muted-foreground">Chip Expected</p><p className="font-mono text-xs font-bold text-card-foreground">{formatCurrency(initialTotal)}</p></div>
-                <div className="text-center"><p className="text-[9px] uppercase text-muted-foreground">Chip Counted</p><p className="font-mono text-xs font-bold text-card-foreground">{formatCurrency(chipTotal)}</p></div>
-                <div className="text-center"><p className="text-[9px] uppercase text-muted-foreground">MISS</p><p className={`font-mono text-xs font-bold ${totalMissValue === 0 ? "text-green-500" : "text-destructive"}`}>{totalMissValue >= 0 ? "+" : ""}{formatCurrency(totalMissValue)}</p></div>
-              </div>
-            )}
-
-            {hasIncident && (
-              <div className="p-2 rounded-md bg-destructive/10 border border-destructive/30 flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 text-destructive shrink-0" />
-                <p className="text-xs text-destructive font-bold">INCIDENT: Chips exceed initial total</p>
-              </div>
-            )}
-
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setStep(1)}>← Back</Button>
-              <Button onClick={() => setStep(3)}>Review →</Button>
-            </DialogFooter>
-          </div>
-        )}
-
-        {step === 3 && (
-          <div className="space-y-3">
-            <div className={`cms-panel p-3 text-center ${isPerfect ? "border-green-500/30" : "border-destructive/30"}`}>
-              {isPerfect ? <CheckCircle2 className="w-6 h-6 text-green-500 mx-auto mb-1" /> : <AlertTriangle className="w-6 h-6 text-destructive mx-auto mb-1" />}
-              <p className="text-sm font-medium text-card-foreground">{isPerfect ? "Balanced" : "Mismatch Detected"}</p>
-            </div>
-
-            <div className="cms-panel p-3">
-              <p className="text-[10px] uppercase text-muted-foreground tracking-wider mb-2 font-medium">Cash Flow</p>
-              <div className="space-y-1 text-xs font-mono">
-                <div className="flex justify-between"><span className="text-muted-foreground">Opening Float</span><span className="text-card-foreground">{formatCurrency(openingFloat || 0)}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">+ Buy-Ins</span><span className="text-green-500">+{formatCurrency(totalBuyIns || 0)}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">− Cashouts</span><span className="text-destructive">−{formatCurrency(totalCashouts || 0)}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">− Expenses</span><span className="text-orange-500">−{formatCurrency(totalExpenses || 0)}</span></div>
-                <div className="flex justify-between border-t border-border pt-1 font-bold"><span className="text-card-foreground">= Expected</span><span className="text-card-foreground">{formatCurrency(expectedBalance)}</span></div>
-                <div className="flex justify-between"><span className="text-card-foreground">Counted</span><span className="text-card-foreground">{formatCurrency(totalTzs)}</span></div>
-                <div className="flex justify-between font-bold"><span className="text-card-foreground">Difference</span><span className={isPerfect ? "text-green-500" : "text-destructive"}>{diff >= 0 ? "+" : ""}{formatCurrency(diff)}</span></div>
-              </div>
-            </div>
-
-            <div className="cms-panel p-3">
-              <p className="text-[10px] uppercase text-muted-foreground tracking-wider mb-2 font-medium">Shift Result</p>
-              <div className="space-y-1 text-xs font-mono">
-                <div className="flex justify-between"><span className="text-muted-foreground">Cash Result (Buy − Cash)</span><span className={`${(cashResult || 0) >= 0 ? "text-green-500" : "text-destructive"}`}>{(cashResult || 0) >= 0 ? "+" : ""}{formatCurrency(cashResult || 0)}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Chip MISS</span><span className={`${totalMissValue === 0 ? "text-green-500" : "text-destructive"}`}>{totalMissValue >= 0 ? "+" : ""}{formatCurrency(totalMissValue)}</span></div>
-                <div className="flex justify-between border-t border-border pt-1 font-bold text-sm"><span className="text-card-foreground">= Shift Result</span><span className={`${shiftResult >= 0 ? "text-green-500" : "text-destructive"}`}>{shiftResult >= 0 ? "+" : ""}{formatCurrency(shiftResult)}</span></div>
-              </div>
-            </div>
-
-            {hasIncident && (
-              <div className="p-2 rounded-md bg-destructive/10 border border-destructive/30 flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 text-destructive shrink-0" />
-                <p className="text-xs text-destructive font-bold">INCIDENT: Chip total exceeds initial system total</p>
-              </div>
-            )}
-
-            <div>
-              <p className="text-[10px] font-medium text-muted-foreground uppercase mb-1">Notes</p>
-              <Textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Shift notes…" rows={2} />
-            </div>
-            {!isPerfect && (
-              <p className="text-[10px] text-destructive flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> Mismatch of {formatCurrency(Math.abs(diff))} will be logged.</p>
-            )}
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setStep(2)}>← Back</Button>
-              <Button variant="destructive" onClick={handleClose} disabled={loading}>{loading ? "Closing…" : "Close Shift"}</Button>
-            </DialogFooter>
-          </div>
-        )}
-      </DialogContent>
-    </Dialog>
   );
 };
 

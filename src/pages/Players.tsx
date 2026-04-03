@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { Search, Plus } from "lucide-react";
 import { usePlayers, useCreatePlayer } from "@/hooks/use-casino-data";
 import { useDebouncedValue } from "@/hooks/use-debounce";
@@ -10,6 +11,8 @@ import CategoryFilter from "@/components/player/CategoryFilter";
 import FlagBadges from "@/components/player/FlagBadges";
 import PlayerDetailDialog from "@/components/player/PlayerDetailDialog";
 
+const ROW_HEIGHT = 52;
+
 const Players = () => {
   const { data: players = [], isLoading } = usePlayers();
   const [query, setQuery] = useState("");
@@ -19,8 +22,9 @@ const Players = () => {
   const [categoryFilter, setCategoryFilter] = useState<Set<PlayerCategory>>(new Set(["diamond", "platinum", "gold", "guest"]));
   const [sortByCategory, setSortByCategory] = useState(true);
   const searchRef = useRef<HTMLInputElement>(null);
+  const parentRef = useRef<HTMLDivElement>(null);
 
-  const filtered = (() => {
+  const filtered = useMemo(() => {
     let list = players;
     if (debouncedQuery) {
       const q = debouncedQuery.toLowerCase();
@@ -41,7 +45,14 @@ const Players = () => {
       });
     }
     return list;
-  })();
+  }, [players, debouncedQuery, categoryFilter, sortByCategory]);
+
+  const virtualizer = useVirtualizer({
+    count: filtered.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => ROW_HEIGHT,
+    overscan: 10,
+  });
 
   const selectedPlayer = players.find(p => p.id === selectedPlayerId);
 
@@ -88,37 +99,49 @@ const Players = () => {
               ))}
             </tr>
           </thead>
-          <tbody>
-            {isLoading ? (
-              <tr><td colSpan={6} className="text-center text-muted-foreground text-sm py-8">Loading...</td></tr>
-            ) : filtered.length === 0 ? (
-              <tr><td colSpan={6} className="text-center text-muted-foreground text-sm py-8">No players found</td></tr>
-            ) : (
-              filtered.map(player => (
-                <tr key={player.id} onClick={() => setSelectedPlayerId(player.id)}
-                  className="border-b border-border last:border-0 hover:bg-muted/50 cursor-pointer transition-colors">
-                  <td className="px-4 py-3">
-                    <CategoryBadge category={(player.category as PlayerCategory) || "guest"} />
-                  </td>
-                  <td className="px-4 py-3 text-sm font-medium text-card-foreground">{player.first_name} {player.last_name}</td>
-                  <td className="px-4 py-3 text-sm text-muted-foreground">{player.nickname}</td>
-                  <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
-                    {player.player_cards?.find(c => c.is_active)?.card_number || "—"}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={player.status === "active" ? "cms-status-active" : "cms-status-blacklist"}>
-                      <span className={`w-1.5 h-1.5 rounded-full inline-block ${player.status === "active" ? "bg-success" : "bg-danger"}`} />
-                      {player.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <FlagBadges tags={player.player_tags?.map(t => t.tag) || []} compact />
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
         </table>
+        {isLoading ? (
+          <div className="text-center text-muted-foreground text-sm py-8">Loading...</div>
+        ) : filtered.length === 0 ? (
+          <div className="text-center text-muted-foreground text-sm py-8">No players found</div>
+        ) : (
+          <div ref={parentRef} className="max-h-[65vh] overflow-y-auto">
+            <div style={{ height: `${virtualizer.getTotalSize()}px`, position: "relative" }}>
+              {virtualizer.getVirtualItems().map(virtualRow => {
+                const player = filtered[virtualRow.index];
+                return (
+                  <div
+                    key={player.id}
+                    onClick={() => setSelectedPlayerId(player.id)}
+                    className="flex items-center border-b border-border last:border-0 hover:bg-muted/50 cursor-pointer transition-colors absolute w-full"
+                    style={{
+                      height: `${virtualRow.size}px`,
+                      transform: `translateY(${virtualRow.start}px)`,
+                    }}
+                  >
+                    <div className="px-4 py-3 w-[80px]">
+                      <CategoryBadge category={(player.category as PlayerCategory) || "guest"} />
+                    </div>
+                    <div className="px-4 py-3 flex-1 text-sm font-medium text-card-foreground">{player.first_name} {player.last_name}</div>
+                    <div className="px-4 py-3 w-[140px] text-sm text-muted-foreground truncate">{player.nickname}</div>
+                    <div className="px-4 py-3 w-[120px] font-mono text-xs text-muted-foreground">
+                      {player.player_cards?.find(c => c.is_active)?.card_number || "—"}
+                    </div>
+                    <div className="px-4 py-3 w-[100px]">
+                      <span className={player.status === "active" ? "cms-status-active" : "cms-status-blacklist"}>
+                        <span className={`w-1.5 h-1.5 rounded-full inline-block ${player.status === "active" ? "bg-success" : "bg-danger"}`} />
+                        {player.status}
+                      </span>
+                    </div>
+                    <div className="px-4 py-3 w-[150px]">
+                      <FlagBadges tags={player.player_tags?.map(t => t.tag) || []} compact />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
 
       <AddPlayerDialog open={showAdd} onClose={() => setShowAdd(false)} />

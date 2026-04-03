@@ -1,4 +1,5 @@
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, Suspense } from "react";
+import { CardSkeleton, TableSkeleton } from "@/components/LoadingSkeletons";
 import { useSearchParams } from "react-router-dom";
 import { useDealers, useCreateDealer, useUpdateDealer, usePitRotaRange, useSetPitRota, useDeletePitRota, useSetDealerAttendance, useDealerAttendanceRange } from "@/hooks/use-casino-data";
 import { useAuth } from "@/lib/auth-context";
@@ -171,20 +172,22 @@ const Pit = () => {
         </div>
       </div>
 
-      {activeTab === "employee" && <DealerEmployeeList />}
-      {activeTab === "rota" && <RotaGrid month={month} />}
-      {activeTab === "attendance" && <AttendanceGrid month={month} />}
-      {activeTab === "breaklist" && (
-        <BreaklistGrid
-          date={date}
-          zoom={breaklistZoom}
-          onRegisterRefresh={(fn) => { breaklistRefreshRef.current = fn; }}
-          onRegisterAccept={(fn) => { breaklistAcceptRef.current = fn; }}
-        />
-      )}
-      {activeTab === "activeplayers" && <ActivePlayers />}
-      {activeTab === "tracker" && <ClientTracker />}
-      {activeTab === "tabletracker" && <TableTracker />}
+      <Suspense fallback={<><CardSkeleton count={2} /><TableSkeleton rows={5} cols={4} /></>}>
+        {activeTab === "employee" && <DealerEmployeeList />}
+        {activeTab === "rota" && <RotaGrid month={month} />}
+        {activeTab === "attendance" && <AttendanceGrid month={month} />}
+        {activeTab === "breaklist" && (
+          <BreaklistGrid
+            date={date}
+            zoom={breaklistZoom}
+            onRegisterRefresh={(fn) => { breaklistRefreshRef.current = fn; }}
+            onRegisterAccept={(fn) => { breaklistAcceptRef.current = fn; }}
+          />
+        )}
+        {activeTab === "activeplayers" && <ActivePlayers />}
+        {activeTab === "tracker" && <ClientTracker />}
+        {activeTab === "tabletracker" && <TableTracker />}
+      </Suspense>
     </div>
   );
 };

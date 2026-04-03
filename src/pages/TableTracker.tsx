@@ -55,19 +55,29 @@ const TableTracker = () => {
 
   const grandTotal = trackerData.reduce((s, t) => s + Number(t.value), 0);
 
+  const focusCell = (ti: number, si: number) => {
+    const id = `cell-${ti}-${si}`;
+    setTimeout(() => document.getElementById(id)?.focus(), 10);
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, tableIdx: number, slotIdx: number) => {
     if (e.key === "Enter" || (e.key === "Tab" && !e.shiftKey)) {
       e.preventDefault();
       (e.target as HTMLInputElement).blur();
-      const nextSlot = slotIdx + 1;
-      const nextTable = tableIdx + 1;
-      let nextId: string;
-      if (nextSlot < SLOTS.length) {
-        nextId = `cell-${tableIdx}-${nextSlot}`;
-      } else if (nextTable < openTables.length) {
-        nextId = `cell-${nextTable}-0`;
-      } else return;
-      setTimeout(() => document.getElementById(nextId)?.focus(), 10);
+      if (slotIdx + 1 < SLOTS.length) focusCell(tableIdx, slotIdx + 1);
+      else if (tableIdx + 1 < openTables.length) focusCell(tableIdx + 1, 0);
+    } else if (e.key === "ArrowRight") {
+      e.preventDefault();
+      if (slotIdx + 1 < SLOTS.length) focusCell(tableIdx, slotIdx + 1);
+    } else if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      if (slotIdx > 0) focusCell(tableIdx, slotIdx - 1);
+    } else if (e.key === "ArrowDown") {
+      e.preventDefault();
+      if (tableIdx + 1 < openTables.length) focusCell(tableIdx + 1, slotIdx);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      if (tableIdx > 0) focusCell(tableIdx - 1, slotIdx);
     }
   };
 
