@@ -98,7 +98,7 @@ const Players = () => {
                 <tr key={player.id} onClick={() => setSelectedPlayerId(player.id)}
                   className="border-b border-border last:border-0 hover:bg-muted/50 cursor-pointer transition-colors">
                   <td className="px-4 py-3">
-                    <CategoryBadge category={((player as any).category as PlayerCategory) || "guest"} />
+                    <CategoryBadge category={(player.category as PlayerCategory) || "guest"} />
                   </td>
                   <td className="px-4 py-3 text-sm font-medium text-card-foreground">{player.first_name} {player.last_name}</td>
                   <td className="px-4 py-3 text-sm text-muted-foreground">{player.nickname}</td>
