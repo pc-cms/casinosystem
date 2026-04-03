@@ -28,14 +28,14 @@ const Players = () => {
         p.first_name.toLowerCase().includes(q) ||
         p.last_name.toLowerCase().includes(q) ||
         p.nickname.toLowerCase().includes(q) ||
-        p.player_cards?.some(c => c.card_number.includes(query))
+        p.player_cards?.some(c => c.card_number.includes(debouncedQuery))
       );
     }
-    list = list.filter(p => categoryFilter.has(((p as any).category as PlayerCategory) || "guest"));
+    list = list.filter(p => categoryFilter.has((p.category as PlayerCategory) || "guest"));
     if (sortByCategory) {
       list = [...list].sort((a, b) => {
-        const catA = CATEGORY_PRIORITY[((a as any).category as PlayerCategory) || "guest"];
-        const catB = CATEGORY_PRIORITY[((b as any).category as PlayerCategory) || "guest"];
+        const catA = CATEGORY_PRIORITY[(a.category as PlayerCategory) || "guest"];
+        const catB = CATEGORY_PRIORITY[(b.category as PlayerCategory) || "guest"];
         if (catA !== catB) return catA - catB;
         return `${a.first_name} ${a.last_name}`.localeCompare(`${b.first_name} ${b.last_name}`);
       });
