@@ -8,8 +8,6 @@ import { formatCurrency } from "@/lib/currency";
 import { canSeePlayerFinancials } from "@/lib/role-access";
 import { getBusinessDate } from "@/lib/business-day";
 import { useStaffMembers, useStaffRotaRange, DEPARTMENT_LABELS, STAFF_SHIFT_LABELS, STAFF_SHIFT_COLORS } from "@/hooks/use-staff";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { format, formatDistanceToNow } from "date-fns";
 
 const StatCard = ({ label, value, icon: Icon, href }: {
