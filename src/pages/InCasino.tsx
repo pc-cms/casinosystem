@@ -30,7 +30,7 @@ const InCasino = () => {
   const [profilePlayer, setProfilePlayer] = useState<any>(null);
 
   const { data: visits = [] } = useQuery({
-    queryKey: ["casino_visits", casinoId, today],
+    queryKey: ["casino-visits-today", casinoId, today],
     queryFn: async () => {
       if (!casinoId) return [];
       const { data, error } = await supabase
@@ -43,7 +43,7 @@ const InCasino = () => {
       return data;
     },
     enabled: !!casinoId,
-    refetchInterval: 30000, // 30s — gentler on slow connections
+    refetchInterval: 30000,
     staleTime: 1000 * 15,
   });
 
