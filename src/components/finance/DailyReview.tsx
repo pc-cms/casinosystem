@@ -221,7 +221,9 @@ export const DailyReview = () => {
             </div>
             <div className="p-3 rounded-lg bg-primary/5 border border-primary/20">
               <p className="text-xs text-muted-foreground mb-1">Total Result</p>
-              <p className="text-lg font-bold font-mono text-primary">{formatNumberSpaces(totalResult)}</p>
+              <p className={`text-lg font-bold font-mono ${totalResult >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
+                {totalResult >= 0 ? "+" : ""}{formatNumberSpaces(totalResult)}
+              </p>
             </div>
           </div>
 
