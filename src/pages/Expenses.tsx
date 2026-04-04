@@ -4,6 +4,7 @@ import { usePlayers, useExpenses, useCreateExpense, useApproveExpense } from "@/
 import { useActiveShift } from "@/hooks/use-shift";
 import { useExpenseAnalytics } from "@/hooks/use-expenses-analytics";
 import { useAuth } from "@/lib/auth-context";
+import { getBusinessDate } from "@/lib/business-day";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NumberInput } from "@/components/ui/number-input";
@@ -38,8 +39,9 @@ const CAT_COLORS: Record<string, string> = {
  */
 const Expenses = () => {
   const { isManager } = useAuth();
+  const businessDate = getBusinessDate();
   const { data: shift } = useActiveShift();
-  const { data: expenses = [] } = useExpenses();
+  const { data: expenses = [] } = useExpenses(businessDate);
   const { data: players = [] } = usePlayers();
   const approve = useApproveExpense();
   const [showAdd, setShowAdd] = useState(false);

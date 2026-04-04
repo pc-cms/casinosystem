@@ -939,7 +939,6 @@ export const useVisitsToday = (selectFields = "*, players(first_name, last_name,
       return data;
     },
     enabled: !!casinoId,
-    refetchInterval: 30000,
-    staleTime: 1000 * 15,
+    staleTime: 1000 * 30, // 30s — realtime handles invalidation, no polling needed
   });
 };

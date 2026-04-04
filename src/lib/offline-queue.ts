@@ -16,7 +16,7 @@ export type QueuedAction = {
   upsertConflict?: string;
   timestamp: number;
   retries: number;
-  status: "pending" | "syncing" | "failed";
+  status: "pending" | "syncing" | "failed" | "permanently_failed";
   meta?: Record<string, any>; // extra context for logging
 };
 
@@ -62,7 +62,7 @@ export async function getPendingActions(): Promise<QueuedAction[]> {
     const req = idx.getAll();
     req.onsuccess = () => {
       const all = req.result as QueuedAction[];
-      resolve(all.filter(a => a.status === "pending" || a.status === "failed"));
+      resolve(all.filter(a => a.status === "pending" || a.status === "failed" || a.status === "syncing"));
     };
     req.onerror = () => reject(req.error);
   });

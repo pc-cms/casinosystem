@@ -1,25 +1,13 @@
 /**
- * Connection quality detection.
- * Uses Navigator.connection API (Network Information API)
- * to determine if we should use realtime or polling.
+ * Connection quality detection for wired/LAN environment.
+ * Primary concern: brief disconnections and packet loss on 100Mbps cable.
+ * No mobile tiers — just online/offline.
  */
 
-export type ConnectionTier = "fast" | "slow" | "offline";
+export type ConnectionTier = "fast" | "offline";
 
 export function getConnectionTier(): ConnectionTier {
-  if (!navigator.onLine) return "offline";
-
-  const conn = (navigator as any).connection;
-  if (!conn) return "fast"; // If API unavailable, assume fast
-
-  const effectiveType = conn.effectiveType as string;
-
-  // 2g, slow-2g → slow
-  if (effectiveType === "slow-2g" || effectiveType === "2g") return "slow";
-  // 3g → slow (in Tanzania 3g can be very unreliable)
-  if (effectiveType === "3g") return "slow";
-  // 4g → fast
-  return "fast";
+  return navigator.onLine ? "fast" : "offline";
 }
 
 type ConnectionListener = (tier: ConnectionTier) => void;
@@ -35,17 +23,8 @@ export function initConnectionMonitor() {
   if (initialized) return;
   initialized = true;
 
-  const conn = (navigator as any).connection;
-  if (conn) {
-    conn.addEventListener("change", () => {
-      const tier = getConnectionTier();
-      listeners.forEach(fn => fn(tier));
-    });
-  }
-
   window.addEventListener("online", () => {
-    const tier = getConnectionTier();
-    listeners.forEach(fn => fn(tier));
+    listeners.forEach(fn => fn("fast"));
   });
 
   window.addEventListener("offline", () => {
