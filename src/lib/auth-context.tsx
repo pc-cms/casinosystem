@@ -24,6 +24,10 @@ type AuthState = {
   managerOverride: ManagerOverride;
   activateManagerOverride: (managerId: string, managerName: string) => void;
   deactivateManagerOverride: () => void;
+  /** Override casinoId (used by CasinoProvider for subdomain routing) */
+  overrideCasinoId: (id: string | null) => void;
+  /** The profile's original casino_id (before any override) */
+  primaryCasinoId: string | null;
 };
 
 const AuthContext = createContext<AuthState | null>(null);
