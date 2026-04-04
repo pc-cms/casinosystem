@@ -129,7 +129,7 @@ export function useDuplicateCheck() {
         setStatus("ok");
       }
     },
-    [casinoId]
+    []
   );
 
   const reset = useCallback(() => {
