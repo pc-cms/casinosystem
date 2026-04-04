@@ -1,1 +1,7 @@
 project_id = "rpehngjvwcnipvkouluu"
+
+[auth]
+min_password_length = 8
+
+[auth.password]
+hibp_enabled = true

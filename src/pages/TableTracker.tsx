@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo } from "react";
+import { getBusinessDate } from "@/lib/business-day";
 import { useGamingTables, useTableTracker, useSetTableTrackerValue } from "@/hooks/use-casino-data";
 import { Input } from "@/components/ui/input";
 import { formatCurrency, formatInputWithSpaces, parseSpacedNumber } from "@/lib/currency";
@@ -24,7 +25,7 @@ const getCurrentSlot = () => {
 };
 
 const TableTracker = () => {
-  const today = new Date().toISOString().split("T")[0];
+  const today = getBusinessDate();
   const [date, setDate] = useState(today);
   const { data: tables = [] } = useGamingTables();
   const { data: trackerData = [] } = useTableTracker(date);
