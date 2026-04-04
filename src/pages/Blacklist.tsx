@@ -1,7 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
 import { Ban } from "lucide-react";
