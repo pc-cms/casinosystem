@@ -122,7 +122,7 @@ const InterCasinoTransfers = () => {
                     </div>
                   </td>
                   <td className="px-4 py-3 text-right text-sm font-mono font-medium text-card-foreground">
-                    {formatTZS(t.amount)}
+                    {fmtAmount(t.amount)}
                   </td>
                   <td className="px-4 py-3">
                     <Badge variant="outline" className={`text-[10px] ${STATUS_COLORS[t.status] || ""}`}>
