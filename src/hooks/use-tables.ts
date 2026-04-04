@@ -1,0 +1,122 @@
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth-context";
+import { logAction } from "@/lib/logging";
+import { offlineMutation } from "@/lib/offline-mutation";
+import { toast } from "sonner";
+
+export const useGamingTables = () => {
+  const { casinoId } = useAuth();
+  return useQuery({
+    queryKey: ["gaming-tables", casinoId],
+    queryFn: async () => {
+      if (!casinoId) return [];
+      const { data, error } = await supabase
+        .from("gaming_tables")
+        .select("*")
+        .eq("casino_id", casinoId)
+        .order("name");
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!casinoId,
+    staleTime: 1000 * 60 * 5,
+  });
+};
+
+export const useCloseTable = () => {
+  const qc = useQueryClient();
+  const { casinoId, user } = useAuth();
+  return useMutation({
+    mutationFn: async (input: { table_id: string; closing_chips: Record<number, number> }) => {
+      if (!casinoId || !user) throw new Error("Not authenticated");
+      const { error } = await supabase
+        .from("gaming_tables")
+        .update({ status: "closed" as any, closing_chips: input.closing_chips as any })
+        .eq("id", input.table_id);
+      if (error) throw error;
+      await logAction(casinoId, "system", "TABLE_CLOSED", { table_id: input.table_id, closing_chips: input.closing_chips });
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["gaming-tables"] }); toast.success("Table closed"); },
+    onError: (e) => toast.error(e.message),
+  });
+};
+
+export const useReopenTable = () => {
+  const qc = useQueryClient();
+  const { casinoId, user } = useAuth();
+  return useMutation({
+    mutationFn: async (tableId: string) => {
+      if (!casinoId || !user) throw new Error("Not authenticated");
+      const { error } = await supabase
+        .from("gaming_tables")
+        .update({ status: "open" as any, closing_chips: null as any, closing_result: null as any })
+        .eq("id", tableId);
+      if (error) throw error;
+      await logAction(casinoId, "system", "TABLE_REOPENED", { table_id: tableId });
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["gaming-tables"] }); toast.success("Table reopened"); },
+    onError: (e) => toast.error(e.message),
+  });
+};
+
+// ============ TABLE TRACKER ============
+export const useTableTracker = (date: string) => {
+  const { casinoId } = useAuth();
+  return useQuery({
+    queryKey: ["table-tracker", casinoId, date],
+    queryFn: async () => {
+      if (!casinoId) return [];
+      const { data, error } = await supabase
+        .from("table_tracker")
+        .select("*, gaming_tables(name)")
+        .eq("casino_id", casinoId)
+        .eq("date", date);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!casinoId,
+  });
+};
+
+export const useSetTableTrackerValue = () => {
+  const qc = useQueryClient();
+  const { casinoId, user } = useAuth();
+  return useMutation({
+    mutationFn: async (input: { table_id: string; date: string; time_slot: string; value: number }) => {
+      if (!casinoId || !user) throw new Error("Not authenticated");
+      const payload = {
+        casino_id: casinoId,
+        table_id: input.table_id,
+        date: input.date,
+        time_slot: input.time_slot,
+        value: input.value,
+        recorded_by: user.id,
+      };
+
+      const result = await offlineMutation({
+        table: "table_tracker",
+        operation: "upsert",
+        payload,
+        upsertConflict: "table_id,date,time_slot",
+      });
+
+      if (result.error) throw new Error(result.error);
+      return { offline: result.offline };
+    },
+    onMutate: async (input) => {
+      await qc.cancelQueries({ queryKey: ["table-tracker"] });
+      const queries = qc.getQueriesData<any[]>({ queryKey: ["table-tracker"] });
+      queries.forEach(([key, data]) => {
+        if (!data) return;
+        const idx = data.findIndex((t: any) => t.table_id === input.table_id && t.time_slot === input.time_slot);
+        const updated = [...data];
+        const entry = { table_id: input.table_id, date: input.date, time_slot: input.time_slot, value: input.value, casino_id: casinoId, id: `temp-${Date.now()}` };
+        if (idx >= 0) { updated[idx] = { ...updated[idx], value: input.value }; } else { updated.push(entry); }
+        qc.setQueryData(key, updated);
+      });
+    },
+    onError: (_err) => { toast.error("Sync error (tracker) — will retry", { duration: 2000 }); },
+    onSettled: () => {},
+  });
+};

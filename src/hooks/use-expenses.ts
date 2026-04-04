@@ -1,0 +1,95 @@
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth-context";
+import { logAction } from "@/lib/logging";
+import { offlineMutation } from "@/lib/offline-mutation";
+import { toast } from "sonner";
+
+export const useExpenses = (date?: string) => {
+  const { casinoId } = useAuth();
+  return useQuery({
+    queryKey: ["expenses", casinoId, date],
+    queryFn: async () => {
+      if (!casinoId) return [];
+      let query = supabase
+        .from("expenses")
+        .select("*, players(first_name, last_name)")
+        .eq("casino_id", casinoId)
+        .order("created_at", { ascending: false });
+      
+      if (date) {
+        query = query.gte("created_at", `${date}T00:00:00`).lte("created_at", `${date}T23:59:59`);
+      } else {
+        query = query.limit(200);
+      }
+      
+      const { data, error } = await query;
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!casinoId,
+    staleTime: 1000 * 60 * 2,
+  });
+};
+
+export const useCreateExpense = () => {
+  const qc = useQueryClient();
+  const { casinoId, user } = useAuth();
+  return useMutation({
+    mutationFn: async (input: {
+      category: string;
+      amount: number;
+      description: string;
+      player_id: string | null;
+      shift_id?: string | null;
+    }) => {
+      if (!casinoId || !user) throw new Error("Not authenticated");
+      const payload = {
+        casino_id: casinoId,
+        category: input.category as any,
+        amount: input.amount,
+        description: input.description,
+        player_id: input.player_id,
+        shift_id: input.shift_id || null,
+        created_by: user.id,
+      };
+
+      const result = await offlineMutation({
+        table: "expenses",
+        operation: "insert",
+        payload,
+        meta: { category: input.category, amount: input.amount },
+      });
+
+      if (result.error) throw new Error(result.error);
+
+      if (!result.offline) {
+        await logAction(casinoId, "expense", "EXPENSE_CREATED", { category: input.category, amount: input.amount });
+      }
+      return { offline: result.offline };
+    },
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ["expenses"] });
+      if (!res.offline) toast.success("Expense recorded");
+    },
+    onError: (e) => toast.error(e.message),
+  });
+};
+
+export const useApproveExpense = () => {
+  const qc = useQueryClient();
+  const { casinoId, user } = useAuth();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      if (!user) throw new Error("Not authenticated");
+      const { error } = await supabase.from("expenses").update({
+        approved: true,
+        approved_by: user.id,
+        approved_at: new Date().toISOString(),
+      }).eq("id", id);
+      if (error) throw error;
+      await logAction(casinoId!, "expense", "EXPENSE_APPROVED", { expense_id: id });
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["expenses"] }); toast.success("Expense approved"); },
+  });
+};

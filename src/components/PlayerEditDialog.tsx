@@ -46,7 +46,7 @@ const NOTE_TYPE_COLORS: Record<string, string> = {
 
 const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps) => {
   const isMobile = useIsMobile();
-  const { user, roles, isManager } = useAuth();
+  const { user, roles, isManager, casinoId } = useAuth();
   const queryClient = useQueryClient();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -77,9 +77,16 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
       setPlayerType(player.player_type || "table");
       setCategory((player.category as PlayerCategory) || "guest");
       setPhotoUrl(player.photo_url || null);
-      setDocUrl(player.id_document_url || null);
       setNewNote("");
       setNoteType("info");
+
+      // Generate signed URL for private document bucket
+      if (player.id_document_url && !player.id_document_url.startsWith("http")) {
+        supabase.storage.from("player-documents").createSignedUrl(player.id_document_url, 3600)
+          .then(({ data }) => setDocUrl(data?.signedUrl || null));
+      } else {
+        setDocUrl(player.id_document_url || null);
+      }
     }
   }, [player, open]);
 
@@ -149,13 +156,15 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
     setUploadingDoc(true);
     try {
       const ext = file.name.split(".").pop();
-      const path = `players/${player.id}/id_document.${ext}`;
+      const path = `${casinoId}/${player.id}/docs/id_document.${ext}`;
       const { error: upErr } = await supabase.storage.from("player-documents").upload(path, file, { upsert: true });
       if (upErr) throw upErr;
-      const { data: urlData } = supabase.storage.from("player-documents").getPublicUrl(path);
-      const url = `${urlData.publicUrl}?t=${Date.now()}`;
-      await supabase.from("players").update({ id_document_url: url } as any).eq("id", player.id);
-      setDocUrl(url);
+      // Store the storage path (not a public URL) — we generate signed URLs on read
+      const storagePath = path;
+      await supabase.from("players").update({ id_document_url: storagePath } as any).eq("id", player.id);
+      // Generate a temporary signed URL for immediate display
+      const { data: signedData } = await supabase.storage.from("player-documents").createSignedUrl(storagePath, 3600);
+      setDocUrl(signedData?.signedUrl || storagePath);
       toast.success("ID document uploaded");
     } catch (err: any) {
       toast.error(err.message);
