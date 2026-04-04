@@ -616,12 +616,6 @@ const RegisterTab = () => {
           {ocrDone && !ocrLoading && (
             <p className="text-[10px] text-primary">✓ Document data auto-filled</p>
           )}
-          />
-          {ocrLoading && (
-            <p className="text-[10px] text-muted-foreground animate-pulse">
-              AI is reading document data…
-            </p>
-          )}
         </div>
 
         {/* Duplicate Check Result */}
