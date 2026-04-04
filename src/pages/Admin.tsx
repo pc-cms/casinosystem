@@ -225,7 +225,7 @@ const CasinoManagement = () => {
                 <td className="px-4 py-3 text-sm font-medium text-card-foreground">{c.name}</td>
                 <td className="px-4 py-3 text-sm font-mono text-muted-foreground">{c.code}</td>
                 <td className="px-4 py-3 text-sm font-mono text-muted-foreground">
-                  {(c as any).slug ? `${(c as any).slug}.casinosystem.app` : "—"}
+                  {(c as any).slug ? `${(c as any).slug}.${getBaseDomain()}` : "—"}
                 </td>
                 <td className="px-4 py-3 text-xs font-mono text-muted-foreground/60">{c.id.slice(0, 8)}</td>
               </tr>
