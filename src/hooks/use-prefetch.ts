@@ -1,6 +1,7 @@
 /**
  * Prefetch critical data after login so it's available instantly
  * and cached for offline use.
+ * Uses the same query functions as the hooks to ensure DRY consistency.
  */
 import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -8,71 +9,77 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { getBusinessDate } from "@/lib/business-day";
 
+// Shared query functions — must match the hooks in use-casino-data.ts exactly
+const queryFns = {
+  players: (casinoId: string) => async () => {
+    const { data } = await supabase
+      .from("players")
+      .select("*, player_cards(*), player_tags(*)")
+      .eq("casino_id", casinoId)
+      .order("last_name");
+    return data ?? [];
+  },
+  visits: (casinoId: string, date: string) => async () => {
+    const { data } = await supabase
+      .from("casino_visits")
+      .select("*, players(first_name, last_name, nickname, photo_url, status, player_tags(tag), id_number)")
+      .eq("casino_id", casinoId)
+      .eq("date", date);
+    return data ?? [];
+  },
+  tables: (casinoId: string) => async () => {
+    const { data } = await supabase
+      .from("gaming_tables")
+      .select("*")
+      .eq("casino_id", casinoId)
+      .order("name");
+    return data ?? [];
+  },
+  dealers: (casinoId: string) => async () => {
+    const { data } = await supabase
+      .from("dealers")
+      .select("*")
+      .eq("casino_id", casinoId)
+      .order("name");
+    return data ?? [];
+  },
+};
+
 export function usePrefetchCriticalData() {
   const qc = useQueryClient();
   const { casinoId, user, roles } = useAuth();
 
   useEffect(() => {
     if (!casinoId || !user) return;
+    const today = getBusinessDate();
 
-    // Prefetch players — must match usePlayers() select & queryKey exactly
+    // Always prefetch players and visits
     qc.prefetchQuery({
       queryKey: ["players", casinoId],
-      queryFn: async () => {
-        const { data } = await supabase
-          .from("players")
-          .select("*, player_cards(*), player_tags(*)")
-          .eq("casino_id", casinoId)
-          .order("last_name");
-        return data ?? [];
-      },
+      queryFn: queryFns.players(casinoId),
       staleTime: 1000 * 60 * 5,
     });
 
-    // Prefetch active visits — align key with Dashboard's useTodayVisits
-    const today = getBusinessDate();
     qc.prefetchQuery({
       queryKey: ["casino-visits-today", casinoId, today],
-      queryFn: async () => {
-        const { data } = await supabase
-          .from("casino_visits")
-          .select("*, players(first_name, last_name, nickname, photo_url, status, player_tags(tag), id_number)")
-          .eq("casino_id", casinoId)
-          .eq("date", today)
-          .is("checked_out_at", null);
-        return data ?? [];
-      },
+      queryFn: queryFns.visits(casinoId, today),
       staleTime: 1000 * 60 * 2,
     });
 
-    // Prefetch tables — must match useGamingTables() exactly
+    // Prefetch tables for cage/pit roles
     if (roles.some(r => ["cashier", "pit", "manager", "finance_manager"].includes(r))) {
       qc.prefetchQuery({
         queryKey: ["gaming-tables", casinoId],
-        queryFn: async () => {
-          const { data } = await supabase
-            .from("gaming_tables")
-            .select("*")
-            .eq("casino_id", casinoId)
-            .order("name");
-          return data ?? [];
-        },
+        queryFn: queryFns.tables(casinoId),
         staleTime: 1000 * 60 * 5,
       });
     }
 
-    // Prefetch dealers — must match useDealers() exactly
+    // Prefetch dealers for pit roles
     if (roles.some(r => ["pit", "manager"].includes(r))) {
       qc.prefetchQuery({
         queryKey: ["dealers", casinoId],
-        queryFn: async () => {
-          const { data } = await supabase
-            .from("dealers")
-            .select("*")
-            .eq("casino_id", casinoId)
-            .order("name");
-          return data ?? [];
-        },
+        queryFn: queryFns.dealers(casinoId),
         staleTime: 1000 * 60 * 10,
       });
     }

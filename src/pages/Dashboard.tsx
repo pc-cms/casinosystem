@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { Users, Landmark, Receipt, TrendingDown, AlertTriangle, Clock } from "lucide-react";
 import { CardSkeleton, PlayerListSkeleton } from "@/components/LoadingSkeletons";
 import { usePlayers, useTransactions, useGamingTables, useExpenses, useClientSessionsTotalBet, useTableTracker, usePlayerEconomy, useVisitsToday } from "@/hooks/use-casino-data";
+// Dashboard uses limited economy query for top losers widget
 import { useAuth } from "@/lib/auth-context";
 import { Link } from "react-router-dom";
 import { formatCurrency } from "@/lib/currency";
@@ -35,7 +36,7 @@ const Dashboard = () => {
   const { data: expenses = [] } = useExpenses(businessDate);
   const { data: sessionsTotalBet = 0 } = useClientSessionsTotalBet(businessDate);
   const { data: trackerData = [] } = useTableTracker(businessDate);
-  const { data: economy = [] } = usePlayerEconomy();
+  const { data: economy = [] } = usePlayerEconomy(20);
   const { data: staffMembers = [] } = useStaffMembers();
   const { data: staffRota = [] } = useStaffRotaRange(businessDate, businessDate);
   const { data: allVisits = [] } = useVisitsToday("*, players(first_name, last_name, nickname, photo_url, status, player_tags(tag), id_number)") as { data: any[] };
