@@ -119,7 +119,9 @@ const SidebarInner = ({ onNavigate }: { onNavigate?: () => void }) => {
           </div>
           <NetworkStatusIndicator />
         </div>
-        <p className="text-[10px] font-mono text-muted-foreground mt-0.5 uppercase tracking-widest">Casino Ops</p>
+        <p className="text-[10px] font-mono text-muted-foreground mt-0.5 uppercase tracking-widest">
+          {isSummaryMode ? "All Casinos" : activeCasino?.name ?? "Casino Ops"}
+        </p>
 
         {!nativeManager && (
           <div className="mt-2">
