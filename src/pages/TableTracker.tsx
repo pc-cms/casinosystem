@@ -25,7 +25,7 @@ const getCurrentSlot = () => {
 };
 
 const TableTracker = () => {
-  const today = new Date().toISOString().split("T")[0];
+  const today = getBusinessDate();
   const [date, setDate] = useState(today);
   const { data: tables = [] } = useGamingTables();
   const { data: trackerData = [] } = useTableTracker(date);
