@@ -55,6 +55,7 @@ export const getBaseDomain = (): string => {
 /** Extract casino slug from current hostname */
 export const getSlugFromHostname = (): string | null => {
   const hostname = window.location.hostname;
+  console.log("[CasinoRouting] hostname:", hostname, "href:", window.location.href);
 
   // Production: arusha.casinosystem.app / arusha.casinosystem.lovable.app / arusha.casinosystem.local
   const match = hostname.match(/^([a-z0-9-]+)\.(casinosystem\.app|casinosystem\.lovable\.app|casinosystem\.local)$/i);
