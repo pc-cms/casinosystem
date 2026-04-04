@@ -39,8 +39,9 @@ const CAT_COLORS: Record<string, string> = {
  */
 const Expenses = () => {
   const { isManager } = useAuth();
+  const businessDate = getBusinessDate();
   const { data: shift } = useActiveShift();
-  const { data: expenses = [] } = useExpenses();
+  const { data: expenses = [] } = useExpenses(businessDate);
   const { data: players = [] } = usePlayers();
   const approve = useApproveExpense();
   const [showAdd, setShowAdd] = useState(false);

@@ -1,8 +1,9 @@
 import { useMemo, useState } from "react";
 import { getBusinessDate } from "@/lib/business-day";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
+import { useVisitsToday } from "@/hooks/use-casino-data";
 import { logAction } from "@/lib/logging";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -29,23 +30,8 @@ const InCasino = () => {
   const [categoryFilter, setCategoryFilter] = useState<Set<PlayerCategory>>(new Set(["diamond", "platinum", "gold", "guest"]));
   const [profilePlayer, setProfilePlayer] = useState<any>(null);
 
-  const { data: visits = [] } = useQuery({
-    queryKey: ["casino-visits-today", casinoId, today],
-    queryFn: async () => {
-      if (!casinoId) return [];
-      const { data, error } = await supabase
-        .from("casino_visits")
-        .select("*, players(id, first_name, last_name, nickname, photo_url, status, player_type, phone, id_number, id_document_url, category)")
-        .eq("casino_id", casinoId)
-        .eq("date", today)
-        .order("checked_in_at", { ascending: false });
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!casinoId,
-    refetchInterval: 30000,
-    staleTime: 1000 * 15,
-  });
+  // Use shared hook — no duplicate query, realtime handles invalidation (no polling needed)
+  const { data: visits = [] } = useVisitsToday("*, players(id, first_name, last_name, nickname, photo_url, status, player_type, phone, id_number, id_document_url, category)") as { data: any[] };
 
   const playerIds = useMemo(() => visits.map(v => v.player_id), [visits]);
   const { data: allTags = [] } = useQuery({
