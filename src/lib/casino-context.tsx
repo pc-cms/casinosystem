@@ -47,8 +47,8 @@ export const useCasino = () => {
 export const getSlugFromHostname = (): string | null => {
   const hostname = window.location.hostname;
 
-  // Production: arusha.casinosystem.app
-  const match = hostname.match(/^([a-z0-9-]+)\.(casinosystem\.app|casinosystem\.local)$/i);
+  // Production: arusha.casinosystem.app or arusha.casinosystem.lovable.app
+  const match = hostname.match(/^([a-z0-9-]+)\.(casinosystem\.app|casinosystem\.lovable\.app|casinosystem\.local)$/i);
   if (match) {
     const slug = match[1].toLowerCase();
     // Exclude known non-casino subdomains
@@ -58,7 +58,7 @@ export const getSlugFromHostname = (): string | null => {
   }
 
   // Root domain casinosystem.app (no subdomain) → landing page
-  if (/^(www\.)?casinosystem\.(app|local)$/i.test(hostname)) {
+  if (/^(www\.)?casinosystem\.(app|lovable\.app|local)$/i.test(hostname)) {
     return "__landing__";
   }
 
