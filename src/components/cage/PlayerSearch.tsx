@@ -2,12 +2,14 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Pencil } from "lucide-react";
 import PlayerEditDialog from "@/components/PlayerEditDialog";
+import CasinoBadge from "@/components/player/CasinoBadge";
 
 interface Player {
   id: string;
   first_name: string;
   last_name: string;
   nickname: string;
+  casino_id?: string;
   status?: string;
   photo_url?: string | null;
   id_number?: string;
@@ -100,8 +102,11 @@ const PlayerSearch = ({ players, value, onChange, placeholder = "Search playerâ€
                 onClick={() => handleSelect(p.id)}
                 className="flex-1 text-left px-3 py-1.5 text-sm flex items-center justify-between"
               >
-                <span className={p.status === "blacklist" ? "text-destructive font-medium" : ""}>{p.first_name} {p.last_name}</span>
+                <span className={p.status === "blacklist" ? "text-destructive font-medium" : ""}>
+                  {p.first_name} {p.last_name}
+                </span>
                 <span className="text-[10px] font-mono text-muted-foreground flex items-center gap-1">
+                  {p.casino_id && <CasinoBadge casinoId={p.casino_id} />}
                   {p.status === "blacklist" && <span className="text-destructive font-bold">BL</span>}
                   {p.player_cards?.[0]?.card_number || ""}
                 </span>

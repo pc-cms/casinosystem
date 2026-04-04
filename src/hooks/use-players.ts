@@ -5,21 +5,22 @@ import { logAction } from "@/lib/logging";
 import { toast } from "sonner";
 
 // ============ PLAYERS ============
+/**
+ * Global player base — all players across all casinos.
+ * casino_id on the player = where they were registered.
+ * Blacklist status is global.
+ */
 export const usePlayers = () => {
-  const { casinoId } = useAuth();
   return useQuery({
-    queryKey: ["players", casinoId],
+    queryKey: ["players"],
     queryFn: async () => {
-      if (!casinoId) return [];
       const { data, error } = await supabase
         .from("players")
         .select("*, player_cards(*), player_tags(*)")
-        .eq("casino_id", casinoId)
         .order("last_name");
       if (error) throw error;
       return data;
     },
-    enabled: !!casinoId,
     staleTime: 1000 * 60 * 5,
   });
 };
