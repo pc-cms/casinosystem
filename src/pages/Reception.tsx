@@ -583,19 +583,17 @@ const RegisterTab = () => {
       <div className="cms-panel p-4 sm:p-6 space-y-4">
         <h3 className="text-base sm:text-lg font-semibold text-foreground">New Player Registration</h3>
 
-        {/* Step 1: Document Scan — first for OCR auto-fill */}
+        {/* Step 1: Document Scan — runs OCR in background */}
         <div className="space-y-1">
           <label className="text-xs font-medium text-muted-foreground">
             Step 1: Scan ID / Passport *
           </label>
           <label htmlFor="reg-doc" className="cursor-pointer block">
-            <Button variant="outline" className="gap-1.5 w-full h-11" asChild disabled={ocrLoading}>
+            <Button variant="outline" className="gap-1.5 w-full h-11" asChild>
               <span>
                 <Camera className="w-4 h-4" />
-                {ocrLoading
-                  ? "Reading document…"
-                  : docFiles.length > 0
-                  ? `${docFiles.length} file(s) — ${ocrDone ? "✓ Data extracted" : "Processing…"}`
+                {docFiles.length > 0
+                  ? `${docFiles.length} file(s) uploaded`
                   : "Scan Document"}
               </span>
             </Button>
@@ -608,6 +606,16 @@ const RegisterTab = () => {
             multiple
             onChange={handleDocSelect}
             className="hidden"
+          />
+          {ocrLoading && (
+            <p className="text-[10px] text-primary animate-pulse flex items-center gap-1">
+              <span className="inline-block w-1.5 h-1.5 rounded-full bg-primary animate-ping" />
+              Reading document in background — keep filling the form
+            </p>
+          )}
+          {ocrDone && !ocrLoading && (
+            <p className="text-[10px] text-primary">✓ Document data auto-filled</p>
+          )}
           />
           {ocrLoading && (
             <p className="text-[10px] text-muted-foreground animate-pulse">
