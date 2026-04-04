@@ -62,6 +62,7 @@ const BREAKLIST_PATH = "/pit?tab=breaklist";
 const SidebarInner = ({ onNavigate }: { onNavigate?: () => void }) => {
   const { theme, toggle } = useTheme();
   const { displayName, roles, signOut, isManager, managerOverride, activateManagerOverride, deactivateManagerOverride } = useAuth();
+  const { activeCasino, isSummaryMode } = useCasino();
   const location = useLocation();
   const [showOverrideDialog, setShowOverrideDialog] = useState(false);
 
