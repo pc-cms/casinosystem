@@ -206,6 +206,7 @@ const SidebarInner = ({ onNavigate }: { onNavigate?: () => void }) => {
             <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded shrink-0 ${
               roles.includes("manager") ? "bg-primary/20 text-primary" :
               roles.includes("finance_manager") ? "bg-emerald-500/20 text-emerald-400" :
+              roles.includes("hr") ? "bg-orange-500/20 text-orange-400" :
               roles.includes("pit") ? "bg-sky-500/20 text-sky-400" :
               roles.includes("cashier") ? "bg-amber-500/20 text-amber-400" :
               roles.includes("reception") ? "bg-violet-500/20 text-violet-400" :
