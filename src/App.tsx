@@ -92,6 +92,10 @@ const RoleGuard = ({ path, children }: { path: string; children: React.ReactNode
 
 const getDefaultRoute = (roles: string[]) => {
   if (roles.includes("super_admin")) return "/admin";
+  // Security-only users on premier will be handled by CCTV mode, but default route still needed
+  if (roles.includes("security") && !roles.some(r => ["manager", "pit", "cashier", "reception", "finance_manager", "super_admin", "hr"].includes(r))) {
+    return "/";
+  }
   if (roles.includes("hr") && !roles.some(r => ["manager", "pit", "cashier", "reception", "finance_manager", "security", "super_admin"].includes(r))) {
     return "/staff";
   }
