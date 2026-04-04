@@ -10,31 +10,32 @@ import {
 } from "lucide-react";
 import { useTheme } from "@/lib/theme";
 import { useAuth } from "@/lib/auth-context";
+import { useCasino } from "@/lib/casino-context";
 import { NetworkStatusIndicator } from "@/components/NetworkStatusIndicator";
 import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
 import { toast } from "sonner";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 
-type AppRole = "cashier" | "pit" | "manager" | "reception" | "finance_manager" | "security";
+type AppRole = "cashier" | "pit" | "manager" | "reception" | "finance_manager" | "security" | "super_admin";
 
 const NAV_ITEMS: { to: string; icon: typeof LayoutDashboard; label: string; shortcut: string; roles: AppRole[]; section: string }[] = [
-  { to: "/", icon: LayoutDashboard, label: "Dashboard", shortcut: "D", roles: ["manager", "pit", "reception", "finance_manager", "security"], section: "OVERVIEW" },
-  { to: "/blacklist", icon: ShieldAlert, label: "Blacklist", shortcut: "B", roles: ["manager", "reception", "finance_manager", "security"], section: "OPERATIONS" },
-  { to: "/pit?tab=breaklist", icon: ListChecks, label: "Breaklist", shortcut: "Alt+B", roles: ["manager", "pit", "finance_manager"], section: "OPERATIONS" },
-  { to: "/cage", icon: Landmark, label: "Cage", shortcut: "C", roles: ["manager", "cashier", "finance_manager"], section: "OPERATIONS" },
-  { to: "/expenses", icon: Receipt, label: "Expenses", shortcut: "E", roles: ["manager", "cashier", "finance_manager"], section: "OPERATIONS" },
-  { to: "/finance", icon: Wallet, label: "Finance", shortcut: "F", roles: ["manager", "finance_manager"], section: "OPERATIONS" },
-  { to: "/groups", icon: UsersRound, label: "Groups", shortcut: "G", roles: ["manager", "finance_manager"], section: "OPERATIONS" },
-  { to: "/guests", icon: Users, label: "Guests", shortcut: "Alt+G", roles: ["manager", "reception", "pit", "finance_manager", "security"], section: "OPERATIONS" },
-  { to: "/pit", icon: Gamepad2, label: "Live Game", shortcut: "L", roles: ["manager", "pit", "finance_manager"], section: "OPERATIONS" },
-  { to: "/players", icon: Users, label: "Players", shortcut: "P", roles: ["manager", "cashier", "finance_manager", "security"], section: "OPERATIONS" },
-  { to: "/reception", icon: DoorOpen, label: "Reception", shortcut: "R", roles: ["manager", "reception", "finance_manager"], section: "OPERATIONS" },
-  { to: "/tables", icon: Table2, label: "Tables", shortcut: "T", roles: ["manager", "cashier", "pit", "finance_manager", "security"], section: "OPERATIONS" },
-  { to: "/staff", icon: Building2, label: "Floor Staff", shortcut: "Alt+F", roles: ["manager", "pit", "finance_manager"], section: "HR" },
-  { to: "/logs", icon: ClipboardList, label: "Logs", shortcut: "Alt+L", roles: ["manager", "finance_manager", "security"], section: "ANALYTICS" },
-  { to: "/reports", icon: FileBarChart, label: "Reports", shortcut: "Alt+R", roles: ["manager", "finance_manager", "security"], section: "ANALYTICS" },
-  { to: "/stats", icon: BarChart3, label: "Stats", shortcut: "S", roles: ["manager", "finance_manager", "security"], section: "ANALYTICS" },
+  { to: "/", icon: LayoutDashboard, label: "Dashboard", shortcut: "D", roles: ["super_admin", "manager", "pit", "reception", "finance_manager", "security"], section: "OVERVIEW" },
+  { to: "/blacklist", icon: ShieldAlert, label: "Blacklist", shortcut: "B", roles: ["super_admin", "manager", "reception", "finance_manager", "security"], section: "OPERATIONS" },
+  { to: "/pit?tab=breaklist", icon: ListChecks, label: "Breaklist", shortcut: "Alt+B", roles: ["super_admin", "manager", "pit", "finance_manager"], section: "OPERATIONS" },
+  { to: "/cage", icon: Landmark, label: "Cage", shortcut: "C", roles: ["super_admin", "manager", "cashier", "finance_manager"], section: "OPERATIONS" },
+  { to: "/expenses", icon: Receipt, label: "Expenses", shortcut: "E", roles: ["super_admin", "manager", "cashier", "finance_manager"], section: "OPERATIONS" },
+  { to: "/finance", icon: Wallet, label: "Finance", shortcut: "F", roles: ["super_admin", "manager", "finance_manager"], section: "OPERATIONS" },
+  { to: "/groups", icon: UsersRound, label: "Groups", shortcut: "G", roles: ["super_admin", "manager", "finance_manager"], section: "OPERATIONS" },
+  { to: "/guests", icon: Users, label: "Guests", shortcut: "Alt+G", roles: ["super_admin", "manager", "reception", "pit", "finance_manager", "security"], section: "OPERATIONS" },
+  { to: "/pit", icon: Gamepad2, label: "Live Game", shortcut: "L", roles: ["super_admin", "manager", "pit", "finance_manager"], section: "OPERATIONS" },
+  { to: "/players", icon: Users, label: "Players", shortcut: "P", roles: ["super_admin", "manager", "cashier", "finance_manager", "security"], section: "OPERATIONS" },
+  { to: "/reception", icon: DoorOpen, label: "Reception", shortcut: "R", roles: ["super_admin", "manager", "reception", "finance_manager"], section: "OPERATIONS" },
+  { to: "/tables", icon: Table2, label: "Tables", shortcut: "T", roles: ["super_admin", "manager", "cashier", "pit", "finance_manager", "security"], section: "OPERATIONS" },
+  { to: "/staff", icon: Building2, label: "Floor Staff", shortcut: "Alt+F", roles: ["super_admin", "manager", "pit", "finance_manager"], section: "HR" },
+  { to: "/logs", icon: ClipboardList, label: "Logs", shortcut: "Alt+L", roles: ["super_admin", "manager", "finance_manager", "security"], section: "ANALYTICS" },
+  { to: "/reports", icon: FileBarChart, label: "Reports", shortcut: "Alt+R", roles: ["super_admin", "manager", "finance_manager", "security"], section: "ANALYTICS" },
+  { to: "/stats", icon: BarChart3, label: "Stats", shortcut: "S", roles: ["super_admin", "manager", "finance_manager", "security"], section: "ANALYTICS" },
 ];
 
 const TABLE_SUBITEMS = [
@@ -61,6 +62,7 @@ const BREAKLIST_PATH = "/pit?tab=breaklist";
 const SidebarInner = ({ onNavigate }: { onNavigate?: () => void }) => {
   const { theme, toggle } = useTheme();
   const { displayName, roles, signOut, isManager, managerOverride, activateManagerOverride, deactivateManagerOverride } = useAuth();
+  const { activeCasino, isSummaryMode } = useCasino();
   const location = useLocation();
   const [showOverrideDialog, setShowOverrideDialog] = useState(false);
 
@@ -117,7 +119,9 @@ const SidebarInner = ({ onNavigate }: { onNavigate?: () => void }) => {
           </div>
           <NetworkStatusIndicator />
         </div>
-        <p className="text-[10px] font-mono text-muted-foreground mt-0.5 uppercase tracking-widest">Casino Ops</p>
+        <p className="text-[10px] font-mono text-muted-foreground mt-0.5 uppercase tracking-widest">
+          {isSummaryMode ? "All Casinos" : activeCasino?.name ?? "Casino Ops"}
+        </p>
 
         {!nativeManager && (
           <div className="mt-2">

@@ -8,6 +8,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/lib/theme";
 import { AuthProvider, useAuth } from "@/lib/auth-context";
+import { CasinoProvider } from "@/lib/casino-context";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { createIDBPersister } from "@/lib/query-persister";
 import { usePrefetchCriticalData } from "@/hooks/use-prefetch";
@@ -58,22 +59,22 @@ const PageLoader = () => (
 
 // Role-based route access map
 const ROUTE_ROLES: Record<string, string[]> = {
-  "/": ["manager", "pit", "reception", "finance_manager", "security"],
-  "/players": ["manager", "cashier", "finance_manager", "security"],
-  "/guests": ["manager", "reception", "pit", "finance_manager", "security"],
-  "/blacklist": ["manager", "reception", "finance_manager", "security"],
-  "/reception": ["manager", "reception", "finance_manager"],
-  "/cage": ["manager", "cashier", "finance_manager"],
-  "/tables": ["manager", "cashier", "pit", "finance_manager", "security"],
-  "/expenses": ["manager", "cashier", "finance_manager"],
-  "/pit": ["manager", "pit", "finance_manager"],
-  "/floor": ["manager", "pit", "finance_manager"],
-  "/groups": ["manager", "finance_manager"],
-  "/finance": ["manager", "finance_manager"],
-  "/reports": ["manager", "finance_manager", "security"],
-  "/stats": ["manager", "finance_manager", "security"],
-  "/logs": ["manager", "finance_manager", "security"],
-  "/admin": ["manager"],
+  "/": ["super_admin", "manager", "pit", "reception", "finance_manager", "security"],
+  "/players": ["super_admin", "manager", "cashier", "finance_manager", "security"],
+  "/guests": ["super_admin", "manager", "reception", "pit", "finance_manager", "security"],
+  "/blacklist": ["super_admin", "manager", "reception", "finance_manager", "security"],
+  "/reception": ["super_admin", "manager", "reception", "finance_manager"],
+  "/cage": ["super_admin", "manager", "cashier", "finance_manager"],
+  "/tables": ["super_admin", "manager", "cashier", "pit", "finance_manager", "security"],
+  "/expenses": ["super_admin", "manager", "cashier", "finance_manager"],
+  "/pit": ["super_admin", "manager", "pit", "finance_manager"],
+  "/floor": ["super_admin", "manager", "pit", "finance_manager"],
+  "/groups": ["super_admin", "manager", "finance_manager"],
+  "/finance": ["super_admin", "manager", "finance_manager"],
+  "/reports": ["super_admin", "manager", "finance_manager", "security"],
+  "/stats": ["super_admin", "manager", "finance_manager", "security"],
+  "/logs": ["super_admin", "manager", "finance_manager", "security"],
+  "/admin": ["super_admin", "manager"],
 };
 
 const RoleGuard = ({ path, children }: { path: string; children: React.ReactNode }) => {
@@ -87,10 +88,11 @@ const RoleGuard = ({ path, children }: { path: string; children: React.ReactNode
 };
 
 const getDefaultRoute = (roles: string[]) => {
-  if (roles.includes("reception") && !roles.some(r => ["manager", "pit", "cashier", "finance_manager", "security"].includes(r))) {
+  if (roles.includes("super_admin")) return "/admin";
+  if (roles.includes("reception") && !roles.some(r => ["manager", "pit", "cashier", "finance_manager", "security", "super_admin"].includes(r))) {
     return "/reception";
   }
-  if (roles.includes("cashier") && !roles.some(r => ["manager", "pit", "reception", "finance_manager", "security"].includes(r))) {
+  if (roles.includes("cashier") && !roles.some(r => ["manager", "pit", "reception", "finance_manager", "security", "super_admin"].includes(r))) {
     return "/cage";
   }
   return "/";
@@ -172,11 +174,13 @@ const App = () => (
     >
       <TooltipProvider>
         <AuthProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <AppRoutes />
-          </BrowserRouter>
+          <CasinoProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <AppRoutes />
+            </BrowserRouter>
+          </CasinoProvider>
         </AuthProvider>
       </TooltipProvider>
     </PersistQueryClientProvider>
