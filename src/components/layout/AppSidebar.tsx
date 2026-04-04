@@ -213,10 +213,10 @@ const SidebarInner = ({ onNavigate }: { onNavigate?: () => void }) => {
               "bg-sidebar-accent text-sidebar-accent-foreground"
             }`}>
               {(() => {
-                const priority: AppRole[] = ["manager", "finance_manager", "pit", "cashier", "reception", "security"];
+                const priority: AppRole[] = ["manager", "finance_manager", "hr", "pit", "cashier", "reception", "security"];
                 const primary = priority.find(r => roles.includes(r)) || roles[0] || "user";
                 const labels: Record<string, string> = {
-                  manager: "Manager", finance_manager: "Finance", pit: "Pit",
+                  manager: "Manager", finance_manager: "Finance", hr: "HR", pit: "Pit",
                   cashier: "Cashier", reception: "Reception", security: "Security",
                 };
                 return labels[primary] || primary.charAt(0).toUpperCase() + primary.slice(1);

@@ -16,7 +16,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import FloatManagement from "@/components/admin/FloatManagement";
 import { useCasinoInfo, useUpdateCasinoSchedule } from "@/hooks/use-table-lifecycle";
 
-const ROLES = ["manager", "cashier", "pit", "reception", "finance_manager", "security"] as const;
+const ROLES = ["manager", "cashier", "pit", "reception", "finance_manager", "security", "hr"] as const;
 const ALL_ROLES = ["super_admin", ...ROLES] as const;
 
 const ROLE_LABELS: Record<string, string> = {
@@ -27,6 +27,7 @@ const ROLE_LABELS: Record<string, string> = {
   reception: "Reception",
   finance_manager: "Finance",
   security: "Security",
+  hr: "HR",
 };
 
 // =================== HOOKS ===================
