@@ -77,9 +77,16 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
       setPlayerType(player.player_type || "table");
       setCategory((player.category as PlayerCategory) || "guest");
       setPhotoUrl(player.photo_url || null);
-      setDocUrl(player.id_document_url || null);
       setNewNote("");
       setNoteType("info");
+
+      // Generate signed URL for private document bucket
+      if (player.id_document_url && !player.id_document_url.startsWith("http")) {
+        supabase.storage.from("player-documents").createSignedUrl(player.id_document_url, 3600)
+          .then(({ data }) => setDocUrl(data?.signedUrl || null));
+      } else {
+        setDocUrl(player.id_document_url || null);
+      }
     }
   }, [player, open]);
 
