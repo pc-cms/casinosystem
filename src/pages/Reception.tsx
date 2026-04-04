@@ -138,6 +138,17 @@ const CheckInTab = () => {
       if (activePlayers.has(playerId)) throw new Error("Player already checked in");
       const player = players.find(p => p.id === playerId);
       if (player?.status === "blacklist") throw new Error("BLACKLISTED — entry denied");
+
+      // Cross-casino double check-in block
+      const { data: activeElsewhere } = await supabase
+        .rpc("player_active_visit_casino", { _player_id: playerId } as any);
+      if (activeElsewhere && activeElsewhere.length > 0) {
+        const loc = activeElsewhere[0];
+        if (loc.casino_id !== casinoId) {
+          throw new Error(`Player is currently active at ${loc.casino_name}`);
+        }
+      }
+
       const { error } = await supabase.from("casino_visits").insert({
         casino_id: casinoId,
         player_id: playerId,
