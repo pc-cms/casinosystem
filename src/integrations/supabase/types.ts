@@ -1952,6 +1952,10 @@ export type Database = {
     }
     Functions: {
       generate_card_number: { Args: never; Returns: string }
+      get_business_date_for_casino: {
+        Args: { _casino_id: string }
+        Returns: string
+      }
       get_expected_chips:
         | {
             Args: {
