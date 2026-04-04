@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Pencil } from "lucide-react";
 import PlayerEditDialog from "@/components/PlayerEditDialog";
+import CasinoBadge from "@/components/player/CasinoBadge";
 
 interface Player {
   id: string;
