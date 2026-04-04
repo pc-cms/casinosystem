@@ -105,7 +105,8 @@ const getDefaultRoute = (roles: string[]) => {
 };
 
 const ProtectedRoutes = () => {
-  const { user, loading } = useAuth();
+  const { user, loading, roles } = useAuth();
+  const detectedSlug = getSlugFromHostname();
 
   // Prefetch critical data in background
   usePrefetchCriticalData();
@@ -126,6 +127,23 @@ const ProtectedRoutes = () => {
     );
   }
   if (!user) return <Navigate to="/login" replace />;
+
+  // CCTV mode: security role on premier subdomain gets dedicated interface
+  const isCctvMode = detectedSlug === "__premier__" && roles.includes("security") &&
+    !roles.includes("super_admin") && !roles.includes("finance_manager");
+
+  if (isCctvMode) {
+    return (
+      <ErrorBoundary>
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
+            <Route path="*" element={<CctvView />} />
+          </Routes>
+        </Suspense>
+      </ErrorBoundary>
+    );
+  }
+
   return (
     <ErrorBoundary>
       <Suspense fallback={<PageLoader />}>
