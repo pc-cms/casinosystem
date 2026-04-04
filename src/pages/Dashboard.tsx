@@ -36,7 +36,7 @@ const Dashboard = () => {
   const { data: expenses = [] } = useExpenses(businessDate);
   const { data: sessionsTotalBet = 0 } = useClientSessionsTotalBet(businessDate);
   const { data: trackerData = [] } = useTableTracker(businessDate);
-  const { data: economy = [] } = usePlayerEconomy();
+  const { data: economy = [] } = usePlayerEconomy(20);
   const { data: staffMembers = [] } = useStaffMembers();
   const { data: staffRota = [] } = useStaffRotaRange(businessDate, businessDate);
   const { data: allVisits = [] } = useVisitsToday("*, players(first_name, last_name, nickname, photo_url, status, player_tags(tag), id_number)") as { data: any[] };
