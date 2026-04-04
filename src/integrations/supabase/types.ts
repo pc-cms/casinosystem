@@ -2136,6 +2136,14 @@ export type Database = {
           user_id: string
         }[]
       }
+      player_active_visit_casino: {
+        Args: { _player_id: string }
+        Returns: {
+          casino_id: string
+          casino_name: string
+          checked_in_at: string
+        }[]
+      }
       user_has_casino_access: {
         Args: { _casino_id: string; _user_id: string }
         Returns: boolean
