@@ -1,12 +1,15 @@
 /**
  * Sync Engine — processes offline queue when connection is restored.
- * Runs actions in chronological order, retries failures up to 3 times.
+ * Runs actions in chronological order, retries with exponential backoff.
+ * After MAX_RETRIES, marks action as permanently_failed (no further retries).
+ * Designed for wired connections with brief packet-loss interruptions.
  */
 
 import { supabase } from "@/integrations/supabase/client";
 import { getPendingActions, markAction, removeAction, type QueuedAction } from "./offline-queue";
 
-const MAX_RETRIES = 3;
+const MAX_RETRIES = 5;
+const BASE_DELAY_MS = 1000; // 1s, 2s, 4s, 8s, 16s
 
 export type SyncStatus = "online" | "offline" | "syncing";
 type SyncListener = (status: SyncStatus, pending: number) => void;
@@ -29,6 +32,10 @@ function notify(status: SyncStatus, pending: number) {
   currentStatus = status;
   pendingCount = pending;
   listeners.forEach(fn => fn(status, pending));
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 async function executeAction(action: QueuedAction): Promise<boolean> {
@@ -86,6 +93,12 @@ export async function syncPendingActions(): Promise<{ synced: number; failed: nu
   let failed = 0;
 
   for (const action of pending) {
+    // Check connection before each action — abort early on disconnect
+    if (!navigator.onLine) {
+      console.log("[Sync] Connection lost during sync, pausing...");
+      break;
+    }
+
     await markAction(action.id, "syncing");
     const success = await executeAction(action);
 
@@ -96,10 +109,15 @@ export async function syncPendingActions(): Promise<{ synced: number; failed: nu
     } else {
       const newRetries = action.retries + 1;
       if (newRetries >= MAX_RETRIES) {
-        await markAction(action.id, "failed", newRetries);
+        // Permanently failed — stop retrying
+        await markAction(action.id, "permanently_failed", newRetries);
         failed++;
         console.error(`[Sync] Action ${action.id} permanently failed after ${MAX_RETRIES} retries`);
       } else {
+        // Exponential backoff before marking as pending again
+        const backoffMs = BASE_DELAY_MS * Math.pow(2, newRetries - 1);
+        console.log(`[Sync] Action ${action.id} retry ${newRetries}/${MAX_RETRIES}, waiting ${backoffMs}ms...`);
+        await delay(backoffMs);
         await markAction(action.id, "pending", newRetries);
         failed++;
       }
@@ -109,10 +127,15 @@ export async function syncPendingActions(): Promise<{ synced: number; failed: nu
   syncInProgress = false;
 
   const remaining = await getPendingActions();
-  notify(remaining.length > 0 ? "online" : "online", remaining.length);
+  notify("online", remaining.length);
 
   if (synced > 0) {
     console.log(`[Sync] Completed: ${synced} synced, ${failed} failed`);
+  }
+
+  // If there are still pending actions and we're online, schedule another round
+  if (remaining.length > 0 && navigator.onLine) {
+    setTimeout(() => syncPendingActions(), 3000);
   }
 
   return { synced, failed };

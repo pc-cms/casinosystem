@@ -6,6 +6,7 @@ import { useActiveShift } from "@/hooks/use-shift";
 import { useChipSnapshots, useBatchChipSnapshot } from "@/hooks/use-chips";
 import { useChipBaseline, useOpenAllTables, useSetTableResults, baselineToMap } from "@/hooks/use-table-lifecycle";
 import { useAuth } from "@/lib/auth-context";
+import { getBusinessDate } from "@/lib/business-day";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,8 +30,8 @@ const Tables = () => {
   const isPit = roles.includes("pit") || roles.includes("manager") || roles.includes("finance_manager");
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = searchParams.get("tab") || "tables";
-  const today = new Date().toISOString().split("T")[0];
-  const [date, setDate] = useState(today);
+  const businessDay = getBusinessDate();
+  const [date, setDate] = useState(businessDay);
   const { data: tables = [] } = useGamingTables();
   const { data: transactions = [] } = useTransactions(date);
   const { data: shift } = useActiveShift();
