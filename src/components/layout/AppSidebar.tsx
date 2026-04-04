@@ -17,7 +17,7 @@ import { toast } from "sonner";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 
-type AppRole = "cashier" | "pit" | "manager" | "reception" | "finance_manager" | "security";
+type AppRole = "cashier" | "pit" | "manager" | "reception" | "finance_manager" | "security" | "super_admin";
 
 const NAV_ITEMS: { to: string; icon: typeof LayoutDashboard; label: string; shortcut: string; roles: AppRole[]; section: string }[] = [
   { to: "/", icon: LayoutDashboard, label: "Dashboard", shortcut: "D", roles: ["manager", "pit", "reception", "finance_manager", "security"], section: "OVERVIEW" },
