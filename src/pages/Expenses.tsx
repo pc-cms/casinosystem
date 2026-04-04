@@ -58,6 +58,19 @@ const Expenses = () => {
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-foreground">Expenses</h1>
+          <p className="text-sm text-muted-foreground">Loading...</p>
+        </div>
+        <CardSkeleton count={3} />
+        <TableSkeleton rows={5} cols={6} />
+      </div>
+    );
+  }
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
