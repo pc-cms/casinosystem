@@ -136,7 +136,7 @@ export const BudgetPlanning = () => {
     const styles: Record<string, string> = {
       planned: "bg-muted text-muted-foreground",
       in_progress: "bg-yellow-500/20 text-yellow-700 dark:text-yellow-400",
-      completed: "bg-green-500/20 text-green-700 dark:text-green-400",
+      completed: "bg-success/20 text-success dark:text-green-400",
     };
     return <Badge className={styles[status] || ""}>{status.replace("_", " ")}</Badge>;
   };
@@ -202,7 +202,7 @@ export const BudgetPlanning = () => {
         </CardContent></Card>
         <Card><CardContent className="p-4">
           <p className="text-xs text-muted-foreground">Variance</p>
-          <p className={`text-xl font-bold font-mono ${variance > 0 ? "text-destructive" : "text-green-500"}`}>
+          <p className={`text-xl font-bold font-mono ${variance > 0 ? "text-destructive" : "text-success"}`}>
             {formatNumberSpaces(variance)}
           </p>
         </CardContent></Card>
@@ -329,7 +329,7 @@ export const BudgetPlanning = () => {
                             </div>
                           ) : <span className="text-muted-foreground">—</span>}
                         </TableCell>
-                        <TableCell className={`text-right font-mono ${diff > 0 ? "text-destructive" : diff < 0 ? "text-green-500" : ""}`}>
+                        <TableCell className={`text-right font-mono ${diff > 0 ? "text-destructive" : diff < 0 ? "text-success" : ""}`}>
                           {formatNumberSpaces(diff)}
                         </TableCell>
                         <TableCell>{statusBadge(liveStatus)}</TableCell>
@@ -345,7 +345,7 @@ export const BudgetPlanning = () => {
                 <TableCell className="text-right font-mono text-foreground">{formatNumberSpaces(totalPlanned * 12)}</TableCell>
                 <TableCell className="text-right font-mono text-foreground">{formatNumberSpaces(totalActual)}</TableCell>
                 <TableCell className="text-right font-mono text-foreground">{formatNumberSpaces(totalReserved)}</TableCell>
-                <TableCell className={`text-right font-mono ${variance > 0 ? "text-destructive" : "text-green-500"}`}>
+                <TableCell className={`text-right font-mono ${variance > 0 ? "text-destructive" : "text-success"}`}>
                   {formatNumberSpaces(variance)}
                 </TableCell>
                 <TableCell>

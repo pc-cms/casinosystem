@@ -117,7 +117,7 @@ const CloseShiftDialog = ({
               <div key={t.id} className="flex items-center gap-3 cms-panel p-2.5">
                 <Checkbox checked={!!tableReady[t.id]} onCheckedChange={c => setTableReady(r => ({ ...r, [t.id]: !!c }))} id={`t-${t.id}`} />
                 <label htmlFor={`t-${t.id}`} className="flex-1 cursor-pointer text-sm text-card-foreground">{t.name} <span className="text-xs text-muted-foreground">({t.game})</span></label>
-                {tableReady[t.id] && <CheckCircle2 className="w-4 h-4 text-green-500" />}
+                {tableReady[t.id] && <CheckCircle2 className="w-4 h-4 text-success" />}
               </div>
             ))}
             <DialogFooter>
@@ -138,7 +138,7 @@ const CloseShiftDialog = ({
               <div className="grid grid-cols-3 gap-2 pt-2 border-t border-border">
                 <div className="text-center"><p className="text-[9px] uppercase text-muted-foreground">Chip Expected</p><p className="font-mono text-xs font-bold text-card-foreground">{formatCurrency(initialTotal)}</p></div>
                 <div className="text-center"><p className="text-[9px] uppercase text-muted-foreground">Chip Counted</p><p className="font-mono text-xs font-bold text-card-foreground">{formatCurrency(chipTotal)}</p></div>
-                <div className="text-center"><p className="text-[9px] uppercase text-muted-foreground">MISS</p><p className={`font-mono text-xs font-bold ${totalMissValue === 0 ? "text-green-500" : "text-destructive"}`}>{totalMissValue >= 0 ? "+" : ""}{formatCurrency(totalMissValue)}</p></div>
+                <div className="text-center"><p className="text-[9px] uppercase text-muted-foreground">MISS</p><p className={`font-mono text-xs font-bold ${totalMissValue === 0 ? "text-success" : "text-destructive"}`}>{totalMissValue >= 0 ? "+" : ""}{formatCurrency(totalMissValue)}</p></div>
               </div>
             )}
 
@@ -158,8 +158,8 @@ const CloseShiftDialog = ({
 
         {step === 3 && (
           <div className="space-y-3">
-            <div className={`cms-panel p-3 text-center ${isPerfect ? "border-green-500/30" : "border-destructive/30"}`}>
-              {isPerfect ? <CheckCircle2 className="w-6 h-6 text-green-500 mx-auto mb-1" /> : <AlertTriangle className="w-6 h-6 text-destructive mx-auto mb-1" />}
+            <div className={`cms-panel p-3 text-center ${isPerfect ? "border-success/30" : "border-destructive/30"}`}>
+              {isPerfect ? <CheckCircle2 className="w-6 h-6 text-success mx-auto mb-1" /> : <AlertTriangle className="w-6 h-6 text-destructive mx-auto mb-1" />}
               <p className="text-sm font-medium text-card-foreground">{isPerfect ? "Balanced" : "Mismatch Detected"}</p>
             </div>
 
@@ -167,21 +167,21 @@ const CloseShiftDialog = ({
               <p className="text-[10px] uppercase text-muted-foreground tracking-wider mb-2 font-medium">Cash Flow</p>
               <div className="space-y-1 text-xs font-mono">
                 <div className="flex justify-between"><span className="text-muted-foreground">Opening Float</span><span className="text-card-foreground">{formatCurrency(openingFloat || 0)}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">+ Buy-Ins</span><span className="text-green-500">+{formatCurrency(totalBuyIns || 0)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">+ Buy-Ins</span><span className="text-success">+{formatCurrency(totalBuyIns || 0)}</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">− Cashouts</span><span className="text-destructive">−{formatCurrency(totalCashouts || 0)}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">− Expenses</span><span className="text-orange-500">−{formatCurrency(totalExpenses || 0)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">− Expenses</span><span className="text-warning">−{formatCurrency(totalExpenses || 0)}</span></div>
                 <div className="flex justify-between border-t border-border pt-1 font-bold"><span className="text-card-foreground">= Expected</span><span className="text-card-foreground">{formatCurrency(expectedBalance)}</span></div>
                 <div className="flex justify-between"><span className="text-card-foreground">Counted</span><span className="text-card-foreground">{formatCurrency(totalTzs)}</span></div>
-                <div className="flex justify-between font-bold"><span className="text-card-foreground">Difference</span><span className={isPerfect ? "text-green-500" : "text-destructive"}>{diff >= 0 ? "+" : ""}{formatCurrency(diff)}</span></div>
+                <div className="flex justify-between font-bold"><span className="text-card-foreground">Difference</span><span className={isPerfect ? "text-success" : "text-destructive"}>{diff >= 0 ? "+" : ""}{formatCurrency(diff)}</span></div>
               </div>
             </div>
 
             <div className="cms-panel p-3">
               <p className="text-[10px] uppercase text-muted-foreground tracking-wider mb-2 font-medium">Shift Result</p>
               <div className="space-y-1 text-xs font-mono">
-                <div className="flex justify-between"><span className="text-muted-foreground">Cash Result (Buy − Cash)</span><span className={`${(cashResult || 0) >= 0 ? "text-green-500" : "text-destructive"}`}>{(cashResult || 0) >= 0 ? "+" : ""}{formatCurrency(cashResult || 0)}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Chip MISS</span><span className={`${totalMissValue === 0 ? "text-green-500" : "text-destructive"}`}>{totalMissValue >= 0 ? "+" : ""}{formatCurrency(totalMissValue)}</span></div>
-                <div className="flex justify-between border-t border-border pt-1 font-bold text-sm"><span className="text-card-foreground">= Shift Result</span><span className={`${shiftResult >= 0 ? "text-green-500" : "text-destructive"}`}>{shiftResult >= 0 ? "+" : ""}{formatCurrency(shiftResult)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Cash Result (Buy − Cash)</span><span className={`${(cashResult || 0) >= 0 ? "text-success" : "text-destructive"}`}>{(cashResult || 0) >= 0 ? "+" : ""}{formatCurrency(cashResult || 0)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Chip MISS</span><span className={`${totalMissValue === 0 ? "text-success" : "text-destructive"}`}>{totalMissValue >= 0 ? "+" : ""}{formatCurrency(totalMissValue)}</span></div>
+                <div className="flex justify-between border-t border-border pt-1 font-bold text-sm"><span className="text-card-foreground">= Shift Result</span><span className={`${shiftResult >= 0 ? "text-success" : "text-destructive"}`}>{shiftResult >= 0 ? "+" : ""}{formatCurrency(shiftResult)}</span></div>
               </div>
             </div>
 

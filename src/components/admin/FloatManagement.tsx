@@ -141,11 +141,11 @@ const FloatManagement = () => {
         </div>
         <div className="flex items-center gap-2">
           {isLocked ? (
-            <Badge className="gap-1 bg-green-600/20 text-green-500 border-green-500/30">
+            <Badge className="gap-1 bg-green-600/20 text-success border-success/30">
               <Lock className="w-3 h-3" /> Float Locked
             </Badge>
           ) : (
-            <Badge variant="outline" className="gap-1 border-orange-500/50 text-orange-500">
+            <Badge variant="outline" className="gap-1 border-orange-500/50 text-warning">
               <AlertTriangle className="w-3 h-3" /> Float Not Locked
             </Badge>
           )}
@@ -261,7 +261,7 @@ const FloatManagement = () => {
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5 text-orange-500" />
+              <AlertTriangle className="w-5 h-5 text-warning" />
               Lock Float?
             </DialogTitle>
           </DialogHeader>
