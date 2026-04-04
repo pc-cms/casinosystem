@@ -219,7 +219,7 @@ const Tables = () => {
       <div key={table.id} className="cms-panel">
         <div className="flex items-center justify-between px-4 py-3 border-b border-border">
           <div className="flex items-center gap-3">
-            <div className={`w-2.5 h-2.5 rounded-full ${isOpen ? "bg-green-500" : "bg-destructive"}`} />
+            <div className={`w-2.5 h-2.5 rounded-full ${isOpen ? "bg-success" : "bg-destructive"}`} />
             <div>
               <h3 className="text-sm font-semibold text-card-foreground">{table.name}</h3>
               <p className="text-xs text-muted-foreground">{table.game}</p>
@@ -245,7 +245,7 @@ const Tables = () => {
           </div>
           <div>
             <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Result</p>
-            <p className={`font-mono text-xs font-bold ${r.result >= 0 ? "text-green-500" : "text-destructive"}`}>
+            <p className={`font-mono text-xs font-bold ${r.result >= 0 ? "text-success" : "text-destructive"}`}>
               {r.result >= 0 ? "+" : ""}{formatCurrency(r.result)}
             </p>
           </div>
@@ -281,7 +281,7 @@ const Tables = () => {
           )}
 
           {hasResults && (
-            <Badge variant="outline" className="text-xs gap-1 border-green-500 text-green-500">
+            <Badge variant="outline" className="text-xs gap-1 border-success text-success">
               <Lock className="w-3 h-3" /> Results set — waiting for Cashier
             </Badge>
           )}
@@ -320,7 +320,7 @@ const Tables = () => {
         {Object.entries(gameTypeTotals).map(([game, t]) => (
           <div key={game} className="cms-panel p-2">
             <p className="text-[9px] uppercase text-muted-foreground tracking-wider">{t.label}</p>
-            <p className={`font-mono text-sm font-bold ${t.result >= 0 ? "text-green-500" : "text-destructive"}`}>
+            <p className={`font-mono text-sm font-bold ${t.result >= 0 ? "text-success" : "text-destructive"}`}>
               {t.result >= 0 ? "+" : ""}{formatCurrency(t.result)}
             </p>
             <p className="font-mono text-[10px] text-muted-foreground">R: {formatCurrency(t.dropR)} · V: {formatCurrency(t.dropV)}</p>
@@ -328,7 +328,7 @@ const Tables = () => {
         ))}
         <div className="cms-panel p-2 border-primary/30">
           <p className="text-[9px] uppercase text-muted-foreground tracking-wider">Total Casino</p>
-          <p className={`font-mono text-sm font-bold ${totalResult >= 0 ? "text-green-500" : "text-destructive"}`}>
+          <p className={`font-mono text-sm font-bold ${totalResult >= 0 ? "text-success" : "text-destructive"}`}>
             {totalResult >= 0 ? "+" : ""}{formatCurrency(totalResult)}
           </p>
           <p className="font-mono text-[10px] text-muted-foreground">R: {formatCurrency(totalDropR)} · V: {formatCurrency(totalDropV)}</p>
@@ -337,13 +337,13 @@ const Tables = () => {
 
       {/* Result Summary Banner */}
       {hasResults && (
-        <div className="cms-panel p-4 mb-4 border-green-500/30">
+        <div className="cms-panel p-4 mb-4 border-success/30">
           <p className="text-xs font-semibold text-card-foreground mb-2">📊 Table Results (waiting for Cashier to close)</p>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
             {tablesWithResults.map(t => (
               <div key={t.id} className="p-2 rounded bg-muted/30 text-center">
                 <p className="text-xs font-medium text-card-foreground">{t.name}</p>
-                <p className={`font-mono text-sm font-bold ${Number(t.closing_result) >= 0 ? "text-green-500" : "text-destructive"}`}>
+                <p className={`font-mono text-sm font-bold ${Number(t.closing_result) >= 0 ? "text-success" : "text-destructive"}`}>
                   {Number(t.closing_result) >= 0 ? "+" : ""}{formatCurrency(Number(t.closing_result))}
                 </p>
               </div>
@@ -438,7 +438,7 @@ const Tables = () => {
                 {resultSummary.map(r => (
                   <div key={r.id} className="cms-panel p-2">
                     <p className="text-xs font-medium text-card-foreground mb-1">{r.label}</p>
-                    <p className={`font-mono text-sm font-bold ${r.total >= 0 ? "text-green-500" : "text-destructive"}`}>
+                    <p className={`font-mono text-sm font-bold ${r.total >= 0 ? "text-success" : "text-destructive"}`}>
                       {r.total >= 0 ? "+" : ""}{formatCurrency(r.total)}
                     </p>
                   </div>
@@ -446,7 +446,7 @@ const Tables = () => {
               </div>
               <div className="cms-panel p-2 text-center border-primary/30">
                 <p className="text-[9px] uppercase text-muted-foreground">Total Chip Result</p>
-                <p className={`font-mono text-lg font-bold ${resultSummary.reduce((s, r) => s + r.total, 0) >= 0 ? "text-green-500" : "text-destructive"}`}>
+                <p className={`font-mono text-lg font-bold ${resultSummary.reduce((s, r) => s + r.total, 0) >= 0 ? "text-success" : "text-destructive"}`}>
                   {resultSummary.reduce((s, r) => s + r.total, 0) >= 0 ? "+" : ""}{formatCurrency(resultSummary.reduce((s, r) => s + r.total, 0))}
                 </p>
               </div>

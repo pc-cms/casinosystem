@@ -74,7 +74,7 @@ const ActiveShiftView = ({ shift, players, tables }: {
           <h1 className="text-2xl font-bold text-foreground">Cage</h1>
           <div className="flex items-center gap-3 mt-1">
             <span className="flex items-center gap-1.5 text-xs">
-              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+              <span className="w-2 h-2 rounded-full bg-success animate-pulse" />
               <span className="text-muted-foreground">{shiftDuration}</span>
             </span>
             {FOREIGN_CURRENCIES.map(c => (
@@ -91,11 +91,11 @@ const ActiveShiftView = ({ shift, players, tables }: {
         <p className="text-[10px] uppercase text-muted-foreground tracking-wider mb-2 font-medium">Cash Flow</p>
         <div className="grid grid-cols-3 md:grid-cols-7 gap-2">
           <div><p className="text-[9px] uppercase text-muted-foreground">Opening</p><p className="font-mono text-sm font-bold text-card-foreground">{formatCurrency(openingFloat)}</p></div>
-          <div><p className="text-[9px] uppercase text-muted-foreground">+ Buy-Ins</p><p className="font-mono text-sm font-bold text-green-500">+{formatCurrency(totalBuyIns)}</p></div>
+          <div><p className="text-[9px] uppercase text-muted-foreground">+ Buy-Ins</p><p className="font-mono text-sm font-bold text-success">+{formatCurrency(totalBuyIns)}</p></div>
           <div><p className="text-[9px] uppercase text-muted-foreground">− Cashouts</p><p className="font-mono text-sm font-bold text-destructive">−{formatCurrency(totalCashouts)}</p></div>
-          <div><p className="text-[9px] uppercase text-muted-foreground">− Expenses</p><p className="font-mono text-sm font-bold text-orange-500">−{formatCurrency(totalExpenses)}</p></div>
+          <div><p className="text-[9px] uppercase text-muted-foreground">− Expenses</p><p className="font-mono text-sm font-bold text-warning">−{formatCurrency(totalExpenses)}</p></div>
           <div><p className="text-[9px] uppercase text-muted-foreground">= Expected</p><p className="font-mono text-sm font-bold text-card-foreground">{formatCurrency(expectedCash)}</p></div>
-          <div><p className="text-[9px] uppercase text-muted-foreground">Cash Result</p><p className={`font-mono text-sm font-bold ${cashResult >= 0 ? "text-green-500" : "text-destructive"}`}>{cashResult >= 0 ? "+" : ""}{formatCurrency(cashResult)}</p></div>
+          <div><p className="text-[9px] uppercase text-muted-foreground">Cash Result</p><p className={`font-mono text-sm font-bold ${cashResult >= 0 ? "text-success" : "text-destructive"}`}>{cashResult >= 0 ? "+" : ""}{formatCurrency(cashResult)}</p></div>
           <div><p className="text-[9px] uppercase text-muted-foreground">Txns</p><p className="font-mono text-sm font-bold text-card-foreground">{shiftTransactions.length}</p></div>
         </div>
       </div>
@@ -346,7 +346,7 @@ const CashCheckForm = ({ expectedBalance, shiftId, exchangeRates, cashChecks }: 
         <div className="grid grid-cols-3 gap-2 pt-3 mt-3 border-t border-border">
           <div className="text-center"><p className="text-[9px] uppercase text-muted-foreground">Expected</p><p className="font-mono text-xs font-bold text-card-foreground">{formatCurrency(expectedBalance)}</p></div>
           <div className="text-center"><p className="text-[9px] uppercase text-muted-foreground">Counted</p><p className="font-mono text-xs font-bold text-card-foreground">{formatCurrency(totalTzs)}</p></div>
-          <div className="text-center"><p className="text-[9px] uppercase text-muted-foreground">Diff</p><p className={`font-mono text-xs font-bold ${difference === 0 ? "text-green-500" : "text-destructive"}`}>{difference >= 0 ? "+" : ""}{formatCurrency(difference)}</p></div>
+          <div className="text-center"><p className="text-[9px] uppercase text-muted-foreground">Diff</p><p className={`font-mono text-xs font-bold ${difference === 0 ? "text-success" : "text-destructive"}`}>{difference >= 0 ? "+" : ""}{formatCurrency(difference)}</p></div>
         </div>
 
         <Button variant="outline" onClick={handleRecord} disabled={createCount.isPending} className="w-full mt-3">
@@ -415,7 +415,7 @@ const CloseTablesForm = ({ tables }: { tables: Tables<"gaming_tables">[] }) => {
                 <span className="text-sm font-semibold text-card-foreground">{table.name}</span>
                 <span className="text-xs text-muted-foreground ml-2">({table.game})</span>
               </label>
-              <span className={`font-mono text-sm font-bold ${result >= 0 ? "text-green-500" : "text-destructive"}`}>
+              <span className={`font-mono text-sm font-bold ${result >= 0 ? "text-success" : "text-destructive"}`}>
                 {result >= 0 ? "+" : ""}{formatCurrency(result)}
               </span>
             </div>
