@@ -16,8 +16,8 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { CategoryBadge } from "@/components/player/CategoryBadge";
-import { FlagBadges } from "@/components/player/FlagBadges";
+import CategoryBadge from "@/components/player/CategoryBadge";
+import FlagBadges from "@/components/player/FlagBadges";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 
