@@ -9,6 +9,7 @@ interface Player {
   first_name: string;
   last_name: string;
   nickname: string;
+  casino_id?: string;
   status?: string;
   photo_url?: string | null;
   id_number?: string;
