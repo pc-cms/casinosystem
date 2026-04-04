@@ -156,6 +156,16 @@ export const CasinoProvider = ({ children }: { children: ReactNode }) => {
     setActiveCasinoId(casinoId);
   }, []);
 
+  // Sync activeCasinoId back to auth context so all hooks use the right casino
+  useEffect(() => {
+    if (activeCasinoId) {
+      overrideCasinoId(activeCasinoId);
+    } else if (isSummaryMode) {
+      // In summary mode, don't override — keep null for cross-casino queries
+      overrideCasinoId(null);
+    }
+  }, [activeCasinoId, isSummaryMode, overrideCasinoId]);
+
   const activeCasino = accessibleCasinos.find(c => c.id === activeCasinoId) ?? null;
 
   return (
