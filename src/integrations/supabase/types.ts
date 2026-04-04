@@ -1176,6 +1176,113 @@ export type Database = {
           },
         ]
       }
+      inter_casino_transfers: {
+        Row: {
+          amount: number
+          confirmed_at: string | null
+          confirmed_by: string | null
+          created_at: string
+          currency: string
+          description: string
+          from_casino_id: string
+          id: string
+          initiated_by: string
+          rejected_reason: string | null
+          status: string
+          to_casino_id: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          currency?: string
+          description?: string
+          from_casino_id: string
+          id?: string
+          initiated_by: string
+          rejected_reason?: string | null
+          status?: string
+          to_casino_id: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          currency?: string
+          description?: string
+          from_casino_id?: string
+          id?: string
+          initiated_by?: string
+          rejected_reason?: string | null
+          status?: string
+          to_casino_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inter_casino_transfers_from_casino_id_fkey"
+            columns: ["from_casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inter_casino_transfers_to_casino_id_fkey"
+            columns: ["to_casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      local_servers: {
+        Row: {
+          casino_id: string
+          id: string
+          is_online: boolean
+          last_sync_at: string | null
+          linked_at: string
+          linked_by: string
+          server_ip: string
+          server_name: string
+          sync_secret: string
+        }
+        Insert: {
+          casino_id: string
+          id?: string
+          is_online?: boolean
+          last_sync_at?: string | null
+          linked_at?: string
+          linked_by: string
+          server_ip: string
+          server_name?: string
+          sync_secret?: string
+        }
+        Update: {
+          casino_id?: string
+          id?: string
+          is_online?: boolean
+          last_sync_at?: string | null
+          linked_at?: string
+          linked_by?: string
+          server_ip?: string
+          server_name?: string
+          sync_secret?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "local_servers_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: true
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pit_rota: {
         Row: {
           casino_id: string
@@ -1832,6 +1939,38 @@ export type Database = {
           },
         ]
       }
+      user_casino_access: {
+        Row: {
+          casino_id: string
+          granted_at: string
+          granted_by: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          casino_id: string
+          granted_at?: string
+          granted_by: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          casino_id?: string
+          granted_at?: string
+          granted_by?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_casino_access_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_credentials: {
         Row: {
           id: string
@@ -1993,6 +2132,10 @@ export type Database = {
           display_name: string
           user_id: string
         }[]
+      }
+      user_has_casino_access: {
+        Args: { _casino_id: string; _user_id: string }
+        Returns: boolean
       }
       validate_chip_consistency: {
         Args: { _casino_id: string }
