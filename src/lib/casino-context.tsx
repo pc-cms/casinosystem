@@ -136,7 +136,7 @@ export const CasinoProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
-    if (detectedSlug && detectedSlug !== "summary") {
+    if (detectedSlug && detectedSlug !== "__premier__" && detectedSlug !== "__landing__") {
       const matched = accessibleCasinos.find(c => c.slug === detectedSlug);
       if (matched) {
         setActiveCasinoId(matched.id);
