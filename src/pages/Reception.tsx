@@ -376,6 +376,12 @@ const RegisterTab = () => {
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [docFiles, setDocFiles] = useState<File[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [ocrLoading, setOcrLoading] = useState(false);
+  const [ocrDone, setOcrDone] = useState(false);
+  const [showOverride, setShowOverride] = useState(false);
+  const [overrideGranted, setOverrideGranted] = useState(false);
+
+  const { status: dupStatus, matches: dupMatches, checkDuplicates, reset: resetDuplicates } = useDuplicateCheck();
 
   const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null;
@@ -388,8 +394,107 @@ const RegisterTab = () => {
     }
   };
 
+  const fileToBase64 = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        resolve(result.split(",")[1]); // strip data:...;base64,
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
+  const handleDocSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    setDocFiles(files);
+    setOcrDone(false);
+    resetDuplicates();
+    setOverrideGranted(false);
+
+    if (files.length === 0) return;
+
+    // Run OCR on first document image
+    const firstDoc = files[0];
+    if (!firstDoc.type.startsWith("image/")) return;
+
+    setOcrLoading(true);
+    try {
+      const base64 = await fileToBase64(firstDoc);
+      const { data, error } = await supabase.functions.invoke("ocr-document", {
+        body: { image_base64: base64 },
+      });
+
+      if (error) {
+        console.error("OCR error:", error);
+        toast.error("Could not read document. Enter details manually.");
+      } else if (data) {
+        // Auto-fill extracted fields
+        if (data.document_number) {
+          setForm(f => ({ ...f, id_number: data.document_number }));
+        }
+        if (data.full_name) {
+          const parts = data.full_name.trim().split(/\s+/);
+          if (parts.length >= 2) {
+            const lastName = parts.pop()!;
+            const firstName = parts.join(" ");
+            setForm(f => ({
+              ...f,
+              first_name: f.first_name || firstName,
+              last_name: f.last_name || lastName,
+            }));
+          }
+        }
+        toast.success("Document data extracted");
+        setOcrDone(true);
+
+        // Auto-run duplicate check with extracted data
+        await checkDuplicates({
+          id_number: data.document_number || "",
+          first_name: data.full_name?.split(/\s+/).slice(0, -1).join(" ") || form.first_name,
+          last_name: data.full_name?.split(/\s+/).pop() || form.last_name,
+          phone: form.phone,
+        });
+      }
+    } catch {
+      toast.error("OCR failed. Enter details manually.");
+    } finally {
+      setOcrLoading(false);
+    }
+  };
+
+  const runManualDuplicateCheck = async () => {
+    if (!form.first_name || !form.last_name) return;
+    await checkDuplicates({
+      id_number: form.id_number,
+      first_name: form.first_name,
+      last_name: form.last_name,
+      phone: form.phone,
+    });
+  };
+
+  const handleOverrideConfirm = (managerId: string) => {
+    setOverrideGranted(true);
+    setShowOverride(false);
+    toast.success("Manager override granted");
+  };
+
+  const canSubmit =
+    form.first_name &&
+    form.last_name &&
+    !submitting &&
+    !ocrLoading &&
+    (dupStatus !== "blocked" || overrideGranted);
+
   const handleSubmit = async () => {
-    if (!form.first_name || !form.last_name || !casinoId || !user) return;
+    if (!canSubmit || !casinoId || !user) return;
+
+    // If no check was run yet, run one now
+    if (dupStatus === "idle") {
+      await runManualDuplicateCheck();
+      return; // Let user see results first
+    }
+
     setSubmitting(true);
     try {
       const { data: player, error } = await supabase
@@ -408,14 +513,11 @@ const RegisterTab = () => {
 
       if (photoFile) {
         const compressed = await compressImage(photoFile);
-        // Upload thumbnail (fast, used in lists)
         const thumbPath = `${casinoId}/${player.id}/photo_thumb.jpg`;
         await supabase.storage.from("player-photos").upload(thumbPath, compressed.thumbnail, { upsert: true, contentType: "image/jpeg" });
-        // Upload original (full quality, used in profile view)
         const origExt = photoFile.name.split(".").pop() || "jpg";
         const origPath = `${casinoId}/${player.id}/photo_original.${origExt}`;
         await supabase.storage.from("player-photos").upload(origPath, compressed.original, { upsert: true });
-        // Set photo_url to thumbnail for fast loading
         const { data: urlData } = supabase.storage.from("player-photos").getPublicUrl(thumbPath);
         await supabase.from("players").update({ photo_url: urlData.publicUrl }).eq("id", player.id);
       }
@@ -432,6 +534,10 @@ const RegisterTab = () => {
         await supabase.storage.from("player-documents").upload(path, uploadBlob, {
           contentType: isImage ? "image/jpeg" : doc.type,
         });
+        // Store the first document path as id_document_url
+        if (doc === docFiles[0]) {
+          await supabase.from("players").update({ id_document_url: path } as any).eq("id", player.id);
+        }
       }
 
       const { data: cardNum } = await supabase.rpc("generate_card_number" as any);
@@ -446,6 +552,8 @@ const RegisterTab = () => {
         player_id: player.id,
         name: `${form.first_name} ${form.last_name}`,
         source: "reception",
+        duplicate_override: overrideGranted,
+        duplicate_status: dupStatus,
       });
 
       queryClient.invalidateQueries({ queryKey: ["players"] });
@@ -453,6 +561,9 @@ const RegisterTab = () => {
       setPhotoFile(null);
       setPhotoPreview(null);
       setDocFiles([]);
+      setOcrDone(false);
+      resetDuplicates();
+      setOverrideGranted(false);
       toast.success("Player registered successfully");
     } catch (e: any) {
       toast.error(e.message);
@@ -466,7 +577,48 @@ const RegisterTab = () => {
       <div className="cms-panel p-4 sm:p-6 space-y-4">
         <h3 className="text-base sm:text-lg font-semibold text-foreground">New Player Registration</h3>
 
-        {/* Photo capture - prominent on mobile */}
+        {/* Step 1: Document Scan — first for OCR auto-fill */}
+        <div className="space-y-1">
+          <label className="text-xs font-medium text-muted-foreground">
+            Step 1: Scan ID / Passport *
+          </label>
+          <label htmlFor="reg-doc" className="cursor-pointer block">
+            <Button variant="outline" className="gap-1.5 w-full h-11" asChild disabled={ocrLoading}>
+              <span>
+                <Camera className="w-4 h-4" />
+                {ocrLoading
+                  ? "Reading document…"
+                  : docFiles.length > 0
+                  ? `${docFiles.length} file(s) — ${ocrDone ? "✓ Data extracted" : "Processing…"}`
+                  : "Scan Document"}
+              </span>
+            </Button>
+          </label>
+          <input
+            id="reg-doc"
+            type="file"
+            accept="image/*"
+            capture="environment"
+            multiple
+            onChange={handleDocSelect}
+            className="hidden"
+          />
+          {ocrLoading && (
+            <p className="text-[10px] text-muted-foreground animate-pulse">
+              AI is reading document data…
+            </p>
+          )}
+        </div>
+
+        {/* Duplicate Check Result */}
+        <DuplicateCheckResult
+          status={dupStatus}
+          matches={dupMatches}
+          onOverride={() => setShowOverride(true)}
+          overrideGranted={overrideGranted}
+        />
+
+        {/* Photo capture */}
         <div className="flex items-center gap-4">
           <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl bg-muted flex items-center justify-center overflow-hidden border border-border shrink-0">
             {photoPreview ? (
@@ -495,14 +647,23 @@ const RegisterTab = () => {
           </div>
         </div>
 
+        {/* Name fields — may be auto-filled by OCR */}
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1">
             <label className="text-xs font-medium text-muted-foreground">First Name *</label>
-            <Input value={form.first_name} onChange={e => setForm(f => ({ ...f, first_name: e.target.value }))} className="h-11" autoFocus />
+            <Input
+              value={form.first_name}
+              onChange={e => { setForm(f => ({ ...f, first_name: e.target.value })); if (dupStatus !== "idle") resetDuplicates(); setOverrideGranted(false); }}
+              className={`h-11 ${ocrDone && form.first_name ? "border-primary/50" : ""}`}
+            />
           </div>
           <div className="space-y-1">
             <label className="text-xs font-medium text-muted-foreground">Last Name *</label>
-            <Input value={form.last_name} onChange={e => setForm(f => ({ ...f, last_name: e.target.value }))} className="h-11" />
+            <Input
+              value={form.last_name}
+              onChange={e => { setForm(f => ({ ...f, last_name: e.target.value })); if (dupStatus !== "idle") resetDuplicates(); setOverrideGranted(false); }}
+              className={`h-11 ${ocrDone && form.last_name ? "border-primary/50" : ""}`}
+            />
           </div>
         </div>
 
@@ -517,33 +678,45 @@ const RegisterTab = () => {
             <Input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} className="h-11" type="tel" />
           </div>
           <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">ID / Passport</label>
-            <Input value={form.id_number} onChange={e => setForm(f => ({ ...f, id_number: e.target.value }))} placeholder="ID or passport #" className="h-11" />
+            <label className="text-xs font-medium text-muted-foreground">ID / Passport #</label>
+            <Input
+              value={form.id_number}
+              onChange={e => { setForm(f => ({ ...f, id_number: e.target.value })); if (dupStatus !== "idle") resetDuplicates(); setOverrideGranted(false); }}
+              placeholder="Document number"
+              className={`h-11 font-mono ${ocrDone && form.id_number ? "border-primary/50" : ""}`}
+            />
           </div>
         </div>
 
-        <div className="space-y-1">
-          <label className="text-xs font-medium text-muted-foreground">ID Document Scan</label>
-          <label htmlFor="reg-doc" className="cursor-pointer block">
-            <Button variant="outline" className="gap-1.5 w-full h-11" asChild>
-              <span><Camera className="w-4 h-4" /> {docFiles.length > 0 ? `${docFiles.length} file(s)` : "Scan Document"}</span>
-            </Button>
-          </label>
-          <input
-            id="reg-doc"
-            type="file"
-            accept="image/*"
-            capture="environment"
-            multiple
-            onChange={e => setDocFiles(Array.from(e.target.files || []))}
-            className="hidden"
-          />
-        </div>
+        {/* Manual duplicate check button if no OCR was done */}
+        {dupStatus === "idle" && (form.first_name || form.id_number) && (
+          <Button variant="outline" size="sm" onClick={runManualDuplicateCheck} className="gap-1 text-xs w-full">
+            <Search className="w-3.5 h-3.5" /> Check for Duplicates
+          </Button>
+        )}
 
-        <Button onClick={handleSubmit} disabled={!form.first_name || !form.last_name || submitting} className="w-full gap-1.5 h-12 text-base">
+        <Button
+          onClick={handleSubmit}
+          disabled={!canSubmit}
+          className="w-full gap-1.5 h-12 text-base"
+        >
           <UserPlus className="w-5 h-5" /> Register Player
         </Button>
       </div>
+
+      <ManagerOverrideDialog
+        open={showOverride}
+        onClose={() => setShowOverride(false)}
+        onConfirm={handleOverrideConfirm}
+        title="Duplicate Override"
+        description="A player with the same document number already exists. Manager approval is required to create a duplicate entry."
+        actionType="DUPLICATE_OVERRIDE"
+        actionDetails={{
+          new_player_name: `${form.first_name} ${form.last_name}`,
+          document_number: form.id_number,
+          matched_players: dupMatches.map(m => m.id),
+        }}
+      />
     </div>
   );
 };
