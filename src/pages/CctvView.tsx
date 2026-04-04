@@ -207,7 +207,7 @@ const CctvTables = () => {
 const CctvCage = () => {
   const { activeCasino } = useCasino();
   const businessDate = getBusinessDate();
-  const { data: shift } = useShift();
+  const { data: shift } = useActiveShift();
   const { data: transactions = [] } = useTransactions(businessDate);
   const { data: expenses = [] } = useExpenses(businessDate);
 
