@@ -5,7 +5,7 @@ import { useCasino } from "@/lib/casino-context";
 import { usePlayers, useTransactions, useGamingTables, useExpenses, usePlayerEconomy, useVisitsToday } from "@/hooks/use-casino-data";
 import { useDealers, usePitRotaRange, useDealerAttendanceRange, useBreaklistData } from "@/hooks/use-casino-data";
 import { useCctvObservations, useCreateObservation } from "@/hooks/use-cctv";
-import { useShift } from "@/hooks/use-shift";
+import { useActiveShift } from "@/hooks/use-shift";
 import { getBusinessDate } from "@/lib/business-day";
 import { formatCurrency } from "@/lib/currency";
 import { format, formatDistanceToNow } from "date-fns";
