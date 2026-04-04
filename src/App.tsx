@@ -68,14 +68,15 @@ const ROUTE_ROLES: Record<string, string[]> = {
   "/cage": ["super_admin", "manager", "cashier", "finance_manager"],
   "/tables": ["super_admin", "manager", "cashier", "pit", "finance_manager", "security"],
   "/expenses": ["super_admin", "manager", "cashier", "finance_manager"],
-  "/pit": ["super_admin", "manager", "pit", "finance_manager"],
-  "/floor": ["super_admin", "manager", "pit", "finance_manager"],
+  "/pit": ["super_admin", "manager", "pit", "finance_manager", "hr"],
+  "/floor": ["super_admin", "manager", "pit", "finance_manager", "hr"],
   "/groups": ["super_admin", "manager", "finance_manager"],
   "/finance": ["super_admin", "manager", "finance_manager"],
   "/reports": ["super_admin", "manager", "finance_manager", "security"],
   "/stats": ["super_admin", "manager", "finance_manager", "security"],
   "/logs": ["super_admin", "manager", "finance_manager", "security"],
   "/admin": ["super_admin", "manager"],
+  "/staff": ["super_admin", "manager", "pit", "finance_manager", "hr"],
 };
 
 const RoleGuard = ({ path, children }: { path: string; children: React.ReactNode }) => {
