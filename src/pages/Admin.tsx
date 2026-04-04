@@ -522,16 +522,21 @@ const UsersAndRoles = () => {
   const [newPassword, setNewPassword] = useState("");
   const [newDisplayName, setNewDisplayName] = useState("");
   const [newRoles, setNewRoles] = useState<string[]>([]);
+  const [newCasinoId, setNewCasinoId] = useState("");
   const [selectedUser, setSelectedUser] = useState("");
   const [selectedRole, setSelectedRole] = useState("");
+
+  const { data: casinos = [] } = useAllCasinos();
 
   const availableRoles = isSuperAdmin ? ALL_ROLES : ROLES;
 
   const createUser = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke("create-user", {
-        body: { login: newLogin, password: newPassword, display_name: newDisplayName, roles: newRoles },
-      });
+      const body: any = { login: newLogin, password: newPassword, display_name: newDisplayName, roles: newRoles };
+      if (isSuperAdmin && newCasinoId) {
+        body.casino_id = newCasinoId;
+      }
+      const { data, error } = await supabase.functions.invoke("create-user", { body });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       return data;
@@ -545,6 +550,7 @@ const UsersAndRoles = () => {
       setNewPassword("");
       setNewDisplayName("");
       setNewRoles([]);
+      setNewCasinoId("");
     },
     onError: (e) => toast.error(e.message),
   });
