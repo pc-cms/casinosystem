@@ -603,6 +603,51 @@ export type Database = {
         }
         Relationships: []
       }
+      cctv_observations: {
+        Row: {
+          casino_id: string
+          content: string
+          created_at: string
+          id: string
+          observation_type: string
+          observer_id: string
+          shift_id: string | null
+        }
+        Insert: {
+          casino_id: string
+          content: string
+          created_at?: string
+          id?: string
+          observation_type?: string
+          observer_id: string
+          shift_id?: string | null
+        }
+        Update: {
+          casino_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          observation_type?: string
+          observer_id?: string
+          shift_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cctv_observations_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cctv_observations_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "shifts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chip_baseline: {
         Row: {
           casino_id: string

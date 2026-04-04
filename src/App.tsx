@@ -16,6 +16,7 @@ import { useRealtimeSubscriptions } from "@/hooks/use-realtime";
 import { initSyncEngine } from "@/lib/sync-engine";
 import Login from "@/pages/Login";
 const Landing = lazy(() => import("@/pages/Landing"));
+const CctvView = lazy(() => import("@/pages/CctvView"));
 
 // Lazy-loaded pages — each becomes a separate chunk
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
@@ -91,6 +92,10 @@ const RoleGuard = ({ path, children }: { path: string; children: React.ReactNode
 
 const getDefaultRoute = (roles: string[]) => {
   if (roles.includes("super_admin")) return "/admin";
+  // Security-only users on premier will be handled by CCTV mode, but default route still needed
+  if (roles.includes("security") && !roles.some(r => ["manager", "pit", "cashier", "reception", "finance_manager", "super_admin", "hr"].includes(r))) {
+    return "/";
+  }
   if (roles.includes("hr") && !roles.some(r => ["manager", "pit", "cashier", "reception", "finance_manager", "security", "super_admin"].includes(r))) {
     return "/staff";
   }
@@ -104,7 +109,8 @@ const getDefaultRoute = (roles: string[]) => {
 };
 
 const ProtectedRoutes = () => {
-  const { user, loading } = useAuth();
+  const { user, loading, roles } = useAuth();
+  const detectedSlug = getSlugFromHostname();
 
   // Prefetch critical data in background
   usePrefetchCriticalData();
@@ -125,6 +131,23 @@ const ProtectedRoutes = () => {
     );
   }
   if (!user) return <Navigate to="/login" replace />;
+
+  // CCTV mode: security role on premier subdomain gets dedicated interface
+  const isCctvMode = detectedSlug === "__premier__" && roles.includes("security") &&
+    !roles.includes("super_admin") && !roles.includes("finance_manager");
+
+  if (isCctvMode) {
+    return (
+      <ErrorBoundary>
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
+            <Route path="*" element={<CctvView />} />
+          </Routes>
+        </Suspense>
+      </ErrorBoundary>
+    );
+  }
+
   return (
     <ErrorBoundary>
       <Suspense fallback={<PageLoader />}>
