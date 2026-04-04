@@ -59,22 +59,22 @@ const PageLoader = () => (
 
 // Role-based route access map
 const ROUTE_ROLES: Record<string, string[]> = {
-  "/": ["manager", "pit", "reception", "finance_manager", "security"],
-  "/players": ["manager", "cashier", "finance_manager", "security"],
-  "/guests": ["manager", "reception", "pit", "finance_manager", "security"],
-  "/blacklist": ["manager", "reception", "finance_manager", "security"],
-  "/reception": ["manager", "reception", "finance_manager"],
-  "/cage": ["manager", "cashier", "finance_manager"],
-  "/tables": ["manager", "cashier", "pit", "finance_manager", "security"],
-  "/expenses": ["manager", "cashier", "finance_manager"],
-  "/pit": ["manager", "pit", "finance_manager"],
-  "/floor": ["manager", "pit", "finance_manager"],
-  "/groups": ["manager", "finance_manager"],
-  "/finance": ["manager", "finance_manager"],
-  "/reports": ["manager", "finance_manager", "security"],
-  "/stats": ["manager", "finance_manager", "security"],
-  "/logs": ["manager", "finance_manager", "security"],
-  "/admin": ["manager"],
+  "/": ["super_admin", "manager", "pit", "reception", "finance_manager", "security"],
+  "/players": ["super_admin", "manager", "cashier", "finance_manager", "security"],
+  "/guests": ["super_admin", "manager", "reception", "pit", "finance_manager", "security"],
+  "/blacklist": ["super_admin", "manager", "reception", "finance_manager", "security"],
+  "/reception": ["super_admin", "manager", "reception", "finance_manager"],
+  "/cage": ["super_admin", "manager", "cashier", "finance_manager"],
+  "/tables": ["super_admin", "manager", "cashier", "pit", "finance_manager", "security"],
+  "/expenses": ["super_admin", "manager", "cashier", "finance_manager"],
+  "/pit": ["super_admin", "manager", "pit", "finance_manager"],
+  "/floor": ["super_admin", "manager", "pit", "finance_manager"],
+  "/groups": ["super_admin", "manager", "finance_manager"],
+  "/finance": ["super_admin", "manager", "finance_manager"],
+  "/reports": ["super_admin", "manager", "finance_manager", "security"],
+  "/stats": ["super_admin", "manager", "finance_manager", "security"],
+  "/logs": ["super_admin", "manager", "finance_manager", "security"],
+  "/admin": ["super_admin", "manager"],
 };
 
 const RoleGuard = ({ path, children }: { path: string; children: React.ReactNode }) => {
