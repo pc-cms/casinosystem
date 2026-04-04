@@ -569,6 +569,7 @@ export type Database = {
           name: string
           shift_end: string
           shift_start: string
+          slug: string | null
           tables_open: string
           timezone: string
         }
@@ -582,6 +583,7 @@ export type Database = {
           name: string
           shift_end?: string
           shift_start?: string
+          slug?: string | null
           tables_open?: string
           timezone?: string
         }
@@ -595,6 +597,7 @@ export type Database = {
           name?: string
           shift_end?: string
           shift_start?: string
+          slug?: string | null
           tables_open?: string
           timezone?: string
         }
@@ -2009,6 +2012,7 @@ export type Database = {
         | "reception"
         | "finance_manager"
         | "security"
+        | "super_admin"
       card_type: "manual" | "rfid"
       dealer_category:
         | "trainee"
@@ -2235,6 +2239,7 @@ export const Constants = {
         "reception",
         "finance_manager",
         "security",
+        "super_admin",
       ],
       card_type: ["manual", "rfid"],
       dealer_category: ["trainee", "dealer", "inspector", "expert", "pit_boss"],
