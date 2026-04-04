@@ -46,7 +46,7 @@ const NOTE_TYPE_COLORS: Record<string, string> = {
 
 const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps) => {
   const isMobile = useIsMobile();
-  const { user, roles, isManager } = useAuth();
+  const { user, roles, isManager, casinoId } = useAuth();
   const queryClient = useQueryClient();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
