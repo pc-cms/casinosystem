@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { toast } from "sonner";
+import { CardSkeleton, TableSkeleton } from "@/components/LoadingSkeletons";
 import { usePlayers, useExpenses, useCreateExpense, useApproveExpense } from "@/hooks/use-casino-data";
 import { useActiveShift } from "@/hooks/use-shift";
 import { useExpenseAnalytics } from "@/hooks/use-expenses-analytics";
@@ -41,13 +42,14 @@ const Expenses = () => {
   const { isManager } = useAuth();
   const businessDate = getBusinessDate();
   const { data: shift } = useActiveShift();
-  const { data: expenses = [] } = useExpenses(businessDate);
-  const { data: players = [] } = usePlayers();
+  const { data: expenses = [], isLoading: loadingExpenses } = useExpenses(businessDate);
+  const { data: players = [], isLoading: loadingPlayers } = usePlayers();
   const approve = useApproveExpense();
   const [showAdd, setShowAdd] = useState(false);
   
   const [pendingOverride, setPendingOverride] = useState<string | null>(null);
 
+  const isLoading = loadingExpenses || loadingPlayers;
   const analytics = useExpenseAnalytics(expenses as any);
 
   const handleApprove = (id: string) => {
@@ -55,6 +57,19 @@ const Expenses = () => {
       setPendingOverride(id);
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-foreground">Expenses</h1>
+          <p className="text-sm text-muted-foreground">Loading...</p>
+        </div>
+        <CardSkeleton count={3} />
+        <TableSkeleton rows={5} cols={6} />
+      </div>
+    );
+  }
 
   return (
     <div>

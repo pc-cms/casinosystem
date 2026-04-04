@@ -181,7 +181,7 @@ export const DailyReview = () => {
           />
         </div>
         <Button variant="outline" size="icon" onClick={nextDay}><ChevronRight className="w-4 h-4" /></Button>
-        {existing?.confirmed && <Badge className="bg-green-500/10 text-green-500 border-green-500/30">Confirmed</Badge>}
+        {existing?.confirmed && <Badge className="bg-success/10 text-success border-success/30">Confirmed</Badge>}
       </div>
 
       {/* No shift warning */}
@@ -221,7 +221,9 @@ export const DailyReview = () => {
             </div>
             <div className="p-3 rounded-lg bg-primary/5 border border-primary/20">
               <p className="text-xs text-muted-foreground mb-1">Total Result</p>
-              <p className="text-lg font-bold font-mono text-primary">{formatNumberSpaces(totalResult)}</p>
+              <p className={`text-lg font-bold font-mono ${totalResult >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
+                {totalResult >= 0 ? "+" : ""}{formatNumberSpaces(totalResult)}
+              </p>
             </div>
           </div>
 
@@ -232,7 +234,7 @@ export const DailyReview = () => {
             </div>
             <div className="p-3 rounded-lg bg-muted/50 border border-border">
               <p className="text-xs text-muted-foreground mb-1">Net → Office Safe</p>
-              <p className={`text-lg font-bold font-mono ${netResult >= 0 ? "text-green-500" : "text-destructive"}`}>
+              <p className={`text-lg font-bold font-mono ${netResult >= 0 ? "text-success" : "text-destructive"}`}>
                 {formatNumberSpaces(netResult)}
               </p>
               <p className="text-[10px] text-muted-foreground mt-0.5">Auto-transfer on confirm</p>
@@ -265,7 +267,7 @@ export const DailyReview = () => {
 
       {/* Equalize Float — shown after confirm when cage float target is set */}
       {existing?.confirmed && hasShiftData && cageFloatTarget > 0 && floatDeficit !== 0 && (
-        <Card className={floatDeficit > 0 ? "border-destructive/30" : "border-green-500/30"}>
+        <Card className={floatDeficit > 0 ? "border-destructive/30" : "border-success/30"}>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <ArrowDownToLine className="w-4 h-4" /> Equalize Float
@@ -281,11 +283,11 @@ export const DailyReview = () => {
                 <p className="text-[10px] text-muted-foreground mb-1">Cash in Cage</p>
                 <p className="text-sm font-bold font-mono">{formatNumberSpaces(closingCashAmount)}</p>
               </div>
-              <div className={`p-3 rounded-lg border text-center ${floatDeficit > 0 ? "bg-destructive/5 border-destructive/20" : "bg-green-500/5 border-green-500/20"}`}>
+              <div className={`p-3 rounded-lg border text-center ${floatDeficit > 0 ? "bg-destructive/5 border-destructive/20" : "bg-success/5 border-success/20"}`}>
                 <p className="text-[10px] text-muted-foreground mb-1">
                   {floatDeficit > 0 ? "Manager Must Bring" : "Excess to Safe"}
                 </p>
-                <p className={`text-sm font-bold font-mono ${floatDeficit > 0 ? "text-destructive" : "text-green-500"}`}>
+                <p className={`text-sm font-bold font-mono ${floatDeficit > 0 ? "text-destructive" : "text-success"}`}>
                   {formatNumberSpaces(Math.abs(floatDeficit))}
                 </p>
               </div>
@@ -333,7 +335,7 @@ export const DailyReview = () => {
               >
                 <div className="flex items-center gap-2">
                   <span className="font-mono">{s.date}</span>
-                  {s.confirmed && <Badge variant="outline" className="text-[10px] px-1 py-0 bg-green-500/10 text-green-500 border-green-500/30">✓</Badge>}
+                  {s.confirmed && <Badge variant="outline" className="text-[10px] px-1 py-0 bg-success/10 text-success border-success/30">✓</Badge>}
                 </div>
                 <span className="font-mono font-medium">{formatNumberSpaces(s.total_result)}</span>
               </button>

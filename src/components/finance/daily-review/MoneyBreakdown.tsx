@@ -56,7 +56,7 @@ export const MoneyBreakdown = ({ openingFloat, closingCount, closingCash, exchan
   const grandDelta = totalCashDeltaTzs + totalMobileDelta + bankDeltaTotalTzs;
 
   const DeltaValue = ({ value, suffix }: { value: number; suffix?: string }) => (
-    <span className={`font-mono text-xs font-bold ${value > 0 ? "text-green-500" : value < 0 ? "text-destructive" : "text-muted-foreground"}`}>
+    <span className={`font-mono text-xs font-bold ${value > 0 ? "text-success" : value < 0 ? "text-destructive" : "text-muted-foreground"}`}>
       {value > 0 ? "+" : ""}{formatNumberSpaces(value)}{suffix ? ` ${suffix}` : ""}
     </span>
   );
@@ -144,10 +144,10 @@ export const MoneyBreakdown = ({ openingFloat, closingCount, closingCash, exchan
         <div className="p-3 rounded-lg bg-primary/5 border border-primary/20">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              {grandDelta >= 0 ? <TrendingUp className="w-4 h-4 text-green-500" /> : <TrendingDown className="w-4 h-4 text-destructive" />}
+              {grandDelta >= 0 ? <TrendingUp className="w-4 h-4 text-success" /> : <TrendingDown className="w-4 h-4 text-destructive" />}
               <span className="text-xs font-semibold text-foreground">Total Income (TZS)</span>
             </div>
-            <span className={`font-mono text-lg font-bold ${grandDelta >= 0 ? "text-green-500" : "text-destructive"}`}>
+            <span className={`font-mono text-lg font-bold ${grandDelta >= 0 ? "text-success" : "text-destructive"}`}>
               {grandDelta > 0 ? "+" : ""}{formatNumberSpaces(grandDelta)}
             </span>
           </div>
@@ -163,7 +163,7 @@ export const MoneyBreakdown = ({ openingFloat, closingCount, closingCash, exchan
             <Badge
               variant="outline"
               className={`text-[10px] ${(closingCash.difference || 0) === 0
-                ? "bg-green-500/10 text-green-500 border-green-500/30"
+                ? "bg-success/10 text-success border-success/30"
                 : "bg-destructive/10 text-destructive border-destructive/30"
               }`}
             >

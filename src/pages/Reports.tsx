@@ -109,7 +109,7 @@ const ShiftReport = ({ from, to }: { from: string; to: string }) => {
           { label: "Shifts", value: String(shiftData.length), cls: "text-card-foreground" },
           { label: "Total Buy-Ins", value: formatCurrency(totals.buy), cls: "cms-amount-negative" },
           { label: "Total Cashouts", value: formatCurrency(totals.cashout), cls: "cms-amount-positive" },
-          { label: "Total Expenses", value: formatCurrency(totals.expenses), cls: "text-orange-500" },
+          { label: "Total Expenses", value: formatCurrency(totals.expenses), cls: "text-warning" },
           { label: "Result", value: formatCurrency(totals.cashout - totals.buy), cls: totals.cashout - totals.buy >= 0 ? "cms-amount-positive" : "cms-amount-negative" },
         ].map(c => (
           <div key={c.label} className="cms-panel p-2">
@@ -135,16 +135,16 @@ const ShiftReport = ({ from, to }: { from: string; to: string }) => {
               <tr key={s.id} className="border-b border-border last:border-0 hover:bg-muted/30">
                 <td className="px-3 py-2 text-xs font-mono text-card-foreground">{new Date(s.opened_at).toLocaleDateString("en-GB")}</td>
                 <td className="px-3 py-2">
-                  <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${s.status === "open" ? "bg-green-500/10 text-green-500" : "bg-muted text-muted-foreground"}`}>
+                  <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${s.status === "open" ? "bg-success/10 text-success" : "bg-muted text-muted-foreground"}`}>
                     {s.status}
                   </span>
                 </td>
                 <td className="px-3 py-2 text-right font-mono text-xs text-card-foreground">{formatCurrency(s.buyTotal)}</td>
                 <td className="px-3 py-2 text-right font-mono text-xs text-card-foreground">{formatCurrency(s.cashoutTotal)}</td>
-                <td className="px-3 py-2 text-right font-mono text-xs text-orange-500">{formatCurrency(s.expTotal)}</td>
+                <td className="px-3 py-2 text-right font-mono text-xs text-warning">{formatCurrency(s.expTotal)}</td>
                 <td className="px-3 py-2 text-right font-mono text-xs text-card-foreground">{formatCurrency(s.expected)}</td>
                 <td className="px-3 py-2 text-right font-mono text-xs text-card-foreground">{s.closingActual ? formatCurrency(s.closingActual) : "—"}</td>
-                <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${s.diff === 0 ? "text-green-500" : "text-destructive"}`}>
+                <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${s.diff === 0 ? "text-success" : "text-destructive"}`}>
                   {s.closingActual ? `${s.diff >= 0 ? "+" : ""}${formatCurrency(s.diff)}` : "—"}
                 </td>
                 <td className="px-3 py-2 text-right font-mono text-xs text-muted-foreground">{s.txCount}</td>
@@ -270,7 +270,7 @@ const PlayerReport = ({ from, to }: { from: string; to: string }) => {
               <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${p.result >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
                 {p.result >= 0 ? "+" : ""}{formatCurrency(p.result)}
               </td>
-              <td className="px-3 py-2 text-right font-mono text-xs text-orange-500">{formatCurrency(p.expTotal)}</td>
+              <td className="px-3 py-2 text-right font-mono text-xs text-warning">{formatCurrency(p.expTotal)}</td>
               <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${p.realResult >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
                 {p.realResult >= 0 ? "+" : ""}{formatCurrency(p.realResult)}
               </td>
@@ -285,7 +285,7 @@ const PlayerReport = ({ from, to }: { from: string; to: string }) => {
               <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${playerData.reduce((s, p) => s + p.result, 0) >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
                 {formatCurrency(playerData.reduce((s, p) => s + p.result, 0))}
               </td>
-              <td className="px-3 py-2 text-right font-mono text-xs font-bold text-orange-500">{formatCurrency(playerData.reduce((s, p) => s + p.expTotal, 0))}</td>
+              <td className="px-3 py-2 text-right font-mono text-xs font-bold text-warning">{formatCurrency(playerData.reduce((s, p) => s + p.expTotal, 0))}</td>
               <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${playerData.reduce((s, p) => s + p.realResult, 0) >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
                 {formatCurrency(playerData.reduce((s, p) => s + p.realResult, 0))}
               </td>
@@ -354,7 +354,7 @@ const GroupReport = ({ from, to }: { from: string; to: string }) => {
               <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${g.result >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
                 {g.result >= 0 ? "+" : ""}{formatCurrency(g.result)}
               </td>
-              <td className="px-3 py-2 text-right font-mono text-xs text-orange-500">{formatCurrency(g.expTotal)}</td>
+              <td className="px-3 py-2 text-right font-mono text-xs text-warning">{formatCurrency(g.expTotal)}</td>
               <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${g.realResult >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
                 {g.realResult >= 0 ? "+" : ""}{formatCurrency(g.realResult)}
               </td>
@@ -402,8 +402,8 @@ const ExpenseReport = ({ from, to }: { from: string; to: string }) => {
     <div className="space-y-3">
       <div className="grid grid-cols-3 gap-2">
         <div className="cms-panel p-2"><p className="text-[9px] uppercase text-muted-foreground">Total</p><p className="font-mono text-sm font-bold text-card-foreground">{formatCurrency(data.total)}</p></div>
-        <div className="cms-panel p-2"><p className="text-[9px] uppercase text-muted-foreground">Approved</p><p className="font-mono text-sm font-bold text-green-500">{formatCurrency(data.approved)}</p></div>
-        <div className="cms-panel p-2"><p className="text-[9px] uppercase text-muted-foreground">Pending</p><p className="font-mono text-sm font-bold text-orange-500">{formatCurrency(data.pending)}</p></div>
+        <div className="cms-panel p-2"><p className="text-[9px] uppercase text-muted-foreground">Approved</p><p className="font-mono text-sm font-bold text-success">{formatCurrency(data.approved)}</p></div>
+        <div className="cms-panel p-2"><p className="text-[9px] uppercase text-muted-foreground">Pending</p><p className="font-mono text-sm font-bold text-warning">{formatCurrency(data.pending)}</p></div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
