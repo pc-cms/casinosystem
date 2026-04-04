@@ -43,11 +43,20 @@ export const useCasino = () => {
   return ctx;
 };
 
+/** Get the base domain for constructing subdomain URLs */
+export const getBaseDomain = (): string => {
+  const hostname = window.location.hostname;
+  // Match any subdomain or root of casinosystem.lovable.app / casinosystem.app / casinosystem.local
+  const m = hostname.match(/(casinosystem\.lovable\.app|casinosystem\.app|casinosystem\.local)$/i);
+  if (m) return m[1];
+  return "casinosystem.app"; // fallback
+};
+
 /** Extract casino slug from current hostname */
 export const getSlugFromHostname = (): string | null => {
   const hostname = window.location.hostname;
 
-  // Production: arusha.casinosystem.app or arusha.casinosystem.lovable.app
+  // Production: arusha.casinosystem.app / arusha.casinosystem.lovable.app / arusha.casinosystem.local
   const match = hostname.match(/^([a-z0-9-]+)\.(casinosystem\.app|casinosystem\.lovable\.app|casinosystem\.local)$/i);
   if (match) {
     const slug = match[1].toLowerCase();
@@ -57,7 +66,7 @@ export const getSlugFromHostname = (): string | null => {
     return slug;
   }
 
-  // Root domain casinosystem.app (no subdomain) → landing page
+  // Root domain (no subdomain) → landing page
   if (/^(www\.)?casinosystem\.(app|lovable\.app|local)$/i.test(hostname)) {
     return "__landing__";
   }

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { useCasino } from "@/lib/casino-context";
+import { useCasino, getBaseDomain } from "@/lib/casino-context";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -225,7 +225,7 @@ const CasinoManagement = () => {
                 <td className="px-4 py-3 text-sm font-medium text-card-foreground">{c.name}</td>
                 <td className="px-4 py-3 text-sm font-mono text-muted-foreground">{c.code}</td>
                 <td className="px-4 py-3 text-sm font-mono text-muted-foreground">
-                  {(c as any).slug ? `${(c as any).slug}.casinosystem.app` : "—"}
+                  {(c as any).slug ? `${(c as any).slug}.${getBaseDomain()}` : "—"}
                 </td>
                 <td className="px-4 py-3 text-xs font-mono text-muted-foreground/60">{c.id.slice(0, 8)}</td>
               </tr>
@@ -253,7 +253,7 @@ const CasinoManagement = () => {
             <div>
               <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1 block">Subdomain slug</label>
               <Input value={slug} onChange={e => setSlug(e.target.value.replace(/[^a-z0-9-]/g, ""))} placeholder="e.g. arusha" className="font-mono" />
-              <p className="text-[10px] text-muted-foreground mt-1">{slug ? `${slug}.casinosystem.app` : "Will be used as subdomain"}</p>
+              <p className="text-[10px] text-muted-foreground mt-1">{slug ? `${slug}.${getBaseDomain()}` : "Will be used as subdomain"}</p>
             </div>
           </div>
           <DialogFooter>
