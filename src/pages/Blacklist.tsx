@@ -47,23 +47,20 @@ const BlacklistPhoto = ({ playerId, photoUrl }: { playerId: string; photoUrl: st
 };
 
 const Blacklist = () => {
-  const { casinoId } = useAuth();
   const queryClient = useQueryClient();
   const [pendingAction, setPendingAction] = useState<{ player: any; action: "blacklist" | "reactivate" } | null>(null);
 
+  // Global blacklist — all casinos
   const { data: players = [] } = useQuery({
-    queryKey: ["players", casinoId],
+    queryKey: ["players"],
     queryFn: async () => {
-      if (!casinoId) return [];
       const { data, error } = await supabase
         .from("players")
         .select("*")
-        .eq("casino_id", casinoId)
         .order("last_name");
       if (error) throw error;
       return data;
     },
-    enabled: !!casinoId,
   });
 
   const blacklisted = useMemo(
