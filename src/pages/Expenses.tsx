@@ -42,13 +42,14 @@ const Expenses = () => {
   const { isManager } = useAuth();
   const businessDate = getBusinessDate();
   const { data: shift } = useActiveShift();
-  const { data: expenses = [] } = useExpenses(businessDate);
-  const { data: players = [] } = usePlayers();
+  const { data: expenses = [], isLoading: loadingExpenses } = useExpenses(businessDate);
+  const { data: players = [], isLoading: loadingPlayers } = usePlayers();
   const approve = useApproveExpense();
   const [showAdd, setShowAdd] = useState(false);
   
   const [pendingOverride, setPendingOverride] = useState<string | null>(null);
 
+  const isLoading = loadingExpenses || loadingPlayers;
   const analytics = useExpenseAnalytics(expenses as any);
 
   const handleApprove = (id: string) => {
