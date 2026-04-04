@@ -52,10 +52,14 @@ export const getSlugFromHostname = (): string | null => {
   if (match) {
     const slug = match[1].toLowerCase();
     // Exclude known non-casino subdomains
-    if (["www", "api", "admin", "summary"].includes(slug)) {
-      return slug === "summary" ? "summary" : null;
-    }
+    if (["www", "api", "admin"].includes(slug)) return null;
+    if (slug === "premier") return "__premier__";
     return slug;
+  }
+
+  // Root domain casinosystem.app (no subdomain) → landing page
+  if (/^(www\.)?casinosystem\.(app|local)$/i.test(hostname)) {
+    return "__landing__";
   }
 
   // Preview/dev: check query param ?casino=arusha as fallback
