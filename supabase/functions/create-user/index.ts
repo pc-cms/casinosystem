@@ -16,7 +16,7 @@ Deno.serve(async (req) => {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-    // Verify caller is a manager
+    // Verify caller is a manager or super_admin
     const callerClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
     });
@@ -25,15 +25,42 @@ Deno.serve(async (req) => {
 
     const adminClient = createClient(supabaseUrl, serviceKey);
     
-    // Check caller has manager role
+    // Check caller has manager or super_admin role
     const { data: hasManager } = await adminClient.rpc("has_role", {
       _user_id: caller.id,
       _role: "manager",
     });
-    if (!hasManager) throw new Error("Manager role required");
+    const { data: hasSuperAdmin } = await adminClient.rpc("has_role", {
+      _user_id: caller.id,
+      _role: "super_admin",
+    });
+    if (!hasManager && !hasSuperAdmin) throw new Error("Manager or Super Admin role required");
 
-    const { login, password, display_name, roles } = await req.json();
+    const { login, password, display_name, roles, casino_id } = await req.json();
     if (!login || !password || !display_name) throw new Error("Missing fields");
+
+    // Determine target casino_id
+    let targetCasinoId = casino_id;
+    if (!targetCasinoId) {
+      // Fall back to caller's casino
+      const { data: callerProfile } = await adminClient
+        .from("profiles")
+        .select("casino_id")
+        .eq("user_id", caller.id)
+        .single();
+      if (!callerProfile) throw new Error("Caller profile not found");
+      targetCasinoId = callerProfile.casino_id;
+    } else if (!hasSuperAdmin) {
+      // Non-super_admin can only create users for their own casino
+      const { data: callerProfile } = await adminClient
+        .from("profiles")
+        .select("casino_id")
+        .eq("user_id", caller.id)
+        .single();
+      if (callerProfile?.casino_id !== targetCasinoId) {
+        throw new Error("You can only create users for your own casino");
+      }
+    }
 
     const email = `${login.toLowerCase().trim()}@cms.local`;
 
@@ -46,7 +73,18 @@ Deno.serve(async (req) => {
     });
     if (createError) throw createError;
 
-    // Assign roles
+    // Update profile with correct casino_id (trigger creates it with default casino)
+    await adminClient
+      .from("profiles")
+      .update({ casino_id: targetCasinoId, display_name })
+      .eq("user_id", newUser.user.id);
+
+    // Clear default roles assigned by trigger, then assign requested ones
+    await adminClient
+      .from("user_roles")
+      .delete()
+      .eq("user_id", newUser.user.id);
+
     if (roles && Array.isArray(roles)) {
       for (const role of roles) {
         await adminClient.from("user_roles").insert({
