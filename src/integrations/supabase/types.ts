@@ -2156,6 +2156,7 @@ export type Database = {
         | "finance_manager"
         | "security"
         | "super_admin"
+        | "hr"
       card_type: "manual" | "rfid"
       dealer_category:
         | "trainee"
@@ -2383,6 +2384,7 @@ export const Constants = {
         "finance_manager",
         "security",
         "super_admin",
+        "hr",
       ],
       card_type: ["manual", "rfid"],
       dealer_category: ["trainee", "dealer", "inspector", "expert", "pit_boss"],

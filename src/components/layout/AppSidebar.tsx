@@ -17,7 +17,7 @@ import { toast } from "sonner";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 
-type AppRole = "cashier" | "pit" | "manager" | "reception" | "finance_manager" | "security" | "super_admin";
+type AppRole = "cashier" | "pit" | "manager" | "reception" | "finance_manager" | "security" | "super_admin" | "hr";
 
 const NAV_ITEMS: { to: string; icon: typeof LayoutDashboard; label: string; shortcut: string; roles: AppRole[]; section: string }[] = [
   { to: "/", icon: LayoutDashboard, label: "Dashboard", shortcut: "D", roles: ["super_admin", "manager", "pit", "reception", "finance_manager", "security"], section: "OVERVIEW" },
@@ -28,11 +28,11 @@ const NAV_ITEMS: { to: string; icon: typeof LayoutDashboard; label: string; shor
   { to: "/finance", icon: Wallet, label: "Finance", shortcut: "F", roles: ["super_admin", "manager", "finance_manager"], section: "OPERATIONS" },
   { to: "/groups", icon: UsersRound, label: "Groups", shortcut: "G", roles: ["super_admin", "manager", "finance_manager"], section: "OPERATIONS" },
   { to: "/guests", icon: Users, label: "Guests", shortcut: "Alt+G", roles: ["super_admin", "manager", "reception", "pit", "finance_manager", "security"], section: "OPERATIONS" },
-  { to: "/pit", icon: Gamepad2, label: "Live Game", shortcut: "L", roles: ["super_admin", "manager", "pit", "finance_manager"], section: "OPERATIONS" },
+  { to: "/pit", icon: Gamepad2, label: "Live Game", shortcut: "L", roles: ["super_admin", "manager", "pit", "finance_manager", "hr"], section: "OPERATIONS" },
   { to: "/players", icon: Users, label: "Players", shortcut: "P", roles: ["super_admin", "manager", "cashier", "finance_manager", "security"], section: "OPERATIONS" },
   { to: "/reception", icon: DoorOpen, label: "Reception", shortcut: "R", roles: ["super_admin", "manager", "reception", "finance_manager"], section: "OPERATIONS" },
   { to: "/tables", icon: Table2, label: "Tables", shortcut: "T", roles: ["super_admin", "manager", "cashier", "pit", "finance_manager", "security"], section: "OPERATIONS" },
-  { to: "/staff", icon: Building2, label: "Floor Staff", shortcut: "Alt+F", roles: ["super_admin", "manager", "pit", "finance_manager"], section: "HR" },
+  { to: "/staff", icon: Building2, label: "Floor Staff", shortcut: "Alt+F", roles: ["super_admin", "manager", "pit", "finance_manager", "hr"], section: "HR" },
   { to: "/logs", icon: ClipboardList, label: "Logs", shortcut: "Alt+L", roles: ["super_admin", "manager", "finance_manager", "security"], section: "ANALYTICS" },
   { to: "/reports", icon: FileBarChart, label: "Reports", shortcut: "Alt+R", roles: ["super_admin", "manager", "finance_manager", "security"], section: "ANALYTICS" },
   { to: "/stats", icon: BarChart3, label: "Stats", shortcut: "S", roles: ["super_admin", "manager", "finance_manager", "security"], section: "ANALYTICS" },
@@ -206,6 +206,7 @@ const SidebarInner = ({ onNavigate }: { onNavigate?: () => void }) => {
             <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded shrink-0 ${
               roles.includes("manager") ? "bg-primary/20 text-primary" :
               roles.includes("finance_manager") ? "bg-emerald-500/20 text-emerald-400" :
+              roles.includes("hr") ? "bg-orange-500/20 text-orange-400" :
               roles.includes("pit") ? "bg-sky-500/20 text-sky-400" :
               roles.includes("cashier") ? "bg-amber-500/20 text-amber-400" :
               roles.includes("reception") ? "bg-violet-500/20 text-violet-400" :
@@ -213,10 +214,10 @@ const SidebarInner = ({ onNavigate }: { onNavigate?: () => void }) => {
               "bg-sidebar-accent text-sidebar-accent-foreground"
             }`}>
               {(() => {
-                const priority: AppRole[] = ["manager", "finance_manager", "pit", "cashier", "reception", "security"];
+                const priority: AppRole[] = ["manager", "finance_manager", "hr", "pit", "cashier", "reception", "security"];
                 const primary = priority.find(r => roles.includes(r)) || roles[0] || "user";
                 const labels: Record<string, string> = {
-                  manager: "Manager", finance_manager: "Finance", pit: "Pit",
+                  manager: "Manager", finance_manager: "Finance", hr: "HR", pit: "Pit",
                   cashier: "Cashier", reception: "Reception", security: "Security",
                 };
                 return labels[primary] || primary.charAt(0).toUpperCase() + primary.slice(1);

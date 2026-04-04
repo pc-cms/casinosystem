@@ -16,7 +16,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import FloatManagement from "@/components/admin/FloatManagement";
 import { useCasinoInfo, useUpdateCasinoSchedule } from "@/hooks/use-table-lifecycle";
 
-const ROLES = ["manager", "cashier", "pit", "reception", "finance_manager", "security"] as const;
+const ROLES = ["manager", "cashier", "pit", "reception", "finance_manager", "security", "hr"] as const;
 const ALL_ROLES = ["super_admin", ...ROLES] as const;
 
 const ROLE_LABELS: Record<string, string> = {
@@ -27,6 +27,7 @@ const ROLE_LABELS: Record<string, string> = {
   reception: "Reception",
   finance_manager: "Finance",
   security: "Security",
+  hr: "HR",
 };
 
 // =================== HOOKS ===================
@@ -521,16 +522,21 @@ const UsersAndRoles = () => {
   const [newPassword, setNewPassword] = useState("");
   const [newDisplayName, setNewDisplayName] = useState("");
   const [newRoles, setNewRoles] = useState<string[]>([]);
+  const [newCasinoId, setNewCasinoId] = useState("");
   const [selectedUser, setSelectedUser] = useState("");
   const [selectedRole, setSelectedRole] = useState("");
+
+  const { data: casinos = [] } = useAllCasinos();
 
   const availableRoles = isSuperAdmin ? ALL_ROLES : ROLES;
 
   const createUser = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke("create-user", {
-        body: { login: newLogin, password: newPassword, display_name: newDisplayName, roles: newRoles },
-      });
+      const body: any = { login: newLogin, password: newPassword, display_name: newDisplayName, roles: newRoles };
+      if (isSuperAdmin && newCasinoId) {
+        body.casino_id = newCasinoId;
+      }
+      const { data, error } = await supabase.functions.invoke("create-user", { body });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       return data;
@@ -544,6 +550,7 @@ const UsersAndRoles = () => {
       setNewPassword("");
       setNewDisplayName("");
       setNewRoles([]);
+      setNewCasinoId("");
     },
     onError: (e) => toast.error(e.message),
   });
@@ -666,6 +673,19 @@ const UsersAndRoles = () => {
         <DialogContent className="max-w-sm">
           <DialogHeader><DialogTitle>Create User</DialogTitle></DialogHeader>
           <div className="space-y-3">
+            {isSuperAdmin && (
+              <div>
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1 block">Casino</label>
+                <Select value={newCasinoId} onValueChange={setNewCasinoId}>
+                  <SelectTrigger><SelectValue placeholder="Select casino" /></SelectTrigger>
+                  <SelectContent>
+                    {casinos.map(c => (
+                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div>
               <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1 block">Login</label>
               <Input value={newLogin} onChange={e => setNewLogin(e.target.value)} placeholder="e.g. cashier2" className="font-mono" />
@@ -700,7 +720,7 @@ const UsersAndRoles = () => {
             <Button variant="outline" onClick={() => setShowCreate(false)}>Cancel</Button>
             <Button
               onClick={() => createUser.mutate()}
-              disabled={!newLogin || !newPassword || newPassword.length < 6 || !newDisplayName || createUser.isPending}
+              disabled={!newLogin || !newPassword || newPassword.length < 6 || !newDisplayName || (isSuperAdmin && !newCasinoId) || createUser.isPending}
             >
               {createUser.isPending ? "Creating..." : "Create"}
             </Button>
