@@ -16,7 +16,7 @@ export type QueuedAction = {
   upsertConflict?: string;
   timestamp: number;
   retries: number;
-  status: "pending" | "syncing" | "failed";
+  status: "pending" | "syncing" | "failed" | "permanently_failed";
   meta?: Record<string, any>; // extra context for logging
 };
 
