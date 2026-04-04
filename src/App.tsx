@@ -88,10 +88,11 @@ const RoleGuard = ({ path, children }: { path: string; children: React.ReactNode
 };
 
 const getDefaultRoute = (roles: string[]) => {
-  if (roles.includes("reception") && !roles.some(r => ["manager", "pit", "cashier", "finance_manager", "security"].includes(r))) {
+  if (roles.includes("super_admin")) return "/admin";
+  if (roles.includes("reception") && !roles.some(r => ["manager", "pit", "cashier", "finance_manager", "security", "super_admin"].includes(r))) {
     return "/reception";
   }
-  if (roles.includes("cashier") && !roles.some(r => ["manager", "pit", "reception", "finance_manager", "security"].includes(r))) {
+  if (roles.includes("cashier") && !roles.some(r => ["manager", "pit", "reception", "finance_manager", "security", "super_admin"].includes(r))) {
     return "/cage";
   }
   return "/";
