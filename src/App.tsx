@@ -174,11 +174,13 @@ const App = () => (
     >
       <TooltipProvider>
         <AuthProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <AppRoutes />
-          </BrowserRouter>
+          <CasinoProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <AppRoutes />
+            </BrowserRouter>
+          </CasinoProvider>
         </AuthProvider>
       </TooltipProvider>
     </PersistQueryClientProvider>
