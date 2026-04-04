@@ -69,13 +69,12 @@ export function useDuplicateCheck() {
           }
         }
 
-        // SECONDARY: name similarity
+        // SECONDARY: name similarity (CROSS-CASINO)
         const fullName = `${fields.first_name} ${fields.last_name}`.trim();
         if (fullName) {
           const { data: allPlayers } = await supabase
             .from("players")
-            .select("id, first_name, last_name, nickname, photo_url, phone")
-            .eq("casino_id", casinoId)
+            .select("id, first_name, last_name, nickname, photo_url, phone, casino_id")
             .limit(500);
 
           if (allPlayers) {
