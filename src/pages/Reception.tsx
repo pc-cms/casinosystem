@@ -407,7 +407,7 @@ const RegisterTab = () => {
       reader.readAsDataURL(file);
     });
 
-  const handleDocSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleDocSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     setDocFiles(files);
     setOcrDone(false);
@@ -416,53 +416,57 @@ const RegisterTab = () => {
 
     if (files.length === 0) return;
 
-    // Run OCR on first document image
+    // Run OCR in background — don't block user from filling other fields
     const firstDoc = files[0];
     if (!firstDoc.type.startsWith("image/")) return;
 
     setOcrLoading(true);
-    try {
-      const base64 = await fileToBase64(firstDoc);
-      const { data, error } = await supabase.functions.invoke("ocr-document", {
-        body: { image_base64: base64 },
-      });
-
-      if (error) {
-        console.error("OCR error:", error);
-        toast.error("Could not read document. Enter details manually.");
-      } else if (data) {
-        // Auto-fill extracted fields
-        if (data.document_number) {
-          setForm(f => ({ ...f, id_number: data.document_number }));
-        }
-        if (data.full_name) {
-          const parts = data.full_name.trim().split(/\s+/);
-          if (parts.length >= 2) {
-            const lastName = parts.pop()!;
-            const firstName = parts.join(" ");
-            setForm(f => ({
-              ...f,
-              first_name: f.first_name || firstName,
-              last_name: f.last_name || lastName,
-            }));
-          }
-        }
-        toast.success("Document data extracted");
-        setOcrDone(true);
-
-        // Auto-run duplicate check with extracted data
-        await checkDuplicates({
-          id_number: data.document_number || "",
-          first_name: data.full_name?.split(/\s+/).slice(0, -1).join(" ") || form.first_name,
-          last_name: data.full_name?.split(/\s+/).pop() || form.last_name,
-          phone: form.phone,
+    // Fire-and-forget: OCR runs while user continues typing
+    (async () => {
+      try {
+        const base64 = await fileToBase64(firstDoc);
+        const { data, error } = await supabase.functions.invoke("ocr-document", {
+          body: { image_base64: base64 },
         });
+
+        if (error) {
+          console.error("OCR error:", error);
+          toast("Could not read document — fill in manually", { icon: "📝" });
+        } else if (data) {
+          // Auto-fill only empty fields (don't overwrite what user already typed)
+          setForm(f => {
+            const updates = { ...f };
+            if (data.document_number && !f.id_number) {
+              updates.id_number = data.document_number;
+            }
+            if (data.full_name) {
+              const parts = data.full_name.trim().split(/\s+/);
+              if (parts.length >= 2) {
+                const lastName = parts.pop()!;
+                const firstName = parts.join(" ");
+                if (!f.first_name) updates.first_name = firstName;
+                if (!f.last_name) updates.last_name = lastName;
+              }
+            }
+            return updates;
+          });
+          toast.success("Document data auto-filled ✓");
+          setOcrDone(true);
+
+          // Auto-run duplicate check with extracted data
+          checkDuplicates({
+            id_number: data.document_number || "",
+            first_name: data.full_name?.split(/\s+/).slice(0, -1).join(" ") || "",
+            last_name: data.full_name?.split(/\s+/).pop() || "",
+            phone: "",
+          });
+        }
+      } catch {
+        toast("OCR failed — fill in manually", { icon: "📝" });
+      } finally {
+        setOcrLoading(false);
       }
-    } catch {
-      toast.error("OCR failed. Enter details manually.");
-    } finally {
-      setOcrLoading(false);
-    }
+    })();
   };
 
   const runManualDuplicateCheck = async () => {
