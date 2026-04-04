@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { useCasino } from "@/lib/casino-context";
+import { useCasino, getBaseDomain } from "@/lib/casino-context";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
