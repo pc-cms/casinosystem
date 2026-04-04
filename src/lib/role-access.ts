@@ -12,7 +12,7 @@ export type FinancialScope = "all" | "shift" | "none";
  * - "none": Cannot see any financial data (reception)
  */
 export const getFinancialScope = (roles: string[]): FinancialScope => {
-  if (roles.includes("manager") || roles.includes("finance_manager") || roles.includes("security")) {
+  if (roles.includes("manager") || roles.includes("finance_manager") || roles.includes("security") || roles.includes("super_admin")) {
     return "all";
   }
   if (roles.includes("cashier") || roles.includes("pit")) {
