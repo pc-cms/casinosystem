@@ -5,6 +5,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Shield, BarChart3, Users, Zap, Globe, Lock } from "lucide-react";
+import { getBaseDomain } from "@/lib/casino-context";
 
 const FEATURES = [
   {
@@ -47,8 +48,10 @@ const CASINOS = [
 ];
 
 const Landing = () => {
+  const baseDomain = getBaseDomain();
+
   const goToCasino = (slug: string) => {
-    window.location.href = `https://${slug}.casinosystem.app`;
+    window.location.href = `https://${slug}.${baseDomain}`;
   };
 
   return (
@@ -66,7 +69,7 @@ const Landing = () => {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => window.location.href = "https://premier.casinosystem.app"}
+              onClick={() => window.location.href = `https://premier.${baseDomain}`}
             >
               Premier Dashboard
             </Button>
@@ -90,7 +93,7 @@ const Landing = () => {
             <div className="flex items-center justify-center gap-3 pt-4">
               <Button
                 size="lg"
-                onClick={() => window.location.href = "https://premier.casinosystem.app/login"}
+                onClick={() => window.location.href = `https://premier.${baseDomain}/login`}
               >
                 Sign In
               </Button>
@@ -130,7 +133,7 @@ const Landing = () => {
                     <Globe className="w-6 h-6 text-primary" />
                   </div>
                   <p className="font-semibold text-lg">{c.name}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{c.slug}.casinosystem.app</p>
+                  <p className="text-xs text-muted-foreground mt-1">{c.slug}.{baseDomain}</p>
                 </button>
               ))}
             </div>

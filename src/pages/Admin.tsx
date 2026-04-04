@@ -253,7 +253,7 @@ const CasinoManagement = () => {
             <div>
               <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1 block">Subdomain slug</label>
               <Input value={slug} onChange={e => setSlug(e.target.value.replace(/[^a-z0-9-]/g, ""))} placeholder="e.g. arusha" className="font-mono" />
-              <p className="text-[10px] text-muted-foreground mt-1">{slug ? `${slug}.casinosystem.app` : "Will be used as subdomain"}</p>
+              <p className="text-[10px] text-muted-foreground mt-1">{slug ? `${slug}.${getBaseDomain()}` : "Will be used as subdomain"}</p>
             </div>
           </div>
           <DialogFooter>
