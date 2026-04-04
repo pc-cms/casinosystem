@@ -153,6 +153,19 @@ const ProtectedRoutes = () => {
 
 const AppRoutes = () => {
   const { user, loading, roles } = useAuth();
+  const detectedSlug = getSlugFromHostname();
+
+  // Root domain → landing page (no auth required)
+  if (detectedSlug === "__landing__") {
+    return (
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          <Route path="*" element={<Landing />} />
+        </Routes>
+      </Suspense>
+    );
+  }
+
   if (loading) return null;
   const defaultRoute = user ? getDefaultRoute(roles) : "/";
   return (
