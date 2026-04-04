@@ -1093,6 +1093,7 @@ export type Database = {
           float_amount: number
           game: string
           id: string
+          is_archived: boolean
           name: string
           status: Database["public"]["Enums"]["table_status"]
         }
@@ -1105,6 +1106,7 @@ export type Database = {
           float_amount?: number
           game: string
           id?: string
+          is_archived?: boolean
           name: string
           status?: Database["public"]["Enums"]["table_status"]
         }
@@ -1117,6 +1119,7 @@ export type Database = {
           float_amount?: number
           game?: string
           id?: string
+          is_archived?: boolean
           name?: string
           status?: Database["public"]["Enums"]["table_status"]
         }
