@@ -9,7 +9,9 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { ArrowRight, Check, X, Plus, SendHorizonal } from "lucide-react";
 import { toast } from "sonner";
-import { formatTZS } from "@/lib/currency";
+import { CURRENCY_SYMBOL } from "@/lib/currency";
+
+const fmtAmount = (n: number) => `${CURRENCY_SYMBOL} ${n.toLocaleString()}`;
 
 const STATUS_COLORS: Record<string, string> = {
   pending: "bg-yellow-500/15 text-yellow-600 border-yellow-500/30",
