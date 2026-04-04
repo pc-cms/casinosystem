@@ -673,6 +673,19 @@ const UsersAndRoles = () => {
         <DialogContent className="max-w-sm">
           <DialogHeader><DialogTitle>Create User</DialogTitle></DialogHeader>
           <div className="space-y-3">
+            {isSuperAdmin && (
+              <div>
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1 block">Casino</label>
+                <Select value={newCasinoId} onValueChange={setNewCasinoId}>
+                  <SelectTrigger><SelectValue placeholder="Select casino" /></SelectTrigger>
+                  <SelectContent>
+                    {casinos.map(c => (
+                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div>
               <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1 block">Login</label>
               <Input value={newLogin} onChange={e => setNewLogin(e.target.value)} placeholder="e.g. cashier2" className="font-mono" />
@@ -707,7 +720,7 @@ const UsersAndRoles = () => {
             <Button variant="outline" onClick={() => setShowCreate(false)}>Cancel</Button>
             <Button
               onClick={() => createUser.mutate()}
-              disabled={!newLogin || !newPassword || newPassword.length < 6 || !newDisplayName || createUser.isPending}
+              disabled={!newLogin || !newPassword || newPassword.length < 6 || !newDisplayName || (isSuperAdmin && !newCasinoId) || createUser.isPending}
             >
               {createUser.isPending ? "Creating..." : "Create"}
             </Button>
