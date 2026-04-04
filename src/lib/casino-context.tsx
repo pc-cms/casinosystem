@@ -72,7 +72,7 @@ export const getSlugFromHostname = (): string | null => {
 };
 
 export const CasinoProvider = ({ children }: { children: ReactNode }) => {
-  const { user, roles, casinoId: primaryCasinoId } = useAuth();
+  const { user, roles, casinoId: authCasinoId, primaryCasinoId, overrideCasinoId } = useAuth();
   const [accessibleCasinos, setAccessibleCasinos] = useState<CasinoInfo[]>([]);
   const [activeCasinoId, setActiveCasinoId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
