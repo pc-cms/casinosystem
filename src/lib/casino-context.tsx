@@ -55,19 +55,16 @@ export const getBaseDomain = (): string => {
 /** Extract casino slug from current hostname */
 export const getSlugFromHostname = (): string | null => {
   const hostname = window.location.hostname;
-  console.log("[CasinoRouting] hostname:", hostname, "href:", window.location.href);
 
   // Production: arusha.casinosystem.app / arusha.casinosystem.lovable.app / arusha.casinosystem.local
   const match = hostname.match(/^([a-z0-9-]+)\.(casinosystem\.app|casinosystem\.lovable\.app|casinosystem\.local)$/i);
   if (match) {
     const slug = match[1].toLowerCase();
-    console.log("[CasinoRouting] matched subdomain slug:", slug);
     // Exclude known non-casino subdomains
     if (["www", "api", "admin"].includes(slug)) return null;
     if (slug === "premier") return "__premier__";
     return slug;
   }
-  console.log("[CasinoRouting] no subdomain match, checking root/fallback");
 
   // Root domain (no subdomain) → landing page
   if (/^(www\.)?casinosystem\.(app|lovable\.app|local)$/i.test(hostname)) {
