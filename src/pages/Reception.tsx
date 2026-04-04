@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { usePlayers, useVisitsToday } from "@/hooks/use-casino-data";
 import { useDebouncedValue } from "@/hooks/use-debounce";
+import { useDuplicateCheck } from "@/hooks/use-duplicate-check";
 import { logAction } from "@/lib/logging";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -13,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import PlayerEditDialog from "@/components/PlayerEditDialog";
 import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
+import DuplicateCheckResult from "@/components/registration/DuplicateCheckResult";
 import {
   Search, UserPlus, LogIn, LogOut, ShieldAlert, Camera,
   User, Ban, CheckCircle2, XCircle, CreditCard, AlertTriangle, Eye,
