@@ -16,6 +16,7 @@ import { useRealtimeSubscriptions } from "@/hooks/use-realtime";
 import { initSyncEngine } from "@/lib/sync-engine";
 import Login from "@/pages/Login";
 const Landing = lazy(() => import("@/pages/Landing"));
+const CctvView = lazy(() => import("@/pages/CctvView"));
 
 // Lazy-loaded pages — each becomes a separate chunk
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
