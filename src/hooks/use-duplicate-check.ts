@@ -29,7 +29,6 @@ function similarity(a: string, b: string): number {
 const NAME_SIMILARITY_THRESHOLD = 0.75;
 
 export function useDuplicateCheck() {
-  const { casinoId } = useAuth();
   const [status, setStatus] = useState<DuplicateStatus>("idle");
   const [matches, setMatches] = useState<DuplicateMatch[]>([]);
 
@@ -40,19 +39,17 @@ export function useDuplicateCheck() {
       last_name: string;
       phone?: string;
     }) => {
-      if (!casinoId) return;
       setStatus("checking");
       setMatches([]);
 
       try {
         const foundMatches: DuplicateMatch[] = [];
 
-        // PRIMARY: exact document number match
+        // PRIMARY: exact document number match (CROSS-CASINO)
         if (fields.id_number?.trim()) {
           const { data: docMatches } = await supabase
             .from("players")
-            .select("id, first_name, last_name, nickname, photo_url, id_number")
-            .eq("casino_id", casinoId)
+            .select("id, first_name, last_name, nickname, photo_url, id_number, casino_id")
             .eq("id_number", fields.id_number.trim());
 
           if (docMatches && docMatches.length > 0) {
