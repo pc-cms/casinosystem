@@ -79,7 +79,7 @@ export const CasinoProvider = ({ children }: { children: ReactNode }) => {
   const [detectedSlug] = useState<string | null>(() => getSlugFromHostname());
 
   const isSuperOrFM = roles.includes("super_admin") || roles.includes("finance_manager");
-  const isSummaryMode = detectedSlug === "summary" && isSuperOrFM;
+  const isSummaryMode = detectedSlug === "__premier__" && isSuperOrFM;
 
   // Fetch accessible casinos
   useEffect(() => {
