@@ -24,6 +24,10 @@ type AuthState = {
   managerOverride: ManagerOverride;
   activateManagerOverride: (managerId: string, managerName: string) => void;
   deactivateManagerOverride: () => void;
+  /** Override casinoId (used by CasinoProvider for subdomain routing) */
+  overrideCasinoId: (id: string | null) => void;
+  /** The profile's original casino_id (before any override) */
+  primaryCasinoId: string | null;
 };
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -38,7 +42,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [roles, setRoles] = useState<AppRole[]>([]);
-  const [casinoId, setCasinoId] = useState<string | null>(null);
+  const [profileCasinoId, setProfileCasinoId] = useState<string | null>(null);
+  const [casinoIdOverride, setCasinoIdOverride] = useState<string | null | undefined>(undefined);
   const [displayName, setDisplayName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [managerOverride, setManagerOverride] = useState<ManagerOverride>({
@@ -55,7 +60,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       .single();
     
     if (profile) {
-      setCasinoId(profile.casino_id);
+      setProfileCasinoId(profile.casino_id);
       setDisplayName(profile.display_name);
     }
 
@@ -79,7 +84,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setTimeout(() => fetchProfile(session.user.id), 0);
         } else {
           setRoles([]);
-          setCasinoId(null);
+          setProfileCasinoId(null);
+          setCasinoIdOverride(undefined);
           setDisplayName(null);
           setManagerOverride({ active: false, managerId: null, managerName: null });
         }
@@ -114,6 +120,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setManagerOverride({ active: false, managerId: null, managerName: null });
   }, []);
 
+  const overrideCasinoId = useCallback((id: string | null) => {
+    setCasinoIdOverride(id);
+  }, []);
+
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     return { error: error?.message ?? null };
@@ -124,11 +134,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     await supabase.auth.signOut();
   };
 
+  // casinoId: use override if set, otherwise profile's casino
+  const casinoId = casinoIdOverride !== undefined ? casinoIdOverride : profileCasinoId;
+
   return (
     <AuthContext.Provider value={{
       user, session, roles, casinoId, displayName, loading,
       hasRole, isManager, signIn, signOut,
       managerOverride, activateManagerOverride, deactivateManagerOverride,
+      overrideCasinoId, primaryCasinoId: profileCasinoId,
     }}>
       {children}
     </AuthContext.Provider>

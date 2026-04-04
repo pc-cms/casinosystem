@@ -72,7 +72,7 @@ export const getSlugFromHostname = (): string | null => {
 };
 
 export const CasinoProvider = ({ children }: { children: ReactNode }) => {
-  const { user, roles, casinoId: primaryCasinoId } = useAuth();
+  const { user, roles, casinoId: authCasinoId, primaryCasinoId, overrideCasinoId } = useAuth();
   const [accessibleCasinos, setAccessibleCasinos] = useState<CasinoInfo[]>([]);
   const [activeCasinoId, setActiveCasinoId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -155,6 +155,16 @@ export const CasinoProvider = ({ children }: { children: ReactNode }) => {
   const switchCasino = useCallback((casinoId: string | null) => {
     setActiveCasinoId(casinoId);
   }, []);
+
+  // Sync activeCasinoId back to auth context so all hooks use the right casino
+  useEffect(() => {
+    if (activeCasinoId) {
+      overrideCasinoId(activeCasinoId);
+    } else if (isSummaryMode) {
+      // In summary mode, don't override — keep null for cross-casino queries
+      overrideCasinoId(null);
+    }
+  }, [activeCasinoId, isSummaryMode, overrideCasinoId]);
 
   const activeCasino = accessibleCasinos.find(c => c.id === activeCasinoId) ?? null;
 

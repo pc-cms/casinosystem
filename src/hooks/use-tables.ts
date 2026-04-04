@@ -5,22 +5,47 @@ import { logAction } from "@/lib/logging";
 import { offlineMutation } from "@/lib/offline-mutation";
 import { toast } from "sonner";
 
-export const useGamingTables = () => {
+export const useGamingTables = (includeArchived = false) => {
   const { casinoId } = useAuth();
   return useQuery({
-    queryKey: ["gaming-tables", casinoId],
+    queryKey: ["gaming-tables", casinoId, includeArchived],
     queryFn: async () => {
       if (!casinoId) return [];
-      const { data, error } = await supabase
+      let query = supabase
         .from("gaming_tables")
         .select("*")
         .eq("casino_id", casinoId)
         .order("name");
+      if (!includeArchived) {
+        query = query.eq("is_archived", false);
+      }
+      const { data, error } = await query;
       if (error) throw error;
       return data;
     },
     enabled: !!casinoId,
     staleTime: 1000 * 60 * 5,
+  });
+};
+
+export const useArchiveTable = () => {
+  const qc = useQueryClient();
+  const { casinoId, user } = useAuth();
+  return useMutation({
+    mutationFn: async ({ tableId, archive }: { tableId: string; archive: boolean }) => {
+      if (!casinoId || !user) throw new Error("Not authenticated");
+      const { error } = await supabase
+        .from("gaming_tables")
+        .update({ is_archived: archive } as any)
+        .eq("id", tableId);
+      if (error) throw error;
+      await logAction(casinoId, "system", archive ? "TABLE_ARCHIVED" : "TABLE_RESTORED", { table_id: tableId });
+    },
+    onSuccess: (_, { archive }) => {
+      qc.invalidateQueries({ queryKey: ["gaming-tables"] });
+      toast.success(archive ? "Table archived" : "Table restored");
+    },
+    onError: (e) => toast.error(e.message),
   });
 };
 
