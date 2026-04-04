@@ -34,7 +34,7 @@ export const useRealtimeSubscriptions = () => {
       )
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "players", filter: `casino_id=eq.${casinoId}` },
+        { event: "*", schema: "public", table: "players" },
         () => {
           qc.invalidateQueries({ queryKey: ["players"] });
           qc.invalidateQueries({ queryKey: ["player-economy"] });
