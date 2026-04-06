@@ -598,9 +598,9 @@ const RotaGrid = ({ month }: { month: string }) => {
                 </td>
               );
             })}
-            <td className="px-2 py-1 text-center"><span className="text-[10px] font-mono font-bold text-blue-400">{stats["M"] || ""}</span></td>
-            <td className="px-2 py-1 text-center"><span className="text-[10px] font-mono font-bold text-indigo-400">{stats["N"] || ""}</span></td>
-            <td className="px-2 py-1 text-center"><span className="text-[10px] font-mono font-bold text-emerald-400">{stats["E"] || ""}</span></td>
+            <td className="px-2 py-1 text-center"><span className="text-[10px] font-mono font-bold text-blue-600 dark:text-blue-400">{stats["M"] || ""}</span></td>
+            <td className="px-2 py-1 text-center"><span className="text-[10px] font-mono font-bold text-indigo-600 dark:text-indigo-400">{stats["N"] || ""}</span></td>
+            <td className="px-2 py-1 text-center"><span className="text-[10px] font-mono font-bold text-emerald-600 dark:text-emerald-400">{stats["E"] || ""}</span></td>
           </tr>
         );
       })}
