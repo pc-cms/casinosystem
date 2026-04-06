@@ -646,10 +646,10 @@ const RotaGrid = ({ month }: { month: string }) => {
             <td colSpan={3} />
           </tr>
           <tr>
-            <td colSpan={2} className="px-1 py-1 text-[9px] font-mono font-bold text-indigo-400 sticky left-0 left-[28px] bg-card z-10">Σ N</td>
+            <td colSpan={2} className="px-1 py-1 text-[9px] font-mono font-bold text-indigo-600 dark:text-indigo-400 sticky left-0 left-[28px] bg-card z-10">Σ N</td>
             {days.map(day => {
               const count = [...activeDealers, ...pitBosses].filter(d => getDisplayShift(d.id, day)?.shift === "N").length;
-              return <td key={day} className="text-center text-[9px] font-mono font-bold text-indigo-400">{count || ""}</td>;
+              return <td key={day} className="text-center text-[9px] font-mono font-bold text-indigo-600 dark:text-indigo-400">{count || ""}</td>;
             })}
             <td colSpan={3} />
           </tr>
