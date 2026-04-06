@@ -22,7 +22,7 @@ const SHIFT_COLORS = UNIFIED_SHIFT_COLORS;
 
 const SHIFT_LABELS: Record<string, string> = {
   M: "Middle (18:00)",
-  N: "Night (21:00)",
+  N: "Night (20:45)",
   L: "Leave",
   E: "Extra",
 };
