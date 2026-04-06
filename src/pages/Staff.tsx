@@ -561,10 +561,10 @@ const StaffRotaGrid = ({ month }: { month: string }) => {
                   <td colSpan={2} />
                 </tr>
                 <tr>
-                  <td className="px-1 py-1 text-[9px] font-mono font-bold text-indigo-400 sticky left-0 bg-card z-10">Σ N</td>
+                  <td className="px-1 py-1 text-[9px] font-mono font-bold text-indigo-600 dark:text-indigo-400 sticky left-0 bg-card z-10">Σ N</td>
                   {days.map(day => {
                     const count = nonSecurity.filter(s => getDisplayShift(s.id, day)?.shift === "N").length;
-                    return <td key={day} className="text-center text-[9px] font-mono font-bold text-indigo-400">{count || ""}</td>;
+                    return <td key={day} className="text-center text-[9px] font-mono font-bold text-indigo-600 dark:text-indigo-400">{count || ""}</td>;
                   })}
                   <td colSpan={2} />
                 </tr>
