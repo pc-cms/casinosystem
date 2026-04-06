@@ -890,8 +890,9 @@ const StaffAttendanceGrid = ({ month, monthLabel }: { month: string; monthLabel:
             );
           })}
         </tbody>
-      </table>
-    </div>
+        </table>
+      </div>
+    </>
   );
 };
 
