@@ -14,15 +14,11 @@ import ActivePlayers from "@/components/pit/ActivePlayers";
 import ClientTracker from "@/components/pit/ClientTracker";
 import TableTracker from "@/pages/TableTracker";
 import { getBusinessDate, isBusinessToday } from "@/lib/business-day";
+import { UNIFIED_SHIFT_COLORS, UNIFIED_ATT_COLORS, UNIFIED_SHIFT_TINTS } from "@/lib/shift-colors";
 
 const ROTA_SHIFTS = ["M", "N", "L", "E"] as const;
 
-const SHIFT_COLORS: Record<string, string> = {
-  M: "bg-amber-100 text-amber-800 dark:bg-amber-500/25 dark:text-amber-300 font-bold",
-  N: "bg-slate-200 text-slate-700 dark:bg-slate-500/30 dark:text-slate-300 font-bold",
-  L: "bg-amber-100 text-amber-700 dark:bg-amber-500/30 dark:text-amber-300 font-bold",
-  E: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/30 dark:text-emerald-300 font-bold",
-};
+const SHIFT_COLORS = UNIFIED_SHIFT_COLORS;
 
 const SHIFT_LABELS: Record<string, string> = {
   M: "Middle (18:00)",
@@ -31,10 +27,7 @@ const SHIFT_LABELS: Record<string, string> = {
   E: "Extra",
 };
 
-const ATT_COLORS: Record<string, string> = {
-  A: "bg-red-100 text-red-700 dark:bg-red-500/30 dark:text-red-300",
-  S: "bg-amber-100 text-amber-700 dark:bg-amber-500/30 dark:text-amber-300",
-};
+const ATT_COLORS = UNIFIED_ATT_COLORS;
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -767,7 +760,7 @@ const AttendanceGrid = ({ month }: { month: string }) => {
                       isStatus ? ATT_COLORS[val]
                         : isHours ? "bg-transparent text-card-foreground font-bold"
                         : isScheduled && isEmpty
-                          ? `${rotaShift === "M" ? "bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400" : rotaShift === "N" ? "bg-slate-100 text-slate-500 dark:bg-slate-500/10 dark:text-slate-400" : "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400"} placeholder:text-current`
+                          ? `${UNIFIED_SHIFT_TINTS[rotaShift] || "bg-muted/30 text-muted-foreground"} placeholder:text-current`
                           : "bg-transparent text-transparent hover:text-muted-foreground"
                     }`}
                     placeholder={isScheduled && isEmpty ? rotaShift! : "·"}

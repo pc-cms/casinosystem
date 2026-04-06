@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
+import { UNIFIED_SHIFT_COLORS } from "@/lib/shift-colors";
 
 export type StaffDepartment = "security" | "cashier" | "bartender" | "hostess" | "waiter" | "cleaner" | "it" | "hr";
 
@@ -41,12 +42,7 @@ export const STAFF_SHIFT_LABELS: Record<string, string> = {
   O: "Off",
 };
 
-export const STAFF_SHIFT_COLORS: Record<string, string> = {
-  D: "bg-amber-100 text-amber-800 dark:bg-amber-500/25 dark:text-amber-300 font-bold",
-  N: "bg-slate-200 text-slate-700 dark:bg-slate-500/30 dark:text-slate-300 font-bold",
-  L: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/30 dark:text-emerald-300 font-bold",
-  O: "bg-muted/30 text-muted-foreground",
-};
+export const STAFF_SHIFT_COLORS = UNIFIED_SHIFT_COLORS;
 
 export const useStaffMembers = () => {
   const { casinoId } = useAuth();
