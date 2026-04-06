@@ -158,7 +158,7 @@ const Staff = () => {
       </div>
 
       {activeTab === "employee" && <EmployeeList />}
-      {isRotaTab && rotaGroupKey && <StaffRotaGrid month={month} groupKey={rotaGroupKey} />}
+      {isRotaTab && rotaGroupKey && <StaffRotaGrid month={month} groupKey={rotaGroupKey} monthLabel={monthLabel} />}
       {activeTab === "attendance" && <StaffAttendanceGrid month={month} />}
     </div>
   );
