@@ -107,7 +107,7 @@ const Pit = () => {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-5">
+      <div className="flex items-center justify-between mb-5 no-print">
         {/* LEFT: Title */}
         <div className="min-w-0">
           <h1 className="text-2xl font-bold text-foreground">{TAB_TITLES[activeTab] || "Live Game"}</h1>

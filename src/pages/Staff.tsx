@@ -97,7 +97,7 @@ const Staff = () => {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-5">
+      <div className="flex items-center justify-between mb-5 no-print">
         <div>
           <h1 className="text-2xl font-bold text-foreground">{TAB_TITLES[activeTab] || "Floor"}</h1>
           <p className="text-sm text-muted-foreground">Floor Management</p>
