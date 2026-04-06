@@ -250,7 +250,7 @@ const DealerEmployeeList = () => {
 
   const handleAdd = () => {
     if (!name) return;
-    if (!isManager) { toast.error("Manager access required"); return; }
+    if (!canManage) { toast.error("Manager or HR access required"); return; }
     const isPitBoss = category === "pit_boss";
     createDealer.mutate({ name, category: isPitBoss ? "dealer" : category, is_pit_boss: isPitBoss });
     setName("");
