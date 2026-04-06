@@ -89,7 +89,7 @@ const Pit = () => {
     attendance: "Live Game Attendance",
     breaklist: "Breaklist",
     activeplayers: "Active Players",
-    tracker: "Client Tracker",
+    tracker: "Player Tracker",
     tabletracker: "Table Tracker",
   };
 
