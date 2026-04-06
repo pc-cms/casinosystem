@@ -7,6 +7,22 @@ import { toast } from "sonner";
 import { ALL_ROLES, ROLE_COLORS, TABLE_ROLES } from "@/lib/currency";
 import { isBusinessToday, isAfterBreaklistLock } from "@/lib/business-day";
 
+const CATEGORY_LABELS: Record<string, string> = {
+  trainee: "TR",
+  dealer: "DL",
+  inspector: "IN",
+  expert: "EX",
+  pit_boss: "PB",
+};
+
+const CATEGORY_COLORS: Record<string, string> = {
+  trainee: "bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-300",
+  dealer: "bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300",
+  inspector: "bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-300",
+  expert: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300",
+  pit_boss: "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300",
+};
+
 interface BreaklistGridProps {
   date: string;
   zoom?: number;
@@ -192,6 +208,9 @@ const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }
                 >
                   Dealer {sortBy === "name" && "↓"}
                 </th>
+                <th className="text-center text-[9px] font-medium text-muted-foreground uppercase px-1 py-2 min-w-[28px]">
+                  Cat
+                </th>
                 <th
                   onClick={() => setSortBy("shift")}
                   className="text-center text-[9px] font-medium text-muted-foreground uppercase px-1 py-2 min-w-[32px] cursor-pointer hover:text-foreground select-none"
@@ -228,6 +247,11 @@ const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }
                           </span>
                         )}
                       </div>
+                    </td>
+                    <td className={`text-center py-1 ${idx % 2 === 1 ? "bg-card/95" : "bg-card"}`}>
+                      <span className={`px-1 py-0.5 rounded text-[8px] font-mono font-bold ${CATEGORY_COLORS[dealer.category] || "text-muted-foreground"}`}>
+                        {CATEGORY_LABELS[dealer.category] || "?"}
+                      </span>
                     </td>
                     <td className={`text-center py-1 ${idx % 2 === 1 ? "bg-card/95" : "bg-card"}`}>
                       {shift && (
