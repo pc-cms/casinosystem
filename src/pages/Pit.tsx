@@ -18,8 +18,8 @@ import { getBusinessDate, isBusinessToday } from "@/lib/business-day";
 const ROTA_SHIFTS = ["M", "N", "L", "E"] as const;
 
 const SHIFT_COLORS: Record<string, string> = {
-  M: "bg-blue-100 text-blue-700 dark:bg-blue-500/30 dark:text-blue-300 font-bold",
-  N: "bg-indigo-100 text-indigo-700 dark:bg-indigo-500/30 dark:text-indigo-300 font-bold",
+  M: "bg-amber-100 text-amber-800 dark:bg-amber-500/25 dark:text-amber-300 font-bold",
+  N: "bg-slate-200 text-slate-700 dark:bg-slate-500/30 dark:text-slate-300 font-bold",
   L: "bg-amber-100 text-amber-700 dark:bg-amber-500/30 dark:text-amber-300 font-bold",
   E: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/30 dark:text-emerald-300 font-bold",
 };
@@ -767,7 +767,7 @@ const AttendanceGrid = ({ month }: { month: string }) => {
                       isStatus ? ATT_COLORS[val]
                         : isHours ? "bg-transparent text-card-foreground font-bold"
                         : isScheduled && isEmpty
-                          ? `${rotaShift === "M" ? "bg-blue-100 text-blue-600 dark:bg-blue-500/15 dark:text-blue-400" : rotaShift === "N" ? "bg-indigo-100 text-indigo-600 dark:bg-indigo-500/15 dark:text-indigo-400" : "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400"} placeholder:text-current`
+                          ? `${rotaShift === "M" ? "bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400" : rotaShift === "N" ? "bg-slate-100 text-slate-500 dark:bg-slate-500/10 dark:text-slate-400" : "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400"} placeholder:text-current`
                           : "bg-transparent text-transparent hover:text-muted-foreground"
                     }`}
                     placeholder={isScheduled && isEmpty ? rotaShift! : "·"}
