@@ -342,7 +342,7 @@ const EmployeeList = () => {
                       if (!canManage) { toast.error("Manager or HR access required"); return; }
                       updateStaff.mutate({ id: s.id, is_active: !s.is_active });
                     }}
-                      className={`text-xs font-medium cursor-pointer hover:underline ${s.is_active ? "text-emerald-400" : "text-red-400"}`}>
+                      className={`text-xs font-medium cursor-pointer hover:underline ${s.is_active ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`}>
                       {s.is_active ? "Active" : "Fired"}
                     </button>
                   </td>
