@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 
-export type PlayerCategory = "diamond" | "platinum" | "gold" | "guest";
+export type PlayerCategory = "diamond" | "platinum" | "gold" | "normal";
 
 const CATEGORY_CONFIG: Record<PlayerCategory, { letter: string; label: string; classes: string }> = {
   diamond: { letter: "D", label: "Diamond", classes: "bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-500/40" },
