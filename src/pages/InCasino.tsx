@@ -65,8 +65,8 @@ const InCasino = () => {
     let cmp = 0;
     switch (sortKey) {
       case "category": {
-        const catA = (pA?.category as PlayerCategory) || "guest";
-        const catB = (pB?.category as PlayerCategory) || "guest";
+        const catA = (pA?.category as PlayerCategory) || "normal";
+        const catB = (pB?.category as PlayerCategory) || "normal";
         cmp = CATEGORY_PRIORITY[catA] - CATEGORY_PRIORITY[catB];
         if (cmp === 0) {
           const nA = `${pA?.first_name || ""} ${pA?.last_name || ""}`.toLowerCase();
