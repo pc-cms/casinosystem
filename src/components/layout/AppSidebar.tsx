@@ -212,15 +212,15 @@ const SidebarInner = ({ onNavigate }: { onNavigate?: () => void }) => {
               roles.includes("pit") ? "bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-400" :
               roles.includes("cashier") ? "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400" :
               roles.includes("reception") ? "bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-400" :
-              roles.includes("security") ? "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400" :
+              roles.includes("surveillance") ? "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400" :
               "bg-sidebar-accent text-sidebar-accent-foreground"
             }`}>
               {(() => {
-                const priority: AppRole[] = ["manager", "finance_manager", "hr", "pit", "cashier", "reception", "security"];
+                const priority: AppRole[] = ["manager", "finance_manager", "hr", "pit", "cashier", "reception", "surveillance"];
                 const primary = priority.find(r => roles.includes(r)) || roles[0] || "user";
                 const labels: Record<string, string> = {
                   manager: "Manager", finance_manager: "Finance", hr: "HR", pit: "Pit",
-                  cashier: "Cashier", reception: "Reception", security: "Security",
+                  cashier: "Cashier", reception: "Reception", surveillance: "Surveillance",
                 };
                 return labels[primary] || primary.charAt(0).toUpperCase() + primary.slice(1);
               })()}
