@@ -5,8 +5,7 @@ import { useAuth } from "@/lib/auth-context";
 import { Lock, Unlock, LockKeyhole } from "lucide-react";
 import { toast } from "sonner";
 import { ALL_ROLES, ROLE_COLORS, TABLE_ROLES } from "@/lib/currency";
-import { isBusinessToday, isAfterBreaklistLock } from "@/lib/business-day";
-
+import { isBusinessToday, isAfterBreaklistLock, nowEAT } from "@/lib/business-day";
 const CATEGORY_LABELS: Record<string, string> = {
   trainee: "T",
   dealer: "D",

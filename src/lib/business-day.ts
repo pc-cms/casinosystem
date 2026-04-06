@@ -1,10 +1,18 @@
 /**
  * Casino business day logic.
+ * All time calculations use Africa/Dar_es_Salaam (EAT, UTC+3).
  * A shift runs across midnight, so between midnight and shiftEnd
  * the "business date" is still the previous calendar day.
  */
+
+/** Get current date/time in EAT timezone */
+export function nowEAT(): Date {
+  const str = new Date().toLocaleString("en-US", { timeZone: "Africa/Dar_es_Salaam" });
+  return new Date(str);
+}
+
 export function getBusinessDate(shiftEndHour = 5): string {
-  const now = new Date();
+  const now = nowEAT();
   const h = now.getHours();
   // Before shift end → still "yesterday" in business terms
   const d = h < shiftEndHour ? new Date(now.getTime() - 24 * 60 * 60 * 1000) : now;
@@ -32,7 +40,7 @@ export function timeToMinutes(time: string): number {
  * the breaklist locks at 05:30 the morning after the shift started).
  */
 export function isAfterBreaklistLock(lockTime = "05:30"): boolean {
-  const now = new Date();
+  const now = nowEAT();
   const h = now.getHours();
   const m = now.getMinutes();
   const currentMinutes = h * 60 + m;
