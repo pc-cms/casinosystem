@@ -72,7 +72,7 @@ const FullScreenLoader = ({ label = "Loading CMS..." }: { label?: string }) => (
 const ROUTE_ROLES: Record<string, string[]> = {
   "/": ["super_admin", "manager", "pit", "reception", "finance_manager", "security"],
   "/players": ["super_admin", "manager", "cashier", "finance_manager", "security"],
-  "/guests": ["super_admin", "manager", "reception", "pit", "finance_manager", "security"],
+  "/in-casino": ["super_admin", "manager", "reception", "pit", "finance_manager", "security"],
   "/blacklist": ["super_admin", "manager", "reception", "finance_manager", "security"],
   "/reception": ["super_admin", "manager", "reception", "finance_manager"],
   "/cage": ["super_admin", "manager", "cashier", "finance_manager"],
