@@ -320,10 +320,10 @@ const DealerEmployeeList = () => {
           </SelectContent>
         </Select>
         <div className="w-px h-6 bg-border mx-1" />
-        <Input placeholder="Name" value={name} onChange={e => setName(e.target.value)} className="w-[200px]" disabled={!isManager}
+        <Input placeholder="Name" value={name} onChange={e => setName(e.target.value)} className="w-[200px]" disabled={!canManage}
           onKeyDown={e => { if (e.key === "Enter") handleAdd(); }}
         />
-        <Select value={category} onValueChange={v => setCategory(v as DealerCategory)} disabled={!isManager}>
+        <Select value={category} onValueChange={v => setCategory(v as DealerCategory)} disabled={!canManage}>
           <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
           <SelectContent>
             {DEALER_CATEGORIES.map(c => (
@@ -331,7 +331,7 @@ const DealerEmployeeList = () => {
             ))}
           </SelectContent>
         </Select>
-        <Button onClick={handleAdd} disabled={!name || !isManager}>
+        <Button onClick={handleAdd} disabled={!name || !canManage}>
           <UserPlus className="w-4 h-4 mr-1" /> Add
         </Button>
       </div>
