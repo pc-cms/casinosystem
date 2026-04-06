@@ -638,10 +638,10 @@ const RotaGrid = ({ month }: { month: string }) => {
           {pitBosses.length > 0 && renderDealerRows(pitBosses, "Pit Bosses", "border-purple-400 dark:border-purple-500/50 text-purple-600 dark:text-purple-400")}
           {/* Summary: M/N/E count per day */}
           <tr className="border-t-2 border-border">
-            <td colSpan={2} className="px-1 py-1 text-[9px] font-mono font-bold text-blue-400 sticky left-0 left-[28px] bg-card z-10">Σ M</td>
+            <td colSpan={2} className="px-1 py-1 text-[9px] font-mono font-bold text-blue-600 dark:text-blue-400 sticky left-0 left-[28px] bg-card z-10">Σ M</td>
             {days.map(day => {
               const count = [...activeDealers, ...pitBosses].filter(d => getDisplayShift(d.id, day)?.shift === "M").length;
-              return <td key={day} className="text-center text-[9px] font-mono font-bold text-blue-400">{count || ""}</td>;
+              return <td key={day} className="text-center text-[9px] font-mono font-bold text-blue-600 dark:text-blue-400">{count || ""}</td>;
             })}
             <td colSpan={3} />
           </tr>
