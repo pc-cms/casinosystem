@@ -240,7 +240,9 @@ const EmployeeList = () => {
   const saveEdit = () => {
     if (!editingCell) return;
     const { id, field } = editingCell;
-    if (field === "salary") {
+    if (field === "name") {
+      if (editValue.trim()) updateStaff.mutate({ id, name: editValue.trim() });
+    } else if (field === "salary") {
       const num = parseInt(editValue.replace(/\s/g, ""), 10);
       updateStaff.mutate({ id, salary: isNaN(num) ? null : num });
     } else if (field === "contract_start" || field === "contract_end" || field === "onboarding_date") {
