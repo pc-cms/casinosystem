@@ -283,11 +283,15 @@
     position: static !important;
   }
 
-  /* Prevent page breaks inside tables */
+  /* Prevent page breaks inside department blocks, allow between them */
   .print-target table {
     page-break-inside: avoid;
   }
   .print-target tr {
     page-break-inside: avoid;
+  }
+  .print-dept-break {
+    page-break-after: always;
+    margin-bottom: 0 !important;
   }
 }
