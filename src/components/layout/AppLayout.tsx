@@ -12,9 +12,9 @@ export const AppLayout = () => {
 
   return (
     <div className="flex h-screen overflow-hidden">
-      {!isMobile && <AppSidebar />}
+      {!isMobile && <div className="no-print"><AppSidebar /></div>}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {isMobile && <MobileHeader />}
+        {isMobile && <div className="no-print"><MobileHeader /></div>}
         <main className="flex-1 overflow-y-auto">
           <div className="p-3 sm:p-6 max-w-7xl mx-auto animate-fade-in">
             <Outlet />

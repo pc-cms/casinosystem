@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { UserPlus, ChevronLeft, ChevronRight, ArrowUpDown } from "lucide-react";
+import { UserPlus, ChevronLeft, ChevronRight, ArrowUpDown, Printer } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
@@ -97,7 +97,7 @@ const Staff = () => {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-5">
+      <div className="flex items-center justify-between mb-5 no-print">
         <div>
           <h1 className="text-2xl font-bold text-foreground">{TAB_TITLES[activeTab] || "Floor"}</h1>
           <p className="text-sm text-muted-foreground">Floor Management</p>
@@ -121,12 +121,18 @@ const Staff = () => {
                   {s} = {STAFF_SHIFT_LABELS[s]}
                 </span>
               ))}
+              <Button variant="outline" size="sm" className="ml-2 gap-1 text-xs" onClick={() => window.print()}>
+                <Printer className="w-3.5 h-3.5" /> Print
+              </Button>
             </div>
           )}
           {activeTab === "attendance" && (
             <div className="flex items-center gap-1.5">
               <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-red-500/30 text-red-300">A = Absent</span>
               <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-amber-500/30 text-amber-300">S = Sick</span>
+              <Button variant="outline" size="sm" className="ml-2 gap-1 text-xs" onClick={() => window.print()}>
+                <Printer className="w-3.5 h-3.5" /> Print
+              </Button>
             </div>
           )}
         </div>
@@ -493,56 +499,54 @@ const StaffRotaGrid = ({ month }: { month: string }) => {
   };
 
   return (
-    <div className="cms-panel overflow-x-auto">
-      <div className="min-w-[1200px]">
-        <table className="w-full border-collapse">
-          <thead>
-            <tr className="border-b border-border">
-              <th className="text-left text-xs font-medium text-muted-foreground uppercase px-3 py-2 sticky left-0 bg-card z-10 min-w-[140px]">
-                Staff
-              </th>
-              {days.map(day => {
-                const dateObj = new Date(y, m - 1, day);
-                const weekday = WEEKDAYS[dateObj.getDay()];
-                const isToday = isCurrentMonth && day === todayDay;
-                const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
-                return (
-                  <th key={day} className={`text-center px-0.5 py-1 min-w-[36px] ${isToday ? "bg-primary/20" : isWeekend ? "bg-muted/30" : ""}`}>
-                    <div className="text-[9px] text-muted-foreground">{weekday}</div>
-                    <div className={`text-xs font-mono ${isToday ? "text-primary font-bold" : "text-card-foreground"}`}>{day}</div>
-                  </th>
-                );
-              })}
-              <th className="text-center text-xs font-medium text-muted-foreground uppercase px-2 py-2 min-w-[40px]">D</th>
-              <th className="text-center text-xs font-medium text-muted-foreground uppercase px-2 py-2 min-w-[40px]">N</th>
-            </tr>
-          </thead>
-          <tbody>
-            {DEPARTMENT_ORDER.map(dept => {
-              const members = grouped[dept] || [];
-              if (members.length === 0) return null;
+    <div className="cms-panel overflow-hidden print-target">
+      <table className="w-full border-collapse table-fixed">
+        <thead>
+          <tr className="border-b border-border">
+            <th className="text-left text-xs font-medium text-muted-foreground uppercase px-1 py-2 sticky left-0 bg-card z-10 w-[110px]">
+              Staff
+            </th>
+            {days.map(day => {
+              const dateObj = new Date(y, m - 1, day);
+              const weekday = WEEKDAYS[dateObj.getDay()];
+              const isToday = isCurrentMonth && day === todayDay;
+              const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
               return (
-                <DepartmentBlock
-                  key={dept}
-                  dept={dept}
-                  members={members}
-                  days={days}
-                  month={month}
-                  y={y}
-                  m={m}
-                  isCurrentMonth={isCurrentMonth}
-                  todayDay={todayDay}
-                  getDisplayShift={getDisplayShift}
-                  handleClick={handleClick}
-                  handleKeyDown={handleKeyDown}
-                  handlePaste={handlePaste}
-                  getStats={getStats}
-                />
+                <th key={day} className={`text-center px-0 py-1 ${isToday ? "bg-primary/20" : isWeekend ? "bg-muted/30" : ""}`}>
+                  <div className="text-[8px] text-muted-foreground leading-tight">{weekday}</div>
+                  <div className={`text-[10px] font-mono leading-tight ${isToday ? "text-primary font-bold" : "text-card-foreground"}`}>{day}</div>
+                </th>
               );
             })}
-          </tbody>
-        </table>
-      </div>
+            <th className="text-center text-[10px] font-medium text-muted-foreground uppercase px-1 py-2 w-8">D</th>
+            <th className="text-center text-[10px] font-medium text-muted-foreground uppercase px-1 py-2 w-8">N</th>
+          </tr>
+        </thead>
+        <tbody>
+          {DEPARTMENT_ORDER.map(dept => {
+            const members = grouped[dept] || [];
+            if (members.length === 0) return null;
+            return (
+              <DepartmentBlock
+                key={dept}
+                dept={dept}
+                members={members}
+                days={days}
+                month={month}
+                y={y}
+                m={m}
+                isCurrentMonth={isCurrentMonth}
+                todayDay={todayDay}
+                getDisplayShift={getDisplayShift}
+                handleClick={handleClick}
+                handleKeyDown={handleKeyDown}
+                handlePaste={handlePaste}
+                getStats={getStats}
+              />
+            );
+          })}
+        </tbody>
+      </table>
     </div>
   );
 };
@@ -678,54 +682,52 @@ const StaffAttendanceGrid = ({ month }: { month: string }) => {
   }, [activeStaff]);
 
   return (
-    <div className="cms-panel overflow-x-auto">
-      <div className="min-w-[1200px]">
-        <table className="w-full border-collapse">
-          <thead>
-            <tr className="border-b border-border">
-              <th className="text-left text-xs font-medium text-muted-foreground uppercase px-3 py-2 sticky left-0 bg-card z-10 min-w-[140px]">
-                Staff
-              </th>
-              {days.map(day => {
-                const dateObj = new Date(y, m - 1, day);
-                const weekday = WEEKDAYS[dateObj.getDay()];
-                const isToday = isCurrentMonth && day === todayDay;
-                const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
-                return (
-                  <th key={day} className={`text-center px-0.5 py-1 min-w-[36px] ${isToday ? "bg-primary/20" : isWeekend ? "bg-muted/30" : ""}`}>
-                    <div className="text-[9px] text-muted-foreground">{weekday}</div>
-                    <div className={`text-xs font-mono ${isToday ? "text-primary font-bold" : "text-card-foreground"}`}>{day}</div>
-                  </th>
-                );
-              })}
-              <th className="text-center text-xs font-medium text-muted-foreground uppercase px-2 py-2 min-w-[50px]">Σh</th>
-            </tr>
-          </thead>
-          <tbody>
-            {DEPARTMENT_ORDER.map(dept => {
-              const members = grouped[dept] || [];
-              if (members.length === 0) return null;
+    <div className="cms-panel overflow-hidden print-target">
+      <table className="w-full border-collapse table-fixed">
+        <thead>
+          <tr className="border-b border-border">
+            <th className="text-left text-xs font-medium text-muted-foreground uppercase px-1 py-2 sticky left-0 bg-card z-10 w-[110px]">
+              Staff
+            </th>
+            {days.map(day => {
+              const dateObj = new Date(y, m - 1, day);
+              const weekday = WEEKDAYS[dateObj.getDay()];
+              const isToday = isCurrentMonth && day === todayDay;
+              const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
               return (
-                <AttendanceDepartmentBlock
-                  key={dept}
-                  dept={dept}
-                  members={members}
-                  days={days}
-                  month={month}
-                  y={y}
-                  m={m}
-                  isCurrentMonth={isCurrentMonth}
-                  todayDay={todayDay}
-                  getValue={getValue}
-                  getRotaShift={getRotaShift}
-                  handleSave={handleSave}
-                  getTotal={getTotal}
-                />
+                <th key={day} className={`text-center px-0 py-1 ${isToday ? "bg-primary/20" : isWeekend ? "bg-muted/30" : ""}`}>
+                  <div className="text-[8px] text-muted-foreground leading-tight">{weekday}</div>
+                  <div className={`text-[10px] font-mono leading-tight ${isToday ? "text-primary font-bold" : "text-card-foreground"}`}>{day}</div>
+                </th>
               );
             })}
-          </tbody>
-        </table>
-      </div>
+            <th className="text-center text-[10px] font-medium text-muted-foreground uppercase px-1 py-2 w-8">Σh</th>
+          </tr>
+        </thead>
+        <tbody>
+          {DEPARTMENT_ORDER.map(dept => {
+            const members = grouped[dept] || [];
+            if (members.length === 0) return null;
+            return (
+              <AttendanceDepartmentBlock
+                key={dept}
+                dept={dept}
+                members={members}
+                days={days}
+                month={month}
+                y={y}
+                m={m}
+                isCurrentMonth={isCurrentMonth}
+                todayDay={todayDay}
+                getValue={getValue}
+                getRotaShift={getRotaShift}
+                handleSave={handleSave}
+                getTotal={getTotal}
+              />
+            );
+          })}
+        </tbody>
+      </table>
     </div>
   );
 };
