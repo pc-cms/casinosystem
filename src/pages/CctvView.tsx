@@ -142,7 +142,7 @@ const CctvInCasino = () => {
       <h1 className="text-2xl font-bold text-foreground">{activeCasino?.name} — In Casino</h1>
       <div className="cms-panel">
         <div className="divide-y divide-border">
-          {visits.length === 0 && <p className="p-4 text-sm text-muted-foreground">No active guests</p>}
+          {visits.length === 0 && <p className="p-4 text-sm text-muted-foreground">No active players</p>}
           {visits.map((v: any) => (
             <div key={v.id} className="flex items-center gap-3 p-3">
               {v.players?.photo_url ? (
