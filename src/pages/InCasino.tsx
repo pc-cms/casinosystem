@@ -282,7 +282,7 @@ const InCasino = () => {
   return (
     <div>
       <div className="mb-3 sm:mb-4">
-        <h1 className="text-xl sm:text-2xl font-bold text-foreground">Guests</h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-foreground">Players In Casino</h1>
         <p className="text-xs sm:text-sm text-muted-foreground">
           {stillIn.length} inside · {checkedOut.length} checked out
         </p>
