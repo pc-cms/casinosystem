@@ -35,11 +35,11 @@ const Players = () => {
         p.player_cards?.some(c => c.card_number.includes(debouncedQuery))
       );
     }
-    list = list.filter(p => categoryFilter.has((p.category as PlayerCategory) || "guest"));
+    list = list.filter(p => categoryFilter.has((p.category as PlayerCategory) || "normal"));
     if (sortByCategory) {
       list = [...list].sort((a, b) => {
-        const catA = CATEGORY_PRIORITY[(a.category as PlayerCategory) || "guest"];
-        const catB = CATEGORY_PRIORITY[(b.category as PlayerCategory) || "guest"];
+        const catA = CATEGORY_PRIORITY[(a.category as PlayerCategory) || "normal"];
+        const catB = CATEGORY_PRIORITY[(b.category as PlayerCategory) || "normal"];
         if (catA !== catB) return catA - catB;
         return `${a.first_name} ${a.last_name}`.localeCompare(`${b.first_name} ${b.last_name}`);
       });
