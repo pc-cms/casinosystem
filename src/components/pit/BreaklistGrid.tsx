@@ -7,6 +7,22 @@ import { toast } from "sonner";
 import { ALL_ROLES, ROLE_COLORS, TABLE_ROLES } from "@/lib/currency";
 import { isBusinessToday, isAfterBreaklistLock } from "@/lib/business-day";
 
+const CATEGORY_LABELS: Record<string, string> = {
+  trainee: "TR",
+  dealer: "DL",
+  inspector: "IN",
+  expert: "EX",
+  pit_boss: "PB",
+};
+
+const CATEGORY_COLORS: Record<string, string> = {
+  trainee: "bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-300",
+  dealer: "bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300",
+  inspector: "bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-300",
+  expert: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300",
+  pit_boss: "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300",
+};
+
 interface BreaklistGridProps {
   date: string;
   zoom?: number;
