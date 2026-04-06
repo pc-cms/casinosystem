@@ -512,7 +512,7 @@ const StaffRotaGrid = ({ month }: { month: string }) => {
               const isToday = isCurrentMonth && day === todayDay;
               const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
               return (
-                <th key={day} className={`text-center px-0 py-1 ${isToday ? "bg-primary/20" : isWeekend ? "bg-muted/30" : ""}`}>
+                <th key={day} className={`text-center px-0 py-1 ${isToday ? "bg-primary/40" : isWeekend ? "bg-muted/30" : ""}`}>
                   <div className="text-[8px] text-muted-foreground leading-tight">{weekday}</div>
                   <div className={`text-[10px] font-mono leading-tight ${isToday ? "text-primary font-bold" : "text-card-foreground"}`}>{day}</div>
                 </th>
@@ -628,7 +628,7 @@ const DepartmentBlock = ({
             const dateObj = new Date(y, m - 1, day);
             const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
             return (
-              <td key={day} className={`px-0.5 py-0.5 text-center ${isToday ? "bg-primary/10" : isWeekend ? "bg-muted/15" : ""}`}>
+              <td key={day} className={`px-0.5 py-0.5 text-center ${isToday ? "bg-primary/25" : isWeekend ? "bg-muted/15" : ""}`}>
                 <button
                   onClick={() => handleClick(staff.id, day)}
                   onKeyDown={e => handleKeyDown(e, staff.id, day)}
@@ -731,7 +731,7 @@ const StaffAttendanceGrid = ({ month }: { month: string }) => {
               const isToday = isCurrentMonth && day === todayDay;
               const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
               return (
-                <th key={day} className={`text-center px-0 py-1 ${isToday ? "bg-primary/20" : isWeekend ? "bg-muted/30" : ""}`}>
+                <th key={day} className={`text-center px-0 py-1 ${isToday ? "bg-primary/40" : isWeekend ? "bg-muted/30" : ""}`}>
                   <div className="text-[8px] text-muted-foreground leading-tight">{weekday}</div>
                   <div className={`text-[10px] font-mono leading-tight ${isToday ? "text-primary font-bold" : "text-card-foreground"}`}>{day}</div>
                 </th>
@@ -813,7 +813,7 @@ const AttendanceDepartmentBlock = ({
             const isScheduled = !!rotaShift;
             const isEmpty = val === "";
             return (
-              <td key={day} className={`px-0.5 py-0.5 text-center ${isToday ? "bg-primary/10" : isWeekend ? "bg-muted/15" : ""}`}>
+              <td key={day} className={`px-0.5 py-0.5 text-center ${isToday ? "bg-primary/25" : isWeekend ? "bg-muted/15" : ""}`}>
                 <input
                   type="text"
                   defaultValue={val}
