@@ -54,7 +54,7 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
   const [phone, setPhone] = useState("");
   const [idNumber, setIdNumber] = useState("");
   const [playerType, setPlayerType] = useState("table");
-  const [category, setCategory] = useState<PlayerCategory>("guest");
+  const [category, setCategory] = useState<PlayerCategory>("normal");
   const [uploading, setUploading] = useState(false);
   const [uploadingDoc, setUploadingDoc] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -75,7 +75,7 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
       setPhone(player.phone || "");
       setIdNumber(player.id_number || "");
       setPlayerType(player.player_type || "table");
-      setCategory((player.category as PlayerCategory) || "guest");
+      setCategory((player.category as PlayerCategory) || "normal");
       setPhotoUrl(player.photo_url || null);
       setNewNote("");
       setNoteType("info");
@@ -209,7 +209,7 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
       if (phone !== (player.phone || "")) updates.phone = phone;
       if (idNumber !== (player.id_number || "")) updates.id_number = idNumber;
       if (playerType !== (player.player_type || "table")) updates.player_type = playerType;
-      if (canEditCategory && category !== ((player.category as PlayerCategory) || "guest")) updates.category = category;
+      if (canEditCategory && category !== ((player.category as PlayerCategory) || "normal")) updates.category = category;
       if (Object.keys(updates).length > 0) {
         const { error } = await supabase.from("players").update(updates).eq("id", player.id);
         if (error) throw error;
@@ -383,7 +383,7 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
   const titleContent = (
     <span className="flex items-center gap-2">
       Edit Player
-      {player && <CategoryBadge category={(player.category as PlayerCategory) || "guest"} size="md" />}
+      {player && <CategoryBadge category={(player.category as PlayerCategory) || "normal"} size="md" />}
       {incomplete && <AlertTriangle className="w-4 h-4 text-yellow-500" />}
     </span>
   );

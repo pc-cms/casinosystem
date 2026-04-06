@@ -19,7 +19,7 @@ const Players = () => {
   const debouncedQuery = useDebouncedValue(query, 250);
   const [showAdd, setShowAdd] = useState(false);
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
-  const [categoryFilter, setCategoryFilter] = useState<Set<PlayerCategory>>(new Set(["diamond", "platinum", "gold", "guest"]));
+  const [categoryFilter, setCategoryFilter] = useState<Set<PlayerCategory>>(new Set(["diamond", "platinum", "gold", "normal"]));
   const [sortByCategory, setSortByCategory] = useState(true);
   const searchRef = useRef<HTMLInputElement>(null);
   const parentRef = useRef<HTMLDivElement>(null);
@@ -35,11 +35,11 @@ const Players = () => {
         p.player_cards?.some(c => c.card_number.includes(debouncedQuery))
       );
     }
-    list = list.filter(p => categoryFilter.has((p.category as PlayerCategory) || "guest"));
+    list = list.filter(p => categoryFilter.has((p.category as PlayerCategory) || "normal"));
     if (sortByCategory) {
       list = [...list].sort((a, b) => {
-        const catA = CATEGORY_PRIORITY[(a.category as PlayerCategory) || "guest"];
-        const catB = CATEGORY_PRIORITY[(b.category as PlayerCategory) || "guest"];
+        const catA = CATEGORY_PRIORITY[(a.category as PlayerCategory) || "normal"];
+        const catB = CATEGORY_PRIORITY[(b.category as PlayerCategory) || "normal"];
         if (catA !== catB) return catA - catB;
         return `${a.first_name} ${a.last_name}`.localeCompare(`${b.first_name} ${b.last_name}`);
       });
@@ -120,7 +120,7 @@ const Players = () => {
                     }}
                   >
                     <div className="px-4 py-3 w-[80px]">
-                      <CategoryBadge category={(player.category as PlayerCategory) || "guest"} />
+                      <CategoryBadge category={(player.category as PlayerCategory) || "normal"} />
                     </div>
                     <div className="px-4 py-3 flex-1 text-sm font-medium text-card-foreground">{player.first_name} {player.last_name}</div>
                     <div className="px-4 py-3 w-[140px] text-sm text-muted-foreground truncate">{player.nickname}</div>

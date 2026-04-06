@@ -235,7 +235,7 @@ const CheckInTab = () => {
                 </div>
                 <div className="flex items-center gap-1 shrink-0 flex-wrap justify-end">
                   <CasinoBadge casinoId={p.casino_id} />
-                  <CategoryBadge category={(p.category as PlayerCategory) || "guest"} />
+                  <CategoryBadge category={(p.category as PlayerCategory) || "normal"} />
                   {incomplete.length > 0 && <AlertTriangle className="w-3.5 h-3.5 text-yellow-500" />}
                   {isBlacklisted ? (
                     <Badge variant="destructive" className="text-[10px] shrink-0">BL</Badge>
@@ -315,7 +315,7 @@ const PlayerConfirmCard = ({
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <CategoryBadge category={(player.category as PlayerCategory) || "guest"} size="md" />
+            <CategoryBadge category={(player.category as PlayerCategory) || "normal"} size="md" />
             <CasinoBadge casinoId={player.casino_id} />
             <h2 className="text-lg sm:text-xl font-bold text-foreground truncate">
               {player.first_name} {player.last_name}

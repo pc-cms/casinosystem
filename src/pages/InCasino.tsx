@@ -27,7 +27,7 @@ const InCasino = () => {
   const [sortKey, setSortKey] = useState<SortKey>("category");
   const [sortAsc, setSortAsc] = useState(true);
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
-  const [categoryFilter, setCategoryFilter] = useState<Set<PlayerCategory>>(new Set(["diamond", "platinum", "gold", "guest"]));
+  const [categoryFilter, setCategoryFilter] = useState<Set<PlayerCategory>>(new Set(["diamond", "platinum", "gold", "normal"]));
   const [profilePlayer, setProfilePlayer] = useState<any>(null);
 
   // Use shared hook — no duplicate query, realtime handles invalidation (no polling needed)
@@ -65,8 +65,8 @@ const InCasino = () => {
     let cmp = 0;
     switch (sortKey) {
       case "category": {
-        const catA = (pA?.category as PlayerCategory) || "guest";
-        const catB = (pB?.category as PlayerCategory) || "guest";
+        const catA = (pA?.category as PlayerCategory) || "normal";
+        const catB = (pB?.category as PlayerCategory) || "normal";
         cmp = CATEGORY_PRIORITY[catA] - CATEGORY_PRIORITY[catB];
         if (cmp === 0) {
           const nA = `${pA?.first_name || ""} ${pA?.last_name || ""}`.toLowerCase();
@@ -98,7 +98,7 @@ const InCasino = () => {
     let result = list;
     if (typeFilter !== "all") result = result.filter(v => (v.players as any)?.player_type === typeFilter);
     result = result.filter(v => {
-      const cat = ((v.players as any)?.category as PlayerCategory) || "guest";
+      const cat = ((v.players as any)?.category as PlayerCategory) || "normal";
       return categoryFilter.has(cat);
     });
     return result;
@@ -147,7 +147,7 @@ const InCasino = () => {
   const VisitRow = ({ visit, showOut }: { visit: any; showOut?: boolean }) => {
     const p = visit.players as any;
     if (!p) return null;
-    const category = (p.category as PlayerCategory) || "guest";
+    const category = (p.category as PlayerCategory) || "normal";
     const tags = tagsByPlayer.get(p.id) || [];
 
     if (isMobile) {

@@ -1,0 +1,1 @@
+ALTER TYPE public.player_category RENAME VALUE 'guest' TO 'normal';

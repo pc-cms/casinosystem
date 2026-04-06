@@ -44,7 +44,7 @@ const ActivePlayers = () => {
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<Set<string>>(new Set(["slots", "table", "mix"]));
-  const [categoryFilter, setCategoryFilter] = useState<Set<PlayerCategory>>(new Set(["diamond", "platinum", "gold", "guest"]));
+  const [categoryFilter, setCategoryFilter] = useState<Set<PlayerCategory>>(new Set(["diamond", "platinum", "gold", "normal"]));
   const [placingPlayer, setPlacingPlayer] = useState<string | null>(null);
   const [placingTable, setPlacingTable] = useState<string | null>(null);
   const [placingBet, setPlacingBet] = useState("");
@@ -240,7 +240,7 @@ const ActivePlayers = () => {
           nickname: p.nickname,
           status: p.status,
           player_type: (p as any).player_type as string || "table",
-          category: ((p as any).category as PlayerCategory) || "guest",
+          category: ((p as any).category as PlayerCategory) || "normal",
           dropR,
           dropV,
           dropT,
