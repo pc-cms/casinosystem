@@ -13,7 +13,7 @@ export const CATEGORY_PRIORITY: Record<PlayerCategory, number> = {
   diamond: 0,
   platinum: 1,
   gold: 2,
-  guest: 3,
+  normal: 3,
 };
 
 export const ALL_CATEGORIES: PlayerCategory[] = ["diamond", "platinum", "gold", "guest"];
