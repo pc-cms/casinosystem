@@ -203,7 +203,8 @@ const getDaysLeft = (contractEnd: string | null): number | null => {
 const DEALER_CATEGORIES: DealerCategory[] = ["trainee", "dealer", "inspector", "expert", "pit_boss"];
 
 const DealerEmployeeList = () => {
-  const { isManager } = useAuth();
+  const { isManager, roles } = useAuth();
+  const canManage = isManager || roles.includes("hr");
   const { data: dealers = [] } = useDealers();
   const createDealer = useCreateDealer();
   const updateDealer = useUpdateDealer();

@@ -333,7 +333,7 @@ const EmployeeList = () => {
                   </td>
                   <td className="px-4 py-2">
                     <button onClick={() => {
-                      if (!isManager) { toast.error("Manager access required"); return; }
+                      if (!canManage) { toast.error("Manager or HR access required"); return; }
                       updateStaff.mutate({ id: s.id, is_active: !s.is_active });
                     }}
                       className={`text-xs font-medium cursor-pointer hover:underline ${s.is_active ? "text-emerald-400" : "text-red-400"}`}>
