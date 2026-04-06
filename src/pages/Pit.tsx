@@ -18,10 +18,10 @@ import { getBusinessDate, isBusinessToday } from "@/lib/business-day";
 const ROTA_SHIFTS = ["M", "N", "L", "E"] as const;
 
 const SHIFT_COLORS: Record<string, string> = {
-  M: "bg-blue-500/30 text-blue-300 font-bold",
-  N: "bg-indigo-500/30 text-indigo-300 font-bold",
-  L: "bg-amber-500/30 text-amber-300 font-bold",
-  E: "bg-emerald-500/30 text-emerald-300 font-bold",
+  M: "bg-blue-100 text-blue-700 dark:bg-blue-500/30 dark:text-blue-300 font-bold",
+  N: "bg-indigo-100 text-indigo-700 dark:bg-indigo-500/30 dark:text-indigo-300 font-bold",
+  L: "bg-amber-100 text-amber-700 dark:bg-amber-500/30 dark:text-amber-300 font-bold",
+  E: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/30 dark:text-emerald-300 font-bold",
 };
 
 const SHIFT_LABELS: Record<string, string> = {
@@ -32,8 +32,8 @@ const SHIFT_LABELS: Record<string, string> = {
 };
 
 const ATT_COLORS: Record<string, string> = {
-  A: "bg-red-500/30 text-red-300",
-  S: "bg-amber-500/30 text-amber-300",
+  A: "bg-red-100 text-red-700 dark:bg-red-500/30 dark:text-red-300",
+  S: "bg-amber-100 text-amber-700 dark:bg-amber-500/30 dark:text-amber-300",
 };
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -58,11 +58,11 @@ const CATEGORY_LETTER: Record<string, string> = {
 };
 
 const CATEGORY_COLORS: Record<string, string> = {
-  trainee: "text-cyan-400 bg-cyan-500/20",
-  dealer: "text-blue-400 bg-blue-500/20",
-  inspector: "text-amber-400 bg-amber-500/20",
-  expert: "text-emerald-400 bg-emerald-500/20",
-  pit_boss: "text-purple-400 bg-purple-500/20",
+  trainee: "text-cyan-700 bg-cyan-100 dark:text-cyan-400 dark:bg-cyan-500/20",
+  dealer: "text-blue-700 bg-blue-100 dark:text-blue-400 dark:bg-blue-500/20",
+  inspector: "text-amber-700 bg-amber-100 dark:text-amber-400 dark:bg-amber-500/20",
+  expert: "text-emerald-700 bg-emerald-100 dark:text-emerald-400 dark:bg-emerald-500/20",
+  pit_boss: "text-purple-700 bg-purple-100 dark:text-purple-400 dark:bg-purple-500/20",
 };
 
 const Pit = () => {
