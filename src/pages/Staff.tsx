@@ -863,10 +863,27 @@ const StaffAttendanceGrid = ({ month, monthLabel }: { month: string; monthLabel:
 
   return (
     <>
+      <div className="flex items-center gap-2 mb-3 no-print flex-wrap">
+        <button
+          onClick={() => setFilterDept("all")}
+          className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${filterDept === "all" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-accent"}`}
+        >
+          All
+        </button>
+        {availableDepts.map(d => (
+          <button
+            key={d}
+            onClick={() => setFilterDept(d)}
+            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${filterDept === d ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-accent"}`}
+          >
+            {DEPARTMENT_LABELS[d]}
+          </button>
+        ))}
+      </div>
       <div className="cms-panel overflow-hidden print-target">
         {/* Print header for attendance */}
         <div className="hidden print-header">
-          <span className="print-header-title">Floor Attendance</span>
+          <span className="print-header-title">Floor Attendance{filterDept !== "all" ? ` — ${DEPARTMENT_LABELS[filterDept as StaffDepartment]}` : ""}</span>
           <span className="print-header-month">{monthLabel}</span>
           <div className="print-header-legend">
             <span style={{ background: "#fee2e2", color: "#b91c1c" }}>A = Absent</span>
@@ -895,7 +912,7 @@ const StaffAttendanceGrid = ({ month, monthLabel }: { month: string; monthLabel:
           </tr>
         </thead>
         <tbody>
-          {DEPARTMENT_ORDER.map(dept => {
+          {visibleDepts.map(dept => {
             const members = grouped[dept] || [];
             if (members.length === 0) return null;
             return (
