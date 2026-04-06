@@ -75,7 +75,7 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
       setPhone(player.phone || "");
       setIdNumber(player.id_number || "");
       setPlayerType(player.player_type || "table");
-      setCategory((player.category as PlayerCategory) || "guest");
+      setCategory((player.category as PlayerCategory) || "normal");
       setPhotoUrl(player.photo_url || null);
       setNewNote("");
       setNoteType("info");
