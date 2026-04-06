@@ -20,22 +20,22 @@ import { Button } from "@/components/ui/button";
 type AppRole = "cashier" | "pit" | "manager" | "reception" | "finance_manager" | "surveillance" | "super_admin" | "hr";
 
 const NAV_ITEMS: { to: string; icon: typeof LayoutDashboard; label: string; shortcut: string; roles: AppRole[]; section: string }[] = [
-  { to: "/", icon: LayoutDashboard, label: "Dashboard", shortcut: "D", roles: ["super_admin", "manager", "pit", "reception", "finance_manager", "security"], section: "OVERVIEW" },
-  { to: "/blacklist", icon: ShieldAlert, label: "Blacklist", shortcut: "B", roles: ["super_admin", "manager", "reception", "finance_manager", "security"], section: "OPERATIONS" },
+  { to: "/", icon: LayoutDashboard, label: "Dashboard", shortcut: "D", roles: ["super_admin", "manager", "pit", "reception", "finance_manager", "surveillance"], section: "OVERVIEW" },
+  { to: "/blacklist", icon: ShieldAlert, label: "Blacklist", shortcut: "B", roles: ["super_admin", "manager", "reception", "finance_manager", "surveillance"], section: "OPERATIONS" },
   { to: "/pit?tab=breaklist", icon: ListChecks, label: "Breaklist", shortcut: "Alt+B", roles: ["super_admin", "manager", "pit", "finance_manager"], section: "OPERATIONS" },
   { to: "/cage", icon: Landmark, label: "Cage", shortcut: "C", roles: ["super_admin", "manager", "cashier", "finance_manager"], section: "OPERATIONS" },
   { to: "/expenses", icon: Receipt, label: "Expenses", shortcut: "E", roles: ["super_admin", "manager", "cashier", "finance_manager"], section: "OPERATIONS" },
   { to: "/finance", icon: Wallet, label: "Finance", shortcut: "F", roles: ["super_admin", "manager", "finance_manager"], section: "OPERATIONS" },
   { to: "/groups", icon: UsersRound, label: "Groups", shortcut: "G", roles: ["super_admin", "manager", "finance_manager"], section: "OPERATIONS" },
-  { to: "/in-casino", icon: Users, label: "In Casino", shortcut: "Alt+G", roles: ["super_admin", "manager", "reception", "pit", "finance_manager", "security"], section: "OPERATIONS" },
+  { to: "/in-casino", icon: Users, label: "In Casino", shortcut: "Alt+G", roles: ["super_admin", "manager", "reception", "pit", "finance_manager", "surveillance"], section: "OPERATIONS" },
   { to: "/pit", icon: Gamepad2, label: "Live Game", shortcut: "L", roles: ["super_admin", "manager", "pit", "finance_manager", "hr"], section: "OPERATIONS" },
-  { to: "/players", icon: Users, label: "Players", shortcut: "P", roles: ["super_admin", "manager", "cashier", "finance_manager", "security"], section: "OPERATIONS" },
+  { to: "/players", icon: Users, label: "Players", shortcut: "P", roles: ["super_admin", "manager", "cashier", "finance_manager", "surveillance"], section: "OPERATIONS" },
   { to: "/reception", icon: DoorOpen, label: "Reception", shortcut: "R", roles: ["super_admin", "manager", "reception", "finance_manager"], section: "OPERATIONS" },
-  { to: "/tables", icon: Table2, label: "Tables", shortcut: "T", roles: ["super_admin", "manager", "cashier", "pit", "finance_manager", "security"], section: "OPERATIONS" },
+  { to: "/tables", icon: Table2, label: "Tables", shortcut: "T", roles: ["super_admin", "manager", "cashier", "pit", "finance_manager", "surveillance"], section: "OPERATIONS" },
   { to: "/staff", icon: Building2, label: "Floor Staff", shortcut: "Alt+F", roles: ["super_admin", "manager", "pit", "finance_manager", "hr"], section: "HR" },
-  { to: "/logs", icon: ClipboardList, label: "Logs", shortcut: "Alt+L", roles: ["super_admin", "manager", "finance_manager", "security"], section: "ANALYTICS" },
-  { to: "/reports", icon: FileBarChart, label: "Reports", shortcut: "Alt+R", roles: ["super_admin", "manager", "finance_manager", "security"], section: "ANALYTICS" },
-  { to: "/stats", icon: BarChart3, label: "Stats", shortcut: "S", roles: ["super_admin", "manager", "finance_manager", "security"], section: "ANALYTICS" },
+  { to: "/logs", icon: ClipboardList, label: "Logs", shortcut: "Alt+L", roles: ["super_admin", "manager", "finance_manager", "surveillance"], section: "ANALYTICS" },
+  { to: "/reports", icon: FileBarChart, label: "Reports", shortcut: "Alt+R", roles: ["super_admin", "manager", "finance_manager", "surveillance"], section: "ANALYTICS" },
+  { to: "/stats", icon: BarChart3, label: "Stats", shortcut: "S", roles: ["super_admin", "manager", "finance_manager", "surveillance"], section: "ANALYTICS" },
 ];
 
 const TABLE_SUBITEMS = [
