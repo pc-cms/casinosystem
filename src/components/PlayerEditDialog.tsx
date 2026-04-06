@@ -383,7 +383,7 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
   const titleContent = (
     <span className="flex items-center gap-2">
       Edit Player
-      {player && <CategoryBadge category={(player.category as PlayerCategory) || "guest"} size="md" />}
+      {player && <CategoryBadge category={(player.category as PlayerCategory) || "normal"} size="md" />}
       {incomplete && <AlertTriangle className="w-4 h-4 text-yellow-500" />}
     </span>
   );

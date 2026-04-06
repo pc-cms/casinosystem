@@ -120,7 +120,7 @@ const Players = () => {
                     }}
                   >
                     <div className="px-4 py-3 w-[80px]">
-                      <CategoryBadge category={(player.category as PlayerCategory) || "guest"} />
+                      <CategoryBadge category={(player.category as PlayerCategory) || "normal"} />
                     </div>
                     <div className="px-4 py-3 flex-1 text-sm font-medium text-card-foreground">{player.first_name} {player.last_name}</div>
                     <div className="px-4 py-3 w-[140px] text-sm text-muted-foreground truncate">{player.nickname}</div>

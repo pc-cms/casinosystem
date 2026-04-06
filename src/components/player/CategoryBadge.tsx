@@ -26,7 +26,7 @@ interface CategoryBadgeProps {
 }
 
 const CategoryBadge = ({ category, size = "sm", showLabel = false, className }: CategoryBadgeProps) => {
-  const config = CATEGORY_CONFIG[category] || CATEGORY_CONFIG.guest;
+  const config = CATEGORY_CONFIG[category] || CATEGORY_CONFIG.normal;
   return (
     <span
       className={cn(

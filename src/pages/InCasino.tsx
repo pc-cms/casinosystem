@@ -147,7 +147,7 @@ const InCasino = () => {
   const VisitRow = ({ visit, showOut }: { visit: any; showOut?: boolean }) => {
     const p = visit.players as any;
     if (!p) return null;
-    const category = (p.category as PlayerCategory) || "guest";
+    const category = (p.category as PlayerCategory) || "normal";
     const tags = tagsByPlayer.get(p.id) || [];
 
     if (isMobile) {
