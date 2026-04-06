@@ -17,7 +17,7 @@ import {
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
-import { UNIFIED_ATT_COLORS } from "@/lib/shift-colors";
+import { UNIFIED_ATT_COLORS, UNIFIED_SHIFT_TINTS } from "@/lib/shift-colors";
 const ATT_COLORS = UNIFIED_ATT_COLORS;
 
 const DEPT_BADGE_COLORS: Record<string, string> = {
