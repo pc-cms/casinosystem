@@ -343,7 +343,7 @@ const DealerEmployeeList = () => {
         <table className="w-full">
           <thead>
             <tr className="border-b border-border">
-              {canSeePhoto && <th className="text-left text-xs font-medium text-muted-foreground uppercase px-2 py-2 w-12"></th>}
+              {canSeePhoto && <th className="text-left text-xs font-medium text-muted-foreground uppercase px-2 py-2 w-10">📷</th>}
               <SortHeader field="category" label="Cat" />
               <SortHeader field="name" label="Name" />
               <SortHeader field="salary" label="Salary" />
