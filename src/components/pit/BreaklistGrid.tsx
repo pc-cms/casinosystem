@@ -263,7 +263,7 @@ const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }
                           {isEditable && isManager && cell && !isActiveCell && (
                             <button
                               onClick={(e) => { e.stopPropagation(); handleToggleCellLock(dealer.id, slot); }}
-                              className="absolute bottom-0.5 right-0.5 p-0.5 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-yellow-400 transition-opacity z-10"
+                              className="absolute bottom-0.5 right-0.5 p-0.5 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-yellow-600 dark:hover:text-yellow-400 transition-opacity z-10"
                               title={cell.is_locked ? "Unlock cell" : "Lock cell"}
                             >
                               {cell.is_locked ? <Unlock className="w-2.5 h-2.5" /> : <Lock className="w-2.5 h-2.5" />}
