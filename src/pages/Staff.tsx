@@ -585,6 +585,7 @@ const StaffRotaGrid = ({ month }: { month: string }) => {
         </tbody>
       </table>
     </div>
+    </>
   );
 };
 
