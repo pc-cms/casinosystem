@@ -755,7 +755,33 @@ const AttendanceGrid = ({ month }: { month: string }) => {
                     defaultValue={val}
                     key={`${dealer.id}-${month}-${day}-${val}`}
                     onBlur={e => handleSave(dealer.id, day, e.target.value)}
-                    onKeyDown={e => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+                    onKeyDown={e => {
+                      const input = e.target as HTMLInputElement;
+                      if (e.key === "Enter") { input.blur(); return; }
+                      const key = e.key.toUpperCase();
+                      if (key === "A" || key === "S") {
+                        e.preventDefault();
+                        handleSave(dealer.id, day, key);
+                        const nextInput = input.closest("td")?.nextElementSibling?.querySelector("input") as HTMLInputElement;
+                        nextInput?.focus();
+                      } else if (key === "ARROWRIGHT") {
+                        e.preventDefault();
+                        (input.closest("td")?.nextElementSibling?.querySelector("input") as HTMLInputElement)?.focus();
+                      } else if (key === "ARROWLEFT") {
+                        e.preventDefault();
+                        (input.closest("td")?.previousElementSibling?.querySelector("input") as HTMLInputElement)?.focus();
+                      } else if (key === "ARROWDOWN") {
+                        e.preventDefault();
+                        const td = input.closest("td");
+                        const ci = td ? Array.from(td.parentElement!.children).indexOf(td) : -1;
+                        (td?.closest("tr")?.nextElementSibling?.children[ci]?.querySelector("input") as HTMLInputElement)?.focus();
+                      } else if (key === "ARROWUP") {
+                        e.preventDefault();
+                        const td = input.closest("td");
+                        const ci = td ? Array.from(td.parentElement!.children).indexOf(td) : -1;
+                        (td?.closest("tr")?.previousElementSibling?.children[ci]?.querySelector("input") as HTMLInputElement)?.focus();
+                      }
+                    }}
                     className={`w-full h-7 rounded text-[10px] font-mono text-center border-0 focus:outline-none focus:ring-1 focus:ring-primary transition-colors ${
                       isStatus ? ATT_COLORS[val]
                         : isHours ? "bg-transparent text-card-foreground font-bold"
