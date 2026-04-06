@@ -148,7 +148,9 @@ const getDaysLeft = (contractEnd: string | null): number | null => {
 };
 
 const EmployeeList = () => {
-  const { isManager } = useAuth();
+  const { isManager, roles } = useAuth();
+  // HR role has full personnel management access (no manager confirmation needed)
+  const canManage = isManager || roles.includes("hr");
   const { data: staff = [] } = useStaffMembers();
   const createStaff = useCreateStaffMember();
   const updateStaff = useUpdateStaffMember();
