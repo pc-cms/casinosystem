@@ -18,131 +18,106 @@ export const useRealtimeSubscriptions = () => {
   useEffect(() => {
     if (!casinoId) return;
 
-    // Cleanup previous
-    if (channelRef.current) {
-      supabase.removeChannel(channelRef.current);
-      channelRef.current = null;
+    // Cleanup previous channel fully before creating new one
+    const prevChannel = channelRef.current;
+    channelRef.current = null;
+    if (prevChannel) {
+      supabase.removeChannel(prevChannel);
     }
 
-    const channel = supabase
-      .channel("cms-realtime")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "transactions", filter: `casino_id=eq.${casinoId}` },
-        () => {
-          qc.invalidateQueries({ queryKey: ["transactions"] });
-          qc.invalidateQueries({ queryKey: ["player-economy"] });
-        }
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "players" },
-        (payload) => {
-          qc.invalidateQueries({ queryKey: ["players"] });
-          qc.invalidateQueries({ queryKey: ["player-economy"] });
+    try {
+      const channel = supabase
+        .channel(`cms-realtime-${Date.now()}`)
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "transactions", filter: `casino_id=eq.${casinoId}` },
+          () => {
+            qc.invalidateQueries({ queryKey: ["transactions"] });
+            qc.invalidateQueries({ queryKey: ["player-economy"] });
+          }
+        )
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "players" },
+          (payload) => {
+            qc.invalidateQueries({ queryKey: ["players"] });
+            qc.invalidateQueries({ queryKey: ["player-economy"] });
 
-          // Cross-casino notifications
-          if (payload.eventType === "UPDATE" && payload.new && payload.old) {
-            const newRow = payload.new as any;
-            const oldRow = payload.old as any;
+            if (payload.eventType === "UPDATE" && payload.new && payload.old) {
+              const newRow = payload.new as any;
+              const oldRow = payload.old as any;
 
-            // Blacklist notification
-            if (newRow.status === "blacklist" && oldRow.status !== "blacklist") {
-              toast.error(
-                `🚫 ${newRow.first_name} ${newRow.last_name} added to blacklist`,
-                { duration: 8000 }
-              );
-            } else if (oldRow.status === "blacklist" && newRow.status !== "blacklist") {
-              toast.info(
-                `✅ ${newRow.first_name} ${newRow.last_name} removed from blacklist`,
-                { duration: 6000 }
-              );
+              if (newRow.status === "blacklist" && oldRow.status !== "blacklist") {
+                toast.error(`🚫 ${newRow.first_name} ${newRow.last_name} added to blacklist`, { duration: 8000 });
+              } else if (oldRow.status === "blacklist" && newRow.status !== "blacklist") {
+                toast.info(`✅ ${newRow.first_name} ${newRow.last_name} removed from blacklist`, { duration: 6000 });
+              }
+
+              if (newRow.category !== oldRow.category) {
+                const upgrades = ["diamond", "platinum"];
+                if (upgrades.includes(newRow.category)) {
+                  toast.info(`⭐ ${newRow.first_name} ${newRow.last_name} upgraded to ${newRow.category.toUpperCase()}`, { duration: 5000 });
+                }
+              }
             }
 
-            // Category upgrade notification (VIP)
-            if (newRow.category !== oldRow.category) {
-              const upgrades = ["diamond", "platinum"];
-              if (upgrades.includes(newRow.category)) {
-                toast.info(
-                  `⭐ ${newRow.first_name} ${newRow.last_name} upgraded to ${newRow.category.toUpperCase()}`,
-                  { duration: 5000 }
-                );
+            if (payload.eventType === "INSERT" && payload.new) {
+              const newPlayer = payload.new as any;
+              if (newPlayer.casino_id !== casinoId) {
+                toast.info(`👤 New player registered: ${newPlayer.first_name} ${newPlayer.last_name}`, { duration: 4000 });
               }
             }
           }
-
-          // New player registered
-          if (payload.eventType === "INSERT" && payload.new) {
-            const newPlayer = payload.new as any;
-            if (newPlayer.casino_id !== casinoId) {
-              toast.info(
-                `👤 New player registered: ${newPlayer.first_name} ${newPlayer.last_name}`,
-                { duration: 4000 }
-              );
-            }
+        )
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "breaklist", filter: `casino_id=eq.${casinoId}` },
+          () => { qc.invalidateQueries({ queryKey: ["breaklist"] }); }
+        )
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "expenses", filter: `casino_id=eq.${casinoId}` },
+          () => {
+            qc.invalidateQueries({ queryKey: ["expenses"] });
+            qc.invalidateQueries({ queryKey: ["player-economy"] });
           }
-        }
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "breaklist", filter: `casino_id=eq.${casinoId}` },
-        () => {
-          qc.invalidateQueries({ queryKey: ["breaklist"] });
-        }
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "expenses", filter: `casino_id=eq.${casinoId}` },
-        () => {
-          qc.invalidateQueries({ queryKey: ["expenses"] });
-          qc.invalidateQueries({ queryKey: ["player-economy"] });
-        }
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "player_tags" },
-        () => {
-          qc.invalidateQueries({ queryKey: ["players"] });
-        }
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "player_cards" },
-        () => {
-          qc.invalidateQueries({ queryKey: ["players"] });
-        }
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "table_tracker", filter: `casino_id=eq.${casinoId}` },
-        () => {
-          qc.invalidateQueries({ queryKey: ["table-tracker"] });
-        }
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "pit_rota", filter: `casino_id=eq.${casinoId}` },
-        () => {
-          qc.invalidateQueries({ queryKey: ["pit-rota"] });
-        }
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "activity_logs", filter: `casino_id=eq.${casinoId}` },
-        () => {
-          qc.invalidateQueries({ queryKey: ["activity-logs"] });
-        }
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "casino_visits", filter: `casino_id=eq.${casinoId}` },
-        () => {
-          qc.invalidateQueries({ queryKey: ["casino-visits-today"] });
-        }
-      )
-      .subscribe();
+        )
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "player_tags" },
+          () => { qc.invalidateQueries({ queryKey: ["players"] }); }
+        )
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "player_cards" },
+          () => { qc.invalidateQueries({ queryKey: ["players"] }); }
+        )
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "table_tracker", filter: `casino_id=eq.${casinoId}` },
+          () => { qc.invalidateQueries({ queryKey: ["table-tracker"] }); }
+        )
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "pit_rota", filter: `casino_id=eq.${casinoId}` },
+          () => { qc.invalidateQueries({ queryKey: ["pit-rota"] }); }
+        )
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "activity_logs", filter: `casino_id=eq.${casinoId}` },
+          () => { qc.invalidateQueries({ queryKey: ["activity-logs"] }); }
+        )
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "casino_visits", filter: `casino_id=eq.${casinoId}` },
+          () => { qc.invalidateQueries({ queryKey: ["casino-visits-today"] }); }
+        )
+        .subscribe();
 
-    channelRef.current = channel;
+      channelRef.current = channel;
+    } catch (err) {
+      console.error("[Realtime] Failed to setup channel:", err);
+    }
 
     return () => {
       if (channelRef.current) {
