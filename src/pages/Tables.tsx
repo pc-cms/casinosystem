@@ -21,7 +21,7 @@ import TableTracker from "@/pages/TableTracker";
 const PIT_TABS = [
   { key: "tables", label: "Tables", icon: BarChart3 },
   { key: "activeplayers", label: "Active Players", icon: Users },
-  { key: "tracker", label: "Client Tracker", icon: Eye },
+  { key: "tracker", label: "Player Tracker", icon: Eye },
   { key: "tabletracker", label: "Table Tracker", icon: Target },
 ] as const;
 

@@ -40,7 +40,7 @@ const NAV_ITEMS: { to: string; icon: typeof LayoutDashboard; label: string; shor
 
 const TABLE_SUBITEMS = [
   { tab: "activeplayers", icon: Users, label: "Active Players" },
-  { tab: "tracker", icon: Eye, label: "Client Tracker" },
+  { tab: "tracker", icon: Eye, label: "Player Tracker" },
   { tab: "tabletracker", icon: Target, label: "Table Tracker" },
 ];
 
