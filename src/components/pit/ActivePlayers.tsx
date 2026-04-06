@@ -682,7 +682,7 @@ const ActivePlayers = () => {
                       ) : (
                         <button
                           onClick={() => checkIn.mutate(p.id)}
-                          className="text-muted-foreground hover:text-emerald-400 transition-colors"
+                          className="text-muted-foreground hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"
                           title="Check in"
                         >
                           <LogIn className="w-3.5 h-3.5" />
