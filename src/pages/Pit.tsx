@@ -58,11 +58,11 @@ const CATEGORY_LETTER: Record<string, string> = {
 };
 
 const CATEGORY_COLORS: Record<string, string> = {
-  trainee: "text-cyan-400 bg-cyan-500/20",
-  dealer: "text-blue-400 bg-blue-500/20",
-  inspector: "text-amber-400 bg-amber-500/20",
-  expert: "text-emerald-400 bg-emerald-500/20",
-  pit_boss: "text-purple-400 bg-purple-500/20",
+  trainee: "text-cyan-700 bg-cyan-100 dark:text-cyan-400 dark:bg-cyan-500/20",
+  dealer: "text-blue-700 bg-blue-100 dark:text-blue-400 dark:bg-blue-500/20",
+  inspector: "text-amber-700 bg-amber-100 dark:text-amber-400 dark:bg-amber-500/20",
+  expert: "text-emerald-700 bg-emerald-100 dark:text-emerald-400 dark:bg-emerald-500/20",
+  pit_boss: "text-purple-700 bg-purple-100 dark:text-purple-400 dark:bg-purple-500/20",
 };
 
 const Pit = () => {
