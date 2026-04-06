@@ -545,6 +545,41 @@ const StaffRotaGrid = ({ month }: { month: string }) => {
               />
             );
           })}
+          {/* Summary: D/N count per day, excluding Security */}
+          {(() => {
+            const nonSecurity = activeStaff.filter(s => s.department !== "security");
+            return (
+              <>
+                <tr className="border-t-2 border-border">
+                  <td className="px-1 py-1 text-[9px] font-mono font-bold text-amber-400 sticky left-0 bg-card z-10">Σ D</td>
+                  {days.map(day => {
+                    const count = nonSecurity.filter(s => getDisplayShift(s.id, day)?.shift === "D").length;
+                    return <td key={day} className="text-center text-[9px] font-mono font-bold text-amber-400">{count || ""}</td>;
+                  })}
+                  <td colSpan={2} />
+                </tr>
+                <tr>
+                  <td className="px-1 py-1 text-[9px] font-mono font-bold text-indigo-400 sticky left-0 bg-card z-10">Σ N</td>
+                  {days.map(day => {
+                    const count = nonSecurity.filter(s => getDisplayShift(s.id, day)?.shift === "N").length;
+                    return <td key={day} className="text-center text-[9px] font-mono font-bold text-indigo-400">{count || ""}</td>;
+                  })}
+                  <td colSpan={2} />
+                </tr>
+                <tr>
+                  <td className="px-1 py-1 text-[9px] font-mono font-bold text-card-foreground sticky left-0 bg-card z-10">Σ All</td>
+                  {days.map(day => {
+                    const count = nonSecurity.filter(s => {
+                      const sh = getDisplayShift(s.id, day)?.shift;
+                      return sh === "D" || sh === "N";
+                    }).length;
+                    return <td key={day} className="text-center text-[9px] font-mono font-bold text-card-foreground">{count || ""}</td>;
+                  })}
+                  <td colSpan={2} />
+                </tr>
+              </>
+            );
+          })()}
         </tbody>
       </table>
     </div>
