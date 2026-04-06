@@ -891,14 +891,44 @@ const AttendanceDepartmentBlock = ({
                   defaultValue={val}
                   key={`${staff.id}-${month}-${day}-${val}`}
                   onBlur={e => handleSave(staff.id, day, e.target.value)}
-                  onKeyDown={e => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+                  onKeyDown={e => {
+                    const input = e.target as HTMLInputElement;
+                    if (e.key === "Enter") { input.blur(); return; }
+                    const key = e.key.toUpperCase();
+                    if (key === "A" || key === "S") {
+                      e.preventDefault();
+                      handleSave(staff.id, day, key);
+                      const nextInput = input.closest("td")?.nextElementSibling?.querySelector("input") as HTMLInputElement;
+                      nextInput?.focus();
+                    } else if (key === "ARROWRIGHT") {
+                      e.preventDefault();
+                      const next = input.closest("td")?.nextElementSibling?.querySelector("input") as HTMLInputElement;
+                      next?.focus();
+                    } else if (key === "ARROWLEFT") {
+                      e.preventDefault();
+                      const prev = input.closest("td")?.previousElementSibling?.querySelector("input") as HTMLInputElement;
+                      prev?.focus();
+                    } else if (key === "ARROWDOWN") {
+                      e.preventDefault();
+                      const td = input.closest("td");
+                      const idx2 = td ? Array.from(td.parentElement!.children).indexOf(td) : -1;
+                      const nextRow = td?.closest("tr")?.nextElementSibling;
+                      (nextRow?.children[idx2]?.querySelector("input") as HTMLInputElement)?.focus();
+                    } else if (key === "ARROWUP") {
+                      e.preventDefault();
+                      const td = input.closest("td");
+                      const idx2 = td ? Array.from(td.parentElement!.children).indexOf(td) : -1;
+                      const prevRow = td?.closest("tr")?.previousElementSibling;
+                      (prevRow?.children[idx2]?.querySelector("input") as HTMLInputElement)?.focus();
+                    }
+                  }}
                   className={`w-full h-7 rounded text-[10px] font-mono text-center border-0 focus:outline-none focus:ring-1 focus:ring-primary transition-colors ${
                     isStatus
                       ? ATT_COLORS[val]
                       : isHours
                         ? "bg-transparent text-card-foreground font-bold"
                         : isScheduled && isEmpty
-                          ? `${rotaShift === "D" ? "bg-amber-100 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400" : "bg-indigo-100 text-indigo-600 dark:bg-indigo-500/15 dark:text-indigo-400"} placeholder:text-current`
+                          ? `${UNIFIED_SHIFT_TINTS[rotaShift!] || "bg-muted/30 text-muted-foreground"} placeholder:text-current`
                           : "bg-transparent text-transparent hover:text-muted-foreground"
                   }`}
                   placeholder={isScheduled && isEmpty ? rotaShift! : "·"}
