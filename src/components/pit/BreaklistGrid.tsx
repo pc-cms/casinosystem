@@ -192,6 +192,9 @@ const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }
                 >
                   Dealer {sortBy === "name" && "↓"}
                 </th>
+                <th className="text-center text-[9px] font-medium text-muted-foreground uppercase px-1 py-2 min-w-[28px]">
+                  Cat
+                </th>
                 <th
                   onClick={() => setSortBy("shift")}
                   className="text-center text-[9px] font-medium text-muted-foreground uppercase px-1 py-2 min-w-[32px] cursor-pointer hover:text-foreground select-none"
