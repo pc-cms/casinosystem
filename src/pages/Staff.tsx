@@ -14,7 +14,7 @@ import {
   type StaffDepartment,
 } from "@/hooks/use-staff";
 
-const STAFF_SHIFTS = ["D", "N", "L", "O"] as const;
+const STAFF_SHIFTS = ["D", "N", "L", "E", "O"] as const;
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
