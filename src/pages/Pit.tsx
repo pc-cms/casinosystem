@@ -161,7 +161,7 @@ const Pit = () => {
                 <span key={s} className={`px-2 py-0.5 rounded text-[10px] font-mono ${SHIFT_COLORS[s]}`}>{s} = {SHIFT_LABELS[s]}</span>
               ))}
               <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-muted/20 text-muted-foreground">· = Off</span>
-              <Button variant="outline" size="sm" className="ml-2 gap-1 text-xs" onClick={() => { document.querySelector('.print-target')?.classList.add('print-target'); window.print(); }}>
+              <Button variant="outline" size="sm" className="ml-2 gap-1 text-xs" onClick={() => { const html = document.documentElement; const wasDark = html.classList.contains('dark'); if (wasDark) html.classList.remove('dark'); window.print(); if (wasDark) html.classList.add('dark'); }}>
                 <Printer className="w-3.5 h-3.5" /> Print
               </Button>
             </div>
@@ -170,7 +170,7 @@ const Pit = () => {
             <div className="flex items-center gap-1.5">
               <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-red-100 text-red-700 dark:bg-red-500/30 dark:text-red-300">A = Absent</span>
               <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-amber-100 text-amber-700 dark:bg-amber-500/30 dark:text-amber-300">S = Sick</span>
-              <Button variant="outline" size="sm" className="ml-2 gap-1 text-xs" onClick={() => window.print()}>
+              <Button variant="outline" size="sm" className="ml-2 gap-1 text-xs" onClick={() => { const html = document.documentElement; const wasDark = html.classList.contains('dark'); if (wasDark) html.classList.remove('dark'); window.print(); if (wasDark) html.classList.add('dark'); }}>
                 <Printer className="w-3.5 h-3.5" /> Print
               </Button>
             </div>

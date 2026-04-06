@@ -168,7 +168,23 @@
 @media print {
   @page {
     size: A4 landscape;
-    margin: 8mm;
+    margin: 5mm;
+  }
+
+  /* Force light theme for printing */
+  html.dark {
+    color-scheme: light !important;
+  }
+  body, html, .dark {
+    --background: 0 0% 97% !important;
+    --foreground: 220 20% 10% !important;
+    --card: 0 0% 100% !important;
+    --card-foreground: 220 20% 10% !important;
+    --muted: 220 14% 95% !important;
+    --muted-foreground: 220 10% 46% !important;
+    --border: 220 13% 88% !important;
+    background: white !important;
+    color: #1a1a2e !important;
   }
 
   body * {
@@ -183,34 +199,40 @@
     left: 0;
     width: 100%;
     text-align: center;
-    font-size: 12pt;
+    font-size: 9pt;
     font-weight: bold;
-    padding: 4mm 0 2mm;
+    padding: 1mm 0;
     color: #000;
   }
 
   .print-target,
   .print-target * {
     visibility: visible !important;
+    color-scheme: light !important;
   }
 
   .print-target {
     position: absolute;
     left: 0;
-    top: 10mm;
+    top: 7mm;
     width: 100%;
   }
 
   .print-target table {
-    font-size: 7pt;
+    font-size: 5.5pt;
     border-collapse: collapse;
     width: 100%;
+    table-layout: fixed;
   }
 
   .print-target th,
   .print-target td {
     border: 0.5px solid #ccc;
-    padding: 1px 2px;
+    padding: 0px 1px;
+    line-height: 1.05;
+    overflow: hidden;
+    white-space: nowrap;
+    max-height: 14px;
   }
 
   .print-target th {
@@ -220,18 +242,15 @@
     print-color-adjust: exact;
   }
 
-  .print-target button {
-    border: none;
-    background: transparent !important;
-    color: #000 !important;
-    font-size: 7pt;
-  }
-
+  .print-target button,
   .print-target input {
     border: none;
     background: transparent !important;
     color: #000 !important;
-    font-size: 7pt;
+    font-size: 5.5pt;
+    padding: 0;
+    height: auto !important;
+    min-height: 0 !important;
   }
 
   .no-print {
@@ -244,7 +263,31 @@
     print-color-adjust: exact;
   }
 
+  /* Override dark-mode classes to light equivalents for print */
+  .print-target [class*="dark\:bg-blue"] { background-color: #dbeafe !important; }
+  .print-target [class*="dark\:text-blue"] { color: #1d4ed8 !important; }
+  .print-target [class*="dark\:bg-indigo"] { background-color: #e0e7ff !important; }
+  .print-target [class*="dark\:text-indigo"] { color: #4338ca !important; }
+  .print-target [class*="dark\:bg-emerald"] { background-color: #d1fae5 !important; }
+  .print-target [class*="dark\:text-emerald"] { color: #047857 !important; }
+  .print-target [class*="dark\:bg-purple"] { background-color: #f3e8ff !important; }
+  .print-target [class*="dark\:text-purple"] { color: #6b21a8 !important; }
+  .print-target [class*="dark\:bg-amber"] { background-color: #fef3c7 !important; }
+  .print-target [class*="dark\:text-amber"] { color: #b45309 !important; }
+  .print-target [class*="dark\:bg-red"] { background-color: #fee2e2 !important; }
+  .print-target [class*="dark\:text-red"] { color: #b91c1c !important; }
+  .print-target [class*="dark\:bg-gray"] { background-color: #f3f4f6 !important; }
+  .print-target [class*="dark\:text-gray"] { color: #374151 !important; }
+
   .print-target .sticky {
     position: static !important;
+  }
+
+  /* Prevent page breaks inside tables */
+  .print-target table {
+    page-break-inside: avoid;
+  }
+  .print-target tr {
+    page-break-inside: avoid;
   }
 }
