@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
 
@@ -53,13 +53,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     managerName: null,
   });
 
-  const clearDerivedState = useCallback(() => {
-    setRoles([]);
-    setProfileCasinoId(null);
-    setCasinoIdOverride(undefined);
-    setDisplayName(null);
-    setManagerOverride({ active: false, managerId: null, managerName: null });
-  }, []);
+  // Track current user id in a ref to avoid stale closures in onAuthStateChange
+  const currentUserIdRef = useRef<string | null>(null);
+  // Track profile fetch version to ignore stale results
+  const profileVersionRef = useRef(0);
 
   const fetchProfile = useCallback(async (userId: string) => {
     const [{ data: profile, error: profileError }, { data: userRoles, error: rolesError }] = await Promise.all([
@@ -77,90 +74,116 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, []);
 
-  useEffect(() => {
-    let mounted = true;
+  // Apply profile data to state
+  const applyProfile = useCallback((profile: { profileCasinoId: string | null; displayName: string | null; roles: AppRole[] }) => {
+    setProfileCasinoId(profile.profileCasinoId);
+    setDisplayName(profile.displayName);
+    setRoles(profile.roles);
+  }, []);
 
-    void supabase.auth.getSession()
-      .then(({ data: { session } }) => {
-        if (!mounted) return;
-        setProfileLoading(!!session?.user);
-        setSession(session);
-        setUser(session?.user ?? null);
-        if (!session?.user) clearDerivedState();
+  // Clear all user-specific state on sign-out
+  const handleSignedOut = useCallback(() => {
+    currentUserIdRef.current = null;
+    profileVersionRef.current += 1;
+    setUser(null);
+    setSession(null);
+    setRoles([]);
+    setProfileCasinoId(null);
+    setCasinoIdOverride(undefined);
+    setDisplayName(null);
+    setProfileLoading(false);
+    setManagerOverride({ active: false, managerId: null, managerName: null });
+  }, []);
+
+  // Load profile for a given user, with version tracking to ignore stale results
+  const loadProfileForUser = useCallback((userId: string) => {
+    const version = ++profileVersionRef.current;
+    setProfileLoading(true);
+
+    void fetchProfile(userId)
+      .then((profile) => {
+        if (profileVersionRef.current !== version) return; // stale
+        applyProfile(profile);
       })
       .catch((error) => {
-        console.error("getSession error", error);
-        if (!mounted) return;
-        setSession(null);
-        setUser(null);
-        clearDerivedState();
+        console.error("loadProfileForUser error", error);
+        if (profileVersionRef.current !== version) return;
+        // Don't clear roles on network error if we already have them (offline resilience)
       })
       .finally(() => {
-        if (mounted) setAuthReady(true);
+        if (profileVersionRef.current === version) {
+          setProfileLoading(false);
+        }
       });
+  }, [fetchProfile, applyProfile]);
 
+  // Process a session update from getSession or onAuthStateChange
+  const processSession = useCallback((nextSession: Session | null) => {
+    const nextUserId = nextSession?.user?.id ?? null;
+    const prevUserId = currentUserIdRef.current;
+
+    setSession(nextSession);
+    setUser(nextSession?.user ?? null);
+
+    if (!nextUserId) {
+      // Signed out
+      if (prevUserId) handleSignedOut();
+      return;
+    }
+
+    if (nextUserId !== prevUserId) {
+      // New user or first session restore — load profile
+      currentUserIdRef.current = nextUserId;
+      loadProfileForUser(nextUserId);
+    }
+    // Same user (TOKEN_REFRESHED, etc.) — do nothing, keep existing roles/profile
+  }, [handleSignedOut, loadProfileForUser]);
+
+  // Single initialization effect — NO dependency on user state
+  useEffect(() => {
+    let mounted = true;
+    let timeoutId: ReturnType<typeof setTimeout>;
+
+    // Safety timeout: if getSession hangs (known Supabase issue), force ready after 5s
+    timeoutId = setTimeout(() => {
+      if (mounted && !authReady) {
+        console.warn("[Auth] getSession timed out after 5s, forcing ready state");
+        setAuthReady(true);
+      }
+    }, 5000);
+
+    // 1. Set up the listener FIRST (Supabase docs recommendation)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, nextSession) => {
         if (!mounted) return;
-
-        const nextUserId = nextSession?.user?.id ?? null;
-        const currentUserId = user?.id ?? null;
-        const isUserChanged = nextUserId !== currentUserId;
-
-        if (!nextSession?.user) {
-          setProfileLoading(false);
-        } else if (isUserChanged) {
-          setProfileLoading(true);
-        }
-
-        setSession(nextSession);
-        setUser(nextSession?.user ?? null);
-
-        if (!nextSession?.user) {
-          clearDerivedState();
-          setProfileLoading(false);
-        }
-
+        processSession(nextSession);
         setAuthReady(true);
       }
     );
 
-    return () => {
-      mounted = false;
-      subscription.unsubscribe();
-    };
-  }, [clearDerivedState, user?.id]);
-
-  useEffect(() => {
-    if (!authReady) return;
-    if (!user) {
-      setProfileLoading(false);
-      return;
-    }
-
-    let cancelled = false;
-    clearDerivedState();
-    setProfileLoading(true);
-
-    void fetchProfile(user.id)
-      .then((profile) => {
-        if (cancelled) return;
-        setProfileCasinoId(profile.profileCasinoId);
-        setDisplayName(profile.displayName);
-        setRoles(profile.roles);
+    // 2. Then restore session from storage
+    void supabase.auth.getSession()
+      .then(({ data: { session } }) => {
+        if (!mounted) return;
+        processSession(session);
       })
       .catch((error) => {
-        console.error("fetchProfile error", error);
-        if (!cancelled) clearDerivedState();
+        console.error("getSession error", error);
       })
       .finally(() => {
-        if (!cancelled) setProfileLoading(false);
+        if (mounted) {
+          clearTimeout(timeoutId);
+          setAuthReady(true);
+        }
       });
 
     return () => {
-      cancelled = true;
+      mounted = false;
+      clearTimeout(timeoutId);
+      subscription.unsubscribe();
     };
-  }, [authReady, clearDerivedState, fetchProfile, user?.id]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Intentionally empty — runs once, uses refs for current state
 
   const loading = !authReady || (!!user && profileLoading);
 
@@ -189,7 +212,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signOut = async () => {
-    clearDerivedState();
+    handleSignedOut();
     await supabase.auth.signOut();
   };
 
