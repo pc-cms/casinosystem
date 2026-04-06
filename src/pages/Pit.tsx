@@ -608,7 +608,9 @@ const RotaGrid = ({ month }: { month: string }) => {
   );
 
   return (
-    <div className="cms-panel overflow-hidden print-target">
+    <>
+      <div className="print-title hidden">{`Live Game Rota — ${month}`}</div>
+      <div className="cms-panel overflow-hidden print-target">
       <table className="w-full border-collapse table-fixed">
         <thead>
           <tr className="border-b border-border">
