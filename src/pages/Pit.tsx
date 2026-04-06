@@ -608,36 +608,34 @@ const RotaGrid = ({ month }: { month: string }) => {
   );
 
   return (
-    <div className="cms-panel overflow-x-auto">
-      <div className="min-w-[1200px]">
-        <table className="w-full border-collapse">
-          <thead>
-            <tr className="border-b border-border">
-              <th className="text-center text-xs font-medium text-muted-foreground uppercase px-1 py-2 sticky left-0 bg-card z-10 w-7">C</th>
-              <th className="text-left text-xs font-medium text-muted-foreground uppercase px-3 py-2 sticky left-[28px] bg-card z-10 min-w-[120px]">Name</th>
-              {days.map(day => {
-                const dateObj = new Date(y, m - 1, day);
-                const weekday = WEEKDAYS[dateObj.getDay()];
-                const isToday = isCurrentMonth && day === todayDay;
-                const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
-                return (
-                  <th key={day} className={`text-center px-0.5 py-1 min-w-[36px] ${isToday ? "bg-primary/20" : isWeekend ? "bg-muted/30" : ""}`}>
-                    <div className="text-[9px] text-muted-foreground">{weekday}</div>
-                    <div className={`text-xs font-mono ${isToday ? "text-primary font-bold" : "text-card-foreground"}`}>{day}</div>
-                  </th>
-                );
-              })}
-              <th className="text-center text-xs font-medium text-muted-foreground uppercase px-2 py-2 min-w-[40px]">M</th>
-              <th className="text-center text-xs font-medium text-muted-foreground uppercase px-2 py-2 min-w-[40px]">N</th>
-              <th className="text-center text-xs font-medium text-muted-foreground uppercase px-2 py-2 min-w-[40px]">E</th>
-            </tr>
-          </thead>
-          <tbody>
-            {renderDealerRows(activeDealers, "Dealers", "border-blue-500/50 text-blue-400")}
-            {pitBosses.length > 0 && renderDealerRows(pitBosses, "Pit Bosses", "border-purple-500/50 text-purple-400")}
-          </tbody>
-        </table>
-      </div>
+    <div className="cms-panel overflow-hidden print-target">
+      <table className="w-full border-collapse table-fixed">
+        <thead>
+          <tr className="border-b border-border">
+            <th className="text-center text-xs font-medium text-muted-foreground uppercase px-0.5 py-2 sticky left-0 bg-card z-10 w-7">C</th>
+            <th className="text-left text-xs font-medium text-muted-foreground uppercase px-1 py-2 sticky left-[28px] bg-card z-10 w-[100px]">Name</th>
+            {days.map(day => {
+              const dateObj = new Date(y, m - 1, day);
+              const weekday = WEEKDAYS[dateObj.getDay()];
+              const isToday = isCurrentMonth && day === todayDay;
+              const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
+              return (
+                <th key={day} className={`text-center px-0 py-1 ${isToday ? "bg-primary/20" : isWeekend ? "bg-muted/30" : ""}`}>
+                  <div className="text-[8px] text-muted-foreground leading-tight">{weekday}</div>
+                  <div className={`text-[10px] font-mono leading-tight ${isToday ? "text-primary font-bold" : "text-card-foreground"}`}>{day}</div>
+                </th>
+              );
+            })}
+            <th className="text-center text-[10px] font-medium text-muted-foreground uppercase px-1 py-2 w-8">M</th>
+            <th className="text-center text-[10px] font-medium text-muted-foreground uppercase px-1 py-2 w-8">N</th>
+            <th className="text-center text-[10px] font-medium text-muted-foreground uppercase px-1 py-2 w-8">E</th>
+          </tr>
+        </thead>
+        <tbody>
+          {renderDealerRows(activeDealers, "Dealers", "border-blue-500/50 text-blue-400")}
+          {pitBosses.length > 0 && renderDealerRows(pitBosses, "Pit Bosses", "border-purple-500/50 text-purple-400")}
+        </tbody>
+      </table>
     </div>
   );
 };
