@@ -98,7 +98,7 @@ const InCasino = () => {
     let result = list;
     if (typeFilter !== "all") result = result.filter(v => (v.players as any)?.player_type === typeFilter);
     result = result.filter(v => {
-      const cat = ((v.players as any)?.category as PlayerCategory) || "guest";
+      const cat = ((v.players as any)?.category as PlayerCategory) || "normal";
       return categoryFilter.has(cat);
     });
     return result;
