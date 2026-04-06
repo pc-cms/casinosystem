@@ -27,7 +27,7 @@ const InCasino = () => {
   const [sortKey, setSortKey] = useState<SortKey>("category");
   const [sortAsc, setSortAsc] = useState(true);
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
-  const [categoryFilter, setCategoryFilter] = useState<Set<PlayerCategory>>(new Set(["diamond", "platinum", "gold", "guest"]));
+  const [categoryFilter, setCategoryFilter] = useState<Set<PlayerCategory>>(new Set(["diamond", "platinum", "gold", "normal"]));
   const [profilePlayer, setProfilePlayer] = useState<any>(null);
 
   // Use shared hook — no duplicate query, realtime handles invalidation (no polling needed)
