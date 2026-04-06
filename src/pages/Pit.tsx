@@ -656,7 +656,7 @@ const RotaGrid = ({ month }: { month: string }) => {
             })}
             <td colSpan={3} />
           </tr>
-          {pitBosses.length > 0 && <tbody className="no-print">{renderDealerRows(pitBosses, "Pit Bosses", "border-purple-400 dark:border-purple-500/50 text-purple-600 dark:text-purple-400")}</tbody>}
+          {pitBosses.length > 0 && renderDealerRows(pitBosses, "Pit Bosses", "border-purple-400 dark:border-purple-500/50 text-purple-600 dark:text-purple-400", "no-print")}
         </tbody>
       </table>
     </div>
