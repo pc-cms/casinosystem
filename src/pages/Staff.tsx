@@ -774,7 +774,7 @@ const DepartmentBlock = ({
 );
 
 // =================== STAFF ATTENDANCE GRID ===================
-const StaffAttendanceGrid = ({ month }: { month: string }) => {
+const StaffAttendanceGrid = ({ month, monthLabel }: { month: string; monthLabel: string }) => {
   const [y, m] = month.split("-").map(Number);
   const daysInMonth = new Date(y, m, 0).getDate();
   const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
