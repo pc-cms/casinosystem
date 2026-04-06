@@ -53,7 +53,9 @@ const PIT_SUBITEMS = [
 const STAFF_SUBITEMS = [
   { tab: "attendance", icon: ClipboardPen, label: "Attendance" },
   { tab: "employee", icon: UserCheck, label: "Employee" },
-  { tab: "rota", icon: CalendarDays, label: "Rota" },
+  { tab: "rota_office", icon: CalendarDays, label: "Office Rota" },
+  { tab: "rota_floor", icon: CalendarDays, label: "Floor Rota" },
+  { tab: "rota_security", icon: ShieldCheck, label: "Security Rota" },
 ];
 
 const BREAKLIST_PATH = "/pit?tab=breaklist";

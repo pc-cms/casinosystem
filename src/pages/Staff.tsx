@@ -11,10 +11,9 @@ import {
   useStaffMembers, useCreateStaffMember, useUpdateStaffMember, useStaffRotaRange, useSetStaffRota,
   useDeleteStaffRota, useStaffAttendanceRange, useSetStaffAttendance,
   DEPARTMENT_LABELS, DEPARTMENT_ORDER, STAFF_SHIFT_LABELS, STAFF_SHIFT_COLORS,
-  type StaffDepartment,
+  ROTA_GROUPS, type StaffDepartment, type RotaGroupKey,
 } from "@/hooks/use-staff";
 
-const STAFF_SHIFTS = ["D", "N", "L", "E", "O"] as const;
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
@@ -30,6 +29,8 @@ const DEPT_BADGE_COLORS: Record<string, string> = {
   cleaner: "bg-emerald-100 text-emerald-700 border-emerald-300 dark:bg-emerald-500/20 dark:text-emerald-400 dark:border-emerald-500/30",
   it: "bg-violet-100 text-violet-700 border-violet-300 dark:bg-violet-500/20 dark:text-violet-400 dark:border-violet-500/30",
   hr: "bg-orange-100 text-orange-700 border-orange-300 dark:bg-orange-500/20 dark:text-orange-400 dark:border-orange-500/30",
+  driver: "bg-teal-100 text-teal-700 border-teal-300 dark:bg-teal-500/20 dark:text-teal-400 dark:border-teal-500/30",
+  reception: "bg-rose-100 text-rose-700 border-rose-300 dark:bg-rose-500/20 dark:text-rose-400 dark:border-rose-500/30",
 };
 
 const DEPT_BORDER_COLORS: Record<string, string> = {
@@ -41,6 +42,8 @@ const DEPT_BORDER_COLORS: Record<string, string> = {
   cleaner: "border-emerald-500/50",
   it: "border-violet-500/50",
   hr: "border-orange-500/50",
+  driver: "border-teal-500/50",
+  reception: "border-rose-500/50",
 };
 
 const DEPT_DOT_COLORS: Record<string, string> = {
@@ -52,6 +55,8 @@ const DEPT_DOT_COLORS: Record<string, string> = {
   cleaner: "bg-emerald-400",
   it: "bg-violet-400",
   hr: "bg-orange-400",
+  driver: "bg-teal-400",
+  reception: "bg-rose-400",
 };
 
 const DEPT_ROW_COLORS: Record<string, string> = {
@@ -63,6 +68,8 @@ const DEPT_ROW_COLORS: Record<string, string> = {
   cleaner: "bg-emerald-500/5",
   it: "bg-violet-500/5",
   hr: "bg-orange-500/5",
+  driver: "bg-teal-500/5",
+  reception: "bg-rose-500/5",
 };
 
 const Staff = () => {
@@ -85,12 +92,26 @@ const Staff = () => {
   const [searchParams] = useSearchParams();
   const activeTab = searchParams.get("tab") || "employee";
 
-  const showMonthNav = activeTab === "rota" || activeTab === "attendance";
+  const isRotaTab = activeTab.startsWith("rota_");
+  const rotaGroupKey = isRotaTab ? activeTab.replace("rota_", "") as RotaGroupKey : null;
+  const rotaGroup = rotaGroupKey ? ROTA_GROUPS[rotaGroupKey] : null;
+
+  const showMonthNav = isRotaTab || activeTab === "attendance";
 
   const TAB_TITLES: Record<string, string> = {
     employee: "Floor Staff",
-    rota: "Floor Rota",
+    rota_office: "Office Rota",
+    rota_floor: "Floor Rota",
+    rota_security: "Security Rota",
     attendance: "Floor Attendance",
+  };
+
+  const printRota = () => {
+    const html = document.documentElement;
+    const wasDark = html.classList.contains('dark');
+    if (wasDark) html.classList.remove('dark');
+    window.print();
+    if (wasDark) html.classList.add('dark');
   };
 
   return (
@@ -112,14 +133,14 @@ const Staff = () => {
               </Button>
             </div>
           )}
-          {activeTab === "rota" && (
+          {isRotaTab && rotaGroup && (
             <div className="flex items-center gap-1.5">
-              {STAFF_SHIFTS.map(s => (
+              {rotaGroup.shifts.map(s => (
                 <span key={s} className={`px-2 py-0.5 rounded text-[10px] font-mono ${STAFF_SHIFT_COLORS[s]}`}>
-                  {s} = {STAFF_SHIFT_LABELS[s]}
+                  {s} = {rotaGroup.shiftLabels[s]}
                 </span>
               ))}
-              <Button variant="outline" size="sm" className="ml-2 gap-1 text-xs" onClick={() => { const html = document.documentElement; const wasDark = html.classList.contains('dark'); if (wasDark) html.classList.remove('dark'); window.print(); if (wasDark) html.classList.add('dark'); }}>
+              <Button variant="outline" size="sm" className="ml-2 gap-1 text-xs" onClick={printRota}>
                 <Printer className="w-3.5 h-3.5" /> Print
               </Button>
             </div>
@@ -128,7 +149,7 @@ const Staff = () => {
             <div className="flex items-center gap-1.5">
               <span className={`px-2 py-0.5 rounded text-[10px] font-mono ${ATT_COLORS["A"]}`}>A = Absent</span>
               <span className={`px-2 py-0.5 rounded text-[10px] font-mono ${ATT_COLORS["S"]}`}>S = Sick</span>
-              <Button variant="outline" size="sm" className="ml-2 gap-1 text-xs" onClick={() => { const html = document.documentElement; const wasDark = html.classList.contains('dark'); if (wasDark) html.classList.remove('dark'); window.print(); if (wasDark) html.classList.add('dark'); }}>
+              <Button variant="outline" size="sm" className="ml-2 gap-1 text-xs" onClick={printRota}>
                 <Printer className="w-3.5 h-3.5" /> Print
               </Button>
             </div>
@@ -137,7 +158,7 @@ const Staff = () => {
       </div>
 
       {activeTab === "employee" && <EmployeeList />}
-      {activeTab === "rota" && <StaffRotaGrid month={month} />}
+      {isRotaTab && rotaGroupKey && <StaffRotaGrid month={month} groupKey={rotaGroupKey} />}
       {activeTab === "attendance" && <StaffAttendanceGrid month={month} />}
     </div>
   );
@@ -356,7 +377,9 @@ const EmployeeList = () => {
 
 
 // =================== STAFF ROTA GRID ===================
-const StaffRotaGrid = ({ month }: { month: string }) => {
+const StaffRotaGrid = ({ month, groupKey }: { month: string; groupKey: RotaGroupKey }) => {
+  const group = ROTA_GROUPS[groupKey];
+  const groupShifts = group.shifts as readonly string[];
   const [filterDept, setFilterDept] = useState<string>("all");
   const [y, m] = month.split("-").map(Number);
   const daysInMonth = new Date(y, m, 0).getDate();
@@ -371,7 +394,10 @@ const StaffRotaGrid = ({ month }: { month: string }) => {
   const setRota = useSetStaffRota();
   const deleteRota = useDeleteStaffRota();
 
-  const activeStaff = staff.filter(s => s.is_active);
+  const activeStaff = useMemo(() =>
+    staff.filter(s => s.is_active && (group.departments as readonly string[]).includes(s.department)),
+    [staff, group.departments]
+  );
 
   const today = new Date();
   const todayDay = today.getDate();
@@ -403,11 +429,11 @@ const StaffRotaGrid = ({ month }: { month: string }) => {
     const dateStr = `${month}-${String(day).padStart(2, "0")}`;
     const current = getRotaEntry(staffId, day);
     if (!current) {
-      setRota.mutate({ staff_id: staffId, date: dateStr, shift: "D" });
+      setRota.mutate({ staff_id: staffId, date: dateStr, shift: groupShifts[0] });
     } else {
-      const idx = STAFF_SHIFTS.indexOf(current.shift as typeof STAFF_SHIFTS[number]);
-      if (idx >= 0 && idx < STAFF_SHIFTS.length - 1) {
-        setRota.mutate({ staff_id: staffId, date: dateStr, shift: STAFF_SHIFTS[idx + 1] });
+      const idx = groupShifts.indexOf(current.shift);
+      if (idx >= 0 && idx < groupShifts.length - 1) {
+        setRota.mutate({ staff_id: staffId, date: dateStr, shift: groupShifts[idx + 1] });
       } else {
         deleteRota.mutate({ staff_id: staffId, date: dateStr });
       }
@@ -428,7 +454,7 @@ const StaffRotaGrid = ({ month }: { month: string }) => {
   const handleKeyDown = (e: React.KeyboardEvent, staffId: string, day: number) => {
     const key = e.key.toUpperCase();
     const dateStr = `${month}-${String(day).padStart(2, "0")}`;
-    if (STAFF_SHIFTS.includes(key as typeof STAFF_SHIFTS[number])) {
+    if (groupShifts.includes(key)) {
       e.preventDefault();
       setRota.mutate({ staff_id: staffId, date: dateStr, shift: key });
       focusNextCell(e.target as HTMLElement);
@@ -465,12 +491,12 @@ const StaffRotaGrid = ({ month }: { month: string }) => {
     const text = e.clipboardData.getData("text").trim().toUpperCase();
     const dateStr = `${month}-${String(day).padStart(2, "0")}`;
     const values = text.split(/[\s,]+/);
-    if (values.length === 1 && STAFF_SHIFTS.includes(values[0] as typeof STAFF_SHIFTS[number])) {
+    if (values.length === 1 && groupShifts.includes(values[0])) {
       setRota.mutate({ staff_id: staffId, date: dateStr, shift: values[0] });
     } else if (values.length > 1) {
       values.forEach((v, i) => {
         const d = day + i;
-        if (d <= daysInMonth && STAFF_SHIFTS.includes(v as typeof STAFF_SHIFTS[number])) {
+        if (d <= daysInMonth && groupShifts.includes(v)) {
           const ds = `${month}-${String(d).padStart(2, "0")}`;
           setRota.mutate({ staff_id: staffId, date: ds, shift: v });
         }
@@ -480,18 +506,22 @@ const StaffRotaGrid = ({ month }: { month: string }) => {
 
   const grouped = useMemo(() => {
     const groups: Record<string, typeof activeStaff> = {};
-    DEPARTMENT_ORDER.forEach(d => { groups[d] = []; });
+    (group.departments as readonly string[]).forEach(d => { groups[d] = []; });
     activeStaff.forEach(s => {
       if (!groups[s.department]) groups[s.department] = [];
       groups[s.department].push(s);
     });
     return groups;
-  }, [activeStaff]);
+  }, [activeStaff, group.departments]);
+
+  const deptList = group.departments as readonly StaffDepartment[];
+  const showFilter = deptList.length > 1;
 
   const visibleDepts = useMemo(() => {
-    if (filterDept === "all") return DEPARTMENT_ORDER.filter(d => (grouped[d] || []).length > 0);
-    return (grouped[filterDept] || []).length > 0 ? [filterDept as StaffDepartment] : [];
-  }, [filterDept, grouped]);
+    const nonEmpty = deptList.filter(d => (grouped[d] || []).length > 0);
+    if (filterDept === "all") return nonEmpty;
+    return nonEmpty.filter(d => d === filterDept);
+  }, [filterDept, grouped, deptList]);
 
   const getStats = (staffId: string) => {
     const counts: Record<string, number> = {};
@@ -501,6 +531,9 @@ const StaffRotaGrid = ({ month }: { month: string }) => {
     });
     return counts;
   };
+
+  // Determine summary shift keys (first two non-leave/off shifts)
+  const summaryShifts = groupShifts.filter(s => s !== "L" && s !== "E" && s !== "O");
 
   const renderTableHeader = () => (
     <thead>
@@ -520,43 +553,46 @@ const StaffRotaGrid = ({ month }: { month: string }) => {
             </th>
           );
         })}
-        <th className="text-center text-[10px] font-medium text-muted-foreground uppercase px-1 py-2 w-8">D</th>
-        <th className="text-center text-[10px] font-medium text-muted-foreground uppercase px-1 py-2 w-8">N</th>
+        {summaryShifts.slice(0, 2).map(s => (
+          <th key={s} className="text-center text-[10px] font-medium text-muted-foreground uppercase px-1 py-2 w-8">{s}</th>
+        ))}
       </tr>
     </thead>
   );
 
   return (
     <>
-      <div className="print-title hidden">{`Floor Rota — ${month}`}</div>
+      <div className="print-title hidden">{`${group.label} Rota — ${month}`}</div>
 
-      {/* Department filter */}
-      <div className="flex items-center gap-1.5 mb-3 flex-wrap no-print">
-        <button
-          onClick={() => setFilterDept("all")}
-          className={`px-2.5 py-1 rounded text-[11px] font-medium transition-colors ${filterDept === "all" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
-        >
-          All
-        </button>
-        {DEPARTMENT_ORDER.map(d => {
-          const count = (grouped[d] || []).length;
-          if (count === 0) return null;
-          return (
-            <button
-              key={d}
-              onClick={() => setFilterDept(filterDept === d ? "all" : d)}
-              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-medium border transition-colors ${
-                filterDept === d
-                  ? DEPT_BADGE_COLORS[d]
-                  : "bg-muted text-muted-foreground border-transparent hover:bg-muted/80"
-              }`}
-            >
-              <span className={`w-1.5 h-1.5 rounded-full ${DEPT_DOT_COLORS[d]}`} />
-              {DEPARTMENT_LABELS[d]} ({count})
-            </button>
-          );
-        })}
-      </div>
+      {/* Department filter (only if multiple departments) */}
+      {showFilter && (
+        <div className="flex items-center gap-1.5 mb-3 flex-wrap no-print">
+          <button
+            onClick={() => setFilterDept("all")}
+            className={`px-2.5 py-1 rounded text-[11px] font-medium transition-colors ${filterDept === "all" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
+          >
+            All
+          </button>
+          {deptList.map(d => {
+            const count = (grouped[d] || []).length;
+            if (count === 0) return null;
+            return (
+              <button
+                key={d}
+                onClick={() => setFilterDept(filterDept === d ? "all" : d)}
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-medium border transition-colors ${
+                  filterDept === d
+                    ? DEPT_BADGE_COLORS[d]
+                    : "bg-muted text-muted-foreground border-transparent hover:bg-muted/80"
+                }`}
+              >
+                <span className={`w-1.5 h-1.5 rounded-full ${DEPT_DOT_COLORS[d]}`} />
+                {DEPARTMENT_LABELS[d]} ({count})
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* Render each department as a separate table for clean page breaks */}
       {visibleDepts.map((dept, deptIdx) => {
@@ -583,6 +619,7 @@ const StaffRotaGrid = ({ month }: { month: string }) => {
                   handleKeyDown={handleKeyDown}
                   handlePaste={handlePaste}
                   getStats={getStats}
+                  summaryShifts={summaryShifts}
                 />
               </tbody>
             </table>
@@ -590,55 +627,41 @@ const StaffRotaGrid = ({ month }: { month: string }) => {
         );
       })}
 
-      {/* Summary: D/N count per day, excluding Security */}
+      {/* Summary per day */}
       <div className="cms-panel overflow-hidden print-target mt-3">
         <table className="w-full border-collapse table-fixed">
           {renderTableHeader()}
           <tbody>
-            {(() => {
-              const nonSecurity = activeStaff.filter(s => s.department !== "security");
-              return (
-                <>
-                  <tr className="border-t-2 border-border">
-                    <td className="px-1 py-1 text-[9px] font-mono font-bold text-amber-600 dark:text-amber-400 sticky left-0 bg-card z-10">Σ D</td>
-                    {days.map(day => {
-                      const count = nonSecurity.filter(s => getDisplayShift(s.id, day)?.shift === "D").length;
-                      return <td key={day} className="text-center text-[9px] font-mono font-bold text-amber-600 dark:text-amber-400">{count || ""}</td>;
-                    })}
-                    <td colSpan={2} />
-                  </tr>
-                  <tr>
-                    <td className="px-1 py-1 text-[9px] font-mono font-bold text-indigo-600 dark:text-indigo-400 sticky left-0 bg-card z-10">Σ N</td>
-                    {days.map(day => {
-                      const count = nonSecurity.filter(s => getDisplayShift(s.id, day)?.shift === "N").length;
-                      return <td key={day} className="text-center text-[9px] font-mono font-bold text-indigo-600 dark:text-indigo-400">{count || ""}</td>;
-                    })}
-                    <td colSpan={2} />
-                  </tr>
-                  <tr>
-                    <td className="px-1 py-1 text-[9px] font-mono font-bold text-card-foreground sticky left-0 bg-card z-10">Σ All</td>
-                    {days.map(day => {
-                      const count = nonSecurity.filter(s => {
-                        const sh = getDisplayShift(s.id, day)?.shift;
-                        return sh === "D" || sh === "N";
-                      }).length;
-                      return <td key={day} className="text-center text-[9px] font-mono font-bold text-card-foreground">{count || ""}</td>;
-                    })}
-                    <td colSpan={2} />
-                  </tr>
-                </>
-              );
-            })()}
+            {summaryShifts.map((shiftKey, si) => (
+              <tr key={shiftKey} className={si === 0 ? "border-t-2 border-border" : ""}>
+                <td className="px-1 py-1 text-[9px] font-mono font-bold text-card-foreground sticky left-0 bg-card z-10">Σ {shiftKey}</td>
+                {days.map(day => {
+                  const count = activeStaff.filter(s => getDisplayShift(s.id, day)?.shift === shiftKey).length;
+                  return <td key={day} className="text-center text-[9px] font-mono font-bold text-card-foreground">{count || ""}</td>;
+                })}
+                <td colSpan={2} />
+              </tr>
+            ))}
+            <tr>
+              <td className="px-1 py-1 text-[9px] font-mono font-bold text-card-foreground sticky left-0 bg-card z-10">Σ All</td>
+              {days.map(day => {
+                const count = activeStaff.filter(s => {
+                  const sh = getDisplayShift(s.id, day)?.shift;
+                  return sh && summaryShifts.includes(sh);
+                }).length;
+                return <td key={day} className="text-center text-[9px] font-mono font-bold text-card-foreground">{count || ""}</td>;
+              })}
+              <td colSpan={2} />
+            </tr>
           </tbody>
         </table>
       </div>
     </>
   );
 };
-
 const DepartmentBlock = ({
   dept, members, days, month, y, m, isCurrentMonth, todayDay,
-  getDisplayShift, handleClick, handleKeyDown, handlePaste, getStats,
+  getDisplayShift, handleClick, handleKeyDown, handlePaste, getStats, summaryShifts,
 }: {
   dept: string;
   members: any[];
@@ -653,10 +676,11 @@ const DepartmentBlock = ({
   handleKeyDown: (e: React.KeyboardEvent, id: string, day: number) => void;
   handlePaste: (e: React.ClipboardEvent, id: string, day: number) => void;
   getStats: (id: string) => Record<string, number>;
+  summaryShifts: string[];
 }) => (
   <>
     <tr>
-      <td colSpan={days.length + 3} className="px-0 py-0 sticky left-0">
+      <td colSpan={days.length + 1 + summaryShifts.slice(0, 2).length} className="px-0 py-0 sticky left-0">
         <div className={`flex items-center gap-2 px-3 py-1 border-b-2 ${DEPT_BORDER_COLORS[dept] || "border-muted"}`}>
           <span className={`w-2 h-2 rounded-full ${DEPT_DOT_COLORS[dept] || "bg-muted-foreground"}`} />
           <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-card-foreground">{DEPARTMENT_LABELS[dept as StaffDepartment]}</span>
@@ -693,12 +717,11 @@ const DepartmentBlock = ({
               </td>
             );
           })}
-          <td className="px-2 py-1 text-center">
-            <span className="text-[10px] font-mono font-bold text-amber-600 dark:text-amber-400">{stats["D"] || ""}</span>
-          </td>
-          <td className="px-2 py-1 text-center">
-            <span className="text-[10px] font-mono font-bold text-indigo-600 dark:text-indigo-400">{stats["N"] || ""}</span>
-          </td>
+          {summaryShifts.slice(0, 2).map(s => (
+            <td key={s} className="px-2 py-1 text-center">
+              <span className="text-[10px] font-mono font-bold text-card-foreground">{stats[s] || ""}</span>
+            </td>
+          ))}
         </tr>
       );
     })}

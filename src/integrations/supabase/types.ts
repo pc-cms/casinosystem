@@ -2282,6 +2282,8 @@ export type Database = {
         | "cleaner"
         | "it"
         | "hr"
+        | "driver"
+        | "reception"
       table_status: "open" | "closed"
       transaction_type: "buy" | "cashout"
       wallet_tx_type:
@@ -2503,6 +2505,8 @@ export const Constants = {
         "cleaner",
         "it",
         "hr",
+        "driver",
+        "reception",
       ],
       table_status: ["open", "closed"],
       transaction_type: ["buy", "cashout"],

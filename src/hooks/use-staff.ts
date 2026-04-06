@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { UNIFIED_SHIFT_COLORS } from "@/lib/shift-colors";
 
-export type StaffDepartment = "security" | "cashier" | "bartender" | "hostess" | "waiter" | "cleaner" | "it" | "hr";
+export type StaffDepartment = "security" | "cashier" | "bartender" | "hostess" | "waiter" | "cleaner" | "it" | "hr" | "driver" | "reception";
 
 export interface StaffMember {
   id: string;
@@ -27,16 +27,42 @@ export const DEPARTMENT_LABELS: Record<StaffDepartment, string> = {
   cleaner: "Housekeeping",
   it: "IT",
   hr: "HR",
+  driver: "Driver",
+  reception: "Reception",
 };
 
 export const DEPARTMENT_ORDER: StaffDepartment[] = [
-  "security", "cashier", "bartender", "hostess", "waiter", "cleaner", "it", "hr",
+  "security", "cashier", "bartender", "hostess", "waiter", "cleaner", "reception", "it", "hr", "driver",
 ];
+
+// Rota group definitions
+export const ROTA_GROUPS = {
+  office: {
+    label: "Office",
+    departments: ["it", "hr", "driver"] as StaffDepartment[],
+    shifts: ["D", "N", "L", "E", "O"] as const,
+    shiftLabels: { D: "Day (12:30)", N: "Night (20:45)", L: "Leave", E: "Extra", O: "Off" } as Record<string, string>,
+  },
+  floor: {
+    label: "Floor",
+    departments: ["bartender", "cleaner", "waiter", "hostess", "reception"] as StaffDepartment[],
+    shifts: ["D", "N", "L", "E", "O"] as const,
+    shiftLabels: { D: "Day (12:30)", N: "Night (20:45)", L: "Leave", E: "Extra", O: "Off" } as Record<string, string>,
+  },
+  security: {
+    label: "Security",
+    departments: ["security"] as StaffDepartment[],
+    shifts: ["D", "M", "N", "G", "L", "E", "O"] as const,
+    shiftLabels: { D: "Day (06-14)", M: "Mid (13:45-22)", N: "Night (17:45-03)", G: "Guard (21:45-06)", L: "Leave", E: "Extra", O: "Off" } as Record<string, string>,
+  },
+} as const;
+
+export type RotaGroupKey = keyof typeof ROTA_GROUPS;
 
 const STAFF_SHIFTS = ["D", "N", "L", "E", "O"] as const;
 
 export const STAFF_SHIFT_LABELS: Record<string, string> = {
-  D: "Day (12:45)",
+  D: "Day (12:30)",
   N: "Night (20:45)",
   L: "Leave",
   E: "Extra",
