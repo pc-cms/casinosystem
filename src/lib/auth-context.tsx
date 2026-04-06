@@ -45,67 +45,115 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [profileCasinoId, setProfileCasinoId] = useState<string | null>(null);
   const [casinoIdOverride, setCasinoIdOverride] = useState<string | null | undefined>(undefined);
   const [displayName, setDisplayName] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [authReady, setAuthReady] = useState(false);
+  const [profileLoading, setProfileLoading] = useState(false);
   const [managerOverride, setManagerOverride] = useState<ManagerOverride>({
     active: false,
     managerId: null,
     managerName: null,
   });
 
-  const fetchProfile = useCallback(async (userId: string) => {
-    try {
-      const [{ data: profile }, { data: userRoles }] = await Promise.all([
-        supabase.from("profiles").select("casino_id, display_name").eq("user_id", userId).single(),
-        supabase.from("user_roles").select("role").eq("user_id", userId),
-      ]);
+  const clearDerivedState = useCallback(() => {
+    setRoles([]);
+    setProfileCasinoId(null);
+    setCasinoIdOverride(undefined);
+    setDisplayName(null);
+    setManagerOverride({ active: false, managerId: null, managerName: null });
+  }, []);
 
-      if (profile) {
-        setProfileCasinoId(profile.casino_id);
-        setDisplayName(profile.display_name);
-      }
-      if (userRoles) {
-        setRoles(userRoles.map(r => r.role as AppRole));
-      }
-    } catch (e) {
-      console.error("fetchProfile error", e);
-    }
+  const fetchProfile = useCallback(async (userId: string) => {
+    const [{ data: profile, error: profileError }, { data: userRoles, error: rolesError }] = await Promise.all([
+      supabase.from("profiles").select("casino_id, display_name").eq("user_id", userId).maybeSingle(),
+      supabase.from("user_roles").select("role").eq("user_id", userId),
+    ]);
+
+    if (profileError) console.error("fetchProfile profile error", profileError);
+    if (rolesError) console.error("fetchProfile roles error", rolesError);
+
+    return {
+      profileCasinoId: profile?.casino_id ?? null,
+      displayName: profile?.display_name ?? null,
+      roles: (userRoles ?? []).map(r => r.role as AppRole),
+    };
   }, []);
 
   useEffect(() => {
     let mounted = true;
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+    void supabase.auth.getSession()
+      .then(({ data: { session } }) => {
+        if (!mounted) return;
+        setProfileLoading(!!session?.user);
         setSession(session);
         setUser(session?.user ?? null);
-        
-        if (session?.user) {
-          await fetchProfile(session.user.id);
-        } else {
-          setRoles([]);
-          setProfileCasinoId(null);
-          setCasinoIdOverride(undefined);
-          setDisplayName(null);
-          setManagerOverride({ active: false, managerId: null, managerName: null });
+        if (!session?.user) clearDerivedState();
+      })
+      .catch((error) => {
+        console.error("getSession error", error);
+        if (!mounted) return;
+        setSession(null);
+        setUser(null);
+        clearDerivedState();
+      })
+      .finally(() => {
+        if (mounted) setAuthReady(true);
+      });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, nextSession) => {
+        if (!mounted) return;
+
+        setProfileLoading(!!nextSession?.user);
+        setSession(nextSession);
+        setUser(nextSession?.user ?? null);
+
+        if (!nextSession?.user) {
+          clearDerivedState();
+          setProfileLoading(false);
         }
-        if (mounted) setLoading(false);
+
+        setAuthReady(true);
       }
     );
-
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        await fetchProfile(session.user.id);
-      }
-      if (mounted) setLoading(false);
-    });
 
     return () => {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, [fetchProfile]);
+  }, [clearDerivedState]);
+
+  useEffect(() => {
+    if (!authReady) return;
+    if (!user) {
+      setProfileLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    clearDerivedState();
+    setProfileLoading(true);
+
+    void fetchProfile(user.id)
+      .then((profile) => {
+        if (cancelled) return;
+        setProfileCasinoId(profile.profileCasinoId);
+        setDisplayName(profile.displayName);
+        setRoles(profile.roles);
+      })
+      .catch((error) => {
+        console.error("fetchProfile error", error);
+        if (!cancelled) clearDerivedState();
+      })
+      .finally(() => {
+        if (!cancelled) setProfileLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authReady, clearDerivedState, fetchProfile, user?.id]);
+
+  const loading = !authReady || (!!user && profileLoading);
 
   const hasRole = useCallback(
     (role: AppRole) => roles.includes(role) || (role === "manager" && managerOverride.active),
@@ -132,7 +180,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signOut = async () => {
-    setManagerOverride({ active: false, managerId: null, managerName: null });
+    clearDerivedState();
     await supabase.auth.signOut();
   };
 
