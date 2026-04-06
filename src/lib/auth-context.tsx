@@ -103,7 +103,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       (_event, nextSession) => {
         if (!mounted) return;
 
-        setProfileLoading(!!nextSession?.user);
+        const nextUserId = nextSession?.user?.id ?? null;
+        const currentUserId = user?.id ?? null;
+        const isUserChanged = nextUserId !== currentUserId;
+
+        if (!nextSession?.user) {
+          setProfileLoading(false);
+        } else if (isUserChanged) {
+          setProfileLoading(true);
+        }
+
         setSession(nextSession);
         setUser(nextSession?.user ?? null);
 
@@ -120,7 +129,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, [clearDerivedState]);
+  }, [clearDerivedState, user?.id]);
 
   useEffect(() => {
     if (!authReady) return;
