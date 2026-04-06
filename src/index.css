@@ -163,3 +163,74 @@
     to { opacity: 1; transform: translateY(0); }
   }
 }
+
+/* Print styles for Rota / Attendance grids */
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 8mm;
+  }
+
+  body * {
+    visibility: hidden;
+  }
+
+  .print-target,
+  .print-target * {
+    visibility: visible !important;
+  }
+
+  .print-target {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+
+  .print-target table {
+    font-size: 7pt;
+    border-collapse: collapse;
+    width: 100%;
+  }
+
+  .print-target th,
+  .print-target td {
+    border: 0.5px solid #ccc;
+    padding: 1px 2px;
+  }
+
+  .print-target th {
+    background: #f0f0f0 !important;
+    color: #333 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .print-target button {
+    border: none;
+    background: transparent !important;
+    color: #000 !important;
+    font-size: 7pt;
+  }
+
+  .print-target input {
+    border: none;
+    background: transparent !important;
+    color: #000 !important;
+    font-size: 7pt;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  /* Force colored cells to print */
+  .print-target [class*="bg-"] {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .print-target .sticky {
+    position: static !important;
+  }
+}
