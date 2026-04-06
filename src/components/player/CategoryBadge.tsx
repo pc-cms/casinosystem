@@ -16,7 +16,7 @@ export const CATEGORY_PRIORITY: Record<PlayerCategory, number> = {
   normal: 3,
 };
 
-export const ALL_CATEGORIES: PlayerCategory[] = ["diamond", "platinum", "gold", "guest"];
+export const ALL_CATEGORIES: PlayerCategory[] = ["diamond", "platinum", "gold", "normal"];
 
 interface CategoryBadgeProps {
   category: PlayerCategory;
