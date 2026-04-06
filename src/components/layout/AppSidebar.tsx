@@ -27,7 +27,7 @@ const NAV_ITEMS: { to: string; icon: typeof LayoutDashboard; label: string; shor
   { to: "/expenses", icon: Receipt, label: "Expenses", shortcut: "E", roles: ["super_admin", "manager", "cashier", "finance_manager"], section: "OPERATIONS" },
   { to: "/finance", icon: Wallet, label: "Finance", shortcut: "F", roles: ["super_admin", "manager", "finance_manager"], section: "OPERATIONS" },
   { to: "/groups", icon: UsersRound, label: "Groups", shortcut: "G", roles: ["super_admin", "manager", "finance_manager"], section: "OPERATIONS" },
-  { to: "/guests", icon: Users, label: "Guests", shortcut: "Alt+G", roles: ["super_admin", "manager", "reception", "pit", "finance_manager", "security"], section: "OPERATIONS" },
+  { to: "/guests", icon: Users, label: "In Casino", shortcut: "Alt+G", roles: ["super_admin", "manager", "reception", "pit", "finance_manager", "security"], section: "OPERATIONS" },
   { to: "/pit", icon: Gamepad2, label: "Live Game", shortcut: "L", roles: ["super_admin", "manager", "pit", "finance_manager", "hr"], section: "OPERATIONS" },
   { to: "/players", icon: Users, label: "Players", shortcut: "P", roles: ["super_admin", "manager", "cashier", "finance_manager", "security"], section: "OPERATIONS" },
   { to: "/reception", icon: DoorOpen, label: "Reception", shortcut: "R", roles: ["super_admin", "manager", "reception", "finance_manager"], section: "OPERATIONS" },
