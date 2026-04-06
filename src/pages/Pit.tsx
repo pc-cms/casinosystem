@@ -340,6 +340,7 @@ const DealerEmployeeList = () => {
         <table className="w-full">
           <thead>
             <tr className="border-b border-border">
+              {canSeePhoto && <th className="text-left text-xs font-medium text-muted-foreground uppercase px-2 py-2 w-12"></th>}
               <SortHeader field="category" label="Cat" />
               <SortHeader field="name" label="Name" />
               <SortHeader field="salary" label="Salary" />
@@ -357,12 +358,27 @@ const DealerEmployeeList = () => {
               const daysLeft = getDaysLeft(d.contract_end);
               return (
                 <tr key={d.id} className="border-b border-border last:border-0 hover:bg-muted/20">
+                  {canSeePhoto && (
+                    <EmployeePhotoCell
+                      id={d.id}
+                      name={d.name}
+                      photoUrl={d.photo_url}
+                      onUpdate={(id, url) => updateDealer.mutate({ id, photo_url: url })}
+                      canManage={canManage}
+                    />
+                  )}
                   <td className="px-4 py-2">
                     <span className={`inline-flex items-center justify-center min-w-[24px] h-6 rounded px-1 text-[10px] font-mono font-bold ${CATEGORY_COLORS[catKey] || "text-muted-foreground bg-muted/20"}`}>
                       {CATEGORY_LETTER[catKey] || "?"}
                     </span>
                   </td>
-                  <td className="px-4 py-2 text-sm text-card-foreground font-medium">{d.name}</td>
+                  <td className="px-4 py-2 text-sm text-card-foreground font-medium cursor-pointer hover:bg-muted/30"
+                    onClick={() => canManage && startEdit(d.id, "name", d.name)}>
+                    {editingCell?.id === d.id && editingCell.field === "name" ? (
+                      <Input className="h-7 w-40 text-sm" value={editValue} autoFocus
+                        onChange={e => setEditValue(e.target.value)} onBlur={saveEditName} onKeyDown={handleEditKeyDown} />
+                    ) : d.name}
+                  </td>
                   <td className="px-4 py-2 text-sm text-card-foreground font-mono cursor-pointer hover:bg-muted/30"
                     onClick={() => startEdit(d.id, "salary", d.salary?.toString() || "")}>
                     {editingCell?.id === d.id && editingCell.field === "salary" ? (
