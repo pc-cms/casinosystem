@@ -254,10 +254,10 @@ const EmployeeList = () => {
           </SelectContent>
         </Select>
         <div className="w-px h-6 bg-border mx-1" />
-        <Input placeholder="Name" value={name} onChange={e => setName(e.target.value)} className="w-[200px]" disabled={!isManager}
-          onKeyDown={e => { if (e.key === "Enter" && name && isManager) { createStaff.mutate({ name, department: dept }); setName(""); } }}
+        <Input placeholder="Name" value={name} onChange={e => setName(e.target.value)} className="w-[200px]" disabled={!canManage}
+          onKeyDown={e => { if (e.key === "Enter" && name && canManage) { createStaff.mutate({ name, department: dept }); setName(""); } }}
         />
-        <Select value={dept} onValueChange={v => setDept(v as StaffDepartment)} disabled={!isManager}>
+        <Select value={dept} onValueChange={v => setDept(v as StaffDepartment)} disabled={!canManage}>
           <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
           <SelectContent>
             {DEPARTMENT_ORDER.map(d => (
@@ -265,7 +265,7 @@ const EmployeeList = () => {
             ))}
           </SelectContent>
         </Select>
-        <Button onClick={() => { if (name && isManager) { createStaff.mutate({ name, department: dept }); setName(""); } else if (!isManager) { toast.error("Manager access required"); } }} disabled={!name || !isManager}>
+        <Button onClick={() => { if (name && canManage) { createStaff.mutate({ name, department: dept }); setName(""); } else if (!canManage) { toast.error("Manager or HR access required"); } }} disabled={!name || !canManage}>
           <UserPlus className="w-4 h-4 mr-1" /> Add
         </Button>
       </div>
