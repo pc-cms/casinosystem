@@ -27,7 +27,7 @@ const SINGLE_SHORTCUTS: Record<string, string> = {
 const ALT_SHORTCUTS: Record<string, string> = {
   b: "/pit?tab=breaklist",
   f: "/staff",
-  g: "/guests",
+  g: "/in-casino",
   l: "/logs",
   r: "/reports",
   a: "/admin",
