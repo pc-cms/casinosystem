@@ -981,6 +981,7 @@ export type Database = {
           is_pit_boss: boolean
           name: string
           onboarding_date: string | null
+          photo_url: string | null
           salary: number | null
         }
         Insert: {
@@ -994,6 +995,7 @@ export type Database = {
           is_pit_boss?: boolean
           name: string
           onboarding_date?: string | null
+          photo_url?: string | null
           salary?: number | null
         }
         Update: {
@@ -1007,6 +1009,7 @@ export type Database = {
           is_pit_boss?: boolean
           name?: string
           onboarding_date?: string | null
+          photo_url?: string | null
           salary?: number | null
         }
         Relationships: [
@@ -1765,6 +1768,7 @@ export type Database = {
           is_active: boolean
           name: string
           onboarding_date: string | null
+          photo_url: string | null
           salary: number | null
         }
         Insert: {
@@ -1777,6 +1781,7 @@ export type Database = {
           is_active?: boolean
           name: string
           onboarding_date?: string | null
+          photo_url?: string | null
           salary?: number | null
         }
         Update: {
@@ -1789,6 +1794,7 @@ export type Database = {
           is_active?: boolean
           name?: string
           onboarding_date?: string | null
+          photo_url?: string | null
           salary?: number | null
         }
         Relationships: [
@@ -2210,7 +2216,7 @@ export type Database = {
         | "manager"
         | "reception"
         | "finance_manager"
-        | "security"
+        | "surveillance"
         | "super_admin"
         | "hr"
       card_type: "manual" | "rfid"
@@ -2440,7 +2446,7 @@ export const Constants = {
         "manager",
         "reception",
         "finance_manager",
-        "security",
+        "surveillance",
         "super_admin",
         "hr",
       ],

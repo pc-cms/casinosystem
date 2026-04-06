@@ -1,7 +1,7 @@
 // Role-based data visibility configuration
 // Controls what financial/sensitive data each role can see
 
-type AppRole = "cashier" | "pit" | "manager" | "reception" | "finance_manager" | "security" | "super_admin" | "hr";
+type AppRole = "cashier" | "pit" | "manager" | "reception" | "finance_manager" | "surveillance" | "super_admin" | "hr";
 
 export type FinancialScope = "all" | "shift" | "none";
 
@@ -12,7 +12,7 @@ export type FinancialScope = "all" | "shift" | "none";
  * - "none": Cannot see any financial data (reception)
  */
 export const getFinancialScope = (roles: string[]): FinancialScope => {
-  if (roles.includes("manager") || roles.includes("finance_manager") || roles.includes("security") || roles.includes("super_admin")) {
+  if (roles.includes("manager") || roles.includes("finance_manager") || roles.includes("surveillance") || roles.includes("super_admin")) {
     return "all";
   }
   if (roles.includes("cashier") || roles.includes("pit")) {

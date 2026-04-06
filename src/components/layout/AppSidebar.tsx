@@ -17,25 +17,25 @@ import { toast } from "sonner";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 
-type AppRole = "cashier" | "pit" | "manager" | "reception" | "finance_manager" | "security" | "super_admin" | "hr";
+type AppRole = "cashier" | "pit" | "manager" | "reception" | "finance_manager" | "surveillance" | "super_admin" | "hr";
 
 const NAV_ITEMS: { to: string; icon: typeof LayoutDashboard; label: string; shortcut: string; roles: AppRole[]; section: string }[] = [
-  { to: "/", icon: LayoutDashboard, label: "Dashboard", shortcut: "D", roles: ["super_admin", "manager", "pit", "reception", "finance_manager", "security"], section: "OVERVIEW" },
-  { to: "/blacklist", icon: ShieldAlert, label: "Blacklist", shortcut: "B", roles: ["super_admin", "manager", "reception", "finance_manager", "security"], section: "OPERATIONS" },
+  { to: "/", icon: LayoutDashboard, label: "Dashboard", shortcut: "D", roles: ["super_admin", "manager", "pit", "reception", "finance_manager", "surveillance"], section: "OVERVIEW" },
+  { to: "/blacklist", icon: ShieldAlert, label: "Blacklist", shortcut: "B", roles: ["super_admin", "manager", "reception", "finance_manager", "surveillance"], section: "OPERATIONS" },
   { to: "/pit?tab=breaklist", icon: ListChecks, label: "Breaklist", shortcut: "Alt+B", roles: ["super_admin", "manager", "pit", "finance_manager"], section: "OPERATIONS" },
   { to: "/cage", icon: Landmark, label: "Cage", shortcut: "C", roles: ["super_admin", "manager", "cashier", "finance_manager"], section: "OPERATIONS" },
   { to: "/expenses", icon: Receipt, label: "Expenses", shortcut: "E", roles: ["super_admin", "manager", "cashier", "finance_manager"], section: "OPERATIONS" },
   { to: "/finance", icon: Wallet, label: "Finance", shortcut: "F", roles: ["super_admin", "manager", "finance_manager"], section: "OPERATIONS" },
   { to: "/groups", icon: UsersRound, label: "Groups", shortcut: "G", roles: ["super_admin", "manager", "finance_manager"], section: "OPERATIONS" },
-  { to: "/in-casino", icon: Users, label: "In Casino", shortcut: "Alt+G", roles: ["super_admin", "manager", "reception", "pit", "finance_manager", "security"], section: "OPERATIONS" },
+  { to: "/in-casino", icon: Users, label: "In Casino", shortcut: "Alt+G", roles: ["super_admin", "manager", "reception", "pit", "finance_manager", "surveillance"], section: "OPERATIONS" },
   { to: "/pit", icon: Gamepad2, label: "Live Game", shortcut: "L", roles: ["super_admin", "manager", "pit", "finance_manager", "hr"], section: "OPERATIONS" },
-  { to: "/players", icon: Users, label: "Players", shortcut: "P", roles: ["super_admin", "manager", "cashier", "finance_manager", "security"], section: "OPERATIONS" },
+  { to: "/players", icon: Users, label: "Players", shortcut: "P", roles: ["super_admin", "manager", "cashier", "finance_manager", "surveillance"], section: "OPERATIONS" },
   { to: "/reception", icon: DoorOpen, label: "Reception", shortcut: "R", roles: ["super_admin", "manager", "reception", "finance_manager"], section: "OPERATIONS" },
-  { to: "/tables", icon: Table2, label: "Tables", shortcut: "T", roles: ["super_admin", "manager", "cashier", "pit", "finance_manager", "security"], section: "OPERATIONS" },
+  { to: "/tables", icon: Table2, label: "Tables", shortcut: "T", roles: ["super_admin", "manager", "cashier", "pit", "finance_manager", "surveillance"], section: "OPERATIONS" },
   { to: "/staff", icon: Building2, label: "Floor Staff", shortcut: "Alt+F", roles: ["super_admin", "manager", "pit", "finance_manager", "hr"], section: "HR" },
-  { to: "/logs", icon: ClipboardList, label: "Logs", shortcut: "Alt+L", roles: ["super_admin", "manager", "finance_manager", "security"], section: "ANALYTICS" },
-  { to: "/reports", icon: FileBarChart, label: "Reports", shortcut: "Alt+R", roles: ["super_admin", "manager", "finance_manager", "security"], section: "ANALYTICS" },
-  { to: "/stats", icon: BarChart3, label: "Stats", shortcut: "S", roles: ["super_admin", "manager", "finance_manager", "security"], section: "ANALYTICS" },
+  { to: "/logs", icon: ClipboardList, label: "Logs", shortcut: "Alt+L", roles: ["super_admin", "manager", "finance_manager", "surveillance"], section: "ANALYTICS" },
+  { to: "/reports", icon: FileBarChart, label: "Reports", shortcut: "Alt+R", roles: ["super_admin", "manager", "finance_manager", "surveillance"], section: "ANALYTICS" },
+  { to: "/stats", icon: BarChart3, label: "Stats", shortcut: "S", roles: ["super_admin", "manager", "finance_manager", "surveillance"], section: "ANALYTICS" },
 ];
 
 const TABLE_SUBITEMS = [
@@ -212,15 +212,15 @@ const SidebarInner = ({ onNavigate }: { onNavigate?: () => void }) => {
               roles.includes("pit") ? "bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-400" :
               roles.includes("cashier") ? "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400" :
               roles.includes("reception") ? "bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-400" :
-              roles.includes("security") ? "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400" :
+              roles.includes("surveillance") ? "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400" :
               "bg-sidebar-accent text-sidebar-accent-foreground"
             }`}>
               {(() => {
-                const priority: AppRole[] = ["manager", "finance_manager", "hr", "pit", "cashier", "reception", "security"];
+                const priority: AppRole[] = ["manager", "finance_manager", "hr", "pit", "cashier", "reception", "surveillance"];
                 const primary = priority.find(r => roles.includes(r)) || roles[0] || "user";
                 const labels: Record<string, string> = {
                   manager: "Manager", finance_manager: "Finance", hr: "HR", pit: "Pit",
-                  cashier: "Cashier", reception: "Reception", security: "Security",
+                  cashier: "Cashier", reception: "Reception", surveillance: "Surveillance",
                 };
                 return labels[primary] || primary.charAt(0).toUpperCase() + primary.slice(1);
               })()}

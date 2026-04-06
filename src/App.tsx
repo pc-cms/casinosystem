@@ -70,21 +70,21 @@ const FullScreenLoader = ({ label = "Loading CMS..." }: { label?: string }) => (
 
 // Role-based route access map
 const ROUTE_ROLES: Record<string, string[]> = {
-  "/": ["super_admin", "manager", "pit", "reception", "finance_manager", "security"],
-  "/players": ["super_admin", "manager", "cashier", "finance_manager", "security"],
-  "/in-casino": ["super_admin", "manager", "reception", "pit", "finance_manager", "security"],
-  "/blacklist": ["super_admin", "manager", "reception", "finance_manager", "security"],
+  "/": ["super_admin", "manager", "pit", "reception", "finance_manager", "surveillance"],
+  "/players": ["super_admin", "manager", "cashier", "finance_manager", "surveillance"],
+  "/in-casino": ["super_admin", "manager", "reception", "pit", "finance_manager", "surveillance"],
+  "/blacklist": ["super_admin", "manager", "reception", "finance_manager", "surveillance"],
   "/reception": ["super_admin", "manager", "reception", "finance_manager"],
   "/cage": ["super_admin", "manager", "cashier", "finance_manager"],
-  "/tables": ["super_admin", "manager", "cashier", "pit", "finance_manager", "security"],
+  "/tables": ["super_admin", "manager", "cashier", "pit", "finance_manager", "surveillance"],
   "/expenses": ["super_admin", "manager", "cashier", "finance_manager"],
   "/pit": ["super_admin", "manager", "pit", "finance_manager", "hr"],
   "/floor": ["super_admin", "manager", "pit", "finance_manager", "hr"],
   "/groups": ["super_admin", "manager", "finance_manager"],
   "/finance": ["super_admin", "manager", "finance_manager"],
-  "/reports": ["super_admin", "manager", "finance_manager", "security"],
-  "/stats": ["super_admin", "manager", "finance_manager", "security"],
-  "/logs": ["super_admin", "manager", "finance_manager", "security"],
+  "/reports": ["super_admin", "manager", "finance_manager", "surveillance"],
+  "/stats": ["super_admin", "manager", "finance_manager", "surveillance"],
+  "/logs": ["super_admin", "manager", "finance_manager", "surveillance"],
   "/admin": ["super_admin", "manager"],
   "/staff": ["super_admin", "manager", "pit", "finance_manager", "hr"],
 };
@@ -102,16 +102,16 @@ const RoleGuard = ({ path, children }: { path: string; children: React.ReactNode
 const getDefaultRoute = (roles: string[]) => {
   if (roles.includes("super_admin")) return "/admin";
   // Security-only users on premier will be handled by CCTV mode, but default route still needed
-  if (roles.includes("security") && !roles.some(r => ["manager", "pit", "cashier", "reception", "finance_manager", "super_admin", "hr"].includes(r))) {
+  if (roles.includes("surveillance") && !roles.some(r => ["manager", "pit", "cashier", "reception", "finance_manager", "super_admin", "hr"].includes(r))) {
     return "/";
   }
-  if (roles.includes("hr") && !roles.some(r => ["manager", "pit", "cashier", "reception", "finance_manager", "security", "super_admin"].includes(r))) {
+  if (roles.includes("hr") && !roles.some(r => ["manager", "pit", "cashier", "reception", "finance_manager", "surveillance", "super_admin"].includes(r))) {
     return "/staff";
   }
-  if (roles.includes("reception") && !roles.some(r => ["manager", "pit", "cashier", "finance_manager", "security", "super_admin", "hr"].includes(r))) {
+  if (roles.includes("reception") && !roles.some(r => ["manager", "pit", "cashier", "finance_manager", "surveillance", "super_admin", "hr"].includes(r))) {
     return "/reception";
   }
-  if (roles.includes("cashier") && !roles.some(r => ["manager", "pit", "reception", "finance_manager", "security", "super_admin", "hr"].includes(r))) {
+  if (roles.includes("cashier") && !roles.some(r => ["manager", "pit", "reception", "finance_manager", "surveillance", "super_admin", "hr"].includes(r))) {
     return "/cage";
   }
   return "/";
@@ -134,8 +134,8 @@ const ProtectedRoutes = () => {
   }
   if (!user) return <Navigate to="/login" replace />;
 
-  // CCTV mode: security role on premier subdomain gets dedicated interface
-  const isCctvMode = detectedSlug === "__premier__" && roles.includes("security") &&
+  // CCTV mode: surveillance role on premier subdomain gets dedicated interface
+  const isCctvMode = detectedSlug === "__premier__" && roles.includes("surveillance") &&
     !roles.includes("super_admin") && !roles.includes("finance_manager");
 
   if (isCctvMode) {

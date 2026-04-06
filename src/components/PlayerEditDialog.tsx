@@ -64,7 +64,7 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
   const [noteType, setNoteType] = useState<string>("info");
   const [addingNote, setAddingNote] = useState(false);
 
-  const canSeeNotes = roles.some(r => ["pit", "security", "manager"].includes(r)) || isManager;
+  const canSeeNotes = roles.some(r => ["pit", "surveillance", "manager"].includes(r)) || isManager;
   const canEditCategory = isManager;
 
   useEffect(() => {

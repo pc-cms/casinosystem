@@ -39,7 +39,7 @@ export const useCreateDealer = () => {
 export const useUpdateDealer = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, ...fields }: { id: string; salary?: number | null; contract_start?: string | null; contract_end?: string | null; onboarding_date?: string | null; is_active?: boolean; category?: string; is_pit_boss?: boolean }) => {
+    mutationFn: async ({ id, ...fields }: { id: string; name?: string; salary?: number | null; contract_start?: string | null; contract_end?: string | null; onboarding_date?: string | null; is_active?: boolean; category?: string; is_pit_boss?: boolean; photo_url?: string | null }) => {
       const { error } = await supabase.from("dealers").update(fields as any).eq("id", id);
       if (error) throw error;
     },
