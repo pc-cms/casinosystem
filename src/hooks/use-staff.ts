@@ -33,12 +33,13 @@ export const DEPARTMENT_ORDER: StaffDepartment[] = [
   "security", "cashier", "bartender", "hostess", "waiter", "cleaner", "it", "hr",
 ];
 
-const STAFF_SHIFTS = ["D", "N", "L", "O"] as const;
+const STAFF_SHIFTS = ["D", "N", "L", "E", "O"] as const;
 
 export const STAFF_SHIFT_LABELS: Record<string, string> = {
   D: "Day (12:45)",
-  N: "Night",
+  N: "Night (20:45)",
   L: "Leave",
+  E: "Extra",
   O: "Off",
 };
 
