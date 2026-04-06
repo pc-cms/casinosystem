@@ -333,7 +333,7 @@ const EmployeeList = () => {
                   </td>
                   <td className="px-4 py-2 text-sm text-muted-foreground font-mono">{calcYears(s.onboarding_date)}</td>
                   <td className="px-4 py-2">
-                    <span className={`font-mono text-xs font-bold ${daysLeft === null ? "text-muted-foreground" : daysLeft <= 40 ? "text-red-400" : daysLeft <= 90 ? "text-amber-400" : "text-emerald-400"}`}>
+                    <span className={`font-mono text-xs font-bold ${daysLeft === null ? "text-muted-foreground" : daysLeft <= 40 ? "text-red-600 dark:text-red-400" : daysLeft <= 90 ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"}`}>
                       {daysLeft === null ? "—" : `${daysLeft}d`}
                     </span>
                   </td>
