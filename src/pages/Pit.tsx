@@ -32,8 +32,8 @@ const SHIFT_LABELS: Record<string, string> = {
 };
 
 const ATT_COLORS: Record<string, string> = {
-  A: "bg-red-500/30 text-red-300",
-  S: "bg-amber-500/30 text-amber-300",
+  A: "bg-red-100 text-red-700 dark:bg-red-500/30 dark:text-red-300",
+  S: "bg-amber-100 text-amber-700 dark:bg-amber-500/30 dark:text-amber-300",
 };
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
