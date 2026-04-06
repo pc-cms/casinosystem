@@ -168,11 +168,22 @@
 @media print {
   @page {
     size: A4 landscape;
-    margin: 8mm;
+    margin: 6mm;
   }
 
   body * {
     visibility: hidden;
+  }
+
+  /* Force light-theme colours when printing (even from dark mode) */
+  body, .dark {
+    --background: 0 0% 97% !important;
+    --foreground: 220 20% 10% !important;
+    --card: 0 0% 100% !important;
+    --card-foreground: 220 20% 10% !important;
+    --muted: 220 14% 95% !important;
+    --muted-foreground: 220 10% 46% !important;
+    --border: 220 13% 88% !important;
   }
 
   .print-title {
@@ -183,9 +194,9 @@
     left: 0;
     width: 100%;
     text-align: center;
-    font-size: 12pt;
+    font-size: 10pt;
     font-weight: bold;
-    padding: 4mm 0 2mm;
+    padding: 2mm 0 1mm;
     color: #000;
   }
 
@@ -197,20 +208,24 @@
   .print-target {
     position: absolute;
     left: 0;
-    top: 10mm;
+    top: 8mm;
     width: 100%;
   }
 
   .print-target table {
-    font-size: 7pt;
+    font-size: 6pt;
     border-collapse: collapse;
     width: 100%;
+    table-layout: fixed;
   }
 
   .print-target th,
   .print-target td {
     border: 0.5px solid #ccc;
-    padding: 1px 2px;
+    padding: 0.5px 1px;
+    line-height: 1.1;
+    overflow: hidden;
+    white-space: nowrap;
   }
 
   .print-target th {
@@ -224,27 +239,50 @@
     border: none;
     background: transparent !important;
     color: #000 !important;
-    font-size: 7pt;
+    font-size: 6pt;
+    padding: 0;
   }
 
   .print-target input {
     border: none;
     background: transparent !important;
     color: #000 !important;
-    font-size: 7pt;
+    font-size: 6pt;
+    padding: 0;
   }
 
   .no-print {
     display: none !important;
   }
 
-  /* Force colored cells to print */
+  /* Force colored cells to print — override dark: variants to light equivalents */
   .print-target [class*="bg-"] {
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
 
+  /* Force light-mode shift colours for print */
+  .print-target .dark\:bg-blue-500\/30 { background-color: rgb(219 234 254) !important; }
+  .print-target .dark\:text-blue-300 { color: rgb(29 78 216) !important; }
+  .print-target .dark\:bg-indigo-500\/30 { background-color: rgb(224 231 255) !important; }
+  .print-target .dark\:text-indigo-300 { color: rgb(67 56 202) !important; }
+  .print-target .dark\:bg-emerald-500\/30 { background-color: rgb(209 250 229) !important; }
+  .print-target .dark\:text-emerald-300 { color: rgb(4 120 87) !important; }
+  .print-target .dark\:bg-purple-500\/30 { background-color: rgb(243 232 255) !important; }
+  .print-target .dark\:text-purple-300 { color: rgb(107 33 168) !important; }
+  .print-target .dark\:bg-amber-500\/30 { background-color: rgb(254 243 199) !important; }
+  .print-target .dark\:text-amber-300 { color: rgb(180 83 9) !important; }
+  .print-target .dark\:bg-red-500\/30 { background-color: rgb(254 226 226) !important; }
+  .print-target .dark\:text-red-300 { color: rgb(185 28 28) !important; }
+  .print-target .dark\:bg-gray-500\/30 { background-color: rgb(243 244 246) !important; }
+  .print-target .dark\:text-gray-300 { color: rgb(55 65 81) !important; }
+
   .print-target .sticky {
     position: static !important;
+  }
+
+  /* Shrink everything to fit A4 landscape in one page */
+  .print-target table {
+    page-break-inside: avoid;
   }
 }
