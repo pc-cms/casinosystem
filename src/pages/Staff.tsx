@@ -499,7 +499,9 @@ const StaffRotaGrid = ({ month }: { month: string }) => {
   };
 
   return (
-    <div className="cms-panel overflow-hidden print-target">
+    <>
+      <div className="print-title hidden">{`Floor Rota — ${month}`}</div>
+      <div className="cms-panel overflow-hidden print-target">
       <table className="w-full border-collapse table-fixed">
         <thead>
           <tr className="border-b border-border">

@@ -667,6 +667,7 @@ const RotaGrid = ({ month }: { month: string }) => {
         </tbody>
       </table>
     </div>
+    </>
   );
 };
 
