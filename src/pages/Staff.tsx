@@ -29,6 +29,8 @@ const DEPT_BADGE_COLORS: Record<string, string> = {
   cleaner: "bg-emerald-100 text-emerald-700 border-emerald-300 dark:bg-emerald-500/20 dark:text-emerald-400 dark:border-emerald-500/30",
   it: "bg-violet-100 text-violet-700 border-violet-300 dark:bg-violet-500/20 dark:text-violet-400 dark:border-violet-500/30",
   hr: "bg-orange-100 text-orange-700 border-orange-300 dark:bg-orange-500/20 dark:text-orange-400 dark:border-orange-500/30",
+  driver: "bg-teal-100 text-teal-700 border-teal-300 dark:bg-teal-500/20 dark:text-teal-400 dark:border-teal-500/30",
+  reception: "bg-rose-100 text-rose-700 border-rose-300 dark:bg-rose-500/20 dark:text-rose-400 dark:border-rose-500/30",
 };
 
 const DEPT_BORDER_COLORS: Record<string, string> = {
@@ -40,6 +42,8 @@ const DEPT_BORDER_COLORS: Record<string, string> = {
   cleaner: "border-emerald-500/50",
   it: "border-violet-500/50",
   hr: "border-orange-500/50",
+  driver: "border-teal-500/50",
+  reception: "border-rose-500/50",
 };
 
 const DEPT_DOT_COLORS: Record<string, string> = {
@@ -51,6 +55,8 @@ const DEPT_DOT_COLORS: Record<string, string> = {
   cleaner: "bg-emerald-400",
   it: "bg-violet-400",
   hr: "bg-orange-400",
+  driver: "bg-teal-400",
+  reception: "bg-rose-400",
 };
 
 const DEPT_ROW_COLORS: Record<string, string> = {
@@ -62,6 +68,8 @@ const DEPT_ROW_COLORS: Record<string, string> = {
   cleaner: "bg-emerald-500/5",
   it: "bg-violet-500/5",
   hr: "bg-orange-500/5",
+  driver: "bg-teal-500/5",
+  reception: "bg-rose-500/5",
 };
 
 const Staff = () => {
