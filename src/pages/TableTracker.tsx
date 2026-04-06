@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from "react";
-import { getBusinessDate } from "@/lib/business-day";
+import { getBusinessDate, nowEAT } from "@/lib/business-day";
 import { useGamingTables, useTableTracker, useSetTableTrackerValue } from "@/hooks/use-casino-data";
 import { Input } from "@/components/ui/input";
 import { formatCurrency, formatInputWithSpaces, parseSpacedNumber } from "@/lib/currency";
@@ -18,7 +18,7 @@ const generateSlots = () => {
 const SLOTS = generateSlots();
 
 const getCurrentSlot = () => {
-  const now = new Date();
+  const now = nowEAT();
   const h = now.getHours();
   const m = Math.floor(now.getMinutes() / 30) * 30;
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;

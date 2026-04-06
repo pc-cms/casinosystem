@@ -5,8 +5,7 @@ import { useAuth } from "@/lib/auth-context";
 import { Lock, Unlock, LockKeyhole } from "lucide-react";
 import { toast } from "sonner";
 import { ALL_ROLES, ROLE_COLORS, TABLE_ROLES } from "@/lib/currency";
-import { isBusinessToday, isAfterBreaklistLock } from "@/lib/business-day";
-
+import { isBusinessToday, isAfterBreaklistLock, nowEAT } from "@/lib/business-day";
 const CATEGORY_LABELS: Record<string, string> = {
   trainee: "T",
   dealer: "D",
@@ -47,7 +46,7 @@ const TIME_SLOTS = generateTimeSlots();
 
 // Get current active slot
 const getCurrentSlot = () => {
-  const now = new Date();
+  const now = nowEAT();
   const h = now.getHours();
   const m = Math.floor(now.getMinutes() / 20) * 20;
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
@@ -202,14 +201,14 @@ const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }
           <table className="w-full border-collapse">
             <thead>
               <tr className="border-b border-border">
+                <th className="text-center text-[9px] font-medium text-muted-foreground uppercase px-1 py-2 min-w-[24px] sticky left-0 bg-card z-10">
+                  C
+                </th>
                 <th
                   onClick={() => setSortBy("name")}
-                  className="text-left text-xs font-medium text-muted-foreground uppercase px-3 py-2 sticky left-0 bg-card z-10 min-w-[130px] cursor-pointer hover:text-foreground select-none"
+                  className="text-left text-xs font-medium text-muted-foreground uppercase px-3 py-2 sticky left-[24px] bg-card z-10 min-w-[120px] cursor-pointer hover:text-foreground select-none"
                 >
-                  Dealer {sortBy === "name" && "↓"}
-                </th>
-                <th className="text-center text-[9px] font-medium text-muted-foreground uppercase px-1 py-2 min-w-[28px]">
-                  Cat
+                  Name {sortBy === "name" && "↓"}
                 </th>
                 <th
                   onClick={() => setSortBy("shift")}
@@ -238,7 +237,12 @@ const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }
                 const shift = getDealerShift(dealer.id);
                 return (
                   <tr key={dealer.id} className={`border-b border-border last:border-0 ${idx % 2 === 1 ? "bg-muted/10" : ""}`}>
-                    <td className={`px-3 py-1 text-xs font-medium text-card-foreground sticky left-0 z-10 ${idx % 2 === 1 ? "bg-card/95" : "bg-card"}`}>
+                    <td className={`text-center py-1 sticky left-0 z-10 ${idx % 2 === 1 ? "bg-card/95" : "bg-card"}`}>
+                      <span className={`inline-flex items-center justify-center w-5 h-5 rounded text-[9px] font-mono font-bold ${CATEGORY_COLORS[dealer.category] || "text-muted-foreground"}`}>
+                        {CATEGORY_LABELS[dealer.category] || "?"}
+                      </span>
+                    </td>
+                    <td className={`px-3 py-1 text-xs font-medium text-card-foreground sticky left-[24px] z-10 ${idx % 2 === 1 ? "bg-card/95" : "bg-card"}`}>
                       <div className="flex items-center justify-between">
                         <span>{dealer.name}</span>
                         {lockedCount > 0 && (
@@ -247,11 +251,6 @@ const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }
                           </span>
                         )}
                       </div>
-                    </td>
-                    <td className={`text-center py-1 ${idx % 2 === 1 ? "bg-card/95" : "bg-card"}`}>
-                      <span className={`px-1 py-0.5 rounded text-[8px] font-mono font-bold ${CATEGORY_COLORS[dealer.category] || "text-muted-foreground"}`}>
-                        {CATEGORY_LABELS[dealer.category] || "?"}
-                      </span>
                     </td>
                     <td className={`text-center py-1 ${idx % 2 === 1 ? "bg-card/95" : "bg-card"}`}>
                       {shift && (
