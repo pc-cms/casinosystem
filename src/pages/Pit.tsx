@@ -161,12 +161,18 @@ const Pit = () => {
                 <span key={s} className={`px-2 py-0.5 rounded text-[10px] font-mono ${SHIFT_COLORS[s]}`}>{s} = {SHIFT_LABELS[s]}</span>
               ))}
               <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-muted/20 text-muted-foreground">· = Off</span>
+              <Button variant="outline" size="sm" className="ml-2 gap-1 text-xs" onClick={() => { document.querySelector('.print-target')?.classList.add('print-target'); window.print(); }}>
+                <Printer className="w-3.5 h-3.5" /> Print
+              </Button>
             </div>
           )}
           {activeTab === "attendance" && (
             <div className="flex items-center gap-1.5">
               <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-red-500/30 text-red-300">A = Absent</span>
               <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-amber-500/30 text-amber-300">S = Sick</span>
+              <Button variant="outline" size="sm" className="ml-2 gap-1 text-xs" onClick={() => window.print()}>
+                <Printer className="w-3.5 h-3.5" /> Print
+              </Button>
             </div>
           )}
         </div>
