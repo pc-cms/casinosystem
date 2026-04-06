@@ -19,7 +19,7 @@ const Players = () => {
   const debouncedQuery = useDebouncedValue(query, 250);
   const [showAdd, setShowAdd] = useState(false);
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
-  const [categoryFilter, setCategoryFilter] = useState<Set<PlayerCategory>>(new Set(["diamond", "platinum", "gold", "guest"]));
+  const [categoryFilter, setCategoryFilter] = useState<Set<PlayerCategory>>(new Set(["diamond", "platinum", "gold", "normal"]));
   const [sortByCategory, setSortByCategory] = useState(true);
   const searchRef = useRef<HTMLInputElement>(null);
   const parentRef = useRef<HTMLDivElement>(null);
