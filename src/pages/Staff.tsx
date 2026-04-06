@@ -560,10 +560,32 @@ const StaffRotaGrid = ({ month, groupKey }: { month: string; groupKey: RotaGroup
     </thead>
   );
 
+  // Floor page break logic: Bar+Housekeeping on page 1, Waiters+Hostess+Reception on page 2
+  const FLOOR_PAGE1_DEPTS = ["bartender", "cleaner"];
+
+  const shouldBreakAfter = (dept: string, idx: number) => {
+    // If only one dept visible (filtered), no break
+    if (visibleDepts.length <= 1) return false;
+    // Last dept never gets a break
+    if (idx === visibleDepts.length - 1) return false;
+    // For floor group with "all" filter: break after cleaner (page 1 = bar+housekeeping)
+    if (groupKey === "floor" && filterDept === "all" && FLOOR_PAGE1_DEPTS.includes(dept)) {
+      const nextDept = visibleDepts[idx + 1];
+      return !FLOOR_PAGE1_DEPTS.includes(nextDept);
+    }
+    // For other groups or single-dept groups: break between each dept table
+    if (groupKey !== "floor" || filterDept !== "all") return true;
+    return false;
+  };
+
+  const printTitle = `${group.label} Rota`;
+  const printLegend = group.shifts.filter(s => s !== "O").map(s => ({
+    code: s,
+    label: group.shiftLabels[s],
+  }));
+
   return (
     <>
-      <div className="print-title hidden">{`${group.label} Rota — ${month}`}</div>
-
       {/* Department filter (only if multiple departments) */}
       {showFilter && (
         <div className="flex items-center gap-1.5 mb-3 flex-wrap no-print">
@@ -597,11 +619,32 @@ const StaffRotaGrid = ({ month, groupKey }: { month: string; groupKey: RotaGroup
       {/* Render each department as a separate table for clean page breaks */}
       {visibleDepts.map((dept, deptIdx) => {
         const members = grouped[dept] || [];
+        const isFirstOnPage = deptIdx === 0 ||
+          (groupKey === "floor" && filterDept === "all" && !FLOOR_PAGE1_DEPTS.includes(dept) && FLOOR_PAGE1_DEPTS.includes(visibleDepts[deptIdx - 1]));
+
         return (
           <div
             key={dept}
-            className={`cms-panel overflow-hidden print-target ${deptIdx < visibleDepts.length - 1 ? "mb-3 print-dept-break" : ""}`}
+            className={`cms-panel overflow-hidden print-target ${deptIdx < visibleDepts.length - 1 ? "mb-3" : ""} ${shouldBreakAfter(dept, deptIdx) ? "print-page-break" : ""}`}
           >
+            {/* Print header — visible only when printing, shown at top of each page section */}
+            {isFirstOnPage && (
+              <div className="hidden print-header">
+                <span className="print-header-title">{printTitle}</span>
+                <span className="print-header-month">{monthLabel}</span>
+                <div className="print-header-legend">
+                  {printLegend.map(l => (
+                    <span key={l.code} style={{
+                      background: l.code === "D" || l.code === "M" ? "#fef3c7" : l.code === "N" ? "#e0f2fe" : l.code === "G" ? "#e0e7ff" : l.code === "L" ? "#d1fae5" : l.code === "E" ? "#f3e8ff" : "#f3f4f6",
+                      color: l.code === "D" || l.code === "M" ? "#b45309" : l.code === "N" ? "#0369a1" : l.code === "G" ? "#4338ca" : l.code === "L" ? "#047857" : l.code === "E" ? "#6b21a8" : "#374151",
+                    }}>
+                      {l.code} = {l.label}
+                    </span>
+                  ))}
+                  <span style={{ background: "#f3f4f6", color: "#374151" }}>O = Off</span>
+                </div>
+              </div>
+            )}
             <table className="w-full border-collapse table-fixed">
               {renderTableHeader()}
               <tbody>
@@ -628,7 +671,7 @@ const StaffRotaGrid = ({ month, groupKey }: { month: string; groupKey: RotaGroup
       })}
 
       {/* Summary per day */}
-      <div className="cms-panel overflow-hidden print-target mt-3">
+      <div className="cms-panel overflow-hidden print-target print-summary-section mt-3">
         <table className="w-full border-collapse table-fixed">
           {renderTableHeader()}
           <tbody>
@@ -636,7 +679,8 @@ const StaffRotaGrid = ({ month, groupKey }: { month: string; groupKey: RotaGroup
               <tr key={shiftKey} className={si === 0 ? "border-t-2 border-border" : ""}>
                 <td className="px-1 py-1 text-[9px] font-mono font-bold text-card-foreground sticky left-0 bg-card z-10">Σ {shiftKey}</td>
                 {days.map(day => {
-                  const count = activeStaff.filter(s => getDisplayShift(s.id, day)?.shift === shiftKey).length;
+                  const filteredStaff = filterDept === "all" ? activeStaff : activeStaff.filter(s => s.department === filterDept);
+                  const count = filteredStaff.filter(s => getDisplayShift(s.id, day)?.shift === shiftKey).length;
                   return <td key={day} className="text-center text-[9px] font-mono font-bold text-card-foreground">{count || ""}</td>;
                 })}
                 <td colSpan={2} />
@@ -645,7 +689,8 @@ const StaffRotaGrid = ({ month, groupKey }: { month: string; groupKey: RotaGroup
             <tr>
               <td className="px-1 py-1 text-[9px] font-mono font-bold text-card-foreground sticky left-0 bg-card z-10">Σ All</td>
               {days.map(day => {
-                const count = activeStaff.filter(s => {
+                const filteredStaff = filterDept === "all" ? activeStaff : activeStaff.filter(s => s.department === filterDept);
+                const count = filteredStaff.filter(s => {
                   const sh = getDisplayShift(s.id, day)?.shift;
                   return sh && summaryShifts.includes(sh);
                 }).length;
