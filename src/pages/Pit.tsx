@@ -21,7 +21,7 @@ const ROTA_SHIFTS = ["M", "N", "L", "E"] as const;
 const SHIFT_COLORS = UNIFIED_SHIFT_COLORS;
 
 const SHIFT_LABELS: Record<string, string> = {
-  M: "Middle (18:00)",
+  M: "Middle (17:45)",
   N: "Night (20:45)",
   L: "Leave",
   E: "Extra",
