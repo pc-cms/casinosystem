@@ -175,6 +175,20 @@
     visibility: hidden;
   }
 
+  .print-title {
+    display: block !important;
+    visibility: visible !important;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    text-align: center;
+    font-size: 12pt;
+    font-weight: bold;
+    padding: 4mm 0 2mm;
+    color: #000;
+  }
+
   .print-target,
   .print-target * {
     visibility: visible !important;
@@ -183,7 +197,7 @@
   .print-target {
     position: absolute;
     left: 0;
-    top: 0;
+    top: 10mm;
     width: 100%;
   }
 
