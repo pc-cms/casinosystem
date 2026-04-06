@@ -203,7 +203,8 @@ const getDaysLeft = (contractEnd: string | null): number | null => {
 const DEALER_CATEGORIES: DealerCategory[] = ["trainee", "dealer", "inspector", "expert", "pit_boss"];
 
 const DealerEmployeeList = () => {
-  const { isManager } = useAuth();
+  const { isManager, roles } = useAuth();
+  const canManage = isManager || roles.includes("hr");
   const { data: dealers = [] } = useDealers();
   const createDealer = useCreateDealer();
   const updateDealer = useUpdateDealer();
@@ -249,7 +250,7 @@ const DealerEmployeeList = () => {
 
   const handleAdd = () => {
     if (!name) return;
-    if (!isManager) { toast.error("Manager access required"); return; }
+    if (!canManage) { toast.error("Manager or HR access required"); return; }
     const isPitBoss = category === "pit_boss";
     createDealer.mutate({ name, category: isPitBoss ? "dealer" : category, is_pit_boss: isPitBoss });
     setName("");
@@ -319,10 +320,10 @@ const DealerEmployeeList = () => {
           </SelectContent>
         </Select>
         <div className="w-px h-6 bg-border mx-1" />
-        <Input placeholder="Name" value={name} onChange={e => setName(e.target.value)} className="w-[200px]" disabled={!isManager}
+        <Input placeholder="Name" value={name} onChange={e => setName(e.target.value)} className="w-[200px]" disabled={!canManage}
           onKeyDown={e => { if (e.key === "Enter") handleAdd(); }}
         />
-        <Select value={category} onValueChange={v => setCategory(v as DealerCategory)} disabled={!isManager}>
+        <Select value={category} onValueChange={v => setCategory(v as DealerCategory)} disabled={!canManage}>
           <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
           <SelectContent>
             {DEALER_CATEGORIES.map(c => (
@@ -330,7 +331,7 @@ const DealerEmployeeList = () => {
             ))}
           </SelectContent>
         </Select>
-        <Button onClick={handleAdd} disabled={!name || !isManager}>
+        <Button onClick={handleAdd} disabled={!name || !canManage}>
           <UserPlus className="w-4 h-4 mr-1" /> Add
         </Button>
       </div>
@@ -398,7 +399,7 @@ const DealerEmployeeList = () => {
                   </td>
                   <td className="px-4 py-2">
                     <button onClick={() => {
-                      if (!isManager) { toast.error("Manager access required"); return; }
+                      if (!canManage) { toast.error("Manager or HR access required"); return; }
                       updateDealer.mutate({ id: d.id, is_active: !d.is_active });
                     }}
                       className={`text-xs font-medium cursor-pointer hover:underline ${d.is_active ? "text-emerald-400" : "text-red-400"}`}>
