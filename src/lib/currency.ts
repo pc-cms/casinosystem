@@ -117,15 +117,15 @@ export const CHIP_DISTRIBUTION = {
   safe: 100,
 } as const;
 
-// Role display colors
+// Role display colors — light mode uses solid pastels, dark mode uses semi-transparent
 export const ROLE_COLORS: Record<string, string> = {
-  P: "bg-violet-600/25 text-violet-300",
-  Pi: "bg-violet-500/20 text-violet-200",
-  BJ: "bg-sky-600/25 text-sky-300",
-  BJi: "bg-sky-500/20 text-sky-200",
-  AR: "bg-emerald-600/20 text-emerald-400",
-  ARi: "bg-emerald-500/15 text-emerald-300",
-  ARc: "bg-emerald-400/15 text-emerald-200",
+  P: "bg-violet-100 text-violet-800 dark:bg-violet-600/25 dark:text-violet-300",
+  Pi: "bg-violet-50 text-violet-700 dark:bg-violet-500/20 dark:text-violet-200",
+  BJ: "bg-sky-100 text-sky-800 dark:bg-sky-600/25 dark:text-sky-300",
+  BJi: "bg-sky-50 text-sky-700 dark:bg-sky-500/20 dark:text-sky-200",
+  AR: "bg-emerald-100 text-emerald-800 dark:bg-emerald-600/20 dark:text-emerald-400",
+  ARi: "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300",
+  ARc: "bg-teal-50 text-teal-700 dark:bg-emerald-400/15 dark:text-emerald-200",
   BR: "bg-muted text-muted-foreground",
 };
 
