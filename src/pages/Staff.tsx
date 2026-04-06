@@ -357,6 +357,7 @@ const EmployeeList = () => {
 
 // =================== STAFF ROTA GRID ===================
 const StaffRotaGrid = ({ month }: { month: string }) => {
+  const [filterDept, setFilterDept] = useState<string>("all");
   const [y, m] = month.split("-").map(Number);
   const daysInMonth = new Date(y, m, 0).getDate();
   const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
@@ -487,6 +488,11 @@ const StaffRotaGrid = ({ month }: { month: string }) => {
     return groups;
   }, [activeStaff]);
 
+  const visibleDepts = useMemo(() => {
+    if (filterDept === "all") return DEPARTMENT_ORDER.filter(d => (grouped[d] || []).length > 0);
+    return (grouped[filterDept] || []).length > 0 ? [filterDept as StaffDepartment] : [];
+  }, [filterDept, grouped]);
+
   const getStats = (staffId: string) => {
     const counts: Record<string, number> = {};
     days.forEach(day => {
@@ -496,93 +502,136 @@ const StaffRotaGrid = ({ month }: { month: string }) => {
     return counts;
   };
 
+  const renderTableHeader = () => (
+    <thead>
+      <tr className="border-b border-border">
+        <th className="text-left text-xs font-medium text-muted-foreground uppercase px-1 py-2 sticky left-0 bg-card z-10 w-[110px]">
+          Staff
+        </th>
+        {days.map(day => {
+          const dateObj = new Date(y, m - 1, day);
+          const weekday = WEEKDAYS[dateObj.getDay()];
+          const isToday = isCurrentMonth && day === todayDay;
+          const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
+          return (
+            <th key={day} className={`text-center px-0 py-1 ${isToday ? "bg-primary/40" : isWeekend ? "bg-muted/30" : ""}`}>
+              <div className="text-[8px] text-muted-foreground leading-tight">{weekday}</div>
+              <div className={`text-[10px] font-mono leading-tight ${isToday ? "text-primary font-bold" : "text-card-foreground"}`}>{day}</div>
+            </th>
+          );
+        })}
+        <th className="text-center text-[10px] font-medium text-muted-foreground uppercase px-1 py-2 w-8">D</th>
+        <th className="text-center text-[10px] font-medium text-muted-foreground uppercase px-1 py-2 w-8">N</th>
+      </tr>
+    </thead>
+  );
+
   return (
     <>
       <div className="print-title hidden">{`Floor Rota — ${month}`}</div>
-      <div className="cms-panel overflow-hidden print-target">
-      <table className="w-full border-collapse table-fixed">
-        <thead>
-          <tr className="border-b border-border">
-            <th className="text-left text-xs font-medium text-muted-foreground uppercase px-1 py-2 sticky left-0 bg-card z-10 w-[110px]">
-              Staff
-            </th>
-            {days.map(day => {
-              const dateObj = new Date(y, m - 1, day);
-              const weekday = WEEKDAYS[dateObj.getDay()];
-              const isToday = isCurrentMonth && day === todayDay;
-              const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
+
+      {/* Department filter */}
+      <div className="flex items-center gap-1.5 mb-3 flex-wrap no-print">
+        <button
+          onClick={() => setFilterDept("all")}
+          className={`px-2.5 py-1 rounded text-[11px] font-medium transition-colors ${filterDept === "all" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
+        >
+          All
+        </button>
+        {DEPARTMENT_ORDER.map(d => {
+          const count = (grouped[d] || []).length;
+          if (count === 0) return null;
+          return (
+            <button
+              key={d}
+              onClick={() => setFilterDept(filterDept === d ? "all" : d)}
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-medium border transition-colors ${
+                filterDept === d
+                  ? DEPT_BADGE_COLORS[d]
+                  : "bg-muted text-muted-foreground border-transparent hover:bg-muted/80"
+              }`}
+            >
+              <span className={`w-1.5 h-1.5 rounded-full ${DEPT_DOT_COLORS[d]}`} />
+              {DEPARTMENT_LABELS[d]} ({count})
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Render each department as a separate table for clean page breaks */}
+      {visibleDepts.map((dept, deptIdx) => {
+        const members = grouped[dept] || [];
+        return (
+          <div
+            key={dept}
+            className={`cms-panel overflow-hidden print-target ${deptIdx < visibleDepts.length - 1 ? "mb-3 print-dept-break" : ""}`}
+          >
+            <table className="w-full border-collapse table-fixed">
+              {renderTableHeader()}
+              <tbody>
+                <DepartmentBlock
+                  dept={dept}
+                  members={members}
+                  days={days}
+                  month={month}
+                  y={y}
+                  m={m}
+                  isCurrentMonth={isCurrentMonth}
+                  todayDay={todayDay}
+                  getDisplayShift={getDisplayShift}
+                  handleClick={handleClick}
+                  handleKeyDown={handleKeyDown}
+                  handlePaste={handlePaste}
+                  getStats={getStats}
+                />
+              </tbody>
+            </table>
+          </div>
+        );
+      })}
+
+      {/* Summary: D/N count per day, excluding Security */}
+      <div className="cms-panel overflow-hidden print-target mt-3">
+        <table className="w-full border-collapse table-fixed">
+          {renderTableHeader()}
+          <tbody>
+            {(() => {
+              const nonSecurity = activeStaff.filter(s => s.department !== "security");
               return (
-                <th key={day} className={`text-center px-0 py-1 ${isToday ? "bg-primary/40" : isWeekend ? "bg-muted/30" : ""}`}>
-                  <div className="text-[8px] text-muted-foreground leading-tight">{weekday}</div>
-                  <div className={`text-[10px] font-mono leading-tight ${isToday ? "text-primary font-bold" : "text-card-foreground"}`}>{day}</div>
-                </th>
+                <>
+                  <tr className="border-t-2 border-border">
+                    <td className="px-1 py-1 text-[9px] font-mono font-bold text-amber-600 dark:text-amber-400 sticky left-0 bg-card z-10">Σ D</td>
+                    {days.map(day => {
+                      const count = nonSecurity.filter(s => getDisplayShift(s.id, day)?.shift === "D").length;
+                      return <td key={day} className="text-center text-[9px] font-mono font-bold text-amber-600 dark:text-amber-400">{count || ""}</td>;
+                    })}
+                    <td colSpan={2} />
+                  </tr>
+                  <tr>
+                    <td className="px-1 py-1 text-[9px] font-mono font-bold text-indigo-600 dark:text-indigo-400 sticky left-0 bg-card z-10">Σ N</td>
+                    {days.map(day => {
+                      const count = nonSecurity.filter(s => getDisplayShift(s.id, day)?.shift === "N").length;
+                      return <td key={day} className="text-center text-[9px] font-mono font-bold text-indigo-600 dark:text-indigo-400">{count || ""}</td>;
+                    })}
+                    <td colSpan={2} />
+                  </tr>
+                  <tr>
+                    <td className="px-1 py-1 text-[9px] font-mono font-bold text-card-foreground sticky left-0 bg-card z-10">Σ All</td>
+                    {days.map(day => {
+                      const count = nonSecurity.filter(s => {
+                        const sh = getDisplayShift(s.id, day)?.shift;
+                        return sh === "D" || sh === "N";
+                      }).length;
+                      return <td key={day} className="text-center text-[9px] font-mono font-bold text-card-foreground">{count || ""}</td>;
+                    })}
+                    <td colSpan={2} />
+                  </tr>
+                </>
               );
-            })}
-            <th className="text-center text-[10px] font-medium text-muted-foreground uppercase px-1 py-2 w-8">D</th>
-            <th className="text-center text-[10px] font-medium text-muted-foreground uppercase px-1 py-2 w-8">N</th>
-          </tr>
-        </thead>
-        <tbody>
-          {DEPARTMENT_ORDER.map(dept => {
-            const members = grouped[dept] || [];
-            if (members.length === 0) return null;
-            return (
-              <DepartmentBlock
-                key={dept}
-                dept={dept}
-                members={members}
-                days={days}
-                month={month}
-                y={y}
-                m={m}
-                isCurrentMonth={isCurrentMonth}
-                todayDay={todayDay}
-                getDisplayShift={getDisplayShift}
-                handleClick={handleClick}
-                handleKeyDown={handleKeyDown}
-                handlePaste={handlePaste}
-                getStats={getStats}
-              />
-            );
-          })}
-          {/* Summary: D/N count per day, excluding Security */}
-          {(() => {
-            const nonSecurity = activeStaff.filter(s => s.department !== "security");
-            return (
-              <>
-                <tr className="border-t-2 border-border">
-                  <td className="px-1 py-1 text-[9px] font-mono font-bold text-amber-600 dark:text-amber-400 sticky left-0 bg-card z-10">Σ D</td>
-                  {days.map(day => {
-                    const count = nonSecurity.filter(s => getDisplayShift(s.id, day)?.shift === "D").length;
-                    return <td key={day} className="text-center text-[9px] font-mono font-bold text-amber-600 dark:text-amber-400">{count || ""}</td>;
-                  })}
-                  <td colSpan={2} />
-                </tr>
-                <tr>
-                  <td className="px-1 py-1 text-[9px] font-mono font-bold text-indigo-600 dark:text-indigo-400 sticky left-0 bg-card z-10">Σ N</td>
-                  {days.map(day => {
-                    const count = nonSecurity.filter(s => getDisplayShift(s.id, day)?.shift === "N").length;
-                    return <td key={day} className="text-center text-[9px] font-mono font-bold text-indigo-600 dark:text-indigo-400">{count || ""}</td>;
-                  })}
-                  <td colSpan={2} />
-                </tr>
-                <tr>
-                  <td className="px-1 py-1 text-[9px] font-mono font-bold text-card-foreground sticky left-0 bg-card z-10">Σ All</td>
-                  {days.map(day => {
-                    const count = nonSecurity.filter(s => {
-                      const sh = getDisplayShift(s.id, day)?.shift;
-                      return sh === "D" || sh === "N";
-                    }).length;
-                    return <td key={day} className="text-center text-[9px] font-mono font-bold text-card-foreground">{count || ""}</td>;
-                  })}
-                  <td colSpan={2} />
-                </tr>
-              </>
-            );
-          })()}
-        </tbody>
-      </table>
-    </div>
+            })()}
+          </tbody>
+        </table>
+      </div>
     </>
   );
 };
