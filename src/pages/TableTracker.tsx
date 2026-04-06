@@ -18,7 +18,7 @@ const generateSlots = () => {
 const SLOTS = generateSlots();
 
 const getCurrentSlot = () => {
-  const now = new Date();
+  const now = nowEAT();
   const h = now.getHours();
   const m = Math.floor(now.getMinutes() / 30) * 30;
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
