@@ -625,7 +625,7 @@ const CctvView = () => {
   const renderSection = () => {
     switch (section) {
       case "dashboard": return <CctvDashboard />;
-      case "guests": return <CctvGuests />;
+      case "guests": return <CctvInCasino />;
       case "players": return <CctvPlayers />;
       case "blacklist": return <CctvBlacklist />;
       case "tables": return <CctvTables />;

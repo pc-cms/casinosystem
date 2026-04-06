@@ -312,7 +312,7 @@ const InCasino = () => {
       </div>
 
       {stillIn.length === 0 && checkedOut.length === 0 ? (
-        <div className="cms-panel p-6 sm:p-8 text-center text-muted-foreground">No visitors today</div>
+        <div className="cms-panel p-6 sm:p-8 text-center text-muted-foreground">No players today</div>
       ) : (
         <div className="space-y-3 sm:space-y-4">
           {stillIn.length > 0 && (
