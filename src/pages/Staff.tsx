@@ -377,7 +377,7 @@ const EmployeeList = () => {
 
 
 // =================== STAFF ROTA GRID ===================
-const StaffRotaGrid = ({ month, groupKey }: { month: string; groupKey: RotaGroupKey }) => {
+const StaffRotaGrid = ({ month, groupKey, monthLabel }: { month: string; groupKey: RotaGroupKey; monthLabel: string }) => {
   const group = ROTA_GROUPS[groupKey];
   const groupShifts = group.shifts as readonly string[];
   const [filterDept, setFilterDept] = useState<string>("all");
