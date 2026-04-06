@@ -664,7 +664,7 @@ const ActivePlayers = () => {
                     <TableCell className="text-right font-mono font-bold text-muted-foreground">
                       {p.dropT > 0 ? formatNumberSpaces(p.dropT) : <span className="text-muted-foreground/40">·</span>}
                     </TableCell>
-                    <TableCell className="text-right font-mono font-bold text-emerald-400">
+                    <TableCell className="text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
                       {p.cashout > 0 ? formatNumberSpaces(p.cashout) : <span className="text-muted-foreground/40">·</span>}
                     </TableCell>
                     <TableCell className={`text-right font-mono font-bold ${p.result > 0 ? "text-emerald-400" : p.result < 0 ? "text-red-400" : "text-muted-foreground"}`}>
