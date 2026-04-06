@@ -18,10 +18,8 @@ const STAFF_SHIFTS = ["D", "N", "L", "O"] as const;
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
-const ATT_COLORS: Record<string, string> = {
-  A: "bg-red-100 text-red-700 dark:bg-red-500/30 dark:text-red-300",
-  S: "bg-amber-100 text-amber-700 dark:bg-amber-500/30 dark:text-amber-300",
-};
+import { UNIFIED_ATT_COLORS } from "@/lib/shift-colors";
+const ATT_COLORS = UNIFIED_ATT_COLORS;
 
 const DEPT_BADGE_COLORS: Record<string, string> = {
   security: "bg-red-100 text-red-700 border-red-300 dark:bg-red-500/20 dark:text-red-400 dark:border-red-500/30",
