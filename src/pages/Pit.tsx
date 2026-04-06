@@ -379,7 +379,7 @@ const DealerEmployeeList = () => {
                     onClick={() => canManage && startEdit(d.id, "name", d.name)}>
                     {editingCell?.id === d.id && editingCell.field === "name" ? (
                       <Input className="h-7 w-40 text-sm" value={editValue} autoFocus
-                        onChange={e => setEditValue(e.target.value)} onBlur={saveEditName} onKeyDown={handleEditKeyDown} />
+                        onChange={e => setEditValue(e.target.value)} onBlur={saveEdit} onKeyDown={handleEditKeyDown} />
                     ) : d.name}
                   </td>
                   <td className="px-4 py-2 text-sm text-card-foreground font-mono cursor-pointer hover:bg-muted/30"
