@@ -30,12 +30,12 @@ const EmployeePhotoCell = ({ id, name, photoUrl, onUpdate, canManage }: Employee
 
     setUploading(true);
     try {
-      const compressed = await compressImage(file, 256);
+      const compressed = await compressImage(file);
       const ext = "jpg";
       const path = `${id}/${Date.now()}.${ext}`;
       const { error: uploadError } = await supabase.storage
         .from("employee-photos")
-        .upload(path, compressed, { contentType: "image/jpeg", upsert: true });
+        .upload(path, compressed.thumbnail, { contentType: "image/jpeg", upsert: true });
       if (uploadError) throw uploadError;
 
       const { data: { publicUrl } } = supabase.storage
