@@ -709,8 +709,8 @@ const ActivePlayers = () => {
                     <TableCell className="font-bold text-xs text-card-foreground" colSpan={6}>TOTAL</TableCell>
                     <TableCell className="text-right font-mono font-bold text-card-foreground">{formatNumberSpaces(totalDropR)}</TableCell>
                     <TableCell className="text-right font-mono font-bold text-muted-foreground">{formatNumberSpaces(totalDropT)}</TableCell>
-                    <TableCell className="text-right font-mono font-bold text-emerald-400">{formatNumberSpaces(totalCashout)}</TableCell>
-                    <TableCell className={`text-right font-mono font-bold ${totalResult > 0 ? "text-emerald-400" : totalResult < 0 ? "text-red-400" : "text-muted-foreground"}`}>
+                    <TableCell className="text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">{formatNumberSpaces(totalCashout)}</TableCell>
+                    <TableCell className={`text-right font-mono font-bold ${totalResult > 0 ? "text-emerald-600 dark:text-emerald-400" : totalResult < 0 ? "text-red-600 dark:text-red-400" : "text-muted-foreground"}`}>
                       {totalResult > 0 ? "+" : ""}{formatNumberSpaces(totalResult)}
                     </TableCell>
                     <TableCell />
