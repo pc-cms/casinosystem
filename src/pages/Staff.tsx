@@ -659,8 +659,9 @@ const StaffRotaGrid = ({ month, groupKey }: { month: string; groupKey: RotaGroup
     </>
   );
 };
+const DepartmentBlock = ({
   dept, members, days, month, y, m, isCurrentMonth, todayDay,
-  getDisplayShift, handleClick, handleKeyDown, handlePaste, getStats,
+  getDisplayShift, handleClick, handleKeyDown, handlePaste, getStats, summaryShifts,
 }: {
   dept: string;
   members: any[];
@@ -675,10 +676,11 @@ const StaffRotaGrid = ({ month, groupKey }: { month: string; groupKey: RotaGroup
   handleKeyDown: (e: React.KeyboardEvent, id: string, day: number) => void;
   handlePaste: (e: React.ClipboardEvent, id: string, day: number) => void;
   getStats: (id: string) => Record<string, number>;
+  summaryShifts: string[];
 }) => (
   <>
     <tr>
-      <td colSpan={days.length + 3} className="px-0 py-0 sticky left-0">
+      <td colSpan={days.length + 1 + summaryShifts.slice(0, 2).length} className="px-0 py-0 sticky left-0">
         <div className={`flex items-center gap-2 px-3 py-1 border-b-2 ${DEPT_BORDER_COLORS[dept] || "border-muted"}`}>
           <span className={`w-2 h-2 rounded-full ${DEPT_DOT_COLORS[dept] || "bg-muted-foreground"}`} />
           <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-card-foreground">{DEPARTMENT_LABELS[dept as StaffDepartment]}</span>
@@ -715,12 +717,11 @@ const StaffRotaGrid = ({ month, groupKey }: { month: string; groupKey: RotaGroup
               </td>
             );
           })}
-          <td className="px-2 py-1 text-center">
-            <span className="text-[10px] font-mono font-bold text-amber-600 dark:text-amber-400">{stats["D"] || ""}</span>
-          </td>
-          <td className="px-2 py-1 text-center">
-            <span className="text-[10px] font-mono font-bold text-indigo-600 dark:text-indigo-400">{stats["N"] || ""}</span>
-          </td>
+          {summaryShifts.slice(0, 2).map(s => (
+            <td key={s} className="px-2 py-1 text-center">
+              <span className="text-[10px] font-mono font-bold text-card-foreground">{stats[s] || ""}</span>
+            </td>
+          ))}
         </tr>
       );
     })}
