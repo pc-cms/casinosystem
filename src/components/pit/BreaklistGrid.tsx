@@ -46,7 +46,7 @@ const TIME_SLOTS = generateTimeSlots();
 
 // Get current active slot
 const getCurrentSlot = () => {
-  const now = new Date();
+  const now = nowEAT();
   const h = now.getHours();
   const m = Math.floor(now.getMinutes() / 20) * 20;
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
