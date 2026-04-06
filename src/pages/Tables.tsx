@@ -15,7 +15,7 @@ import { CHIP_DENOMS, CHIP_COLORS, formatChipLabel, formatCurrency } from "@/lib
 import { Save, Coins, Play, BarChart3, Lock, Users, Eye, Target } from "lucide-react";
 import ChipDenomInput from "@/components/ChipDenomInput";
 import ActivePlayers from "@/components/pit/ActivePlayers";
-import ClientTracker from "@/components/pit/ClientTracker";
+import ClientTracker from "@/components/pit/PlayerTracker";
 import TableTracker from "@/pages/TableTracker";
 
 const PIT_TABS = [
