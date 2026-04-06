@@ -828,7 +828,7 @@ const AttendanceDepartmentBlock = ({
                       : isHours
                         ? "bg-transparent text-card-foreground font-bold"
                         : isScheduled && isEmpty
-                          ? `${rotaShift === "D" ? "bg-amber-500/15 text-amber-400" : "bg-indigo-500/15 text-indigo-400"} placeholder:text-current`
+                          ? `${rotaShift === "D" ? "bg-amber-100 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400" : "bg-indigo-100 text-indigo-600 dark:bg-indigo-500/15 dark:text-indigo-400"} placeholder:text-current`
                           : "bg-transparent text-transparent hover:text-muted-foreground"
                   }`}
                   placeholder={isScheduled && isEmpty ? rotaShift! : "·"}

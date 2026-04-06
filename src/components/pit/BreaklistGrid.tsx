@@ -223,7 +223,7 @@ const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }
                       <div className="flex items-center justify-between">
                         <span>{dealer.name}</span>
                         {lockedCount > 0 && (
-                          <span className="text-[9px] text-yellow-400 flex items-center gap-0.5">
+                          <span className="text-[9px] text-yellow-600 dark:text-yellow-400 flex items-center gap-0.5">
                             <LockKeyhole className="w-2.5 h-2.5" />{lockedCount}
                           </span>
                         )}
