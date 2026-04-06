@@ -24,7 +24,7 @@ export const UNIFIED_ATT_COLORS: Record<string, string> = {
 export const UNIFIED_SHIFT_TINTS: Record<string, string> = {
   M: "bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400",
   D: "bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400",
-  N: "bg-slate-100 text-slate-500 dark:bg-slate-500/10 dark:text-slate-400",
+  N: "bg-sky-50 text-sky-500 dark:bg-sky-500/10 dark:text-sky-400",
   L: "bg-purple-50 text-purple-500 dark:bg-purple-500/10 dark:text-purple-400",
   E: "bg-emerald-50 text-emerald-500 dark:bg-emerald-500/10 dark:text-emerald-400",
 };
