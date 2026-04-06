@@ -647,10 +647,10 @@ const DepartmentBlock = ({
             );
           })}
           <td className="px-2 py-1 text-center">
-            <span className="text-[10px] font-mono font-bold text-amber-400">{stats["D"] || ""}</span>
+            <span className="text-[10px] font-mono font-bold text-amber-600 dark:text-amber-400">{stats["D"] || ""}</span>
           </td>
           <td className="px-2 py-1 text-center">
-            <span className="text-[10px] font-mono font-bold text-indigo-400">{stats["N"] || ""}</span>
+            <span className="text-[10px] font-mono font-bold text-indigo-600 dark:text-indigo-400">{stats["N"] || ""}</span>
           </td>
         </tr>
       );
