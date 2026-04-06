@@ -807,8 +807,8 @@ const AttendanceGrid = ({ month }: { month: string }) => {
           </tr>
         </thead>
         <tbody>
-          {renderAttendanceRows(activeDealers, "Dealers", "border-blue-500/50 text-blue-400")}
-          {pitBosses.length > 0 && renderAttendanceRows(pitBosses, "Pit Bosses", "border-purple-500/50 text-purple-400")}
+          {renderAttendanceRows(activeDealers, "Dealers", "border-blue-400 dark:border-blue-500/50 text-blue-600 dark:text-blue-400")}
+          {pitBosses.length > 0 && renderAttendanceRows(pitBosses, "Pit Bosses", "border-purple-400 dark:border-purple-500/50 text-purple-600 dark:text-purple-400")}
         </tbody>
       </table>
     </div>
