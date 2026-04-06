@@ -643,7 +643,7 @@ const ActivePlayers = () => {
                                 queryClient.invalidateQueries({ queryKey: ["casino_visits"] });
                                 toast.success("Moved to Slots");
                               }}
-                              className={`px-3 py-1 text-xs rounded transition-colors text-left flex items-center gap-1.5 ${!p.isLive && p.position === "slots" ? "bg-amber-500/15 text-amber-400 font-medium" : "text-foreground hover:bg-amber-500/10 hover:text-amber-400"}`}
+                              className={`px-3 py-1 text-xs rounded transition-colors text-left flex items-center gap-1.5 ${!p.isLive && p.position === "slots" ? "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400 font-medium" : "text-foreground hover:bg-amber-100 hover:text-amber-700 dark:hover:bg-amber-500/10 dark:hover:text-amber-400"}`}
                             >
                               <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
                               Slots
