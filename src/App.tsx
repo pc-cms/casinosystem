@@ -59,6 +59,15 @@ const PageLoader = () => (
   </div>
 );
 
+const FullScreenLoader = ({ label = "Loading CMS..." }: { label?: string }) => (
+  <div className="min-h-screen flex items-center justify-center bg-background">
+    <div className="text-center">
+      <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+      <p className="text-muted-foreground font-mono text-sm">{label}</p>
+    </div>
+  </div>
+);
+
 // Role-based route access map
 const ROUTE_ROLES: Record<string, string[]> = {
   "/": ["super_admin", "manager", "pit", "reception", "finance_manager", "security"],
@@ -121,14 +130,7 @@ const ProtectedRoutes = () => {
   // Initialize offline sync engine on mount
   useEffect(() => { initSyncEngine(); }, []);
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center">
-          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-          <p className="text-muted-foreground font-mono text-sm">Loading CMS...</p>
-        </div>
-      </div>
-    );
+    return <FullScreenLoader />;
   }
   if (!user) return <Navigate to="/login" replace />;
 
@@ -193,7 +195,7 @@ const AppRoutes = () => {
     );
   }
 
-  if (loading) return null;
+  if (loading) return <FullScreenLoader label="Restoring session..." />;
   const defaultRoute = user ? getDefaultRoute(roles) : "/";
   return (
     <Routes>
