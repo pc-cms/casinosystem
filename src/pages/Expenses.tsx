@@ -23,11 +23,11 @@ const CATS = [
 ];
 
 const CAT_COLORS: Record<string, string> = {
-  food: "bg-emerald-500/15 text-emerald-400",
-  alcohol: "bg-purple-500/15 text-purple-400",
-  taxi: "bg-yellow-500/15 text-yellow-400",
-  hotel: "bg-blue-500/15 text-blue-400",
-  flight: "bg-sky-500/15 text-sky-400",
+  food: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400",
+  alcohol: "bg-purple-100 text-purple-700 dark:bg-purple-500/15 dark:text-purple-400",
+  taxi: "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/15 dark:text-yellow-400",
+  hotel: "bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400",
+  flight: "bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-400",
   other: "bg-muted text-muted-foreground",
 };
 

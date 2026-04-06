@@ -168,8 +168,8 @@ const Pit = () => {
           )}
           {activeTab === "attendance" && (
             <div className="flex items-center gap-1.5">
-              <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-red-500/30 text-red-300">A = Absent</span>
-              <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-amber-500/30 text-amber-300">S = Sick</span>
+              <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-red-100 text-red-700 dark:bg-red-500/30 dark:text-red-300">A = Absent</span>
+              <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-amber-100 text-amber-700 dark:bg-amber-500/30 dark:text-amber-300">S = Sick</span>
               <Button variant="outline" size="sm" className="ml-2 gap-1 text-xs" onClick={() => window.print()}>
                 <Printer className="w-3.5 h-3.5" /> Print
               </Button>
@@ -399,7 +399,7 @@ const DealerEmployeeList = () => {
                   </td>
                   <td className="px-4 py-2 text-sm text-muted-foreground font-mono">{calcYears(d.onboarding_date)}</td>
                   <td className="px-4 py-2">
-                    <span className={`font-mono text-xs font-bold ${daysLeft === null ? "text-muted-foreground" : daysLeft <= 40 ? "text-red-400" : daysLeft <= 90 ? "text-amber-400" : "text-emerald-400"}`}>
+                    <span className={`font-mono text-xs font-bold ${daysLeft === null ? "text-muted-foreground" : daysLeft <= 40 ? "text-red-600 dark:text-red-400" : daysLeft <= 90 ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"}`}>
                       {daysLeft === null ? "—" : `${daysLeft}d`}
                     </span>
                   </td>
@@ -408,7 +408,7 @@ const DealerEmployeeList = () => {
                       if (!canManage) { toast.error("Manager or HR access required"); return; }
                       updateDealer.mutate({ id: d.id, is_active: !d.is_active });
                     }}
-                      className={`text-xs font-medium cursor-pointer hover:underline ${d.is_active ? "text-emerald-400" : "text-red-400"}`}>
+                      className={`text-xs font-medium cursor-pointer hover:underline ${d.is_active ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`}>
                       {d.is_active ? "Active" : "Fired"}
                     </button>
                   </td>
@@ -598,9 +598,9 @@ const RotaGrid = ({ month }: { month: string }) => {
                 </td>
               );
             })}
-            <td className="px-2 py-1 text-center"><span className="text-[10px] font-mono font-bold text-blue-400">{stats["M"] || ""}</span></td>
-            <td className="px-2 py-1 text-center"><span className="text-[10px] font-mono font-bold text-indigo-400">{stats["N"] || ""}</span></td>
-            <td className="px-2 py-1 text-center"><span className="text-[10px] font-mono font-bold text-emerald-400">{stats["E"] || ""}</span></td>
+            <td className="px-2 py-1 text-center"><span className="text-[10px] font-mono font-bold text-blue-600 dark:text-blue-400">{stats["M"] || ""}</span></td>
+            <td className="px-2 py-1 text-center"><span className="text-[10px] font-mono font-bold text-indigo-600 dark:text-indigo-400">{stats["N"] || ""}</span></td>
+            <td className="px-2 py-1 text-center"><span className="text-[10px] font-mono font-bold text-emerald-600 dark:text-emerald-400">{stats["E"] || ""}</span></td>
           </tr>
         );
       })}
@@ -634,22 +634,22 @@ const RotaGrid = ({ month }: { month: string }) => {
           </tr>
         </thead>
         <tbody>
-          {renderDealerRows(activeDealers, "Dealers", "border-blue-500/50 text-blue-400")}
-          {pitBosses.length > 0 && renderDealerRows(pitBosses, "Pit Bosses", "border-purple-500/50 text-purple-400")}
+          {renderDealerRows(activeDealers, "Dealers", "border-blue-400 dark:border-blue-500/50 text-blue-600 dark:text-blue-400")}
+          {pitBosses.length > 0 && renderDealerRows(pitBosses, "Pit Bosses", "border-purple-400 dark:border-purple-500/50 text-purple-600 dark:text-purple-400")}
           {/* Summary: M/N/E count per day */}
           <tr className="border-t-2 border-border">
-            <td colSpan={2} className="px-1 py-1 text-[9px] font-mono font-bold text-blue-400 sticky left-0 left-[28px] bg-card z-10">Σ M</td>
+            <td colSpan={2} className="px-1 py-1 text-[9px] font-mono font-bold text-blue-600 dark:text-blue-400 sticky left-0 left-[28px] bg-card z-10">Σ M</td>
             {days.map(day => {
               const count = [...activeDealers, ...pitBosses].filter(d => getDisplayShift(d.id, day)?.shift === "M").length;
-              return <td key={day} className="text-center text-[9px] font-mono font-bold text-blue-400">{count || ""}</td>;
+              return <td key={day} className="text-center text-[9px] font-mono font-bold text-blue-600 dark:text-blue-400">{count || ""}</td>;
             })}
             <td colSpan={3} />
           </tr>
           <tr>
-            <td colSpan={2} className="px-1 py-1 text-[9px] font-mono font-bold text-indigo-400 sticky left-0 left-[28px] bg-card z-10">Σ N</td>
+            <td colSpan={2} className="px-1 py-1 text-[9px] font-mono font-bold text-indigo-600 dark:text-indigo-400 sticky left-0 left-[28px] bg-card z-10">Σ N</td>
             {days.map(day => {
               const count = [...activeDealers, ...pitBosses].filter(d => getDisplayShift(d.id, day)?.shift === "N").length;
-              return <td key={day} className="text-center text-[9px] font-mono font-bold text-indigo-400">{count || ""}</td>;
+              return <td key={day} className="text-center text-[9px] font-mono font-bold text-indigo-600 dark:text-indigo-400">{count || ""}</td>;
             })}
             <td colSpan={3} />
           </tr>
@@ -767,7 +767,7 @@ const AttendanceGrid = ({ month }: { month: string }) => {
                       isStatus ? ATT_COLORS[val]
                         : isHours ? "bg-transparent text-card-foreground font-bold"
                         : isScheduled && isEmpty
-                          ? `${rotaShift === "M" ? "bg-blue-500/15 text-blue-400" : rotaShift === "N" ? "bg-indigo-500/15 text-indigo-400" : "bg-emerald-500/15 text-emerald-400"} placeholder:text-current`
+                          ? `${rotaShift === "M" ? "bg-blue-100 text-blue-600 dark:bg-blue-500/15 dark:text-blue-400" : rotaShift === "N" ? "bg-indigo-100 text-indigo-600 dark:bg-indigo-500/15 dark:text-indigo-400" : "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400"} placeholder:text-current`
                           : "bg-transparent text-transparent hover:text-muted-foreground"
                     }`}
                     placeholder={isScheduled && isEmpty ? rotaShift! : "·"}
@@ -807,8 +807,8 @@ const AttendanceGrid = ({ month }: { month: string }) => {
           </tr>
         </thead>
         <tbody>
-          {renderAttendanceRows(activeDealers, "Dealers", "border-blue-500/50 text-blue-400")}
-          {pitBosses.length > 0 && renderAttendanceRows(pitBosses, "Pit Bosses", "border-purple-500/50 text-purple-400")}
+          {renderAttendanceRows(activeDealers, "Dealers", "border-blue-400 dark:border-blue-500/50 text-blue-600 dark:text-blue-400")}
+          {pitBosses.length > 0 && renderAttendanceRows(pitBosses, "Pit Bosses", "border-purple-400 dark:border-purple-500/50 text-purple-600 dark:text-purple-400")}
         </tbody>
       </table>
     </div>

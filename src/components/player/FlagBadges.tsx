@@ -1,12 +1,12 @@
 import { Badge } from "@/components/ui/badge";
 
 const FLAG_COLORS: Record<string, string> = {
-  VIP: "bg-amber-500/15 text-amber-400 border-amber-500/30",
-  "High Roller": "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
-  Watchlist: "bg-orange-500/15 text-orange-400 border-orange-500/30",
-  "Watch List": "bg-orange-500/15 text-orange-400 border-orange-500/30",
-  Aggressive: "bg-red-500/15 text-red-400 border-red-500/30",
-  Suspicious: "bg-red-500/15 text-red-400 border-red-500/30",
+  VIP: "bg-amber-100 text-amber-700 border-amber-300 dark:bg-amber-500/15 dark:text-amber-400 dark:border-amber-500/30",
+  "High Roller": "bg-emerald-100 text-emerald-700 border-emerald-300 dark:bg-emerald-500/15 dark:text-emerald-400 dark:border-emerald-500/30",
+  Watchlist: "bg-orange-100 text-orange-700 border-orange-300 dark:bg-orange-500/15 dark:text-orange-400 dark:border-orange-500/30",
+  "Watch List": "bg-orange-100 text-orange-700 border-orange-300 dark:bg-orange-500/15 dark:text-orange-400 dark:border-orange-500/30",
+  Aggressive: "bg-red-100 text-red-700 border-red-300 dark:bg-red-500/15 dark:text-red-400 dark:border-red-500/30",
+  Suspicious: "bg-red-100 text-red-700 border-red-300 dark:bg-red-500/15 dark:text-red-400 dark:border-red-500/30",
 };
 
 interface FlagBadgesProps {

@@ -506,9 +506,9 @@ const ActivePlayers = () => {
                         <Popover>
                           <PopoverTrigger asChild>
                             <button className={`text-[9px] font-mono font-bold uppercase px-1.5 py-0.5 rounded cursor-pointer hover:ring-1 hover:ring-primary/50 transition-all ${
-                              p.player_type === "table" ? "bg-sky-500/20 text-sky-400"
-                              : p.player_type === "mix" ? "bg-violet-500/20 text-violet-400"
-                              : "bg-amber-500/20 text-amber-400"
+                              p.player_type === "table" ? "bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-400"
+                              : p.player_type === "mix" ? "bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-400"
+                              : "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400"
                             }`}>{p.player_type === "table" ? "TBL" : p.player_type === "mix" ? "MIX" : "SLT"}</button>
                           </PopoverTrigger>
                           <PopoverContent className="w-auto p-1" align="center">
@@ -527,9 +527,9 @@ const ActivePlayers = () => {
                         </Popover>
                       ) : (
                         <span className={`text-[9px] font-mono font-bold uppercase px-1.5 py-0.5 rounded ${
-                          p.player_type === "table" ? "bg-sky-500/20 text-sky-400"
-                          : p.player_type === "mix" ? "bg-violet-500/20 text-violet-400"
-                          : "bg-amber-500/20 text-amber-400"
+                          p.player_type === "table" ? "bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-400"
+                          : p.player_type === "mix" ? "bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-400"
+                          : "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400"
                         }`}>{p.player_type === "table" ? "TBL" : p.player_type === "mix" ? "MIX" : "SLT"}</span>
                       )}
                     </TableCell>
@@ -583,7 +583,7 @@ const ActivePlayers = () => {
                             {p.isLive && p.tableName ? (
                               <Badge className="bg-primary/20 text-primary border-primary/30 text-[10px] px-2 py-0.5 font-mono hover:bg-primary/30 transition-colors">{p.tableName}</Badge>
                             ) : p.isCheckedIn && p.position === "slots" ? (
-                              <Badge variant="outline" className="text-[10px] px-2 py-0.5 font-mono border-amber-500/30 bg-amber-500/10 text-amber-400">Slots</Badge>
+                              <Badge variant="outline" className="text-[10px] px-2 py-0.5 font-mono border-amber-300 bg-amber-100 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-400">Slots</Badge>
                             ) : p.isCheckedIn ? (
                               <Badge variant="outline" className="text-[10px] px-2 py-0.5 font-mono border-sky-500/30 bg-sky-500/10 text-sky-400">Hall</Badge>
                             ) : (
@@ -643,7 +643,7 @@ const ActivePlayers = () => {
                                 queryClient.invalidateQueries({ queryKey: ["casino_visits"] });
                                 toast.success("Moved to Slots");
                               }}
-                              className={`px-3 py-1 text-xs rounded transition-colors text-left flex items-center gap-1.5 ${!p.isLive && p.position === "slots" ? "bg-amber-500/15 text-amber-400 font-medium" : "text-foreground hover:bg-amber-500/10 hover:text-amber-400"}`}
+                              className={`px-3 py-1 text-xs rounded transition-colors text-left flex items-center gap-1.5 ${!p.isLive && p.position === "slots" ? "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400 font-medium" : "text-foreground hover:bg-amber-100 hover:text-amber-700 dark:hover:bg-amber-500/10 dark:hover:text-amber-400"}`}
                             >
                               <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
                               Slots
@@ -664,17 +664,17 @@ const ActivePlayers = () => {
                     <TableCell className="text-right font-mono font-bold text-muted-foreground">
                       {p.dropT > 0 ? formatNumberSpaces(p.dropT) : <span className="text-muted-foreground/40">·</span>}
                     </TableCell>
-                    <TableCell className="text-right font-mono font-bold text-emerald-400">
+                    <TableCell className="text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
                       {p.cashout > 0 ? formatNumberSpaces(p.cashout) : <span className="text-muted-foreground/40">·</span>}
                     </TableCell>
-                    <TableCell className={`text-right font-mono font-bold ${p.result > 0 ? "text-emerald-400" : p.result < 0 ? "text-red-400" : "text-muted-foreground"}`}>
+                    <TableCell className={`text-right font-mono font-bold ${p.result > 0 ? "text-emerald-600 dark:text-emerald-400" : p.result < 0 ? "text-red-600 dark:text-red-400" : "text-muted-foreground"}`}>
                       {p.result !== 0 ? <>{p.result > 0 ? "+" : ""}{formatNumberSpaces(p.result)}</> : <span className="text-muted-foreground/40">·</span>}
                     </TableCell>
                     <TableCell className="text-center">
                       {p.isCheckedIn ? (
                         <button
                           onClick={() => checkOut.mutate(p.id)}
-                          className="text-muted-foreground hover:text-red-400 transition-colors"
+                          className="text-muted-foreground hover:text-red-600 dark:hover:text-red-400 transition-colors"
                           title="Check out"
                         >
                           <LogOut className="w-3.5 h-3.5" />
@@ -682,7 +682,7 @@ const ActivePlayers = () => {
                       ) : (
                         <button
                           onClick={() => checkIn.mutate(p.id)}
-                          className="text-muted-foreground hover:text-emerald-400 transition-colors"
+                          className="text-muted-foreground hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"
                           title="Check in"
                         >
                           <LogIn className="w-3.5 h-3.5" />
@@ -709,8 +709,8 @@ const ActivePlayers = () => {
                     <TableCell className="font-bold text-xs text-card-foreground" colSpan={6}>TOTAL</TableCell>
                     <TableCell className="text-right font-mono font-bold text-card-foreground">{formatNumberSpaces(totalDropR)}</TableCell>
                     <TableCell className="text-right font-mono font-bold text-muted-foreground">{formatNumberSpaces(totalDropT)}</TableCell>
-                    <TableCell className="text-right font-mono font-bold text-emerald-400">{formatNumberSpaces(totalCashout)}</TableCell>
-                    <TableCell className={`text-right font-mono font-bold ${totalResult > 0 ? "text-emerald-400" : totalResult < 0 ? "text-red-400" : "text-muted-foreground"}`}>
+                    <TableCell className="text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">{formatNumberSpaces(totalCashout)}</TableCell>
+                    <TableCell className={`text-right font-mono font-bold ${totalResult > 0 ? "text-emerald-600 dark:text-emerald-400" : totalResult < 0 ? "text-red-600 dark:text-red-400" : "text-muted-foreground"}`}>
                       {totalResult > 0 ? "+" : ""}{formatNumberSpaces(totalResult)}
                     </TableCell>
                     <TableCell />
