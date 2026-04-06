@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from "react";
-import { getBusinessDate } from "@/lib/business-day";
+import { getBusinessDate, nowEAT } from "@/lib/business-day";
 import { useGamingTables, useTableTracker, useSetTableTrackerValue } from "@/hooks/use-casino-data";
 import { Input } from "@/components/ui/input";
 import { formatCurrency, formatInputWithSpaces, parseSpacedNumber } from "@/lib/currency";
