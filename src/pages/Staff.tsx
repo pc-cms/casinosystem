@@ -188,6 +188,8 @@ const EmployeeList = () => {
   const [editingCell, setEditingCell] = useState<{ id: string; field: string } | null>(null);
   const [editValue, setEditValue] = useState("");
 
+  const canSeePhoto = roles.some(r => ["manager", "surveillance", "hr", "super_admin", "finance_manager"].includes(r));
+
   const sorted = useMemo(() => {
     let list = [...staff] as any[];
     if (filterDept !== "all") list = list.filter(s => s.department === filterDept);
