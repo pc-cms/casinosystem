@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import EmployeePhotoCell from "@/components/EmployeePhotoCell";
 import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
