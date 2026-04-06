@@ -92,12 +92,26 @@ const Staff = () => {
   const [searchParams] = useSearchParams();
   const activeTab = searchParams.get("tab") || "employee";
 
-  const showMonthNav = activeTab === "rota" || activeTab === "attendance";
+  const isRotaTab = activeTab.startsWith("rota_");
+  const rotaGroupKey = isRotaTab ? activeTab.replace("rota_", "") as RotaGroupKey : null;
+  const rotaGroup = rotaGroupKey ? ROTA_GROUPS[rotaGroupKey] : null;
+
+  const showMonthNav = isRotaTab || activeTab === "attendance";
 
   const TAB_TITLES: Record<string, string> = {
     employee: "Floor Staff",
-    rota: "Floor Rota",
+    rota_office: "Office Rota",
+    rota_floor: "Floor Rota",
+    rota_security: "Security Rota",
     attendance: "Floor Attendance",
+  };
+
+  const printRota = () => {
+    const html = document.documentElement;
+    const wasDark = html.classList.contains('dark');
+    if (wasDark) html.classList.remove('dark');
+    window.print();
+    if (wasDark) html.classList.add('dark');
   };
 
   return (
@@ -119,14 +133,14 @@ const Staff = () => {
               </Button>
             </div>
           )}
-          {activeTab === "rota" && (
+          {isRotaTab && rotaGroup && (
             <div className="flex items-center gap-1.5">
-              {STAFF_SHIFTS.map(s => (
+              {rotaGroup.shifts.map(s => (
                 <span key={s} className={`px-2 py-0.5 rounded text-[10px] font-mono ${STAFF_SHIFT_COLORS[s]}`}>
-                  {s} = {STAFF_SHIFT_LABELS[s]}
+                  {s} = {rotaGroup.shiftLabels[s]}
                 </span>
               ))}
-              <Button variant="outline" size="sm" className="ml-2 gap-1 text-xs" onClick={() => { const html = document.documentElement; const wasDark = html.classList.contains('dark'); if (wasDark) html.classList.remove('dark'); window.print(); if (wasDark) html.classList.add('dark'); }}>
+              <Button variant="outline" size="sm" className="ml-2 gap-1 text-xs" onClick={printRota}>
                 <Printer className="w-3.5 h-3.5" /> Print
               </Button>
             </div>
@@ -135,7 +149,7 @@ const Staff = () => {
             <div className="flex items-center gap-1.5">
               <span className={`px-2 py-0.5 rounded text-[10px] font-mono ${ATT_COLORS["A"]}`}>A = Absent</span>
               <span className={`px-2 py-0.5 rounded text-[10px] font-mono ${ATT_COLORS["S"]}`}>S = Sick</span>
-              <Button variant="outline" size="sm" className="ml-2 gap-1 text-xs" onClick={() => { const html = document.documentElement; const wasDark = html.classList.contains('dark'); if (wasDark) html.classList.remove('dark'); window.print(); if (wasDark) html.classList.add('dark'); }}>
+              <Button variant="outline" size="sm" className="ml-2 gap-1 text-xs" onClick={printRota}>
                 <Printer className="w-3.5 h-3.5" /> Print
               </Button>
             </div>
@@ -144,7 +158,7 @@ const Staff = () => {
       </div>
 
       {activeTab === "employee" && <EmployeeList />}
-      {activeTab === "rota" && <StaffRotaGrid month={month} />}
+      {isRotaTab && rotaGroupKey && <StaffRotaGrid month={month} groupKey={rotaGroupKey} />}
       {activeTab === "attendance" && <StaffAttendanceGrid month={month} />}
     </div>
   );
