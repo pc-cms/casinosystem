@@ -131,8 +131,8 @@ const CctvDashboard = () => {
   );
 };
 
-// ==================== GUESTS SECTION ====================
-const CctvGuests = () => {
+// ==================== IN CASINO SECTION ====================
+const CctvInCasino = () => {
   const { activeCasino } = useCasino();
   const { data: allVisits = [] } = useVisitsToday("*, players(first_name, last_name, nickname, photo_url, status, category, player_tags(tag), id_number)") as { data: any[] };
   const visits = useMemo(() => allVisits.filter((v: any) => !v.checked_out_at), [allVisits]);
@@ -142,7 +142,7 @@ const CctvGuests = () => {
       <h1 className="text-2xl font-bold text-foreground">{activeCasino?.name} — In Casino</h1>
       <div className="cms-panel">
         <div className="divide-y divide-border">
-          {visits.length === 0 && <p className="p-4 text-sm text-muted-foreground">No active guests</p>}
+          {visits.length === 0 && <p className="p-4 text-sm text-muted-foreground">No active players</p>}
           {visits.map((v: any) => (
             <div key={v.id} className="flex items-center gap-3 p-3">
               {v.players?.photo_url ? (
@@ -625,7 +625,7 @@ const CctvView = () => {
   const renderSection = () => {
     switch (section) {
       case "dashboard": return <CctvDashboard />;
-      case "guests": return <CctvGuests />;
+      case "guests": return <CctvInCasino />;
       case "players": return <CctvPlayers />;
       case "blacklist": return <CctvBlacklist />;
       case "tables": return <CctvTables />;
