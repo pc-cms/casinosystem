@@ -304,6 +304,7 @@ const EmployeeList = () => {
         <table className="w-full">
           <thead>
             <tr className="border-b border-border">
+              {canSeePhoto && <th className="text-left text-xs font-medium text-muted-foreground uppercase px-2 py-2 w-12"></th>}
               <SortHeader field="name" label="Name" />
               <SortHeader field="department" label="Department" />
               <SortHeader field="salary" label="Salary" />
@@ -320,7 +321,22 @@ const EmployeeList = () => {
               const daysLeft = getDaysLeft(s.contract_end);
               return (
                 <tr key={s.id} className={`border-b border-border last:border-0 ${DEPT_ROW_COLORS[s.department] || ""}`}>
-                  <td className="px-4 py-2 text-sm text-card-foreground font-medium">{s.name}</td>
+                  {canSeePhoto && (
+                    <EmployeePhotoCell
+                      id={s.id}
+                      name={s.name}
+                      photoUrl={s.photo_url}
+                      onUpdate={(id, url) => updateStaff.mutate({ id, photo_url: url })}
+                      canManage={canManage}
+                    />
+                  )}
+                  <td className="px-4 py-2 text-sm text-card-foreground font-medium cursor-pointer hover:bg-muted/30"
+                    onClick={() => canManage && startEdit(s.id, "name", s.name)}>
+                    {editingCell?.id === s.id && editingCell.field === "name" ? (
+                      <Input className="h-7 w-40 text-sm" value={editValue} autoFocus
+                        onChange={e => setEditValue(e.target.value)} onBlur={saveEdit} onKeyDown={handleEditKeyDown} />
+                    ) : s.name}
+                  </td>
                   <td className="px-4 py-2">
                     <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-medium border ${DEPT_BADGE_COLORS[s.department] || ""}`}>
                       <span className={`w-1.5 h-1.5 rounded-full ${DEPT_DOT_COLORS[s.department] || "bg-muted-foreground"}`} />
