@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChevronLeft, ChevronRight, UserPlus, ArrowUpDown, ZoomIn, ZoomOut, RefreshCw, Check, Printer } from "lucide-react";
+import EmployeePhotoCell from "@/components/EmployeePhotoCell";
 import BreaklistGrid from "@/components/pit/BreaklistGrid";
 import ActivePlayers from "@/components/pit/ActivePlayers";
 import ClientTracker from "@/components/pit/PlayerTracker";
