@@ -835,8 +835,18 @@ const StaffAttendanceGrid = ({ month, monthLabel }: { month: string; monthLabel:
   }, [activeStaff]);
 
   return (
-    <div className="cms-panel overflow-hidden print-target">
-      <table className="w-full border-collapse table-fixed">
+    <>
+      <div className="cms-panel overflow-hidden print-target">
+        {/* Print header for attendance */}
+        <div className="hidden print-header">
+          <span className="print-header-title">Floor Attendance</span>
+          <span className="print-header-month">{monthLabel}</span>
+          <div className="print-header-legend">
+            <span style={{ background: "#fee2e2", color: "#b91c1c" }}>A = Absent</span>
+            <span style={{ background: "#ffedd5", color: "#c2410c" }}>S = Sick</span>
+          </div>
+        </div>
+        <table className="w-full border-collapse table-fixed">
         <thead>
           <tr className="border-b border-border">
             <th className="text-left text-xs font-medium text-muted-foreground uppercase px-1 py-2 sticky left-0 bg-card z-10 w-[110px]">
