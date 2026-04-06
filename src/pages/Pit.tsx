@@ -628,12 +628,11 @@ const RotaGrid = ({ month }: { month: string }) => {
         </thead>
         <tbody>
           {renderDealerRows(activeDealers, "Dealers", "border-blue-400 dark:border-blue-500/50 text-blue-600 dark:text-blue-400")}
-          {pitBosses.length > 0 && renderDealerRows(pitBosses, "Pit Bosses", "border-purple-400 dark:border-purple-500/50 text-purple-600 dark:text-purple-400")}
-          {/* Summary: M/N/E count per day */}
+          {/* Summary: M/N/E count per day — dealers only */}
           <tr className="border-t-2 border-border">
             <td colSpan={2} className="px-1 py-1 text-[9px] font-mono font-bold text-blue-600 dark:text-blue-400 sticky left-0 left-[28px] bg-card z-10">Σ M</td>
             {days.map(day => {
-              const count = [...activeDealers, ...pitBosses].filter(d => getDisplayShift(d.id, day)?.shift === "M").length;
+              const count = activeDealers.filter(d => getDisplayShift(d.id, day)?.shift === "M").length;
               return <td key={day} className="text-center text-[9px] font-mono font-bold text-blue-600 dark:text-blue-400">{count || ""}</td>;
             })}
             <td colSpan={3} />
@@ -641,7 +640,7 @@ const RotaGrid = ({ month }: { month: string }) => {
           <tr>
             <td colSpan={2} className="px-1 py-1 text-[9px] font-mono font-bold text-indigo-600 dark:text-indigo-400 sticky left-0 left-[28px] bg-card z-10">Σ N</td>
             {days.map(day => {
-              const count = [...activeDealers, ...pitBosses].filter(d => getDisplayShift(d.id, day)?.shift === "N").length;
+              const count = activeDealers.filter(d => getDisplayShift(d.id, day)?.shift === "N").length;
               return <td key={day} className="text-center text-[9px] font-mono font-bold text-indigo-600 dark:text-indigo-400">{count || ""}</td>;
             })}
             <td colSpan={3} />
@@ -649,7 +648,7 @@ const RotaGrid = ({ month }: { month: string }) => {
           <tr>
             <td colSpan={2} className="px-1 py-1 text-[9px] font-mono font-bold text-card-foreground sticky left-0 left-[28px] bg-card z-10">Σ All</td>
             {days.map(day => {
-              const count = [...activeDealers, ...pitBosses].filter(d => {
+              const count = activeDealers.filter(d => {
                 const s = getDisplayShift(d.id, day)?.shift;
                 return s === "M" || s === "N" || s === "E";
               }).length;
@@ -657,6 +656,7 @@ const RotaGrid = ({ month }: { month: string }) => {
             })}
             <td colSpan={3} />
           </tr>
+          {pitBosses.length > 0 && <tbody className="no-print">{renderDealerRows(pitBosses, "Pit Bosses", "border-purple-400 dark:border-purple-500/50 text-purple-600 dark:text-purple-400")}</tbody>}
         </tbody>
       </table>
     </div>
