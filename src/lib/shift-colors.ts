@@ -5,8 +5,8 @@ export const UNIFIED_SHIFT_COLORS: Record<string, string> = {
   // Day shifts — amber
   M: "bg-amber-100 text-amber-800 dark:bg-amber-500/25 dark:text-amber-300 font-bold",
   D: "bg-amber-100 text-amber-800 dark:bg-amber-500/25 dark:text-amber-300 font-bold",
-  // Night — cool slate
-  N: "bg-slate-200 text-slate-700 dark:bg-slate-500/30 dark:text-slate-300 font-bold",
+  // Night — sky blue
+  N: "bg-sky-100 text-sky-700 dark:bg-sky-500/25 dark:text-sky-300 font-bold",
   // Leave — purple
   L: "bg-purple-100 text-purple-700 dark:bg-purple-500/25 dark:text-purple-300 font-bold",
   // Extra — emerald
@@ -24,7 +24,7 @@ export const UNIFIED_ATT_COLORS: Record<string, string> = {
 export const UNIFIED_SHIFT_TINTS: Record<string, string> = {
   M: "bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400",
   D: "bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400",
-  N: "bg-slate-100 text-slate-500 dark:bg-slate-500/10 dark:text-slate-400",
+  N: "bg-sky-50 text-sky-500 dark:bg-sky-500/10 dark:text-sky-400",
   L: "bg-purple-50 text-purple-500 dark:bg-purple-500/10 dark:text-purple-400",
   E: "bg-emerald-50 text-emerald-500 dark:bg-emerald-500/10 dark:text-emerald-400",
 };

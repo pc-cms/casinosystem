@@ -232,7 +232,7 @@ const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }
                     <td className={`text-center py-1 ${idx % 2 === 1 ? "bg-card/95" : "bg-card"}`}>
                       {shift && (
                          <span className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold ${
-                          shift === "M" ? "bg-amber-100 text-amber-800 dark:bg-amber-500/25 dark:text-amber-300" : shift === "N" ? "bg-slate-200 text-slate-700 dark:bg-slate-500/30 dark:text-slate-300" : "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/25 dark:text-emerald-300"
+                          shift === "M" ? "bg-amber-100 text-amber-800 dark:bg-amber-500/25 dark:text-amber-300" : shift === "N" ? "bg-sky-100 text-sky-700 dark:bg-sky-500/25 dark:text-sky-300" : "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/25 dark:text-emerald-300"
                         }`}>{shift}</span>
                       )}
                     </td>
