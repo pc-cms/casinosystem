@@ -399,7 +399,7 @@ const DealerEmployeeList = () => {
                   </td>
                   <td className="px-4 py-2">
                     <button onClick={() => {
-                      if (!isManager) { toast.error("Manager access required"); return; }
+                      if (!canManage) { toast.error("Manager or HR access required"); return; }
                       updateDealer.mutate({ id: d.id, is_active: !d.is_active });
                     }}
                       className={`text-xs font-medium cursor-pointer hover:underline ${d.is_active ? "text-emerald-400" : "text-red-400"}`}>
