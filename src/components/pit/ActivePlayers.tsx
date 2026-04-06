@@ -674,7 +674,7 @@ const ActivePlayers = () => {
                       {p.isCheckedIn ? (
                         <button
                           onClick={() => checkOut.mutate(p.id)}
-                          className="text-muted-foreground hover:text-red-400 transition-colors"
+                          className="text-muted-foreground hover:text-red-600 dark:hover:text-red-400 transition-colors"
                           title="Check out"
                         >
                           <LogOut className="w-3.5 h-3.5" />
