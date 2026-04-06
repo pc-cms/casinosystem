@@ -121,7 +121,7 @@ const Staff = () => {
                   {s} = {STAFF_SHIFT_LABELS[s]}
                 </span>
               ))}
-              <Button variant="outline" size="sm" className="ml-2 gap-1 text-xs" onClick={() => window.print()}>
+              <Button variant="outline" size="sm" className="ml-2 gap-1 text-xs" onClick={() => { const html = document.documentElement; const wasDark = html.classList.contains('dark'); if (wasDark) html.classList.remove('dark'); window.print(); if (wasDark) html.classList.add('dark'); }}>
                 <Printer className="w-3.5 h-3.5" /> Print
               </Button>
             </div>
