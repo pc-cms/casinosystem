@@ -506,9 +506,9 @@ const ActivePlayers = () => {
                         <Popover>
                           <PopoverTrigger asChild>
                             <button className={`text-[9px] font-mono font-bold uppercase px-1.5 py-0.5 rounded cursor-pointer hover:ring-1 hover:ring-primary/50 transition-all ${
-                              p.player_type === "table" ? "bg-sky-500/20 text-sky-400"
-                              : p.player_type === "mix" ? "bg-violet-500/20 text-violet-400"
-                              : "bg-amber-500/20 text-amber-400"
+                              p.player_type === "table" ? "bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-400"
+                              : p.player_type === "mix" ? "bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-400"
+                              : "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400"
                             }`}>{p.player_type === "table" ? "TBL" : p.player_type === "mix" ? "MIX" : "SLT"}</button>
                           </PopoverTrigger>
                           <PopoverContent className="w-auto p-1" align="center">
