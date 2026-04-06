@@ -257,7 +257,7 @@ const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }
                             title={tableName ? `${cell?.role} @ ${tableName}` : cell?.role}
                           >
                             {displayLabel}
-                            {cell?.is_locked && <Lock className="w-2 h-2 absolute top-0.5 right-0.5 text-yellow-400" />}
+                            {cell?.is_locked && <Lock className="w-2 h-2 absolute top-0.5 right-0.5 text-yellow-600 dark:text-yellow-400" />}
                           </div>
                           {/* Per-cell lock toggle for managers */}
                           {isEditable && isManager && cell && !isActiveCell && (
