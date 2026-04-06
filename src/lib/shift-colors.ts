@@ -7,10 +7,10 @@ export const UNIFIED_SHIFT_COLORS: Record<string, string> = {
   D: "bg-amber-100 text-amber-800 dark:bg-amber-500/25 dark:text-amber-300 font-bold",
   // Night — sky blue
   N: "bg-sky-100 text-sky-700 dark:bg-sky-500/25 dark:text-sky-300 font-bold",
-  // Leave — purple
-  L: "bg-purple-100 text-purple-700 dark:bg-purple-500/25 dark:text-purple-300 font-bold",
-  // Extra — emerald
-  E: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/25 dark:text-emerald-300 font-bold",
+  // Leave — emerald
+  L: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/25 dark:text-emerald-300 font-bold",
+  // Extra — purple
+  E: "bg-purple-100 text-purple-700 dark:bg-purple-500/25 dark:text-purple-300 font-bold",
   // Off — muted
   O: "bg-muted/30 text-muted-foreground",
 };
