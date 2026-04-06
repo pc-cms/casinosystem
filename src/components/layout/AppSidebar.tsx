@@ -205,12 +205,12 @@ const SidebarInner = ({ onNavigate }: { onNavigate?: () => void }) => {
             <p className="text-xs font-medium text-sidebar-foreground truncate">{displayName}</p>
             <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded shrink-0 ${
               roles.includes("manager") ? "bg-primary/20 text-primary" :
-              roles.includes("finance_manager") ? "bg-emerald-500/20 text-emerald-400" :
-              roles.includes("hr") ? "bg-orange-500/20 text-orange-400" :
-              roles.includes("pit") ? "bg-sky-500/20 text-sky-400" :
-              roles.includes("cashier") ? "bg-amber-500/20 text-amber-400" :
-              roles.includes("reception") ? "bg-violet-500/20 text-violet-400" :
-              roles.includes("security") ? "bg-rose-500/20 text-rose-400" :
+              roles.includes("finance_manager") ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400" :
+              roles.includes("hr") ? "bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-400" :
+              roles.includes("pit") ? "bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-400" :
+              roles.includes("cashier") ? "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400" :
+              roles.includes("reception") ? "bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-400" :
+              roles.includes("security") ? "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400" :
               "bg-sidebar-accent text-sidebar-accent-foreground"
             }`}>
               {(() => {

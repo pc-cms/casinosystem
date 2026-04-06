@@ -24,14 +24,14 @@ const ATT_COLORS: Record<string, string> = {
 };
 
 const DEPT_BADGE_COLORS: Record<string, string> = {
-  security: "bg-red-500/20 text-red-400 border-red-500/30",
-  cashier: "bg-blue-500/20 text-blue-400 border-blue-500/30",
-  bartender: "bg-amber-500/20 text-amber-400 border-amber-500/30",
-  hostess: "bg-pink-500/20 text-pink-400 border-pink-500/30",
-  waiter: "bg-cyan-500/20 text-cyan-400 border-cyan-500/30",
-  cleaner: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
-  it: "bg-violet-500/20 text-violet-400 border-violet-500/30",
-  hr: "bg-orange-500/20 text-orange-400 border-orange-500/30",
+  security: "bg-red-100 text-red-700 border-red-300 dark:bg-red-500/20 dark:text-red-400 dark:border-red-500/30",
+  cashier: "bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-500/30",
+  bartender: "bg-amber-100 text-amber-700 border-amber-300 dark:bg-amber-500/20 dark:text-amber-400 dark:border-amber-500/30",
+  hostess: "bg-pink-100 text-pink-700 border-pink-300 dark:bg-pink-500/20 dark:text-pink-400 dark:border-pink-500/30",
+  waiter: "bg-cyan-100 text-cyan-700 border-cyan-300 dark:bg-cyan-500/20 dark:text-cyan-400 dark:border-cyan-500/30",
+  cleaner: "bg-emerald-100 text-emerald-700 border-emerald-300 dark:bg-emerald-500/20 dark:text-emerald-400 dark:border-emerald-500/30",
+  it: "bg-violet-100 text-violet-700 border-violet-300 dark:bg-violet-500/20 dark:text-violet-400 dark:border-violet-500/30",
+  hr: "bg-orange-100 text-orange-700 border-orange-300 dark:bg-orange-500/20 dark:text-orange-400 dark:border-orange-500/30",
 };
 
 const DEPT_BORDER_COLORS: Record<string, string> = {

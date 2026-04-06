@@ -3,9 +3,9 @@ import { cn } from "@/lib/utils";
 export type PlayerCategory = "diamond" | "platinum" | "gold" | "guest";
 
 const CATEGORY_CONFIG: Record<PlayerCategory, { letter: string; label: string; classes: string }> = {
-  diamond: { letter: "D", label: "Diamond", classes: "bg-blue-500/20 text-blue-400 border-blue-500/40" },
-  platinum: { letter: "P", label: "Platinum", classes: "bg-purple-500/20 text-purple-400 border-purple-500/40" },
-  gold: { letter: "G", label: "Gold", classes: "bg-yellow-500/20 text-yellow-400 border-yellow-500/40" },
+  diamond: { letter: "D", label: "Diamond", classes: "bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-500/40" },
+  platinum: { letter: "P", label: "Platinum", classes: "bg-purple-100 text-purple-700 border-purple-300 dark:bg-purple-500/20 dark:text-purple-400 dark:border-purple-500/40" },
+  gold: { letter: "G", label: "Gold", classes: "bg-yellow-100 text-yellow-700 border-yellow-300 dark:bg-yellow-500/20 dark:text-yellow-400 dark:border-yellow-500/40" },
   guest: { letter: "G", label: "Guest", classes: "bg-muted text-muted-foreground border-border" },
 };
 
