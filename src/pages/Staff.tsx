@@ -799,6 +799,7 @@ const StaffAttendanceGrid = ({ month, monthLabel }: { month: string; monthLabel:
   const [y, m] = month.split("-").map(Number);
   const daysInMonth = new Date(y, m, 0).getDate();
   const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+  const [filterDept, setFilterDept] = useState<string>("all");
 
   const startDate = `${month}-01`;
   const endDate = `${month}-${String(daysInMonth).padStart(2, "0")}`;
@@ -845,6 +846,8 @@ const StaffAttendanceGrid = ({ month, monthLabel }: { month: string; monthLabel:
     }, 0);
   };
 
+  const visibleDepts = filterDept === "all" ? DEPARTMENT_ORDER : DEPARTMENT_ORDER.filter(d => d === filterDept);
+
   const grouped = useMemo(() => {
     const groups: Record<string, typeof activeStaff> = {};
     DEPARTMENT_ORDER.forEach(d => { groups[d] = []; });
@@ -854,6 +857,9 @@ const StaffAttendanceGrid = ({ month, monthLabel }: { month: string; monthLabel:
     });
     return groups;
   }, [activeStaff]);
+
+  // Departments that actually have members
+  const availableDepts = DEPARTMENT_ORDER.filter(d => (grouped[d] || []).length > 0);
 
   return (
     <>
