@@ -131,8 +131,8 @@ const CctvDashboard = () => {
   );
 };
 
-// ==================== GUESTS SECTION ====================
-const CctvGuests = () => {
+// ==================== IN CASINO SECTION ====================
+const CctvInCasino = () => {
   const { activeCasino } = useCasino();
   const { data: allVisits = [] } = useVisitsToday("*, players(first_name, last_name, nickname, photo_url, status, category, player_tags(tag), id_number)") as { data: any[] };
   const visits = useMemo(() => allVisits.filter((v: any) => !v.checked_out_at), [allVisits]);
