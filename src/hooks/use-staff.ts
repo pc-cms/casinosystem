@@ -37,8 +37,9 @@ const STAFF_SHIFTS = ["D", "N", "L", "O"] as const;
 
 export const STAFF_SHIFT_LABELS: Record<string, string> = {
   D: "Day (12:45)",
-  N: "Night",
+  N: "Night (20:45)",
   L: "Leave",
+  E: "Extra",
   O: "Off",
 };
 
