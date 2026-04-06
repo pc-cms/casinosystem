@@ -583,7 +583,7 @@ const ActivePlayers = () => {
                             {p.isLive && p.tableName ? (
                               <Badge className="bg-primary/20 text-primary border-primary/30 text-[10px] px-2 py-0.5 font-mono hover:bg-primary/30 transition-colors">{p.tableName}</Badge>
                             ) : p.isCheckedIn && p.position === "slots" ? (
-                              <Badge variant="outline" className="text-[10px] px-2 py-0.5 font-mono border-amber-500/30 bg-amber-500/10 text-amber-400">Slots</Badge>
+                              <Badge variant="outline" className="text-[10px] px-2 py-0.5 font-mono border-amber-300 bg-amber-100 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-400">Slots</Badge>
                             ) : p.isCheckedIn ? (
                               <Badge variant="outline" className="text-[10px] px-2 py-0.5 font-mono border-sky-500/30 bg-sky-500/10 text-sky-400">Hall</Badge>
                             ) : (
