@@ -8,11 +8,11 @@ import { ALL_ROLES, ROLE_COLORS, TABLE_ROLES } from "@/lib/currency";
 import { isBusinessToday, isAfterBreaklistLock } from "@/lib/business-day";
 
 const CATEGORY_LABELS: Record<string, string> = {
-  trainee: "TR",
-  dealer: "DL",
-  inspector: "IN",
-  expert: "EX",
-  pit_boss: "PB",
+  trainee: "T",
+  dealer: "D",
+  inspector: "I",
+  expert: "E",
+  pit_boss: "P",
 };
 
 const CATEGORY_COLORS: Record<string, string> = {
