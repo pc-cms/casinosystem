@@ -83,6 +83,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     void supabase.auth.getSession()
       .then(({ data: { session } }) => {
         if (!mounted) return;
+        setProfileLoading(!!session?.user);
         setSession(session);
         setUser(session?.user ?? null);
         if (!session?.user) clearDerivedState();
@@ -102,6 +103,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       (_event, nextSession) => {
         if (!mounted) return;
 
+        setProfileLoading(!!nextSession?.user);
         setSession(nextSession);
         setUser(nextSession?.user ?? null);
 
