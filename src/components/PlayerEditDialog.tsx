@@ -130,9 +130,8 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
     return p ? (p as any).display_name : "Staff";
   };
 
-  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !player) return;
+  const handlePhotoUpload = async (file: File) => {
+    if (!player) return;
     setUploading(true);
     try {
       const ext = file.name.split(".").pop();
@@ -151,19 +150,16 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
     }
   };
 
-  const handleDocUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !player) return;
+  const handleDocUpload = async (file: File) => {
+    if (!player) return;
     setUploadingDoc(true);
     try {
       const ext = file.name.split(".").pop();
       const path = `${casinoId}/${player.id}/docs/id_document.${ext}`;
       const { error: upErr } = await supabase.storage.from("player-documents").upload(path, file, { upsert: true });
       if (upErr) throw upErr;
-      // Store the storage path (not a public URL) — we generate signed URLs on read
       const storagePath = path;
       await supabase.from("players").update({ id_document_url: storagePath } as any).eq("id", player.id);
-      // Generate a temporary signed URL for immediate display
       const { data: signedData } = await supabase.storage.from("player-documents").createSignedUrl(storagePath, 3600);
       setDocUrl(signedData?.signedUrl || storagePath);
       toast.success("ID document uploaded");
