@@ -26,6 +26,7 @@ import FlagBadges from "@/components/player/FlagBadges";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { getBusinessDate } from "@/lib/business-day";
 import { compressImage, thumbnailPath } from "@/lib/image-compress";
+import PhotoCapture from "@/components/PhotoCapture";
 
 const isProfileIncomplete = (player: any): string[] => {
   const missing: string[] = [];
