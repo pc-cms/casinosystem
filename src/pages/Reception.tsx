@@ -400,15 +400,15 @@ const RegisterTab = () => {
 
   const { status: dupStatus, matches: dupMatches, checkDuplicates, reset: resetDuplicates } = useDuplicateCheck();
 
-  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] || null;
+  const handlePhotoSelect = (file: File) => {
     setPhotoFile(file);
-    if (file) {
-      const url = URL.createObjectURL(file);
-      setPhotoPreview(url);
-    } else {
-      setPhotoPreview(null);
-    }
+    const url = URL.createObjectURL(file);
+    setPhotoPreview(url);
+  };
+
+  const handlePhotoClear = () => {
+    setPhotoFile(null);
+    setPhotoPreview(null);
   };
 
   const fileToBase64 = (file: File): Promise<string> =>
