@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AlertTriangle, Camera, User, FileImage, StickyNote, Send, Shield } from "lucide-react";
+import { AlertTriangle, Camera, User, FileImage, StickyNote, Send, Shield, ImagePlus } from "lucide-react";
+import PhotoCapture from "@/components/PhotoCapture";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -129,9 +130,8 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
     return p ? (p as any).display_name : "Staff";
   };
 
-  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !player) return;
+  const handlePhotoUpload = async (file: File) => {
+    if (!player) return;
     setUploading(true);
     try {
       const ext = file.name.split(".").pop();
@@ -150,19 +150,16 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
     }
   };
 
-  const handleDocUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !player) return;
+  const handleDocUpload = async (file: File) => {
+    if (!player) return;
     setUploadingDoc(true);
     try {
       const ext = file.name.split(".").pop();
       const path = `${casinoId}/${player.id}/docs/id_document.${ext}`;
       const { error: upErr } = await supabase.storage.from("player-documents").upload(path, file, { upsert: true });
       if (upErr) throw upErr;
-      // Store the storage path (not a public URL) — we generate signed URLs on read
       const storagePath = path;
       await supabase.from("players").update({ id_document_url: storagePath } as any).eq("id", player.id);
-      // Generate a temporary signed URL for immediate display
       const { data: signedData } = await supabase.storage.from("player-documents").createSignedUrl(storagePath, 3600);
       setDocUrl(signedData?.signedUrl || storagePath);
       toast.success("ID document uploaded");
@@ -240,36 +237,24 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
       {/* Photo & ID Document */}
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
-          <Label className="text-xs text-muted-foreground">Profile Photo</Label>
-          <div className="w-full aspect-square rounded-lg bg-muted flex items-center justify-center overflow-hidden border border-border">
-            {(photoUrl || player.photo_url) ? (
-              <img src={photoUrl || player.photo_url!} className="w-full h-full object-cover" alt="" />
-            ) : (
-              <User className="w-8 h-8 text-muted-foreground" />
-            )}
-          </div>
-          <Label htmlFor="photo-upload-m" className="cursor-pointer w-full">
-            <Button variant="outline" size="sm" className="gap-1 text-xs w-full h-9" asChild disabled={uploading}>
-              <span><Camera className="w-3.5 h-3.5" /> {uploading ? "…" : "Photo"}</span>
-            </Button>
-          </Label>
-          <input id="photo-upload-m" type="file" accept="image/*" capture="environment" className="hidden" onChange={handlePhotoUpload} />
+          <PhotoCapture
+            photoUrl={photoUrl || player.photo_url || null}
+            onPhotoSelect={handlePhotoUpload}
+            label="Profile Photo"
+            size="sm"
+            captureId={`edit-photo-${player.id}`}
+            disabled={uploading}
+          />
         </div>
         <div className="space-y-1.5">
-          <Label className="text-xs text-muted-foreground">ID / Passport</Label>
-          <div className="w-full aspect-square rounded-lg bg-muted flex items-center justify-center overflow-hidden border border-border">
-            {(docUrl || player.id_document_url) ? (
-              <img src={docUrl || player.id_document_url!} className="w-full h-full object-cover" alt="" />
-            ) : (
-              <FileImage className="w-8 h-8 text-muted-foreground" />
-            )}
-          </div>
-          <Label htmlFor="doc-upload-m" className="cursor-pointer w-full">
-            <Button variant="outline" size="sm" className="gap-1 text-xs w-full h-9" asChild disabled={uploadingDoc}>
-              <span><FileImage className="w-3.5 h-3.5" /> {uploadingDoc ? "…" : "ID Doc"}</span>
-            </Button>
-          </Label>
-          <input id="doc-upload-m" type="file" accept="image/*" capture="environment" className="hidden" onChange={handleDocUpload} />
+          <PhotoCapture
+            photoUrl={docUrl || null}
+            onPhotoSelect={handleDocUpload}
+            label="ID / Passport"
+            size="sm"
+            captureId={`edit-doc-${player.id}`}
+            disabled={uploadingDoc}
+          />
         </div>
       </div>
 
