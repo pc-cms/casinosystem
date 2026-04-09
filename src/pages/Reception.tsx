@@ -642,33 +642,14 @@ const RegisterTab = () => {
         />
 
         {/* Photo capture */}
-        <div className="flex items-center gap-4">
-          <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl bg-muted flex items-center justify-center overflow-hidden border border-border shrink-0">
-            {photoPreview ? (
-              <img src={photoPreview} className="w-full h-full object-cover" alt="" />
-            ) : (
-              <User className="w-8 h-8 text-muted-foreground" />
-            )}
-          </div>
-          <div className="flex-1 space-y-2">
-            <label htmlFor="reg-photo" className="cursor-pointer block">
-              <Button variant="outline" className="gap-1.5 w-full h-11" asChild>
-                <span><Camera className="w-4 h-4" /> {photoFile ? "Retake Photo" : "Take Photo"}</span>
-              </Button>
-            </label>
-            <input
-              id="reg-photo"
-              type="file"
-              accept="image/*"
-              capture="environment"
-              onChange={handlePhotoSelect}
-              className="hidden"
-            />
-            {photoFile && (
-              <p className="text-[10px] text-muted-foreground truncate">{photoFile.name}</p>
-            )}
-          </div>
-        </div>
+        <PhotoCapture
+          photoUrl={photoPreview}
+          onPhotoSelect={handlePhotoSelect}
+          onPhotoClear={handlePhotoClear}
+          label={photoFile ? "Photo ✓" : "Player Photo"}
+          size="md"
+          captureId="register-photo"
+        />
 
         {/* Name fields — may be auto-filled by OCR */}
         <div className="grid grid-cols-2 gap-3">
