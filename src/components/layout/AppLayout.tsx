@@ -1,13 +1,11 @@
 import { Outlet } from "react-router-dom";
 import { AppSidebar } from "./AppSidebar";
 import { useRealtimeSubscriptions } from "@/hooks/use-realtime";
-import { useKeyboardNavigation } from "@/hooks/use-keyboard-nav";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { MobileHeader } from "./AppSidebar";
 
 export const AppLayout = () => {
   useRealtimeSubscriptions();
-  useKeyboardNavigation();
   const isMobile = useIsMobile();
 
   return (

@@ -211,7 +211,7 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
       if (playerType !== (player.player_type || "table")) updates.player_type = playerType;
       if (canEditCategory && category !== ((player.category as PlayerCategory) || "normal")) updates.category = category;
       if (Object.keys(updates).length > 0) {
-        const { error } = await supabase.from("players").update(updates).eq("id", player.id);
+        const { error } = await supabase.from("players").update(updates as any).eq("id", player.id);
         if (error) throw error;
       }
       queryClient.invalidateQueries({ queryKey: ["players"] });
