@@ -31,6 +31,8 @@ interface PhotoCaptureProps {
   /** Show gallery option */
   showGallery?: boolean;
   disabled?: boolean;
+  /** Compact mode — just icon buttons, no preview (preview handled externally) */
+  compact?: boolean;
 }
 
 const PhotoCapture = ({
@@ -43,6 +45,7 @@ const PhotoCapture = ({
   showCamera = true,
   showGallery = true,
   disabled = false,
+  compact = false,
 }: PhotoCaptureProps) => {
   const cameraRef = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
