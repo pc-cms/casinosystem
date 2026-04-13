@@ -124,6 +124,47 @@ const PhotoCapture = ({
     galleryRef.current?.click();
   }, [disabled, markPending]);
 
+  if (compact) {
+    return (
+      <div className="flex flex-col items-center gap-1">
+        <p className="text-[9px] font-medium text-muted-foreground uppercase tracking-wider">{label}</p>
+        <div className="flex gap-1">
+          {showCamera && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-7 w-7 p-0"
+              onClick={openCamera}
+              disabled={disabled || restoring}
+              title="Camera"
+            >
+              <Camera className="w-3.5 h-3.5" />
+            </Button>
+          )}
+          {showGallery && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-7 w-7 p-0"
+              onClick={openGallery}
+              disabled={disabled || restoring}
+              title="Gallery"
+            >
+              <ImagePlus className="w-3.5 h-3.5" />
+            </Button>
+          )}
+        </div>
+        {restoring && (
+          <p className="text-[9px] text-warning animate-pulse">Tap again</p>
+        )}
+        <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileChange} />
+        <input ref={galleryRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+      </div>
+    );
+  }
+
   return (
     <div className="flex items-center gap-3 sm:gap-4">
       {/* Preview */}
@@ -184,22 +225,9 @@ const PhotoCapture = ({
         )}
       </div>
 
-      {/* Hidden inputs — separate for camera vs gallery */}
-      <input
-        ref={cameraRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        className="hidden"
-        onChange={handleFileChange}
-      />
-      <input
-        ref={galleryRef}
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={handleFileChange}
-      />
+      {/* Hidden inputs */}
+      <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileChange} />
+      <input ref={galleryRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
     </div>
   );
 };
