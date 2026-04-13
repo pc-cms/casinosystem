@@ -234,26 +234,47 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
         <div><FlagBadges tags={playerTags} /></div>
       )}
 
-      {/* Photo & ID Document */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1.5">
+      {/* Photo & ID Document — compact row */}
+      <div className="flex items-center gap-4 p-3 rounded-lg bg-muted/30 border border-border">
+        {/* Profile Photo thumbnail */}
+        <div className="flex flex-col items-center gap-1.5">
+          <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center overflow-hidden border-2 border-border shrink-0 relative">
+            {(photoUrl || player.photo_url) ? (
+              <img src={photoUrl || player.photo_url || ""} className="w-full h-full object-cover" alt="Profile" />
+            ) : (
+              <User className="w-6 h-6 text-muted-foreground" />
+            )}
+          </div>
           <PhotoCapture
             photoUrl={photoUrl || player.photo_url || null}
             onPhotoSelect={handlePhotoUpload}
-            label="Profile Photo"
+            label="Photo"
             size="sm"
             captureId={`edit-photo-${player.id}`}
             disabled={uploading}
+            compact
           />
         </div>
-        <div className="space-y-1.5">
+
+        <div className="h-10 w-px bg-border" />
+
+        {/* ID Document thumbnail */}
+        <div className="flex flex-col items-center gap-1.5">
+          <div className="w-14 h-14 rounded-lg bg-muted flex items-center justify-center overflow-hidden border-2 border-border shrink-0 relative">
+            {docUrl ? (
+              <img src={docUrl} className="w-full h-full object-cover" alt="ID" />
+            ) : (
+              <FileImage className="w-6 h-6 text-muted-foreground" />
+            )}
+          </div>
           <PhotoCapture
             photoUrl={docUrl || null}
             onPhotoSelect={handleDocUpload}
-            label="ID / Passport"
+            label="ID Doc"
             size="sm"
             captureId={`edit-doc-${player.id}`}
             disabled={uploadingDoc}
+            compact
           />
         </div>
       </div>
