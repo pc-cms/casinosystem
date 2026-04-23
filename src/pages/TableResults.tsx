@@ -449,16 +449,14 @@ const TableResults = () => {
                           <div className="flex items-center gap-1.5">
                             <ChevronRight
                               className={cn(
-                                "w-3.5 h-3.5 transition-transform text-muted-foreground",
+                                "w-3.5 h-3.5 transition-transform text-muted-foreground shrink-0",
                                 isOpen && "rotate-90",
                               )}
                             />
-                            <div className="flex flex-col leading-tight">
-                              <span className="font-mono">{b.date}</span>
-                              <span className="text-[10px] text-muted-foreground">
-                                {monthShort(b.date)} · {dayName(b.date)} · {dayNum(b.date)}
-                              </span>
-                            </div>
+                            <span className="font-mono">{b.date}</span>
+                            <span className="text-[10px] text-muted-foreground ml-auto pl-2">
+                              {dayName(b.date)}
+                            </span>
                           </div>
                         </TableCell>
 
