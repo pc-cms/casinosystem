@@ -554,8 +554,8 @@ const TableResults = () => {
                 })}
 
                 {/* Period TOTAL row */}
-                <TableRow className="bg-primary/10 hover:bg-primary/10 font-semibold border-t-2">
-                  <TableCell className="sticky left-0 bg-primary/15 z-10 border-r">
+                <TableRow className="bg-primary text-primary-foreground hover:bg-primary font-semibold border-t-4 border-t-primary">
+                  <TableCell className="sticky left-0 bg-primary text-primary-foreground z-10 border-r border-primary-foreground/20">
                     TOTAL ({buckets.length}d)
                   </TableCell>
                   {AR_TABLES.map((t) => {
