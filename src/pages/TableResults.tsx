@@ -450,8 +450,8 @@ const TableResults = () => {
                   // Buckets are sorted DESC by date, so prev = idx-1 (later date).
                   const prev = buckets[idx - 1];
                   const isWeekBoundary = !prev || weekKey(prev.date) !== weekKey(b.date);
-                  const zebra = idx % 2 === 0 ? "bg-background" : "bg-muted/20";
-                  const stickyZebra = idx % 2 === 0 ? "bg-background" : "bg-muted/20";
+                  const zebra = idx % 2 === 0 ? "bg-card" : "bg-muted/30";
+                  const stickyZebra = idx % 2 === 0 ? "bg-card" : "bg-muted";
                   return (
                     <>
                       <TableRow
