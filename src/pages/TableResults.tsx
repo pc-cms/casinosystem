@@ -379,39 +379,21 @@ const TableResults = () => {
                   </TableHead>
                   <TableHead
                     colSpan={AR_TABLES.length * 3}
-                    className="text-center font-semibold border-r bg-warning/10"
+                    className="text-center font-semibold border-r-2 border-r-border bg-warning/10"
                   >
                     American Roulette
                   </TableHead>
                   <TableHead
-                    colSpan={3}
-                    className="text-center font-semibold border-r-2 border-r-border bg-warning/25"
-                  >
-                    Total AR
-                  </TableHead>
-                  <TableHead
                     colSpan={PK_TABLES.length * 3}
-                    className="text-center font-semibold border-r bg-success/10"
+                    className="text-center font-semibold border-r-2 border-r-border bg-success/10"
                   >
                     Poker (PK)
                   </TableHead>
                   <TableHead
-                    colSpan={3}
-                    className="text-center font-semibold border-r-2 border-r-border bg-success/25"
-                  >
-                    Total PK
-                  </TableHead>
-                  <TableHead
                     colSpan={BJ_TABLES.length * 3}
-                    className="text-center font-semibold border-r bg-destructive/10"
+                    className="text-center font-semibold border-r-2 border-r-border bg-destructive/10"
                   >
                     Blackjack
-                  </TableHead>
-                  <TableHead
-                    colSpan={3}
-                    className="text-center font-semibold border-r-2 border-r-border bg-destructive/25"
-                  >
-                    Total BJ
                   </TableHead>
                   <TableHead
                     colSpan={3}
