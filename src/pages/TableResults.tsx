@@ -453,7 +453,7 @@ const TableResults = () => {
                                 isOpen && "rotate-90",
                               )}
                             />
-                            <span className="font-mono">{b.date}</span>
+                            <span className="font-mono">{b.date.replace(/-/g, ".")}</span>
                             <span className="text-[10px] text-muted-foreground ml-auto pl-2">
                               {dayName(b.date)}
                             </span>
