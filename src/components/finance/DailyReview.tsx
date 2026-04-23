@@ -14,6 +14,7 @@ import { MoneyBreakdown } from "@/components/finance/daily-review/MoneyBreakdown
 import { formatNumberSpaces, formatInputWithSpaces, parseSpacedNumber } from "@/lib/currency";
 import { Check, ChevronLeft, ChevronRight, CalendarDays, AlertTriangle, ArrowDownToLine } from "lucide-react";
 import { format, subDays, addDays } from "date-fns";
+import { fmtDate } from "@/lib/format-date";
 import { toast } from "sonner";
 
 // Calculate physical cash in cage from closing_count (excludes chips, mobile, bank)

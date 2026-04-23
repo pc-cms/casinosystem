@@ -14,7 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { format } from "date-fns";
+import { fmtDateTime } from "@/lib/format-date";
 import CategoryBadge, { ALL_CATEGORIES, type PlayerCategory } from "@/components/player/CategoryBadge";
 import FlagBadges from "@/components/player/FlagBadges";
 import { useIsMobile } from "@/hooks/use-mobile";
