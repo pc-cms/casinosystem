@@ -446,7 +446,7 @@ const TableResults = () => {
                             stickyZebra,
                           )}
                         >
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-1.5 whitespace-nowrap">
                             <ChevronRight
                               className={cn(
                                 "w-3.5 h-3.5 transition-transform text-muted-foreground shrink-0",
