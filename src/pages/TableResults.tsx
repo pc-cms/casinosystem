@@ -277,7 +277,7 @@ const TableResults = () => {
   const allTableCols = [...AR_TABLES, ...PK_TABLES, ...BJ_TABLES];
 
   return (
-    <div className="-m-3 sm:-m-6 p-3 sm:p-4 space-y-3 max-w-none w-[calc(100vw-1px)] md:w-[calc(100vw-16rem)]">
+    <div className="-m-3 sm:-m-6 p-3 sm:p-4 space-y-3 max-w-none w-auto">
       {/* Header */}
       <div>
         <h1 className="text-xl md:text-2xl font-bold">Table Results</h1>
