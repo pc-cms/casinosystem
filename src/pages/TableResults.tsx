@@ -277,7 +277,7 @@ const TableResults = () => {
   const allTableCols = [...AR_TABLES, ...PK_TABLES, ...BJ_TABLES];
 
   return (
-    <div className="space-y-3">
+    <div className="-m-3 sm:-m-6 p-3 sm:p-4 space-y-3 max-w-none w-[calc(100vw-1px)] md:w-[calc(100vw-16rem)]">
       {/* Header */}
       <div>
         <h1 className="text-xl md:text-2xl font-bold">Table Results</h1>
@@ -369,7 +369,7 @@ const TableResults = () => {
       {/* Excel-style horizontal report */}
       {!isLoading && buckets.length > 0 && (
         <Card className="p-0 overflow-hidden">
-          <div className="overflow-x-auto">
+          <div className="overflow-auto max-h-[calc(100vh-220px)]">
             <Table className="text-xs [&_th]:h-8 [&_th]:px-1.5 [&_td]:p-1.5">
               {/* Group headers */}
               <TableHeader>
