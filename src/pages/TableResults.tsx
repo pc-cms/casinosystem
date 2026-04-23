@@ -29,7 +29,7 @@ const BJ_TABLES = ["BJ1"] as const;
 
 const PRESETS = [
   { key: "today", label: "Today" },
-  { key: "7d", label: "7d" },
+  { key: "week", label: "Week" },
   { key: "30d", label: "30d" },
   { key: "month", label: "Month" },
   { key: "year", label: "Year" },
@@ -37,32 +37,53 @@ const PRESETS = [
 ] as const;
 type PresetKey = (typeof PRESETS)[number]["key"];
 
-const todayStr = () => new Date().toISOString().slice(0, 10);
-const daysAgoStr = (n: number) =>
-  new Date(Date.now() - n * 86400000).toISOString().slice(0, 10);
+const isoDate = (d: Date) => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+};
+const todayStr = () => isoDate(new Date());
+const daysAgoStr = (n: number) => isoDate(new Date(Date.now() - n * 86400000));
 
-const presetRange = (key: PresetKey): { from: string; to: string } => {
+/** Returns Sunday→Saturday week containing the given date (local time). */
+const weekRangeFor = (d: Date): { from: string; to: string } => {
+  const start = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  start.setDate(start.getDate() - start.getDay()); // Sunday
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6); // Saturday
+  return { from: isoDate(start), to: isoDate(end) };
+};
+
+/** ISO date → Sunday of that week (for week-grouping borders). */
+const weekKey = (iso: string) => {
+  const d = new Date(iso + "T12:00:00");
+  d.setDate(d.getDate() - d.getDay());
+  return isoDate(d);
+};
+
+const presetRange = (key: PresetKey, weekAnchor: Date): { from: string; to: string } => {
   const t = todayStr();
   const now = new Date();
   switch (key) {
     case "today":
       return { from: t, to: t };
-    case "7d":
-      return { from: daysAgoStr(6), to: t };
+    case "week":
+      return weekRangeFor(weekAnchor);
     case "30d":
       return { from: daysAgoStr(29), to: t };
     case "month": {
-      const first = new Date(now.getFullYear(), now.getMonth(), 1)
-        .toISOString()
-        .slice(0, 10);
+      const first = isoDate(new Date(now.getFullYear(), now.getMonth(), 1));
       return { from: first, to: t };
     }
     case "year": {
-      const first = new Date(now.getFullYear(), 0, 1).toISOString().slice(0, 10);
+      const first = isoDate(new Date(now.getFullYear(), 0, 1));
       return { from: first, to: t };
     }
-    default:
-      return { from: daysAgoStr(29), to: t };
+    default: {
+      const first = isoDate(new Date(now.getFullYear(), now.getMonth(), 1));
+      return { from: first, to: t };
+    }
   }
 };
 
