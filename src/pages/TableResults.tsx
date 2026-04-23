@@ -632,17 +632,20 @@ const SubHead = ({
   name,
   accent,
   bold,
+  groupEnd,
 }: {
   name: string;
   accent: keyof typeof accentBg;
   bold?: boolean;
+  groupEnd?: boolean;
 }) => {
   const bg = bold ? accentBgBold[accent] : accentBg[accent];
+  const endBorder = groupEnd ? "border-r-2 border-r-border" : "border-r border-r-border/40";
   return (
     <>
       <TableHead
         className={cn(
-          "text-right font-medium text-[10px] uppercase tracking-wide whitespace-nowrap px-2",
+          "text-right font-medium text-[10px] uppercase tracking-wide whitespace-nowrap px-1.5",
           bg,
         )}
       >
@@ -650,7 +653,7 @@ const SubHead = ({
       </TableHead>
       <TableHead
         className={cn(
-          "text-right font-medium text-[10px] uppercase tracking-wide whitespace-nowrap px-2",
+          "text-right font-medium text-[10px] uppercase tracking-wide whitespace-nowrap px-1.5",
           bg,
         )}
       >
@@ -658,8 +661,9 @@ const SubHead = ({
       </TableHead>
       <TableHead
         className={cn(
-          "text-right font-medium text-[10px] uppercase tracking-wide whitespace-nowrap px-2 border-r",
+          "text-right font-medium text-[10px] uppercase tracking-wide whitespace-nowrap px-1.5",
           bg,
+          endBorder,
         )}
       >
         {name} %
@@ -673,18 +677,21 @@ const DRCell = ({
   result,
   hasData,
   bold,
+  groupEnd,
 }: {
   drop: number;
   result: number;
   hasData: boolean;
   bold?: boolean;
+  groupEnd?: boolean;
 }) => {
+  const endBorder = groupEnd ? "border-r-2 border-r-border" : "border-r border-r-border/30";
   if (!hasData && drop === 0 && result === 0) {
     return (
       <>
-        <TableCell className="text-right text-muted-foreground/40 font-mono whitespace-nowrap px-2">—</TableCell>
-        <TableCell className="text-right text-muted-foreground/40 font-mono whitespace-nowrap px-2">—</TableCell>
-        <TableCell className="text-right text-muted-foreground/40 font-mono whitespace-nowrap px-2 border-r">—</TableCell>
+        <TableCell className="text-right text-muted-foreground/40 font-mono whitespace-nowrap px-1.5">—</TableCell>
+        <TableCell className="text-right text-muted-foreground/40 font-mono whitespace-nowrap px-1.5">—</TableCell>
+        <TableCell className={cn("text-right text-muted-foreground/40 font-mono whitespace-nowrap px-1.5", endBorder)}>—</TableCell>
       </>
     );
   }
@@ -694,7 +701,7 @@ const DRCell = ({
     <>
       <TableCell
         className={cn(
-          "text-right font-mono tabular-nums whitespace-nowrap px-2",
+          "text-right font-mono tabular-nums whitespace-nowrap px-1.5",
           bold && "font-semibold",
         )}
       >
@@ -702,7 +709,7 @@ const DRCell = ({
       </TableCell>
       <TableCell
         className={cn(
-          "text-right font-mono tabular-nums whitespace-nowrap px-2",
+          "text-right font-mono tabular-nums whitespace-nowrap px-1.5",
           bold && "font-semibold",
           isNeg && "text-destructive",
         )}
@@ -711,8 +718,9 @@ const DRCell = ({
       </TableCell>
       <TableCell
         className={cn(
-          "text-right font-mono tabular-nums text-xs whitespace-nowrap px-2 border-r",
+          "text-right font-mono tabular-nums text-xs whitespace-nowrap px-1.5",
           isNeg && "text-destructive",
+          endBorder,
         )}
       >
         {drop === 0 ? "—" : `${pct >= 0 ? "" : "-"}${Math.abs(pct).toFixed(1)}%`}
