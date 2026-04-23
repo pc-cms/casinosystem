@@ -552,15 +552,15 @@ const TableResults = () => {
 /* ------------------------------------------------------------------ */
 
 const accentBg: Record<string, string> = {
-  amber: "bg-amber-500/5",
-  emerald: "bg-emerald-500/5",
-  rose: "bg-rose-500/5",
+  amber: "bg-warning/5",
+  emerald: "bg-success/5",
+  rose: "bg-destructive/5",
   primary: "bg-primary/10",
 };
 const accentBgBold: Record<string, string> = {
-  amber: "bg-amber-500/15",
-  emerald: "bg-emerald-500/15",
-  rose: "bg-rose-500/15",
+  amber: "bg-warning/15",
+  emerald: "bg-success/15",
+  rose: "bg-destructive/15",
   primary: "bg-primary/20",
 };
 
