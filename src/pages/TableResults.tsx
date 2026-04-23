@@ -4,6 +4,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Table,
   TableBody,
@@ -14,8 +16,9 @@ import {
 } from "@/components/ui/table";
 import { useDailyResults } from "@/hooks/use-import-reports";
 import { formatSpaced } from "@/lib/import-helpers";
-import { ChevronRight, Loader2 } from "lucide-react";
+import { CalendarIcon, ChevronRight, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { format } from "date-fns";
 
 /* ------------------------------------------------------------------ */
 /* Layout config — order of columns in the horizontal report          */
@@ -26,7 +29,7 @@ const BJ_TABLES = ["BJ1"] as const;
 
 const PRESETS = [
   { key: "today", label: "Today" },
-  { key: "7d", label: "7d" },
+  { key: "week", label: "Week" },
   { key: "30d", label: "30d" },
   { key: "month", label: "Month" },
   { key: "year", label: "Year" },
@@ -34,32 +37,53 @@ const PRESETS = [
 ] as const;
 type PresetKey = (typeof PRESETS)[number]["key"];
 
-const todayStr = () => new Date().toISOString().slice(0, 10);
-const daysAgoStr = (n: number) =>
-  new Date(Date.now() - n * 86400000).toISOString().slice(0, 10);
+const isoDate = (d: Date) => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+};
+const todayStr = () => isoDate(new Date());
+const daysAgoStr = (n: number) => isoDate(new Date(Date.now() - n * 86400000));
 
-const presetRange = (key: PresetKey): { from: string; to: string } => {
+/** Returns Sunday→Saturday week containing the given date (local time). */
+const weekRangeFor = (d: Date): { from: string; to: string } => {
+  const start = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  start.setDate(start.getDate() - start.getDay()); // Sunday
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6); // Saturday
+  return { from: isoDate(start), to: isoDate(end) };
+};
+
+/** ISO date → Sunday of that week (for week-grouping borders). */
+const weekKey = (iso: string) => {
+  const d = new Date(iso + "T12:00:00");
+  d.setDate(d.getDate() - d.getDay());
+  return isoDate(d);
+};
+
+const presetRange = (key: PresetKey, weekAnchor: Date): { from: string; to: string } => {
   const t = todayStr();
   const now = new Date();
   switch (key) {
     case "today":
       return { from: t, to: t };
-    case "7d":
-      return { from: daysAgoStr(6), to: t };
+    case "week":
+      return weekRangeFor(weekAnchor);
     case "30d":
       return { from: daysAgoStr(29), to: t };
     case "month": {
-      const first = new Date(now.getFullYear(), now.getMonth(), 1)
-        .toISOString()
-        .slice(0, 10);
+      const first = isoDate(new Date(now.getFullYear(), now.getMonth(), 1));
       return { from: first, to: t };
     }
     case "year": {
-      const first = new Date(now.getFullYear(), 0, 1).toISOString().slice(0, 10);
+      const first = isoDate(new Date(now.getFullYear(), 0, 1));
       return { from: first, to: t };
     }
-    default:
-      return { from: daysAgoStr(29), to: t };
+    default: {
+      const first = isoDate(new Date(now.getFullYear(), now.getMonth(), 1));
+      return { from: first, to: t };
+    }
   }
 };
 
@@ -118,13 +142,16 @@ const dayNum = (iso: string) => Number(iso.slice(8, 10));
 /* ------------------------------------------------------------------ */
 
 const TableResults = () => {
-  const [preset, setPreset] = useState<PresetKey>("30d");
+  const [preset, setPreset] = useState<PresetKey>("month");
+  const [weekAnchor, setWeekAnchor] = useState<Date>(new Date());
   const [customFrom, setCustomFrom] = useState(daysAgoStr(29));
   const [customTo, setCustomTo] = useState(todayStr());
   const [openDate, setOpenDate] = useState<string | null>(null);
 
   const { from, to } =
-    preset === "custom" ? { from: customFrom, to: customTo } : presetRange(preset);
+    preset === "custom"
+      ? { from: customFrom, to: customTo }
+      : presetRange(preset, weekAnchor);
 
   const { data = [], isLoading } = useDailyResults(from, to);
 
@@ -275,6 +302,28 @@ const TableResults = () => {
               </Button>
             ))}
           </div>
+
+          {preset === "week" && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="h-8 gap-1.5">
+                  <CalendarIcon className="w-3.5 h-3.5" />
+                  Pick week ({format(weekAnchor, "MMM d")})
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={weekAnchor}
+                  onSelect={(d) => d && setWeekAnchor(d)}
+                  weekStartsOn={0}
+                  initialFocus
+                  className={cn("p-3 pointer-events-auto")}
+                />
+              </PopoverContent>
+            </Popover>
+          )}
+
           {preset === "custom" && (
             <>
               <div>
@@ -395,17 +444,32 @@ const TableResults = () => {
               </TableHeader>
 
               <TableBody>
-                {buckets.map((b) => {
+                {buckets.map((b, idx) => {
                   const isOpen = openDate === b.date;
+                  // First row of a "new" week: when prev visible row belongs to a different week.
+                  // Buckets are sorted DESC by date, so prev = idx-1 (later date).
+                  const prev = buckets[idx - 1];
+                  const isWeekBoundary = !prev || weekKey(prev.date) !== weekKey(b.date);
+                  const zebra = idx % 2 === 0 ? "bg-background" : "bg-muted/20";
+                  const stickyZebra = idx % 2 === 0 ? "bg-background" : "bg-muted/20";
                   return (
                     <>
                       <TableRow
                         key={b.date}
-                        className="cursor-pointer hover:bg-accent/30"
+                        className={cn(
+                          "cursor-pointer hover:bg-accent/30 transition-colors",
+                          zebra,
+                          isWeekBoundary && "border-t-2 border-t-primary/40",
+                        )}
                         onClick={() => setOpenDate(isOpen ? null : b.date)}
                       >
                         {/* Date sticky */}
-                        <TableCell className="sticky left-0 bg-background hover:bg-accent/30 z-10 border-r font-medium">
+                        <TableCell
+                          className={cn(
+                            "sticky left-0 z-10 border-r font-medium hover:bg-accent/30",
+                            stickyZebra,
+                          )}
+                        >
                           <div className="flex items-center gap-1.5">
                             <ChevronRight
                               className={cn(
