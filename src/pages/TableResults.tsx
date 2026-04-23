@@ -4,6 +4,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Table,
   TableBody,
@@ -14,8 +16,9 @@ import {
 } from "@/components/ui/table";
 import { useDailyResults } from "@/hooks/use-import-reports";
 import { formatSpaced } from "@/lib/import-helpers";
-import { ChevronRight, Loader2 } from "lucide-react";
+import { CalendarIcon, ChevronRight, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { format } from "date-fns";
 
 /* ------------------------------------------------------------------ */
 /* Layout config — order of columns in the horizontal report          */
