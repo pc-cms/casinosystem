@@ -374,7 +374,7 @@ const TableResults = () => {
               {/* Group headers */}
               <TableHeader>
                 <TableRow className="bg-muted hover:bg-muted">
-                  <TableHead className="sticky left-0 bg-muted z-10 w-28 min-w-28 border-r-2 border-r-border">
+                  <TableHead className="sticky left-0 bg-muted z-10 w-36 min-w-36 border-r-2 border-r-border whitespace-nowrap">
                     Date
                   </TableHead>
                   <TableHead
@@ -405,7 +405,7 @@ const TableResults = () => {
 
                 {/* Sub-headers (D / R / %) */}
                 <TableRow className="bg-muted/60 hover:bg-muted/60">
-                  <TableHead className="sticky left-0 bg-muted/90 z-10 w-28 min-w-28 border-r-2 border-r-border" />
+                  <TableHead className="sticky left-0 bg-muted/90 z-10 w-36 min-w-36 border-r-2 border-r-border" />
                   {AR_TABLES.map((t, i) => (
                     <SubHead key={t} name={t} accent="amber" groupEnd={i === AR_TABLES.length - 1} />
                   ))}
@@ -446,7 +446,7 @@ const TableResults = () => {
                             stickyZebra,
                           )}
                         >
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-1.5 whitespace-nowrap">
                             <ChevronRight
                               className={cn(
                                 "w-3.5 h-3.5 transition-transform text-muted-foreground shrink-0",
