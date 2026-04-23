@@ -302,6 +302,28 @@ const TableResults = () => {
               </Button>
             ))}
           </div>
+
+          {preset === "week" && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="h-8 gap-1.5">
+                  <CalendarIcon className="w-3.5 h-3.5" />
+                  Pick week ({format(weekAnchor, "MMM d")})
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={weekAnchor}
+                  onSelect={(d) => d && setWeekAnchor(d)}
+                  weekStartsOn={0}
+                  initialFocus
+                  className={cn("p-3 pointer-events-auto")}
+                />
+              </PopoverContent>
+            </Popover>
+          )}
+
           {preset === "custom" && (
             <>
               <div>
