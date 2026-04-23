@@ -409,18 +409,12 @@ const TableResults = () => {
                   {AR_TABLES.map((t, i) => (
                     <SubHead key={t} name={t} accent="amber" groupEnd={i === AR_TABLES.length - 1} />
                   ))}
-                  <SubHead name="AR" accent="amber" bold groupEnd />
-
                   {PK_TABLES.map((t, i) => (
                     <SubHead key={t} name={t.replace("P", "PK")} accent="emerald" groupEnd={i === PK_TABLES.length - 1} />
                   ))}
-                  <SubHead name="PK" accent="emerald" bold groupEnd />
-
                   {BJ_TABLES.map((t, i) => (
                     <SubHead key={t} name={t} accent="rose" groupEnd={i === BJ_TABLES.length - 1} />
                   ))}
-                  <SubHead name="BJ" accent="rose" bold groupEnd />
-
                   <SubHead name="ALL" accent="primary" bold />
                 </TableRow>
               </TableHeader>
