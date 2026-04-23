@@ -133,7 +133,7 @@ const ShiftReport = ({ from, to }: { from: string; to: string }) => {
               <tr><td colSpan={9} className="text-center text-muted-foreground text-sm py-6">No shifts in range</td></tr>
             ) : shiftData.map(s => (
               <tr key={s.id} className="border-b border-border last:border-0 hover:bg-muted/30">
-                <td className="px-3 py-2 text-xs font-mono text-card-foreground">{new Date(s.opened_at).toLocaleDateString("en-GB")}</td>
+                <td className="px-3 py-2 text-xs font-mono text-card-foreground">{fmtDate(s.opened_at)}</td>
                 <td className="px-3 py-2">
                   <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${s.status === "open" ? "bg-success/10 text-success" : "bg-muted text-muted-foreground"}`}>
                     {s.status}

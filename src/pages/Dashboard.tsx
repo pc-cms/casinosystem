@@ -139,7 +139,7 @@ const Dashboard = () => {
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
         <p className="text-sm text-muted-foreground font-mono mt-1">
-          {displayName} · {roles.join(", ") || "No role"} · {new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+          {displayName} · {roles.join(", ") || "No role"} · {fmtDate(new Date())}
         </p>
       </div>
 

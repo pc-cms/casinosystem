@@ -132,7 +132,7 @@ const Groups = () => {
                   <div key={m.id} className="flex items-center justify-between py-1.5 border-b border-border last:border-0">
                     <div className="flex items-center gap-4">
                       <span className="text-xs text-card-foreground">{m.players?.first_name} {m.players?.last_name}</span>
-                      <span className="text-[10px] text-muted-foreground">joined {new Date(m.joined_at).toLocaleDateString("en-GB")}</span>
+                      <span className="text-[10px] text-muted-foreground">joined {fmtDate(m.joined_at)}</span>
                     </div>
                     {isManager && (
                       <button onClick={() => removeMember.mutate(m.id)} className="text-muted-foreground hover:text-destructive"><X className="w-3 h-3" /></button>

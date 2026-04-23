@@ -111,8 +111,8 @@ const InterCasinoTransfers = () => {
               const canConfirm = t.status === "pending" && t.to_casino_id === activeCasinoId && isManagerOrAbove;
               return (
                 <tr key={t.id} className="border-b border-border last:border-0">
-                  <td className="px-4 py-3 text-xs text-muted-foreground">
-                    {new Date(t.created_at).toLocaleDateString()}
+                  <td className="px-4 py-3 text-xs text-muted-foreground font-mono">
+                    {fmtDate(t.created_at)}
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1.5 text-sm">
