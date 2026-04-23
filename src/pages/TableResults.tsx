@@ -463,7 +463,7 @@ const TableResults = () => {
                         </TableCell>
 
                         {/* AR cells */}
-                        {AR_TABLES.map((t) => {
+                        {AR_TABLES.map((t, i) => {
                           const c = b.cells[t] || emptyCell;
                           return (
                             <DRCell
@@ -471,13 +471,13 @@ const TableResults = () => {
                               drop={c.drop}
                               result={c.result}
                               hasData={c.hasData}
+                              groupEnd={i === AR_TABLES.length - 1}
                             />
                           );
                         })}
-                        <DRCell drop={b.arDrop} result={b.arResult} hasData bold groupEnd />
 
                         {/* PK cells */}
-                        {PK_TABLES.map((t) => {
+                        {PK_TABLES.map((t, i) => {
                           const c = b.cells[t] || emptyCell;
                           return (
                             <DRCell
@@ -485,13 +485,13 @@ const TableResults = () => {
                               drop={c.drop}
                               result={c.result}
                               hasData={c.hasData}
+                              groupEnd={i === PK_TABLES.length - 1}
                             />
                           );
                         })}
-                        <DRCell drop={b.pkDrop} result={b.pkResult} hasData bold groupEnd />
 
                         {/* BJ cells */}
-                        {BJ_TABLES.map((t) => {
+                        {BJ_TABLES.map((t, i) => {
                           const c = b.cells[t] || emptyCell;
                           return (
                             <DRCell
@@ -499,10 +499,10 @@ const TableResults = () => {
                               drop={c.drop}
                               result={c.result}
                               hasData={c.hasData}
+                              groupEnd={i === BJ_TABLES.length - 1}
                             />
                           );
                         })}
-                        <DRCell drop={b.bjDrop} result={b.bjResult} hasData bold groupEnd />
 
                         {/* All */}
                         <DRCell drop={b.totalDrop} result={b.totalResult} hasData bold />
