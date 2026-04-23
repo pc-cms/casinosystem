@@ -277,7 +277,7 @@ const TableResults = () => {
   const allTableCols = [...AR_TABLES, ...PK_TABLES, ...BJ_TABLES];
 
   return (
-    <div className="space-y-4 -mx-3 sm:-mx-6 -my-3 sm:-my-6 px-3 sm:px-6 py-3 sm:py-6 w-[calc(100%+1.5rem)] sm:w-[calc(100%+3rem)] max-w-none">
+    <div className="space-y-3">
       {/* Header */}
       <div>
         <h1 className="text-xl md:text-2xl font-bold">Table Results</h1>
@@ -370,11 +370,11 @@ const TableResults = () => {
       {!isLoading && buckets.length > 0 && (
         <Card className="p-0 overflow-hidden">
           <div className="overflow-x-auto">
-            <Table className="text-xs">
+            <Table className="text-xs [&_th]:h-8 [&_th]:px-1.5 [&_td]:p-1.5">
               {/* Group headers */}
               <TableHeader>
-                <TableRow className="bg-muted/40 hover:bg-muted/40">
-                  <TableHead className="sticky left-0 bg-muted/40 z-10 w-32 min-w-32 border-r">
+                <TableRow className="bg-muted hover:bg-muted">
+                  <TableHead className="sticky left-0 bg-muted z-10 w-28 min-w-28 border-r-2 border-r-border">
                     Date
                   </TableHead>
                   <TableHead
@@ -385,7 +385,7 @@ const TableResults = () => {
                   </TableHead>
                   <TableHead
                     colSpan={3}
-                    className="text-center font-semibold border-r bg-warning/20"
+                    className="text-center font-semibold border-r-2 border-r-border bg-warning/25"
                   >
                     Total AR
                   </TableHead>
@@ -397,7 +397,7 @@ const TableResults = () => {
                   </TableHead>
                   <TableHead
                     colSpan={3}
-                    className="text-center font-semibold border-r bg-success/20"
+                    className="text-center font-semibold border-r-2 border-r-border bg-success/25"
                   >
                     Total PK
                   </TableHead>
@@ -409,35 +409,35 @@ const TableResults = () => {
                   </TableHead>
                   <TableHead
                     colSpan={3}
-                    className="text-center font-semibold border-r bg-destructive/20"
+                    className="text-center font-semibold border-r-2 border-r-border bg-destructive/25"
                   >
                     Total BJ
                   </TableHead>
                   <TableHead
                     colSpan={3}
-                    className="text-center font-semibold bg-primary/15"
+                    className="text-center font-semibold bg-primary/20"
                   >
                     Total Tables
                   </TableHead>
                 </TableRow>
 
                 {/* Sub-headers (D / R / %) */}
-                <TableRow className="bg-muted/20 hover:bg-muted/20">
-                  <TableHead className="sticky left-0 bg-muted/20 z-10 w-32 min-w-32 border-r" />
-                  {AR_TABLES.map((t) => (
-                    <SubHead key={t} name={t} accent="amber" />
+                <TableRow className="bg-muted/60 hover:bg-muted/60">
+                  <TableHead className="sticky left-0 bg-muted/90 z-10 w-28 min-w-28 border-r-2 border-r-border" />
+                  {AR_TABLES.map((t, i) => (
+                    <SubHead key={t} name={t} accent="amber" groupEnd={i === AR_TABLES.length - 1} />
                   ))}
-                  <SubHead name="AR" accent="amber" bold />
+                  <SubHead name="AR" accent="amber" bold groupEnd />
 
-                  {PK_TABLES.map((t) => (
-                    <SubHead key={t} name={t.replace("P", "PK")} accent="emerald" />
+                  {PK_TABLES.map((t, i) => (
+                    <SubHead key={t} name={t.replace("P", "PK")} accent="emerald" groupEnd={i === PK_TABLES.length - 1} />
                   ))}
-                  <SubHead name="PK" accent="emerald" bold />
+                  <SubHead name="PK" accent="emerald" bold groupEnd />
 
-                  {BJ_TABLES.map((t) => (
-                    <SubHead key={t} name={t} accent="rose" />
+                  {BJ_TABLES.map((t, i) => (
+                    <SubHead key={t} name={t} accent="rose" groupEnd={i === BJ_TABLES.length - 1} />
                   ))}
-                  <SubHead name="BJ" accent="rose" bold />
+                  <SubHead name="BJ" accent="rose" bold groupEnd />
 
                   <SubHead name="ALL" accent="primary" bold />
                 </TableRow>
@@ -450,8 +450,8 @@ const TableResults = () => {
                   // Buckets are sorted DESC by date, so prev = idx-1 (later date).
                   const prev = buckets[idx - 1];
                   const isWeekBoundary = !prev || weekKey(prev.date) !== weekKey(b.date);
-                  const zebra = idx % 2 === 0 ? "bg-background" : "bg-muted/20";
-                  const stickyZebra = idx % 2 === 0 ? "bg-background" : "bg-muted/20";
+                  const zebra = idx % 2 === 0 ? "bg-card" : "bg-muted/30";
+                  const stickyZebra = idx % 2 === 0 ? "bg-card" : "bg-muted";
                   return (
                     <>
                       <TableRow
@@ -498,7 +498,7 @@ const TableResults = () => {
                             />
                           );
                         })}
-                        <DRCell drop={b.arDrop} result={b.arResult} hasData bold />
+                        <DRCell drop={b.arDrop} result={b.arResult} hasData bold groupEnd />
 
                         {/* PK cells */}
                         {PK_TABLES.map((t) => {
@@ -512,7 +512,7 @@ const TableResults = () => {
                             />
                           );
                         })}
-                        <DRCell drop={b.pkDrop} result={b.pkResult} hasData bold />
+                        <DRCell drop={b.pkDrop} result={b.pkResult} hasData bold groupEnd />
 
                         {/* BJ cells */}
                         {BJ_TABLES.map((t) => {
@@ -526,7 +526,7 @@ const TableResults = () => {
                             />
                           );
                         })}
-                        <DRCell drop={b.bjDrop} result={b.bjResult} hasData bold />
+                        <DRCell drop={b.bjDrop} result={b.bjResult} hasData bold groupEnd />
 
                         {/* All */}
                         <DRCell drop={b.totalDrop} result={b.totalResult} hasData bold />
@@ -554,8 +554,8 @@ const TableResults = () => {
                 })}
 
                 {/* Period TOTAL row */}
-                <TableRow className="bg-primary/10 hover:bg-primary/10 font-semibold border-t-2">
-                  <TableCell className="sticky left-0 bg-primary/15 z-10 border-r">
+                <TableRow className="bg-primary text-primary-foreground hover:bg-primary font-semibold border-t-4 border-t-primary">
+                  <TableCell className="sticky left-0 bg-primary text-primary-foreground z-10 border-r border-primary-foreground/20">
                     TOTAL ({buckets.length}d)
                   </TableCell>
                   {AR_TABLES.map((t) => {
@@ -570,7 +570,7 @@ const TableResults = () => {
                       />
                     );
                   })}
-                  <DRCell drop={totals.arDrop} result={totals.arResult} hasData bold />
+                  <DRCell drop={totals.arDrop} result={totals.arResult} hasData bold groupEnd />
 
                   {PK_TABLES.map((t) => {
                     const c = totals.cellsTotal[t] || { drop: 0, result: 0 };
@@ -584,7 +584,7 @@ const TableResults = () => {
                       />
                     );
                   })}
-                  <DRCell drop={totals.pkDrop} result={totals.pkResult} hasData bold />
+                  <DRCell drop={totals.pkDrop} result={totals.pkResult} hasData bold groupEnd />
 
                   {BJ_TABLES.map((t) => {
                     const c = totals.cellsTotal[t] || { drop: 0, result: 0 };
@@ -598,7 +598,7 @@ const TableResults = () => {
                       />
                     );
                   })}
-                  <DRCell drop={totals.bjDrop} result={totals.bjResult} hasData bold />
+                  <DRCell drop={totals.bjDrop} result={totals.bjResult} hasData bold groupEnd />
 
                   <DRCell drop={totals.totalDrop} result={totals.totalResult} hasData bold />
                 </TableRow>
@@ -632,17 +632,20 @@ const SubHead = ({
   name,
   accent,
   bold,
+  groupEnd,
 }: {
   name: string;
   accent: keyof typeof accentBg;
   bold?: boolean;
+  groupEnd?: boolean;
 }) => {
   const bg = bold ? accentBgBold[accent] : accentBg[accent];
+  const endBorder = groupEnd ? "border-r-2 border-r-border" : "border-r border-r-border/40";
   return (
     <>
       <TableHead
         className={cn(
-          "text-right font-medium text-[10px] uppercase tracking-wide whitespace-nowrap px-2",
+          "text-right font-medium text-[10px] uppercase tracking-wide whitespace-nowrap px-1.5",
           bg,
         )}
       >
@@ -650,7 +653,7 @@ const SubHead = ({
       </TableHead>
       <TableHead
         className={cn(
-          "text-right font-medium text-[10px] uppercase tracking-wide whitespace-nowrap px-2",
+          "text-right font-medium text-[10px] uppercase tracking-wide whitespace-nowrap px-1.5",
           bg,
         )}
       >
@@ -658,8 +661,9 @@ const SubHead = ({
       </TableHead>
       <TableHead
         className={cn(
-          "text-right font-medium text-[10px] uppercase tracking-wide whitespace-nowrap px-2 border-r",
+          "text-right font-medium text-[10px] uppercase tracking-wide whitespace-nowrap px-1.5",
           bg,
+          endBorder,
         )}
       >
         {name} %
@@ -673,18 +677,21 @@ const DRCell = ({
   result,
   hasData,
   bold,
+  groupEnd,
 }: {
   drop: number;
   result: number;
   hasData: boolean;
   bold?: boolean;
+  groupEnd?: boolean;
 }) => {
+  const endBorder = groupEnd ? "border-r-2 border-r-border" : "border-r border-r-border/30";
   if (!hasData && drop === 0 && result === 0) {
     return (
       <>
-        <TableCell className="text-right text-muted-foreground/40 font-mono whitespace-nowrap px-2">—</TableCell>
-        <TableCell className="text-right text-muted-foreground/40 font-mono whitespace-nowrap px-2">—</TableCell>
-        <TableCell className="text-right text-muted-foreground/40 font-mono whitespace-nowrap px-2 border-r">—</TableCell>
+        <TableCell className="text-right text-muted-foreground/40 font-mono whitespace-nowrap px-1.5">—</TableCell>
+        <TableCell className="text-right text-muted-foreground/40 font-mono whitespace-nowrap px-1.5">—</TableCell>
+        <TableCell className={cn("text-right text-muted-foreground/40 font-mono whitespace-nowrap px-1.5", endBorder)}>—</TableCell>
       </>
     );
   }
@@ -694,7 +701,7 @@ const DRCell = ({
     <>
       <TableCell
         className={cn(
-          "text-right font-mono tabular-nums whitespace-nowrap px-2",
+          "text-right font-mono tabular-nums whitespace-nowrap px-1.5",
           bold && "font-semibold",
         )}
       >
@@ -702,7 +709,7 @@ const DRCell = ({
       </TableCell>
       <TableCell
         className={cn(
-          "text-right font-mono tabular-nums whitespace-nowrap px-2",
+          "text-right font-mono tabular-nums whitespace-nowrap px-1.5",
           bold && "font-semibold",
           isNeg && "text-destructive",
         )}
@@ -711,8 +718,9 @@ const DRCell = ({
       </TableCell>
       <TableCell
         className={cn(
-          "text-right font-mono tabular-nums text-xs whitespace-nowrap px-2 border-r",
+          "text-right font-mono tabular-nums text-xs whitespace-nowrap px-1.5",
           isNeg && "text-destructive",
+          endBorder,
         )}
       >
         {drop === 0 ? "—" : `${pct >= 0 ? "" : "-"}${Math.abs(pct).toFixed(1)}%`}
