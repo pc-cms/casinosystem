@@ -302,8 +302,8 @@ const ImportReports = () => {
                   {img.status === "pending" && <span className="text-muted-foreground">Pending</span>}
                   {img.status === "done" && (
                     img.needsReview
-                      ? <><AlertTriangle className="w-3 h-3 text-amber-500" /> <span>Review</span></>
-                      : <><CheckCircle2 className="w-3 h-3 text-emerald-500" /> <span>{img.date || "?"}</span></>
+                      ? <><AlertTriangle className="w-3 h-3 text-warning" /> <span>Review</span></>
+                      : <><CheckCircle2 className="w-3 h-3 text-success" /> <span>{img.date || "?"}</span></>
                   )}
                   {img.status === "error" && <><AlertTriangle className="w-3 h-3 text-destructive" /> <span>Error</span></>}
                 </div>
