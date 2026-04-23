@@ -521,7 +521,9 @@ const TableResults = () => {
                             }
                             className="p-0"
                           >
-                            <DayDetail rows={b.fullRows} date={b.date} />
+                            <div className="sticky left-0 w-[calc(100vw-var(--sidebar-w,17rem))] max-w-full">
+                              <DayDetail rows={b.fullRows} date={b.date} />
+                            </div>
                           </TableCell>
                         </TableRow>
                       )}
