@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -78,7 +78,7 @@ const ImportReports = () => {
   const allowed = isManager || roles.includes("super_admin");
   if (!allowed) return <Navigate to="/" replace />;
 
-  const addFiles = useCallback((files: FileList | File[]) => {
+  const addFiles = (files: FileList | File[]) => {
     const list = Array.from(files).filter((f) => f.type.startsWith("image/"));
     if (list.length === 0) return;
     setImages((prev) => [
@@ -90,7 +90,7 @@ const ImportReports = () => {
         status: "pending" as const,
       })),
     ]);
-  }, []);
+  };
 
   const removeImage = (id: string) => {
     setImages((prev) => {
