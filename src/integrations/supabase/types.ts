@@ -1852,6 +1852,75 @@ export type Database = {
           },
         ]
       }
+      table_daily_results: {
+        Row: {
+          casino_id: string
+          close: number
+          confirmed: boolean
+          created_at: string
+          created_by: string
+          credit: number
+          date: string
+          drop_amount: number
+          fill: number
+          id: string
+          open: number
+          result: number
+          source: string
+          table_id: string
+          updated_at: string
+        }
+        Insert: {
+          casino_id: string
+          close?: number
+          confirmed?: boolean
+          created_at?: string
+          created_by: string
+          credit?: number
+          date: string
+          drop_amount?: number
+          fill?: number
+          id?: string
+          open?: number
+          result?: number
+          source?: string
+          table_id: string
+          updated_at?: string
+        }
+        Update: {
+          casino_id?: string
+          close?: number
+          confirmed?: boolean
+          created_at?: string
+          created_by?: string
+          credit?: number
+          date?: string
+          drop_amount?: number
+          fill?: number
+          id?: string
+          open?: number
+          result?: number
+          source?: string
+          table_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "table_daily_results_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "table_daily_results_table_id_fkey"
+            columns: ["table_id"]
+            isOneToOne: false
+            referencedRelation: "gaming_tables"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       table_tracker: {
         Row: {
           casino_id: string

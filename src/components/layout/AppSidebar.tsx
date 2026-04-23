@@ -6,7 +6,7 @@ import {
   UsersRound, Grid3X3, LogOut, Settings, FileBarChart,
   CalendarDays, ClipboardCheck, ListChecks, Eye, Target,
   Building2, UserCheck, ClipboardPen, Coins, ShieldCheck, ShieldOff,
-  Wallet, DoorOpen, ShieldAlert, Menu, X,
+  Wallet, DoorOpen, ShieldAlert, Menu, X, Upload, FileText,
 } from "lucide-react";
 import { useTheme } from "@/lib/theme";
 import { useAuth } from "@/lib/auth-context";
@@ -36,6 +36,8 @@ const NAV_ITEMS: { to: string; icon: typeof LayoutDashboard; label: string; shor
   { to: "/logs", icon: ClipboardList, label: "Logs", shortcut: "Alt+L", roles: ["super_admin", "manager", "finance_manager", "surveillance"], section: "ANALYTICS" },
   { to: "/reports", icon: FileBarChart, label: "Reports", shortcut: "Alt+R", roles: ["super_admin", "manager", "finance_manager", "surveillance"], section: "ANALYTICS" },
   { to: "/stats", icon: BarChart3, label: "Stats", shortcut: "S", roles: ["super_admin", "manager", "finance_manager", "surveillance"], section: "ANALYTICS" },
+  { to: "/table-results", icon: FileText, label: "Table Results", shortcut: "Alt+T", roles: ["super_admin", "manager", "finance_manager", "surveillance"], section: "ANALYTICS" },
+  { to: "/import-reports", icon: Upload, label: "Import Reports", shortcut: "Alt+I", roles: ["super_admin", "manager"], section: "ANALYTICS" },
 ];
 
 const TABLE_SUBITEMS = [
