@@ -370,11 +370,11 @@ const TableResults = () => {
       {!isLoading && buckets.length > 0 && (
         <Card className="p-0 overflow-hidden">
           <div className="overflow-x-auto">
-            <Table className="text-xs">
+            <Table className="text-xs [&_th]:h-8 [&_th]:px-1.5 [&_td]:p-1.5">
               {/* Group headers */}
               <TableHeader>
-                <TableRow className="bg-muted/40 hover:bg-muted/40">
-                  <TableHead className="sticky left-0 bg-muted/40 z-10 w-32 min-w-32 border-r">
+                <TableRow className="bg-muted hover:bg-muted">
+                  <TableHead className="sticky left-0 bg-muted z-10 w-28 min-w-28 border-r-2 border-r-border">
                     Date
                   </TableHead>
                   <TableHead
@@ -385,7 +385,7 @@ const TableResults = () => {
                   </TableHead>
                   <TableHead
                     colSpan={3}
-                    className="text-center font-semibold border-r bg-warning/20"
+                    className="text-center font-semibold border-r-2 border-r-border bg-warning/25"
                   >
                     Total AR
                   </TableHead>
@@ -397,7 +397,7 @@ const TableResults = () => {
                   </TableHead>
                   <TableHead
                     colSpan={3}
-                    className="text-center font-semibold border-r bg-success/20"
+                    className="text-center font-semibold border-r-2 border-r-border bg-success/25"
                   >
                     Total PK
                   </TableHead>
@@ -409,35 +409,35 @@ const TableResults = () => {
                   </TableHead>
                   <TableHead
                     colSpan={3}
-                    className="text-center font-semibold border-r bg-destructive/20"
+                    className="text-center font-semibold border-r-2 border-r-border bg-destructive/25"
                   >
                     Total BJ
                   </TableHead>
                   <TableHead
                     colSpan={3}
-                    className="text-center font-semibold bg-primary/15"
+                    className="text-center font-semibold bg-primary/20"
                   >
                     Total Tables
                   </TableHead>
                 </TableRow>
 
                 {/* Sub-headers (D / R / %) */}
-                <TableRow className="bg-muted/20 hover:bg-muted/20">
-                  <TableHead className="sticky left-0 bg-muted/20 z-10 w-32 min-w-32 border-r" />
-                  {AR_TABLES.map((t) => (
-                    <SubHead key={t} name={t} accent="amber" />
+                <TableRow className="bg-muted/60 hover:bg-muted/60">
+                  <TableHead className="sticky left-0 bg-muted/90 z-10 w-28 min-w-28 border-r-2 border-r-border" />
+                  {AR_TABLES.map((t, i) => (
+                    <SubHead key={t} name={t} accent="amber" groupEnd={i === AR_TABLES.length - 1} />
                   ))}
-                  <SubHead name="AR" accent="amber" bold />
+                  <SubHead name="AR" accent="amber" bold groupEnd />
 
-                  {PK_TABLES.map((t) => (
-                    <SubHead key={t} name={t.replace("P", "PK")} accent="emerald" />
+                  {PK_TABLES.map((t, i) => (
+                    <SubHead key={t} name={t.replace("P", "PK")} accent="emerald" groupEnd={i === PK_TABLES.length - 1} />
                   ))}
-                  <SubHead name="PK" accent="emerald" bold />
+                  <SubHead name="PK" accent="emerald" bold groupEnd />
 
-                  {BJ_TABLES.map((t) => (
-                    <SubHead key={t} name={t} accent="rose" />
+                  {BJ_TABLES.map((t, i) => (
+                    <SubHead key={t} name={t} accent="rose" groupEnd={i === BJ_TABLES.length - 1} />
                   ))}
-                  <SubHead name="BJ" accent="rose" bold />
+                  <SubHead name="BJ" accent="rose" bold groupEnd />
 
                   <SubHead name="ALL" accent="primary" bold />
                 </TableRow>
