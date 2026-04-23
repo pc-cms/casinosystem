@@ -374,7 +374,7 @@ const TableResults = () => {
               {/* Group headers */}
               <TableHeader>
                 <TableRow className="bg-muted hover:bg-muted">
-                  <TableHead className="sticky left-0 bg-muted z-10 w-28 min-w-28 border-r-2 border-r-border">
+                  <TableHead className="sticky left-0 bg-muted z-10 w-36 min-w-36 border-r-2 border-r-border whitespace-nowrap">
                     Date
                   </TableHead>
                   <TableHead
