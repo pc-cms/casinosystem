@@ -13,7 +13,32 @@ import { Navigate } from "react-router-dom";
 import { toast } from "sonner";
 import { FIXED_TABLE_NAMES, formatSpaced, type ImportDay, type OcrRow } from "@/lib/import-helpers";
 import { useSaveImportedDay } from "@/hooks/use-import-reports";
-import { compressImage } from "@/lib/image-compress";
+
+/** Resize image to max width keeping aspect ratio. Returns JPEG blob. */
+const resizeImage = (file: File, maxWidth = 1600, quality = 0.85): Promise<Blob> =>
+  new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      let { width, height } = img;
+      if (width > maxWidth) {
+        height = Math.round((height * maxWidth) / width);
+        width = maxWidth;
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return reject(new Error("Canvas not supported"));
+      ctx.drawImage(img, 0, 0, width, height);
+      canvas.toBlob(
+        (blob) => (blob ? resolve(blob) : reject(new Error("Resize failed"))),
+        "image/jpeg",
+        quality
+      );
+    };
+    img.onerror = reject;
+    img.src = URL.createObjectURL(file);
+  });
 
 type ImageItem = {
   id: string;
@@ -42,8 +67,6 @@ const fileToBase64 = (file: Blob): Promise<string> =>
 
 const ImportReports = () => {
   const { isManager, roles } = useAuth();
-  const allowed = isManager || roles.includes("super_admin");
-
   const cameraRef = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
   const [images, setImages] = useState<ImageItem[]>([]);
@@ -52,6 +75,7 @@ const ImportReports = () => {
   const [dragOver, setDragOver] = useState(false);
   const saveDay = useSaveImportedDay();
 
+  const allowed = isManager || roles.includes("super_admin");
   if (!allowed) return <Navigate to="/" replace />;
 
   const addFiles = useCallback((files: FileList | File[]) => {
@@ -107,7 +131,7 @@ const ImportReports = () => {
   const processOne = async (item: ImageItem) => {
     setImages((prev) => prev.map((i) => (i.id === item.id ? { ...i, status: "processing" } : i)));
     try {
-      const compressed = await compressImage(item.file, 1600, 0.85);
+      const compressed = await resizeImage(item.file, 1600, 0.85);
       const b64 = await fileToBase64(compressed);
       const { data, error } = await supabase.functions.invoke("import-report-ocr", {
         body: { image_base64: b64, mime_type: compressed.type || "image/jpeg" },
