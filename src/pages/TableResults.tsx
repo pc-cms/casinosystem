@@ -444,17 +444,32 @@ const TableResults = () => {
               </TableHeader>
 
               <TableBody>
-                {buckets.map((b) => {
+                {buckets.map((b, idx) => {
                   const isOpen = openDate === b.date;
+                  // First row of a "new" week: when prev visible row belongs to a different week.
+                  // Buckets are sorted DESC by date, so prev = idx-1 (later date).
+                  const prev = buckets[idx - 1];
+                  const isWeekBoundary = !prev || weekKey(prev.date) !== weekKey(b.date);
+                  const zebra = idx % 2 === 0 ? "bg-background" : "bg-muted/20";
+                  const stickyZebra = idx % 2 === 0 ? "bg-background" : "bg-muted/20";
                   return (
                     <>
                       <TableRow
                         key={b.date}
-                        className="cursor-pointer hover:bg-accent/30"
+                        className={cn(
+                          "cursor-pointer hover:bg-accent/30 transition-colors",
+                          zebra,
+                          isWeekBoundary && "border-t-2 border-t-primary/40",
+                        )}
                         onClick={() => setOpenDate(isOpen ? null : b.date)}
                       >
                         {/* Date sticky */}
-                        <TableCell className="sticky left-0 bg-background hover:bg-accent/30 z-10 border-r font-medium">
+                        <TableCell
+                          className={cn(
+                            "sticky left-0 z-10 border-r font-medium hover:bg-accent/30",
+                            stickyZebra,
+                          )}
+                        >
                           <div className="flex items-center gap-1.5">
                             <ChevronRight
                               className={cn(
