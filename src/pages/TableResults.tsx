@@ -514,9 +514,9 @@ const TableResults = () => {
                           <TableCell
                             colSpan={
                               1 +
-                              AR_TABLES.length * 3 + 3 +
-                              PK_TABLES.length * 3 + 3 +
-                              BJ_TABLES.length * 3 + 3 +
+                              AR_TABLES.length * 3 +
+                              PK_TABLES.length * 3 +
+                              BJ_TABLES.length * 3 +
                               3
                             }
                             className="p-0"
