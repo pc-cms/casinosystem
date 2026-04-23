@@ -570,7 +570,7 @@ const TableResults = () => {
                       />
                     );
                   })}
-                  <DRCell drop={totals.arDrop} result={totals.arResult} hasData bold />
+                  <DRCell drop={totals.arDrop} result={totals.arResult} hasData bold groupEnd />
 
                   {PK_TABLES.map((t) => {
                     const c = totals.cellsTotal[t] || { drop: 0, result: 0 };
@@ -584,7 +584,7 @@ const TableResults = () => {
                       />
                     );
                   })}
-                  <DRCell drop={totals.pkDrop} result={totals.pkResult} hasData bold />
+                  <DRCell drop={totals.pkDrop} result={totals.pkResult} hasData bold groupEnd />
 
                   {BJ_TABLES.map((t) => {
                     const c = totals.cellsTotal[t] || { drop: 0, result: 0 };
@@ -598,7 +598,7 @@ const TableResults = () => {
                       />
                     );
                   })}
-                  <DRCell drop={totals.bjDrop} result={totals.bjResult} hasData bold />
+                  <DRCell drop={totals.bjDrop} result={totals.bjResult} hasData bold groupEnd />
 
                   <DRCell drop={totals.totalDrop} result={totals.totalResult} hasData bold />
                 </TableRow>
