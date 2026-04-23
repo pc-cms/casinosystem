@@ -369,7 +369,7 @@ const TableResults = () => {
       {/* Excel-style horizontal report */}
       {!isLoading && buckets.length > 0 && (
         <Card className="p-0 overflow-hidden">
-          <div className="overflow-x-auto">
+          <div className="overflow-auto max-h-[calc(100vh-220px)]">
             <Table className="text-xs [&_th]:h-8 [&_th]:px-1.5 [&_td]:p-1.5">
               {/* Group headers */}
               <TableHeader>
