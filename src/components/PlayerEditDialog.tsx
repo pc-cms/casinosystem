@@ -14,7 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { format } from "date-fns";
+import { fmtDateTime } from "@/lib/format-date";
 import CategoryBadge, { ALL_CATEGORIES, type PlayerCategory } from "@/components/player/CategoryBadge";
 import FlagBadges from "@/components/player/FlagBadges";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -375,7 +375,7 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
                   </div>
                   <p className="text-card-foreground">{note.content}</p>
                   <p className="text-[10px] text-muted-foreground mt-1">
-                    {getAuthorName(note.created_by)} · {format(new Date(note.created_at), "dd MMM HH:mm")}
+                    {getAuthorName(note.created_by)} · {fmtDateTime(note.created_at)}
                   </p>
                 </div>
               ))}

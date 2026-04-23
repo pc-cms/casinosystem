@@ -12,7 +12,7 @@ import {
 } from "@/hooks/use-finance";
 import { formatNumberSpaces, formatInputWithSpaces, parseSpacedNumber } from "@/lib/currency";
 import { Plus } from "lucide-react";
-import { format } from "date-fns";
+import { fmtDateTime } from "@/lib/format-date";
 
 export const FinanceExpenses = () => {
   const { data: txs = [] } = useWalletTransactions(500);
@@ -47,7 +47,7 @@ export const FinanceExpenses = () => {
               ) : (
                 expenses.map(tx => (
                   <TableRow key={tx.id}>
-                    <TableCell className="font-mono text-xs">{format(new Date(tx.created_at), "dd.MM.yy HH:mm")}</TableCell>
+                    <TableCell className="font-mono text-xs">{fmtDateTime(tx.created_at)}</TableCell>
                     <TableCell className="font-mono font-medium">{formatNumberSpaces(tx.amount)}</TableCell>
                     <TableCell>
                       {tx.expense_category ? (

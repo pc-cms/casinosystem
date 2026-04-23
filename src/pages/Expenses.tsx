@@ -12,6 +12,7 @@ import { NumberInput } from "@/components/ui/number-input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Plus, CheckCircle } from "lucide-react";
+import { fmtDate } from "@/lib/format-date";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
 import { formatCurrency } from "@/lib/currency";
@@ -76,7 +77,7 @@ const Expenses = () => {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Expenses</h1>
-          <p className="text-sm text-muted-foreground">Immutable · {expenses.length} records · {analytics.pendingCount} pending · {new Date().toLocaleDateString()}</p>
+          <p className="text-sm text-muted-foreground">Immutable · {expenses.length} records · {analytics.pendingCount} pending · {fmtDate(new Date())}</p>
         </div>
         <Button onClick={() => setShowAdd(true)} size="sm"><Plus className="w-4 h-4 mr-1" /> Add Expense</Button>
       </div>

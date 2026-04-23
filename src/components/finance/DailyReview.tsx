@@ -14,6 +14,7 @@ import { MoneyBreakdown } from "@/components/finance/daily-review/MoneyBreakdown
 import { formatNumberSpaces, formatInputWithSpaces, parseSpacedNumber } from "@/lib/currency";
 import { Check, ChevronLeft, ChevronRight, CalendarDays, AlertTriangle, ArrowDownToLine } from "lucide-react";
 import { format, subDays, addDays } from "date-fns";
+import { fmtDate } from "@/lib/format-date";
 import { toast } from "sonner";
 
 // Calculate physical cash in cage from closing_count (excludes chips, mobile, bank)
@@ -195,7 +196,7 @@ export const DailyReview = () => {
       {/* Results card */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium">Day Results — {format(new Date(selectedDate), "dd MMM yyyy")}</CardTitle>
+          <CardTitle className="text-sm font-medium">Day Results — {fmtDate(selectedDate)}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

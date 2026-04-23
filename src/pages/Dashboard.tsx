@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { Users, Landmark, Receipt, TrendingDown, AlertTriangle, Clock } from "lucide-react";
+import { fmtDate } from "@/lib/format-date";
 import { CardSkeleton, PlayerListSkeleton } from "@/components/LoadingSkeletons";
 import { usePlayers, useTransactions, useGamingTables, useExpenses, useClientSessionsTotalBet, useTableTracker, usePlayerEconomy, useVisitsToday } from "@/hooks/use-casino-data";
 // Dashboard uses limited economy query for top losers widget
@@ -139,7 +140,7 @@ const Dashboard = () => {
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
         <p className="text-sm text-muted-foreground font-mono mt-1">
-          {displayName} · {roles.join(", ") || "No role"} · {new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+          {displayName} · {roles.join(", ") || "No role"} · {fmtDate(new Date())}
         </p>
       </div>
 

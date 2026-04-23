@@ -19,6 +19,7 @@ import { formatSpaced } from "@/lib/import-helpers";
 import { CalendarIcon, ChevronRight, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
+import { fmtDate, fmtWeekdayShort } from "@/lib/format-date";
 
 /* ------------------------------------------------------------------ */
 /* Layout config — order of columns in the horizontal report          */
@@ -128,8 +129,7 @@ const holdPct = (drop: number, result: number) =>
 const fmtPct = (v: number) =>
   v === 0 ? "—" : `${v >= 0 ? "" : "-"}${Math.abs(v).toFixed(1)}%`;
 
-const dayName = (iso: string) =>
-  new Date(iso + "T12:00:00").toLocaleDateString("en-US", { weekday: "short" });
+const dayName = (iso: string) => fmtWeekdayShort(iso);
 
 const monthShort = (iso: string) =>
   new Date(iso + "T12:00:00").toLocaleDateString("en-US", {
@@ -453,7 +453,7 @@ const TableResults = () => {
                                 isOpen && "rotate-90",
                               )}
                             />
-                            <span className="font-mono">{b.date.replace(/-/g, ".")}</span>
+                            <span className="font-mono">{fmtDate(b.date)}</span>
                             <span className="text-[10px] text-muted-foreground ml-auto pl-2">
                               {dayName(b.date)}
                             </span>

@@ -1,7 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { WALLET_LABELS, WalletType } from "@/hooks/use-finance";
 import { formatNumberSpaces } from "@/lib/currency";
-import { format } from "date-fns";
+import { fmtDateTime } from "@/lib/format-date";
 
 const EXTRA_LABELS: Record<string, string> = {
   cage_slot: "Cage Slot",
@@ -24,7 +24,7 @@ export const HistoryView = ({ history }: { history: any[] }) => {
           <CardContent className="p-3">
             <div className="flex items-center justify-between mb-1">
               <div className="text-xs text-muted-foreground">
-                {format(new Date(snap.created_at), "dd MMM yyyy HH:mm")} · {getLabel(snap.wallet_type)} · {snap.currency}
+                {fmtDateTime(snap.created_at)} · {getLabel(snap.wallet_type)} · {snap.currency}
               </div>
             </div>
             <div className="grid grid-cols-3 gap-2 text-xs">
