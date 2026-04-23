@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { formatCurrency } from "@/lib/currency";
 import { Badge } from "@/components/ui/badge";
 import { BarChart3, Table2, Users, Receipt, Grid3X3, Landmark, UsersRound } from "lucide-react";
+import { fmtDate } from "@/lib/format-date";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 

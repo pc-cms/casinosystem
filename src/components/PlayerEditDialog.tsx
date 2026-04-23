@@ -375,7 +375,7 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
                   </div>
                   <p className="text-card-foreground">{note.content}</p>
                   <p className="text-[10px] text-muted-foreground mt-1">
-                    {getAuthorName(note.created_by)} · {format(new Date(note.created_at), "dd MMM HH:mm")}
+                    {getAuthorName(note.created_by)} · {fmtDateTime(note.created_at)}
                   </p>
                 </div>
               ))}

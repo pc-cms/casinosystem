@@ -12,6 +12,7 @@ import { NumberInput } from "@/components/ui/number-input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Plus, CheckCircle } from "lucide-react";
+import { fmtDate } from "@/lib/format-date";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
 import { formatCurrency } from "@/lib/currency";

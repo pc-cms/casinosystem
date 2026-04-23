@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { ArrowRight, Check, X, Plus, SendHorizonal } from "lucide-react";
+import { fmtDate } from "@/lib/format-date";
 import { toast } from "sonner";
 import { CURRENCY_SYMBOL } from "@/lib/currency";
 

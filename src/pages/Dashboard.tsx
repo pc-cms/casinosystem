@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { Users, Landmark, Receipt, TrendingDown, AlertTriangle, Clock } from "lucide-react";
+import { fmtDate } from "@/lib/format-date";
 import { CardSkeleton, PlayerListSkeleton } from "@/components/LoadingSkeletons";
 import { usePlayers, useTransactions, useGamingTables, useExpenses, useClientSessionsTotalBet, useTableTracker, usePlayerEconomy, useVisitsToday } from "@/hooks/use-casino-data";
 // Dashboard uses limited economy query for top losers widget

@@ -195,7 +195,7 @@ export const DailyReview = () => {
       {/* Results card */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium">Day Results — {format(new Date(selectedDate), "dd MMM yyyy")}</CardTitle>
+          <CardTitle className="text-sm font-medium">Day Results — {fmtDate(selectedDate)}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
