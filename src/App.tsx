@@ -35,6 +35,8 @@ const Finance = lazy(() => import("@/pages/Finance"));
 const Reception = lazy(() => import("@/pages/Reception"));
 const InCasino = lazy(() => import("@/pages/InCasino"));
 const Blacklist = lazy(() => import("@/pages/Blacklist"));
+const ImportReports = lazy(() => import("@/pages/ImportReports"));
+const TableResults = lazy(() => import("@/pages/TableResults"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -86,6 +88,8 @@ const ROUTE_ROLES: Record<string, string[]> = {
   "/stats": ["super_admin", "manager", "finance_manager", "surveillance"],
   "/logs": ["super_admin", "manager", "finance_manager", "surveillance"],
   "/admin": ["super_admin", "manager"],
+  "/import-reports": ["super_admin", "manager"],
+  "/table-results": ["super_admin", "manager", "finance_manager", "surveillance"],
   "/staff": ["super_admin", "manager", "pit", "finance_manager", "hr"],
 };
 
@@ -172,6 +176,8 @@ const ProtectedRoutes = () => {
             <Route path="/stats" element={<RoleGuard path="/stats"><Stats /></RoleGuard>} />
             <Route path="/logs" element={<RoleGuard path="/logs"><Logs /></RoleGuard>} />
             <Route path="/admin" element={<RoleGuard path="/admin"><Admin /></RoleGuard>} />
+            <Route path="/import-reports" element={<RoleGuard path="/import-reports"><ImportReports /></RoleGuard>} />
+            <Route path="/table-results" element={<RoleGuard path="/table-results"><TableResults /></RoleGuard>} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
