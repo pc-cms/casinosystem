@@ -52,6 +52,71 @@ export type Database = {
           },
         ]
       }
+      bank_checks: {
+        Row: {
+          amount: number
+          approval_code: string
+          bank: string
+          card_masked: string
+          casino_id: string
+          check_date: string
+          check_time: string | null
+          created_at: string
+          created_by: string
+          currency: string
+          id: string
+          merchant: string
+          note: string
+          photo_url: string | null
+          receipt_no: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          approval_code?: string
+          bank?: string
+          card_masked?: string
+          casino_id: string
+          check_date: string
+          check_time?: string | null
+          created_at?: string
+          created_by: string
+          currency?: string
+          id?: string
+          merchant?: string
+          note?: string
+          photo_url?: string | null
+          receipt_no?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          approval_code?: string
+          bank?: string
+          card_masked?: string
+          casino_id?: string
+          check_date?: string
+          check_time?: string | null
+          created_at?: string
+          created_by?: string
+          currency?: string
+          id?: string
+          merchant?: string
+          note?: string
+          photo_url?: string | null
+          receipt_no?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_checks_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       breaklist: {
         Row: {
           casino_id: string
