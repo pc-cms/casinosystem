@@ -370,7 +370,7 @@ const TableResults = () => {
       {!isLoading && buckets.length > 0 && (
         <Card className="p-0 overflow-hidden">
           <div className="overflow-auto max-h-[calc(100vh-220px)] [container-type:inline-size]">
-            <Table className="text-xs [&_th]:h-8 [&_th]:px-1.5 [&_td]:p-1.5 border-separate border-spacing-0">
+            <Table className="text-xs [&_th]:h-8 [&_th]:px-1.5 [&_td]:p-1.5 [&_thead_th]:sticky">
               {/* Group headers */}
               <TableHeader>
                 <TableRow className="bg-muted hover:bg-muted">
