@@ -180,6 +180,7 @@ const ProtectedRoutes = () => {
             <Route path="/admin" element={<RoleGuard path="/admin"><Admin /></RoleGuard>} />
             <Route path="/import-reports" element={<RoleGuard path="/import-reports"><ImportReports /></RoleGuard>} />
             <Route path="/table-results" element={<RoleGuard path="/table-results"><TableResults /></RoleGuard>} />
+            <Route path="/bank-checks" element={<RoleGuard path="/bank-checks"><BankChecks /></RoleGuard>} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
