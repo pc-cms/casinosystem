@@ -417,6 +417,26 @@ const TableResults = () => {
                   ))}
                   <SubHead name="ALL" accent="primary" bold />
                 </TableRow>
+
+                {/* Period totals per table — moved to header (Σ row at top) */}
+                <TableRow className="bg-primary/15 hover:bg-primary/15 border-b-2 border-b-primary/40">
+                  <TableHead className="sticky left-0 bg-primary/20 z-10 border-r-2 border-r-border text-[10px] uppercase tracking-wide font-semibold whitespace-nowrap">
+                    Σ Period ({buckets.length}d)
+                  </TableHead>
+                  {AR_TABLES.map((t, i) => {
+                    const c = totals.cellsTotal[t] || { drop: 0, result: 0 };
+                    return <DRHeadCell key={t} drop={c.drop} result={c.result} groupEnd={i === AR_TABLES.length - 1} />;
+                  })}
+                  {PK_TABLES.map((t, i) => {
+                    const c = totals.cellsTotal[t] || { drop: 0, result: 0 };
+                    return <DRHeadCell key={t} drop={c.drop} result={c.result} groupEnd={i === PK_TABLES.length - 1} />;
+                  })}
+                  {BJ_TABLES.map((t, i) => {
+                    const c = totals.cellsTotal[t] || { drop: 0, result: 0 };
+                    return <DRHeadCell key={t} drop={c.drop} result={c.result} groupEnd={i === BJ_TABLES.length - 1} />;
+                  })}
+                  <DRHeadCell drop={totals.totalDrop} result={totals.totalResult} bold />
+                </TableRow>
               </TableHeader>
 
               <TableBody>
