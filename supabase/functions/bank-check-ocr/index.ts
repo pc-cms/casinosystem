@@ -120,7 +120,18 @@ Rules:
       }
       const t = await response.text();
       console.error("AI gateway error:", response.status, t);
-      return new Response(JSON.stringify({ error: "OCR processing failed" }), {
+      let providerMsg = "OCR processing failed";
+      try {
+        const parsed = JSON.parse(t);
+        const raw = parsed?.error?.metadata?.raw;
+        if (raw) {
+          const inner = JSON.parse(raw);
+          providerMsg = inner?.error?.message || providerMsg;
+        } else if (parsed?.error?.message) {
+          providerMsg = parsed.error.message;
+        }
+      } catch { /* ignore */ }
+      return new Response(JSON.stringify({ error: `OCR: ${providerMsg}` }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
