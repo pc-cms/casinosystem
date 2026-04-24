@@ -706,12 +706,15 @@ const DRHeadCell = ({
   const endBorder = groupEnd ? "border-r-2 border-r-border" : "border-r border-r-border/30";
   const isNeg = result < 0;
   const pct = drop > 0 ? (result / drop) * 100 : 0;
+  // top-16 = 64px (sum of first two header rows, both h-8)
+  const stickyTop = "top-16 z-10 bg-primary/15";
   return (
     <>
       <TableHead
         className={cn(
           "text-right font-mono tabular-nums whitespace-nowrap px-1.5 text-foreground",
           bold && "font-bold",
+          stickyTop,
         )}
       >
         {drop === 0 ? "—" : formatSpaced(drop)}
@@ -721,6 +724,7 @@ const DRHeadCell = ({
           "text-right font-mono tabular-nums whitespace-nowrap px-1.5 text-foreground",
           bold && "font-bold",
           isNeg && "text-destructive",
+          stickyTop,
         )}
       >
         {result === 0 ? "—" : formatSpaced(result)}
@@ -730,6 +734,7 @@ const DRHeadCell = ({
           "text-right font-mono tabular-nums text-xs whitespace-nowrap px-1.5 text-foreground",
           isNeg && "text-destructive",
           endBorder,
+          stickyTop,
         )}
       >
         {drop === 0 ? "—" : `${pct >= 0 ? "" : "-"}${Math.abs(pct).toFixed(1)}%`}
