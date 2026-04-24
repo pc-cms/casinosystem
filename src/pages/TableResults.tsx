@@ -598,12 +598,15 @@ const SubHead = ({
 }) => {
   const bg = bold ? accentBgBold[accent] : accentBg[accent];
   const endBorder = groupEnd ? "border-r-2 border-r-border" : "border-r border-r-border/40";
+  // top-8 = 32px (height of first header row)
+  const stickyTop = "top-8 z-10";
   return (
     <>
       <TableHead
         className={cn(
           "text-right font-medium text-[10px] uppercase tracking-wide whitespace-nowrap px-1.5",
           bg,
+          stickyTop,
         )}
       >
         {name} D
@@ -612,6 +615,7 @@ const SubHead = ({
         className={cn(
           "text-right font-medium text-[10px] uppercase tracking-wide whitespace-nowrap px-1.5",
           bg,
+          stickyTop,
         )}
       >
         {name} R
@@ -621,6 +625,7 @@ const SubHead = ({
           "text-right font-medium text-[10px] uppercase tracking-wide whitespace-nowrap px-1.5",
           bg,
           endBorder,
+          stickyTop,
         )}
       >
         {name} %
