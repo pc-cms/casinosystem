@@ -47,7 +47,7 @@ export default function BankChecks() {
 
   const handleFile = async (file: File) => {
     if (!activeCasinoId) {
-      toast.error("Не выбрано казино");
+      toast.error("No casino selected");
       return;
     }
     setImporting(true);
@@ -73,7 +73,7 @@ export default function BankChecks() {
         amount: number; currency: string; bank: string; merchant: string; card_masked: string;
       }>;
       if (ocrChecks.length === 0) {
-        toast.error("Не удалось распознать чеки на фото");
+        toast.error("No checks recognized on the photo");
         return;
       }
 
@@ -96,7 +96,7 @@ export default function BankChecks() {
 
       await importMut.mutateAsync(records);
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Ошибка импорта";
+      const msg = e instanceof Error ? e.message : "Import error";
       toast.error(msg);
     } finally {
       setImporting(false);
@@ -109,7 +109,7 @@ export default function BankChecks() {
       .from("bank-checks")
       .createSignedUrl(path, 60 * 5);
     if (error || !data?.signedUrl) {
-      toast.error("Не удалось открыть фото");
+      toast.error("Failed to open photo");
       return;
     }
     setPhotoPreview(data.signedUrl);
@@ -121,7 +121,7 @@ export default function BankChecks() {
         <div>
           <h1 className="text-2xl font-bold">Bank Checks</h1>
           <p className="text-sm text-muted-foreground">
-            Подтверждение банковских транзакций по чекам POS-терминала
+            Confirm bank transactions from POS terminal receipts
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -138,10 +138,10 @@ export default function BankChecks() {
           />
           <Button onClick={() => fileRef.current?.click()} disabled={importing} className="gap-2">
             {importing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-            {importing ? "Распознаём..." : "Импорт фото"}
+            {importing ? "Recognizing..." : "Import photo"}
           </Button>
           <Button variant="outline" onClick={() => setShowAdd(true)} className="gap-2">
-            <Plus className="h-4 w-4" /> Добавить вручную
+            <Plus className="h-4 w-4" /> Add manually
           </Button>
         </div>
       </div>
@@ -149,16 +149,16 @@ export default function BankChecks() {
       {/* Date filters */}
       <div className="flex items-end gap-3 flex-wrap">
         <div>
-          <Label className="text-xs">С</Label>
+          <Label className="text-xs">From</Label>
           <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="w-40" />
         </div>
         <div>
-          <Label className="text-xs">По</Label>
+          <Label className="text-xs">To</Label>
           <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="w-40" />
         </div>
         <div className="ml-auto text-sm">
-          Всего: <span className="font-mono font-semibold">{checks.length}</span>{" "}
-          · Сумма: <span className="font-mono font-semibold">{formatCurrency(total, "TZS")}</span>
+          Total: <span className="font-mono font-semibold">{checks.length}</span>{" "}
+          · Sum: <span className="font-mono font-semibold">{formatCurrency(total, "TZS")}</span>
         </div>
       </div>
 
@@ -167,14 +167,14 @@ export default function BankChecks() {
         <table className="w-full text-sm">
           <thead className="bg-muted/50 sticky top-0">
             <tr className="text-left">
-              <th className="px-3 py-2 font-semibold">Дата</th>
-              <th className="px-3 py-2 font-semibold">Время</th>
-              <th className="px-3 py-2 font-semibold">Банк</th>
+              <th className="px-3 py-2 font-semibold">Date</th>
+              <th className="px-3 py-2 font-semibold">Time</th>
+              <th className="px-3 py-2 font-semibold">Bank</th>
               <th className="px-3 py-2 font-semibold">Receipt №</th>
               <th className="px-3 py-2 font-semibold">Approval</th>
-              <th className="px-3 py-2 font-semibold">Карта</th>
-              <th className="px-3 py-2 font-semibold text-right">Сумма</th>
-              <th className="px-3 py-2 font-semibold text-center">Фото</th>
+              <th className="px-3 py-2 font-semibold">Card</th>
+              <th className="px-3 py-2 font-semibold text-right">Amount</th>
+              <th className="px-3 py-2 font-semibold text-center">Photo</th>
               <th className="px-3 py-2"></th>
             </tr>
           </thead>
@@ -188,7 +188,7 @@ export default function BankChecks() {
             ) : checks.length === 0 ? (
               <tr>
                 <td colSpan={9} className="text-center py-10 text-muted-foreground">
-                  Нет чеков за период. Загрузите фото или добавьте вручную.
+                  No checks for this period. Upload a photo or add manually.
                 </td>
               </tr>
             ) : (
@@ -210,7 +210,7 @@ export default function BankChecks() {
                         variant="ghost"
                         className="h-7 w-7"
                         onClick={() => openPhoto(c.photo_url!)}
-                        title="Показать фото"
+                        title="Show photo"
                       >
                         <ImageIcon className="h-4 w-4" />
                       </Button>
@@ -224,9 +224,9 @@ export default function BankChecks() {
                       variant="ghost"
                       className="h-7 w-7 text-destructive hover:text-destructive"
                       onClick={() => {
-                        if (confirm("Удалить чек?")) deleteMut.mutate(c.id);
+                        if (confirm("Delete check?")) deleteMut.mutate(c.id);
                       }}
-                      title="Удалить"
+                      title="Delete"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -250,7 +250,7 @@ export default function BankChecks() {
       <Dialog open={!!photoPreview} onOpenChange={(o) => !o && setPhotoPreview(null)}>
         <DialogContent className="max-w-3xl">
           <DialogHeader>
-            <DialogTitle>Фото чека</DialogTitle>
+            <DialogTitle>Check photo</DialogTitle>
           </DialogHeader>
           {photoPreview && (
             <img src={photoPreview} alt="check" className="w-full rounded max-h-[70vh] object-contain" />
@@ -290,15 +290,15 @@ function ManualAddDialog({
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Добавить чек вручную</DialogTitle>
+          <DialogTitle>Add check manually</DialogTitle>
         </DialogHeader>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <Label>Дата</Label>
+            <Label>Date</Label>
             <Input type="date" value={form.check_date} onChange={(e) => upd("check_date", e.target.value)} />
           </div>
           <div>
-            <Label>Время</Label>
+            <Label>Time</Label>
             <Input
               type="time"
               value={form.check_time || ""}
@@ -306,11 +306,11 @@ function ManualAddDialog({
             />
           </div>
           <div>
-            <Label>Банк</Label>
+            <Label>Bank</Label>
             <Input value={form.bank} onChange={(e) => upd("bank", e.target.value)} />
           </div>
           <div>
-            <Label>Валюта</Label>
+            <Label>Currency</Label>
             <Input value={form.currency} onChange={(e) => upd("currency", e.target.value.toUpperCase())} />
           </div>
           <div>
@@ -322,11 +322,11 @@ function ManualAddDialog({
             <Input value={form.approval_code} onChange={(e) => upd("approval_code", e.target.value)} />
           </div>
           <div className="col-span-2">
-            <Label>Карта (маска)</Label>
+            <Label>Card (masked)</Label>
             <Input value={form.card_masked} onChange={(e) => upd("card_masked", e.target.value)} />
           </div>
           <div className="col-span-2">
-            <Label>Сумма</Label>
+            <Label>Amount</Label>
             <Input
               type="number"
               value={form.amount || ""}
@@ -335,9 +335,9 @@ function ManualAddDialog({
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Отмена</Button>
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
           <Button onClick={() => onSave(form)} disabled={saving || form.amount <= 0}>
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Сохранить"}
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
           </Button>
         </DialogFooter>
       </DialogContent>
