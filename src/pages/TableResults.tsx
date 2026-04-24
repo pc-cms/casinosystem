@@ -370,34 +370,34 @@ const TableResults = () => {
       {!isLoading && buckets.length > 0 && (
         <Card className="p-0 overflow-hidden">
           <div className="overflow-auto max-h-[calc(100vh-220px)] [container-type:inline-size]">
-            <Table className="text-xs [&_th]:h-8 [&_th]:px-1.5 [&_td]:p-1.5">
+            <Table className="text-xs [&_th]:h-8 [&_th]:px-1.5 [&_td]:p-1.5 [&_thead_th]:sticky">
               {/* Group headers */}
               <TableHeader>
                 <TableRow className="bg-muted hover:bg-muted">
-                  <TableHead className="sticky left-0 bg-muted z-10 w-36 min-w-36 border-r-2 border-r-border whitespace-nowrap">
+                  <TableHead className="sticky left-0 top-0 bg-muted z-30 w-36 min-w-36 border-r-2 border-r-border whitespace-nowrap">
                     Date
                   </TableHead>
                   <TableHead
                     colSpan={AR_TABLES.length * 3}
-                    className="text-center font-semibold border-r-2 border-r-border bg-warning/10"
+                    className="sticky top-0 z-20 text-center font-semibold border-r-2 border-r-border bg-warning/10"
                   >
                     American Roulette
                   </TableHead>
                   <TableHead
                     colSpan={PK_TABLES.length * 3}
-                    className="text-center font-semibold border-r-2 border-r-border bg-success/10"
+                    className="sticky top-0 z-20 text-center font-semibold border-r-2 border-r-border bg-success/10"
                   >
                     Poker (PK)
                   </TableHead>
                   <TableHead
                     colSpan={BJ_TABLES.length * 3}
-                    className="text-center font-semibold border-r-2 border-r-border bg-destructive/10"
+                    className="sticky top-0 z-20 text-center font-semibold border-r-2 border-r-border bg-destructive/10"
                   >
                     Blackjack
                   </TableHead>
                   <TableHead
                     colSpan={3}
-                    className="text-center font-semibold bg-primary/20"
+                    className="sticky top-0 z-20 text-center font-semibold bg-primary/20"
                   >
                     Total Tables
                   </TableHead>
@@ -405,7 +405,7 @@ const TableResults = () => {
 
                 {/* Sub-headers (D / R / %) */}
                 <TableRow className="bg-muted/60 hover:bg-muted/60">
-                  <TableHead className="sticky left-0 bg-muted/90 z-10 w-36 min-w-36 border-r-2 border-r-border" />
+                  <TableHead className="sticky left-0 top-8 bg-muted/95 backdrop-blur z-30 w-36 min-w-36 border-r-2 border-r-border" />
                   {AR_TABLES.map((t, i) => (
                     <SubHead key={t} name={t} accent="amber" groupEnd={i === AR_TABLES.length - 1} />
                   ))}
@@ -420,7 +420,7 @@ const TableResults = () => {
 
                 {/* Period totals per table — moved to header (Σ row at top) */}
                 <TableRow className="bg-primary/15 hover:bg-primary/15 border-b-2 border-b-primary/40">
-                  <TableHead className="sticky left-0 bg-primary/20 z-10 border-r-2 border-r-border text-[10px] uppercase tracking-wide font-semibold whitespace-nowrap">
+                  <TableHead className="sticky left-0 top-16 bg-primary/30 backdrop-blur z-30 border-r-2 border-r-border text-[10px] uppercase tracking-wide font-semibold whitespace-nowrap">
                     Σ Period ({buckets.length}d)
                   </TableHead>
                   {AR_TABLES.map((t, i) => {
@@ -598,12 +598,15 @@ const SubHead = ({
 }) => {
   const bg = bold ? accentBgBold[accent] : accentBg[accent];
   const endBorder = groupEnd ? "border-r-2 border-r-border" : "border-r border-r-border/40";
+  // top-8 = 32px (height of first header row)
+  const stickyTop = "top-8 z-10";
   return (
     <>
       <TableHead
         className={cn(
           "text-right font-medium text-[10px] uppercase tracking-wide whitespace-nowrap px-1.5",
           bg,
+          stickyTop,
         )}
       >
         {name} D
@@ -612,6 +615,7 @@ const SubHead = ({
         className={cn(
           "text-right font-medium text-[10px] uppercase tracking-wide whitespace-nowrap px-1.5",
           bg,
+          stickyTop,
         )}
       >
         {name} R
@@ -621,6 +625,7 @@ const SubHead = ({
           "text-right font-medium text-[10px] uppercase tracking-wide whitespace-nowrap px-1.5",
           bg,
           endBorder,
+          stickyTop,
         )}
       >
         {name} %
@@ -701,12 +706,15 @@ const DRHeadCell = ({
   const endBorder = groupEnd ? "border-r-2 border-r-border" : "border-r border-r-border/30";
   const isNeg = result < 0;
   const pct = drop > 0 ? (result / drop) * 100 : 0;
+  // top-16 = 64px (sum of first two header rows, both h-8)
+  const stickyTop = "top-16 z-10 bg-primary/15";
   return (
     <>
       <TableHead
         className={cn(
           "text-right font-mono tabular-nums whitespace-nowrap px-1.5 text-foreground",
           bold && "font-bold",
+          stickyTop,
         )}
       >
         {drop === 0 ? "—" : formatSpaced(drop)}
@@ -716,6 +724,7 @@ const DRHeadCell = ({
           "text-right font-mono tabular-nums whitespace-nowrap px-1.5 text-foreground",
           bold && "font-bold",
           isNeg && "text-destructive",
+          stickyTop,
         )}
       >
         {result === 0 ? "—" : formatSpaced(result)}
@@ -725,6 +734,7 @@ const DRHeadCell = ({
           "text-right font-mono tabular-nums text-xs whitespace-nowrap px-1.5 text-foreground",
           isNeg && "text-destructive",
           endBorder,
+          stickyTop,
         )}
       >
         {drop === 0 ? "—" : `${pct >= 0 ? "" : "-"}${Math.abs(pct).toFixed(1)}%`}
