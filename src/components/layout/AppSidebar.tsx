@@ -6,7 +6,7 @@ import {
   UsersRound, Grid3X3, LogOut, Settings, FileBarChart,
   CalendarDays, ClipboardCheck, ListChecks, Eye, Target,
   Building2, UserCheck, ClipboardPen, Coins, ShieldCheck, ShieldOff,
-  Wallet, DoorOpen, ShieldAlert, Menu, X, Upload, FileText, PanelLeftClose,
+  Wallet, DoorOpen, ShieldAlert, Menu, X, Upload, FileText, ChevronsLeft,
 } from "lucide-react";
 import { useTheme } from "@/lib/theme";
 import { useAuth } from "@/lib/auth-context";
