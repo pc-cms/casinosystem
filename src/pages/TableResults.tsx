@@ -207,7 +207,7 @@ const TableResults = () => {
         totalResult: ar.res + pk.res + bj.res,
       };
     });
-    return list.sort((a, b) => b.date.localeCompare(a.date));
+    return list.sort((a, b) => a.date.localeCompare(b.date));
   }, [data]);
 
   /* Period totals (bottom row) */
