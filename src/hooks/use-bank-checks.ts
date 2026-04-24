@@ -165,33 +165,34 @@ async function fileToBase64(file: Blob): Promise<string> {
   return btoa(binary);
 }
 
-/** Compress image to JPEG ≤ 1600px max side. Falls back to original bytes if browser can't decode (e.g. HEIC). */
+/** Compress image to JPEG ≤ 1600px max side. Always re-encode to clean JPEG so Gemini accepts it. */
 export async function compressForOcr(file: File): Promise<{ base64: string; mime: string }> {
   const isHeic = /heic|heif/i.test(file.type) || /\.(heic|heif)$/i.test(file.name);
+
+  // Source blob to feed into <img> for canvas re-encode
+  let sourceBlob: Blob = file;
   if (isHeic) {
     try {
-      const converted = await heic2any({
-        blob: file,
-        toType: "image/jpeg",
-        quality: 0.9,
-      });
-      const jpegBlob = Array.isArray(converted) ? converted[0] : converted;
-      return { base64: await fileToBase64(jpegBlob), mime: "image/jpeg" };
+      const converted = await heic2any({ blob: file, toType: "image/jpeg", quality: 0.9 });
+      sourceBlob = Array.isArray(converted) ? converted[0] : converted;
     } catch (e) {
-      console.warn("compressForOcr HEIC conversion failed, falling back to raw bytes:", e);
-      return { base64: await fileToBase64(file), mime: file.type || "image/heic" };
+      console.error("HEIC conversion failed:", e);
+      throw new Error("Could not convert HEIC photo. Please share as JPEG/PNG.");
     }
   }
+
+  // Re-encode through canvas → clean baseline JPEG (strips bad EXIF / odd color profiles)
+  const url = URL.createObjectURL(sourceBlob);
   try {
-    const url = URL.createObjectURL(file);
     const img = await new Promise<HTMLImageElement>((resolve, reject) => {
       const i = new Image();
       i.onload = () => resolve(i);
-      i.onerror = () => reject(new Error("Image decode failed"));
+      i.onerror = () => reject(new Error("Browser could not decode this image"));
       i.src = url;
     });
     const MAX = 1600;
     let { width, height } = img;
+    if (!width || !height) throw new Error("Image has zero dimensions");
     if (width > MAX || height > MAX) {
       if (width >= height) {
         height = Math.round((height * MAX) / width);
@@ -204,17 +205,18 @@ export async function compressForOcr(file: File): Promise<{ base64: string; mime
     const canvas = document.createElement("canvas");
     canvas.width = width;
     canvas.height = height;
-    const ctx = canvas.getContext("2d")!;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Canvas not available");
+    // White background to flatten any alpha/oddities
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, width, height);
     ctx.drawImage(img, 0, 0, width, height);
-    URL.revokeObjectURL(url);
     const blob: Blob = await new Promise((resolve, reject) =>
-      canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("compress failed"))), "image/jpeg", 0.85)
+      canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("JPEG encode failed"))), "image/jpeg", 0.85)
     );
     return { base64: await fileToBase64(blob), mime: "image/jpeg" };
-  } catch (e) {
-    // Fallback: send original bytes as-is
-    console.warn("compressForOcr fallback to raw bytes:", e);
-    return { base64: await fileToBase64(file), mime: file.type || "image/jpeg" };
+  } finally {
+    URL.revokeObjectURL(url);
   }
 }
 
