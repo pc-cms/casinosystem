@@ -1,3 +1,4 @@
+import heic2any from "heic2any";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCasino } from "@/lib/casino-context";
@@ -167,9 +168,19 @@ async function fileToBase64(file: Blob): Promise<string> {
 /** Compress image to JPEG ≤ 1600px max side. Falls back to original bytes if browser can't decode (e.g. HEIC). */
 export async function compressForOcr(file: File): Promise<{ base64: string; mime: string }> {
   const isHeic = /heic|heif/i.test(file.type) || /\.(heic|heif)$/i.test(file.name);
-  // Browsers (except Safari) cannot decode HEIC via <img>. Send raw bytes; Gemini can read it.
   if (isHeic) {
-    return { base64: await fileToBase64(file), mime: file.type || "image/heic" };
+    try {
+      const converted = await heic2any({
+        blob: file,
+        toType: "image/jpeg",
+        quality: 0.9,
+      });
+      const jpegBlob = Array.isArray(converted) ? converted[0] : converted;
+      return { base64: await fileToBase64(jpegBlob), mime: "image/jpeg" };
+    } catch (e) {
+      console.warn("compressForOcr HEIC conversion failed, falling back to raw bytes:", e);
+      return { base64: await fileToBase64(file), mime: file.type || "image/heic" };
+    }
   }
   try {
     const url = URL.createObjectURL(file);
