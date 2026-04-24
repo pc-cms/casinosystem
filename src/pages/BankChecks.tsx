@@ -98,7 +98,10 @@ export default function BankChecks() {
       await importMut.mutateAsync(records);
     } catch (e) {
       console.error("Bank check import error:", e);
-      const msg = e instanceof Error ? e.message : "Import error";
+      const msg =
+        typeof e === "object" && e !== null && "message" in e && typeof (e as { message?: unknown }).message === "string"
+          ? (e as { message: string }).message
+          : "Import failed";
       toast.error(msg);
     } finally {
       setImporting(false);
@@ -312,18 +315,6 @@ function ManualAddDialog({
           <div>
             <Label>Bank</Label>
             <Input value={form.bank} onChange={(e) => upd("bank", e.target.value)} />
-          </div>
-          <div>
-            <Label>Currency</Label>
-            <Select value={form.currency} onValueChange={(value) => upd("currency", value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Currency" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="TZS">TZS</SelectItem>
-                <SelectItem value="USD">USD</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
           <div>
             <Label>Receipt №</Label>
