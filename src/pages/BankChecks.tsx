@@ -96,6 +96,7 @@ export default function BankChecks() {
 
       await importMut.mutateAsync(records);
     } catch (e) {
+      console.error("Bank check import error:", e);
       const msg = e instanceof Error ? e.message : "Import error";
       toast.error(msg);
     } finally {
