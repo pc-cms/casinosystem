@@ -46,17 +46,8 @@ export const AppLayout = () => {
   return (
     <div className="flex h-screen overflow-hidden">
       {!isMobile && !collapsed && (
-        <div className="no-print relative">
-          <AppSidebar />
-          <Button
-            size="icon"
-            variant="ghost"
-            onClick={() => setCollapsed(true)}
-            title="Hide sidebar (Ctrl+B)"
-            className="absolute top-2 right-1 h-7 w-7 z-20"
-          >
-            <PanelLeftClose className="h-4 w-4" />
-          </Button>
+        <div className="no-print">
+          <AppSidebar onCollapse={() => setCollapsed(true)} />
         </div>
       )}
       <div className="flex-1 flex flex-col overflow-hidden relative">
