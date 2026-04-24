@@ -569,47 +569,29 @@ const TableResults = () => {
                   <TableCell className="sticky left-0 bg-primary text-primary-foreground z-10 border-r border-primary-foreground/20">
                     TOTAL ({buckets.length}d)
                   </TableCell>
-                  {AR_TABLES.map((t, i) => {
+                  {AR_TABLES.map((t) => {
                     const c = totals.cellsTotal[t] || { drop: 0, result: 0 };
                     return (
-                      <DRCell
-                        key={t}
-                        drop={c.drop}
-                        result={c.result}
-                        hasData
-                        bold
-                        groupEnd={i === AR_TABLES.length - 1}
-                      />
+                      <DRCell key={t} drop={c.drop} result={c.result} hasData bold groupEnd={false} />
                     );
                   })}
+                  <DRCell drop={totals.arDrop} result={totals.arResult} hasData bold groupEnd />
 
-                  {PK_TABLES.map((t, i) => {
+                  {PK_TABLES.map((t) => {
                     const c = totals.cellsTotal[t] || { drop: 0, result: 0 };
                     return (
-                      <DRCell
-                        key={t}
-                        drop={c.drop}
-                        result={c.result}
-                        hasData
-                        bold
-                        groupEnd={i === PK_TABLES.length - 1}
-                      />
+                      <DRCell key={t} drop={c.drop} result={c.result} hasData bold groupEnd={false} />
                     );
                   })}
+                  <DRCell drop={totals.pkDrop} result={totals.pkResult} hasData bold groupEnd />
 
-                  {BJ_TABLES.map((t, i) => {
+                  {BJ_TABLES.map((t) => {
                     const c = totals.cellsTotal[t] || { drop: 0, result: 0 };
                     return (
-                      <DRCell
-                        key={t}
-                        drop={c.drop}
-                        result={c.result}
-                        hasData
-                        bold
-                        groupEnd={i === BJ_TABLES.length - 1}
-                      />
+                      <DRCell key={t} drop={c.drop} result={c.result} hasData bold groupEnd={false} />
                     );
                   })}
+                  <DRCell drop={totals.bjDrop} result={totals.bjResult} hasData bold groupEnd />
 
                   <DRCell drop={totals.totalDrop} result={totals.totalResult} hasData bold />
                 </TableRow>
