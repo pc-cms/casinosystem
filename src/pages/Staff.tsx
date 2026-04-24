@@ -9,11 +9,13 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
 import {
-  useStaffMembers, useCreateStaffMember, useUpdateStaffMember, useStaffRotaRange, useSetStaffRota,
+  useStaffMembers, useCreateStaffMember, useUpdateStaffMember, useDeleteStaffMember,
+  useStaffRotaRange, useSetStaffRota,
   useDeleteStaffRota, useStaffAttendanceRange, useSetStaffAttendance,
   DEPARTMENT_LABELS, DEPARTMENT_ORDER, STAFF_SHIFT_LABELS, STAFF_SHIFT_COLORS,
   ROTA_GROUPS, type StaffDepartment, type RotaGroupKey,
 } from "@/hooks/use-staff";
+import { Trash2 } from "lucide-react";
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -180,6 +182,7 @@ const EmployeeList = () => {
   const { data: staff = [] } = useStaffMembers();
   const createStaff = useCreateStaffMember();
   const updateStaff = useUpdateStaffMember();
+  const deleteStaff = useDeleteStaffMember();
   const [name, setName] = useState("");
   const [dept, setDept] = useState<StaffDepartment>("waiter");
   const [sortBy, setSortBy] = useState<string>("department");
@@ -314,6 +317,7 @@ const EmployeeList = () => {
               <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-2">Years</th>
               <SortHeader field="days_left" label="Days Left" />
               <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-2">Status</th>
+              {canManage && <th className="text-center text-xs font-medium text-muted-foreground uppercase px-2 py-2 w-10">Del</th>}
             </tr>
           </thead>
           <tbody>
@@ -386,6 +390,23 @@ const EmployeeList = () => {
                       {s.is_active ? "Active" : "Fired"}
                     </button>
                   </td>
+                  {canManage && (
+                    <td className="px-2 py-2 text-center">
+                      <button
+                        onClick={() => {
+                          if (!window.confirm(`Permanently delete "${s.name}"? This cannot be undone. Use only to remove mistakenly entered names.`)) return;
+                          deleteStaff.mutate(s.id, {
+                            onSuccess: () => toast.success("Employee deleted"),
+                            onError: (e: any) => toast.error(e?.message || "Delete failed"),
+                          });
+                        }}
+                        title="Delete employee permanently"
+                        className="inline-flex items-center justify-center w-7 h-7 rounded text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </td>
+                  )}
                 </tr>
               );
             })}
