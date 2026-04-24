@@ -708,7 +708,7 @@ const DRHeadCell = ({
   const isNeg = result < 0;
   const pct = drop > 0 ? (result / drop) * 100 : 0;
   // top-16 = 64px (sum of first two header rows, both h-8)
-  const stickyTop = "top-16 z-10 bg-primary/15";
+  const stickyTop = "top-16 z-10 [background-image:linear-gradient(hsl(var(--primary)/0.2),hsl(var(--primary)/0.2)),linear-gradient(hsl(var(--muted)),hsl(var(--muted)))]";
   return (
     <>
       <TableHead
