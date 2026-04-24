@@ -117,6 +117,17 @@ export const useUpdateStaffMember = () => {
   });
 };
 
+export const useDeleteStaffMember = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("staff_members").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["staff_members"] }),
+  });
+};
+
 export const useStaffRotaRange = (startDate: string, endDate: string) => {
   const { casinoId } = useAuth();
   return useQuery({

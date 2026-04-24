@@ -47,6 +47,17 @@ export const useUpdateDealer = () => {
   });
 };
 
+export const useDeleteDealer = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("dealers").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["dealers"] }),
+  });
+};
+
 // ============ PIT ROTA ============
 export const usePitRota = (date: string) => {
   const { casinoId } = useAuth();
