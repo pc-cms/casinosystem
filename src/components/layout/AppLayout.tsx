@@ -5,7 +5,7 @@ import { useRealtimeSubscriptions } from "@/hooks/use-realtime";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { MobileHeader } from "./AppSidebar";
 import { Button } from "@/components/ui/button";
-import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { ChevronsRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // Routes that need full-bleed width (no max-w container)
