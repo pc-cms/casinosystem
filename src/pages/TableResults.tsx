@@ -722,6 +722,53 @@ const DRCell = ({
   );
 };
 
+/* Compact head cell showing per-table period totals (Drop / Result / Hold%) */
+const DRHeadCell = ({
+  drop,
+  result,
+  bold,
+  groupEnd,
+}: {
+  drop: number;
+  result: number;
+  bold?: boolean;
+  groupEnd?: boolean;
+}) => {
+  const endBorder = groupEnd ? "border-r-2 border-r-border" : "border-r border-r-border/30";
+  const isNeg = result < 0;
+  const pct = drop > 0 ? (result / drop) * 100 : 0;
+  return (
+    <>
+      <TableHead
+        className={cn(
+          "text-right font-mono tabular-nums whitespace-nowrap px-1.5 text-[11px]",
+          bold && "font-semibold",
+        )}
+      >
+        {drop === 0 ? "—" : formatSpaced(drop)}
+      </TableHead>
+      <TableHead
+        className={cn(
+          "text-right font-mono tabular-nums whitespace-nowrap px-1.5 text-[11px]",
+          bold && "font-semibold",
+          isNeg && "text-destructive",
+        )}
+      >
+        {result === 0 ? "—" : formatSpaced(result)}
+      </TableHead>
+      <TableHead
+        className={cn(
+          "text-right font-mono tabular-nums whitespace-nowrap px-1.5 text-[10px]",
+          isNeg && "text-destructive",
+          endBorder,
+        )}
+      >
+        {drop === 0 ? "—" : `${pct >= 0 ? "" : "-"}${Math.abs(pct).toFixed(1)}%`}
+      </TableHead>
+    </>
+  );
+};
+
 /* Inline drilldown — like the third photo (per-table full breakdown) */
 const DayDetail = ({ rows, date }: { rows: Row[]; date: string }) => {
   // Pick latest row per table name
