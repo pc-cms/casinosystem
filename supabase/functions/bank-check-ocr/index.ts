@@ -44,13 +44,15 @@ For each receipt extract:
 - receipt_no: the "Receipt No" / "Recerpt No" / "Receipt:" value (numeric, e.g. "002005")
 - approval_code: the "Approval Code" value (6 digits, e.g. "386415")
 - amount: numeric, only digits (no commas/spaces). E.g. "TZS 206,000.00" → 206000
-- currency: 3-letter code (TZS, USD, EUR, KES, GBP)
+- currency: 3-letter code, prefer TZS or USD for these receipts
 - bank: bank name from logo/header (e.g. "NBC", "CRDB", "NMB", "Equity", "Stanbic")
 - merchant: merchant name from header (e.g. "JOKER CASINO LIMITED")
 - card_masked: masked card PAN as printed (e.g. "4313 32** **** 0648")
 
 Rules:
 - Return ALL receipts visible in the image, in reading order (top-to-bottom, left-to-right).
+- If currency is not explicitly visible but the receipt is a Tanzanian bank POS receipt, infer "TZS".
+- Only return "USD" when USD is explicitly printed or clearly implied by the amount/currency marker.
 - If a field is unreadable or absent, return empty string "" (or 0 for amount).
 - Always call the extract_checks function. Never reply with plain text.`,
           },
@@ -132,7 +134,17 @@ Rules:
     }
 
     const extracted = JSON.parse(toolCall.function.arguments);
-    const checks = Array.isArray(extracted.checks) ? extracted.checks : [];
+    const checks = Array.isArray(extracted.checks)
+      ? extracted.checks.map((check: Record<string, unknown>) => {
+          const rawCurrency = typeof check.currency === "string" ? check.currency.trim().toUpperCase() : "";
+          const normalizedCurrency = rawCurrency === "USD" ? "USD" : "TZS";
+
+          return {
+            ...check,
+            currency: normalizedCurrency,
+          };
+        })
+      : [];
 
     return new Response(JSON.stringify({ checks }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
