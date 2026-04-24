@@ -52,15 +52,13 @@ export const AppLayout = () => {
       )}
       <div className="flex-1 flex flex-col overflow-hidden relative">
         {!isMobile && collapsed && (
-          <Button
-            size="icon"
-            variant="outline"
+          <button
             onClick={() => setCollapsed(false)}
             title="Show sidebar (Ctrl+B)"
-            className="no-print absolute top-2 left-2 h-8 w-8 z-30 shadow-md"
+            className="no-print absolute top-4 left-2 h-6 w-[68px] flex items-center justify-center rounded-md border border-sidebar-border bg-sidebar text-sidebar-foreground hover:bg-sidebar-accent transition-colors z-30 shadow-sm"
           >
-            <PanelLeftOpen className="h-4 w-4" />
-          </Button>
+            <PanelLeftOpen className="h-3.5 w-3.5" />
+          </button>
         )}
         {isMobile && <div className="no-print"><MobileHeader /></div>}
         <main className="flex-1 overflow-y-auto">

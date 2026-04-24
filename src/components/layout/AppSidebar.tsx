@@ -116,12 +116,23 @@ const SidebarInner = ({ onNavigate, onCollapse }: { onNavigate?: () => void; onC
   return (
     <>
       <div className="px-4 py-4 border-b border-sidebar-border">
-        <div className="flex items-center justify-between">
+        <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-2">
             <Shield className="w-6 h-6 text-primary" />
             <span className="font-bold text-lg tracking-tight text-sidebar-foreground">CMS</span>
           </div>
-          <NetworkStatusIndicator />
+          <div className="flex flex-col items-stretch gap-1">
+            <NetworkStatusIndicator />
+            {onCollapse && (
+              <button
+                onClick={onCollapse}
+                title="Hide sidebar (Ctrl+B)"
+                className="h-6 w-full flex items-center justify-center rounded-md text-sidebar-foreground hover:bg-sidebar-accent transition-colors border border-sidebar-border"
+              >
+                <PanelLeftClose className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
         </div>
         <p className="text-[10px] font-mono text-muted-foreground mt-0.5 uppercase tracking-widest">
           {isSummaryMode ? "All Casinos" : activeCasino?.name ?? "Casino Ops"}
@@ -237,21 +248,10 @@ const SidebarInner = ({ onNavigate, onCollapse }: { onNavigate?: () => void; onC
           {theme === "dark" ? <Sun className="w-3 h-3" /> : <Moon className="w-3 h-3" />}
           {theme === "dark" ? "Light" : "Dark"}
         </button>
-        <div className="flex items-center gap-1">
-          <button onClick={signOut}
-            className="flex items-center gap-2 flex-1 px-3 py-1.5 rounded-md text-xs text-sidebar-foreground hover:bg-sidebar-accent transition-colors">
-            <LogOut className="w-3 h-3" /> Sign Out
-          </button>
-          {onCollapse && (
-            <button
-              onClick={onCollapse}
-              title="Hide sidebar (Ctrl+B)"
-              className="p-1.5 rounded-md text-sidebar-foreground hover:bg-sidebar-accent transition-colors shrink-0"
-            >
-              <PanelLeftClose className="w-3.5 h-3.5" />
-            </button>
-          )}
-        </div>
+        <button onClick={signOut}
+          className="flex items-center gap-2 w-full px-3 py-1.5 rounded-md text-xs text-sidebar-foreground hover:bg-sidebar-accent transition-colors">
+          <LogOut className="w-3 h-3" /> Sign Out
+        </button>
       </div>
 
       <ManagerOverrideDialog
