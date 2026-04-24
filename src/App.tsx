@@ -92,6 +92,7 @@ const ROUTE_ROLES: Record<string, string[]> = {
   "/import-reports": ["super_admin", "manager"],
   "/table-results": ["super_admin", "manager", "finance_manager", "surveillance"],
   "/staff": ["super_admin", "manager", "pit", "finance_manager", "hr"],
+  "/bank-checks": ["super_admin", "manager", "finance_manager"],
 };
 
 const RoleGuard = ({ path, children }: { path: string; children: React.ReactNode }) => {
