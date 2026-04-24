@@ -369,8 +369,8 @@ const TableResults = () => {
       {/* Excel-style horizontal report */}
       {!isLoading && buckets.length > 0 && (
         <Card className="p-0 overflow-hidden">
-          <div className="overflow-auto max-h-[calc(100vh-220px)] [container-type:inline-size]">
-            <Table className="text-xs [&_th]:h-8 [&_th]:px-1.5 [&_td]:p-1.5 [&_thead_th]:sticky">
+          <div className="overflow-auto max-h-[calc(100vh-220px)] [container-type:inline-size] relative">
+            <table className="w-full caption-bottom text-xs [&_th]:h-8 [&_th]:px-1.5 [&_td]:p-1.5 [&_thead_th]:sticky">
               {/* Group headers */}
               <TableHeader>
                 <TableRow className="bg-muted hover:bg-muted">
@@ -560,7 +560,7 @@ const TableResults = () => {
                   <GroupTotalCells colSpan={3} drop={totals.totalDrop} result={totals.totalResult} accent="primary" noBorder />
                 </TableRow>
               </TableBody>
-            </Table>
+            </table>
           </div>
         </Card>
       )}
