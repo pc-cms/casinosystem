@@ -25,10 +25,33 @@ const todayMinus = (days: number) => {
   return d.toISOString().slice(0, 10);
 };
 
+type Preset = "day" | "week" | "month" | "year" | "custom";
+
+const presetRange = (p: Preset): { from: string; to: string } => {
+  const today = todayMinus(0);
+  switch (p) {
+    case "day": return { from: today, to: today };
+    case "week": return { from: todayMinus(6), to: today };
+    case "month": return { from: todayMinus(29), to: today };
+    case "year": return { from: todayMinus(364), to: today };
+    default: return { from: todayMinus(29), to: today };
+  }
+};
+
 export default function BankChecks() {
   const { activeCasinoId } = useCasino();
-  const [from, setFrom] = useState(todayMinus(30));
+  const [preset, setPreset] = useState<Preset>("month");
+  const [from, setFrom] = useState(todayMinus(29));
   const [to, setTo] = useState(todayMinus(0));
+
+  const setPresetRange = (p: Preset) => {
+    setPreset(p);
+    if (p !== "custom") {
+      const r = presetRange(p);
+      setFrom(r.from);
+      setTo(r.to);
+    }
+  };
   // Extend "to" by 1 day so that early-morning checks (00:00–06:00) of next calendar day,
   // which belong to the selected last shift, are still included.
   const toExtended = useMemo(() => {
@@ -162,37 +185,76 @@ export default function BankChecks() {
         </div>
       </div>
 
-      {/* Date filters */}
+      {/* Period presets + custom range */}
       <div className="flex items-end gap-3 flex-wrap">
-        <div>
-          <Label className="text-xs">From</Label>
-          <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="w-40" />
-        </div>
-        <div>
-          <Label className="text-xs">To</Label>
-          <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="w-40" />
-        </div>
-        <div className="ml-auto text-sm space-y-0.5">
-          <div>
-            Checks: <span className="font-mono font-semibold">{checks.length}</span>
-          </div>
-          {currencyKeys.map((cur) => (
-            <div key={cur} className="flex gap-3">
-              <span>
-                Sum: <span className="font-mono font-semibold">{formatCurrency(totalsByCurrency[cur].check, cur)}</span>
-              </span>
-              <span className="text-success">
-                Real: <span className="font-mono font-semibold">{formatCurrency(totalsByCurrency[cur].real, cur)}</span>
-              </span>
-            </div>
+        <div className="flex gap-1">
+          {(["day", "week", "month", "year", "custom"] as Preset[]).map((p) => (
+            <Button
+              key={p}
+              size="sm"
+              variant={preset === p ? "default" : "outline"}
+              onClick={() => setPresetRange(p)}
+              className="capitalize"
+            >
+              {p}
+            </Button>
           ))}
+        </div>
+        {preset === "custom" && (
+          <>
+            <div>
+              <Label className="text-xs">From</Label>
+              <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="w-40" />
+            </div>
+            <div>
+              <Label className="text-xs">To</Label>
+              <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="w-40" />
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Period totals card */}
+      <div className="rounded-lg border bg-card p-4">
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <div>
+            <div className="text-xs text-muted-foreground uppercase tracking-wide">Period totals</div>
+            <div className="text-sm text-muted-foreground mt-0.5">
+              {from} → {to} · <span className="font-mono font-semibold text-foreground">{checks.length}</span> checks
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-6">
+            {currencyKeys.length === 0 ? (
+              <div className="text-sm text-muted-foreground">No data</div>
+            ) : (
+              currencyKeys.map((cur) => (
+                <div key={cur} className="space-y-1">
+                  <div className="text-xs text-muted-foreground">{cur}</div>
+                  <div className="flex gap-4">
+                    <div>
+                      <div className="text-[10px] uppercase text-muted-foreground">With commission</div>
+                      <div className="font-mono font-semibold">
+                        {formatCurrency(totalsByCurrency[cur].check, cur)}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-[10px] uppercase text-muted-foreground">Real (−3%)</div>
+                      <div className="font-mono font-semibold text-success">
+                        {formatCurrency(totalsByCurrency[cur].real, cur)}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </div>
       </div>
 
       <Tabs defaultValue="all">
         <TabsList>
           <TabsTrigger value="all">All checks</TabsTrigger>
-          <TabsTrigger value="shifts">By shifts (12:00 → 06:00)</TabsTrigger>
+          <TabsTrigger value="shifts">By shift</TabsTrigger>
         </TabsList>
         <TabsContent value="all" className="mt-3">
           <BankChecksTable

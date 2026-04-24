@@ -126,7 +126,7 @@ export function ShiftSummaryTable({ checks, isLoading, onOpenPhoto }: Props) {
         <thead className="bg-muted/50 sticky top-0">
           <tr>
             <th className="w-8"></th>
-            <SortHeader label="Shift (12:00 → 06:00)" keyName="shift_date" />
+            <SortHeader label="Shift" keyName="shift_date" />
             <SortHeader label="Checks" keyName="count" align="right" />
             <SortHeader label="Total (with commission)" keyName="total" align="right" />
             <SortHeader label="Real (−3%)" keyName="real" align="right" />
