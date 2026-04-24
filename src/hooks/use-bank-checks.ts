@@ -152,41 +152,59 @@ export const useImportBankChecks = () => {
   });
 };
 
-/** Compress image to JPEG ≤ 1600px max side, return base64 + mime. */
-export async function compressForOcr(file: File): Promise<{ base64: string; mime: string }> {
-  const img = await new Promise<HTMLImageElement>((resolve, reject) => {
-    const i = new Image();
-    i.onload = () => resolve(i);
-    i.onerror = reject;
-    i.src = URL.createObjectURL(file);
-  });
-  const MAX = 1600;
-  let { width, height } = img;
-  if (width > MAX || height > MAX) {
-    if (width >= height) {
-      height = Math.round((height * MAX) / width);
-      width = MAX;
-    } else {
-      width = Math.round((width * MAX) / height);
-      height = MAX;
-    }
-  }
-  const canvas = document.createElement("canvas");
-  canvas.width = width;
-  canvas.height = height;
-  const ctx = canvas.getContext("2d")!;
-  ctx.drawImage(img, 0, 0, width, height);
-  const blob: Blob = await new Promise((resolve, reject) =>
-    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("compress failed"))), "image/jpeg", 0.85)
-  );
-  const buf = await blob.arrayBuffer();
+/** Read file as base64 without any decoding (works for HEIC/JPEG/PNG). */
+async function fileToBase64(file: Blob): Promise<string> {
+  const buf = await file.arrayBuffer();
   const bytes = new Uint8Array(buf);
   let binary = "";
   const CHUNK = 0x8000;
   for (let i = 0; i < bytes.length; i += CHUNK) {
     binary += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + CHUNK)));
   }
-  return { base64: btoa(binary), mime: "image/jpeg" };
+  return btoa(binary);
+}
+
+/** Compress image to JPEG ≤ 1600px max side. Falls back to original bytes if browser can't decode (e.g. HEIC). */
+export async function compressForOcr(file: File): Promise<{ base64: string; mime: string }> {
+  const isHeic = /heic|heif/i.test(file.type) || /\.(heic|heif)$/i.test(file.name);
+  // Browsers (except Safari) cannot decode HEIC via <img>. Send raw bytes; Gemini can read it.
+  if (isHeic) {
+    return { base64: await fileToBase64(file), mime: file.type || "image/heic" };
+  }
+  try {
+    const url = URL.createObjectURL(file);
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const i = new Image();
+      i.onload = () => resolve(i);
+      i.onerror = () => reject(new Error("Image decode failed"));
+      i.src = url;
+    });
+    const MAX = 1600;
+    let { width, height } = img;
+    if (width > MAX || height > MAX) {
+      if (width >= height) {
+        height = Math.round((height * MAX) / width);
+        width = MAX;
+      } else {
+        width = Math.round((width * MAX) / height);
+        height = MAX;
+      }
+    }
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d")!;
+    ctx.drawImage(img, 0, 0, width, height);
+    URL.revokeObjectURL(url);
+    const blob: Blob = await new Promise((resolve, reject) =>
+      canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("compress failed"))), "image/jpeg", 0.85)
+    );
+    return { base64: await fileToBase64(blob), mime: "image/jpeg" };
+  } catch (e) {
+    // Fallback: send original bytes as-is
+    console.warn("compressForOcr fallback to raw bytes:", e);
+    return { base64: await fileToBase64(file), mime: file.type || "image/jpeg" };
+  }
 }
 
 /** Upload original photo to bank-checks bucket; returns storage path. */
