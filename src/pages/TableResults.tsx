@@ -549,32 +549,6 @@ const TableResults = () => {
                   );
                 })}
 
-                {/* Period TOTAL by table row */}
-                <TableRow className="bg-primary text-primary-foreground hover:bg-primary font-semibold border-t-4 border-t-primary">
-                  <TableCell className="sticky left-0 bg-primary text-primary-foreground z-10 border-r border-primary-foreground/20">
-                    TOTAL ({buckets.length}d)
-                  </TableCell>
-                  {AR_TABLES.map((t, i) => {
-                    const c = totals.cellsTotal[t] || { drop: 0, result: 0 };
-                    return (
-                      <DRCell key={t} drop={c.drop} result={c.result} hasData bold groupEnd={i === AR_TABLES.length - 1} />
-                    );
-                  })}
-                  {PK_TABLES.map((t, i) => {
-                    const c = totals.cellsTotal[t] || { drop: 0, result: 0 };
-                    return (
-                      <DRCell key={t} drop={c.drop} result={c.result} hasData bold groupEnd={i === PK_TABLES.length - 1} />
-                    );
-                  })}
-                  {BJ_TABLES.map((t, i) => {
-                    const c = totals.cellsTotal[t] || { drop: 0, result: 0 };
-                    return (
-                      <DRCell key={t} drop={c.drop} result={c.result} hasData bold groupEnd={i === BJ_TABLES.length - 1} />
-                    );
-                  })}
-                  <DRCell drop={totals.totalDrop} result={totals.totalResult} hasData bold />
-                </TableRow>
-
                 {/* TOTAL by group row (AR / PK / BJ subtotals spanning each group) */}
                 <TableRow className="bg-primary/15 hover:bg-primary/15 font-semibold border-t-2 border-t-primary/40">
                   <TableCell className="sticky left-0 bg-primary/20 z-10 border-r-2 border-r-border text-[11px] uppercase tracking-wide">
