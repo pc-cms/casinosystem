@@ -6,7 +6,7 @@ import {
   UsersRound, Grid3X3, LogOut, Settings, FileBarChart,
   CalendarDays, ClipboardCheck, ListChecks, Eye, Target,
   Building2, UserCheck, ClipboardPen, Coins, ShieldCheck, ShieldOff,
-  Wallet, DoorOpen, ShieldAlert, Menu, X, Upload, FileText, PanelLeftClose,
+  Wallet, DoorOpen, ShieldAlert, Menu, X, Upload, FileText, ChevronsLeft,
 } from "lucide-react";
 import { useTheme } from "@/lib/theme";
 import { useAuth } from "@/lib/auth-context";
@@ -129,7 +129,7 @@ const SidebarInner = ({ onNavigate, onCollapse }: { onNavigate?: () => void; onC
                 title="Hide sidebar (Ctrl+B)"
                 className="h-5 px-2 flex items-center justify-center rounded-md text-sidebar-foreground hover:bg-sidebar-accent transition-colors border border-sidebar-border"
               >
-                <PanelLeftClose className="w-3 h-3" />
+                <ChevronsLeft className="w-3.5 h-3.5" />
               </button>
             )}
           </div>

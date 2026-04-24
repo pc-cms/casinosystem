@@ -5,7 +5,7 @@ import { useRealtimeSubscriptions } from "@/hooks/use-realtime";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { MobileHeader } from "./AppSidebar";
 import { Button } from "@/components/ui/button";
-import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { ChevronsRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // Routes that need full-bleed width (no max-w container)
@@ -57,7 +57,7 @@ export const AppLayout = () => {
             title="Show sidebar (Ctrl+B)"
             className="no-print absolute top-4 left-2 h-5 px-2 flex items-center justify-center rounded-md border border-sidebar-border bg-sidebar text-sidebar-foreground hover:bg-sidebar-accent transition-colors z-30 shadow-sm"
           >
-            <PanelLeftOpen className="h-3 w-3" />
+            <ChevronsRight className="h-3.5 w-3.5" />
           </button>
         )}
         {isMobile && <div className="no-print"><MobileHeader /></div>}
