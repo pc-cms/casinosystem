@@ -407,15 +407,15 @@ const TableResults = () => {
                 <TableRow className="bg-muted/60 hover:bg-muted/60">
                   <TableHead className="sticky left-0 top-8 bg-muted/95 backdrop-blur z-30 w-36 min-w-36 border-r-2 border-r-border" />
                   {AR_TABLES.map((t, i) => (
-                    <SubHead key={t} name={t} accent="amber" groupEnd={i === AR_TABLES.length - 1} sticky />
+                    <SubHead key={t} name={t} accent="amber" groupEnd={i === AR_TABLES.length - 1} />
                   ))}
                   {PK_TABLES.map((t, i) => (
-                    <SubHead key={t} name={t.replace("P", "PK")} accent="emerald" groupEnd={i === PK_TABLES.length - 1} sticky />
+                    <SubHead key={t} name={t.replace("P", "PK")} accent="emerald" groupEnd={i === PK_TABLES.length - 1} />
                   ))}
                   {BJ_TABLES.map((t, i) => (
-                    <SubHead key={t} name={t} accent="rose" groupEnd={i === BJ_TABLES.length - 1} sticky />
+                    <SubHead key={t} name={t} accent="rose" groupEnd={i === BJ_TABLES.length - 1} />
                   ))}
-                  <SubHead name="ALL" accent="primary" bold sticky />
+                  <SubHead name="ALL" accent="primary" bold />
                 </TableRow>
 
                 {/* Period totals per table — moved to header (Σ row at top) */}
