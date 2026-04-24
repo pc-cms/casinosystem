@@ -419,8 +419,8 @@ const TableResults = () => {
                 </TableRow>
 
                 {/* Period totals per table — moved to header (Σ row at top) */}
-                <TableRow className="bg-primary/15 hover:bg-primary/15 border-b-2 border-b-primary/40">
-                  <TableHead className="sticky left-0 top-16 bg-primary/30 backdrop-blur z-30 border-r-2 border-r-border text-[10px] uppercase tracking-wide font-semibold whitespace-nowrap">
+                <TableRow className="bg-primary/20 hover:bg-primary/20 border-b-2 border-b-primary/40">
+                  <TableHead className="sticky left-0 top-16 bg-primary/30 z-30 border-r-2 border-r-border text-[10px] uppercase tracking-wide font-semibold whitespace-nowrap">
                     Σ Period ({buckets.length}d)
                   </TableHead>
                   {AR_TABLES.map((t, i) => {
