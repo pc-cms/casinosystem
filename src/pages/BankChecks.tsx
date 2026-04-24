@@ -87,7 +87,7 @@ export default function BankChecks() {
           receipt_no: c.receipt_no || "",
           approval_code: c.approval_code || "",
           amount: Number(c.amount) || 0,
-          currency: (c.currency || "TZS").toUpperCase(),
+          currency: (c.currency || "TZS").toUpperCase() === "USD" ? "USD" : "TZS",
           bank: c.bank || "",
           merchant: c.merchant || "",
           card_masked: c.card_masked || "",
