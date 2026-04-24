@@ -461,7 +461,7 @@ const TableResults = () => {
                         </TableCell>
 
                         {/* AR cells */}
-                        {AR_TABLES.map((t) => {
+                        {AR_TABLES.map((t, i) => {
                           const c = b.cells[t] || emptyCell;
                           return (
                             <DRCell
@@ -469,14 +469,13 @@ const TableResults = () => {
                               drop={c.drop}
                               result={c.result}
                               hasData={c.hasData}
-                              groupEnd={false}
+                              groupEnd={i === AR_TABLES.length - 1}
                             />
                           );
                         })}
-                        <DRCell drop={b.arDrop} result={b.arResult} hasData bold groupEnd />
 
                         {/* PK cells */}
-                        {PK_TABLES.map((t) => {
+                        {PK_TABLES.map((t, i) => {
                           const c = b.cells[t] || emptyCell;
                           return (
                             <DRCell
@@ -484,14 +483,13 @@ const TableResults = () => {
                               drop={c.drop}
                               result={c.result}
                               hasData={c.hasData}
-                              groupEnd={false}
+                              groupEnd={i === PK_TABLES.length - 1}
                             />
                           );
                         })}
-                        <DRCell drop={b.pkDrop} result={b.pkResult} hasData bold groupEnd />
 
                         {/* BJ cells */}
-                        {BJ_TABLES.map((t) => {
+                        {BJ_TABLES.map((t, i) => {
                           const c = b.cells[t] || emptyCell;
                           return (
                             <DRCell
@@ -499,11 +497,10 @@ const TableResults = () => {
                               drop={c.drop}
                               result={c.result}
                               hasData={c.hasData}
-                              groupEnd={false}
+                              groupEnd={i === BJ_TABLES.length - 1}
                             />
                           );
                         })}
-                        <DRCell drop={b.bjDrop} result={b.bjResult} hasData bold groupEnd />
 
                         {/* All */}
                         <DRCell drop={b.totalDrop} result={b.totalResult} hasData bold />
@@ -515,9 +512,9 @@ const TableResults = () => {
                           <TableCell
                             colSpan={
                               1 +
-                              (AR_TABLES.length + 1) * 3 +
-                              (PK_TABLES.length + 1) * 3 +
-                              (BJ_TABLES.length + 1) * 3 +
+                              AR_TABLES.length * 3 +
+                              PK_TABLES.length * 3 +
+                              BJ_TABLES.length * 3 +
                               3
                             }
                             className="p-0"
@@ -532,36 +529,41 @@ const TableResults = () => {
                   );
                 })}
 
-                {/* Period TOTAL row */}
+                {/* Period TOTAL by table row */}
                 <TableRow className="bg-primary text-primary-foreground hover:bg-primary font-semibold border-t-4 border-t-primary">
                   <TableCell className="sticky left-0 bg-primary text-primary-foreground z-10 border-r border-primary-foreground/20">
                     TOTAL ({buckets.length}d)
                   </TableCell>
-                  {AR_TABLES.map((t) => {
+                  {AR_TABLES.map((t, i) => {
                     const c = totals.cellsTotal[t] || { drop: 0, result: 0 };
                     return (
-                      <DRCell key={t} drop={c.drop} result={c.result} hasData bold groupEnd={false} />
+                      <DRCell key={t} drop={c.drop} result={c.result} hasData bold groupEnd={i === AR_TABLES.length - 1} />
                     );
                   })}
-                  <DRCell drop={totals.arDrop} result={totals.arResult} hasData bold groupEnd />
-
-                  {PK_TABLES.map((t) => {
+                  {PK_TABLES.map((t, i) => {
                     const c = totals.cellsTotal[t] || { drop: 0, result: 0 };
                     return (
-                      <DRCell key={t} drop={c.drop} result={c.result} hasData bold groupEnd={false} />
+                      <DRCell key={t} drop={c.drop} result={c.result} hasData bold groupEnd={i === PK_TABLES.length - 1} />
                     );
                   })}
-                  <DRCell drop={totals.pkDrop} result={totals.pkResult} hasData bold groupEnd />
-
-                  {BJ_TABLES.map((t) => {
+                  {BJ_TABLES.map((t, i) => {
                     const c = totals.cellsTotal[t] || { drop: 0, result: 0 };
                     return (
-                      <DRCell key={t} drop={c.drop} result={c.result} hasData bold groupEnd={false} />
+                      <DRCell key={t} drop={c.drop} result={c.result} hasData bold groupEnd={i === BJ_TABLES.length - 1} />
                     );
                   })}
-                  <DRCell drop={totals.bjDrop} result={totals.bjResult} hasData bold groupEnd />
-
                   <DRCell drop={totals.totalDrop} result={totals.totalResult} hasData bold />
+                </TableRow>
+
+                {/* TOTAL by group row (AR / PK / BJ subtotals spanning each group) */}
+                <TableRow className="bg-primary/15 hover:bg-primary/15 font-semibold border-t-2 border-t-primary/40">
+                  <TableCell className="sticky left-0 bg-primary/20 z-10 border-r-2 border-r-border text-[11px] uppercase tracking-wide">
+                    Σ by group
+                  </TableCell>
+                  <GroupTotalCells colSpan={AR_TABLES.length * 3} drop={totals.arDrop} result={totals.arResult} accent="warning" />
+                  <GroupTotalCells colSpan={PK_TABLES.length * 3} drop={totals.pkDrop} result={totals.pkResult} accent="success" />
+                  <GroupTotalCells colSpan={BJ_TABLES.length * 3} drop={totals.bjDrop} result={totals.bjResult} accent="destructive" />
+                  <GroupTotalCells colSpan={3} drop={totals.totalDrop} result={totals.totalResult} accent="primary" noBorder />
                 </TableRow>
               </TableBody>
             </Table>
