@@ -560,7 +560,7 @@ const TableResults = () => {
                   <GroupTotalCells colSpan={3} drop={totals.totalDrop} result={totals.totalResult} accent="primary" noBorder />
                 </TableRow>
               </TableBody>
-            </Table>
+            </table>
           </div>
         </Card>
       )}
