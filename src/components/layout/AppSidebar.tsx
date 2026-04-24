@@ -121,15 +121,15 @@ const SidebarInner = ({ onNavigate, onCollapse }: { onNavigate?: () => void; onC
             <Shield className="w-6 h-6 text-primary" />
             <span className="font-bold text-lg tracking-tight text-sidebar-foreground">CMS</span>
           </div>
-          <div className="flex flex-col items-stretch gap-1">
+          <div className="flex flex-col items-end gap-1">
             <NetworkStatusIndicator />
             {onCollapse && (
               <button
                 onClick={onCollapse}
                 title="Hide sidebar (Ctrl+B)"
-                className="h-6 w-full flex items-center justify-center rounded-md text-sidebar-foreground hover:bg-sidebar-accent transition-colors border border-sidebar-border"
+                className="h-5 px-2 flex items-center justify-center rounded-md text-sidebar-foreground hover:bg-sidebar-accent transition-colors border border-sidebar-border"
               >
-                <PanelLeftClose className="w-3.5 h-3.5" />
+                <PanelLeftClose className="w-3 h-3" />
               </button>
             )}
           </div>
