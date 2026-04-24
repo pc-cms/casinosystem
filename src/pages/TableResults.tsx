@@ -379,25 +379,25 @@ const TableResults = () => {
                   </TableHead>
                   <TableHead
                     colSpan={AR_TABLES.length * 3}
-                    className="sticky top-0 z-20 text-center font-semibold border-r-2 border-r-border bg-warning/10"
+                    className="sticky top-0 z-20 text-center font-semibold border-r-2 border-r-border [background-image:linear-gradient(hsl(var(--warning)/0.12),hsl(var(--warning)/0.12)),linear-gradient(hsl(var(--muted)),hsl(var(--muted)))]"
                   >
                     American Roulette
                   </TableHead>
                   <TableHead
                     colSpan={PK_TABLES.length * 3}
-                    className="sticky top-0 z-20 text-center font-semibold border-r-2 border-r-border bg-success/10"
+                    className="sticky top-0 z-20 text-center font-semibold border-r-2 border-r-border [background-image:linear-gradient(hsl(var(--success)/0.12),hsl(var(--success)/0.12)),linear-gradient(hsl(var(--muted)),hsl(var(--muted)))]"
                   >
                     Poker (PK)
                   </TableHead>
                   <TableHead
                     colSpan={BJ_TABLES.length * 3}
-                    className="sticky top-0 z-20 text-center font-semibold border-r-2 border-r-border bg-destructive/10"
+                    className="sticky top-0 z-20 text-center font-semibold border-r-2 border-r-border [background-image:linear-gradient(hsl(var(--destructive)/0.12),hsl(var(--destructive)/0.12)),linear-gradient(hsl(var(--muted)),hsl(var(--muted)))]"
                   >
                     Blackjack
                   </TableHead>
                   <TableHead
                     colSpan={3}
-                    className="sticky top-0 z-20 text-center font-semibold bg-primary/20"
+                    className="sticky top-0 z-20 text-center font-semibold [background-image:linear-gradient(hsl(var(--primary)/0.22),hsl(var(--primary)/0.22)),linear-gradient(hsl(var(--muted)),hsl(var(--muted)))]"
                   >
                     Total Tables
                   </TableHead>
