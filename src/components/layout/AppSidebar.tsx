@@ -129,7 +129,7 @@ const SidebarInner = ({ onNavigate, onCollapse }: { onNavigate?: () => void; onC
                 title="Hide sidebar (Ctrl+B)"
                 className="h-5 px-2 flex items-center justify-center rounded-md text-sidebar-foreground hover:bg-sidebar-accent transition-colors border border-sidebar-border"
               >
-                <PanelLeftClose className="w-3 h-3" />
+                <ChevronsLeft className="w-3.5 h-3.5" />
               </button>
             )}
           </div>
