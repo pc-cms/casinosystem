@@ -40,8 +40,18 @@ const presetRange = (p: Preset): { from: string; to: string } => {
 
 export default function BankChecks() {
   const { activeCasinoId } = useCasino();
-  const [from, setFrom] = useState(todayMinus(30));
+  const [preset, setPreset] = useState<Preset>("month");
+  const [from, setFrom] = useState(todayMinus(29));
   const [to, setTo] = useState(todayMinus(0));
+
+  const setPresetRange = (p: Preset) => {
+    setPreset(p);
+    if (p !== "custom") {
+      const r = presetRange(p);
+      setFrom(r.from);
+      setTo(r.to);
+    }
+  };
   // Extend "to" by 1 day so that early-morning checks (00:00–06:00) of next calendar day,
   // which belong to the selected last shift, are still included.
   const toExtended = useMemo(() => {
