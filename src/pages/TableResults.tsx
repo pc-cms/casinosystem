@@ -378,19 +378,19 @@ const TableResults = () => {
                     Date
                   </TableHead>
                   <TableHead
-                    colSpan={AR_TABLES.length * 3}
+                    colSpan={(AR_TABLES.length + 1) * 3}
                     className="text-center font-semibold border-r-2 border-r-border bg-warning/10"
                   >
                     American Roulette
                   </TableHead>
                   <TableHead
-                    colSpan={PK_TABLES.length * 3}
+                    colSpan={(PK_TABLES.length + 1) * 3}
                     className="text-center font-semibold border-r-2 border-r-border bg-success/10"
                   >
                     Poker (PK)
                   </TableHead>
                   <TableHead
-                    colSpan={BJ_TABLES.length * 3}
+                    colSpan={(BJ_TABLES.length + 1) * 3}
                     className="text-center font-semibold border-r-2 border-r-border bg-destructive/10"
                   >
                     Blackjack
@@ -407,15 +407,47 @@ const TableResults = () => {
                 <TableRow className="bg-muted/60 hover:bg-muted/60">
                   <TableHead className="sticky left-0 bg-muted/90 z-10 w-36 min-w-36 border-r-2 border-r-border" />
                   {AR_TABLES.map((t, i) => (
-                    <SubHead key={t} name={t} accent="amber" groupEnd={i === AR_TABLES.length - 1} />
+                    <SubHead key={t} name={t} accent="amber" groupEnd={false} />
                   ))}
+                  <SubHead name="Σ AR" accent="amber" bold groupEnd />
                   {PK_TABLES.map((t, i) => (
-                    <SubHead key={t} name={t.replace("P", "PK")} accent="emerald" groupEnd={i === PK_TABLES.length - 1} />
+                    <SubHead key={t} name={t.replace("P", "PK")} accent="emerald" groupEnd={false} />
                   ))}
+                  <SubHead name="Σ PK" accent="emerald" bold groupEnd />
                   {BJ_TABLES.map((t, i) => (
-                    <SubHead key={t} name={t} accent="rose" groupEnd={i === BJ_TABLES.length - 1} />
+                    <SubHead key={t} name={t} accent="rose" groupEnd={false} />
                   ))}
+                  <SubHead name="Σ BJ" accent="rose" bold groupEnd />
                   <SubHead name="ALL" accent="primary" bold />
+                </TableRow>
+
+                {/* Per-table period totals row in header */}
+                <TableRow className="bg-primary/10 hover:bg-primary/10 border-b-2 border-b-primary/40">
+                  <TableHead className="sticky left-0 bg-primary/15 z-10 w-36 min-w-36 border-r-2 border-r-border text-[10px] uppercase tracking-wide font-semibold">
+                    Σ Period
+                  </TableHead>
+                  {AR_TABLES.map((t, i) => {
+                    const c = totals.cellsTotal[t] || { drop: 0, result: 0 };
+                    return (
+                      <DRHeadCell key={t} drop={c.drop} result={c.result} groupEnd={false} />
+                    );
+                  })}
+                  <DRHeadCell drop={totals.arDrop} result={totals.arResult} groupEnd bold />
+                  {PK_TABLES.map((t) => {
+                    const c = totals.cellsTotal[t] || { drop: 0, result: 0 };
+                    return (
+                      <DRHeadCell key={t} drop={c.drop} result={c.result} groupEnd={false} />
+                    );
+                  })}
+                  <DRHeadCell drop={totals.pkDrop} result={totals.pkResult} groupEnd bold />
+                  {BJ_TABLES.map((t) => {
+                    const c = totals.cellsTotal[t] || { drop: 0, result: 0 };
+                    return (
+                      <DRHeadCell key={t} drop={c.drop} result={c.result} groupEnd={false} />
+                    );
+                  })}
+                  <DRHeadCell drop={totals.bjDrop} result={totals.bjResult} groupEnd bold />
+                  <DRHeadCell drop={totals.totalDrop} result={totals.totalResult} bold />
                 </TableRow>
               </TableHeader>
 
