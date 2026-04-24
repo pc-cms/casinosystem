@@ -6,7 +6,7 @@ import {
   UsersRound, Grid3X3, LogOut, Settings, FileBarChart,
   CalendarDays, ClipboardCheck, ListChecks, Eye, Target,
   Building2, UserCheck, ClipboardPen, Coins, ShieldCheck, ShieldOff,
-  Wallet, DoorOpen, ShieldAlert, Menu, X, Upload, FileText, ChevronsLeft,
+  Wallet, DoorOpen, ShieldAlert, Menu, X, Upload, FileText, ChevronsLeft, CreditCard,
 } from "lucide-react";
 import { useTheme } from "@/lib/theme";
 import { useAuth } from "@/lib/auth-context";
@@ -38,6 +38,7 @@ const NAV_ITEMS: { to: string; icon: typeof LayoutDashboard; label: string; shor
   { to: "/stats", icon: BarChart3, label: "Stats", shortcut: "S", roles: ["super_admin", "manager", "finance_manager", "surveillance"], section: "ANALYTICS" },
   { to: "/table-results", icon: FileText, label: "Table Results", shortcut: "Alt+T", roles: ["super_admin", "manager", "finance_manager", "surveillance"], section: "ANALYTICS" },
   { to: "/import-reports", icon: Upload, label: "Import Reports", shortcut: "Alt+I", roles: ["super_admin", "manager"], section: "ANALYTICS" },
+  { to: "/bank-checks", icon: CreditCard, label: "Bank Checks", shortcut: "Alt+K", roles: ["super_admin", "manager", "finance_manager"], section: "OPERATIONS" },
 ];
 
 const TABLE_SUBITEMS = [
