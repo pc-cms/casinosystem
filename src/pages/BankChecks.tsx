@@ -184,13 +184,13 @@ export default function BankChecks() {
           <tbody>
             {isLoading ? (
               <tr>
-                <td colSpan={9} className="text-center py-10 text-muted-foreground">
+                <td colSpan={10} className="text-center py-10 text-muted-foreground">
                   <Loader2 className="h-5 w-5 animate-spin inline" />
                 </td>
               </tr>
             ) : checks.length === 0 ? (
               <tr>
-                <td colSpan={9} className="text-center py-10 text-muted-foreground">
+                <td colSpan={10} className="text-center py-10 text-muted-foreground">
                   No checks for this period. Upload a photo or add manually.
                 </td>
               </tr>
