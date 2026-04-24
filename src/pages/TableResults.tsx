@@ -379,33 +379,33 @@ const TableResults = () => {
                   </TableHead>
                   <TableHead
                     colSpan={AR_TABLES.length * 3}
-                    className="sticky top-0 z-20 text-center font-semibold border-r-2 border-r-border bg-warning/10"
+                    className="sticky top-0 z-20 text-center font-semibold border-r-2 border-r-border [background-image:linear-gradient(hsl(var(--warning)/0.12),hsl(var(--warning)/0.12)),linear-gradient(hsl(var(--muted)),hsl(var(--muted)))]"
                   >
                     American Roulette
                   </TableHead>
                   <TableHead
                     colSpan={PK_TABLES.length * 3}
-                    className="sticky top-0 z-20 text-center font-semibold border-r-2 border-r-border bg-success/10"
+                    className="sticky top-0 z-20 text-center font-semibold border-r-2 border-r-border [background-image:linear-gradient(hsl(var(--success)/0.12),hsl(var(--success)/0.12)),linear-gradient(hsl(var(--muted)),hsl(var(--muted)))]"
                   >
                     Poker (PK)
                   </TableHead>
                   <TableHead
                     colSpan={BJ_TABLES.length * 3}
-                    className="sticky top-0 z-20 text-center font-semibold border-r-2 border-r-border bg-destructive/10"
+                    className="sticky top-0 z-20 text-center font-semibold border-r-2 border-r-border [background-image:linear-gradient(hsl(var(--destructive)/0.12),hsl(var(--destructive)/0.12)),linear-gradient(hsl(var(--muted)),hsl(var(--muted)))]"
                   >
                     Blackjack
                   </TableHead>
                   <TableHead
                     colSpan={3}
-                    className="sticky top-0 z-20 text-center font-semibold bg-primary/20"
+                    className="sticky top-0 z-20 text-center font-semibold [background-image:linear-gradient(hsl(var(--primary)/0.22),hsl(var(--primary)/0.22)),linear-gradient(hsl(var(--muted)),hsl(var(--muted)))]"
                   >
                     Total Tables
                   </TableHead>
                 </TableRow>
 
                 {/* Sub-headers (D / R / %) */}
-                <TableRow className="bg-muted/60 hover:bg-muted/60">
-                  <TableHead className="sticky left-0 top-8 bg-muted/95 backdrop-blur z-30 w-36 min-w-36 border-r-2 border-r-border" />
+                <TableRow className="bg-muted hover:bg-muted">
+                  <TableHead className="sticky left-0 top-8 bg-muted z-30 w-36 min-w-36 border-r-2 border-r-border" />
                   {AR_TABLES.map((t, i) => (
                     <SubHead key={t} name={t} accent="amber" groupEnd={i === AR_TABLES.length - 1} />
                   ))}
@@ -419,8 +419,8 @@ const TableResults = () => {
                 </TableRow>
 
                 {/* Period totals per table — moved to header (Σ row at top) */}
-                <TableRow className="bg-primary/15 hover:bg-primary/15 border-b-2 border-b-primary/40">
-                  <TableHead className="sticky left-0 top-16 bg-primary/30 backdrop-blur z-30 border-r-2 border-r-border text-[10px] uppercase tracking-wide font-semibold whitespace-nowrap">
+                <TableRow className="hover:bg-transparent border-b-2 border-b-primary/40">
+                  <TableHead className="sticky left-0 top-16 z-30 border-r-2 border-r-border text-[10px] uppercase tracking-wide font-semibold whitespace-nowrap [background-image:linear-gradient(hsl(var(--primary)/0.3),hsl(var(--primary)/0.3)),linear-gradient(hsl(var(--muted)),hsl(var(--muted)))]">
                     Σ Period ({buckets.length}d)
                   </TableHead>
                   {AR_TABLES.map((t, i) => {
@@ -572,17 +572,18 @@ const TableResults = () => {
 /* Sub-components                                                     */
 /* ------------------------------------------------------------------ */
 
+// Solid backgrounds via layered gradients so sticky headers fully cover scrolling content.
 const accentBg: Record<string, string> = {
-  amber: "bg-warning/5",
-  emerald: "bg-success/5",
-  rose: "bg-destructive/5",
-  primary: "bg-primary/10",
+  amber: "[background-image:linear-gradient(hsl(var(--warning)/0.08),hsl(var(--warning)/0.08)),linear-gradient(hsl(var(--muted)),hsl(var(--muted)))]",
+  emerald: "[background-image:linear-gradient(hsl(var(--success)/0.08),hsl(var(--success)/0.08)),linear-gradient(hsl(var(--muted)),hsl(var(--muted)))]",
+  rose: "[background-image:linear-gradient(hsl(var(--destructive)/0.08),hsl(var(--destructive)/0.08)),linear-gradient(hsl(var(--muted)),hsl(var(--muted)))]",
+  primary: "[background-image:linear-gradient(hsl(var(--primary)/0.15),hsl(var(--primary)/0.15)),linear-gradient(hsl(var(--muted)),hsl(var(--muted)))]",
 };
 const accentBgBold: Record<string, string> = {
-  amber: "bg-warning/15",
-  emerald: "bg-success/15",
-  rose: "bg-destructive/15",
-  primary: "bg-primary/20",
+  amber: "[background-image:linear-gradient(hsl(var(--warning)/0.2),hsl(var(--warning)/0.2)),linear-gradient(hsl(var(--muted)),hsl(var(--muted)))]",
+  emerald: "[background-image:linear-gradient(hsl(var(--success)/0.2),hsl(var(--success)/0.2)),linear-gradient(hsl(var(--muted)),hsl(var(--muted)))]",
+  rose: "[background-image:linear-gradient(hsl(var(--destructive)/0.2),hsl(var(--destructive)/0.2)),linear-gradient(hsl(var(--muted)),hsl(var(--muted)))]",
+  primary: "[background-image:linear-gradient(hsl(var(--primary)/0.25),hsl(var(--primary)/0.25)),linear-gradient(hsl(var(--muted)),hsl(var(--muted)))]",
 };
 
 const SubHead = ({
@@ -707,7 +708,7 @@ const DRHeadCell = ({
   const isNeg = result < 0;
   const pct = drop > 0 ? (result / drop) * 100 : 0;
   // top-16 = 64px (sum of first two header rows, both h-8)
-  const stickyTop = "top-16 z-10 bg-primary/15";
+  const stickyTop = "top-16 z-10 [background-image:linear-gradient(hsl(var(--primary)/0.2),hsl(var(--primary)/0.2)),linear-gradient(hsl(var(--muted)),hsl(var(--muted)))]";
   return (
     <>
       <TableHead
