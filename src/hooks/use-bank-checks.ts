@@ -64,7 +64,7 @@ export const useCreateBankCheck = () => {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["bank-checks"] });
-      toast.success("Чек добавлен");
+      toast.success("Check added");
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -79,7 +79,7 @@ export const useUpdateBankCheck = () => {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["bank-checks"] });
-      toast.success("Сохранено");
+      toast.success("Saved");
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -94,7 +94,7 @@ export const useDeleteBankCheck = () => {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["bank-checks"] });
-      toast.success("Удалено");
+      toast.success("Deleted");
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -144,8 +144,8 @@ export const useImportBankChecks = () => {
       qc.invalidateQueries({ queryKey: ["bank-checks"] });
       const msg =
         res.skipped > 0
-          ? `Импортировано: ${res.inserted}, пропущено дубликатов: ${res.skipped}`
-          : `Импортировано: ${res.inserted}`;
+          ? `Imported: ${res.inserted}, duplicates skipped: ${res.skipped}`
+          : `Imported: ${res.inserted}`;
       toast.success(msg);
     },
     onError: (e: Error) => toast.error(e.message),
