@@ -25,6 +25,19 @@ const todayMinus = (days: number) => {
   return d.toISOString().slice(0, 10);
 };
 
+type Preset = "day" | "week" | "month" | "year" | "custom";
+
+const presetRange = (p: Preset): { from: string; to: string } => {
+  const today = todayMinus(0);
+  switch (p) {
+    case "day": return { from: today, to: today };
+    case "week": return { from: todayMinus(6), to: today };
+    case "month": return { from: todayMinus(29), to: today };
+    case "year": return { from: todayMinus(364), to: today };
+    default: return { from: todayMinus(29), to: today };
+  }
+};
+
 export default function BankChecks() {
   const { activeCasinoId } = useCasino();
   const [from, setFrom] = useState(todayMinus(30));
