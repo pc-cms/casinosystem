@@ -692,50 +692,48 @@ const DRCell = ({
   );
 };
 
-/* Compact head cell showing per-table period totals (Drop / Result / Hold%) */
-const DRHeadCell = ({
+/* Group total row — single colSpan cell summarizing Drop / Result / Hold% per game group */
+const GroupTotalCells = ({
+  colSpan,
   drop,
   result,
-  bold,
-  groupEnd,
+  accent,
+  noBorder,
 }: {
+  colSpan: number;
   drop: number;
   result: number;
-  bold?: boolean;
-  groupEnd?: boolean;
+  accent: "warning" | "success" | "destructive" | "primary";
+  noBorder?: boolean;
 }) => {
-  const endBorder = groupEnd ? "border-r-2 border-r-border" : "border-r border-r-border/30";
+  const bgMap = {
+    warning: "bg-warning/15",
+    success: "bg-success/15",
+    destructive: "bg-destructive/15",
+    primary: "bg-primary/25",
+  };
   const isNeg = result < 0;
   const pct = drop > 0 ? (result / drop) * 100 : 0;
   return (
-    <>
-      <TableHead
-        className={cn(
-          "text-right font-mono tabular-nums whitespace-nowrap px-1.5 text-[11px]",
-          bold && "font-semibold",
-        )}
-      >
-        {drop === 0 ? "—" : formatSpaced(drop)}
-      </TableHead>
-      <TableHead
-        className={cn(
-          "text-right font-mono tabular-nums whitespace-nowrap px-1.5 text-[11px]",
-          bold && "font-semibold",
-          isNeg && "text-destructive",
-        )}
-      >
+    <TableCell
+      colSpan={colSpan}
+      className={cn(
+        "text-center font-mono tabular-nums whitespace-nowrap px-3",
+        bgMap[accent],
+        !noBorder && "border-r-2 border-r-border",
+      )}
+    >
+      <span className="text-[10px] uppercase tracking-wide text-muted-foreground mr-2">D</span>
+      <span className="font-semibold mr-3">{drop === 0 ? "—" : formatSpaced(drop)}</span>
+      <span className="text-[10px] uppercase tracking-wide text-muted-foreground mr-2">R</span>
+      <span className={cn("font-semibold mr-3", isNeg && "text-destructive")}>
         {result === 0 ? "—" : formatSpaced(result)}
-      </TableHead>
-      <TableHead
-        className={cn(
-          "text-right font-mono tabular-nums whitespace-nowrap px-1.5 text-[10px]",
-          isNeg && "text-destructive",
-          endBorder,
-        )}
-      >
+      </span>
+      <span className="text-[10px] uppercase tracking-wide text-muted-foreground mr-2">%</span>
+      <span className={cn("text-xs", isNeg && "text-destructive")}>
         {drop === 0 ? "—" : `${pct >= 0 ? "" : "-"}${Math.abs(pct).toFixed(1)}%`}
-      </TableHead>
-    </>
+      </span>
+    </TableCell>
   );
 };
 
