@@ -1,11 +1,12 @@
 import { useMemo, useRef, useState } from "react";
-import { Loader2, Upload, Plus, Trash2, ImageIcon, X } from "lucide-react";
+import { Loader2, Upload, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useCasino } from "@/lib/casino-context";
 import {
@@ -13,6 +14,9 @@ import {
   compressForOcr, uploadCheckPhoto, type BankCheckInput,
 } from "@/hooks/use-bank-checks";
 import { formatCurrency } from "@/lib/currency";
+import { stripCommission } from "@/lib/bank-check-shift";
+import { BankChecksTable } from "@/components/bank-checks/BankChecksTable";
+import { ShiftSummaryTable } from "@/components/bank-checks/ShiftSummaryTable";
 import { toast } from "sonner";
 
 const todayMinus = (days: number) => {
@@ -21,16 +25,19 @@ const todayMinus = (days: number) => {
   return d.toISOString().slice(0, 10);
 };
 
-const fmtDate = (iso: string) => {
-  const [y, m, d] = iso.split("-");
-  return `${d}.${m}.${y}`;
-};
-
 export default function BankChecks() {
   const { activeCasinoId } = useCasino();
   const [from, setFrom] = useState(todayMinus(30));
   const [to, setTo] = useState(todayMinus(0));
-  const { data: checks = [], isLoading } = useBankChecks(from, to);
+  // Extend "to" by 1 day so that early-morning checks (00:00–06:00) of next calendar day,
+  // which belong to the selected last shift, are still included.
+  const toExtended = useMemo(() => {
+    const d = new Date(to);
+    d.setDate(d.getDate() + 1);
+    return d.toISOString().slice(0, 10);
+  }, [to]);
+
+  const { data: checks = [], isLoading } = useBankChecks(from, toExtended);
   const importMut = useImportBankChecks();
   const createMut = useCreateBankCheck();
   const deleteMut = useDeleteBankCheck();
@@ -40,10 +47,17 @@ export default function BankChecks() {
   const [showAdd, setShowAdd] = useState(false);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
 
-  const total = useMemo(
-    () => checks.reduce((sum, c) => sum + Number(c.amount || 0), 0),
-    [checks]
-  );
+  const totalsByCurrency = useMemo(() => {
+    const map: Record<string, { check: number; real: number }> = {};
+    for (const c of checks) {
+      const cur = c.currency || "TZS";
+      const amt = Number(c.amount) || 0;
+      if (!map[cur]) map[cur] = { check: 0, real: 0 };
+      map[cur].check += amt;
+      map[cur].real += stripCommission(amt);
+    }
+    return map;
+  }, [checks]);
 
   const handleFile = async (file: File) => {
     if (!activeCasinoId) {
@@ -52,7 +66,6 @@ export default function BankChecks() {
     }
     setImporting(true);
     try {
-      // 1. Upload original to storage
       let photoPath: string | null = null;
       try {
         photoPath = await uploadCheckPhoto(file, activeCasinoId);
@@ -60,10 +73,8 @@ export default function BankChecks() {
         console.warn("Photo upload failed, continuing without photo:", e);
       }
 
-      // 2. Compress for OCR
       const { base64, mime } = await compressForOcr(file);
 
-      // 3. Call edge function
       const { data, error } = await supabase.functions.invoke("bank-check-ocr", {
         body: { image_base64: base64, mime_type: mime },
       });
@@ -77,7 +88,6 @@ export default function BankChecks() {
         return;
       }
 
-      // 4. Map to insert payload
       const records: BankCheckInput[] = ocrChecks
         .filter((c) => Number(c.amount) > 0 || c.approval_code || c.receipt_no)
         .map((c) => ({
@@ -118,6 +128,8 @@ export default function BankChecks() {
     }
     setPhotoPreview(data.signedUrl);
   };
+
+  const currencyKeys = Object.keys(totalsByCurrency);
 
   return (
     <div className="container mx-auto p-3 sm:p-6 max-w-7xl space-y-4">
@@ -160,89 +172,45 @@ export default function BankChecks() {
           <Label className="text-xs">To</Label>
           <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="w-40" />
         </div>
-        <div className="ml-auto text-sm">
-          Total: <span className="font-mono font-semibold">{checks.length}</span>{" "}
-          · Sum: <span className="font-mono font-semibold">{formatCurrency(total, "TZS")}</span>
+        <div className="ml-auto text-sm space-y-0.5">
+          <div>
+            Checks: <span className="font-mono font-semibold">{checks.length}</span>
+          </div>
+          {currencyKeys.map((cur) => (
+            <div key={cur} className="flex gap-3">
+              <span>
+                Sum: <span className="font-mono font-semibold">{formatCurrency(totalsByCurrency[cur].check, cur)}</span>
+              </span>
+              <span className="text-success">
+                Real: <span className="font-mono font-semibold">{formatCurrency(totalsByCurrency[cur].real, cur)}</span>
+              </span>
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* Table */}
-      <div className="border rounded-lg overflow-auto bg-card">
-        <table className="w-full text-sm">
-          <thead className="bg-muted/50 sticky top-0">
-            <tr className="text-left">
-              <th className="px-3 py-2 font-semibold">Date</th>
-              <th className="px-3 py-2 font-semibold">Time</th>
-              <th className="px-3 py-2 font-semibold">Bank</th>
-              <th className="px-3 py-2 font-semibold">Currency</th>
-              <th className="px-3 py-2 font-semibold">Receipt №</th>
-              <th className="px-3 py-2 font-semibold">Approval</th>
-              <th className="px-3 py-2 font-semibold">Card</th>
-              <th className="px-3 py-2 font-semibold text-right">Amount</th>
-              <th className="px-3 py-2 font-semibold text-center">Photo</th>
-              <th className="px-3 py-2"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {isLoading ? (
-              <tr>
-                <td colSpan={10} className="text-center py-10 text-muted-foreground">
-                  <Loader2 className="h-5 w-5 animate-spin inline" />
-                </td>
-              </tr>
-            ) : checks.length === 0 ? (
-              <tr>
-                <td colSpan={10} className="text-center py-10 text-muted-foreground">
-                  No checks for this period. Upload a photo or add manually.
-                </td>
-              </tr>
-            ) : (
-              checks.map((c) => (
-                <tr key={c.id} className="border-t hover:bg-muted/30">
-                  <td className="px-3 py-2">{fmtDate(c.check_date)}</td>
-                  <td className="px-3 py-2 font-mono text-xs">{c.check_time || "—"}</td>
-                  <td className="px-3 py-2">{c.bank || "—"}</td>
-                  <td className="px-3 py-2 font-mono text-xs">{c.currency || "TZS"}</td>
-                  <td className="px-3 py-2 font-mono">{c.receipt_no || "—"}</td>
-                  <td className="px-3 py-2 font-mono">{c.approval_code || "—"}</td>
-                  <td className="px-3 py-2 font-mono text-xs">{c.card_masked || "—"}</td>
-                  <td className="px-3 py-2 text-right font-mono font-semibold">
-                    {formatCurrency(Number(c.amount), c.currency || "TZS")}
-                  </td>
-                  <td className="px-3 py-2 text-center">
-                    {c.photo_url ? (
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-7 w-7"
-                        onClick={() => openPhoto(c.photo_url!)}
-                        title="Show photo"
-                      >
-                        <ImageIcon className="h-4 w-4" />
-                      </Button>
-                    ) : (
-                      <span className="text-muted-foreground">—</span>
-                    )}
-                  </td>
-                  <td className="px-3 py-2 text-right">
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-7 w-7 text-destructive hover:text-destructive"
-                      onClick={() => {
-                        if (confirm("Delete check?")) deleteMut.mutate(c.id);
-                      }}
-                      title="Delete"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+      <Tabs defaultValue="all">
+        <TabsList>
+          <TabsTrigger value="all">All checks</TabsTrigger>
+          <TabsTrigger value="shifts">By shifts (12:00 → 06:00)</TabsTrigger>
+        </TabsList>
+        <TabsContent value="all" className="mt-3">
+          <BankChecksTable
+            checks={checks}
+            isLoading={isLoading}
+            onOpenPhoto={openPhoto}
+            onDelete={(id) => deleteMut.mutate(id)}
+            emptyMessage="No checks for this period. Upload a photo or add manually."
+          />
+        </TabsContent>
+        <TabsContent value="shifts" className="mt-3">
+          <ShiftSummaryTable
+            checks={checks}
+            isLoading={isLoading}
+            onOpenPhoto={openPhoto}
+          />
+        </TabsContent>
+      </Tabs>
 
       <ManualAddDialog
         open={showAdd}
@@ -328,12 +296,17 @@ function ManualAddDialog({
             <Input value={form.card_masked} onChange={(e) => upd("card_masked", e.target.value)} />
           </div>
           <div className="col-span-2">
-            <Label>Amount</Label>
+            <Label>Amount (with 3% commission)</Label>
             <Input
               type="number"
               value={form.amount || ""}
               onChange={(e) => upd("amount", Number(e.target.value) || 0)}
             />
+            {form.amount > 0 && (
+              <p className="text-xs text-muted-foreground mt-1">
+                Real (−3%): <span className="font-mono">{formatCurrency(stripCommission(form.amount), form.currency)}</span>
+              </p>
+            )}
           </div>
         </div>
         <DialogFooter>
