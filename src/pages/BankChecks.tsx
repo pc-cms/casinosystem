@@ -3,6 +3,7 @@ import { Loader2, Upload, Plus, Trash2, ImageIcon, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
@@ -86,7 +87,7 @@ export default function BankChecks() {
           receipt_no: c.receipt_no || "",
           approval_code: c.approval_code || "",
           amount: Number(c.amount) || 0,
-          currency: (c.currency || "TZS").toUpperCase(),
+          currency: (c.currency || "TZS").toUpperCase() === "USD" ? "USD" : "TZS",
           bank: c.bank || "",
           merchant: c.merchant || "",
           card_masked: c.card_masked || "",
@@ -171,6 +172,7 @@ export default function BankChecks() {
               <th className="px-3 py-2 font-semibold">Date</th>
               <th className="px-3 py-2 font-semibold">Time</th>
               <th className="px-3 py-2 font-semibold">Bank</th>
+              <th className="px-3 py-2 font-semibold">Currency</th>
               <th className="px-3 py-2 font-semibold">Receipt №</th>
               <th className="px-3 py-2 font-semibold">Approval</th>
               <th className="px-3 py-2 font-semibold">Card</th>
@@ -182,13 +184,13 @@ export default function BankChecks() {
           <tbody>
             {isLoading ? (
               <tr>
-                <td colSpan={9} className="text-center py-10 text-muted-foreground">
+                <td colSpan={10} className="text-center py-10 text-muted-foreground">
                   <Loader2 className="h-5 w-5 animate-spin inline" />
                 </td>
               </tr>
             ) : checks.length === 0 ? (
               <tr>
-                <td colSpan={9} className="text-center py-10 text-muted-foreground">
+                <td colSpan={10} className="text-center py-10 text-muted-foreground">
                   No checks for this period. Upload a photo or add manually.
                 </td>
               </tr>
@@ -198,6 +200,7 @@ export default function BankChecks() {
                   <td className="px-3 py-2">{fmtDate(c.check_date)}</td>
                   <td className="px-3 py-2 font-mono text-xs">{c.check_time || "—"}</td>
                   <td className="px-3 py-2">{c.bank || "—"}</td>
+                  <td className="px-3 py-2 font-mono text-xs">{c.currency || "TZS"}</td>
                   <td className="px-3 py-2 font-mono">{c.receipt_no || "—"}</td>
                   <td className="px-3 py-2 font-mono">{c.approval_code || "—"}</td>
                   <td className="px-3 py-2 font-mono text-xs">{c.card_masked || "—"}</td>
@@ -312,7 +315,15 @@ function ManualAddDialog({
           </div>
           <div>
             <Label>Currency</Label>
-            <Input value={form.currency} onChange={(e) => upd("currency", e.target.value.toUpperCase())} />
+            <Select value={form.currency} onValueChange={(value) => upd("currency", value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Currency" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="TZS">TZS</SelectItem>
+                <SelectItem value="USD">USD</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <div>
             <Label>Receipt №</Label>
