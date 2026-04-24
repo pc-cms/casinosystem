@@ -572,17 +572,18 @@ const TableResults = () => {
 /* Sub-components                                                     */
 /* ------------------------------------------------------------------ */
 
+// Solid backgrounds via layered gradients so sticky headers fully cover scrolling content.
 const accentBg: Record<string, string> = {
-  amber: "bg-warning/5",
-  emerald: "bg-success/5",
-  rose: "bg-destructive/5",
-  primary: "bg-primary/10",
+  amber: "[background-image:linear-gradient(hsl(var(--warning)/0.08),hsl(var(--warning)/0.08)),linear-gradient(hsl(var(--muted)),hsl(var(--muted)))]",
+  emerald: "[background-image:linear-gradient(hsl(var(--success)/0.08),hsl(var(--success)/0.08)),linear-gradient(hsl(var(--muted)),hsl(var(--muted)))]",
+  rose: "[background-image:linear-gradient(hsl(var(--destructive)/0.08),hsl(var(--destructive)/0.08)),linear-gradient(hsl(var(--muted)),hsl(var(--muted)))]",
+  primary: "[background-image:linear-gradient(hsl(var(--primary)/0.15),hsl(var(--primary)/0.15)),linear-gradient(hsl(var(--muted)),hsl(var(--muted)))]",
 };
 const accentBgBold: Record<string, string> = {
-  amber: "bg-warning/15",
-  emerald: "bg-success/15",
-  rose: "bg-destructive/15",
-  primary: "bg-primary/20",
+  amber: "[background-image:linear-gradient(hsl(var(--warning)/0.2),hsl(var(--warning)/0.2)),linear-gradient(hsl(var(--muted)),hsl(var(--muted)))]",
+  emerald: "[background-image:linear-gradient(hsl(var(--success)/0.2),hsl(var(--success)/0.2)),linear-gradient(hsl(var(--muted)),hsl(var(--muted)))]",
+  rose: "[background-image:linear-gradient(hsl(var(--destructive)/0.2),hsl(var(--destructive)/0.2)),linear-gradient(hsl(var(--muted)),hsl(var(--muted)))]",
+  primary: "[background-image:linear-gradient(hsl(var(--primary)/0.25),hsl(var(--primary)/0.25)),linear-gradient(hsl(var(--muted)),hsl(var(--muted)))]",
 };
 
 const SubHead = ({
