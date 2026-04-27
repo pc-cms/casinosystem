@@ -29,9 +29,7 @@ const PK_TABLES = ["P1", "P2", "P3", "P4", "P5"] as const;
 const BJ_TABLES = ["BJ1"] as const;
 
 const PRESETS = [
-  { key: "today", label: "Today" },
   { key: "week", label: "Week" },
-  { key: "30d", label: "30d" },
   { key: "month", label: "Month" },
   { key: "year", label: "Year" },
   { key: "custom", label: "Custom" },
