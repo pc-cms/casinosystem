@@ -326,6 +326,90 @@ const TableResults = () => {
             </Popover>
           )}
 
+          {preset === "month" && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="h-8 gap-1.5">
+                  <CalendarIcon className="w-3.5 h-3.5" />
+                  Pick month ({format(monthAnchor, "MMM yyyy")})
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <div className="p-3 space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() =>
+                        setMonthAnchor(new Date(monthAnchor.getFullYear() - 1, monthAnchor.getMonth(), 1))
+                      }
+                    >
+                      ‹
+                    </Button>
+                    <div className="text-sm font-semibold">{monthAnchor.getFullYear()}</div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() =>
+                        setMonthAnchor(new Date(monthAnchor.getFullYear() + 1, monthAnchor.getMonth(), 1))
+                      }
+                    >
+                      ›
+                    </Button>
+                  </div>
+                  <div className="grid grid-cols-3 gap-1 w-56">
+                    {Array.from({ length: 12 }).map((_, m) => {
+                      const isActive = monthAnchor.getMonth() === m;
+                      const label = new Date(2000, m, 1).toLocaleDateString("en-US", { month: "short" });
+                      return (
+                        <Button
+                          key={m}
+                          size="sm"
+                          variant={isActive ? "default" : "outline"}
+                          className="h-8"
+                          onClick={() => setMonthAnchor(new Date(monthAnchor.getFullYear(), m, 1))}
+                        >
+                          {label}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
+          )}
+
+          {preset === "year" && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="h-8 gap-1.5">
+                  <CalendarIcon className="w-3.5 h-3.5" />
+                  Pick year ({yearAnchor.getFullYear()})
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <div className="p-3 grid grid-cols-3 gap-1 w-56">
+                  {Array.from({ length: 12 }).map((_, i) => {
+                    const baseYear = new Date().getFullYear() - 8;
+                    const y = baseYear + i;
+                    const isActive = yearAnchor.getFullYear() === y;
+                    return (
+                      <Button
+                        key={y}
+                        size="sm"
+                        variant={isActive ? "default" : "outline"}
+                        className="h-8"
+                        onClick={() => setYearAnchor(new Date(y, 0, 1))}
+                      >
+                        {y}
+                      </Button>
+                    );
+                  })}
+                </div>
+              </PopoverContent>
+            </Popover>
+          )}
+
           {preset === "custom" && (
             <>
               <div>
