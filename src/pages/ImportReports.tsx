@@ -241,12 +241,12 @@ const ImportReports = () => {
         <div>
           <h1 className="text-xl md:text-2xl font-bold">Import Daily Reports</h1>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Upload report photos → OCR → review → confirm → save
+            Upload report photos → OCR → review → save
           </p>
         </div>
         <Button
           onClick={finishImport}
-          disabled={saveDay.isPending || Array.from(days.values()).every((d) => !d.confirmed)}
+          disabled={saveDay.isPending || Array.from(days.values()).every((d) => !d.date || d.date === "unknown")}
           className="gap-2"
         >
           {saveDay.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
