@@ -232,7 +232,7 @@ const TableResults = () => {
       };
     });
     return list.sort((a, b) => a.date.localeCompare(b.date));
-  }, [data]);
+  }, [data, allDates]);
 
   /* Period totals (bottom row) */
   const totals = useMemo(() => {
