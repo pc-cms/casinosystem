@@ -157,11 +157,33 @@ const TableResults = () => {
 
   const { data = [], isLoading } = useDailyResults(from, to);
 
+  /* Build full date range — fill missing days with empty buckets so gaps are visible. */
+  const allDates = useMemo(() => {
+    const out: string[] = [];
+    if (!from || !to) return out;
+    const start = new Date(from + "T12:00:00");
+    const end = new Date(to + "T12:00:00");
+    if (isNaN(start.getTime()) || isNaN(end.getTime()) || start > end) return out;
+    // cap to today — don't show future days that haven't happened yet
+    const todayIso = todayStr();
+    const cur = new Date(start);
+    while (cur <= end) {
+      const iso = isoDate(cur);
+      if (iso <= todayIso) out.push(iso);
+      cur.setDate(cur.getDate() + 1);
+    }
+    return out;
+  }, [from, to]);
+
   /* Group rows by date */
   const buckets: DayBucket[] = useMemo(() => {
     const byDate: Record<string, Row[]> = {};
     for (const r of data as Row[]) {
       (byDate[r.date] ||= []).push(r);
+    }
+    // Ensure every date in the range has an entry, even with no rows.
+    for (const d of allDates) {
+      if (!byDate[d]) byDate[d] = [];
     }
     const list: DayBucket[] = Object.entries(byDate).map(([date, rows]) => {
       const cells: Record<string, DayCell> = {};
