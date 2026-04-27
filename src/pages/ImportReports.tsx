@@ -179,33 +179,43 @@ const ImportReports = () => {
     });
   };
 
-  const toggleConfirmDay = async (date: string) => {
-    const day = days.get(date);
-    if (!day) return;
-    if (day.confirmed) {
-      // unlock
-      setDays((prev) => {
-        const next = new Map(prev);
-        next.set(date, { ...day, confirmed: false, locked: false });
-        return next;
-      });
-      return;
-    }
+  const toggleLockDay = (date: string) => {
     setDays((prev) => {
       const next = new Map(prev);
-      next.set(date, { ...day, confirmed: true, locked: true });
+      const day = next.get(date);
+      if (!day) return prev;
+      next.set(date, { ...day, locked: !day.locked, confirmed: true });
       return next;
     });
   };
 
+  /** Change a day's date — re-key in the map. Skip if target date already exists. */
+  const renameDay = (oldDate: string, newDate: string) => {
+    if (!newDate || newDate === oldDate) return;
+    setDays((prev) => {
+      const next = new Map(prev);
+      const day = next.get(oldDate);
+      if (!day) return prev;
+      if (next.has(newDate)) {
+        toast.error(`Date ${newDate} already exists in the list`);
+        return prev;
+      }
+      next.delete(oldDate);
+      next.set(newDate, { ...day, date: newDate });
+      return next;
+    });
+    // Reflect new date on source images so subsequent merges line up.
+    setImages((prev) => prev.map((i) => (i.date === oldDate ? { ...i, date: newDate } : i)));
+  };
+
   const finishImport = async () => {
-    const confirmed = Array.from(days.values()).filter((d) => d.confirmed && d.date !== "unknown");
-    if (confirmed.length === 0) {
-      toast.error("Confirm at least one day before saving");
+    const valid = Array.from(days.values()).filter((d) => d.date && d.date !== "unknown");
+    if (valid.length === 0) {
+      toast.error("Nothing to save");
       return;
     }
     let ok = 0;
-    for (const day of confirmed) {
+    for (const day of valid) {
       try {
         await saveDay.mutateAsync({ date: day.date, rows: day.rows });
         ok++;
@@ -214,13 +224,12 @@ const ImportReports = () => {
       }
     }
     if (ok > 0) {
-      // remove saved days and their source images
       setDays((prev) => {
         const next = new Map(prev);
-        confirmed.forEach((d) => next.delete(d.date));
+        valid.forEach((d) => next.delete(d.date));
         return next;
       });
-      setImages((prev) => prev.filter((i) => !i.date || !confirmed.find((d) => d.date === i.date)));
+      setImages((prev) => prev.filter((i) => !i.date || !valid.find((d) => d.date === i.date)));
     }
   };
 
