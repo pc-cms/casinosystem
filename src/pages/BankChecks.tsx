@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState } from "react";
-import { Loader2, Upload, Plus } from "lucide-react";
+import { Loader2, Upload, Plus, FileSpreadsheet } from "lucide-react";
+import { downloadXlsx } from "@/lib/excel-export";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -181,6 +182,45 @@ export default function BankChecks() {
           </Button>
           <Button variant="outline" onClick={() => setShowAdd(true)} className="gap-2">
             <Plus className="h-4 w-4" /> Add manually
+          </Button>
+          <Button
+            variant="outline"
+            className="gap-2"
+            disabled={checks.length === 0}
+            onClick={() => {
+              const header = [
+                "Date", "Time", "Bank", "Merchant", "Receipt №", "Approval",
+                "Card", "Currency", "Amount", "Real (−3%)", "Note",
+              ];
+              const rows: (string | number | null)[][] = [header];
+              for (const c of checks) {
+                rows.push([
+                  c.check_date,
+                  c.check_time || "",
+                  c.bank || "",
+                  c.merchant || "",
+                  c.receipt_no || "",
+                  c.approval_code || "",
+                  c.card_masked || "",
+                  c.currency || "",
+                  Number(c.amount) || 0,
+                  stripCommission(Number(c.amount) || 0),
+                  c.note || "",
+                ]);
+              }
+              // Totals per currency
+              rows.push([]);
+              rows.push(["Totals by currency"]);
+              rows.push(["Currency", "With commission", "Real (−3%)", "Count"]);
+              const cnt: Record<string, number> = {};
+              for (const c of checks) cnt[c.currency || "TZS"] = (cnt[c.currency || "TZS"] || 0) + 1;
+              for (const cur of Object.keys(totalsByCurrency)) {
+                rows.push([cur, totalsByCurrency[cur].check, totalsByCurrency[cur].real, cnt[cur] || 0]);
+              }
+              downloadXlsx(`bank-checks_${from}_${to}.xlsx`, [{ name: "Bank Checks", rows }]);
+            }}
+          >
+            <FileSpreadsheet className="h-4 w-4" /> Export Excel
           </Button>
         </div>
       </div>
