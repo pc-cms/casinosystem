@@ -1,9 +1,10 @@
 import { useMemo, useState } from "react";
-import { ArrowDown, ArrowUp, ArrowUpDown, ImageIcon, Loader2, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, ImageIcon, Loader2, Trash2, Pencil, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { formatCurrency } from "@/lib/currency";
 import { stripCommission } from "@/lib/bank-check-shift";
-import type { BankCheck } from "@/hooks/use-bank-checks";
+import { useUpdateBankCheck, type BankCheck } from "@/hooks/use-bank-checks";
 
 const fmtDate = (iso: string) => {
   const [y, m, d] = iso.split("-");
