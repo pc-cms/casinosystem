@@ -5,13 +5,13 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
-  Upload, Camera, ImageIcon, Loader2, X, CheckCircle2, AlertTriangle, Lock, Unlock, Play, Save,
+  Upload, Camera, ImageIcon, Loader2, X, CheckCircle2, AlertTriangle, Unlock, Lock, Play, Save, ChevronDown, ChevronRight,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { Navigate } from "react-router-dom";
 import { toast } from "sonner";
-import { FIXED_TABLE_NAMES, formatSpaced, type ImportDay, type OcrRow } from "@/lib/import-helpers";
+import { FIXED_TABLE_NAMES, formatSpaced, parseSpaced, type ImportDay, type OcrRow } from "@/lib/import-helpers";
 import { useSaveImportedDay } from "@/hooks/use-import-reports";
 
 /** Resize image to max width keeping aspect ratio. Returns JPEG blob. */
