@@ -2,16 +2,16 @@ import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
+
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
-  Upload, Camera, ImageIcon, Loader2, X, CheckCircle2, AlertTriangle, Lock, Unlock, Play, Save,
+  Upload, Camera, ImageIcon, Loader2, X, CheckCircle2, AlertTriangle, Unlock, Lock, Play, Save, ChevronDown, ChevronRight,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { Navigate } from "react-router-dom";
 import { toast } from "sonner";
-import { FIXED_TABLE_NAMES, formatSpaced, type ImportDay, type OcrRow } from "@/lib/import-helpers";
+import { FIXED_TABLE_NAMES, formatSpaced, parseSpaced, type ImportDay, type OcrRow } from "@/lib/import-helpers";
 import { useSaveImportedDay } from "@/hooks/use-import-reports";
 
 /** Resize image to max width keeping aspect ratio. Returns JPEG blob. */
@@ -122,7 +122,8 @@ const ImportReports = () => {
         });
         next.set(key, { ...existing, rows: merged });
       } else if (!existing) {
-        next.set(key, { date: key, rows, confirmed: false, locked: false });
+        // Default to locked (collapsed) so user just sees Date / Total / Unlock row.
+        next.set(key, { date: key, rows, confirmed: true, locked: true });
       }
       return next;
     });
@@ -178,33 +179,43 @@ const ImportReports = () => {
     });
   };
 
-  const toggleConfirmDay = async (date: string) => {
-    const day = days.get(date);
-    if (!day) return;
-    if (day.confirmed) {
-      // unlock
-      setDays((prev) => {
-        const next = new Map(prev);
-        next.set(date, { ...day, confirmed: false, locked: false });
-        return next;
-      });
-      return;
-    }
+  const toggleLockDay = (date: string) => {
     setDays((prev) => {
       const next = new Map(prev);
-      next.set(date, { ...day, confirmed: true, locked: true });
+      const day = next.get(date);
+      if (!day) return prev;
+      next.set(date, { ...day, locked: !day.locked, confirmed: true });
       return next;
     });
   };
 
+  /** Change a day's date — re-key in the map. Skip if target date already exists. */
+  const renameDay = (oldDate: string, newDate: string) => {
+    if (!newDate || newDate === oldDate) return;
+    setDays((prev) => {
+      const next = new Map(prev);
+      const day = next.get(oldDate);
+      if (!day) return prev;
+      if (next.has(newDate)) {
+        toast.error(`Date ${newDate} already exists in the list`);
+        return prev;
+      }
+      next.delete(oldDate);
+      next.set(newDate, { ...day, date: newDate });
+      return next;
+    });
+    // Reflect new date on source images so subsequent merges line up.
+    setImages((prev) => prev.map((i) => (i.date === oldDate ? { ...i, date: newDate } : i)));
+  };
+
   const finishImport = async () => {
-    const confirmed = Array.from(days.values()).filter((d) => d.confirmed && d.date !== "unknown");
-    if (confirmed.length === 0) {
-      toast.error("Confirm at least one day before saving");
+    const valid = Array.from(days.values()).filter((d) => d.date && d.date !== "unknown");
+    if (valid.length === 0) {
+      toast.error("Nothing to save");
       return;
     }
     let ok = 0;
-    for (const day of confirmed) {
+    for (const day of valid) {
       try {
         await saveDay.mutateAsync({ date: day.date, rows: day.rows });
         ok++;
@@ -213,13 +224,12 @@ const ImportReports = () => {
       }
     }
     if (ok > 0) {
-      // remove saved days and their source images
       setDays((prev) => {
         const next = new Map(prev);
-        confirmed.forEach((d) => next.delete(d.date));
+        valid.forEach((d) => next.delete(d.date));
         return next;
       });
-      setImages((prev) => prev.filter((i) => !i.date || !confirmed.find((d) => d.date === i.date)));
+      setImages((prev) => prev.filter((i) => !i.date || !valid.find((d) => d.date === i.date)));
     }
   };
 
@@ -231,12 +241,12 @@ const ImportReports = () => {
         <div>
           <h1 className="text-xl md:text-2xl font-bold">Import Daily Reports</h1>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Upload report photos → OCR → review → confirm → save
+            Upload report photos → OCR → review → save
           </p>
         </div>
         <Button
           onClick={finishImport}
-          disabled={saveDay.isPending || Array.from(days.values()).every((d) => !d.confirmed)}
+          disabled={saveDay.isPending || Array.from(days.values()).every((d) => !d.date || d.date === "unknown")}
           className="gap-2"
         >
           {saveDay.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
@@ -314,61 +324,97 @@ const ImportReports = () => {
       )}
 
       {/* Per-day preview */}
-      {sortedDays.map((day) => (
-        <Card key={day.date} className="p-3 md:p-4">
-          <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-            <div className="flex items-center gap-2">
-              <h3 className="font-bold text-base md:text-lg font-mono">{day.date}</h3>
-              {day.confirmed && (
-                <Badge variant="default" className="gap-1">
-                  <Lock className="w-3 h-3" /> Confirmed
-                </Badge>
-              )}
+      {sortedDays.map((day) => {
+        // Day total: prefer the explicit "Total" row from OCR; otherwise sum non-Total rows.
+        const totalRow = day.rows.find((r) => r.table === "Total");
+        const dropTotal = totalRow
+          ? parseSpaced(totalRow.drop)
+          : day.rows.filter((r) => r.table !== "Total").reduce((s, r) => s + parseSpaced(r.drop), 0);
+        const resultTotal = totalRow
+          ? parseSpaced(totalRow.result)
+          : day.rows.filter((r) => r.table !== "Total").reduce((s, r) => s + parseSpaced(r.result), 0);
+        const expanded = !day.locked;
+        const isUnknown = day.date === "unknown";
+        return (
+          <Card key={day.date} className="p-3 md:p-4">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  onClick={() => toggleLockDay(day.date)}
+                  className="p-1 rounded hover:bg-muted transition-colors"
+                  aria-label={expanded ? "Collapse" : "Expand"}
+                >
+                  {expanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                </button>
+                {isUnknown ? (
+                  <span className="font-mono text-sm text-warning">Date not recognized</span>
+                ) : (
+                  <Input
+                    type="date"
+                    value={day.date}
+                    onChange={(e) => renameDay(day.date, e.target.value)}
+                    className="h-8 w-40 font-mono text-sm"
+                  />
+                )}
+                <div className="flex items-center gap-3 text-xs md:text-sm font-mono ml-2">
+                  <span className="text-muted-foreground">
+                    Drop:{" "}
+                    <span className="font-semibold text-foreground">{formatSpaced(dropTotal)}</span>
+                  </span>
+                  <span className="text-muted-foreground">
+                    Result:{" "}
+                    <span className={`font-semibold ${resultTotal < 0 ? "text-destructive" : "text-foreground"}`}>
+                      {formatSpaced(resultTotal)}
+                    </span>
+                  </span>
+                </div>
+              </div>
+              <Button
+                variant={expanded ? "default" : "outline"}
+                size="sm"
+                onClick={() => toggleLockDay(day.date)}
+                className="gap-2"
+              >
+                {expanded ? <><Lock className="w-3.5 h-3.5" /> Lock</> : <><Unlock className="w-3.5 h-3.5" /> Unlock</>}
+              </Button>
             </div>
-            <Button
-              variant={day.confirmed ? "outline" : "default"}
-              size="sm"
-              onClick={() => toggleConfirmDay(day.date)}
-              className="gap-2"
-            >
-              {day.confirmed ? <><Unlock className="w-3.5 h-3.5" /> Unlock</> : <><CheckCircle2 className="w-3.5 h-3.5" /> Confirm Day</>}
-            </Button>
-          </div>
 
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-20">Table</TableHead>
-                  <TableHead>Open</TableHead>
-                  <TableHead>Fill</TableHead>
-                  <TableHead>Credit</TableHead>
-                  <TableHead>Close</TableHead>
-                  <TableHead>Drop</TableHead>
-                  <TableHead>Result</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {day.rows.map((r) => (
-                  <TableRow key={r.table} className={r.table === "Total" ? "font-bold bg-muted/40" : ""}>
-                    <TableCell className="font-mono">{r.table}</TableCell>
-                    {(["open", "fill", "credit", "close", "drop", "result"] as const).map((field) => (
-                      <TableCell key={field} className="p-1">
-                        <Input
-                          value={r[field]}
-                          disabled={day.locked}
-                          onChange={(e) => updateDayCell(day.date, r.table, field, e.target.value)}
-                          className="h-8 font-mono text-right text-xs"
-                        />
-                      </TableCell>
+            {expanded && (
+              <div className="overflow-x-auto mt-3">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-20">Table</TableHead>
+                      <TableHead>Open</TableHead>
+                      <TableHead>Fill</TableHead>
+                      <TableHead>Credit</TableHead>
+                      <TableHead>Close</TableHead>
+                      <TableHead>Drop</TableHead>
+                      <TableHead>Result</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {day.rows.map((r) => (
+                      <TableRow key={r.table} className={r.table === "Total" ? "font-bold bg-muted/40" : ""}>
+                        <TableCell className="font-mono">{r.table}</TableCell>
+                        {(["open", "fill", "credit", "close", "drop", "result"] as const).map((field) => (
+                          <TableCell key={field} className="p-1">
+                            <Input
+                              value={r[field]}
+                              onChange={(e) => updateDayCell(day.date, r.table, field, e.target.value)}
+                              className="h-8 font-mono text-right text-xs"
+                            />
+                          </TableCell>
+                        ))}
+                      </TableRow>
                     ))}
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </Card>
-      ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </Card>
+        );
+      })}
 
       {sortedDays.length === 0 && images.length === 0 && (
         <p className="text-center text-sm text-muted-foreground py-10">
