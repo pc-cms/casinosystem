@@ -41,6 +41,10 @@ export function BankChecksTable({
   showDelete = true,
   emptyMessage = "No checks for this period.",
 }: Props) {
+  const updateMut = useUpdateBankCheck();
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editDate, setEditDate] = useState<string>("");
+  const [editTime, setEditTime] = useState<string>("");
   const [sort, setSort] = useState<{ key: SortKey; dir: SortDir } | null>({
     key: "check_date",
     dir: "desc",
