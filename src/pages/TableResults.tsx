@@ -455,8 +455,66 @@ const TableResults = () => {
               </div>
             </>
           )}
-          <div className="ml-auto text-xs text-muted-foreground self-center">
-            {from} → {to} · {buckets.length} {buckets.length === 1 ? "day" : "days"}
+          <div className="ml-auto flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">
+              {from} → {to} · {buckets.length} {buckets.length === 1 ? "day" : "days"}
+            </span>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 gap-1.5"
+              disabled={buckets.length === 0}
+              onClick={() => {
+                const tableCols = [...AR_TABLES, ...PK_TABLES, ...BJ_TABLES];
+                const header: (string | number)[] = ["Date", "Weekday"];
+                for (const t of tableCols) {
+                  header.push(`${t} Drop`, `${t} Result`, `${t} Hold%`);
+                }
+                header.push("AR Drop", "AR Result", "PK Drop", "PK Result", "BJ Drop", "BJ Result", "Total Drop", "Total Result", "Total Hold%");
+                const rows: (string | number | null)[][] = [header];
+                for (const b of buckets) {
+                  const r: (string | number | null)[] = [b.date, dayName(b.date)];
+                  for (const t of tableCols) {
+                    const c = b.cells[t];
+                    if (c?.hasData) {
+                      r.push(c.drop, c.result, c.drop > 0 ? Number((c.result / c.drop * 100).toFixed(2)) : "");
+                    } else {
+                      r.push("", "", "");
+                    }
+                  }
+                  r.push(
+                    b.arDrop, b.arResult,
+                    b.pkDrop, b.pkResult,
+                    b.bjDrop, b.bjResult,
+                    b.totalDrop, b.totalResult,
+                    b.totalDrop > 0 ? Number((b.totalResult / b.totalDrop * 100).toFixed(2)) : "",
+                  );
+                  rows.push(r);
+                }
+                // Σ totals row
+                const totalsRow: (string | number | null)[] = ["TOTAL", ""];
+                for (const t of tableCols) {
+                  const c = totals.cellsTotal[t];
+                  if (c) {
+                    totalsRow.push(c.drop, c.result, c.drop > 0 ? Number((c.result / c.drop * 100).toFixed(2)) : "");
+                  } else {
+                    totalsRow.push("", "", "");
+                  }
+                }
+                totalsRow.push(
+                  totals.arDrop, totals.arResult,
+                  totals.pkDrop, totals.pkResult,
+                  totals.bjDrop, totals.bjResult,
+                  totals.totalDrop, totals.totalResult,
+                  totals.totalDrop > 0 ? Number((totals.totalResult / totals.totalDrop * 100).toFixed(2)) : "",
+                );
+                rows.push([]);
+                rows.push(totalsRow);
+                downloadXlsx(`table-results_${from}_${to}.xlsx`, [{ name: "Table Results", rows }]);
+              }}
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5" /> Export Excel
+            </Button>
           </div>
         </div>
       </Card>
