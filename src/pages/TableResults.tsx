@@ -144,6 +144,8 @@ const dayNum = (iso: string) => Number(iso.slice(8, 10));
 const TableResults = () => {
   const [preset, setPreset] = useState<PresetKey>("month");
   const [weekAnchor, setWeekAnchor] = useState<Date>(new Date());
+  const [monthAnchor, setMonthAnchor] = useState<Date>(new Date());
+  const [yearAnchor, setYearAnchor] = useState<Date>(new Date());
   const [customFrom, setCustomFrom] = useState(daysAgoStr(29));
   const [customTo, setCustomTo] = useState(todayStr());
   const [openDate, setOpenDate] = useState<string | null>(null);
@@ -151,7 +153,7 @@ const TableResults = () => {
   const { from, to } =
     preset === "custom"
       ? { from: customFrom, to: customTo }
-      : presetRange(preset, weekAnchor);
+      : presetRange(preset, weekAnchor, monthAnchor, yearAnchor);
 
   const { data = [], isLoading } = useDailyResults(from, to);
 
