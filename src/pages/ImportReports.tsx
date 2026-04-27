@@ -324,61 +324,97 @@ const ImportReports = () => {
       )}
 
       {/* Per-day preview */}
-      {sortedDays.map((day) => (
-        <Card key={day.date} className="p-3 md:p-4">
-          <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-            <div className="flex items-center gap-2">
-              <h3 className="font-bold text-base md:text-lg font-mono">{day.date}</h3>
-              {day.confirmed && (
-                <Badge variant="default" className="gap-1">
-                  <Lock className="w-3 h-3" /> Confirmed
-                </Badge>
-              )}
+      {sortedDays.map((day) => {
+        // Day total: prefer the explicit "Total" row from OCR; otherwise sum non-Total rows.
+        const totalRow = day.rows.find((r) => r.table === "Total");
+        const dropTotal = totalRow
+          ? parseSpaced(totalRow.drop)
+          : day.rows.filter((r) => r.table !== "Total").reduce((s, r) => s + parseSpaced(r.drop), 0);
+        const resultTotal = totalRow
+          ? parseSpaced(totalRow.result)
+          : day.rows.filter((r) => r.table !== "Total").reduce((s, r) => s + parseSpaced(r.result), 0);
+        const expanded = !day.locked;
+        const isUnknown = day.date === "unknown";
+        return (
+          <Card key={day.date} className="p-3 md:p-4">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  onClick={() => toggleLockDay(day.date)}
+                  className="p-1 rounded hover:bg-muted transition-colors"
+                  aria-label={expanded ? "Collapse" : "Expand"}
+                >
+                  {expanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                </button>
+                {isUnknown ? (
+                  <span className="font-mono text-sm text-warning">Date not recognized</span>
+                ) : (
+                  <Input
+                    type="date"
+                    value={day.date}
+                    onChange={(e) => renameDay(day.date, e.target.value)}
+                    className="h-8 w-40 font-mono text-sm"
+                  />
+                )}
+                <div className="flex items-center gap-3 text-xs md:text-sm font-mono ml-2">
+                  <span className="text-muted-foreground">
+                    Drop:{" "}
+                    <span className="font-semibold text-foreground">{formatSpaced(dropTotal)}</span>
+                  </span>
+                  <span className="text-muted-foreground">
+                    Result:{" "}
+                    <span className={`font-semibold ${resultTotal < 0 ? "text-destructive" : "text-foreground"}`}>
+                      {formatSpaced(resultTotal)}
+                    </span>
+                  </span>
+                </div>
+              </div>
+              <Button
+                variant={expanded ? "default" : "outline"}
+                size="sm"
+                onClick={() => toggleLockDay(day.date)}
+                className="gap-2"
+              >
+                {expanded ? <><Lock className="w-3.5 h-3.5" /> Lock</> : <><Unlock className="w-3.5 h-3.5" /> Unlock</>}
+              </Button>
             </div>
-            <Button
-              variant={day.confirmed ? "outline" : "default"}
-              size="sm"
-              onClick={() => toggleConfirmDay(day.date)}
-              className="gap-2"
-            >
-              {day.confirmed ? <><Unlock className="w-3.5 h-3.5" /> Unlock</> : <><CheckCircle2 className="w-3.5 h-3.5" /> Confirm Day</>}
-            </Button>
-          </div>
 
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-20">Table</TableHead>
-                  <TableHead>Open</TableHead>
-                  <TableHead>Fill</TableHead>
-                  <TableHead>Credit</TableHead>
-                  <TableHead>Close</TableHead>
-                  <TableHead>Drop</TableHead>
-                  <TableHead>Result</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {day.rows.map((r) => (
-                  <TableRow key={r.table} className={r.table === "Total" ? "font-bold bg-muted/40" : ""}>
-                    <TableCell className="font-mono">{r.table}</TableCell>
-                    {(["open", "fill", "credit", "close", "drop", "result"] as const).map((field) => (
-                      <TableCell key={field} className="p-1">
-                        <Input
-                          value={r[field]}
-                          disabled={day.locked}
-                          onChange={(e) => updateDayCell(day.date, r.table, field, e.target.value)}
-                          className="h-8 font-mono text-right text-xs"
-                        />
-                      </TableCell>
+            {expanded && (
+              <div className="overflow-x-auto mt-3">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-20">Table</TableHead>
+                      <TableHead>Open</TableHead>
+                      <TableHead>Fill</TableHead>
+                      <TableHead>Credit</TableHead>
+                      <TableHead>Close</TableHead>
+                      <TableHead>Drop</TableHead>
+                      <TableHead>Result</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {day.rows.map((r) => (
+                      <TableRow key={r.table} className={r.table === "Total" ? "font-bold bg-muted/40" : ""}>
+                        <TableCell className="font-mono">{r.table}</TableCell>
+                        {(["open", "fill", "credit", "close", "drop", "result"] as const).map((field) => (
+                          <TableCell key={field} className="p-1">
+                            <Input
+                              value={r[field]}
+                              onChange={(e) => updateDayCell(day.date, r.table, field, e.target.value)}
+                              className="h-8 font-mono text-right text-xs"
+                            />
+                          </TableCell>
+                        ))}
+                      </TableRow>
                     ))}
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </Card>
-      ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </Card>
+        );
+      })}
 
       {sortedDays.length === 0 && images.length === 0 && (
         <p className="text-center text-sm text-muted-foreground py-10">
