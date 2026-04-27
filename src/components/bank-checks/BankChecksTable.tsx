@@ -1,9 +1,10 @@
 import { useMemo, useState } from "react";
-import { ArrowDown, ArrowUp, ArrowUpDown, ImageIcon, Loader2, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, ImageIcon, Loader2, Trash2, Pencil, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { formatCurrency } from "@/lib/currency";
 import { stripCommission } from "@/lib/bank-check-shift";
-import type { BankCheck } from "@/hooks/use-bank-checks";
+import { useUpdateBankCheck, type BankCheck } from "@/hooks/use-bank-checks";
 
 const fmtDate = (iso: string) => {
   const [y, m, d] = iso.split("-");
@@ -40,6 +41,10 @@ export function BankChecksTable({
   showDelete = true,
   emptyMessage = "No checks for this period.",
 }: Props) {
+  const updateMut = useUpdateBankCheck();
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editDate, setEditDate] = useState<string>("");
+  const [editTime, setEditTime] = useState<string>("");
   const [sort, setSort] = useState<{ key: SortKey; dir: SortDir } | null>({
     key: "check_date",
     dir: "desc",
@@ -143,10 +148,83 @@ export function BankChecksTable({
           ) : (
             sorted.map((c) => {
               const real = stripCommission(Number(c.amount) || 0);
+              const isEditing = editingId === c.id;
+              const startEdit = () => {
+                setEditingId(c.id);
+                setEditDate(c.check_date);
+                setEditTime(c.check_time || "");
+              };
+              const saveEdit = () => {
+                updateMut.mutate(
+                  {
+                    id: c.id,
+                    patch: { check_date: editDate, check_time: editTime || null },
+                  },
+                  { onSuccess: () => setEditingId(null) },
+                );
+              };
               return (
                 <tr key={c.id} className="border-t hover:bg-muted/30">
-                  <td className="px-3 py-2">{fmtDate(c.check_date)}</td>
-                  <td className="px-3 py-2 font-mono text-xs">{c.check_time || "—"}</td>
+                  <td className="px-3 py-2">
+                    {isEditing ? (
+                      <div className="flex items-center gap-1">
+                        <Input
+                          type="date"
+                          value={editDate}
+                          onChange={(e) => setEditDate(e.target.value)}
+                          className="h-7 w-36 text-xs"
+                        />
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1 group">
+                        <span>{fmtDate(c.check_date)}</span>
+                        {showDelete && (
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-5 w-5 opacity-0 group-hover:opacity-100"
+                            onClick={startEdit}
+                            title="Edit date/time"
+                          >
+                            <Pencil className="h-3 w-3" />
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                  </td>
+                  <td className="px-3 py-2 font-mono text-xs">
+                    {isEditing ? (
+                      <div className="flex items-center gap-1">
+                        <Input
+                          type="time"
+                          value={editTime}
+                          onChange={(e) => setEditTime(e.target.value)}
+                          className="h-7 w-24 text-xs"
+                        />
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-6 w-6 text-success"
+                          onClick={saveEdit}
+                          disabled={updateMut.isPending}
+                          title="Save"
+                        >
+                          <Check className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-6 w-6"
+                          onClick={() => setEditingId(null)}
+                          title="Cancel"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ) : (
+                      c.check_time || "—"
+                    )}
+                  </td>
                   <td className="px-3 py-2">{c.bank || "—"}</td>
                   <td className="px-3 py-2 font-mono text-xs">{c.currency || "TZS"}</td>
                   <td className="px-3 py-2 font-mono">{c.receipt_no || "—"}</td>
