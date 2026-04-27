@@ -122,7 +122,8 @@ const ImportReports = () => {
         });
         next.set(key, { ...existing, rows: merged });
       } else if (!existing) {
-        next.set(key, { date: key, rows, confirmed: false, locked: false });
+        // Default to locked (collapsed) so user just sees Date / Total / Unlock row.
+        next.set(key, { date: key, rows, confirmed: true, locked: true });
       }
       return next;
     });
