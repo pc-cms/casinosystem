@@ -61,27 +61,29 @@ const weekKey = (iso: string) => {
   return isoDate(d);
 };
 
-const presetRange = (key: PresetKey, weekAnchor: Date): { from: string; to: string } => {
-  const t = todayStr();
-  const now = new Date();
+const presetRange = (
+  key: PresetKey,
+  weekAnchor: Date,
+  monthAnchor: Date,
+  yearAnchor: Date,
+): { from: string; to: string } => {
   switch (key) {
-    case "today":
-      return { from: t, to: t };
     case "week":
       return weekRangeFor(weekAnchor);
-    case "30d":
-      return { from: daysAgoStr(29), to: t };
     case "month": {
-      const first = isoDate(new Date(now.getFullYear(), now.getMonth(), 1));
-      return { from: first, to: t };
+      const first = new Date(monthAnchor.getFullYear(), monthAnchor.getMonth(), 1);
+      const last = new Date(monthAnchor.getFullYear(), monthAnchor.getMonth() + 1, 0);
+      return { from: isoDate(first), to: isoDate(last) };
     }
     case "year": {
-      const first = isoDate(new Date(now.getFullYear(), 0, 1));
-      return { from: first, to: t };
+      const first = new Date(yearAnchor.getFullYear(), 0, 1);
+      const last = new Date(yearAnchor.getFullYear(), 11, 31);
+      return { from: isoDate(first), to: isoDate(last) };
     }
     default: {
+      const now = new Date();
       const first = isoDate(new Date(now.getFullYear(), now.getMonth(), 1));
-      return { from: first, to: t };
+      return { from: first, to: todayStr() };
     }
   }
 };
