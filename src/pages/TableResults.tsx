@@ -16,7 +16,8 @@ import {
 } from "@/components/ui/table";
 import { useDailyResults } from "@/hooks/use-import-reports";
 import { formatSpaced } from "@/lib/import-helpers";
-import { CalendarIcon, ChevronRight, Loader2 } from "lucide-react";
+import { CalendarIcon, ChevronRight, Loader2, FileSpreadsheet } from "lucide-react";
+import { downloadXlsx } from "@/lib/excel-export";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { fmtDate, fmtWeekdayShort } from "@/lib/format-date";
