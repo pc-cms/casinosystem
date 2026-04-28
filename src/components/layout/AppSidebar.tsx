@@ -53,9 +53,14 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/in-casino", icon: Eye, label: "In Casino", roles: ["super_admin", "manager", "reception", "pit", "finance_manager", "surveillance"], section: "RECEPTION" },
   { to: "/blacklist", icon: ShieldAlert, label: "Blacklist", roles: ["super_admin", "manager", "reception", "finance_manager", "surveillance"], section: "RECEPTION" },
 
-  // FINANCE
-  { to: "/finance", icon: Wallet, label: "Finance", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
-  { to: "/groups", icon: UsersRound, label: "Groups", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
+  // FINANCE — alphabetical
+  { to: "/finance?tab=budget", icon: Target, label: "Budget", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
+  { to: "/finance?tab=review", icon: ClipboardPen, label: "Daily Review", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
+  { to: "/finance?tab=dashboard", icon: Wallet, label: "Dashboard", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
+  { to: "/finance?tab=expenses", icon: Receipt, label: "Expenses", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
+  { to: "/finance?tab=summary", icon: FileBarChart, label: "Summary", roles: ["super_admin", "finance_manager"], section: "FINANCE" },
+  { to: "/finance?tab=transfers", icon: Upload, label: "Transfers", roles: ["super_admin", "finance_manager"], section: "FINANCE" },
+  { to: "/finance?tab=wallets", icon: Wallet, label: "Wallets", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
   { to: "/import-reports", icon: Upload, label: "Import Reports", roles: ["super_admin", "manager"], section: "FINANCE" },
   { to: "/miss-chips", icon: Coins, label: "Miss Chips", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
 
@@ -63,10 +68,12 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/staff", icon: Building2, label: "Floor Staff", roles: ["super_admin", "manager", "pit", "finance_manager", "hr"], section: "HR" },
 
   // ANALYTICS — shared
-  { to: "/table-results", icon: FileText, label: "Table Results", roles: ["super_admin", "manager", "finance_manager", "surveillance"], section: "ANALYTICS" },
+  { to: "/groups", icon: UsersRound, label: "Groups", roles: ["super_admin", "manager", "finance_manager"], section: "ANALYTICS" },
+  { to: "/logs", icon: ClipboardList, label: "Logs", roles: ["super_admin", "manager", "finance_manager", "surveillance"], section: "ANALYTICS" },
   { to: "/reports", icon: FileBarChart, label: "Reports", roles: ["super_admin", "manager", "finance_manager", "surveillance"], section: "ANALYTICS" },
   { to: "/stats", icon: BarChart3, label: "Stats", roles: ["super_admin", "manager", "finance_manager", "surveillance"], section: "ANALYTICS" },
-  { to: "/logs", icon: ClipboardList, label: "Logs", roles: ["super_admin", "manager", "finance_manager", "surveillance"], section: "ANALYTICS" },
+  { to: "/table-results", icon: FileText, label: "Table Results", roles: ["super_admin", "manager", "finance_manager", "surveillance"], section: "ANALYTICS" },
+
 ];
 
 const TABLE_SUBITEMS = [
@@ -89,7 +96,19 @@ const STAFF_SUBITEMS = [
   { tab: "rota_security", icon: ShieldCheck, label: "Security Rota" },
 ];
 
+const WALLETS_SUBITEMS = [
+  { tab: "cashcount", icon: Coins, label: "Cash Count" },
+];
+
 const BREAKLIST_PATH = "/pit?tab=breaklist";
+const WALLETS_PATH = "/finance?tab=wallets";
+
+// Helper: parse "/path?tab=foo" into { base, tab }
+const parseItemTo = (to: string) => {
+  const [base, q = ""] = to.split("?");
+  const tab = new URLSearchParams(q).get("tab");
+  return { base, tab };
+};
 
 // ============ Collapsible sections (expanded sidebar) ============
 const SECTIONS_STORAGE_KEY = "cms.sidebar.openSections";
@@ -161,24 +180,32 @@ const SidebarSections = ({
   };
 
   const renderItem = (item: NavItem) => {
-    const isBreaklistItem = item.to === BREAKLIST_PATH;
-    const isBreaklistActive = isBreaklistItem && location.pathname === "/pit" && currentTab === "breaklist";
+    const { base: itemBase, tab: itemTab } = parseItemTo(item.to);
+    const isTabAware = itemTab !== null;
+    const isTabAwareActive =
+      isTabAware && location.pathname === itemBase && currentTab === itemTab;
+    const isWalletsItem = item.to === WALLETS_PATH;
+    const showWalletsSubs = isWalletsItem && isTabAwareActive;
     return (
       <div key={item.to}>
-        <NavLink to={item.to} end={item.to === "/" || item.to === "/pit" || item.to === "/staff" || item.to === "/tables" || item.to === BREAKLIST_PATH}
+        <NavLink
+          to={item.to}
+          end={item.to === "/" || item.to === "/pit" || item.to === "/staff" || item.to === "/tables" || isTabAware}
           onClick={onNavigate}
           className={({ isActive }) => {
-            const active = isBreaklistItem ? isBreaklistActive : isActive;
+            const active = isTabAware ? isTabAwareActive : isActive;
             return `flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
               active ? "bg-sidebar-accent text-sidebar-primary font-medium" : "text-sidebar-foreground hover:bg-sidebar-accent"
             }`;
-          }}>
+          }}
+        >
           <item.icon className="w-4 h-4 shrink-0" />
           <span className="flex-1">{item.label}</span>
         </NavLink>
         {item.to === "/tables" && isTablesActive && (roles.includes("pit") || roles.includes("manager") || roles.includes("finance_manager")) && renderSubItems("/tables", TABLE_SUBITEMS)}
         {item.to === "/pit" && isPitActive && renderSubItems("/pit", PIT_SUBITEMS)}
         {item.to === "/staff" && isStaffActive && renderSubItems("/staff", STAFF_SUBITEMS)}
+        {showWalletsSubs && renderSubItems("/finance", WALLETS_SUBITEMS)}
       </div>
     );
   };
@@ -295,16 +322,16 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
           {/* Nav icons (only top-level items, no sub-tabs) */}
           <nav className="flex-1 flex flex-col items-center gap-0.5 w-full px-2 overflow-hidden">
             {visibleItems.map((item) => {
-              const isBreaklistItem = item.to === BREAKLIST_PATH;
-              const isBreaklistActive = isBreaklistItem && location.pathname === "/pit" && currentTab === "breaklist";
+              const { base: itemBase, tab: itemTab } = parseItemTo(item.to);
+              const isTabAware = itemTab !== null;
               const isPlainPitActive = item.to === "/pit" && location.pathname === "/pit" && currentTab !== "breaklist";
-              const isActive = isBreaklistItem
-                ? isBreaklistActive
+              const isActive = isTabAware
+                ? location.pathname === itemBase && currentTab === itemTab
                 : item.to === "/pit"
                   ? isPlainPitActive
                   : item.to === "/"
                     ? location.pathname === "/"
-                    : location.pathname.startsWith(item.to.split("?")[0]);
+                    : location.pathname.startsWith(itemBase);
               return (
                 <Tooltip key={item.to}>
                   <TooltipTrigger asChild>
@@ -510,10 +537,19 @@ export const MobileHeader = () => {
   const [open, setOpen] = useState(false);
   const location = useLocation();
 
-  const currentItem = NAV_ITEMS.find(item => {
-    if (item.to === "/") return location.pathname === "/";
-    return location.pathname.startsWith(item.to.split("?")[0]);
-  });
+  const currentTab = new URLSearchParams(location.search).get("tab");
+  const currentItem =
+    NAV_ITEMS.find(item => {
+      const { base, tab } = parseItemTo(item.to);
+      if (tab === null) return false;
+      return location.pathname === base && currentTab === tab;
+    }) ||
+    NAV_ITEMS.find(item => {
+      const { base, tab } = parseItemTo(item.to);
+      if (tab !== null) return false;
+      if (base === "/") return location.pathname === "/";
+      return location.pathname.startsWith(base);
+    });
   const pageTitle = currentItem?.label || "CMS";
 
   return (
