@@ -51,10 +51,11 @@ const Reception = () => {
         icon={ClipboardList}
         title="Reception"
         subtitle="Entry control · Player registration"
+        date
       />
 
       <Tabs value={tab} onValueChange={v => setSearchParams({ tab: v })}>
-        <TabsList className="mb-3 sm:mb-4 w-full sm:w-auto grid grid-cols-3 sm:flex">
+        <TabsList className="mb-3 sm:mb-4 w-full sm:w-auto grid grid-cols-3 sm:inline-flex">
           <TabsTrigger value="checkin" className="gap-1 text-xs sm:text-sm">
             <LogIn className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Check-in</span>
