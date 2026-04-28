@@ -274,11 +274,17 @@ const InForm = ({ players, tables, exchangeRates, shiftId, onSubmit, loading }: 
     if (!playerId || !tableId || tzsAmount <= 0) return;
     if (Number(amount) <= 0) { toast.error("Amount must be greater than zero"); return; }
     if (selectedPlayer?.status === "blacklist") { toast.error("BLOCKED — Player is blacklisted"); return; }
+    const chipsPayload: Record<string, unknown> = { ...chips };
+    if (currency !== "TZS") {
+      chipsPayload._meta = {
+        original_currency: currency,
+        original_amount: Number(amount),
+        rate: exchangeRates[currency],
+      };
+    }
     onSubmit({
       player_id: playerId, table_id: tableId, type: "in" as const, amount: tzsAmount, shift_id: shiftId,
-      chips: currency !== "TZS"
-        ? { original_currency: currency, original_amount: Number(amount), rate: exchangeRates[currency] }
-        : Object.keys(chips).length > 0 ? chips : undefined,
+      chips: Object.keys(chips).length > 0 ? chipsPayload : undefined,
     }, { onSuccess: () => { setAmount(""); setChips({}); amountRef.current?.focus(); } });
   };
 
