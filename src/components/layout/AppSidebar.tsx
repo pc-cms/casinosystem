@@ -258,7 +258,7 @@ const SidebarSections = ({
               {isOpen ? <ChevronDown className="w-3 h-3 text-muted-foreground" /> : <ChevronRight className="w-3 h-3 text-muted-foreground" />}
               <span className="text-[9px] font-mono text-muted-foreground uppercase tracking-widest">{section}</span>
             </button>
-            {isOpen && <div className="space-y-0.5">{items.map(renderItem)}</div>}
+            {isOpen && <div className="space-y-0.5">{items.map(it => renderItem(it, section))}</div>}
           </div>
         );
       })}
