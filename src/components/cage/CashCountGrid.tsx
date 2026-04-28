@@ -25,7 +25,8 @@ const CashCountGrid = ({
 }) => {
   const mobTotal = mobileTotal(mobile);
 
-  const inputCls = "no-spin h-6 w-full min-w-0 font-mono text-xs text-right px-1.5";
+  const inputCls = "no-spin h-5 w-full min-w-0 font-mono text-xs text-right px-1.5";
+  const banksTzsTotal = (banks.tzs || 0) + (banks.usd || 0) * (rates?.["USD"] || 0);
 
   return (
     <div className="space-y-4">
@@ -54,14 +55,11 @@ const CashCountGrid = ({
             <CashDenomInput values={cash["KES"] || {}} onChange={v => onCashChange("KES", v)} denoms={CASH_DENOMS["KES"] || []} currency="KES" />
           </section>
           <section className="rounded-xl border border-border bg-background/40 p-4 space-y-3">
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.22em]">Mobile Money</p>
-              <span className="font-mono text-sm font-bold text-card-foreground">TZS {formatNumberSpaces(mobTotal)}</span>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.22em]">Mobile Money</p>
+            <div className="space-y-0">
               {MOBILE_PROVIDERS.map(provider => (
-                <div key={provider} className="flex items-center gap-2">
-                  <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.18em] w-12 shrink-0">{provider}</span>
+                <div key={provider} className="grid grid-cols-[3.5rem_minmax(0,1fr)] items-center gap-1.5">
+                  <span className="cms-chip text-[8px] bg-muted text-foreground h-5 w-14 shrink-0 justify-center">{provider}</span>
                   <NumberInput
                     value={mobile[provider] || ""}
                     onChange={v => onMobileChange({ ...mobile, [provider]: Number(v) || 0 })}
@@ -70,6 +68,10 @@ const CashCountGrid = ({
                   />
                 </div>
               ))}
+            </div>
+            <div className="flex items-center justify-between gap-2 pt-1 mt-1 border-t border-border">
+              <span className="text-[10px] font-medium text-muted-foreground">Total</span>
+              <span className="font-mono text-xs font-bold text-card-foreground">TZS {formatNumberSpaces(mobTotal)}</span>
             </div>
           </section>
         </div>
@@ -86,7 +88,7 @@ const CashCountGrid = ({
           </section>
           <section className="rounded-xl border border-border bg-background/40 p-4 space-y-3">
             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.22em]">Banks</p>
-            <div className="space-y-1">
+            <div className="space-y-0">
               <div className="grid grid-cols-[3.5rem_minmax(0,1fr)] items-center gap-1.5">
                 <span className="cms-chip text-[8px] bg-muted text-foreground h-5 w-14 shrink-0 justify-center">TZS</span>
                 <NumberInput value={banks.tzs || ""} onChange={v => onBanksChange({ ...banks, tzs: Number(v) || 0 })} className={inputCls} placeholder="0" />
@@ -95,9 +97,10 @@ const CashCountGrid = ({
                 <span className="cms-chip text-[8px] bg-muted text-foreground h-5 w-14 shrink-0 justify-center">USD</span>
                 <NumberInput value={banks.usd || ""} onChange={v => onBanksChange({ ...banks, usd: Number(v) || 0 })} className={inputCls} placeholder="0" />
               </div>
-              {banks.usd > 0 && rates?.["USD"] ? (
-                <p className="text-[10px] font-mono text-muted-foreground text-right">USD = TZS {formatNumberSpaces(banks.usd * (rates["USD"] || 0))}</p>
-              ) : null}
+            </div>
+            <div className="flex items-center justify-between gap-2 pt-1 mt-1 border-t border-border">
+              <span className="text-[10px] font-medium text-muted-foreground">Total</span>
+              <span className="font-mono text-xs font-bold text-card-foreground">TZS {formatNumberSpaces(banksTzsTotal)}</span>
             </div>
           </section>
         </div>
