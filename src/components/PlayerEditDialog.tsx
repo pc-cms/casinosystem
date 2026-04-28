@@ -18,6 +18,7 @@ import { fmtDateTime } from "@/lib/format-date";
 import CategoryBadge, { ALL_CATEGORIES, type PlayerCategory } from "@/components/player/CategoryBadge";
 import FlagBadges from "@/components/player/FlagBadges";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { FormGrid, FormField, FormSection } from "@/components/ui/form-grid";
 
 interface PlayerEditDialogProps {
   player: {
@@ -236,37 +237,27 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
 
       {/* Two-column on desktop: fields left, big photo + ID right */}
       <div className={`${isMobile ? "space-y-4" : "grid grid-cols-[1fr_220px] gap-5"}`}>
-        {/* LEFT: form fields */}
-        <div className="space-y-3 min-w-0">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <Label className="text-xs">First Name</Label>
+        {/* LEFT: form fields on a unified 12-col grid */}
+        <div className="min-w-0">
+          <FormGrid>
+            <FormField span={6} label="First Name">
               <Input value={firstName} onChange={e => setFirstName(e.target.value)} className="h-10" />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Last Name</Label>
+            </FormField>
+            <FormField span={6} label="Last Name">
               <Input value={lastName} onChange={e => setLastName(e.target.value)} className="h-10" />
-            </div>
-          </div>
+            </FormField>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <Label className="text-xs">Nickname</Label>
+            <FormField span={6} label="Nickname">
               <Input value={nickname} onChange={e => setNickname(e.target.value)} className="h-10" />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Phone</Label>
+            </FormField>
+            <FormField span={6} label="Phone">
               <Input value={phone} onChange={e => setPhone(e.target.value)} className="h-10" type="tel" />
-            </div>
-          </div>
+            </FormField>
 
-          <div className="grid grid-cols-3 gap-3">
-            <div className="space-y-1">
-              <Label className="text-xs">ID / Passport</Label>
+            <FormField span={4} label="ID / Passport">
               <Input value={idNumber} onChange={e => setIdNumber(e.target.value)} className="h-10 font-mono" placeholder="Enter ID" />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Player Type</Label>
+            </FormField>
+            <FormField span={4} label="Player Type">
               <Select value={playerType} onValueChange={setPlayerType}>
                 <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -275,12 +266,16 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
                   <SelectItem value="mix">Mix</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs flex items-center gap-1">
-                Category
-                {!canEditCategory && <Shield className="w-3 h-3 text-muted-foreground" />}
-              </Label>
+            </FormField>
+            <FormField
+              span={4}
+              label={
+                <>
+                  Category
+                  {!canEditCategory && <Shield className="w-3 h-3 text-muted-foreground" />}
+                </>
+              }
+            >
               <Select value={category} onValueChange={v => setCategory(v as PlayerCategory)} disabled={!canEditCategory}>
                 <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -289,58 +284,67 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-          </div>
+            </FormField>
 
-          {/* Notes — placed inside left column to align with ID Doc photo on right */}
-          {canSeeNotes && (
-            <div className="space-y-2 pt-1">
-              <div className="flex items-center gap-1">
-                <StickyNote className="w-3 h-3 text-muted-foreground" />
-                <Label className="text-xs text-muted-foreground">Intelligence Notes ({notes.length})</Label>
-              </div>
-              <div className="flex gap-2">
-                <Select value={noteType} onValueChange={setNoteType}>
-                  <SelectTrigger className="h-10 w-[100px] text-xs"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {NOTE_TYPES.map(t => (
-                      <SelectItem key={t} value={t} className="capitalize text-xs">{t}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Textarea
-                  value={newNote}
-                  onChange={e => setNewNote(e.target.value)}
-                  placeholder="Add note..."
-                  className="text-xs min-h-[44px] resize-none flex-1"
-                />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="shrink-0 self-end h-10 w-10 p-0"
-                  onClick={handleAddNote}
-                  disabled={!newNote.trim() || addingNote}
-                >
-                  <Send className="w-3.5 h-3.5" />
-                </Button>
-              </div>
-              {notes.length > 0 && (
-                <div className="space-y-1 max-h-40 overflow-y-auto">
-                  {notes.map((note: any) => (
-                    <div key={note.id} className={`text-xs p-2 rounded bg-muted/50 border border-border border-l-2 ${NOTE_TYPE_COLORS[note.note_type] || NOTE_TYPE_COLORS.info}`}>
-                      <div className="flex items-center gap-1.5 mb-0.5">
-                        <span className="text-[9px] font-mono uppercase text-muted-foreground">{note.note_type || "info"}</span>
+            {/* Notes — full row, aligned to the same 12-col grid */}
+            {canSeeNotes && (
+              <FormSection
+                title={
+                  <span className="flex items-center gap-1.5 normal-case tracking-normal">
+                    <StickyNote className="w-3 h-3" />
+                    Intelligence Notes ({notes.length})
+                  </span>
+                }
+              >
+                <FormGrid>
+                  <FormField span={3}>
+                    <Select value={noteType} onValueChange={setNoteType}>
+                      <SelectTrigger className="h-10 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {NOTE_TYPES.map(t => (
+                          <SelectItem key={t} value={t} className="capitalize text-xs">{t}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </FormField>
+                  <FormField span={8}>
+                    <Textarea
+                      value={newNote}
+                      onChange={e => setNewNote(e.target.value)}
+                      placeholder="Add note..."
+                      className="text-xs min-h-[40px] h-10 resize-none"
+                    />
+                  </FormField>
+                  <FormField span={1}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-10 w-full p-0"
+                      onClick={handleAddNote}
+                      disabled={!newNote.trim() || addingNote}
+                    >
+                      <Send className="w-3.5 h-3.5" />
+                    </Button>
+                  </FormField>
+                </FormGrid>
+                {notes.length > 0 && (
+                  <div className="space-y-1 max-h-40 overflow-y-auto">
+                    {notes.map((note: any) => (
+                      <div key={note.id} className={`text-xs p-2 rounded bg-muted/50 border border-border border-l-2 ${NOTE_TYPE_COLORS[note.note_type] || NOTE_TYPE_COLORS.info}`}>
+                        <div className="flex items-center gap-1.5 mb-0.5">
+                          <span className="text-[9px] font-mono uppercase text-muted-foreground">{note.note_type || "info"}</span>
+                        </div>
+                        <p className="text-card-foreground">{note.content}</p>
+                        <p className="text-[10px] text-muted-foreground mt-1">
+                          {getAuthorName(note.created_by)} · {fmtDateTime(note.created_at)}
+                        </p>
                       </div>
-                      <p className="text-card-foreground">{note.content}</p>
-                      <p className="text-[10px] text-muted-foreground mt-1">
-                        {getAuthorName(note.created_by)} · {fmtDateTime(note.created_at)}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+                    ))}
+                  </div>
+                )}
+              </FormSection>
+            )}
+          </FormGrid>
         </div>
 
         {/* RIGHT: big photo + ID document */}

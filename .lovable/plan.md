@@ -1,161 +1,98 @@
-## Goal
 
-Add a new **TRANSFERS** tab in the Cage shift view (next to IN / OUT / CHECK) that handles 4 internal cage operations:
+## Почему поля «прыгают» — диагноз
 
-1. **ADD FLOAT** — manager пополняет кассу деньгами из сейфа (cash → cage)
-2. **COLLECTION** — забор наличных из кассы в сейф менеджера (cage → safe)
-3. **FILL** — отправка фишек из кассы на стол (chip inventory: cashier → table)
-4. **CREDIT** — возврат излишка фишек со стола в кассу (chip inventory: table → cashier)
+На скриншоте видно классические симптомы того, что **в проекте нет единой формы-сетки**. Каждое поле верстается «на глаз» с произвольным `grid-cols-2`, `grid-cols-3`, разными `gap`, разной высотой `h-10/h-9/h-11` и разными размерами label.
 
-Все 4 типа учитываются при закрытии смены и закрытии столов.
-
----
-
-## 1. Database — new `cage_transfers` table
-
-Создаётся новая иммутабельная таблица (отдельно от `transactions`, чтобы не смешивать player IN/OUT с кассовыми операциями).
+Конкретно в `PlayerEditDialog`:
 
 ```text
-cage_transfers
-├── id              uuid PK
-├── casino_id       uuid (RLS isolation)
-├── shift_id        uuid (NOT NULL, валидируется триггером — должен быть open)
-├── transfer_type   text  ('add_float' | 'collection' | 'fill' | 'credit')
-├── direction       text  ('cash_in' | 'cash_out' | 'chip_to_table' | 'chip_from_table')
-├── table_id        uuid NULL (только для fill/credit)
-├── amount          bigint  (TZS, обязательно для add_float/collection; для fill/credit — суммарная стоимость фишек)
-├── chips           jsonb NULL ({denomination: quantity}, только для fill/credit)
-├── note            text  default ''
-├── operator_id     uuid NOT NULL (cashier)
-├── approved_by     uuid NOT NULL (manager — Manager Override required для add_float/collection)
-├── created_at      timestamptz default now()
+Row 1: grid-cols-2  →  First Name | Last Name           (50% / 50%)
+Row 2: grid-cols-2  →  Nickname   | Phone               (50% / 50%)
+Row 3: grid-cols-3  →  ID/Passport | Player Type | Category   (33% / 33% / 33%)
+Row 4: flex gap-2   →  [Select 100px] [Textarea flex-1] [btn 40px]
 ```
 
-**Triggers:**
-- `prevent_cage_transfer_modify` — UPDATE/DELETE запрещены (immutability rule).
-- `validate_cage_transfer`:
-  - сумма > 0
-  - для `fill`/`credit` — `table_id` обязателен и chips not null
-  - для `add_float`/`collection` — `table_id` должен быть NULL
-  - `transfer_type` валидируется по списку
-- `cage_transfer_apply_chip_movement` — для `fill` уменьшает `chip_inventory` cashier и увеличивает table (location_type='table', location_id=table_id); для `credit` — наоборот. Использует ту же логику, что и существующий `apply_chip_movement_from_transaction`.
-- `auto_log_cage_transfer` → пишет запись в `activity_logs` (category='transaction', action=upper(transfer_type)).
+Колонки трёх разных рядов **не выравниваются между собой** — отсюда ощущение «прыжков». То же самое во многих других диалогах проекта: каждый автор писал свою сетку.
 
-**RLS:**
-- SELECT: `casino_id = get_user_casino_id(auth.uid())` + super_admin/finance_manager/surveillance.
-- INSERT: cashier или manager в своём casino, `operator_id = auth.uid()`, `approved_by NOT NULL`.
-- UPDATE/DELETE: запрещены через триггер.
+Корневые причины:
+1. Нет общего компонента `FormGrid` / `FormField` — каждый раз пишется заново.
+2. Смешиваются `grid-cols-2` и `grid-cols-3` в одном блоке без общей базы (например 6 колонок, где поля занимают `col-span-2/3/6`).
+3. Высота инпутов и кнопок не унифицирована (`h-9`, `h-10`, `h-11`, `h-44` встречаются вперемешку).
+4. Лейблы разного размера (`text-xs`, `text-sm`, без класса).
 
----
+## Решение
 
-## 2. Manager Override
+### 1. Ввести единую форм-сетку (12-колоночную)
 
-Для `add_float` и `collection` форма требует подтверждения через существующий `ManagerOverrideDialog` (как в Expenses/Blacklist). `approved_by` сохраняет id менеджера, подтвердившего операцию.
+Создать `src/components/ui/form-grid.tsx`:
 
-`fill` и `credit` — **без override** (это обычная операция кассира с инспектором). Но `approved_by` всё равно заполняется (= operator_id, либо отдельный флоор-инспектор; в MVP = operator_id).
+```tsx
+// 12-колоночная сетка — все поля выравниваются по одной вертикальной решётке
+<FormGrid>                       // grid grid-cols-12 gap-3
+  <FormField span={6} label="First Name">  <Input/>  </FormField>
+  <FormField span={6} label="Last Name" >  <Input/>  </FormField>
+  <FormField span={6} label="Nickname"  >  <Input/>  </FormField>
+  <FormField span={6} label="Phone"     >  <Input/>  </FormField>
+  <FormField span={4} label="ID/Passport"> <Input/>  </FormField>
+  <FormField span={4} label="Player Type"> <Select/> </FormField>
+  <FormField span={4} label="Category"   > <Select/> </FormField>
+</FormGrid>
+```
 
----
+Что даёт:
+- 6+6 и 4+4+4 укладываются в одну и ту же 12-колоночную решётку → колонки в разных рядах **визуально выровнены**.
+- Один источник правды для `gap`, высоты инпута, размера лейбла, отступа `space-y` между лейблом и полем.
 
-## 3. Hook — `src/hooks/use-cage-transfers.ts`
+### 2. Унифицировать токены
+
+Внутри `FormField`:
+- label — всегда `text-xs text-muted-foreground` + `mb-1.5`
+- инпут / select / textarea — всегда `h-10` (десктоп), `h-11` (мобайл — через `useIsMobile`)
+- между лейблом и полем — `space-y-1.5`
+- между рядами в `FormGrid` — `gap-y-3`
+
+### 3. Применить к `PlayerEditDialog` (как пилот)
+
+Переписать формовую часть на `FormGrid` + `FormField`. Блок Intelligence Notes оставить отдельно (это не форма, а лента), но дать ему собственный заголовок-секцию с такими же отступами.
 
 ```text
-useCageTransfers(shiftId)         — list для текущей смены
-useCreateCageTransfer()           — insert mutation, проходит через offlineMutation
-                                    (для оффлайн-устойчивости как и transactions)
+┌─────────────────────────────────────────┬──────────────┐
+│ FormGrid (cols 12, gap 3)               │   Photo      │
+│ ┌──────────┬──────────┐                 │   (square)   │
+│ │First Name│Last Name │                 │              │
+│ ├──────────┼──────────┤                 ├──────────────┤
+│ │Nickname  │Phone     │                 │   ID Doc     │
+│ ├────┬─────┼─────┬────┤                 │   (4:3)      │
+│ │ID  │Type │Cat  │    │                 │              │
+│ └────┴─────┴─────┘                      │              │
+│ ── Intelligence Notes ──                │              │
+│ [type] [textarea ............] [send]   │              │
+│ [ note 1 ............................]  │              │
+└─────────────────────────────────────────┴──────────────┘
 ```
 
-Возвращаемые типы — `Tables<"cage_transfers">`.
+Все поля в левой колонке выровнены по 12-колоночной решётке — первая колонка `First Name` строго совпадает по X с `Nickname` и с `ID/Passport`. Никаких «прыжков».
 
----
+### 4. Roll-out на остальные диалоги/формы
 
-## 4. UI — `ActiveShiftView.tsx`
+В рамках этого задания применить новый `FormGrid`/`FormField` точечно к самым «прыгающим» местам, выявленным просмотром:
+- `PlayerEditDialog` (пилот — обязательно)
+- Reception check-in card (`src/pages/Reception.tsx`) — карточка верхнего блока
+- `PlayerRegisterDialog` — если структура полей такая же
 
-### 4.1 Tabs
-TabsList → 4 колонки: **IN / OUT / CHECK / TRANSFERS**. Иконку для TRANSFERS возьмём `ArrowLeftRight` из lucide-react.
+Остальные формы (cage, expenses, employees и т.д.) **не трогаем в этой итерации**, чтобы не раздувать изменения. После вашего «ок по пилоту» — пройдёмся по ним отдельной задачей.
 
-### 4.2 Новый компонент `TransfersForm` (внутри ActiveShiftView или отдельный файл `src/components/cage/TransfersForm.tsx`)
+## Что НЕ делаем сейчас
 
-Layout: тот же `TwoColumnLayout` (форма слева, список справа).
+- Не меняем бизнес-логику, валидацию, запросы.
+- Не переписываем все формы проекта разом — только пилот + 1-2 видимых места.
+- Не вводим тяжёлые библиотеки (react-hook-form-ui и т.п.) — чистый Tailwind + лёгкий обёрточный компонент.
 
-**Левая колонка — форма:**
-- Селектор типа: 4 кнопки-чипа `Add Float | Collection | Fill | Credit` (toggle group).
-- В зависимости от выбранного типа:
-  - **Add Float / Collection**:
-    - `NumberInput` сумма (TZS).
-    - `Textarea` note (опционально).
-    - Кнопка submit → открывает `ManagerOverrideDialog` → после подтверждения insert.
-  - **Fill / Credit**:
-    - Селектор стола (горизонтальный список `openTables`, как в InForm).
-    - `ChipDenomInput` (как в InForm) — выбор фишек.
-    - Auto-calculated total TZS под чипами.
-    - Note (опционально).
-    - Submit без override.
+## Файлы
 
-**Правая колонка — `CageTransfersTable`:**
-Колонки: Type | Table | Amount | Note | Time. Сортировка desc по `created_at`. Цвет:
-- `add_float`, `credit` → `cms-amount-positive` (приход в кассу cash/chips)
-- `collection`, `fill` → `cms-amount-negative` (расход из кассы)
+- **Новый:** `src/components/ui/form-grid.tsx` — `<FormGrid>` и `<FormField span={1..12}>`.
+- **Изменения:** `src/components/PlayerEditDialog.tsx`, `src/pages/Reception.tsx`, `src/components/PlayerRegisterDialog.tsx` (если совпадает структура).
 
-### 4.3 Header KPI bar
+## Результат
 
-Добавить два новых поля справа от Expenses (или заменить Txns counter):
-- `+ Add Float` (sum cash_in)
-- `− Collection` (sum cash_out)
-
-**Обновить формулы:**
-```text
-expectedCash =
-  openingFloat
-  + totalIns          (player buys)
-  + totalAddFloat     (NEW)
-  − totalOuts         (player cashouts)
-  − totalCollection   (NEW)
-  − totalExpenses
-```
-
-`Fill` / `Credit` не влияют на cash KPI в шапке (это обмен фишками, не cash). Но они влияют на chip inventory кассы и стола → автоматически учитываются в `Close Tables` (через chip_inventory триггер) и в `Close Shift` (через finalize_floor_to_miss_chips).
-
-### 4.4 Close Shift Dialog
-`CloseShiftDialog` уже считает `cashResult = totalIns − totalOuts`. Передать туда новые суммы:
-```text
-cashResult = totalIns + totalAddFloat − totalOuts − totalCollection
-```
-(Add Float увеличивает прибыль смены? — нет, это просто пополнение кассы менеджером, не выигрыш. Поэтому **в `cash_result` НЕ включаем** add_float/collection — они влияют только на `expectedCash` для сверки физического остатка. `cash_result` остаётся `totalIns − totalOuts`.)
-
-Резюме: `expectedCash` учитывает все 4 типа cash-движений; `cash_result` (= прибыль кассы) учитывает **только** player IN/OUT.
-
----
-
-## 5. Files
-
-**New:**
-- `supabase/migrations/<timestamp>_cage_transfers.sql` — таблица + триггеры + RLS
-- `src/hooks/use-cage-transfers.ts`
-- `src/components/cage/TransfersForm.tsx`
-- `src/components/cage/CageTransfersTable.tsx`
-
-**Edited:**
-- `src/components/cage/ActiveShiftView.tsx` — 4-я табка, новые KPI, передача totals в CloseShiftDialog
-- `src/components/cage/CloseShiftDialog.tsx` — отображение Add Float / Collection в сводке (read-only)
-
-**Auto-regenerated:**
-- `src/integrations/supabase/types.ts` (после миграции)
-
----
-
-## 6. Edge cases / правила
-
-- Insert требует open shift (триггер `validate_transaction_shift`-аналог).
-- Transfer immutable — корректировка только через обратную операцию (например, ошибочный Fill компенсируется Credit).
-- Логирование в `activity_logs` (60-day retention).
-- Offline: `useCreateCageTransfer` использует `offlineMutation`, как и `useCreateTransaction`.
-- Все суммы в TZS (`bigint`). Foreign currencies для Add Float/Collection в MVP не поддерживаем — только TZS.
-
----
-
-## 7. Open assumptions (подтвердить если не так)
-
-- Add Float и Collection — **только TZS** в MVP (foreign-currency пополнения добавим позже при необходимости).
-- Fill/Credit не привязываются к игроку.
-- Manager Override использует существующий `ManagerOverrideDialog` (через edge function `verify-manager`).
-- В шапке смены добавляем 2 новые ячейки KPI (Add Float, Collection); Fill/Credit показываются только в табе TRANSFERS, в шапке не дублируются.
+Один и тот же визуальный ритм во всех формах: лейблы одного размера, поля одной высоты, колонки выровнены по общей 12-колоночной сетке. Дальше любые новые формы пишутся через `FormGrid` — и проблема «прыжков» исчезает архитектурно, а не точечной правкой.
