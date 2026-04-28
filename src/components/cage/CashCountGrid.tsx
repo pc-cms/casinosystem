@@ -43,7 +43,7 @@ const CashCountGrid = ({
           </section>
         </div>
 
-        {/* Column 2: USD Cash + KES Cash */}
+        {/* Column 2: USD Cash + KES Cash + Mobile Money */}
         <div className="grid gap-4 content-start">
           <section className="rounded-xl border border-border bg-background/40 p-4 space-y-3">
             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.22em]">USD Cash</p>
@@ -52,6 +52,25 @@ const CashCountGrid = ({
           <section className="rounded-xl border border-border bg-background/40 p-4 space-y-3">
             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.22em]">KES Cash</p>
             <CashDenomInput values={cash["KES"] || {}} onChange={v => onCashChange("KES", v)} denoms={CASH_DENOMS["KES"] || []} currency="KES" />
+          </section>
+          <section className="rounded-xl border border-border bg-background/40 p-4 space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.22em]">Mobile Money</p>
+              <span className="font-mono text-sm font-bold text-card-foreground">TZS {formatNumberSpaces(mobTotal)}</span>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {MOBILE_PROVIDERS.map(provider => (
+                <div key={provider} className="flex items-center gap-2">
+                  <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.18em] w-12 shrink-0">{provider}</span>
+                  <NumberInput
+                    value={mobile[provider] || ""}
+                    onChange={v => onMobileChange({ ...mobile, [provider]: Number(v) || 0 })}
+                    className={inputCls}
+                    placeholder="0"
+                  />
+                </div>
+              ))}
+            </div>
           </section>
         </div>
 
@@ -66,27 +85,6 @@ const CashCountGrid = ({
             <CashDenomInput values={cash["GBP"] || {}} onChange={v => onCashChange("GBP", v)} denoms={CASH_DENOMS["GBP"] || []} currency="GBP" />
           </section>
         </div>
-
-        {/* Mobile Money — spans columns 2-3, sits under KES + GBP */}
-        <section className="xl:col-span-2 xl:col-start-2 rounded-xl border border-border bg-background/40 p-4 space-y-3">
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.22em]">Mobile Money</p>
-            <span className="font-mono text-sm font-bold text-card-foreground">TZS {formatNumberSpaces(mobTotal)}</span>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {MOBILE_PROVIDERS.map(provider => (
-              <div key={provider} className="flex items-center gap-2">
-                <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.18em] w-12 shrink-0">{provider}</span>
-                <NumberInput
-                  value={mobile[provider] || ""}
-                  onChange={v => onMobileChange({ ...mobile, [provider]: Number(v) || 0 })}
-                  className={inputCls}
-                  placeholder="0"
-                />
-              </div>
-            ))}
-          </div>
-        </section>
       </div>
 
       {/* Banks side by side */}
