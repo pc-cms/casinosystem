@@ -296,10 +296,10 @@ const InForm = ({ players, tables, exchangeRates, shiftId, onSubmit, loading }: 
       </div>
       <div>
         <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1 block">2. Table</label>
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1">
           {tables.map(t => (
             <button key={t.id} onClick={() => setTableId(t.id)}
-              className={`px-2.5 py-1 rounded text-xs font-mono transition-colors ${tableId === t.id ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-primary/20"}`}>
+              className={`px-2.5 py-1 rounded text-xs font-mono shrink-0 transition-colors ${tableId === t.id ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-primary/20"}`}>
               {t.name}
             </button>
           ))}

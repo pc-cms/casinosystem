@@ -58,23 +58,36 @@ const ChipDenomInput = ({
 
   const total = Object.entries(values).reduce((s, [d, c]) => s + Number(d) * (c || 0), 0);
 
+  const handleChipClick = useCallback((denom: number) => {
+    onChange({ ...values, [denom]: (values[denom] || 0) + 1 });
+  }, [values, onChange]);
+
+  // Column-major flow: with 2 cols and N denoms, first column gets ceil(N/2) items
+  // (5M, 1M, 500K, 100K, 50K, 25K), second column gets the rest.
+  const rowsPerCol = Math.ceil(denoms.length / columns);
+  const gridStyle: React.CSSProperties | undefined = columns > 1
+    ? { gridTemplateRows: `repeat(${rowsPerCol}, minmax(0, auto))`, gridAutoFlow: "column" }
+    : undefined;
   const gridColsClass = columns === 3 ? "grid-cols-3" : columns === 2 ? "grid-cols-2" : "grid-cols-1";
 
   return (
     <div>
-      <div className={`grid gap-x-3 gap-y-1 ${gridColsClass}`}>
+      <div className={`grid gap-x-3 gap-y-1 ${gridColsClass}`} style={gridStyle}>
         {denoms.map((d, idx) => {
           const val = values[d] || 0;
           const chipValue = val * d;
           const color = resolveChipColor(d, colorOverrides);
           return (
             <div key={d} className="flex items-center gap-1.5">
-              <span
-                className={`inline-flex items-center justify-center rounded-full font-bold shrink-0 ring-1 ring-black/10 ${tokens.chipH} ${tokens.chipW} ${tokens.chipText}`}
+              <button
+                type="button"
+                onClick={() => handleChipClick(d)}
+                title={`+1 × ${formatChipLabel(d)}`}
+                className={`inline-flex items-center justify-center rounded-full font-bold shrink-0 ring-1 ring-black/10 transition-transform hover:scale-105 active:scale-95 cursor-pointer ${tokens.chipH} ${tokens.chipW} ${tokens.chipText}`}
                 style={{ backgroundColor: color.bg, color: color.text }}
               >
                 {formatChipLabel(d)}
-              </span>
+              </button>
               <input
                 ref={el => { inputRefs.current[d] = el; }}
                 type="number"
