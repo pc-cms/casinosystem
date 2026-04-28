@@ -96,7 +96,19 @@ const STAFF_SUBITEMS = [
   { tab: "rota_security", icon: ShieldCheck, label: "Security Rota" },
 ];
 
+const WALLETS_SUBITEMS = [
+  { tab: "cashcount", icon: Coins, label: "Cash Count" },
+];
+
 const BREAKLIST_PATH = "/pit?tab=breaklist";
+const WALLETS_PATH = "/finance?tab=wallets";
+
+// Helper: parse "/path?tab=foo" into { base, tab }
+const parseItemTo = (to: string) => {
+  const [base, q = ""] = to.split("?");
+  const tab = new URLSearchParams(q).get("tab");
+  return { base, tab };
+};
 
 // ============ Collapsible sections (expanded sidebar) ============
 const SECTIONS_STORAGE_KEY = "cms.sidebar.openSections";
