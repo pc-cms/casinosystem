@@ -180,24 +180,32 @@ const SidebarSections = ({
   };
 
   const renderItem = (item: NavItem) => {
-    const isBreaklistItem = item.to === BREAKLIST_PATH;
-    const isBreaklistActive = isBreaklistItem && location.pathname === "/pit" && currentTab === "breaklist";
+    const { base: itemBase, tab: itemTab } = parseItemTo(item.to);
+    const isTabAware = itemTab !== null;
+    const isTabAwareActive =
+      isTabAware && location.pathname === itemBase && currentTab === itemTab;
+    const isWalletsItem = item.to === WALLETS_PATH;
+    const showWalletsSubs = isWalletsItem && isTabAwareActive;
     return (
       <div key={item.to}>
-        <NavLink to={item.to} end={item.to === "/" || item.to === "/pit" || item.to === "/staff" || item.to === "/tables" || item.to === BREAKLIST_PATH}
+        <NavLink
+          to={item.to}
+          end={item.to === "/" || item.to === "/pit" || item.to === "/staff" || item.to === "/tables" || isTabAware}
           onClick={onNavigate}
           className={({ isActive }) => {
-            const active = isBreaklistItem ? isBreaklistActive : isActive;
+            const active = isTabAware ? isTabAwareActive : isActive;
             return `flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
               active ? "bg-sidebar-accent text-sidebar-primary font-medium" : "text-sidebar-foreground hover:bg-sidebar-accent"
             }`;
-          }}>
+          }}
+        >
           <item.icon className="w-4 h-4 shrink-0" />
           <span className="flex-1">{item.label}</span>
         </NavLink>
         {item.to === "/tables" && isTablesActive && (roles.includes("pit") || roles.includes("manager") || roles.includes("finance_manager")) && renderSubItems("/tables", TABLE_SUBITEMS)}
         {item.to === "/pit" && isPitActive && renderSubItems("/pit", PIT_SUBITEMS)}
         {item.to === "/staff" && isStaffActive && renderSubItems("/staff", STAFF_SUBITEMS)}
+        {showWalletsSubs && renderSubItems("/finance", WALLETS_SUBITEMS)}
       </div>
     );
   };
