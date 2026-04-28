@@ -25,7 +25,8 @@ const CashCountGrid = ({
 }) => {
   const mobTotal = mobileTotal(mobile);
 
-  const inputCls = "no-spin h-6 w-full min-w-0 font-mono text-xs text-right px-1.5";
+  const inputCls = "no-spin h-5 w-full min-w-0 font-mono text-xs text-right px-1.5";
+  const banksTzsTotal = (banks.tzs || 0) + (banks.usd || 0) * (rates?.["USD"] || 0);
 
   return (
     <div className="space-y-4">
