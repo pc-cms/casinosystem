@@ -63,7 +63,7 @@ const Tables = () => {
     const stats: Record<string, { dropR: number; dropV: number; result: number }> = {};
     tables.forEach(t => {
       const dropR = shiftTransactions
-        .filter(tx => tx.table_id === t.id && tx.type === "buy")
+        .filter(tx => tx.table_id === t.id && (tx.type === "buy" || tx.type === "in"))
         .reduce((s, tx) => s + Number(tx.amount), 0);
       const dropV = trackerData
         .filter(tr => tr.table_id === t.id)

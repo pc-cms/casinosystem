@@ -210,8 +210,8 @@ const ActivePlayers = () => {
       .filter(p => relevantIds.has(p.id))
       .map(p => {
         const playerTx = transactions.filter((t: any) => t.player_id === p.id);
-        const dropR = playerTx.filter((t: any) => t.type === "buy").reduce((s: number, t: any) => s + Number(t.amount), 0);
-        const cashout = playerTx.filter((t: any) => t.type === "cashout").reduce((s: number, t: any) => s + Number(t.amount), 0);
+        const dropR = playerTx.filter((t: any) => (t.type === "buy" || t.type === "in")).reduce((s: number, t: any) => s + Number(t.amount), 0);
+        const cashout = playerTx.filter((t: any) => (t.type === "cashout" || t.type === "out")).reduce((s: number, t: any) => s + Number(t.amount), 0);
         const playerAllSessions = sessions.filter((s: any) => s.player_id === p.id);
         const dropV = playerAllSessions.reduce((s: number, ses: any) => s + Number(ses.total_bet || 0), 0);
         const dropT = dropR + dropV;

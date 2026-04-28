@@ -53,7 +53,7 @@ const Groups = () => {
         if (dateRange.to && tx.created_at > `${dateRange.to}T23:59:59`) return;
         if (tx.player_id !== m.player_id) return;
 
-        if (tx.type === "buy") drop += Number(tx.amount);
+        if ((tx.type === "buy" || tx.type === "in")) drop += Number(tx.amount);
         else cashout += Number(tx.amount);
       });
 

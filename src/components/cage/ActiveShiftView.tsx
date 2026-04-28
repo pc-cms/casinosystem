@@ -165,8 +165,8 @@ const ActiveShiftView = ({ shift, players, tables }: {
                     <td className="px-3 py-1.5 text-xs text-muted-foreground font-mono">
                       {tx.table_id ? tableMap.get(tx.table_id)?.name || "—" : "—"}
                     </td>
-                    <td className={`px-3 py-1.5 text-right font-mono text-xs font-medium ${isIn ? "cms-amount-negative" : "cms-amount-positive"}`}>
-                      {isIn ? "-" : "+"}{formatCurrency(Number(tx.amount))}
+                    <td className={`px-3 py-1.5 text-right font-mono text-xs font-medium ${isIn ? "cms-amount-positive" : "cms-amount-negative"}`}>
+                      {isIn ? "+" : "−"}{formatCurrency(Number(tx.amount))}
                     </td>
                     <td className="px-3 py-1.5 text-right font-mono text-[10px] text-muted-foreground">
                       {new Date(tx.created_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}

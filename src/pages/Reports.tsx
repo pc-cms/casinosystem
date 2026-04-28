@@ -83,8 +83,8 @@ const ShiftReport = ({ from, to }: { from: string; to: string }) => {
     return filtered.map(s => {
       const sTx = transactions.filter(t => t.shift_id === s.id);
       const sExp = expenses.filter((e: any) => e.shift_id === s.id && e.approved);
-      const buyTotal = sTx.filter(t => t.type === "buy").reduce((sum, t) => sum + Number(t.amount), 0);
-      const cashoutTotal = sTx.filter(t => t.type === "cashout").reduce((sum, t) => sum + Number(t.amount), 0);
+      const buyTotal = sTx.filter(t => (t.type === "buy" || t.type === "in")).reduce((sum, t) => sum + Number(t.amount), 0);
+      const cashoutTotal = sTx.filter(t => (t.type === "cashout" || t.type === "out")).reduce((sum, t) => sum + Number(t.amount), 0);
       const expTotal = sExp.reduce((sum: number, e: any) => sum + Number(e.amount), 0);
       const openingFloat = (s.opening_float as any)?.totals?.total_tzs || 0;
       const closingActual = (s.closing_cash as any)?.actual || 0;
@@ -169,8 +169,8 @@ const TableReport = ({ from, to }: { from: string; to: string }) => {
     });
     return tables.map(table => {
       const tTx = filtered.filter(t => t.table_id === table.id);
-      const drop = tTx.filter(t => t.type === "buy").reduce((s, t) => s + Number(t.amount), 0);
-      const cashout = tTx.filter(t => t.type === "cashout").reduce((s, t) => s + Number(t.amount), 0);
+      const drop = tTx.filter(t => (t.type === "buy" || t.type === "in")).reduce((s, t) => s + Number(t.amount), 0);
+      const cashout = tTx.filter(t => (t.type === "cashout" || t.type === "out")).reduce((s, t) => s + Number(t.amount), 0);
       return { ...table, drop, cashout, result: cashout - drop, txCount: tTx.length };
     }).filter(t => t.txCount > 0).sort((a, b) => b.drop - a.drop);
   }, [tables, transactions, from, to]);
@@ -237,8 +237,8 @@ const PlayerReport = ({ from, to }: { from: string; to: string }) => {
     return players.filter(p => p.status === "active").map(p => {
       const pTx = filteredTx.filter(t => t.player_id === p.id);
       const pExp = filteredExp.filter((e: any) => e.player_id === p.id);
-      const drop = pTx.filter(t => t.type === "buy").reduce((s, t) => s + Number(t.amount), 0);
-      const cashout = pTx.filter(t => t.type === "cashout").reduce((s, t) => s + Number(t.amount), 0);
+      const drop = pTx.filter(t => (t.type === "buy" || t.type === "in")).reduce((s, t) => s + Number(t.amount), 0);
+      const cashout = pTx.filter(t => (t.type === "cashout" || t.type === "out")).reduce((s, t) => s + Number(t.amount), 0);
       const expTotal = pExp.reduce((s: number, e: any) => s + Number(e.amount), 0);
       const result = cashout - drop;
       const realResult = result - expTotal;
@@ -325,8 +325,8 @@ const GroupReport = ({ from, to }: { from: string; to: string }) => {
 
       const gTx = filteredTx.filter(t => memberIds.includes(t.player_id));
       const gExp = filteredExp.filter((e: any) => e.player_id && memberIds.includes(e.player_id));
-      const drop = gTx.filter(t => t.type === "buy").reduce((s, t) => s + Number(t.amount), 0);
-      const cashout = gTx.filter(t => t.type === "cashout").reduce((s, t) => s + Number(t.amount), 0);
+      const drop = gTx.filter(t => (t.type === "buy" || t.type === "in")).reduce((s, t) => s + Number(t.amount), 0);
+      const cashout = gTx.filter(t => (t.type === "cashout" || t.type === "out")).reduce((s, t) => s + Number(t.amount), 0);
       const expTotal = gExp.reduce((s: number, e: any) => s + Number(e.amount), 0);
       return { name: g.name, members: memberIds.length, drop, cashout, result: cashout - drop, realResult: cashout - drop - expTotal, expTotal };
     }).filter(g => g.members > 0);

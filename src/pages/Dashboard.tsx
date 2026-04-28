@@ -47,7 +47,7 @@ const Dashboard = () => {
   const isInitialLoading = loadingPlayers && loadingTx;
   const showFinancials = canSeePlayerFinancials(roles);
   const activePlayers = players.filter(p => p.status === "active").length;
-  const buyInDrop = transactions.filter(t => t.type === "buy").reduce((s, t) => s + Number(t.amount), 0);
+  const buyInDrop = transactions.filter(t => (t.type === "buy" || t.type === "in")).reduce((s, t) => s + Number(t.amount), 0);
   const totalDrop = buyInDrop + sessionsTotalBet;
   const pendingExpenses = expenses.filter(e => !e.approved).length;
 
