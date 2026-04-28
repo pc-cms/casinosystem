@@ -86,93 +86,119 @@ const TableTracker = () => {
   };
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Table Tracker</h1>
-          <p className="text-xs text-muted-foreground">Enter values · auto-saves on blur/Enter</p>
-        </div>
-        <Input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-44 font-mono" />
-      </div>
+    <PageShell>
+      <PageHeader
+        icon={Target}
+        title="Table Tracker"
+        subtitle="Enter values · auto-saves on blur/Enter"
+      >
+        <Input
+          type="date"
+          value={date}
+          onChange={(e) => setDate(e.target.value)}
+          className="w-44 font-mono h-9"
+        />
+      </PageHeader>
 
-      <div className="cms-panel overflow-x-auto">
-        <div className="min-w-[1000px]">
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="border-b border-border">
-                <th className="text-left text-xs font-medium text-muted-foreground uppercase px-3 py-2 sticky left-0 bg-card z-10 min-w-[100px]">
-                  Table
-                </th>
-                {SLOTS.map(slot => {
-                  const isActive = isToday && slot === currentSlot;
-                  return (
-                    <th
-                      key={slot}
-                      className={`text-center text-[10px] font-mono px-1 py-2 min-w-[70px] ${
-                        isActive ? "bg-primary/20 text-primary font-bold" : "text-muted-foreground"
-                      }`}
-                    >
-                      {slot}
-                    </th>
-                  );
-                })}
-                <th className="text-right text-xs font-medium text-muted-foreground uppercase px-3 py-2 min-w-[80px]">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {openTables.map((table, ti) => (
-                <tr key={table.id} className={`border-b border-border last:border-0 ${ti % 2 === 1 ? "bg-muted/10" : ""}`}>
-                  <td className={`px-3 py-1 text-xs font-medium text-card-foreground sticky left-0 z-10 ${ti % 2 === 1 ? "bg-card/95" : "bg-card"}`}>
-                    {table.name}
-                  </td>
-                  {SLOTS.map((slot, si) => {
-                    const val = getVal(table.id, slot);
+      <PageSection card={false}>
+        <div className="rounded-md border border-border bg-card overflow-x-auto">
+          <div className="min-w-[1000px]">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground px-3 py-2 sticky left-0 bg-card z-10 min-w-[100px]">
+                    Table
+                  </th>
+                  {SLOTS.map((slot) => {
                     const isActive = isToday && slot === currentSlot;
                     return (
-                      <td key={slot} className={`px-0.5 py-0.5 ${isActive ? "bg-primary/5" : ""}`}>
-                        <input
-                          id={`cell-${ti}-${si}`}
-                          type="text"
-                          inputMode="numeric"
-                          defaultValue={val ? formatInputWithSpaces(String(val)) : ""}
-                          key={`${table.id}-${slot}-${val}`}
-                          onChange={e => { e.target.value = formatInputWithSpaces(e.target.value); }}
-                          onBlur={e => handleSave(table.id, slot, e.target.value)}
-                          onKeyDown={e => handleKeyDown(e, ti, si)}
-                          className={`w-full h-7 text-center text-xs font-mono bg-transparent border border-border rounded px-1 focus:border-primary focus:outline-none text-card-foreground ${
-                            isActive ? "border-primary/30" : ""
-                          }`}
-                          placeholder="·"
-                        />
+                      <th
+                        key={slot}
+                        className={`text-center text-[10px] font-mono px-1 py-2 min-w-[70px] ${
+                          isActive
+                            ? "bg-primary/20 text-primary font-bold"
+                            : "text-muted-foreground"
+                        }`}
+                      >
+                        {slot}
+                      </th>
+                    );
+                  })}
+                  <th className="text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground px-3 py-2 min-w-[80px]">
+                    Total
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {openTables.map((table, ti) => (
+                  <tr
+                    key={table.id}
+                    className={`border-b border-border last:border-0 ${ti % 2 === 1 ? "bg-muted/10" : ""}`}
+                  >
+                    <td
+                      className={`px-3 py-1 text-xs font-medium text-card-foreground sticky left-0 z-10 ${ti % 2 === 1 ? "bg-card/95" : "bg-card"}`}
+                    >
+                      {table.name}
+                    </td>
+                    {SLOTS.map((slot, si) => {
+                      const val = getVal(table.id, slot);
+                      const isActive = isToday && slot === currentSlot;
+                      return (
+                        <td key={slot} className={`px-0.5 py-0.5 ${isActive ? "bg-primary/5" : ""}`}>
+                          <input
+                            id={`cell-${ti}-${si}`}
+                            type="text"
+                            inputMode="numeric"
+                            defaultValue={val ? formatInputWithSpaces(String(val)) : ""}
+                            key={`${table.id}-${slot}-${val}`}
+                            onChange={(e) => {
+                              e.target.value = formatInputWithSpaces(e.target.value);
+                            }}
+                            onBlur={(e) => handleSave(table.id, slot, e.target.value)}
+                            onKeyDown={(e) => handleKeyDown(e, ti, si)}
+                            className={`w-full h-7 text-center text-xs font-mono bg-transparent border border-border rounded-md px-1 focus:border-primary focus:outline-none text-card-foreground ${
+                              isActive ? "border-primary/30" : ""
+                            }`}
+                            placeholder="·"
+                          />
+                        </td>
+                      );
+                    })}
+                    <td className="px-3 py-1 text-right font-mono tabular-nums text-xs font-bold text-card-foreground">
+                      {formatCurrency(getTableTotal(table.id))}
+                    </td>
+                  </tr>
+                ))}
+                <tr className="border-t-2 border-primary/30 bg-muted/30">
+                  <td className="px-3 py-2 text-xs font-bold text-card-foreground uppercase sticky left-0 bg-muted/30 z-10">
+                    Totals
+                  </td>
+                  {SLOTS.map((slot) => {
+                    const isActive = isToday && slot === currentSlot;
+                    return (
+                      <td
+                        key={slot}
+                        className={`px-1 py-2 text-center font-mono tabular-nums text-[10px] font-bold text-card-foreground ${isActive ? "bg-primary/10" : ""}`}
+                      >
+                        {getSlotTotal(slot) ? formatCurrency(getSlotTotal(slot)) : "·"}
                       </td>
                     );
                   })}
-                  <td className="px-3 py-1 text-right font-mono text-xs font-bold text-card-foreground">
-                    {formatCurrency(getTableTotal(table.id))}
+                  <td className="px-3 py-2 text-right font-mono tabular-nums text-sm font-bold text-primary">
+                    {formatCurrency(grandTotal)}
                   </td>
                 </tr>
-              ))}
-              <tr className="border-t-2 border-primary/30 bg-muted/30">
-                <td className="px-3 py-2 text-xs font-bold text-card-foreground uppercase sticky left-0 bg-muted/30 z-10">Totals</td>
-                {SLOTS.map(slot => {
-                  const isActive = isToday && slot === currentSlot;
-                  return (
-                    <td key={slot} className={`px-1 py-2 text-center font-mono text-[10px] font-bold text-card-foreground ${isActive ? "bg-primary/10" : ""}`}>
-                      {getSlotTotal(slot) ? formatCurrency(getSlotTotal(slot)) : "·"}
-                    </td>
-                  );
-                })}
-                <td className="px-3 py-2 text-right font-mono text-sm font-bold text-primary">
-                  {formatCurrency(grandTotal)}
-                </td>
-              </tr>
-            </tbody>
-          </table>
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
-
-      {openTables.length === 0 && <p className="text-muted-foreground text-sm text-center py-8 mt-4">No open tables to track</p>}
-    </div>
+        {openTables.length === 0 && (
+          <p className="text-muted-foreground text-sm text-center py-8 mt-4">
+            No open tables to track
+          </p>
+        )}
+      </PageSection>
+    </PageShell>
   );
 };
 
