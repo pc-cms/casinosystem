@@ -34,3 +34,33 @@ export const canSeePlayerFinancials = (roles: string[]): boolean => {
 export const canSeeAllTimeData = (roles: string[]): boolean => {
   return getFinancialScope(roles) === "all";
 };
+
+/**
+ * Highest-priority role for the user. UI must NEVER list multiple roles —
+ * always show only the primary one (or hide entirely).
+ */
+const ROLE_PRIORITY: AppRole[] = [
+  "super_admin", "finance_manager", "manager", "hr",
+  "pit", "cashier", "reception", "surveillance",
+];
+
+const ROLE_LABELS: Record<AppRole, string> = {
+  super_admin: "Super Admin",
+  finance_manager: "Finance",
+  manager: "Manager",
+  hr: "HR",
+  pit: "Pit",
+  cashier: "Cashier",
+  reception: "Reception",
+  surveillance: "Surveillance",
+};
+
+export const getPrimaryRole = (roles: string[]): AppRole | null => {
+  for (const r of ROLE_PRIORITY) if (roles.includes(r)) return r;
+  return (roles[0] as AppRole) || null;
+};
+
+export const getPrimaryRoleLabel = (roles: string[]): string => {
+  const r = getPrimaryRole(roles);
+  return r ? ROLE_LABELS[r] : "";
+};

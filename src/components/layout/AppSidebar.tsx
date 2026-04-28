@@ -491,44 +491,31 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
         renderSubItems={renderSubItems}
       />
 
-      <div className="px-3 py-3 border-t border-sidebar-border space-y-1">
-        <div className="px-3 py-1">
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-xs font-medium text-sidebar-foreground truncate">{displayName}</p>
-            <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded shrink-0 ${
-              roles.includes("manager") ? "bg-primary/20 text-primary" :
-              roles.includes("finance_manager") ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400" :
-              roles.includes("hr") ? "bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-400" :
-              roles.includes("pit") ? "bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-400" :
-              roles.includes("cashier") ? "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400" :
-              roles.includes("reception") ? "bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-400" :
-              roles.includes("surveillance") ? "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400" :
-              "bg-sidebar-accent text-sidebar-accent-foreground"
-            }`}>
-              {(() => {
-                const priority: AppRole[] = ["manager", "finance_manager", "hr", "pit", "cashier", "reception", "surveillance"];
-                const primary = priority.find(r => roles.includes(r)) || roles[0] || "user";
-                const labels: Record<string, string> = {
-                  manager: "Manager", finance_manager: "Finance", hr: "HR", pit: "Pit",
-                  cashier: "Cashier", reception: "Reception", surveillance: "Surveillance",
-                };
-                return labels[primary] || primary.charAt(0).toUpperCase() + primary.slice(1);
-              })()}
-            </span>
-          </div>
-          {managerOverride.active && !nativeManager && (
-            <span className="text-[9px] font-mono px-1 py-0.5 rounded bg-primary/20 text-primary font-bold mt-1 inline-block">Manager ↑</span>
-          )}
+      <div className="px-3 py-2 border-t border-sidebar-border">
+        <div className="flex items-center gap-2 px-1">
+          <p className="text-xs font-medium text-sidebar-foreground truncate flex-1" title={displayName ?? undefined}>
+            {displayName}
+          </p>
+          <button
+            onClick={() => { toggle(); onNavigate?.(); }}
+            title={theme === "dark" ? "Light mode" : "Dark mode"}
+            className="h-7 w-7 flex items-center justify-center rounded-md text-sidebar-foreground hover:bg-sidebar-accent transition-colors shrink-0"
+          >
+            {theme === "dark" ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
+          </button>
+          <button
+            onClick={signOut}
+            title="Sign out"
+            className="h-7 w-7 flex items-center justify-center rounded-md text-sidebar-foreground hover:bg-sidebar-accent transition-colors shrink-0"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+          </button>
         </div>
-        <button onClick={() => { toggle(); onNavigate?.(); }}
-          className="flex items-center gap-2 w-full px-3 py-1.5 rounded-md text-xs text-sidebar-foreground hover:bg-sidebar-accent transition-colors">
-          {theme === "dark" ? <Sun className="w-3 h-3" /> : <Moon className="w-3 h-3" />}
-          {theme === "dark" ? "Light" : "Dark"}
-        </button>
-        <button onClick={signOut}
-          className="flex items-center gap-2 w-full px-3 py-1.5 rounded-md text-xs text-sidebar-foreground hover:bg-sidebar-accent transition-colors">
-          <LogOut className="w-3 h-3" /> Sign Out
-        </button>
+        {managerOverride.active && !nativeManager && (
+          <span className="text-[9px] font-mono px-1 py-0.5 rounded bg-primary/20 text-primary font-bold mt-1 ml-1 inline-block">
+            Manager ↑
+          </span>
+        )}
       </div>
 
       <ManagerOverrideDialog
