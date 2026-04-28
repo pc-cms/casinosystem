@@ -32,6 +32,7 @@ interface PlayerEditDialogProps {
     id_document_url?: string | null;
     player_type?: string;
     category?: string;
+    birth_date?: string | null;
   } | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
