@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useRef, useMemo } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { Search, Plus } from "lucide-react";
 import { usePlayers, useCreatePlayer } from "@/hooks/use-casino-data";
@@ -21,7 +21,7 @@ const Players = () => {
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<Set<PlayerCategory>>(new Set(["diamond", "platinum", "gold", "normal"]));
   const [sortByCategory, setSortByCategory] = useState(true);
-  const searchRef = useRef<HTMLInputElement>(null);
+  
   const parentRef = useRef<HTMLDivElement>(null);
 
   const filtered = useMemo(() => {
@@ -56,14 +56,6 @@ const Players = () => {
 
   const selectedPlayer = players.find(p => p.id === selectedPlayerId);
 
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "/" && !showAdd && !selectedPlayerId) { e.preventDefault(); searchRef.current?.focus(); }
-      if (e.key === "n" && e.altKey) { e.preventDefault(); setShowAdd(true); }
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [showAdd, selectedPlayerId]);
 
   return (
     <div>
@@ -73,16 +65,15 @@ const Players = () => {
           <p className="text-sm text-muted-foreground">{players.length} registered · No deletion</p>
         </div>
         <Button onClick={() => setShowAdd(true)} size="sm">
-          <Plus className="w-4 h-4 mr-1" /> New Player <span className="cms-kbd ml-2">Alt+N</span>
+          <Plus className="w-4 h-4 mr-1" /> New Player
         </Button>
       </div>
 
       <div className="flex items-center gap-3 mb-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input ref={searchRef} value={query} onChange={e => setQuery(e.target.value)}
+          <Input value={query} onChange={e => setQuery(e.target.value)}
             placeholder="Search by name, nickname, or card number..." className="pl-10 font-mono" />
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 cms-kbd">/</span>
         </div>
         <CategoryFilter selected={categoryFilter} onChange={setCategoryFilter} />
         <Button variant={sortByCategory ? "secondary" : "ghost"} size="sm" className="text-xs h-7 shrink-0" onClick={() => setSortByCategory(!sortByCategory)}>
