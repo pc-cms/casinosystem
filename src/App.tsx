@@ -185,6 +185,7 @@ const ProtectedRoutes = () => {
           <Route path="/table-results" element={<RoleGuard path="/table-results"><TableResults /></RoleGuard>} />
           <Route path="/bank-checks" element={<RoleGuard path="/bank-checks"><BankChecks /></RoleGuard>} />
           <Route path="/miss-chips" element={<RoleGuard path="/miss-chips"><MissChips /></RoleGuard>} />
+          <Route path="/reports/miss-chips" element={<RoleGuard path="/reports/miss-chips"><MissChipsReport /></RoleGuard>} />
         </Route>
         <Route path="*" element={<Suspense fallback={<PageLoader />}><NotFound /></Suspense>} />
       </Routes>
