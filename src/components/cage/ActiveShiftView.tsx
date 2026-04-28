@@ -104,8 +104,7 @@ const ActiveShiftView = ({ shift, players, tables }: {
       </div>
 
       <Tabs defaultValue="in" className="space-y-3">
-        {/* Full-width tabs 30/30/20/20 */}
-        <TabsList className="w-full grid grid-cols-[3fr_3fr_2fr_2fr] h-11">
+        <TabsList className="w-full grid grid-cols-3 h-11">
           <TabsTrigger value="in" className="gap-1.5 text-sm font-semibold">
             <ArrowDownToLine className="w-4 h-4" /> IN
           </TabsTrigger>
@@ -115,66 +114,33 @@ const ActiveShiftView = ({ shift, players, tables }: {
           <TabsTrigger value="check" className="gap-1.5 text-sm font-semibold">
             <Calculator className="w-4 h-4" /> Check
           </TabsTrigger>
-          <TabsTrigger value="close-tables" className="gap-1.5 text-sm font-semibold">
-            <Package className="w-4 h-4" /> Close Tables
-          </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="in">
+        <TabsContent value="in" className="space-y-3">
           <InForm players={activePlayers} tables={openTables} exchangeRates={exchangeRates} shiftId={shift.id} onSubmit={createTx.mutate} loading={createTx.isPending} />
+          <TransactionsTable
+            transactions={shiftTransactions.filter(t => isInTx(t.type))}
+            tableMap={tableMap}
+            isInTx={isInTx}
+          />
         </TabsContent>
-        <TabsContent value="out">
+        <TabsContent value="out" className="space-y-3">
           <OutForm players={activePlayers} tables={openTables} shiftId={shift.id} onSubmit={createTx.mutate} loading={createTx.isPending} />
+          <TransactionsTable
+            transactions={shiftTransactions.filter(t => isOutTx(t.type))}
+            tableMap={tableMap}
+            isInTx={isInTx}
+          />
         </TabsContent>
-        <TabsContent value="check">
+        <TabsContent value="check" className="space-y-3">
           <CashCheckForm expectedBalance={expectedCash} shiftId={shift.id} exchangeRates={exchangeRates} cashChecks={cashChecks} />
-        </TabsContent>
-        <TabsContent value="close-tables">
-          <CloseTablesForm tables={tables} />
+          <TransactionsTable
+            transactions={shiftTransactions}
+            tableMap={tableMap}
+            isInTx={isInTx}
+          />
         </TabsContent>
       </Tabs>
-
-      <div className="mt-6 cms-panel">
-        <div className="cms-header">Transactions ({shiftTransactions.length})</div>
-        <div className="overflow-x-auto max-h-[300px] overflow-y-auto">
-          <table className="w-full">
-            <thead className="sticky top-0 bg-card z-10">
-              <tr className="border-b border-border">
-                {["Type", "Player", "Table", "Amount", "Time"].map(h => (
-                  <th key={h} className={`text-xs font-medium text-muted-foreground uppercase px-3 py-1.5 ${h === "Amount" || h === "Time" ? "text-right" : "text-left"}`}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {shiftTransactions.length === 0 ? (
-                <tr><td colSpan={5} className="text-center text-muted-foreground text-sm py-6">No transactions yet</td></tr>
-              ) : shiftTransactions.map(tx => {
-                const txWithPlayer = tx as typeof tx & { players?: { first_name: string; last_name: string } };
-                const isIn = isInTx(tx.type);
-                return (
-                  <tr key={tx.id} className="border-b border-border last:border-0">
-                    <td className="px-3 py-1.5">
-                      <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${isIn ? "bg-primary/10 text-primary" : "bg-accent/10 text-accent"}`}>
-                        {isIn ? "IN" : "OUT"}
-                      </span>
-                    </td>
-                    <td className="px-3 py-1.5 text-xs text-card-foreground">{txWithPlayer.players?.first_name} {txWithPlayer.players?.last_name}</td>
-                    <td className="px-3 py-1.5 text-xs text-muted-foreground font-mono">
-                      {tx.table_id ? tableMap.get(tx.table_id)?.name || "—" : "—"}
-                    </td>
-                    <td className={`px-3 py-1.5 text-right font-mono text-xs font-medium ${isIn ? "cms-amount-positive" : "cms-amount-negative"}`}>
-                      {isIn ? "+" : "−"}{formatCurrency(Number(tx.amount))}
-                    </td>
-                    <td className="px-3 py-1.5 text-right font-mono text-[10px] text-muted-foreground">
-                      {new Date(tx.created_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
 
       <CloseShiftDialog
         open={showClose}
