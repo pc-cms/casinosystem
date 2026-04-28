@@ -410,13 +410,15 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
 
   const titleContent = (
     <span className="flex items-center gap-2">
-      Edit Player
+      {readOnly ? "View Player" : "Edit Player"}
       {player && <CategoryBadge category={(player.category as PlayerCategory) || "normal"} size="md" />}
       {incomplete && <AlertTriangle className="w-4 h-4 text-yellow-500" />}
     </span>
   );
 
-  const footerContent = (
+  const footerContent = readOnly ? (
+    <Button variant="outline" size="sm" onClick={() => onOpenChange(false)} className="flex-1 sm:flex-none h-10">Close</Button>
+  ) : (
     <>
       <Button variant="outline" size="sm" onClick={() => onOpenChange(false)} className="flex-1 sm:flex-none h-10">Cancel</Button>
       <Button size="sm" onClick={handleSave} disabled={saving} className="flex-1 sm:flex-none h-10">{saving ? "Saving…" : "Save"}</Button>
