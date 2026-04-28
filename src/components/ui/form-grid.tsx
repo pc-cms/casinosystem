@@ -59,10 +59,10 @@ export const FormField = React.forwardRef<HTMLDivElement, FormFieldProps>(
   ({ span = 6, label, hint, required, className, children, ...props }, ref) => (
     <div ref={ref} className={cn(SPAN_CLASS[span], "min-w-0 space-y-1.5", className)} {...props}>
       {label && (
-        <Label className="text-xs text-muted-foreground font-medium flex items-center gap-1">
+        <label className="text-xs text-muted-foreground font-medium flex items-center gap-1 leading-none">
           {label}
           {required && <span className="text-destructive">*</span>}
-        </Label>
+        </label>
       )}
       {children}
       {hint && <p className="text-[11px] text-muted-foreground">{hint}</p>}
