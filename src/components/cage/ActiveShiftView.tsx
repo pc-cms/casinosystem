@@ -327,21 +327,19 @@ const InForm = ({ players, tables, exchangeRates, shiftId, onSubmit, loading }: 
         <p className="text-xs font-mono text-muted-foreground text-right">= {formatCurrency(tzsAmount)} (1 {currency} = {formatNumberSpaces(exchangeRates[currency] || 0)} TZS)</p>
       )}
 
-      {/* Chip breakdown (only when TZS) */}
-      {currency === "TZS" && (
-        <div>
-          <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">
-            4. Chips to Hand Out
-          </label>
-          <ChipDenomInput
-            values={chips}
-            onChange={handleChipsChange}
-            columns={2}
-            size="md"
-            onSubmit={handleSubmit}
-          />
-        </div>
-      )}
+      {/* Chip breakdown — shown for all currencies; for foreign, derived from TZS-equivalent */}
+      <div>
+        <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">
+          4. Chips to Hand Out
+        </label>
+        <ChipDenomInput
+          values={chips}
+          onChange={handleChipsChange}
+          columns={2}
+          size="md"
+          onSubmit={handleSubmit}
+        />
+      </div>
 
       <Button onClick={handleSubmit} disabled={!playerId || !tableId || tzsAmount <= 0 || loading} className="w-full mt-2 gap-1.5 h-11">
         <ArrowDownToLine className="w-4 h-4" /> {loading ? "Recording…" : "IN"} {tzsAmount > 0 && `· ${formatCurrency(tzsAmount)}`}
