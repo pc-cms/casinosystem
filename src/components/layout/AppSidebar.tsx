@@ -537,10 +537,19 @@ export const MobileHeader = () => {
   const [open, setOpen] = useState(false);
   const location = useLocation();
 
-  const currentItem = NAV_ITEMS.find(item => {
-    if (item.to === "/") return location.pathname === "/";
-    return location.pathname.startsWith(item.to.split("?")[0]);
-  });
+  const currentTab = new URLSearchParams(location.search).get("tab");
+  const currentItem =
+    NAV_ITEMS.find(item => {
+      const { base, tab } = parseItemTo(item.to);
+      if (tab === null) return false;
+      return location.pathname === base && currentTab === tab;
+    }) ||
+    NAV_ITEMS.find(item => {
+      const { base, tab } = parseItemTo(item.to);
+      if (tab !== null) return false;
+      if (base === "/") return location.pathname === "/";
+      return location.pathname.startsWith(base);
+    });
   const pageTitle = currentItem?.label || "CMS";
 
   return (
