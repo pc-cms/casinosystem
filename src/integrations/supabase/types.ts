@@ -748,6 +748,39 @@ export type Database = {
           },
         ]
       }
+      chip_color_settings: {
+        Row: {
+          bg_color: string
+          casino_id: string
+          created_at: string
+          denomination: number
+          id: string
+          text_color: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          bg_color: string
+          casino_id: string
+          created_at?: string
+          denomination: number
+          id?: string
+          text_color?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          bg_color?: string
+          casino_id?: string
+          created_at?: string
+          denomination?: number
+          id?: string
+          text_color?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       chip_inventory: {
         Row: {
           casino_id: string
@@ -2425,7 +2458,7 @@ export type Database = {
         | "driver"
         | "reception"
       table_status: "open" | "closed"
-      transaction_type: "buy" | "cashout"
+      transaction_type: "buy" | "cashout" | "in" | "out"
       wallet_tx_type:
         | "transfer"
         | "allocate_reserve"
@@ -2649,7 +2682,7 @@ export const Constants = {
         "reception",
       ],
       table_status: ["open", "closed"],
-      transaction_type: ["buy", "cashout"],
+      transaction_type: ["buy", "cashout", "in", "out"],
       wallet_tx_type: [
         "transfer",
         "allocate_reserve",
