@@ -43,8 +43,8 @@ export const PageHeader = ({
   belowHeader,
   className,
 }: PageHeaderProps) => {
-  const dateValue =
-    date === true ? new Date() : date && date !== false ? date : null;
+  const dateValue: Date | string | null =
+    date === true ? new Date() : date && date !== false ? (date as Date | string) : null;
 
   return (
     <div className={cn("mb-4 pb-3 border-b border-border space-y-3", className)}>
