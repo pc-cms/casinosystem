@@ -31,7 +31,14 @@ const Groups = lazy(() => import("@/pages/Groups"));
 const Reports = lazy(() => import("@/pages/Reports"));
 const Admin = lazy(() => import("@/pages/Admin"));
 const Staff = lazy(() => import("@/pages/Staff"));
-const Finance = lazy(() => import("@/pages/Finance"));
+const FinanceWalletsPage = lazy(() => import("@/pages/finance/FinanceWalletsPage"));
+const FinanceDashboardPage = lazy(() => import("@/pages/finance/FinanceDashboardPage"));
+const FinanceReviewPage = lazy(() => import("@/pages/finance/FinanceReviewPage"));
+const FinanceExpensesPage = lazy(() => import("@/pages/finance/FinanceExpensesPage"));
+const FinanceBudgetPage = lazy(() => import("@/pages/finance/FinanceBudgetPage"));
+const FinanceCashCountPage = lazy(() => import("@/pages/finance/FinanceCashCountPage"));
+const FinanceSummaryPage = lazy(() => import("@/pages/finance/FinanceSummaryPage"));
+const FinanceTransfersPage = lazy(() => import("@/pages/finance/FinanceTransfersPage"));
 const Reception = lazy(() => import("@/pages/Reception"));
 const InCasino = lazy(() => import("@/pages/InCasino"));
 const Blacklist = lazy(() => import("@/pages/Blacklist"));
@@ -86,6 +93,14 @@ const ROUTE_ROLES: Record<string, string[]> = {
   "/floor": ["super_admin", "manager", "pit", "finance_manager", "hr"],
   "/groups": ["super_admin", "manager", "finance_manager"],
   "/finance": ["super_admin", "manager", "finance_manager"],
+  "/finance/wallets": ["super_admin", "manager", "finance_manager"],
+  "/finance/dashboard": ["super_admin", "manager", "finance_manager"],
+  "/finance/review": ["super_admin", "manager", "finance_manager"],
+  "/finance/expenses": ["super_admin", "manager", "finance_manager"],
+  "/finance/budget": ["super_admin", "manager", "finance_manager"],
+  "/finance/cash-count": ["super_admin", "manager", "finance_manager"],
+  "/finance/summary": ["super_admin", "finance_manager"],
+  "/finance/transfers": ["super_admin", "finance_manager"],
   "/reports": ["super_admin", "manager", "finance_manager", "surveillance"],
   "/stats": ["super_admin", "manager", "finance_manager", "surveillance"],
   "/logs": ["super_admin", "manager", "finance_manager", "surveillance"],
@@ -174,7 +189,15 @@ const ProtectedRoutes = () => {
           <Route path="/staff" element={<RoleGuard path="/floor"><Staff /></RoleGuard>} />
           <Route path="/floor" element={<RoleGuard path="/floor"><Staff /></RoleGuard>} />
           <Route path="/groups" element={<RoleGuard path="/groups"><Groups /></RoleGuard>} />
-          <Route path="/finance" element={<RoleGuard path="/finance"><ErrorBoundary><Finance /></ErrorBoundary></RoleGuard>} />
+          <Route path="/finance" element={<Navigate to="/finance/wallets" replace />} />
+          <Route path="/finance/wallets" element={<RoleGuard path="/finance/wallets"><ErrorBoundary><FinanceWalletsPage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/finance/dashboard" element={<RoleGuard path="/finance/dashboard"><ErrorBoundary><FinanceDashboardPage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/finance/review" element={<RoleGuard path="/finance/review"><ErrorBoundary><FinanceReviewPage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/finance/expenses" element={<RoleGuard path="/finance/expenses"><ErrorBoundary><FinanceExpensesPage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/finance/budget" element={<RoleGuard path="/finance/budget"><ErrorBoundary><FinanceBudgetPage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/finance/cash-count" element={<RoleGuard path="/finance/cash-count"><ErrorBoundary><FinanceCashCountPage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/finance/summary" element={<RoleGuard path="/finance/summary"><ErrorBoundary><FinanceSummaryPage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/finance/transfers" element={<RoleGuard path="/finance/transfers"><ErrorBoundary><FinanceTransfersPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/reports" element={<RoleGuard path="/reports"><Reports /></RoleGuard>} />
           <Route path="/stats" element={<RoleGuard path="/stats"><Stats /></RoleGuard>} />
           <Route path="/logs" element={<RoleGuard path="/logs"><Logs /></RoleGuard>} />

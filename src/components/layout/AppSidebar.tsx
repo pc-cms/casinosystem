@@ -53,16 +53,17 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/in-casino", icon: Eye, label: "In Casino", roles: ["super_admin", "manager", "reception", "pit", "finance_manager", "surveillance"], section: "RECEPTION" },
   { to: "/blacklist", icon: ShieldAlert, label: "Blacklist", roles: ["super_admin", "manager", "reception", "finance_manager", "surveillance"], section: "RECEPTION" },
 
-  // FINANCE — alphabetical
+  // FINANCE — alphabetical, separate routes (no tabs)
   { to: "/bank-checks", icon: CreditCard, label: "Bank Checks", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
-  { to: "/finance?tab=budget", icon: Target, label: "Budget", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
-  { to: "/finance?tab=review", icon: ClipboardPen, label: "Daily Review", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
-  { to: "/finance?tab=dashboard", icon: Wallet, label: "Dashboard", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
-  { to: "/finance?tab=expenses", icon: Receipt, label: "Expenses", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
+  { to: "/finance/budget", icon: Target, label: "Budget", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
+  { to: "/finance/cash-count", icon: Coins, label: "Cash Count", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
+  { to: "/finance/review", icon: ClipboardPen, label: "Daily Review", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
+  { to: "/finance/dashboard", icon: Wallet, label: "Dashboard", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
+  { to: "/finance/expenses", icon: Receipt, label: "Expenses", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
   { to: "/miss-chips", icon: Coins, label: "Miss Chips", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
-  { to: "/finance?tab=summary", icon: FileBarChart, label: "Summary", roles: ["super_admin", "finance_manager"], section: "FINANCE" },
-  { to: "/finance?tab=transfers", icon: Upload, label: "Transfers", roles: ["super_admin", "finance_manager"], section: "FINANCE" },
-  { to: "/finance?tab=wallets", icon: Wallet, label: "Wallets", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
+  { to: "/finance/summary", icon: FileBarChart, label: "Summary", roles: ["super_admin", "finance_manager"], section: "FINANCE" },
+  { to: "/finance/transfers", icon: Upload, label: "Transfers", roles: ["super_admin", "finance_manager"], section: "FINANCE" },
+  { to: "/finance/wallets", icon: Wallet, label: "Wallets", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
 
   // HR — Personnel admin (Employee tab visible)
   { to: "/pit", icon: Gamepad2, label: "Live Game", roles: ["super_admin", "manager", "hr"], section: "HR" },
@@ -113,12 +114,7 @@ const STAFF_SUBITEMS_HR = [
   { tab: "rota_security", icon: ShieldCheck, label: "Security Rota" },
 ];
 
-const WALLETS_SUBITEMS = [
-  { tab: "cashcount", icon: Coins, label: "Cash Count" },
-];
-
 const BREAKLIST_PATH = "/pit?tab=breaklist";
-const WALLETS_PATH = "/finance?tab=wallets";
 
 // Helper: parse "/path?tab=foo" into { base, tab }
 const parseItemTo = (to: string) => {
@@ -202,8 +198,6 @@ const SidebarSections = ({
     const isTabAware = itemTab !== null;
     const isTabAwareActive =
       isTabAware && location.pathname === itemBase && currentTab === itemTab;
-    const isWalletsItem = item.to === WALLETS_PATH;
-    const showWalletsSubs = isWalletsItem && isTabAwareActive;
     // Section-aware sub-items: HR section gets Employee tab, PIT section does not
     const pitSubs = sectionCtx === "HR" ? PIT_SUBITEMS_HR : PIT_SUBITEMS_OPS;
     const staffSubs = sectionCtx === "HR" ? STAFF_SUBITEMS_HR : STAFF_SUBITEMS_OPS;
@@ -226,7 +220,6 @@ const SidebarSections = ({
         {item.to === "/tables" && isTablesActive && (roles.includes("pit") || roles.includes("manager") || roles.includes("finance_manager")) && renderSubItems("/tables", TABLE_SUBITEMS)}
         {item.to === "/pit" && isPitActive && renderSubItems("/pit", pitSubs)}
         {item.to === "/staff" && isStaffActive && renderSubItems("/staff", staffSubs)}
-        {showWalletsSubs && renderSubItems("/finance", WALLETS_SUBITEMS)}
       </div>
     );
   };
