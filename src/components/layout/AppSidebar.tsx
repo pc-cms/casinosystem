@@ -63,8 +63,12 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/finance?tab=transfers", icon: Upload, label: "Transfers", roles: ["super_admin", "finance_manager"], section: "FINANCE" },
   { to: "/finance?tab=wallets", icon: Wallet, label: "Wallets", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
 
-  // HR
-  { to: "/staff", icon: Building2, label: "Floor Staff", roles: ["super_admin", "manager", "pit", "finance_manager", "hr"], section: "HR" },
+  // PIT (continued) — Floor Staff visible in PIT for pit/manager/fm/super_admin (no Employee tab)
+  { to: "/staff", icon: Building2, label: "Floor Staff", roles: ["super_admin", "manager", "pit", "finance_manager"], section: "PIT" },
+
+  // HR — Live Game + Floor Staff with Employee tab (HR-only entries)
+  { to: "/pit", icon: Gamepad2, label: "Live Game", roles: ["hr"], section: "HR" },
+  { to: "/staff", icon: Building2, label: "Floor Staff", roles: ["hr"], section: "HR" },
 
   // ANALYTICS — shared
   { to: "/groups", icon: UsersRound, label: "Groups", roles: ["super_admin", "manager", "finance_manager"], section: "ANALYTICS" },
