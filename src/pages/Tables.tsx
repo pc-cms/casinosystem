@@ -466,8 +466,7 @@ const Tables = () => {
               </Button>
             )}
             {countMode === "result" && (
-              <Button onClick={handleConfirmResult} disabled={setTableResults.isPending || batchSnapshot.isPending || !hasAnyCount}
-                className="gap-1.5 bg-orange-600 hover:bg-orange-700">
+              <Button onClick={handleConfirmResult} disabled={setTableResults.isPending || batchSnapshot.isPending || !hasAnyCount} className="gap-1.5">
                 <BarChart3 className="w-4 h-4" /> {setTableResults.isPending ? "Saving…" : "Confirm Result"}
               </Button>
             )}
