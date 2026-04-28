@@ -9,6 +9,7 @@ import { NumberInput } from "@/components/ui/number-input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ArrowDownToLine, ArrowUpFromLine, Calculator, Square, CheckCircle2, Package } from "lucide-react";
 import {
   CURRENCIES, FOREIGN_CURRENCIES, formatCurrency, formatNumberSpaces, CASH_DENOMS,
@@ -88,6 +89,7 @@ const ActiveShiftView = ({ shift, players, tables }: {
   const createTx = useCreateTransaction();
   const closeShift = useCloseShift();
   const [showClose, setShowClose] = useState(false);
+  const [showCloseTables, setShowCloseTables] = useState(false);
 
   const activePlayers = useMemo(() => players.filter(p => p.status === "active"), [players]);
   const openTables = useMemo(() => tables.filter(t => t.status === "open"), [tables]);
@@ -134,9 +136,14 @@ const ActiveShiftView = ({ shift, players, tables }: {
             <span key={c} className="text-[10px] font-mono text-muted-foreground">{c}: {formatNumberSpaces(exchangeRates[c] || 0)}</span>
           ))}
         </div>
-        <Button variant="destructive" size="sm" onClick={() => setShowClose(true)} className="gap-1.5">
-          <Square className="w-3.5 h-3.5" /> Close Shift
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => setShowCloseTables(true)} className="gap-1.5">
+            <Package className="w-3.5 h-3.5" /> Close Tables
+          </Button>
+          <Button variant="destructive" size="sm" onClick={() => setShowClose(true)} className="gap-1.5">
+            <Square className="w-3.5 h-3.5" /> Close Shift
+          </Button>
+        </div>
       </div>
 
       <div className="cms-panel p-2 mb-4">
@@ -189,6 +196,15 @@ const ActiveShiftView = ({ shift, players, tables }: {
           />
         </TabsContent>
       </Tabs>
+
+      <Dialog open={showCloseTables} onOpenChange={setShowCloseTables}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Close Tables</DialogTitle>
+          </DialogHeader>
+          <CloseTablesForm tables={tables} />
+        </DialogContent>
+      </Dialog>
 
       <CloseShiftDialog
         open={showClose}
