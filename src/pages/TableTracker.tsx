@@ -3,6 +3,9 @@ import { getBusinessDate, nowEAT } from "@/lib/business-day";
 import { useGamingTables, useTableTracker, useSetTableTrackerValue } from "@/hooks/use-casino-data";
 import { Input } from "@/components/ui/input";
 import { formatCurrency, formatInputWithSpaces, parseSpacedNumber } from "@/lib/currency";
+import { PageShell, PageSection } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { Target } from "lucide-react";
 
 // 18:00 → 05:00, 30-minute intervals
 const generateSlots = () => {
