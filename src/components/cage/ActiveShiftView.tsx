@@ -154,19 +154,20 @@ const ActiveShiftView = ({ shift, players, tables }: {
       </div>
 
       <div className="cms-panel p-2 mb-4">
-        <div className="grid grid-cols-3 md:grid-cols-7 gap-2">
+        <div className="grid grid-cols-3 md:grid-cols-8 gap-2">
           <div><p className="text-[9px] uppercase text-muted-foreground">Opening</p><p className="font-mono text-sm font-bold text-card-foreground">{formatCurrency(openingFloat)}</p></div>
           <div><p className="text-[9px] uppercase text-muted-foreground">+ IN</p><p className="font-mono text-sm font-bold text-success">+{formatCurrency(totalIns)}</p></div>
           <div><p className="text-[9px] uppercase text-muted-foreground">− OUT</p><p className="font-mono text-sm font-bold text-destructive">−{formatCurrency(totalOuts)}</p></div>
+          <div><p className="text-[9px] uppercase text-muted-foreground">+ Add Float</p><p className="font-mono text-sm font-bold text-success">+{formatCurrency(totalAddFloat)}</p></div>
+          <div><p className="text-[9px] uppercase text-muted-foreground">− Collection</p><p className="font-mono text-sm font-bold text-destructive">−{formatCurrency(totalCollection)}</p></div>
           <div><p className="text-[9px] uppercase text-muted-foreground">− Expenses</p><p className="font-mono text-sm font-bold text-warning">−{formatCurrency(totalExpenses)}</p></div>
           <div><p className="text-[9px] uppercase text-muted-foreground">= Expected</p><p className="font-mono text-sm font-bold text-card-foreground">{formatCurrency(expectedCash)}</p></div>
           <div><p className="text-[9px] uppercase text-muted-foreground">Cash Result</p><p className={`font-mono text-sm font-bold ${cashResult >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>{cashResult >= 0 ? "+" : ""}{formatCurrency(cashResult)}</p></div>
-          <div><p className="text-[9px] uppercase text-muted-foreground">Txns</p><p className="font-mono text-sm font-bold text-card-foreground">{shiftTransactions.length}</p></div>
         </div>
       </div>
 
       <Tabs defaultValue="in" className="space-y-3">
-        <TabsList className="w-full grid grid-cols-3 h-11">
+        <TabsList className="w-full grid grid-cols-4 h-11">
           <TabsTrigger value="in" className="gap-1.5 text-sm font-semibold">
             <ArrowDownToLine className="w-4 h-4" /> IN
           </TabsTrigger>
@@ -175,6 +176,9 @@ const ActiveShiftView = ({ shift, players, tables }: {
           </TabsTrigger>
           <TabsTrigger value="check" className="gap-1.5 text-sm font-semibold">
             <Calculator className="w-4 h-4" /> Check
+          </TabsTrigger>
+          <TabsTrigger value="transfers" className="gap-1.5 text-sm font-semibold">
+            <ArrowLeftRight className="w-4 h-4" /> Transfers
           </TabsTrigger>
         </TabsList>
 
@@ -201,6 +205,9 @@ const ActiveShiftView = ({ shift, players, tables }: {
             tableMap={tableMap}
             isInTx={isInTx}
           />
+        </TabsContent>
+        <TabsContent value="transfers" className="space-y-3">
+          <TransfersForm shiftId={shift.id} tables={openTables} />
         </TabsContent>
       </Tabs>
 
