@@ -168,7 +168,7 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
           <div className="w-8 border-t border-sidebar-border my-1" />
 
           {/* Nav icons (only top-level items, no sub-tabs) */}
-          <nav className="flex-1 flex flex-col items-center gap-0.5 overflow-y-auto w-full px-2">
+          <nav className="flex-1 flex flex-col items-center gap-0.5 w-full px-2 overflow-hidden">
             {visibleItems.map((item) => {
               const isBreaklistItem = item.to === BREAKLIST_PATH;
               const isBreaklistActive = isBreaklistItem && location.pathname === "/pit" && currentTab === "breaklist";
