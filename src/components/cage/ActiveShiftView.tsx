@@ -136,9 +136,14 @@ const ActiveShiftView = ({ shift, players, tables }: {
             <span key={c} className="text-[10px] font-mono text-muted-foreground">{c}: {formatNumberSpaces(exchangeRates[c] || 0)}</span>
           ))}
         </div>
-        <Button variant="destructive" size="sm" onClick={() => setShowClose(true)} className="gap-1.5">
-          <Square className="w-3.5 h-3.5" /> Close Shift
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => setShowCloseTables(true)} className="gap-1.5">
+            <Package className="w-3.5 h-3.5" /> Close Tables
+          </Button>
+          <Button variant="destructive" size="sm" onClick={() => setShowClose(true)} className="gap-1.5">
+            <Square className="w-3.5 h-3.5" /> Close Shift
+          </Button>
+        </div>
       </div>
 
       <div className="cms-panel p-2 mb-4">
