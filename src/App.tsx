@@ -39,6 +39,7 @@ const ImportReports = lazy(() => import("@/pages/ImportReports"));
 const TableResults = lazy(() => import("@/pages/TableResults"));
 const BankChecks = lazy(() => import("@/pages/BankChecks"));
 const MissChips = lazy(() => import("@/pages/MissChips"));
+const MissChipsReport = lazy(() => import("@/pages/MissChipsReport"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 
 const queryClient = new QueryClient({
