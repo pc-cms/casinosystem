@@ -56,6 +56,7 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
   const [nickname, setNickname] = useState("");
   const [phone, setPhone] = useState("");
   const [idNumber, setIdNumber] = useState("");
+  const [birthDate, setBirthDate] = useState("");
   const [playerType, setPlayerType] = useState("table");
   const [category, setCategory] = useState<PlayerCategory>("normal");
   const [uploading, setUploading] = useState(false);
@@ -67,7 +68,9 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
   const [noteType, setNoteType] = useState<string>("info");
   const [addingNote, setAddingNote] = useState(false);
 
-  const canSeeNotes = roles.some(r => ["pit", "surveillance", "manager"].includes(r)) || isManager;
+  // Notes are CCTV-only (surveillance role). Manager keeps read access for oversight.
+  const canSeeNotes = roles.some(r => ["surveillance", "manager"].includes(r)) || isManager;
+  const canAddNotes = roles.some(r => r === "surveillance") || isManager;
   const canEditCategory = isManager;
 
   useEffect(() => {
