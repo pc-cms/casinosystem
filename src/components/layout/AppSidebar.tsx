@@ -7,7 +7,7 @@ import {
   ListChecks, Eye, Target,
   Building2, UserCheck, ClipboardPen, ShieldCheck, ShieldOff,
   Wallet, DoorOpen, ShieldAlert, Menu, Upload, FileText,
-  ChevronsLeft, ChevronsRight, CreditCard, CalendarDays, ChevronDown, ChevronRight,
+  ChevronsLeft, ChevronsRight, CreditCard, CalendarDays, ChevronDown, ChevronRight, Coins,
 } from "lucide-react";
 import { useTheme } from "@/lib/theme";
 import { useAuth } from "@/lib/auth-context";
@@ -57,6 +57,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/finance", icon: Wallet, label: "Finance", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
   { to: "/groups", icon: UsersRound, label: "Groups", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
   { to: "/import-reports", icon: Upload, label: "Import Reports", roles: ["super_admin", "manager"], section: "FINANCE" },
+  { to: "/miss-chips", icon: Coins, label: "Miss Chips", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
 
   // HR
   { to: "/staff", icon: Building2, label: "Floor Staff", roles: ["super_admin", "manager", "pit", "finance_manager", "hr"], section: "HR" },

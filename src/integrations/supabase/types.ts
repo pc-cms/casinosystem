@@ -781,6 +781,82 @@ export type Database = {
         }
         Relationships: []
       }
+      chip_emissions: {
+        Row: {
+          casino_id: string
+          created_at: string
+          denomination: number
+          id: string
+          operator_id: string
+          quantity_added: number
+          reason: string
+        }
+        Insert: {
+          casino_id: string
+          created_at?: string
+          denomination: number
+          id?: string
+          operator_id: string
+          quantity_added: number
+          reason: string
+        }
+        Update: {
+          casino_id?: string
+          created_at?: string
+          denomination?: number
+          id?: string
+          operator_id?: string
+          quantity_added?: number
+          reason?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chip_emissions_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chip_initial_baseline: {
+        Row: {
+          casino_id: string
+          created_at: string
+          created_by: string | null
+          denomination: number
+          id: string
+          initial_quantity: number
+          updated_at: string
+        }
+        Insert: {
+          casino_id: string
+          created_at?: string
+          created_by?: string | null
+          denomination: number
+          id?: string
+          initial_quantity?: number
+          updated_at?: string
+        }
+        Update: {
+          casino_id?: string
+          created_at?: string
+          created_by?: string | null
+          denomination?: number
+          id?: string
+          initial_quantity?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chip_initial_baseline_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chip_inventory: {
         Row: {
           casino_id: string
@@ -1428,6 +1504,54 @@ export type Database = {
             columns: ["casino_id"]
             isOneToOne: true
             referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      miss_chips: {
+        Row: {
+          business_date: string
+          casino_id: string
+          created_at: string
+          denomination: number
+          id: string
+          quantity: number
+          shift_id: string | null
+          total_value_tzs: number
+        }
+        Insert: {
+          business_date: string
+          casino_id: string
+          created_at?: string
+          denomination: number
+          id?: string
+          quantity: number
+          shift_id?: string | null
+          total_value_tzs: number
+        }
+        Update: {
+          business_date?: string
+          casino_id?: string
+          created_at?: string
+          denomination?: number
+          id?: string
+          quantity?: number
+          shift_id?: string | null
+          total_value_tzs?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "miss_chips_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "miss_chips_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "shifts"
             referencedColumns: ["id"]
           },
         ]
@@ -2289,6 +2413,41 @@ export type Database = {
       }
     }
     Views: {
+      chip_conservation_status: {
+        Row: {
+          archived_miss: number | null
+          casino_id: string | null
+          denomination: number | null
+          in_locations: number | null
+          initial_quantity: number | null
+          live_floor: number | null
+        }
+        Insert: {
+          archived_miss?: never
+          casino_id?: string | null
+          denomination?: number | null
+          in_locations?: never
+          initial_quantity?: number | null
+          live_floor?: never
+        }
+        Update: {
+          archived_miss?: never
+          casino_id?: string | null
+          denomination?: number | null
+          in_locations?: never
+          initial_quantity?: number | null
+          live_floor?: never
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chip_initial_baseline_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       player_economy: {
         Row: {
           casino_id: string | null
