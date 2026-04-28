@@ -197,15 +197,18 @@ const SidebarSections = ({
     });
   };
 
-  const renderItem = (item: NavItem) => {
+  const renderItem = (item: NavItem, sectionCtx: Section) => {
     const { base: itemBase, tab: itemTab } = parseItemTo(item.to);
     const isTabAware = itemTab !== null;
     const isTabAwareActive =
       isTabAware && location.pathname === itemBase && currentTab === itemTab;
     const isWalletsItem = item.to === WALLETS_PATH;
     const showWalletsSubs = isWalletsItem && isTabAwareActive;
+    // Section-aware sub-items: HR section gets Employee tab, PIT section does not
+    const pitSubs = sectionCtx === "HR" ? PIT_SUBITEMS_HR : PIT_SUBITEMS_OPS;
+    const staffSubs = sectionCtx === "HR" ? STAFF_SUBITEMS_HR : STAFF_SUBITEMS_OPS;
     return (
-      <div key={item.to}>
+      <div key={`${sectionCtx}:${item.to}`}>
         <NavLink
           to={item.to}
           end={item.to === "/" || item.to === "/pit" || item.to === "/staff" || item.to === "/tables" || isTabAware}
@@ -221,8 +224,8 @@ const SidebarSections = ({
           <span className="flex-1">{item.label}</span>
         </NavLink>
         {item.to === "/tables" && isTablesActive && (roles.includes("pit") || roles.includes("manager") || roles.includes("finance_manager")) && renderSubItems("/tables", TABLE_SUBITEMS)}
-        {item.to === "/pit" && isPitActive && renderSubItems("/pit", PIT_SUBITEMS)}
-        {item.to === "/staff" && isStaffActive && renderSubItems("/staff", STAFF_SUBITEMS)}
+        {item.to === "/pit" && isPitActive && renderSubItems("/pit", pitSubs)}
+        {item.to === "/staff" && isStaffActive && renderSubItems("/staff", staffSubs)}
         {showWalletsSubs && renderSubItems("/finance", WALLETS_SUBITEMS)}
       </div>
     );
