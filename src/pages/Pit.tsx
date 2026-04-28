@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChevronLeft, ChevronRight, UserPlus, ArrowUpDown, ZoomIn, ZoomOut, RefreshCw, Check, Printer, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, UserPlus, ArrowUpDown, ZoomIn, ZoomOut, RefreshCw, Check, Printer, Trash2, Users as UsersIcon } from "lucide-react";
 import EmployeePhotoCell from "@/components/EmployeePhotoCell";
 import BreaklistGrid from "@/components/pit/BreaklistGrid";
 import ActivePlayers from "@/components/pit/ActivePlayers";
@@ -16,6 +16,8 @@ import ClientTracker from "@/components/pit/PlayerTracker";
 import TableTracker from "@/pages/TableTracker";
 import { getBusinessDate, isBusinessToday } from "@/lib/business-day";
 import { UNIFIED_SHIFT_COLORS, UNIFIED_ATT_COLORS, UNIFIED_SHIFT_TINTS } from "@/lib/shift-colors";
+import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 const ROTA_SHIFTS = ["M", "N", "L", "E"] as const;
 
@@ -99,77 +101,86 @@ const Pit = () => {
   const breaklistRefreshRef = React.useRef<(() => void) | null>(null);
   const breaklistAcceptRef = React.useRef<(() => void) | null>(null);
 
-  return (
-    <div>
-      <div className="flex items-center justify-between mb-5 no-print">
-        {/* LEFT: Title */}
-        <div className="min-w-0">
-          <h1 className="text-2xl font-bold text-foreground">{TAB_TITLES[activeTab] || "Live Game"}</h1>
-          <p className="text-sm text-muted-foreground">Live Game Management</p>
-        </div>
+  // Center slot: date / month nav (in subtitle area via belowHeader)
+  const centerControl = showMonthNav ? (
+    <div className="flex items-center gap-1">
+      <Button variant="ghost" size="icon-sm" onClick={() => navigateMonth(-1)}>
+        <ChevronLeft className="w-4 h-4" />
+      </Button>
+      <span className="text-sm font-semibold text-card-foreground min-w-[140px] text-center">{monthLabel}</span>
+      <Button variant="ghost" size="icon-sm" onClick={() => navigateMonth(1)}>
+        <ChevronRight className="w-4 h-4" />
+      </Button>
+    </div>
+  ) : showDatePicker ? (
+    <Input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-44 font-mono h-9" />
+  ) : null;
 
-        {/* CENTER: Date or Month nav */}
-        <div className="flex items-center justify-center flex-1">
-          {showMonthNav && (
-            <div className="flex items-center gap-1">
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigateMonth(-1)}>
-                <ChevronLeft className="w-4 h-4" />
-              </Button>
-              <span className="text-sm font-semibold text-card-foreground min-w-[140px] text-center">{monthLabel}</span>
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigateMonth(1)}>
-                <ChevronRight className="w-4 h-4" />
-              </Button>
-            </div>
-          )}
-          {showDatePicker && (
-            <Input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-44 font-mono" />
-          )}
-        </div>
-
-        {/* RIGHT: Controls */}
-        <div className="flex items-center gap-2">
-          {activeTab === "breaklist" && (
+  // Right slot: action buttons / legend
+  const rightControls = (
+    <>
+      {activeTab === "breaklist" && (
+        <>
+          <Button variant="outline" size="icon-xs" onClick={() => setBreaklistZoom(z => Math.max(60, z - 10))}>
+            <ZoomOut className="w-3.5 h-3.5" />
+          </Button>
+          <span className="text-[10px] font-mono text-muted-foreground w-10 text-center">{breaklistZoom}%</span>
+          <Button variant="outline" size="icon-xs" onClick={() => setBreaklistZoom(z => Math.min(200, z + 10))}>
+            <ZoomIn className="w-3.5 h-3.5" />
+          </Button>
+          {isBusinessToday(date) && (
             <>
-              <Button variant="outline" size="sm" className="h-7 w-7 p-0" onClick={() => setBreaklistZoom(z => Math.max(60, z - 10))}>
-                <ZoomOut className="w-3.5 h-3.5" />
+              <Button variant="outline" size="sm" onClick={() => breaklistRefreshRef.current?.()} className="gap-1 text-xs">
+                <RefreshCw className="w-3.5 h-3.5" /> Refresh
               </Button>
-              <span className="text-[10px] font-mono text-muted-foreground w-10 text-center">{breaklistZoom}%</span>
-              <Button variant="outline" size="sm" className="h-7 w-7 p-0" onClick={() => setBreaklistZoom(z => Math.min(200, z + 10))}>
-                <ZoomIn className="w-3.5 h-3.5" />
+              <Button variant="outline" size="sm" onClick={() => breaklistAcceptRef.current?.()} className="gap-1 text-xs">
+                <Check className="w-3.5 h-3.5" /> Accept
               </Button>
-              {isBusinessToday(date) && (
-                <>
-                  <Button variant="outline" size="sm" onClick={() => breaklistRefreshRef.current?.()} className="gap-1 text-xs">
-                    <RefreshCw className="w-3.5 h-3.5" /> Refresh
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={() => breaklistAcceptRef.current?.()} className="gap-1 text-xs">
-                    <Check className="w-3.5 h-3.5" /> Accept
-                  </Button>
-                </>
-              )}
             </>
           )}
-          {activeTab === "rota" && (
-            <div className="flex items-center gap-1.5">
-              {ROTA_SHIFTS.map(s => (
-                <span key={s} className={`px-2 py-0.5 rounded text-[10px] font-mono ${SHIFT_COLORS[s]}`}>{s} = {SHIFT_LABELS[s]}</span>
-              ))}
-              <span className={`px-2 py-0.5 rounded text-[10px] font-mono ${SHIFT_COLORS["O"]}`}>O = Off</span>
-              <Button variant="outline" size="sm" className="ml-2 gap-1 text-xs" onClick={() => { const html = document.documentElement; const wasDark = html.classList.contains('dark'); if (wasDark) html.classList.remove('dark'); window.print(); if (wasDark) html.classList.add('dark'); }}>
-                <Printer className="w-3.5 h-3.5" /> Print
-              </Button>
-            </div>
-          )}
-          {activeTab === "attendance" && (
-            <div className="flex items-center gap-1.5">
-              <span className={`px-2 py-0.5 rounded text-[10px] font-mono ${ATT_COLORS["A"]}`}>A = Absent</span>
-              <span className={`px-2 py-0.5 rounded text-[10px] font-mono ${ATT_COLORS["S"]}`}>S = Sick</span>
-              <Button variant="outline" size="sm" className="ml-2 gap-1 text-xs" onClick={() => { const html = document.documentElement; const wasDark = html.classList.contains('dark'); if (wasDark) html.classList.remove('dark'); window.print(); if (wasDark) html.classList.add('dark'); }}>
-                <Printer className="w-3.5 h-3.5" /> Print
-              </Button>
-            </div>
-          )}
-        </div>
+        </>
+      )}
+      {activeTab === "rota" && (
+        <Button variant="outline" size="sm" className="gap-1 text-xs" onClick={() => { const html = document.documentElement; const wasDark = html.classList.contains('dark'); if (wasDark) html.classList.remove('dark'); window.print(); if (wasDark) html.classList.add('dark'); }}>
+          <Printer className="w-3.5 h-3.5" /> Print
+        </Button>
+      )}
+      {activeTab === "attendance" && (
+        <Button variant="outline" size="sm" className="gap-1 text-xs" onClick={() => { const html = document.documentElement; const wasDark = html.classList.contains('dark'); if (wasDark) html.classList.remove('dark'); window.print(); if (wasDark) html.classList.add('dark'); }}>
+          <Printer className="w-3.5 h-3.5" /> Print
+        </Button>
+      )}
+    </>
+  );
+
+  // Below header: legend rows for rota / attendance
+  const belowHeader = activeTab === "rota" ? (
+    <div className="flex items-center gap-1.5 flex-wrap">
+      {ROTA_SHIFTS.map(s => (
+        <span key={s} className={`px-2 py-0.5 rounded-md text-[10px] font-mono ${SHIFT_COLORS[s]}`}>{s} = {SHIFT_LABELS[s]}</span>
+      ))}
+      <span className={`px-2 py-0.5 rounded-md text-[10px] font-mono ${SHIFT_COLORS["O"]}`}>O = Off</span>
+    </div>
+  ) : activeTab === "attendance" ? (
+    <div className="flex items-center gap-1.5 flex-wrap">
+      <span className={`px-2 py-0.5 rounded-md text-[10px] font-mono ${ATT_COLORS["A"]}`}>A = Absent</span>
+      <span className={`px-2 py-0.5 rounded-md text-[10px] font-mono ${ATT_COLORS["S"]}`}>S = Sick</span>
+    </div>
+  ) : centerControl ? (
+    <div className="flex items-center">{centerControl}</div>
+  ) : undefined;
+
+  return (
+    <PageShell>
+      <div className="no-print">
+        <PageHeader
+          icon={UsersIcon}
+          title={TAB_TITLES[activeTab] || "Live Game"}
+          subtitle="Live Game Management"
+          belowHeader={belowHeader}
+        >
+          {rightControls}
+        </PageHeader>
       </div>
 
       <Suspense fallback={<><CardSkeleton count={2} /><TableSkeleton rows={5} cols={4} /></>}>
@@ -188,7 +199,7 @@ const Pit = () => {
         {activeTab === "tracker" && <ClientTracker />}
         {activeTab === "tabletracker" && <TableTracker />}
       </Suspense>
-    </div>
+    </PageShell>
   );
 };
 

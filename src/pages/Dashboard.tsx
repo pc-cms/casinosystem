@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Users, Landmark, Receipt, TrendingDown, AlertTriangle, Clock } from "lucide-react";
+import { Users, Landmark, Receipt, TrendingDown, AlertTriangle, Clock, LayoutDashboard } from "lucide-react";
 import { fmtDate } from "@/lib/format-date";
 import { CardSkeleton, PlayerListSkeleton } from "@/components/LoadingSkeletons";
 import { usePlayers, useTransactions, useGamingTables, useExpenses, useClientSessionsTotalBet, useTableTracker, usePlayerEconomy, useVisitsToday } from "@/hooks/use-casino-data";
@@ -12,6 +12,8 @@ import { getBusinessDate } from "@/lib/business-day";
 import { useStaffMembers, useStaffRotaRange, DEPARTMENT_LABELS, STAFF_SHIFT_LABELS, STAFF_SHIFT_COLORS } from "@/hooks/use-staff";
 import { ChipConservationCard } from "@/components/chips/ChipConservationCard";
 import { format, formatDistanceToNow } from "date-fns";
+import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 const StatCard = ({ label, value, icon: Icon, href }: {
   label: string; value: string | number; icon: any; href: string;
@@ -125,25 +127,21 @@ const Dashboard = () => {
 
   if (isInitialLoading) {
     return (
-      <div className="space-y-6">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
-          <p className="text-sm text-muted-foreground font-mono mt-1">Loading...</p>
-        </div>
+      <PageShell>
+        <PageHeader icon={LayoutDashboard} title="Dashboard" subtitle="Loading…" />
         <CardSkeleton count={4} />
         <PlayerListSkeleton count={4} />
-      </div>
+      </PageShell>
     );
   }
 
   return (
-    <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
-        <p className="text-sm text-muted-foreground font-mono mt-1">
-          {displayName} · {roles.join(", ") || "No role"} · {fmtDate(new Date())}
-        </p>
-      </div>
+    <PageShell>
+      <PageHeader
+        icon={LayoutDashboard}
+        title="Dashboard"
+        subtitle={`${displayName} · ${roles.join(", ") || "No role"} · ${fmtDate(new Date())}`}
+      />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {showFinancials && <StatCard label="Total Drop" value={formatCurrency(totalDrop)} icon={Landmark} href="/cage" />}
@@ -314,7 +312,7 @@ const Dashboard = () => {
           </div>
         )}
       </div>
-    </div>
+    </PageShell>
   );
 };
 

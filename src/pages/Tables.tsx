@@ -12,11 +12,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { CHIP_DENOMS, CHIP_COLORS, formatChipLabel, formatCurrency } from "@/lib/currency";
-import { Save, Coins, Play, BarChart3, Lock, Users, Eye, Target } from "lucide-react";
+import { Save, Coins, Play, BarChart3, Lock, Users, Eye, Target, LayoutGrid } from "lucide-react";
 import ChipDenomInput from "@/components/ChipDenomInput";
 import ActivePlayers from "@/components/pit/ActivePlayers";
 import ClientTracker from "@/components/pit/PlayerTracker";
 import TableTracker from "@/pages/TableTracker";
+import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 const PIT_TABS = [
   { key: "tables", label: "Tables", icon: BarChart3 },
@@ -255,38 +257,41 @@ const Tables = () => {
   };
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Tables & Chip Accounting</h1>
-          <p className="text-sm text-muted-foreground">Float, Result & Tracking</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-44 font-mono" />
+    <PageShell>
+      <PageHeader
+        icon={LayoutGrid}
+        title="Tables & Chip Accounting"
+        subtitle="Float, Result & Tracking"
+      >
+        <Input
+          type="date"
+          value={date}
+          onChange={e => setDate(e.target.value)}
+          className="w-44 font-mono h-9"
+        />
 
-          {closedTables.length > 0 && (
-            <Button variant="default" size="sm" onClick={handleOpenAll} disabled={openAllTables.isPending} className="gap-1.5">
-              <Play className="w-4 h-4" /> Open{closedTables.length < tables.length ? ` (${closedTables.length})` : " All"}
-            </Button>
-          )}
-
-          <Button size="sm" onClick={() => handleOpenChipCount("save")} className="gap-1.5 bg-cyan-600 hover:bg-cyan-700 text-white border-0">
-            <Coins className="w-4 h-4" /> Chip Count
+        {closedTables.length > 0 && (
+          <Button size="sm" onClick={handleOpenAll} disabled={openAllTables.isPending} className="gap-1.5">
+            <Play className="w-4 h-4" /> Open{closedTables.length < tables.length ? ` (${closedTables.length})` : " All"}
           </Button>
+        )}
 
-          {openTables.length > 0 && !hasResults && (
-            <Button variant="default" size="sm" onClick={() => handleOpenChipCount("result")} className="gap-1.5 bg-orange-600 hover:bg-orange-700">
-              <BarChart3 className="w-4 h-4" /> Result
-            </Button>
-          )}
+        <Button variant="secondary" size="sm" onClick={() => handleOpenChipCount("save")} className="gap-1.5">
+          <Coins className="w-4 h-4" /> Chip Count
+        </Button>
 
-          {hasResults && (
-            <Badge variant="outline" className="text-xs gap-1 border-success text-success">
-              <Lock className="w-3 h-3" /> Results set — waiting for Cashier
-            </Badge>
-          )}
-        </div>
-      </div>
+        {openTables.length > 0 && !hasResults && (
+          <Button size="sm" onClick={() => handleOpenChipCount("result")} className="gap-1.5">
+            <BarChart3 className="w-4 h-4" /> Result
+          </Button>
+        )}
+
+        {hasResults && (
+          <Badge variant="outline" className="text-xs gap-1 border-success text-success">
+            <Lock className="w-3 h-3" /> Results set — waiting for Cashier
+          </Badge>
+        )}
+      </PageHeader>
 
       {/* Pit-role tabs */}
       {isPit && (
@@ -461,8 +466,7 @@ const Tables = () => {
               </Button>
             )}
             {countMode === "result" && (
-              <Button onClick={handleConfirmResult} disabled={setTableResults.isPending || batchSnapshot.isPending || !hasAnyCount}
-                className="gap-1.5 bg-orange-600 hover:bg-orange-700">
+              <Button onClick={handleConfirmResult} disabled={setTableResults.isPending || batchSnapshot.isPending || !hasAnyCount} className="gap-1.5">
                 <BarChart3 className="w-4 h-4" /> {setTableResults.isPending ? "Saving…" : "Confirm Result"}
               </Button>
             )}
@@ -471,7 +475,7 @@ const Tables = () => {
       </Dialog>
       </>
       )}
-    </div>
+    </PageShell>
   );
 };
 
