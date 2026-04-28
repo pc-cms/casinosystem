@@ -57,9 +57,9 @@ export const ChipConservationCard = ({ compact = false }: { compact?: boolean })
           <span className="flex items-center gap-2">
             <Coins className="h-4 w-4" /> Chip Conservation
           </span>
-          <Badge variant={ok ? "default" : "destructive"} className="gap-1">
-            {ok ? <CheckCircle2 className="h-3 w-3" /> : <AlertTriangle className="h-3 w-3" />}
-            {ok ? "Balanced" : "Mismatch"}
+          <Badge variant={isObservation ? "secondary" : ok ? "default" : "destructive"} className="gap-1">
+            {isObservation ? <Eye className="h-3 w-3" /> : ok ? <CheckCircle2 className="h-3 w-3" /> : <AlertTriangle className="h-3 w-3" />}
+            {isObservation ? "Observation" : ok ? "Balanced" : "Mismatch"}
           </Badge>
         </CardTitle>
       </CardHeader>
