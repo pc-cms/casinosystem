@@ -32,10 +32,11 @@ const Stats = () => {
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-foreground">Player Stats</h1>
-        <p className="text-sm text-muted-foreground">RESULT = CASHOUT - DROP · REAL RESULT = CASHOUT - DROP - EXPENSES</p>
-      </div>
+      <PageHeader
+        icon={BarChart3}
+        title="Player Stats"
+        subtitle="RESULT = CASHOUT − DROP · REAL RESULT = CASHOUT − DROP − EXPENSES"
+      />
 
       <div className="cms-panel overflow-hidden">
         <table className="w-full">
