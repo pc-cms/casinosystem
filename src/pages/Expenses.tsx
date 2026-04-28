@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Plus, CheckCircle, Receipt } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { fmtDate } from "@/lib/format-date";
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
 import { formatCurrency } from "@/lib/currency";
