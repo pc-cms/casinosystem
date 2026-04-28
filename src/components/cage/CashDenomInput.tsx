@@ -15,7 +15,7 @@ const CashDenomInput = ({ values, onChange, denoms, currency, onSubmit }: {
   const total = cashSum(values);
 
   return (
-    <div>
+    <div className="flex flex-col h-full">
       <div className="space-y-0">
       {denoms.map((d, idx) => (
         <div key={d} className="grid grid-cols-[3.5rem_minmax(0,1fr)] items-center gap-1.5">
@@ -42,7 +42,7 @@ const CashDenomInput = ({ values, onChange, denoms, currency, onSubmit }: {
         </div>
       ))}
       </div>
-      <div className="flex items-center justify-between gap-2 pt-1 mt-1 border-t border-border">
+      <div className="mt-auto flex items-center justify-between gap-2 pt-1 border-t border-border">
         <span className="text-[10px] font-medium text-muted-foreground">Total</span>
         <span className="font-mono text-xs font-bold text-card-foreground">
           {currency === "TZS" ? `TZS ${formatNumberSpaces(total)}` : `${CURRENCY_SYMBOLS[currency] || currency}${formatNumberSpaces(total)}`}
