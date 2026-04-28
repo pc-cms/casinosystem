@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { useMissChipsArchive, useMissChipsByShift } from "@/hooks/use-chip-conservation";
 import { formatChipLabel, formatNumberSpaces, CHIP_DENOMS } from "@/lib/currency";
@@ -11,29 +10,24 @@ import { cn } from "@/lib/utils";
 const fmtDate = (d: Date) => format(d, "yyyy-MM-dd");
 const fmtTime = (iso: string | null) => (iso ? format(new Date(iso), "HH:mm") : "—");
 
+type ViewMode = "per-shift" | "by-month";
+
 const MissChips = () => {
   const today = new Date();
   const [monthAnchor, setMonthAnchor] = useState<Date>(startOfMonth(today));
+  const [view, setView] = useState<ViewMode>("per-shift");
 
   const fromDate = fmtDate(startOfMonth(monthAnchor));
   const toDate = fmtDate(endOfMonth(monthAnchor));
   const periodLabel = format(monthAnchor, "MMMM yyyy");
 
   const { data: shiftRows = [], isLoading: shiftsLoading } = useMissChipsByShift({ fromDate, toDate });
-  const { data: rawRows = [], isLoading: rawLoading } = useMissChipsArchive({ fromDate, toDate });
+  const { data: rawRows = [], isLoading: rawLoading } = useMissChipsArchive({
+    fromDate,
+    toDate,
+  });
 
   const periodTotal = shiftRows.reduce((s, r) => s + r.total_value_tzs, 0);
-
-  // Aggregations from raw archive
-  const byDay = useMemo(() => {
-    const map = new Map<string, Map<number, number>>();
-    rawRows.forEach((r) => {
-      if (!map.has(r.business_date)) map.set(r.business_date, new Map());
-      const dm = map.get(r.business_date)!;
-      dm.set(r.denomination, (dm.get(r.denomination) ?? 0) + Number(r.quantity));
-    });
-    return Array.from(map.entries()).sort((a, b) => b[0].localeCompare(a[0]));
-  }, [rawRows]);
 
   const byMonth = useMemo(() => {
     const map = new Map<string, Map<number, number>>();
@@ -53,6 +47,7 @@ const MissChips = () => {
         <Coins className="h-5 w-5" />
         <h1 className="text-lg font-semibold mr-3">Miss Chips</h1>
 
+        {/* Month nav */}
         <div className="flex items-center gap-1">
           <Button
             variant="outline"
@@ -81,6 +76,26 @@ const MissChips = () => {
           </Button>
         </div>
 
+        {/* View switcher */}
+        <div className="flex items-center gap-1 ml-2">
+          <Button
+            variant={view === "per-shift" ? "default" : "outline"}
+            size="sm"
+            className="h-8"
+            onClick={() => setView("per-shift")}
+          >
+            Per Shift
+          </Button>
+          <Button
+            variant={view === "by-month" ? "default" : "outline"}
+            size="sm"
+            className="h-8"
+            onClick={() => setView("by-month")}
+          >
+            By Month
+          </Button>
+        </div>
+
         <div className="ml-auto flex items-baseline gap-2">
           <span className="text-xs text-muted-foreground">Total</span>
           <span
@@ -94,212 +109,167 @@ const MissChips = () => {
         </div>
       </div>
 
-      <Tabs defaultValue="per-shift">
-        <TabsList>
-          <TabsTrigger value="per-shift">Per Shift</TabsTrigger>
-          <TabsTrigger value="by-day">By Day</TabsTrigger>
-          <TabsTrigger value="by-month">By Month</TabsTrigger>
-          <TabsTrigger value="raw">Raw</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="per-shift">
-          <Card>
-            <CardContent className="p-0 overflow-x-auto">
-              <table className="w-full text-xs font-mono">
-                <thead className="bg-muted/40 border-b sticky top-0">
+      {view === "per-shift" && (
+        <Card>
+          <CardContent className="p-0 overflow-x-auto">
+            <table className="w-full text-xs font-mono">
+              <thead className="bg-muted/40 border-b sticky top-0">
+                <tr>
+                  <th className="text-left px-3 py-2 whitespace-nowrap">Date</th>
+                  <th className="text-left px-3 py-2 whitespace-nowrap">Closed</th>
+                  {CHIP_DENOMS.map((d) => (
+                    <th key={d} className="text-right px-3 py-2 whitespace-nowrap">
+                      {formatChipLabel(d)}
+                    </th>
+                  ))}
+                  <th className="text-right px-3 py-2 whitespace-nowrap bg-muted/60">Total TZS</th>
+                </tr>
+              </thead>
+              <tbody>
+                {shiftsLoading && (
                   <tr>
-                    <th className="text-left px-3 py-2 whitespace-nowrap">Date</th>
-                    <th className="text-left px-3 py-2 whitespace-nowrap">Closed</th>
-                    {CHIP_DENOMS.map((d) => (
-                      <th key={d} className="text-right px-3 py-2 whitespace-nowrap">
-                        {formatChipLabel(d)}
-                      </th>
-                    ))}
-                    <th className="text-right px-3 py-2 whitespace-nowrap bg-muted/60">Total TZS</th>
+                    <td colSpan={CHIP_DENOMS.length + 3} className="text-center py-6 text-muted-foreground">
+                      Loading…
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {shiftsLoading && (
-                    <tr>
-                      <td colSpan={CHIP_DENOMS.length + 3} className="text-center py-6 text-muted-foreground">
-                        Loading…
-                      </td>
-                    </tr>
-                  )}
-                  {!shiftsLoading && shiftRows.length === 0 && (
-                    <tr>
-                      <td colSpan={CHIP_DENOMS.length + 3} className="text-center py-6 text-muted-foreground">
-                        No closed shifts with miss chips in this period
-                      </td>
-                    </tr>
-                  )}
-                  {shiftRows.map((r, idx) => (
-                    <tr key={`${r.shift_id ?? "nx"}-${idx}`} className="border-b border-border/40 hover:bg-muted/20">
-                      <td className="px-3 py-1.5 whitespace-nowrap">{r.business_date}</td>
-                      <td className="px-3 py-1.5 text-muted-foreground whitespace-nowrap">{fmtTime(r.closed_at)}</td>
+                )}
+                {!shiftsLoading && shiftRows.length === 0 && (
+                  <tr>
+                    <td colSpan={CHIP_DENOMS.length + 3} className="text-center py-6 text-muted-foreground">
+                      No closed shifts with miss chips in this period
+                    </td>
+                  </tr>
+                )}
+                {shiftRows.map((r, idx) => (
+                  <tr
+                    key={`${r.shift_id ?? "nx"}-${idx}`}
+                    className="border-b border-border/40 hover:bg-muted/20"
+                  >
+                    <td className="px-3 py-1.5 whitespace-nowrap">{r.business_date}</td>
+                    <td className="px-3 py-1.5 text-muted-foreground whitespace-nowrap">
+                      {fmtTime(r.closed_at)}
+                    </td>
+                    {CHIP_DENOMS.map((d) => {
+                      const v = r.denoms[d] ?? 0;
+                      return (
+                        <td
+                          key={d}
+                          className={cn(
+                            "text-right px-3 py-1.5",
+                            v < 0
+                              ? "text-cms-amount-negative"
+                              : v > 0
+                              ? "text-amber-500"
+                              : "text-muted-foreground"
+                          )}
+                        >
+                          {v === 0 ? "·" : formatNumberSpaces(v)}
+                        </td>
+                      );
+                    })}
+                    <td
+                      className={cn(
+                        "text-right px-3 py-1.5 font-semibold bg-muted/30",
+                        r.total_value_tzs < 0 ? "text-cms-amount-negative" : "text-cms-amount-positive"
+                      )}
+                    >
+                      {formatNumberSpaces(r.total_value_tzs)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              {shiftRows.length > 0 && (
+                <tfoot className="border-t-2 border-border bg-muted/40">
+                  <tr>
+                    <td colSpan={2} className="px-3 py-2 font-semibold">
+                      Total
+                    </td>
+                    {CHIP_DENOMS.map((d) => (
+                      <td key={d} className="px-3 py-2" />
+                    ))}
+                    <td
+                      className={cn(
+                        "text-right px-3 py-2 font-semibold text-base",
+                        periodTotal < 0 ? "text-cms-amount-negative" : "text-cms-amount-positive"
+                      )}
+                    >
+                      {formatNumberSpaces(periodTotal)} TZS
+                    </td>
+                  </tr>
+                </tfoot>
+              )}
+            </table>
+          </CardContent>
+        </Card>
+      )}
+
+      {view === "by-month" && (
+        <Card>
+          <CardContent className="p-0 overflow-x-auto">
+            <table className="w-full text-xs font-mono">
+              <thead className="bg-muted/40 border-b">
+                <tr>
+                  <th className="text-left px-3 py-2">Month</th>
+                  {CHIP_DENOMS.map((d) => (
+                    <th key={d} className="text-right px-3 py-2">
+                      {formatChipLabel(d)}
+                    </th>
+                  ))}
+                  <th className="text-right px-3 py-2">Net (TZS)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rawLoading && (
+                  <tr>
+                    <td colSpan={CHIP_DENOMS.length + 2} className="text-center py-4 text-muted-foreground">
+                      Loading…
+                    </td>
+                  </tr>
+                )}
+                {!rawLoading && byMonth.length === 0 && (
+                  <tr>
+                    <td colSpan={CHIP_DENOMS.length + 2} className="text-center py-4 text-muted-foreground">
+                      No data in this period
+                    </td>
+                  </tr>
+                )}
+                {byMonth.map(([month, denomMap]) => {
+                  const net = Array.from(denomMap.entries()).reduce((s, [d, q]) => s + d * q, 0);
+                  return (
+                    <tr key={month} className="border-b border-border/40">
+                      <td className="px-3 py-1.5">{month}</td>
                       {CHIP_DENOMS.map((d) => {
-                        const v = r.denoms[d] ?? 0;
+                        const v = denomMap.get(d) ?? 0;
                         return (
                           <td
                             key={d}
-                            className={cn(
-                              "text-right px-3 py-1.5",
-                              v < 0 ? "text-cms-amount-negative" : v > 0 ? "text-amber-500" : "text-muted-foreground"
-                            )}
+                            className={`text-right px-3 py-1.5 ${
+                              v < 0
+                                ? "text-cms-amount-negative"
+                                : v > 0
+                                ? "text-amber-500"
+                                : "text-muted-foreground"
+                            }`}
                           >
                             {v === 0 ? "·" : formatNumberSpaces(v)}
                           </td>
                         );
                       })}
                       <td
-                        className={cn(
-                          "text-right px-3 py-1.5 font-semibold bg-muted/30",
-                          r.total_value_tzs < 0 ? "text-cms-amount-negative" : "text-cms-amount-positive"
-                        )}
+                        className={`text-right px-3 py-1.5 font-semibold ${
+                          net < 0 ? "text-cms-amount-negative" : "text-cms-amount-positive"
+                        }`}
                       >
-                        {formatNumberSpaces(r.total_value_tzs)}
+                        {formatNumberSpaces(net)}
                       </td>
                     </tr>
-                  ))}
-                </tbody>
-                {shiftRows.length > 0 && (
-                  <tfoot className="border-t-2 border-border bg-muted/40">
-                    <tr>
-                      <td colSpan={2} className="px-3 py-2 font-semibold">
-                        Total
-                      </td>
-                      {CHIP_DENOMS.map((d) => (
-                        <td key={d} className="px-3 py-2" />
-                      ))}
-                      <td
-                        className={cn(
-                          "text-right px-3 py-2 font-semibold text-base",
-                          periodTotal < 0 ? "text-cms-amount-negative" : "text-cms-amount-positive"
-                        )}
-                      >
-                        {formatNumberSpaces(periodTotal)} TZS
-                      </td>
-                    </tr>
-                  </tfoot>
-                )}
-              </table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="by-day">
-          <Card>
-            <CardContent className="p-0 overflow-x-auto">
-              <table className="w-full text-xs font-mono">
-                <thead className="bg-muted/40 border-b">
-                  <tr>
-                    <th className="text-left px-3 py-2">Date</th>
-                    {CHIP_DENOMS.map((d) => (
-                      <th key={d} className="text-right px-3 py-2">{formatChipLabel(d)}</th>
-                    ))}
-                    <th className="text-right px-3 py-2">Net (TZS)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rawLoading && <tr><td colSpan={CHIP_DENOMS.length + 2} className="text-center py-4 text-muted-foreground">Loading…</td></tr>}
-                  {!rawLoading && byDay.length === 0 && <tr><td colSpan={CHIP_DENOMS.length + 2} className="text-center py-4 text-muted-foreground">No data in this period</td></tr>}
-                  {byDay.map(([date, denomMap]) => {
-                    const net = Array.from(denomMap.entries()).reduce((s, [d, q]) => s + d * q, 0);
-                    return (
-                      <tr key={date} className="border-b border-border/40">
-                        <td className="px-3 py-1.5">{date}</td>
-                        {CHIP_DENOMS.map((d) => {
-                          const v = denomMap.get(d) ?? 0;
-                          return (
-                            <td key={d} className={`text-right px-3 py-1.5 ${v < 0 ? "text-cms-amount-negative" : v > 0 ? "text-amber-500" : "text-muted-foreground"}`}>
-                              {v === 0 ? "·" : formatNumberSpaces(v)}
-                            </td>
-                          );
-                        })}
-                        <td className={`text-right px-3 py-1.5 font-semibold ${net < 0 ? "text-cms-amount-negative" : "text-cms-amount-positive"}`}>
-                          {formatNumberSpaces(net)}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="by-month">
-          <Card>
-            <CardContent className="p-0 overflow-x-auto">
-              <table className="w-full text-xs font-mono">
-                <thead className="bg-muted/40 border-b">
-                  <tr>
-                    <th className="text-left px-3 py-2">Month</th>
-                    {CHIP_DENOMS.map((d) => (
-                      <th key={d} className="text-right px-3 py-2">{formatChipLabel(d)}</th>
-                    ))}
-                    <th className="text-right px-3 py-2">Net (TZS)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {byMonth.map(([month, denomMap]) => {
-                    const net = Array.from(denomMap.entries()).reduce((s, [d, q]) => s + d * q, 0);
-                    return (
-                      <tr key={month} className="border-b border-border/40">
-                        <td className="px-3 py-1.5">{month}</td>
-                        {CHIP_DENOMS.map((d) => {
-                          const v = denomMap.get(d) ?? 0;
-                          return (
-                            <td key={d} className={`text-right px-3 py-1.5 ${v < 0 ? "text-cms-amount-negative" : v > 0 ? "text-amber-500" : "text-muted-foreground"}`}>
-                              {v === 0 ? "·" : formatNumberSpaces(v)}
-                            </td>
-                          );
-                        })}
-                        <td className={`text-right px-3 py-1.5 font-semibold ${net < 0 ? "text-cms-amount-negative" : "text-cms-amount-positive"}`}>
-                          {formatNumberSpaces(net)}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="raw">
-          <Card>
-            <CardContent className="p-0 overflow-x-auto">
-              <table className="w-full text-xs font-mono">
-                <thead className="bg-muted/40 border-b">
-                  <tr>
-                    <th className="text-left px-3 py-2">Date</th>
-                    <th className="text-left px-3 py-2">Shift</th>
-                    <th className="text-right px-3 py-2">Denom</th>
-                    <th className="text-right px-3 py-2">Qty</th>
-                    <th className="text-right px-3 py-2">Value TZS</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rawRows.map((r) => (
-                    <tr key={r.id} className="border-b border-border/40">
-                      <td className="px-3 py-1.5">{r.business_date}</td>
-                      <td className="px-3 py-1.5 text-muted-foreground">{r.shift_id?.slice(0, 8) ?? "—"}</td>
-                      <td className="text-right px-3 py-1.5">{formatChipLabel(r.denomination)}</td>
-                      <td className={`text-right px-3 py-1.5 ${r.quantity < 0 ? "text-cms-amount-negative" : "text-amber-500"}`}>
-                        {formatNumberSpaces(r.quantity)}
-                      </td>
-                      <td className={`text-right px-3 py-1.5 ${r.total_value_tzs < 0 ? "text-cms-amount-negative" : "text-cms-amount-positive"}`}>
-                        {formatNumberSpaces(r.total_value_tzs)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+                  );
+                })}
+              </tbody>
+            </table>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };
