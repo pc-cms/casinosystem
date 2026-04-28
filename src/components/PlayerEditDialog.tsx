@@ -68,10 +68,14 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
   const [noteType, setNoteType] = useState<string>("info");
   const [addingNote, setAddingNote] = useState(false);
 
-  // Notes are CCTV-only (surveillance role). Manager keeps read access for oversight.
-  const canSeeNotes = roles.some(r => ["surveillance", "manager"].includes(r)) || isManager;
-  const canAddNotes = roles.some(r => r === "surveillance") || isManager;
-  const canEditCategory = isManager;
+  // Pit gets read-only view: can see Notes but cannot edit fields or add notes.
+  // Reception/HR/etc. get the standard editable view (no Notes).
+  // Surveillance + Manager: full access (read & write Notes, edit fields).
+  const isPit = roles.some(r => r === "pit") && !isManager;
+  const readOnly = isPit;
+  const canSeeNotes = roles.some(r => ["pit", "surveillance", "manager"].includes(r)) || isManager;
+  const canAddNotes = (roles.some(r => r === "surveillance") || isManager) && !readOnly;
+  const canEditCategory = isManager && !readOnly;
 
   useEffect(() => {
     if (player && open) {
