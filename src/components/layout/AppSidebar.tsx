@@ -37,10 +37,11 @@ const NAV_ITEMS: NavItem[] = [
   // OVERVIEW
   { to: "/", icon: LayoutDashboard, label: "Dashboard", roles: ["super_admin", "manager", "pit", "reception", "finance_manager", "surveillance"], section: "OVERVIEW" },
 
-  // PIT — Live game floor
-  { to: "/pit", icon: Gamepad2, label: "Live Game", roles: ["super_admin", "manager", "pit", "finance_manager", "hr"], section: "PIT" },
+  // PIT — Live game floor (no Employee tab here)
+  { to: "/pit", icon: Gamepad2, label: "Live Game", roles: ["super_admin", "manager", "pit", "finance_manager"], section: "PIT" },
   { to: "/pit?tab=breaklist", icon: ListChecks, label: "Breaklist", roles: ["super_admin", "manager", "pit", "finance_manager"], section: "PIT" },
   { to: "/tables", icon: Table2, label: "Tables", roles: ["super_admin", "manager", "cashier", "pit", "finance_manager", "surveillance"], section: "PIT" },
+  { to: "/staff", icon: Building2, label: "Floor Staff", roles: ["super_admin", "manager", "pit", "finance_manager"], section: "PIT" },
 
   // CASHIER — Cage operations
   { to: "/cage", icon: Landmark, label: "Cage", roles: ["super_admin", "manager", "cashier", "finance_manager"], section: "CASHIER" },
@@ -63,8 +64,9 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/finance?tab=transfers", icon: Upload, label: "Transfers", roles: ["super_admin", "finance_manager"], section: "FINANCE" },
   { to: "/finance?tab=wallets", icon: Wallet, label: "Wallets", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
 
-  // HR
-  { to: "/staff", icon: Building2, label: "Floor Staff", roles: ["super_admin", "manager", "pit", "finance_manager", "hr"], section: "HR" },
+  // HR — Personnel admin (Employee tab visible)
+  { to: "/pit", icon: Gamepad2, label: "Live Game", roles: ["super_admin", "manager", "hr"], section: "HR" },
+  { to: "/staff", icon: Building2, label: "Floor Staff", roles: ["super_admin", "manager", "hr"], section: "HR" },
 
   // ANALYTICS — shared
   { to: "/groups", icon: UsersRound, label: "Groups", roles: ["super_admin", "manager", "finance_manager"], section: "ANALYTICS" },
@@ -85,13 +87,25 @@ const TABLE_SUBITEMS = [
   { tab: "tabletracker", icon: Target, label: "Table Tracker" },
 ];
 
-const PIT_SUBITEMS = [
+// PIT-section variant (no Employee — Personnel admin lives in HR)
+const PIT_SUBITEMS_OPS = [
+  { tab: "attendance", icon: ClipboardPen, label: "Attendance" },
+  { tab: "rota", icon: CalendarDays, label: "Rota" },
+];
+// HR-section variant (with Employee)
+const PIT_SUBITEMS_HR = [
   { tab: "attendance", icon: ClipboardPen, label: "Attendance" },
   { tab: "employee", icon: UserCheck, label: "Employee" },
   { tab: "rota", icon: CalendarDays, label: "Rota" },
 ];
 
-const STAFF_SUBITEMS = [
+const STAFF_SUBITEMS_OPS = [
+  { tab: "attendance", icon: ClipboardPen, label: "Attendance" },
+  { tab: "rota_office", icon: CalendarDays, label: "Office Rota" },
+  { tab: "rota_floor", icon: CalendarDays, label: "Floor Rota" },
+  { tab: "rota_security", icon: ShieldCheck, label: "Security Rota" },
+];
+const STAFF_SUBITEMS_HR = [
   { tab: "attendance", icon: ClipboardPen, label: "Attendance" },
   { tab: "employee", icon: UserCheck, label: "Employee" },
   { tab: "rota_office", icon: CalendarDays, label: "Office Rota" },
@@ -183,15 +197,18 @@ const SidebarSections = ({
     });
   };
 
-  const renderItem = (item: NavItem) => {
+  const renderItem = (item: NavItem, sectionCtx: Section) => {
     const { base: itemBase, tab: itemTab } = parseItemTo(item.to);
     const isTabAware = itemTab !== null;
     const isTabAwareActive =
       isTabAware && location.pathname === itemBase && currentTab === itemTab;
     const isWalletsItem = item.to === WALLETS_PATH;
     const showWalletsSubs = isWalletsItem && isTabAwareActive;
+    // Section-aware sub-items: HR section gets Employee tab, PIT section does not
+    const pitSubs = sectionCtx === "HR" ? PIT_SUBITEMS_HR : PIT_SUBITEMS_OPS;
+    const staffSubs = sectionCtx === "HR" ? STAFF_SUBITEMS_HR : STAFF_SUBITEMS_OPS;
     return (
-      <div key={item.to}>
+      <div key={`${sectionCtx}:${item.to}`}>
         <NavLink
           to={item.to}
           end={item.to === "/" || item.to === "/pit" || item.to === "/staff" || item.to === "/tables" || isTabAware}
@@ -207,8 +224,8 @@ const SidebarSections = ({
           <span className="flex-1">{item.label}</span>
         </NavLink>
         {item.to === "/tables" && isTablesActive && (roles.includes("pit") || roles.includes("manager") || roles.includes("finance_manager")) && renderSubItems("/tables", TABLE_SUBITEMS)}
-        {item.to === "/pit" && isPitActive && renderSubItems("/pit", PIT_SUBITEMS)}
-        {item.to === "/staff" && isStaffActive && renderSubItems("/staff", STAFF_SUBITEMS)}
+        {item.to === "/pit" && isPitActive && renderSubItems("/pit", pitSubs)}
+        {item.to === "/staff" && isStaffActive && renderSubItems("/staff", staffSubs)}
         {showWalletsSubs && renderSubItems("/finance", WALLETS_SUBITEMS)}
       </div>
     );
@@ -227,7 +244,7 @@ const SidebarSections = ({
 
         // OVERVIEW renders flat (no collapse) — single Dashboard item
         if (section === FLAT_SECTION) {
-          return <div key={section} className="mb-1">{items.map(renderItem)}</div>;
+          return <div key={section} className="mb-1">{items.map(it => renderItem(it, section))}</div>;
         }
 
         const isOpen = !!open[section];
@@ -241,7 +258,7 @@ const SidebarSections = ({
               {isOpen ? <ChevronDown className="w-3 h-3 text-muted-foreground" /> : <ChevronRight className="w-3 h-3 text-muted-foreground" />}
               <span className="text-[9px] font-mono text-muted-foreground uppercase tracking-widest">{section}</span>
             </button>
-            {isOpen && <div className="space-y-0.5">{items.map(renderItem)}</div>}
+            {isOpen && <div className="space-y-0.5">{items.map(it => renderItem(it, section))}</div>}
           </div>
         );
       })}
