@@ -80,6 +80,7 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
       setNickname(player.nickname || "");
       setPhone(player.phone || "");
       setIdNumber(player.id_number || "");
+      setBirthDate(player.birth_date || "");
       setPlayerType(player.player_type || "table");
       setCategory((player.category as PlayerCategory) || "normal");
       setPhotoUrl(player.photo_url || null);
