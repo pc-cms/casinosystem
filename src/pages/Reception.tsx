@@ -17,7 +17,7 @@ import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
 import DuplicateCheckResult from "@/components/registration/DuplicateCheckResult";
 import {
   Search, UserPlus, LogIn, LogOut, ShieldAlert, Camera,
-  User, Ban, CheckCircle2, XCircle, CreditCard, AlertTriangle, Eye,
+  User, Ban, CheckCircle2, XCircle, CreditCard, AlertTriangle, Eye, ClipboardList,
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import CategoryBadge, { type PlayerCategory } from "@/components/player/CategoryBadge";
@@ -28,6 +28,8 @@ import { getBusinessDate } from "@/lib/business-day";
 import { compressImage, thumbnailPath } from "@/lib/image-compress";
 import PhotoCapture from "@/components/PhotoCapture";
 import { FormGrid, FormField } from "@/components/ui/form-grid";
+import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 const isProfileIncomplete = (player: any): string[] => {
   const missing: string[] = [];
@@ -44,13 +46,12 @@ const Reception = () => {
 
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-3 sm:mb-4">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-foreground">Reception</h1>
-          <p className="text-xs sm:text-sm text-muted-foreground">Entry control · Player registration</p>
-        </div>
-      </div>
+    <PageShell>
+      <PageHeader
+        icon={ClipboardList}
+        title="Reception"
+        subtitle="Entry control · Player registration"
+      />
 
       <Tabs value={tab} onValueChange={v => setSearchParams({ tab: v })}>
         <TabsList className="mb-3 sm:mb-4 w-full sm:w-auto grid grid-cols-3 sm:flex">
@@ -75,7 +76,7 @@ const Reception = () => {
         <TabsContent value="register"><RegisterTab /></TabsContent>
         <TabsContent value="update"><UpdateDataTab /></TabsContent>
       </Tabs>
-    </div>
+    </PageShell>
   );
 };
 
