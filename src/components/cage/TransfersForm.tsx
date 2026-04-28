@@ -1,0 +1,252 @@
+import { useState, useMemo } from "react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { NumberInput } from "@/components/ui/number-input";
+import { Textarea } from "@/components/ui/textarea";
+import { ArrowLeftRight, Banknote, HandCoins, ArrowUpRight, ArrowDownLeft } from "lucide-react";
+import ChipDenomInput from "@/components/ChipDenomInput";
+import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
+import { useCreateCageTransfer, useCageTransfers, type CageTransferType, cageTransferLabel } from "@/hooks/use-cage-transfers";
+import { useAuth } from "@/lib/auth-context";
+import { sumChips } from "@/hooks/use-chip-colors";
+import { formatCurrency, formatNumberSpaces } from "@/lib/currency";
+import type { Tables } from "@/integrations/supabase/types";
+
+type Props = {
+  shiftId: string;
+  tables: Tables<"gaming_tables">[];
+};
+
+const TYPE_OPTIONS: Array<{ value: CageTransferType; label: string; icon: typeof Banknote; description: string; needsOverride: boolean }> = [
+  { value: "add_float", label: "Add Float", icon: Banknote, description: "Cash IN from manager safe", needsOverride: false },
+  { value: "collection", label: "Collection", icon: HandCoins, description: "Cash OUT to manager safe", needsOverride: true },
+  { value: "fill", label: "Fill (to Table)", icon: ArrowUpRight, description: "Chips OUT to table", needsOverride: false },
+  { value: "credit", label: "Credit (from Table)", icon: ArrowDownLeft, description: "Chips IN from table", needsOverride: false },
+];
+
+const TransfersForm = ({ shiftId, tables }: Props) => {
+  const { user } = useAuth();
+  const create = useCreateCageTransfer();
+  const { data: transfers = [] } = useCageTransfers(shiftId);
+
+  const [type, setType] = useState<CageTransferType>("add_float");
+  const [amount, setAmount] = useState("");
+  const [tableId, setTableId] = useState("");
+  const [chips, setChips] = useState<Record<number, number>>({});
+  const [note, setNote] = useState("");
+  const [showOverride, setShowOverride] = useState(false);
+
+  const cfg = TYPE_OPTIONS.find(t => t.value === type)!;
+  const isChipFlow = type === "fill" || type === "credit";
+  const chipsTotal = useMemo(() => sumChips(chips), [chips]);
+  const finalAmount = isChipFlow ? chipsTotal : Number(amount) || 0;
+
+  const tableMap = useMemo(() => new Map(tables.map(t => [t.id, t])), [tables]);
+
+  const reset = () => {
+    setAmount(""); setChips({}); setNote(""); setTableId("");
+  };
+
+  const handleTypeChange = (next: CageTransferType) => {
+    setType(next);
+    reset();
+  };
+
+  const submit = (managerId: string) => {
+    create.mutate({
+      transfer_type: type,
+      shift_id: shiftId,
+      amount: finalAmount,
+      table_id: isChipFlow ? tableId : null,
+      chips: isChipFlow
+        ? Object.fromEntries(Object.entries(chips).filter(([, q]) => q > 0).map(([d, q]) => [String(d), q]))
+        : null,
+      note,
+      approved_by: managerId,
+    }, {
+      onSuccess: () => { reset(); setShowOverride(false); },
+    });
+  };
+
+  const handleSubmit = () => {
+    if (finalAmount <= 0) {
+      toast.error("Amount must be greater than zero");
+      return;
+    }
+    if (isChipFlow && !tableId) {
+      toast.error("Select a table");
+      return;
+    }
+    if (!user) return;
+
+    if (cfg.needsOverride) {
+      setShowOverride(true);
+    } else {
+      submit(user.id);
+    }
+  };
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-[minmax(380px,460px)_1fr] gap-3 items-stretch">
+      {/* LEFT — form */}
+      <div className="cms-panel p-4 space-y-3">
+        {/* Type selector */}
+        <div>
+          <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">1. Transfer Type</label>
+          <div className="grid grid-cols-2 gap-1.5">
+            {TYPE_OPTIONS.map(opt => {
+              const Icon = opt.icon;
+              const active = type === opt.value;
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => handleTypeChange(opt.value)}
+                  className={`text-left rounded border px-2.5 py-2 transition-colors ${active ? "border-primary bg-primary/10" : "border-border bg-muted/30 hover:bg-muted"}`}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <Icon className="w-3.5 h-3.5" />
+                    <span className="text-xs font-semibold text-card-foreground">{opt.label}</span>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground mt-0.5 leading-tight">{opt.description}</p>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Cash flow form */}
+        {!isChipFlow && (
+          <div>
+            <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1 block">2. Amount (TZS)</label>
+            <NumberInput
+              value={amount}
+              onChange={setAmount}
+              className="text-lg h-11"
+              placeholder="0"
+              onKeyDown={e => e.key === "Enter" && handleSubmit()}
+            />
+          </div>
+        )}
+
+        {/* Chip flow form */}
+        {isChipFlow && (
+          <>
+            <div>
+              <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1 block">2. Table</label>
+              {tables.length === 0 ? (
+                <p className="text-xs text-muted-foreground italic">No open tables</p>
+              ) : (
+                <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1">
+                  {tables.map(t => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => setTableId(t.id)}
+                      className={`px-2.5 py-1 rounded text-xs font-mono shrink-0 transition-colors ${tableId === t.id ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-primary/20"}`}
+                    >
+                      {t.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div>
+              <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">
+                3. Chips {type === "fill" ? "to Send" : "to Receive"}
+              </label>
+              <ChipDenomInput
+                values={chips}
+                onChange={setChips}
+                columns={2}
+                size="md"
+                onSubmit={handleSubmit}
+              />
+            </div>
+          </>
+        )}
+
+        {/* Note */}
+        <div>
+          <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1 block">Note (optional)</label>
+          <Textarea
+            value={note}
+            onChange={e => setNote(e.target.value)}
+            rows={2}
+            placeholder="Reason / context…"
+            className="text-xs resize-none"
+          />
+        </div>
+
+        <Button
+          onClick={handleSubmit}
+          disabled={finalAmount <= 0 || (isChipFlow && !tableId) || create.isPending}
+          className="w-full gap-1.5 h-11"
+        >
+          <ArrowLeftRight className="w-4 h-4" />
+          {create.isPending ? "Recording…" : cfg.label} {finalAmount > 0 && `· ${formatCurrency(finalAmount)}`}
+        </Button>
+
+        {cfg.needsOverride && (
+          <p className="text-[10px] text-warning text-center">Manager Override required for {cfg.label}</p>
+        )}
+      </div>
+
+      {/* RIGHT — list */}
+      <div className="cms-panel">
+        <div className="cms-header">Transfers ({transfers.length})</div>
+        <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
+          <table className="w-full">
+            <thead className="sticky top-0 bg-card z-10">
+              <tr className="border-b border-border">
+                {["Type", "Table", "Amount", "Note", "Time"].map(h => (
+                  <th key={h} className={`text-xs font-medium text-muted-foreground uppercase px-3 py-1.5 ${h === "Amount" || h === "Time" ? "text-right" : "text-left"}`}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {transfers.length === 0 ? (
+                <tr><td colSpan={5} className="text-center text-muted-foreground text-sm py-6">No transfers yet</td></tr>
+              ) : transfers.map(tr => {
+                const t = tr.transfer_type as CageTransferType;
+                const positive = t === "add_float" || t === "credit";
+                return (
+                  <tr key={tr.id} className="border-b border-border last:border-0">
+                    <td className="px-3 py-1.5">
+                      <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${positive ? "bg-primary/10 text-primary" : "bg-accent/10 text-accent"}`}>
+                        {cageTransferLabel(t)}
+                      </span>
+                    </td>
+                    <td className="px-3 py-1.5 text-xs text-muted-foreground font-mono">
+                      {tr.table_id ? tableMap.get(tr.table_id)?.name || "—" : "—"}
+                    </td>
+                    <td className={`px-3 py-1.5 text-right font-mono text-xs font-medium ${positive ? "cms-amount-positive" : "cms-amount-negative"}`}>
+                      {positive ? "+" : "−"}{formatNumberSpaces(Number(tr.amount))}
+                    </td>
+                    <td className="px-3 py-1.5 text-xs text-muted-foreground truncate max-w-[160px]">{tr.note || "—"}</td>
+                    <td className="px-3 py-1.5 text-right font-mono text-[10px] text-muted-foreground">
+                      {new Date(tr.created_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <ManagerOverrideDialog
+        open={showOverride}
+        onClose={() => setShowOverride(false)}
+        onConfirm={(managerId) => submit(managerId)}
+        title="Collection — Manager Override"
+        description="Withdrawing cash from cage to manager safe requires manager authentication."
+        actionType="CAGE_COLLECTION"
+        actionDetails={{ amount: finalAmount, note }}
+      />
+    </div>
+  );
+};
+
+export default TransfersForm;
