@@ -686,6 +686,14 @@ const RegisterTab = () => {
               className={`h-10 font-mono ${ocrDone && form.id_number ? "border-primary/50" : ""}`}
             />
           </FormField>
+          <FormField span={12} label="Birth Date">
+            <Input
+              value={form.birth_date}
+              onChange={e => setForm(f => ({ ...f, birth_date: e.target.value }))}
+              type="date"
+              className="h-10"
+            />
+          </FormField>
         </FormGrid>
 
         {/* Manual duplicate check button if no OCR was done */}
