@@ -72,9 +72,8 @@ const Players = () => {
       <div className="flex items-center gap-3 mb-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input ref={searchRef} value={query} onChange={e => setQuery(e.target.value)}
+          <Input value={query} onChange={e => setQuery(e.target.value)}
             placeholder="Search by name, nickname, or card number..." className="pl-10 font-mono" />
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 cms-kbd">/</span>
         </div>
         <CategoryFilter selected={categoryFilter} onChange={setCategoryFilter} />
         <Button variant={sortByCategory ? "secondary" : "ghost"} size="sm" className="text-xs h-7 shrink-0" onClick={() => setSortByCategory(!sortByCategory)}>
