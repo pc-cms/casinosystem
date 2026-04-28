@@ -1,15 +1,11 @@
 import { useMemo, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useMissChipsArchive, useMissChipsByShift } from "@/hooks/use-chip-conservation";
-
-import { ChipConservationCard } from "@/components/chips/ChipConservationCard";
 import { formatChipLabel, formatNumberSpaces, CHIP_DENOMS } from "@/lib/currency";
 import { format, startOfMonth, endOfMonth, subMonths, addMonths } from "date-fns";
-import { Coins, CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react";
+import { Coins, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const fmtDate = (d: Date) => format(d, "yyyy-MM-dd");
@@ -18,24 +14,10 @@ const fmtTime = (iso: string | null) => (iso ? format(new Date(iso), "HH:mm") : 
 const MissChips = () => {
   const today = new Date();
   const [monthAnchor, setMonthAnchor] = useState<Date>(startOfMonth(today));
-  const [customFrom, setCustomFrom] = useState<Date | undefined>();
-  const [customTo, setCustomTo] = useState<Date | undefined>();
-  const [mode, setMode] = useState<"month" | "custom">("month");
 
-  const { fromDate, toDate, periodLabel } = useMemo(() => {
-    if (mode === "custom" && customFrom && customTo) {
-      return {
-        fromDate: fmtDate(customFrom),
-        toDate: fmtDate(customTo),
-        periodLabel: `${format(customFrom, "dd MMM yyyy")} — ${format(customTo, "dd MMM yyyy")}`,
-      };
-    }
-    return {
-      fromDate: fmtDate(startOfMonth(monthAnchor)),
-      toDate: fmtDate(endOfMonth(monthAnchor)),
-      periodLabel: format(monthAnchor, "MMMM yyyy"),
-    };
-  }, [mode, monthAnchor, customFrom, customTo]);
+  const fromDate = fmtDate(startOfMonth(monthAnchor));
+  const toDate = fmtDate(endOfMonth(monthAnchor));
+  const periodLabel = format(monthAnchor, "MMMM yyyy");
 
   const { data: shiftRows = [], isLoading: shiftsLoading } = useMissChipsByShift({ fromDate, toDate });
   const { data: rawRows = [], isLoading: rawLoading } = useMissChipsArchive({ fromDate, toDate });
@@ -66,110 +48,51 @@ const MissChips = () => {
 
   return (
     <div className="container mx-auto p-4 space-y-3 max-w-[1400px]">
-      <div className="flex items-center gap-2">
+      {/* Single compact header row */}
+      <div className="flex items-center flex-wrap gap-2">
         <Coins className="h-5 w-5" />
-        <h1 className="text-lg font-semibold">Miss Chips</h1>
-        <span className="text-xs text-muted-foreground hidden sm:inline">
-          · Conservation status, per-shift breakdown and historical archive
-        </span>
+        <h1 className="text-lg font-semibold mr-3">Miss Chips</h1>
+
+        <div className="flex items-center gap-1">
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => setMonthAnchor((d) => startOfMonth(subMonths(d, 1)))}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 min-w-[140px] font-mono"
+            onClick={() => setMonthAnchor(startOfMonth(today))}
+          >
+            {periodLabel}
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => setMonthAnchor((d) => startOfMonth(addMonths(d, 1)))}
+            disabled={monthAnchor >= startOfMonth(today)}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+
+        <div className="ml-auto flex items-baseline gap-2">
+          <span className="text-xs text-muted-foreground">Total</span>
+          <span
+            className={cn(
+              "text-lg font-mono font-semibold",
+              periodTotal < 0 ? "text-cms-amount-negative" : "text-cms-amount-positive"
+            )}
+          >
+            {formatNumberSpaces(periodTotal)} TZS
+          </span>
+        </div>
       </div>
-
-      <ChipConservationCard />
-
-      {/* Period selector */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Period — {periodLabel}</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-1">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => {
-                setMode("month");
-                setMonthAnchor((d) => startOfMonth(subMonths(d, 1)));
-              }}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={mode === "month" ? "default" : "outline"}
-              onClick={() => {
-                setMode("month");
-                setMonthAnchor(startOfMonth(today));
-              }}
-            >
-              Current month
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => {
-                setMode("month");
-                setMonthAnchor((d) => startOfMonth(addMonths(d, 1)));
-              }}
-              disabled={monthAnchor >= startOfMonth(today)}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-
-          <div className="h-6 w-px bg-border" />
-
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant={mode === "custom" ? "default" : "outline"} className="gap-2">
-                <CalendarIcon className="h-4 w-4" />
-                {mode === "custom" && customFrom ? `From ${format(customFrom, "dd MMM")}` : "Custom from"}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={customFrom}
-                onSelect={(d) => {
-                  setCustomFrom(d);
-                  setMode("custom");
-                }}
-                className={cn("p-3 pointer-events-auto")}
-              />
-            </PopoverContent>
-          </Popover>
-
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant={mode === "custom" ? "default" : "outline"} className="gap-2">
-                <CalendarIcon className="h-4 w-4" />
-                {mode === "custom" && customTo ? `To ${format(customTo, "dd MMM")}` : "Custom to"}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={customTo}
-                onSelect={(d) => {
-                  setCustomTo(d);
-                  setMode("custom");
-                }}
-                className={cn("p-3 pointer-events-auto")}
-              />
-            </PopoverContent>
-          </Popover>
-
-          <div className="ml-auto text-right">
-            <div className="text-xs text-muted-foreground">Period Miss Total</div>
-            <div
-              className={cn(
-                "text-2xl font-mono font-semibold",
-                periodTotal < 0 ? "text-cms-amount-negative" : "text-cms-amount-positive"
-              )}
-            >
-              {formatNumberSpaces(periodTotal)} TZS
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       <Tabs defaultValue="per-shift">
         <TabsList>
