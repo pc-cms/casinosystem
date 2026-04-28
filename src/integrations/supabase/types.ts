@@ -1822,6 +1822,7 @@ export type Database = {
       }
       players: {
         Row: {
+          birth_date: string | null
           casino_id: string
           category: Database["public"]["Enums"]["player_category"]
           created_at: string
@@ -1838,6 +1839,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          birth_date?: string | null
           casino_id: string
           category?: Database["public"]["Enums"]["player_category"]
           created_at?: string
@@ -1854,6 +1856,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          birth_date?: string | null
           casino_id?: string
           category?: Database["public"]["Enums"]["player_category"]
           created_at?: string
