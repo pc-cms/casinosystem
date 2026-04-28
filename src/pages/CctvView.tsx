@@ -267,10 +267,10 @@ const CctvCage = () => {
         <div className="space-y-1 max-h-64 overflow-y-auto">
           {transactions.slice(0, 30).map(tx => (
             <div key={tx.id} className="flex items-center justify-between text-xs py-1 border-b border-border last:border-0">
-              <span className={`font-medium w-16 ${tx.type === "buy" ? "text-green-500" : "text-amber-500"}`}>
-                {tx.type === "buy" ? "BUY-IN" : "CASHOUT"}
+              <span className={`font-medium w-16 ${(tx.type === "buy" || tx.type === "in") ? "cms-amount-positive" : "cms-amount-negative"}`}>
+                {(tx.type === "buy" || tx.type === "in") ? "IN" : "OUT"}
               </span>
-              <span className="font-mono text-foreground flex-1 text-right">{formatCurrency(Number(tx.amount))}</span>
+              <span className={`font-mono flex-1 text-right ${(tx.type === "buy" || tx.type === "in") ? "cms-amount-positive" : "cms-amount-negative"}`}>{(tx.type === "buy" || tx.type === "in") ? "+" : "−"}{formatCurrency(Number(tx.amount))}</span>
               <span className="text-muted-foreground ml-3 w-12 text-right">{format(new Date(tx.created_at), "HH:mm")}</span>
             </div>
           ))}
