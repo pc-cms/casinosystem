@@ -1,8 +1,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useChipConservation } from "@/hooks/use-chip-conservation";
+import { useChipConservationMode } from "@/hooks/use-chip-conservation-mode";
 import { formatNumberSpaces, formatChipLabel } from "@/lib/currency";
-import { CheckCircle2, AlertTriangle, Coins } from "lucide-react";
+import { CheckCircle2, AlertTriangle, Coins, Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /**
