@@ -3,7 +3,9 @@ import { useOpenShift } from "@/hooks/use-shift";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { NumberInput } from "@/components/ui/number-input";
-import { Play, Settings2, ChevronRight, ChevronLeft } from "lucide-react";
+import { Play, Settings2, ChevronRight, ChevronLeft, Landmark } from "lucide-react";
+import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import {
   CHIP_DENOMS, formatCurrency, formatNumberSpaces, CURRENCIES, FOREIGN_CURRENCIES,
@@ -239,7 +241,7 @@ const OpenShiftScreen = ({ tables }: { tables: Tables<"gaming_tables">[] }) => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageShell>
   );
 };
 
