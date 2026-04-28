@@ -4,6 +4,27 @@ import { cva, type VariantProps } from "class-variance-authority";
 
 import { cn } from "@/lib/utils";
 
+/**
+ * BUTTON SYSTEM — design rules (do NOT bypass with manual h-* classes):
+ *
+ * VARIANT (hierarchy on a page/dialog):
+ *   default      — primary action (1 per surface): Save, Submit, Register, Close Shift
+ *   secondary    — alternate primary
+ *   outline      — neutral controls: filters, toggles, refresh, export
+ *   ghost        — icon-only buttons inside tables/headers; close
+ *   destructive  — only delete / block / blacklist
+ *   link         — inline navigation
+ *
+ * SIZE (height tokens):
+ *   default      — h-10  (forms, dialogs)        — main forms / modal CTAs
+ *   compact      — h-9   (page chrome, filters, table actions)
+ *   sm           — h-9   (alias of compact, kept for backwards compat)
+ *   xs           — h-8   (very dense rows / chip toolbars)
+ *   lg           — h-11  (auth screens, big CTAs only)
+ *   icon         — h-10 w-10 (square, paired with default-height surfaces)
+ *   icon-sm      — h-9 w-9  (paired with compact surfaces / inside tables)
+ *   icon-xs      — h-8 w-8  (paired with xs surfaces)
+ */
 const buttonVariants = cva(
   "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
@@ -18,9 +39,13 @@ const buttonVariants = cva(
       },
       size: {
         default: "h-10 px-4 py-2",
+        compact: "h-9 rounded-md px-3",
         sm: "h-9 rounded-md px-3",
+        xs: "h-8 rounded-md px-2.5 text-xs",
         lg: "h-11 rounded-md px-8",
         icon: "h-10 w-10",
+        "icon-sm": "h-9 w-9",
+        "icon-xs": "h-8 w-8",
       },
     },
     defaultVariants: {
