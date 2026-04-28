@@ -581,7 +581,7 @@ const RegisterTab = () => {
       });
 
       queryClient.invalidateQueries({ queryKey: ["players"] });
-      setForm({ first_name: "", last_name: "", nickname: "", phone: "", id_number: "" });
+      setForm({ first_name: "", last_name: "", nickname: "", phone: "", id_number: "", birth_date: "" });
       setPhotoFile(null);
       setPhotoPreview(null);
       setDocFiles([]);
