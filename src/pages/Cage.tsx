@@ -1,8 +1,11 @@
+import { Landmark } from "lucide-react";
 import { CardSkeleton, TableSkeleton } from "@/components/LoadingSkeletons";
 import { usePlayers, useGamingTables } from "@/hooks/use-casino-data";
 import { useActiveShift } from "@/hooks/use-shift";
 import OpenShiftScreen from "@/components/cage/OpenShiftScreen";
 import ActiveShiftView from "@/components/cage/ActiveShiftView";
+import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 const Cage = () => {
   const { data: shift, isLoading: loadingShift } = useActiveShift();
@@ -11,16 +14,11 @@ const Cage = () => {
 
   if (loadingShift || loadingPlayers) {
     return (
-      <div className="space-y-4">
-        <div className="flex items-center justify-between mb-2">
-          <div>
-            <h1 className="text-xl font-bold text-foreground">Cage</h1>
-            <p className="text-xs text-muted-foreground">Loading shift data...</p>
-          </div>
-        </div>
+      <PageShell>
+        <PageHeader icon={Landmark} title="Cage" subtitle="Loading shift data…" date />
         <CardSkeleton count={4} />
         <TableSkeleton rows={3} cols={3} />
-      </div>
+      </PageShell>
     );
   }
 

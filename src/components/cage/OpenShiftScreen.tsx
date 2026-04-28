@@ -3,7 +3,9 @@ import { useOpenShift } from "@/hooks/use-shift";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { NumberInput } from "@/components/ui/number-input";
-import { Play, Settings2, ChevronRight, ChevronLeft } from "lucide-react";
+import { Play, Settings2, ChevronRight, ChevronLeft, Landmark } from "lucide-react";
+import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import {
   CHIP_DENOMS, formatCurrency, formatNumberSpaces, CURRENCIES, FOREIGN_CURRENCIES,
@@ -69,25 +71,27 @@ const OpenShiftScreen = ({ tables }: { tables: Tables<"gaming_tables">[] }) => {
   };
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-2">
-        <div>
-          <h1 className="text-xl font-bold text-foreground">Cage</h1>
-          <p className="text-xs text-muted-foreground">Step {step} of 2</p>
-        </div>
-        <Button variant="outline" size="sm" onClick={() => setShowRates(true)} className="gap-1 font-mono text-[10px] h-7 px-2">
-          <Settings2 className="w-3 h-3" /> Rates
+    <PageShell>
+      <PageHeader
+        icon={Landmark}
+        title="Cage"
+        subtitle={`Open shift · Step ${step} of 2`}
+        belowHeader={
+          <div className="flex items-center gap-4 flex-wrap">
+            {FOREIGN_CURRENCIES.map(c => (
+              <span key={c} className="text-base font-semibold font-mono tabular-nums text-foreground">
+                <span className="text-muted-foreground text-xs font-medium uppercase mr-1">{c}</span>
+                {formatNumberSpaces(rates[c] || 0)}
+              </span>
+            ))}
+          </div>
+        }
+        date
+      >
+        <Button variant="outline" size="sm" onClick={() => setShowRates(true)} className="gap-1.5">
+          <Settings2 className="w-3.5 h-3.5" /> Rates
         </Button>
-      </div>
-
-      <div className="flex items-center gap-3 px-2 py-1 rounded bg-muted/50 border border-border mb-2 text-[10px]">
-        <span className="font-medium text-muted-foreground uppercase tracking-wider">Rates</span>
-        {FOREIGN_CURRENCIES.map(c => (
-          <span key={c} className="font-mono text-card-foreground">
-            <span className="text-muted-foreground">{c}</span> {formatNumberSpaces(rates[c] || 0)}
-          </span>
-        ))}
-      </div>
+      </PageHeader>
 
       <div className="flex items-center gap-1.5 mb-3">
         <button type="button" onClick={() => setStep(1)}
@@ -237,7 +241,7 @@ const OpenShiftScreen = ({ tables }: { tables: Tables<"gaming_tables">[] }) => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageShell>
   );
 };
 

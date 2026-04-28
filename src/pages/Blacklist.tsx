@@ -3,7 +3,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
-import { Ban, ShieldAlert } from "lucide-react";
+import { Ban, ShieldAlert, UserCheck } from "lucide-react";
+import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { toast } from "sonner";
 import { cacheBlacklist, getCachedBlacklist, getLocalPhotoUrl } from "@/lib/blacklist-cache";
@@ -14,20 +15,25 @@ const BlacklistPhoto = ({ playerId, photoUrl }: { playerId: string; photoUrl: st
 
   useEffect(() => {
     if (!photoUrl) {
-      // Try local cache
-      getLocalPhotoUrl(playerId).then(url => {
-        if (url) setSrc(url);
-      });
+      getLocalPhotoUrl(playerId).then(url => { if (url) setSrc(url); });
     }
   }, [playerId, photoUrl]);
 
   if (!src) {
-    return <Ban className="w-5 h-5 text-destructive" />;
+    return (
+      <div className="w-full h-full flex items-center justify-center bg-destructive/10">
+        <Ban className="w-12 h-12 text-destructive" />
+      </div>
+    );
   }
 
   return (
     <>
-      {!loaded && <Ban className="w-5 h-5 text-destructive absolute" />}
+      {!loaded && (
+        <div className="absolute inset-0 flex items-center justify-center bg-destructive/10">
+          <Ban className="w-12 h-12 text-destructive" />
+        </div>
+      )}
       <img
         src={src}
         className={`w-full h-full object-cover transition-opacity ${loaded ? "opacity-100" : "opacity-0"}`}
@@ -35,7 +41,6 @@ const BlacklistPhoto = ({ playerId, photoUrl }: { playerId: string; photoUrl: st
         loading="lazy"
         onLoad={() => setLoaded(true)}
         onError={() => {
-          // Fallback to local cache
           getLocalPhotoUrl(playerId).then(url => {
             if (url) setSrc(url);
             else setLoaded(true);
@@ -50,7 +55,6 @@ const Blacklist = () => {
   const queryClient = useQueryClient();
   const [pendingAction, setPendingAction] = useState<{ player: any; action: "blacklist" | "reactivate" } | null>(null);
 
-  // Global blacklist — all casinos
   const { data: players = [] } = useQuery({
     queryKey: ["players"],
     queryFn: async () => {
@@ -68,7 +72,6 @@ const Blacklist = () => {
     [players]
   );
 
-  // Cache blacklist for offline access
   useEffect(() => {
     if (blacklisted.length > 0) {
       cacheBlacklist(
@@ -84,14 +87,11 @@ const Blacklist = () => {
     }
   }, [blacklisted]);
 
-  // On mount, try to load from cache if offline
   const [cachedPlayers, setCachedPlayers] = useState<any[]>([]);
   useEffect(() => {
     if (!navigator.onLine || players.length === 0) {
       getCachedBlacklist().then(cached => {
-        if (cached.length > 0 && blacklisted.length === 0) {
-          setCachedPlayers(cached);
-        }
+        if (cached.length > 0 && blacklisted.length === 0) setCachedPlayers(cached);
       });
     }
   }, [blacklisted.length, players.length]);
@@ -111,35 +111,46 @@ const Blacklist = () => {
   });
 
   return (
-    <div>
+    <PageShell>
       <PageHeader
         icon={ShieldAlert}
         title="Blacklist"
-        subtitle={`${displayList.length} blacklisted players${!navigator.onLine && cachedPlayers.length > 0 ? " · Offline cache" : ""}`}
+        subtitle={`${displayList.length} blacklisted${!navigator.onLine && cachedPlayers.length > 0 ? " · Offline cache" : ""}`}
+        date
       />
 
       {displayList.length === 0 ? (
         <div className="cms-panel p-8 text-center text-muted-foreground">No blacklisted players</div>
       ) : (
-        <div className="cms-panel divide-y divide-border">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
           {displayList.map(p => (
-            <div key={p.id} className="flex items-center gap-3 px-4 py-3">
-              <div className="w-10 h-10 rounded-full bg-destructive/10 flex items-center justify-center overflow-hidden shrink-0 relative">
+            <div
+              key={p.id}
+              className="rounded-md border-2 border-destructive bg-destructive/5 dark:bg-destructive/10 overflow-hidden flex flex-col"
+            >
+              <div className="relative w-full aspect-square ring-2 ring-destructive ring-inset overflow-hidden bg-destructive/10">
                 <BlacklistPhoto playerId={p.id} photoUrl={p.photo_url} />
+                <div className="absolute top-1 right-1 bg-destructive text-destructive-foreground text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider flex items-center gap-1">
+                  <Ban className="w-2.5 h-2.5" /> BL
+                </div>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground">{p.first_name} {p.last_name}</p>
-                <p className="text-xs text-muted-foreground">{p.nickname || "—"}</p>
+              <div className="p-2 space-y-1.5">
+                <div>
+                  <p className="text-sm font-bold text-foreground leading-tight truncate">
+                    {p.first_name} {p.last_name}
+                  </p>
+                  <p className="text-xs text-muted-foreground truncate">{p.nickname || "—"}</p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full h-7 text-xs gap-1"
+                  onClick={() => setPendingAction({ player: p, action: "reactivate" })}
+                  disabled={!navigator.onLine}
+                >
+                  <UserCheck className="w-3 h-3" /> Reactivate
+                </Button>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-xs shrink-0"
-                onClick={() => setPendingAction({ player: p, action: "reactivate" })}
-                disabled={!navigator.onLine}
-              >
-                Reactivate
-              </Button>
             </div>
           ))}
         </div>
@@ -166,7 +177,7 @@ const Blacklist = () => {
           new_status: pendingAction?.action === "blacklist" ? "blacklist" : "active",
         }}
       />
-    </div>
+    </PageShell>
   );
 };
 

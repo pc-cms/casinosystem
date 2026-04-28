@@ -10,7 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ArrowDownToLine, ArrowUpFromLine, Calculator, Square, CheckCircle2, Package, ArrowLeftRight } from "lucide-react";
+import { ArrowDownToLine, ArrowUpFromLine, Calculator, Square, CheckCircle2, Package, ArrowLeftRight, Landmark } from "lucide-react";
+import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 import TransfersForm from "@/components/cage/TransfersForm";
 import { useCageTransfers } from "@/hooks/use-cage-transfers";
 import {
@@ -131,27 +133,35 @@ const ActiveShiftView = ({ shift, players, tables }: {
   const tableMap = useMemo(() => new Map(tables.map(t => [t.id, t])), [tables]);
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-3 flex-wrap">
-          <h1 className="text-2xl font-bold text-foreground leading-none">Cage</h1>
-          <span className="flex items-center gap-1.5 text-xs">
+    <PageShell>
+      <PageHeader
+        icon={Landmark}
+        title="Cage"
+        context={
+          <span className="flex items-center gap-1.5 text-base font-semibold">
             <span className="w-2 h-2 rounded-full bg-success animate-pulse" />
-            <span className="text-muted-foreground">{shiftDuration}</span>
+            <span className="font-mono tabular-nums text-foreground">{shiftDuration}</span>
           </span>
-          {FOREIGN_CURRENCIES.map(c => (
-            <span key={c} className="text-[10px] font-mono text-muted-foreground">{c}: {formatNumberSpaces(exchangeRates[c] || 0)}</span>
-          ))}
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => setShowCloseTables(true)} className="gap-1.5">
-            <Package className="w-3.5 h-3.5" /> Close Tables
-          </Button>
-          <Button variant="destructive" size="sm" onClick={() => setShowClose(true)} className="gap-1.5">
-            <Square className="w-3.5 h-3.5" /> Close Shift
-          </Button>
-        </div>
-      </div>
+        }
+        belowHeader={
+          <div className="flex items-center gap-4 flex-wrap">
+            {FOREIGN_CURRENCIES.map(c => (
+              <span key={c} className="text-base font-semibold font-mono tabular-nums text-foreground">
+                <span className="text-muted-foreground text-xs font-medium uppercase mr-1">{c}</span>
+                {formatNumberSpaces(exchangeRates[c] || 0)}
+              </span>
+            ))}
+          </div>
+        }
+        date
+      >
+        <Button variant="outline" size="sm" onClick={() => setShowCloseTables(true)} className="gap-1.5">
+          <Package className="w-3.5 h-3.5" /> Close Tables
+        </Button>
+        <Button variant="destructive" size="sm" onClick={() => setShowClose(true)} className="gap-1.5">
+          <Square className="w-3.5 h-3.5" /> Close Shift
+        </Button>
+      </PageHeader>
 
       <div className="cms-panel p-2 mb-4">
         <div className="grid grid-cols-3 md:grid-cols-8 gap-2">
@@ -244,7 +254,7 @@ const ActiveShiftView = ({ shift, players, tables }: {
         }}
         loading={closeShift.isPending}
       />
-    </div>
+    </PageShell>
   );
 };
 
