@@ -118,7 +118,7 @@ export const useMissChipsArchive = (params?: { fromDate?: string; toDate?: strin
       if (params?.toDate) q = q.lte("business_date", params.toDate);
       const { data, error } = await q;
       if (error) throw error;
-      return (data || []) as MissChipRow[];
+      return ((data || []) as unknown) as MissChipRow[];
     },
     enabled: !!casinoId,
   });
