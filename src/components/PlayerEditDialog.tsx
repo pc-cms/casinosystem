@@ -278,15 +278,17 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
               <FileImage className="w-10 h-10 text-muted-foreground" />
             )}
           </div>
-          <PhotoCapture
-            photoUrl={docUrl || null}
-            onPhotoSelect={handleDocUpload}
-            label="ID Doc"
-            size="sm"
-            captureId={`edit-doc-${player.id}`}
-            disabled={uploadingDoc}
-            compact
-          />
+          {!readOnly && (
+            <PhotoCapture
+              photoUrl={docUrl || null}
+              onPhotoSelect={handleDocUpload}
+              label="ID Doc"
+              size="sm"
+              captureId={`edit-doc-${player.id}`}
+              disabled={uploadingDoc}
+              compact
+            />
+          )}
         </div>
       </div>
 
