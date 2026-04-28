@@ -1,15 +1,15 @@
 import { useState, useRef, useMemo } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { Search, Plus, Users } from "lucide-react";
-import { usePlayers, useCreatePlayer } from "@/hooks/use-casino-data";
+import { Search, Users } from "lucide-react";
+import { usePlayers } from "@/hooks/use-casino-data";
 import { useDebouncedValue } from "@/hooks/use-debounce";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import CategoryBadge, { CATEGORY_PRIORITY, type PlayerCategory } from "@/components/player/CategoryBadge";
 import CategoryFilter from "@/components/player/CategoryFilter";
 import FlagBadges from "@/components/player/FlagBadges";
-import PlayerDetailDialog from "@/components/player/PlayerDetailDialog";
+import PlayerEditDialog from "@/components/PlayerEditDialog";
+import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { FilterBar } from "@/components/layout/FilterBar";
 
@@ -19,11 +19,10 @@ const Players = () => {
   const { data: players = [], isLoading } = usePlayers();
   const [query, setQuery] = useState("");
   const debouncedQuery = useDebouncedValue(query, 250);
-  const [showAdd, setShowAdd] = useState(false);
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<Set<PlayerCategory>>(new Set(["diamond", "platinum", "gold", "normal"]));
   const [sortByCategory, setSortByCategory] = useState(true);
-  
+
   const parentRef = useRef<HTMLDivElement>(null);
 
   const filtered = useMemo(() => {
@@ -58,18 +57,14 @@ const Players = () => {
 
   const selectedPlayer = players.find(p => p.id === selectedPlayerId);
 
-
   return (
-    <div>
+    <PageShell>
       <PageHeader
         icon={Users}
         title="Players"
         subtitle={`${players.length} registered · No deletion`}
-      >
-        <Button onClick={() => setShowAdd(true)} size="sm">
-          <Plus className="w-4 h-4 mr-1" /> New Player
-        </Button>
-      </PageHeader>
+        date
+      />
 
       <FilterBar
         search={
@@ -143,39 +138,12 @@ const Players = () => {
         )}
       </div>
 
-      <AddPlayerDialog open={showAdd} onClose={() => setShowAdd(false)} />
-      {selectedPlayer && (
-        <PlayerDetailDialog player={selectedPlayer} onClose={() => setSelectedPlayerId(null)} />
-      )}
-    </div>
-  );
-};
-
-const AddPlayerDialog = ({ open, onClose }: { open: boolean; onClose: () => void }) => {
-  const createPlayer = useCreatePlayer();
-  const [form, setForm] = useState({ first_name: "", last_name: "", nickname: "", phone: "" });
-
-  const handleSubmit = () => {
-    if (!form.first_name || !form.last_name) return;
-    createPlayer.mutate(form, { onSuccess: () => { setForm({ first_name: "", last_name: "", nickname: "", phone: "" }); onClose(); } });
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent>
-        <DialogHeader><DialogTitle>New Player</DialogTitle></DialogHeader>
-        <div className="space-y-3">
-          <Input placeholder="First Name *" value={form.first_name} onChange={e => setForm(f => ({ ...f, first_name: e.target.value }))} autoFocus />
-          <Input placeholder="Last Name *" value={form.last_name} onChange={e => setForm(f => ({ ...f, last_name: e.target.value }))} />
-          <Input placeholder="Nickname" value={form.nickname} onChange={e => setForm(f => ({ ...f, nickname: e.target.value }))} />
-          <Input placeholder="Phone" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} />
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={handleSubmit} disabled={!form.first_name || !form.last_name || createPlayer.isPending}>Create</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      <PlayerEditDialog
+        player={selectedPlayer ?? null}
+        open={!!selectedPlayer}
+        onOpenChange={(v) => { if (!v) setSelectedPlayerId(null); }}
+      />
+    </PageShell>
   );
 };
 
