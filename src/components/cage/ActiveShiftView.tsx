@@ -197,6 +197,15 @@ const ActiveShiftView = ({ shift, players, tables }: {
         </TabsContent>
       </Tabs>
 
+      <Dialog open={showCloseTables} onOpenChange={setShowCloseTables}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Close Tables</DialogTitle>
+          </DialogHeader>
+          <CloseTablesForm tables={tables} />
+        </DialogContent>
+      </Dialog>
+
       <CloseShiftDialog
         open={showClose}
         onClose={() => setShowClose(false)}
