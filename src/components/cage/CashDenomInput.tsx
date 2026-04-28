@@ -16,16 +16,16 @@ const CashDenomInput = ({ values, onChange, denoms, currency, onSubmit }: {
 
   return (
     <div>
-      <div className="space-y-0.5">
+      <div className="space-y-0">
       {denoms.map((d, idx) => (
         <div key={d} className="grid grid-cols-[3.5rem_minmax(0,1fr)] items-center gap-1.5">
-          <span className="cms-chip text-[8px] bg-muted text-foreground h-6 w-14 shrink-0 justify-center">
+          <span className="cms-chip text-[8px] bg-muted text-foreground h-5 w-14 shrink-0 justify-center">
             {formatCashDenomLabel(d, currency)}
           </span>
           <input
             ref={el => { refs.current[d] = el; }}
             type="number"
-            className="no-spin font-mono text-xs h-6 w-full min-w-0 rounded border border-border bg-background px-1.5 text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            className="no-spin font-mono text-xs h-5 w-full min-w-0 rounded border border-border bg-background px-1.5 text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
             value={values[d] || ""}
             onChange={e => onChange({ ...values, [d]: Number(e.target.value) || 0 })}
             onKeyDown={e => {
