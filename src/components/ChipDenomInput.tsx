@@ -108,8 +108,18 @@ const ChipDenomInput = ({
         })}
       </div>
       <div className="flex items-center justify-between gap-2 pt-2 mt-2 border-t border-border">
-        <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Total</span>
-        <span className="font-mono text-sm font-bold text-card-foreground">TZS {formatNumberSpaces(total)}</span>
+        <button
+          type="button"
+          onClick={() => onChange({})}
+          className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground hover:text-destructive transition-colors px-2 py-0.5 rounded border border-border hover:border-destructive"
+          title="Clear all chip counts"
+        >
+          Clear
+        </button>
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Total</span>
+          <span className="font-mono text-sm font-bold text-card-foreground">TZS {formatNumberSpaces(total)}</span>
+        </div>
       </div>
     </div>
   );
