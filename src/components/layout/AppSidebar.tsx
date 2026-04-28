@@ -87,13 +87,25 @@ const TABLE_SUBITEMS = [
   { tab: "tabletracker", icon: Target, label: "Table Tracker" },
 ];
 
-const PIT_SUBITEMS = [
+// PIT-section variant (no Employee — Personnel admin lives in HR)
+const PIT_SUBITEMS_OPS = [
+  { tab: "attendance", icon: ClipboardPen, label: "Attendance" },
+  { tab: "rota", icon: CalendarDays, label: "Rota" },
+];
+// HR-section variant (with Employee)
+const PIT_SUBITEMS_HR = [
   { tab: "attendance", icon: ClipboardPen, label: "Attendance" },
   { tab: "employee", icon: UserCheck, label: "Employee" },
   { tab: "rota", icon: CalendarDays, label: "Rota" },
 ];
 
-const STAFF_SUBITEMS = [
+const STAFF_SUBITEMS_OPS = [
+  { tab: "attendance", icon: ClipboardPen, label: "Attendance" },
+  { tab: "rota_office", icon: CalendarDays, label: "Office Rota" },
+  { tab: "rota_floor", icon: CalendarDays, label: "Floor Rota" },
+  { tab: "rota_security", icon: ShieldCheck, label: "Security Rota" },
+];
+const STAFF_SUBITEMS_HR = [
   { tab: "attendance", icon: ClipboardPen, label: "Attendance" },
   { tab: "employee", icon: UserCheck, label: "Employee" },
   { tab: "rota_office", icon: CalendarDays, label: "Office Rota" },
