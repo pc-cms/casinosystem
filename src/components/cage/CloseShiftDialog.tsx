@@ -167,8 +167,8 @@ const CloseShiftDialog = ({
               <p className="text-[10px] uppercase text-muted-foreground tracking-wider mb-2 font-medium">Cash Flow</p>
               <div className="space-y-1 text-xs font-mono">
                 <div className="flex justify-between"><span className="text-muted-foreground">Opening Float</span><span className="text-card-foreground">{formatCurrency(openingFloat || 0)}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">+ Buy-Ins</span><span className="text-success">+{formatCurrency(totalBuyIns || 0)}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">− Cashouts</span><span className="text-destructive">−{formatCurrency(totalCashouts || 0)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">+ IN</span><span className="text-success">+{formatCurrency(totalBuyIns || 0)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">− OUT</span><span className="text-destructive">−{formatCurrency(totalCashouts || 0)}</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">− Expenses</span><span className="text-warning">−{formatCurrency(totalExpenses || 0)}</span></div>
                 <div className="flex justify-between border-t border-border pt-1 font-bold"><span className="text-card-foreground">= Expected</span><span className="text-card-foreground">{formatCurrency(expectedBalance)}</span></div>
                 <div className="flex justify-between"><span className="text-card-foreground">Counted</span><span className="text-card-foreground">{formatCurrency(totalTzs)}</span></div>
@@ -179,7 +179,7 @@ const CloseShiftDialog = ({
             <div className="cms-panel p-3">
               <p className="text-[10px] uppercase text-muted-foreground tracking-wider mb-2 font-medium">Shift Result</p>
               <div className="space-y-1 text-xs font-mono">
-                <div className="flex justify-between"><span className="text-muted-foreground">Cash Result (Buy − Cash)</span><span className={`${(cashResult || 0) >= 0 ? "text-success" : "text-destructive"}`}>{(cashResult || 0) >= 0 ? "+" : ""}{formatCurrency(cashResult || 0)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Cash Result (IN − OUT)</span><span className={`${(cashResult || 0) >= 0 ? "text-success" : "text-destructive"}`}>{(cashResult || 0) >= 0 ? "+" : ""}{formatCurrency(cashResult || 0)}</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Chip MISS</span><span className={`${totalMissValue === 0 ? "text-success" : "text-destructive"}`}>{totalMissValue >= 0 ? "+" : ""}{formatCurrency(totalMissValue)}</span></div>
                 <div className="flex justify-between border-t border-border pt-1 font-bold text-sm"><span className="text-card-foreground">= Shift Result</span><span className={`${shiftResult >= 0 ? "text-success" : "text-destructive"}`}>{shiftResult >= 0 ? "+" : ""}{formatCurrency(shiftResult)}</span></div>
               </div>
