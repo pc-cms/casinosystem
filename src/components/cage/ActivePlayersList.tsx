@@ -76,7 +76,7 @@ const ActivePlayersList = ({ players, tables, onSelect }: Props) => {
                     <span className="text-sm font-medium text-card-foreground truncate">
                       {player!.first_name} {player!.last_name}
                     </span>
-                    <CategoryBadge category={(player!.category || "normal") as PlayerCategory} compact />
+                    <CategoryBadge category={(player!.category || "normal") as PlayerCategory} />
                   </div>
                   {player!.nickname && (
                     <p className="text-[10px] text-muted-foreground truncate">"{player!.nickname}"</p>
