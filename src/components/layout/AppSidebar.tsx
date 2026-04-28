@@ -90,6 +90,130 @@ const STAFF_SUBITEMS = [
 
 const BREAKLIST_PATH = "/pit?tab=breaklist";
 
+// ============ Collapsible sections (expanded sidebar) ============
+const SECTIONS_STORAGE_KEY = "cms.sidebar.openSections";
+const FLAT_SECTION: Section = "OVERVIEW";
+
+type SectionsProps = {
+  visibleItems: NavItem[];
+  isManager: boolean;
+  isPitActive: boolean;
+  isStaffActive: boolean;
+  isTablesActive: boolean;
+  currentTab: string;
+  roles: AppRole[];
+  onNavigate?: () => void;
+  renderSubItems: (basePath: string, items: typeof TABLE_SUBITEMS) => JSX.Element;
+};
+
+const SidebarSections = ({
+  visibleItems, isManager, isPitActive, isStaffActive, isTablesActive,
+  currentTab, roles, onNavigate, renderSubItems,
+}: SectionsProps) => {
+  const location = useLocation();
+
+  // Group items by section, preserving order
+  const grouped = visibleItems.reduce<Record<string, NavItem[]>>((acc, item) => {
+    (acc[item.section] ||= []).push(item);
+    return acc;
+  }, {});
+  const sectionOrder: Section[] = ["OVERVIEW", "PIT", "CASHIER", "RECEPTION", "FINANCE", "HR", "ANALYTICS"];
+  const sections = sectionOrder.filter(s => grouped[s]?.length);
+  if (isManager) sections.push("SYSTEM");
+
+  // Find which section contains the active route
+  const activeSection: Section | null = (() => {
+    for (const s of sections) {
+      const items = s === "SYSTEM" ? [{ to: "/admin" } as NavItem] : grouped[s] || [];
+      const hit = items.some(it => {
+        const base = it.to.split("?")[0];
+        if (base === "/") return location.pathname === "/";
+        return location.pathname.startsWith(base);
+      });
+      if (hit) return s;
+    }
+    return null;
+  })();
+
+  const [open, setOpen] = useState<Record<string, boolean>>(() => {
+    const initial: Record<string, boolean> = {};
+    try {
+      const stored = typeof window !== "undefined" ? localStorage.getItem(SECTIONS_STORAGE_KEY) : null;
+      if (stored) Object.assign(initial, JSON.parse(stored));
+    } catch { /* ignore */ }
+    if (activeSection) initial[activeSection] = true;
+    return initial;
+  });
+
+  // Auto-open the section that contains the active route
+  if (activeSection && !open[activeSection]) {
+    // schedule update to avoid setState-in-render
+    setTimeout(() => setOpen(o => ({ ...o, [activeSection]: true })), 0);
+  }
+
+  const toggle = (s: string) => {
+    setOpen(prev => {
+      const next = { ...prev, [s]: !prev[s] };
+      try { localStorage.setItem(SECTIONS_STORAGE_KEY, JSON.stringify(next)); } catch { /* ignore */ }
+      return next;
+    });
+  };
+
+  const renderItem = (item: NavItem) => {
+    const isBreaklistItem = item.to === BREAKLIST_PATH;
+    const isBreaklistActive = isBreaklistItem && location.pathname === "/pit" && currentTab === "breaklist";
+    return (
+      <div key={item.to}>
+        <NavLink to={item.to} end={item.to === "/" || item.to === "/pit" || item.to === "/staff" || item.to === "/tables" || item.to === BREAKLIST_PATH}
+          onClick={onNavigate}
+          className={({ isActive }) => {
+            const active = isBreaklistItem ? isBreaklistActive : isActive;
+            return `flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
+              active ? "bg-sidebar-accent text-sidebar-primary font-medium" : "text-sidebar-foreground hover:bg-sidebar-accent"
+            }`;
+          }}>
+          <item.icon className="w-4 h-4 shrink-0" />
+          <span className="flex-1">{item.label}</span>
+        </NavLink>
+        {item.to === "/tables" && isTablesActive && (roles.includes("pit") || roles.includes("manager") || roles.includes("finance_manager")) && renderSubItems("/tables", TABLE_SUBITEMS)}
+        {item.to === "/pit" && isPitActive && renderSubItems("/pit", PIT_SUBITEMS)}
+        {item.to === "/staff" && isStaffActive && renderSubItems("/staff", STAFF_SUBITEMS)}
+      </div>
+    );
+  };
+
+  return (
+    <nav className="flex-1 py-2 px-2 overflow-y-auto">
+      {sections.map((section, idx) => {
+        const items: NavItem[] = section === "SYSTEM"
+          ? [{ to: "/admin", icon: Settings, label: "Admin", roles: ["manager"], section: "SYSTEM" }]
+          : grouped[section] || [];
+        if (!items.length) return null;
+
+        // OVERVIEW renders flat (no collapse) — single Dashboard item
+        if (section === FLAT_SECTION) {
+          return <div key={section} className="mb-1">{items.map(renderItem)}</div>;
+        }
+
+        const isOpen = !!open[section];
+        return (
+          <div key={section} className={idx > 0 ? "mt-1 border-t border-sidebar-border pt-1" : ""}>
+            <button
+              type="button"
+              onClick={() => toggle(section)}
+              className="w-full flex items-center gap-1 px-3 pt-2 pb-1 text-left hover:bg-sidebar-accent/50 rounded-md transition-colors"
+            >
+              {isOpen ? <ChevronDown className="w-3 h-3 text-muted-foreground" /> : <ChevronRight className="w-3 h-3 text-muted-foreground" />}
+              <span className="text-[9px] font-mono text-muted-foreground uppercase tracking-widest">{section}</span>
+            </button>
+            {isOpen && <div className="space-y-0.5">{items.map(renderItem)}</div>}
+          </div>
+        );
+      })}
+    </nav>
+  );
+};
+
 // ============ Shared sidebar inner ============
 type InnerProps = {
   onNavigate?: () => void;
