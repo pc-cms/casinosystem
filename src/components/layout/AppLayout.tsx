@@ -44,11 +44,15 @@ export const AppLayout = () => {
         <main className="flex-1 overflow-y-auto">
           {isFullWidth ? (
             <div className="p-3 sm:p-4 animate-fade-in h-full">
-              <Outlet />
+              <Suspense fallback={<PageLoader />}>
+                <Outlet />
+              </Suspense>
             </div>
           ) : (
             <div className="p-3 sm:p-6 max-w-7xl mx-auto animate-fade-in">
-              <Outlet />
+              <Suspense fallback={<PageLoader />}>
+                <Outlet />
+              </Suspense>
             </div>
           )}
         </main>
