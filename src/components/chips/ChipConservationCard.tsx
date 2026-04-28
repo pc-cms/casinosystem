@@ -114,10 +114,18 @@ export const ChipConservationCard = ({ compact = false }: { compact?: boolean })
           </div>
           <div className="col-span-2 flex justify-between pt-1 border-t border-border/60">
             <span className="font-semibold">Delta:</span>
-            <span className={cn("font-semibold", ok ? "text-cms-amount-positive" : "text-cms-amount-negative")}>
+            <span className={cn(
+              "font-semibold",
+              isObservation ? "text-muted-foreground" : ok ? "text-cms-amount-positive" : "text-cms-amount-negative"
+            )}>
               {formatNumberSpaces(delta)} TZS
             </span>
           </div>
+          {isObservation && (
+            <div className="col-span-2 text-[10px] text-muted-foreground italic pt-1">
+              Observation mode — anomalies tracked in monthly Miss Chips report.
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>
