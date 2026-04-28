@@ -234,103 +234,104 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
         <div><FlagBadges tags={playerTags} /></div>
       )}
 
-      {/* Photo & ID Document — compact row */}
-      <div className="flex items-center gap-4 p-3 rounded-lg bg-muted/30 border border-border">
-        {/* Profile Photo thumbnail */}
-        <div className="flex flex-col items-center gap-1.5">
-          <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center overflow-hidden border-2 border-border shrink-0 relative">
-            {(photoUrl || player.photo_url) ? (
-              <img src={photoUrl || player.photo_url || ""} className="w-full h-full object-cover" alt="Profile" />
-            ) : (
-              <User className="w-6 h-6 text-muted-foreground" />
-            )}
+      {/* Two-column on desktop: fields left, big photo + ID right */}
+      <div className={`${isMobile ? "space-y-4" : "grid grid-cols-[1fr_220px] gap-5"}`}>
+        {/* LEFT: form fields */}
+        <div className="space-y-3 min-w-0">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label className="text-xs">First Name</Label>
+              <Input value={firstName} onChange={e => setFirstName(e.target.value)} className="h-10" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Last Name</Label>
+              <Input value={lastName} onChange={e => setLastName(e.target.value)} className="h-10" />
+            </div>
           </div>
-          <PhotoCapture
-            photoUrl={photoUrl || player.photo_url || null}
-            onPhotoSelect={handlePhotoUpload}
-            label="Photo"
-            size="sm"
-            captureId={`edit-photo-${player.id}`}
-            disabled={uploading}
-            compact
-          />
-        </div>
 
-        <div className="h-10 w-px bg-border" />
-
-        {/* ID Document thumbnail */}
-        <div className="flex flex-col items-center gap-1.5">
-          <div className="w-14 h-14 rounded-lg bg-muted flex items-center justify-center overflow-hidden border-2 border-border shrink-0 relative">
-            {docUrl ? (
-              <img src={docUrl} className="w-full h-full object-cover" alt="ID" />
-            ) : (
-              <FileImage className="w-6 h-6 text-muted-foreground" />
-            )}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label className="text-xs">Nickname</Label>
+              <Input value={nickname} onChange={e => setNickname(e.target.value)} className="h-10" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Phone</Label>
+              <Input value={phone} onChange={e => setPhone(e.target.value)} className="h-10" type="tel" />
+            </div>
           </div>
-          <PhotoCapture
-            photoUrl={docUrl || null}
-            onPhotoSelect={handleDocUpload}
-            label="ID Doc"
-            size="sm"
-            captureId={`edit-doc-${player.id}`}
-            disabled={uploadingDoc}
-            compact
-          />
-        </div>
-      </div>
 
-      {/* Name fields */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1">
-          <Label className="text-xs">First Name</Label>
-          <Input value={firstName} onChange={e => setFirstName(e.target.value)} className="h-10" />
+          <div className="grid grid-cols-3 gap-3">
+            <div className="space-y-1">
+              <Label className="text-xs">ID / Passport</Label>
+              <Input value={idNumber} onChange={e => setIdNumber(e.target.value)} className="h-10 font-mono" placeholder="Enter ID" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Player Type</Label>
+              <Select value={playerType} onValueChange={setPlayerType}>
+                <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="table">Table</SelectItem>
+                  <SelectItem value="slots">Slots</SelectItem>
+                  <SelectItem value="mix">Mix</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs flex items-center gap-1">
+                Category
+                {!canEditCategory && <Shield className="w-3 h-3 text-muted-foreground" />}
+              </Label>
+              <Select value={category} onValueChange={v => setCategory(v as PlayerCategory)} disabled={!canEditCategory}>
+                <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {ALL_CATEGORIES.map(cat => (
+                    <SelectItem key={cat} value={cat} className="capitalize">{cat.charAt(0).toUpperCase() + cat.slice(1)}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
         </div>
-        <div className="space-y-1">
-          <Label className="text-xs">Last Name</Label>
-          <Input value={lastName} onChange={e => setLastName(e.target.value)} className="h-10" />
-        </div>
-      </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1">
-          <Label className="text-xs">Nickname</Label>
-          <Input value={nickname} onChange={e => setNickname(e.target.value)} className="h-10" />
-        </div>
-        <div className="space-y-1">
-          <Label className="text-xs">Phone</Label>
-          <Input value={phone} onChange={e => setPhone(e.target.value)} className="h-10" type="tel" />
-        </div>
-      </div>
+        {/* RIGHT: big photo + ID document */}
+        <div className="space-y-3">
+          <div className="space-y-1.5">
+            <div className="w-full aspect-square rounded-lg bg-muted flex items-center justify-center overflow-hidden border border-border">
+              {(photoUrl || player.photo_url) ? (
+                <img src={photoUrl || player.photo_url || ""} className="w-full h-full object-cover" alt="Profile" />
+              ) : (
+                <User className="w-16 h-16 text-muted-foreground" />
+              )}
+            </div>
+            <PhotoCapture
+              photoUrl={photoUrl || player.photo_url || null}
+              onPhotoSelect={handlePhotoUpload}
+              label="Photo"
+              size="sm"
+              captureId={`edit-photo-${player.id}`}
+              disabled={uploading}
+              compact
+            />
+          </div>
 
-      <div className={`grid gap-3 ${isMobile ? "grid-cols-1" : "grid-cols-3"}`}>
-        <div className="space-y-1">
-          <Label className="text-xs">ID / Passport</Label>
-          <Input value={idNumber} onChange={e => setIdNumber(e.target.value)} className="h-10 font-mono" placeholder="Enter ID" />
-        </div>
-        <div className="space-y-1">
-          <Label className="text-xs">Player Type</Label>
-          <Select value={playerType} onValueChange={setPlayerType}>
-            <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="table">Table</SelectItem>
-              <SelectItem value="slots">Slots</SelectItem>
-              <SelectItem value="mix">Mix</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-1">
-          <Label className="text-xs flex items-center gap-1">
-            Category
-            {!canEditCategory && <Shield className="w-3 h-3 text-muted-foreground" />}
-          </Label>
-          <Select value={category} onValueChange={v => setCategory(v as PlayerCategory)} disabled={!canEditCategory}>
-            <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {ALL_CATEGORIES.map(cat => (
-                <SelectItem key={cat} value={cat} className="capitalize">{cat.charAt(0).toUpperCase() + cat.slice(1)}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="space-y-1.5">
+            <div className="w-full aspect-[4/3] rounded-lg bg-muted flex items-center justify-center overflow-hidden border border-border">
+              {docUrl ? (
+                <img src={docUrl} className="w-full h-full object-cover" alt="ID" />
+              ) : (
+                <FileImage className="w-10 h-10 text-muted-foreground" />
+              )}
+            </div>
+            <PhotoCapture
+              photoUrl={docUrl || null}
+              onPhotoSelect={handleDocUpload}
+              label="ID Doc"
+              size="sm"
+              captureId={`edit-doc-${player.id}`}
+              disabled={uploadingDoc}
+              compact
+            />
+          </div>
         </div>
       </div>
 
@@ -421,7 +422,7 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl max-h-[92vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{titleContent}</DialogTitle>
         </DialogHeader>
