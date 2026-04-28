@@ -244,7 +244,7 @@ const SidebarSections = ({
 
         // OVERVIEW renders flat (no collapse) — single Dashboard item
         if (section === FLAT_SECTION) {
-          return <div key={section} className="mb-1">{items.map(renderItem)}</div>;
+          return <div key={section} className="mb-1">{items.map(it => renderItem(it, section))}</div>;
         }
 
         const isOpen = !!open[section];
