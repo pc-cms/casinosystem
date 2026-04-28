@@ -61,27 +61,33 @@ const Players = () => {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Players</h1>
-          <p className="text-sm text-muted-foreground">{players.length} registered · No deletion</p>
-        </div>
+      <PageHeader
+        icon={Users}
+        title="Players"
+        subtitle={`${players.length} registered · No deletion`}
+      >
         <Button onClick={() => setShowAdd(true)} size="sm">
           <Plus className="w-4 h-4 mr-1" /> New Player
         </Button>
-      </div>
+      </PageHeader>
 
-      <div className="flex items-center gap-3 mb-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input value={query} onChange={e => setQuery(e.target.value)}
-            placeholder="Search by name, nickname, or card number..." className="pl-10 font-mono" />
-        </div>
-        <CategoryFilter selected={categoryFilter} onChange={setCategoryFilter} />
-        <Button variant={sortByCategory ? "secondary" : "ghost"} size="sm" className="text-xs h-7 shrink-0" onClick={() => setSortByCategory(!sortByCategory)}>
-          Sort: Category
-        </Button>
-      </div>
+      <FilterBar
+        search={
+          <div className="relative w-[320px] max-w-full">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input value={query} onChange={e => setQuery(e.target.value)}
+              placeholder="Search name, nickname, card…" className="pl-10 font-mono h-9" />
+          </div>
+        }
+        filters={
+          <>
+            <CategoryFilter selected={categoryFilter} onChange={setCategoryFilter} />
+            <Button variant={sortByCategory ? "secondary" : "ghost"} size="sm" className="text-xs h-9 shrink-0" onClick={() => setSortByCategory(!sortByCategory)}>
+              Sort: Category
+            </Button>
+          </>
+        }
+      />
 
       <div className="cms-panel overflow-hidden">
         <table className="w-full">
