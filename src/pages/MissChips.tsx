@@ -45,15 +45,13 @@ const MissChips = () => {
   const { data: shiftRows = [], isLoading: shiftsLoading } = useMissChipsByShift({ fromDate, toDate });
   const { data: rawRows = [], isLoading: rawLoading } = useMissChipsArchive({ fromDate, toDate });
 
-  // Total shown in header — CASH PERSPECTIVE (inverted):
-  // +chips miss = cash lost from cage  → negative TZS  → red
-  // -chips miss = cash returned to cage → positive TZS → green
+  // CASH (Cage) PERSPECTIVE:
+  // +N chips miss = chips went OUT to players, cash STAYED in cage → +TZS → green
+  // -N chips miss = chips RETURNED to cage (emission cancelled), cash LEFT cage → -TZS → red
   const periodTotal = useMemo(() => {
-    const raw =
-      view === "per-shift"
-        ? shiftRows.reduce((s, r) => s + r.total_value_tzs, 0)
-        : rawRows.reduce((s, r) => s + Number(r.total_value_tzs), 0);
-    return -raw;
+    return view === "per-shift"
+      ? shiftRows.reduce((s, r) => s + r.total_value_tzs, 0)
+      : rawRows.reduce((s, r) => s + Number(r.total_value_tzs), 0);
   }, [view, shiftRows, rawRows]);
 
   const byMonth = useMemo(() => {
@@ -141,7 +139,7 @@ const MissChips = () => {
           <span
             className={cn(
               "text-lg font-mono font-semibold",
-              periodTotal < 0 ? "text-cms-amount-negative" : "text-cms-amount-positive"
+              periodTotal > 0 ? "text-cms-amount-positive" : periodTotal < 0 ? "text-cms-amount-negative" : "text-muted-foreground"
             )}
           >
             {formatNumberSpaces(periodTotal)} TZS
@@ -191,16 +189,16 @@ const MissChips = () => {
                     </td>
                     {CHIP_DENOMS.map((d) => {
                       const v = r.denoms[d] ?? 0;
-                      // Cash perspective: +chips → cash lost (red); -chips → cash returned (green)
+                      // Cage perspective: +chips → cash stays (green); -chips → cash leaves (red)
                       return (
                         <td
                           key={d}
                           className={cn(
                             "text-right px-3 py-1.5",
                             v > 0
-                              ? "text-cms-amount-negative"
-                              : v < 0
                               ? "text-cms-amount-positive"
+                              : v < 0
+                              ? "text-cms-amount-negative"
                               : "text-muted-foreground"
                           )}
                         >
@@ -211,10 +209,10 @@ const MissChips = () => {
                     <td
                       className={cn(
                         "text-right px-3 py-1.5 font-semibold bg-muted/30",
-                        -r.total_value_tzs < 0 ? "text-cms-amount-negative" : "text-cms-amount-positive"
+                        r.total_value_tzs > 0 ? "text-cms-amount-positive" : r.total_value_tzs < 0 ? "text-cms-amount-negative" : "text-muted-foreground"
                       )}
                     >
-                      {formatNumberSpaces(-r.total_value_tzs)}
+                      {formatNumberSpaces(r.total_value_tzs)}
                     </td>
                   </tr>
                 ))}
@@ -231,7 +229,7 @@ const MissChips = () => {
                     <td
                       className={cn(
                         "text-right px-3 py-2 font-semibold text-base",
-                        periodTotal < 0 ? "text-cms-amount-negative" : "text-cms-amount-positive"
+                        periodTotal > 0 ? "text-cms-amount-positive" : periodTotal < 0 ? "text-cms-amount-negative" : "text-muted-foreground"
                       )}
                     >
                       {formatNumberSpaces(periodTotal)} TZS
@@ -275,8 +273,8 @@ const MissChips = () => {
                   </tr>
                 )}
                 {byMonth.map(([month, denomMap]) => {
-                  // Net cash impact: -(sum of denomination * quantity)
-                  const netCash = -Array.from(denomMap.entries()).reduce((s, [d, q]) => s + d * q, 0);
+                  // Cage cash impact: sum of denomination * quantity
+                  const netCash = Array.from(denomMap.entries()).reduce((s, [d, q]) => s + d * q, 0);
                   return (
                     <tr key={month} className="border-b border-border/40">
                       <td className="px-3 py-1.5">{month}</td>
@@ -287,9 +285,9 @@ const MissChips = () => {
                             key={d}
                             className={`text-right px-3 py-1.5 ${
                               v > 0
-                                ? "text-cms-amount-negative"
-                                : v < 0
                                 ? "text-cms-amount-positive"
+                                : v < 0
+                                ? "text-cms-amount-negative"
                                 : "text-muted-foreground"
                             }`}
                           >
@@ -299,7 +297,7 @@ const MissChips = () => {
                       })}
                       <td
                         className={`text-right px-3 py-1.5 font-semibold ${
-                          netCash < 0 ? "text-cms-amount-negative" : "text-cms-amount-positive"
+                          netCash > 0 ? "text-cms-amount-positive" : netCash < 0 ? "text-cms-amount-negative" : "text-muted-foreground"
                         }`}
                       >
                         {formatNumberSpaces(netCash)}
