@@ -211,6 +211,7 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
       if (nickname !== (player.nickname || "")) updates.nickname = nickname;
       if (phone !== (player.phone || "")) updates.phone = phone;
       if (idNumber !== (player.id_number || "")) updates.id_number = idNumber;
+      if (birthDate !== (player.birth_date || "")) updates.birth_date = birthDate || null;
       if (playerType !== (player.player_type || "table")) updates.player_type = playerType;
       if (canEditCategory && category !== ((player.category as PlayerCategory) || "normal")) updates.category = category;
       if (Object.keys(updates).length > 0) {
