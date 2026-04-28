@@ -291,6 +291,56 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
               </Select>
             </div>
           </div>
+
+          {/* Notes — placed inside left column to align with ID Doc photo on right */}
+          {canSeeNotes && (
+            <div className="space-y-2 pt-1">
+              <div className="flex items-center gap-1">
+                <StickyNote className="w-3 h-3 text-muted-foreground" />
+                <Label className="text-xs text-muted-foreground">Intelligence Notes ({notes.length})</Label>
+              </div>
+              <div className="flex gap-2">
+                <Select value={noteType} onValueChange={setNoteType}>
+                  <SelectTrigger className="h-10 w-[100px] text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {NOTE_TYPES.map(t => (
+                      <SelectItem key={t} value={t} className="capitalize text-xs">{t}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Textarea
+                  value={newNote}
+                  onChange={e => setNewNote(e.target.value)}
+                  placeholder="Add note..."
+                  className="text-xs min-h-[44px] resize-none flex-1"
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="shrink-0 self-end h-10 w-10 p-0"
+                  onClick={handleAddNote}
+                  disabled={!newNote.trim() || addingNote}
+                >
+                  <Send className="w-3.5 h-3.5" />
+                </Button>
+              </div>
+              {notes.length > 0 && (
+                <div className="space-y-1 max-h-40 overflow-y-auto">
+                  {notes.map((note: any) => (
+                    <div key={note.id} className={`text-xs p-2 rounded bg-muted/50 border border-border border-l-2 ${NOTE_TYPE_COLORS[note.note_type] || NOTE_TYPE_COLORS.info}`}>
+                      <div className="flex items-center gap-1.5 mb-0.5">
+                        <span className="text-[9px] font-mono uppercase text-muted-foreground">{note.note_type || "info"}</span>
+                      </div>
+                      <p className="text-card-foreground">{note.content}</p>
+                      <p className="text-[10px] text-muted-foreground mt-1">
+                        {getAuthorName(note.created_by)} · {fmtDateTime(note.created_at)}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* RIGHT: big photo + ID document */}
@@ -334,56 +384,6 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
           </div>
         </div>
       </div>
-
-      {/* Notes */}
-      {canSeeNotes && (
-        <div className="space-y-2">
-          <div className="flex items-center gap-1">
-            <StickyNote className="w-3 h-3 text-muted-foreground" />
-            <Label className="text-xs text-muted-foreground">Intelligence Notes ({notes.length})</Label>
-          </div>
-          <div className="flex gap-2">
-            <Select value={noteType} onValueChange={setNoteType}>
-              <SelectTrigger className="h-10 w-[100px] text-xs"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {NOTE_TYPES.map(t => (
-                  <SelectItem key={t} value={t} className="capitalize text-xs">{t}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Textarea
-              value={newNote}
-              onChange={e => setNewNote(e.target.value)}
-              placeholder="Add note..."
-              className="text-xs min-h-[44px] resize-none flex-1"
-            />
-            <Button
-              variant="outline"
-              size="sm"
-              className="shrink-0 self-end h-10 w-10 p-0"
-              onClick={handleAddNote}
-              disabled={!newNote.trim() || addingNote}
-            >
-              <Send className="w-3.5 h-3.5" />
-            </Button>
-          </div>
-          {notes.length > 0 && (
-            <div className="space-y-1 max-h-40 overflow-y-auto">
-              {notes.map((note: any) => (
-                <div key={note.id} className={`text-xs p-2 rounded bg-muted/50 border border-border border-l-2 ${NOTE_TYPE_COLORS[note.note_type] || NOTE_TYPE_COLORS.info}`}>
-                  <div className="flex items-center gap-1.5 mb-0.5">
-                    <span className="text-[9px] font-mono uppercase text-muted-foreground">{note.note_type || "info"}</span>
-                  </div>
-                  <p className="text-card-foreground">{note.content}</p>
-                  <p className="text-[10px] text-muted-foreground mt-1">
-                    {getAuthorName(note.created_by)} · {fmtDateTime(note.created_at)}
-                  </p>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
     </div>
   ) : null;
 
