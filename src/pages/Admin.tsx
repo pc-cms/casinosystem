@@ -16,6 +16,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import FloatManagement from "@/components/admin/FloatManagement";
 import ChipColorSettings from "@/components/admin/ChipColorSettings";
 import { ChipConservationModeCard } from "@/components/admin/ChipConservationModeCard";
+import { ChipEmissionDialog } from "@/components/chips/ChipEmissionDialog";
 import { useCasinoInfo, useUpdateCasinoSchedule } from "@/hooks/use-table-lifecycle";
 
 const ROLES = ["manager", "cashier", "pit", "reception", "finance_manager", "surveillance", "hr"] as const;
@@ -171,6 +172,9 @@ const Admin = () => {
         <TabsContent value="schedule"><ScheduleSettings /></TabsContent>
         <TabsContent value="float">
           <div className="space-y-4">
+            <div className="flex justify-end">
+              <ChipEmissionDialog />
+            </div>
             <ChipConservationModeCard />
             <FloatManagement />
           </div>
