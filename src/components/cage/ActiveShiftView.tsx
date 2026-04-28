@@ -246,27 +246,24 @@ const InForm = ({ players, tables, exchangeRates, shiftId, onSubmit, loading }: 
     return raw * (exchangeRates[currency] || 0);
   }, [amount, currency, exchangeRates]);
 
-  // When amount changes (and currency is TZS) → regenerate chip breakdown via greedy.
+  // When amount/currency changes → regenerate chip breakdown from TZS-equivalent.
+  // For foreign currencies chips are derived from tzsAmount; manual edits stay user-controlled.
   useEffect(() => {
     if (lastEditSource.current === "chips") {
       lastEditSource.current = null;
       return;
     }
-    if (currency !== "TZS") {
-      // Foreign currency: don't auto-generate chips
-      setChips({});
-      return;
-    }
-    const v = Number(amount) || 0;
-    setChips(v > 0 ? greedyChipBreakdown(v) : {});
-  }, [amount, currency]);
+    setChips(tzsAmount > 0 ? greedyChipBreakdown(tzsAmount) : {});
+  }, [tzsAmount]);
 
   const handleChipsChange = (v: Record<number, number>) => {
     lastEditSource.current = "chips";
     setChips(v);
+    // Only sync amount back from chips when entering in TZS — otherwise the
+    // foreign amount must remain what the player actually paid.
     if (currency === "TZS") {
       const total = sumChips(v);
-      lastEditSource.current = "chips"; // ensure useEffect skips
+      lastEditSource.current = "chips";
       setAmount(total > 0 ? String(total) : "");
     }
   };
