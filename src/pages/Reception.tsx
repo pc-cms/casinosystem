@@ -290,16 +290,10 @@ const PlayerConfirmCard = ({
   const isBlacklisted = player.status === "blacklist";
 
   return (
-    <div className={`cms-panel p-4 sm:p-6 space-y-3 sm:space-y-4 ${isBlacklisted ? "border-destructive/50 bg-destructive/5" : ""}`}>
-      <div className="flex items-center gap-3 sm:gap-4">
-        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl bg-muted flex items-center justify-center overflow-hidden shrink-0">
-          {player.photo_url ? (
-            <img src={player.photo_url} className="w-full h-full object-cover" alt="" />
-          ) : (
-            <User className="w-8 h-8 sm:w-10 sm:h-10 text-muted-foreground" />
-          )}
-        </div>
-        <div className="flex-1 min-w-0">
+    <div className={`cms-panel p-4 sm:p-6 ${isBlacklisted ? "border-destructive/50 bg-destructive/5" : ""}`}>
+      <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
+        {/* LEFT: Info + buttons */}
+        <div className="flex-1 min-w-0 flex flex-col order-2 sm:order-1">
           <div className="flex items-center gap-2 flex-wrap">
             <CategoryBadge category={(player.category as PlayerCategory) || "normal"} size="md" />
             <CasinoBadge casinoId={player.casino_id} />
@@ -308,14 +302,14 @@ const PlayerConfirmCard = ({
             </h2>
           </div>
           {player.nickname && (
-            <p className="text-sm text-muted-foreground truncate">"{player.nickname}"</p>
+            <p className="text-sm text-muted-foreground truncate mt-0.5">"{player.nickname}"</p>
           )}
           {player.player_tags?.length > 0 && !isBlacklisted && (
-            <div className="mt-1">
+            <div className="mt-2">
               <FlagBadges tags={player.player_tags.map((t: any) => t.tag)} compact />
             </div>
           )}
-          <div className="flex items-center gap-2 mt-1 flex-wrap">
+          <div className="flex items-center gap-2 mt-2 flex-wrap">
             {isBlacklisted ? (
               <Badge variant="destructive" className="gap-1">
                 <Ban className="w-3 h-3" /> BLACKLISTED
@@ -330,37 +324,51 @@ const PlayerConfirmCard = ({
               </Badge>
             )}
           </div>
-          <div className="flex gap-3 mt-1 text-xs text-muted-foreground flex-wrap">
+          <div className="flex gap-3 mt-2 text-xs text-muted-foreground flex-wrap">
             <span>Card: {player.player_cards?.[0]?.card_number || "—"}</span>
             <span>Phone: {player.phone || "—"}</span>
           </div>
-        </div>
-      </div>
 
-      {isBlacklisted && (
-        <div className="rounded-lg bg-destructive/10 border border-destructive/30 p-3">
-          <p className="text-sm font-medium text-destructive flex items-center gap-2">
-            <ShieldAlert className="w-4 h-4" /> Entry DENIED — Blacklisted
-          </p>
-        </div>
-      )}
+          {isBlacklisted && (
+            <div className="rounded-lg bg-destructive/10 border border-destructive/30 p-3 mt-3">
+              <p className="text-sm font-medium text-destructive flex items-center gap-2">
+                <ShieldAlert className="w-4 h-4" /> Entry DENIED — Blacklisted
+              </p>
+            </div>
+          )}
 
-      <div className="flex gap-2 flex-col sm:flex-row">
-        <div className="flex gap-2 flex-1">
-          <Button variant="outline" onClick={onCancel} className="flex-1 h-11">Cancel</Button>
-          <Button variant="ghost" onClick={onViewProfile} className="h-11 gap-1 shrink-0" size="sm">
-            <Eye className="w-4 h-4" /> Profile
-          </Button>
+          {/* Buttons (left side, bottom) */}
+          <div className="flex gap-2 flex-col sm:flex-row mt-auto pt-4">
+            <Button variant="outline" onClick={onCancel} className="flex-1 h-11">Cancel</Button>
+            <Button variant="ghost" onClick={onViewProfile} className="h-11 gap-1 shrink-0" size="sm">
+              <Eye className="w-4 h-4" /> Profile
+            </Button>
+            {isBlacklisted ? null : isCheckedIn ? (
+              <Button onClick={onCheckOut} disabled={isPending} className="flex-1 gap-1.5 h-11" variant="secondary">
+                <LogOut className="w-4 h-4" /> Check Out
+              </Button>
+            ) : (
+              <Button onClick={onCheckIn} disabled={isPending} className="flex-1 gap-1.5 h-11">
+                <LogIn className="w-4 h-4" /> Confirm Check-in
+              </Button>
+            )}
+          </div>
         </div>
-        {isBlacklisted ? null : isCheckedIn ? (
-          <Button onClick={onCheckOut} disabled={isPending} className="flex-1 gap-1.5 h-11" variant="secondary">
-            <LogOut className="w-4 h-4" /> Check Out
-          </Button>
-        ) : (
-          <Button onClick={onCheckIn} disabled={isPending} className="flex-1 gap-1.5 h-11">
-            <LogIn className="w-4 h-4" /> Confirm Check-in
-          </Button>
-        )}
+
+        {/* RIGHT: Big photo for identification */}
+        <div className="shrink-0 order-1 sm:order-2 mx-auto sm:mx-0">
+          <div className="w-48 h-48 sm:w-56 sm:h-56 rounded-xl bg-muted flex items-center justify-center overflow-hidden ring-1 ring-border">
+            {player.photo_url ? (
+              <img
+                src={player.photo_url}
+                alt={`${player.first_name} ${player.last_name}`}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <User className="w-20 h-20 text-muted-foreground" />
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
