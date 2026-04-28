@@ -75,7 +75,8 @@ const Expenses = () => {
       <PageHeader
         icon={Receipt}
         title="Expenses"
-        subtitle={`Immutable · ${expenses.length} records · ${analytics.pendingCount} pending · ${fmtDate(new Date())}`}
+        subtitle={`Immutable · ${expenses.length} records · ${analytics.pendingCount} pending`}
+        date
       >
         <Button onClick={() => setShowAdd(true)} size="sm"><Plus className="w-4 h-4 mr-1" /> Add Expense</Button>
       </PageHeader>

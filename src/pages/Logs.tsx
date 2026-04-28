@@ -45,6 +45,7 @@ const Logs = () => {
         icon={ClipboardList}
         title="Audit Log"
         subtitle={`Immutable trail · searchable · ${filtered.length} entries`}
+        date
       />
 
       <FilterBar
