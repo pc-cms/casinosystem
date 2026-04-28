@@ -52,7 +52,7 @@ export const useChipInitialBaseline = () => {
         .eq("casino_id", casinoId)
         .order("denomination", { ascending: false });
       if (error) throw error;
-      return (data || []) as Array<{
+      return ((data || []) as unknown) as Array<{
         id: string;
         casino_id: string;
         denomination: number;
