@@ -5,7 +5,9 @@ import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Users, X, CalendarDays } from "lucide-react";
+import { Plus, Users, X, CalendarDays, UsersRound } from "lucide-react";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { FilterBar } from "@/components/layout/FilterBar";
 import { fmtDate } from "@/lib/format-date";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 

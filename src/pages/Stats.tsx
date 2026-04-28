@@ -1,6 +1,8 @@
 import { usePlayerEconomy, usePlayers } from "@/hooks/use-casino-data";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/currency";
+import { BarChart3 } from "lucide-react";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 /**
  * STRICT PLAYER STATS:

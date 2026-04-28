@@ -3,7 +3,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
-import { Ban } from "lucide-react";
+import { Ban, ShieldAlert } from "lucide-react";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { toast } from "sonner";
 import { cacheBlacklist, getCachedBlacklist, getLocalPhotoUrl } from "@/lib/blacklist-cache";
 
@@ -111,17 +112,11 @@ const Blacklist = () => {
 
   return (
     <div>
-      <div className="mb-4">
-        <h1 className="text-2xl font-bold text-foreground">Blacklist</h1>
-        <div className="flex items-center gap-2">
-          <p className="text-sm text-muted-foreground">{displayList.length} blacklisted players</p>
-          {!navigator.onLine && cachedPlayers.length > 0 && (
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent/10 text-accent-foreground font-medium">
-              Offline cache
-            </span>
-          )}
-        </div>
-      </div>
+      <PageHeader
+        icon={ShieldAlert}
+        title="Blacklist"
+        subtitle={`${displayList.length} blacklisted players${!navigator.onLine && cachedPlayers.length > 0 ? " · Offline cache" : ""}`}
+      />
 
       {displayList.length === 0 ? (
         <div className="cms-panel p-8 text-center text-muted-foreground">No blacklisted players</div>
