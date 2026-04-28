@@ -53,9 +53,14 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/in-casino", icon: Eye, label: "In Casino", roles: ["super_admin", "manager", "reception", "pit", "finance_manager", "surveillance"], section: "RECEPTION" },
   { to: "/blacklist", icon: ShieldAlert, label: "Blacklist", roles: ["super_admin", "manager", "reception", "finance_manager", "surveillance"], section: "RECEPTION" },
 
-  // FINANCE
-  { to: "/finance", icon: Wallet, label: "Finance", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
-  { to: "/groups", icon: UsersRound, label: "Groups", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
+  // FINANCE — alphabetical
+  { to: "/finance?tab=budget", icon: Target, label: "Budget", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
+  { to: "/finance?tab=review", icon: ClipboardPen, label: "Daily Review", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
+  { to: "/finance?tab=dashboard", icon: Wallet, label: "Dashboard", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
+  { to: "/finance?tab=expenses", icon: Receipt, label: "Expenses", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
+  { to: "/finance?tab=summary", icon: FileBarChart, label: "Summary", roles: ["super_admin", "finance_manager"], section: "FINANCE" },
+  { to: "/finance?tab=transfers", icon: Upload, label: "Transfers", roles: ["super_admin", "finance_manager"], section: "FINANCE" },
+  { to: "/finance?tab=wallets", icon: Wallet, label: "Wallets", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
   { to: "/import-reports", icon: Upload, label: "Import Reports", roles: ["super_admin", "manager"], section: "FINANCE" },
   { to: "/miss-chips", icon: Coins, label: "Miss Chips", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
 
@@ -63,10 +68,12 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/staff", icon: Building2, label: "Floor Staff", roles: ["super_admin", "manager", "pit", "finance_manager", "hr"], section: "HR" },
 
   // ANALYTICS — shared
-  { to: "/table-results", icon: FileText, label: "Table Results", roles: ["super_admin", "manager", "finance_manager", "surveillance"], section: "ANALYTICS" },
+  { to: "/groups", icon: UsersRound, label: "Groups", roles: ["super_admin", "manager", "finance_manager"], section: "ANALYTICS" },
+  { to: "/logs", icon: ClipboardList, label: "Logs", roles: ["super_admin", "manager", "finance_manager", "surveillance"], section: "ANALYTICS" },
   { to: "/reports", icon: FileBarChart, label: "Reports", roles: ["super_admin", "manager", "finance_manager", "surveillance"], section: "ANALYTICS" },
   { to: "/stats", icon: BarChart3, label: "Stats", roles: ["super_admin", "manager", "finance_manager", "surveillance"], section: "ANALYTICS" },
-  { to: "/logs", icon: ClipboardList, label: "Logs", roles: ["super_admin", "manager", "finance_manager", "surveillance"], section: "ANALYTICS" },
+  { to: "/table-results", icon: FileText, label: "Table Results", roles: ["super_admin", "manager", "finance_manager", "surveillance"], section: "ANALYTICS" },
+
 ];
 
 const TABLE_SUBITEMS = [
