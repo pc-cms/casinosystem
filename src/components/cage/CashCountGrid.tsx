@@ -38,9 +38,11 @@ const CashCountGrid = ({
             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.22em]">TZS Chips</p>
             <ChipDenomInput values={chips} onChange={onChipsChange} showValue={false} placeholder={chipPlaceholder} />
           </section>
-          <section className="rounded-xl border border-border bg-background/40 p-4 space-y-3">
+          <section className="rounded-xl border border-border bg-background/40 p-4 space-y-3 flex flex-col min-h-[200px]">
             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.22em]">TZS Cash</p>
-            <CashDenomInput values={cash["TZS"] || {}} onChange={v => onCashChange("TZS", v)} denoms={CASH_DENOMS["TZS"] || []} currency="TZS" />
+            <div className="flex-1 flex flex-col">
+              <CashDenomInput values={cash["TZS"] || {}} onChange={v => onCashChange("TZS", v)} denoms={CASH_DENOMS["TZS"] || []} currency="TZS" />
+            </div>
           </section>
         </div>
 
@@ -54,7 +56,7 @@ const CashCountGrid = ({
             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.22em]">KES Cash</p>
             <CashDenomInput values={cash["KES"] || {}} onChange={v => onCashChange("KES", v)} denoms={CASH_DENOMS["KES"] || []} currency="KES" />
           </section>
-          <section className="rounded-xl border border-border bg-background/40 p-4 space-y-3">
+          <section className="rounded-xl border border-border bg-background/40 p-4 space-y-3 flex flex-col min-h-[200px]">
             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.22em]">Mobile Money</p>
             <div className="space-y-0">
               {MOBILE_PROVIDERS.map(provider => (
@@ -69,7 +71,7 @@ const CashCountGrid = ({
                 </div>
               ))}
             </div>
-            <div className="flex items-center justify-between gap-2 pt-1 mt-1 border-t border-border">
+            <div className="mt-auto flex items-center justify-between gap-2 pt-1 border-t border-border">
               <span className="text-[10px] font-medium text-muted-foreground">Total</span>
               <span className="font-mono text-xs font-bold text-card-foreground">TZS {formatNumberSpaces(mobTotal)}</span>
             </div>
@@ -86,7 +88,7 @@ const CashCountGrid = ({
             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.22em]">GBP Cash</p>
             <CashDenomInput values={cash["GBP"] || {}} onChange={v => onCashChange("GBP", v)} denoms={CASH_DENOMS["GBP"] || []} currency="GBP" />
           </section>
-          <section className="rounded-xl border border-border bg-background/40 p-4 space-y-3">
+          <section className="rounded-xl border border-border bg-background/40 p-4 space-y-3 flex flex-col min-h-[200px]">
             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.22em]">Banks</p>
             <div className="space-y-0">
               <div className="grid grid-cols-[3.5rem_minmax(0,1fr)] items-center gap-1.5">
@@ -98,7 +100,7 @@ const CashCountGrid = ({
                 <NumberInput value={banks.usd || ""} onChange={v => onBanksChange({ ...banks, usd: Number(v) || 0 })} className={inputCls} placeholder="0" />
               </div>
             </div>
-            <div className="flex items-center justify-between gap-2 pt-1 mt-1 border-t border-border">
+            <div className="mt-auto flex items-center justify-between gap-2 pt-1 border-t border-border">
               <span className="text-[10px] font-medium text-muted-foreground">Total</span>
               <span className="font-mono text-xs font-bold text-card-foreground">TZS {formatNumberSpaces(banksTzsTotal)}</span>
             </div>
