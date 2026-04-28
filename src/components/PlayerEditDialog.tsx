@@ -291,28 +291,28 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
       {/* Row 2+: All form fields on a unified 12-col grid */}
       <FormGrid>
         <FormField span={6} label="First Name">
-          <Input value={firstName} onChange={e => setFirstName(e.target.value)} className="h-10" />
+          <Input value={firstName} onChange={e => setFirstName(e.target.value)} className="h-10" disabled={readOnly} />
         </FormField>
         <FormField span={6} label="Last Name">
-          <Input value={lastName} onChange={e => setLastName(e.target.value)} className="h-10" />
+          <Input value={lastName} onChange={e => setLastName(e.target.value)} className="h-10" disabled={readOnly} />
         </FormField>
 
         <FormField span={6} label="Nickname">
-          <Input value={nickname} onChange={e => setNickname(e.target.value)} className="h-10" />
+          <Input value={nickname} onChange={e => setNickname(e.target.value)} className="h-10" disabled={readOnly} />
         </FormField>
         <FormField span={6} label="Phone">
-          <Input value={phone} onChange={e => setPhone(e.target.value)} className="h-10" type="tel" />
+          <Input value={phone} onChange={e => setPhone(e.target.value)} className="h-10" type="tel" disabled={readOnly} />
         </FormField>
 
         <FormField span={6} label="ID / Passport">
-          <Input value={idNumber} onChange={e => setIdNumber(e.target.value)} className="h-10 font-mono" placeholder="Enter ID" />
+          <Input value={idNumber} onChange={e => setIdNumber(e.target.value)} className="h-10 font-mono" placeholder="Enter ID" disabled={readOnly} />
         </FormField>
         <FormField span={6} label="Birth Date">
-          <Input value={birthDate} onChange={e => setBirthDate(e.target.value)} className="h-10" type="date" />
+          <Input value={birthDate} onChange={e => setBirthDate(e.target.value)} className="h-10" type="date" disabled={readOnly} />
         </FormField>
 
         <FormField span={6} label="Player Type">
-          <Select value={playerType} onValueChange={setPlayerType}>
+          <Select value={playerType} onValueChange={setPlayerType} disabled={readOnly}>
             <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="table">Table</SelectItem>
