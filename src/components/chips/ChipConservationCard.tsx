@@ -12,6 +12,8 @@ import { cn } from "@/lib/utils";
  */
 export const ChipConservationCard = ({ compact = false }: { compact?: boolean }) => {
   const { data: rows = [], isLoading } = useChipConservation();
+  const { data: mode = "strict" } = useChipConservationMode();
+  const isObservation = mode === "observation";
 
   if (isLoading) {
     return (
