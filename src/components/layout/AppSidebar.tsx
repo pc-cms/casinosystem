@@ -44,7 +44,6 @@ const NAV_ITEMS: NavItem[] = [
 
   // CASHIER — Cage operations
   { to: "/cage", icon: Landmark, label: "Cage", roles: ["super_admin", "manager", "cashier", "finance_manager"], section: "CASHIER" },
-  { to: "/bank-checks", icon: CreditCard, label: "Bank Checks", roles: ["super_admin", "manager", "finance_manager"], section: "CASHIER" },
   { to: "/expenses", icon: Receipt, label: "Expenses", roles: ["super_admin", "manager", "cashier", "finance_manager"], section: "CASHIER" },
 
   // RECEPTION — Players & entry
@@ -54,25 +53,29 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/blacklist", icon: ShieldAlert, label: "Blacklist", roles: ["super_admin", "manager", "reception", "finance_manager", "surveillance"], section: "RECEPTION" },
 
   // FINANCE — alphabetical
+  { to: "/bank-checks", icon: CreditCard, label: "Bank Checks", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
   { to: "/finance?tab=budget", icon: Target, label: "Budget", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
   { to: "/finance?tab=review", icon: ClipboardPen, label: "Daily Review", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
   { to: "/finance?tab=dashboard", icon: Wallet, label: "Dashboard", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
   { to: "/finance?tab=expenses", icon: Receipt, label: "Expenses", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
+  { to: "/miss-chips", icon: Coins, label: "Miss Chips", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
   { to: "/finance?tab=summary", icon: FileBarChart, label: "Summary", roles: ["super_admin", "finance_manager"], section: "FINANCE" },
   { to: "/finance?tab=transfers", icon: Upload, label: "Transfers", roles: ["super_admin", "finance_manager"], section: "FINANCE" },
   { to: "/finance?tab=wallets", icon: Wallet, label: "Wallets", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
-  { to: "/import-reports", icon: Upload, label: "Import Reports", roles: ["super_admin", "manager"], section: "FINANCE" },
-  { to: "/miss-chips", icon: Coins, label: "Miss Chips", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
 
   // HR
   { to: "/staff", icon: Building2, label: "Floor Staff", roles: ["super_admin", "manager", "pit", "finance_manager", "hr"], section: "HR" },
 
   // ANALYTICS — shared
   { to: "/groups", icon: UsersRound, label: "Groups", roles: ["super_admin", "manager", "finance_manager"], section: "ANALYTICS" },
-  { to: "/logs", icon: ClipboardList, label: "Logs", roles: ["super_admin", "manager", "finance_manager", "surveillance"], section: "ANALYTICS" },
   { to: "/reports", icon: FileBarChart, label: "Reports", roles: ["super_admin", "manager", "finance_manager", "surveillance"], section: "ANALYTICS" },
   { to: "/stats", icon: BarChart3, label: "Stats", roles: ["super_admin", "manager", "finance_manager", "surveillance"], section: "ANALYTICS" },
   { to: "/table-results", icon: FileText, label: "Table Results", roles: ["super_admin", "manager", "finance_manager", "surveillance"], section: "ANALYTICS" },
+
+  // SYSTEM — admin/system tools
+  { to: "/import-reports", icon: Upload, label: "Import Reports", roles: ["super_admin", "manager"], section: "SYSTEM" },
+  { to: "/logs", icon: ClipboardList, label: "Logs", roles: ["super_admin", "manager", "finance_manager", "surveillance"], section: "SYSTEM" },
+
 
 ];
 
@@ -137,14 +140,15 @@ const SidebarSections = ({
     (acc[item.section] ||= []).push(item);
     return acc;
   }, {});
-  const sectionOrder: Section[] = ["OVERVIEW", "PIT", "CASHIER", "RECEPTION", "FINANCE", "HR", "ANALYTICS"];
-  const sections = sectionOrder.filter(s => grouped[s]?.length);
-  if (isManager) sections.push("SYSTEM");
+  const sectionOrder: Section[] = ["OVERVIEW", "PIT", "CASHIER", "RECEPTION", "FINANCE", "HR", "ANALYTICS", "SYSTEM"];
+  const sections = sectionOrder.filter(s => grouped[s]?.length || (s === "SYSTEM" && isManager));
 
   // Find which section contains the active route
   const activeSection: Section | null = (() => {
     for (const s of sections) {
-      const items = s === "SYSTEM" ? [{ to: "/admin" } as NavItem] : grouped[s] || [];
+      const items = s === "SYSTEM"
+        ? [...(grouped[s] || []), ...(isManager ? [{ to: "/admin" } as NavItem] : [])]
+        : grouped[s] || [];
       const hit = items.some(it => {
         const base = it.to.split("?")[0];
         if (base === "/") return location.pathname === "/";
@@ -214,7 +218,10 @@ const SidebarSections = ({
     <nav className="flex-1 py-2 px-2 overflow-y-auto">
       {sections.map((section, idx) => {
         const items: NavItem[] = section === "SYSTEM"
-          ? [{ to: "/admin", icon: Settings, label: "Admin", roles: ["manager"], section: "SYSTEM" }]
+          ? [
+              ...(grouped[section] || []),
+              ...(isManager ? [{ to: "/admin", icon: Settings, label: "Admin", roles: ["manager"] as AppRole[], section: "SYSTEM" as Section }] : []),
+            ]
           : grouped[section] || [];
         if (!items.length) return null;
 
