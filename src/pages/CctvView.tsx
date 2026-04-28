@@ -57,6 +57,8 @@ const CctvDashboard = () => {
         <StatCard label="Pending Exp." value={formatCurrency(pendingExpenses)} icon={Receipt} />
       </div>
 
+      <ChipConservationCard />
+
       <div className="grid md:grid-cols-2 gap-4">
         {/* Active guests */}
         <div className="cms-panel p-4">
