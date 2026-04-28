@@ -54,7 +54,7 @@ const CashCountGrid = ({
             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.22em]">KES Cash</p>
             <CashDenomInput values={cash["KES"] || {}} onChange={v => onCashChange("KES", v)} denoms={CASH_DENOMS["KES"] || []} currency="KES" />
           </section>
-          <section className="rounded-xl border border-border bg-background/40 p-4 space-y-3 flex flex-col min-h-[200px]">
+          <section className="rounded-xl border border-border bg-background/40 p-4 space-y-3">
             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.22em]">Mobile Money</p>
             <div className="space-y-0">
               {MOBILE_PROVIDERS.map(provider => (
@@ -69,7 +69,7 @@ const CashCountGrid = ({
                 </div>
               ))}
             </div>
-            <div className="mt-auto flex items-center justify-between gap-2 pt-1 border-t border-border">
+            <div className="flex items-center justify-between gap-2 pt-1 border-t border-border">
               <span className="text-[10px] font-medium text-muted-foreground">Total</span>
               <span className="font-mono text-xs font-bold text-card-foreground">TZS {formatNumberSpaces(mobTotal)}</span>
             </div>
