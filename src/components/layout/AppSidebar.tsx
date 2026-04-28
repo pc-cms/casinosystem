@@ -1,12 +1,13 @@
 import { useState } from "react";
-import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, Users, Landmark, Table2, Receipt,
-  ClipboardList, BarChart3, Sun, Moon, Shield, Gamepad2, 
-  UsersRound, Grid3X3, LogOut, Settings, FileBarChart,
-  CalendarDays, ClipboardCheck, ListChecks, Eye, Target,
-  Building2, UserCheck, ClipboardPen, Coins, ShieldCheck, ShieldOff,
-  Wallet, DoorOpen, ShieldAlert, Menu, X, Upload, FileText, ChevronsLeft, CreditCard,
+  ClipboardList, BarChart3, Sun, Moon, Shield, Gamepad2,
+  UsersRound, LogOut, Settings, FileBarChart,
+  ListChecks, Eye, Target,
+  Building2, UserCheck, ClipboardPen, ShieldCheck, ShieldOff,
+  Wallet, DoorOpen, ShieldAlert, Menu, Upload, FileText,
+  ChevronsLeft, ChevronsRight, CreditCard, CalendarDays,
 } from "lucide-react";
 import { useTheme } from "@/lib/theme";
 import { useAuth } from "@/lib/auth-context";
@@ -16,29 +17,55 @@ import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
 import { toast } from "sonner";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 
 type AppRole = "cashier" | "pit" | "manager" | "reception" | "finance_manager" | "surveillance" | "super_admin" | "hr";
 
-const NAV_ITEMS: { to: string; icon: typeof LayoutDashboard; label: string; shortcut: string; roles: AppRole[]; section: string }[] = [
-  { to: "/", icon: LayoutDashboard, label: "Dashboard", shortcut: "D", roles: ["super_admin", "manager", "pit", "reception", "finance_manager", "surveillance"], section: "OVERVIEW" },
-  { to: "/blacklist", icon: ShieldAlert, label: "Blacklist", shortcut: "B", roles: ["super_admin", "manager", "reception", "finance_manager", "surveillance"], section: "OPERATIONS" },
-  { to: "/pit?tab=breaklist", icon: ListChecks, label: "Breaklist", shortcut: "Alt+B", roles: ["super_admin", "manager", "pit", "finance_manager"], section: "OPERATIONS" },
-  { to: "/cage", icon: Landmark, label: "Cage", shortcut: "C", roles: ["super_admin", "manager", "cashier", "finance_manager"], section: "OPERATIONS" },
-  { to: "/expenses", icon: Receipt, label: "Expenses", shortcut: "E", roles: ["super_admin", "manager", "cashier", "finance_manager"], section: "OPERATIONS" },
-  { to: "/finance", icon: Wallet, label: "Finance", shortcut: "F", roles: ["super_admin", "manager", "finance_manager"], section: "OPERATIONS" },
-  { to: "/groups", icon: UsersRound, label: "Groups", shortcut: "G", roles: ["super_admin", "manager", "finance_manager"], section: "OPERATIONS" },
-  { to: "/in-casino", icon: Users, label: "In Casino", shortcut: "Alt+G", roles: ["super_admin", "manager", "reception", "pit", "finance_manager", "surveillance"], section: "OPERATIONS" },
-  { to: "/pit", icon: Gamepad2, label: "Live Game", shortcut: "L", roles: ["super_admin", "manager", "pit", "finance_manager", "hr"], section: "OPERATIONS" },
-  { to: "/players", icon: Users, label: "Players", shortcut: "P", roles: ["super_admin", "manager", "cashier", "finance_manager", "surveillance"], section: "OPERATIONS" },
-  { to: "/reception", icon: DoorOpen, label: "Reception", shortcut: "R", roles: ["super_admin", "manager", "reception", "finance_manager"], section: "OPERATIONS" },
-  { to: "/tables", icon: Table2, label: "Tables", shortcut: "T", roles: ["super_admin", "manager", "cashier", "pit", "finance_manager", "surveillance"], section: "OPERATIONS" },
-  { to: "/staff", icon: Building2, label: "Floor Staff", shortcut: "Alt+F", roles: ["super_admin", "manager", "pit", "finance_manager", "hr"], section: "HR" },
-  { to: "/logs", icon: ClipboardList, label: "Logs", shortcut: "Alt+L", roles: ["super_admin", "manager", "finance_manager", "surveillance"], section: "ANALYTICS" },
-  { to: "/reports", icon: FileBarChart, label: "Reports", shortcut: "Alt+R", roles: ["super_admin", "manager", "finance_manager", "surveillance"], section: "ANALYTICS" },
-  { to: "/stats", icon: BarChart3, label: "Stats", shortcut: "S", roles: ["super_admin", "manager", "finance_manager", "surveillance"], section: "ANALYTICS" },
-  { to: "/table-results", icon: FileText, label: "Table Results", shortcut: "Alt+T", roles: ["super_admin", "manager", "finance_manager", "surveillance"], section: "ANALYTICS" },
-  { to: "/import-reports", icon: Upload, label: "Import Reports", shortcut: "Alt+I", roles: ["super_admin", "manager"], section: "ANALYTICS" },
-  { to: "/bank-checks", icon: CreditCard, label: "Bank Checks", shortcut: "Alt+K", roles: ["super_admin", "manager", "finance_manager"], section: "OPERATIONS" },
+// Section labels for the hybrid grouping (roles + shared ANALYTICS)
+type Section = "OVERVIEW" | "PIT" | "CASHIER" | "RECEPTION" | "FINANCE" | "HR" | "ANALYTICS" | "SYSTEM";
+
+type NavItem = {
+  to: string;
+  icon: typeof LayoutDashboard;
+  label: string;
+  roles: AppRole[];
+  section: Section;
+};
+
+const NAV_ITEMS: NavItem[] = [
+  // OVERVIEW
+  { to: "/", icon: LayoutDashboard, label: "Dashboard", roles: ["super_admin", "manager", "pit", "reception", "finance_manager", "surveillance"], section: "OVERVIEW" },
+
+  // PIT — Live game floor
+  { to: "/pit", icon: Gamepad2, label: "Live Game", roles: ["super_admin", "manager", "pit", "finance_manager", "hr"], section: "PIT" },
+  { to: "/pit?tab=breaklist", icon: ListChecks, label: "Breaklist", roles: ["super_admin", "manager", "pit", "finance_manager"], section: "PIT" },
+  { to: "/tables", icon: Table2, label: "Tables", roles: ["super_admin", "manager", "cashier", "pit", "finance_manager", "surveillance"], section: "PIT" },
+
+  // CASHIER — Cage operations
+  { to: "/cage", icon: Landmark, label: "Cage", roles: ["super_admin", "manager", "cashier", "finance_manager"], section: "CASHIER" },
+  { to: "/bank-checks", icon: CreditCard, label: "Bank Checks", roles: ["super_admin", "manager", "finance_manager"], section: "CASHIER" },
+  { to: "/expenses", icon: Receipt, label: "Expenses", roles: ["super_admin", "manager", "cashier", "finance_manager"], section: "CASHIER" },
+
+  // RECEPTION — Players & entry
+  { to: "/reception", icon: DoorOpen, label: "Reception", roles: ["super_admin", "manager", "reception", "finance_manager"], section: "RECEPTION" },
+  { to: "/players", icon: Users, label: "Players", roles: ["super_admin", "manager", "cashier", "finance_manager", "surveillance"], section: "RECEPTION" },
+  { to: "/in-casino", icon: Eye, label: "In Casino", roles: ["super_admin", "manager", "reception", "pit", "finance_manager", "surveillance"], section: "RECEPTION" },
+  { to: "/blacklist", icon: ShieldAlert, label: "Blacklist", roles: ["super_admin", "manager", "reception", "finance_manager", "surveillance"], section: "RECEPTION" },
+
+  // FINANCE
+  { to: "/finance", icon: Wallet, label: "Finance", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
+  { to: "/groups", icon: UsersRound, label: "Groups", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
+  { to: "/import-reports", icon: Upload, label: "Import Reports", roles: ["super_admin", "manager"], section: "FINANCE" },
+
+  // HR
+  { to: "/staff", icon: Building2, label: "Floor Staff", roles: ["super_admin", "manager", "pit", "finance_manager", "hr"], section: "HR" },
+
+  // ANALYTICS — shared
+  { to: "/table-results", icon: FileText, label: "Table Results", roles: ["super_admin", "manager", "finance_manager", "surveillance"], section: "ANALYTICS" },
+  { to: "/reports", icon: FileBarChart, label: "Reports", roles: ["super_admin", "manager", "finance_manager", "surveillance"], section: "ANALYTICS" },
+  { to: "/stats", icon: BarChart3, label: "Stats", roles: ["super_admin", "manager", "finance_manager", "surveillance"], section: "ANALYTICS" },
+  { to: "/logs", icon: ClipboardList, label: "Logs", roles: ["super_admin", "manager", "finance_manager", "surveillance"], section: "ANALYTICS" },
 ];
 
 const TABLE_SUBITEMS = [
@@ -48,7 +75,7 @@ const TABLE_SUBITEMS = [
 ];
 
 const PIT_SUBITEMS = [
-  { tab: "attendance", icon: ClipboardCheck, label: "Attendance" },
+  { tab: "attendance", icon: ClipboardPen, label: "Attendance" },
   { tab: "employee", icon: UserCheck, label: "Employee" },
   { tab: "rota", icon: CalendarDays, label: "Rota" },
 ];
@@ -63,8 +90,14 @@ const STAFF_SUBITEMS = [
 
 const BREAKLIST_PATH = "/pit?tab=breaklist";
 
-// ============ Shared sidebar content ============
-const SidebarInner = ({ onNavigate, onCollapse }: { onNavigate?: () => void; onCollapse?: () => void }) => {
+// ============ Shared sidebar inner ============
+type InnerProps = {
+  onNavigate?: () => void;
+  collapsed?: boolean;
+  onToggle?: () => void;
+};
+
+const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) => {
   const { theme, toggle } = useTheme();
   const { displayName, roles, signOut, isManager, managerOverride, activateManagerOverride, deactivateManagerOverride } = useAuth();
   const { activeCasino, isSummaryMode } = useCasino();
@@ -74,7 +107,7 @@ const SidebarInner = ({ onNavigate, onCollapse }: { onNavigate?: () => void; onC
   const isPitActive = location.pathname === "/pit";
   const isStaffActive = location.pathname === "/staff";
   const isTablesActive = location.pathname === "/tables";
-  const currentTab = new URLSearchParams(location.search).get("tab") || 
+  const currentTab = new URLSearchParams(location.search).get("tab") ||
     (isPitActive ? "employee" : isTablesActive ? "tables" : "employee");
 
   const visibleItems = NAV_ITEMS.filter(item =>
@@ -114,6 +147,113 @@ const SidebarInner = ({ onNavigate, onCollapse }: { onNavigate?: () => void; onC
     </div>
   );
 
+  // ============ Collapsed (icon rail) — desktop only ============
+  if (collapsed && !onNavigate) {
+    return (
+      <TooltipProvider delayDuration={150}>
+        <div className="flex flex-col items-center py-3 gap-1 h-full">
+          {/* Logo + expand */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={onToggle}
+                className="w-10 h-10 flex items-center justify-center rounded-md hover:bg-sidebar-accent transition-colors text-sidebar-foreground"
+              >
+                <ChevronsRight className="w-4 h-4" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="right">Expand sidebar</TooltipContent>
+          </Tooltip>
+
+          <div className="w-8 border-t border-sidebar-border my-1" />
+
+          {/* Nav icons (only top-level items, no sub-tabs) */}
+          <nav className="flex-1 flex flex-col items-center gap-0.5 overflow-y-auto w-full px-2">
+            {visibleItems.map((item) => {
+              const isBreaklistItem = item.to === BREAKLIST_PATH;
+              const isBreaklistActive = isBreaklistItem && location.pathname === "/pit" && currentTab === "breaklist";
+              const isPlainPitActive = item.to === "/pit" && location.pathname === "/pit" && currentTab !== "breaklist";
+              const isActive = isBreaklistItem
+                ? isBreaklistActive
+                : item.to === "/pit"
+                  ? isPlainPitActive
+                  : item.to === "/"
+                    ? location.pathname === "/"
+                    : location.pathname.startsWith(item.to.split("?")[0]);
+              return (
+                <Tooltip key={item.to}>
+                  <TooltipTrigger asChild>
+                    <NavLink
+                      to={item.to}
+                      end={item.to === "/"}
+                      className={cn(
+                        "w-10 h-10 flex items-center justify-center rounded-md transition-colors",
+                        isActive
+                          ? "bg-sidebar-accent text-sidebar-primary"
+                          : "text-sidebar-foreground hover:bg-sidebar-accent"
+                      )}
+                    >
+                      <item.icon className="w-4 h-4" />
+                    </NavLink>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">{item.label}</TooltipContent>
+                </Tooltip>
+              );
+            })}
+
+            {isManager && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <NavLink
+                    to="/admin"
+                    className={({ isActive }) =>
+                      cn(
+                        "w-10 h-10 flex items-center justify-center rounded-md transition-colors",
+                        isActive
+                          ? "bg-sidebar-accent text-sidebar-primary"
+                          : "text-sidebar-foreground hover:bg-sidebar-accent"
+                      )
+                    }
+                  >
+                    <Settings className="w-4 h-4" />
+                  </NavLink>
+                </TooltipTrigger>
+                <TooltipContent side="right">Admin</TooltipContent>
+              </Tooltip>
+            )}
+          </nav>
+
+          <div className="w-8 border-t border-sidebar-border my-1" />
+
+          {/* Theme + sign out */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={toggle}
+                className="w-10 h-10 flex items-center justify-center rounded-md hover:bg-sidebar-accent transition-colors text-sidebar-foreground"
+              >
+                {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="right">{theme === "dark" ? "Light mode" : "Dark mode"}</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={signOut}
+                className="w-10 h-10 flex items-center justify-center rounded-md hover:bg-sidebar-accent transition-colors text-sidebar-foreground"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="right">Sign out</TooltipContent>
+          </Tooltip>
+        </div>
+      </TooltipProvider>
+    );
+  }
+
+  // ============ Expanded (full sidebar) ============
   return (
     <>
       <div className="px-4 py-4 border-b border-sidebar-border">
@@ -124,10 +264,10 @@ const SidebarInner = ({ onNavigate, onCollapse }: { onNavigate?: () => void; onC
           </div>
           <div className="flex flex-col items-end gap-1">
             <NetworkStatusIndicator />
-            {onCollapse && (
+            {onToggle && (
               <button
-                onClick={onCollapse}
-                title="Hide sidebar (Ctrl+B)"
+                onClick={onToggle}
+                title="Collapse sidebar"
                 className="h-5 px-2 flex items-center justify-center rounded-md text-sidebar-foreground hover:bg-sidebar-accent transition-colors border border-sidebar-border"
               >
                 <ChevronsLeft className="w-3.5 h-3.5" />
@@ -186,7 +326,6 @@ const SidebarInner = ({ onNavigate, onCollapse }: { onNavigate?: () => void; onC
                 }}>
                 <item.icon className="w-4 h-4 shrink-0" />
                 <span className="flex-1">{item.label}</span>
-                {!onNavigate && <span className="cms-kbd">{item.shortcut}</span>}
               </NavLink>
               {item.to === "/tables" && isTablesActive && (roles.includes("pit" as AppRole) || roles.includes("manager" as AppRole) || roles.includes("finance_manager" as AppRole)) && renderSubItems("/tables", TABLE_SUBITEMS)}
               {item.to === "/pit" && isPitActive && renderSubItems("/pit", PIT_SUBITEMS)}
@@ -209,7 +348,6 @@ const SidebarInner = ({ onNavigate, onCollapse }: { onNavigate?: () => void; onC
               }>
               <Settings className="w-4 h-4 shrink-0" />
               <span className="flex-1">Admin</span>
-              {!onNavigate && <span className="cms-kbd">Alt+A</span>}
             </NavLink>
           </>
         )}
@@ -269,19 +407,22 @@ const SidebarInner = ({ onNavigate, onCollapse }: { onNavigate?: () => void; onC
 };
 
 // ============ Desktop sidebar ============
-export const AppSidebar = ({ onCollapse }: { onCollapse?: () => void } = {}) => (
-  <aside className="w-56 h-screen flex flex-col bg-sidebar border-r border-sidebar-border shrink-0">
-    <SidebarInner onCollapse={onCollapse} />
+export const AppSidebar = ({ collapsed = false, onToggle }: { collapsed?: boolean; onToggle?: () => void } = {}) => (
+  <aside
+    className={cn(
+      "h-screen flex flex-col bg-sidebar border-r border-sidebar-border shrink-0 transition-[width] duration-150",
+      collapsed ? "w-14" : "w-56"
+    )}
+  >
+    <SidebarInner collapsed={collapsed} onToggle={onToggle} />
   </aside>
 );
 
 // ============ Mobile header + hamburger sheet ============
 export const MobileHeader = () => {
   const [open, setOpen] = useState(false);
-  const { displayName } = useAuth();
   const location = useLocation();
 
-  // Get current page title
   const currentItem = NAV_ITEMS.find(item => {
     if (item.to === "/") return location.pathname === "/";
     return location.pathname.startsWith(item.to.split("?")[0]);

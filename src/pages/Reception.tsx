@@ -41,18 +41,6 @@ const Reception = () => {
   const tab = searchParams.get("tab") || "checkin";
   const isMobile = useIsMobile();
 
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-      if (e.ctrlKey || e.metaKey || e.altKey) return;
-      const key = e.key.toLowerCase();
-      if (key === "c" && tab !== "checkin") { e.preventDefault(); setSearchParams({ tab: "checkin" }); }
-      else if (key === "r" && tab !== "register") { e.preventDefault(); setSearchParams({ tab: "register" }); }
-      else if (key === "u" && tab !== "update") { e.preventDefault(); setSearchParams({ tab: "update" }); }
-    };
-    document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
-  }, [tab, setSearchParams]);
 
   return (
     <div>
@@ -69,19 +57,16 @@ const Reception = () => {
             <LogIn className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Check-in</span>
             <span className="sm:hidden">In/Out</span>
-            {!isMobile && <span className="cms-kbd ml-1">C</span>}
           </TabsTrigger>
           <TabsTrigger value="register" className="gap-1 text-xs sm:text-sm">
             <UserPlus className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Register</span>
             <span className="sm:hidden">New</span>
-            {!isMobile && <span className="cms-kbd ml-1">R</span>}
           </TabsTrigger>
           <TabsTrigger value="update" className="gap-1 text-xs sm:text-sm">
             <AlertTriangle className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Update Data</span>
             <span className="sm:hidden">Update</span>
-            {!isMobile && <span className="cms-kbd ml-1">U</span>}
           </TabsTrigger>
         </TabsList>
 

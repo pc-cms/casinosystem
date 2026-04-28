@@ -56,14 +56,6 @@ const Players = () => {
 
   const selectedPlayer = players.find(p => p.id === selectedPlayerId);
 
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "/" && !showAdd && !selectedPlayerId) { e.preventDefault(); searchRef.current?.focus(); }
-      if (e.key === "n" && e.altKey) { e.preventDefault(); setShowAdd(true); }
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [showAdd, selectedPlayerId]);
 
   return (
     <div>
@@ -73,7 +65,7 @@ const Players = () => {
           <p className="text-sm text-muted-foreground">{players.length} registered · No deletion</p>
         </div>
         <Button onClick={() => setShowAdd(true)} size="sm">
-          <Plus className="w-4 h-4 mr-1" /> New Player <span className="cms-kbd ml-2">Alt+N</span>
+          <Plus className="w-4 h-4 mr-1" /> New Player
         </Button>
       </div>
 
