@@ -1,9 +1,13 @@
 import { useMemo, useRef, useState } from "react";
-import { Loader2, Upload, Plus, FileSpreadsheet } from "lucide-react";
+import { Loader2, Upload, Plus, CreditCard } from "lucide-react";
 import { downloadXlsx } from "@/lib/excel-export";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { FilterBar } from "@/components/layout/FilterBar";
+import { DateRangePresets, type DatePreset, presetRange } from "@/components/ui/date-range-presets";
+import { ExportButton } from "@/components/ui/export-button";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
@@ -26,33 +30,11 @@ const todayMinus = (days: number) => {
   return d.toISOString().slice(0, 10);
 };
 
-type Preset = "day" | "week" | "month" | "year" | "custom";
-
-const presetRange = (p: Preset): { from: string; to: string } => {
-  const today = todayMinus(0);
-  switch (p) {
-    case "day": return { from: today, to: today };
-    case "week": return { from: todayMinus(6), to: today };
-    case "month": return { from: todayMinus(29), to: today };
-    case "year": return { from: todayMinus(364), to: today };
-    default: return { from: todayMinus(29), to: today };
-  }
-};
-
 export default function BankChecks() {
   const { activeCasinoId } = useCasino();
-  const [preset, setPreset] = useState<Preset>("month");
+  const [preset, setPreset] = useState<DatePreset>("month");
   const [from, setFrom] = useState(todayMinus(29));
   const [to, setTo] = useState(todayMinus(0));
-
-  const setPresetRange = (p: Preset) => {
-    setPreset(p);
-    if (p !== "custom") {
-      const r = presetRange(p);
-      setFrom(r.from);
-      setTo(r.to);
-    }
-  };
   // Extend "to" by 1 day so that early-morning checks (00:00–06:00) of next calendar day,
   // which belong to the selected last shift, are still included.
   const toExtended = useMemo(() => {
