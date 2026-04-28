@@ -303,55 +303,17 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
         )}
       </div>
 
-      <nav className="flex-1 py-2 px-2 overflow-y-auto">
-        {visibleItems.map((item, idx) => {
-          const prevSection = idx > 0 ? visibleItems[idx - 1].section : "";
-          const showLabel = item.section !== prevSection;
-          return (
-            <div key={item.to}>
-              {showLabel && (
-                <div className={`px-3 pt-3 pb-1 ${idx > 0 ? "mt-1 border-t border-sidebar-border" : ""}`}>
-                  <span className="text-[9px] font-mono text-muted-foreground uppercase tracking-widest">{item.section}</span>
-                </div>
-              )}
-              <NavLink to={item.to} end={item.to === "/" || item.to === "/pit" || item.to === "/staff" || item.to === "/tables" || item.to === BREAKLIST_PATH}
-                onClick={onNavigate}
-                className={({ isActive }) => {
-                  const isBreaklistItem = item.to === BREAKLIST_PATH;
-                  const isBreaklistActive = isBreaklistItem && location.pathname === "/pit" && currentTab === "breaklist";
-                  const active = isBreaklistItem ? isBreaklistActive : isActive;
-                  return `flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
-                    active ? "bg-sidebar-accent text-sidebar-primary font-medium" : "text-sidebar-foreground hover:bg-sidebar-accent"
-                  }`;
-                }}>
-                <item.icon className="w-4 h-4 shrink-0" />
-                <span className="flex-1">{item.label}</span>
-              </NavLink>
-              {item.to === "/tables" && isTablesActive && (roles.includes("pit" as AppRole) || roles.includes("manager" as AppRole) || roles.includes("finance_manager" as AppRole)) && renderSubItems("/tables", TABLE_SUBITEMS)}
-              {item.to === "/pit" && isPitActive && renderSubItems("/pit", PIT_SUBITEMS)}
-              {item.to === "/staff" && isStaffActive && renderSubItems("/staff", STAFF_SUBITEMS)}
-            </div>
-          );
-        })}
-
-        {isManager && (
-          <>
-            <div className="px-3 pt-3 pb-1 mt-1 border-t border-sidebar-border">
-              <span className="text-[9px] font-mono text-muted-foreground uppercase tracking-widest">SYSTEM</span>
-            </div>
-            <NavLink to="/admin"
-              onClick={onNavigate}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
-                  isActive ? "bg-sidebar-accent text-sidebar-primary font-medium" : "text-sidebar-foreground hover:bg-sidebar-accent"
-                }`
-              }>
-              <Settings className="w-4 h-4 shrink-0" />
-              <span className="flex-1">Admin</span>
-            </NavLink>
-          </>
-        )}
-      </nav>
+      <SidebarSections
+        visibleItems={visibleItems}
+        isManager={isManager}
+        isPitActive={isPitActive}
+        isStaffActive={isStaffActive}
+        isTablesActive={isTablesActive}
+        currentTab={currentTab}
+        roles={roles as AppRole[]}
+        onNavigate={onNavigate}
+        renderSubItems={renderSubItems}
+      />
 
       <div className="px-3 py-3 border-t border-sidebar-border space-y-1">
         <div className="px-3 py-1">
