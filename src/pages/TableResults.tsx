@@ -16,7 +16,8 @@ import {
 } from "@/components/ui/table";
 import { useDailyResults } from "@/hooks/use-import-reports";
 import { formatSpaced } from "@/lib/import-helpers";
-import { CalendarIcon, ChevronRight, Loader2, FileSpreadsheet } from "lucide-react";
+import { CalendarIcon, ChevronRight, Loader2, FileSpreadsheet, FileText } from "lucide-react";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { downloadXlsx } from "@/lib/excel-export";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -303,13 +304,12 @@ const TableResults = () => {
 
   return (
     <div className="space-y-3 h-full flex flex-col">
-      {/* Header */}
-      <div>
-        <h1 className="text-xl md:text-2xl font-bold">Table Results</h1>
-        <p className="text-xs text-muted-foreground mt-0.5">
-          Daily Drop / Result / Hold% per table — combined from imports and live shifts.
-        </p>
-      </div>
+      <PageHeader
+        icon={FileText}
+        title="Table Results"
+        subtitle="Daily Drop / Result / Hold% per table — combined from imports and live shifts"
+        date
+      />
 
       {/* Filters */}
       <Card className="p-3 md:p-4">
