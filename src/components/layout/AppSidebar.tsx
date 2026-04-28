@@ -38,7 +38,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/", icon: LayoutDashboard, label: "Dashboard", roles: ["super_admin", "manager", "pit", "reception", "finance_manager", "surveillance"], section: "OVERVIEW" },
 
   // PIT — Live game floor
-  { to: "/pit", icon: Gamepad2, label: "Live Game", roles: ["super_admin", "manager", "pit", "finance_manager"], section: "PIT" },
+  { to: "/pit", icon: Gamepad2, label: "Live Game", roles: ["super_admin", "manager", "pit", "finance_manager", "hr"], section: "PIT" },
   { to: "/pit?tab=breaklist", icon: ListChecks, label: "Breaklist", roles: ["super_admin", "manager", "pit", "finance_manager"], section: "PIT" },
   { to: "/tables", icon: Table2, label: "Tables", roles: ["super_admin", "manager", "cashier", "pit", "finance_manager", "surveillance"], section: "PIT" },
 
