@@ -74,17 +74,20 @@ FormField.displayName = "FormField";
 /**
  * Section divider inside a form (full row).
  */
-export const FormSection = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement> & { title?: React.ReactNode }
->(({ className, title, children, ...props }, ref) => (
-  <div ref={ref} className={cn("col-span-12 space-y-2", className)} {...props}>
-    {title && (
-      <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide pt-1">
-        {title}
-      </div>
-    )}
-    {children}
-  </div>
-));
+interface FormSectionProps extends Omit<React.HTMLAttributes<HTMLDivElement>, "title"> {
+  title?: React.ReactNode;
+}
+
+export const FormSection = React.forwardRef<HTMLDivElement, FormSectionProps>(
+  ({ className, title, children, ...props }, ref) => (
+    <div ref={ref} className={cn("col-span-12 space-y-2", className)} {...props}>
+      {title && (
+        <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide pt-1">
+          {title}
+        </div>
+      )}
+      {children}
+    </div>
+  ),
+);
 FormSection.displayName = "FormSection";
