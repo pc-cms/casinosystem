@@ -25,7 +25,7 @@ const CashCountGrid = ({
 }) => {
   const mobTotal = mobileTotal(mobile);
 
-  const inputCls = "no-spin h-9 w-full min-w-0 font-mono text-sm text-right";
+  const inputCls = "no-spin h-6 w-full min-w-0 font-mono text-xs text-right px-1.5";
 
   return (
     <div className="space-y-4">
