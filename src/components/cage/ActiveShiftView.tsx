@@ -143,8 +143,8 @@ const ActiveShiftView = ({ shift, players, tables }: {
             <span className="font-mono tabular-nums text-foreground">{shiftDuration}</span>
           </span>
         }
-        belowHeader={
-          <div className="flex items-center gap-4 flex-wrap">
+        centerSlot={
+          <div className="flex items-center gap-4 flex-wrap justify-center">
             {FOREIGN_CURRENCIES.map(c => (
               <span key={c} className="text-base font-semibold font-mono tabular-nums text-foreground">
                 <span className="text-muted-foreground text-xs font-medium uppercase mr-1">{c}</span>
