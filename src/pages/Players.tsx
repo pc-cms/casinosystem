@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useRef, useMemo } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { Search, Plus } from "lucide-react";
 import { usePlayers, useCreatePlayer } from "@/hooks/use-casino-data";
@@ -21,7 +21,7 @@ const Players = () => {
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<Set<PlayerCategory>>(new Set(["diamond", "platinum", "gold", "normal"]));
   const [sortByCategory, setSortByCategory] = useState(true);
-  const searchRef = useRef<HTMLInputElement>(null);
+  
   const parentRef = useRef<HTMLDivElement>(null);
 
   const filtered = useMemo(() => {
