@@ -39,6 +39,7 @@ const ImportReports = lazy(() => import("@/pages/ImportReports"));
 const TableResults = lazy(() => import("@/pages/TableResults"));
 const BankChecks = lazy(() => import("@/pages/BankChecks"));
 const MissChips = lazy(() => import("@/pages/MissChips"));
+const MissChipsReport = lazy(() => import("@/pages/MissChipsReport"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -95,6 +96,7 @@ const ROUTE_ROLES: Record<string, string[]> = {
   "/staff": ["super_admin", "manager", "pit", "finance_manager", "hr"],
   "/bank-checks": ["super_admin", "manager", "finance_manager"],
   "/miss-chips": ["super_admin", "manager", "finance_manager", "surveillance"],
+  "/reports/miss-chips": ["super_admin", "manager", "finance_manager"],
 };
 
 const RoleGuard = ({ path, children }: { path: string; children: React.ReactNode }) => {
@@ -183,6 +185,7 @@ const ProtectedRoutes = () => {
           <Route path="/table-results" element={<RoleGuard path="/table-results"><TableResults /></RoleGuard>} />
           <Route path="/bank-checks" element={<RoleGuard path="/bank-checks"><BankChecks /></RoleGuard>} />
           <Route path="/miss-chips" element={<RoleGuard path="/miss-chips"><MissChips /></RoleGuard>} />
+          <Route path="/reports/miss-chips" element={<RoleGuard path="/reports/miss-chips"><MissChipsReport /></RoleGuard>} />
         </Route>
         <Route path="*" element={<Suspense fallback={<PageLoader />}><NotFound /></Suspense>} />
       </Routes>
