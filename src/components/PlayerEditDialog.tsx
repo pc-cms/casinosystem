@@ -68,10 +68,14 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
   const [noteType, setNoteType] = useState<string>("info");
   const [addingNote, setAddingNote] = useState(false);
 
-  // Notes are CCTV-only (surveillance role). Manager keeps read access for oversight.
-  const canSeeNotes = roles.some(r => ["surveillance", "manager"].includes(r)) || isManager;
-  const canAddNotes = roles.some(r => r === "surveillance") || isManager;
-  const canEditCategory = isManager;
+  // Pit gets read-only view: can see Notes but cannot edit fields or add notes.
+  // Reception/HR/etc. get the standard editable view (no Notes).
+  // Surveillance + Manager: full access (read & write Notes, edit fields).
+  const isPit = roles.some(r => r === "pit") && !isManager;
+  const readOnly = isPit;
+  const canSeeNotes = roles.some(r => ["pit", "surveillance", "manager"].includes(r)) || isManager;
+  const canAddNotes = (roles.some(r => r === "surveillance") || isManager) && !readOnly;
+  const canEditCategory = isManager && !readOnly;
 
   useEffect(() => {
     if (player && open) {
@@ -252,15 +256,17 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
               <User className="w-12 h-12 text-muted-foreground" />
             )}
           </div>
-          <PhotoCapture
-            photoUrl={photoUrl || player.photo_url || null}
-            onPhotoSelect={handlePhotoUpload}
-            label="Photo"
-            size="sm"
-            captureId={`edit-photo-${player.id}`}
-            disabled={uploading}
-            compact
-          />
+          {!readOnly && (
+            <PhotoCapture
+              photoUrl={photoUrl || player.photo_url || null}
+              onPhotoSelect={handlePhotoUpload}
+              label="Photo"
+              size="sm"
+              captureId={`edit-photo-${player.id}`}
+              disabled={uploading}
+              compact
+            />
+          )}
         </div>
 
         <div className="space-y-1.5">
@@ -272,43 +278,45 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
               <FileImage className="w-10 h-10 text-muted-foreground" />
             )}
           </div>
-          <PhotoCapture
-            photoUrl={docUrl || null}
-            onPhotoSelect={handleDocUpload}
-            label="ID Doc"
-            size="sm"
-            captureId={`edit-doc-${player.id}`}
-            disabled={uploadingDoc}
-            compact
-          />
+          {!readOnly && (
+            <PhotoCapture
+              photoUrl={docUrl || null}
+              onPhotoSelect={handleDocUpload}
+              label="ID Doc"
+              size="sm"
+              captureId={`edit-doc-${player.id}`}
+              disabled={uploadingDoc}
+              compact
+            />
+          )}
         </div>
       </div>
 
       {/* Row 2+: All form fields on a unified 12-col grid */}
       <FormGrid>
         <FormField span={6} label="First Name">
-          <Input value={firstName} onChange={e => setFirstName(e.target.value)} className="h-10" />
+          <Input value={firstName} onChange={e => setFirstName(e.target.value)} className="h-10" disabled={readOnly} />
         </FormField>
         <FormField span={6} label="Last Name">
-          <Input value={lastName} onChange={e => setLastName(e.target.value)} className="h-10" />
+          <Input value={lastName} onChange={e => setLastName(e.target.value)} className="h-10" disabled={readOnly} />
         </FormField>
 
         <FormField span={6} label="Nickname">
-          <Input value={nickname} onChange={e => setNickname(e.target.value)} className="h-10" />
+          <Input value={nickname} onChange={e => setNickname(e.target.value)} className="h-10" disabled={readOnly} />
         </FormField>
         <FormField span={6} label="Phone">
-          <Input value={phone} onChange={e => setPhone(e.target.value)} className="h-10" type="tel" />
+          <Input value={phone} onChange={e => setPhone(e.target.value)} className="h-10" type="tel" disabled={readOnly} />
         </FormField>
 
         <FormField span={6} label="ID / Passport">
-          <Input value={idNumber} onChange={e => setIdNumber(e.target.value)} className="h-10 font-mono" placeholder="Enter ID" />
+          <Input value={idNumber} onChange={e => setIdNumber(e.target.value)} className="h-10 font-mono" placeholder="Enter ID" disabled={readOnly} />
         </FormField>
         <FormField span={6} label="Birth Date">
-          <Input value={birthDate} onChange={e => setBirthDate(e.target.value)} className="h-10" type="date" />
+          <Input value={birthDate} onChange={e => setBirthDate(e.target.value)} className="h-10" type="date" disabled={readOnly} />
         </FormField>
 
         <FormField span={6} label="Player Type">
-          <Select value={playerType} onValueChange={setPlayerType}>
+          <Select value={playerType} onValueChange={setPlayerType} disabled={readOnly}>
             <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="table">Table</SelectItem>
@@ -402,13 +410,15 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
 
   const titleContent = (
     <span className="flex items-center gap-2">
-      Edit Player
+      {readOnly ? "View Player" : "Edit Player"}
       {player && <CategoryBadge category={(player.category as PlayerCategory) || "normal"} size="md" />}
       {incomplete && <AlertTriangle className="w-4 h-4 text-yellow-500" />}
     </span>
   );
 
-  const footerContent = (
+  const footerContent = readOnly ? (
+    <Button variant="outline" size="sm" onClick={() => onOpenChange(false)} className="flex-1 sm:flex-none h-10">Close</Button>
+  ) : (
     <>
       <Button variant="outline" size="sm" onClick={() => onOpenChange(false)} className="flex-1 sm:flex-none h-10">Cancel</Button>
       <Button size="sm" onClick={handleSave} disabled={saving} className="flex-1 sm:flex-none h-10">{saving ? "Saving…" : "Save"}</Button>
