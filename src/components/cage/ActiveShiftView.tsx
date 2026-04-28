@@ -1,9 +1,8 @@
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { toast } from "sonner";
 import { useTransactions, useExpenses, useCreateTransaction } from "@/hooks/use-casino-data";
 import { useCloseShift, useCreateCashCount, useCashCounts } from "@/hooks/use-shift";
 import { useChipBaseline, useCloseAllTables, baselineToMap } from "@/hooks/use-table-lifecycle";
-import { useAuth } from "@/lib/auth-context";
 import { getBusinessDate } from "@/lib/business-day";
 import { Button } from "@/components/ui/button";
 import { NumberInput } from "@/components/ui/number-input";
@@ -14,7 +13,10 @@ import { ArrowDownToLine, ArrowUpFromLine, Calculator, Square, CheckCircle2, Pac
 import {
   CURRENCIES, FOREIGN_CURRENCIES, formatCurrency, formatNumberSpaces, CASH_DENOMS,
 } from "@/lib/currency";
+import { greedyChipBreakdown, sumChips } from "@/hooks/use-chip-colors";
 import PlayerSearch from "@/components/cage/PlayerSearch";
+import PlayerInfoCard from "@/components/cage/PlayerInfoCard";
+import ActivePlayersList from "@/components/cage/ActivePlayersList";
 import ChipDenomInput from "@/components/ChipDenomInput";
 import CashDenomInput, { cashSum } from "@/components/cage/CashDenomInput";
 import CashCountGrid from "@/components/cage/CashCountGrid";
@@ -46,8 +48,12 @@ const ActiveShiftView = ({ shift, players, tables }: {
   const shiftTransactions = useMemo(() => transactions.filter(t => t.shift_id === shift.id), [transactions, shift.id]);
   const shiftExpenses = useMemo(() => expenses.filter(e => e.shift_id === shift.id), [expenses, shift.id]);
 
-  const totalBuyIns = useMemo(() => shiftTransactions.filter(t => t.type === "buy").reduce((s, t) => s + Number(t.amount), 0), [shiftTransactions]);
-  const totalCashouts = useMemo(() => shiftTransactions.filter(t => t.type === "cashout").reduce((s, t) => s + Number(t.amount), 0), [shiftTransactions]);
+  // Treat both "buy" (legacy) and "in" (new) the same
+  const isInTx = (t: string) => t === "buy" || t === "in";
+  const isOutTx = (t: string) => t === "cashout" || t === "out";
+
+  const totalIns = useMemo(() => shiftTransactions.filter(t => isInTx(t.type)).reduce((s, t) => s + Number(t.amount), 0), [shiftTransactions]);
+  const totalOuts = useMemo(() => shiftTransactions.filter(t => isOutTx(t.type)).reduce((s, t) => s + Number(t.amount), 0), [shiftTransactions]);
   const totalExpenses = useMemo(() => shiftExpenses.reduce((s, e) => s + Number(e.amount), 0), [shiftExpenses]);
 
   const openingFloat = useMemo(() => {
@@ -56,8 +62,8 @@ const ActiveShiftView = ({ shift, players, tables }: {
     return totals?.total_tzs || 0;
   }, [shift]);
 
-  const expectedCash = openingFloat + totalBuyIns - totalCashouts - totalExpenses;
-  const cashResult = totalBuyIns - totalCashouts;
+  const expectedCash = openingFloat + totalIns - totalOuts - totalExpenses;
+  const cashResult = totalIns - totalOuts;
 
   const shiftDuration = useMemo(() => {
     const start = new Date(shift.opened_at);
@@ -91,28 +97,37 @@ const ActiveShiftView = ({ shift, players, tables }: {
         <p className="text-[10px] uppercase text-muted-foreground tracking-wider mb-2 font-medium">Cash Flow</p>
         <div className="grid grid-cols-3 md:grid-cols-7 gap-2">
           <div><p className="text-[9px] uppercase text-muted-foreground">Opening</p><p className="font-mono text-sm font-bold text-card-foreground">{formatCurrency(openingFloat)}</p></div>
-          <div><p className="text-[9px] uppercase text-muted-foreground">+ Buy-Ins</p><p className="font-mono text-sm font-bold text-success">+{formatCurrency(totalBuyIns)}</p></div>
-          <div><p className="text-[9px] uppercase text-muted-foreground">− Cashouts</p><p className="font-mono text-sm font-bold text-destructive">−{formatCurrency(totalCashouts)}</p></div>
+          <div><p className="text-[9px] uppercase text-muted-foreground">+ IN</p><p className="font-mono text-sm font-bold text-success">+{formatCurrency(totalIns)}</p></div>
+          <div><p className="text-[9px] uppercase text-muted-foreground">− OUT</p><p className="font-mono text-sm font-bold text-destructive">−{formatCurrency(totalOuts)}</p></div>
           <div><p className="text-[9px] uppercase text-muted-foreground">− Expenses</p><p className="font-mono text-sm font-bold text-warning">−{formatCurrency(totalExpenses)}</p></div>
           <div><p className="text-[9px] uppercase text-muted-foreground">= Expected</p><p className="font-mono text-sm font-bold text-card-foreground">{formatCurrency(expectedCash)}</p></div>
-          <div><p className="text-[9px] uppercase text-muted-foreground">Cash Result</p><p className={`font-mono text-sm font-bold ${cashResult >= 0 ? "text-success" : "text-destructive"}`}>{cashResult >= 0 ? "+" : ""}{formatCurrency(cashResult)}</p></div>
+          <div><p className="text-[9px] uppercase text-muted-foreground">Cash Result</p><p className={`font-mono text-sm font-bold ${cashResult >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>{cashResult >= 0 ? "+" : ""}{formatCurrency(cashResult)}</p></div>
           <div><p className="text-[9px] uppercase text-muted-foreground">Txns</p><p className="font-mono text-sm font-bold text-card-foreground">{shiftTransactions.length}</p></div>
         </div>
       </div>
 
-      <Tabs defaultValue="buy" className="space-y-3">
-        <TabsList>
-          <TabsTrigger value="buy" className="gap-1"><ArrowDownToLine className="w-3.5 h-3.5" /> Buy</TabsTrigger>
-          <TabsTrigger value="cashout" className="gap-1"><ArrowUpFromLine className="w-3.5 h-3.5" /> Cash</TabsTrigger>
-          <TabsTrigger value="check" className="gap-1"><Calculator className="w-3.5 h-3.5" /> Check</TabsTrigger>
-          <TabsTrigger value="close-tables" className="gap-1"><Package className="w-3.5 h-3.5" /> Close Tables</TabsTrigger>
+      <Tabs defaultValue="in" className="space-y-3">
+        {/* Full-width tabs 30/30/20/20 */}
+        <TabsList className="w-full grid grid-cols-[3fr_3fr_2fr_2fr] h-11">
+          <TabsTrigger value="in" className="gap-1.5 text-sm font-semibold">
+            <ArrowDownToLine className="w-4 h-4" /> IN
+          </TabsTrigger>
+          <TabsTrigger value="out" className="gap-1.5 text-sm font-semibold">
+            <ArrowUpFromLine className="w-4 h-4" /> OUT
+          </TabsTrigger>
+          <TabsTrigger value="check" className="gap-1.5 text-sm font-semibold">
+            <Calculator className="w-4 h-4" /> Check
+          </TabsTrigger>
+          <TabsTrigger value="close-tables" className="gap-1.5 text-sm font-semibold">
+            <Package className="w-4 h-4" /> Close Tables
+          </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="buy">
-          <BuyInForm players={activePlayers} tables={openTables} exchangeRates={exchangeRates} shiftId={shift.id} onSubmit={createTx.mutate} loading={createTx.isPending} />
+        <TabsContent value="in">
+          <InForm players={activePlayers} tables={openTables} exchangeRates={exchangeRates} shiftId={shift.id} onSubmit={createTx.mutate} loading={createTx.isPending} />
         </TabsContent>
-        <TabsContent value="cashout">
-          <CashoutForm players={activePlayers} shiftId={shift.id} onSubmit={createTx.mutate} loading={createTx.isPending} />
+        <TabsContent value="out">
+          <OutForm players={activePlayers} tables={openTables} shiftId={shift.id} onSubmit={createTx.mutate} loading={createTx.isPending} />
         </TabsContent>
         <TabsContent value="check">
           <CashCheckForm expectedBalance={expectedCash} shiftId={shift.id} exchangeRates={exchangeRates} cashChecks={cashChecks} />
@@ -138,19 +153,20 @@ const ActiveShiftView = ({ shift, players, tables }: {
                 <tr><td colSpan={5} className="text-center text-muted-foreground text-sm py-6">No transactions yet</td></tr>
               ) : shiftTransactions.map(tx => {
                 const txWithPlayer = tx as typeof tx & { players?: { first_name: string; last_name: string } };
+                const isIn = isInTx(tx.type);
                 return (
                   <tr key={tx.id} className="border-b border-border last:border-0">
                     <td className="px-3 py-1.5">
-                      <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${tx.type === "buy" ? "bg-primary/10 text-primary" : "bg-accent/10 text-accent"}`}>
-                        {tx.type === "buy" ? "BUY" : "CASH"}
+                      <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${isIn ? "bg-primary/10 text-primary" : "bg-accent/10 text-accent"}`}>
+                        {isIn ? "IN" : "OUT"}
                       </span>
                     </td>
                     <td className="px-3 py-1.5 text-xs text-card-foreground">{txWithPlayer.players?.first_name} {txWithPlayer.players?.last_name}</td>
                     <td className="px-3 py-1.5 text-xs text-muted-foreground font-mono">
                       {tx.table_id ? tableMap.get(tx.table_id)?.name || "—" : "—"}
                     </td>
-                    <td className={`px-3 py-1.5 text-right font-mono text-xs font-medium ${tx.type === "buy" ? "cms-amount-negative" : "cms-amount-positive"}`}>
-                      {tx.type === "buy" ? "-" : "+"}{formatCurrency(Number(tx.amount))}
+                    <td className={`px-3 py-1.5 text-right font-mono text-xs font-medium ${isIn ? "cms-amount-negative" : "cms-amount-positive"}`}>
+                      {isIn ? "-" : "+"}{formatCurrency(Number(tx.amount))}
                     </td>
                     <td className="px-3 py-1.5 text-right font-mono text-[10px] text-muted-foreground">
                       {new Date(tx.created_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
@@ -169,8 +185,8 @@ const ActiveShiftView = ({ shift, players, tables }: {
         shift={shift}
         expectedBalance={expectedCash}
         cashResult={cashResult}
-        totalBuyIns={totalBuyIns}
-        totalCashouts={totalCashouts}
+        totalBuyIns={totalIns}
+        totalCashouts={totalOuts}
         totalExpenses={totalExpenses}
         openingFloat={openingFloat}
         tables={tables}
@@ -191,8 +207,22 @@ const ActiveShiftView = ({ shift, players, tables }: {
   );
 };
 
-// =================== BUY-IN FORM ===================
-const BuyInForm = ({ players, tables, exchangeRates, shiftId, onSubmit, loading }: {
+// =================== SHARED LAYOUT WRAPPER ===================
+const TwoColumnLayout = ({
+  form,
+  rightPanel,
+}: {
+  form: React.ReactNode;
+  rightPanel: React.ReactNode;
+}) => (
+  <div className="grid grid-cols-1 lg:grid-cols-[minmax(380px,420px)_1fr] gap-3 items-stretch">
+    <div className="cms-panel p-4">{form}</div>
+    <div className="min-h-[400px]">{rightPanel}</div>
+  </div>
+);
+
+// =================== IN FORM (was Buy-In) ===================
+const InForm = ({ players, tables, exchangeRates, shiftId, onSubmit, loading }: {
   players: Tables<"players">[];
   tables: Tables<"gaming_tables">[];
   exchangeRates: Record<string, number>;
@@ -204,7 +234,11 @@ const BuyInForm = ({ players, tables, exchangeRates, shiftId, onSubmit, loading 
   const [tableId, setTableId] = useState("");
   const [amount, setAmount] = useState("");
   const [currency, setCurrency] = useState("TZS");
+  const [chips, setChips] = useState<Record<number, number>>({});
   const amountRef = useRef<HTMLInputElement>(null);
+
+  // Track edit source to avoid feedback loop between amount<->chips
+  const lastEditSource = useRef<"amount" | "chips" | null>(null);
 
   const tzsAmount = useMemo(() => {
     const raw = Number(amount) || 0;
@@ -212,93 +246,169 @@ const BuyInForm = ({ players, tables, exchangeRates, shiftId, onSubmit, loading 
     return raw * (exchangeRates[currency] || 0);
   }, [amount, currency, exchangeRates]);
 
-  const handleSubmit = () => {
-    if (!playerId || !tableId || !amount || tzsAmount <= 0) return;
-    if (Number(amount) <= 0) { toast.error("Amount must be greater than zero"); return; }
-    const player = players.find(p => p.id === playerId);
-    if (player?.status === "blacklist") { toast.error("BLOCKED — Player is blacklisted"); return; }
-    onSubmit({
-      player_id: playerId, table_id: tableId, type: "buy" as const, amount: tzsAmount, shift_id: shiftId,
-      chips: currency !== "TZS" ? { original_currency: currency, original_amount: Number(amount), rate: exchangeRates[currency] } : undefined,
-    }, { onSuccess: () => { setAmount(""); amountRef.current?.focus(); } });
+  // When amount changes (and currency is TZS) → regenerate chip breakdown via greedy.
+  useEffect(() => {
+    if (lastEditSource.current === "chips") {
+      lastEditSource.current = null;
+      return;
+    }
+    if (currency !== "TZS") {
+      // Foreign currency: don't auto-generate chips
+      setChips({});
+      return;
+    }
+    const v = Number(amount) || 0;
+    setChips(v > 0 ? greedyChipBreakdown(v) : {});
+  }, [amount, currency]);
+
+  const handleChipsChange = (v: Record<number, number>) => {
+    lastEditSource.current = "chips";
+    setChips(v);
+    if (currency === "TZS") {
+      const total = sumChips(v);
+      lastEditSource.current = "chips"; // ensure useEffect skips
+      setAmount(total > 0 ? String(total) : "");
+    }
   };
 
-  return (
-    <div className="cms-panel p-4 max-w-md">
-      <div className="space-y-3">
-        <div>
-          <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1 block">1. Player</label>
-          <PlayerSearch players={players} value={playerId} onChange={setPlayerId} autoFocus />
-        </div>
-        <div>
-          <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1 block">2. Table</label>
-          <div className="flex flex-wrap gap-1.5">
-            {tables.map(t => (
-              <button key={t.id} onClick={() => setTableId(t.id)}
-                className={`px-2.5 py-1 rounded text-xs font-mono transition-colors ${tableId === t.id ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-primary/20"}`}>
-                {t.name}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div className="flex gap-2 items-end">
-          <div className="flex-1">
-            <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1 block">3. Amount</label>
-            <NumberInput value={amount} onChange={setAmount} className="text-lg h-11" placeholder="0" onKeyDown={e => e.key === "Enter" && handleSubmit()} />
-          </div>
-          <div className="w-20">
-            <Select value={currency} onValueChange={setCurrency}>
-              <SelectTrigger className="font-mono h-11"><SelectValue /></SelectTrigger>
-              <SelectContent>{CURRENCIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
-            </Select>
-          </div>
-        </div>
-        {currency !== "TZS" && tzsAmount > 0 && (
-          <p className="text-xs font-mono text-muted-foreground text-right">= {formatCurrency(tzsAmount)} (1 {currency} = {formatNumberSpaces(exchangeRates[currency] || 0)} TZS)</p>
-        )}
+  const selectedPlayer = useMemo(() => players.find(p => p.id === playerId) || null, [players, playerId]);
+
+  const handleSubmit = () => {
+    if (!playerId || !tableId || tzsAmount <= 0) return;
+    if (Number(amount) <= 0) { toast.error("Amount must be greater than zero"); return; }
+    if (selectedPlayer?.status === "blacklist") { toast.error("BLOCKED — Player is blacklisted"); return; }
+    onSubmit({
+      player_id: playerId, table_id: tableId, type: "in" as const, amount: tzsAmount, shift_id: shiftId,
+      chips: currency !== "TZS"
+        ? { original_currency: currency, original_amount: Number(amount), rate: exchangeRates[currency] }
+        : Object.keys(chips).length > 0 ? chips : undefined,
+    }, { onSuccess: () => { setAmount(""); setChips({}); amountRef.current?.focus(); } });
+  };
+
+  const form = (
+    <div className="space-y-3">
+      <div>
+        <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1 block">1. Player</label>
+        <PlayerSearch players={players} value={playerId} onChange={setPlayerId} autoFocus />
       </div>
-      <Button onClick={handleSubmit} disabled={!playerId || !tableId || tzsAmount <= 0 || loading} className="w-full mt-4 gap-1.5">
-        <ArrowDownToLine className="w-4 h-4" /> {loading ? "Recording…" : "Buy-In"} {tzsAmount > 0 && `· ${formatCurrency(tzsAmount)}`}
+      <div>
+        <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1 block">2. Table</label>
+        <div className="flex flex-wrap gap-1.5">
+          {tables.map(t => (
+            <button key={t.id} onClick={() => setTableId(t.id)}
+              className={`px-2.5 py-1 rounded text-xs font-mono transition-colors ${tableId === t.id ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-primary/20"}`}>
+              {t.name}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="flex gap-2 items-end">
+        <div className="flex-1">
+          <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1 block">3. Amount</label>
+          <NumberInput
+            ref={amountRef as any}
+            value={amount}
+            onChange={(v) => { lastEditSource.current = "amount"; setAmount(v); }}
+            className="text-lg h-11" placeholder="0"
+            onKeyDown={e => e.key === "Enter" && handleSubmit()}
+          />
+        </div>
+        <div className="w-20">
+          <Select value={currency} onValueChange={setCurrency}>
+            <SelectTrigger className="font-mono h-11"><SelectValue /></SelectTrigger>
+            <SelectContent>{CURRENCIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+          </Select>
+        </div>
+      </div>
+      {currency !== "TZS" && tzsAmount > 0 && (
+        <p className="text-xs font-mono text-muted-foreground text-right">= {formatCurrency(tzsAmount)} (1 {currency} = {formatNumberSpaces(exchangeRates[currency] || 0)} TZS)</p>
+      )}
+
+      {/* Chip breakdown (only when TZS) */}
+      {currency === "TZS" && (
+        <div>
+          <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">
+            4. Chips to Hand Out
+          </label>
+          <ChipDenomInput
+            values={chips}
+            onChange={handleChipsChange}
+            columns={2}
+            size="md"
+            onSubmit={handleSubmit}
+          />
+        </div>
+      )}
+
+      <Button onClick={handleSubmit} disabled={!playerId || !tableId || tzsAmount <= 0 || loading} className="w-full mt-2 gap-1.5 h-11">
+        <ArrowDownToLine className="w-4 h-4" /> {loading ? "Recording…" : "IN"} {tzsAmount > 0 && `· ${formatCurrency(tzsAmount)}`}
       </Button>
     </div>
   );
+
+  return (
+    <TwoColumnLayout
+      form={form}
+      rightPanel={
+        selectedPlayer
+          ? <PlayerInfoCard player={selectedPlayer} tables={tables} />
+          : <ActivePlayersList players={players} tables={tables} onSelect={setPlayerId} />
+      }
+    />
+  );
 };
 
-// =================== CASHOUT FORM ===================
-const CashoutForm = ({ players, shiftId, onSubmit, loading }: {
+// =================== OUT FORM (was Cashout) ===================
+const OutForm = ({ players, tables, shiftId, onSubmit, loading }: {
   players: Tables<"players">[];
+  tables: Tables<"gaming_tables">[];
   shiftId: string;
   onSubmit: (data: Record<string, unknown>, opts?: Record<string, unknown>) => void;
   loading: boolean;
 }) => {
   const [playerId, setPlayerId] = useState("");
   const [chips, setChips] = useState<Record<number, number>>({});
-  const total = useMemo(() => chipSum(chips), [chips]);
+  const total = useMemo(() => sumChips(chips), [chips]);
+  const selectedPlayer = useMemo(() => players.find(p => p.id === playerId) || null, [players, playerId]);
 
   const handleSubmit = () => {
     if (!playerId || total <= 0) return;
-    const player = players.find(p => p.id === playerId);
-    if (player?.status === "blacklist") { toast.error("BLOCKED — Player is blacklisted"); return; }
-    onSubmit({ player_id: playerId, table_id: null, type: "cashout" as const, amount: total, chips, shift_id: shiftId },
+    if (selectedPlayer?.status === "blacklist") { toast.error("BLOCKED — Player is blacklisted"); return; }
+    onSubmit({ player_id: playerId, table_id: null, type: "out" as const, amount: total, chips, shift_id: shiftId },
       { onSuccess: () => setChips({}) });
   };
 
-  return (
-    <div className="cms-panel p-4 max-w-md">
-      <div className="space-y-3">
-        <div>
-          <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1 block">1. Player</label>
-          <PlayerSearch players={players} value={playerId} onChange={setPlayerId} autoFocus />
-        </div>
-        <div>
-          <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">2. Chips</label>
-          <ChipDenomInput values={chips} onChange={setChips} onSubmit={handleSubmit} />
-        </div>
+  const form = (
+    <div className="space-y-3">
+      <div>
+        <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1 block">1. Player</label>
+        <PlayerSearch players={players} value={playerId} onChange={setPlayerId} autoFocus />
       </div>
-      <Button onClick={handleSubmit} disabled={!playerId || total <= 0 || loading} className="w-full mt-3 gap-1.5">
-        <ArrowUpFromLine className="w-4 h-4" /> {loading ? "Recording…" : "Cashout"} {total > 0 && `· ${formatCurrency(total)}`}
+      <div>
+        <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">2. Chips to Receive</label>
+        <ChipDenomInput
+          values={chips}
+          onChange={setChips}
+          columns={2}
+          size="md"
+          onSubmit={handleSubmit}
+        />
+      </div>
+      <Button onClick={handleSubmit} disabled={!playerId || total <= 0 || loading} className="w-full mt-2 gap-1.5 h-11">
+        <ArrowUpFromLine className="w-4 h-4" /> {loading ? "Recording…" : "OUT"} {total > 0 && `· ${formatCurrency(total)}`}
       </Button>
     </div>
+  );
+
+  return (
+    <TwoColumnLayout
+      form={form}
+      rightPanel={
+        selectedPlayer
+          ? <PlayerInfoCard player={selectedPlayer} tables={tables} />
+          : <ActivePlayersList players={players} tables={tables} onSelect={setPlayerId} />
+      }
+    />
   );
 };
 

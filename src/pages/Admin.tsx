@@ -9,11 +9,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Shield, Trash2, UserPlus, Coins, Clock, Building2, Server, Link2, Unlink, Globe } from "lucide-react";
+import { Plus, Shield, Trash2, UserPlus, Coins, Clock, Building2, Server, Link2, Unlink, Globe, Palette } from "lucide-react";
 import { toast } from "sonner";
 import { logAction } from "@/lib/logging";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import FloatManagement from "@/components/admin/FloatManagement";
+import ChipColorSettings from "@/components/admin/ChipColorSettings";
 import { useCasinoInfo, useUpdateCasinoSchedule } from "@/hooks/use-table-lifecycle";
 
 const ROLES = ["manager", "cashier", "pit", "reception", "finance_manager", "surveillance", "hr"] as const;
@@ -152,6 +153,9 @@ const Admin = () => {
           <TabsTrigger value="float" className="gap-1.5">
             <Coins className="w-3.5 h-3.5" /> Float Management
           </TabsTrigger>
+          <TabsTrigger value="chip-colors" className="gap-1.5">
+            <Palette className="w-3.5 h-3.5" /> Chip Colors
+          </TabsTrigger>
         </TabsList>
 
         {isSuperAdmin && (
@@ -165,6 +169,7 @@ const Admin = () => {
         <TabsContent value="users"><UsersAndRoles /></TabsContent>
         <TabsContent value="schedule"><ScheduleSettings /></TabsContent>
         <TabsContent value="float"><FloatManagement /></TabsContent>
+        <TabsContent value="chip-colors"><ChipColorSettings /></TabsContent>
       </Tabs>
     </div>
   );

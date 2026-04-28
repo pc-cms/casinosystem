@@ -37,7 +37,7 @@ export const useCreateTransaction = () => {
     mutationFn: async (input: {
       player_id: string;
       table_id: string | null;
-      type: "buy" | "cashout";
+      type: "buy" | "cashout" | "in" | "out";
       amount: number;
       chips?: Record<string, number>;
       shift_id?: string;
@@ -85,7 +85,8 @@ export const useCreateTransaction = () => {
       };
 
       qc.setQueryData(["transactions", casinoId, today], (old: any[] = []) => [optimisticTx, ...old]);
-      toast.success(`${vars.type === "buy" ? "Buy-in" : "Cashout"} recorded: TZS ${formatNumberSpaces(vars.amount)}`);
+      const label = vars.type === "buy" || vars.type === "in" ? "IN" : "OUT";
+      toast.success(`${label} recorded: TZS ${formatNumberSpaces(vars.amount)}`);
       return { prevTxs, today };
     },
     onError: (e, _vars, context) => {
