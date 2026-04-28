@@ -10,7 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ArrowDownToLine, ArrowUpFromLine, Calculator, Square, CheckCircle2, Package } from "lucide-react";
+import { ArrowDownToLine, ArrowUpFromLine, Calculator, Square, CheckCircle2, Package, ArrowLeftRight } from "lucide-react";
+import TransfersForm from "@/components/cage/TransfersForm";
+import { useCageTransfers } from "@/hooks/use-cage-transfers";
 import {
   CURRENCIES, FOREIGN_CURRENCIES, formatCurrency, formatNumberSpaces, CASH_DENOMS,
 } from "@/lib/currency";
@@ -86,6 +88,7 @@ const ActiveShiftView = ({ shift, players, tables }: {
   const { data: transactions = [] } = useTransactions(businessDate);
   const { data: expenses = [] } = useExpenses(businessDate);
   const { data: cashChecks = [] } = useCashCounts(shift.id);
+  const { data: cageTransfers = [] } = useCageTransfers(shift.id);
   const createTx = useCreateTransaction();
   const closeShift = useCloseShift();
   const [showClose, setShowClose] = useState(false);
@@ -106,13 +109,17 @@ const ActiveShiftView = ({ shift, players, tables }: {
   const totalOuts = useMemo(() => shiftTransactions.filter(t => isOutTx(t.type)).reduce((s, t) => s + Number(t.amount), 0), [shiftTransactions]);
   const totalExpenses = useMemo(() => shiftExpenses.reduce((s, e) => s + Number(e.amount), 0), [shiftExpenses]);
 
+  // Cage transfer totals (cash-affecting only — Fill/Credit are chip-only)
+  const totalAddFloat = useMemo(() => cageTransfers.filter(t => t.transfer_type === "add_float").reduce((s, t) => s + Number(t.amount), 0), [cageTransfers]);
+  const totalCollection = useMemo(() => cageTransfers.filter(t => t.transfer_type === "collection").reduce((s, t) => s + Number(t.amount), 0), [cageTransfers]);
+
   const openingFloat = useMemo(() => {
     const of = shift.opening_float as Record<string, unknown> | null;
     const totals = of?.totals as Record<string, number> | undefined;
     return totals?.total_tzs || 0;
   }, [shift]);
 
-  const expectedCash = openingFloat + totalIns - totalOuts - totalExpenses;
+  const expectedCash = openingFloat + totalIns + totalAddFloat - totalOuts - totalCollection - totalExpenses;
   const cashResult = totalIns - totalOuts;
 
   const shiftDuration = useMemo(() => {
@@ -147,19 +154,20 @@ const ActiveShiftView = ({ shift, players, tables }: {
       </div>
 
       <div className="cms-panel p-2 mb-4">
-        <div className="grid grid-cols-3 md:grid-cols-7 gap-2">
+        <div className="grid grid-cols-3 md:grid-cols-8 gap-2">
           <div><p className="text-[9px] uppercase text-muted-foreground">Opening</p><p className="font-mono text-sm font-bold text-card-foreground">{formatCurrency(openingFloat)}</p></div>
           <div><p className="text-[9px] uppercase text-muted-foreground">+ IN</p><p className="font-mono text-sm font-bold text-success">+{formatCurrency(totalIns)}</p></div>
           <div><p className="text-[9px] uppercase text-muted-foreground">− OUT</p><p className="font-mono text-sm font-bold text-destructive">−{formatCurrency(totalOuts)}</p></div>
+          <div><p className="text-[9px] uppercase text-muted-foreground">+ Add Float</p><p className="font-mono text-sm font-bold text-success">+{formatCurrency(totalAddFloat)}</p></div>
+          <div><p className="text-[9px] uppercase text-muted-foreground">− Collection</p><p className="font-mono text-sm font-bold text-destructive">−{formatCurrency(totalCollection)}</p></div>
           <div><p className="text-[9px] uppercase text-muted-foreground">− Expenses</p><p className="font-mono text-sm font-bold text-warning">−{formatCurrency(totalExpenses)}</p></div>
           <div><p className="text-[9px] uppercase text-muted-foreground">= Expected</p><p className="font-mono text-sm font-bold text-card-foreground">{formatCurrency(expectedCash)}</p></div>
           <div><p className="text-[9px] uppercase text-muted-foreground">Cash Result</p><p className={`font-mono text-sm font-bold ${cashResult >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>{cashResult >= 0 ? "+" : ""}{formatCurrency(cashResult)}</p></div>
-          <div><p className="text-[9px] uppercase text-muted-foreground">Txns</p><p className="font-mono text-sm font-bold text-card-foreground">{shiftTransactions.length}</p></div>
         </div>
       </div>
 
       <Tabs defaultValue="in" className="space-y-3">
-        <TabsList className="w-full grid grid-cols-3 h-11">
+        <TabsList className="w-full grid grid-cols-4 h-11">
           <TabsTrigger value="in" className="gap-1.5 text-sm font-semibold">
             <ArrowDownToLine className="w-4 h-4" /> IN
           </TabsTrigger>
@@ -168,6 +176,9 @@ const ActiveShiftView = ({ shift, players, tables }: {
           </TabsTrigger>
           <TabsTrigger value="check" className="gap-1.5 text-sm font-semibold">
             <Calculator className="w-4 h-4" /> Check
+          </TabsTrigger>
+          <TabsTrigger value="transfers" className="gap-1.5 text-sm font-semibold">
+            <ArrowLeftRight className="w-4 h-4" /> Transfers
           </TabsTrigger>
         </TabsList>
 
@@ -194,6 +205,9 @@ const ActiveShiftView = ({ shift, players, tables }: {
             tableMap={tableMap}
             isInTx={isInTx}
           />
+        </TabsContent>
+        <TabsContent value="transfers" className="space-y-3">
+          <TransfersForm shiftId={shift.id} tables={openTables} />
         </TabsContent>
       </Tabs>
 

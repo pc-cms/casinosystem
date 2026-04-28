@@ -461,6 +461,51 @@ export type Database = {
           },
         ]
       }
+      cage_transfers: {
+        Row: {
+          amount: number
+          approved_by: string
+          casino_id: string
+          chips: Json | null
+          created_at: string
+          direction: string
+          id: string
+          note: string
+          operator_id: string
+          shift_id: string
+          table_id: string | null
+          transfer_type: string
+        }
+        Insert: {
+          amount: number
+          approved_by: string
+          casino_id: string
+          chips?: Json | null
+          created_at?: string
+          direction: string
+          id?: string
+          note?: string
+          operator_id: string
+          shift_id: string
+          table_id?: string | null
+          transfer_type: string
+        }
+        Update: {
+          amount?: number
+          approved_by?: string
+          casino_id?: string
+          chips?: Json | null
+          created_at?: string
+          direction?: string
+          id?: string
+          note?: string
+          operator_id?: string
+          shift_id?: string
+          table_id?: string | null
+          transfer_type?: string
+        }
+        Relationships: []
+      }
       cash_count_snapshots: {
         Row: {
           casino_id: string
