@@ -16,6 +16,7 @@ import {
 } from "date-fns";
 import { Coins, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 const fmtDate = (d: Date) => format(d, "yyyy-MM-dd");
 const fmtTime = (iso: string | null) => (iso ? format(new Date(iso), "HH:mm") : "—");
@@ -85,67 +86,57 @@ const MissChips = () => {
 
   return (
     <div className="container mx-auto p-4 space-y-3 max-w-[1400px]">
-      {/* Single compact header row */}
-      <div className="flex items-center flex-wrap gap-2">
-        <Coins className="h-5 w-5" />
-        <h1 className="text-lg font-semibold mr-3">Miss Chips</h1>
-
-        {/* Period nav (month or year depending on view) */}
-        <div className="flex items-center gap-1">
-          <Button variant="outline" size="icon" className="h-8 w-8" onClick={goPrev}>
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className={cn("h-8 font-mono", view === "per-shift" ? "min-w-[140px]" : "min-w-[80px]")}
-            onClick={goCurrent}
-          >
-            {periodLabel}
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-8 w-8"
-            onClick={goNext}
-            disabled={nextDisabled}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
-
-        {/* View switcher */}
-        <div className="flex items-center gap-1 ml-2">
-          <Button
-            variant={view === "per-shift" ? "default" : "outline"}
-            size="sm"
-            className="h-8"
-            onClick={() => setView("per-shift")}
-          >
-            Per Shift
-          </Button>
-          <Button
-            variant={view === "by-month" ? "default" : "outline"}
-            size="sm"
-            className="h-8"
-            onClick={() => setView("by-month")}
-          >
-            By Month
-          </Button>
-        </div>
-
-        <div className="ml-auto flex items-baseline gap-2">
-          <span className="text-xs text-muted-foreground">Total</span>
-          <span
-            className={cn(
-              "text-lg font-mono font-semibold",
-              periodTotal > 0 ? "text-cms-amount-positive" : periodTotal < 0 ? "text-cms-amount-negative" : "text-muted-foreground"
-            )}
-          >
-            {formatNumberSpaces(periodTotal)} TZS
-          </span>
-        </div>
-      </div>
+      <PageHeader
+        icon={Coins}
+        title="Miss Chips"
+        subtitle={`Total ${formatNumberSpaces(periodTotal)} TZS · ${periodLabel}`}
+        date
+        centerSlot={
+          <div className="flex items-center gap-2 flex-wrap justify-center">
+            {/* Period nav */}
+            <div className="flex items-center gap-1">
+              <Button variant="outline" size="icon" className="h-8 w-8" onClick={goPrev}>
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className={cn("h-8 font-mono", view === "per-shift" ? "min-w-[140px]" : "min-w-[80px]")}
+                onClick={goCurrent}
+              >
+                {periodLabel}
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={goNext}
+                disabled={nextDisabled}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+            {/* View switcher */}
+            <div className="flex items-center gap-1 ml-2">
+              <Button variant={view === "per-shift" ? "default" : "outline"} size="sm" className="h-8" onClick={() => setView("per-shift")}>
+                Per Shift
+              </Button>
+              <Button variant={view === "by-month" ? "default" : "outline"} size="sm" className="h-8" onClick={() => setView("by-month")}>
+                By Month
+              </Button>
+            </div>
+          </div>
+        }
+      >
+        <span
+          className={cn(
+            "text-base font-mono font-semibold whitespace-nowrap",
+            periodTotal > 0 ? "text-cms-amount-positive" : periodTotal < 0 ? "text-cms-amount-negative" : "text-muted-foreground"
+          )}
+        >
+          {formatNumberSpaces(periodTotal)} TZS
+        </span>
+      </PageHeader>
 
       {view === "per-shift" && (
         <Card>
