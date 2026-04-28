@@ -1,144 +1,113 @@
-## Финальная модель балансов, фишек и Floor / Miss Chips
+# План: Закон сохранения фишек + Floor → Miss Chips
 
-### Принципы (зафиксированы)
+## Концепция
 
-**Локации фишек в `chip_inventory` (физические):**
-- `cashier` — фишки в кассе (включает сейф)
-- `table:{id}` — каждый стол отдельно
+**Аксиома:** `Сейф + Касса + Столы + Miss Chips = Initial Baseline` (всегда, по каждому номиналу).
 
-**Floor — виртуальная computed-локация (в реальном времени):**
+Фишки физически существуют в 4 состояниях:
+- **В локациях** (Сейф/Касса/Столы) — `chip_inventory`
+- **У игроков** (Miss Chips) — архив `miss_chips`
+
+Floor = живой расчёт во время смены: `Initial − (Касса + Столы)`. При закрытии смены Floor финализируется в Miss Chips.
+
+## База данных
+
+### 1. Новая таблица `chip_initial_baseline` (immutable, источник истины)
 ```
-Floor = Initial_Total − Σ Cashier_chips − Σ Tables_chips
+casino_id, denomination, initial_quantity, created_at, created_by
 ```
-Видят: Manager, CCTV (live на дашборде).
+- Snapshot самой первой инициализации
+- Меняется ТОЛЬКО через операцию Chip Emission (см. ниже)
 
-**Касса = двойной баланс:**
+### 2. Новая таблица `miss_chips` (архив ушедших к игрокам)
 ```
-Балaнс кассы = Cash + Σ(Chips × denom) = const за смену
+id, casino_id, shift_id, business_date, denomination, 
+quantity (может быть отрицательным при возврате), 
+total_value_tzs, created_at
 ```
-IN/OUT — обмен эквивалентами, баланс кассы не меняется.
+- Immutable (триггер `prevent_miss_chips_modify`)
+- Запись создаётся автоматически при закрытии смены
 
-**Знаки в UI (история транзакций):**
-- IN: `+` (cash пришёл), OUT: `−` (cash ушёл)
-
----
-
-### Жизненный цикл Floor → Miss Chips
-
+### 3. Новая таблица `chip_emissions` (аудит докупки фишек)
 ```
-ВО ВРЕМЯ СМЕНЫ:
-  Floor (live) = Initial − Cashier − Tables
-  ↓ показываем в Manager Dashboard + CCTV
-
-ПРИ ЗАКРЫТИИ СМЕНЫ (DB-триггер на UPDATE shifts.status='closed'):
-  1. Считаем Floor по деномам
-  2. INSERT в miss_chips (immutable archive)
-  3. UMENЬШАЕМ chip_baseline на эти количества
-     → Initial_Total для следующей смены = старый − Floor
-  4. Floor сразу обнуляется (Initial и actual оба уменьшились)
-
-ВОЗВРАТ ФИШЕК (игрок принёс старые фишки):
-  Обычная OUT транзакция → chip_inventory[cashier] +
-  → Floor становится отрицательным
-  → При следующем закрытии: запись в miss_chips с отрицательной суммой
-  → Baseline увеличивается обратно
+id, casino_id, denomination, quantity_added, reason, 
+operator_id, created_at, approved_by
 ```
+- Только Manager / Super Admin
+- Увеличивает `chip_initial_baseline.initial_quantity`
+- Обязательный текстовый `reason`
 
----
+### 4. Триггеры
+- **`trg_apply_chip_movement`** на `transactions`: IN → Касса фишек −, OUT → Касса фишек +
+- **`trg_finalize_floor_on_shift_close`** на `shifts.status='closed'`:
+  - Считает Floor по каждому номиналу = `Σinitial − Σchip_inventory`
+  - Минус уже архивированный Miss за прошлые смены
+  - Дельта пишется в `miss_chips`
+- **`trg_validate_chip_invariant`** на `chip_inventory` и `miss_chips`:
+  - Проверка: `Σinventory + Σmiss == Σinitial` по каждому номиналу
+  - При нарушении → `RAISE EXCEPTION` (защита от багов)
+- **`trg_prevent_negative_miss_total`**: суммарный Miss по номиналу не может стать < 0 (нельзя вернуть больше, чем ушло за всю историю)
 
-### Что нужно реализовать
+## Frontend
 
-#### 1. Migration: новая таблица `miss_chips` (immutable archive)
-```sql
-CREATE TABLE public.miss_chips (
-  id uuid PK,
-  casino_id uuid NOT NULL,
-  shift_id uuid NOT NULL,
-  business_date date NOT NULL,
-  denominations jsonb NOT NULL,       -- {5: 12, 25: 3, 100: 1}
-  total_value bigint NOT NULL,        -- в TZS (может быть отрицательным)
-  created_at timestamptz DEFAULT now(),
-  recorded_by uuid
-);
--- RLS: SELECT для manager/cctv/super_admin, INSERT только триггером
--- Trigger prevent_modify (immutable)
-```
+### Hooks
+- **`useFloorChips(casinoId)`** — live расчёт по номиналам:
+  ```
+  floor[denom] = initial[denom] − inventory[denom] − archivedMiss[denom]
+  ```
+- **`useMissChipsArchive(casinoId, dateRange)`** — отчёты по дням/месяцам
+- **`useChipIntegrity(casinoId)`** — проверка инварианта для UI алерта
 
-#### 2. Migration: триггер авто-движения chip_inventory при IN/OUT
-`AFTER INSERT ON transactions`:
-- IN (`buy`/`in`): cashier chips −= qty по деномам из `chips` JSONB
-- OUT (`cashout`/`out`): cashier chips += qty
-- Bypass в `app.seed_mode='on'`
+### UI компоненты
 
-#### 3. Migration: триггер финализации Floor при закрытии смены
-`AFTER UPDATE ON shifts WHEN OLD.status='open' AND NEW.status='closed'`:
+**1. `FloorChipsCard`** (Dashboard + CCTV)
+- Live таблица: Номинал | На столах | В кассе | В сейфе | Floor (у игроков) | Miss архив
+- Внизу — индикатор целостности:
+  ```
+  Initial:    10,000,000 TZS
+  В наличии:   9,970,000 TZS
+  Miss:           30,000 TZS
+  Дельта:              0 TZS  ✓
+  ```
 
-```
-FOR each denomination IN chip_baseline:
-  expected_total = baseline.expected_quantity
-  cashier_qty   = chip_inventory[cashier, denom]
-  tables_qty    = Σ chip_inventory[table:*, denom]
-  floor_qty     = expected_total − cashier_qty − tables_qty
-  
-  IF floor_qty != 0:
-    add to miss_chips.denominations
-    chip_baseline.expected_quantity −= floor_qty
-    
-INSERT miss_chips (casino_id, shift_id, business_date, denominations, total_value)
-```
+**2. `CloseShiftDialog`** — превью перед закрытием
+- "Chip Result этой смены: +15,000 TZS уйдёт в Miss Chips"
+- Или: "−5,000 TZS вернётся из Miss Chips (игрок принёс старые фишки)"
 
-#### 4. Hook: `useFloorChips(casinoId)` 
-Computed live floor для UI:
-- Возвращает `{ denominations: {5: 50, 25: 200,...}, totalValue: 1250000 }`
-- `Initial = SUM(chip_baseline)`, `Cashier+Tables = SUM(chip_inventory)`
+**3. `MissChipsArchive`** (Manager view, новая страница)
+- Группировка: день / месяц / год
+- Таблица по номиналам: сколько ушло, сколько вернулось, нетто
+- Фильтры по периоду
 
-#### 5. UI: Floor блок на Manager Dashboard и CCTV View
-Карточка "Floor Chips (на руках у игроков)":
-- Big total в TZS (с цветом: положительный = у игроков, отрицательный = вернули больше)
-- Breakdown по деномам в монопсе
-- Авто-обновление через realtime подписку на `chip_inventory`
+**4. `ChipEmissionDialog`** (Manager / Super Admin)
+- Доступ из Chip Inventory Control
+- Поля: номинал, количество, причина (обязательно)
+- После подтверждения: запись в `chip_emissions` + UPDATE `chip_initial_baseline`
+- Аудит-лог в `activity_logs`
 
-#### 6. UI: Miss Chips Archive (Manager-only)
-Новая страница/секция (например, в Finance или Admin):
-- Фильтр периода (день/неделя/месяц/год/custom)
-- Таблица: дата, смена, total в TZS, breakdown по деномам
-- Итог за период + график тренда (опционально)
-- Export CSV
+## Поведение по сценариям
 
-#### 7. Cleanup: терминология
-- `Miss` (старое значение в `chip_snapshots`) переименовать → `Chip Variance` или удалить если дублирует
-- `validate_chip_consistency`: убрать INCIDENT-семантику (расхождение = норма)
-- В CloseShiftDialog показать preview Floor перед закрытием
+| Событие | Касса | Столы | Miss | Initial | Инвариант |
+|---|---|---|---|---|---|
+| Init | +X | +X | 0 | 3X | ✓ |
+| IN (игрок купил) | Cash+/Chips− | — | 0 | 3X | ✓ (Floor live = 30) |
+| Close shift | — | — | +30 | 3X | ✓ |
+| OUT (старые фишки вернулись) | Chips+ | — | — | 3X | ✓ |
+| Close shift (return) | — | — | −5 | 3X | ✓ |
+| Chip Emission +100 | — | — | — | 3X+100 | ✓ |
 
----
+## Безопасность и роли
 
-### Файлы
+- **`miss_chips`**: SELECT для Manager/Surveillance/Super Admin, INSERT только через триггер
+- **`chip_initial_baseline`**: SELECT для всех casino users, UPDATE только через `chip_emissions` trigger
+- **`chip_emissions`**: INSERT для Manager/Super Admin, immutable после создания
 
-**Migrations:**
-- `supabase/migrations/{ts}_miss_chips_table.sql`
-- `supabase/migrations/{ts}_chip_movement_trigger.sql`
-- `supabase/migrations/{ts}_floor_finalization_trigger.sql`
+## Memory updates
 
-**Hooks:**
-- `src/hooks/use-chips.ts` — добавить `useFloorChips`, `useMissChipsHistory`
-- (опционально) `src/hooks/use-miss-chips.ts`
+Обновить `mem://features/chip-inventory-control` и добавить новую memory `mem://features/chip-conservation-law` с описанием инварианта и Miss Chips жизненного цикла.
 
-**UI:**
-- `src/components/dashboard/FloorChipsCard.tsx` (новый)
-- `src/components/cage/CloseShiftDialog.tsx` — preview Floor
-- `src/components/finance/MissChipsArchive.tsx` (новый)
-- `src/pages/Dashboard.tsx`, `src/pages/CctvView.tsx`, `src/pages/Finance.tsx` — wire-in
-- `src/components/cctv/CctvLayout.tsx` — добавить Floor виджет
+## Out of scope (не делаем сейчас)
 
-**Memory:**
-- `mem://features/financial-and-chip-reconciliation` — обновить
-- `mem://features/chip-reconciliation-and-results` — обновить
-- Новый: `mem://features/floor-and-miss-chips` — описать модель
-
----
-
-### Что НЕ делаем
-- Не вводим `floor` как физическую локацию в `chip_inventory`
-- Не блокируем закрытие смены при Floor != 0
-- Не различаем "возврат старых фишек" от обычного OUT
-- Не помечаем Floor как INCIDENT/ошибку — это нормальный финансовый показатель
+- UI для частичного "списания" Miss Chips вручную (только через возврат игрока через OUT)
+- Прогноз / аналитика трендов потерь фишек
+- Уведомления при превышении порога Miss
