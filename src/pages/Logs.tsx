@@ -3,7 +3,9 @@ import { useActivityLogs } from "@/hooks/use-casino-data";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatCurrency } from "@/lib/currency";
-import { Search } from "lucide-react";
+import { Search, ClipboardList } from "lucide-react";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { FilterBar } from "@/components/layout/FilterBar";
 
 const CATEGORY_STYLES: Record<string, string> = {
   transaction: "bg-primary/10 text-primary", edit: "bg-accent/10 text-accent",
@@ -39,32 +41,35 @@ const Logs = () => {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Audit Log</h1>
-          <p className="text-xs text-muted-foreground">Immutable trail · searchable · {filtered.length} entries</p>
-        </div>
-      </div>
+      <PageHeader
+        icon={ClipboardList}
+        title="Audit Log"
+        subtitle={`Immutable trail · searchable · ${filtered.length} entries`}
+      />
 
-      {/* Filters */}
-      <div className="flex items-center gap-2 mb-3">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-          <Input
-            placeholder="Search action, details, operator…"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="pl-8 font-mono text-xs h-8"
-          />
-        </div>
-        <Select value={catFilter} onValueChange={setCatFilter}>
-          <SelectTrigger className="w-36 h-8 text-xs"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All categories</SelectItem>
-            {categories.map(c => <SelectItem key={c} value={c} className="capitalize text-xs">{c}</SelectItem>)}
-          </SelectContent>
-        </Select>
-      </div>
+      <FilterBar
+        search={
+          <div className="relative w-[320px] max-w-full">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+            <Input
+              placeholder="Search action, details, operator…"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="pl-8 font-mono text-xs h-9"
+            />
+          </div>
+        }
+        filters={
+          <Select value={catFilter} onValueChange={setCatFilter}>
+            <SelectTrigger className="w-36 h-9 text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All categories</SelectItem>
+              {categories.map(c => <SelectItem key={c} value={c} className="capitalize text-xs">{c}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        }
+      />
+
 
       <div className="cms-panel overflow-hidden">
         <div className="max-h-[600px] overflow-y-auto">

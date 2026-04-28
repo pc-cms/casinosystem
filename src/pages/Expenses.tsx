@@ -11,7 +11,8 @@ import { Input } from "@/components/ui/input";
 import { NumberInput } from "@/components/ui/number-input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Plus, CheckCircle } from "lucide-react";
+import { Plus, CheckCircle, Receipt } from "lucide-react";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { fmtDate } from "@/lib/format-date";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
@@ -62,10 +63,7 @@ const Expenses = () => {
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-foreground">Expenses</h1>
-          <p className="text-sm text-muted-foreground">Loading...</p>
-        </div>
+        <PageHeader icon={Receipt} title="Expenses" subtitle="Loading…" />
         <CardSkeleton count={3} />
         <TableSkeleton rows={5} cols={6} />
       </div>
@@ -74,13 +72,13 @@ const Expenses = () => {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Expenses</h1>
-          <p className="text-sm text-muted-foreground">Immutable · {expenses.length} records · {analytics.pendingCount} pending · {fmtDate(new Date())}</p>
-        </div>
+      <PageHeader
+        icon={Receipt}
+        title="Expenses"
+        subtitle={`Immutable · ${expenses.length} records · ${analytics.pendingCount} pending · ${fmtDate(new Date())}`}
+      >
         <Button onClick={() => setShowAdd(true)} size="sm"><Plus className="w-4 h-4 mr-1" /> Add Expense</Button>
-      </div>
+      </PageHeader>
 
       {/* Analytics Cards */}
       <div className="grid grid-cols-3 gap-3 mb-6">

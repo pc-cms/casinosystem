@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LogOut, User, CheckCircle2, Clock, ArrowUpDown, Eye } from "lucide-react";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { format, formatDistanceToNow } from "date-fns";
 import PlayerEditDialog from "@/components/PlayerEditDialog";
 import CategoryBadge, { CATEGORY_PRIORITY, type PlayerCategory } from "@/components/player/CategoryBadge";
@@ -281,12 +282,11 @@ const InCasino = () => {
 
   return (
     <div>
-      <div className="mb-3 sm:mb-4">
-        <h1 className="text-xl sm:text-2xl font-bold text-foreground">Players In Casino</h1>
-        <p className="text-xs sm:text-sm text-muted-foreground">
-          {stillIn.length} inside · {checkedOut.length} checked out
-        </p>
-      </div>
+      <PageHeader
+        icon={Eye}
+        title="Players In Casino"
+        subtitle={`${stillIn.length} inside · ${checkedOut.length} checked out`}
+      />
 
       {/* Sort & Filter toolbar */}
       <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-3 sm:mb-4">

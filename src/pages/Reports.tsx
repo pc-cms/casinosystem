@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatCurrency } from "@/lib/currency";
 import { Badge } from "@/components/ui/badge";
-import { BarChart3, Table2, Users, Receipt, Grid3X3, Landmark, UsersRound } from "lucide-react";
+import { BarChart3, Table2, Users, Receipt, Grid3X3, Landmark, UsersRound, FileBarChart } from "lucide-react";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { fmtDate } from "@/lib/format-date";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -34,17 +35,15 @@ const Reports = () => {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Reports</h1>
-          <p className="text-xs text-muted-foreground">Analytics & operational insights</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Input type="date" value={from} onChange={e => setFrom(e.target.value)} className="w-40 font-mono text-xs" />
-          <span className="text-muted-foreground text-xs">→</span>
-          <Input type="date" value={to} onChange={e => setTo(e.target.value)} className="w-40 font-mono text-xs" />
-        </div>
-      </div>
+      <PageHeader
+        icon={FileBarChart}
+        title="Reports"
+        subtitle="Analytics & operational insights"
+      >
+        <Input type="date" value={from} onChange={e => setFrom(e.target.value)} className="w-40 font-mono text-xs h-9" />
+        <span className="text-muted-foreground text-xs">→</span>
+        <Input type="date" value={to} onChange={e => setTo(e.target.value)} className="w-40 font-mono text-xs h-9" />
+      </PageHeader>
 
       <Tabs defaultValue="shifts" className="space-y-3">
         <TabsList className="flex-wrap">

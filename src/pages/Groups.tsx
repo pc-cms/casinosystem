@@ -5,7 +5,9 @@ import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Users, X, CalendarDays } from "lucide-react";
+import { Plus, Users, X, CalendarDays, UsersRound } from "lucide-react";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { FilterBar } from "@/components/layout/FilterBar";
 import { fmtDate } from "@/lib/format-date";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 
@@ -71,29 +73,32 @@ const Groups = () => {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Player Groups</h1>
-          <p className="text-sm text-muted-foreground">Analytical only · Does not affect transactions</p>
-        </div>
+      <PageHeader
+        icon={UsersRound}
+        title="Player Groups"
+        subtitle="Analytical only · Does not affect transactions"
+      >
         {isManager && (
           <Button onClick={() => setShowCreate(true)} size="sm"><Plus className="w-4 h-4 mr-1" /> New Group</Button>
         )}
-      </div>
+      </PageHeader>
 
-      {/* Period Filter */}
-      <div className="flex items-center gap-2 mb-4">
-        <CalendarDays className="w-4 h-4 text-muted-foreground" />
-        <Input type="date" value={dateRange.from} onChange={e => setDateRange(d => ({ ...d, from: e.target.value }))} className="w-40 font-mono text-xs" />
-        <span className="text-muted-foreground text-xs">to</span>
-        <Input type="date" value={dateRange.to} onChange={e => setDateRange(d => ({ ...d, to: e.target.value }))} className="w-40 font-mono text-xs" />
-        {(dateRange.from || dateRange.to) && (
-          <Button variant="ghost" size="sm" onClick={() => setDateRange({ from: "", to: "" })}>Clear</Button>
-        )}
-        {(dateRange.from || dateRange.to) && (
-          <span className="text-xs text-primary font-medium ml-2">Period filter active</span>
-        )}
-      </div>
+      <FilterBar
+        filters={
+          <>
+            <CalendarDays className="w-4 h-4 text-muted-foreground" />
+            <Input type="date" value={dateRange.from} onChange={e => setDateRange(d => ({ ...d, from: e.target.value }))} className="w-40 font-mono text-xs h-9" />
+            <span className="text-muted-foreground text-xs">to</span>
+            <Input type="date" value={dateRange.to} onChange={e => setDateRange(d => ({ ...d, to: e.target.value }))} className="w-40 font-mono text-xs h-9" />
+            {(dateRange.from || dateRange.to) && (
+              <Button variant="ghost" size="sm" className="h-9" onClick={() => setDateRange({ from: "", to: "" })}>Clear</Button>
+            )}
+            {(dateRange.from || dateRange.to) && (
+              <span className="text-xs text-primary font-medium ml-2">Period filter active</span>
+            )}
+          </>
+        }
+      />
 
       <div className="space-y-4">
         {groups.map(group => {
