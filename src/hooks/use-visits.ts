@@ -7,7 +7,7 @@ export const useVisitsToday = (selectFields = "*, players(first_name, last_name,
   const { casinoId } = useAuth();
   const today = getBusinessDate();
   return useQuery({
-    queryKey: ["casino-visits-today", casinoId, today],
+    queryKey: ["casino-visits-today", casinoId, today, selectFields],
     queryFn: async () => {
       if (!casinoId) return [];
       const { data, error } = await supabase

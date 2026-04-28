@@ -291,8 +291,8 @@ const PlayerConfirmCard = ({
 
   return (
     <div className={`cms-panel p-4 ${isBlacklisted ? "border-destructive/50 bg-destructive/5" : ""}`}>
+      {/* Top row: info left, big photo right */}
       <div className="flex gap-4">
-        {/* LEFT: Info + buttons (compact stacked) */}
         <div className="flex-1 min-w-0 space-y-2">
           <div className="flex items-center gap-2 flex-wrap">
             <CategoryBadge category={(player.category as PlayerCategory) || "normal"} size="md" />
@@ -337,21 +337,11 @@ const PlayerConfirmCard = ({
             </div>
           )}
 
-          {/* Buttons — compact, fixed widths, no flex-1 stretching */}
-          <div className="flex gap-2 flex-wrap pt-1">
-            {isBlacklisted ? null : isCheckedIn ? (
-              <Button onClick={onCheckOut} disabled={isPending} className="gap-1.5 h-10 px-5" variant="secondary">
-                <LogOut className="w-4 h-4" /> Check Out
-              </Button>
-            ) : (
-              <Button onClick={onCheckIn} disabled={isPending} className="gap-1.5 h-10 px-5">
-                <LogIn className="w-4 h-4" /> Confirm Check-in
-              </Button>
-            )}
-            <Button variant="ghost" onClick={onViewProfile} className="h-10 gap-1" size="sm">
-              <Eye className="w-4 h-4" /> Profile
+          {/* Edit Profile — separate, right under data */}
+          <div className="pt-1">
+            <Button variant="outline" onClick={onViewProfile} className="h-9 gap-1.5" size="sm">
+              <Eye className="w-4 h-4" /> Edit Profile
             </Button>
-            <Button variant="outline" onClick={onCancel} className="h-10 px-4">Cancel</Button>
           </div>
         </div>
 
@@ -369,6 +359,24 @@ const PlayerConfirmCard = ({
             )}
           </div>
         </div>
+      </div>
+
+      {/* Bottom action bar: Cancel left, primary action right */}
+      <div className="flex items-center justify-between gap-3 mt-4 pt-4 border-t border-border">
+        <Button variant="outline" onClick={onCancel} className="h-11 px-6 min-w-[120px]">
+          Cancel
+        </Button>
+        {isBlacklisted ? (
+          <div className="text-sm font-medium text-destructive">Entry denied</div>
+        ) : isCheckedIn ? (
+          <Button onClick={onCheckOut} disabled={isPending} className="gap-1.5 h-11 px-6 min-w-[180px]" variant="secondary">
+            <LogOut className="w-4 h-4" /> Check Out
+          </Button>
+        ) : (
+          <Button onClick={onCheckIn} disabled={isPending} className="gap-1.5 h-11 px-6 min-w-[180px]">
+            <LogIn className="w-4 h-4" /> Confirm Check-in
+          </Button>
+        )}
       </div>
     </div>
   );
