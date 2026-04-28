@@ -13,6 +13,7 @@ import { Navigate } from "react-router-dom";
 import { toast } from "sonner";
 import { FIXED_TABLE_NAMES, formatSpaced, parseSpaced, type ImportDay, type OcrRow } from "@/lib/import-helpers";
 import { useSaveImportedDay } from "@/hooks/use-import-reports";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 /** Resize image to max width keeping aspect ratio. Returns JPEG blob. */
 const resizeImage = (file: File, maxWidth = 1600, quality = 0.85): Promise<Blob> =>
@@ -237,13 +238,12 @@ const ImportReports = () => {
 
   return (
     <div className="p-3 md:p-6 space-y-4 max-w-7xl mx-auto">
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <div>
-          <h1 className="text-xl md:text-2xl font-bold">Import Daily Reports</h1>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Upload report photos → OCR → review → save
-          </p>
-        </div>
+      <PageHeader
+        icon={Upload}
+        title="Import Daily Reports"
+        subtitle="Upload report photos → OCR → review → save"
+        date
+      >
         <Button
           onClick={finishImport}
           disabled={saveDay.isPending || Array.from(days.values()).every((d) => !d.date || d.date === "unknown")}
@@ -252,7 +252,7 @@ const ImportReports = () => {
           {saveDay.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
           Finish Import
         </Button>
-      </div>
+      </PageHeader>
 
       {/* Upload */}
       <Card
