@@ -169,7 +169,12 @@ const Admin = () => {
 
         <TabsContent value="users"><UsersAndRoles /></TabsContent>
         <TabsContent value="schedule"><ScheduleSettings /></TabsContent>
-        <TabsContent value="float"><FloatManagement /></TabsContent>
+        <TabsContent value="float">
+          <div className="space-y-4">
+            <ChipConservationModeCard />
+            <FloatManagement />
+          </div>
+        </TabsContent>
         <TabsContent value="chip-colors"><ChipColorSettings /></TabsContent>
       </Tabs>
     </div>
