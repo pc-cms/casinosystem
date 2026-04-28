@@ -389,7 +389,7 @@ const RegisterTab = () => {
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
   const [form, setForm] = useState({
-    first_name: "", last_name: "", nickname: "", phone: "", id_number: "",
+    first_name: "", last_name: "", nickname: "", phone: "", id_number: "", birth_date: "",
   });
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
