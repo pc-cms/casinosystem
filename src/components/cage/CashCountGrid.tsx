@@ -38,9 +38,11 @@ const CashCountGrid = ({
             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.22em]">TZS Chips</p>
             <ChipDenomInput values={chips} onChange={onChipsChange} showValue={false} placeholder={chipPlaceholder} />
           </section>
-          <section className="rounded-xl border border-border bg-background/40 p-4 space-y-3">
+          <section className="rounded-xl border border-border bg-background/40 p-4 flex flex-col gap-3 min-h-[180px]">
             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.22em]">TZS Cash</p>
-            <CashDenomInput values={cash["TZS"] || {}} onChange={v => onCashChange("TZS", v)} denoms={CASH_DENOMS["TZS"] || []} currency="TZS" />
+            <div className="flex-1 flex flex-col justify-end">
+              <CashDenomInput values={cash["TZS"] || {}} onChange={v => onCashChange("TZS", v)} denoms={CASH_DENOMS["TZS"] || []} currency="TZS" />
+            </div>
           </section>
         </div>
 
