@@ -86,7 +86,7 @@ const CashCountGrid = ({
             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.22em]">GBP Cash</p>
             <CashDenomInput values={cash["GBP"] || {}} onChange={v => onCashChange("GBP", v)} denoms={CASH_DENOMS["GBP"] || []} currency="GBP" />
           </section>
-          <section className="rounded-xl border border-border bg-background/40 p-4 space-y-3 flex flex-col min-h-[200px]">
+          <section className="rounded-xl border border-border bg-background/40 p-4 space-y-3">
             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.22em]">Banks</p>
             <div className="space-y-0">
               <div className="grid grid-cols-[3.5rem_minmax(0,1fr)] items-center gap-1.5">
@@ -98,9 +98,15 @@ const CashCountGrid = ({
                 <NumberInput value={banks.usd || ""} onChange={v => onBanksChange({ ...banks, usd: Number(v) || 0 })} className={inputCls} placeholder="0" />
               </div>
             </div>
-            <div className="mt-auto flex items-center justify-between gap-2 pt-1 border-t border-border">
-              <span className="text-[10px] font-medium text-muted-foreground">Total</span>
-              <span className="font-mono text-xs font-bold text-card-foreground">TZS {formatNumberSpaces(banksTzsTotal)}</span>
+            <div className="pt-1 border-t border-border space-y-0.5">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[10px] font-medium text-muted-foreground">USD in TZS</span>
+                <span className="font-mono text-[11px] text-muted-foreground">TZS {formatNumberSpaces((banks.usd || 0) * (rates?.["USD"] || 0))}</span>
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[10px] font-medium text-muted-foreground">Total</span>
+                <span className="font-mono text-xs font-bold text-card-foreground">TZS {formatNumberSpaces(banksTzsTotal)}</span>
+              </div>
             </div>
           </section>
         </div>
