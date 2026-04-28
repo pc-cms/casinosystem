@@ -3,7 +3,17 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useMissChipsArchive, useMissChipsByShift } from "@/hooks/use-chip-conservation";
 import { formatChipLabel, formatNumberSpaces, CHIP_DENOMS } from "@/lib/currency";
-import { format, startOfMonth, endOfMonth, subMonths, addMonths } from "date-fns";
+import {
+  format,
+  startOfMonth,
+  endOfMonth,
+  subMonths,
+  addMonths,
+  startOfYear,
+  endOfYear,
+  subYears,
+  addYears,
+} from "date-fns";
 import { Coins, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -15,19 +25,33 @@ type ViewMode = "per-shift" | "by-month";
 const MissChips = () => {
   const today = new Date();
   const [monthAnchor, setMonthAnchor] = useState<Date>(startOfMonth(today));
+  const [yearAnchor, setYearAnchor] = useState<Date>(startOfYear(today));
   const [view, setView] = useState<ViewMode>("per-shift");
 
-  const fromDate = fmtDate(startOfMonth(monthAnchor));
-  const toDate = fmtDate(endOfMonth(monthAnchor));
-  const periodLabel = format(monthAnchor, "MMMM yyyy");
+  // Period depends on view: month for per-shift, year for by-month
+  const { fromDate, toDate, periodLabel } =
+    view === "per-shift"
+      ? {
+          fromDate: fmtDate(startOfMonth(monthAnchor)),
+          toDate: fmtDate(endOfMonth(monthAnchor)),
+          periodLabel: format(monthAnchor, "MMMM yyyy"),
+        }
+      : {
+          fromDate: fmtDate(startOfYear(yearAnchor)),
+          toDate: fmtDate(endOfYear(yearAnchor)),
+          periodLabel: format(yearAnchor, "yyyy"),
+        };
 
   const { data: shiftRows = [], isLoading: shiftsLoading } = useMissChipsByShift({ fromDate, toDate });
-  const { data: rawRows = [], isLoading: rawLoading } = useMissChipsArchive({
-    fromDate,
-    toDate,
-  });
+  const { data: rawRows = [], isLoading: rawLoading } = useMissChipsArchive({ fromDate, toDate });
 
-  const periodTotal = shiftRows.reduce((s, r) => s + r.total_value_tzs, 0);
+  // Total shown in header — for the active period
+  const periodTotal = useMemo(() => {
+    if (view === "per-shift") {
+      return shiftRows.reduce((s, r) => s + r.total_value_tzs, 0);
+    }
+    return rawRows.reduce((s, r) => s + Number(r.total_value_tzs), 0);
+  }, [view, shiftRows, rawRows]);
 
   const byMonth = useMemo(() => {
     const map = new Map<string, Map<number, number>>();
@@ -40,6 +64,24 @@ const MissChips = () => {
     return Array.from(map.entries()).sort((a, b) => b[0].localeCompare(a[0]));
   }, [rawRows]);
 
+  // Unified period nav handlers
+  const goPrev = () => {
+    if (view === "per-shift") setMonthAnchor((d) => startOfMonth(subMonths(d, 1)));
+    else setYearAnchor((d) => startOfYear(subYears(d, 1)));
+  };
+  const goNext = () => {
+    if (view === "per-shift") setMonthAnchor((d) => startOfMonth(addMonths(d, 1)));
+    else setYearAnchor((d) => startOfYear(addYears(d, 1)));
+  };
+  const goCurrent = () => {
+    if (view === "per-shift") setMonthAnchor(startOfMonth(today));
+    else setYearAnchor(startOfYear(today));
+  };
+  const nextDisabled =
+    view === "per-shift"
+      ? monthAnchor >= startOfMonth(today)
+      : yearAnchor >= startOfYear(today);
+
   return (
     <div className="container mx-auto p-4 space-y-3 max-w-[1400px]">
       {/* Single compact header row */}
@@ -47,21 +89,16 @@ const MissChips = () => {
         <Coins className="h-5 w-5" />
         <h1 className="text-lg font-semibold mr-3">Miss Chips</h1>
 
-        {/* Month nav */}
+        {/* Period nav (month or year depending on view) */}
         <div className="flex items-center gap-1">
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-8 w-8"
-            onClick={() => setMonthAnchor((d) => startOfMonth(subMonths(d, 1)))}
-          >
+          <Button variant="outline" size="icon" className="h-8 w-8" onClick={goPrev}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <Button
             variant="outline"
             size="sm"
-            className="h-8 min-w-[140px] font-mono"
-            onClick={() => setMonthAnchor(startOfMonth(today))}
+            className={cn("h-8 font-mono", view === "per-shift" ? "min-w-[140px]" : "min-w-[80px]")}
+            onClick={goCurrent}
           >
             {periodLabel}
           </Button>
@@ -69,8 +106,8 @@ const MissChips = () => {
             variant="outline"
             size="icon"
             className="h-8 w-8"
-            onClick={() => setMonthAnchor((d) => startOfMonth(addMonths(d, 1)))}
-            disabled={monthAnchor >= startOfMonth(today)}
+            onClick={goNext}
+            disabled={nextDisabled}
           >
             <ChevronRight className="h-4 w-4" />
           </Button>
