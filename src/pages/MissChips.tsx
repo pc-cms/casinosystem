@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useMissChipsArchive, useMissChipsByShift } from "@/hooks/use-chip-conservation";
-import { ChipEmissionDialog } from "@/components/chips/ChipEmissionDialog";
+
 import { ChipConservationCard } from "@/components/chips/ChipConservationCard";
 import { formatChipLabel, formatNumberSpaces, CHIP_DENOMS } from "@/lib/currency";
 import { format, startOfMonth, endOfMonth, subMonths, addMonths } from "date-fns";
