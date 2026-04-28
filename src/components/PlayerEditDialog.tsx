@@ -32,6 +32,7 @@ interface PlayerEditDialogProps {
     id_document_url?: string | null;
     player_type?: string;
     category?: string;
+    birth_date?: string | null;
   } | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -55,6 +56,7 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
   const [nickname, setNickname] = useState("");
   const [phone, setPhone] = useState("");
   const [idNumber, setIdNumber] = useState("");
+  const [birthDate, setBirthDate] = useState("");
   const [playerType, setPlayerType] = useState("table");
   const [category, setCategory] = useState<PlayerCategory>("normal");
   const [uploading, setUploading] = useState(false);
@@ -66,7 +68,9 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
   const [noteType, setNoteType] = useState<string>("info");
   const [addingNote, setAddingNote] = useState(false);
 
-  const canSeeNotes = roles.some(r => ["pit", "surveillance", "manager"].includes(r)) || isManager;
+  // Notes are CCTV-only (surveillance role). Manager keeps read access for oversight.
+  const canSeeNotes = roles.some(r => ["surveillance", "manager"].includes(r)) || isManager;
+  const canAddNotes = roles.some(r => r === "surveillance") || isManager;
   const canEditCategory = isManager;
 
   useEffect(() => {
@@ -76,6 +80,7 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
       setNickname(player.nickname || "");
       setPhone(player.phone || "");
       setIdNumber(player.id_number || "");
+      setBirthDate(player.birth_date || "");
       setPlayerType(player.player_type || "table");
       setCategory((player.category as PlayerCategory) || "normal");
       setPhotoUrl(player.photo_url || null);
@@ -206,6 +211,7 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
       if (nickname !== (player.nickname || "")) updates.nickname = nickname;
       if (phone !== (player.phone || "")) updates.phone = phone;
       if (idNumber !== (player.id_number || "")) updates.id_number = idNumber;
+      if (birthDate !== (player.birth_date || "")) updates.birth_date = birthDate || null;
       if (playerType !== (player.player_type || "table")) updates.player_type = playerType;
       if (canEditCategory && category !== ((player.category as PlayerCategory) || "normal")) updates.category = category;
       if (Object.keys(updates).length > 0) {
@@ -235,159 +241,162 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
         <div><FlagBadges tags={playerTags} /></div>
       )}
 
-      {/* Two-column on desktop: fields left, big photo + ID right */}
-      <div className={`${isMobile ? "space-y-4" : "grid grid-cols-[1fr_220px] gap-5"}`}>
-        {/* LEFT: form fields on a unified 12-col grid */}
-        <div className="min-w-0">
-          <FormGrid>
-            <FormField span={6} label="First Name">
-              <Input value={firstName} onChange={e => setFirstName(e.target.value)} className="h-10" />
-            </FormField>
-            <FormField span={6} label="Last Name">
-              <Input value={lastName} onChange={e => setLastName(e.target.value)} className="h-10" />
-            </FormField>
-
-            <FormField span={6} label="Nickname">
-              <Input value={nickname} onChange={e => setNickname(e.target.value)} className="h-10" />
-            </FormField>
-            <FormField span={6} label="Phone">
-              <Input value={phone} onChange={e => setPhone(e.target.value)} className="h-10" type="tel" />
-            </FormField>
-
-            <FormField span={4} label="ID / Passport">
-              <Input value={idNumber} onChange={e => setIdNumber(e.target.value)} className="h-10 font-mono" placeholder="Enter ID" />
-            </FormField>
-            <FormField span={4} label="Player Type">
-              <Select value={playerType} onValueChange={setPlayerType}>
-                <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="table">Table</SelectItem>
-                  <SelectItem value="slots">Slots</SelectItem>
-                  <SelectItem value="mix">Mix</SelectItem>
-                </SelectContent>
-              </Select>
-            </FormField>
-            <FormField
-              span={4}
-              label={
-                <>
-                  Category
-                  {!canEditCategory && <Shield className="w-3 h-3 text-muted-foreground" />}
-                </>
-              }
-            >
-              <Select value={category} onValueChange={v => setCategory(v as PlayerCategory)} disabled={!canEditCategory}>
-                <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {ALL_CATEGORIES.map(cat => (
-                    <SelectItem key={cat} value={cat} className="capitalize">{cat.charAt(0).toUpperCase() + cat.slice(1)}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </FormField>
-
-            {/* Notes — full row, aligned to the same 12-col grid */}
-            {canSeeNotes && (
-              <FormSection
-                title={
-                  <span className="flex items-center gap-1.5 normal-case tracking-normal">
-                    <StickyNote className="w-3 h-3" />
-                    Intelligence Notes ({notes.length})
-                  </span>
-                }
-              >
-                <FormGrid>
-                  <FormField span={3}>
-                    <Select value={noteType} onValueChange={setNoteType}>
-                      <SelectTrigger className="h-10 text-xs"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {NOTE_TYPES.map(t => (
-                          <SelectItem key={t} value={t} className="capitalize text-xs">{t}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </FormField>
-                  <FormField span={8}>
-                    <Textarea
-                      value={newNote}
-                      onChange={e => setNewNote(e.target.value)}
-                      placeholder="Add note..."
-                      className="text-xs min-h-[40px] h-10 resize-none"
-                    />
-                  </FormField>
-                  <FormField span={1}>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-10 w-full p-0"
-                      onClick={handleAddNote}
-                      disabled={!newNote.trim() || addingNote}
-                    >
-                      <Send className="w-3.5 h-3.5" />
-                    </Button>
-                  </FormField>
-                </FormGrid>
-                {notes.length > 0 && (
-                  <div className="space-y-1 max-h-40 overflow-y-auto">
-                    {notes.map((note: any) => (
-                      <div key={note.id} className={`text-xs p-2 rounded bg-muted/50 border border-border border-l-2 ${NOTE_TYPE_COLORS[note.note_type] || NOTE_TYPE_COLORS.info}`}>
-                        <div className="flex items-center gap-1.5 mb-0.5">
-                          <span className="text-[9px] font-mono uppercase text-muted-foreground">{note.note_type || "info"}</span>
-                        </div>
-                        <p className="text-card-foreground">{note.content}</p>
-                        <p className="text-[10px] text-muted-foreground mt-1">
-                          {getAuthorName(note.created_by)} · {fmtDateTime(note.created_at)}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </FormSection>
+      {/* Row 1: TWO PHOTOS side-by-side (Profile + ID Doc) */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1.5">
+          <label className="text-xs text-muted-foreground font-medium">Profile Photo</label>
+          <div className="w-full aspect-[4/3] rounded-lg bg-muted flex items-center justify-center overflow-hidden border border-border">
+            {(photoUrl || player.photo_url) ? (
+              <img src={photoUrl || player.photo_url || ""} className="w-full h-full object-cover" alt="Profile" />
+            ) : (
+              <User className="w-12 h-12 text-muted-foreground" />
             )}
-          </FormGrid>
+          </div>
+          <PhotoCapture
+            photoUrl={photoUrl || player.photo_url || null}
+            onPhotoSelect={handlePhotoUpload}
+            label="Photo"
+            size="sm"
+            captureId={`edit-photo-${player.id}`}
+            disabled={uploading}
+            compact
+          />
         </div>
 
-        {/* RIGHT: big photo + ID document */}
-        <div className="space-y-3">
-          <div className="space-y-1.5">
-            <div className="w-full aspect-square rounded-lg bg-muted flex items-center justify-center overflow-hidden border border-border">
-              {(photoUrl || player.photo_url) ? (
-                <img src={photoUrl || player.photo_url || ""} className="w-full h-full object-cover" alt="Profile" />
-              ) : (
-                <User className="w-16 h-16 text-muted-foreground" />
-              )}
-            </div>
-            <PhotoCapture
-              photoUrl={photoUrl || player.photo_url || null}
-              onPhotoSelect={handlePhotoUpload}
-              label="Photo"
-              size="sm"
-              captureId={`edit-photo-${player.id}`}
-              disabled={uploading}
-              compact
-            />
+        <div className="space-y-1.5">
+          <label className="text-xs text-muted-foreground font-medium">ID / Passport Document</label>
+          <div className="w-full aspect-[4/3] rounded-lg bg-muted flex items-center justify-center overflow-hidden border border-border">
+            {docUrl ? (
+              <img src={docUrl} className="w-full h-full object-cover" alt="ID" />
+            ) : (
+              <FileImage className="w-10 h-10 text-muted-foreground" />
+            )}
           </div>
-
-          <div className="space-y-1.5">
-            <div className="w-full aspect-[4/3] rounded-lg bg-muted flex items-center justify-center overflow-hidden border border-border">
-              {docUrl ? (
-                <img src={docUrl} className="w-full h-full object-cover" alt="ID" />
-              ) : (
-                <FileImage className="w-10 h-10 text-muted-foreground" />
-              )}
-            </div>
-            <PhotoCapture
-              photoUrl={docUrl || null}
-              onPhotoSelect={handleDocUpload}
-              label="ID Doc"
-              size="sm"
-              captureId={`edit-doc-${player.id}`}
-              disabled={uploadingDoc}
-              compact
-            />
-          </div>
+          <PhotoCapture
+            photoUrl={docUrl || null}
+            onPhotoSelect={handleDocUpload}
+            label="ID Doc"
+            size="sm"
+            captureId={`edit-doc-${player.id}`}
+            disabled={uploadingDoc}
+            compact
+          />
         </div>
       </div>
+
+      {/* Row 2+: All form fields on a unified 12-col grid */}
+      <FormGrid>
+        <FormField span={6} label="First Name">
+          <Input value={firstName} onChange={e => setFirstName(e.target.value)} className="h-10" />
+        </FormField>
+        <FormField span={6} label="Last Name">
+          <Input value={lastName} onChange={e => setLastName(e.target.value)} className="h-10" />
+        </FormField>
+
+        <FormField span={6} label="Nickname">
+          <Input value={nickname} onChange={e => setNickname(e.target.value)} className="h-10" />
+        </FormField>
+        <FormField span={6} label="Phone">
+          <Input value={phone} onChange={e => setPhone(e.target.value)} className="h-10" type="tel" />
+        </FormField>
+
+        <FormField span={6} label="ID / Passport">
+          <Input value={idNumber} onChange={e => setIdNumber(e.target.value)} className="h-10 font-mono" placeholder="Enter ID" />
+        </FormField>
+        <FormField span={6} label="Birth Date">
+          <Input value={birthDate} onChange={e => setBirthDate(e.target.value)} className="h-10" type="date" />
+        </FormField>
+
+        <FormField span={6} label="Player Type">
+          <Select value={playerType} onValueChange={setPlayerType}>
+            <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="table">Table</SelectItem>
+              <SelectItem value="slots">Slots</SelectItem>
+              <SelectItem value="mix">Mix</SelectItem>
+            </SelectContent>
+          </Select>
+        </FormField>
+        <FormField
+          span={6}
+          label={
+            <>
+              Category
+              {!canEditCategory && <Shield className="w-3 h-3 text-muted-foreground" />}
+            </>
+          }
+        >
+          <Select value={category} onValueChange={v => setCategory(v as PlayerCategory)} disabled={!canEditCategory}>
+            <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {ALL_CATEGORIES.map(cat => (
+                <SelectItem key={cat} value={cat} className="capitalize">{cat.charAt(0).toUpperCase() + cat.slice(1)}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </FormField>
+
+        {/* Notes — CCTV/Manager only. Hidden for Reception, Pit, etc. */}
+        {canSeeNotes && (
+          <FormSection
+            title={
+              <span className="flex items-center gap-1.5 normal-case tracking-normal">
+                <StickyNote className="w-3 h-3" />
+                Intelligence Notes ({notes.length})
+              </span>
+            }
+          >
+            {canAddNotes && (
+              <FormGrid>
+                <FormField span={3}>
+                  <Select value={noteType} onValueChange={setNoteType}>
+                    <SelectTrigger className="h-10 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {NOTE_TYPES.map(t => (
+                        <SelectItem key={t} value={t} className="capitalize text-xs">{t}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </FormField>
+                <FormField span={8}>
+                  <Textarea
+                    value={newNote}
+                    onChange={e => setNewNote(e.target.value)}
+                    placeholder="Add note..."
+                    className="text-xs min-h-[40px] h-10 resize-none"
+                  />
+                </FormField>
+                <FormField span={1}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-10 w-full p-0"
+                    onClick={handleAddNote}
+                    disabled={!newNote.trim() || addingNote}
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                  </Button>
+                </FormField>
+              </FormGrid>
+            )}
+            {notes.length > 0 && (
+              <div className="space-y-1 max-h-40 overflow-y-auto">
+                {notes.map((note: any) => (
+                  <div key={note.id} className={`text-xs p-2 rounded bg-muted/50 border border-border border-l-2 ${NOTE_TYPE_COLORS[note.note_type] || NOTE_TYPE_COLORS.info}`}>
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      <span className="text-[9px] font-mono uppercase text-muted-foreground">{note.note_type || "info"}</span>
+                    </div>
+                    <p className="text-card-foreground">{note.content}</p>
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      {getAuthorName(note.created_by)} · {fmtDateTime(note.created_at)}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </FormSection>
+        )}
+      </FormGrid>
     </div>
   ) : null;
 
@@ -426,7 +435,7 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[92vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[92vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{titleContent}</DialogTitle>
         </DialogHeader>

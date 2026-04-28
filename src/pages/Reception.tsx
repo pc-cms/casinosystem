@@ -389,7 +389,7 @@ const RegisterTab = () => {
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
   const [form, setForm] = useState({
-    first_name: "", last_name: "", nickname: "", phone: "", id_number: "",
+    first_name: "", last_name: "", nickname: "", phone: "", id_number: "", birth_date: "",
   });
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
@@ -529,7 +529,8 @@ const RegisterTab = () => {
           nickname: form.nickname,
           phone: form.phone,
           id_number: form.id_number as any,
-        })
+          birth_date: form.birth_date || null,
+        } as any)
         .select()
         .single();
       if (error) throw error;
@@ -580,7 +581,7 @@ const RegisterTab = () => {
       });
 
       queryClient.invalidateQueries({ queryKey: ["players"] });
-      setForm({ first_name: "", last_name: "", nickname: "", phone: "", id_number: "" });
+      setForm({ first_name: "", last_name: "", nickname: "", phone: "", id_number: "", birth_date: "" });
       setPhotoFile(null);
       setPhotoPreview(null);
       setDocFiles([]);
@@ -683,6 +684,14 @@ const RegisterTab = () => {
               onChange={e => { setForm(f => ({ ...f, id_number: e.target.value })); if (dupStatus !== "idle") resetDuplicates(); setOverrideGranted(false); }}
               placeholder="Document number"
               className={`h-10 font-mono ${ocrDone && form.id_number ? "border-primary/50" : ""}`}
+            />
+          </FormField>
+          <FormField span={12} label="Birth Date">
+            <Input
+              value={form.birth_date}
+              onChange={e => setForm(f => ({ ...f, birth_date: e.target.value }))}
+              type="date"
+              className="h-10"
             />
           </FormField>
         </FormGrid>
