@@ -256,15 +256,17 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
               <User className="w-12 h-12 text-muted-foreground" />
             )}
           </div>
-          <PhotoCapture
-            photoUrl={photoUrl || player.photo_url || null}
-            onPhotoSelect={handlePhotoUpload}
-            label="Photo"
-            size="sm"
-            captureId={`edit-photo-${player.id}`}
-            disabled={uploading}
-            compact
-          />
+          {!readOnly && (
+            <PhotoCapture
+              photoUrl={photoUrl || player.photo_url || null}
+              onPhotoSelect={handlePhotoUpload}
+              label="Photo"
+              size="sm"
+              captureId={`edit-photo-${player.id}`}
+              disabled={uploading}
+              compact
+            />
+          )}
         </div>
 
         <div className="space-y-1.5">
