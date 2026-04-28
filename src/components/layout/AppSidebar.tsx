@@ -58,7 +58,6 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/groups", icon: UsersRound, label: "Groups", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
   { to: "/import-reports", icon: Upload, label: "Import Reports", roles: ["super_admin", "manager"], section: "FINANCE" },
   { to: "/miss-chips", icon: Coins, label: "Miss Chips", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
-  { to: "/reports/miss-chips", icon: Coins, label: "Miss Chips Report", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
 
   // HR
   { to: "/staff", icon: Building2, label: "Floor Staff", roles: ["super_admin", "manager", "pit", "finance_manager", "hr"], section: "HR" },
