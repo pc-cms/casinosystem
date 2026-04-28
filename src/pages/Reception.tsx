@@ -529,7 +529,8 @@ const RegisterTab = () => {
           nickname: form.nickname,
           phone: form.phone,
           id_number: form.id_number as any,
-        })
+          birth_date: form.birth_date || null,
+        } as any)
         .select()
         .single();
       if (error) throw error;
