@@ -43,27 +43,27 @@ const CashCountGrid = ({
           </section>
         </div>
 
-        {/* Column 2: USD Cash + GBP Cash */}
+        {/* Column 2: USD Cash + KES Cash */}
         <div className="grid gap-4 content-start">
           <section className="rounded-xl border border-border bg-background/40 p-4 space-y-3">
             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.22em]">USD Cash</p>
             <CashDenomInput values={cash["USD"] || {}} onChange={v => onCashChange("USD", v)} denoms={CASH_DENOMS["USD"] || []} currency="USD" />
           </section>
           <section className="rounded-xl border border-border bg-background/40 p-4 space-y-3">
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.22em]">GBP Cash</p>
-            <CashDenomInput values={cash["GBP"] || {}} onChange={v => onCashChange("GBP", v)} denoms={CASH_DENOMS["GBP"] || []} currency="GBP" />
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.22em]">KES Cash</p>
+            <CashDenomInput values={cash["KES"] || {}} onChange={v => onCashChange("KES", v)} denoms={CASH_DENOMS["KES"] || []} currency="KES" />
           </section>
         </div>
 
-        {/* Column 3: EUR Cash + KES Cash */}
+        {/* Column 3: EUR Cash + GBP Cash */}
         <div className="grid gap-4 content-start">
           <section className="rounded-xl border border-border bg-background/40 p-4 space-y-3">
             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.22em]">EUR Cash</p>
             <CashDenomInput values={cash["EUR"] || {}} onChange={v => onCashChange("EUR", v)} denoms={CASH_DENOMS["EUR"] || []} currency="EUR" />
           </section>
           <section className="rounded-xl border border-border bg-background/40 p-4 space-y-3">
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.22em]">KES Cash</p>
-            <CashDenomInput values={cash["KES"] || {}} onChange={v => onCashChange("KES", v)} denoms={CASH_DENOMS["KES"] || []} currency="KES" />
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.22em]">GBP Cash</p>
+            <CashDenomInput values={cash["GBP"] || {}} onChange={v => onCashChange("GBP", v)} denoms={CASH_DENOMS["GBP"] || []} currency="GBP" />
           </section>
         </div>
       </div>
