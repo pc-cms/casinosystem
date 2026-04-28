@@ -627,6 +627,7 @@ export type Database = {
         Row: {
           breaklist_lock: string
           cage_float: number
+          chip_conservation_mode: string
           code: string
           created_at: string
           float_locked: boolean
@@ -641,6 +642,7 @@ export type Database = {
         Insert: {
           breaklist_lock?: string
           cage_float?: number
+          chip_conservation_mode?: string
           code: string
           created_at?: string
           float_locked?: boolean
@@ -655,6 +657,7 @@ export type Database = {
         Update: {
           breaklist_lock?: string
           cage_float?: number
+          chip_conservation_mode?: string
           code?: string
           created_at?: string
           float_locked?: boolean
