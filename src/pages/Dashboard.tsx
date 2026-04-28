@@ -183,6 +183,12 @@ const Dashboard = () => {
         )}
       </div>
 
+      {(isManager || roles.includes("surveillance") || roles.includes("finance_manager")) && (
+        <div className="mb-4">
+          <ChipConservationCard />
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Players in Casino */}
         <div className="cms-panel">
