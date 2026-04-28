@@ -37,6 +37,25 @@ const CashCountGrid = ({
             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.22em]">TZS Cash</p>
             <CashDenomInput values={cash["TZS"] || {}} onChange={v => onCashChange("TZS", v)} denoms={CASH_DENOMS["TZS"] || []} currency="TZS" />
           </section>
+          <section className="rounded-xl border border-border bg-background/40 p-4 space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.22em]">Mobile Money</p>
+              <span className="font-mono text-sm font-bold text-card-foreground">TZS {formatNumberSpaces(mobTotal)}</span>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {MOBILE_PROVIDERS.map(provider => (
+                <div key={provider} className="flex items-center gap-2">
+                  <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.18em] w-12 shrink-0">{provider}</span>
+                  <NumberInput
+                    value={mobile[provider] || ""}
+                    onChange={v => onMobileChange({ ...mobile, [provider]: Number(v) || 0 })}
+                    className="no-spin h-8 w-full min-w-0 font-mono text-sm text-right"
+                    placeholder="0"
+                  />
+                </div>
+              ))}
+            </div>
+          </section>
         </div>
 
         <div className="grid gap-4 content-start">
@@ -61,26 +80,6 @@ const CashCountGrid = ({
           </section>
         </div>
       </div>
-
-      <section className="rounded-xl border border-border bg-background/40 p-4 space-y-3">
-        <div className="flex items-center justify-between gap-3">
-          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.22em]">Mobile Money</p>
-          <span className="font-mono text-sm font-bold text-card-foreground">TZS {formatNumberSpaces(mobTotal)}</span>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
-          {MOBILE_PROVIDERS.map(provider => (
-            <div key={provider} className="rounded-lg border border-border bg-background/60 p-3 space-y-2">
-              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.18em]">{provider}</p>
-              <NumberInput
-                value={mobile[provider] || ""}
-                onChange={v => onMobileChange({ ...mobile, [provider]: Number(v) || 0 })}
-                className="no-spin h-9 w-full min-w-0 font-mono text-sm text-right"
-                placeholder="0"
-              />
-            </div>
-          ))}
-        </div>
-      </section>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <section className="rounded-xl border border-border bg-background/40 p-4 space-y-2">
