@@ -218,7 +218,10 @@ const SidebarSections = ({
     <nav className="flex-1 py-2 px-2 overflow-y-auto">
       {sections.map((section, idx) => {
         const items: NavItem[] = section === "SYSTEM"
-          ? [{ to: "/admin", icon: Settings, label: "Admin", roles: ["manager"], section: "SYSTEM" }]
+          ? [
+              ...(grouped[section] || []),
+              ...(isManager ? [{ to: "/admin", icon: Settings, label: "Admin", roles: ["manager"] as AppRole[], section: "SYSTEM" as Section }] : []),
+            ]
           : grouped[section] || [];
         if (!items.length) return null;
 
