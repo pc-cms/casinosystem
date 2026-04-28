@@ -27,6 +27,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { getBusinessDate } from "@/lib/business-day";
 import { compressImage, thumbnailPath } from "@/lib/image-compress";
 import PhotoCapture from "@/components/PhotoCapture";
+import { FormGrid, FormField } from "@/components/ui/form-grid";
 
 const isProfileIncomplete = (player: any): string[] => {
   const missing: string[] = [];
