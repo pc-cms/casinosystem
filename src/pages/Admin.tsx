@@ -9,7 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Shield, Trash2, UserPlus, Coins, Clock, Building2, Server, Link2, Unlink, Globe, Palette } from "lucide-react";
+import { Plus, Shield, Trash2, UserPlus, Coins, Clock, Building2, Server, Link2, Unlink, Globe, Palette, Settings } from "lucide-react";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { toast } from "sonner";
 import { logAction } from "@/lib/logging";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -122,14 +123,12 @@ const Admin = () => {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Administration</h1>
-          <p className="text-sm text-muted-foreground">
-            {isSuperAdmin ? "System, Casino & User Management" : "User, Role & Float Management"}
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        icon={Settings}
+        title="Administration"
+        subtitle={isSuperAdmin ? "System, Casino & User Management" : "User, Role & Float Management"}
+        date
+      />
 
       <Tabs defaultValue={isSuperAdmin ? "casinos" : "users"} className="space-y-4">
         <TabsList className="flex-wrap">

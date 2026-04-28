@@ -286,6 +286,7 @@ const InCasino = () => {
         icon={Eye}
         title="Players In Casino"
         subtitle={`${stillIn.length} inside · ${checkedOut.length} checked out`}
+        date
       />
 
       {/* Sort & Filter toolbar */}

@@ -77,7 +77,7 @@ export const PageHeader = ({
           <div className="flex items-center gap-3 shrink-0">
             {children && <div className="flex items-center gap-2">{children}</div>}
             {dateValue && (
-              <span className="text-base font-mono tabular-nums text-muted-foreground whitespace-nowrap">
+              <span className="inline-flex items-center h-9 px-3 rounded-md border border-border bg-background text-base font-bold font-mono tabular-nums text-foreground whitespace-nowrap">
                 {fmtDate(dateValue as Date | string)}
               </span>
             )}

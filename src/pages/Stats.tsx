@@ -36,6 +36,7 @@ const Stats = () => {
         icon={BarChart3}
         title="Player Stats"
         subtitle="RESULT = CASHOUT − DROP · REAL RESULT = CASHOUT − DROP − EXPENSES"
+        date
       />
 
       <div className="cms-panel overflow-hidden">

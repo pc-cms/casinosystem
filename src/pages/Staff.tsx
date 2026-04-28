@@ -4,7 +4,8 @@ import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { UserPlus, ChevronLeft, ChevronRight, ArrowUpDown, Printer } from "lucide-react";
+import { UserPlus, ChevronLeft, ChevronRight, ArrowUpDown, Printer, Building2 } from "lucide-react";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
@@ -119,46 +120,48 @@ const Staff = () => {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-5 no-print">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">{TAB_TITLES[activeTab] || "Floor"}</h1>
-          <p className="text-sm text-muted-foreground">Floor Management</p>
-        </div>
-        <div className="flex items-center gap-3">
-          {showMonthNav && (
-            <div className="flex items-center gap-1">
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigateMonth(-1)}>
-                <ChevronLeft className="w-4 h-4" />
-              </Button>
-              <span className="text-sm font-semibold text-card-foreground min-w-[140px] text-center">{monthLabel}</span>
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigateMonth(1)}>
-                <ChevronRight className="w-4 h-4" />
-              </Button>
-            </div>
-          )}
-          {isRotaTab && rotaGroup && (
-            <div className="flex items-center gap-1.5">
-              {rotaGroup.shifts.map(s => (
-                <span key={s} className={`px-2 py-0.5 rounded text-[10px] font-mono ${STAFF_SHIFT_COLORS[s]}`}>
-                  {s} = {rotaGroup.shiftLabels[s]}
-                </span>
-              ))}
-              <Button variant="outline" size="sm" className="ml-2 gap-1 text-xs" onClick={printRota}>
-                <Printer className="w-3.5 h-3.5" /> Print
-              </Button>
-            </div>
-          )}
-          {activeTab === "attendance" && (
-            <div className="flex items-center gap-1.5">
-              <span className={`px-2 py-0.5 rounded text-[10px] font-mono ${ATT_COLORS["A"]}`}>A = Absent</span>
-              <span className={`px-2 py-0.5 rounded text-[10px] font-mono ${ATT_COLORS["S"]}`}>S = Sick</span>
-              <Button variant="outline" size="sm" className="ml-2 gap-1 text-xs" onClick={printRota}>
-                <Printer className="w-3.5 h-3.5" /> Print
-              </Button>
-            </div>
-          )}
-        </div>
-      </div>
+      <PageHeader
+        icon={Building2}
+        title={TAB_TITLES[activeTab] || "Floor"}
+        subtitle="Floor Management"
+        date
+        centerSlot={
+          <div className="flex items-center gap-3 flex-wrap justify-center no-print">
+            {showMonthNav && (
+              <div className="flex items-center gap-1">
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigateMonth(-1)}>
+                  <ChevronLeft className="w-4 h-4" />
+                </Button>
+                <span className="text-sm font-semibold text-card-foreground min-w-[140px] text-center">{monthLabel}</span>
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigateMonth(1)}>
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </div>
+            )}
+            {isRotaTab && rotaGroup && (
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {rotaGroup.shifts.map(s => (
+                  <span key={s} className={`px-2 py-0.5 rounded text-[10px] font-mono ${STAFF_SHIFT_COLORS[s]}`}>
+                    {s} = {rotaGroup.shiftLabels[s]}
+                  </span>
+                ))}
+              </div>
+            )}
+            {activeTab === "attendance" && (
+              <div className="flex items-center gap-1.5">
+                <span className={`px-2 py-0.5 rounded text-[10px] font-mono ${ATT_COLORS["A"]}`}>A = Absent</span>
+                <span className={`px-2 py-0.5 rounded text-[10px] font-mono ${ATT_COLORS["S"]}`}>S = Sick</span>
+              </div>
+            )}
+          </div>
+        }
+      >
+        {(isRotaTab || activeTab === "attendance") && (
+          <Button variant="outline" size="sm" className="gap-1 text-xs" onClick={printRota}>
+            <Printer className="w-3.5 h-3.5" /> Print
+          </Button>
+        )}
+      </PageHeader>
 
       {activeTab === "employee" && <EmployeeList />}
       {isRotaTab && rotaGroupKey && <StaffRotaGrid month={month} groupKey={rotaGroupKey} monthLabel={monthLabel} />}
