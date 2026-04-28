@@ -158,33 +158,31 @@ const ProtectedRoutes = () => {
 
   return (
     <ErrorBoundary>
-      <Suspense fallback={<PageLoader />}>
-        <Routes>
-          <Route element={<AppLayout />}>
-            <Route path="/" element={<RoleGuard path="/"><Dashboard /></RoleGuard>} />
-            <Route path="/players" element={<RoleGuard path="/players"><Players /></RoleGuard>} />
-            <Route path="/cage" element={<RoleGuard path="/cage"><ErrorBoundary><Cage /></ErrorBoundary></RoleGuard>} />
-            <Route path="/reception" element={<RoleGuard path="/reception"><Reception /></RoleGuard>} />
-            <Route path="/in-casino" element={<RoleGuard path="/in-casino"><InCasino /></RoleGuard>} />
-            <Route path="/blacklist" element={<RoleGuard path="/blacklist"><Blacklist /></RoleGuard>} />
-            <Route path="/tables" element={<RoleGuard path="/tables"><Tables /></RoleGuard>} />
-            <Route path="/expenses" element={<RoleGuard path="/expenses"><Expenses /></RoleGuard>} />
-            <Route path="/pit" element={<RoleGuard path="/pit"><ErrorBoundary><Pit /></ErrorBoundary></RoleGuard>} />
-            <Route path="/staff" element={<RoleGuard path="/floor"><Staff /></RoleGuard>} />
-            <Route path="/floor" element={<RoleGuard path="/floor"><Staff /></RoleGuard>} />
-            <Route path="/groups" element={<RoleGuard path="/groups"><Groups /></RoleGuard>} />
-            <Route path="/finance" element={<RoleGuard path="/finance"><ErrorBoundary><Finance /></ErrorBoundary></RoleGuard>} />
-            <Route path="/reports" element={<RoleGuard path="/reports"><Reports /></RoleGuard>} />
-            <Route path="/stats" element={<RoleGuard path="/stats"><Stats /></RoleGuard>} />
-            <Route path="/logs" element={<RoleGuard path="/logs"><Logs /></RoleGuard>} />
-            <Route path="/admin" element={<RoleGuard path="/admin"><Admin /></RoleGuard>} />
-            <Route path="/import-reports" element={<RoleGuard path="/import-reports"><ImportReports /></RoleGuard>} />
-            <Route path="/table-results" element={<RoleGuard path="/table-results"><TableResults /></RoleGuard>} />
-            <Route path="/bank-checks" element={<RoleGuard path="/bank-checks"><BankChecks /></RoleGuard>} />
-          </Route>
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </Suspense>
+      <Routes>
+        <Route element={<AppLayout />}>
+          <Route path="/" element={<RoleGuard path="/"><Dashboard /></RoleGuard>} />
+          <Route path="/players" element={<RoleGuard path="/players"><Players /></RoleGuard>} />
+          <Route path="/cage" element={<RoleGuard path="/cage"><ErrorBoundary><Cage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/reception" element={<RoleGuard path="/reception"><Reception /></RoleGuard>} />
+          <Route path="/in-casino" element={<RoleGuard path="/in-casino"><InCasino /></RoleGuard>} />
+          <Route path="/blacklist" element={<RoleGuard path="/blacklist"><Blacklist /></RoleGuard>} />
+          <Route path="/tables" element={<RoleGuard path="/tables"><Tables /></RoleGuard>} />
+          <Route path="/expenses" element={<RoleGuard path="/expenses"><Expenses /></RoleGuard>} />
+          <Route path="/pit" element={<RoleGuard path="/pit"><ErrorBoundary><Pit /></ErrorBoundary></RoleGuard>} />
+          <Route path="/staff" element={<RoleGuard path="/floor"><Staff /></RoleGuard>} />
+          <Route path="/floor" element={<RoleGuard path="/floor"><Staff /></RoleGuard>} />
+          <Route path="/groups" element={<RoleGuard path="/groups"><Groups /></RoleGuard>} />
+          <Route path="/finance" element={<RoleGuard path="/finance"><ErrorBoundary><Finance /></ErrorBoundary></RoleGuard>} />
+          <Route path="/reports" element={<RoleGuard path="/reports"><Reports /></RoleGuard>} />
+          <Route path="/stats" element={<RoleGuard path="/stats"><Stats /></RoleGuard>} />
+          <Route path="/logs" element={<RoleGuard path="/logs"><Logs /></RoleGuard>} />
+          <Route path="/admin" element={<RoleGuard path="/admin"><Admin /></RoleGuard>} />
+          <Route path="/import-reports" element={<RoleGuard path="/import-reports"><ImportReports /></RoleGuard>} />
+          <Route path="/table-results" element={<RoleGuard path="/table-results"><TableResults /></RoleGuard>} />
+          <Route path="/bank-checks" element={<RoleGuard path="/bank-checks"><BankChecks /></RoleGuard>} />
+        </Route>
+        <Route path="*" element={<Suspense fallback={<PageLoader />}><NotFound /></Suspense>} />
+      </Routes>
     </ErrorBoundary>
   );
 };
