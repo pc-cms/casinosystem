@@ -74,7 +74,7 @@ const CashCountGrid = ({
           </section>
         </div>
 
-        {/* Column 3: EUR Cash + GBP Cash */}
+        {/* Column 3: EUR Cash + GBP Cash + Banks */}
         <div className="grid gap-4 content-start">
           <section className="rounded-xl border border-border bg-background/40 p-4 space-y-3">
             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.22em]">EUR Cash</p>
@@ -84,22 +84,23 @@ const CashCountGrid = ({
             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.22em]">GBP Cash</p>
             <CashDenomInput values={cash["GBP"] || {}} onChange={v => onCashChange("GBP", v)} denoms={CASH_DENOMS["GBP"] || []} currency="GBP" />
           </section>
+          <section className="rounded-xl border border-border bg-background/40 p-4 space-y-3">
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.22em]">Banks</p>
+            <div className="space-y-1">
+              <div className="grid grid-cols-[3.5rem_minmax(0,1fr)] items-center gap-1.5">
+                <span className="cms-chip text-[8px] bg-muted text-foreground h-5 w-14 shrink-0 justify-center">TZS</span>
+                <NumberInput value={banks.tzs || ""} onChange={v => onBanksChange({ ...banks, tzs: Number(v) || 0 })} className={inputCls} placeholder="0" />
+              </div>
+              <div className="grid grid-cols-[3.5rem_minmax(0,1fr)] items-center gap-1.5">
+                <span className="cms-chip text-[8px] bg-muted text-foreground h-5 w-14 shrink-0 justify-center">USD</span>
+                <NumberInput value={banks.usd || ""} onChange={v => onBanksChange({ ...banks, usd: Number(v) || 0 })} className={inputCls} placeholder="0" />
+              </div>
+              {banks.usd > 0 && rates?.["USD"] ? (
+                <p className="text-[10px] font-mono text-muted-foreground text-right">USD = TZS {formatNumberSpaces(banks.usd * (rates["USD"] || 0))}</p>
+              ) : null}
+            </div>
+          </section>
         </div>
-      </div>
-
-      {/* Banks side by side */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <section className="rounded-xl border border-border bg-background/40 p-4 space-y-2">
-          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.22em]">Bank TZS</p>
-          <NumberInput value={banks.tzs || ""} onChange={v => onBanksChange({ ...banks, tzs: Number(v) || 0 })} className={inputCls} placeholder="0" />
-        </section>
-        <section className="rounded-xl border border-border bg-background/40 p-4 space-y-2">
-          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.22em]">Bank USD</p>
-          <NumberInput value={banks.usd || ""} onChange={v => onBanksChange({ ...banks, usd: Number(v) || 0 })} className={inputCls} placeholder="0" />
-          {banks.usd > 0 && rates?.["USD"] ? (
-            <p className="text-[10px] font-mono text-muted-foreground">= TZS {formatNumberSpaces(banks.usd * (rates["USD"] || 0))}</p>
-          ) : null}
-        </section>
       </div>
     </div>
   );
