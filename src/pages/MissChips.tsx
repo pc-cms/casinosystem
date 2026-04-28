@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useMissChipsArchive, useMissChipsByShift } from "@/hooks/use-chip-conservation";
-import { ChipEmissionDialog } from "@/components/chips/ChipEmissionDialog";
+
 import { ChipConservationCard } from "@/components/chips/ChipConservationCard";
 import { formatChipLabel, formatNumberSpaces, CHIP_DENOMS } from "@/lib/currency";
 import { format, startOfMonth, endOfMonth, subMonths, addMonths } from "date-fns";
@@ -65,18 +65,13 @@ const MissChips = () => {
   }, [rawRows]);
 
   return (
-    <div className="container mx-auto p-4 space-y-4 max-w-[1400px]">
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <div className="flex items-center gap-2">
-          <Coins className="h-6 w-6" />
-          <div>
-            <h1 className="text-2xl font-semibold">Miss Chips</h1>
-            <p className="text-xs text-muted-foreground">
-              Conservation status, per-shift breakdown and historical archive
-            </p>
-          </div>
-        </div>
-        <ChipEmissionDialog />
+    <div className="container mx-auto p-4 space-y-3 max-w-[1400px]">
+      <div className="flex items-center gap-2">
+        <Coins className="h-5 w-5" />
+        <h1 className="text-lg font-semibold">Miss Chips</h1>
+        <span className="text-xs text-muted-foreground hidden sm:inline">
+          · Conservation status, per-shift breakdown and historical archive
+        </span>
       </div>
 
       <ChipConservationCard />
