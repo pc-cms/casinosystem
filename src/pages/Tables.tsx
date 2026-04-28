@@ -476,7 +476,7 @@ const Tables = () => {
       </Dialog>
       </>
       )}
-    </div>
+    </PageShell>
   );
 };
 
