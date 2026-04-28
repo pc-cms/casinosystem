@@ -10,6 +10,7 @@ import { formatCurrency } from "@/lib/currency";
 import { canSeePlayerFinancials } from "@/lib/role-access";
 import { getBusinessDate } from "@/lib/business-day";
 import { useStaffMembers, useStaffRotaRange, DEPARTMENT_LABELS, STAFF_SHIFT_LABELS, STAFF_SHIFT_COLORS } from "@/hooks/use-staff";
+import { ChipConservationCard } from "@/components/chips/ChipConservationCard";
 import { format, formatDistanceToNow } from "date-fns";
 
 const StatCard = ({ label, value, icon: Icon, href }: {
