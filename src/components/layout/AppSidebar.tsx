@@ -322,16 +322,16 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
           {/* Nav icons (only top-level items, no sub-tabs) */}
           <nav className="flex-1 flex flex-col items-center gap-0.5 w-full px-2 overflow-hidden">
             {visibleItems.map((item) => {
-              const isBreaklistItem = item.to === BREAKLIST_PATH;
-              const isBreaklistActive = isBreaklistItem && location.pathname === "/pit" && currentTab === "breaklist";
+              const { base: itemBase, tab: itemTab } = parseItemTo(item.to);
+              const isTabAware = itemTab !== null;
               const isPlainPitActive = item.to === "/pit" && location.pathname === "/pit" && currentTab !== "breaklist";
-              const isActive = isBreaklistItem
-                ? isBreaklistActive
+              const isActive = isTabAware
+                ? location.pathname === itemBase && currentTab === itemTab
                 : item.to === "/pit"
                   ? isPlainPitActive
                   : item.to === "/"
                     ? location.pathname === "/"
-                    : location.pathname.startsWith(item.to.split("?")[0]);
+                    : location.pathname.startsWith(itemBase);
               return (
                 <Tooltip key={item.to}>
                   <TooltipTrigger asChild>
