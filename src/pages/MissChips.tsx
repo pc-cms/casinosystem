@@ -45,12 +45,15 @@ const MissChips = () => {
   const { data: shiftRows = [], isLoading: shiftsLoading } = useMissChipsByShift({ fromDate, toDate });
   const { data: rawRows = [], isLoading: rawLoading } = useMissChipsArchive({ fromDate, toDate });
 
-  // Total shown in header — for the active period
+  // Total shown in header — CASH PERSPECTIVE (inverted):
+  // +chips miss = cash lost from cage  → negative TZS  → red
+  // -chips miss = cash returned to cage → positive TZS → green
   const periodTotal = useMemo(() => {
-    if (view === "per-shift") {
-      return shiftRows.reduce((s, r) => s + r.total_value_tzs, 0);
-    }
-    return rawRows.reduce((s, r) => s + Number(r.total_value_tzs), 0);
+    const raw =
+      view === "per-shift"
+        ? shiftRows.reduce((s, r) => s + r.total_value_tzs, 0)
+        : rawRows.reduce((s, r) => s + Number(r.total_value_tzs), 0);
+    return -raw;
   }, [view, shiftRows, rawRows]);
 
   const byMonth = useMemo(() => {
@@ -188,15 +191,16 @@ const MissChips = () => {
                     </td>
                     {CHIP_DENOMS.map((d) => {
                       const v = r.denoms[d] ?? 0;
+                      // Cash perspective: +chips → cash lost (red); -chips → cash returned (green)
                       return (
                         <td
                           key={d}
                           className={cn(
                             "text-right px-3 py-1.5",
-                            v < 0
+                            v > 0
                               ? "text-cms-amount-negative"
-                              : v > 0
-                              ? "text-amber-500"
+                              : v < 0
+                              ? "text-cms-amount-positive"
                               : "text-muted-foreground"
                           )}
                         >
@@ -207,10 +211,10 @@ const MissChips = () => {
                     <td
                       className={cn(
                         "text-right px-3 py-1.5 font-semibold bg-muted/30",
-                        r.total_value_tzs < 0 ? "text-cms-amount-negative" : "text-cms-amount-positive"
+                        -r.total_value_tzs < 0 ? "text-cms-amount-negative" : "text-cms-amount-positive"
                       )}
                     >
-                      {formatNumberSpaces(r.total_value_tzs)}
+                      {formatNumberSpaces(-r.total_value_tzs)}
                     </td>
                   </tr>
                 ))}
@@ -271,7 +275,8 @@ const MissChips = () => {
                   </tr>
                 )}
                 {byMonth.map(([month, denomMap]) => {
-                  const net = Array.from(denomMap.entries()).reduce((s, [d, q]) => s + d * q, 0);
+                  // Net cash impact: -(sum of denomination * quantity)
+                  const netCash = -Array.from(denomMap.entries()).reduce((s, [d, q]) => s + d * q, 0);
                   return (
                     <tr key={month} className="border-b border-border/40">
                       <td className="px-3 py-1.5">{month}</td>
@@ -281,10 +286,10 @@ const MissChips = () => {
                           <td
                             key={d}
                             className={`text-right px-3 py-1.5 ${
-                              v < 0
+                              v > 0
                                 ? "text-cms-amount-negative"
-                                : v > 0
-                                ? "text-amber-500"
+                                : v < 0
+                                ? "text-cms-amount-positive"
                                 : "text-muted-foreground"
                             }`}
                           >
@@ -294,10 +299,10 @@ const MissChips = () => {
                       })}
                       <td
                         className={`text-right px-3 py-1.5 font-semibold ${
-                          net < 0 ? "text-cms-amount-negative" : "text-cms-amount-positive"
+                          netCash < 0 ? "text-cms-amount-negative" : "text-cms-amount-positive"
                         }`}
                       >
-                        {formatNumberSpaces(net)}
+                        {formatNumberSpaces(netCash)}
                       </td>
                     </tr>
                   );
