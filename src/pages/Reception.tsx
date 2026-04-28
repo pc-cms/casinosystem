@@ -27,6 +27,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { getBusinessDate } from "@/lib/business-day";
 import { compressImage, thumbnailPath } from "@/lib/image-compress";
 import PhotoCapture from "@/components/PhotoCapture";
+import { FormGrid, FormField } from "@/components/ui/form-grid";
 
 const isProfileIncomplete = (player: any): string[] => {
   const missing: string[] = [];
@@ -652,46 +653,39 @@ const RegisterTab = () => {
           captureId="register-photo"
         />
 
-        {/* Name fields — may be auto-filled by OCR */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">First Name *</label>
+        {/* Name + contact + ID — unified 12-col grid */}
+        <FormGrid>
+          <FormField span={6} label="First Name *">
             <Input
               value={form.first_name}
               onChange={e => { setForm(f => ({ ...f, first_name: e.target.value })); if (dupStatus !== "idle") resetDuplicates(); setOverrideGranted(false); }}
-              className={`h-11 ${ocrDone && form.first_name ? "border-primary/50" : ""}`}
+              className={`h-10 ${ocrDone && form.first_name ? "border-primary/50" : ""}`}
             />
-          </div>
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">Last Name *</label>
+          </FormField>
+          <FormField span={6} label="Last Name *">
             <Input
               value={form.last_name}
               onChange={e => { setForm(f => ({ ...f, last_name: e.target.value })); if (dupStatus !== "idle") resetDuplicates(); setOverrideGranted(false); }}
-              className={`h-11 ${ocrDone && form.last_name ? "border-primary/50" : ""}`}
+              className={`h-10 ${ocrDone && form.last_name ? "border-primary/50" : ""}`}
             />
-          </div>
-        </div>
+          </FormField>
 
-        <div className="space-y-1">
-          <label className="text-xs font-medium text-muted-foreground">Nickname</label>
-          <Input value={form.nickname} onChange={e => setForm(f => ({ ...f, nickname: e.target.value }))} className="h-11" />
-        </div>
+          <FormField span={12} label="Nickname">
+            <Input value={form.nickname} onChange={e => setForm(f => ({ ...f, nickname: e.target.value }))} className="h-10" />
+          </FormField>
 
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">Phone</label>
-            <Input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} className="h-11" type="tel" />
-          </div>
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">ID / Passport #</label>
+          <FormField span={6} label="Phone">
+            <Input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} className="h-10" type="tel" />
+          </FormField>
+          <FormField span={6} label="ID / Passport #">
             <Input
               value={form.id_number}
               onChange={e => { setForm(f => ({ ...f, id_number: e.target.value })); if (dupStatus !== "idle") resetDuplicates(); setOverrideGranted(false); }}
               placeholder="Document number"
-              className={`h-11 font-mono ${ocrDone && form.id_number ? "border-primary/50" : ""}`}
+              className={`h-10 font-mono ${ocrDone && form.id_number ? "border-primary/50" : ""}`}
             />
-          </div>
-        </div>
+          </FormField>
+        </FormGrid>
 
         {/* Manual duplicate check button if no OCR was done */}
         {dupStatus === "idle" && (form.first_name || form.id_number) && (
