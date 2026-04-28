@@ -128,7 +128,7 @@ const Dashboard = () => {
   if (isInitialLoading) {
     return (
       <PageShell>
-        <PageHeader icon={LayoutDashboard} title="Dashboard" subtitle="Loading…" />
+        <PageHeader icon={LayoutDashboard} title="Dashboard" subtitle="Loading…" date />
         <CardSkeleton count={4} />
         <PlayerListSkeleton count={4} />
       </PageShell>
@@ -140,7 +140,8 @@ const Dashboard = () => {
       <PageHeader
         icon={LayoutDashboard}
         title="Dashboard"
-        subtitle={`${displayName} · ${roles.join(", ") || "No role"} · ${fmtDate(new Date())}`}
+        subtitle={displayName ?? undefined}
+        date
       />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
@@ -175,17 +176,10 @@ const Dashboard = () => {
                   <Receipt className="w-5 h-5" />
                 </div>
               </div>
-              <p className="text-[10px] text-muted-foreground mt-1">Manager access required</p>
             </div>
           )
         )}
       </div>
-
-      {(isManager || roles.includes("surveillance") || roles.includes("finance_manager")) && (
-        <div className="mb-4">
-          <ChipConservationCard />
-        </div>
-      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Players in Casino */}
