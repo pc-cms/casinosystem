@@ -1,182 +1,135 @@
+## Финальная модель балансов и фишек
 
-# План: подготовка к MVP-презентации
+### Принципы (зафиксированы)
 
-Цель — единый, цельный интерфейс, который выглядит как один продукт, без визуального шума и недоделанных «горячих клавиш». Делаем в 4 этапа, каждый можно показать клиенту независимо.
+**Локации фишек: только 2 типа**
+- `cashier` — фишки в кассе (склад + сейф)
+- `table:{id}` — фишки на каждом конкретном столе
 
----
+Фишки "у игроков" в системе НЕ отслеживаются как отдельная локация — они просто "ушли" из кассы/стола.
 
-## Этап 1 — Сайдбар: сворачивание до иконок + перегруппировка по ролям
+**Касса = двойной баланс**
+```
+Балaнс кассы = Cash + Σ(Chips × denom) = const за смену
+```
+IN/OUT — это **обмен эквивалентами** внутри кассы, баланс не меняется.
 
-### 1.1. Mini-режим (icon rail)
-Сейчас сайдбар сворачивается полностью и показывается только маленькая стрелка возврата. Меняем на классический «icon rail» 56px:
+**Знаки в UI (история транзакций)**
+- IN: `+` зелёный (cash пришёл в кассу)
+- OUT: `−` красный (cash ушёл из кассы)
 
-- Когда `collapsed = true` → сайдбар остаётся видимым шириной `w-14`, показывает только иконки (логотип, иконки разделов, аватар роли, theme toggle, sign out).
-- Hover на иконке → tooltip с названием пункта.
-- Активный пункт подсвечивается тем же `bg-sidebar-accent`.
-- Подпункты (Tables → Active Players / Tracker / Table Tracker, Pit, Staff) в свернутом виде НЕ показываются — клик по родителю ведёт на страницу с дефолтным табом.
-- Кнопка-«гамбургер» сверху rail-а разворачивает обратно в полную ширину.
-- Сохраняем текущее состояние в `localStorage` (уже есть ключ `cms.sidebar.collapsed`).
+**Expected при сверке = baseline (статика)**
+Сравниваем `actual` против изначального baseline. Любое расхождение — это нормально и интерпретируется как игроки унесли/принесли фишки.
 
-Файлы: `src/components/layout/AppSidebar.tsx` (добавить prop `collapsed`, две версии рендера), `src/components/layout/AppLayout.tsx` (всегда рендерить sidebar, передавать `collapsed`, убрать абсолютную «стрелку возврата»).
+**Семантика Miss (новая)**
+```
+chip_diff = actual_total − baseline_total
 
-### 1.2. Группировка меню по ролям (для Super Admin / Manager)
-Сейчас секции `OVERVIEW / OPERATIONS / HR / ANALYTICS` — функциональные. Перегруппировываем по ролям, которые фактически выполняют работу. Это решает «меню по ролям» и одновременно делает структуру самообъясняющей для демо.
-
-```text
-OVERVIEW
-  Dashboard
-
-PIT (Live Game)
-  Live Game        (/pit)
-  Breaklist        (/pit?tab=breaklist)
-  Active Players   (/tables?tab=activeplayers)
-  Player Tracker   (/tables?tab=tracker)
-  Table Tracker    (/tables?tab=tabletracker)
-
-CASHIER (Cage)
-  Cage
-  Bank Checks
-  Expenses
-
-RECEPTION
-  Reception
-  Players
-  In Casino
-  Blacklist
-
-FINANCE
-  Finance
-  Groups
-  Tables (results overview)
-  Table Results
-  Import Reports
-
-HR
-  Floor Staff
-
-ANALYTICS  (для finance/manager/surveillance)
-  Reports
-  Stats
-  Logs
-
-SYSTEM     (только manager / super_admin)
-  Admin
+chip_diff < 0  →  фишек МЕНЬШЕ  →  игроки унесли  →  +доход казино (на эту сумму)
+chip_diff > 0  →  фишек БОЛЬШЕ  →  игроки принесли (фальшак?)  →  -убыток
+chip_diff = 0  →  идеально
 ```
 
-- Для НЕ super_admin / не manager секции остаются те же, но видны только те, в которых есть хотя бы один доступный пункт (фильтрация по `roles`).
-- Заголовок секции = название роли, маленькими капсами, как сейчас.
-- Порядок ролей в меню = типичный workflow смены (Pit → Cashier → Reception → Finance → HR).
-
-Файлы: `src/components/layout/AppSidebar.tsx` (поменять `section` в `NAV_ITEMS`, упорядочить массив).
+Это **финансовый результат**, не "ошибка". Переименовываем `MISS` → нейтральный термин, отображаем как сумму в TZS.
 
 ---
 
-## Этап 2 — Удалить глобальные хоткеи (кроме Rota / Attendance)
+### Что нужно реализовать
 
-### Что убрать:
-- Все `cms-kbd` бейджики справа от пунктов меню (`D`, `B`, `Alt+B`, `C`, …) — поле `shortcut` убираем из рендера.
-- Глобальные слушатели `keydown` в `src/pages/Players.tsx` и `src/pages/Reception.tsx` (`P`, `R`, `Ctrl+F`, и т.п. — оставить только Esc-закрытие диалогов и навигацию по таблицам стрелками внутри сетки).
-- `Ctrl+B` для сайдбара в `AppLayout.tsx` — убираем (кнопка-иконка остаётся).
-- Подсказки «Show sidebar (Ctrl+B)» в tooltip-ах → просто «Show sidebar».
+#### 1. DB Migration: триггер авто-движения chip_inventory
 
-### Что оставить:
-- Клавиатурная навигация внутри Rota / Attendance / Live Game grid / Table Tracker (стрелки, Tab, Space, paste) — это часть UX сетки, не глобальный хоткей.
-- Esc для закрытия модалок (стандарт Radix, не трогаем).
+Триггер `AFTER INSERT ON transactions`:
+- **type='in'**: `cashier.chips[denom] -= qty` для каждой деномы из `chips` JSONB
+- **type='out'**: `cashier.chips[denom] += qty`
+- Если запись в `chip_inventory` для (casino, cashier, denom) не существует — создаёт её
+- Bypass в seed mode (`app.seed_mode = 'on'`)
 
-Файлы: `AppSidebar.tsx`, `AppLayout.tsx`, `pages/Players.tsx`, `pages/Reception.tsx`.
+Обработка legacy `buy`/`cashout` идентично `in`/`out`.
 
----
+#### 2. Удалить локацию `floor`/`safe` из логики (если присутствует)
 
-## Этап 3 — Единый интерфейс: общие компоненты-«шапки»
+Проверить `getExpectedChips` в `src/hooks/use-chips.ts` — сейчас есть распределение `cashier + safe + tables`. Объединить `safe` в `cashier` (или оставить если физически разные склады, но в рамках одной "локации" для трекинга).
 
-Сейчас каждая страница рисует фильтры/заголовок по-своему (Bank Checks, Table Results, Players, Logs). Делаем 3 переиспользуемых компонента и применяем их везде.
+Уточнение: судя по `CHIP_DISTRIBUTION` есть `cashier`, `safe`, `roulette`, `card`. Поскольку выбрано "Cashier + Tables только" — `safe` вливается в `cashier` baseline.
 
-### 3.1. `PageHeader` — единая шапка страницы
-`src/components/layout/PageHeader.tsx` (новый):
+#### 3. Обновить `validate_chip_consistency`
 
-```text
-┌──────────────────────────────────────────────────────────────┐
-│  [Icon]  Page Title                          [actions...]    │
-│          subtitle / context                                  │
-└──────────────────────────────────────────────────────────────┘
+Возвращать дополнительно:
+- `chip_value_diff` (numeric, в TZS) = (actual − expected) × denom
+- `interpretation` ('PLAYERS_TOOK_CHIPS' / 'EXTRA_CHIPS_RETURNED' / 'BALANCED')
+
+Удалить логику `INCIDENT` как алерта — это нормальное состояние.
+
+#### 4. UI: переименовать "Miss" → "Chip Result" / "Результат по фишкам"
+
+Файлы:
+- `src/components/cage/CloseShiftDialog.tsx` — в Chip Reconciliation секции
+- `src/components/finance/cash-count/*` если есть отображение miss
+- `src/components/admin/FloatManagement.tsx` если показывает baseline diff
+
+Стилизация: `cms-amount-positive` когда фишек меньше (доход), `cms-amount-negative` когда больше.
+
+#### 5. Cash Result в смене (формула)
+
 ```
+Expected Cash = Opening Cash 
+              + Σ(IN amounts)        // принесли cash
+              − Σ(OUT amounts)       // забрали cash
+              − Σ(Expenses)
+              + Σ(Collections incoming)
+```
+Уже корректно в `CloseShiftDialog`, проверить только что используются `in`/`out` (не `buy`/`cashout`).
 
-Props: `icon`, `title`, `subtitle?`, `children` (правая зона для кнопок типа Export, New, Refresh).
+#### 6. Total Shift Result
 
-### 3.2. `FilterBar` — единая панель фильтров
-`src/components/layout/FilterBar.tsx` (новый). Горизонтальная панель под PageHeader. Слоты:
-- `presets` — чипы пресетов (Day / Week / Month / Year / Custom) — общий компонент `<DateRangePresets value onChange />`, используем существующую логику из BankChecks/TableResults и выносим её в `src/components/ui/date-range-presets.tsx`.
-- `search` — `<SearchInput />` слева.
-- `filters` — выпадающие селекты (Bank, Currency, Casino…).
-- `right` — Export, Reset.
-
-Все элементы — высота `h-9`, `text-sm`, mono для дат. Один и тот же background `bg-card border-b`.
-
-### 3.3. `DataTable` shell
-Не перерабатываем все таблицы (большая работа), но создаём базовый стиль-обёртку `src/components/layout/TablePanel.tsx`:
-- одинаковые рамки (`border rounded-md`),
-- `<thead>` с `bg-muted/50 text-xs uppercase tracking-wider`,
-- zebra строки `even:bg-muted/20`,
-- sticky header,
-- футер с totals (опционально).
-
-Применяем как «обёртку» к существующим таблицам без переписывания логики — просто заменяем root-`<div>`/`<table>` на `<TablePanel>`.
-
-### 3.4. Применение
-Прогоняем по страницам:
-- `BankChecks.tsx`, `TableResults.tsx`, `ImportReports.tsx`, `Players.tsx`, `Logs.tsx`, `Reports.tsx`, `Stats.tsx`, `Expenses.tsx`, `InCasino.tsx`, `Blacklist.tsx`, `Groups.tsx`, `Reception.tsx`.
-- Каждая страница → `<PageHeader>` + (если есть фильтры) `<FilterBar>` + контент.
-- Удаляем дублированные inline-шапки.
-
-Это не переписывание, а замена внешней обёртки → 1 коммит на страницу, риски минимальны.
+```
+Shift Result = Cash Result Δ + Chip Result (в TZS)
+             = (фактический cash − expected cash) + (baseline chips − actual chips) × denom
+```
+Должен сходиться с суммой `table_results` всех закрытых столов за смену (валидация).
 
 ---
 
-## Этап 4 — Финальная косметика (чтобы выглядело «как продукт»)
+### Технические детали
 
-- Единые иконки в `PageHeader` для каждой страницы (уже есть в `NAV_ITEMS`).
-- Единый стиль кнопок Export Excel (один компонент `<ExportButton onExport />`).
-- Единый «empty state» для таблиц без данных (иконка + текст «No data for selected period»).
-- Единый loading-skeleton для таблиц (используем `LoadingSkeletons.tsx`).
-- Удалить из футера сайдбара дублирующиеся кнопки которые теперь в icon rail.
-- Smoke-проход всех ролей: Login → Dashboard → каждый пункт меню открывается, фильтры выглядят одинаково.
+**Миграция (SQL skeleton):**
+```sql
+CREATE OR REPLACE FUNCTION public.apply_chip_movement_on_tx()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
+DECLARE
+  denom_key text; qty bigint; denom bigint; sign int;
+BEGIN
+  IF current_setting('app.seed_mode', true) = 'on' THEN RETURN NEW; END IF;
+  IF NEW.chips IS NULL THEN RETURN NEW; END IF;
+  
+  -- IN: chips leave cashier (negative). OUT: chips enter cashier (positive).
+  sign := CASE WHEN NEW.type::text IN ('in','buy') THEN -1 ELSE 1 END;
+  
+  FOR denom_key, qty IN SELECT * FROM jsonb_each_text(NEW.chips) LOOP
+    denom := denom_key::bigint;
+    INSERT INTO public.chip_inventory (casino_id, location_type, location_id, denomination, quantity, updated_by)
+    VALUES (NEW.casino_id, 'cashier', NULL, denom, sign * qty::bigint, NEW.operator_id)
+    ON CONFLICT (casino_id, location_type, denomination) WHERE location_id IS NULL
+      DO UPDATE SET quantity = chip_inventory.quantity + (sign * qty::bigint),
+                    updated_at = now(), updated_by = NEW.operator_id;
+  END LOOP;
+  RETURN NEW;
+END $$;
 
----
+CREATE TRIGGER trg_apply_chip_movement
+AFTER INSERT ON public.transactions
+FOR EACH ROW EXECUTE FUNCTION public.apply_chip_movement_on_tx();
+```
+(может потребоваться unique index для ON CONFLICT)
 
-## Технические детали
+**Files to edit:**
+- `supabase/migrations/*.sql` (new)
+- `src/hooks/use-chips.ts` — удалить `safe` из `CHIP_DISTRIBUTION` ссылок или объединить
+- `src/components/cage/CloseShiftDialog.tsx` — переименование Miss → Chip Result, формула
+- `src/lib/currency.ts` — проверить `CHIP_DISTRIBUTION`
+- Memory update: `mem://features/financial-and-chip-reconciliation` и `mem://features/chip-reconciliation-and-results`
 
-**Новые файлы:**
-- `src/components/layout/PageHeader.tsx`
-- `src/components/layout/FilterBar.tsx`
-- `src/components/layout/TablePanel.tsx`
-- `src/components/ui/date-range-presets.tsx` (вынос общей логики Day/Week/Month/Year/Custom из BankChecks)
-- `src/components/ui/export-button.tsx`
-
-**Изменяемые:**
-- `src/components/layout/AppSidebar.tsx` — mini-режим, перегруппировка по ролям, удаление `cms-kbd`.
-- `src/components/layout/AppLayout.tsx` — всегда рендерить sidebar, убрать Ctrl+B handler и floating chevron.
-- `src/pages/Players.tsx`, `src/pages/Reception.tsx` — убрать global keydown.
-- ~12 страниц — обернуть в `PageHeader` + `FilterBar`.
-
-**НЕ трогаем:** Rota, Attendance, Live Game grid, Table Tracker (их keyboard UX оставляем как есть), бизнес-логику, БД, RLS, edge functions.
-
----
-
-## Порядок выполнения и контрольные точки
-
-1. **Этап 1** (sidebar mini + role grouping) — самостоятельный, можно сразу показать.
-2. **Этап 2** (удаление хоткеев) — 1 коммит, быстро.
-3. **Этап 3.1–3.3** (создаём общие компоненты).
-4. **Этап 3.4** (мигрируем страницы пачками по 3–4).
-5. **Этап 4** (косметика, empty states).
-
-После каждого этапа — пройтись по приложению визуально перед следующим.
-
----
-
-## Открытые вопросы — нужны решения перед стартом
-
-Прежде чем начать кодить, подтверди:
-1. Группировка меню «по ролям» (PIT / CASHIER / RECEPTION / FINANCE / HR / ANALYTICS / SYSTEM) — ок, или ты хочешь другую группировку/названия?
-2. В свернутом сайдбаре подпункты (Active Players / Player Tracker / Table Tracker) показывать как отдельные иконки, или только родителя `Tables`?
-3. Делаем сразу всё (этапы 1–4 одним заходом), или поэтапно с твоим ревью между этапами?
+### Что НЕ делаем
+- Не вводим локацию `floor`
+- Не вводим понятие `INCIDENT` (фишек больше — нормально)
+- Не блокируем закрытие смены при расхождении фишек
