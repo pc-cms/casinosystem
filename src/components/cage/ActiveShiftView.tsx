@@ -28,6 +28,54 @@ import {
 } from "@/components/cage/CageHelpers";
 import type { Tables } from "@/integrations/supabase/types";
 
+const TransactionsTable = ({ transactions, tableMap, isInTx }: {
+  transactions: Tables<"transactions">[];
+  tableMap: Map<string, Tables<"gaming_tables">>;
+  isInTx: (t: string) => boolean;
+}) => (
+  <div className="cms-panel">
+    <div className="cms-header">Transactions ({transactions.length})</div>
+    <div className="overflow-x-auto max-h-[300px] overflow-y-auto">
+      <table className="w-full">
+        <thead className="sticky top-0 bg-card z-10">
+          <tr className="border-b border-border">
+            {["Type", "Player", "Table", "Amount", "Time"].map(h => (
+              <th key={h} className={`text-xs font-medium text-muted-foreground uppercase px-3 py-1.5 ${h === "Amount" || h === "Time" ? "text-right" : "text-left"}`}>{h}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {transactions.length === 0 ? (
+            <tr><td colSpan={5} className="text-center text-muted-foreground text-sm py-6">No transactions yet</td></tr>
+          ) : transactions.map(tx => {
+            const txWithPlayer = tx as typeof tx & { players?: { first_name: string; last_name: string } };
+            const isIn = isInTx(tx.type);
+            return (
+              <tr key={tx.id} className="border-b border-border last:border-0">
+                <td className="px-3 py-1.5">
+                  <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${isIn ? "bg-primary/10 text-primary" : "bg-accent/10 text-accent"}`}>
+                    {isIn ? "IN" : "OUT"}
+                  </span>
+                </td>
+                <td className="px-3 py-1.5 text-xs text-card-foreground">{txWithPlayer.players?.first_name} {txWithPlayer.players?.last_name}</td>
+                <td className="px-3 py-1.5 text-xs text-muted-foreground font-mono">
+                  {tx.table_id ? tableMap.get(tx.table_id)?.name || "—" : "—"}
+                </td>
+                <td className={`px-3 py-1.5 text-right font-mono text-xs font-medium ${isIn ? "cms-amount-positive" : "cms-amount-negative"}`}>
+                  {isIn ? "+" : "−"}{formatCurrency(Number(tx.amount))}
+                </td>
+                <td className="px-3 py-1.5 text-right font-mono text-[10px] text-muted-foreground">
+                  {new Date(tx.created_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  </div>
+);
+
 const ActiveShiftView = ({ shift, players, tables }: {
   shift: Tables<"shifts">;
   players: Tables<"players">[];
