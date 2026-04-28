@@ -10,7 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ArrowDownToLine, ArrowUpFromLine, Calculator, Square, CheckCircle2, Package } from "lucide-react";
+import { ArrowDownToLine, ArrowUpFromLine, Calculator, Square, CheckCircle2, Package, ArrowLeftRight } from "lucide-react";
+import TransfersForm from "@/components/cage/TransfersForm";
+import { useCageTransfers } from "@/hooks/use-cage-transfers";
 import {
   CURRENCIES, FOREIGN_CURRENCIES, formatCurrency, formatNumberSpaces, CASH_DENOMS,
 } from "@/lib/currency";
@@ -86,6 +88,7 @@ const ActiveShiftView = ({ shift, players, tables }: {
   const { data: transactions = [] } = useTransactions(businessDate);
   const { data: expenses = [] } = useExpenses(businessDate);
   const { data: cashChecks = [] } = useCashCounts(shift.id);
+  const { data: cageTransfers = [] } = useCageTransfers(shift.id);
   const createTx = useCreateTransaction();
   const closeShift = useCloseShift();
   const [showClose, setShowClose] = useState(false);
@@ -106,13 +109,17 @@ const ActiveShiftView = ({ shift, players, tables }: {
   const totalOuts = useMemo(() => shiftTransactions.filter(t => isOutTx(t.type)).reduce((s, t) => s + Number(t.amount), 0), [shiftTransactions]);
   const totalExpenses = useMemo(() => shiftExpenses.reduce((s, e) => s + Number(e.amount), 0), [shiftExpenses]);
 
+  // Cage transfer totals (cash-affecting only — Fill/Credit are chip-only)
+  const totalAddFloat = useMemo(() => cageTransfers.filter(t => t.transfer_type === "add_float").reduce((s, t) => s + Number(t.amount), 0), [cageTransfers]);
+  const totalCollection = useMemo(() => cageTransfers.filter(t => t.transfer_type === "collection").reduce((s, t) => s + Number(t.amount), 0), [cageTransfers]);
+
   const openingFloat = useMemo(() => {
     const of = shift.opening_float as Record<string, unknown> | null;
     const totals = of?.totals as Record<string, number> | undefined;
     return totals?.total_tzs || 0;
   }, [shift]);
 
-  const expectedCash = openingFloat + totalIns - totalOuts - totalExpenses;
+  const expectedCash = openingFloat + totalIns + totalAddFloat - totalOuts - totalCollection - totalExpenses;
   const cashResult = totalIns - totalOuts;
 
   const shiftDuration = useMemo(() => {
