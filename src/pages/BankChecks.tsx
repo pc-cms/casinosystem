@@ -137,104 +137,73 @@ export default function BankChecks() {
 
   const currencyKeys = Object.keys(totalsByCurrency);
 
+  const exportExcel = () => {
+    const header = [
+      "Date", "Time", "Bank", "Merchant", "Receipt №", "Approval",
+      "Card", "Currency", "Amount", "Real (−3%)", "Note",
+    ];
+    const rows: (string | number | null)[][] = [header];
+    for (const c of checks) {
+      rows.push([
+        c.check_date, c.check_time || "", c.bank || "", c.merchant || "",
+        c.receipt_no || "", c.approval_code || "", c.card_masked || "",
+        c.currency || "", Number(c.amount) || 0,
+        stripCommission(Number(c.amount) || 0), c.note || "",
+      ]);
+    }
+    rows.push([]);
+    rows.push(["Totals by currency"]);
+    rows.push(["Currency", "With commission", "Real (−3%)", "Count"]);
+    const cnt: Record<string, number> = {};
+    for (const c of checks) cnt[c.currency || "TZS"] = (cnt[c.currency || "TZS"] || 0) + 1;
+    for (const cur of Object.keys(totalsByCurrency)) {
+      rows.push([cur, totalsByCurrency[cur].check, totalsByCurrency[cur].real, cnt[cur] || 0]);
+    }
+    downloadXlsx(`bank-checks_${from}_${to}.xlsx`, [{ name: "Bank Checks", rows }]);
+  };
+
   return (
-    <div className="container mx-auto p-3 sm:p-6 max-w-7xl space-y-4">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-bold">Bank Checks</h1>
-          <p className="text-sm text-muted-foreground">
-            Confirm bank transactions from POS terminal receipts
-          </p>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            className="hidden"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) handleFile(f);
+    <div className="space-y-4">
+      <PageHeader
+        icon={CreditCard}
+        title="Bank Checks"
+        subtitle="Confirm bank transactions from POS terminal receipts"
+      >
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) handleFile(f);
+          }}
+        />
+        <Button onClick={() => fileRef.current?.click()} disabled={importing} size="sm" className="gap-2">
+          {importing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+          {importing ? "Recognizing..." : "Import photo"}
+        </Button>
+        <Button variant="outline" size="sm" onClick={() => setShowAdd(true)} className="gap-2">
+          <Plus className="h-4 w-4" /> Add manually
+        </Button>
+        <ExportButton onExport={exportExcel} disabled={checks.length === 0} />
+      </PageHeader>
+
+      <FilterBar
+        presets={
+          <DateRangePresets
+            preset={preset}
+            from={from}
+            to={to}
+            onChange={(next) => {
+              setPreset(next.preset);
+              setFrom(next.from);
+              setTo(next.to);
             }}
           />
-          <Button onClick={() => fileRef.current?.click()} disabled={importing} className="gap-2">
-            {importing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-            {importing ? "Recognizing..." : "Import photo"}
-          </Button>
-          <Button variant="outline" onClick={() => setShowAdd(true)} className="gap-2">
-            <Plus className="h-4 w-4" /> Add manually
-          </Button>
-          <Button
-            variant="outline"
-            className="gap-2"
-            disabled={checks.length === 0}
-            onClick={() => {
-              const header = [
-                "Date", "Time", "Bank", "Merchant", "Receipt №", "Approval",
-                "Card", "Currency", "Amount", "Real (−3%)", "Note",
-              ];
-              const rows: (string | number | null)[][] = [header];
-              for (const c of checks) {
-                rows.push([
-                  c.check_date,
-                  c.check_time || "",
-                  c.bank || "",
-                  c.merchant || "",
-                  c.receipt_no || "",
-                  c.approval_code || "",
-                  c.card_masked || "",
-                  c.currency || "",
-                  Number(c.amount) || 0,
-                  stripCommission(Number(c.amount) || 0),
-                  c.note || "",
-                ]);
-              }
-              // Totals per currency
-              rows.push([]);
-              rows.push(["Totals by currency"]);
-              rows.push(["Currency", "With commission", "Real (−3%)", "Count"]);
-              const cnt: Record<string, number> = {};
-              for (const c of checks) cnt[c.currency || "TZS"] = (cnt[c.currency || "TZS"] || 0) + 1;
-              for (const cur of Object.keys(totalsByCurrency)) {
-                rows.push([cur, totalsByCurrency[cur].check, totalsByCurrency[cur].real, cnt[cur] || 0]);
-              }
-              downloadXlsx(`bank-checks_${from}_${to}.xlsx`, [{ name: "Bank Checks", rows }]);
-            }}
-          >
-            <FileSpreadsheet className="h-4 w-4" /> Export Excel
-          </Button>
-        </div>
-      </div>
-
-      {/* Period presets + custom range */}
-      <div className="flex items-end gap-3 flex-wrap">
-        <div className="flex gap-1">
-          {(["day", "week", "month", "year", "custom"] as Preset[]).map((p) => (
-            <Button
-              key={p}
-              size="sm"
-              variant={preset === p ? "default" : "outline"}
-              onClick={() => setPresetRange(p)}
-              className="capitalize"
-            >
-              {p}
-            </Button>
-          ))}
-        </div>
-        {preset === "custom" && (
-          <>
-            <div>
-              <Label className="text-xs">From</Label>
-              <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="w-40" />
-            </div>
-            <div>
-              <Label className="text-xs">To</Label>
-              <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="w-40" />
-            </div>
-          </>
-        )}
-      </div>
+        }
+      />
 
       {/* Period totals card */}
       <div className="rounded-lg border bg-card p-4">
