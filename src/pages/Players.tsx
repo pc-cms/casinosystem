@@ -1,6 +1,6 @@
 import { useState, useRef, useMemo } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { Search, Plus } from "lucide-react";
+import { Search, Plus, Users } from "lucide-react";
 import { usePlayers, useCreatePlayer } from "@/hooks/use-casino-data";
 import { useDebouncedValue } from "@/hooks/use-debounce";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,8 @@ import CategoryBadge, { CATEGORY_PRIORITY, type PlayerCategory } from "@/compone
 import CategoryFilter from "@/components/player/CategoryFilter";
 import FlagBadges from "@/components/player/FlagBadges";
 import PlayerDetailDialog from "@/components/player/PlayerDetailDialog";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { FilterBar } from "@/components/layout/FilterBar";
 
 const ROW_HEIGHT = 52;
 
