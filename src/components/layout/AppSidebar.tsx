@@ -146,7 +146,9 @@ const SidebarSections = ({
   // Find which section contains the active route
   const activeSection: Section | null = (() => {
     for (const s of sections) {
-      const items = s === "SYSTEM" ? [{ to: "/admin" } as NavItem] : grouped[s] || [];
+      const items = s === "SYSTEM"
+        ? [...(grouped[s] || []), ...(isManager ? [{ to: "/admin" } as NavItem] : [])]
+        : grouped[s] || [];
       const hit = items.some(it => {
         const base = it.to.split("?")[0];
         if (base === "/") return location.pathname === "/";
