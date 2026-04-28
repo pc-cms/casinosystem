@@ -5,19 +5,36 @@
  * the "business date" is still the previous calendar day.
  */
 
-/** Get current date/time in EAT timezone */
+/** Get current date/time as a Date object whose UTC fields equal EAT wall-clock fields.
+ *  Used only for hour/minute/date arithmetic — DO NOT call .toISOString() on the
+ *  result expecting EAT; use ymdEAT() / getBusinessDate() for date strings. */
 export function nowEAT(): Date {
-  const str = new Date().toLocaleString("en-US", { timeZone: "Africa/Dar_es_Salaam" });
-  return new Date(str);
+  // en-CA gives YYYY-MM-DD, en-GB 24h time — together they form EAT wall clock.
+  const d = new Date();
+  const date = d.toLocaleDateString("en-CA", { timeZone: "Africa/Dar_es_Salaam" });
+  const time = d.toLocaleTimeString("en-GB", { timeZone: "Africa/Dar_es_Salaam", hour12: false });
+  return new Date(`${date}T${time}Z`);
+}
+
+/** Current EAT calendar date as YYYY-MM-DD. */
+function ymdEAT(d: Date = new Date()): string {
+  return d.toLocaleDateString("en-CA", { timeZone: "Africa/Dar_es_Salaam" });
 }
 
 export function getBusinessDate(shiftEndHour = 5): string {
-  const now = nowEAT();
-  const h = now.getHours();
-  // Before shift end → still "yesterday" in business terms
-  const d = h < shiftEndHour ? new Date(now.getTime() - 24 * 60 * 60 * 1000) : now;
-  return d.toISOString().split("T")[0];
+  const now = new Date();
+  // Hour in EAT regardless of browser timezone
+  const eatHour = parseInt(
+    now.toLocaleString("en-GB", { timeZone: "Africa/Dar_es_Salaam", hour: "2-digit", hour12: false }),
+    10
+  );
+  // Before shift end → still the previous EAT calendar day
+  const target = eatHour < shiftEndHour
+    ? new Date(now.getTime() - 24 * 60 * 60 * 1000)
+    : now;
+  return ymdEAT(target);
 }
+
 
 /**
  * Check if a given date string matches the current business day.
