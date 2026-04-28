@@ -1,135 +1,144 @@
-## Финальная модель балансов и фишек
+## Финальная модель балансов, фишек и Floor / Miss Chips
 
 ### Принципы (зафиксированы)
 
-**Локации фишек: только 2 типа**
-- `cashier` — фишки в кассе (склад + сейф)
-- `table:{id}` — фишки на каждом конкретном столе
+**Локации фишек в `chip_inventory` (физические):**
+- `cashier` — фишки в кассе (включает сейф)
+- `table:{id}` — каждый стол отдельно
 
-Фишки "у игроков" в системе НЕ отслеживаются как отдельная локация — они просто "ушли" из кассы/стола.
+**Floor — виртуальная computed-локация (в реальном времени):**
+```
+Floor = Initial_Total − Σ Cashier_chips − Σ Tables_chips
+```
+Видят: Manager, CCTV (live на дашборде).
 
-**Касса = двойной баланс**
+**Касса = двойной баланс:**
 ```
 Балaнс кассы = Cash + Σ(Chips × denom) = const за смену
 ```
-IN/OUT — это **обмен эквивалентами** внутри кассы, баланс не меняется.
+IN/OUT — обмен эквивалентами, баланс кассы не меняется.
 
-**Знаки в UI (история транзакций)**
-- IN: `+` зелёный (cash пришёл в кассу)
-- OUT: `−` красный (cash ушёл из кассы)
+**Знаки в UI (история транзакций):**
+- IN: `+` (cash пришёл), OUT: `−` (cash ушёл)
 
-**Expected при сверке = baseline (статика)**
-Сравниваем `actual` против изначального baseline. Любое расхождение — это нормально и интерпретируется как игроки унесли/принесли фишки.
+---
 
-**Семантика Miss (новая)**
+### Жизненный цикл Floor → Miss Chips
+
 ```
-chip_diff = actual_total − baseline_total
+ВО ВРЕМЯ СМЕНЫ:
+  Floor (live) = Initial − Cashier − Tables
+  ↓ показываем в Manager Dashboard + CCTV
 
-chip_diff < 0  →  фишек МЕНЬШЕ  →  игроки унесли  →  +доход казино (на эту сумму)
-chip_diff > 0  →  фишек БОЛЬШЕ  →  игроки принесли (фальшак?)  →  -убыток
-chip_diff = 0  →  идеально
+ПРИ ЗАКРЫТИИ СМЕНЫ (DB-триггер на UPDATE shifts.status='closed'):
+  1. Считаем Floor по деномам
+  2. INSERT в miss_chips (immutable archive)
+  3. UMENЬШАЕМ chip_baseline на эти количества
+     → Initial_Total для следующей смены = старый − Floor
+  4. Floor сразу обнуляется (Initial и actual оба уменьшились)
+
+ВОЗВРАТ ФИШЕК (игрок принёс старые фишки):
+  Обычная OUT транзакция → chip_inventory[cashier] +
+  → Floor становится отрицательным
+  → При следующем закрытии: запись в miss_chips с отрицательной суммой
+  → Baseline увеличивается обратно
 ```
-
-Это **финансовый результат**, не "ошибка". Переименовываем `MISS` → нейтральный термин, отображаем как сумму в TZS.
 
 ---
 
 ### Что нужно реализовать
 
-#### 1. DB Migration: триггер авто-движения chip_inventory
+#### 1. Migration: новая таблица `miss_chips` (immutable archive)
+```sql
+CREATE TABLE public.miss_chips (
+  id uuid PK,
+  casino_id uuid NOT NULL,
+  shift_id uuid NOT NULL,
+  business_date date NOT NULL,
+  denominations jsonb NOT NULL,       -- {5: 12, 25: 3, 100: 1}
+  total_value bigint NOT NULL,        -- в TZS (может быть отрицательным)
+  created_at timestamptz DEFAULT now(),
+  recorded_by uuid
+);
+-- RLS: SELECT для manager/cctv/super_admin, INSERT только триггером
+-- Trigger prevent_modify (immutable)
+```
 
-Триггер `AFTER INSERT ON transactions`:
-- **type='in'**: `cashier.chips[denom] -= qty` для каждой деномы из `chips` JSONB
-- **type='out'**: `cashier.chips[denom] += qty`
-- Если запись в `chip_inventory` для (casino, cashier, denom) не существует — создаёт её
-- Bypass в seed mode (`app.seed_mode = 'on'`)
+#### 2. Migration: триггер авто-движения chip_inventory при IN/OUT
+`AFTER INSERT ON transactions`:
+- IN (`buy`/`in`): cashier chips −= qty по деномам из `chips` JSONB
+- OUT (`cashout`/`out`): cashier chips += qty
+- Bypass в `app.seed_mode='on'`
 
-Обработка legacy `buy`/`cashout` идентично `in`/`out`.
-
-#### 2. Удалить локацию `floor`/`safe` из логики (если присутствует)
-
-Проверить `getExpectedChips` в `src/hooks/use-chips.ts` — сейчас есть распределение `cashier + safe + tables`. Объединить `safe` в `cashier` (или оставить если физически разные склады, но в рамках одной "локации" для трекинга).
-
-Уточнение: судя по `CHIP_DISTRIBUTION` есть `cashier`, `safe`, `roulette`, `card`. Поскольку выбрано "Cashier + Tables только" — `safe` вливается в `cashier` baseline.
-
-#### 3. Обновить `validate_chip_consistency`
-
-Возвращать дополнительно:
-- `chip_value_diff` (numeric, в TZS) = (actual − expected) × denom
-- `interpretation` ('PLAYERS_TOOK_CHIPS' / 'EXTRA_CHIPS_RETURNED' / 'BALANCED')
-
-Удалить логику `INCIDENT` как алерта — это нормальное состояние.
-
-#### 4. UI: переименовать "Miss" → "Chip Result" / "Результат по фишкам"
-
-Файлы:
-- `src/components/cage/CloseShiftDialog.tsx` — в Chip Reconciliation секции
-- `src/components/finance/cash-count/*` если есть отображение miss
-- `src/components/admin/FloatManagement.tsx` если показывает baseline diff
-
-Стилизация: `cms-amount-positive` когда фишек меньше (доход), `cms-amount-negative` когда больше.
-
-#### 5. Cash Result в смене (формула)
+#### 3. Migration: триггер финализации Floor при закрытии смены
+`AFTER UPDATE ON shifts WHEN OLD.status='open' AND NEW.status='closed'`:
 
 ```
-Expected Cash = Opening Cash 
-              + Σ(IN amounts)        // принесли cash
-              − Σ(OUT amounts)       // забрали cash
-              − Σ(Expenses)
-              + Σ(Collections incoming)
+FOR each denomination IN chip_baseline:
+  expected_total = baseline.expected_quantity
+  cashier_qty   = chip_inventory[cashier, denom]
+  tables_qty    = Σ chip_inventory[table:*, denom]
+  floor_qty     = expected_total − cashier_qty − tables_qty
+  
+  IF floor_qty != 0:
+    add to miss_chips.denominations
+    chip_baseline.expected_quantity −= floor_qty
+    
+INSERT miss_chips (casino_id, shift_id, business_date, denominations, total_value)
 ```
-Уже корректно в `CloseShiftDialog`, проверить только что используются `in`/`out` (не `buy`/`cashout`).
 
-#### 6. Total Shift Result
+#### 4. Hook: `useFloorChips(casinoId)` 
+Computed live floor для UI:
+- Возвращает `{ denominations: {5: 50, 25: 200,...}, totalValue: 1250000 }`
+- `Initial = SUM(chip_baseline)`, `Cashier+Tables = SUM(chip_inventory)`
 
-```
-Shift Result = Cash Result Δ + Chip Result (в TZS)
-             = (фактический cash − expected cash) + (baseline chips − actual chips) × denom
-```
-Должен сходиться с суммой `table_results` всех закрытых столов за смену (валидация).
+#### 5. UI: Floor блок на Manager Dashboard и CCTV View
+Карточка "Floor Chips (на руках у игроков)":
+- Big total в TZS (с цветом: положительный = у игроков, отрицательный = вернули больше)
+- Breakdown по деномам в монопсе
+- Авто-обновление через realtime подписку на `chip_inventory`
+
+#### 6. UI: Miss Chips Archive (Manager-only)
+Новая страница/секция (например, в Finance или Admin):
+- Фильтр периода (день/неделя/месяц/год/custom)
+- Таблица: дата, смена, total в TZS, breakdown по деномам
+- Итог за период + график тренда (опционально)
+- Export CSV
+
+#### 7. Cleanup: терминология
+- `Miss` (старое значение в `chip_snapshots`) переименовать → `Chip Variance` или удалить если дублирует
+- `validate_chip_consistency`: убрать INCIDENT-семантику (расхождение = норма)
+- В CloseShiftDialog показать preview Floor перед закрытием
 
 ---
 
-### Технические детали
+### Файлы
 
-**Миграция (SQL skeleton):**
-```sql
-CREATE OR REPLACE FUNCTION public.apply_chip_movement_on_tx()
-RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
-DECLARE
-  denom_key text; qty bigint; denom bigint; sign int;
-BEGIN
-  IF current_setting('app.seed_mode', true) = 'on' THEN RETURN NEW; END IF;
-  IF NEW.chips IS NULL THEN RETURN NEW; END IF;
-  
-  -- IN: chips leave cashier (negative). OUT: chips enter cashier (positive).
-  sign := CASE WHEN NEW.type::text IN ('in','buy') THEN -1 ELSE 1 END;
-  
-  FOR denom_key, qty IN SELECT * FROM jsonb_each_text(NEW.chips) LOOP
-    denom := denom_key::bigint;
-    INSERT INTO public.chip_inventory (casino_id, location_type, location_id, denomination, quantity, updated_by)
-    VALUES (NEW.casino_id, 'cashier', NULL, denom, sign * qty::bigint, NEW.operator_id)
-    ON CONFLICT (casino_id, location_type, denomination) WHERE location_id IS NULL
-      DO UPDATE SET quantity = chip_inventory.quantity + (sign * qty::bigint),
-                    updated_at = now(), updated_by = NEW.operator_id;
-  END LOOP;
-  RETURN NEW;
-END $$;
+**Migrations:**
+- `supabase/migrations/{ts}_miss_chips_table.sql`
+- `supabase/migrations/{ts}_chip_movement_trigger.sql`
+- `supabase/migrations/{ts}_floor_finalization_trigger.sql`
 
-CREATE TRIGGER trg_apply_chip_movement
-AFTER INSERT ON public.transactions
-FOR EACH ROW EXECUTE FUNCTION public.apply_chip_movement_on_tx();
-```
-(может потребоваться unique index для ON CONFLICT)
+**Hooks:**
+- `src/hooks/use-chips.ts` — добавить `useFloorChips`, `useMissChipsHistory`
+- (опционально) `src/hooks/use-miss-chips.ts`
 
-**Files to edit:**
-- `supabase/migrations/*.sql` (new)
-- `src/hooks/use-chips.ts` — удалить `safe` из `CHIP_DISTRIBUTION` ссылок или объединить
-- `src/components/cage/CloseShiftDialog.tsx` — переименование Miss → Chip Result, формула
-- `src/lib/currency.ts` — проверить `CHIP_DISTRIBUTION`
-- Memory update: `mem://features/financial-and-chip-reconciliation` и `mem://features/chip-reconciliation-and-results`
+**UI:**
+- `src/components/dashboard/FloorChipsCard.tsx` (новый)
+- `src/components/cage/CloseShiftDialog.tsx` — preview Floor
+- `src/components/finance/MissChipsArchive.tsx` (новый)
+- `src/pages/Dashboard.tsx`, `src/pages/CctvView.tsx`, `src/pages/Finance.tsx` — wire-in
+- `src/components/cctv/CctvLayout.tsx` — добавить Floor виджет
+
+**Memory:**
+- `mem://features/financial-and-chip-reconciliation` — обновить
+- `mem://features/chip-reconciliation-and-results` — обновить
+- Новый: `mem://features/floor-and-miss-chips` — описать модель
+
+---
 
 ### Что НЕ делаем
-- Не вводим локацию `floor`
-- Не вводим понятие `INCIDENT` (фишек больше — нормально)
-- Не блокируем закрытие смены при расхождении фишек
+- Не вводим `floor` как физическую локацию в `chip_inventory`
+- Не блокируем закрытие смены при Floor != 0
+- Не различаем "возврат старых фишек" от обычного OUT
+- Не помечаем Floor как INCIDENT/ошибку — это нормальный финансовый показатель
