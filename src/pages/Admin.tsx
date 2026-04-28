@@ -122,14 +122,12 @@ const Admin = () => {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Administration</h1>
-          <p className="text-sm text-muted-foreground">
-            {isSuperAdmin ? "System, Casino & User Management" : "User, Role & Float Management"}
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        icon={Settings}
+        title="Administration"
+        subtitle={isSuperAdmin ? "System, Casino & User Management" : "User, Role & Float Management"}
+        date
+      />
 
       <Tabs defaultValue={isSuperAdmin ? "casinos" : "users"} className="space-y-4">
         <TabsList className="flex-wrap">
