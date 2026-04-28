@@ -1,113 +1,161 @@
-# План: Закон сохранения фишек + Floor → Miss Chips
+## Goal
 
-## Концепция
+Add a new **TRANSFERS** tab in the Cage shift view (next to IN / OUT / CHECK) that handles 4 internal cage operations:
 
-**Аксиома:** `Сейф + Касса + Столы + Miss Chips = Initial Baseline` (всегда, по каждому номиналу).
+1. **ADD FLOAT** — manager пополняет кассу деньгами из сейфа (cash → cage)
+2. **COLLECTION** — забор наличных из кассы в сейф менеджера (cage → safe)
+3. **FILL** — отправка фишек из кассы на стол (chip inventory: cashier → table)
+4. **CREDIT** — возврат излишка фишек со стола в кассу (chip inventory: table → cashier)
 
-Фишки физически существуют в 4 состояниях:
-- **В локациях** (Сейф/Касса/Столы) — `chip_inventory`
-- **У игроков** (Miss Chips) — архив `miss_chips`
+Все 4 типа учитываются при закрытии смены и закрытии столов.
 
-Floor = живой расчёт во время смены: `Initial − (Касса + Столы)`. При закрытии смены Floor финализируется в Miss Chips.
+---
 
-## База данных
+## 1. Database — new `cage_transfers` table
 
-### 1. Новая таблица `chip_initial_baseline` (immutable, источник истины)
+Создаётся новая иммутабельная таблица (отдельно от `transactions`, чтобы не смешивать player IN/OUT с кассовыми операциями).
+
+```text
+cage_transfers
+├── id              uuid PK
+├── casino_id       uuid (RLS isolation)
+├── shift_id        uuid (NOT NULL, валидируется триггером — должен быть open)
+├── transfer_type   text  ('add_float' | 'collection' | 'fill' | 'credit')
+├── direction       text  ('cash_in' | 'cash_out' | 'chip_to_table' | 'chip_from_table')
+├── table_id        uuid NULL (только для fill/credit)
+├── amount          bigint  (TZS, обязательно для add_float/collection; для fill/credit — суммарная стоимость фишек)
+├── chips           jsonb NULL ({denomination: quantity}, только для fill/credit)
+├── note            text  default ''
+├── operator_id     uuid NOT NULL (cashier)
+├── approved_by     uuid NOT NULL (manager — Manager Override required для add_float/collection)
+├── created_at      timestamptz default now()
 ```
-casino_id, denomination, initial_quantity, created_at, created_by
+
+**Triggers:**
+- `prevent_cage_transfer_modify` — UPDATE/DELETE запрещены (immutability rule).
+- `validate_cage_transfer`:
+  - сумма > 0
+  - для `fill`/`credit` — `table_id` обязателен и chips not null
+  - для `add_float`/`collection` — `table_id` должен быть NULL
+  - `transfer_type` валидируется по списку
+- `cage_transfer_apply_chip_movement` — для `fill` уменьшает `chip_inventory` cashier и увеличивает table (location_type='table', location_id=table_id); для `credit` — наоборот. Использует ту же логику, что и существующий `apply_chip_movement_from_transaction`.
+- `auto_log_cage_transfer` → пишет запись в `activity_logs` (category='transaction', action=upper(transfer_type)).
+
+**RLS:**
+- SELECT: `casino_id = get_user_casino_id(auth.uid())` + super_admin/finance_manager/surveillance.
+- INSERT: cashier или manager в своём casino, `operator_id = auth.uid()`, `approved_by NOT NULL`.
+- UPDATE/DELETE: запрещены через триггер.
+
+---
+
+## 2. Manager Override
+
+Для `add_float` и `collection` форма требует подтверждения через существующий `ManagerOverrideDialog` (как в Expenses/Blacklist). `approved_by` сохраняет id менеджера, подтвердившего операцию.
+
+`fill` и `credit` — **без override** (это обычная операция кассира с инспектором). Но `approved_by` всё равно заполняется (= operator_id, либо отдельный флоор-инспектор; в MVP = operator_id).
+
+---
+
+## 3. Hook — `src/hooks/use-cage-transfers.ts`
+
+```text
+useCageTransfers(shiftId)         — list для текущей смены
+useCreateCageTransfer()           — insert mutation, проходит через offlineMutation
+                                    (для оффлайн-устойчивости как и transactions)
 ```
-- Snapshot самой первой инициализации
-- Меняется ТОЛЬКО через операцию Chip Emission (см. ниже)
 
-### 2. Новая таблица `miss_chips` (архив ушедших к игрокам)
+Возвращаемые типы — `Tables<"cage_transfers">`.
+
+---
+
+## 4. UI — `ActiveShiftView.tsx`
+
+### 4.1 Tabs
+TabsList → 4 колонки: **IN / OUT / CHECK / TRANSFERS**. Иконку для TRANSFERS возьмём `ArrowLeftRight` из lucide-react.
+
+### 4.2 Новый компонент `TransfersForm` (внутри ActiveShiftView или отдельный файл `src/components/cage/TransfersForm.tsx`)
+
+Layout: тот же `TwoColumnLayout` (форма слева, список справа).
+
+**Левая колонка — форма:**
+- Селектор типа: 4 кнопки-чипа `Add Float | Collection | Fill | Credit` (toggle group).
+- В зависимости от выбранного типа:
+  - **Add Float / Collection**:
+    - `NumberInput` сумма (TZS).
+    - `Textarea` note (опционально).
+    - Кнопка submit → открывает `ManagerOverrideDialog` → после подтверждения insert.
+  - **Fill / Credit**:
+    - Селектор стола (горизонтальный список `openTables`, как в InForm).
+    - `ChipDenomInput` (как в InForm) — выбор фишек.
+    - Auto-calculated total TZS под чипами.
+    - Note (опционально).
+    - Submit без override.
+
+**Правая колонка — `CageTransfersTable`:**
+Колонки: Type | Table | Amount | Note | Time. Сортировка desc по `created_at`. Цвет:
+- `add_float`, `credit` → `cms-amount-positive` (приход в кассу cash/chips)
+- `collection`, `fill` → `cms-amount-negative` (расход из кассы)
+
+### 4.3 Header KPI bar
+
+Добавить два новых поля справа от Expenses (или заменить Txns counter):
+- `+ Add Float` (sum cash_in)
+- `− Collection` (sum cash_out)
+
+**Обновить формулы:**
+```text
+expectedCash =
+  openingFloat
+  + totalIns          (player buys)
+  + totalAddFloat     (NEW)
+  − totalOuts         (player cashouts)
+  − totalCollection   (NEW)
+  − totalExpenses
 ```
-id, casino_id, shift_id, business_date, denomination, 
-quantity (может быть отрицательным при возврате), 
-total_value_tzs, created_at
+
+`Fill` / `Credit` не влияют на cash KPI в шапке (это обмен фишками, не cash). Но они влияют на chip inventory кассы и стола → автоматически учитываются в `Close Tables` (через chip_inventory триггер) и в `Close Shift` (через finalize_floor_to_miss_chips).
+
+### 4.4 Close Shift Dialog
+`CloseShiftDialog` уже считает `cashResult = totalIns − totalOuts`. Передать туда новые суммы:
+```text
+cashResult = totalIns + totalAddFloat − totalOuts − totalCollection
 ```
-- Immutable (триггер `prevent_miss_chips_modify`)
-- Запись создаётся автоматически при закрытии смены
+(Add Float увеличивает прибыль смены? — нет, это просто пополнение кассы менеджером, не выигрыш. Поэтому **в `cash_result` НЕ включаем** add_float/collection — они влияют только на `expectedCash` для сверки физического остатка. `cash_result` остаётся `totalIns − totalOuts`.)
 
-### 3. Новая таблица `chip_emissions` (аудит докупки фишек)
-```
-id, casino_id, denomination, quantity_added, reason, 
-operator_id, created_at, approved_by
-```
-- Только Manager / Super Admin
-- Увеличивает `chip_initial_baseline.initial_quantity`
-- Обязательный текстовый `reason`
+Резюме: `expectedCash` учитывает все 4 типа cash-движений; `cash_result` (= прибыль кассы) учитывает **только** player IN/OUT.
 
-### 4. Триггеры
-- **`trg_apply_chip_movement`** на `transactions`: IN → Касса фишек −, OUT → Касса фишек +
-- **`trg_finalize_floor_on_shift_close`** на `shifts.status='closed'`:
-  - Считает Floor по каждому номиналу = `Σinitial − Σchip_inventory`
-  - Минус уже архивированный Miss за прошлые смены
-  - Дельта пишется в `miss_chips`
-- **`trg_validate_chip_invariant`** на `chip_inventory` и `miss_chips`:
-  - Проверка: `Σinventory + Σmiss == Σinitial` по каждому номиналу
-  - При нарушении → `RAISE EXCEPTION` (защита от багов)
-- **`trg_prevent_negative_miss_total`**: суммарный Miss по номиналу не может стать < 0 (нельзя вернуть больше, чем ушло за всю историю)
+---
 
-## Frontend
+## 5. Files
 
-### Hooks
-- **`useFloorChips(casinoId)`** — live расчёт по номиналам:
-  ```
-  floor[denom] = initial[denom] − inventory[denom] − archivedMiss[denom]
-  ```
-- **`useMissChipsArchive(casinoId, dateRange)`** — отчёты по дням/месяцам
-- **`useChipIntegrity(casinoId)`** — проверка инварианта для UI алерта
+**New:**
+- `supabase/migrations/<timestamp>_cage_transfers.sql` — таблица + триггеры + RLS
+- `src/hooks/use-cage-transfers.ts`
+- `src/components/cage/TransfersForm.tsx`
+- `src/components/cage/CageTransfersTable.tsx`
 
-### UI компоненты
+**Edited:**
+- `src/components/cage/ActiveShiftView.tsx` — 4-я табка, новые KPI, передача totals в CloseShiftDialog
+- `src/components/cage/CloseShiftDialog.tsx` — отображение Add Float / Collection в сводке (read-only)
 
-**1. `FloorChipsCard`** (Dashboard + CCTV)
-- Live таблица: Номинал | На столах | В кассе | В сейфе | Floor (у игроков) | Miss архив
-- Внизу — индикатор целостности:
-  ```
-  Initial:    10,000,000 TZS
-  В наличии:   9,970,000 TZS
-  Miss:           30,000 TZS
-  Дельта:              0 TZS  ✓
-  ```
+**Auto-regenerated:**
+- `src/integrations/supabase/types.ts` (после миграции)
 
-**2. `CloseShiftDialog`** — превью перед закрытием
-- "Chip Result этой смены: +15,000 TZS уйдёт в Miss Chips"
-- Или: "−5,000 TZS вернётся из Miss Chips (игрок принёс старые фишки)"
+---
 
-**3. `MissChipsArchive`** (Manager view, новая страница)
-- Группировка: день / месяц / год
-- Таблица по номиналам: сколько ушло, сколько вернулось, нетто
-- Фильтры по периоду
+## 6. Edge cases / правила
 
-**4. `ChipEmissionDialog`** (Manager / Super Admin)
-- Доступ из Chip Inventory Control
-- Поля: номинал, количество, причина (обязательно)
-- После подтверждения: запись в `chip_emissions` + UPDATE `chip_initial_baseline`
-- Аудит-лог в `activity_logs`
+- Insert требует open shift (триггер `validate_transaction_shift`-аналог).
+- Transfer immutable — корректировка только через обратную операцию (например, ошибочный Fill компенсируется Credit).
+- Логирование в `activity_logs` (60-day retention).
+- Offline: `useCreateCageTransfer` использует `offlineMutation`, как и `useCreateTransaction`.
+- Все суммы в TZS (`bigint`). Foreign currencies для Add Float/Collection в MVP не поддерживаем — только TZS.
 
-## Поведение по сценариям
+---
 
-| Событие | Касса | Столы | Miss | Initial | Инвариант |
-|---|---|---|---|---|---|
-| Init | +X | +X | 0 | 3X | ✓ |
-| IN (игрок купил) | Cash+/Chips− | — | 0 | 3X | ✓ (Floor live = 30) |
-| Close shift | — | — | +30 | 3X | ✓ |
-| OUT (старые фишки вернулись) | Chips+ | — | — | 3X | ✓ |
-| Close shift (return) | — | — | −5 | 3X | ✓ |
-| Chip Emission +100 | — | — | — | 3X+100 | ✓ |
+## 7. Open assumptions (подтвердить если не так)
 
-## Безопасность и роли
-
-- **`miss_chips`**: SELECT для Manager/Surveillance/Super Admin, INSERT только через триггер
-- **`chip_initial_baseline`**: SELECT для всех casino users, UPDATE только через `chip_emissions` trigger
-- **`chip_emissions`**: INSERT для Manager/Super Admin, immutable после создания
-
-## Memory updates
-
-Обновить `mem://features/chip-inventory-control` и добавить новую memory `mem://features/chip-conservation-law` с описанием инварианта и Miss Chips жизненного цикла.
-
-## Out of scope (не делаем сейчас)
-
-- UI для частичного "списания" Miss Chips вручную (только через возврат игрока через OUT)
-- Прогноз / аналитика трендов потерь фишек
-- Уведомления при превышении порога Miss
+- Add Float и Collection — **только TZS** в MVP (foreign-currency пополнения добавим позже при необходимости).
+- Fill/Credit не привязываются к игроку.
+- Manager Override использует существующий `ManagerOverrideDialog` (через edge function `verify-manager`).
+- В шапке смены добавляем 2 новые ячейки KPI (Add Float, Collection); Fill/Credit показываются только в табе TRANSFERS, в шапке не дублируются.
