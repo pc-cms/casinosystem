@@ -38,8 +38,8 @@ const CctvDashboard = () => {
   const { data: allVisits = [] } = useVisitsToday("*, players(first_name, last_name, nickname, photo_url, status, player_tags(tag))") as { data: any[] };
   const visits = useMemo(() => allVisits.filter((v: any) => !v.checked_out_at), [allVisits]);
 
-  const buyInDrop = transactions.filter(t => t.type === "buy").reduce((s, t) => s + Number(t.amount), 0);
-  const cashoutTotal = transactions.filter(t => t.type === "cashout").reduce((s, t) => s + Number(t.amount), 0);
+  const buyInDrop = transactions.filter(t => (t.type === "buy" || t.type === "in")).reduce((s, t) => s + Number(t.amount), 0);
+  const cashoutTotal = transactions.filter(t => (t.type === "cashout" || t.type === "out")).reduce((s, t) => s + Number(t.amount), 0);
   const pendingExpenses = expenses.filter(e => !e.approved).reduce((s, e) => s + Number(e.amount), 0);
   const tableResult = tables.filter(t => t.closing_result != null).reduce((s, t) => s + Number(t.closing_result), 0);
 
@@ -117,10 +117,10 @@ const CctvDashboard = () => {
         <div className="space-y-1 max-h-48 overflow-y-auto">
           {transactions.slice(0, 20).map(tx => (
             <div key={tx.id} className="flex items-center justify-between text-xs py-1 border-b border-border last:border-0">
-              <span className={`font-medium ${(tx.type === "buy" || tx.type === "in") ? "cms-amount-positive" : "cms-amount-negative"}`}>
-                {(tx.type === "buy" || tx.type === "in") ? "IN" : "OUT"}
+              <span className={`font-medium ${((tx.type === "buy" || tx.type === "in") || tx.type === "in") ? "cms-amount-positive" : "cms-amount-negative"}`}>
+                {((tx.type === "buy" || tx.type === "in") || tx.type === "in") ? "IN" : "OUT"}
               </span>
-              <span className={`font-mono ${(tx.type === "buy" || tx.type === "in") ? "cms-amount-positive" : "cms-amount-negative"}`}>{(tx.type === "buy" || tx.type === "in") ? "+" : "−"}{formatCurrency(Number(tx.amount))}</span>
+              <span className={`font-mono ${((tx.type === "buy" || tx.type === "in") || tx.type === "in") ? "cms-amount-positive" : "cms-amount-negative"}`}>{((tx.type === "buy" || tx.type === "in") || tx.type === "in") ? "+" : "−"}{formatCurrency(Number(tx.amount))}</span>
               <span className="text-muted-foreground">{format(new Date(tx.created_at), "HH:mm")}</span>
             </div>
           ))}
@@ -211,8 +211,8 @@ const CctvCage = () => {
   const { data: transactions = [] } = useTransactions(businessDate);
   const { data: expenses = [] } = useExpenses(businessDate);
 
-  const buyIn = transactions.filter(t => t.type === "buy").reduce((s, t) => s + Number(t.amount), 0);
-  const cashout = transactions.filter(t => t.type === "cashout").reduce((s, t) => s + Number(t.amount), 0);
+  const buyIn = transactions.filter(t => (t.type === "buy" || t.type === "in")).reduce((s, t) => s + Number(t.amount), 0);
+  const cashout = transactions.filter(t => (t.type === "cashout" || t.type === "out")).reduce((s, t) => s + Number(t.amount), 0);
   const approvedExp = expenses.filter(e => e.approved).reduce((s, e) => s + Number(e.amount), 0);
   const pendingExp = expenses.filter(e => !e.approved).reduce((s, e) => s + Number(e.amount), 0);
 
@@ -267,10 +267,10 @@ const CctvCage = () => {
         <div className="space-y-1 max-h-64 overflow-y-auto">
           {transactions.slice(0, 30).map(tx => (
             <div key={tx.id} className="flex items-center justify-between text-xs py-1 border-b border-border last:border-0">
-              <span className={`font-medium w-16 ${(tx.type === "buy" || tx.type === "in") ? "cms-amount-positive" : "cms-amount-negative"}`}>
-                {(tx.type === "buy" || tx.type === "in") ? "IN" : "OUT"}
+              <span className={`font-medium w-16 ${((tx.type === "buy" || tx.type === "in") || tx.type === "in") ? "cms-amount-positive" : "cms-amount-negative"}`}>
+                {((tx.type === "buy" || tx.type === "in") || tx.type === "in") ? "IN" : "OUT"}
               </span>
-              <span className={`font-mono flex-1 text-right ${(tx.type === "buy" || tx.type === "in") ? "cms-amount-positive" : "cms-amount-negative"}`}>{(tx.type === "buy" || tx.type === "in") ? "+" : "−"}{formatCurrency(Number(tx.amount))}</span>
+              <span className={`font-mono flex-1 text-right ${((tx.type === "buy" || tx.type === "in") || tx.type === "in") ? "cms-amount-positive" : "cms-amount-negative"}`}>{((tx.type === "buy" || tx.type === "in") || tx.type === "in") ? "+" : "−"}{formatCurrency(Number(tx.amount))}</span>
               <span className="text-muted-foreground ml-3 w-12 text-right">{format(new Date(tx.created_at), "HH:mm")}</span>
             </div>
           ))}
