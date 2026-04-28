@@ -282,7 +282,7 @@ const InCasino = () => {
   };
 
   return (
-    <div>
+    <PageShell>
       <PageHeader
         icon={Eye}
         title="Players In Casino"
@@ -341,7 +341,7 @@ const InCasino = () => {
         open={!!profilePlayer}
         onOpenChange={(v) => { if (!v) setProfilePlayer(null); }}
       />
-    </div>
+    </PageShell>
   );
 };
 
