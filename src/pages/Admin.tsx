@@ -15,6 +15,7 @@ import { logAction } from "@/lib/logging";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import FloatManagement from "@/components/admin/FloatManagement";
 import ChipColorSettings from "@/components/admin/ChipColorSettings";
+import { ChipConservationModeCard } from "@/components/admin/ChipConservationModeCard";
 import { useCasinoInfo, useUpdateCasinoSchedule } from "@/hooks/use-table-lifecycle";
 
 const ROLES = ["manager", "cashier", "pit", "reception", "finance_manager", "surveillance", "hr"] as const;
@@ -168,7 +169,12 @@ const Admin = () => {
 
         <TabsContent value="users"><UsersAndRoles /></TabsContent>
         <TabsContent value="schedule"><ScheduleSettings /></TabsContent>
-        <TabsContent value="float"><FloatManagement /></TabsContent>
+        <TabsContent value="float">
+          <div className="space-y-4">
+            <ChipConservationModeCard />
+            <FloatManagement />
+          </div>
+        </TabsContent>
         <TabsContent value="chip-colors"><ChipColorSettings /></TabsContent>
       </Tabs>
     </div>

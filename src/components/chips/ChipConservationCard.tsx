@@ -1,8 +1,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useChipConservation } from "@/hooks/use-chip-conservation";
+import { useChipConservationMode } from "@/hooks/use-chip-conservation-mode";
 import { formatNumberSpaces, formatChipLabel } from "@/lib/currency";
-import { CheckCircle2, AlertTriangle, Coins } from "lucide-react";
+import { CheckCircle2, AlertTriangle, Coins, Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /**
@@ -11,6 +12,8 @@ import { cn } from "@/lib/utils";
  */
 export const ChipConservationCard = ({ compact = false }: { compact?: boolean }) => {
   const { data: rows = [], isLoading } = useChipConservation();
+  const { data: mode = "strict" } = useChipConservationMode();
+  const isObservation = mode === "observation";
 
   if (isLoading) {
     return (
@@ -54,9 +57,9 @@ export const ChipConservationCard = ({ compact = false }: { compact?: boolean })
           <span className="flex items-center gap-2">
             <Coins className="h-4 w-4" /> Chip Conservation
           </span>
-          <Badge variant={ok ? "default" : "destructive"} className="gap-1">
-            {ok ? <CheckCircle2 className="h-3 w-3" /> : <AlertTriangle className="h-3 w-3" />}
-            {ok ? "Balanced" : "Mismatch"}
+          <Badge variant={isObservation ? "secondary" : ok ? "default" : "destructive"} className="gap-1">
+            {isObservation ? <Eye className="h-3 w-3" /> : ok ? <CheckCircle2 className="h-3 w-3" /> : <AlertTriangle className="h-3 w-3" />}
+            {isObservation ? "Observation" : ok ? "Balanced" : "Mismatch"}
           </Badge>
         </CardTitle>
       </CardHeader>
@@ -111,10 +114,18 @@ export const ChipConservationCard = ({ compact = false }: { compact?: boolean })
           </div>
           <div className="col-span-2 flex justify-between pt-1 border-t border-border/60">
             <span className="font-semibold">Delta:</span>
-            <span className={cn("font-semibold", ok ? "text-cms-amount-positive" : "text-cms-amount-negative")}>
+            <span className={cn(
+              "font-semibold",
+              isObservation ? "text-muted-foreground" : ok ? "text-cms-amount-positive" : "text-cms-amount-negative"
+            )}>
               {formatNumberSpaces(delta)} TZS
             </span>
           </div>
+          {isObservation && (
+            <div className="col-span-2 text-[10px] text-muted-foreground italic pt-1">
+              Observation mode — anomalies tracked in monthly Miss Chips report.
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>
