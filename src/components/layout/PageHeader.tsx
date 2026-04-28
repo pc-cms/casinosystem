@@ -2,6 +2,7 @@ import { ReactNode } from "react";
 import { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { fmtDate } from "@/lib/format-date";
+import { getBusinessDate } from "@/lib/business-day";
 
 interface PageHeaderProps {
   icon?: LucideIcon;
@@ -44,7 +45,7 @@ export const PageHeader = ({
   className,
 }: PageHeaderProps) => {
   const dateValue: Date | string | null =
-    date === true ? new Date() : date && typeof date !== "boolean" ? date : null;
+    date === true ? getBusinessDate() : date && typeof date !== "boolean" ? date : null;
 
   return (
     <div className={cn("mb-4 pb-3 border-b border-border space-y-3", className)}>
