@@ -18,6 +18,7 @@ import { fmtDateTime } from "@/lib/format-date";
 import CategoryBadge, { ALL_CATEGORIES, type PlayerCategory } from "@/components/player/CategoryBadge";
 import FlagBadges from "@/components/player/FlagBadges";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { FormGrid, FormField, FormSection } from "@/components/ui/form-grid";
 
 interface PlayerEditDialogProps {
   player: {
