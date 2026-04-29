@@ -466,9 +466,23 @@ const PlayerProfile = () => {
           </PageSection>
         </TabsContent>
 
-        {/* TAB 2 */}
+        {/* TAB 2 — Statistics */}
         <TabsContent value="stats" className="space-y-4">
-          <PageSection card title={`Tables (${tableStats.rows.length})`}>
+          {/* Period summary strip */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+            <Kpi label="Visits" value={period.visits.toString()} />
+            <Kpi label="Time" value={fmtDuration(period.pMins)} />
+            <Kpi label="Drop" value={fmtMoney(period.pIn)} />
+            <Kpi label="Cashout" value={fmtMoney(period.pOut)} />
+            <Kpi label="Comps" value={fmtMoney(period.pComps)} />
+            <Kpi
+              label="Result"
+              value={fmtMoney(period.result)}
+              valueClass={period.result >= 0 ? "cms-amount-positive" : "cms-amount-negative"}
+            />
+          </div>
+
+          <PageSection card title={`By table (${tableStats.rows.length})`}>
             {tableStats.rows.length === 0 ? (
               <div className="text-sm text-muted-foreground">No table activity in this period.</div>
             ) : (
@@ -477,21 +491,143 @@ const PlayerProfile = () => {
                   <thead>
                     <tr className="text-xs text-muted-foreground uppercase">
                       <th className="text-left py-2 px-2">Position</th>
-                      <th className="text-right py-2 px-2">Total duration</th>
-                      <th className="text-right py-2 px-2">Total IN</th>
-                      <th className="text-right py-2 px-2">Total OUT</th>
+                      <th className="text-left py-2 px-2">Game</th>
+                      <th className="text-right py-2 px-2">Sess.</th>
+                      <th className="text-right py-2 px-2">Hands</th>
+                      <th className="text-right py-2 px-2">Avg bet</th>
+                      <th className="text-right py-2 px-2">Duration</th>
+                      <th className="text-right py-2 px-2">IN</th>
+                      <th className="text-right py-2 px-2">OUT</th>
+                      <th className="text-right py-2 px-2">Theo</th>
                       <th className="text-right py-2 px-2">Result</th>
+                      <th className="text-right py-2 px-2">Hold %</th>
                     </tr>
                   </thead>
                   <tbody>
                     {tableStats.rows.map((r) => {
                       const result = r.totalIn - r.totalOut;
+                      const avgBet = r.hands ? r.betSum / r.hands : 0;
+                      const theo = r.hands
+                        ? theoFromHands(avgBet, r.hands, r.game)
+                        : theoFromDrop(r.totalIn, r.game);
+                      const hold = holdPct(r.totalIn, r.totalOut, 0);
                       return (
                         <tr key={r.key} className="border-t border-border">
                           <td className="py-1.5 px-2">{r.name}</td>
-                          <td className="py-1.5 px-2 text-right font-mono">{r.minutes ? fmtDuration(r.minutes) : <span className="text-muted-foreground">·</span>}</td>
-                          <td className="py-1.5 px-2 text-right font-mono">{r.totalIn ? fmtMoney(r.totalIn) : <span className="text-muted-foreground">·</span>}</td>
-                          <td className="py-1.5 px-2 text-right font-mono">{r.totalOut ? fmtMoney(r.totalOut) : <span className="text-muted-foreground">·</span>}</td>
+                          <td className="py-1.5 px-2 text-xs text-muted-foreground">{r.game}</td>
+                          <td className="py-1.5 px-2 text-right font-mono">{r.sessions || dot()}</td>
+                          <td className="py-1.5 px-2 text-right font-mono">{r.hands || dot()}</td>
+                          <td className="py-1.5 px-2 text-right font-mono">{avgBet ? fmtMoney(Math.round(avgBet)) : dot()}</td>
+                          <td className="py-1.5 px-2 text-right font-mono">{r.minutes ? fmtDuration(r.minutes) : dot()}</td>
+                          <td className="py-1.5 px-2 text-right font-mono">{r.totalIn ? fmtMoney(r.totalIn) : dot()}</td>
+                          <td className="py-1.5 px-2 text-right font-mono">{r.totalOut ? fmtMoney(r.totalOut) : dot()}</td>
+                          <td className="py-1.5 px-2 text-right font-mono text-muted-foreground">{theo ? fmtMoney(theo) : dot()}</td>
+                          <td className={`py-1.5 px-2 text-right font-mono ${result === 0 ? "text-muted-foreground" : result > 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
+                            {result === 0 ? "·" : fmtMoney(result)}
+                          </td>
+                          <td className="py-1.5 px-2 text-right font-mono text-xs">
+                            {hold === null ? dot() : `${hold.toFixed(1)}%`}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                  <tfoot>
+                    {(() => {
+                      const t = tableStats.total;
+                      const avgBet = t.hands ? t.betSum / t.hands : 0;
+                      const result = t.totalIn - t.totalOut;
+                      const hold = holdPct(t.totalIn, t.totalOut, 0);
+                      return (
+                        <tr className="border-t-2 border-border bg-muted/30 font-semibold">
+                          <td className="py-2 px-2 uppercase text-xs text-muted-foreground" colSpan={2}>Total</td>
+                          <td className="py-2 px-2 text-right font-mono">{t.sessions}</td>
+                          <td className="py-2 px-2 text-right font-mono">{t.hands}</td>
+                          <td className="py-2 px-2 text-right font-mono">{avgBet ? fmtMoney(Math.round(avgBet)) : "—"}</td>
+                          <td className="py-2 px-2 text-right font-mono">{fmtDuration(t.minutes)}</td>
+                          <td className="py-2 px-2 text-right font-mono">{fmtMoney(t.totalIn)}</td>
+                          <td className="py-2 px-2 text-right font-mono">{fmtMoney(t.totalOut)}</td>
+                          <td className="py-2 px-2 text-right font-mono text-muted-foreground">—</td>
+                          <td className={`py-2 px-2 text-right font-mono ${result >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>{fmtMoney(result)}</td>
+                          <td className="py-2 px-2 text-right font-mono text-xs">
+                            {hold === null ? "—" : `${hold.toFixed(1)}%`}
+                          </td>
+                        </tr>
+                      );
+                    })()}
+                  </tfoot>
+                </table>
+              </div>
+            )}
+          </PageSection>
+
+          {gameStats.length > 0 && (
+            <PageSection card title={`By game type (${gameStats.length})`}>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-xs text-muted-foreground uppercase">
+                      <th className="text-left py-2 px-2">Game</th>
+                      <th className="text-right py-2 px-2">Sess.</th>
+                      <th className="text-right py-2 px-2">Hands</th>
+                      <th className="text-right py-2 px-2">Duration</th>
+                      <th className="text-right py-2 px-2">IN</th>
+                      <th className="text-right py-2 px-2">OUT</th>
+                      <th className="text-right py-2 px-2">Result</th>
+                      <th className="text-right py-2 px-2">Hold %</th>
+                      <th className="text-right py-2 px-2">Edge</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {gameStats.map((g) => {
+                      const result = g.totalIn - g.totalOut;
+                      const hold = holdPct(g.totalIn, g.totalOut, 0);
+                      return (
+                        <tr key={g.game} className="border-t border-border">
+                          <td className="py-1.5 px-2">{g.game}</td>
+                          <td className="py-1.5 px-2 text-right font-mono">{g.sessions || dot()}</td>
+                          <td className="py-1.5 px-2 text-right font-mono">{g.hands || dot()}</td>
+                          <td className="py-1.5 px-2 text-right font-mono">{g.minutes ? fmtDuration(g.minutes) : dot()}</td>
+                          <td className="py-1.5 px-2 text-right font-mono">{g.totalIn ? fmtMoney(g.totalIn) : dot()}</td>
+                          <td className="py-1.5 px-2 text-right font-mono">{g.totalOut ? fmtMoney(g.totalOut) : dot()}</td>
+                          <td className={`py-1.5 px-2 text-right font-mono ${result === 0 ? "text-muted-foreground" : result > 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
+                            {result === 0 ? "·" : fmtMoney(result)}
+                          </td>
+                          <td className="py-1.5 px-2 text-right font-mono text-xs">{hold === null ? dot() : `${hold.toFixed(1)}%`}</td>
+                          <td className="py-1.5 px-2 text-right font-mono text-xs text-muted-foreground">{(edgeFor(g.game) * 100).toFixed(2)}%</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </PageSection>
+          )}
+
+          {casinoStats.length > 1 && (
+            <PageSection card title={`By casino (${casinoStats.length})`}>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-xs text-muted-foreground uppercase">
+                      <th className="text-left py-2 px-2">Casino</th>
+                      <th className="text-right py-2 px-2">Visits</th>
+                      <th className="text-right py-2 px-2">IN</th>
+                      <th className="text-right py-2 px-2">OUT</th>
+                      <th className="text-right py-2 px-2">Comps</th>
+                      <th className="text-right py-2 px-2">Result</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {casinoStats.map((c) => {
+                      const result = c.totalIn - c.totalOut - c.comps;
+                      return (
+                        <tr key={c.id} className="border-t border-border">
+                          <td className="py-1.5 px-2">{c.name}</td>
+                          <td className="py-1.5 px-2 text-right font-mono">{c.visits}</td>
+                          <td className="py-1.5 px-2 text-right font-mono">{c.totalIn ? fmtMoney(c.totalIn) : dot()}</td>
+                          <td className="py-1.5 px-2 text-right font-mono">{c.totalOut ? fmtMoney(c.totalOut) : dot()}</td>
+                          <td className="py-1.5 px-2 text-right font-mono">{c.comps ? fmtMoney(c.comps) : dot()}</td>
                           <td className={`py-1.5 px-2 text-right font-mono ${result === 0 ? "text-muted-foreground" : result > 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
                             {result === 0 ? "·" : fmtMoney(result)}
                           </td>
@@ -499,27 +635,72 @@ const PlayerProfile = () => {
                       );
                     })}
                   </tbody>
-                  <tfoot>
-                    <tr className="border-t-2 border-border bg-muted/30 font-semibold">
-                      <td className="py-2 px-2 uppercase text-xs text-muted-foreground">Total</td>
-                      <td className="py-2 px-2 text-right font-mono">{fmtDuration(tableStats.total.minutes)}</td>
-                      <td className="py-2 px-2 text-right font-mono">{fmtMoney(tableStats.total.totalIn)}</td>
-                      <td className="py-2 px-2 text-right font-mono">{fmtMoney(tableStats.total.totalOut)}</td>
-                      <td className={`py-2 px-2 text-right font-mono ${(tableStats.total.totalIn - tableStats.total.totalOut) >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
-                        {fmtMoney(tableStats.total.totalIn - tableStats.total.totalOut)}
-                      </td>
+                </table>
+              </div>
+            </PageSection>
+          )}
+
+          <PageSection card title="Visit rhythm (lifetime, weekday × hour)">
+            {heatmap.max === 0 ? (
+              <div className="text-sm text-muted-foreground">Not enough visits.</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="text-[10px] font-mono border-separate" style={{ borderSpacing: 2 }}>
+                  <thead>
+                    <tr>
+                      <th className="text-left pr-2 text-muted-foreground"></th>
+                      {Array.from({ length: 24 }, (_, h) => (
+                        <th key={h} className="w-6 text-center text-muted-foreground">{h}</th>
+                      ))}
                     </tr>
-                  </tfoot>
+                  </thead>
+                  <tbody>
+                    {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((label, dow) => (
+                      <tr key={label}>
+                        <td className="pr-2 text-muted-foreground uppercase">{label}</td>
+                        {heatmap.grid[dow].map((count, h) => {
+                          const intensity = count / heatmap.max;
+                          const bg = count === 0
+                            ? "transparent"
+                            : `hsl(var(--primary) / ${0.15 + intensity * 0.85})`;
+                          return (
+                            <td
+                              key={h}
+                              title={`${label} ${h}:00 — ${count} visit${count === 1 ? "" : "s"}`}
+                              className="w-6 h-5 text-center rounded-sm border border-border/40"
+                              style={{ background: bg, color: intensity > 0.55 ? "hsl(var(--primary-foreground))" : undefined }}
+                            >
+                              {count > 0 ? count : ""}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
                 </table>
               </div>
             )}
           </PageSection>
 
-          <PageSection card title="Slots">
-            <div className="text-sm text-muted-foreground">
-              Per-session slot tracking is not yet recorded. Aggregated economy data is available on the Stats page.
-            </div>
-          </PageSection>
+          {expensesInRange.length > 0 && (
+            <PageSection card title={`Comps in period (${expensesInRange.length})`}>
+              <div className="space-y-1.5 max-h-[280px] overflow-y-auto">
+                {expensesInRange.slice(0, 50).map((e: any) => (
+                  <div key={e.id} className="flex items-center justify-between text-xs border-b border-border/40 py-1">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Gift className="w-3 h-3 text-muted-foreground shrink-0" />
+                      <span className="text-[10px] uppercase font-mono text-muted-foreground">{e.category}</span>
+                      <span className="text-card-foreground truncate">{e.description || "—"}</span>
+                    </div>
+                    <div className="flex items-center gap-3 shrink-0">
+                      <span className="font-mono">{fmtMoney(Number(e.amount) || 0)}</span>
+                      <span className="text-muted-foreground">{fmtDate(e.created_at)}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </PageSection>
+          )}
         </TabsContent>
 
         {/* TAB 3 */}
