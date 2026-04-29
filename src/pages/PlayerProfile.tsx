@@ -291,9 +291,9 @@ const PlayerProfile = () => {
             </PageSection>
           )}
 
-          <PageSection card title={`Visits (${visits.length})`}>
-            {visits.length === 0 ? (
-              <div className="text-sm text-muted-foreground">No visits recorded.</div>
+          <PageSection card title={`Visits (${visitsInRange.length})`}>
+            {visitsInRange.length === 0 ? (
+              <div className="text-sm text-muted-foreground">No visits in this period.</div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
@@ -310,7 +310,7 @@ const PlayerProfile = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {visits.slice(0, 200).map((v: any) => {
+                    {visitsInRange.slice(0, 200).map((v: any) => {
                       const f = visitFinancials.get(v.id) || { totalIn: 0, cashout: 0 };
                       const result = f.totalIn - f.cashout;
                       return (
@@ -330,13 +330,25 @@ const PlayerProfile = () => {
                     })}
                   </tbody>
                   <tfoot>
-                    <tr className="border-t-2 border-border font-semibold">
-                      <td className="py-2 px-2 text-xs uppercase text-muted-foreground" colSpan={4}>Total</td>
-                      <td className="py-2 px-2">{fmtDuration(lifetime.totalMins)}</td>
-                      <td className="py-2 px-2"></td>
-                      <td className="py-2 px-2 font-mono text-xs text-right">{fmtMoney(lifetime.totalIn)}</td>
-                      <td className={`py-2 px-2 font-mono text-xs text-right ${lifetime.totalResult >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>{fmtMoney(lifetime.totalResult)}</td>
-                    </tr>
+                    {(() => {
+                      const periodMins = visitsInRange.reduce((s, v) => s + visitDuration(v), 0);
+                      let pIn = 0; let pRes = 0;
+                      for (const v of visitsInRange) {
+                        const f = visitFinancials.get(v.id);
+                        if (!f) continue;
+                        pIn += f.totalIn;
+                        pRes += f.totalIn - f.cashout;
+                      }
+                      return (
+                        <tr className="border-t-2 border-border font-semibold">
+                          <td className="py-2 px-2 text-xs uppercase text-muted-foreground" colSpan={4}>Total (period)</td>
+                          <td className="py-2 px-2">{fmtDuration(periodMins)}</td>
+                          <td className="py-2 px-2"></td>
+                          <td className="py-2 px-2 font-mono text-xs text-right">{fmtMoney(pIn)}</td>
+                          <td className={`py-2 px-2 font-mono text-xs text-right ${pRes >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>{fmtMoney(pRes)}</td>
+                        </tr>
+                      );
+                    })()}
                   </tfoot>
                 </table>
               </div>
