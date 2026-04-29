@@ -95,31 +95,64 @@ const PlayerProfile = () => {
     };
   }, [visits, visitFinancials]);
 
-  // Sessions stats
-  const sessionStats = useMemo(() => {
-    const tableMap = new Map<string, { name: string; sessions: number; hands: number; bet: number; minutes: number }>();
-    for (const s of sessions) {
+  // Range filter applies to ALL tabs (visits, sessions, transactions).
+  const rangeStartMs = useMemo(() => new Date(`${range.from}T00:00:00`).getTime(), [range.from]);
+  const rangeEndMs = useMemo(() => new Date(`${range.to}T23:59:59`).getTime(), [range.to]);
+
+  const visitsInRange = useMemo(
+    () => visits.filter((v: any) => {
+      const ts = new Date(v.checked_in_at).getTime();
+      return ts >= rangeStartMs && ts <= rangeEndMs;
+    }),
+    [visits, rangeStartMs, rangeEndMs]
+  );
+
+  const txInRange = useMemo(
+    () => transactions.filter((t: any) => {
+      const ts = new Date(t.created_at).getTime();
+      return ts >= rangeStartMs && ts <= rangeEndMs;
+    }),
+    [transactions, rangeStartMs, rangeEndMs]
+  );
+
+  // Per-table financials (Position / total IN / total OUT / Result) within range.
+  // Sessions provide duration; transactions provide IN/OUT.
+  const tableStats = useMemo(() => {
+    type Row = { key: string; name: string; minutes: number; totalIn: number; totalOut: number };
+    const map = new Map<string, Row>();
+
+    for (const s of sessions as any[]) {
       const key = s.table_id || "unknown";
-      const name = (s as any).gaming_tables?.name || "—";
-      const cur = tableMap.get(key) || { name, sessions: 0, hands: 0, bet: 0, minutes: 0 };
-      cur.sessions += 1;
-      cur.hands += s.hands_played || 0;
-      cur.bet += Number(s.total_bet) || 0;
+      const name = s.gaming_tables?.name || "—";
+      const cur = map.get(key) || { key, name, minutes: 0, totalIn: 0, totalOut: 0 };
       cur.minutes += s.duration_minutes || 0;
-      tableMap.set(key, cur);
+      map.set(key, cur);
     }
-    const rows = Array.from(tableMap.values()).sort((a, b) => b.bet - a.bet);
+    for (const t of txInRange as any[]) {
+      const key = t.table_id || "unknown";
+      const name = t.gaming_tables?.name || "—";
+      const cur = map.get(key) || { key, name, minutes: 0, totalIn: 0, totalOut: 0 };
+      const amt = Number(t.amount) || 0;
+      if (t.type === "buy") cur.totalIn += amt;
+      else if (t.type === "cashout") cur.totalOut += amt;
+      if (cur.name === "—" && name !== "—") cur.name = name;
+      map.set(key, cur);
+    }
+
+    const rows = Array.from(map.values())
+      .filter(r => r.minutes > 0 || r.totalIn > 0 || r.totalOut > 0)
+      .sort((a, b) => (b.totalIn - b.totalOut) - (a.totalIn - a.totalOut));
+
     const total = rows.reduce(
       (acc, r) => ({
-        sessions: acc.sessions + r.sessions,
-        hands: acc.hands + r.hands,
-        bet: acc.bet + r.bet,
         minutes: acc.minutes + r.minutes,
+        totalIn: acc.totalIn + r.totalIn,
+        totalOut: acc.totalOut + r.totalOut,
       }),
-      { sessions: 0, hands: 0, bet: 0, minutes: 0 }
+      { minutes: 0, totalIn: 0, totalOut: 0 }
     );
     return { rows, total };
-  }, [sessions]);
+  }, [sessions, txInRange]);
 
   if (isLoading) {
     return (
@@ -222,13 +255,21 @@ const PlayerProfile = () => {
 
       {/* Tabs */}
       <Tabs defaultValue="info" className="w-full">
-        <TabsList className="w-full sm:w-auto overflow-x-auto justify-start">
-          <TabsTrigger value="info"><History className="w-3.5 h-3.5 mr-1" /> Info & History</TabsTrigger>
-          <TabsTrigger value="stats"><BarChart3 className="w-3.5 h-3.5 mr-1" /> Statistics</TabsTrigger>
-          <TabsTrigger value="connections"><UsersIcon className="w-3.5 h-3.5 mr-1" /> Connections</TabsTrigger>
-          <TabsTrigger value="lotteries"><Trophy className="w-3.5 h-3.5 mr-1" /> Lotteries</TabsTrigger>
-          <TabsTrigger value="tickets"><Ticket className="w-3.5 h-3.5 mr-1" /> Tickets</TabsTrigger>
-        </TabsList>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <TabsList className="w-full sm:w-auto overflow-x-auto justify-start">
+            <TabsTrigger value="info"><History className="w-3.5 h-3.5 mr-1" /> Info & History</TabsTrigger>
+            <TabsTrigger value="stats"><BarChart3 className="w-3.5 h-3.5 mr-1" /> Statistics</TabsTrigger>
+            <TabsTrigger value="connections"><UsersIcon className="w-3.5 h-3.5 mr-1" /> Connections</TabsTrigger>
+            <TabsTrigger value="lotteries"><Trophy className="w-3.5 h-3.5 mr-1" /> Lotteries</TabsTrigger>
+            <TabsTrigger value="tickets"><Ticket className="w-3.5 h-3.5 mr-1" /> Tickets</TabsTrigger>
+          </TabsList>
+          <DateRangePresets
+            preset={preset}
+            from={range.from}
+            to={range.to}
+            onChange={(next) => { setPreset(next.preset); setRange({ from: next.from, to: next.to }); }}
+          />
+        </div>
 
         {/* TAB 1 */}
         <TabsContent value="info" className="space-y-4">
@@ -250,9 +291,9 @@ const PlayerProfile = () => {
             </PageSection>
           )}
 
-          <PageSection card title={`Visits (${visits.length})`}>
-            {visits.length === 0 ? (
-              <div className="text-sm text-muted-foreground">No visits recorded.</div>
+          <PageSection card title={`Visits (${visitsInRange.length})`}>
+            {visitsInRange.length === 0 ? (
+              <div className="text-sm text-muted-foreground">No visits in this period.</div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
@@ -269,7 +310,7 @@ const PlayerProfile = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {visits.slice(0, 200).map((v: any) => {
+                    {visitsInRange.slice(0, 200).map((v: any) => {
                       const f = visitFinancials.get(v.id) || { totalIn: 0, cashout: 0 };
                       const result = f.totalIn - f.cashout;
                       return (
@@ -289,13 +330,25 @@ const PlayerProfile = () => {
                     })}
                   </tbody>
                   <tfoot>
-                    <tr className="border-t-2 border-border font-semibold">
-                      <td className="py-2 px-2 text-xs uppercase text-muted-foreground" colSpan={4}>Total</td>
-                      <td className="py-2 px-2">{fmtDuration(lifetime.totalMins)}</td>
-                      <td className="py-2 px-2"></td>
-                      <td className="py-2 px-2 font-mono text-xs text-right">{fmtMoney(lifetime.totalIn)}</td>
-                      <td className={`py-2 px-2 font-mono text-xs text-right ${lifetime.totalResult >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>{fmtMoney(lifetime.totalResult)}</td>
-                    </tr>
+                    {(() => {
+                      const periodMins = visitsInRange.reduce((s, v) => s + visitDuration(v), 0);
+                      let pIn = 0; let pRes = 0;
+                      for (const v of visitsInRange) {
+                        const f = visitFinancials.get(v.id);
+                        if (!f) continue;
+                        pIn += f.totalIn;
+                        pRes += f.totalIn - f.cashout;
+                      }
+                      return (
+                        <tr className="border-t-2 border-border font-semibold">
+                          <td className="py-2 px-2 text-xs uppercase text-muted-foreground" colSpan={4}>Total (period)</td>
+                          <td className="py-2 px-2">{fmtDuration(periodMins)}</td>
+                          <td className="py-2 px-2"></td>
+                          <td className="py-2 px-2 font-mono text-xs text-right">{fmtMoney(pIn)}</td>
+                          <td className={`py-2 px-2 font-mono text-xs text-right ${pRes >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>{fmtMoney(pRes)}</td>
+                        </tr>
+                      );
+                    })()}
                   </tfoot>
                 </table>
               </div>
@@ -305,46 +358,48 @@ const PlayerProfile = () => {
 
         {/* TAB 2 */}
         <TabsContent value="stats" className="space-y-4">
-          <DateRangePresets
-            preset={preset}
-            from={range.from}
-            to={range.to}
-            onChange={(next) => { setPreset(next.preset); setRange({ from: next.from, to: next.to }); }}
-          />
-
-          <PageSection card title={`Tables (${sessionStats.rows.length})`}>
-            {sessionStats.rows.length === 0 ? (
-              <div className="text-sm text-muted-foreground">No table sessions in this period.</div>
+          <PageSection card title={`Tables (${tableStats.rows.length})`}>
+            {tableStats.rows.length === 0 ? (
+              <div className="text-sm text-muted-foreground">No table activity in this period.</div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="text-xs text-muted-foreground uppercase">
-                      <th className="text-left py-2 px-2">Table</th>
-                      <th className="text-right py-2 px-2">Sessions</th>
-                      <th className="text-right py-2 px-2">Hands</th>
-                      <th className="text-right py-2 px-2">Total bet</th>
-                      <th className="text-right py-2 px-2">Duration</th>
+                      <th className="text-left py-2 px-2">Position</th>
+                      <th className="text-right py-2 px-2">Total duration</th>
+                      <th className="text-right py-2 px-2">Total IN</th>
+                      <th className="text-right py-2 px-2">Total OUT</th>
+                      <th className="text-right py-2 px-2">Result</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {sessionStats.rows.map((r, i) => (
-                      <tr key={i} className="border-t border-border">
-                        <td className="py-1.5 px-2">{r.name}</td>
-                        <td className="py-1.5 px-2 text-right font-mono">{r.sessions}</td>
-                        <td className="py-1.5 px-2 text-right font-mono">{r.hands}</td>
-                        <td className="py-1.5 px-2 text-right font-mono">{fmtMoney(r.bet)}</td>
-                        <td className="py-1.5 px-2 text-right font-mono">{fmtDuration(r.minutes)}</td>
-                      </tr>
-                    ))}
-                    <tr className="border-t-2 border-border bg-muted/30 font-semibold">
-                      <td className="py-2 px-2">Total</td>
-                      <td className="py-2 px-2 text-right font-mono">{sessionStats.total.sessions}</td>
-                      <td className="py-2 px-2 text-right font-mono">{sessionStats.total.hands}</td>
-                      <td className="py-2 px-2 text-right font-mono">{fmtMoney(sessionStats.total.bet)}</td>
-                      <td className="py-2 px-2 text-right font-mono">{fmtDuration(sessionStats.total.minutes)}</td>
-                    </tr>
+                    {tableStats.rows.map((r) => {
+                      const result = r.totalIn - r.totalOut;
+                      return (
+                        <tr key={r.key} className="border-t border-border">
+                          <td className="py-1.5 px-2">{r.name}</td>
+                          <td className="py-1.5 px-2 text-right font-mono">{r.minutes ? fmtDuration(r.minutes) : <span className="text-muted-foreground">·</span>}</td>
+                          <td className="py-1.5 px-2 text-right font-mono">{r.totalIn ? fmtMoney(r.totalIn) : <span className="text-muted-foreground">·</span>}</td>
+                          <td className="py-1.5 px-2 text-right font-mono">{r.totalOut ? fmtMoney(r.totalOut) : <span className="text-muted-foreground">·</span>}</td>
+                          <td className={`py-1.5 px-2 text-right font-mono ${result === 0 ? "text-muted-foreground" : result > 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
+                            {result === 0 ? "·" : fmtMoney(result)}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
+                  <tfoot>
+                    <tr className="border-t-2 border-border bg-muted/30 font-semibold">
+                      <td className="py-2 px-2 uppercase text-xs text-muted-foreground">Total</td>
+                      <td className="py-2 px-2 text-right font-mono">{fmtDuration(tableStats.total.minutes)}</td>
+                      <td className="py-2 px-2 text-right font-mono">{fmtMoney(tableStats.total.totalIn)}</td>
+                      <td className="py-2 px-2 text-right font-mono">{fmtMoney(tableStats.total.totalOut)}</td>
+                      <td className={`py-2 px-2 text-right font-mono ${(tableStats.total.totalIn - tableStats.total.totalOut) >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
+                        {fmtMoney(tableStats.total.totalIn - tableStats.total.totalOut)}
+                      </td>
+                    </tr>
+                  </tfoot>
                 </table>
               </div>
             )}

@@ -71,7 +71,7 @@ export const usePlayerTransactions = (playerId: string | undefined) => {
       if (!playerId) return [];
       const { data, error } = await supabase
         .from("transactions")
-        .select("id, casino_id, type, amount, created_at")
+        .select("id, casino_id, table_id, type, amount, created_at, gaming_tables(name)")
         .eq("player_id", playerId)
         .in("type", ["buy", "cashout"])
         .order("created_at", { ascending: false })
