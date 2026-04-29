@@ -1,29 +1,48 @@
 import { useState, useRef, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { Search, Users } from "lucide-react";
-import { usePlayers } from "@/hooks/use-casino-data";
+import { usePlayers, usePlayerEconomy } from "@/hooks/use-casino-data";
 import { useDebouncedValue } from "@/hooks/use-debounce";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import CategoryBadge, { CATEGORY_PRIORITY, type PlayerCategory } from "@/components/player/CategoryBadge";
 import CategoryFilter from "@/components/player/CategoryFilter";
 import FlagBadges from "@/components/player/FlagBadges";
-import PlayerEditDialog from "@/components/PlayerEditDialog";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { FilterBar } from "@/components/layout/FilterBar";
 
 const ROW_HEIGHT = 52;
 
+const fmtAmount = (n: number) => {
+  if (!n) return "—";
+  const cls = n < 0 ? "cms-amount-negative" : "cms-amount-positive";
+  return <span className={`font-mono ${cls}`}>{n.toLocaleString()}</span>;
+};
+
 const Players = () => {
+  const navigate = useNavigate();
   const { data: players = [], isLoading } = usePlayers();
+  const { data: economy = [] } = usePlayerEconomy(2000);
   const [query, setQuery] = useState("");
   const debouncedQuery = useDebouncedValue(query, 250);
-  const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<Set<PlayerCategory>>(new Set(["diamond", "platinum", "gold", "normal"]));
   const [sortByCategory, setSortByCategory] = useState(true);
 
   const parentRef = useRef<HTMLDivElement>(null);
+
+  const economyByPlayer = useMemo(() => {
+    const m = new Map<string, { drop: number; cashout: number; result: number }>();
+    for (const e of economy as any[]) {
+      const cur = m.get(e.player_id) || { drop: 0, cashout: 0, result: 0 };
+      cur.drop += Number(e.total_drop) || 0;
+      cur.cashout += Number(e.total_cashout) || 0;
+      cur.result += Number(e.real_result) || 0;
+      m.set(e.player_id, cur);
+    }
+    return m;
+  }, [economy]);
 
   const filtered = useMemo(() => {
     let list = players;
@@ -54,8 +73,6 @@ const Players = () => {
     estimateSize: () => ROW_HEIGHT,
     overscan: 10,
   });
-
-  const selectedPlayer = players.find(p => p.id === selectedPlayerId);
 
   return (
     <PageShell>
@@ -88,8 +105,18 @@ const Players = () => {
         <table className="w-full">
           <thead>
             <tr className="border-b border-border">
-              {["", "Player", "Nickname", "Card", "Status", "Tags"].map(h => (
-                <th key={h || "cat"} className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-4 py-3">{h}</th>
+              {[
+                { label: "", w: "80px" },
+                { label: "Player", w: "auto" },
+                { label: "Nickname", w: "140px" },
+                { label: "Card", w: "120px" },
+                { label: "Status", w: "90px" },
+                { label: "Drop", w: "110px" },
+                { label: "Cashout", w: "110px" },
+                { label: "Result", w: "110px" },
+                { label: "Tags", w: "150px" },
+              ].map(h => (
+                <th key={h.label || "cat"} style={{ width: h.w }} className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-3 py-3">{h.label}</th>
               ))}
             </tr>
           </thead>
@@ -103,31 +130,35 @@ const Players = () => {
             <div style={{ height: `${virtualizer.getTotalSize()}px`, position: "relative" }}>
               {virtualizer.getVirtualItems().map(virtualRow => {
                 const player = filtered[virtualRow.index];
+                const econ = economyByPlayer.get(player.id);
                 return (
                   <div
                     key={player.id}
-                    onClick={() => setSelectedPlayerId(player.id)}
+                    onClick={() => navigate(`/players/${player.id}`)}
                     className="flex items-center border-b border-border last:border-0 hover:bg-muted/50 cursor-pointer transition-colors absolute w-full"
                     style={{
                       height: `${virtualRow.size}px`,
                       transform: `translateY(${virtualRow.start}px)`,
                     }}
                   >
-                    <div className="px-4 py-3 w-[80px]">
+                    <div className="px-3 py-3 w-[80px]">
                       <CategoryBadge category={(player.category as PlayerCategory) || "normal"} />
                     </div>
-                    <div className="px-4 py-3 flex-1 text-sm font-medium text-card-foreground">{player.first_name} {player.last_name}</div>
-                    <div className="px-4 py-3 w-[140px] text-sm text-muted-foreground truncate">{player.nickname}</div>
-                    <div className="px-4 py-3 w-[120px] font-mono text-xs text-muted-foreground">
+                    <div className="px-3 py-3 flex-1 text-sm font-medium text-card-foreground truncate">{player.first_name} {player.last_name}</div>
+                    <div className="px-3 py-3 w-[140px] text-sm text-muted-foreground truncate">{player.nickname}</div>
+                    <div className="px-3 py-3 w-[120px] font-mono text-xs text-muted-foreground">
                       {player.player_cards?.find(c => c.is_active)?.card_number || "—"}
                     </div>
-                    <div className="px-4 py-3 w-[100px]">
+                    <div className="px-3 py-3 w-[90px]">
                       <span className={player.status === "active" ? "cms-status-active" : "cms-status-blacklist"}>
                         <span className={`w-1.5 h-1.5 rounded-full inline-block ${player.status === "active" ? "bg-success" : "bg-danger"}`} />
                         {player.status}
                       </span>
                     </div>
-                    <div className="px-4 py-3 w-[150px]">
+                    <div className="px-3 py-3 w-[110px] text-xs">{econ ? fmtAmount(econ.drop) : <span className="text-muted-foreground">·</span>}</div>
+                    <div className="px-3 py-3 w-[110px] text-xs">{econ ? fmtAmount(econ.cashout) : <span className="text-muted-foreground">·</span>}</div>
+                    <div className="px-3 py-3 w-[110px] text-xs">{econ ? fmtAmount(econ.result) : <span className="text-muted-foreground">·</span>}</div>
+                    <div className="px-3 py-3 w-[150px]">
                       <FlagBadges tags={player.player_tags?.map(t => t.tag) || []} compact />
                     </div>
                   </div>
@@ -137,12 +168,6 @@ const Players = () => {
           </div>
         )}
       </div>
-
-      <PlayerEditDialog
-        player={selectedPlayer ?? null}
-        open={!!selectedPlayer}
-        onOpenChange={(v) => { if (!v) setSelectedPlayerId(null); }}
-      />
     </PageShell>
   );
 };
