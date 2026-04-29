@@ -21,6 +21,7 @@ const CctvView = lazy(() => import("@/pages/CctvView"));
 // Lazy-loaded pages — each becomes a separate chunk
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
 const Players = lazy(() => import("@/pages/Players"));
+const PlayerProfile = lazy(() => import("@/pages/PlayerProfile"));
 const Cage = lazy(() => import("@/pages/Cage"));
 const Tables = lazy(() => import("@/pages/Tables"));
 const Expenses = lazy(() => import("@/pages/Expenses"));
@@ -83,6 +84,7 @@ const FullScreenLoader = ({ label = "Loading CMS..." }: { label?: string }) => (
 const ROUTE_ROLES: Record<string, string[]> = {
   "/": ["super_admin", "manager", "pit", "reception", "finance_manager", "surveillance"],
   "/players": ["super_admin", "manager", "finance_manager"],
+  "/players/:id": ["super_admin", "manager", "finance_manager"],
   "/in-casino": ["super_admin", "manager", "reception", "pit", "finance_manager", "surveillance"],
   "/blacklist": ["super_admin", "manager", "reception", "finance_manager", "surveillance"],
   "/reception": ["super_admin", "manager", "reception", "finance_manager"],
@@ -179,6 +181,7 @@ const ProtectedRoutes = () => {
         <Route element={<AppLayout />}>
           <Route path="/" element={<RoleGuard path="/"><Dashboard /></RoleGuard>} />
           <Route path="/players" element={<RoleGuard path="/players"><Players /></RoleGuard>} />
+          <Route path="/players/:id" element={<RoleGuard path="/players/:id"><PlayerProfile /></RoleGuard>} />
           <Route path="/cage" element={<RoleGuard path="/cage"><ErrorBoundary><Cage /></ErrorBoundary></RoleGuard>} />
           <Route path="/reception" element={<RoleGuard path="/reception"><Reception /></RoleGuard>} />
           <Route path="/in-casino" element={<RoleGuard path="/in-casino"><InCasino /></RoleGuard>} />
