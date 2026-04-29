@@ -410,10 +410,10 @@ const PlayerProfile = () => {
   );
 };
 
-const Kpi = ({ label, value }: { label: string; value: string }) => (
+const Kpi = ({ label, value, valueClass }: { label: string; value: string; valueClass?: string }) => (
   <div className="rounded-md border border-border bg-muted/30 px-3 py-2">
     <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
-    <div className="text-base font-semibold text-card-foreground font-mono">{value}</div>
+    <div className={`text-base font-semibold font-mono ${valueClass || "text-card-foreground"}`}>{value}</div>
   </div>
 );
 
