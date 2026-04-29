@@ -48,6 +48,8 @@ const PlayerProfile = () => {
   const { data: visits = [] } = usePlayerVisits(id);
   const { data: transactions = [] } = usePlayerTransactions(id);
   const { data: groupHistory = [] } = usePlayerGroupHistory(id);
+  const { data: economy = null } = usePlayerEconomy(id);
+  const { data: expenses = [] } = usePlayerExpenses(id);
   const canSeeNotes = roles.some(r => ["pit", "surveillance", "manager"].includes(r)) || isManager;
   const { data: notes = [] } = usePlayerNotes(id, canSeeNotes);
 
@@ -57,49 +59,7 @@ const PlayerProfile = () => {
 
   const [editOpen, setEditOpen] = useState(false);
 
-  // Map transactions to visits (same casino + within check-in / check-out window).
-  // Open visits (no check-out) consume any later txn within +24h fallback.
-  const visitFinancials = useMemo(() => {
-    const map = new Map<string, { totalIn: number; cashout: number }>();
-    for (const v of visits) {
-      const start = new Date(v.checked_in_at).getTime();
-      const end = v.checked_out_at ? new Date(v.checked_out_at).getTime() : start + 24 * 3600 * 1000;
-      let totalIn = 0;
-      let cashout = 0;
-      for (const t of transactions) {
-        if (t.casino_id !== v.casino_id) continue;
-        const ts = new Date(t.created_at).getTime();
-        if (ts < start || ts > end) continue;
-        const amt = Number(t.amount) || 0;
-        if (t.type === "buy") totalIn += amt;
-        else if (t.type === "cashout") cashout += amt;
-      }
-      map.set(v.id, { totalIn, cashout });
-    }
-    return map;
-  }, [visits, transactions]);
-
-  // Lifetime KPIs
-  const lifetime = useMemo(() => {
-    const totalMins = visits.reduce((s, v) => s + visitDuration(v), 0);
-    let totalIn = 0;
-    let totalResult = 0;
-    for (const v of visits) {
-      const f = visitFinancials.get(v.id);
-      if (!f) continue;
-      totalIn += f.totalIn;
-      totalResult += f.totalIn - f.cashout; // house result (positive = casino wins)
-    }
-    return {
-      visitCount: visits.length,
-      totalMins,
-      lastVisit: visits[0]?.checked_in_at || null,
-      totalIn,
-      totalResult,
-    };
-  }, [visits, visitFinancials]);
-
-  // Range filter applies to ALL tabs (visits, sessions, transactions).
+  // Range bounds (apply to all tabs).
   const rangeStartMs = useMemo(() => new Date(`${range.from}T00:00:00`).getTime(), [range.from]);
   const rangeEndMs = useMemo(() => new Date(`${range.to}T23:59:59`).getTime(), [range.to]);
 
@@ -119,27 +79,116 @@ const PlayerProfile = () => {
     [transactions, rangeStartMs, rangeEndMs]
   );
 
-  // Per-table financials (Position / total IN / total OUT / Result) within range.
-  // Sessions provide duration; transactions provide IN/OUT.
+  const expensesInRange = useMemo(
+    () => expenses.filter((e: any) => {
+      const ts = new Date(e.created_at).getTime();
+      return ts >= rangeStartMs && ts <= rangeEndMs;
+    }),
+    [expenses, rangeStartMs, rangeEndMs]
+  );
+
+  // Map transactions to visits (same casino + within check-in / check-out window).
+  const visitFinancials = useMemo(() => {
+    const map = new Map<string, { totalIn: number; cashout: number; comps: number }>();
+    for (const v of visits) {
+      const start = new Date(v.checked_in_at).getTime();
+      const end = v.checked_out_at ? new Date(v.checked_out_at).getTime() : start + 24 * 3600 * 1000;
+      let totalIn = 0;
+      let cashout = 0;
+      let comps = 0;
+      for (const t of transactions) {
+        if (t.casino_id !== v.casino_id) continue;
+        const ts = new Date(t.created_at).getTime();
+        if (ts < start || ts > end) continue;
+        const amt = Number(t.amount) || 0;
+        if (t.type === "buy") totalIn += amt;
+        else if (t.type === "cashout") cashout += amt;
+      }
+      for (const e of expenses) {
+        if (e.casino_id !== v.casino_id) continue;
+        const ts = new Date(e.created_at).getTime();
+        if (ts < start || ts > end) continue;
+        comps += Number(e.amount) || 0;
+      }
+      map.set(v.id, { totalIn, cashout, comps });
+    }
+    return map;
+  }, [visits, transactions, expenses]);
+
+  // Lifetime KPIs — prefer authoritative `player_economy` view, fall back to derived.
+  const lifetime = useMemo(() => {
+    const totalMins = visits.reduce((s, v) => s + visitDuration(v), 0);
+    const drop = Number(economy?.total_drop) || 0;
+    const cashout = Number(economy?.total_cashout) || 0;
+    const comps = Number(economy?.total_expenses) || 0;
+    const result = Number(economy?.real_result);
+    const realResult = Number.isFinite(result) ? result : drop - cashout - comps;
+    const hold = holdPct(drop, cashout, comps);
+    const firstVisit = visits.length ? visits[visits.length - 1].checked_in_at : null;
+    const lastVisit = visits[0]?.checked_in_at || null;
+    const daysSinceLast = lastVisit
+      ? Math.floor((Date.now() - new Date(lastVisit).getTime()) / 86400000)
+      : null;
+    const avgSession = visits.length ? Math.round(totalMins / visits.length) : 0;
+    return {
+      visitCount: visits.length,
+      totalMins,
+      avgSession,
+      drop,
+      cashout,
+      comps,
+      realResult,
+      hold,
+      firstVisit,
+      lastVisit,
+      daysSinceLast,
+    };
+  }, [visits, economy]);
+
+  // Period summary (uses range-filtered tx + expenses + visits).
+  const period = useMemo(() => {
+    let pIn = 0, pOut = 0;
+    for (const t of txInRange as any[]) {
+      const amt = Number(t.amount) || 0;
+      if (t.type === "buy") pIn += amt;
+      else if (t.type === "cashout") pOut += amt;
+    }
+    const pComps = expensesInRange.reduce((s, e: any) => s + (Number(e.amount) || 0), 0);
+    const pMins = visitsInRange.reduce((s, v) => s + visitDuration(v), 0);
+    const result = pIn - pOut - pComps;
+    return { pIn, pOut, pComps, pMins, result, hold: holdPct(pIn, pOut, pComps), visits: visitsInRange.length };
+  }, [txInRange, expensesInRange, visitsInRange]);
+
+  // Per-table aggregates (Position / Sessions / Hands / Avg bet / Duration / IN / OUT / Theo / Result / Hold).
   const tableStats = useMemo(() => {
-    type Row = { key: string; name: string; minutes: number; totalIn: number; totalOut: number };
+    type Row = {
+      key: string; name: string; game: string;
+      sessions: number; hands: number; betSum: number;
+      minutes: number; totalIn: number; totalOut: number;
+    };
     const map = new Map<string, Row>();
 
     for (const s of sessions as any[]) {
       const key = s.table_id || "unknown";
       const name = s.gaming_tables?.name || "—";
-      const cur = map.get(key) || { key, name, minutes: 0, totalIn: 0, totalOut: 0 };
+      const game = s.gaming_tables?.game || "—";
+      const cur = map.get(key) || { key, name, game, sessions: 0, hands: 0, betSum: 0, minutes: 0, totalIn: 0, totalOut: 0 };
+      cur.sessions += 1;
+      cur.hands += s.hands_played || 0;
+      cur.betSum += (Number(s.avg_bet) || 0) * (s.hands_played || 0);
       cur.minutes += s.duration_minutes || 0;
       map.set(key, cur);
     }
     for (const t of txInRange as any[]) {
       const key = t.table_id || "unknown";
       const name = t.gaming_tables?.name || "—";
-      const cur = map.get(key) || { key, name, minutes: 0, totalIn: 0, totalOut: 0 };
+      const game = t.gaming_tables?.game || "—";
+      const cur = map.get(key) || { key, name, game, sessions: 0, hands: 0, betSum: 0, minutes: 0, totalIn: 0, totalOut: 0 };
       const amt = Number(t.amount) || 0;
       if (t.type === "buy") cur.totalIn += amt;
       else if (t.type === "cashout") cur.totalOut += amt;
       if (cur.name === "—" && name !== "—") cur.name = name;
+      if (cur.game === "—" && game !== "—") cur.game = game;
       map.set(key, cur);
     }
 
@@ -149,14 +198,60 @@ const PlayerProfile = () => {
 
     const total = rows.reduce(
       (acc, r) => ({
+        sessions: acc.sessions + r.sessions,
+        hands: acc.hands + r.hands,
         minutes: acc.minutes + r.minutes,
         totalIn: acc.totalIn + r.totalIn,
         totalOut: acc.totalOut + r.totalOut,
+        betSum: acc.betSum + r.betSum,
       }),
-      { minutes: 0, totalIn: 0, totalOut: 0 }
+      { sessions: 0, hands: 0, minutes: 0, totalIn: 0, totalOut: 0, betSum: 0 }
     );
     return { rows, total };
   }, [sessions, txInRange]);
+
+  // Per-game aggregates.
+  const gameStats = useMemo(() => {
+    type Row = { game: string; sessions: number; hands: number; minutes: number; totalIn: number; totalOut: number };
+    const map = new Map<string, Row>();
+    for (const r of tableStats.rows) {
+      const key = r.game;
+      const cur = map.get(key) || { game: key, sessions: 0, hands: 0, minutes: 0, totalIn: 0, totalOut: 0 };
+      cur.sessions += r.sessions;
+      cur.hands += r.hands;
+      cur.minutes += r.minutes;
+      cur.totalIn += r.totalIn;
+      cur.totalOut += r.totalOut;
+      map.set(key, cur);
+    }
+    return Array.from(map.values()).sort((a, b) => (b.totalIn - b.totalOut) - (a.totalIn - a.totalOut));
+  }, [tableStats.rows]);
+
+  // Per-casino aggregates (only useful when player visited multiple casinos).
+  const casinoStats = useMemo(() => {
+    const map = new Map<string, { id: string; name: string; visits: number; totalIn: number; totalOut: number; comps: number }>();
+    for (const v of visitsInRange as any[]) {
+      const k = v.casino_id;
+      const cur = map.get(k) || { id: k, name: v.casinos?.name || "—", visits: 0, totalIn: 0, totalOut: 0, comps: 0 };
+      cur.visits += 1;
+      const f = visitFinancials.get(v.id);
+      if (f) { cur.totalIn += f.totalIn; cur.totalOut += f.cashout; cur.comps += f.comps; }
+      map.set(k, cur);
+    }
+    return Array.from(map.values()).sort((a, b) => b.totalIn - a.totalIn);
+  }, [visitsInRange, visitFinancials]);
+
+  // Weekday × hour heatmap (all visits, lifetime).
+  const heatmap = useMemo(() => {
+    const grid: number[][] = Array.from({ length: 7 }, () => Array(24).fill(0));
+    for (const v of visits as any[]) {
+      const d = new Date(v.checked_in_at);
+      grid[d.getDay()][d.getHours()] += 1;
+    }
+    let max = 0;
+    for (const row of grid) for (const c of row) if (c > max) max = c;
+    return { grid, max };
+  }, [visits]);
 
   if (isLoading) {
     return (
