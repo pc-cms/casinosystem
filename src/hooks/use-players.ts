@@ -139,6 +139,79 @@ export const usePlayerEconomy = (limit = 500) => {
   });
 };
 
+/**
+ * Per-period aggregation for player statistics.
+ * Sums transactions (buy/cashout), expenses (comps), and visits within [from, to]
+ * scoped by current casino. Returns a map keyed by player_id.
+ */
+export const usePlayerEconomyRange = (range: { from: string; to: string }) => {
+  const { casinoId } = useAuth();
+  return useQuery({
+    queryKey: ["player-economy-range", casinoId, range.from, range.to],
+    queryFn: async () => {
+      if (!casinoId) return new Map<string, { drop: number; cashout: number; comps: number; visits: number; lastVisit: string | null }>();
+      const fromIso = `${range.from}T00:00:00`;
+      const toIso = `${range.to}T23:59:59`;
+
+      const [txRes, expRes, visRes] = await Promise.all([
+        supabase
+          .from("transactions")
+          .select("player_id, type, amount, created_at")
+          .eq("casino_id", casinoId)
+          .in("type", ["buy", "cashout"])
+          .gte("created_at", fromIso)
+          .lte("created_at", toIso)
+          .limit(50000),
+        supabase
+          .from("expenses")
+          .select("player_id, amount, created_at")
+          .eq("casino_id", casinoId)
+          .not("player_id", "is", null)
+          .gte("created_at", fromIso)
+          .lte("created_at", toIso)
+          .limit(20000),
+        supabase
+          .from("casino_visits")
+          .select("player_id, checked_in_at")
+          .eq("casino_id", casinoId)
+          .gte("checked_in_at", fromIso)
+          .lte("checked_in_at", toIso)
+          .limit(20000),
+      ]);
+      if (txRes.error) throw txRes.error;
+      if (expRes.error) throw expRes.error;
+      if (visRes.error) throw visRes.error;
+
+      const m = new Map<string, { drop: number; cashout: number; comps: number; visits: number; lastVisit: string | null }>();
+      const get = (pid: string) => {
+        let cur = m.get(pid);
+        if (!cur) { cur = { drop: 0, cashout: 0, comps: 0, visits: 0, lastVisit: null }; m.set(pid, cur); }
+        return cur;
+      };
+      for (const t of txRes.data || []) {
+        if (!t.player_id) continue;
+        const cur = get(t.player_id);
+        const amt = Number(t.amount) || 0;
+        if (t.type === "buy") cur.drop += amt;
+        else if (t.type === "cashout") cur.cashout += amt;
+      }
+      for (const e of expRes.data || []) {
+        if (!e.player_id) continue;
+        get(e.player_id).comps += Number(e.amount) || 0;
+      }
+      for (const v of visRes.data || []) {
+        if (!v.player_id) continue;
+        const cur = get(v.player_id);
+        cur.visits += 1;
+        if (!cur.lastVisit || v.checked_in_at > cur.lastVisit) cur.lastVisit = v.checked_in_at;
+      }
+      return m;
+    },
+    enabled: !!casinoId,
+    staleTime: 1000 * 60 * 2,
+  });
+};
+
 // ============ GROUPS ============
 export const usePlayerGroups = () => {
   const { casinoId } = useAuth();
