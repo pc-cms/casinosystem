@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
-import { ArrowLeft, User, FileImage, Users as UsersIcon, BarChart3, Ticket, Trophy, History, MapPin } from "lucide-react";
+import { ArrowLeft, User, Users as UsersIcon, BarChart3, Ticket, Trophy, History, MapPin, Gift } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -10,8 +10,12 @@ import CasinoBadge from "@/components/player/CasinoBadge";
 import FlagBadges from "@/components/player/FlagBadges";
 import PlayerEditDialog from "@/components/PlayerEditDialog";
 import { fmtDate, fmtDateTime } from "@/lib/format-date";
-import { usePlayer, usePlayerVisits, usePlayerSessions, usePlayerGroupHistory, usePlayerNotes, usePlayerTransactions } from "@/hooks/use-player-profile";
+import {
+  usePlayer, usePlayerVisits, usePlayerSessions, usePlayerGroupHistory,
+  usePlayerNotes, usePlayerTransactions, usePlayerEconomy, usePlayerExpenses,
+} from "@/hooks/use-player-profile";
 import { useAuth } from "@/lib/auth-context";
+import { edgeFor, theoFromHands, theoFromDrop, holdPct } from "@/lib/casino-edges";
 
 // CCTV (surveillance) and finance_manager get read-only access on this page.
 // Manager / Super Admin can edit via the dialog.
