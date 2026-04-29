@@ -13,6 +13,9 @@ import { fmtDate, fmtDateTime } from "@/lib/format-date";
 import { usePlayer, usePlayerVisits, usePlayerSessions, usePlayerGroupHistory, usePlayerNotes } from "@/hooks/use-player-profile";
 import { useAuth } from "@/lib/auth-context";
 
+// CCTV (surveillance) and finance_manager get read-only access on this page.
+// Manager / Super Admin can edit via the dialog.
+
 const fmtDuration = (minutes: number) => {
   if (!minutes || minutes < 0) return "—";
   const h = Math.floor(minutes / 60);
@@ -118,9 +121,11 @@ const PlayerProfile = () => {
         <Button variant="ghost" size="sm" onClick={() => navigate("/players")} className="h-9">
           <ArrowLeft className="w-4 h-4 mr-1" /> Players
         </Button>
-        <Button variant="outline" size="sm" className="h-9" onClick={() => setEditOpen(true)}>
-          Edit player
-        </Button>
+        {(isManager || roles.includes("super_admin")) && (
+          <Button variant="outline" size="sm" className="h-9" onClick={() => setEditOpen(true)}>
+            Edit player
+          </Button>
+        )}
       </div>
 
       {/* Header card: photo left, info right */}
