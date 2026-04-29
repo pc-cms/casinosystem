@@ -2,7 +2,7 @@ import { useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, Users, Landmark, Table2, Receipt,
-  ClipboardList, BarChart3, Sun, Moon, Shield, Gamepad2,
+  ClipboardList, Sun, Moon, Shield, Gamepad2,
   UsersRound, LogOut, Settings, FileBarChart,
   ListChecks, Eye, Target,
   Building2, UserCheck, ClipboardPen, ShieldCheck, ShieldOff,
