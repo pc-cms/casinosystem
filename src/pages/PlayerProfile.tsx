@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
-import { ArrowLeft, User, FileImage, Users as UsersIcon, BarChart3, Ticket, Trophy, History, MapPin } from "lucide-react";
+import { ArrowLeft, User, Users as UsersIcon, BarChart3, Ticket, Trophy, History, MapPin, Gift } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -10,8 +10,12 @@ import CasinoBadge from "@/components/player/CasinoBadge";
 import FlagBadges from "@/components/player/FlagBadges";
 import PlayerEditDialog from "@/components/PlayerEditDialog";
 import { fmtDate, fmtDateTime } from "@/lib/format-date";
-import { usePlayer, usePlayerVisits, usePlayerSessions, usePlayerGroupHistory, usePlayerNotes, usePlayerTransactions } from "@/hooks/use-player-profile";
+import {
+  usePlayer, usePlayerVisits, usePlayerSessions, usePlayerGroupHistory,
+  usePlayerNotes, usePlayerTransactions, usePlayerEconomy, usePlayerExpenses,
+} from "@/hooks/use-player-profile";
 import { useAuth } from "@/lib/auth-context";
+import { edgeFor, theoFromHands, theoFromDrop, holdPct } from "@/lib/casino-edges";
 
 // CCTV (surveillance) and finance_manager get read-only access on this page.
 // Manager / Super Admin can edit via the dialog.
@@ -35,6 +39,8 @@ const fmtMoney = (n: number) => {
   return `${sign}${Math.abs(n).toLocaleString()}`;
 };
 
+const dot = () => <span className="text-muted-foreground">·</span>;
+
 const PlayerProfile = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -44,6 +50,8 @@ const PlayerProfile = () => {
   const { data: visits = [] } = usePlayerVisits(id);
   const { data: transactions = [] } = usePlayerTransactions(id);
   const { data: groupHistory = [] } = usePlayerGroupHistory(id);
+  const { data: economy = null } = usePlayerEconomy(id);
+  const { data: expenses = [] } = usePlayerExpenses(id);
   const canSeeNotes = roles.some(r => ["pit", "surveillance", "manager"].includes(r)) || isManager;
   const { data: notes = [] } = usePlayerNotes(id, canSeeNotes);
 
@@ -53,49 +61,7 @@ const PlayerProfile = () => {
 
   const [editOpen, setEditOpen] = useState(false);
 
-  // Map transactions to visits (same casino + within check-in / check-out window).
-  // Open visits (no check-out) consume any later txn within +24h fallback.
-  const visitFinancials = useMemo(() => {
-    const map = new Map<string, { totalIn: number; cashout: number }>();
-    for (const v of visits) {
-      const start = new Date(v.checked_in_at).getTime();
-      const end = v.checked_out_at ? new Date(v.checked_out_at).getTime() : start + 24 * 3600 * 1000;
-      let totalIn = 0;
-      let cashout = 0;
-      for (const t of transactions) {
-        if (t.casino_id !== v.casino_id) continue;
-        const ts = new Date(t.created_at).getTime();
-        if (ts < start || ts > end) continue;
-        const amt = Number(t.amount) || 0;
-        if (t.type === "buy") totalIn += amt;
-        else if (t.type === "cashout") cashout += amt;
-      }
-      map.set(v.id, { totalIn, cashout });
-    }
-    return map;
-  }, [visits, transactions]);
-
-  // Lifetime KPIs
-  const lifetime = useMemo(() => {
-    const totalMins = visits.reduce((s, v) => s + visitDuration(v), 0);
-    let totalIn = 0;
-    let totalResult = 0;
-    for (const v of visits) {
-      const f = visitFinancials.get(v.id);
-      if (!f) continue;
-      totalIn += f.totalIn;
-      totalResult += f.totalIn - f.cashout; // house result (positive = casino wins)
-    }
-    return {
-      visitCount: visits.length,
-      totalMins,
-      lastVisit: visits[0]?.checked_in_at || null,
-      totalIn,
-      totalResult,
-    };
-  }, [visits, visitFinancials]);
-
-  // Range filter applies to ALL tabs (visits, sessions, transactions).
+  // Range bounds (apply to all tabs).
   const rangeStartMs = useMemo(() => new Date(`${range.from}T00:00:00`).getTime(), [range.from]);
   const rangeEndMs = useMemo(() => new Date(`${range.to}T23:59:59`).getTime(), [range.to]);
 
@@ -115,27 +81,116 @@ const PlayerProfile = () => {
     [transactions, rangeStartMs, rangeEndMs]
   );
 
-  // Per-table financials (Position / total IN / total OUT / Result) within range.
-  // Sessions provide duration; transactions provide IN/OUT.
+  const expensesInRange = useMemo(
+    () => expenses.filter((e: any) => {
+      const ts = new Date(e.created_at).getTime();
+      return ts >= rangeStartMs && ts <= rangeEndMs;
+    }),
+    [expenses, rangeStartMs, rangeEndMs]
+  );
+
+  // Map transactions to visits (same casino + within check-in / check-out window).
+  const visitFinancials = useMemo(() => {
+    const map = new Map<string, { totalIn: number; cashout: number; comps: number }>();
+    for (const v of visits) {
+      const start = new Date(v.checked_in_at).getTime();
+      const end = v.checked_out_at ? new Date(v.checked_out_at).getTime() : start + 24 * 3600 * 1000;
+      let totalIn = 0;
+      let cashout = 0;
+      let comps = 0;
+      for (const t of transactions) {
+        if (t.casino_id !== v.casino_id) continue;
+        const ts = new Date(t.created_at).getTime();
+        if (ts < start || ts > end) continue;
+        const amt = Number(t.amount) || 0;
+        if (t.type === "buy") totalIn += amt;
+        else if (t.type === "cashout") cashout += amt;
+      }
+      for (const e of expenses) {
+        if (e.casino_id !== v.casino_id) continue;
+        const ts = new Date(e.created_at).getTime();
+        if (ts < start || ts > end) continue;
+        comps += Number(e.amount) || 0;
+      }
+      map.set(v.id, { totalIn, cashout, comps });
+    }
+    return map;
+  }, [visits, transactions, expenses]);
+
+  // Lifetime KPIs — prefer authoritative `player_economy` view, fall back to derived.
+  const lifetime = useMemo(() => {
+    const totalMins = visits.reduce((s, v) => s + visitDuration(v), 0);
+    const drop = Number(economy?.total_drop) || 0;
+    const cashout = Number(economy?.total_cashout) || 0;
+    const comps = Number(economy?.total_expenses) || 0;
+    const result = Number(economy?.real_result);
+    const realResult = Number.isFinite(result) ? result : drop - cashout - comps;
+    const hold = holdPct(drop, cashout, comps);
+    const firstVisit = visits.length ? visits[visits.length - 1].checked_in_at : null;
+    const lastVisit = visits[0]?.checked_in_at || null;
+    const daysSinceLast = lastVisit
+      ? Math.floor((Date.now() - new Date(lastVisit).getTime()) / 86400000)
+      : null;
+    const avgSession = visits.length ? Math.round(totalMins / visits.length) : 0;
+    return {
+      visitCount: visits.length,
+      totalMins,
+      avgSession,
+      drop,
+      cashout,
+      comps,
+      realResult,
+      hold,
+      firstVisit,
+      lastVisit,
+      daysSinceLast,
+    };
+  }, [visits, economy]);
+
+  // Period summary (uses range-filtered tx + expenses + visits).
+  const period = useMemo(() => {
+    let pIn = 0, pOut = 0;
+    for (const t of txInRange as any[]) {
+      const amt = Number(t.amount) || 0;
+      if (t.type === "buy") pIn += amt;
+      else if (t.type === "cashout") pOut += amt;
+    }
+    const pComps = expensesInRange.reduce((s, e: any) => s + (Number(e.amount) || 0), 0);
+    const pMins = visitsInRange.reduce((s, v) => s + visitDuration(v), 0);
+    const result = pIn - pOut - pComps;
+    return { pIn, pOut, pComps, pMins, result, hold: holdPct(pIn, pOut, pComps), visits: visitsInRange.length };
+  }, [txInRange, expensesInRange, visitsInRange]);
+
+  // Per-table aggregates (Position / Sessions / Hands / Avg bet / Duration / IN / OUT / Theo / Result / Hold).
   const tableStats = useMemo(() => {
-    type Row = { key: string; name: string; minutes: number; totalIn: number; totalOut: number };
+    type Row = {
+      key: string; name: string; game: string;
+      sessions: number; hands: number; betSum: number;
+      minutes: number; totalIn: number; totalOut: number;
+    };
     const map = new Map<string, Row>();
 
     for (const s of sessions as any[]) {
       const key = s.table_id || "unknown";
       const name = s.gaming_tables?.name || "—";
-      const cur = map.get(key) || { key, name, minutes: 0, totalIn: 0, totalOut: 0 };
+      const game = s.gaming_tables?.game || "—";
+      const cur = map.get(key) || { key, name, game, sessions: 0, hands: 0, betSum: 0, minutes: 0, totalIn: 0, totalOut: 0 };
+      cur.sessions += 1;
+      cur.hands += s.hands_played || 0;
+      cur.betSum += (Number(s.avg_bet) || 0) * (s.hands_played || 0);
       cur.minutes += s.duration_minutes || 0;
       map.set(key, cur);
     }
     for (const t of txInRange as any[]) {
       const key = t.table_id || "unknown";
       const name = t.gaming_tables?.name || "—";
-      const cur = map.get(key) || { key, name, minutes: 0, totalIn: 0, totalOut: 0 };
+      const game = t.gaming_tables?.game || "—";
+      const cur = map.get(key) || { key, name, game, sessions: 0, hands: 0, betSum: 0, minutes: 0, totalIn: 0, totalOut: 0 };
       const amt = Number(t.amount) || 0;
       if (t.type === "buy") cur.totalIn += amt;
       else if (t.type === "cashout") cur.totalOut += amt;
       if (cur.name === "—" && name !== "—") cur.name = name;
+      if (cur.game === "—" && game !== "—") cur.game = game;
       map.set(key, cur);
     }
 
@@ -145,14 +200,60 @@ const PlayerProfile = () => {
 
     const total = rows.reduce(
       (acc, r) => ({
+        sessions: acc.sessions + r.sessions,
+        hands: acc.hands + r.hands,
         minutes: acc.minutes + r.minutes,
         totalIn: acc.totalIn + r.totalIn,
         totalOut: acc.totalOut + r.totalOut,
+        betSum: acc.betSum + r.betSum,
       }),
-      { minutes: 0, totalIn: 0, totalOut: 0 }
+      { sessions: 0, hands: 0, minutes: 0, totalIn: 0, totalOut: 0, betSum: 0 }
     );
     return { rows, total };
   }, [sessions, txInRange]);
+
+  // Per-game aggregates.
+  const gameStats = useMemo(() => {
+    type Row = { game: string; sessions: number; hands: number; minutes: number; totalIn: number; totalOut: number };
+    const map = new Map<string, Row>();
+    for (const r of tableStats.rows) {
+      const key = r.game;
+      const cur = map.get(key) || { game: key, sessions: 0, hands: 0, minutes: 0, totalIn: 0, totalOut: 0 };
+      cur.sessions += r.sessions;
+      cur.hands += r.hands;
+      cur.minutes += r.minutes;
+      cur.totalIn += r.totalIn;
+      cur.totalOut += r.totalOut;
+      map.set(key, cur);
+    }
+    return Array.from(map.values()).sort((a, b) => (b.totalIn - b.totalOut) - (a.totalIn - a.totalOut));
+  }, [tableStats.rows]);
+
+  // Per-casino aggregates (only useful when player visited multiple casinos).
+  const casinoStats = useMemo(() => {
+    const map = new Map<string, { id: string; name: string; visits: number; totalIn: number; totalOut: number; comps: number }>();
+    for (const v of visitsInRange as any[]) {
+      const k = v.casino_id;
+      const cur = map.get(k) || { id: k, name: v.casinos?.name || "—", visits: 0, totalIn: 0, totalOut: 0, comps: 0 };
+      cur.visits += 1;
+      const f = visitFinancials.get(v.id);
+      if (f) { cur.totalIn += f.totalIn; cur.totalOut += f.cashout; cur.comps += f.comps; }
+      map.set(k, cur);
+    }
+    return Array.from(map.values()).sort((a, b) => b.totalIn - a.totalIn);
+  }, [visitsInRange, visitFinancials]);
+
+  // Weekday × hour heatmap (all visits, lifetime).
+  const heatmap = useMemo(() => {
+    const grid: number[][] = Array.from({ length: 7 }, () => Array(24).fill(0));
+    for (const v of visits as any[]) {
+      const d = new Date(v.checked_in_at);
+      grid[d.getDay()][d.getHours()] += 1;
+    }
+    let max = 0;
+    for (const row of grid) for (const c of row) if (c > max) max = c;
+    return { grid, max };
+  }, [visits]);
 
   if (isLoading) {
     return (
@@ -230,24 +331,35 @@ const PlayerProfile = () => {
 
             {tags.length > 0 && <FlagBadges tags={tags} />}
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pt-2">
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2 pt-2">
               <Kpi label="Visits" value={lifetime.visitCount.toString()} />
               <Kpi label="Total time" value={fmtDuration(lifetime.totalMins)} />
-              <Kpi label="Total IN" value={fmtMoney(lifetime.totalIn)} />
+              <Kpi label="Avg session" value={lifetime.avgSession ? fmtDuration(lifetime.avgSession) : "—"} />
+              <Kpi label="Drop" value={fmtMoney(lifetime.drop)} />
+              <Kpi label="Cashout" value={fmtMoney(lifetime.cashout)} />
+              <Kpi label="Comps" value={fmtMoney(lifetime.comps)} />
               <Kpi
-                label="Result"
-                value={fmtMoney(lifetime.totalResult)}
-                valueClass={lifetime.totalResult >= 0 ? "cms-amount-positive" : "cms-amount-negative"}
+                label="Real result"
+                value={fmtMoney(lifetime.realResult)}
+                valueClass={lifetime.realResult >= 0 ? "cms-amount-positive" : "cms-amount-negative"}
               />
-              <Kpi label="Last visit" value={lifetime.lastVisit ? fmtDate(lifetime.lastVisit) : "—"} />
-              <Kpi label="Registered" value={player.created_at ? fmtDate(player.created_at) : "—"} />
+              <Kpi
+                label="Hold %"
+                value={lifetime.hold === null ? "—" : `${lifetime.hold.toFixed(1)}%`}
+                valueClass={lifetime.hold === null ? undefined : lifetime.hold >= 0 ? "cms-amount-positive" : "cms-amount-negative"}
+              />
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs text-muted-foreground">
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3 text-xs text-muted-foreground">
               <Field label="Phone" value={player.phone || "—"} />
               <Field label="Birth date" value={player.birth_date ? fmtDate(player.birth_date) : "—"} />
               <Field label="Player type" value={player.player_type || "—"} />
               <Field label="Status" value={player.status || "active"} />
+              <Field label="First visit" value={lifetime.firstVisit ? fmtDate(lifetime.firstVisit) : "—"} />
+              <Field
+                label="Days since last"
+                value={lifetime.daysSinceLast === null ? "—" : `${lifetime.daysSinceLast}d`}
+              />
             </div>
           </div>
         </div>
@@ -305,14 +417,16 @@ const PlayerProfile = () => {
                       <th className="text-left py-2 px-2">Check-out</th>
                       <th className="text-left py-2 px-2">Duration</th>
                       <th className="text-left py-2 px-2">Position</th>
-                      <th className="text-right py-2 px-2">Total IN</th>
+                      <th className="text-right py-2 px-2">Drop</th>
+                      <th className="text-right py-2 px-2">Cashout</th>
+                      <th className="text-right py-2 px-2">Comps</th>
                       <th className="text-right py-2 px-2">Result</th>
                     </tr>
                   </thead>
                   <tbody>
                     {visitsInRange.slice(0, 200).map((v: any) => {
-                      const f = visitFinancials.get(v.id) || { totalIn: 0, cashout: 0 };
-                      const result = f.totalIn - f.cashout;
+                      const f = visitFinancials.get(v.id) || { totalIn: 0, cashout: 0, comps: 0 };
+                      const result = f.totalIn - f.cashout - f.comps;
                       return (
                         <tr key={v.id} className="border-t border-border">
                           <td className="py-1.5 px-2 font-mono text-xs">{fmtDate(v.date)}</td>
@@ -321,7 +435,9 @@ const PlayerProfile = () => {
                           <td className="py-1.5 px-2 font-mono text-xs">{v.checked_out_at ? fmtDateTime(v.checked_out_at) : "—"}</td>
                           <td className="py-1.5 px-2">{fmtDuration(visitDuration(v))}</td>
                           <td className="py-1.5 px-2"><span className="inline-flex items-center gap-1 text-xs"><MapPin className="w-3 h-3" />{v.position}</span></td>
-                          <td className="py-1.5 px-2 font-mono text-xs text-right">{f.totalIn ? fmtMoney(f.totalIn) : <span className="text-muted-foreground">·</span>}</td>
+                          <td className="py-1.5 px-2 font-mono text-xs text-right">{f.totalIn ? fmtMoney(f.totalIn) : dot()}</td>
+                          <td className="py-1.5 px-2 font-mono text-xs text-right">{f.cashout ? fmtMoney(f.cashout) : dot()}</td>
+                          <td className="py-1.5 px-2 font-mono text-xs text-right">{f.comps ? fmtMoney(f.comps) : dot()}</td>
                           <td className={`py-1.5 px-2 font-mono text-xs text-right ${result === 0 ? "text-muted-foreground" : result > 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
                             {result === 0 ? "·" : fmtMoney(result)}
                           </td>
@@ -332,19 +448,21 @@ const PlayerProfile = () => {
                   <tfoot>
                     {(() => {
                       const periodMins = visitsInRange.reduce((s, v) => s + visitDuration(v), 0);
-                      let pIn = 0; let pRes = 0;
+                      let pIn = 0, pOut = 0, pComps = 0;
                       for (const v of visitsInRange) {
                         const f = visitFinancials.get(v.id);
                         if (!f) continue;
-                        pIn += f.totalIn;
-                        pRes += f.totalIn - f.cashout;
+                        pIn += f.totalIn; pOut += f.cashout; pComps += f.comps;
                       }
+                      const pRes = pIn - pOut - pComps;
                       return (
                         <tr className="border-t-2 border-border font-semibold">
                           <td className="py-2 px-2 text-xs uppercase text-muted-foreground" colSpan={4}>Total (period)</td>
                           <td className="py-2 px-2">{fmtDuration(periodMins)}</td>
                           <td className="py-2 px-2"></td>
                           <td className="py-2 px-2 font-mono text-xs text-right">{fmtMoney(pIn)}</td>
+                          <td className="py-2 px-2 font-mono text-xs text-right">{fmtMoney(pOut)}</td>
+                          <td className="py-2 px-2 font-mono text-xs text-right">{fmtMoney(pComps)}</td>
                           <td className={`py-2 px-2 font-mono text-xs text-right ${pRes >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>{fmtMoney(pRes)}</td>
                         </tr>
                       );
@@ -356,9 +474,23 @@ const PlayerProfile = () => {
           </PageSection>
         </TabsContent>
 
-        {/* TAB 2 */}
+        {/* TAB 2 — Statistics */}
         <TabsContent value="stats" className="space-y-4">
-          <PageSection card title={`Tables (${tableStats.rows.length})`}>
+          {/* Period summary strip */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+            <Kpi label="Visits" value={period.visits.toString()} />
+            <Kpi label="Time" value={fmtDuration(period.pMins)} />
+            <Kpi label="Drop" value={fmtMoney(period.pIn)} />
+            <Kpi label="Cashout" value={fmtMoney(period.pOut)} />
+            <Kpi label="Comps" value={fmtMoney(period.pComps)} />
+            <Kpi
+              label="Result"
+              value={fmtMoney(period.result)}
+              valueClass={period.result >= 0 ? "cms-amount-positive" : "cms-amount-negative"}
+            />
+          </div>
+
+          <PageSection card title={`By table (${tableStats.rows.length})`}>
             {tableStats.rows.length === 0 ? (
               <div className="text-sm text-muted-foreground">No table activity in this period.</div>
             ) : (
@@ -367,21 +499,143 @@ const PlayerProfile = () => {
                   <thead>
                     <tr className="text-xs text-muted-foreground uppercase">
                       <th className="text-left py-2 px-2">Position</th>
-                      <th className="text-right py-2 px-2">Total duration</th>
-                      <th className="text-right py-2 px-2">Total IN</th>
-                      <th className="text-right py-2 px-2">Total OUT</th>
+                      <th className="text-left py-2 px-2">Game</th>
+                      <th className="text-right py-2 px-2">Sess.</th>
+                      <th className="text-right py-2 px-2">Hands</th>
+                      <th className="text-right py-2 px-2">Avg bet</th>
+                      <th className="text-right py-2 px-2">Duration</th>
+                      <th className="text-right py-2 px-2">IN</th>
+                      <th className="text-right py-2 px-2">OUT</th>
+                      <th className="text-right py-2 px-2">Theo</th>
                       <th className="text-right py-2 px-2">Result</th>
+                      <th className="text-right py-2 px-2">Hold %</th>
                     </tr>
                   </thead>
                   <tbody>
                     {tableStats.rows.map((r) => {
                       const result = r.totalIn - r.totalOut;
+                      const avgBet = r.hands ? r.betSum / r.hands : 0;
+                      const theo = r.hands
+                        ? theoFromHands(avgBet, r.hands, r.game)
+                        : theoFromDrop(r.totalIn, r.game);
+                      const hold = holdPct(r.totalIn, r.totalOut, 0);
                       return (
                         <tr key={r.key} className="border-t border-border">
                           <td className="py-1.5 px-2">{r.name}</td>
-                          <td className="py-1.5 px-2 text-right font-mono">{r.minutes ? fmtDuration(r.minutes) : <span className="text-muted-foreground">·</span>}</td>
-                          <td className="py-1.5 px-2 text-right font-mono">{r.totalIn ? fmtMoney(r.totalIn) : <span className="text-muted-foreground">·</span>}</td>
-                          <td className="py-1.5 px-2 text-right font-mono">{r.totalOut ? fmtMoney(r.totalOut) : <span className="text-muted-foreground">·</span>}</td>
+                          <td className="py-1.5 px-2 text-xs text-muted-foreground">{r.game}</td>
+                          <td className="py-1.5 px-2 text-right font-mono">{r.sessions || dot()}</td>
+                          <td className="py-1.5 px-2 text-right font-mono">{r.hands || dot()}</td>
+                          <td className="py-1.5 px-2 text-right font-mono">{avgBet ? fmtMoney(Math.round(avgBet)) : dot()}</td>
+                          <td className="py-1.5 px-2 text-right font-mono">{r.minutes ? fmtDuration(r.minutes) : dot()}</td>
+                          <td className="py-1.5 px-2 text-right font-mono">{r.totalIn ? fmtMoney(r.totalIn) : dot()}</td>
+                          <td className="py-1.5 px-2 text-right font-mono">{r.totalOut ? fmtMoney(r.totalOut) : dot()}</td>
+                          <td className="py-1.5 px-2 text-right font-mono text-muted-foreground">{theo ? fmtMoney(theo) : dot()}</td>
+                          <td className={`py-1.5 px-2 text-right font-mono ${result === 0 ? "text-muted-foreground" : result > 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
+                            {result === 0 ? "·" : fmtMoney(result)}
+                          </td>
+                          <td className="py-1.5 px-2 text-right font-mono text-xs">
+                            {hold === null ? dot() : `${hold.toFixed(1)}%`}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                  <tfoot>
+                    {(() => {
+                      const t = tableStats.total;
+                      const avgBet = t.hands ? t.betSum / t.hands : 0;
+                      const result = t.totalIn - t.totalOut;
+                      const hold = holdPct(t.totalIn, t.totalOut, 0);
+                      return (
+                        <tr className="border-t-2 border-border bg-muted/30 font-semibold">
+                          <td className="py-2 px-2 uppercase text-xs text-muted-foreground" colSpan={2}>Total</td>
+                          <td className="py-2 px-2 text-right font-mono">{t.sessions}</td>
+                          <td className="py-2 px-2 text-right font-mono">{t.hands}</td>
+                          <td className="py-2 px-2 text-right font-mono">{avgBet ? fmtMoney(Math.round(avgBet)) : "—"}</td>
+                          <td className="py-2 px-2 text-right font-mono">{fmtDuration(t.minutes)}</td>
+                          <td className="py-2 px-2 text-right font-mono">{fmtMoney(t.totalIn)}</td>
+                          <td className="py-2 px-2 text-right font-mono">{fmtMoney(t.totalOut)}</td>
+                          <td className="py-2 px-2 text-right font-mono text-muted-foreground">—</td>
+                          <td className={`py-2 px-2 text-right font-mono ${result >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>{fmtMoney(result)}</td>
+                          <td className="py-2 px-2 text-right font-mono text-xs">
+                            {hold === null ? "—" : `${hold.toFixed(1)}%`}
+                          </td>
+                        </tr>
+                      );
+                    })()}
+                  </tfoot>
+                </table>
+              </div>
+            )}
+          </PageSection>
+
+          {gameStats.length > 0 && (
+            <PageSection card title={`By game type (${gameStats.length})`}>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-xs text-muted-foreground uppercase">
+                      <th className="text-left py-2 px-2">Game</th>
+                      <th className="text-right py-2 px-2">Sess.</th>
+                      <th className="text-right py-2 px-2">Hands</th>
+                      <th className="text-right py-2 px-2">Duration</th>
+                      <th className="text-right py-2 px-2">IN</th>
+                      <th className="text-right py-2 px-2">OUT</th>
+                      <th className="text-right py-2 px-2">Result</th>
+                      <th className="text-right py-2 px-2">Hold %</th>
+                      <th className="text-right py-2 px-2">Edge</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {gameStats.map((g) => {
+                      const result = g.totalIn - g.totalOut;
+                      const hold = holdPct(g.totalIn, g.totalOut, 0);
+                      return (
+                        <tr key={g.game} className="border-t border-border">
+                          <td className="py-1.5 px-2">{g.game}</td>
+                          <td className="py-1.5 px-2 text-right font-mono">{g.sessions || dot()}</td>
+                          <td className="py-1.5 px-2 text-right font-mono">{g.hands || dot()}</td>
+                          <td className="py-1.5 px-2 text-right font-mono">{g.minutes ? fmtDuration(g.minutes) : dot()}</td>
+                          <td className="py-1.5 px-2 text-right font-mono">{g.totalIn ? fmtMoney(g.totalIn) : dot()}</td>
+                          <td className="py-1.5 px-2 text-right font-mono">{g.totalOut ? fmtMoney(g.totalOut) : dot()}</td>
+                          <td className={`py-1.5 px-2 text-right font-mono ${result === 0 ? "text-muted-foreground" : result > 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
+                            {result === 0 ? "·" : fmtMoney(result)}
+                          </td>
+                          <td className="py-1.5 px-2 text-right font-mono text-xs">{hold === null ? dot() : `${hold.toFixed(1)}%`}</td>
+                          <td className="py-1.5 px-2 text-right font-mono text-xs text-muted-foreground">{(edgeFor(g.game) * 100).toFixed(2)}%</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </PageSection>
+          )}
+
+          {casinoStats.length > 1 && (
+            <PageSection card title={`By casino (${casinoStats.length})`}>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-xs text-muted-foreground uppercase">
+                      <th className="text-left py-2 px-2">Casino</th>
+                      <th className="text-right py-2 px-2">Visits</th>
+                      <th className="text-right py-2 px-2">IN</th>
+                      <th className="text-right py-2 px-2">OUT</th>
+                      <th className="text-right py-2 px-2">Comps</th>
+                      <th className="text-right py-2 px-2">Result</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {casinoStats.map((c) => {
+                      const result = c.totalIn - c.totalOut - c.comps;
+                      return (
+                        <tr key={c.id} className="border-t border-border">
+                          <td className="py-1.5 px-2">{c.name}</td>
+                          <td className="py-1.5 px-2 text-right font-mono">{c.visits}</td>
+                          <td className="py-1.5 px-2 text-right font-mono">{c.totalIn ? fmtMoney(c.totalIn) : dot()}</td>
+                          <td className="py-1.5 px-2 text-right font-mono">{c.totalOut ? fmtMoney(c.totalOut) : dot()}</td>
+                          <td className="py-1.5 px-2 text-right font-mono">{c.comps ? fmtMoney(c.comps) : dot()}</td>
                           <td className={`py-1.5 px-2 text-right font-mono ${result === 0 ? "text-muted-foreground" : result > 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
                             {result === 0 ? "·" : fmtMoney(result)}
                           </td>
@@ -389,27 +643,72 @@ const PlayerProfile = () => {
                       );
                     })}
                   </tbody>
-                  <tfoot>
-                    <tr className="border-t-2 border-border bg-muted/30 font-semibold">
-                      <td className="py-2 px-2 uppercase text-xs text-muted-foreground">Total</td>
-                      <td className="py-2 px-2 text-right font-mono">{fmtDuration(tableStats.total.minutes)}</td>
-                      <td className="py-2 px-2 text-right font-mono">{fmtMoney(tableStats.total.totalIn)}</td>
-                      <td className="py-2 px-2 text-right font-mono">{fmtMoney(tableStats.total.totalOut)}</td>
-                      <td className={`py-2 px-2 text-right font-mono ${(tableStats.total.totalIn - tableStats.total.totalOut) >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
-                        {fmtMoney(tableStats.total.totalIn - tableStats.total.totalOut)}
-                      </td>
+                </table>
+              </div>
+            </PageSection>
+          )}
+
+          <PageSection card title="Visit rhythm (lifetime, weekday × hour)">
+            {heatmap.max === 0 ? (
+              <div className="text-sm text-muted-foreground">Not enough visits.</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="text-[10px] font-mono border-separate" style={{ borderSpacing: 2 }}>
+                  <thead>
+                    <tr>
+                      <th className="text-left pr-2 text-muted-foreground"></th>
+                      {Array.from({ length: 24 }, (_, h) => (
+                        <th key={h} className="w-6 text-center text-muted-foreground">{h}</th>
+                      ))}
                     </tr>
-                  </tfoot>
+                  </thead>
+                  <tbody>
+                    {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((label, dow) => (
+                      <tr key={label}>
+                        <td className="pr-2 text-muted-foreground uppercase">{label}</td>
+                        {heatmap.grid[dow].map((count, h) => {
+                          const intensity = count / heatmap.max;
+                          const bg = count === 0
+                            ? "transparent"
+                            : `hsl(var(--primary) / ${0.15 + intensity * 0.85})`;
+                          return (
+                            <td
+                              key={h}
+                              title={`${label} ${h}:00 — ${count} visit${count === 1 ? "" : "s"}`}
+                              className="w-6 h-5 text-center rounded-sm border border-border/40"
+                              style={{ background: bg, color: intensity > 0.55 ? "hsl(var(--primary-foreground))" : undefined }}
+                            >
+                              {count > 0 ? count : ""}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
                 </table>
               </div>
             )}
           </PageSection>
 
-          <PageSection card title="Slots">
-            <div className="text-sm text-muted-foreground">
-              Per-session slot tracking is not yet recorded. Aggregated economy data is available on the Stats page.
-            </div>
-          </PageSection>
+          {expensesInRange.length > 0 && (
+            <PageSection card title={`Comps in period (${expensesInRange.length})`}>
+              <div className="space-y-1.5 max-h-[280px] overflow-y-auto">
+                {expensesInRange.slice(0, 50).map((e: any) => (
+                  <div key={e.id} className="flex items-center justify-between text-xs border-b border-border/40 py-1">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Gift className="w-3 h-3 text-muted-foreground shrink-0" />
+                      <span className="text-[10px] uppercase font-mono text-muted-foreground">{e.category}</span>
+                      <span className="text-card-foreground truncate">{e.description || "—"}</span>
+                    </div>
+                    <div className="flex items-center gap-3 shrink-0">
+                      <span className="font-mono">{fmtMoney(Number(e.amount) || 0)}</span>
+                      <span className="text-muted-foreground">{fmtDate(e.created_at)}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </PageSection>
+          )}
         </TabsContent>
 
         {/* TAB 3 */}
