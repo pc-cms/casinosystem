@@ -42,6 +42,7 @@ const PlayerProfile = () => {
 
   const { data: player, isLoading } = usePlayer(id);
   const { data: visits = [] } = usePlayerVisits(id);
+  const { data: transactions = [] } = usePlayerTransactions(id);
   const { data: groupHistory = [] } = usePlayerGroupHistory(id);
   const canSeeNotes = roles.some(r => ["pit", "surveillance", "manager"].includes(r)) || isManager;
   const { data: notes = [] } = usePlayerNotes(id, canSeeNotes);
@@ -52,15 +53,47 @@ const PlayerProfile = () => {
 
   const [editOpen, setEditOpen] = useState(false);
 
+  // Map transactions to visits (same casino + within check-in / check-out window).
+  // Open visits (no check-out) consume any later txn within +24h fallback.
+  const visitFinancials = useMemo(() => {
+    const map = new Map<string, { totalIn: number; cashout: number }>();
+    for (const v of visits) {
+      const start = new Date(v.checked_in_at).getTime();
+      const end = v.checked_out_at ? new Date(v.checked_out_at).getTime() : start + 24 * 3600 * 1000;
+      let totalIn = 0;
+      let cashout = 0;
+      for (const t of transactions) {
+        if (t.casino_id !== v.casino_id) continue;
+        const ts = new Date(t.created_at).getTime();
+        if (ts < start || ts > end) continue;
+        const amt = Number(t.amount) || 0;
+        if (t.type === "buy") totalIn += amt;
+        else if (t.type === "cashout") cashout += amt;
+      }
+      map.set(v.id, { totalIn, cashout });
+    }
+    return map;
+  }, [visits, transactions]);
+
   // Lifetime KPIs
   const lifetime = useMemo(() => {
     const totalMins = visits.reduce((s, v) => s + visitDuration(v), 0);
+    let totalIn = 0;
+    let totalResult = 0;
+    for (const v of visits) {
+      const f = visitFinancials.get(v.id);
+      if (!f) continue;
+      totalIn += f.totalIn;
+      totalResult += f.totalIn - f.cashout; // house result (positive = casino wins)
+    }
     return {
       visitCount: visits.length,
       totalMins,
       lastVisit: visits[0]?.checked_in_at || null,
+      totalIn,
+      totalResult,
     };
-  }, [visits]);
+  }, [visits, visitFinancials]);
 
   // Sessions stats
   const sessionStats = useMemo(() => {
