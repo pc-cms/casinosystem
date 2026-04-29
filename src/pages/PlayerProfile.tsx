@@ -197,9 +197,15 @@ const PlayerProfile = () => {
 
             {tags.length > 0 && <FlagBadges tags={tags} />}
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pt-2">
               <Kpi label="Visits" value={lifetime.visitCount.toString()} />
               <Kpi label="Total time" value={fmtDuration(lifetime.totalMins)} />
+              <Kpi label="Total IN" value={fmtMoney(lifetime.totalIn)} />
+              <Kpi
+                label="Result"
+                value={fmtMoney(lifetime.totalResult)}
+                valueClass={lifetime.totalResult >= 0 ? "cms-amount-positive" : "cms-amount-negative"}
+              />
               <Kpi label="Last visit" value={lifetime.lastVisit ? fmtDate(lifetime.lastVisit) : "—"} />
               <Kpi label="Registered" value={player.created_at ? fmtDate(player.created_at) : "—"} />
             </div>
