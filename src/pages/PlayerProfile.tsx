@@ -13,6 +13,9 @@ import { fmtDate, fmtDateTime } from "@/lib/format-date";
 import { usePlayer, usePlayerVisits, usePlayerSessions, usePlayerGroupHistory, usePlayerNotes } from "@/hooks/use-player-profile";
 import { useAuth } from "@/lib/auth-context";
 
+// CCTV (surveillance) and finance_manager get read-only access on this page.
+// Manager / Super Admin can edit via the dialog.
+
 const fmtDuration = (minutes: number) => {
   if (!minutes || minutes < 0) return "—";
   const h = Math.floor(minutes / 60);
