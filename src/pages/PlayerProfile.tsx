@@ -10,7 +10,7 @@ import CasinoBadge from "@/components/player/CasinoBadge";
 import FlagBadges from "@/components/player/FlagBadges";
 import PlayerEditDialog from "@/components/PlayerEditDialog";
 import { fmtDate, fmtDateTime } from "@/lib/format-date";
-import { usePlayer, usePlayerVisits, usePlayerSessions, usePlayerGroupHistory, usePlayerNotes } from "@/hooks/use-player-profile";
+import { usePlayer, usePlayerVisits, usePlayerSessions, usePlayerGroupHistory, usePlayerNotes, usePlayerTransactions } from "@/hooks/use-player-profile";
 import { useAuth } from "@/lib/auth-context";
 
 // CCTV (surveillance) and finance_manager get read-only access on this page.
@@ -42,6 +42,7 @@ const PlayerProfile = () => {
 
   const { data: player, isLoading } = usePlayer(id);
   const { data: visits = [] } = usePlayerVisits(id);
+  const { data: transactions = [] } = usePlayerTransactions(id);
   const { data: groupHistory = [] } = usePlayerGroupHistory(id);
   const canSeeNotes = roles.some(r => ["pit", "surveillance", "manager"].includes(r)) || isManager;
   const { data: notes = [] } = usePlayerNotes(id, canSeeNotes);
@@ -52,15 +53,47 @@ const PlayerProfile = () => {
 
   const [editOpen, setEditOpen] = useState(false);
 
+  // Map transactions to visits (same casino + within check-in / check-out window).
+  // Open visits (no check-out) consume any later txn within +24h fallback.
+  const visitFinancials = useMemo(() => {
+    const map = new Map<string, { totalIn: number; cashout: number }>();
+    for (const v of visits) {
+      const start = new Date(v.checked_in_at).getTime();
+      const end = v.checked_out_at ? new Date(v.checked_out_at).getTime() : start + 24 * 3600 * 1000;
+      let totalIn = 0;
+      let cashout = 0;
+      for (const t of transactions) {
+        if (t.casino_id !== v.casino_id) continue;
+        const ts = new Date(t.created_at).getTime();
+        if (ts < start || ts > end) continue;
+        const amt = Number(t.amount) || 0;
+        if (t.type === "buy") totalIn += amt;
+        else if (t.type === "cashout") cashout += amt;
+      }
+      map.set(v.id, { totalIn, cashout });
+    }
+    return map;
+  }, [visits, transactions]);
+
   // Lifetime KPIs
   const lifetime = useMemo(() => {
     const totalMins = visits.reduce((s, v) => s + visitDuration(v), 0);
+    let totalIn = 0;
+    let totalResult = 0;
+    for (const v of visits) {
+      const f = visitFinancials.get(v.id);
+      if (!f) continue;
+      totalIn += f.totalIn;
+      totalResult += f.totalIn - f.cashout; // house result (positive = casino wins)
+    }
     return {
       visitCount: visits.length,
       totalMins,
       lastVisit: visits[0]?.checked_in_at || null,
+      totalIn,
+      totalResult,
     };
-  }, [visits]);
+  }, [visits, visitFinancials]);
 
   // Sessions stats
   const sessionStats = useMemo(() => {
@@ -164,9 +197,15 @@ const PlayerProfile = () => {
 
             {tags.length > 0 && <FlagBadges tags={tags} />}
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pt-2">
               <Kpi label="Visits" value={lifetime.visitCount.toString()} />
               <Kpi label="Total time" value={fmtDuration(lifetime.totalMins)} />
+              <Kpi label="Total IN" value={fmtMoney(lifetime.totalIn)} />
+              <Kpi
+                label="Result"
+                value={fmtMoney(lifetime.totalResult)}
+                valueClass={lifetime.totalResult >= 0 ? "cms-amount-positive" : "cms-amount-negative"}
+              />
               <Kpi label="Last visit" value={lifetime.lastVisit ? fmtDate(lifetime.lastVisit) : "—"} />
               <Kpi label="Registered" value={player.created_at ? fmtDate(player.created_at) : "—"} />
             </div>
@@ -225,20 +264,39 @@ const PlayerProfile = () => {
                       <th className="text-left py-2 px-2">Check-out</th>
                       <th className="text-left py-2 px-2">Duration</th>
                       <th className="text-left py-2 px-2">Position</th>
+                      <th className="text-right py-2 px-2">Total IN</th>
+                      <th className="text-right py-2 px-2">Result</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {visits.slice(0, 200).map((v: any) => (
-                      <tr key={v.id} className="border-t border-border">
-                        <td className="py-1.5 px-2 font-mono text-xs">{fmtDate(v.date)}</td>
-                        <td className="py-1.5 px-2">{v.casinos?.name || "—"}</td>
-                        <td className="py-1.5 px-2 font-mono text-xs">{fmtDateTime(v.checked_in_at)}</td>
-                        <td className="py-1.5 px-2 font-mono text-xs">{v.checked_out_at ? fmtDateTime(v.checked_out_at) : "—"}</td>
-                        <td className="py-1.5 px-2">{fmtDuration(visitDuration(v))}</td>
-                        <td className="py-1.5 px-2"><span className="inline-flex items-center gap-1 text-xs"><MapPin className="w-3 h-3" />{v.position}</span></td>
-                      </tr>
-                    ))}
+                    {visits.slice(0, 200).map((v: any) => {
+                      const f = visitFinancials.get(v.id) || { totalIn: 0, cashout: 0 };
+                      const result = f.totalIn - f.cashout;
+                      return (
+                        <tr key={v.id} className="border-t border-border">
+                          <td className="py-1.5 px-2 font-mono text-xs">{fmtDate(v.date)}</td>
+                          <td className="py-1.5 px-2">{v.casinos?.name || "—"}</td>
+                          <td className="py-1.5 px-2 font-mono text-xs">{fmtDateTime(v.checked_in_at)}</td>
+                          <td className="py-1.5 px-2 font-mono text-xs">{v.checked_out_at ? fmtDateTime(v.checked_out_at) : "—"}</td>
+                          <td className="py-1.5 px-2">{fmtDuration(visitDuration(v))}</td>
+                          <td className="py-1.5 px-2"><span className="inline-flex items-center gap-1 text-xs"><MapPin className="w-3 h-3" />{v.position}</span></td>
+                          <td className="py-1.5 px-2 font-mono text-xs text-right">{f.totalIn ? fmtMoney(f.totalIn) : <span className="text-muted-foreground">·</span>}</td>
+                          <td className={`py-1.5 px-2 font-mono text-xs text-right ${result === 0 ? "text-muted-foreground" : result > 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
+                            {result === 0 ? "·" : fmtMoney(result)}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
+                  <tfoot>
+                    <tr className="border-t-2 border-border font-semibold">
+                      <td className="py-2 px-2 text-xs uppercase text-muted-foreground" colSpan={4}>Total</td>
+                      <td className="py-2 px-2">{fmtDuration(lifetime.totalMins)}</td>
+                      <td className="py-2 px-2"></td>
+                      <td className="py-2 px-2 font-mono text-xs text-right">{fmtMoney(lifetime.totalIn)}</td>
+                      <td className={`py-2 px-2 font-mono text-xs text-right ${lifetime.totalResult >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>{fmtMoney(lifetime.totalResult)}</td>
+                    </tr>
+                  </tfoot>
                 </table>
               </div>
             )}
@@ -371,10 +429,10 @@ const PlayerProfile = () => {
   );
 };
 
-const Kpi = ({ label, value }: { label: string; value: string }) => (
+const Kpi = ({ label, value, valueClass }: { label: string; value: string; valueClass?: string }) => (
   <div className="rounded-md border border-border bg-muted/30 px-3 py-2">
     <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
-    <div className="text-base font-semibold text-card-foreground font-mono">{value}</div>
+    <div className={`text-base font-semibold font-mono ${valueClass || "text-card-foreground"}`}>{value}</div>
   </div>
 );
 

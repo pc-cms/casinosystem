@@ -63,6 +63,26 @@ export const usePlayerSessions = (
   });
 };
 
+/** All buy/cashout transactions for a player. */
+export const usePlayerTransactions = (playerId: string | undefined) => {
+  return useQuery({
+    queryKey: ["player-transactions", playerId],
+    queryFn: async () => {
+      if (!playerId) return [];
+      const { data, error } = await supabase
+        .from("transactions")
+        .select("id, casino_id, type, amount, created_at")
+        .eq("player_id", playerId)
+        .in("type", ["buy", "cashout"])
+        .order("created_at", { ascending: false })
+        .limit(2000);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!playerId,
+  });
+};
+
 /** Group memberships — current and historical. */
 export const usePlayerGroupHistory = (playerId: string | undefined) => {
   return useQuery({
