@@ -121,9 +121,11 @@ const PlayerProfile = () => {
         <Button variant="ghost" size="sm" onClick={() => navigate("/players")} className="h-9">
           <ArrowLeft className="w-4 h-4 mr-1" /> Players
         </Button>
-        <Button variant="outline" size="sm" className="h-9" onClick={() => setEditOpen(true)}>
-          Edit player
-        </Button>
+        {(isManager || roles.includes("super_admin")) && (
+          <Button variant="outline" size="sm" className="h-9" onClick={() => setEditOpen(true)}>
+            Edit player
+          </Button>
+        )}
       </div>
 
       {/* Header card: photo left, info right */}
