@@ -49,7 +49,7 @@ export const usePlayerSessions = (
       if (!playerId) return [];
       let q = supabase
         .from("client_sessions")
-        .select("*, gaming_tables(name, game_type)")
+        .select("*, gaming_tables(name, game)")
         .eq("player_id", playerId)
         .order("started_at", { ascending: false })
         .limit(1000);
