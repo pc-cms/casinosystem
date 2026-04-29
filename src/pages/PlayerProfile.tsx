@@ -255,13 +255,21 @@ const PlayerProfile = () => {
 
       {/* Tabs */}
       <Tabs defaultValue="info" className="w-full">
-        <TabsList className="w-full sm:w-auto overflow-x-auto justify-start">
-          <TabsTrigger value="info"><History className="w-3.5 h-3.5 mr-1" /> Info & History</TabsTrigger>
-          <TabsTrigger value="stats"><BarChart3 className="w-3.5 h-3.5 mr-1" /> Statistics</TabsTrigger>
-          <TabsTrigger value="connections"><UsersIcon className="w-3.5 h-3.5 mr-1" /> Connections</TabsTrigger>
-          <TabsTrigger value="lotteries"><Trophy className="w-3.5 h-3.5 mr-1" /> Lotteries</TabsTrigger>
-          <TabsTrigger value="tickets"><Ticket className="w-3.5 h-3.5 mr-1" /> Tickets</TabsTrigger>
-        </TabsList>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <TabsList className="w-full sm:w-auto overflow-x-auto justify-start">
+            <TabsTrigger value="info"><History className="w-3.5 h-3.5 mr-1" /> Info & History</TabsTrigger>
+            <TabsTrigger value="stats"><BarChart3 className="w-3.5 h-3.5 mr-1" /> Statistics</TabsTrigger>
+            <TabsTrigger value="connections"><UsersIcon className="w-3.5 h-3.5 mr-1" /> Connections</TabsTrigger>
+            <TabsTrigger value="lotteries"><Trophy className="w-3.5 h-3.5 mr-1" /> Lotteries</TabsTrigger>
+            <TabsTrigger value="tickets"><Ticket className="w-3.5 h-3.5 mr-1" /> Tickets</TabsTrigger>
+          </TabsList>
+          <DateRangePresets
+            preset={preset}
+            from={range.from}
+            to={range.to}
+            onChange={(next) => { setPreset(next.preset); setRange({ from: next.from, to: next.to }); }}
+          />
+        </div>
 
         {/* TAB 1 */}
         <TabsContent value="info" className="space-y-4">
