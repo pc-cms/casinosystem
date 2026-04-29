@@ -39,6 +39,8 @@ const fmtMoney = (n: number) => {
   return `${sign}${Math.abs(n).toLocaleString()}`;
 };
 
+const dot = () => <span className="text-muted-foreground">·</span>;
+
 const PlayerProfile = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
