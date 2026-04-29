@@ -264,20 +264,39 @@ const PlayerProfile = () => {
                       <th className="text-left py-2 px-2">Check-out</th>
                       <th className="text-left py-2 px-2">Duration</th>
                       <th className="text-left py-2 px-2">Position</th>
+                      <th className="text-right py-2 px-2">Total IN</th>
+                      <th className="text-right py-2 px-2">Result</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {visits.slice(0, 200).map((v: any) => (
-                      <tr key={v.id} className="border-t border-border">
-                        <td className="py-1.5 px-2 font-mono text-xs">{fmtDate(v.date)}</td>
-                        <td className="py-1.5 px-2">{v.casinos?.name || "—"}</td>
-                        <td className="py-1.5 px-2 font-mono text-xs">{fmtDateTime(v.checked_in_at)}</td>
-                        <td className="py-1.5 px-2 font-mono text-xs">{v.checked_out_at ? fmtDateTime(v.checked_out_at) : "—"}</td>
-                        <td className="py-1.5 px-2">{fmtDuration(visitDuration(v))}</td>
-                        <td className="py-1.5 px-2"><span className="inline-flex items-center gap-1 text-xs"><MapPin className="w-3 h-3" />{v.position}</span></td>
-                      </tr>
-                    ))}
+                    {visits.slice(0, 200).map((v: any) => {
+                      const f = visitFinancials.get(v.id) || { totalIn: 0, cashout: 0 };
+                      const result = f.totalIn - f.cashout;
+                      return (
+                        <tr key={v.id} className="border-t border-border">
+                          <td className="py-1.5 px-2 font-mono text-xs">{fmtDate(v.date)}</td>
+                          <td className="py-1.5 px-2">{v.casinos?.name || "—"}</td>
+                          <td className="py-1.5 px-2 font-mono text-xs">{fmtDateTime(v.checked_in_at)}</td>
+                          <td className="py-1.5 px-2 font-mono text-xs">{v.checked_out_at ? fmtDateTime(v.checked_out_at) : "—"}</td>
+                          <td className="py-1.5 px-2">{fmtDuration(visitDuration(v))}</td>
+                          <td className="py-1.5 px-2"><span className="inline-flex items-center gap-1 text-xs"><MapPin className="w-3 h-3" />{v.position}</span></td>
+                          <td className="py-1.5 px-2 font-mono text-xs text-right">{f.totalIn ? fmtMoney(f.totalIn) : <span className="text-muted-foreground">·</span>}</td>
+                          <td className={`py-1.5 px-2 font-mono text-xs text-right ${result === 0 ? "text-muted-foreground" : result > 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
+                            {result === 0 ? "·" : fmtMoney(result)}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
+                  <tfoot>
+                    <tr className="border-t-2 border-border font-semibold">
+                      <td className="py-2 px-2 text-xs uppercase text-muted-foreground" colSpan={4}>Total</td>
+                      <td className="py-2 px-2">{fmtDuration(lifetime.totalMins)}</td>
+                      <td className="py-2 px-2"></td>
+                      <td className="py-2 px-2 font-mono text-xs text-right">{fmtMoney(lifetime.totalIn)}</td>
+                      <td className={`py-2 px-2 font-mono text-xs text-right ${lifetime.totalResult >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>{fmtMoney(lifetime.totalResult)}</td>
+                    </tr>
+                  </tfoot>
                 </table>
               </div>
             )}
