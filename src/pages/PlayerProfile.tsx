@@ -95,31 +95,64 @@ const PlayerProfile = () => {
     };
   }, [visits, visitFinancials]);
 
-  // Sessions stats
-  const sessionStats = useMemo(() => {
-    const tableMap = new Map<string, { name: string; sessions: number; hands: number; bet: number; minutes: number }>();
-    for (const s of sessions) {
+  // Range filter applies to ALL tabs (visits, sessions, transactions).
+  const rangeStartMs = useMemo(() => new Date(`${range.from}T00:00:00`).getTime(), [range.from]);
+  const rangeEndMs = useMemo(() => new Date(`${range.to}T23:59:59`).getTime(), [range.to]);
+
+  const visitsInRange = useMemo(
+    () => visits.filter((v: any) => {
+      const ts = new Date(v.checked_in_at).getTime();
+      return ts >= rangeStartMs && ts <= rangeEndMs;
+    }),
+    [visits, rangeStartMs, rangeEndMs]
+  );
+
+  const txInRange = useMemo(
+    () => transactions.filter((t: any) => {
+      const ts = new Date(t.created_at).getTime();
+      return ts >= rangeStartMs && ts <= rangeEndMs;
+    }),
+    [transactions, rangeStartMs, rangeEndMs]
+  );
+
+  // Per-table financials (Position / total IN / total OUT / Result) within range.
+  // Sessions provide duration; transactions provide IN/OUT.
+  const tableStats = useMemo(() => {
+    type Row = { key: string; name: string; minutes: number; totalIn: number; totalOut: number };
+    const map = new Map<string, Row>();
+
+    for (const s of sessions as any[]) {
       const key = s.table_id || "unknown";
-      const name = (s as any).gaming_tables?.name || "—";
-      const cur = tableMap.get(key) || { name, sessions: 0, hands: 0, bet: 0, minutes: 0 };
-      cur.sessions += 1;
-      cur.hands += s.hands_played || 0;
-      cur.bet += Number(s.total_bet) || 0;
+      const name = s.gaming_tables?.name || "—";
+      const cur = map.get(key) || { key, name, minutes: 0, totalIn: 0, totalOut: 0 };
       cur.minutes += s.duration_minutes || 0;
-      tableMap.set(key, cur);
+      map.set(key, cur);
     }
-    const rows = Array.from(tableMap.values()).sort((a, b) => b.bet - a.bet);
+    for (const t of txInRange as any[]) {
+      const key = t.table_id || "unknown";
+      const name = t.gaming_tables?.name || "—";
+      const cur = map.get(key) || { key, name, minutes: 0, totalIn: 0, totalOut: 0 };
+      const amt = Number(t.amount) || 0;
+      if (t.type === "buy") cur.totalIn += amt;
+      else if (t.type === "cashout") cur.totalOut += amt;
+      if (cur.name === "—" && name !== "—") cur.name = name;
+      map.set(key, cur);
+    }
+
+    const rows = Array.from(map.values())
+      .filter(r => r.minutes > 0 || r.totalIn > 0 || r.totalOut > 0)
+      .sort((a, b) => (b.totalIn - b.totalOut) - (a.totalIn - a.totalOut));
+
     const total = rows.reduce(
       (acc, r) => ({
-        sessions: acc.sessions + r.sessions,
-        hands: acc.hands + r.hands,
-        bet: acc.bet + r.bet,
         minutes: acc.minutes + r.minutes,
+        totalIn: acc.totalIn + r.totalIn,
+        totalOut: acc.totalOut + r.totalOut,
       }),
-      { sessions: 0, hands: 0, bet: 0, minutes: 0 }
+      { minutes: 0, totalIn: 0, totalOut: 0 }
     );
     return { rows, total };
-  }, [sessions]);
+  }, [sessions, txInRange]);
 
   if (isLoading) {
     return (
