@@ -10,7 +10,7 @@ import CasinoBadge from "@/components/player/CasinoBadge";
 import FlagBadges from "@/components/player/FlagBadges";
 import PlayerEditDialog from "@/components/PlayerEditDialog";
 import { fmtDate, fmtDateTime } from "@/lib/format-date";
-import { usePlayer, usePlayerVisits, usePlayerSessions, usePlayerGroupHistory, usePlayerNotes } from "@/hooks/use-player-profile";
+import { usePlayer, usePlayerVisits, usePlayerSessions, usePlayerGroupHistory, usePlayerNotes, usePlayerTransactions } from "@/hooks/use-player-profile";
 import { useAuth } from "@/lib/auth-context";
 
 // CCTV (surveillance) and finance_manager get read-only access on this page.
