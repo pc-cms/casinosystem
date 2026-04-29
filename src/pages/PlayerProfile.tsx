@@ -338,46 +338,48 @@ const PlayerProfile = () => {
 
         {/* TAB 2 */}
         <TabsContent value="stats" className="space-y-4">
-          <DateRangePresets
-            preset={preset}
-            from={range.from}
-            to={range.to}
-            onChange={(next) => { setPreset(next.preset); setRange({ from: next.from, to: next.to }); }}
-          />
-
-          <PageSection card title={`Tables (${sessionStats.rows.length})`}>
-            {sessionStats.rows.length === 0 ? (
-              <div className="text-sm text-muted-foreground">No table sessions in this period.</div>
+          <PageSection card title={`Tables (${tableStats.rows.length})`}>
+            {tableStats.rows.length === 0 ? (
+              <div className="text-sm text-muted-foreground">No table activity in this period.</div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="text-xs text-muted-foreground uppercase">
-                      <th className="text-left py-2 px-2">Table</th>
-                      <th className="text-right py-2 px-2">Sessions</th>
-                      <th className="text-right py-2 px-2">Hands</th>
-                      <th className="text-right py-2 px-2">Total bet</th>
-                      <th className="text-right py-2 px-2">Duration</th>
+                      <th className="text-left py-2 px-2">Position</th>
+                      <th className="text-right py-2 px-2">Total duration</th>
+                      <th className="text-right py-2 px-2">Total IN</th>
+                      <th className="text-right py-2 px-2">Total OUT</th>
+                      <th className="text-right py-2 px-2">Result</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {sessionStats.rows.map((r, i) => (
-                      <tr key={i} className="border-t border-border">
-                        <td className="py-1.5 px-2">{r.name}</td>
-                        <td className="py-1.5 px-2 text-right font-mono">{r.sessions}</td>
-                        <td className="py-1.5 px-2 text-right font-mono">{r.hands}</td>
-                        <td className="py-1.5 px-2 text-right font-mono">{fmtMoney(r.bet)}</td>
-                        <td className="py-1.5 px-2 text-right font-mono">{fmtDuration(r.minutes)}</td>
-                      </tr>
-                    ))}
-                    <tr className="border-t-2 border-border bg-muted/30 font-semibold">
-                      <td className="py-2 px-2">Total</td>
-                      <td className="py-2 px-2 text-right font-mono">{sessionStats.total.sessions}</td>
-                      <td className="py-2 px-2 text-right font-mono">{sessionStats.total.hands}</td>
-                      <td className="py-2 px-2 text-right font-mono">{fmtMoney(sessionStats.total.bet)}</td>
-                      <td className="py-2 px-2 text-right font-mono">{fmtDuration(sessionStats.total.minutes)}</td>
-                    </tr>
+                    {tableStats.rows.map((r) => {
+                      const result = r.totalIn - r.totalOut;
+                      return (
+                        <tr key={r.key} className="border-t border-border">
+                          <td className="py-1.5 px-2">{r.name}</td>
+                          <td className="py-1.5 px-2 text-right font-mono">{r.minutes ? fmtDuration(r.minutes) : <span className="text-muted-foreground">·</span>}</td>
+                          <td className="py-1.5 px-2 text-right font-mono">{r.totalIn ? fmtMoney(r.totalIn) : <span className="text-muted-foreground">·</span>}</td>
+                          <td className="py-1.5 px-2 text-right font-mono">{r.totalOut ? fmtMoney(r.totalOut) : <span className="text-muted-foreground">·</span>}</td>
+                          <td className={`py-1.5 px-2 text-right font-mono ${result === 0 ? "text-muted-foreground" : result > 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
+                            {result === 0 ? "·" : fmtMoney(result)}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
+                  <tfoot>
+                    <tr className="border-t-2 border-border bg-muted/30 font-semibold">
+                      <td className="py-2 px-2 uppercase text-xs text-muted-foreground">Total</td>
+                      <td className="py-2 px-2 text-right font-mono">{fmtDuration(tableStats.total.minutes)}</td>
+                      <td className="py-2 px-2 text-right font-mono">{fmtMoney(tableStats.total.totalIn)}</td>
+                      <td className="py-2 px-2 text-right font-mono">{fmtMoney(tableStats.total.totalOut)}</td>
+                      <td className={`py-2 px-2 text-right font-mono ${(tableStats.total.totalIn - tableStats.total.totalOut) >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
+                        {fmtMoney(tableStats.total.totalIn - tableStats.total.totalOut)}
+                      </td>
+                    </tr>
+                  </tfoot>
                 </table>
               </div>
             )}
