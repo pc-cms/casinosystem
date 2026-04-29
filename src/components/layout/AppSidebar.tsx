@@ -2,7 +2,7 @@ import { useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, Users, Landmark, Table2, Receipt,
-  ClipboardList, BarChart3, Sun, Moon, Shield, Gamepad2,
+  ClipboardList, Sun, Moon, Shield, Gamepad2,
   UsersRound, LogOut, Settings, FileBarChart,
   ListChecks, Eye, Target,
   Building2, UserCheck, ClipboardPen, ShieldCheck, ShieldOff,
@@ -72,7 +72,7 @@ const NAV_ITEMS: NavItem[] = [
   // ANALYTICS — shared
   { to: "/groups", icon: UsersRound, label: "Groups", roles: ["super_admin", "manager", "finance_manager"], section: "ANALYTICS" },
   { to: "/reports", icon: FileBarChart, label: "Reports", roles: ["super_admin", "manager", "finance_manager", "surveillance"], section: "ANALYTICS" },
-  { to: "/stats", icon: BarChart3, label: "Stats", roles: ["super_admin", "manager", "finance_manager", "surveillance"], section: "ANALYTICS" },
+  
   { to: "/table-results", icon: FileText, label: "Table Results", roles: ["super_admin", "manager", "finance_manager", "surveillance"], section: "ANALYTICS" },
 
   // SYSTEM — admin/system tools

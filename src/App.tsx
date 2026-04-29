@@ -26,7 +26,7 @@ const Cage = lazy(() => import("@/pages/Cage"));
 const Tables = lazy(() => import("@/pages/Tables"));
 const Expenses = lazy(() => import("@/pages/Expenses"));
 const Logs = lazy(() => import("@/pages/Logs"));
-const Stats = lazy(() => import("@/pages/Stats"));
+
 const Pit = lazy(() => import("@/pages/Pit"));
 const Groups = lazy(() => import("@/pages/Groups"));
 const Reports = lazy(() => import("@/pages/Reports"));
@@ -104,7 +104,7 @@ const ROUTE_ROLES: Record<string, string[]> = {
   "/finance/summary": ["super_admin", "finance_manager"],
   "/finance/transfers": ["super_admin", "finance_manager"],
   "/reports": ["super_admin", "manager", "finance_manager", "surveillance"],
-  "/stats": ["super_admin", "manager", "finance_manager", "surveillance"],
+  
   "/logs": ["super_admin", "manager", "finance_manager", "surveillance"],
   "/admin": ["super_admin", "manager"],
   "/import-reports": ["super_admin", "manager"],
@@ -202,7 +202,7 @@ const ProtectedRoutes = () => {
           <Route path="/finance/summary" element={<RoleGuard path="/finance/summary"><ErrorBoundary><FinanceSummaryPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/finance/transfers" element={<RoleGuard path="/finance/transfers"><ErrorBoundary><FinanceTransfersPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/reports" element={<RoleGuard path="/reports"><Reports /></RoleGuard>} />
-          <Route path="/stats" element={<RoleGuard path="/stats"><Stats /></RoleGuard>} />
+          <Route path="/stats" element={<Navigate to="/players" replace />} />
           <Route path="/logs" element={<RoleGuard path="/logs"><Logs /></RoleGuard>} />
           <Route path="/admin" element={<RoleGuard path="/admin"><Admin /></RoleGuard>} />
           <Route path="/import-reports" element={<RoleGuard path="/import-reports"><ImportReports /></RoleGuard>} />

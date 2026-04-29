@@ -2,7 +2,7 @@
  * Barrel re-export — preserves all existing import paths.
  * Actual hooks are now split into domain-specific files for maintainability.
  */
-export { usePlayers, useCreatePlayer, useUpdatePlayerStatus, useAddPlayerTag, useRemovePlayerTag, useIssueCard, usePlayerEconomy, usePlayerGroups, useCreateGroup, useAddGroupMember, useRemoveGroupMember } from "./use-players";
+export { usePlayers, useCreatePlayer, useUpdatePlayerStatus, useAddPlayerTag, useRemovePlayerTag, useIssueCard, usePlayerEconomy, usePlayerEconomyRange, usePlayerGroups, useCreateGroup, useAddGroupMember, useRemoveGroupMember } from "./use-players";
 export { useTransactions, useCreateTransaction } from "./use-transactions";
 export { useGamingTables, useCloseTable, useReopenTable, useTableTracker, useSetTableTrackerValue } from "./use-tables";
 export { useExpenses, useCreateExpense, useApproveExpense } from "./use-expenses";
