@@ -71,9 +71,46 @@ export const usePlayerTransactions = (playerId: string | undefined) => {
       if (!playerId) return [];
       const { data, error } = await supabase
         .from("transactions")
-        .select("id, casino_id, table_id, type, amount, created_at, gaming_tables(name)")
+        .select("id, casino_id, table_id, type, amount, created_at, gaming_tables(name, game)")
         .eq("player_id", playerId)
         .in("type", ["buy", "cashout"])
+        .order("created_at", { ascending: false })
+        .limit(5000);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!playerId,
+  });
+};
+
+/** Lifetime totals from authoritative `player_economy` view. */
+export const usePlayerEconomy = (playerId: string | undefined) => {
+  return useQuery({
+    queryKey: ["player-economy", playerId],
+    queryFn: async () => {
+      if (!playerId) return null;
+      const { data, error } = await supabase
+        .from("player_economy")
+        .select("*")
+        .eq("player_id", playerId)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!playerId,
+  });
+};
+
+/** Comps / gifts given to a player (via expenses with player_id set). */
+export const usePlayerExpenses = (playerId: string | undefined) => {
+  return useQuery({
+    queryKey: ["player-expenses", playerId],
+    queryFn: async () => {
+      if (!playerId) return [];
+      const { data, error } = await supabase
+        .from("expenses")
+        .select("id, casino_id, category, amount, description, approved, created_at")
+        .eq("player_id", playerId)
         .order("created_at", { ascending: false })
         .limit(2000);
       if (error) throw error;
