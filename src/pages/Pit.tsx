@@ -75,8 +75,6 @@ const Pit = () => {
     const [y, m] = month.split("-").map(Number);
     const d = new Date(y, m - 1 + delta, 1);
     const next = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-    // Block future months entirely; block past months for non-managers
-    if (next > currentMonth) return;
     setMonth(next);
   };
 
