@@ -890,12 +890,22 @@ const StaffAttendanceGrid = ({ month, monthLabel, readOnly = false }: { month: s
     if (!isNaN(num) && num >= 0 && num <= 24) { setAttendance.mutate({ staff_id: staffId, date: dateStr, value: String(num) }); }
   };
 
-  const getTotal = (staffId: string) => {
-    return days.reduce((sum, day) => {
+  const getTotals = (staffId: string) => {
+    let shifts = 0;
+    let hours = 0;
+    let absent = 0;
+    let sick = 0;
+    days.forEach(day => {
       const val = getValue(staffId, day);
+      if (val === "A") { absent += 1; return; }
+      if (val === "S") { sick += 1; return; }
       const num = Number(val);
-      return sum + (isNaN(num) ? 0 : num);
-    }, 0);
+      if (!isNaN(num) && num > 0) {
+        shifts += 1;
+        hours += num;
+      }
+    });
+    return { shifts, hours, absent, sick };
   };
 
   const visibleDepts = filterDept === "all" ? DEPARTMENT_ORDER : DEPARTMENT_ORDER.filter(d => d === filterDept);
