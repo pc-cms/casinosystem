@@ -5,7 +5,8 @@ import { Input } from "@/components/ui/input";
 import { formatCurrency, formatInputWithSpaces, parseSpacedNumber } from "@/lib/currency";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { Target } from "lucide-react";
+import { Target, Lock } from "lucide-react";
+import { useAuth } from "@/lib/auth-context";
 
 // 18:00 → 05:00, 30-minute intervals
 const generateSlots = () => {
@@ -31,6 +32,7 @@ interface TableTrackerProps { embedded?: boolean }
 const TableTracker = ({ embedded = false }: TableTrackerProps) => {
   const today = getBusinessDate();
   const [date, setDate] = useState(today);
+  const { isManager } = useAuth();
   const { data: tables = [] } = useGamingTables();
   const { data: trackerData = [] } = useTableTracker(date);
   const setValue = useSetTableTrackerValue();
@@ -96,12 +98,25 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
           subtitle="Enter values · auto-saves on blur/Enter"
           date={date}
         >
-          <Input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            className="w-44 font-mono h-9"
-          />
+          {isManager ? (
+            <Input
+              type="date"
+              value={date}
+              max={today}
+              onChange={(e) => setDate(e.target.value || today)}
+              className="w-44 font-mono h-9"
+            />
+          ) : date !== today ? (
+            <button
+              type="button"
+              onClick={() => setDate(today)}
+              className="inline-flex items-center gap-1.5 h-9 px-3 rounded-md border border-border text-xs font-mono text-muted-foreground hover:bg-muted"
+              title="Return to today"
+            >
+              <Lock className="h-3.5 w-3.5" />
+              Today
+            </button>
+          ) : null}
         </PageHeader>
       )}
 
