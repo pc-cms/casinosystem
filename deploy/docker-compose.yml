@@ -343,11 +343,16 @@ services:
     depends_on:
       postgres: { condition: service_healthy }
     environment:
-      TZ:                  Africa/Dar_es_Salaam
-      AWS_S3_BUCKET:       ${AWS_S3_BUCKET:-}
-      AWS_ACCESS_KEY_ID:   ${AWS_ACCESS_KEY_ID:-}
-      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
-      AWS_DEFAULT_REGION:  ${AWS_DEFAULT_REGION:-eu-west-1}
+      TZ:                       Africa/Dar_es_Salaam
+      CASINO_SLUG:              ${CASINO_SLUG}
+      POSTGRES_USER:            ${POSTGRES_USER}
+      POSTGRES_PASSWORD:        ${POSTGRES_PASSWORD}
+      POSTGRES_DB:              ${POSTGRES_DB}
+      CLOUD_URL:                ${CLOUD_URL}
+      SYNC_SECRET:              ${SYNC_SECRET}
+      BACKUP_OFFSITE:           ${BACKUP_OFFSITE:-cloud}
+      BACKUP_RETENTION_DAILY:   ${BACKUP_RETENTION_DAILY:-30}
+      BACKUP_RETENTION_MONTHLY: ${BACKUP_RETENTION_MONTHLY:-12}
     volumes:
       - ./:/compose:ro
       - storage_data:/var/lib/storage:ro
