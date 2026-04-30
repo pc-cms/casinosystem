@@ -210,15 +210,21 @@ export const useSetDealerAttendance = () => {
   return useMutation({
     mutationFn: async (input: { dealer_id: string; date: string; value: string }) => {
       if (!casinoId || !user) throw new Error("Not authenticated");
-      const { error } = await supabase.from("dealer_attendance" as any).upsert({
-        casino_id: casinoId,
-        dealer_id: input.dealer_id,
-        date: input.date,
-        value: input.value,
-        recorded_by: user.id,
-        updated_at: new Date().toISOString(),
-      } as any, { onConflict: "casino_id,dealer_id,date" });
-      if (error) throw error;
+      const result = await offlineMutation({
+        table: "dealer_attendance",
+        operation: "upsert",
+        payload: {
+          casino_id: casinoId,
+          dealer_id: input.dealer_id,
+          date: input.date,
+          value: input.value,
+          recorded_by: user.id,
+          updated_at: new Date().toISOString(),
+        },
+        upsertConflict: "casino_id,dealer_id,date",
+      });
+      if (result.error) throw new Error(result.error);
+      return { offline: result.offline };
     },
     onMutate: async (input) => {
       await qc.cancelQueries({ queryKey: ["dealer-attendance-range"] });
