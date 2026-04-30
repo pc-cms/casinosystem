@@ -37,11 +37,11 @@ const NAV_ITEMS: NavItem[] = [
   // OVERVIEW
   { to: "/", icon: LayoutDashboard, label: "Dashboard", roles: ["super_admin", "manager", "pit", "reception", "finance_manager", "surveillance"], section: "OVERVIEW" },
 
-  // PIT — Live game floor (no Employee tab here)
-  { to: "/pit", icon: Gamepad2, label: "Live Game", roles: ["super_admin", "manager", "pit", "finance_manager"], section: "PIT" },
-  { to: "/pit?tab=breaklist", icon: ListChecks, label: "Breaklist", roles: ["super_admin", "manager", "pit", "finance_manager"], section: "PIT" },
+  // PIT — 4-button structure: Break List, Tables, Live Game (Attendance+Rota), Floor (Attendance+Rotas)
+  { to: "/pit?tab=breaklist", icon: ListChecks, label: "Break List", roles: ["super_admin", "manager", "pit", "finance_manager"], section: "PIT" },
   { to: "/tables", icon: Table2, label: "Tables", roles: ["super_admin", "manager", "cashier", "pit", "finance_manager", "surveillance"], section: "PIT" },
-  { to: "/staff", icon: Building2, label: "Floor Staff", roles: ["super_admin", "manager", "pit", "finance_manager"], section: "PIT" },
+  { to: "/pit", icon: Gamepad2, label: "Live Game", roles: ["super_admin", "manager", "pit", "finance_manager"], section: "PIT" },
+  { to: "/staff", icon: Building2, label: "Floor", roles: ["super_admin", "manager", "pit", "finance_manager"], section: "PIT" },
 
   // CASHIER — Cage operations
   { to: "/cage", icon: Landmark, label: "Cage", roles: ["super_admin", "manager", "cashier", "finance_manager"], section: "CASHIER" },

@@ -84,7 +84,8 @@ const Pit = () => {
   const { roles } = useAuth();
   const isHR = roles.includes("hr") && !roles.includes("pit") && !roles.includes("manager");
   const [searchParams] = useSearchParams();
-  const activeTab = searchParams.get("tab") || (isHR ? "employee" : "breaklist");
+  // Default tabs: HR sees Employee first; Pit/Manager land on Attendance (Live Game shell)
+  const activeTab = searchParams.get("tab") || (isHR ? "employee" : "attendance");
 
   const showMonthNav = activeTab === "rota" || activeTab === "attendance";
   const showDatePicker = activeTab === "breaklist";
