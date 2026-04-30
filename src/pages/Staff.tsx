@@ -140,7 +140,10 @@ const Staff = () => {
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigateMonth(-1)}>
                   <ChevronLeft className="w-4 h-4" />
                 </Button>
-                <span className="text-sm font-semibold text-card-foreground min-w-[140px] text-center">{monthLabel}</span>
+                <span className="text-sm font-semibold text-card-foreground min-w-[140px] text-center inline-flex items-center justify-center gap-1.5">
+                  {monthLabel}
+                  {isPast && !isMgr && <Lock className="w-3 h-3 text-muted-foreground" />}
+                </span>
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => canGoNext && navigateMonth(1)} disabled={!canGoNext}>
                   <ChevronRight className="w-4 h-4" />
                 </Button>
