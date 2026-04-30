@@ -363,13 +363,16 @@ const ClientTracker = () => {
       // calculator: when stopped_at flips to non-null, it finalizes total_bet
       // (+ avg_bet × minutes_since_bet_changed_at) and duration_minutes.
       // UI sends only stopped_at and hands_played (not computed by trigger).
+      const stopUpdate: SafeSessionUpdate = {
+        stopped_at: stoppedAt.toISOString(),
+        hands_played: handsPlayed,
+      };
       const stopRes = await offlineMutation({
         table: "client_sessions",
         operation: "update",
         payload: {
           _match: { id: sessionId },
-          stopped_at: stoppedAt.toISOString(),
-          hands_played: handsPlayed,
+          ...stopUpdate,
         },
       });
       if (stopRes.error) throw new Error(stopRes.error);
