@@ -284,6 +284,77 @@ services:
     networks:
       - cms-net
 
+  # ────────────────────────────────────────────────────────────────
+  # MONITOR + VPN + BACKUP (этап E)
+  # ────────────────────────────────────────────────────────────────
+  cms-monitor:
+    build: ./monitor
+    image: cms-monitor:local
+    container_name: cms-monitor
+    <<: [*restart_policy, *default_logging]
+    depends_on:
+      postgres: { condition: service_healthy }
+    environment:
+      CASINO_ID:           ${CASINO_ID}
+      SYNC_SECRET:         ${SYNC_SECRET}
+      CLOUD_URL:           ${CLOUD_URL:-https://rpehngjvwcnipvkouluu.supabase.co}
+      LOCAL_DB_URL:        postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-postgres}
+      MONITOR_INTERVAL_MS: ${MONITOR_INTERVAL_MS:-60000}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./:/compose:ro
+    ports:
+      # доступно только из VPN-подсети (10.66.0.0/24) — нужен внешний firewall rule
+      - "127.0.0.1:8088:8088"
+    networks:
+      - cms-net
+
+  cms-vpn:
+    image: linuxserver/wireguard:latest
+    container_name: cms-vpn
+    <<: [*restart_policy, *default_logging]
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    sysctls:
+      - net.ipv4.conf.all.src_valid_mark=1
+    environment:
+      PUID: 1000
+      PGID: 1000
+      TZ: Africa/Dar_es_Salaam
+      SERVERURL: ${LOCAL_IP}
+      SERVERPORT: 51820
+      INTERNAL_SUBNET: ${VPN_SUBNET:-10.66.0}.0
+      ALLOWEDIPS: ${VPN_SUBNET:-10.66.0}.0/24
+      PEERS: 0          # пиры добавляются вручную через ./vpn/add-peer.sh
+    volumes:
+      - ./vpn/config:/config
+      - /lib/modules:/lib/modules:ro
+    ports:
+      - "51820:51820/udp"
+    networks:
+      - cms-net
+
+  cms-backup:
+    build: ./backup
+    image: cms-backup:local
+    container_name: cms-backup
+    <<: [*restart_policy, *default_logging]
+    depends_on:
+      postgres: { condition: service_healthy }
+    environment:
+      TZ:                  Africa/Dar_es_Salaam
+      AWS_S3_BUCKET:       ${AWS_S3_BUCKET:-}
+      AWS_ACCESS_KEY_ID:   ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      AWS_DEFAULT_REGION:  ${AWS_DEFAULT_REGION:-eu-west-1}
+    volumes:
+      - ./:/compose:ro
+      - storage_data:/var/lib/storage:ro
+      - backup_data:/backups
+    networks:
+      - cms-net
+
 networks:
   cms-net:
     driver: bridge
@@ -294,4 +365,6 @@ volumes:
   storage_data:
     driver: local
   frontend_dist:
+    driver: local
+  backup_data:
     driver: local
