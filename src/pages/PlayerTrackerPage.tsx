@@ -12,13 +12,7 @@ import { NumberInput } from "@/components/ui/number-input";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import {
-  ResponsiveDialog,
-  ResponsiveDialogContent,
-  ResponsiveDialogHeader,
-  ResponsiveDialogTitle,
-  ResponsiveDialogFooter,
-} from "@/components/ui/responsive-dialog";
+import { ResponsiveDialog, ResponsiveDialogFooter } from "@/components/ui/responsive-dialog";
 import { formatNumberSpaces } from "@/lib/currency";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -252,15 +246,13 @@ const PlayerTrackerPage = () => {
         )}
       </div>
 
-      <ResponsiveDialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
-        <ResponsiveDialogContent>
-          <ResponsiveDialogHeader>
-            <ResponsiveDialogTitle>
-              {editing?.sessionId ? "Edit session" : "Start session"} — {editing?.playerName}
-            </ResponsiveDialogTitle>
-          </ResponsiveDialogHeader>
-
-          <div className="space-y-4 px-1">
+      <ResponsiveDialog
+        open={!!editing}
+        onOpenChange={(o) => !o && setEditing(null)}
+        title={editing ? `${editing.sessionId ? "Edit session" : "Start session"} — ${editing.playerName}` : ""}
+        size="md"
+      >
+        <div className="space-y-4 px-1">
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">Table</label>
               <Select
@@ -299,7 +291,6 @@ const PlayerTrackerPage = () => {
               {editing?.sessionId ? "Restart" : "Start"}
             </Button>
           </ResponsiveDialogFooter>
-        </ResponsiveDialogContent>
       </ResponsiveDialog>
     </PageShell>
   );
