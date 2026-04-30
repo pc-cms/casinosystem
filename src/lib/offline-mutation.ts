@@ -35,7 +35,10 @@ export async function offlineMutation(opts: OfflineMutationOptions): Promise<{ o
         if (_match) {
           let q = supabase.from(table).update(updateFields);
           for (const [k, v] of Object.entries(_match as Record<string, any>)) {
-            q = q.eq(k, v);
+            // Postgres requires `IS NULL` (not `= 'null'`) for null comparisons —
+            // especially on typed columns like timestamptz, where the string "null"
+            // throws "invalid input syntax for type timestamp with time zone".
+            q = v === null || v === undefined ? q.is(k, null) : q.eq(k, v);
           }
           result = await q;
         }
