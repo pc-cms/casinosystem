@@ -9,8 +9,22 @@
 
     <link rel="icon" href="/favicon.png" type="image/png" />
     <link rel="apple-touch-icon" href="/icon-192.png" />
-    <link rel="manifest" href="/manifest.json" />
+    <link id="app-manifest" rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#1a1a2e" />
+    <script>
+      // Swap PWA manifest based on the route so each module installs as its own app.
+      (function () {
+        try {
+          var path = window.location.pathname || "";
+          var manifest = "/manifest.json"; // default = Reception
+          if (path.indexOf("/pit") === 0) manifest = "/manifest-pit.json";
+          var link = document.getElementById("app-manifest");
+          if (link && link.getAttribute("href") !== manifest) {
+            link.setAttribute("href", manifest);
+          }
+        } catch (e) { /* noop */ }
+      })();
+    </script>
 
     <meta property="og:title" content="Casino System">
     <meta property="og:description" content="Casino Management System for cashier, pit, and manager operations.">
