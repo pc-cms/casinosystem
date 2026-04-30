@@ -783,7 +783,11 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
   const { data: dealers = [] } = useDealers();
   const { data: monthAttendance = [] } = useDealerAttendanceRange(startDate, endDate);
   const { data: rota = [] } = usePitRotaRange(startDate, endDate);
-  const setAttendance = useSetDealerAttendance();
+  const setAttendanceRaw = useSetDealerAttendance();
+  const setAttendance = { mutate: (v: any) => {
+    if (readOnly) { toast.error("Manager Access required to edit past months"); return; }
+    setAttendanceRaw.mutate(v);
+  } };
 
   const activeDealers = dealers.filter((d: any) => d.is_active && !d.is_pit_boss);
   const pitBosses = dealers.filter((d: any) => d.is_active && d.is_pit_boss);
