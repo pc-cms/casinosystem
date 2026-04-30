@@ -569,19 +569,31 @@ const ActivePlayers = () => {
                     </TableCell>
                     <TableCell className="text-center">
                       <div className="flex gap-1 flex-wrap justify-center items-center">
-                        {p.tags.map(tag => (
-                          <Badge key={tag} variant="outline" className="text-[9px] px-1.5 py-0 gap-0.5 group/tag">
-                            {tag}
-                            {isManager && (
-                              <button
-                                onClick={() => removeTag.mutate({ playerId: p.id, tag })}
-                                className="opacity-0 group-hover/tag:opacity-100 transition-opacity ml-0.5"
-                              >
-                                <X className="w-2.5 h-2.5 text-destructive" />
-                              </button>
-                            )}
-                          </Badge>
-                        ))}
+                        <TooltipProvider delayDuration={150}>
+                          {p.tags.map(tag => {
+                            const def = getTagDef(tag);
+                            const label = def?.emoji ?? tag;
+                            const hint = def?.hint ?? tag;
+                            return (
+                              <Tooltip key={tag}>
+                                <TooltipTrigger asChild>
+                                  <Badge variant="outline" className={`${def?.className ?? ""} text-xs px-1.5 py-0 leading-none gap-0.5 group/tag cursor-default`}>
+                                    <span aria-label={hint}>{label}</span>
+                                    {isManager && (
+                                      <button
+                                        onClick={() => removeTag.mutate({ playerId: p.id, tag })}
+                                        className="opacity-0 group-hover/tag:opacity-100 transition-opacity ml-0.5"
+                                      >
+                                        <X className="w-2.5 h-2.5 text-destructive" />
+                                      </button>
+                                    )}
+                                  </Badge>
+                                </TooltipTrigger>
+                                <TooltipContent side="top">{hint}</TooltipContent>
+                              </Tooltip>
+                            );
+                          })}
+                        </TooltipProvider>
                         {isManager && (
                           <Popover>
                             <PopoverTrigger asChild>
@@ -590,19 +602,23 @@ const ActivePlayers = () => {
                               </button>
                             </PopoverTrigger>
                             <PopoverContent className="w-auto p-1" align="center">
-                              <div className="flex flex-col gap-0.5 max-h-[200px] overflow-y-auto">
-                                {COMMON_TAGS.filter(t => !p.tags.includes(t)).map(tag => (
-                                  <button
-                                    key={tag}
-                                    onClick={() => {
-                                      addTag.mutate({ playerId: p.id, tag });
-                                      queryClient.invalidateQueries({ queryKey: ["player_tags"] });
-                                    }}
-                                    className="px-3 py-1 text-xs rounded hover:bg-muted transition-colors text-left text-foreground"
-                                  >
-                                    {tag}
-                                  </button>
-                                ))}
+                              <div className="flex flex-col gap-0.5 max-h-[240px] overflow-y-auto">
+                                {COMMON_TAGS.filter(t => !p.tags.includes(t)).map(tag => {
+                                  const def = getTagDef(tag)!;
+                                  return (
+                                    <button
+                                      key={tag}
+                                      onClick={() => {
+                                        addTag.mutate({ playerId: p.id, tag });
+                                        queryClient.invalidateQueries({ queryKey: ["player_tags"] });
+                                      }}
+                                      className="px-3 py-1 text-xs rounded hover:bg-muted transition-colors text-left text-foreground flex items-center gap-2"
+                                    >
+                                      <span className="text-base leading-none">{def.emoji}</span>
+                                      <span>{def.hint}</span>
+                                    </button>
+                                  );
+                                })}
                               </div>
                             </PopoverContent>
                           </Popover>
