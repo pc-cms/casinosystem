@@ -48,9 +48,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/expenses", icon: Receipt, label: "Expenses", roles: ["super_admin", "manager", "cashier", "finance_manager"], section: "CASHIER" },
 
   // RECEPTION — Players & entry
-  { to: "/reception", icon: DoorOpen, label: "Reception", roles: ["super_admin", "manager", "reception", "finance_manager"], section: "RECEPTION" },
   { to: "/players", icon: Users, label: "Players", roles: ["super_admin", "manager", "finance_manager"], section: "RECEPTION" },
-  { to: "/in-casino", icon: Eye, label: "In Casino", roles: ["super_admin", "manager", "reception", "pit", "finance_manager", "surveillance"], section: "RECEPTION" },
   { to: "/blacklist", icon: ShieldAlert, label: "Blacklist", roles: ["super_admin", "manager", "reception", "finance_manager", "surveillance"], section: "RECEPTION" },
 
   // FINANCE — alphabetical, separate routes (no tabs)
@@ -273,11 +271,12 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
   const location = useLocation();
   const [showOverrideDialog, setShowOverrideDialog] = useState(false);
 
-  const isPitActive = location.pathname === "/pit";
+  const rawTab = new URLSearchParams(location.search).get("tab");
+  const isPitActive = location.pathname === "/pit" && rawTab !== "breaklist";
   const isStaffActive = location.pathname === "/staff";
   const isTablesActive = location.pathname === "/tables";
-  const currentTab = new URLSearchParams(location.search).get("tab") ||
-    (isPitActive ? "employee" : isTablesActive ? "tables" : "employee");
+  const currentTab = rawTab ||
+    (location.pathname === "/pit" ? "employee" : isTablesActive ? "tables" : "employee");
 
   const visibleItems = NAV_ITEMS.filter(item =>
     roles.some(r => item.roles.includes(r as AppRole))
