@@ -12,7 +12,7 @@ type BeforeInstallPromptEvent = Event & {
  * Hides itself if the app is already installed (display-mode: standalone) or
  * if the platform never fires `beforeinstallprompt` (e.g. iOS Safari).
  */
-export const InstallPWAButton = ({ className, label = "Install Reception" }: { className?: string; label?: string }) => {
+export const InstallPWAButton = ({ className, label = "Install App" }: { className?: string; label?: string }) => {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [installed, setInstalled] = useState(false);
 
