@@ -833,7 +833,7 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
   const renderAttendanceRows = (dealerList: any[], label: string, accentColor: string) => (
     <>
       <tr>
-        <td colSpan={days.length + 3} className="px-0 py-0 sticky left-0">
+        <td colSpan={days.length + 4} className="px-0 py-0 sticky left-0">
           <div className={`flex items-center gap-2 px-3 py-1 border-b-2 ${accentColor}`}>
             <span className="text-[10px] font-mono font-semibold uppercase tracking-wider">{label}</span>
             <span className="text-[10px] font-mono text-muted-foreground">({dealerList.length})</span>
@@ -841,7 +841,7 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
         </td>
       </tr>
       {dealerList.map((dealer: any, idx: number) => {
-        const total = getDealerTotal(dealer.id);
+        const totals = getDealerTotals(dealer.id);
         return (
           <tr key={dealer.id} className={`border-b border-border last:border-0 ${idx % 2 === 0 ? "" : "bg-muted/10"}`}>
             <td className={`px-1 py-1 text-center sticky left-0 z-10 ${idx % 2 === 0 ? "bg-card" : "bg-card/95"}`}>
@@ -908,9 +908,8 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
                 </td>
               );
             })}
-            <td className="px-2 py-1 text-center">
-              <span className="text-[10px] font-mono font-bold text-primary">{total || ""}</span>
-            </td>
+            <td className="px-2 py-1 text-center"><span className="text-[10px] font-mono font-bold text-blue-600 dark:text-blue-400">{totals.shifts || ""}</span></td>
+            <td className="px-2 py-1 text-center"><span className="text-[10px] font-mono font-bold text-primary">{totals.hours || ""}</span></td>
           </tr>
         );
       })}
@@ -918,7 +917,9 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
   );
 
   return (
-    <div className="cms-panel overflow-hidden print-target">
+    <>
+      <div className="print-title hidden">{`Live Game Attendance — ${month}`}</div>
+      <div className="cms-panel overflow-hidden print-target">
       <table className="w-full border-collapse table-fixed">
         <thead>
           <tr className="border-b border-border">
@@ -936,15 +937,42 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
                 </th>
               );
             })}
+            <th className="text-center text-[10px] font-medium text-muted-foreground uppercase px-1 py-2 w-8">Σsh</th>
             <th className="text-center text-[10px] font-medium text-muted-foreground uppercase px-1 py-2 w-8">Σh</th>
           </tr>
         </thead>
         <tbody>
           {renderAttendanceRows(activeDealers, "Dealers", "border-blue-400 dark:border-blue-500/50 text-blue-600 dark:text-blue-400")}
+          {/* Summary: shifts and hours per day — dealers only */}
+          <tr className="border-t-2 border-border">
+            <td colSpan={2} className="px-1 py-1 text-[9px] font-mono font-bold text-blue-600 dark:text-blue-400 sticky left-0 left-[28px] bg-card z-10">Σ Shifts</td>
+            {days.map(day => {
+              const count = activeDealers.filter(d => {
+                const v = getValue(d.id, day);
+                const n = Number(v);
+                return !isNaN(n) && n > 0;
+              }).length;
+              return <td key={day} className="text-center text-[9px] font-mono font-bold text-blue-600 dark:text-blue-400">{count || ""}</td>;
+            })}
+            <td colSpan={2} />
+          </tr>
+          <tr>
+            <td colSpan={2} className="px-1 py-1 text-[9px] font-mono font-bold text-primary sticky left-0 left-[28px] bg-card z-10">Σ Hours</td>
+            {days.map(day => {
+              const sum = activeDealers.reduce((s, d) => {
+                const v = getValue(d.id, day);
+                const n = Number(v);
+                return s + (!isNaN(n) && n > 0 ? n : 0);
+              }, 0);
+              return <td key={day} className="text-center text-[9px] font-mono font-bold text-primary">{sum || ""}</td>;
+            })}
+            <td colSpan={2} />
+          </tr>
           {pitBosses.length > 0 && renderAttendanceRows(pitBosses, "Pit Bosses", "border-purple-400 dark:border-purple-500/50 text-purple-600 dark:text-purple-400")}
         </tbody>
       </table>
     </div>
+    </>
   );
 };
 
