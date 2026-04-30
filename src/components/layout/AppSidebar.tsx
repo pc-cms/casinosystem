@@ -112,15 +112,19 @@ const STAFF_SUBITEMS_HR = [
   { tab: "rota_floor", icon: CalendarDays, label: "Floor Rota" },
 ];
 
-// Virtual parent groupings: Attendance / Rota each expand to Live + Floor
-type VirtualSub = { to: string; icon: typeof ListChecks; label: string; matchPath: string; matchTab: string };
+// Virtual parent groupings: Attendance / Rota each expand to Live + Floor + Security + Office
+type VirtualSub = { to: string; icon: typeof ListChecks; label: string; matchPath: string; matchTab: string; matchGroup?: string };
 const ATTENDANCE_SUBITEMS: VirtualSub[] = [
   { to: "/pit?tab=attendance", icon: Gamepad2, label: "Live", matchPath: "/pit", matchTab: "attendance" },
-  { to: "/staff?tab=attendance&group=floor", icon: Building2, label: "Floor", matchPath: "/staff", matchTab: "attendance" },
+  { to: "/staff?tab=attendance&group=floor", icon: Building2, label: "Floor", matchPath: "/staff", matchTab: "attendance", matchGroup: "floor" },
+  { to: "/staff?tab=attendance&group=security", icon: Shield, label: "Security", matchPath: "/staff", matchTab: "attendance", matchGroup: "security" },
+  { to: "/staff?tab=attendance&group=office", icon: Briefcase, label: "Office", matchPath: "/staff", matchTab: "attendance", matchGroup: "office" },
 ];
 const ROTA_SUBITEMS: VirtualSub[] = [
   { to: "/pit?tab=rota", icon: Gamepad2, label: "Live", matchPath: "/pit", matchTab: "rota" },
   { to: "/staff?tab=rota_floor", icon: Building2, label: "Floor", matchPath: "/staff", matchTab: "rota_floor" },
+  { to: "/staff?tab=rota_security", icon: Shield, label: "Security", matchPath: "/staff", matchTab: "rota_security" },
+  { to: "/staff?tab=rota_office", icon: Briefcase, label: "Office", matchPath: "/staff", matchTab: "rota_office" },
 ];
 
 const BREAKLIST_PATH = "/pit?tab=breaklist";
