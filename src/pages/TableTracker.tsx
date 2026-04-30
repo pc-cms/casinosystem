@@ -94,6 +94,7 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
           icon={Target}
           title="Table Tracker"
           subtitle="Enter values · auto-saves on blur/Enter"
+          date={date}
         >
           <Input
             type="date"

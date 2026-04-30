@@ -1,36 +1,21 @@
 import { useState, useMemo } from "react";
-import { useSearchParams } from "react-router-dom";
 import { useGamingTables, useTransactions, useTableTracker } from "@/hooks/use-casino-data";
 import { useActiveShift } from "@/hooks/use-shift";
 import { useChipSnapshots, useBatchChipSnapshot } from "@/hooks/use-chips";
 import { useChipBaseline, useOpenAllTables, baselineToMap } from "@/hooks/use-table-lifecycle";
-import { useAuth } from "@/lib/auth-context";
+
 import { getBusinessDate } from "@/lib/business-day";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { CHIP_DENOMS, CHIP_COLORS, formatChipLabel, formatCurrency } from "@/lib/currency";
-import { Save, Coins, Play, BarChart3, Lock, Users, Eye, Target, LayoutGrid } from "lucide-react";
-import ActivePlayers from "@/components/pit/ActivePlayers";
-import ClientTracker from "@/components/pit/PlayerTracker";
-import TableTracker from "@/pages/TableTracker";
+import { Save, Coins, Play, Lock, LayoutGrid } from "lucide-react";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { CloseTableWizard } from "@/components/tables/CloseTableWizard";
 
-const PIT_TABS = [
-  { key: "tables", label: "Tables", icon: BarChart3 },
-  { key: "activeplayers", label: "Active Players", icon: Users },
-  { key: "tracker", label: "Player Tracker", icon: Eye },
-  { key: "tabletracker", label: "Table Tracker", icon: Target },
-] as const;
-
 const Tables = () => {
-  const { roles } = useAuth();
-  const isPit = roles.includes("pit") || roles.includes("manager") || roles.includes("finance_manager");
-  const [searchParams, setSearchParams] = useSearchParams();
-  const activeTab = searchParams.get("tab") || "tables";
   const businessDay = getBusinessDate();
   const [date, setDate] = useState(businessDay);
   const { data: tables = [] } = useGamingTables();
@@ -263,31 +248,6 @@ const Tables = () => {
         )}
       </PageHeader>
 
-      {/* Pit-role tabs */}
-      {isPit && (
-        <div className="flex gap-1 mb-4 border-b border-border pb-2">
-          {PIT_TABS.map(tab => (
-            <button
-              key={tab.key}
-              onClick={() => setSearchParams(tab.key === "tables" ? {} : { tab: tab.key })}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                activeTab === tab.key
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-              }`}
-            >
-              <tab.icon className="w-3.5 h-3.5" />
-              {tab.label}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {activeTab === "activeplayers" && isPit && <ActivePlayers />}
-      {activeTab === "tracker" && isPit && <ClientTracker />}
-      {activeTab === "tabletracker" && isPit && <TableTracker embedded />}
-
-      {activeTab === "tables" && (
       <>
 
 
@@ -439,7 +399,6 @@ const Tables = () => {
         date={date}
       />
       </>
-      )}
     </PageShell>
   );
 };

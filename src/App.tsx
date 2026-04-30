@@ -47,6 +47,9 @@ const ImportReports = lazy(() => import("@/pages/ImportReports"));
 const TableResults = lazy(() => import("@/pages/TableResults"));
 const BankChecks = lazy(() => import("@/pages/BankChecks"));
 const MissChips = lazy(() => import("@/pages/MissChips"));
+const TableTracker = lazy(() => import("@/pages/TableTracker"));
+const ActivePlayersPage = lazy(() => import("@/pages/ActivePlayersPage"));
+const PlayerTrackerPage = lazy(() => import("@/pages/PlayerTrackerPage"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -90,6 +93,9 @@ const ROUTE_ROLES: Record<string, string[]> = {
   "/reception": ["super_admin", "manager", "reception", "finance_manager"],
   "/cage": ["super_admin", "manager", "cashier", "finance_manager"],
   "/tables": ["super_admin", "manager", "cashier", "pit", "finance_manager", "surveillance"],
+  "/active-players": ["super_admin", "manager", "pit", "finance_manager"],
+  "/player-tracker": ["super_admin", "manager", "pit", "finance_manager"],
+  "/table-tracker": ["super_admin", "manager", "pit", "finance_manager"],
   "/expenses": ["super_admin", "manager", "cashier", "finance_manager"],
   "/pit": ["super_admin", "manager", "pit", "finance_manager", "hr"],
   "/floor": ["super_admin", "manager", "pit", "finance_manager", "hr"],
@@ -187,6 +193,9 @@ const ProtectedRoutes = () => {
           <Route path="/in-casino" element={<RoleGuard path="/in-casino"><InCasino /></RoleGuard>} />
           <Route path="/blacklist" element={<RoleGuard path="/blacklist"><Blacklist /></RoleGuard>} />
           <Route path="/tables" element={<RoleGuard path="/tables"><Tables /></RoleGuard>} />
+          <Route path="/active-players" element={<RoleGuard path="/active-players"><ActivePlayersPage /></RoleGuard>} />
+          <Route path="/player-tracker" element={<RoleGuard path="/player-tracker"><PlayerTrackerPage /></RoleGuard>} />
+          <Route path="/table-tracker" element={<RoleGuard path="/table-tracker"><TableTracker /></RoleGuard>} />
           <Route path="/expenses" element={<RoleGuard path="/expenses"><Expenses /></RoleGuard>} />
           <Route path="/pit" element={<RoleGuard path="/pit"><ErrorBoundary><Pit /></ErrorBoundary></RoleGuard>} />
           <Route path="/staff" element={<RoleGuard path="/floor"><Staff /></RoleGuard>} />
