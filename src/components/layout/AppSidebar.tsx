@@ -509,6 +509,11 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
           >
             {theme === "dark" ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
           </button>
+      <div className="px-3 py-2 border-t border-sidebar-border">
+        <div className="flex items-center gap-2 px-1">
+          <p className="text-xs font-medium text-sidebar-foreground truncate flex-1" title={displayName ?? undefined}>
+            {displayName}
+          </p>
           <button
             onClick={signOut}
             title="Sign out"
