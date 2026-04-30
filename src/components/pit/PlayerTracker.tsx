@@ -12,6 +12,34 @@ import { Badge } from "@/components/ui/badge";
 import { Play, Square, Clock, Search, Check, Pencil } from "lucide-react";
 import { formatNumberSpaces } from "@/lib/currency";
 import { toast } from "sonner";
+import type { Database } from "@/integrations/supabase/types";
+
+// ============================================================================
+// SERVER-COMPUTED FIELDS GUARD
+// ----------------------------------------------------------------------------
+// These columns on `client_sessions` are computed exclusively by the DB
+// trigger `client_session_recalc` (BEFORE INSERT/UPDATE). The UI must NEVER
+// send them — doing so would race with the trigger and corrupt the per-segment
+// total_bet ledger.
+//
+// The types below produce a TypeScript compile error if someone tries to put
+// any of these keys into an insert/update payload from this file.
+// ============================================================================
+
+type ClientSessionInsert = Database["public"]["Tables"]["client_sessions"]["Insert"];
+type ClientSessionUpdate = Database["public"]["Tables"]["client_sessions"]["Update"];
+
+type ServerComputedSessionField =
+  | "total_bet"
+  | "bet_changed_at"
+  | "duration_minutes";
+
+type SafeSessionInsert = Omit<ClientSessionInsert, ServerComputedSessionField> & {
+  [K in ServerComputedSessionField]?: never;
+};
+type SafeSessionUpdate = Omit<ClientSessionUpdate, ServerComputedSessionField> & {
+  [K in ServerComputedSessionField]?: never;
+};
 
 const HANDS_PER_HOUR: Record<string, number> = {
   "Blackjack": 35,
@@ -162,9 +190,10 @@ const ActiveSessionCard = ({
     // (total_bet += OLD.avg_bet × minutes) and stamps bet_changed_at = now().
     // UI must NOT send total_bet/bet_changed_at — that would race with the
     // trigger and corrupt the per-segment ledger.
+    const updatePayload: SafeSessionUpdate = { avg_bet: val };
     const { error } = await supabase
       .from("client_sessions")
-      .update({ avg_bet: val })
+      .update(updatePayload)
       .eq("id", s.id);
     setSaving(false);
     if (error) {
@@ -275,17 +304,18 @@ const ClientTracker = () => {
     mutationFn: async () => {
       // Start the client session (offline-aware, idempotent via client UUID)
       const sessionId = crypto.randomUUID();
+      const insertPayload: SafeSessionInsert = {
+        id: sessionId,
+        casino_id: casinoId!,
+        player_id: selectedPlayer,
+        table_id: selectedTable,
+        avg_bet: Number(avgBet) || 0,
+        created_by: user!.id,
+      };
       const insertRes = await offlineMutation({
         table: "client_sessions",
         operation: "insert",
-        payload: {
-          id: sessionId,
-          casino_id: casinoId!,
-          player_id: selectedPlayer,
-          table_id: selectedTable,
-          avg_bet: Number(avgBet) || 0,
-          created_by: user!.id,
-        },
+        payload: insertPayload,
       });
       if (insertRes.error) throw new Error(insertRes.error);
 
@@ -333,13 +363,16 @@ const ClientTracker = () => {
       // calculator: when stopped_at flips to non-null, it finalizes total_bet
       // (+ avg_bet × minutes_since_bet_changed_at) and duration_minutes.
       // UI sends only stopped_at and hands_played (not computed by trigger).
+      const stopUpdate: SafeSessionUpdate = {
+        stopped_at: stoppedAt.toISOString(),
+        hands_played: handsPlayed,
+      };
       const stopRes = await offlineMutation({
         table: "client_sessions",
         operation: "update",
         payload: {
           _match: { id: sessionId },
-          stopped_at: stoppedAt.toISOString(),
-          hands_played: handsPlayed,
+          ...stopUpdate,
         },
       });
       if (stopRes.error) throw new Error(stopRes.error);
