@@ -4,7 +4,8 @@ import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { UserPlus, ChevronLeft, ChevronRight, ArrowUpDown, Printer, Building2 } from "lucide-react";
+import { UserPlus, ChevronLeft, ChevronRight, ArrowUpDown, Printer, Building2, Lock } from "lucide-react";
+import { getBusinessDate } from "@/lib/business-day";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/lib/auth-context";
@@ -77,21 +78,29 @@ const DEPT_ROW_COLORS: Record<string, string> = {
 };
 
 const Staff = () => {
-  const [month, setMonth] = useState(() => {
-    const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-  });
+  const { isManager: isMgr } = useAuth();
+  const businessToday = getBusinessDate();
+  const currentMonth = useMemo(() => {
+    const [y, m] = businessToday.split("-").map(Number);
+    return `${y}-${String(m).padStart(2, "0")}`;
+  }, [businessToday]);
+  const [month, setMonth] = useState(currentMonth);
 
   const navigateMonth = (delta: number) => {
     const [y, m] = month.split("-").map(Number);
     const d = new Date(y, m - 1 + delta, 1);
-    setMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+    const next = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    if (next > currentMonth) return;
+    setMonth(next);
   };
 
   const monthLabel = useMemo(() => {
     const [y, m] = month.split("-").map(Number);
     return `${MONTH_NAMES[m - 1]} ${y}`;
   }, [month]);
+
+  const canGoPrev = isMgr;
+  const canGoNext = month < currentMonth;
 
   const [searchParams] = useSearchParams();
   const activeTab = searchParams.get("tab") || "employee";
@@ -124,16 +133,15 @@ const Staff = () => {
         icon={Building2}
         title={TAB_TITLES[activeTab] || "Floor"}
         subtitle="Floor Management"
-        date
         centerSlot={
           <div className="flex items-center gap-3 flex-wrap justify-center no-print">
             {showMonthNav && (
               <div className="flex items-center gap-1">
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigateMonth(-1)}>
-                  <ChevronLeft className="w-4 h-4" />
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => canGoPrev && navigateMonth(-1)} disabled={!canGoPrev} title={canGoPrev ? "Previous month" : "Manager Access required"}>
+                  {canGoPrev ? <ChevronLeft className="w-4 h-4" /> : <Lock className="w-3.5 h-3.5" />}
                 </Button>
                 <span className="text-sm font-semibold text-card-foreground min-w-[140px] text-center">{monthLabel}</span>
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigateMonth(1)}>
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => canGoNext && navigateMonth(1)} disabled={!canGoNext}>
                   <ChevronRight className="w-4 h-4" />
                 </Button>
               </div>
@@ -161,11 +169,9 @@ const Staff = () => {
           </div>
         }
       >
-        {(isRotaTab || activeTab === "attendance") && (
-          <Button variant="outline" size="sm" className="gap-1 text-xs" onClick={printRota}>
-            <Printer className="w-3.5 h-3.5" /> Print
-          </Button>
-        )}
+        <Button variant="outline" size="sm" className="gap-1 text-xs" onClick={printRota}>
+          <Printer className="w-3.5 h-3.5" /> Print
+        </Button>
       </PageHeader>
 
       {activeTab === "employee" && <EmployeeList />}

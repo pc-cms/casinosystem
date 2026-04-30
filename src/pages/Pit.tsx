@@ -65,15 +65,19 @@ const CATEGORY_COLORS: Record<string, string> = {
 const Pit = () => {
   const businessToday = getBusinessDate();
   const [date, setDate] = useState(businessToday);
-  const [month, setMonth] = useState(() => {
-    const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-  });
+  const currentMonth = useMemo(() => {
+    const [y, m] = businessToday.split("-").map(Number);
+    return `${y}-${String(m).padStart(2, "0")}`;
+  }, [businessToday]);
+  const [month, setMonth] = useState(currentMonth);
 
   const navigateMonth = (delta: number) => {
     const [y, m] = month.split("-").map(Number);
     const d = new Date(y, m - 1 + delta, 1);
-    setMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+    const next = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    // Block future months entirely; block past months for non-managers
+    if (next > currentMonth) return;
+    setMonth(next);
   };
 
   const monthLabel = useMemo(() => {
@@ -106,13 +110,15 @@ const Pit = () => {
   const breaklistAcceptRef = React.useRef<(() => void) | null>(null);
 
   // Center slot: date / month nav (in subtitle area via belowHeader)
+  const canGoPrev = isManager;
+  const canGoNext = month < currentMonth;
   const centerControl = showMonthNav ? (
     <div className="flex items-center gap-1">
-      <Button variant="ghost" size="icon-sm" onClick={() => navigateMonth(-1)}>
-        <ChevronLeft className="w-4 h-4" />
+      <Button variant="ghost" size="icon-sm" onClick={() => canGoPrev && navigateMonth(-1)} disabled={!canGoPrev} title={canGoPrev ? "Previous month" : "Manager Access required"}>
+        {canGoPrev ? <ChevronLeft className="w-4 h-4" /> : <Lock className="w-3.5 h-3.5" />}
       </Button>
       <span className="text-sm font-semibold text-card-foreground min-w-[140px] text-center">{monthLabel}</span>
-      <Button variant="ghost" size="icon-sm" onClick={() => navigateMonth(1)}>
+      <Button variant="ghost" size="icon-sm" onClick={() => canGoNext && navigateMonth(1)} disabled={!canGoNext}>
         <ChevronRight className="w-4 h-4" />
       </Button>
     </div>
