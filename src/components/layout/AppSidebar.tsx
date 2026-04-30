@@ -501,13 +501,16 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
   // ============ Expanded (full sidebar) ============
   return (
     <>
-      <div className="px-4 py-4 border-b border-sidebar-border">
-        <div className="flex items-center justify-between gap-2">
+      <div
+        className="px-4 py-4 border-b"
+        style={isArusha ? { borderBottomColor: "#E8C688" } : undefined}
+      >
+        <div className={cn("flex items-center justify-between gap-2", !isArusha && "border-sidebar-border")}>
           <div className="flex items-center gap-2 min-w-0 shrink-0">
             {isArusha ? (
               <>
                 <img src={arushaLogo} alt="Arusha" className="w-7 h-7 shrink-0 object-contain" />
-                <span className="font-faberge font-semibold text-base tracking-wide" style={{ color: "#E8C688" }}>PREMIER</span>
+                <span className="font-faberge font-semibold text-base uppercase tracking-wide" style={{ color: "#E8C688" }}>PREMIER</span>
               </>
             ) : (
               <>
@@ -518,9 +521,9 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
           </div>
           {isArusha ? (
             <span
-              className="font-faberge font-semibold text-base tracking-wide truncate text-right"
+              className="font-faberge font-semibold text-base uppercase tracking-wide truncate text-right"
               style={{ color: "#E8C688" }}
-              title={isSummaryMode ? "All Casinos" : activeCasino?.name ?? "Casino Ops"}
+              title={isSummaryMode ? "All Casinos" : activeCasino?.name ?? "Arusha"}
             >
               {isSummaryMode ? "All Casinos" : activeCasino?.name ?? "Arusha"}
             </span>
