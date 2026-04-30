@@ -8,7 +8,9 @@ import {
   Building2, UserCheck, ClipboardPen, ShieldCheck, ShieldOff,
   Wallet, DoorOpen, ShieldAlert, Menu, Upload, FileText,
   ChevronsLeft, ChevronsRight, CreditCard, CalendarDays, ChevronDown, ChevronRight, Coins, Briefcase,
+  RefreshCw,
 } from "lucide-react";
+import { resetPWACache } from "@/lib/pwa-register";
 import { useTheme } from "@/lib/theme";
 import { useAuth } from "@/lib/auth-context";
 import { useCasino } from "@/lib/casino-context";
@@ -472,6 +474,21 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
           <Tooltip>
             <TooltipTrigger asChild>
               <button
+                onClick={() => {
+                  if (confirm("Reload app and clear cache?\n\nUse this if the app shows outdated data or behaves strangely after an update.")) {
+                    void resetPWACache();
+                  }
+                }}
+                className="w-10 h-10 flex items-center justify-center rounded-md hover:bg-sidebar-accent transition-colors text-sidebar-foreground"
+              >
+                <RefreshCw className="w-4 h-4" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="right">Force update</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
                 onClick={signOut}
                 className="w-10 h-10 flex items-center justify-center rounded-md hover:bg-sidebar-accent transition-colors text-sidebar-foreground"
               >
@@ -603,6 +620,17 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
             className="h-7 w-7 flex items-center justify-center rounded-md text-sidebar-foreground hover:bg-sidebar-accent transition-colors shrink-0"
           >
             {theme === "dark" ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
+          </button>
+          <button
+            onClick={() => {
+              if (confirm("Reload app and clear cache?\n\nUse this if the app shows outdated data or behaves strangely after an update.")) {
+                void resetPWACache();
+              }
+            }}
+            title="Force update"
+            className="h-7 w-7 flex items-center justify-center rounded-md text-sidebar-foreground hover:bg-sidebar-accent transition-colors shrink-0"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={signOut}
