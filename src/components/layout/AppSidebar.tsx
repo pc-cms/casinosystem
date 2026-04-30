@@ -214,7 +214,9 @@ const SidebarSections = ({
     subs: VirtualSub[],
   ) => {
     const groupKey = `__virtual:${key}`;
-    const isGroupActive = subs.some(s => location.pathname === s.matchPath && currentTab === s.matchTab);
+    const matchSub = (s: VirtualSub) =>
+      location.pathname === s.matchPath && currentTab === s.matchTab && (!s.matchGroup || currentGroup === s.matchGroup);
+    const isGroupActive = subs.some(matchSub);
     const isOpen = open[groupKey] ?? isGroupActive;
     return (
       <div key={`${sectionCtx}:${item.to}`}>
@@ -232,7 +234,7 @@ const SidebarSections = ({
         {isOpen && (
           <div className="ml-4 mt-0.5 space-y-0.5 border-l border-sidebar-border pl-2">
             {subs.map(sub => {
-              const active = location.pathname === sub.matchPath && currentTab === sub.matchTab;
+              const active = matchSub(sub);
               return (
                 <NavLink
                   key={sub.to}
