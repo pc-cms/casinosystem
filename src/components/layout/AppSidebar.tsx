@@ -551,7 +551,44 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
         renderSubItems={renderSubItems}
       />
 
-      <div className="px-3 py-2 border-t border-sidebar-border">
+      <div className="px-3 py-2 border-t border-sidebar-border space-y-2">
+        {(!nativeManager || onToggle) && (
+          <div className="flex items-center gap-2">
+            {!nativeManager && (
+              managerOverride.active ? (
+                <button
+                  onClick={handleDeactivate}
+                  className="flex items-center gap-2 flex-1 h-8 px-3 rounded-md text-xs font-medium bg-primary/15 text-primary border border-primary/30 hover:bg-primary/25 transition-colors"
+                >
+                  <ShieldCheck className="w-4 h-4" />
+                  <span className="flex-1 text-left">Manager Active</span>
+                  <ShieldOff className="w-3.5 h-3.5 opacity-60" />
+                </button>
+              ) : (
+                <button
+                  onClick={() => setShowOverrideDialog(true)}
+                  className="flex items-center gap-2 flex-1 h-8 px-3 rounded-md text-xs font-medium text-sidebar-foreground hover:bg-sidebar-accent border border-sidebar-border transition-colors"
+                >
+                  <ShieldCheck className="w-4 h-4" />
+                  <span className="flex-1 text-left">Manager</span>
+                </button>
+              )
+            )}
+            {onToggle && (
+              <button
+                onClick={onToggle}
+                title="Collapse sidebar"
+                className={cn(
+                  "h-8 px-3 flex items-center justify-center rounded-md text-xs font-medium text-sidebar-foreground hover:bg-sidebar-accent border border-sidebar-border transition-colors",
+                  nativeManager && "flex-1 gap-2"
+                )}
+              >
+                <ChevronsLeft className="w-3.5 h-3.5" />
+                {nativeManager && <span className="flex-1 text-left">Hide sidebar</span>}
+              </button>
+            )}
+          </div>
+        )}
         <div className="flex items-center gap-2 px-1">
           <p className="text-xs font-medium text-sidebar-foreground truncate flex-1" title={displayName ?? undefined}>
             {displayName}
