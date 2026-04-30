@@ -156,16 +156,15 @@ const ActiveSessionCard = ({
     const val = Number(newBet);
     if (!val || val <= 0) return;
     setSaving(true);
-    
-    // Lock the current accumulated total_bet before changing the rate
-    const now = new Date().toISOString();
+
+    // DB trigger `client_session_recalc` (BEFORE UPDATE) is the authoritative
+    // calculator: when avg_bet changes, it closes the previous segment
+    // (total_bet += OLD.avg_bet × minutes) and stamps bet_changed_at = now().
+    // UI must NOT send total_bet/bet_changed_at — that would race with the
+    // trigger and corrupt the per-segment ledger.
     const { error } = await supabase
       .from("client_sessions")
-      .update({ 
-        avg_bet: val,
-        total_bet: liveTotalBet,
-        bet_changed_at: now,
-      })
+      .update({ avg_bet: val })
       .eq("id", s.id);
     setSaving(false);
     if (error) {
