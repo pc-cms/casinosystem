@@ -8,69 +8,51 @@
     <meta name="author" content="Casino System" />
 
     <link rel="icon" href="/favicon.png" type="image/png" />
-    <link rel="apple-touch-icon" href="/icon-192-any.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <link id="app-manifest" rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#000000" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Casino System" />
     <script>
-      // Single PWA for the whole Casino System.
-      // Name is dynamically branded per subdomain (arusha → "Casino System — Premier Arusha", etc.).
-      // Note: PWA name is pinned at install time on iOS/Android — branding only affects fresh installs.
+      // Per-subdomain branding for browser tab + manifest + apple-touch-icon.
+      // CRITICAL: iOS/Android pin the manifest at install time. We MUST set the
+      // <link rel="manifest"> to a real static URL BEFORE any service worker
+      // registration so that the installer reads the correct branded manifest.
       (function () {
         try {
           var host = (window.location.hostname || "").toLowerCase();
-
-          // Map known branch subdomains → branded names.
-          var BRANCH_NAMES = {
-            arusha: "Premier Arusha",
-            mwanza: "Premier Mwanza",
-            dodoma: "Premier Dodoma",
-            mbeya:  "Premier Mbeya",
-            premier: "Premier HQ",
-          };
-
-          // Extract leftmost subdomain label (works for arusha.casinosystem.app
-          // and arusha.casinosystem.lovable.app and arusha.localhost).
           var label = host.split(".")[0];
-          var branchSuffix = BRANCH_NAMES[label] || null;
 
-          var fullName = branchSuffix
-            ? "Casino System — " + branchSuffix
-            : "Casino System";
-          var shortName = branchSuffix ? branchSuffix : "Casino System";
+          var BRANCHES = {
+            arusha:  { name: "Premier Arusha",  manifest: "/manifest-arusha.json"  },
+            mwanza:  { name: "Premier Mwanza",  manifest: "/manifest-mwanza.json"  },
+            dodoma:  { name: "Premier Dodoma",  manifest: "/manifest-dodoma.json"  },
+            mbeya:   { name: "Premier Mbeya",   manifest: "/manifest-mbeya.json"   },
+            premier: { name: "Premier HQ",      manifest: "/manifest-premier.json" },
+          };
+          var branch = BRANCHES[label] || null;
 
-          // Update browser tab title to "<Branded Name> — Casino Management System".
-          // For non-branded hosts, keep the default title (already set above).
-          if (branchSuffix) {
-            document.title = branchSuffix + " — Casino Management System";
-          }
+          if (branch) {
+            // Browser tab title
+            document.title = branch.name + " — Casino Management System";
 
-          // Build a dynamic manifest by patching the static one.
-          fetch("/manifest.json", { cache: "no-cache" })
-            .then(function (r) { return r.json(); })
-            .then(function (m) {
-              m.name = fullName;
-              m.short_name = shortName;
-              var blob = new Blob([JSON.stringify(m)], { type: "application/manifest+json" });
-              var url = URL.createObjectURL(blob);
-              var link = document.getElementById("app-manifest");
-              if (link) link.setAttribute("href", url);
-            })
-            .catch(function () { /* keep static manifest as fallback */ });
+            // Swap manifest to per-branch static file (pinnable on install)
+            var link = document.getElementById("app-manifest");
+            if (link) link.setAttribute("href", branch.manifest);
 
-          // Brand swap for any branded subdomain: favicon, apple-touch-icon, apple title.
-          if (branchSuffix) {
-            // Arusha has its own dedicated icon asset; other branches reuse the default.
+            // Apple-specific title (used as home-screen label on iOS)
+            var appleTitle = document.querySelector('meta[name="apple-mobile-web-app-title"]');
+            if (appleTitle) appleTitle.setAttribute("content", branch.name);
+
+            // Arusha has its own brand asset for favicon + apple-touch
             if (label === "arusha") {
               var fav = document.querySelector('link[rel="icon"]');
               if (fav) fav.setAttribute("href", "/arusha-logo.png");
               var apple = document.querySelector('link[rel="apple-touch-icon"]');
               if (apple) apple.setAttribute("href", "/arusha-logo.png");
             }
-            var appleTitle = document.querySelector('meta[name="apple-mobile-web-app-title"]');
-            if (appleTitle) appleTitle.setAttribute("content", branchSuffix);
           }
         } catch (e) { /* noop */ }
       })();

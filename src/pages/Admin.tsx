@@ -9,7 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Shield, Trash2, UserPlus, Coins, Clock, Building2, Server, Link2, Unlink, Globe, Palette, Settings } from "lucide-react";
+import { Plus, Shield, Trash2, UserPlus, Coins, Clock, Building2, Server, Link2, Unlink, Globe, Palette, Settings, RefreshCw } from "lucide-react";
+import { resetPWACache } from "@/lib/pwa-register";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { toast } from "sonner";
 import { logAction } from "@/lib/logging";
@@ -486,6 +487,8 @@ const LocalServerManagement = () => {
         </table>
       </div>
 
+      <AppCacheCard />
+
       <Dialog open={showLink} onOpenChange={setShowLink}>
         <DialogContent className="max-w-sm">
           <DialogHeader><DialogTitle>Link Local Server</DialogTitle></DialogHeader>
@@ -811,4 +814,34 @@ const ScheduleSettings = () => {
   );
 };
 
+// =================== APP CACHE ===================
+const AppCacheCard = () => {
+  const [busy, setBusy] = useState(false);
+  const handleReset = async () => {
+    if (!confirm("Сбросить кэш приложения и перезагрузить?\n\nЭто очистит все локальные кэши и принудительно загрузит свежую версию.")) return;
+    setBusy(true);
+    try {
+      await resetPWACache();
+    } catch {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="cms-panel p-4 flex items-center justify-between gap-3">
+      <div>
+        <h3 className="text-sm font-semibold text-card-foreground">App Cache</h3>
+        <p className="text-xs text-muted-foreground">
+          Очищает Service Worker и локальные кэши, затем перезагружает страницу.
+          Используется, если приложение «застряло» на старой версии.
+        </p>
+      </div>
+      <Button variant="outline" onClick={handleReset} disabled={busy} className="gap-2 shrink-0">
+        <RefreshCw className={`w-4 h-4 ${busy ? "animate-spin" : ""}`} />
+        {busy ? "Resetting…" : "Reset & Reload"}
+      </Button>
+    </div>
+  );
+};
+
 export default Admin;
+
