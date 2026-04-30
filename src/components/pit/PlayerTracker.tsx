@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import { usePlayers, useGamingTables } from "@/hooks/use-casino-data";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/integrations/supabase/client";
+import { offlineMutation } from "@/lib/offline-mutation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { NumberInput } from "@/components/ui/number-input";
