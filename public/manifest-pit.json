@@ -1,0 +1,26 @@
+{
+  "name": "Casino Pit",
+  "short_name": "Pit",
+  "description": "Pit module for live game floor: breaklist, tables, rota, attendance. Works offline.",
+  "start_url": "/pit?tab=breaklist",
+  "id": "/pit",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#1a1a2e",
+  "theme_color": "#1a1a2e",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
