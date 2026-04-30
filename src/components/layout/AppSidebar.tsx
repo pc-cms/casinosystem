@@ -348,6 +348,7 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
   const isTablesActive = location.pathname === "/tables";
   const currentTab = rawTab ||
     (location.pathname === "/pit" ? "employee" : isTablesActive ? "tables" : "employee");
+  const currentGroup = new URLSearchParams(location.search).get("group") || "floor";
 
   const visibleItems = NAV_ITEMS.filter(item =>
     roles.some(r => item.roles.includes(r as AppRole))
@@ -547,6 +548,7 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
         isStaffActive={isStaffActive}
         isTablesActive={isTablesActive}
         currentTab={currentTab}
+        currentGroup={currentGroup}
         roles={roles as AppRole[]}
         onNavigate={onNavigate}
         renderSubItems={renderSubItems}
