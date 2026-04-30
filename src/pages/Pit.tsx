@@ -816,12 +816,18 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
     if (!isNaN(num) && num >= 0 && num <= 24) { setAttendance.mutate({ dealer_id: dealerId, date: dateStr, value: String(num) }); }
   };
 
-  const getDealerTotal = (dealerId: string) => {
-    return days.reduce((sum, day) => {
+  const getDealerTotals = (dealerId: string) => {
+    let shifts = 0;
+    let hours = 0;
+    days.forEach(day => {
       const val = getValue(dealerId, day);
       const num = Number(val);
-      return sum + (isNaN(num) ? 0 : num);
-    }, 0);
+      if (!isNaN(num) && num > 0) {
+        shifts += 1;
+        hours += num;
+      }
+    });
+    return { shifts, hours };
   };
 
   const renderAttendanceRows = (dealerList: any[], label: string, accentColor: string) => (
