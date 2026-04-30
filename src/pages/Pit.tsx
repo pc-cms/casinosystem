@@ -769,7 +769,7 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
 };
 
 // =================== DAILY ATTENDANCE ===================
-const AttendanceGrid = ({ month }: { month: string }) => {
+const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?: boolean }) => {
   const [y, m] = month.split("-").map(Number);
   const daysInMonth = new Date(y, m, 0).getDate();
   const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
