@@ -6,23 +6,24 @@
 #
 # Режимы запуска:
 #   sudo ./install.sh                           # интерактивный мастер
-#   sudo ./install.sh --reconfigure             # перенастроить .env, перезапустить
-#   sudo ./install.sh --check-update            # проверить наличие нового образа
-#   sudo ./install.sh --slug arusha \           # CLI-режим (для автоматизации)
-#                     --name "Premier Arusha" \
-#                     --domain arusha.local \
-#                     --ip 192.168.1.100 \
-#                     --casino-id <UUID> \
-#                     --sync-secret <secret>
+#   sudo ./install.sh --reconfigure             # перенастроить .env
+#   sudo ./install.sh --check-update            # только проверить наличие нового образа
+#   sudo ./install.sh --upgrade-to v1.5.2       # принудительно обновить до версии
+#   sudo ./install.sh --skip-update-check       # не обновлять, даже если есть новый
+#   sudo ./install.sh --slug arusha ...         # CLI-режим (см. ниже)
 #
 # Что делает мастер:
 #   1. Проверяет Ubuntu 22.04+ и устанавливает Docker если нужно
-#   2. Спрашивает: название локации, slug, локальный IP, домен, CASINO_ID, sync_secret
-#   3. Проверяет связь с Cloud и валидирует CASINO_ID (есть ли такая запись в casinos)
-#   4. Генерирует JWT/CA/server cert
+#   2. Спрашивает: название, slug, IP, домен, CASINO_ID, sync_secret
+#   3. ПРОВЕРКА СВЯЗИ (3 уровня):
+#       • интернет (curl 1.1.1.1 / api.github.com)
+#       • Cloud Supabase REST + валидация CASINO_ID в реестре casinos
+#       • GitHub API + последняя версия образа (если задан GITHUB_TOKEN)
+#      → Если интернета нет — продолжаем с локальными образами (с подтверждением)
+#   4. Генерирует JWT/CA/server cert (включает LOCAL_IP в SAN)
 #   5. Применяет миграции БД
-#   6. Поднимает docker compose stack
-#   7. Проверяет, есть ли свежая версия образа на GitHub (если нет — пишет какая)
+#   6. Решает версию образа (текущая / latest / --upgrade-to) с авто-откатом при сбое
+#   7. docker compose pull + up -d + health check
 #   8. Устанавливает systemd unit для автозапуска
 
 set -euo pipefail
