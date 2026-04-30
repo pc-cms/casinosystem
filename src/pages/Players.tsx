@@ -238,10 +238,10 @@ const Players = () => {
         {/* Footer totals */}
         {filtered.length > 0 && (
           <div className="grid items-center border-t border-border px-3 py-2 gap-2 bg-muted/40"
-            style={{ gridTemplateColumns: "70px minmax(180px,1.4fr) 110px 80px 60px 60px 110px 110px 110px 90px 110px 80px 110px 110px" }}>
+            style={{ gridTemplateColumns: "70px minmax(180px,1.4fr) 80px 60px 60px 110px 110px 110px 90px 110px 80px 110px 110px" }}>
             <span />
             <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Period total</span>
-            <span /><span />
+            <span />
             <span className="text-xs font-mono text-card-foreground">{totals.visits || "·"}</span>
             <span />
             <span className="text-xs">{fmtNeutral(totals.drop)}</span>
