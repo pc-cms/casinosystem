@@ -117,7 +117,31 @@ const Pit = () => {
       </Button>
     </div>
   ) : showDatePicker ? (
-    <Input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-44 font-mono h-9" />
+    isManager ? (
+      <Input
+        type="date"
+        value={date}
+        max={businessToday}
+        onChange={e => setDate(e.target.value || businessToday)}
+        className="w-44 font-mono h-9"
+      />
+    ) : (
+      <div className="flex items-center gap-2">
+        <span className="font-mono text-sm font-semibold text-card-foreground">
+          {date.replace(/-/g, ".")}
+        </span>
+        {date !== businessToday && (
+          <button
+            type="button"
+            onClick={() => setDate(businessToday)}
+            className="inline-flex items-center gap-1 h-7 px-2 rounded-md border border-border text-[10px] font-mono text-muted-foreground hover:bg-muted"
+            title="Return to today"
+          >
+            <Lock className="h-3 w-3" /> Today
+          </button>
+        )}
+      </div>
+    )
   ) : null;
 
   // Right slot: action buttons / legend
