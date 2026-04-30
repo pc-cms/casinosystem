@@ -814,4 +814,34 @@ const ScheduleSettings = () => {
   );
 };
 
+// =================== APP CACHE ===================
+const AppCacheCard = () => {
+  const [busy, setBusy] = useState(false);
+  const handleReset = async () => {
+    if (!confirm("Сбросить кэш приложения и перезагрузить?\n\nЭто очистит все локальные кэши и принудительно загрузит свежую версию.")) return;
+    setBusy(true);
+    try {
+      await resetPWACache();
+    } catch {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="cms-panel p-4 flex items-center justify-between gap-3">
+      <div>
+        <h3 className="text-sm font-semibold text-card-foreground">App Cache</h3>
+        <p className="text-xs text-muted-foreground">
+          Очищает Service Worker и локальные кэши, затем перезагружает страницу.
+          Используется, если приложение «застряло» на старой версии.
+        </p>
+      </div>
+      <Button variant="outline" onClick={handleReset} disabled={busy} className="gap-2 shrink-0">
+        <RefreshCw className={`w-4 h-4 ${busy ? "animate-spin" : ""}`} />
+        {busy ? "Resetting…" : "Reset & Reload"}
+      </Button>
+    </div>
+  );
+};
+
 export default Admin;
+
