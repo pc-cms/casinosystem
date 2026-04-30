@@ -135,7 +135,7 @@ const Staff = () => {
     <div>
       <PageHeader
         icon={Building2}
-        title={TAB_TITLES[activeTab] || "Floor"}
+        title={activeTab === "attendance" ? `${ROTA_GROUPS[attGroupKey].label} Attendance` : (TAB_TITLES[activeTab] || "Floor")}
         subtitle="Floor Management"
         centerSlot={
           <div className="flex items-center gap-3 flex-wrap justify-center no-print">
