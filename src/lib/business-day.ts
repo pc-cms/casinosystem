@@ -5,15 +5,18 @@
  * the "business date" is still the previous calendar day.
  */
 
-/** Get current date/time as a Date object whose UTC fields equal EAT wall-clock fields.
- *  Used only for hour/minute/date arithmetic — DO NOT call .toISOString() on the
- *  result expecting EAT; use ymdEAT() / getBusinessDate() for date strings. */
+/** Get current date/time as a Date object whose LOCAL fields (getHours/getMinutes/getDate)
+ *  equal EAT wall-clock fields, regardless of the browser's timezone.
+ *  DO NOT call .toISOString() on the result expecting EAT;
+ *  use ymdEAT() / getBusinessDate() for date strings. */
 export function nowEAT(): Date {
   // en-CA gives YYYY-MM-DD, en-GB 24h time — together they form EAT wall clock.
   const d = new Date();
   const date = d.toLocaleDateString("en-CA", { timeZone: "Africa/Dar_es_Salaam" });
   const time = d.toLocaleTimeString("en-GB", { timeZone: "Africa/Dar_es_Salaam", hour12: false });
-  return new Date(`${date}T${time}Z`);
+  // Construct without "Z" so the values are interpreted as the browser's local time —
+  // this way getHours()/getMinutes()/getDate() return the EAT wall-clock numbers.
+  return new Date(`${date}T${time}`);
 }
 
 /** Current EAT calendar date as YYYY-MM-DD. */
