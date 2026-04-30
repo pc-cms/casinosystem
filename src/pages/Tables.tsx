@@ -1,10 +1,9 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
-import { toast } from "sonner";
 import { useGamingTables, useTransactions, useTableTracker } from "@/hooks/use-casino-data";
 import { useActiveShift } from "@/hooks/use-shift";
 import { useChipSnapshots, useBatchChipSnapshot } from "@/hooks/use-chips";
-import { useChipBaseline, useOpenAllTables, useSetTableResults, baselineToMap } from "@/hooks/use-table-lifecycle";
+import { useChipBaseline, useOpenAllTables, baselineToMap } from "@/hooks/use-table-lifecycle";
 import { useAuth } from "@/lib/auth-context";
 import { getBusinessDate } from "@/lib/business-day";
 import { Badge } from "@/components/ui/badge";
@@ -13,12 +12,12 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { CHIP_DENOMS, CHIP_COLORS, formatChipLabel, formatCurrency } from "@/lib/currency";
 import { Save, Coins, Play, BarChart3, Lock, Users, Eye, Target, LayoutGrid } from "lucide-react";
-import ChipDenomInput from "@/components/ChipDenomInput";
 import ActivePlayers from "@/components/pit/ActivePlayers";
 import ClientTracker from "@/components/pit/PlayerTracker";
 import TableTracker from "@/pages/TableTracker";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { CloseTableWizard } from "@/components/tables/CloseTableWizard";
 
 const PIT_TABS = [
   { key: "tables", label: "Tables", icon: BarChart3 },
@@ -41,11 +40,13 @@ const Tables = () => {
   const { data: baseline = [] } = useChipBaseline();
   const batchSnapshot = useBatchChipSnapshot();
   const openAllTables = useOpenAllTables();
-  const setTableResults = useSetTableResults();
 
+  // Chip Count snapshot dialog (mid-shift)
   const [counts, setCounts] = useState<Record<string, Record<number, number>>>({});
   const [showCount, setShowCount] = useState(false);
-  const [countMode, setCountMode] = useState<"save" | "result">("save");
+
+  // Close Table wizard
+  const [showCloseWizard, setShowCloseWizard] = useState(false);
 
   const baselineMap = useMemo(() => baselineToMap(baseline), [baseline]);
 
@@ -76,20 +77,46 @@ const Tables = () => {
     return stats;
   }, [tables, shiftTransactions, trackerData]);
 
-  const locations = useMemo(() => {
-    const targetTables = countMode === "result" ? openTables : tables;
-    return targetTables.map(t => ({
+  // Chip Count operates only on TABLES (Pit only deals with tables)
+  // Latest snapshot per table for prefill
+  const latestSnapshotPerTable = useMemo(() => {
+    const map: Record<string, Record<number, number>> = {};
+    const sorted = [...snapshots].sort((a, b) => (a.created_at || "").localeCompare(b.created_at || ""));
+    sorted.forEach((s: any) => {
+      if (s.location_type !== "table" || !s.location_id) return;
+      if (!map[s.location_id]) map[s.location_id] = {};
+      map[s.location_id][Number(s.denomination)] = Number(s.actual_quantity);
+    });
+    return map;
+  }, [snapshots]);
+
+  const countLocations = useMemo(() => {
+    return openTables.map(t => ({
       key: `table-${t.id}`,
       label: t.name,
       type: "table" as const,
       id: t.id,
       denoms: t.denominations || [],
     }));
-  }, [tables, openTables, countMode]);
+  }, [openTables]);
 
-  const handleOpenChipCount = (mode: "save" | "result") => {
-    setCountMode(mode);
-    setCounts({});
+  // Default value for a (table, denom) input: latest snapshot → baseline (float)
+  const getDefaultCount = (tableId: string, denom: number): number => {
+    const snap = latestSnapshotPerTable[tableId]?.[denom];
+    if (snap !== undefined) return snap;
+    return baselineMap[tableId]?.[denom] ?? 0;
+  };
+
+  const handleOpenChipCount = () => {
+    // Prefill from baseline / last snapshot so the first count of the shift shows the float
+    const initial: Record<string, Record<number, number>> = {};
+    countLocations.forEach(loc => {
+      initial[loc.key] = {};
+      loc.denoms.forEach(d => {
+        initial[loc.key][d] = getDefaultCount(loc.id, d);
+      });
+    });
+    setCounts(initial);
     setShowCount(true);
   };
 
@@ -98,12 +125,12 @@ const Tables = () => {
       location_type: string; location_id: string | null;
       denomination: number; expected_quantity: number; actual_quantity: number;
     }> = [];
-    locations.forEach(loc => {
+    countLocations.forEach(loc => {
       const locCounts = counts[loc.key] || {};
-      const tableBaseline = baselineMap[loc.id!] || {};
+      const tableBaseline = baselineMap[loc.id] || {};
       loc.denoms.forEach(d => {
         const expected = tableBaseline[d] || 0;
-        const actual = locCounts[d] !== undefined ? locCounts[d] : expected;
+        const actual = locCounts[d] ?? expected;
         rows.push({ location_type: loc.type, location_id: loc.id, denomination: d, expected_quantity: expected, actual_quantity: actual });
       });
     });
@@ -111,58 +138,7 @@ const Tables = () => {
       onSuccess: () => {
         setCounts({});
         setShowCount(false);
-        if (countMode === "result") {
-          const results = locations.map(loc => {
-            const locCounts = counts[loc.key] || {};
-            const tableBaseline = baselineMap[loc.id!] || {};
-            let resultValue = 0;
-            const chipMap: Record<string, number> = {};
-            loc.denoms.forEach(d => {
-              const expected = tableBaseline[d] || 0;
-              const actual = locCounts[d] !== undefined ? locCounts[d] : expected;
-              chipMap[String(d)] = actual;
-              resultValue += (actual - expected) * d;
-            });
-            return { table_id: loc.id!, closing_chips: chipMap, closing_result: resultValue };
-          });
-          setTableResults.mutate(results);
-        }
       },
-    });
-  };
-
-  const handleConfirmResult = () => {
-    const results = locations.map(loc => {
-      const locCounts = counts[loc.key] || {};
-      const tableBaseline = baselineMap[loc.id!] || {};
-      let resultValue = 0;
-      const chipMap: Record<string, number> = {};
-      loc.denoms.forEach(d => {
-        const expected = tableBaseline[d] || 0;
-        const actual = locCounts[d] !== undefined ? locCounts[d] : expected;
-        chipMap[String(d)] = actual;
-        resultValue += (actual - expected) * d;
-      });
-      return { table_id: loc.id!, closing_chips: chipMap, closing_result: resultValue };
-    });
-
-    const snapRows: Array<{
-      location_type: string; location_id: string | null;
-      denomination: number; expected_quantity: number; actual_quantity: number;
-    }> = [];
-    locations.forEach(loc => {
-      const locCounts = counts[loc.key] || {};
-      const tableBaseline = baselineMap[loc.id!] || {};
-      loc.denoms.forEach(d => {
-        const expected = tableBaseline[d] || 0;
-        const actual = locCounts[d] !== undefined ? locCounts[d] : expected;
-        snapRows.push({ location_type: loc.type, location_id: loc.id, denomination: d, expected_quantity: expected, actual_quantity: actual });
-      });
-    });
-
-    batchSnapshot.mutate({ date, counts: snapRows });
-    setTableResults.mutate(results, {
-      onSuccess: () => { setCounts({}); setShowCount(false); },
     });
   };
 
@@ -171,24 +147,20 @@ const Tables = () => {
     openAllTables.mutate(ids);
   };
 
-  const hasAnyCount = Object.keys(counts).length > 0;
-
-  const resultSummary = useMemo(() => {
-    if (countMode !== "result") return [];
-    return locations.map(loc => {
+  // Live result preview per table inside Chip Count dialog
+  const countResultPreview = useMemo(() => {
+    return countLocations.map(loc => {
       const locCounts = counts[loc.key] || {};
-      const tableBaseline = baselineMap[loc.id!] || {};
+      const tableBaseline = baselineMap[loc.id] || {};
       let total = 0;
-      const denoms = loc.denoms.map(d => {
+      loc.denoms.forEach(d => {
         const expected = tableBaseline[d] || 0;
-        const actual = locCounts[d] !== undefined ? locCounts[d] : expected;
-        const diff = actual - expected;
-        total += diff * d;
-        return { denom: d, expected, actual, diff };
-      }).filter(r => r.expected > 0 || r.actual > 0);
-      return { label: loc.label, id: loc.id, denoms, total };
+        const actual = locCounts[d] ?? expected;
+        total += (actual - expected) * d;
+      });
+      return { id: loc.id, label: loc.label, total };
     });
-  }, [locations, counts, baselineMap, countMode]);
+  }, [countLocations, counts, baselineMap]);
 
   const gameTypeTotals = useMemo(() => {
     const totals: Record<string, { dropR: number; dropV: number; result: number; label: string }> = {};
@@ -271,24 +243,22 @@ const Tables = () => {
         />
 
         {closedTables.length > 0 && (
-          <Button size="sm" onClick={handleOpenAll} disabled={openAllTables.isPending} className="gap-1.5">
+          <Button variant="outline" size="sm" onClick={handleOpenAll} disabled={openAllTables.isPending} className="gap-1.5">
             <Play className="w-4 h-4" /> Open{closedTables.length < tables.length ? ` (${closedTables.length})` : " All"}
           </Button>
         )}
 
-        <Button variant="secondary" size="sm" onClick={() => handleOpenChipCount("save")} className="gap-1.5">
+        <Button variant="outline" size="sm" onClick={handleOpenChipCount} disabled={openTables.length === 0} className="gap-1.5">
           <Coins className="w-4 h-4" /> Chip Count
         </Button>
 
-        {openTables.length > 0 && !hasResults && (
-          <Button size="sm" onClick={() => handleOpenChipCount("result")} className="gap-1.5">
-            <BarChart3 className="w-4 h-4" /> Result
-          </Button>
-        )}
+        <Button size="sm" onClick={() => setShowCloseWizard(true)} disabled={openTables.length === 0} className="gap-1.5">
+          <Lock className="w-4 h-4" /> Close Table
+        </Button>
 
-        {hasResults && (
+        {hasResults && tablesWithResults.length === openTables.length && (
           <Badge variant="outline" className="text-xs gap-1 border-success text-success">
-            <Lock className="w-3 h-3" /> Results set — waiting for Cashier
+            <Lock className="w-3 h-3" /> All counted — ready to close
           </Badge>
         )}
       </PageHeader>
@@ -375,13 +345,11 @@ const Tables = () => {
       </div>
       {tables.length === 0 && <p className="text-muted-foreground text-sm text-center py-8">No tables configured</p>}
 
-      {/* Chip Count / Result Dialog */}
+      {/* Chip Count Dialog (mid-shift snapshot) — tables only */}
       <Dialog open={showCount} onOpenChange={setShowCount}>
         <DialogContent className="max-w-none w-auto overflow-visible" style={{ maxHeight: 'none' }}>
           <DialogHeader>
-            <DialogTitle>
-              {countMode === "result" ? "📊 Record Result — Count chips on each table" : "Chip Count — Per Table"}
-            </DialogTitle>
+            <DialogTitle>Chip Count — Tables (mid-shift snapshot)</DialogTitle>
           </DialogHeader>
 
           <div>
@@ -389,31 +357,28 @@ const Tables = () => {
               <thead>
                 <tr className="border-b border-border">
                   <th className="text-left py-2 px-2 text-muted-foreground font-medium sticky left-0 bg-background z-10 min-w-[70px]">Denom</th>
-                  {locations.map(loc => (
+                  {countLocations.map(loc => (
                     <th key={loc.key} className="text-center py-2 px-3 text-muted-foreground font-medium min-w-[80px] whitespace-nowrap">
                       {loc.label}
-                      {countMode === "result" && baselineMap[loc.id!] && (
-                        <span className="block text-[8px] text-muted-foreground/60 font-normal">baseline</span>
-                      )}
                     </th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {CHIP_DENOMS.map(d => {
-                  const anyLocationHasDenom = locations.some(loc => loc.denoms.includes(d));
+                  const anyLocationHasDenom = countLocations.some(loc => loc.denoms.includes(d));
                   if (!anyLocationHasDenom) return null;
                   return (
                     <tr key={d} className="border-b border-border last:border-0">
                       <td className="py-1 px-2 sticky left-0 bg-background z-10">
                         <span className={`cms-chip text-[8px] ${CHIP_COLORS[d] || "bg-muted text-foreground"}`}>{formatChipLabel(d)}</span>
                       </td>
-                      {locations.map(loc => {
+                      {countLocations.map(loc => {
                         if (!loc.denoms.includes(d)) {
                           return <td key={loc.key} className="px-1 py-0.5 text-center text-muted-foreground/30">—</td>;
                         }
                         const locCounts = counts[loc.key] || {};
-                        const bsl = baselineMap[loc.id!]?.[d] || 0;
+                        const bsl = baselineMap[loc.id]?.[d] || 0;
                         return (
                           <td key={loc.key} className="px-1 py-0.5">
                             <input
@@ -436,43 +401,43 @@ const Tables = () => {
             </table>
           </div>
 
-          {countMode === "result" && hasAnyCount && (
-            <div className="border-t border-border pt-4 space-y-3">
-              <p className="text-xs font-semibold text-card-foreground">Result per Table (Actual − Baseline)</p>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                {resultSummary.map(r => (
-                  <div key={r.id} className="cms-panel p-2">
-                    <p className="text-xs font-medium text-card-foreground mb-1">{r.label}</p>
-                    <p className={`font-mono text-sm font-bold ${r.total >= 0 ? "text-success" : "text-destructive"}`}>
-                      {r.total >= 0 ? "+" : ""}{formatCurrency(r.total)}
-                    </p>
-                  </div>
-                ))}
-              </div>
-              <div className="cms-panel p-2 text-center border-primary/30">
-                <p className="text-[9px] uppercase text-muted-foreground">Total Chip Result</p>
-                <p className={`font-mono text-lg font-bold ${resultSummary.reduce((s, r) => s + r.total, 0) >= 0 ? "text-success" : "text-destructive"}`}>
-                  {resultSummary.reduce((s, r) => s + r.total, 0) >= 0 ? "+" : ""}{formatCurrency(resultSummary.reduce((s, r) => s + r.total, 0))}
-                </p>
-              </div>
+          {/* Live result preview */}
+          <div className="border-t border-border pt-3 space-y-2">
+            <p className="text-xs font-semibold text-card-foreground">Current Result (Actual − Baseline)</p>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+              {countResultPreview.map(r => (
+                <div key={r.id} className="cms-panel p-2 flex items-center justify-between">
+                  <span className="text-xs text-card-foreground truncate">{r.label}</span>
+                  <span className={`font-mono text-xs font-bold ${r.total >= 0 ? "text-success" : "text-destructive"}`}>
+                    {r.total >= 0 ? "+" : ""}{formatCurrency(r.total)}
+                  </span>
+                </div>
+              ))}
             </div>
-          )}
+            <div className="cms-panel p-2 text-center border-primary/30">
+              <p className="text-[9px] uppercase text-muted-foreground">Total</p>
+              <p className={`font-mono text-lg font-bold ${countResultPreview.reduce((s, r) => s + r.total, 0) >= 0 ? "text-success" : "text-destructive"}`}>
+                {countResultPreview.reduce((s, r) => s + r.total, 0) >= 0 ? "+" : ""}{formatCurrency(countResultPreview.reduce((s, r) => s + r.total, 0))}
+              </p>
+            </div>
+          </div>
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowCount(false)}>Cancel</Button>
-            {countMode === "save" && (
-              <Button onClick={handleSaveCount} disabled={batchSnapshot.isPending || !hasAnyCount} className="gap-1.5">
-                <Save className="w-4 h-4" /> {batchSnapshot.isPending ? "Saving…" : "Save Chip Count"}
-              </Button>
-            )}
-            {countMode === "result" && (
-              <Button onClick={handleConfirmResult} disabled={setTableResults.isPending || batchSnapshot.isPending || !hasAnyCount} className="gap-1.5">
-                <BarChart3 className="w-4 h-4" /> {setTableResults.isPending ? "Saving…" : "Confirm Result"}
-              </Button>
-            )}
+            <Button onClick={handleSaveCount} disabled={batchSnapshot.isPending} className="gap-1.5">
+              <Save className="w-4 h-4" /> {batchSnapshot.isPending ? "Saving…" : "Save Snapshot"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Close Table Wizard */}
+      <CloseTableWizard
+        open={showCloseWizard}
+        onClose={() => setShowCloseWizard(false)}
+        tables={tables as any}
+        date={date}
+      />
       </>
       )}
     </PageShell>

@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { logAction } from "@/lib/logging";
+import { offlineMutation } from "@/lib/offline-mutation";
 import { toast } from "sonner";
 
 // ============ CHIP BASELINE ============
@@ -222,6 +223,98 @@ export const useSetTableResults = () => {
       qc.invalidateQueries({ queryKey: ["gaming-tables"] });
       toast.success("Table results recorded");
     },
+    onError: (e) => toast.error(e.message),
+  });
+};
+
+// Set result for a SINGLE table (Pit Close Table wizard) — offline-aware
+export const useSetSingleTableResult = () => {
+  const qc = useQueryClient();
+  const { casinoId, user } = useAuth();
+  return useMutation({
+    mutationFn: async (input: {
+      table_id: string;
+      closing_chips: Record<string, number>;
+      closing_result: number;
+      snapshot_rows?: Array<{
+        location_type: string;
+        location_id: string | null;
+        denomination: number;
+        expected_quantity: number;
+        actual_quantity: number;
+        date: string;
+      }>;
+    }) => {
+      if (!casinoId || !user) throw new Error("Not authenticated");
+
+      const updateRes = await offlineMutation({
+        table: "gaming_tables",
+        operation: "update",
+        payload: {
+          _match: { id: input.table_id },
+          closing_chips: input.closing_chips,
+          closing_result: input.closing_result,
+        },
+      });
+      if (updateRes.error) throw new Error(updateRes.error);
+
+      if (input.snapshot_rows && input.snapshot_rows.length > 0) {
+        const rows = input.snapshot_rows.map(r => ({
+          id: crypto.randomUUID(),
+          casino_id: casinoId,
+          date: r.date,
+          location_type: r.location_type,
+          location_id: r.location_id,
+          denomination: r.denomination,
+          expected_quantity: r.expected_quantity,
+          actual_quantity: r.actual_quantity,
+          recorded_by: user.id,
+        }));
+        const snapRes = await offlineMutation({
+          table: "chip_snapshots",
+          operation: "insert",
+          payload: rows as any,
+        });
+        if (snapRes.error) throw new Error(snapRes.error);
+      }
+
+      if (!updateRes.offline) {
+        await logAction(casinoId, "system", "TABLE_RESULT_SET", {
+          table_id: input.table_id,
+          closing_result: input.closing_result,
+        });
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["gaming-tables"] });
+      qc.invalidateQueries({ queryKey: ["chip-snapshots"] });
+    },
+    onError: (e) => toast.error(e.message),
+  });
+};
+
+// Reopen a single table (clear closing draft) — Manager Access required at UI level
+export const useReopenSingleTable = () => {
+  const qc = useQueryClient();
+  const { casinoId } = useAuth();
+  return useMutation({
+    mutationFn: async (tableId: string) => {
+      if (!casinoId) throw new Error("No casino");
+      const res = await offlineMutation({
+        table: "gaming_tables",
+        operation: "update",
+        payload: {
+          _match: { id: tableId },
+          closing_chips: null,
+          closing_result: null,
+        },
+      });
+      if (res.error) throw new Error(res.error);
+      if (!res.offline) {
+        await logAction(casinoId, "system", "TABLE_RESULT_REOPENED", { table_id: tableId });
+      }
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["gaming-tables"] }),
     onError: (e) => toast.error(e.message),
   });
 };
