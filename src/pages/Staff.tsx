@@ -106,10 +106,6 @@ const Staff = () => {
   // Rota allows next month (filled in advance); Attendance does not.
   const canGoNext = isRotaTab ? true : month < currentMonth;
 
-  const [searchParams] = useSearchParams();
-  const activeTab = searchParams.get("tab") || "employee";
-
-  const isRotaTab = activeTab.startsWith("rota_");
   const rotaGroupKey = isRotaTab ? activeTab.replace("rota_", "") as RotaGroupKey : null;
   const rotaGroup = rotaGroupKey ? ROTA_GROUPS[rotaGroupKey] : null;
 
