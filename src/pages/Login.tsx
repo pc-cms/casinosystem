@@ -7,11 +7,11 @@ import { Shield } from "lucide-react";
 const LOGIN_DOMAIN = "@cms.local";
 
 const BRANCH_NAMES: Record<string, string> = {
-  arusha: "Premier Arusha",
-  mwanza: "Premier Mwanza",
-  dodoma: "Premier Dodoma",
-  mbeya: "Premier Mbeya",
-  premier: "Premier HQ",
+  arusha: "Arusha",
+  mwanza: "Mwanza",
+  dodoma: "Dodoma",
+  mbeya: "Mbeya",
+  premier: "Premier",
 };
 
 const GOLD = "#E8C688";
@@ -56,16 +56,10 @@ const Login = () => {
                   className="mx-auto mb-3 h-28 w-auto"
                 />
                 <p
-                  className="font-faberge text-base uppercase tracking-[0.25em]"
+                  className="font-faberge text-xl uppercase tracking-[0.35em]"
                   style={{ color: GOLD }}
                 >
                   {branchName}
-                </p>
-                <p
-                  className="font-faberge text-xs uppercase tracking-[0.25em] mt-1 opacity-80"
-                  style={{ color: GOLD }}
-                >
-                  Casino Management System
                 </p>
               </>
             ) : (
