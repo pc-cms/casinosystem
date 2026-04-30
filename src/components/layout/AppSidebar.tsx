@@ -392,20 +392,7 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
     return (
       <TooltipProvider delayDuration={150}>
         <div className="flex flex-col items-center py-3 gap-1 h-full">
-          {/* Logo + expand */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                onClick={onToggle}
-                className="w-10 h-10 flex items-center justify-center rounded-md hover:bg-sidebar-accent transition-colors text-sidebar-foreground"
-              >
-                <ChevronsRight className="w-4 h-4" />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="right">Expand sidebar</TooltipContent>
-          </Tooltip>
-
-          <div className="w-8 border-t border-sidebar-border my-1" />
+          {/* Nav icons start directly at the top (expand button moved to bottom) */}
 
           {/* Nav icons (only top-level items, no sub-tabs) */}
           <nav className="flex-1 flex flex-col items-center gap-0.5 w-full px-2 overflow-hidden">
