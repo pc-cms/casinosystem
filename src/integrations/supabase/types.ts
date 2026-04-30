@@ -2717,6 +2717,7 @@ export type Database = {
     Functions: {
       activity_logs_purge: { Args: { p_days?: number }; Returns: number }
       cleanup_old_data: { Args: never; Returns: Json }
+      compute_shift_close: { Args: { p_shift_id: string }; Returns: Json }
       generate_card_number: { Args: never; Returns: string }
       get_business_date_for_casino: {
         Args: { _casino_id: string }
@@ -2764,6 +2765,17 @@ export type Database = {
           casino_name: string
           checked_in_at: string
         }[]
+      }
+      sync_apply_remote: {
+        Args: {
+          p_casino_id: string
+          p_local_id: number
+          p_op: string
+          p_payload: Json
+          p_pk: Json
+          p_table: string
+        }
+        Returns: Json
       }
       sync_attach: { Args: { p_table: unknown }; Returns: undefined }
       sync_outbox_gc: { Args: never; Returns: undefined }
