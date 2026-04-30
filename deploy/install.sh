@@ -45,6 +45,7 @@ require_root() { [[ $EUID -eq 0 ]] || fail "Запустите от root: sudo .
 RECONFIGURE=0
 CHECK_UPDATE_ONLY=0
 NONINTERACTIVE=0
+SKIP_UPDATE_CHECK=0
 declare -A CLI
 
 while [[ $# -gt 0 ]]; do
