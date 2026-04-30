@@ -37,14 +37,14 @@ const NAV_ITEMS: NavItem[] = [
   // OVERVIEW
   { to: "/", icon: LayoutDashboard, label: "Dashboard", roles: ["super_admin", "manager", "pit", "reception", "finance_manager", "surveillance"], section: "OVERVIEW" },
 
-  // PIT — Break List, Live Tables, trackers, Live Game (parent: Attendance+Rota), Floor (parent: Attendance+Rotas)
+  // PIT — Break List, Live Tables, trackers, Attendance (parent), Rota (parent)
   { to: "/pit?tab=breaklist", icon: ListChecks, label: "Break List", roles: ["super_admin", "manager", "pit", "finance_manager"], section: "PIT" },
   { to: "/tables", icon: Table2, label: "Live Tables", roles: ["super_admin", "manager", "cashier", "pit", "finance_manager", "surveillance"], section: "PIT" },
   { to: "/active-players", icon: Users, label: "Active Players", roles: ["super_admin", "manager", "pit", "finance_manager"], section: "PIT" },
   { to: "/player-tracker", icon: Eye, label: "Player Tracker", roles: ["super_admin", "manager", "pit", "finance_manager"], section: "PIT" },
   { to: "/table-tracker", icon: Target, label: "Table Tracker", roles: ["super_admin", "manager", "pit", "finance_manager"], section: "PIT" },
-  { to: "/pit", icon: Gamepad2, label: "Live Game", roles: ["super_admin", "manager", "pit", "finance_manager"], section: "PIT" },
-  { to: "/staff", icon: Building2, label: "Floor", roles: ["super_admin", "manager", "pit", "finance_manager"], section: "PIT" },
+  { to: "__attendance__", icon: ClipboardPen, label: "Attendance", roles: ["super_admin", "manager", "pit", "finance_manager"], section: "PIT" },
+  { to: "__rota__", icon: CalendarDays, label: "Rota", roles: ["super_admin", "manager", "pit", "finance_manager"], section: "PIT" },
 
   // CASHIER — Cage operations
   { to: "/cage", icon: Landmark, label: "Cage", roles: ["super_admin", "manager", "cashier", "finance_manager"], section: "CASHIER" },
