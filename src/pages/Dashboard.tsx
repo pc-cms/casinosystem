@@ -204,7 +204,7 @@ const Dashboard = () => {
       {/* Tables Totals — mirrors Tables page */}
       {showFinancials && gameTypeCount > 0 && (
         <div className="mb-6">
-          <div className="cms-header mb-2">Tables Totals</div>
+          
           <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${gameTypeCount + 1}, minmax(0, 1fr))` }}>
             {Object.entries(gameTypeTotals).map(([game, t]) => (
               <Link to="/tables" key={game} className="cms-panel p-2 hover:border-primary/30 transition-colors">
