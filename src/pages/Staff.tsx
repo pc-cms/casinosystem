@@ -1030,7 +1030,7 @@ const StaffAttendanceGrid = ({ month, monthLabel, readOnly = false }: { month: s
 
 const AttendanceDepartmentBlock = ({
   dept, members, days, month, y, m, isCurrentMonth, todayDay,
-  getValue, getRotaShift, handleSave, getTotal,
+  getValue, getRotaShift, handleSave, getTotals,
 }: {
   dept: string;
   members: any[];
@@ -1043,11 +1043,11 @@ const AttendanceDepartmentBlock = ({
   getValue: (id: string, day: number) => string;
   getRotaShift: (id: string, day: number) => string | null;
   handleSave: (id: string, day: number, val: string) => void;
-  getTotal: (id: string) => number;
+  getTotals: (id: string) => { shifts: number; hours: number; absent: number; sick: number };
 }) => (
   <>
     <tr>
-      <td colSpan={days.length + 2} className="px-0 py-0 sticky left-0">
+      <td colSpan={days.length + 5} className="px-0 py-0 sticky left-0">
         <div className={`flex items-center gap-2 px-3 py-1 border-b-2 ${DEPT_BORDER_COLORS[dept] || "border-muted"}`}>
           <span className={`w-2 h-2 rounded-full ${DEPT_DOT_COLORS[dept] || "bg-muted-foreground"}`} />
           <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-card-foreground">{DEPARTMENT_LABELS[dept as StaffDepartment]}</span>
@@ -1056,7 +1056,7 @@ const AttendanceDepartmentBlock = ({
       </td>
     </tr>
     {members.map((staff, idx) => {
-      const total = getTotal(staff.id);
+      const totals = getTotals(staff.id);
       return (
         <tr key={staff.id} className={`border-b border-border last:border-0 ${idx % 2 === 0 ? "" : "bg-muted/10"}`}>
           <td className={`px-3 py-1 text-xs font-medium text-card-foreground sticky left-0 z-10 ${idx % 2 === 0 ? "bg-card" : "bg-card/95"}`}>
