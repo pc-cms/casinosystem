@@ -1,8 +1,16 @@
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&family=Cinzel:wght@500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer utilities {
+  /* Faberge brand font (premium serif). Falls back to Cinzel if Faberge isn't installed. */
+  .font-faberge {
+    font-family: 'Faberge', 'Cinzel', 'Trajan Pro', Georgia, serif;
+    letter-spacing: 0.04em;
+  }
+}
 
 @layer base {
   :root {
