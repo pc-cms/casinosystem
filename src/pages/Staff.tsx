@@ -137,8 +137,8 @@ const Staff = () => {
           <div className="flex items-center gap-3 flex-wrap justify-center no-print">
             {showMonthNav && (
               <div className="flex items-center gap-1">
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => canGoPrev && navigateMonth(-1)} disabled={!canGoPrev} title={canGoPrev ? "Previous month" : "Manager Access required"}>
-                  {canGoPrev ? <ChevronLeft className="w-4 h-4" /> : <Lock className="w-3.5 h-3.5" />}
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigateMonth(-1)}>
+                  <ChevronLeft className="w-4 h-4" />
                 </Button>
                 <span className="text-sm font-semibold text-card-foreground min-w-[140px] text-center">{monthLabel}</span>
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => canGoNext && navigateMonth(1)} disabled={!canGoNext}>
