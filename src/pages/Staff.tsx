@@ -908,22 +908,31 @@ const StaffAttendanceGrid = ({ month, monthLabel, readOnly = false }: { month: s
 
   return (
     <>
-      <div className="flex items-center gap-2 mb-3 no-print flex-wrap">
+      <div className="flex items-center gap-1.5 mb-3 flex-wrap no-print">
         <button
           onClick={() => setFilterDept("all")}
-          className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${filterDept === "all" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-accent"}`}
+          className={`px-2.5 py-1 rounded text-[11px] font-medium transition-colors ${filterDept === "all" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
         >
           All
         </button>
-        {availableDepts.map(d => (
-          <button
-            key={d}
-            onClick={() => setFilterDept(d)}
-            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${filterDept === d ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-accent"}`}
-          >
-            {DEPARTMENT_LABELS[d]}
-          </button>
-        ))}
+        {availableDepts.map(d => {
+          const count = (grouped[d] || []).length;
+          if (count === 0) return null;
+          return (
+            <button
+              key={d}
+              onClick={() => setFilterDept(filterDept === d ? "all" : d)}
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-medium border transition-colors ${
+                filterDept === d
+                  ? DEPT_BADGE_COLORS[d]
+                  : "bg-muted text-muted-foreground border-transparent hover:bg-muted/80"
+              }`}
+            >
+              <span className={`w-1.5 h-1.5 rounded-full ${DEPT_DOT_COLORS[d]}`} />
+              {DEPARTMENT_LABELS[d]} ({count})
+            </button>
+          );
+        })}
       </div>
       <div className="cms-panel overflow-hidden print-target">
         {/* Print header for attendance */}
