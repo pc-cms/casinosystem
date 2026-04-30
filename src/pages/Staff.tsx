@@ -1124,9 +1124,10 @@ const AttendanceDepartmentBlock = ({
               </td>
             );
           })}
-          <td className="px-2 py-1 text-center">
-            <span className="text-[10px] font-mono font-bold text-primary">{total || ""}</span>
-          </td>
+          <td className="px-2 py-1 text-center"><span className="text-[10px] font-mono font-bold text-blue-600 dark:text-blue-400">{totals.shifts || ""}</span></td>
+          <td className="px-2 py-1 text-center"><span className="text-[10px] font-mono font-bold text-primary">{totals.hours || ""}</span></td>
+          <td className="px-2 py-1 text-center"><span className="text-[10px] font-mono font-bold text-rose-600 dark:text-rose-400">{totals.absent || ""}</span></td>
+          <td className="px-2 py-1 text-center"><span className="text-[10px] font-mono font-bold text-amber-600 dark:text-amber-400">{totals.sick || ""}</span></td>
         </tr>
       );
     })}
