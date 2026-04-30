@@ -396,49 +396,100 @@ else
   warn "Каталог ../supabase/migrations не найден"
 fi
 
-# ────────── 8. Проверка обновлений Docker-образа ──────────
-title "7/8  Проверка обновлений образа"
+# ────────── 7. Решение по версии Docker-образа ──────────
+title "7/8  Версия Docker-образа"
 
-CURRENT_VERSION="${FRONTEND_VERSION:-latest}"
-LATEST_VERSION=""
-if [[ $CLOUD_REACHABLE -eq 1 && -n "${GITHUB_TOKEN:-}" && "$GITHUB_TOKEN" != "ghp_replace_me" ]]; then
-  LATEST_VERSION=$(curl -fsS --max-time 10 \
-    -H "Authorization: Bearer $GITHUB_TOKEN" \
-    "https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO:-casino-system}/releases/latest" 2>/dev/null \
-    | jq -r '.tag_name // ""' 2>/dev/null || echo "")
-  if [[ -n "$LATEST_VERSION" && "$LATEST_VERSION" != "$CURRENT_VERSION" && "$CURRENT_VERSION" != "latest" ]]; then
-    warn "Доступна новая версия: ${LATEST_VERSION} (у вас: ${CURRENT_VERSION})"
-    if [[ $NONINTERACTIVE -eq 0 ]]; then
-      read -r -p "  Установить ${LATEST_VERSION}? [Y/n]: " yn
-      if [[ "${yn,,}" != "n" ]]; then
-        update_env FRONTEND_VERSION "$LATEST_VERSION"
-        set -a; source .env; set +a
-      fi
-    fi
-  elif [[ -n "$LATEST_VERSION" ]]; then
-    ok "Версия актуальна: ${LATEST_VERSION}"
+PREVIOUS_VERSION="$CURRENT_VERSION"
+TARGET_VERSION="$CURRENT_VERSION"
+
+if [[ -n "$LATEST_VERSION" && "$LATEST_VERSION" != "$CURRENT_VERSION" ]]; then
+  warn "Установлено: ${CURRENT_VERSION}    Доступно: ${LATEST_VERSION}"
+  if [[ $SKIP_UPDATE_CHECK -eq 1 ]]; then
+    log "--skip-update-check — остаюсь на ${CURRENT_VERSION}"
+  elif [[ -n "${CLI[UPGRADE_TO]:-}" ]]; then
+    TARGET_VERSION="${CLI[UPGRADE_TO]}"
+    log "Использую версию из --upgrade-to: ${TARGET_VERSION}"
+  elif [[ $NONINTERACTIVE -eq 0 ]]; then
+    read -r -p "  Обновиться до ${LATEST_VERSION}? [Y/n]: " yn
+    [[ "${yn,,}" != "n" ]] && TARGET_VERSION="$LATEST_VERSION"
+  else
+    log "Non-interactive — остаюсь на ${CURRENT_VERSION} (передайте --upgrade-to для апгрейда)"
   fi
+elif [[ -n "$LATEST_VERSION" ]]; then
+  ok "Образ актуален: ${CURRENT_VERSION}"
 else
-  log "Проверка обновлений пропущена (offline или нет GITHUB_TOKEN)"
+  log "Реестр недоступен — использую локальную версию: ${CURRENT_VERSION}"
 fi
 
-# ────────── 9. Запуск стека ──────────
+if [[ "$TARGET_VERSION" != "$CURRENT_VERSION" ]]; then
+  update_env FRONTEND_VERSION "$TARGET_VERSION"
+  set -a; source .env; set +a
+  CURRENT_VERSION="$TARGET_VERSION"
+  ok "FRONTEND_VERSION обновлён → ${TARGET_VERSION}"
+fi
+
+# ────────── 8. Pull образов и запуск ──────────
 title "8/8  Запуск Docker stack"
 
-log "Pulling images..."
-docker compose pull --quiet 2>&1 | tail -5 || warn "Часть образов не удалось скачать (offline?)"
+PULL_OK=1
+if [[ $INTERNET_OK -eq 1 ]]; then
+  log "Pulling images (target version: ${TARGET_VERSION})..."
+  if ! docker compose pull 2>&1 | tail -10; then
+    warn "Не все образы удалось скачать"
+    PULL_OK=0
+  fi
+else
+  log "Offline — pull пропущен, использую локально доступные образы"
+  PULL_OK=0
+fi
+
+# Проверка: есть ли образ frontend в локальном кэше
+FRONTEND_IMAGE="ghcr.io/${GITHUB_OWNER}/cms-frontend:${TARGET_VERSION}"
+if ! docker image inspect "$FRONTEND_IMAGE" >/dev/null 2>&1; then
+  if [[ "$PREVIOUS_VERSION" != "$TARGET_VERSION" ]] && \
+     docker image inspect "ghcr.io/${GITHUB_OWNER}/cms-frontend:${PREVIOUS_VERSION}" >/dev/null 2>&1; then
+    warn "Образ ${TARGET_VERSION} не скачан — откатываюсь на предыдущую версию ${PREVIOUS_VERSION}"
+    update_env FRONTEND_VERSION "$PREVIOUS_VERSION"
+    set -a; source .env; set +a
+    TARGET_VERSION="$PREVIOUS_VERSION"
+  elif [[ "$TARGET_VERSION" == "latest" ]]; then
+    warn "Образ :latest не найден локально — продолжаю, docker compose попытается скачать сам"
+  else
+    fail "Образ ${FRONTEND_IMAGE} не найден ни в реестре, ни в локальном кэше. Подключите интернет или передайте --upgrade-to <известная-локально-версия>."
+  fi
+fi
 
 log "Запуск контейнеров..."
 docker compose up -d
 
-log "Жду готовности Postgres..."
+log "Жду готовности Postgres (до 60 сек)..."
 for i in $(seq 1 30); do
   if docker compose exec -T postgres pg_isready -U "${POSTGRES_USER:-postgres}" &>/dev/null; then
     ok "Postgres готов"
     break
   fi
   sleep 2
-  [[ $i -eq 30 ]] && fail "Postgres не запустился за 60 сек — смотрите docker compose logs postgres"
+  [[ $i -eq 30 ]] && fail "Postgres не запустился за 60 сек — docker compose logs postgres"
+done
+
+# Health check фронта
+log "Жду готовности frontend (до 30 сек)..."
+for i in $(seq 1 15); do
+  if docker compose exec -T cms-frontend curl -fsS http://localhost/ -o /dev/null 2>/dev/null; then
+    ok "Frontend ${TARGET_VERSION} запущен"
+    break
+  fi
+  sleep 2
+  if [[ $i -eq 15 ]]; then
+    warn "Frontend не отвечает за 30 сек"
+    if [[ "$PREVIOUS_VERSION" != "$TARGET_VERSION" ]]; then
+      warn "Откатываюсь на предыдущую версию ${PREVIOUS_VERSION}..."
+      update_env FRONTEND_VERSION "$PREVIOUS_VERSION"
+      set -a; source .env; set +a
+      docker compose up -d cms-frontend
+      ok "Откат выполнен"
+    fi
+  fi
 done
 
 # ────────── 10. systemd ──────────
