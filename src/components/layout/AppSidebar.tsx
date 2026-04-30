@@ -502,10 +502,10 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
   return (
     <>
       <div
-        className="px-4 py-4 border-b"
+        className={cn("px-4 py-4 border-b", !isArusha && "border-sidebar-border")}
         style={isArusha ? { borderBottomColor: "#E8C688" } : undefined}
       >
-        <div className={cn("flex items-center justify-between gap-2", !isArusha && "border-sidebar-border")}>
+        <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0 shrink-0">
             {isArusha ? (
               <>
