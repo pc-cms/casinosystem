@@ -29,7 +29,9 @@ type SortKey = "name" | "dropR" | "dropT" | "cashout" | "result" | "category";
 type SortDir = "asc" | "desc";
 
 const PLAYER_TYPES = ["table", "mix", "slots"] as const;
-const COMMON_TAGS = ["VIP", "Alcohol Allowed", "Alcohol Banned", "Self-Excluded", "High Roller", "Suspicious"];
+import { PLAYER_TAGS, getTagDef } from "@/lib/player-tags";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+const COMMON_TAGS = PLAYER_TAGS.map(t => t.key);
 
 const ActivePlayers = () => {
   const { data: players = [] } = usePlayers();
