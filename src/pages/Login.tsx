@@ -25,67 +25,110 @@ const Login = () => {
 
   const isArusha = typeof window !== "undefined" && /^arusha\./i.test(window.location.hostname);
 
+  const GOLD = "#E8C688";
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="w-full max-w-sm mx-auto">
-        <div className="text-center mb-8">
-          {isArusha ? (
-            <>
-              <img
-                src="/arusha-premier-logo.svg"
-                alt="Premier Casino 20"
-                className="mx-auto mb-3 h-28 w-auto"
-              />
-              <p
-                className="font-faberge text-sm uppercase tracking-[0.25em]"
-                style={{ color: "#E8C688" }}
-              >
-                Casino Management System
-              </p>
-            </>
-          ) : (
-            <>
-              <div className="flex items-center justify-center gap-2 mb-2">
-                <Shield className="w-8 h-8 text-primary" />
-                <span className="text-2xl font-bold text-foreground">CMS</span>
+    <div
+      className="min-h-screen flex items-center justify-center"
+      style={isArusha ? { backgroundColor: "#000000" } : undefined}
+    >
+      <div className={isArusha ? "" : "bg-background"}>
+        <div className="w-full max-w-sm mx-auto px-4">
+          <div className="text-center mb-8">
+            {isArusha ? (
+              <>
+                <img
+                  src="/arusha-premier-logo.svg"
+                  alt="Premier Casino 20"
+                  className="mx-auto mb-3 h-28 w-auto"
+                />
+                <p
+                  className="font-faberge text-sm uppercase tracking-[0.25em]"
+                  style={{ color: GOLD }}
+                >
+                  Casino Management System
+                </p>
+              </>
+            ) : (
+              <>
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <Shield className="w-8 h-8 text-primary" />
+                  <span className="text-2xl font-bold text-foreground">CMS</span>
+                </div>
+                <p className="text-xs font-mono text-muted-foreground uppercase tracking-widest">Casino Management System</p>
+              </>
+            )}
+          </div>
+
+          <div
+            className={isArusha ? "p-6 rounded-md border" : "cms-panel p-6"}
+            style={
+              isArusha
+                ? { backgroundColor: "#0a0a0a", borderColor: `${GOLD}33` }
+                : undefined
+            }
+          >
+            <form onSubmit={handleLogin} className="space-y-3">
+              <div>
+                <label
+                  className="text-xs font-medium uppercase tracking-wider mb-1.5 block"
+                  style={isArusha ? { color: GOLD } : undefined}
+                >
+                  {isArusha ? <span className="text-muted-foreground" style={{ color: GOLD }}>Login</span> : "Login"}
+                </label>
+                <Input
+                  type="text"
+                  placeholder="username"
+                  value={login}
+                  onChange={e => setLogin(e.target.value)}
+                  required
+                  autoFocus
+                  autoComplete="username"
+                  className="font-mono"
+                  style={
+                    isArusha
+                      ? { backgroundColor: "#000", color: GOLD, borderColor: `${GOLD}55` }
+                      : undefined
+                  }
+                />
               </div>
-              <p className="text-xs font-mono text-muted-foreground uppercase tracking-widest">Casino Management System</p>
-            </>
-          )}
-        </div>
+              <div>
+                <label
+                  className="text-xs font-medium uppercase tracking-wider mb-1.5 block"
+                  style={isArusha ? { color: GOLD } : undefined}
+                >
+                  {isArusha ? "Password" : <span className="text-muted-foreground">Password</span>}
+                </label>
+                <Input
+                  type="password"
+                  placeholder="••••••"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  required
+                  autoComplete="current-password"
+                  style={
+                    isArusha
+                      ? { backgroundColor: "#000", color: GOLD, borderColor: `${GOLD}55` }
+                      : undefined
+                  }
+                />
+              </div>
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={loading}
+                style={
+                  isArusha
+                    ? { backgroundColor: GOLD, color: "#000", borderColor: GOLD }
+                    : undefined
+                }
+              >
+                {loading ? "Signing in..." : "Sign In"}
+              </Button>
+            </form>
 
-        <div className="cms-panel p-6">
-          <form onSubmit={handleLogin} className="space-y-3">
-            <div>
-              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">Login</label>
-              <Input
-                type="text"
-                placeholder="username"
-                value={login}
-                onChange={e => setLogin(e.target.value)}
-                required
-                autoFocus
-                autoComplete="username"
-                className="font-mono"
-              />
-            </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">Password</label>
-              <Input
-                type="password"
-                placeholder="••••••"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                required
-                autoComplete="current-password"
-              />
-            </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Signing in..." : "Sign In"}
-            </Button>
-          </form>
-
-          {error && <p className="mt-3 text-xs text-destructive text-center">{error}</p>}
+            {error && <p className="mt-3 text-xs text-destructive text-center">{error}</p>}
+          </div>
         </div>
       </div>
     </div>
