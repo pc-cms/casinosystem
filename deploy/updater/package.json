@@ -1,0 +1,10 @@
+{
+  "name": "cms-updater",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Polls GitHub Releases and updates cms-frontend container with rollback",
+  "main": "index.js",
+  "scripts": { "start": "node index.js" },
+  "dependencies": {}
+}
