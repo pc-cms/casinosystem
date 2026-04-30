@@ -37,23 +37,23 @@ export const DEPARTMENT_ORDER: StaffDepartment[] = [
 
 // Rota group definitions
 export const ROTA_GROUPS = {
-  office: {
-    label: "Office",
-    departments: ["it", "hr", "driver"] as StaffDepartment[],
-    shifts: ["D", "N", "L", "E", "O"] as const,
-    shiftLabels: { D: "Day (12:30)", N: "Night (20:45)", L: "Leave", E: "Extra", O: "Off" } as Record<string, string>,
-  },
   floor: {
     label: "Floor",
-    departments: ["security", "cashier", "bartender", "hostess", "waiter", "cleaner", "reception", "it", "hr", "driver"] as StaffDepartment[],
-    shifts: ["D", "M", "N", "G", "L", "E", "O"] as const,
-    shiftLabels: { D: "Day (12:30) / 06:00", M: "Mid (13:45)", N: "Night (20:45) / 17:45", G: "Late (21:45)", L: "Leave", E: "Extra", O: "Off" } as Record<string, string>,
+    departments: ["cashier", "bartender", "hostess", "waiter", "cleaner", "reception"] as StaffDepartment[],
+    shifts: ["D", "N", "L", "E", "O"] as const,
+    shiftLabels: { D: "Day (12:30)", N: "Night (20:45)", L: "Leave", E: "Extra", O: "Off" } as Record<string, string>,
   },
   security: {
     label: "Security",
     departments: ["security"] as StaffDepartment[],
     shifts: ["D", "M", "N", "G", "L", "E", "O"] as const,
     shiftLabels: { D: "06:00", M: "13:45", N: "17:45", G: "21:45", L: "Leave", E: "Extra", O: "Off" } as Record<string, string>,
+  },
+  office: {
+    label: "Office",
+    departments: ["it", "hr", "driver"] as StaffDepartment[],
+    shifts: ["D", "N", "L", "E", "O"] as const,
+    shiftLabels: { D: "Day (12:30)", N: "Night (20:45)", L: "Leave", E: "Extra", O: "Off" } as Record<string, string>,
   },
 } as const;
 

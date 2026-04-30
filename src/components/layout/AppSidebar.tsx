@@ -7,7 +7,7 @@ import {
   ListChecks, Eye, Target,
   Building2, UserCheck, ClipboardPen, ShieldCheck, ShieldOff,
   Wallet, DoorOpen, ShieldAlert, Menu, Upload, FileText,
-  ChevronsLeft, ChevronsRight, CreditCard, CalendarDays, ChevronDown, ChevronRight, Coins,
+  ChevronsLeft, ChevronsRight, CreditCard, CalendarDays, ChevronDown, ChevronRight, Coins, Briefcase,
 } from "lucide-react";
 import { useTheme } from "@/lib/theme";
 import { useAuth } from "@/lib/auth-context";
@@ -112,15 +112,19 @@ const STAFF_SUBITEMS_HR = [
   { tab: "rota_floor", icon: CalendarDays, label: "Floor Rota" },
 ];
 
-// Virtual parent groupings: Attendance / Rota each expand to Live + Floor
-type VirtualSub = { to: string; icon: typeof ListChecks; label: string; matchPath: string; matchTab: string };
+// Virtual parent groupings: Attendance / Rota each expand to Live + Floor + Security + Office
+type VirtualSub = { to: string; icon: typeof ListChecks; label: string; matchPath: string; matchTab: string; matchGroup?: string };
 const ATTENDANCE_SUBITEMS: VirtualSub[] = [
   { to: "/pit?tab=attendance", icon: Gamepad2, label: "Live", matchPath: "/pit", matchTab: "attendance" },
-  { to: "/staff?tab=attendance&group=floor", icon: Building2, label: "Floor", matchPath: "/staff", matchTab: "attendance" },
+  { to: "/staff?tab=attendance&group=floor", icon: Building2, label: "Floor", matchPath: "/staff", matchTab: "attendance", matchGroup: "floor" },
+  { to: "/staff?tab=attendance&group=security", icon: Shield, label: "Security", matchPath: "/staff", matchTab: "attendance", matchGroup: "security" },
+  { to: "/staff?tab=attendance&group=office", icon: Briefcase, label: "Office", matchPath: "/staff", matchTab: "attendance", matchGroup: "office" },
 ];
 const ROTA_SUBITEMS: VirtualSub[] = [
   { to: "/pit?tab=rota", icon: Gamepad2, label: "Live", matchPath: "/pit", matchTab: "rota" },
   { to: "/staff?tab=rota_floor", icon: Building2, label: "Floor", matchPath: "/staff", matchTab: "rota_floor" },
+  { to: "/staff?tab=rota_security", icon: Shield, label: "Security", matchPath: "/staff", matchTab: "rota_security" },
+  { to: "/staff?tab=rota_office", icon: Briefcase, label: "Office", matchPath: "/staff", matchTab: "rota_office" },
 ];
 
 const BREAKLIST_PATH = "/pit?tab=breaklist";
@@ -143,6 +147,7 @@ type SectionsProps = {
   isStaffActive: boolean;
   isTablesActive: boolean;
   currentTab: string;
+  currentGroup: string;
   roles: AppRole[];
   onNavigate?: () => void;
   renderSubItems: (basePath: string, items: typeof TABLE_SUBITEMS) => JSX.Element;
@@ -150,7 +155,7 @@ type SectionsProps = {
 
 const SidebarSections = ({
   visibleItems, isManager, isPitActive, isStaffActive, isTablesActive,
-  currentTab, roles, onNavigate, renderSubItems,
+  currentTab, currentGroup, roles, onNavigate, renderSubItems,
 }: SectionsProps) => {
   const location = useLocation();
 
@@ -209,7 +214,9 @@ const SidebarSections = ({
     subs: VirtualSub[],
   ) => {
     const groupKey = `__virtual:${key}`;
-    const isGroupActive = subs.some(s => location.pathname === s.matchPath && currentTab === s.matchTab);
+    const matchSub = (s: VirtualSub) =>
+      location.pathname === s.matchPath && currentTab === s.matchTab && (!s.matchGroup || currentGroup === s.matchGroup);
+    const isGroupActive = subs.some(matchSub);
     const isOpen = open[groupKey] ?? isGroupActive;
     return (
       <div key={`${sectionCtx}:${item.to}`}>
@@ -227,7 +234,7 @@ const SidebarSections = ({
         {isOpen && (
           <div className="ml-4 mt-0.5 space-y-0.5 border-l border-sidebar-border pl-2">
             {subs.map(sub => {
-              const active = location.pathname === sub.matchPath && currentTab === sub.matchTab;
+              const active = matchSub(sub);
               return (
                 <NavLink
                   key={sub.to}
@@ -341,6 +348,7 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
   const isTablesActive = location.pathname === "/tables";
   const currentTab = rawTab ||
     (location.pathname === "/pit" ? "employee" : isTablesActive ? "tables" : "employee");
+  const currentGroup = new URLSearchParams(location.search).get("group") || "floor";
 
   const visibleItems = NAV_ITEMS.filter(item =>
     roles.some(r => item.roles.includes(r as AppRole))
@@ -540,6 +548,7 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
         isStaffActive={isStaffActive}
         isTablesActive={isTablesActive}
         currentTab={currentTab}
+        currentGroup={currentGroup}
         roles={roles as AppRole[]}
         onNavigate={onNavigate}
         renderSubItems={renderSubItems}
