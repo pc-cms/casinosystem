@@ -115,6 +115,21 @@ const STAFF_SUBITEMS_HR = [
   { tab: "rota_security", icon: ShieldCheck, label: "Security Rota" },
 ];
 
+// Virtual parent groupings: Attendance / Rota each expand to Live + Floor + Office + Security
+type VirtualSub = { to: string; icon: typeof ListChecks; label: string; matchPath: string; matchTab: string };
+const ATTENDANCE_SUBITEMS: VirtualSub[] = [
+  { to: "/pit?tab=attendance", icon: Gamepad2, label: "Live", matchPath: "/pit", matchTab: "attendance" },
+  { to: "/staff?tab=attendance&group=floor", icon: Building2, label: "Floor", matchPath: "/staff", matchTab: "attendance" },
+  { to: "/staff?tab=attendance&group=office", icon: UserCheck, label: "Office", matchPath: "/staff", matchTab: "attendance" },
+  { to: "/staff?tab=attendance&group=security", icon: ShieldCheck, label: "Security", matchPath: "/staff", matchTab: "attendance" },
+];
+const ROTA_SUBITEMS: VirtualSub[] = [
+  { to: "/pit?tab=rota", icon: Gamepad2, label: "Live", matchPath: "/pit", matchTab: "rota" },
+  { to: "/staff?tab=rota_floor", icon: Building2, label: "Floor", matchPath: "/staff", matchTab: "rota_floor" },
+  { to: "/staff?tab=rota_office", icon: UserCheck, label: "Office", matchPath: "/staff", matchTab: "rota_office" },
+  { to: "/staff?tab=rota_security", icon: ShieldCheck, label: "Security", matchPath: "/staff", matchTab: "rota_security" },
+];
+
 const BREAKLIST_PATH = "/pit?tab=breaklist";
 
 // Helper: parse "/path?tab=foo" into { base, tab }
