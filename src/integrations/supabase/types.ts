@@ -1515,6 +1515,8 @@ export type Database = {
       local_servers: {
         Row: {
           casino_id: string
+          health_snapshot: Json | null
+          health_updated_at: string | null
           id: string
           is_online: boolean
           last_sync_at: string | null
@@ -1526,6 +1528,8 @@ export type Database = {
         }
         Insert: {
           casino_id: string
+          health_snapshot?: Json | null
+          health_updated_at?: string | null
           id?: string
           is_online?: boolean
           last_sync_at?: string | null
@@ -1537,6 +1541,8 @@ export type Database = {
         }
         Update: {
           casino_id?: string
+          health_snapshot?: Json | null
+          health_updated_at?: string | null
           id?: string
           is_online?: boolean
           last_sync_at?: string | null
