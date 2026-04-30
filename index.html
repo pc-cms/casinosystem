@@ -41,6 +41,12 @@
             : "Casino System";
           var shortName = branchSuffix ? branchSuffix : "Casino System";
 
+          // Update browser tab title to "<Branded Name> — Casino Management System".
+          // For non-branded hosts, keep the default title (already set above).
+          if (branchSuffix) {
+            document.title = branchSuffix + " — Casino Management System";
+          }
+
           // Build a dynamic manifest by patching the static one.
           fetch("/manifest.json", { cache: "no-cache" })
             .then(function (r) { return r.json(); })
@@ -54,14 +60,17 @@
             })
             .catch(function () { /* keep static manifest as fallback */ });
 
-          // Brand swap (favicon + apple-touch-icon) for arusha.*
-          if (/^arusha\./i.test(host)) {
-            var fav = document.querySelector('link[rel="icon"]');
-            if (fav) fav.setAttribute("href", "/arusha-logo.png");
-            var apple = document.querySelector('link[rel="apple-touch-icon"]');
-            if (apple) apple.setAttribute("href", "/arusha-logo.png");
+          // Brand swap for any branded subdomain: favicon, apple-touch-icon, apple title.
+          if (branchSuffix) {
+            // Arusha has its own dedicated icon asset; other branches reuse the default.
+            if (label === "arusha") {
+              var fav = document.querySelector('link[rel="icon"]');
+              if (fav) fav.setAttribute("href", "/arusha-logo.png");
+              var apple = document.querySelector('link[rel="apple-touch-icon"]');
+              if (apple) apple.setAttribute("href", "/arusha-logo.png");
+            }
             var appleTitle = document.querySelector('meta[name="apple-mobile-web-app-title"]');
-            if (appleTitle) appleTitle.setAttribute("content", "Premier Arusha");
+            if (appleTitle) appleTitle.setAttribute("content", branchSuffix);
           }
         } catch (e) { /* noop */ }
       })();
