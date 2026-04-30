@@ -214,8 +214,6 @@ const Pit = () => {
         <span className="font-bold">S</span><span className="opacity-80">Sick</span>
       </span>
     </div>
-  ) : (activeTab !== "breaklist" && centerControl) ? (
-    <div className="flex items-center">{centerControl}</div>
   ) : undefined;
 
   const isBreaklist = activeTab === "breaklist";
