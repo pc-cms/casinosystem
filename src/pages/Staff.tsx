@@ -161,6 +161,13 @@ const Staff = () => {
             )}
             {activeTab === "attendance" && (
               <div className="flex items-center gap-1.5 flex-nowrap whitespace-nowrap overflow-x-auto py-0.5">
+                {(["D", "N"] as const).map(s => (
+                  <span key={s} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono ${STAFF_SHIFT_COLORS[s]}`}>
+                    <span className="font-bold">{s}</span>
+                    <span className="opacity-80">{STAFF_SHIFT_LABELS[s]}</span>
+                  </span>
+                ))}
+                <span className="mx-1 h-4 w-px bg-border" />
                 <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono ${ATT_COLORS["A"]}`}>
                   <span className="font-bold">A</span><span className="opacity-80">Absent</span>
                 </span>
