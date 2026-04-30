@@ -37,14 +37,14 @@ const NAV_ITEMS: NavItem[] = [
   // OVERVIEW
   { to: "/", icon: LayoutDashboard, label: "Dashboard", roles: ["super_admin", "manager", "pit", "reception", "finance_manager", "surveillance"], section: "OVERVIEW" },
 
-  // PIT — Break List, Live Tables, trackers, Live Game (parent: Attendance+Rota), Floor (parent: Attendance+Rotas)
+  // PIT — Break List, Live Tables, trackers, Attendance (parent), Rota (parent)
   { to: "/pit?tab=breaklist", icon: ListChecks, label: "Break List", roles: ["super_admin", "manager", "pit", "finance_manager"], section: "PIT" },
   { to: "/tables", icon: Table2, label: "Live Tables", roles: ["super_admin", "manager", "cashier", "pit", "finance_manager", "surveillance"], section: "PIT" },
   { to: "/active-players", icon: Users, label: "Active Players", roles: ["super_admin", "manager", "pit", "finance_manager"], section: "PIT" },
   { to: "/player-tracker", icon: Eye, label: "Player Tracker", roles: ["super_admin", "manager", "pit", "finance_manager"], section: "PIT" },
   { to: "/table-tracker", icon: Target, label: "Table Tracker", roles: ["super_admin", "manager", "pit", "finance_manager"], section: "PIT" },
-  { to: "/pit", icon: Gamepad2, label: "Live Game", roles: ["super_admin", "manager", "pit", "finance_manager"], section: "PIT" },
-  { to: "/staff", icon: Building2, label: "Floor", roles: ["super_admin", "manager", "pit", "finance_manager"], section: "PIT" },
+  { to: "__attendance__", icon: ClipboardPen, label: "Attendance", roles: ["super_admin", "manager", "pit", "finance_manager"], section: "PIT" },
+  { to: "__rota__", icon: CalendarDays, label: "Rota", roles: ["super_admin", "manager", "pit", "finance_manager"], section: "PIT" },
 
   // CASHIER — Cage operations
   { to: "/cage", icon: Landmark, label: "Cage", roles: ["super_admin", "manager", "cashier", "finance_manager"], section: "CASHIER" },
@@ -113,6 +113,21 @@ const STAFF_SUBITEMS_HR = [
   { tab: "rota_office", icon: CalendarDays, label: "Office Rota" },
   { tab: "rota_floor", icon: CalendarDays, label: "Floor Rota" },
   { tab: "rota_security", icon: ShieldCheck, label: "Security Rota" },
+];
+
+// Virtual parent groupings: Attendance / Rota each expand to Live + Floor + Office + Security
+type VirtualSub = { to: string; icon: typeof ListChecks; label: string; matchPath: string; matchTab: string };
+const ATTENDANCE_SUBITEMS: VirtualSub[] = [
+  { to: "/pit?tab=attendance", icon: Gamepad2, label: "Live", matchPath: "/pit", matchTab: "attendance" },
+  { to: "/staff?tab=attendance&group=floor", icon: Building2, label: "Floor", matchPath: "/staff", matchTab: "attendance" },
+  { to: "/staff?tab=attendance&group=office", icon: UserCheck, label: "Office", matchPath: "/staff", matchTab: "attendance" },
+  { to: "/staff?tab=attendance&group=security", icon: ShieldCheck, label: "Security", matchPath: "/staff", matchTab: "attendance" },
+];
+const ROTA_SUBITEMS: VirtualSub[] = [
+  { to: "/pit?tab=rota", icon: Gamepad2, label: "Live", matchPath: "/pit", matchTab: "rota" },
+  { to: "/staff?tab=rota_floor", icon: Building2, label: "Floor", matchPath: "/staff", matchTab: "rota_floor" },
+  { to: "/staff?tab=rota_office", icon: UserCheck, label: "Office", matchPath: "/staff", matchTab: "rota_office" },
+  { to: "/staff?tab=rota_security", icon: ShieldCheck, label: "Security", matchPath: "/staff", matchTab: "rota_security" },
 ];
 
 const BREAKLIST_PATH = "/pit?tab=breaklist";
@@ -194,7 +209,56 @@ const SidebarSections = ({
     });
   };
 
+  const renderVirtualGroup = (
+    key: "attendance" | "rota",
+    item: NavItem,
+    sectionCtx: Section,
+    subs: VirtualSub[],
+  ) => {
+    const groupKey = `__virtual:${key}`;
+    const isGroupActive = subs.some(s => location.pathname === s.matchPath && currentTab === s.matchTab);
+    const isOpen = open[groupKey] ?? isGroupActive;
+    return (
+      <div key={`${sectionCtx}:${item.to}`}>
+        <button
+          type="button"
+          onClick={() => toggle(groupKey)}
+          className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
+            isGroupActive ? "bg-sidebar-accent text-sidebar-primary font-medium" : "text-sidebar-foreground hover:bg-sidebar-accent"
+          }`}
+        >
+          <item.icon className="w-4 h-4 shrink-0" />
+          <span className="flex-1 text-left">{item.label}</span>
+          {isOpen ? <ChevronDown className="w-3 h-3 text-muted-foreground" /> : <ChevronRight className="w-3 h-3 text-muted-foreground" />}
+        </button>
+        {isOpen && (
+          <div className="ml-4 mt-0.5 space-y-0.5 border-l border-sidebar-border pl-2">
+            {subs.map(sub => {
+              const active = location.pathname === sub.matchPath && currentTab === sub.matchTab;
+              return (
+                <NavLink
+                  key={sub.to}
+                  to={sub.to}
+                  end
+                  onClick={onNavigate}
+                  className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-xs transition-colors ${
+                    active ? "bg-sidebar-accent text-sidebar-primary font-medium" : "text-sidebar-foreground hover:bg-sidebar-accent"
+                  }`}
+                >
+                  <sub.icon className="w-3.5 h-3.5 shrink-0" />
+                  <span>{sub.label}</span>
+                </NavLink>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const renderItem = (item: NavItem, sectionCtx: Section) => {
+    if (item.to === "__attendance__") return renderVirtualGroup("attendance", item, sectionCtx, ATTENDANCE_SUBITEMS);
+    if (item.to === "__rota__") return renderVirtualGroup("rota", item, sectionCtx, ROTA_SUBITEMS);
     const { base: itemBase, tab: itemTab } = parseItemTo(item.to);
     const isTabAware = itemTab !== null;
     const isTabAwareActive =
@@ -340,22 +404,27 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
           {/* Nav icons (only top-level items, no sub-tabs) */}
           <nav className="flex-1 flex flex-col items-center gap-0.5 w-full px-2 overflow-hidden">
             {visibleItems.map((item) => {
-              const { base: itemBase, tab: itemTab } = parseItemTo(item.to);
+              const isVirtual = item.to === "__attendance__" || item.to === "__rota__";
+              const subs = item.to === "__attendance__" ? ATTENDANCE_SUBITEMS : item.to === "__rota__" ? ROTA_SUBITEMS : null;
+              const targetTo = subs ? subs[0].to : item.to;
+              const { base: itemBase, tab: itemTab } = parseItemTo(targetTo);
               const isTabAware = itemTab !== null;
               const isPlainPitActive = item.to === "/pit" && location.pathname === "/pit" && currentTab !== "breaklist";
-              const isActive = isTabAware
-                ? location.pathname === itemBase && currentTab === itemTab
-                : item.to === "/pit"
-                  ? isPlainPitActive
-                  : item.to === "/"
-                    ? location.pathname === "/"
-                    : location.pathname.startsWith(itemBase);
+              const isActive = subs
+                ? subs.some(s => location.pathname === s.matchPath && currentTab === s.matchTab)
+                : isTabAware
+                  ? location.pathname === itemBase && currentTab === itemTab
+                  : item.to === "/pit"
+                    ? isPlainPitActive
+                    : item.to === "/"
+                      ? location.pathname === "/"
+                      : location.pathname.startsWith(itemBase);
               return (
                 <Tooltip key={item.to}>
                   <TooltipTrigger asChild>
                     <NavLink
-                      to={item.to}
-                      end={item.to === "/"}
+                      to={targetTo}
+                      end={targetTo === "/"}
                       className={cn(
                         "w-10 h-10 flex items-center justify-center rounded-md transition-colors",
                         isActive
