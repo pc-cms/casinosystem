@@ -345,13 +345,11 @@ const Tables = () => {
       </div>
       {tables.length === 0 && <p className="text-muted-foreground text-sm text-center py-8">No tables configured</p>}
 
-      {/* Chip Count / Result Dialog */}
+      {/* Chip Count Dialog (mid-shift snapshot) — tables only */}
       <Dialog open={showCount} onOpenChange={setShowCount}>
         <DialogContent className="max-w-none w-auto overflow-visible" style={{ maxHeight: 'none' }}>
           <DialogHeader>
-            <DialogTitle>
-              {countMode === "result" ? "📊 Record Result — Count chips on each table" : "Chip Count — Per Table"}
-            </DialogTitle>
+            <DialogTitle>Chip Count — Tables (mid-shift snapshot)</DialogTitle>
           </DialogHeader>
 
           <div>
@@ -359,31 +357,28 @@ const Tables = () => {
               <thead>
                 <tr className="border-b border-border">
                   <th className="text-left py-2 px-2 text-muted-foreground font-medium sticky left-0 bg-background z-10 min-w-[70px]">Denom</th>
-                  {locations.map(loc => (
+                  {countLocations.map(loc => (
                     <th key={loc.key} className="text-center py-2 px-3 text-muted-foreground font-medium min-w-[80px] whitespace-nowrap">
                       {loc.label}
-                      {countMode === "result" && baselineMap[loc.id!] && (
-                        <span className="block text-[8px] text-muted-foreground/60 font-normal">baseline</span>
-                      )}
                     </th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {CHIP_DENOMS.map(d => {
-                  const anyLocationHasDenom = locations.some(loc => loc.denoms.includes(d));
+                  const anyLocationHasDenom = countLocations.some(loc => loc.denoms.includes(d));
                   if (!anyLocationHasDenom) return null;
                   return (
                     <tr key={d} className="border-b border-border last:border-0">
                       <td className="py-1 px-2 sticky left-0 bg-background z-10">
                         <span className={`cms-chip text-[8px] ${CHIP_COLORS[d] || "bg-muted text-foreground"}`}>{formatChipLabel(d)}</span>
                       </td>
-                      {locations.map(loc => {
+                      {countLocations.map(loc => {
                         if (!loc.denoms.includes(d)) {
                           return <td key={loc.key} className="px-1 py-0.5 text-center text-muted-foreground/30">—</td>;
                         }
                         const locCounts = counts[loc.key] || {};
-                        const bsl = baselineMap[loc.id!]?.[d] || 0;
+                        const bsl = baselineMap[loc.id]?.[d] || 0;
                         return (
                           <td key={loc.key} className="px-1 py-0.5">
                             <input
@@ -406,43 +401,43 @@ const Tables = () => {
             </table>
           </div>
 
-          {countMode === "result" && hasAnyCount && (
-            <div className="border-t border-border pt-4 space-y-3">
-              <p className="text-xs font-semibold text-card-foreground">Result per Table (Actual − Baseline)</p>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                {resultSummary.map(r => (
-                  <div key={r.id} className="cms-panel p-2">
-                    <p className="text-xs font-medium text-card-foreground mb-1">{r.label}</p>
-                    <p className={`font-mono text-sm font-bold ${r.total >= 0 ? "text-success" : "text-destructive"}`}>
-                      {r.total >= 0 ? "+" : ""}{formatCurrency(r.total)}
-                    </p>
-                  </div>
-                ))}
-              </div>
-              <div className="cms-panel p-2 text-center border-primary/30">
-                <p className="text-[9px] uppercase text-muted-foreground">Total Chip Result</p>
-                <p className={`font-mono text-lg font-bold ${resultSummary.reduce((s, r) => s + r.total, 0) >= 0 ? "text-success" : "text-destructive"}`}>
-                  {resultSummary.reduce((s, r) => s + r.total, 0) >= 0 ? "+" : ""}{formatCurrency(resultSummary.reduce((s, r) => s + r.total, 0))}
-                </p>
-              </div>
+          {/* Live result preview */}
+          <div className="border-t border-border pt-3 space-y-2">
+            <p className="text-xs font-semibold text-card-foreground">Current Result (Actual − Baseline)</p>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+              {countResultPreview.map(r => (
+                <div key={r.id} className="cms-panel p-2 flex items-center justify-between">
+                  <span className="text-xs text-card-foreground truncate">{r.label}</span>
+                  <span className={`font-mono text-xs font-bold ${r.total >= 0 ? "text-success" : "text-destructive"}`}>
+                    {r.total >= 0 ? "+" : ""}{formatCurrency(r.total)}
+                  </span>
+                </div>
+              ))}
             </div>
-          )}
+            <div className="cms-panel p-2 text-center border-primary/30">
+              <p className="text-[9px] uppercase text-muted-foreground">Total</p>
+              <p className={`font-mono text-lg font-bold ${countResultPreview.reduce((s, r) => s + r.total, 0) >= 0 ? "text-success" : "text-destructive"}`}>
+                {countResultPreview.reduce((s, r) => s + r.total, 0) >= 0 ? "+" : ""}{formatCurrency(countResultPreview.reduce((s, r) => s + r.total, 0))}
+              </p>
+            </div>
+          </div>
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowCount(false)}>Cancel</Button>
-            {countMode === "save" && (
-              <Button onClick={handleSaveCount} disabled={batchSnapshot.isPending || !hasAnyCount} className="gap-1.5">
-                <Save className="w-4 h-4" /> {batchSnapshot.isPending ? "Saving…" : "Save Chip Count"}
-              </Button>
-            )}
-            {countMode === "result" && (
-              <Button onClick={handleConfirmResult} disabled={setTableResults.isPending || batchSnapshot.isPending || !hasAnyCount} className="gap-1.5">
-                <BarChart3 className="w-4 h-4" /> {setTableResults.isPending ? "Saving…" : "Confirm Result"}
-              </Button>
-            )}
+            <Button onClick={handleSaveCount} disabled={batchSnapshot.isPending} className="gap-1.5">
+              <Save className="w-4 h-4" /> {batchSnapshot.isPending ? "Saving…" : "Save Snapshot"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Close Table Wizard */}
+      <CloseTableWizard
+        open={showCloseWizard}
+        onClose={() => setShowCloseWizard(false)}
+        tables={tables as any}
+        date={date}
+      />
       </>
       )}
     </PageShell>
