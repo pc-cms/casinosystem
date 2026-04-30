@@ -255,6 +255,20 @@ export type Database = {
             referencedRelation: "dealers"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "breaklist_logs_new_table_id_fkey"
+            columns: ["new_table_id"]
+            isOneToOne: false
+            referencedRelation: "gaming_tables"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "breaklist_logs_old_table_id_fkey"
+            columns: ["old_table_id"]
+            isOneToOne: false
+            referencedRelation: "gaming_tables"
+            referencedColumns: ["id"]
+          },
         ]
       }
       budget_categories: {
@@ -504,7 +518,29 @@ export type Database = {
           table_id?: string | null
           transfer_type?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "cage_transfers_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cage_transfers_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "shifts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cage_transfers_table_id_fkey"
+            columns: ["table_id"]
+            isOneToOne: false
+            referencedRelation: "gaming_tables"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       cash_count_snapshots: {
         Row: {
@@ -827,7 +863,15 @@ export type Database = {
           updated_at?: string
           updated_by?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "chip_color_settings_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       chip_emissions: {
         Row: {
@@ -2590,6 +2634,7 @@ export type Database = {
       }
     }
     Functions: {
+      activity_logs_purge: { Args: { p_days?: number }; Returns: number }
       generate_card_number: { Args: never; Returns: string }
       get_business_date_for_casino: {
         Args: { _casino_id: string }

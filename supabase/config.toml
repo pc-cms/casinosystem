@@ -9,6 +9,7 @@ hibp_enabled = true
 [functions.pull-changes]
 verify_jwt = false
 
+# push-data is deprecated → returns HTTP 410. Use pull-changes.
 [functions.push-data]
 verify_jwt = false
 
