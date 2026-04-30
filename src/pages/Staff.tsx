@@ -1003,10 +1003,24 @@ const StaffAttendanceGrid = ({ month, monthLabel, readOnly = false }: { month: s
                 getValue={getValue}
                 getRotaShift={getRotaShift}
                 handleSave={handleSave}
-                getTotal={getTotal}
+                getTotals={getTotals}
               />
             );
           })}
+          {/* Summary: shifts per day across visible filter */}
+          <tr className="border-t-2 border-border">
+            <td className="px-1 py-1 text-[9px] font-mono font-bold text-blue-600 dark:text-blue-400 sticky left-0 bg-card z-10">Σ Shifts</td>
+            {days.map(day => {
+              const filtered = filterDept === "all" ? activeStaff : activeStaff.filter(s => s.department === filterDept);
+              const count = filtered.filter(s => {
+                const v = getValue(s.id, day);
+                const n = Number(v);
+                return !isNaN(n) && n > 0;
+              }).length;
+              return <td key={day} className="text-center text-[9px] font-mono font-bold text-blue-600 dark:text-blue-400">{count || ""}</td>;
+            })}
+            <td colSpan={4} />
+          </tr>
         </tbody>
         </table>
       </div>
