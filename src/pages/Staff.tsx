@@ -78,21 +78,29 @@ const DEPT_ROW_COLORS: Record<string, string> = {
 };
 
 const Staff = () => {
-  const [month, setMonth] = useState(() => {
-    const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-  });
+  const { isManager: isMgr } = useAuth();
+  const businessToday = getBusinessDate();
+  const currentMonth = useMemo(() => {
+    const [y, m] = businessToday.split("-").map(Number);
+    return `${y}-${String(m).padStart(2, "0")}`;
+  }, [businessToday]);
+  const [month, setMonth] = useState(currentMonth);
 
   const navigateMonth = (delta: number) => {
     const [y, m] = month.split("-").map(Number);
     const d = new Date(y, m - 1 + delta, 1);
-    setMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+    const next = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    if (next > currentMonth) return;
+    setMonth(next);
   };
 
   const monthLabel = useMemo(() => {
     const [y, m] = month.split("-").map(Number);
     return `${MONTH_NAMES[m - 1]} ${y}`;
   }, [month]);
+
+  const canGoPrev = isMgr;
+  const canGoNext = month < currentMonth;
 
   const [searchParams] = useSearchParams();
   const activeTab = searchParams.get("tab") || "employee";
