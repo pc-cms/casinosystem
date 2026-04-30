@@ -3,7 +3,7 @@ import { useGamingTables, useTransactions, useTableTracker } from "@/hooks/use-c
 import { useActiveShift } from "@/hooks/use-shift";
 import { useChipSnapshots, useBatchChipSnapshot } from "@/hooks/use-chips";
 import { useChipBaseline, useOpenAllTables, baselineToMap } from "@/hooks/use-table-lifecycle";
-import { useAuth } from "@/lib/auth-context";
+
 import { getBusinessDate } from "@/lib/business-day";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
