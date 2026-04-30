@@ -503,18 +503,6 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
             {displayName}
           </p>
           <button
-            onClick={() => { toggle(); onNavigate?.(); }}
-            title={theme === "dark" ? "Light mode" : "Dark mode"}
-            className="h-7 w-7 flex items-center justify-center rounded-md text-sidebar-foreground hover:bg-sidebar-accent transition-colors shrink-0"
-          >
-            {theme === "dark" ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
-          </button>
-      <div className="px-3 py-2 border-t border-sidebar-border">
-        <div className="flex items-center gap-2 px-1">
-          <p className="text-xs font-medium text-sidebar-foreground truncate flex-1" title={displayName ?? undefined}>
-            {displayName}
-          </p>
-          <button
             onClick={signOut}
             title="Sign out"
             className="h-7 w-7 flex items-center justify-center rounded-md text-sidebar-foreground hover:bg-sidebar-accent transition-colors shrink-0"
