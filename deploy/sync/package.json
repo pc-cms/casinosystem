@@ -1,0 +1,14 @@
+{
+  "name": "cms-sync",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Bidirectional sync between local Postgres and Cloud (Supabase)",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "pg": "^8.13.1"
+  }
+}
