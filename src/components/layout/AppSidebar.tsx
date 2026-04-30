@@ -299,9 +299,13 @@ const SidebarSections = ({
           : grouped[section] || [];
         if (!items.length) return null;
 
-        // OVERVIEW renders flat (no collapse) — single Dashboard item
-        if (section === FLAT_SECTION) {
-          return <div key={section} className="mb-1">{items.map(it => renderItem(it, section))}</div>;
+        // OVERVIEW and PIT render flat (no collapse, no section label)
+        if (section === FLAT_SECTION || section === "PIT") {
+          return (
+            <div key={section} className={idx > 0 ? "mt-1 border-t border-sidebar-border pt-1 space-y-0.5" : "mb-1 space-y-0.5"}>
+              {items.map(it => renderItem(it, section))}
+            </div>
+          );
         }
 
         const isOpen = !!open[section];
