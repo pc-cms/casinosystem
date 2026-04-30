@@ -450,8 +450,11 @@ const StaffRotaGrid = ({ month, groupKey, monthLabel, readOnly = false }: { mont
   const { data: staff = [] } = useStaffMembers();
   const { data: rota = [] } = useStaffRotaRange(startDate, endDate);
   const { data: monthAttendance = [] } = useStaffAttendanceRange(startDate, endDate);
-  const setRota = useSetStaffRota();
-  const deleteRota = useDeleteStaffRota();
+  const setRotaRaw = useSetStaffRota();
+  const deleteRotaRaw = useDeleteStaffRota();
+  const guard = () => { if (readOnly) { toast.error("Manager Access required to edit past months"); return false; } return true; };
+  const setRota = { mutate: (v: any) => { if (guard()) setRotaRaw.mutate(v); } };
+  const deleteRota = { mutate: (v: any) => { if (guard()) deleteRotaRaw.mutate(v); } };
 
   const activeStaff = useMemo(() =>
     staff.filter(s => s.is_active && (group.departments as readonly string[]).includes(s.department)),
