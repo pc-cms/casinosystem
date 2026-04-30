@@ -13,6 +13,7 @@
     <meta name="theme-color" content="#1a1a2e" />
     <script>
       // Swap PWA manifest based on the route so each module installs as its own app.
+      // Also swap favicon/apple-touch-icon for Arusha branding when on the arusha subdomain.
       (function () {
         try {
           var path = window.location.pathname || "";
@@ -21,6 +22,15 @@
           var link = document.getElementById("app-manifest");
           if (link && link.getAttribute("href") !== manifest) {
             link.setAttribute("href", manifest);
+          }
+
+          // Brand swap (favicon + apple-touch-icon) for arusha.*
+          var host = window.location.hostname || "";
+          if (/^arusha\./i.test(host)) {
+            var fav = document.querySelector('link[rel="icon"]');
+            if (fav) fav.setAttribute("href", "/arusha-logo.png");
+            var apple = document.querySelector('link[rel="apple-touch-icon"]');
+            if (apple) apple.setAttribute("href", "/arusha-logo.png");
           }
         } catch (e) { /* noop */ }
       })();
