@@ -404,22 +404,27 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
           {/* Nav icons (only top-level items, no sub-tabs) */}
           <nav className="flex-1 flex flex-col items-center gap-0.5 w-full px-2 overflow-hidden">
             {visibleItems.map((item) => {
-              const { base: itemBase, tab: itemTab } = parseItemTo(item.to);
+              const isVirtual = item.to === "__attendance__" || item.to === "__rota__";
+              const subs = item.to === "__attendance__" ? ATTENDANCE_SUBITEMS : item.to === "__rota__" ? ROTA_SUBITEMS : null;
+              const targetTo = subs ? subs[0].to : item.to;
+              const { base: itemBase, tab: itemTab } = parseItemTo(targetTo);
               const isTabAware = itemTab !== null;
               const isPlainPitActive = item.to === "/pit" && location.pathname === "/pit" && currentTab !== "breaklist";
-              const isActive = isTabAware
-                ? location.pathname === itemBase && currentTab === itemTab
-                : item.to === "/pit"
-                  ? isPlainPitActive
-                  : item.to === "/"
-                    ? location.pathname === "/"
-                    : location.pathname.startsWith(itemBase);
+              const isActive = subs
+                ? subs.some(s => location.pathname === s.matchPath && currentTab === s.matchTab)
+                : isTabAware
+                  ? location.pathname === itemBase && currentTab === itemTab
+                  : item.to === "/pit"
+                    ? isPlainPitActive
+                    : item.to === "/"
+                      ? location.pathname === "/"
+                      : location.pathname.startsWith(itemBase);
               return (
                 <Tooltip key={item.to}>
                   <TooltipTrigger asChild>
                     <NavLink
-                      to={item.to}
-                      end={item.to === "/"}
+                      to={targetTo}
+                      end={targetTo === "/"}
                       className={cn(
                         "w-10 h-10 flex items-center justify-center rounded-md transition-colors",
                         isActive
