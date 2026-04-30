@@ -96,33 +96,22 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      // Idempotency: skip if already applied
-      const { data: dup } = await admin
-        .from("sync_inbox_log")
-        .select("id")
-        .eq("casino_id", server.casino_id)
-        .eq("local_id", local_id)
-        .maybeSingle();
-      if (dup) { accepted.push(local_id); continue; }
-
-      try {
-        if (op === "DELETE") {
-          await admin.from(table).delete().eq("id", pk.id);
-        } else {
-          // Force casino_id to авторизованного, защита от подделки
-          const safe = { ...payload, casino_id: server.casino_id };
-          const { error } = await admin.from(table).upsert(safe, { onConflict: "id" });
-          if (error) throw error;
-        }
-        await admin.from("sync_inbox_log").insert({
-          casino_id: server.casino_id,
-          local_id,
-          table_name: table,
-          op,
-        });
-        accepted.push(local_id);
-      } catch (e: any) {
-        rejected.push({ local_id, error: e?.message ?? String(e) });
+      // Atomic: dedup + apply + loop-guard via sync.applying GUC happen
+      // inside one DB call. Bounce-back into outbox is prevented.
+      const { data: result, error } = await admin.rpc("sync_apply_remote", {
+        p_casino_id: server.casino_id,
+        p_local_id:  local_id,
+        p_table:     table,
+        p_op:        op,
+        p_pk:        pk,
+        p_payload:   payload ?? {},
+      });
+      if (error) {
+        rejected.push({ local_id, error: error.message });
+      } else if ((result as any)?.status === "error") {
+        rejected.push({ local_id, error: (result as any).error });
+      } else {
+        accepted.push(local_id); // includes "duplicate" — already applied
       }
     }
     return json({ accepted, rejected });
@@ -132,28 +121,44 @@ Deno.serve(async (req) => {
   if (req.method === "GET") {
     const url = new URL(req.url);
     const since = url.searchParams.get("since") ?? "1970-01-01T00:00:00Z";
+    const sinceId = parseInt(url.searchParams.get("since_id") ?? "0", 10);
     const limit = Math.min(parseInt(url.searchParams.get("limit") ?? "200", 10), 500);
 
-    // Отдаём изменения, которые касаются этого казино ИЛИ глобальные (casino_id IS NULL)
-    const { data, error } = await admin
+    // Stable pagination: (changed_at, id) — no row loss on duplicate timestamps.
+    // Accepts since + since_id from previous page; falls back to since-only.
+    let q = admin
       .from("sync_outbox")
-      .select("table_name, op, pk, payload, changed_at, casino_id")
+      .select("id, table_name, op, pk, payload, changed_at, casino_id")
       .or(`casino_id.eq.${server.casino_id},casino_id.is.null`)
-      .gt("changed_at", since)
       .order("changed_at", { ascending: true })
+      .order("id", { ascending: true })
       .limit(limit);
 
+    if (sinceId > 0) {
+      // (changed_at > since) OR (changed_at = since AND id > since_id)
+      q = q.or(`changed_at.gt.${since},and(changed_at.eq.${since},id.gt.${sinceId})`);
+    } else {
+      q = q.gte("changed_at", since);
+    }
+
+    const { data, error } = await q;
     if (error) return json({ error: error.message }, 500);
 
-    const changes = (data ?? []).map((r) => ({
+    const rows = data ?? [];
+    const changes = rows.map((r) => ({
       table: r.table_name,
       op: r.op,
       pk: r.pk,
       payload: r.payload,
       changed_at: r.changed_at,
+      id: r.id,
     }));
-    const next_since = changes.length > 0 ? changes[changes.length - 1].changed_at : since;
-    return json({ changes, next_since });
+    const last = rows[rows.length - 1];
+    return json({
+      changes,
+      next_since:    last ? last.changed_at : since,
+      next_since_id: last ? last.id        : sinceId,
+    });
   }
 
   return json({ error: "method not allowed" }, 405);
