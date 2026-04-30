@@ -75,8 +75,6 @@ const Pit = () => {
     const [y, m] = month.split("-").map(Number);
     const d = new Date(y, m - 1 + delta, 1);
     const next = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-    // Block future months entirely; block past months for non-managers
-    if (next > currentMonth) return;
     setMonth(next);
   };
 
@@ -109,15 +107,19 @@ const Pit = () => {
   const breaklistRefreshRef = React.useRef<(() => void) | null>(null);
   const breaklistAcceptRef = React.useRef<(() => void) | null>(null);
 
-  // Center slot: date / month nav (in subtitle area via belowHeader)
-  const canGoPrev = isManager;
-  const canGoNext = month < currentMonth;
+  // Free month navigation; write-protection enforced inside grids.
+  // Rota allows next month (filled in advance); Attendance does not.
+  const isPast = month < currentMonth;
+  const canGoNext = activeTab === "rota" ? true : month < currentMonth;
   const centerControl = showMonthNav ? (
     <div className="flex items-center gap-1">
-      <Button variant="ghost" size="icon-sm" onClick={() => canGoPrev && navigateMonth(-1)} disabled={!canGoPrev} title={canGoPrev ? "Previous month" : "Manager Access required"}>
-        {canGoPrev ? <ChevronLeft className="w-4 h-4" /> : <Lock className="w-3.5 h-3.5" />}
+      <Button variant="ghost" size="icon-sm" onClick={() => navigateMonth(-1)}>
+        <ChevronLeft className="w-4 h-4" />
       </Button>
-      <span className="text-sm font-semibold text-card-foreground min-w-[140px] text-center">{monthLabel}</span>
+      <span className="text-sm font-semibold text-card-foreground min-w-[140px] text-center inline-flex items-center justify-center gap-1.5">
+        {monthLabel}
+        {isPast && !isManager && <Lock className="w-3 h-3 text-muted-foreground" />}
+      </span>
       <Button variant="ghost" size="icon-sm" onClick={() => canGoNext && navigateMonth(1)} disabled={!canGoNext}>
         <ChevronRight className="w-4 h-4" />
       </Button>
@@ -236,8 +238,8 @@ const Pit = () => {
 
       <Suspense fallback={<><CardSkeleton count={2} /><TableSkeleton rows={5} cols={4} /></>}>
         {activeTab === "employee" && <DealerEmployeeList />}
-        {activeTab === "rota" && <RotaGrid month={month} />}
-        {activeTab === "attendance" && <AttendanceGrid month={month} />}
+        {activeTab === "rota" && <RotaGrid month={month} readOnly={isPast && !isManager} />}
+        {activeTab === "attendance" && <AttendanceGrid month={month} readOnly={isPast && !isManager} />}
         {activeTab === "breaklist" && (
           <BreaklistGrid
             date={date}
@@ -518,7 +520,7 @@ const DealerEmployeeList = () => {
 };
 
 // =================== MONTHLY ROTA GRID ===================
-const RotaGrid = ({ month }: { month: string }) => {
+const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boolean }) => {
   const [y, m] = month.split("-").map(Number);
   const daysInMonth = new Date(y, m, 0).getDate();
   const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
@@ -529,8 +531,11 @@ const RotaGrid = ({ month }: { month: string }) => {
   const { data: dealers = [] } = useDealers();
   const { data: rota = [] } = usePitRotaRange(startDate, endDate);
   const { data: monthAttendance = [] } = useDealerAttendanceRange(startDate, endDate);
-  const setRota = useSetPitRota();
-  const deleteRota = useDeletePitRota();
+  const setRotaRaw = useSetPitRota();
+  const deleteRotaRaw = useDeletePitRota();
+  const guard = () => { if (readOnly) { toast.error("Manager Access required to edit past months"); return false; } return true; };
+  const setRota = { mutate: (v: any) => { if (guard()) setRotaRaw.mutate(v); } };
+  const deleteRota = { mutate: (v: any) => { if (guard()) deleteRotaRaw.mutate(v); } };
 
   const activeDealers = dealers.filter((d: any) => d.is_active && !d.is_pit_boss);
   const pitBosses = dealers.filter((d: any) => d.is_active && d.is_pit_boss);
@@ -767,7 +772,7 @@ const RotaGrid = ({ month }: { month: string }) => {
 };
 
 // =================== DAILY ATTENDANCE ===================
-const AttendanceGrid = ({ month }: { month: string }) => {
+const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?: boolean }) => {
   const [y, m] = month.split("-").map(Number);
   const daysInMonth = new Date(y, m, 0).getDate();
   const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
@@ -778,7 +783,11 @@ const AttendanceGrid = ({ month }: { month: string }) => {
   const { data: dealers = [] } = useDealers();
   const { data: monthAttendance = [] } = useDealerAttendanceRange(startDate, endDate);
   const { data: rota = [] } = usePitRotaRange(startDate, endDate);
-  const setAttendance = useSetDealerAttendance();
+  const setAttendanceRaw = useSetDealerAttendance();
+  const setAttendance = { mutate: (v: any) => {
+    if (readOnly) { toast.error("Manager Access required to edit past months"); return; }
+    setAttendanceRaw.mutate(v);
+  } };
 
   const activeDealers = dealers.filter((d: any) => d.is_active && !d.is_pit_boss);
   const pitBosses = dealers.filter((d: any) => d.is_active && d.is_pit_boss);

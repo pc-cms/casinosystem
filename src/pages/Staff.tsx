@@ -90,7 +90,6 @@ const Staff = () => {
     const [y, m] = month.split("-").map(Number);
     const d = new Date(y, m - 1 + delta, 1);
     const next = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-    if (next > currentMonth) return;
     setMonth(next);
   };
 
@@ -99,13 +98,14 @@ const Staff = () => {
     return `${MONTH_NAMES[m - 1]} ${y}`;
   }, [month]);
 
-  const canGoPrev = isMgr;
-  const canGoNext = month < currentMonth;
-
   const [searchParams] = useSearchParams();
   const activeTab = searchParams.get("tab") || "employee";
 
   const isRotaTab = activeTab.startsWith("rota_");
+  const isPast = month < currentMonth;
+  // Rota allows next month (filled in advance); Attendance does not.
+  const canGoNext = isRotaTab ? true : month < currentMonth;
+
   const rotaGroupKey = isRotaTab ? activeTab.replace("rota_", "") as RotaGroupKey : null;
   const rotaGroup = rotaGroupKey ? ROTA_GROUPS[rotaGroupKey] : null;
 
@@ -137,10 +137,13 @@ const Staff = () => {
           <div className="flex items-center gap-3 flex-wrap justify-center no-print">
             {showMonthNav && (
               <div className="flex items-center gap-1">
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => canGoPrev && navigateMonth(-1)} disabled={!canGoPrev} title={canGoPrev ? "Previous month" : "Manager Access required"}>
-                  {canGoPrev ? <ChevronLeft className="w-4 h-4" /> : <Lock className="w-3.5 h-3.5" />}
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigateMonth(-1)}>
+                  <ChevronLeft className="w-4 h-4" />
                 </Button>
-                <span className="text-sm font-semibold text-card-foreground min-w-[140px] text-center">{monthLabel}</span>
+                <span className="text-sm font-semibold text-card-foreground min-w-[140px] text-center inline-flex items-center justify-center gap-1.5">
+                  {monthLabel}
+                  {isPast && !isMgr && <Lock className="w-3 h-3 text-muted-foreground" />}
+                </span>
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => canGoNext && navigateMonth(1)} disabled={!canGoNext}>
                   <ChevronRight className="w-4 h-4" />
                 </Button>
@@ -175,8 +178,8 @@ const Staff = () => {
       </PageHeader>
 
       {activeTab === "employee" && <EmployeeList />}
-      {isRotaTab && rotaGroupKey && <StaffRotaGrid month={month} groupKey={rotaGroupKey} monthLabel={monthLabel} />}
-      {activeTab === "attendance" && <StaffAttendanceGrid month={month} monthLabel={monthLabel} />}
+      {isRotaTab && rotaGroupKey && <StaffRotaGrid month={month} groupKey={rotaGroupKey} monthLabel={monthLabel} readOnly={isPast && !isMgr} />}
+      {activeTab === "attendance" && <StaffAttendanceGrid month={month} monthLabel={monthLabel} readOnly={isPast && !isMgr} />}
     </div>
   );
 };
@@ -433,7 +436,7 @@ const EmployeeList = () => {
 
 
 // =================== STAFF ROTA GRID ===================
-const StaffRotaGrid = ({ month, groupKey, monthLabel }: { month: string; groupKey: RotaGroupKey; monthLabel: string }) => {
+const StaffRotaGrid = ({ month, groupKey, monthLabel, readOnly = false }: { month: string; groupKey: RotaGroupKey; monthLabel: string; readOnly?: boolean }) => {
   const group = ROTA_GROUPS[groupKey];
   const groupShifts = group.shifts as readonly string[];
   const [filterDept, setFilterDept] = useState<string>("all");
@@ -447,8 +450,11 @@ const StaffRotaGrid = ({ month, groupKey, monthLabel }: { month: string; groupKe
   const { data: staff = [] } = useStaffMembers();
   const { data: rota = [] } = useStaffRotaRange(startDate, endDate);
   const { data: monthAttendance = [] } = useStaffAttendanceRange(startDate, endDate);
-  const setRota = useSetStaffRota();
-  const deleteRota = useDeleteStaffRota();
+  const setRotaRaw = useSetStaffRota();
+  const deleteRotaRaw = useDeleteStaffRota();
+  const guard = () => { if (readOnly) { toast.error("Manager Access required to edit past months"); return false; } return true; };
+  const setRota = { mutate: (v: any) => { if (guard()) setRotaRaw.mutate(v); } };
+  const deleteRota = { mutate: (v: any) => { if (guard()) deleteRotaRaw.mutate(v); } };
 
   const activeStaff = useMemo(() =>
     staff.filter(s => s.is_active && (group.departments as readonly string[]).includes(s.department)),
@@ -830,7 +836,7 @@ const DepartmentBlock = ({
 );
 
 // =================== STAFF ATTENDANCE GRID ===================
-const StaffAttendanceGrid = ({ month, monthLabel }: { month: string; monthLabel: string }) => {
+const StaffAttendanceGrid = ({ month, monthLabel, readOnly = false }: { month: string; monthLabel: string; readOnly?: boolean }) => {
   const [y, m] = month.split("-").map(Number);
   const daysInMonth = new Date(y, m, 0).getDate();
   const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
@@ -842,7 +848,11 @@ const StaffAttendanceGrid = ({ month, monthLabel }: { month: string; monthLabel:
   const { data: staff = [] } = useStaffMembers();
   const { data: attendance = [] } = useStaffAttendanceRange(startDate, endDate);
   const { data: rota = [] } = useStaffRotaRange(startDate, endDate);
-  const setAttendance = useSetStaffAttendance();
+  const setAttendanceRaw = useSetStaffAttendance();
+  const setAttendance = { mutate: (v: any) => {
+    if (readOnly) { toast.error("Manager Access required to edit past months"); return; }
+    setAttendanceRaw.mutate(v);
+  } };
 
   const activeStaff = staff.filter(s => s.is_active);
 
