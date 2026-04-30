@@ -951,9 +951,9 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
         </thead>
         <tbody>
           {renderAttendanceRows(activeDealers, "Dealers", "border-blue-400 dark:border-blue-500/50 text-blue-600 dark:text-blue-400")}
-          {/* Summary: shifts and hours per day — dealers only */}
+          {/* Summary: shifts per day — dealers only */}
           <tr className="border-t-2 border-border">
-            <td colSpan={2} className="px-1 py-1 text-[9px] font-mono font-bold text-blue-600 dark:text-blue-400 sticky left-0 left-[28px] bg-card z-10">Σ Shifts</td>
+            <td colSpan={2} className="px-1 py-1 text-[9px] font-mono font-bold text-blue-600 dark:text-blue-400 sticky left-0 bg-card z-10">Σ Shifts</td>
             {days.map(day => {
               const count = activeDealers.filter(d => {
                 const v = getValue(d.id, day);
@@ -962,19 +962,7 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
               }).length;
               return <td key={day} className="text-center text-[9px] font-mono font-bold text-blue-600 dark:text-blue-400">{count || ""}</td>;
             })}
-            <td colSpan={2} />
-          </tr>
-          <tr>
-            <td colSpan={2} className="px-1 py-1 text-[9px] font-mono font-bold text-primary sticky left-0 left-[28px] bg-card z-10">Σ Hours</td>
-            {days.map(day => {
-              const sum = activeDealers.reduce((s, d) => {
-                const v = getValue(d.id, day);
-                const n = Number(v);
-                return s + (!isNaN(n) && n > 0 ? n : 0);
-              }, 0);
-              return <td key={day} className="text-center text-[9px] font-mono font-bold text-primary">{sum || ""}</td>;
-            })}
-            <td colSpan={2} />
+            <td colSpan={4} />
           </tr>
           {pitBosses.length > 0 && renderAttendanceRows(pitBosses, "Pit Bosses", "border-purple-400 dark:border-purple-500/50 text-purple-600 dark:text-purple-400")}
         </tbody>
