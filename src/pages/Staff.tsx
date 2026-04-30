@@ -161,6 +161,13 @@ const Staff = () => {
             )}
             {activeTab === "attendance" && (
               <div className="flex items-center gap-1.5 flex-nowrap whitespace-nowrap overflow-x-auto py-0.5">
+                {(["D", "N"] as const).map(s => (
+                  <span key={s} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono ${STAFF_SHIFT_COLORS[s]}`}>
+                    <span className="font-bold">{s}</span>
+                    <span className="opacity-80">{STAFF_SHIFT_LABELS[s]}</span>
+                  </span>
+                ))}
+                <span className="mx-1 h-4 w-px bg-border" />
                 <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono ${ATT_COLORS["A"]}`}>
                   <span className="font-bold">A</span><span className="opacity-80">Absent</span>
                 </span>
@@ -883,12 +890,22 @@ const StaffAttendanceGrid = ({ month, monthLabel, readOnly = false }: { month: s
     if (!isNaN(num) && num >= 0 && num <= 24) { setAttendance.mutate({ staff_id: staffId, date: dateStr, value: String(num) }); }
   };
 
-  const getTotal = (staffId: string) => {
-    return days.reduce((sum, day) => {
+  const getTotals = (staffId: string) => {
+    let shifts = 0;
+    let hours = 0;
+    let absent = 0;
+    let sick = 0;
+    days.forEach(day => {
       const val = getValue(staffId, day);
+      if (val === "A") { absent += 1; return; }
+      if (val === "S") { sick += 1; return; }
       const num = Number(val);
-      return sum + (isNaN(num) ? 0 : num);
-    }, 0);
+      if (!isNaN(num) && num > 0) {
+        shifts += 1;
+        hours += num;
+      }
+    });
+    return { shifts, hours, absent, sick };
   };
 
   const visibleDepts = filterDept === "all" ? DEPARTMENT_ORDER : DEPARTMENT_ORDER.filter(d => d === filterDept);
@@ -908,22 +925,31 @@ const StaffAttendanceGrid = ({ month, monthLabel, readOnly = false }: { month: s
 
   return (
     <>
-      <div className="flex items-center gap-2 mb-3 no-print flex-wrap">
+      <div className="flex items-center gap-1.5 mb-3 flex-wrap no-print">
         <button
           onClick={() => setFilterDept("all")}
-          className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${filterDept === "all" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-accent"}`}
+          className={`px-2.5 py-1 rounded text-[11px] font-medium transition-colors ${filterDept === "all" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
         >
           All
         </button>
-        {availableDepts.map(d => (
-          <button
-            key={d}
-            onClick={() => setFilterDept(d)}
-            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${filterDept === d ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-accent"}`}
-          >
-            {DEPARTMENT_LABELS[d]}
-          </button>
-        ))}
+        {availableDepts.map(d => {
+          const count = (grouped[d] || []).length;
+          if (count === 0) return null;
+          return (
+            <button
+              key={d}
+              onClick={() => setFilterDept(filterDept === d ? "all" : d)}
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-medium border transition-colors ${
+                filterDept === d
+                  ? DEPT_BADGE_COLORS[d]
+                  : "bg-muted text-muted-foreground border-transparent hover:bg-muted/80"
+              }`}
+            >
+              <span className={`w-1.5 h-1.5 rounded-full ${DEPT_DOT_COLORS[d]}`} />
+              {DEPARTMENT_LABELS[d]} ({count})
+            </button>
+          );
+        })}
       </div>
       <div className="cms-panel overflow-hidden print-target">
         {/* Print header for attendance */}
@@ -953,7 +979,10 @@ const StaffAttendanceGrid = ({ month, monthLabel, readOnly = false }: { month: s
                 </th>
               );
             })}
+            <th className="text-center text-[10px] font-medium text-muted-foreground uppercase px-1 py-2 w-8">Σsh</th>
             <th className="text-center text-[10px] font-medium text-muted-foreground uppercase px-1 py-2 w-8">Σh</th>
+            <th className="text-center text-[10px] font-medium text-rose-600 dark:text-rose-400 uppercase px-1 py-2 w-8">A</th>
+            <th className="text-center text-[10px] font-medium text-amber-600 dark:text-amber-400 uppercase px-1 py-2 w-8">S</th>
           </tr>
         </thead>
         <tbody>
@@ -974,10 +1003,24 @@ const StaffAttendanceGrid = ({ month, monthLabel, readOnly = false }: { month: s
                 getValue={getValue}
                 getRotaShift={getRotaShift}
                 handleSave={handleSave}
-                getTotal={getTotal}
+                getTotals={getTotals}
               />
             );
           })}
+          {/* Summary: shifts per day across visible filter */}
+          <tr className="border-t-2 border-border">
+            <td className="px-1 py-1 text-[9px] font-mono font-bold text-blue-600 dark:text-blue-400 sticky left-0 bg-card z-10">Σ Shifts</td>
+            {days.map(day => {
+              const filtered = filterDept === "all" ? activeStaff : activeStaff.filter(s => s.department === filterDept);
+              const count = filtered.filter(s => {
+                const v = getValue(s.id, day);
+                const n = Number(v);
+                return !isNaN(n) && n > 0;
+              }).length;
+              return <td key={day} className="text-center text-[9px] font-mono font-bold text-blue-600 dark:text-blue-400">{count || ""}</td>;
+            })}
+            <td colSpan={4} />
+          </tr>
         </tbody>
         </table>
       </div>
@@ -987,7 +1030,7 @@ const StaffAttendanceGrid = ({ month, monthLabel, readOnly = false }: { month: s
 
 const AttendanceDepartmentBlock = ({
   dept, members, days, month, y, m, isCurrentMonth, todayDay,
-  getValue, getRotaShift, handleSave, getTotal,
+  getValue, getRotaShift, handleSave, getTotals,
 }: {
   dept: string;
   members: any[];
@@ -1000,11 +1043,11 @@ const AttendanceDepartmentBlock = ({
   getValue: (id: string, day: number) => string;
   getRotaShift: (id: string, day: number) => string | null;
   handleSave: (id: string, day: number, val: string) => void;
-  getTotal: (id: string) => number;
+  getTotals: (id: string) => { shifts: number; hours: number; absent: number; sick: number };
 }) => (
   <>
     <tr>
-      <td colSpan={days.length + 2} className="px-0 py-0 sticky left-0">
+      <td colSpan={days.length + 5} className="px-0 py-0 sticky left-0">
         <div className={`flex items-center gap-2 px-3 py-1 border-b-2 ${DEPT_BORDER_COLORS[dept] || "border-muted"}`}>
           <span className={`w-2 h-2 rounded-full ${DEPT_DOT_COLORS[dept] || "bg-muted-foreground"}`} />
           <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-card-foreground">{DEPARTMENT_LABELS[dept as StaffDepartment]}</span>
@@ -1013,7 +1056,7 @@ const AttendanceDepartmentBlock = ({
       </td>
     </tr>
     {members.map((staff, idx) => {
-      const total = getTotal(staff.id);
+      const totals = getTotals(staff.id);
       return (
         <tr key={staff.id} className={`border-b border-border last:border-0 ${idx % 2 === 0 ? "" : "bg-muted/10"}`}>
           <td className={`px-3 py-1 text-xs font-medium text-card-foreground sticky left-0 z-10 ${idx % 2 === 0 ? "bg-card" : "bg-card/95"}`}>
@@ -1081,9 +1124,10 @@ const AttendanceDepartmentBlock = ({
               </td>
             );
           })}
-          <td className="px-2 py-1 text-center">
-            <span className="text-[10px] font-mono font-bold text-primary">{total || ""}</span>
-          </td>
+          <td className="px-2 py-1 text-center"><span className="text-[10px] font-mono font-bold text-blue-600 dark:text-blue-400">{totals.shifts || ""}</span></td>
+          <td className="px-2 py-1 text-center"><span className="text-[10px] font-mono font-bold text-primary">{totals.hours || ""}</span></td>
+          <td className="px-2 py-1 text-center"><span className="text-[10px] font-mono font-bold text-rose-600 dark:text-rose-400">{totals.absent || ""}</span></td>
+          <td className="px-2 py-1 text-center"><span className="text-[10px] font-mono font-bold text-amber-600 dark:text-amber-400">{totals.sick || ""}</span></td>
         </tr>
       );
     })}
