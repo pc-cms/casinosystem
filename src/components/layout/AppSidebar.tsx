@@ -40,6 +40,9 @@ const NAV_ITEMS: NavItem[] = [
   // PIT — 4-button structure: Break List, Tables, Live Game (Attendance+Rota), Floor (Attendance+Rotas)
   { to: "/pit?tab=breaklist", icon: ListChecks, label: "Break List", roles: ["super_admin", "manager", "pit", "finance_manager"], section: "PIT" },
   { to: "/tables", icon: Table2, label: "Tables", roles: ["super_admin", "manager", "cashier", "pit", "finance_manager", "surveillance"], section: "PIT" },
+  { to: "/active-players", icon: Users, label: "Active Players", roles: ["super_admin", "manager", "pit", "finance_manager"], section: "PIT" },
+  { to: "/player-tracker", icon: Eye, label: "Player Tracker", roles: ["super_admin", "manager", "pit", "finance_manager"], section: "PIT" },
+  { to: "/table-tracker", icon: Target, label: "Table Tracker", roles: ["super_admin", "manager", "pit", "finance_manager"], section: "PIT" },
   { to: "/pit?tab=attendance", icon: Gamepad2, label: "Live Game", roles: ["super_admin", "manager", "pit", "finance_manager"], section: "PIT" },
   { to: "/staff?tab=attendance", icon: Building2, label: "Floor", roles: ["super_admin", "manager", "pit", "finance_manager"], section: "PIT" },
 
@@ -215,7 +218,6 @@ const SidebarSections = ({
           <item.icon className="w-4 h-4 shrink-0" />
           <span className="flex-1">{item.label}</span>
         </NavLink>
-        {item.to === "/tables" && isTablesActive && (roles.includes("pit") || roles.includes("manager") || roles.includes("finance_manager")) && renderSubItems("/tables", TABLE_SUBITEMS)}
         {item.to === "/pit" && isPitActive && renderSubItems("/pit", pitSubs)}
         {item.to === "/staff" && isStaffActive && renderSubItems("/staff", staffSubs)}
       </div>
