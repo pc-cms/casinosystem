@@ -249,31 +249,6 @@ const Tables = () => {
         )}
       </PageHeader>
 
-      {/* Pit-role tabs */}
-      {isPit && (
-        <div className="flex gap-1 mb-4 border-b border-border pb-2">
-          {PIT_TABS.map(tab => (
-            <button
-              key={tab.key}
-              onClick={() => setSearchParams(tab.key === "tables" ? {} : { tab: tab.key })}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                activeTab === tab.key
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-              }`}
-            >
-              <tab.icon className="w-3.5 h-3.5" />
-              {tab.label}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {activeTab === "activeplayers" && isPit && <ActivePlayers />}
-      {activeTab === "tracker" && isPit && <ClientTracker />}
-      {activeTab === "tabletracker" && isPit && <TableTracker embedded />}
-
-      {activeTab === "tables" && (
       <>
 
 
