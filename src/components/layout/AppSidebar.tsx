@@ -502,15 +502,34 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
       <div className="px-4 py-4 border-b border-sidebar-border">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0 shrink-0">
-            <Shield className="w-6 h-6 text-primary shrink-0" />
-            <span className="font-bold text-lg tracking-tight text-sidebar-foreground">CMS</span>
+            {isArusha ? (
+              <>
+                <img src={arushaLogo} alt="Arusha" className="w-7 h-7 shrink-0 object-contain" />
+                <span className="font-faberge font-semibold text-lg tracking-wide" style={{ color: "#E8C688" }}>PREMIER</span>
+              </>
+            ) : (
+              <>
+                <Shield className="w-6 h-6 text-primary shrink-0" />
+                <span className="font-bold text-lg tracking-tight text-sidebar-foreground">CMS</span>
+              </>
+            )}
           </div>
-          <span
-            className="text-sm font-semibold text-sidebar-foreground/90 truncate text-right"
-            title={isSummaryMode ? "All Casinos" : activeCasino?.name ?? "Casino Ops"}
-          >
-            {isSummaryMode ? "All Casinos" : activeCasino?.name ?? "Casino Ops"}
-          </span>
+          {isArusha ? (
+            <span
+              className="font-faberge font-semibold text-lg tracking-wide truncate text-right"
+              style={{ color: "#E8C688" }}
+              title={isSummaryMode ? "All Casinos" : activeCasino?.name ?? "Casino Ops"}
+            >
+              {isSummaryMode ? "All Casinos" : activeCasino?.name ?? "Arusha"}
+            </span>
+          ) : (
+            <span
+              className="text-sm font-semibold text-sidebar-foreground/90 truncate text-right"
+              title={isSummaryMode ? "All Casinos" : activeCasino?.name ?? "Casino Ops"}
+            >
+              {isSummaryMode ? "All Casinos" : activeCasino?.name ?? "Casino Ops"}
+            </span>
+          )}
         </div>
 
         {(!nativeManager || onToggle) && (
