@@ -21,7 +21,6 @@ export const PitShell = ({ children }: { children: React.ReactNode }) => {
   return (
     <>
       <div className="fixed top-2 right-2 z-40 flex items-center gap-1.5 no-print">
-        <NetworkStatusIndicator />
         <InstallPWAButton label="Install Pit" />
       </div>
       {children}
