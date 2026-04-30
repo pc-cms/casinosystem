@@ -19,6 +19,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import arushaLogo from "@/assets/arusha-logo.png";
 
 type AppRole = "cashier" | "pit" | "manager" | "reception" | "finance_manager" | "surveillance" | "super_admin" | "hr";
 
@@ -338,6 +339,7 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
   const { theme, toggle } = useTheme();
   const { displayName, roles, signOut, isManager, managerOverride, activateManagerOverride, deactivateManagerOverride } = useAuth();
   const { activeCasino, isSummaryMode } = useCasino();
+  const isArusha = (activeCasino?.slug ?? "").toLowerCase() === "arusha";
   const location = useLocation();
   const [showOverrideDialog, setShowOverrideDialog] = useState(false);
 
