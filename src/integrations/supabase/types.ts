@@ -2125,6 +2125,66 @@ export type Database = {
           },
         ]
       }
+      sync_inbox_log: {
+        Row: {
+          applied_at: string
+          casino_id: string
+          error: string | null
+          id: number
+          local_id: number
+          op: string
+          table_name: string
+        }
+        Insert: {
+          applied_at?: string
+          casino_id: string
+          error?: string | null
+          id?: number
+          local_id: number
+          op: string
+          table_name: string
+        }
+        Update: {
+          applied_at?: string
+          casino_id?: string
+          error?: string | null
+          id?: number
+          local_id?: number
+          op?: string
+          table_name?: string
+        }
+        Relationships: []
+      }
+      sync_outbox: {
+        Row: {
+          casino_id: string | null
+          changed_at: string
+          id: number
+          op: string
+          payload: Json | null
+          pk: Json
+          table_name: string
+        }
+        Insert: {
+          casino_id?: string | null
+          changed_at?: string
+          id?: number
+          op: string
+          payload?: Json | null
+          pk: Json
+          table_name: string
+        }
+        Update: {
+          casino_id?: string | null
+          changed_at?: string
+          id?: number
+          op?: string
+          payload?: Json | null
+          pk?: Json
+          table_name?: string
+        }
+        Relationships: []
+      }
       table_daily_results: {
         Row: {
           casino_id: string
@@ -2572,6 +2632,8 @@ export type Database = {
           checked_in_at: string
         }[]
       }
+      sync_attach: { Args: { p_table: unknown }; Returns: undefined }
+      sync_outbox_gc: { Args: never; Returns: undefined }
       user_has_casino_access: {
         Args: { _casino_id: string; _user_id: string }
         Returns: boolean

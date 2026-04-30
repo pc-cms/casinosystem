@@ -177,12 +177,58 @@ docker compose exec -T postgres pg_dump -U postgres -Fc postgres > backup-$(date
 docker compose exec -T postgres pg_restore -U postgres -d postgres -c < backup-2026-04-30.dump
 ```
 
+## Синхронизация с Cloud (этап C — реализовано)
+
+`cms-sync` — Node-воркер, поднимается одним контейнером. Принцип: **outbox + idempotent inbox**.
+
+**Local → Cloud (push):**
+- Триггеры на ключевых таблицах (`transactions`, `shifts`, `cage_transfers`, `expenses`, `wallet_transactions`, `chip_*`, `casino_visits`, `players`, `breaklist`, `rota`, `activity_logs`, `daily_review`, `budget_*`, …) пишут каждое изменение в `sync.outbox` (см. `postgres/init/02-sync-outbox.sql`).
+- Воркер каждые `SYNC_INTERVAL_MS` (по-умолчанию 5 с) забирает батч `SYNC_BATCH_SIZE` (200) и POST-ит в edge function `pull-changes` с заголовками `x-sync-secret` + `x-casino-id`.
+- Cloud-функция валидирует пару `(casino_id, sync_secret)` против `local_servers`, делает upsert (с принудительной подменой `casino_id` на авторизованное), пишет в `sync_inbox_log` для идемпотентности.
+- При ошибке — экспоненциальный backoff (5 с → 10 → 20 → 40 → max 60 с).
+
+**Cloud → Local (pull):**
+- В Cloud аналогичные триггеры пишут в `public.sync_outbox` (доступ только service_role).
+- Воркер периодически GET-ит `pull-changes?since=<cursor>&limit=200` — отдаёт изменения для своего `casino_id` или `casino_id IS NULL` (глобальные: blacklist, global players, inter-casino transfers).
+- Применяет в транзакции под GUC `SET LOCAL sync.applying='on'` — триггеры outbox это видят и **не** зацикливают изменения обратно.
+- Курсор хранится в `sync.cloud_cursor`.
+
+**Оффлайн-поведение:** если Cloud недоступен — outbox растёт, push молча копит. После восстановления связи — выгружается батчами в порядке `id ASC`. GC удаляет `sent_at < now() - 7 days`.
+
+## Авто-обновление (этап D — реализовано)
+
+`cms-updater` — Node-сервис с примонтированным `docker.sock` и каталогом `/compose`.
+
+**Цикл (каждые `CHECK_INTERVAL_MINUTES`, по-умолчанию 60):**
+1. `fetch https://api.github.com` — если интернета нет, тихо ждём следующий цикл.
+2. `GET /repos/${OWNER}/${REPO}/releases/latest` (с `GITHUB_TOKEN` если задан).
+3. Семантическое сравнение `tag_name` с `FRONTEND_VERSION` из `.env`.
+4. Если новее → `docker pull ghcr.io/${owner}/cms-frontend:<latest>` (валидация наличия в registry).
+5. **Если `AUTO_APPLY=true`:**
+   - Сохраняет `PREVIOUS_VERSION = <current>` в `.env`.
+   - Меняет `FRONTEND_VERSION = <latest>`.
+   - `docker compose up -d cms-frontend nginx`.
+   - Health-check `https://nginx/healthz` 30 секунд.
+   - При фейле → автоматический rollback (`FRONTEND_VERSION = PREVIOUS_VERSION` + restart).
+6. **Если `AUTO_APPLY=false`** (по-умолчанию, безопасный режим):
+   - Только записывает `/compose/UPDATE_AVAILABLE` с метаданными.
+   - Админ применяет вручную: `sudo ./install.sh --upgrade-to <version>`.
+
+**Логи:** структурированный JSON в `/compose/updater.log` + stdout контейнера.
+
+**Ручные команды:**
+```bash
+docker compose logs -f cms-updater                # смотреть live
+cat updater.log | jq 'select(.lvl=="error")'     # все ошибки
+cat UPDATE_AVAILABLE                              # есть ли ожидающее обновление
+sudo ./install.sh --check-update                  # форсированная проверка
+sudo ./install.sh --upgrade-to v1.4.2             # ручной апгрейд
+```
+
 ## Что будет реализовано позднее
 
 | Этап | Что |
 |---|---|
-| **C** | Реальный двусторонний sync: `cms-sync` слушает WAL Postgres и пушит в облачную edge function `push-data`, плюс новая `pull-changes` функция тянет обновления из облака |
-| **D** | Авто-обновления: `cms-updater` раз в час чекает GitHub Releases (через `install.sh --check-update`) и подтягивает новый образ. Откат за 30 секунд через `FRONTEND_VERSION=vX-1` |
 | **E** | Полная инструкция для IT-админа казино: kiosk-режим для Surveillance, мониторинг, удалённый VPN-доступ |
 
 ## Безопасность
