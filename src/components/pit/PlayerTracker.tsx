@@ -156,16 +156,15 @@ const ActiveSessionCard = ({
     const val = Number(newBet);
     if (!val || val <= 0) return;
     setSaving(true);
-    
-    // Lock the current accumulated total_bet before changing the rate
-    const now = new Date().toISOString();
+
+    // DB trigger `client_session_recalc` (BEFORE UPDATE) is the authoritative
+    // calculator: when avg_bet changes, it closes the previous segment
+    // (total_bet += OLD.avg_bet × minutes) and stamps bet_changed_at = now().
+    // UI must NOT send total_bet/bet_changed_at — that would race with the
+    // trigger and corrupt the per-segment ledger.
     const { error } = await supabase
       .from("client_sessions")
-      .update({ 
-        avg_bet: val,
-        total_bet: liveTotalBet,
-        bet_changed_at: now,
-      })
+      .update({ avg_bet: val })
       .eq("id", s.id);
     setSaving(false);
     if (error) {
@@ -329,23 +328,18 @@ const ClientTracker = () => {
       const table = tables.find(t => t.id === session.table_id);
       const hph = table ? getHandsPerHour(table.game) : DEFAULT_HANDS_PER_HOUR;
       const handsPlayed = Math.round((durationMinutes / 60) * hph);
-      
-      // Segmented total bet: locked amount + hands since last bet change
-      const referenceTime = session.bet_changed_at || session.started_at;
-      const elapsedSinceRef = (stoppedAt.getTime() - new Date(referenceTime).getTime()) / 3600000;
-      const handsSinceRef = Math.round(elapsedSinceRef * hph);
-      const lockedTotalBet = Number(session.total_bet) || 0;
-      const totalBet = lockedTotalBet + handsSinceRef * Number(session.avg_bet);
 
+      // DB trigger `client_session_recalc` (BEFORE UPDATE) is the authoritative
+      // calculator: when stopped_at flips to non-null, it finalizes total_bet
+      // (+ avg_bet × minutes_since_bet_changed_at) and duration_minutes.
+      // UI sends only stopped_at and hands_played (not computed by trigger).
       const stopRes = await offlineMutation({
         table: "client_sessions",
         operation: "update",
         payload: {
           _match: { id: sessionId },
           stopped_at: stoppedAt.toISOString(),
-          duration_minutes: durationMinutes,
           hands_played: handsPlayed,
-          total_bet: totalBet,
         },
       });
       if (stopRes.error) throw new Error(stopRes.error);

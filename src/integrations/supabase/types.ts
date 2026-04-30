@@ -64,7 +64,10 @@ export type Database = {
           created_at: string
           created_by: string
           currency: string
+          discrepancy: number
+          expected_balance: number
           id: string
+          is_balanced: boolean
           merchant: string
           note: string
           photo_url: string | null
@@ -82,7 +85,10 @@ export type Database = {
           created_at?: string
           created_by: string
           currency?: string
+          discrepancy?: number
+          expected_balance?: number
           id?: string
+          is_balanced?: boolean
           merchant?: string
           note?: string
           photo_url?: string | null
@@ -100,7 +106,10 @@ export type Database = {
           created_at?: string
           created_by?: string
           currency?: string
+          discrepancy?: number
+          expected_balance?: number
           id?: string
+          is_balanced?: boolean
           merchant?: string
           note?: string
           photo_url?: string | null
