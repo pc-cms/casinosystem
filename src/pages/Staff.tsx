@@ -109,6 +109,10 @@ const Staff = () => {
   const rotaGroupKey = isRotaTab ? activeTab.replace("rota_", "") as RotaGroupKey : null;
   const rotaGroup = rotaGroupKey ? ROTA_GROUPS[rotaGroupKey] : null;
 
+  // Attendance is scoped to a group (mirrors Rota grouping). Default: floor.
+  const attGroupParam = (searchParams.get("group") || "floor") as RotaGroupKey;
+  const attGroupKey: RotaGroupKey = (ROTA_GROUPS as any)[attGroupParam] ? attGroupParam : "floor";
+
   const showMonthNav = isRotaTab || activeTab === "attendance";
 
   const TAB_TITLES: Record<string, string> = {
@@ -186,7 +190,7 @@ const Staff = () => {
 
       {activeTab === "employee" && <EmployeeList />}
       {isRotaTab && rotaGroupKey && <StaffRotaGrid month={month} groupKey={rotaGroupKey} monthLabel={monthLabel} readOnly={isPast && !isMgr} />}
-      {activeTab === "attendance" && <StaffAttendanceGrid month={month} monthLabel={monthLabel} readOnly={isPast && !isMgr} />}
+      {activeTab === "attendance" && <StaffAttendanceGrid month={month} monthLabel={monthLabel} groupKey={attGroupKey} readOnly={isPast && !isMgr} />}
     </div>
   );
 };
