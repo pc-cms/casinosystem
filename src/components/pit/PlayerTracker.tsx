@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import { usePlayers, useGamingTables } from "@/hooks/use-casino-data";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/integrations/supabase/client";
+import { offlineMutation } from "@/lib/offline-mutation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { NumberInput } from "@/components/ui/number-input";
@@ -273,34 +274,44 @@ const ClientTracker = () => {
 
   const startSession = useMutation({
     mutationFn: async () => {
-      // Start the client session
-      const { error } = await supabase.from("client_sessions").insert({
-        casino_id: casinoId!,
-        player_id: selectedPlayer,
-        table_id: selectedTable,
-        avg_bet: Number(avgBet) || 0,
-        created_by: user!.id,
+      // Start the client session (offline-aware, idempotent via client UUID)
+      const sessionId = crypto.randomUUID();
+      const insertRes = await offlineMutation({
+        table: "client_sessions",
+        operation: "insert",
+        payload: {
+          id: sessionId,
+          casino_id: casinoId!,
+          player_id: selectedPlayer,
+          table_id: selectedTable,
+          avg_bet: Number(avgBet) || 0,
+          created_by: user!.id,
+        },
       });
-      if (error) throw error;
+      if (insertRes.error) throw new Error(insertRes.error);
 
       // Auto check-in if not already checked in today
-      await supabase.from("casino_visits").upsert(
-        {
+      const visitRes = await offlineMutation({
+        table: "casino_visits",
+        operation: "upsert",
+        payload: {
           casino_id: casinoId!,
           player_id: selectedPlayer,
           date: today,
           checked_in_by: user!.id,
         },
-        { onConflict: "casino_id,player_id,date" }
-      );
+        upsertConflict: "casino_id,player_id,date",
+      });
+      if (visitRes.error) throw new Error(visitRes.error);
+      return { offline: insertRes.offline || visitRes.offline };
     },
-    onSuccess: () => {
+    onSuccess: (res: any) => {
       queryClient.invalidateQueries({ queryKey: ["client_sessions"] });
       queryClient.invalidateQueries({ queryKey: ["casino_visits"] });
       setSelectedPlayer("");
       setSelectedTable("");
       setAvgBet("");
-      toast.success("Session started");
+      toast.success(res?.offline ? "Session saved offline — will sync" : "Session started");
     },
     onError: (e: any) => toast.error(e.message),
   });
@@ -326,16 +337,18 @@ const ClientTracker = () => {
       const lockedTotalBet = Number(session.total_bet) || 0;
       const totalBet = lockedTotalBet + handsSinceRef * Number(session.avg_bet);
 
-      const { error } = await supabase
-        .from("client_sessions")
-        .update({
+      const stopRes = await offlineMutation({
+        table: "client_sessions",
+        operation: "update",
+        payload: {
+          _match: { id: sessionId },
           stopped_at: stoppedAt.toISOString(),
           duration_minutes: durationMinutes,
           hands_played: handsPlayed,
           total_bet: totalBet,
-        })
-        .eq("id", sessionId);
-      if (error) throw error;
+        },
+      });
+      if (stopRes.error) throw new Error(stopRes.error);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["client_sessions"] });
