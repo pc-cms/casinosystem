@@ -400,7 +400,6 @@ const Tables = () => {
         date={date}
       />
       </>
-      )}
     </PageShell>
   );
 };
