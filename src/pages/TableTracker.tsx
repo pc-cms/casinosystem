@@ -27,7 +27,8 @@ const getCurrentSlot = () => {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 };
 
-const TableTracker = () => {
+interface TableTrackerProps { embedded?: boolean }
+const TableTracker = ({ embedded = false }: TableTrackerProps) => {
   const today = getBusinessDate();
   const [date, setDate] = useState(today);
   const { data: tables = [] } = useGamingTables();
@@ -85,20 +86,23 @@ const TableTracker = () => {
     }
   };
 
+  const Wrapper: any = embedded ? "div" : PageShell;
   return (
-    <PageShell>
-      <PageHeader
-        icon={Target}
-        title="Table Tracker"
-        subtitle="Enter values · auto-saves on blur/Enter"
-      >
-        <Input
-          type="date"
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-          className="w-44 font-mono h-9"
-        />
-      </PageHeader>
+    <Wrapper>
+      {!embedded && (
+        <PageHeader
+          icon={Target}
+          title="Table Tracker"
+          subtitle="Enter values · auto-saves on blur/Enter"
+        >
+          <Input
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            className="w-44 font-mono h-9"
+          />
+        </PageHeader>
+      )}
 
       <PageSection card={false}>
         <div className="rounded-md border border-border bg-card overflow-x-auto">
@@ -198,7 +202,7 @@ const TableTracker = () => {
           </p>
         )}
       </PageSection>
-    </PageShell>
+    </Wrapper>
   );
 };
 

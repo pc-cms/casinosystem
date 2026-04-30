@@ -285,7 +285,7 @@ const Tables = () => {
 
       {activeTab === "activeplayers" && isPit && <ActivePlayers />}
       {activeTab === "tracker" && isPit && <ClientTracker />}
-      {activeTab === "tabletracker" && isPit && <TableTracker />}
+      {activeTab === "tabletracker" && isPit && <TableTracker embedded />}
 
       {activeTab === "tables" && (
       <>
