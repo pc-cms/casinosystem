@@ -23,15 +23,35 @@ const Login = () => {
     setLoading(false);
   };
 
+  const isArusha = typeof window !== "undefined" && /^arusha\./i.test(window.location.hostname);
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="w-full max-w-sm mx-auto">
         <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <Shield className="w-8 h-8 text-primary" />
-            <span className="text-2xl font-bold text-foreground">CMS</span>
-          </div>
-          <p className="text-xs font-mono text-muted-foreground uppercase tracking-widest">Casino Management System</p>
+          {isArusha ? (
+            <>
+              <img
+                src="/arusha-premier-logo.svg"
+                alt="Premier Casino 20"
+                className="mx-auto mb-3 h-28 w-auto"
+              />
+              <p
+                className="font-faberge text-sm uppercase tracking-[0.25em]"
+                style={{ color: "#E8C688" }}
+              >
+                Casino Management System
+              </p>
+            </>
+          ) : (
+            <>
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <Shield className="w-8 h-8 text-primary" />
+                <span className="text-2xl font-bold text-foreground">CMS</span>
+              </div>
+              <p className="text-xs font-mono text-muted-foreground uppercase tracking-widest">Casino Management System</p>
+            </>
+          )}
         </div>
 
         <div className="cms-panel p-6">
