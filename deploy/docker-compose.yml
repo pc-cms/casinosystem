@@ -1,0 +1,288 @@
+#
+# Casino System — On-Premises Docker Compose stack
+# -------------------------------------------------
+# Этот файл поднимает полностью автономный backend для одного казино:
+#   - Postgres        (зеркало схемы Cloud)
+#   - PostgREST       (REST API, эквивалент Supabase API)
+#   - GoTrue          (Auth: те же email/пароли что в Cloud)
+#   - Realtime        (Supabase Realtime для live-обновлений в LAN)
+#   - Storage-API     (фото игроков, документы)
+#   - Imgproxy        (resize изображений)
+#   - Nginx           (TLS termination, отдаёт фронт, проксирует API)
+#   - cms-frontend    (готовый билд React PWA)
+#   - cms-sync        (двусторонняя синхронизация с Cloud, заглушка на этапе A)
+#   - cms-updater     (автообновление через GitHub Releases, заглушка на этапе A)
+#
+# Запуск:
+#   1. cp env.template .env  и отредактировать
+#   2. ./install.sh           (генерирует CA, init БД, поднимает сервисы)
+#
+# Порты:
+#   80   → редирект на 443
+#   443  → nginx → arusha.local (или dodoma/mbeya/mwanza)
+#   5432 → Postgres (только localhost, никогда не наружу)
+#
+
+version: "3.9"
+
+x-restart: &restart_policy
+  restart: unless-stopped
+
+x-logging: &default_logging
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "5"
+
+services:
+  # ────────────────────────────────────────────────────────────────
+  # БАЗА ДАННЫХ
+  # ────────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:15-alpine
+    container_name: cms-postgres
+    <<: [*restart_policy, *default_logging]
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-postgres}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_HOST_AUTH_METHOD: scram-sha-256
+    command:
+      - postgres
+      - -c
+      - wal_level=logical
+      - -c
+      - max_wal_senders=10
+      - -c
+      - max_replication_slots=10
+      - -c
+      - listen_addresses=*
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+      - ./postgres/migrations:/migrations:ro
+    ports:
+      # Только локальный доступ для psql/backup, никогда наружу
+      - "127.0.0.1:5432:5432"
+    networks:
+      - cms-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # ────────────────────────────────────────────────────────────────
+  # REST API (заменяет Supabase API)
+  # ────────────────────────────────────────────────────────────────
+  postgrest:
+    image: postgrest/postgrest:v12.2.0
+    container_name: cms-postgrest
+    <<: [*restart_policy, *default_logging]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGRST_DB_URI: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-postgres}
+      PGRST_DB_SCHEMAS: public,storage
+      PGRST_DB_ANON_ROLE: anon
+      PGRST_JWT_SECRET: ${JWT_SECRET}
+      PGRST_DB_USE_LEGACY_GUCS: "false"
+      PGRST_APP_SETTINGS_JWT_SECRET: ${JWT_SECRET}
+      PGRST_APP_SETTINGS_JWT_EXP: 3600
+    networks:
+      - cms-net
+
+  # ────────────────────────────────────────────────────────────────
+  # AUTH
+  # ────────────────────────────────────────────────────────────────
+  gotrue:
+    image: supabase/gotrue:v2.158.1
+    container_name: cms-gotrue
+    <<: [*restart_policy, *default_logging]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      GOTRUE_API_HOST: 0.0.0.0
+      GOTRUE_API_PORT: 9999
+      API_EXTERNAL_URL: https://${LOCAL_DOMAIN}/auth/v1
+      GOTRUE_DB_DRIVER: postgres
+      GOTRUE_DB_DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-postgres}?search_path=auth
+      GOTRUE_SITE_URL: https://${LOCAL_DOMAIN}
+      GOTRUE_URI_ALLOW_LIST: https://${LOCAL_DOMAIN}
+      GOTRUE_DISABLE_SIGNUP: "true"
+      GOTRUE_JWT_SECRET: ${JWT_SECRET}
+      GOTRUE_JWT_EXP: 3600
+      GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
+      GOTRUE_JWT_AUD: authenticated
+      GOTRUE_MAILER_AUTOCONFIRM: "true"
+      GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
+      GOTRUE_LOG_LEVEL: info
+    networks:
+      - cms-net
+
+  # ────────────────────────────────────────────────────────────────
+  # REALTIME
+  # ────────────────────────────────────────────────────────────────
+  realtime:
+    image: supabase/realtime:v2.30.34
+    container_name: cms-realtime
+    <<: [*restart_policy, *default_logging]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PORT: 4000
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${POSTGRES_USER:-postgres}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_NAME: ${POSTGRES_DB:-postgres}
+      DB_AFTER_CONNECT_QUERY: "SET search_path TO _realtime"
+      DB_ENC_KEY: supabaseencryptionkeythirtytwobyteslong
+      API_JWT_SECRET: ${JWT_SECRET}
+      SECRET_KEY_BASE: UpNVntn3cDxHJpq99YMc1T1AQgQpc8kfYTuRgBiYa15BLrx8etQoXz3gZv1/u2oq
+      ERL_AFLAGS: -proto_dist inet_tcp
+      DNS_NODES: "''"
+      RLIMIT_NOFILE: "10000"
+    networks:
+      - cms-net
+
+  # ────────────────────────────────────────────────────────────────
+  # STORAGE (фото, документы)
+  # ────────────────────────────────────────────────────────────────
+  storage:
+    image: supabase/storage-api:v1.11.13
+    container_name: cms-storage
+    <<: [*restart_policy, *default_logging]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      imgproxy:
+        condition: service_started
+    environment:
+      ANON_KEY: ${ANON_KEY}
+      SERVICE_KEY: ${SERVICE_ROLE_KEY}
+      POSTGREST_URL: http://postgrest:3000
+      PGRST_JWT_SECRET: ${JWT_SECRET}
+      DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-postgres}
+      FILE_SIZE_LIMIT: 52428880  # 50 MB
+      STORAGE_BACKEND: file
+      FILE_STORAGE_BACKEND_PATH: /var/lib/storage
+      TENANT_ID: stub
+      REGION: stub
+      GLOBAL_S3_BUCKET: stub
+      ENABLE_IMAGE_TRANSFORMATION: "true"
+      IMGPROXY_URL: http://imgproxy:5001
+    volumes:
+      - storage_data:/var/lib/storage
+    networks:
+      - cms-net
+
+  imgproxy:
+    image: darthsim/imgproxy:v3.8.0
+    container_name: cms-imgproxy
+    <<: [*restart_policy, *default_logging]
+    environment:
+      IMGPROXY_BIND: ":5001"
+      IMGPROXY_LOCAL_FILESYSTEM_ROOT: /
+      IMGPROXY_USE_ETAG: "true"
+      IMGPROXY_ENABLE_WEBP_DETECTION: "true"
+    volumes:
+      - storage_data:/var/lib/storage:ro
+    networks:
+      - cms-net
+
+  # ────────────────────────────────────────────────────────────────
+  # FRONTEND + NGINX (TLS)
+  # ────────────────────────────────────────────────────────────────
+  cms-frontend:
+    image: ghcr.io/${GITHUB_OWNER}/cms-frontend:${FRONTEND_VERSION:-latest}
+    container_name: cms-frontend
+    <<: [*restart_policy, *default_logging]
+    pull_policy: missing
+    environment:
+      VITE_SUPABASE_URL: https://${LOCAL_DOMAIN}/api
+      VITE_SUPABASE_PUBLISHABLE_KEY: ${ANON_KEY}
+      VITE_SUPABASE_PROJECT_ID: local
+      VITE_CASINO_ID: ${CASINO_ID}
+      VITE_CASINO_SLUG: ${CASINO_SLUG}
+      VITE_LOCAL_MODE: "true"
+    volumes:
+      - frontend_dist:/usr/share/nginx/html
+    networks:
+      - cms-net
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: cms-nginx
+    <<: [*restart_policy, *default_logging]
+    depends_on:
+      - cms-frontend
+      - postgrest
+      - gotrue
+      - realtime
+      - storage
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./certs:/etc/nginx/certs:ro
+      - frontend_dist:/usr/share/nginx/html:ro
+    networks:
+      - cms-net
+
+  # ────────────────────────────────────────────────────────────────
+  # SYNC + UPDATER (этапы C и D — пока заглушки)
+  # ────────────────────────────────────────────────────────────────
+  cms-sync:
+    image: node:20-alpine
+    container_name: cms-sync
+    <<: [*restart_policy, *default_logging]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      CASINO_ID: ${CASINO_ID}
+      SYNC_SECRET: ${SYNC_SECRET}
+      CLOUD_URL: https://rpehngjvwcnipvkouluu.supabase.co
+      LOCAL_DB_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-postgres}
+    volumes:
+      - ./sync:/app
+    working_dir: /app
+    command: ["sh", "-c", "echo 'cms-sync: stub. Implement in stage C.' && tail -f /dev/null"]
+    networks:
+      - cms-net
+
+  cms-updater:
+    image: node:20-alpine
+    container_name: cms-updater
+    <<: [*restart_policy, *default_logging]
+    environment:
+      GITHUB_OWNER: ${GITHUB_OWNER}
+      GITHUB_REPO: ${GITHUB_REPO}
+      GITHUB_TOKEN: ${GITHUB_TOKEN}
+      CHECK_INTERVAL_MINUTES: ${CHECK_INTERVAL_MINUTES:-60}
+    volumes:
+      - ./updater:/app
+      - /var/run/docker.sock:/var/run/docker.sock
+    working_dir: /app
+    command: ["sh", "-c", "echo 'cms-updater: stub. Implement in stage D.' && tail -f /dev/null"]
+    networks:
+      - cms-net
+
+networks:
+  cms-net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
+  storage_data:
+    driver: local
+  frontend_dist:
+    driver: local
