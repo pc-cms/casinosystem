@@ -1,21 +1,26 @@
 {
-  "name": "Casino System",
-  "short_name": "CMS",
-  "description": "Casino Management System for cashier, pit, and manager operations.",
-  "start_url": "/",
+  "name": "Casino Reception",
+  "short_name": "Reception",
+  "description": "Reception module for player check-in, registration, and updates. Works offline.",
+  "start_url": "/reception",
+  "id": "/reception",
+  "scope": "/",
   "display": "standalone",
+  "orientation": "any",
   "background_color": "#1a1a2e",
   "theme_color": "#1a1a2e",
   "icons": [
     {
       "src": "/icon-192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
       "src": "/favicon.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     }
   ]
 }

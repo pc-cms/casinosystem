@@ -30,6 +30,8 @@ import PhotoCapture from "@/components/PhotoCapture";
 import { FormGrid, FormField } from "@/components/ui/form-grid";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { InstallPWAButton } from "@/components/InstallPWAButton";
+import { NetworkStatusIndicator } from "@/components/NetworkStatusIndicator";
 
 const isProfileIncomplete = (player: any): string[] => {
   const missing: string[] = [];
@@ -52,7 +54,10 @@ const Reception = () => {
         title="Reception"
         subtitle="Entry control · Player registration"
         date
-      />
+      >
+        <NetworkStatusIndicator />
+        <InstallPWAButton />
+      </PageHeader>
 
       <Tabs value={tab} onValueChange={v => setSearchParams({ tab: v })}>
         <TabsList className="mb-3 sm:mb-4 w-full sm:w-auto grid grid-cols-3 sm:inline-flex">
