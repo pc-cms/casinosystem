@@ -98,12 +98,25 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
           subtitle="Enter values · auto-saves on blur/Enter"
           date={date}
         >
-          <Input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            className="w-44 font-mono h-9"
-          />
+          {isManager ? (
+            <Input
+              type="date"
+              value={date}
+              max={today}
+              onChange={(e) => setDate(e.target.value || today)}
+              className="w-44 font-mono h-9"
+            />
+          ) : date !== today ? (
+            <button
+              type="button"
+              onClick={() => setDate(today)}
+              className="inline-flex items-center gap-1.5 h-9 px-3 rounded-md border border-border text-xs font-mono text-muted-foreground hover:bg-muted"
+              title="Return to today"
+            >
+              <Lock className="h-3.5 w-3.5" />
+              Today
+            </button>
+          ) : null}
         </PageHeader>
       )}
 
