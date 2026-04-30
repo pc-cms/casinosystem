@@ -25,7 +25,7 @@ import type { Database } from "@/integrations/supabase/types";
 // The types below produce a TypeScript compile error if someone tries to put
 // any of these keys into an insert/update payload from this file.
 // ============================================================================
-type ClientSessionRow = Database["public"]["Tables"]["client_sessions"]["Row"];
+
 type ClientSessionInsert = Database["public"]["Tables"]["client_sessions"]["Insert"];
 type ClientSessionUpdate = Database["public"]["Tables"]["client_sessions"]["Update"];
 
