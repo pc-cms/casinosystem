@@ -141,6 +141,7 @@ export const useBatchChipSnapshot = () => {
     }) => {
       if (!casinoId || !user) throw new Error("Not authenticated");
       const rows = input.counts.map(c => ({
+        id: crypto.randomUUID(),
         casino_id: casinoId,
         date: input.date,
         location_type: c.location_type,
@@ -150,19 +151,24 @@ export const useBatchChipSnapshot = () => {
         actual_quantity: c.actual_quantity,
         recorded_by: user.id,
       }));
-      const { error } = await supabase
-        .from("chip_snapshots")
-        .insert(rows as any);
-      if (error) throw error;
-      await logAction(casinoId, "system", "CHIP_COUNT_RECORDED", {
-        date: input.date,
-        total_denominations: input.counts.length,
-        total_miss: rows.reduce((s, r) => s + (r.actual_quantity - r.expected_quantity), 0),
+      const result = await offlineMutation({
+        table: "chip_snapshots",
+        operation: "insert",
+        payload: rows as any,
       });
+      if (result.error) throw new Error(result.error);
+      if (!result.offline) {
+        await logAction(casinoId, "system", "CHIP_COUNT_RECORDED", {
+          date: input.date,
+          total_denominations: input.counts.length,
+          total_miss: rows.reduce((s, r) => s + (r.actual_quantity - r.expected_quantity), 0),
+        });
+      }
+      return { offline: result.offline };
     },
-    onSuccess: () => {
+    onSuccess: (res: any) => {
       qc.invalidateQueries({ queryKey: ["chip-snapshots"] });
-      toast.success("Chip count recorded");
+      toast.success(res?.offline ? "Chip count saved offline" : "Chip count recorded");
     },
     onError: (e) => toast.error(e.message),
   });
