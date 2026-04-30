@@ -427,23 +427,16 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
     <>
       <div className="px-4 py-4 border-b border-sidebar-border">
         <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2 min-w-0">
+          <div className="flex items-center gap-2 min-w-0 shrink-0">
             <Shield className="w-6 h-6 text-primary shrink-0" />
             <span className="font-bold text-lg tracking-tight text-sidebar-foreground">CMS</span>
-            <span className="text-sm font-semibold text-sidebar-foreground/90 truncate" title={isSummaryMode ? "All Casinos" : activeCasino?.name ?? "Casino Ops"}>
-              {isSummaryMode ? "All Casinos" : activeCasino?.name ?? "Casino Ops"}
-            </span>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <button
-              onClick={() => { toggle(); onNavigate?.(); }}
-              title={theme === "dark" ? "Light mode" : "Dark mode"}
-              className="h-7 w-7 flex items-center justify-center rounded-md text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
-            >
-              {theme === "dark" ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
-            </button>
-            <NetworkStatusIndicator compact />
-          </div>
+          <span
+            className="text-sm font-semibold text-sidebar-foreground/90 truncate text-right"
+            title={isSummaryMode ? "All Casinos" : activeCasino?.name ?? "Casino Ops"}
+          >
+            {isSummaryMode ? "All Casinos" : activeCasino?.name ?? "Casino Ops"}
+          </span>
         </div>
 
         {(!nativeManager || onToggle) && (
@@ -464,7 +457,7 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
                   className="flex items-center gap-2 flex-1 h-8 px-3 rounded-md text-xs font-medium text-sidebar-foreground hover:bg-sidebar-accent border border-sidebar-border transition-colors"
                 >
                   <ShieldCheck className="w-4 h-4" />
-                  <span className="flex-1 text-left">Manager Access</span>
+                  <span className="flex-1 text-left">Manager</span>
                 </button>
               )
             )}
