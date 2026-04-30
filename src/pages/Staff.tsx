@@ -139,18 +139,23 @@ const Staff = () => {
               </div>
             )}
             {isRotaTab && rotaGroup && (
-              <div className="flex items-center gap-1.5 flex-wrap">
+              <div className="flex items-center gap-1.5 flex-nowrap whitespace-nowrap overflow-x-auto py-0.5">
                 {rotaGroup.shifts.map(s => (
-                  <span key={s} className={`px-2 py-0.5 rounded text-[10px] font-mono ${STAFF_SHIFT_COLORS[s]}`}>
-                    {s} = {rotaGroup.shiftLabels[s]}
+                  <span key={s} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono ${STAFF_SHIFT_COLORS[s]}`}>
+                    <span className="font-bold">{s}</span>
+                    <span className="opacity-80">{rotaGroup.shiftLabels[s]}</span>
                   </span>
                 ))}
               </div>
             )}
             {activeTab === "attendance" && (
-              <div className="flex items-center gap-1.5">
-                <span className={`px-2 py-0.5 rounded text-[10px] font-mono ${ATT_COLORS["A"]}`}>A = Absent</span>
-                <span className={`px-2 py-0.5 rounded text-[10px] font-mono ${ATT_COLORS["S"]}`}>S = Sick</span>
+              <div className="flex items-center gap-1.5 flex-nowrap whitespace-nowrap overflow-x-auto py-0.5">
+                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono ${ATT_COLORS["A"]}`}>
+                  <span className="font-bold">A</span><span className="opacity-80">Absent</span>
+                </span>
+                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono ${ATT_COLORS["S"]}`}>
+                  <span className="font-bold">S</span><span className="opacity-80">Sick</span>
+                </span>
               </div>
             )}
           </div>
