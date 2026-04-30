@@ -190,9 +190,10 @@ const ActiveSessionCard = ({
     // (total_bet += OLD.avg_bet × minutes) and stamps bet_changed_at = now().
     // UI must NOT send total_bet/bet_changed_at — that would race with the
     // trigger and corrupt the per-segment ledger.
+    const updatePayload: SafeSessionUpdate = { avg_bet: val };
     const { error } = await supabase
       .from("client_sessions")
-      .update({ avg_bet: val })
+      .update(updatePayload)
       .eq("id", s.id);
     setSaving(false);
     if (error) {
