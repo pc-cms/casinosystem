@@ -208,11 +208,11 @@ const Pit = () => {
           icon={UsersIcon}
           title={TAB_TITLES[activeTab] || "Live Game"}
           subtitle="Live Game Management"
-          centerSlot={isBreaklist ? <div className="flex items-center gap-2">{rightControls}</div> : undefined}
-          date={isBreaklist ? date : undefined}
+          centerSlot={isBreaklist ? centerControl : undefined}
+          date={isBreaklist ? undefined : undefined}
           belowHeader={belowHeader}
         >
-          {!isBreaklist && rightControls}
+          {rightControls}
         </PageHeader>
       </div>
 
