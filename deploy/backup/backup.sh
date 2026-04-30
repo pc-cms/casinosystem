@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 #
-# cms-backup — ежедневный pg_dump + storage tar → S3 (или локальный диск).
+# cms-backup — ежедневный pg_dump + storage tar → Lovable Cloud Storage
+# (или только локальный диск, если связи нет / BACKUP_OFFSITE=local).
+#
 # Запускается контейнером cms-backup по cron 04:30 (до бизнес-роллoвера 05:00).
 #
 # Retention:
-#   - daily/    — 30 дней
-#   - monthly/  — первый день месяца, 12 месяцев
-#
-# Если AWS_S3_BUCKET не задан → пишет только в /backups (локально).
+#   - daily/    — BACKUP_RETENTION_DAILY дней (по умолчанию 30)
+#   - monthly/  — первый день месяца, BACKUP_RETENTION_MONTHLY месяцев (12)
 #
 set -euo pipefail
 . /compose/.env
@@ -30,16 +30,35 @@ PGPASSWORD="$POSTGRES_PASSWORD" pg_dump -h postgres -U "${POSTGRES_USER:-postgre
 echo "[backup] tar storage → $STOR"
 tar --use-compress-program="zstd -19 -T0" -cf "$STOR" -C /var/lib/storage .
 
-# Upload to S3 if configured
-if [[ -n "${AWS_S3_BUCKET:-}" && -n "${AWS_ACCESS_KEY_ID:-}" ]]; then
-  echo "[backup] upload to s3://$AWS_S3_BUCKET/$CASINO_SLUG/$TAG/"
-  aws s3 cp "$DUMP" "s3://$AWS_S3_BUCKET/$CASINO_SLUG/$TAG/" --only-show-errors
-  aws s3 cp "$STOR" "s3://$AWS_S3_BUCKET/$CASINO_SLUG/$TAG/" --only-show-errors
+# Upload to Lovable Cloud Storage (через edge-функцию upload-backup)
+upload_to_cloud() {
+  local file="$1"
+  local name
+  name=$(basename "$file")
+  echo "[backup] upload → cloud: $name"
+  curl -fsS --max-time 600 \
+    -X POST "$CLOUD_URL/functions/v1/upload-backup" \
+    -H "x-sync-secret: $SYNC_SECRET" \
+    -H "x-casino-slug: $CASINO_SLUG" \
+    -H "x-backup-tag: $TAG" \
+    -H "x-file-name: $name" \
+    -H "Content-Type: application/octet-stream" \
+    --data-binary "@$file" \
+    || echo "[backup] WARN: upload failed for $name (saved locally)"
+}
+
+if [[ "${BACKUP_OFFSITE:-cloud}" == "cloud" && -n "${CLOUD_URL:-}" && -n "${SYNC_SECRET:-}" ]]; then
+  upload_to_cloud "$DUMP"
+  upload_to_cloud "$STOR"
+else
+  echo "[backup] off-site disabled, keeping local only"
 fi
 
 # Local retention
-echo "[backup] cleanup local"
-find /backups/daily   -type f -mtime +30  -delete 2>/dev/null || true
-find /backups/monthly -type f -mtime +365 -delete 2>/dev/null || true
+DAILY_DAYS=${BACKUP_RETENTION_DAILY:-30}
+MONTHLY_MONTHS=${BACKUP_RETENTION_MONTHLY:-12}
+echo "[backup] cleanup local (daily>${DAILY_DAYS}d, monthly>${MONTHLY_MONTHS}mo)"
+find /backups/daily   -type f -mtime +${DAILY_DAYS}            -delete 2>/dev/null || true
+find /backups/monthly -type f -mtime +$((MONTHLY_MONTHS * 31)) -delete 2>/dev/null || true
 
 echo "[backup] done $TS"
