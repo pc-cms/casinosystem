@@ -487,6 +487,8 @@ const LocalServerManagement = () => {
         </table>
       </div>
 
+      <AppCacheCard />
+
       <Dialog open={showLink} onOpenChange={setShowLink}>
         <DialogContent className="max-w-sm">
           <DialogHeader><DialogTitle>Link Local Server</DialogTitle></DialogHeader>
