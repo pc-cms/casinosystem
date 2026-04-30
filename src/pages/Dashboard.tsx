@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Landmark, Receipt, TrendingDown, LayoutDashboard, Filter } from "lucide-react";
+import { Landmark, Receipt, TrendingDown, LayoutDashboard, Filter, ArrowUpDown } from "lucide-react";
 import { CardSkeleton, PlayerListSkeleton } from "@/components/LoadingSkeletons";
 import { usePlayers, useTransactions, useGamingTables, useExpenses, useClientSessionsTotalBet, useTableTracker } from "@/hooks/use-casino-data";
 import { useAuth } from "@/lib/auth-context";
