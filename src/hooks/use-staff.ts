@@ -45,9 +45,9 @@ export const ROTA_GROUPS = {
   },
   floor: {
     label: "Floor",
-    departments: ["bartender", "cleaner", "waiter", "hostess", "reception"] as StaffDepartment[],
-    shifts: ["D", "N", "L", "E", "O"] as const,
-    shiftLabels: { D: "Day (12:30)", N: "Night (20:45)", L: "Leave", E: "Extra", O: "Off" } as Record<string, string>,
+    departments: ["security", "cashier", "bartender", "hostess", "waiter", "cleaner", "reception", "it", "hr", "driver"] as StaffDepartment[],
+    shifts: ["D", "M", "N", "G", "L", "E", "O"] as const,
+    shiftLabels: { D: "Day (12:30) / 06:00", M: "Mid (13:45)", N: "Night (20:45) / 17:45", G: "Late (21:45)", L: "Leave", E: "Extra", O: "Off" } as Record<string, string>,
   },
   security: {
     label: "Security",
