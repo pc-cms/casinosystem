@@ -228,7 +228,7 @@ const Pit = () => {
           icon={UsersIcon}
           title={TAB_TITLES[activeTab] || "Live Game"}
           subtitle="Live Game Management"
-          centerSlot={isBreaklist ? centerControl : undefined}
+          centerSlot={(isBreaklist || showMonthNav) ? centerControl : undefined}
           date={isBreaklist ? undefined : undefined}
           belowHeader={belowHeader}
         >
