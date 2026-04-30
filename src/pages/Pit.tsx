@@ -18,6 +18,7 @@ import { getBusinessDate, isBusinessToday } from "@/lib/business-day";
 import { UNIFIED_SHIFT_COLORS, UNIFIED_ATT_COLORS, UNIFIED_SHIFT_TINTS } from "@/lib/shift-colors";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { PitShell } from "@/components/pit/PitShell";
 
 const ROTA_SHIFTS = ["M", "N", "L", "E"] as const;
 
@@ -80,8 +81,10 @@ const Pit = () => {
     return `${MONTH_NAMES[m - 1]} ${y}`;
   }, [month]);
 
+  const { roles } = useAuth();
+  const isHR = roles.includes("hr") && !roles.includes("pit") && !roles.includes("manager");
   const [searchParams] = useSearchParams();
-  const activeTab = searchParams.get("tab") || "employee";
+  const activeTab = searchParams.get("tab") || (isHR ? "employee" : "breaklist");
 
   const showMonthNav = activeTab === "rota" || activeTab === "attendance";
   const showDatePicker = activeTab === "breaklist";
@@ -171,6 +174,7 @@ const Pit = () => {
   ) : undefined;
 
   return (
+    <PitShell>
     <PageShell>
       <div className="no-print">
         <PageHeader
@@ -200,6 +204,7 @@ const Pit = () => {
         {activeTab === "tabletracker" && <TableTracker />}
       </Suspense>
     </PageShell>
+    </PitShell>
   );
 };
 
