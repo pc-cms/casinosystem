@@ -531,8 +531,11 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
   const { data: dealers = [] } = useDealers();
   const { data: rota = [] } = usePitRotaRange(startDate, endDate);
   const { data: monthAttendance = [] } = useDealerAttendanceRange(startDate, endDate);
-  const setRota = useSetPitRota();
-  const deleteRota = useDeletePitRota();
+  const setRotaRaw = useSetPitRota();
+  const deleteRotaRaw = useDeletePitRota();
+  const guard = () => { if (readOnly) { toast.error("Manager Access required to edit past months"); return false; } return true; };
+  const setRota = { mutate: (v: any) => { if (guard()) setRotaRaw.mutate(v); } };
+  const deleteRota = { mutate: (v: any) => { if (guard()) deleteRotaRaw.mutate(v); } };
 
   const activeDealers = dealers.filter((d: any) => d.is_active && !d.is_pit_boss);
   const pitBosses = dealers.filter((d: any) => d.is_active && d.is_pit_boss);
