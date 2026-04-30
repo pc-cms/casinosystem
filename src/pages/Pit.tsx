@@ -734,7 +734,7 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
           {renderDealerRows(activeDealers, "Dealers", "border-blue-400 dark:border-blue-500/50 text-blue-600 dark:text-blue-400")}
           {/* Summary: M/N/E count per day — dealers only */}
           <tr className="border-t-2 border-border">
-            <td colSpan={2} className="px-1 py-1 text-[9px] font-mono font-bold text-blue-600 dark:text-blue-400 sticky left-0 left-[28px] bg-card z-10">Σ M</td>
+            <td colSpan={2} className="px-1 py-1 text-[9px] font-mono font-bold text-blue-600 dark:text-blue-400 sticky left-0 bg-card z-10">Σ M</td>
             {days.map(day => {
               const count = activeDealers.filter(d => getDisplayShift(d.id, day)?.shift === "M").length;
               return <td key={day} className="text-center text-[9px] font-mono font-bold text-blue-600 dark:text-blue-400">{count || ""}</td>;
@@ -742,7 +742,7 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
             <td colSpan={3} />
           </tr>
           <tr>
-            <td colSpan={2} className="px-1 py-1 text-[9px] font-mono font-bold text-indigo-600 dark:text-indigo-400 sticky left-0 left-[28px] bg-card z-10">Σ N</td>
+            <td colSpan={2} className="px-1 py-1 text-[9px] font-mono font-bold text-indigo-600 dark:text-indigo-400 sticky left-0 bg-card z-10">Σ N</td>
             {days.map(day => {
               const count = activeDealers.filter(d => getDisplayShift(d.id, day)?.shift === "N").length;
               return <td key={day} className="text-center text-[9px] font-mono font-bold text-indigo-600 dark:text-indigo-400">{count || ""}</td>;
@@ -750,7 +750,7 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
             <td colSpan={3} />
           </tr>
           <tr>
-            <td colSpan={2} className="px-1 py-1 text-[9px] font-mono font-bold text-card-foreground sticky left-0 left-[28px] bg-card z-10">Σ All</td>
+            <td colSpan={2} className="px-1 py-1 text-[9px] font-mono font-bold text-card-foreground sticky left-0 bg-card z-10">Σ All</td>
             {days.map(day => {
               const count = activeDealers.filter(d => {
                 const s = getDisplayShift(d.id, day)?.shift;
@@ -819,21 +819,25 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
   const getDealerTotals = (dealerId: string) => {
     let shifts = 0;
     let hours = 0;
+    let absent = 0;
+    let sick = 0;
     days.forEach(day => {
       const val = getValue(dealerId, day);
+      if (val === "A") { absent += 1; return; }
+      if (val === "S") { sick += 1; return; }
       const num = Number(val);
       if (!isNaN(num) && num > 0) {
         shifts += 1;
         hours += num;
       }
     });
-    return { shifts, hours };
+    return { shifts, hours, absent, sick };
   };
 
   const renderAttendanceRows = (dealerList: any[], label: string, accentColor: string) => (
     <>
       <tr>
-        <td colSpan={days.length + 4} className="px-0 py-0 sticky left-0">
+        <td colSpan={days.length + 6} className="px-0 py-0 sticky left-0">
           <div className={`flex items-center gap-2 px-3 py-1 border-b-2 ${accentColor}`}>
             <span className="text-[10px] font-mono font-semibold uppercase tracking-wider">{label}</span>
             <span className="text-[10px] font-mono text-muted-foreground">({dealerList.length})</span>
@@ -910,6 +914,8 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
             })}
             <td className="px-2 py-1 text-center"><span className="text-[10px] font-mono font-bold text-blue-600 dark:text-blue-400">{totals.shifts || ""}</span></td>
             <td className="px-2 py-1 text-center"><span className="text-[10px] font-mono font-bold text-primary">{totals.hours || ""}</span></td>
+            <td className="px-2 py-1 text-center"><span className="text-[10px] font-mono font-bold text-rose-600 dark:text-rose-400">{totals.absent || ""}</span></td>
+            <td className="px-2 py-1 text-center"><span className="text-[10px] font-mono font-bold text-amber-600 dark:text-amber-400">{totals.sick || ""}</span></td>
           </tr>
         );
       })}
@@ -939,13 +945,15 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
             })}
             <th className="text-center text-[10px] font-medium text-muted-foreground uppercase px-1 py-2 w-8">Σsh</th>
             <th className="text-center text-[10px] font-medium text-muted-foreground uppercase px-1 py-2 w-8">Σh</th>
+            <th className="text-center text-[10px] font-medium text-rose-600 dark:text-rose-400 uppercase px-1 py-2 w-8">A</th>
+            <th className="text-center text-[10px] font-medium text-amber-600 dark:text-amber-400 uppercase px-1 py-2 w-8">S</th>
           </tr>
         </thead>
         <tbody>
           {renderAttendanceRows(activeDealers, "Dealers", "border-blue-400 dark:border-blue-500/50 text-blue-600 dark:text-blue-400")}
-          {/* Summary: shifts and hours per day — dealers only */}
+          {/* Summary: shifts per day — dealers only */}
           <tr className="border-t-2 border-border">
-            <td colSpan={2} className="px-1 py-1 text-[9px] font-mono font-bold text-blue-600 dark:text-blue-400 sticky left-0 left-[28px] bg-card z-10">Σ Shifts</td>
+            <td colSpan={2} className="px-1 py-1 text-[9px] font-mono font-bold text-blue-600 dark:text-blue-400 sticky left-0 bg-card z-10">Σ Shifts</td>
             {days.map(day => {
               const count = activeDealers.filter(d => {
                 const v = getValue(d.id, day);
@@ -954,19 +962,7 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
               }).length;
               return <td key={day} className="text-center text-[9px] font-mono font-bold text-blue-600 dark:text-blue-400">{count || ""}</td>;
             })}
-            <td colSpan={2} />
-          </tr>
-          <tr>
-            <td colSpan={2} className="px-1 py-1 text-[9px] font-mono font-bold text-primary sticky left-0 left-[28px] bg-card z-10">Σ Hours</td>
-            {days.map(day => {
-              const sum = activeDealers.reduce((s, d) => {
-                const v = getValue(d.id, day);
-                const n = Number(v);
-                return s + (!isNaN(n) && n > 0 ? n : 0);
-              }, 0);
-              return <td key={day} className="text-center text-[9px] font-mono font-bold text-primary">{sum || ""}</td>;
-            })}
-            <td colSpan={2} />
+            <td colSpan={4} />
           </tr>
           {pitBosses.length > 0 && renderAttendanceRows(pitBosses, "Pit Bosses", "border-purple-400 dark:border-purple-500/50 text-purple-600 dark:text-purple-400")}
         </tbody>
