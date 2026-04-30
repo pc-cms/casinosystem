@@ -243,24 +243,22 @@ const Tables = () => {
         />
 
         {closedTables.length > 0 && (
-          <Button size="sm" onClick={handleOpenAll} disabled={openAllTables.isPending} className="gap-1.5">
+          <Button variant="outline" size="sm" onClick={handleOpenAll} disabled={openAllTables.isPending} className="gap-1.5">
             <Play className="w-4 h-4" /> Open{closedTables.length < tables.length ? ` (${closedTables.length})` : " All"}
           </Button>
         )}
 
-        <Button variant="secondary" size="sm" onClick={() => handleOpenChipCount("save")} className="gap-1.5">
+        <Button variant="outline" size="sm" onClick={handleOpenChipCount} disabled={openTables.length === 0} className="gap-1.5">
           <Coins className="w-4 h-4" /> Chip Count
         </Button>
 
-        {openTables.length > 0 && !hasResults && (
-          <Button size="sm" onClick={() => handleOpenChipCount("result")} className="gap-1.5">
-            <BarChart3 className="w-4 h-4" /> Result
-          </Button>
-        )}
+        <Button size="sm" onClick={() => setShowCloseWizard(true)} disabled={openTables.length === 0} className="gap-1.5">
+          <Lock className="w-4 h-4" /> Close Table
+        </Button>
 
-        {hasResults && (
+        {hasResults && tablesWithResults.length === openTables.length && (
           <Badge variant="outline" className="text-xs gap-1 border-success text-success">
-            <Lock className="w-3 h-3" /> Results set — waiting for Cashier
+            <Lock className="w-3 h-3" /> All counted — ready to close
           </Badge>
         )}
       </PageHeader>
