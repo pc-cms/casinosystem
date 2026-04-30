@@ -848,7 +848,11 @@ const StaffAttendanceGrid = ({ month, monthLabel, readOnly = false }: { month: s
   const { data: staff = [] } = useStaffMembers();
   const { data: attendance = [] } = useStaffAttendanceRange(startDate, endDate);
   const { data: rota = [] } = useStaffRotaRange(startDate, endDate);
-  const setAttendance = useSetStaffAttendance();
+  const setAttendanceRaw = useSetStaffAttendance();
+  const setAttendance = { mutate: (v: any) => {
+    if (readOnly) { toast.error("Manager Access required to edit past months"); return; }
+    setAttendanceRaw.mutate(v);
+  } };
 
   const activeStaff = staff.filter(s => s.is_active);
 
