@@ -170,10 +170,9 @@ const Players = () => {
       <div className="cms-panel overflow-hidden">
         {/* Header row — uses same column widths as body (CSS grid) */}
         <div className="grid border-b border-border px-3 py-2 gap-2 bg-muted/30"
-          style={{ gridTemplateColumns: "70px minmax(180px,1.4fr) 110px 80px 60px 60px 110px 110px 110px 90px 110px 80px 110px 110px" }}>
+          style={{ gridTemplateColumns: "70px minmax(180px,1.4fr) 80px 60px 60px 110px 110px 110px 90px 110px 80px 110px 110px" }}>
           <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Cat</span>
           <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Player</span>
-          <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Card</span>
           <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Status</span>
           <SortBtn k="visits" label="Vis" />
           <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Last</span>
