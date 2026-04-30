@@ -100,9 +100,11 @@ const Dashboard = () => {
   const totalDropV = Object.values(tableStats).reduce((s, r) => s + r.dropV, 0);
   const totalResult = Object.values(tableStats).reduce((s, r) => s + r.result, 0);
 
-  // Floor Staff filters
+  // Floor Staff filters & sort
   const [deptFilter, setDeptFilter] = useState<StaffDepartment[]>([]);
   const [shiftFilter, setShiftFilter] = useState<string[]>([]);
+  const [sortBy, setSortBy] = useState<"name" | "department" | "shift">("department");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
   const rotaMap = useMemo(() => {
     const m = new Map<string, string>();
@@ -110,19 +112,32 @@ const Dashboard = () => {
     return m;
   }, [staffRota]);
 
+  // Only staff actually on shift today: must have a rota entry that's not Off/Leave
+  const OFF_SHIFTS = new Set(["O", "L"]);
+
   const floorStaff = useMemo(() => {
-    return staffMembers
+    const list = staffMembers
       .filter(s => s.is_active)
-      .map(s => ({ ...s, shift: rotaMap.get(s.id) || "—" }))
+      .map(s => ({ ...s, shift: rotaMap.get(s.id) }))
+      .filter(s => s.shift && !OFF_SHIFTS.has(s.shift))
       .filter(s => deptFilter.length === 0 || deptFilter.includes(s.department))
-      .filter(s => shiftFilter.length === 0 || shiftFilter.includes(s.shift))
-      .sort((a, b) => {
-        const dA = DEPARTMENT_ORDER.indexOf(a.department);
-        const dB = DEPARTMENT_ORDER.indexOf(b.department);
-        if (dA !== dB) return dA - dB;
-        return a.name.localeCompare(b.name);
-      });
-  }, [staffMembers, rotaMap, deptFilter, shiftFilter]);
+      .filter(s => shiftFilter.length === 0 || shiftFilter.includes(s.shift!));
+
+    const dir = sortDir === "asc" ? 1 : -1;
+    return list.sort((a, b) => {
+      if (sortBy === "name") return a.name.localeCompare(b.name) * dir;
+      if (sortBy === "shift") return (a.shift! ).localeCompare(b.shift!) * dir;
+      const dA = DEPARTMENT_ORDER.indexOf(a.department);
+      const dB = DEPARTMENT_ORDER.indexOf(b.department);
+      if (dA !== dB) return (dA - dB) * dir;
+      return a.name.localeCompare(b.name);
+    });
+  }, [staffMembers, rotaMap, deptFilter, shiftFilter, sortBy, sortDir]);
+
+  const toggleSort = (col: "name" | "department" | "shift") => {
+    if (sortBy === col) setSortDir(d => d === "asc" ? "desc" : "asc");
+    else { setSortBy(col); setSortDir("asc"); }
+  };
 
   const toggleDept = (d: StaffDepartment) =>
     setDeptFilter(prev => prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d]);
@@ -264,20 +279,48 @@ const Dashboard = () => {
             <span className="text-xs font-mono text-muted-foreground">{floorStaff.length} staff</span>
           </div>
         </div>
-        <div className="flex-1 overflow-y-auto p-4 space-y-1">
+        <div className="flex-1 overflow-y-auto">
           {floorStaff.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-8">No staff matching filters</p>
-          ) : floorStaff.map((s) => (
-            <div key={s.id} className="flex items-center justify-between py-1.5 border-b border-border last:border-0">
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="text-sm font-medium text-card-foreground truncate">{s.name}</span>
-                <span className="text-xs text-muted-foreground">{DEPARTMENT_LABELS[s.department]}</span>
-              </div>
-              <span className={`text-xs px-1.5 py-0.5 rounded font-mono ${STAFF_SHIFT_COLORS[s.shift] || "bg-muted text-muted-foreground"}`}>
-                {s.shift !== "—" ? (STAFF_SHIFT_LABELS[s.shift] || s.shift) : "—"}
-              </span>
-            </div>
-          ))}
+            <p className="text-sm text-muted-foreground text-center py-8">No staff on shift</p>
+          ) : (
+            <table className="w-full text-sm">
+              <thead className="sticky top-0 bg-card z-10">
+                <tr className="border-b border-border">
+                  <th className="text-left px-4 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    <button onClick={() => toggleSort("name")} className="inline-flex items-center gap-1 hover:text-foreground">
+                      Name <ArrowUpDown className="w-3 h-3" />
+                      {sortBy === "name" && <span className="text-[9px]">{sortDir === "asc" ? "▲" : "▼"}</span>}
+                    </button>
+                  </th>
+                  <th className="text-left px-4 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    <button onClick={() => toggleSort("department")} className="inline-flex items-center gap-1 hover:text-foreground">
+                      Department <ArrowUpDown className="w-3 h-3" />
+                      {sortBy === "department" && <span className="text-[9px]">{sortDir === "asc" ? "▲" : "▼"}</span>}
+                    </button>
+                  </th>
+                  <th className="text-right px-4 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    <button onClick={() => toggleSort("shift")} className="inline-flex items-center gap-1 hover:text-foreground ml-auto">
+                      Shift <ArrowUpDown className="w-3 h-3" />
+                      {sortBy === "shift" && <span className="text-[9px]">{sortDir === "asc" ? "▲" : "▼"}</span>}
+                    </button>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {floorStaff.map((s) => (
+                  <tr key={s.id} className="border-b border-border last:border-0 hover:bg-muted/30">
+                    <td className="px-4 py-1.5 text-card-foreground font-medium">{s.name}</td>
+                    <td className="px-4 py-1.5 text-muted-foreground text-xs">{DEPARTMENT_LABELS[s.department]}</td>
+                    <td className="px-4 py-1.5 text-right">
+                      <span className={`text-xs px-1.5 py-0.5 rounded font-mono ${STAFF_SHIFT_COLORS[s.shift!] || "bg-muted text-muted-foreground"}`}>
+                        {STAFF_SHIFT_LABELS[s.shift!] || s.shift}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
     </PageShell>
