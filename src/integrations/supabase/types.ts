@@ -2273,6 +2273,7 @@ export type Database = {
           id: number
           local_id: number
           op: string
+          retry_count: number
           table_name: string
         }
         Insert: {
@@ -2282,6 +2283,7 @@ export type Database = {
           id?: number
           local_id: number
           op: string
+          retry_count?: number
           table_name: string
         }
         Update: {
@@ -2291,6 +2293,7 @@ export type Database = {
           id?: number
           local_id?: number
           op?: string
+          retry_count?: number
           table_name?: string
         }
         Relationships: []
@@ -2699,6 +2702,16 @@ export type Database = {
           },
         ]
       }
+      cron_recent_runs: {
+        Row: {
+          end_time: string | null
+          jobname: string | null
+          return_message: string | null
+          start_time: string | null
+          status: string | null
+        }
+        Relationships: []
+      }
       player_economy: {
         Row: {
           casino_id: string | null
@@ -2721,6 +2734,106 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      player_session_drops: {
+        Row: {
+          casino_id: string | null
+          drop_v: number | null
+          player_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_sessions_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_sessions_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "player_economy"
+            referencedColumns: ["player_id"]
+          },
+          {
+            foreignKeyName: "client_sessions_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      player_session_stats: {
+        Row: {
+          bet_sum_by_avg: number | null
+          casino_id: string | null
+          first_session_at: string | null
+          hands: number | null
+          last_session_at: string | null
+          minutes: number | null
+          player_id: string | null
+          session_count: number | null
+          table_id: string | null
+          total_bet_sum: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_sessions_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_sessions_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "player_economy"
+            referencedColumns: ["player_id"]
+          },
+          {
+            foreignKeyName: "client_sessions_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_sessions_table_id_fkey"
+            columns: ["table_id"]
+            isOneToOne: false
+            referencedRelation: "gaming_tables"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sessions_total_bet_sum: {
+        Row: {
+          business_date: string | null
+          casino_id: string | null
+          total_bet: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_sessions_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sync_outbox_pending: {
+        Row: {
+          casino_id: string | null
+          oldest_change_at: string | null
+          oldest_minutes: number | null
+          pending_count: number | null
+          table_name: string | null
+        }
+        Relationships: []
       }
     }
     Functions: {

@@ -13,6 +13,8 @@ import {
 } from "@/components/cage/CageHelpers";
 import { useBatchChipSnapshot, getExpectedChips, getInitialTotal } from "@/hooks/use-chips";
 import { getBusinessDate } from "@/lib/business-day";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
 
 interface CloseShiftDialogProps {
