@@ -1,4 +1,3 @@
-import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { getTagDef } from "@/lib/player-tags";
 
@@ -11,7 +10,7 @@ const FlagBadges = ({ tags, compact = false }: FlagBadgesProps) => {
   if (tags.length === 0) return null;
   return (
     <TooltipProvider delayDuration={150}>
-      <div className="flex gap-1 flex-wrap">
+      <div className="flex gap-1 flex-wrap items-center">
         {tags.map(tag => {
           const def = getTagDef(tag);
           const label = def?.emoji ?? tag;
@@ -19,12 +18,12 @@ const FlagBadges = ({ tags, compact = false }: FlagBadgesProps) => {
           return (
             <Tooltip key={tag}>
               <TooltipTrigger asChild>
-                <Badge
-                  variant="outline"
-                  className={`${def?.className ?? ""} ${compact ? "text-[10px] px-1 py-0 leading-none" : "text-xs px-1.5 py-0 leading-none"} cursor-default`}
+                <span
+                  aria-label={hint}
+                  className={`${compact ? "text-sm" : "text-base"} leading-none cursor-default`}
                 >
-                  <span aria-label={hint}>{label}</span>
-                </Badge>
+                  {label}
+                </span>
               </TooltipTrigger>
               <TooltipContent side="top">{hint}</TooltipContent>
             </Tooltip>
@@ -36,3 +35,4 @@ const FlagBadges = ({ tags, compact = false }: FlagBadgesProps) => {
 };
 
 export default FlagBadges;
+
