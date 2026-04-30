@@ -81,7 +81,7 @@ const Pit = () => {
     return `${MONTH_NAMES[m - 1]} ${y}`;
   }, [month]);
 
-  const { roles } = useAuth();
+  const { roles, isManager } = useAuth();
   const isHR = roles.includes("hr") && !roles.includes("pit") && !roles.includes("manager");
   const [searchParams] = useSearchParams();
   // Default tabs: HR sees Employee first; Pit/Manager land on Attendance (Live Game shell)
