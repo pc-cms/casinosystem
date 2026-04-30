@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChevronLeft, ChevronRight, UserPlus, ArrowUpDown, ZoomIn, ZoomOut, RefreshCw, Check, Printer, Trash2, Users as UsersIcon } from "lucide-react";
+import { ChevronLeft, ChevronRight, UserPlus, ArrowUpDown, ZoomIn, ZoomOut, RefreshCw, Check, Printer, Trash2, Users as UsersIcon, Lock } from "lucide-react";
 import EmployeePhotoCell from "@/components/EmployeePhotoCell";
 import BreaklistGrid from "@/components/pit/BreaklistGrid";
 import ActivePlayers from "@/components/pit/ActivePlayers";
@@ -81,7 +81,7 @@ const Pit = () => {
     return `${MONTH_NAMES[m - 1]} ${y}`;
   }, [month]);
 
-  const { roles } = useAuth();
+  const { roles, isManager } = useAuth();
   const isHR = roles.includes("hr") && !roles.includes("pit") && !roles.includes("manager");
   const [searchParams] = useSearchParams();
   // Default tabs: HR sees Employee first; Pit/Manager land on Attendance (Live Game shell)
@@ -117,7 +117,31 @@ const Pit = () => {
       </Button>
     </div>
   ) : showDatePicker ? (
-    <Input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-44 font-mono h-9" />
+    isManager ? (
+      <Input
+        type="date"
+        value={date}
+        max={businessToday}
+        onChange={e => setDate(e.target.value || businessToday)}
+        className="w-44 font-mono h-9"
+      />
+    ) : (
+      <div className="flex items-center gap-2">
+        <span className="font-mono text-sm font-semibold text-card-foreground">
+          {date.replace(/-/g, ".")}
+        </span>
+        {date !== businessToday && (
+          <button
+            type="button"
+            onClick={() => setDate(businessToday)}
+            className="inline-flex items-center gap-1 h-7 px-2 rounded-md border border-border text-[10px] font-mono text-muted-foreground hover:bg-muted"
+            title="Return to today"
+          >
+            <Lock className="h-3 w-3" /> Today
+          </button>
+        )}
+      </div>
+    )
   ) : null;
 
   // Right slot: action buttons / legend
@@ -184,11 +208,11 @@ const Pit = () => {
           icon={UsersIcon}
           title={TAB_TITLES[activeTab] || "Live Game"}
           subtitle="Live Game Management"
-          centerSlot={isBreaklist ? <div className="flex items-center gap-2">{rightControls}</div> : undefined}
-          date={isBreaklist ? date : undefined}
+          centerSlot={isBreaklist ? centerControl : undefined}
+          date={isBreaklist ? undefined : undefined}
           belowHeader={belowHeader}
         >
-          {!isBreaklist && rightControls}
+          {rightControls}
         </PageHeader>
       </div>
 
