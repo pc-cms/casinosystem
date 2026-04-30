@@ -6,23 +6,24 @@
 #
 # Режимы запуска:
 #   sudo ./install.sh                           # интерактивный мастер
-#   sudo ./install.sh --reconfigure             # перенастроить .env, перезапустить
-#   sudo ./install.sh --check-update            # проверить наличие нового образа
-#   sudo ./install.sh --slug arusha \           # CLI-режим (для автоматизации)
-#                     --name "Premier Arusha" \
-#                     --domain arusha.local \
-#                     --ip 192.168.1.100 \
-#                     --casino-id <UUID> \
-#                     --sync-secret <secret>
+#   sudo ./install.sh --reconfigure             # перенастроить .env
+#   sudo ./install.sh --check-update            # только проверить наличие нового образа
+#   sudo ./install.sh --upgrade-to v1.5.2       # принудительно обновить до версии
+#   sudo ./install.sh --skip-update-check       # не обновлять, даже если есть новый
+#   sudo ./install.sh --slug arusha ...         # CLI-режим (см. ниже)
 #
 # Что делает мастер:
 #   1. Проверяет Ubuntu 22.04+ и устанавливает Docker если нужно
-#   2. Спрашивает: название локации, slug, локальный IP, домен, CASINO_ID, sync_secret
-#   3. Проверяет связь с Cloud и валидирует CASINO_ID (есть ли такая запись в casinos)
-#   4. Генерирует JWT/CA/server cert
+#   2. Спрашивает: название, slug, IP, домен, CASINO_ID, sync_secret
+#   3. ПРОВЕРКА СВЯЗИ (3 уровня):
+#       • интернет (curl 1.1.1.1 / api.github.com)
+#       • Cloud Supabase REST + валидация CASINO_ID в реестре casinos
+#       • GitHub API + последняя версия образа (если задан GITHUB_TOKEN)
+#      → Если интернета нет — продолжаем с локальными образами (с подтверждением)
+#   4. Генерирует JWT/CA/server cert (включает LOCAL_IP в SAN)
 #   5. Применяет миграции БД
-#   6. Поднимает docker compose stack
-#   7. Проверяет, есть ли свежая версия образа на GitHub (если нет — пишет какая)
+#   6. Решает версию образа (текущая / latest / --upgrade-to) с авто-откатом при сбое
+#   7. docker compose pull + up -d + health check
 #   8. Устанавливает systemd unit для автозапуска
 
 set -euo pipefail
@@ -45,6 +46,7 @@ require_root() { [[ $EUID -eq 0 ]] || fail "Запустите от root: sudo .
 RECONFIGURE=0
 CHECK_UPDATE_ONLY=0
 NONINTERACTIVE=0
+SKIP_UPDATE_CHECK=0
 declare -A CLI
 
 while [[ $# -gt 0 ]]; do
@@ -58,6 +60,8 @@ while [[ $# -gt 0 ]]; do
     --casino-id)      CLI[CASINO_ID]="$2";     NONINTERACTIVE=1; shift 2 ;;
     --sync-secret)    CLI[SYNC_SECRET]="$2";   NONINTERACTIVE=1; shift 2 ;;
     --github-owner)   CLI[GITHUB_OWNER]="$2";  NONINTERACTIVE=1; shift 2 ;;
+    --upgrade-to)     CLI[UPGRADE_TO]="$2";    shift 2 ;;
+    --skip-update-check) SKIP_UPDATE_CHECK=1;  shift ;;
     -h|--help)
       sed -n '4,30p' "$0"; exit 0 ;;
     *) fail "Неизвестный аргумент: $1" ;;
@@ -190,55 +194,113 @@ fi
 
 set -a; source .env; set +a
 
-# ────────── 3. Проверка связи с Cloud + валидация CASINO_ID ──────────
-title "3/8  Проверка связи с Cloud"
+# ────────── 3. Проверка связи: интернет → Cloud → GitHub Registry ──────────
+title "3/8  Проверка связи с внешними сервисами"
 
 CLOUD_URL="${CLOUD_URL:-https://rpehngjvwcnipvkouluu.supabase.co}"
-log "Cloud: $CLOUD_URL"
-log "Проверяю доступ к интернету..."
+GHCR_HOST="ghcr.io"
+GH_API="https://api.github.com"
+GH_REPO="${GITHUB_REPO:-casino-system}"
 
-if ! curl -fsS --max-time 10 -o /dev/null "$CLOUD_URL/rest/v1/?apikey=${CLOUD_ANON_KEY}"; then
-  warn "Нет связи с Cloud — установка продолжится в OFFLINE-режиме"
-  warn "Sync с Cloud не заработает, пока вы не подключите интернет"
-  read -r -p "  Продолжить без проверки CASINO_ID? [y/N]: " yn
-  [[ "${yn,,}" == "y" ]] || fail "Прерываю. Подключите интернет и запустите снова."
-  CLOUD_REACHABLE=0
+INTERNET_OK=0
+CLOUD_OK=0
+REGISTRY_OK=0
+LATEST_VERSION=""
+CURRENT_VERSION="${FRONTEND_VERSION:-latest}"
+
+# 3.1 — Интернет (DNS + HTTPS)
+log "Проверка интернет-соединения..."
+if curl -fsS --max-time 8 -o /dev/null https://1.1.1.1 2>/dev/null \
+   || curl -fsS --max-time 8 -o /dev/null https://api.github.com 2>/dev/null; then
+  ok "Интернет доступен"
+  INTERNET_OK=1
 else
-  ok "Cloud доступен"
-  CLOUD_REACHABLE=1
+  warn "Интернет недоступен"
+fi
 
-  log "Проверяю CASINO_ID=${CASINO_ID} в реестре..."
-  RESPONSE=$(curl -fsS --max-time 10 \
-    -H "apikey: ${CLOUD_ANON_KEY}" \
-    -H "Authorization: Bearer ${CLOUD_ANON_KEY}" \
-    "${CLOUD_URL}/rest/v1/casinos?id=eq.${CASINO_ID}&select=id,name,slug" || echo "[]")
+# 3.2 — Cloud Supabase + валидация CASINO_ID
+if [[ $INTERNET_OK -eq 1 ]]; then
+  log "Проверка Cloud (${CLOUD_URL})..."
+  if curl -fsS --max-time 10 -o /dev/null \
+       -H "apikey: ${CLOUD_ANON_KEY}" \
+       "${CLOUD_URL}/rest/v1/?apikey=${CLOUD_ANON_KEY}" 2>/dev/null; then
+    ok "Cloud REST API доступен"
+    CLOUD_OK=1
 
-  if [[ "$RESPONSE" == "[]" || -z "$RESPONSE" ]]; then
-    warn "CASINO_ID не найден в Cloud (или нет доступа к таблице casinos через anon)."
-    warn "Это может быть нормально, если RLS закрывает таблицу — sync проверит позже."
-  else
-    REMOTE_NAME=$(echo "$RESPONSE" | jq -r '.[0].name // "unknown"')
-    REMOTE_SLUG=$(echo "$RESPONSE" | jq -r '.[0].slug // "unknown"')
-    ok "Локация найдена в Cloud: ${REMOTE_NAME} (${REMOTE_SLUG})"
-    if [[ "$REMOTE_SLUG" != "$CASINO_SLUG" ]]; then
-      warn "Slug в Cloud (${REMOTE_SLUG}) не совпадает с локальным (${CASINO_SLUG})"
+    log "Проверка CASINO_ID=${CASINO_ID:0:8}... в реестре casinos..."
+    RESPONSE=$(curl -fsS --max-time 10 \
+      -H "apikey: ${CLOUD_ANON_KEY}" \
+      -H "Authorization: Bearer ${CLOUD_ANON_KEY}" \
+      "${CLOUD_URL}/rest/v1/casinos?id=eq.${CASINO_ID}&select=id,name,slug" 2>/dev/null || echo "[]")
+    if [[ "$RESPONSE" == "[]" || -z "$RESPONSE" ]]; then
+      warn "CASINO_ID не найден через anon (возможно RLS закрыт — sync проверит позже)"
+    else
+      REMOTE_NAME=$(echo "$RESPONSE" | jq -r '.[0].name // "unknown"')
+      REMOTE_SLUG=$(echo "$RESPONSE" | jq -r '.[0].slug // "unknown"')
+      ok "Локация в Cloud: ${REMOTE_NAME} (${REMOTE_SLUG})"
+      [[ "$REMOTE_SLUG" != "$CASINO_SLUG" ]] && warn "Slug в Cloud (${REMOTE_SLUG}) ≠ локальный (${CASINO_SLUG})"
     fi
+  else
+    warn "Cloud недоступен"
   fi
 fi
 
-if [[ $CHECK_UPDATE_ONLY -eq 1 ]]; then
-  title "Проверка обновлений"
-  if [[ -n "${GITHUB_TOKEN:-}" && "$GITHUB_TOKEN" != "ghp_replace_me" ]]; then
-    LATEST=$(curl -fsS -H "Authorization: Bearer $GITHUB_TOKEN" \
-      "https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO:-casino-system}/releases/latest" \
-      | jq -r '.tag_name // "none"')
-    log "Установленная версия: ${FRONTEND_VERSION:-latest}"
-    log "Доступная версия:     ${LATEST}"
+# 3.3 — GitHub Registry + последняя версия образа
+GH_AUTH=()
+[[ -n "${GITHUB_TOKEN:-}" && "$GITHUB_TOKEN" != "ghp_replace_me" ]] \
+  && GH_AUTH=(-H "Authorization: Bearer ${GITHUB_TOKEN}")
+
+if [[ $INTERNET_OK -eq 1 ]]; then
+  log "Проверка GitHub (${GHCR_HOST})..."
+  if curl -fsS --max-time 8 -o /dev/null "${GH_API}/zen" 2>/dev/null; then
+    ok "GitHub API доступен"
+    REGISTRY_OK=1
+    if [[ ${#GH_AUTH[@]} -gt 0 ]]; then
+      RELEASE_JSON=$(curl -fsS --max-time 10 "${GH_AUTH[@]}" \
+        "${GH_API}/repos/${GITHUB_OWNER}/${GH_REPO}/releases/latest" 2>/dev/null || echo "{}")
+      LATEST_VERSION=$(echo "$RELEASE_JSON" | jq -r '.tag_name // ""')
+      [[ -n "$LATEST_VERSION" ]] && ok "Последний релиз: ${LATEST_VERSION}" \
+                                || warn "Релизов не найдено (или нет прав у токена)"
+    else
+      warn "GITHUB_TOKEN не задан — версия в реестре не проверяется"
+    fi
   else
-    warn "GITHUB_TOKEN не задан — пропускаю проверку обновлений"
+    warn "GitHub недоступен"
+  fi
+fi
+
+# Сводка
+echo
+echo "  ┌──────────────────────────────────────┐"
+printf "  │ Интернет:           %-16s │\n" "$([[ $INTERNET_OK -eq 1 ]] && echo '✓ ONLINE' || echo '✗ OFFLINE')"
+printf "  │ Cloud Supabase:     %-16s │\n" "$([[ $CLOUD_OK    -eq 1 ]] && echo '✓ ONLINE' || echo '✗ OFFLINE')"
+printf "  │ GitHub Registry:    %-16s │\n" "$([[ $REGISTRY_OK -eq 1 ]] && echo '✓ ONLINE' || echo '✗ OFFLINE')"
+echo "  └──────────────────────────────────────┘"
+echo
+
+# Полный offline — нужны уже скачанные образы
+if [[ $INTERNET_OK -eq 0 ]]; then
+  warn "Полностью OFFLINE. Допустимо только если Docker-образы уже скачаны ранее."
+  if [[ $NONINTERACTIVE -eq 0 ]]; then
+    read -r -p "  Продолжить установку без интернета? [y/N]: " yn
+    [[ "${yn,,}" == "y" ]] || fail "Прерываю. Подключите интернет и запустите снова."
+  fi
+fi
+
+# Режим только-проверка
+if [[ $CHECK_UPDATE_ONLY -eq 1 ]]; then
+  title "Результат проверки обновлений"
+  echo "  Установлено:  ${CURRENT_VERSION}"
+  echo "  Доступно:     ${LATEST_VERSION:-неизвестно}"
+  if [[ -n "$LATEST_VERSION" && "$LATEST_VERSION" != "$CURRENT_VERSION" ]]; then
+    echo; warn "Доступна новая версия! Для обновления:"
+    echo "    sudo ./install.sh --upgrade-to ${LATEST_VERSION}"
   fi
   exit 0
 fi
+
+# CLI --upgrade-to
+[[ -n "${CLI[UPGRADE_TO]:-}" ]] && { LATEST_VERSION="${CLI[UPGRADE_TO]}"; log "Принудительное обновление до ${LATEST_VERSION}"; }
 
 # ────────── 4. Генерация секретов ──────────
 title "4/8  Генерация криптографических ключей"
@@ -335,49 +397,100 @@ else
   warn "Каталог ../supabase/migrations не найден"
 fi
 
-# ────────── 8. Проверка обновлений Docker-образа ──────────
-title "7/8  Проверка обновлений образа"
+# ────────── 7. Решение по версии Docker-образа ──────────
+title "7/8  Версия Docker-образа"
 
-CURRENT_VERSION="${FRONTEND_VERSION:-latest}"
-LATEST_VERSION=""
-if [[ $CLOUD_REACHABLE -eq 1 && -n "${GITHUB_TOKEN:-}" && "$GITHUB_TOKEN" != "ghp_replace_me" ]]; then
-  LATEST_VERSION=$(curl -fsS --max-time 10 \
-    -H "Authorization: Bearer $GITHUB_TOKEN" \
-    "https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO:-casino-system}/releases/latest" 2>/dev/null \
-    | jq -r '.tag_name // ""' 2>/dev/null || echo "")
-  if [[ -n "$LATEST_VERSION" && "$LATEST_VERSION" != "$CURRENT_VERSION" && "$CURRENT_VERSION" != "latest" ]]; then
-    warn "Доступна новая версия: ${LATEST_VERSION} (у вас: ${CURRENT_VERSION})"
-    if [[ $NONINTERACTIVE -eq 0 ]]; then
-      read -r -p "  Установить ${LATEST_VERSION}? [Y/n]: " yn
-      if [[ "${yn,,}" != "n" ]]; then
-        update_env FRONTEND_VERSION "$LATEST_VERSION"
-        set -a; source .env; set +a
-      fi
-    fi
-  elif [[ -n "$LATEST_VERSION" ]]; then
-    ok "Версия актуальна: ${LATEST_VERSION}"
+PREVIOUS_VERSION="$CURRENT_VERSION"
+TARGET_VERSION="$CURRENT_VERSION"
+
+if [[ -n "$LATEST_VERSION" && "$LATEST_VERSION" != "$CURRENT_VERSION" ]]; then
+  warn "Установлено: ${CURRENT_VERSION}    Доступно: ${LATEST_VERSION}"
+  if [[ $SKIP_UPDATE_CHECK -eq 1 ]]; then
+    log "--skip-update-check — остаюсь на ${CURRENT_VERSION}"
+  elif [[ -n "${CLI[UPGRADE_TO]:-}" ]]; then
+    TARGET_VERSION="${CLI[UPGRADE_TO]}"
+    log "Использую версию из --upgrade-to: ${TARGET_VERSION}"
+  elif [[ $NONINTERACTIVE -eq 0 ]]; then
+    read -r -p "  Обновиться до ${LATEST_VERSION}? [Y/n]: " yn
+    [[ "${yn,,}" != "n" ]] && TARGET_VERSION="$LATEST_VERSION"
+  else
+    log "Non-interactive — остаюсь на ${CURRENT_VERSION} (передайте --upgrade-to для апгрейда)"
   fi
+elif [[ -n "$LATEST_VERSION" ]]; then
+  ok "Образ актуален: ${CURRENT_VERSION}"
 else
-  log "Проверка обновлений пропущена (offline или нет GITHUB_TOKEN)"
+  log "Реестр недоступен — использую локальную версию: ${CURRENT_VERSION}"
 fi
 
-# ────────── 9. Запуск стека ──────────
+if [[ "$TARGET_VERSION" != "$CURRENT_VERSION" ]]; then
+  update_env FRONTEND_VERSION "$TARGET_VERSION"
+  set -a; source .env; set +a
+  CURRENT_VERSION="$TARGET_VERSION"
+  ok "FRONTEND_VERSION обновлён → ${TARGET_VERSION}"
+fi
+
+# ────────── 8. Pull образов и запуск ──────────
 title "8/8  Запуск Docker stack"
 
-log "Pulling images..."
-docker compose pull --quiet 2>&1 | tail -5 || warn "Часть образов не удалось скачать (offline?)"
+PULL_OK=1
+if [[ $INTERNET_OK -eq 1 ]]; then
+  log "Pulling images (target version: ${TARGET_VERSION})..."
+  if ! docker compose pull 2>&1 | tail -10; then
+    warn "Не все образы удалось скачать"
+    PULL_OK=0
+  fi
+else
+  log "Offline — pull пропущен, использую локально доступные образы"
+  PULL_OK=0
+fi
+
+# Проверка: есть ли образ frontend в локальном кэше
+FRONTEND_IMAGE="ghcr.io/${GITHUB_OWNER}/cms-frontend:${TARGET_VERSION}"
+if ! docker image inspect "$FRONTEND_IMAGE" >/dev/null 2>&1; then
+  if [[ "$PREVIOUS_VERSION" != "$TARGET_VERSION" ]] && \
+     docker image inspect "ghcr.io/${GITHUB_OWNER}/cms-frontend:${PREVIOUS_VERSION}" >/dev/null 2>&1; then
+    warn "Образ ${TARGET_VERSION} не скачан — откатываюсь на предыдущую версию ${PREVIOUS_VERSION}"
+    update_env FRONTEND_VERSION "$PREVIOUS_VERSION"
+    set -a; source .env; set +a
+    TARGET_VERSION="$PREVIOUS_VERSION"
+  elif [[ "$TARGET_VERSION" == "latest" ]]; then
+    warn "Образ :latest не найден локально — продолжаю, docker compose попытается скачать сам"
+  else
+    fail "Образ ${FRONTEND_IMAGE} не найден ни в реестре, ни в локальном кэше. Подключите интернет или передайте --upgrade-to <известная-локально-версия>."
+  fi
+fi
 
 log "Запуск контейнеров..."
 docker compose up -d
 
-log "Жду готовности Postgres..."
+log "Жду готовности Postgres (до 60 сек)..."
 for i in $(seq 1 30); do
   if docker compose exec -T postgres pg_isready -U "${POSTGRES_USER:-postgres}" &>/dev/null; then
     ok "Postgres готов"
     break
   fi
   sleep 2
-  [[ $i -eq 30 ]] && fail "Postgres не запустился за 60 сек — смотрите docker compose logs postgres"
+  [[ $i -eq 30 ]] && fail "Postgres не запустился за 60 сек — docker compose logs postgres"
+done
+
+# Health check фронта
+log "Жду готовности frontend (до 30 сек)..."
+for i in $(seq 1 15); do
+  if docker compose exec -T cms-frontend curl -fsS http://localhost/ -o /dev/null 2>/dev/null; then
+    ok "Frontend ${TARGET_VERSION} запущен"
+    break
+  fi
+  sleep 2
+  if [[ $i -eq 15 ]]; then
+    warn "Frontend не отвечает за 30 сек"
+    if [[ "$PREVIOUS_VERSION" != "$TARGET_VERSION" ]]; then
+      warn "Откатываюсь на предыдущую версию ${PREVIOUS_VERSION}..."
+      update_env FRONTEND_VERSION "$PREVIOUS_VERSION"
+      set -a; source .env; set +a
+      docker compose up -d cms-frontend
+      ok "Откат выполнен"
+    fi
+  fi
 done
 
 # ────────── 10. systemd ──────────
