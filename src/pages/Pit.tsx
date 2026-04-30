@@ -170,9 +170,11 @@ const Pit = () => {
       <span className={`px-2 py-0.5 rounded-md text-[10px] font-mono ${ATT_COLORS["A"]}`}>A = Absent</span>
       <span className={`px-2 py-0.5 rounded-md text-[10px] font-mono ${ATT_COLORS["S"]}`}>S = Sick</span>
     </div>
-  ) : centerControl ? (
+  ) : (activeTab !== "breaklist" && centerControl) ? (
     <div className="flex items-center">{centerControl}</div>
   ) : undefined;
+
+  const isBreaklist = activeTab === "breaklist";
 
   return (
     <PitShell>
@@ -182,9 +184,11 @@ const Pit = () => {
           icon={UsersIcon}
           title={TAB_TITLES[activeTab] || "Live Game"}
           subtitle="Live Game Management"
+          centerSlot={isBreaklist ? <div className="flex items-center gap-2">{rightControls}</div> : undefined}
+          date={isBreaklist ? date : undefined}
           belowHeader={belowHeader}
         >
-          {rightControls}
+          {!isBreaklist && rightControls}
         </PageHeader>
       </div>
 
