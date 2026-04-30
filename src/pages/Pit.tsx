@@ -819,15 +819,19 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
   const getDealerTotals = (dealerId: string) => {
     let shifts = 0;
     let hours = 0;
+    let absent = 0;
+    let sick = 0;
     days.forEach(day => {
       const val = getValue(dealerId, day);
+      if (val === "A") { absent += 1; return; }
+      if (val === "S") { sick += 1; return; }
       const num = Number(val);
       if (!isNaN(num) && num > 0) {
         shifts += 1;
         hours += num;
       }
     });
-    return { shifts, hours };
+    return { shifts, hours, absent, sick };
   };
 
   const renderAttendanceRows = (dealerList: any[], label: string, accentColor: string) => (
