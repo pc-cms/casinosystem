@@ -12,20 +12,46 @@
     <link id="app-manifest" rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#1a1a2e" />
     <script>
-      // Swap PWA manifest based on the route so each module installs as its own app.
-      // Also swap favicon/apple-touch-icon for Arusha branding when on the arusha subdomain.
+      // Single PWA for the whole Casino System.
+      // Name is dynamically branded per subdomain (arusha → "Casino System — Premier Arusha", etc.).
+      // Note: PWA name is pinned at install time on iOS/Android — branding only affects fresh installs.
       (function () {
         try {
-          var path = window.location.pathname || "";
-          var manifest = "/manifest.json"; // default = Reception
-          if (path.indexOf("/pit") === 0) manifest = "/manifest-pit.json";
-          var link = document.getElementById("app-manifest");
-          if (link && link.getAttribute("href") !== manifest) {
-            link.setAttribute("href", manifest);
-          }
+          var host = (window.location.hostname || "").toLowerCase();
+
+          // Map known branch subdomains → branded names.
+          var BRANCH_NAMES = {
+            arusha: "Premier Arusha",
+            mwanza: "Premier Mwanza",
+            dodoma: "Premier Dodoma",
+            mbeya:  "Premier Mbeya",
+            premier: "Premier HQ",
+          };
+
+          // Extract leftmost subdomain label (works for arusha.casinosystem.app
+          // and arusha.casinosystem.lovable.app and arusha.localhost).
+          var label = host.split(".")[0];
+          var branchSuffix = BRANCH_NAMES[label] || null;
+
+          var fullName = branchSuffix
+            ? "Casino System — " + branchSuffix
+            : "Casino System";
+          var shortName = branchSuffix ? branchSuffix : "Casino System";
+
+          // Build a dynamic manifest by patching the static one.
+          fetch("/manifest.json", { cache: "no-cache" })
+            .then(function (r) { return r.json(); })
+            .then(function (m) {
+              m.name = fullName;
+              m.short_name = shortName;
+              var blob = new Blob([JSON.stringify(m)], { type: "application/manifest+json" });
+              var url = URL.createObjectURL(blob);
+              var link = document.getElementById("app-manifest");
+              if (link) link.setAttribute("href", url);
+            })
+            .catch(function () { /* keep static manifest as fallback */ });
 
           // Brand swap (favicon + apple-touch-icon) for arusha.*
-          var host = window.location.hostname || "";
           if (/^arusha\./i.test(host)) {
             var fav = document.querySelector('link[rel="icon"]');
             if (fav) fav.setAttribute("href", "/arusha-logo.png");
