@@ -151,11 +151,11 @@ export const CashCount = () => {
           denominations: denomMap,
           physical_total: physTotal,
           expected_balance: expected,
-          discrepancy: expected - physTotalTzs,
+          // discrepancy + physical_total_tzs computed by DB trigger
+          // trg_cash_count_snapshot_compute (single source of truth)
           exchange_rate: rate,
-          physical_total_tzs: physTotalTzs,
           note,
-        });
+        } as any);
       }
     }
 
@@ -169,11 +169,9 @@ export const CashCount = () => {
         denominations: denomMap,
         physical_total: cageSlotTotal,
         expected_balance: cageSlotExpected,
-        discrepancy: cageSlotExpected - cageSlotTotal,
         exchange_rate: 1,
-        physical_total_tzs: cageSlotTotal,
         note,
-      });
+      } as any);
     }
 
     // Save cage table
@@ -186,11 +184,9 @@ export const CashCount = () => {
         denominations: denomMap,
         physical_total: cageTableTotal,
         expected_balance: cageTableExpected,
-        discrepancy: cageTableExpected - cageTableTotal,
         exchange_rate: 1,
-        physical_total_tzs: cageTableTotal,
         note,
-      });
+      } as any);
     }
 
     // Save mobile money
@@ -203,11 +199,9 @@ export const CashCount = () => {
         denominations: mobileMap,
         physical_total: mobileTotal,
         expected_balance: mobileExpected,
-        discrepancy: mobileExpected - mobileTotal,
         exchange_rate: 1,
-        physical_total_tzs: mobileTotal,
         note,
-      });
+      } as any);
     }
 
     // Save bank
@@ -220,11 +214,9 @@ export const CashCount = () => {
         denominations: bankMap,
         physical_total: bankTotalTzs,
         expected_balance: bankExpected,
-        discrepancy: bankExpected - bankTotalTzs,
         exchange_rate: 1,
-        physical_total_tzs: bankTotalTzs,
         note,
-      });
+      } as any);
     }
 
     setNote("");
