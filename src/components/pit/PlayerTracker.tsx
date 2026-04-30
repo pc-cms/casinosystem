@@ -304,17 +304,18 @@ const ClientTracker = () => {
     mutationFn: async () => {
       // Start the client session (offline-aware, idempotent via client UUID)
       const sessionId = crypto.randomUUID();
+      const insertPayload: SafeSessionInsert = {
+        id: sessionId,
+        casino_id: casinoId!,
+        player_id: selectedPlayer,
+        table_id: selectedTable,
+        avg_bet: Number(avgBet) || 0,
+        created_by: user!.id,
+      };
       const insertRes = await offlineMutation({
         table: "client_sessions",
         operation: "insert",
-        payload: {
-          id: sessionId,
-          casino_id: casinoId!,
-          player_id: selectedPlayer,
-          table_id: selectedTable,
-          avg_bet: Number(avgBet) || 0,
-          created_by: user!.id,
-        },
+        payload: insertPayload,
       });
       if (insertRes.error) throw new Error(insertRes.error);
 
