@@ -480,6 +480,21 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
             </TooltipTrigger>
             <TooltipContent side="right">Sign out</TooltipContent>
           </Tooltip>
+
+          <div className="w-8 border-t border-sidebar-border my-1" />
+
+          {/* Expand sidebar — kept at the bottom in same position */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={onToggle}
+                className="w-10 h-10 flex items-center justify-center rounded-md hover:bg-sidebar-accent transition-colors text-sidebar-foreground"
+              >
+                <ChevronsRight className="w-4 h-4" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="right">Expand sidebar</TooltipContent>
+          </Tooltip>
         </div>
       </TooltipProvider>
     );
