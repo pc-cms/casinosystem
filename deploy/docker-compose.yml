@@ -255,6 +255,7 @@ services:
     environment:
       CASINO_ID:        ${CASINO_ID}
       SYNC_SECRET:      ${SYNC_SECRET}
+      SYNC_MODE:        ${SYNC_MODE:-hybrid}
       CLOUD_URL:        ${CLOUD_URL:-https://rpehngjvwcnipvkouluu.supabase.co}
       LOCAL_DB_URL:     postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-postgres}
       SYNC_BATCH_SIZE:  ${SYNC_BATCH_SIZE:-200}
@@ -343,11 +344,16 @@ services:
     depends_on:
       postgres: { condition: service_healthy }
     environment:
-      TZ:                  Africa/Dar_es_Salaam
-      AWS_S3_BUCKET:       ${AWS_S3_BUCKET:-}
-      AWS_ACCESS_KEY_ID:   ${AWS_ACCESS_KEY_ID:-}
-      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
-      AWS_DEFAULT_REGION:  ${AWS_DEFAULT_REGION:-eu-west-1}
+      TZ:                       Africa/Dar_es_Salaam
+      CASINO_SLUG:              ${CASINO_SLUG}
+      POSTGRES_USER:            ${POSTGRES_USER}
+      POSTGRES_PASSWORD:        ${POSTGRES_PASSWORD}
+      POSTGRES_DB:              ${POSTGRES_DB}
+      CLOUD_URL:                ${CLOUD_URL}
+      SYNC_SECRET:              ${SYNC_SECRET}
+      BACKUP_OFFSITE:           ${BACKUP_OFFSITE:-cloud}
+      BACKUP_RETENTION_DAILY:   ${BACKUP_RETENTION_DAILY:-30}
+      BACKUP_RETENTION_MONTHLY: ${BACKUP_RETENTION_MONTHLY:-12}
     volumes:
       - ./:/compose:ro
       - storage_data:/var/lib/storage:ro

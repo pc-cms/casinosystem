@@ -20,12 +20,16 @@ const {
   CLOUD_URL,
   CASINO_ID,
   SYNC_SECRET,
+  SYNC_MODE = "hybrid",
   SYNC_BATCH_SIZE = "200",
   SYNC_INTERVAL_MS = "5000",
   SYNC_BACKOFF_MAX_MS = "60000",
 } = process.env;
 
-if (!LOCAL_DB_URL || !CLOUD_URL || !CASINO_ID || !SYNC_SECRET) {
+if (SYNC_MODE === "standalone") {
+  console.log("[cms-sync] SYNC_MODE=standalone → push/pull disabled, idle loop");
+  setInterval(() => {}, 60_000);
+} else if (!LOCAL_DB_URL || !CLOUD_URL || !CASINO_ID || !SYNC_SECRET) {
   console.error("[cms-sync] FATAL: missing env (LOCAL_DB_URL/CLOUD_URL/CASINO_ID/SYNC_SECRET)");
   process.exit(1);
 }

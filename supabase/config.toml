@@ -5,3 +5,15 @@ min_password_length = 8
 
 [auth.password]
 hibp_enabled = true
+
+[functions.pull-changes]
+verify_jwt = false
+
+[functions.push-data]
+verify_jwt = false
+
+[functions.report-health]
+verify_jwt = false
+
+[functions.upload-backup]
+verify_jwt = false
