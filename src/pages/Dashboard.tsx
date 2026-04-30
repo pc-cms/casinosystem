@@ -1,18 +1,23 @@
-import { useMemo } from "react";
-import { Users, Landmark, Receipt, TrendingDown, AlertTriangle, Clock, LayoutDashboard } from "lucide-react";
-import { fmtDate } from "@/lib/format-date";
+import { useMemo, useState } from "react";
+import { Landmark, Receipt, TrendingDown, LayoutDashboard, Filter } from "lucide-react";
 import { CardSkeleton, PlayerListSkeleton } from "@/components/LoadingSkeletons";
-import { usePlayers, useTransactions, useGamingTables, useExpenses, useClientSessionsTotalBet, useTableTracker, usePlayerEconomy, useVisitsToday } from "@/hooks/use-casino-data";
-// Dashboard uses limited economy query for top losers widget
+import { usePlayers, useTransactions, useGamingTables, useExpenses, useClientSessionsTotalBet, useTableTracker } from "@/hooks/use-casino-data";
 import { useAuth } from "@/lib/auth-context";
 import { Link } from "react-router-dom";
 import { formatCurrency } from "@/lib/currency";
 import { canSeePlayerFinancials } from "@/lib/role-access";
 import { getBusinessDate } from "@/lib/business-day";
-import { useStaffMembers, useStaffRotaRange, DEPARTMENT_LABELS, STAFF_SHIFT_LABELS, STAFF_SHIFT_COLORS } from "@/hooks/use-staff";
-import { format, formatDistanceToNow } from "date-fns";
+import {
+  useStaffMembers, useStaffRotaRange,
+  DEPARTMENT_LABELS, DEPARTMENT_ORDER,
+  STAFF_SHIFT_LABELS, STAFF_SHIFT_COLORS,
+  type StaffDepartment,
+} from "@/hooks/use-staff";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const StatCard = ({ label, value, icon: Icon, href }: {
   label: string; value: string | number; icon: any; href: string;
@@ -30,8 +35,10 @@ const StatCard = ({ label, value, icon: Icon, href }: {
   </Link>
 );
 
+const ALL_SHIFTS = ["D", "M", "N", "G", "E", "L", "O"] as const;
+
 const Dashboard = () => {
-  const { displayName, roles, isManager, casinoId } = useAuth();
+  const { displayName, roles, isManager } = useAuth();
   const businessDate = getBusinessDate();
   const { data: players = [], isLoading: loadingPlayers } = usePlayers();
   const { data: transactions = [], isLoading: loadingTx } = useTransactions(businessDate);
@@ -39,53 +46,16 @@ const Dashboard = () => {
   const { data: expenses = [] } = useExpenses(businessDate);
   const { data: sessionsTotalBet = 0 } = useClientSessionsTotalBet(businessDate);
   const { data: trackerData = [] } = useTableTracker(businessDate);
-  const { data: economy = [] } = usePlayerEconomy(20);
   const { data: staffMembers = [] } = useStaffMembers();
   const { data: staffRota = [] } = useStaffRotaRange(businessDate, businessDate);
-  const { data: allVisits = [] } = useVisitsToday("*, players(first_name, last_name, nickname, photo_url, status, player_tags(tag), id_number)") as { data: any[] };
-  const visits = useMemo(() => allVisits.filter((v: any) => !v.checked_out_at), [allVisits]);
 
-  // Show skeleton while critical data loads
   const isInitialLoading = loadingPlayers && loadingTx;
   const showFinancials = canSeePlayerFinancials(roles);
-  const activePlayers = players.filter(p => p.status === "active").length;
   const buyInDrop = transactions.filter(t => (t.type === "buy" || t.type === "in")).reduce((s, t) => s + Number(t.amount), 0);
   const totalDrop = buyInDrop + sessionsTotalBet;
   const pendingExpenses = expenses.filter(e => !e.approved).length;
 
-  // Floor staff on shift today
-  const floorStaffOnShift = useMemo(() => {
-    const rotaMap = new Map<string, string>();
-    staffRota.forEach((r: any) => { rotaMap.set(r.staff_id, r.shift); });
-    return staffMembers
-      .filter(s => s.is_active && rotaMap.has(s.id) && rotaMap.get(s.id) !== "O" && rotaMap.get(s.id) !== "L")
-      .map(s => ({ ...s, shift: rotaMap.get(s.id)! }));
-  }, [staffMembers, staffRota]);
-
-  // Players in casino with incomplete data flag
-  const playersInCasino = useMemo(() => {
-    return visits.map((v: any) => {
-      const p = v.players;
-      const missing: string[] = [];
-      if (!p?.photo_url) missing.push("photo");
-      if (!p?.first_name || !p?.last_name) missing.push("name");
-      if (!p?.id_number) missing.push("ID");
-      return {
-        visitId: v.id,
-        playerId: v.player_id,
-        name: `${p?.first_name || ""} ${p?.last_name || ""}`.trim() || "Unknown",
-        nickname: p?.nickname,
-        photoUrl: p?.photo_url,
-        status: p?.status,
-        position: v.position,
-        checkedInAt: v.checked_in_at,
-        tags: (p?.player_tags || []).map((t: any) => t.tag),
-        incomplete: missing,
-      };
-    });
-  }, [visits]);
-
-  // Per-table tracker totals
+  // Per-table tracker totals (for game type totals like in Tables page)
   const tableTrackerTotals = useMemo(() => {
     const totals: Record<string, number> = {};
     trackerData.forEach((d: any) => {
@@ -94,35 +64,70 @@ const Dashboard = () => {
     return totals;
   }, [trackerData]);
 
-  // Total result: closing_result if available, otherwise tracker sum
-  const totalResult = useMemo(() => {
-    return tables.reduce((sum, table) => {
-      const trackerVal = tableTrackerTotals[table.id] || 0;
-      const resultVal = table.closing_result !== null ? Number(table.closing_result) : trackerVal;
-      return sum + resultVal;
-    }, 0);
-  }, [tables, tableTrackerTotals]);
+  // Tables stats and game type totals — mirrored from Tables page
+  const tableStats = useMemo(() => {
+    const stats: Record<string, { dropR: number; dropV: number; result: number }> = {};
+    tables.forEach(t => {
+      const dropR = transactions
+        .filter(tx => tx.table_id === t.id && (tx.type === "buy" || tx.type === "in"))
+        .reduce((s, tx) => s + Number(tx.amount), 0);
+      const dropV = tableTrackerTotals[t.id] || 0;
+      const result = t.closing_result !== null ? Number(t.closing_result) : dropV;
+      stats[t.id] = { dropR, dropV, result };
+    });
+    return stats;
+  }, [tables, transactions, tableTrackerTotals]);
 
-  // Top losers from player economy
-  const topLosers = useMemo(() => {
-    return economy
-      .map(e => {
-        const drop = Number(e.total_drop || 0);
-        const cashout = Number(e.total_cashout || 0);
-        const result = cashout - drop;
-        return {
-          player_id: e.player_id,
-          name: `${e.first_name || ""} ${e.last_name || ""}`.trim(),
-          nickname: e.nickname,
-          drop,
-          cashout,
-          result,
-        };
-      })
-      .filter(p => p.drop > 0)
-      .sort((a, b) => a.result - b.result)
-      .slice(0, 20);
-  }, [economy]);
+  const gameTypeTotals = useMemo(() => {
+    const totals: Record<string, { dropR: number; dropV: number; result: number; label: string }> = {};
+    const gameLabels: Record<string, string> = {
+      "American Roulette": "Total ARs",
+      "Poker": "Total P",
+      "Blackjack": "Total BJ",
+    };
+    tables.forEach(t => {
+      const label = gameLabels[t.game] || `Total ${t.game}`;
+      if (!totals[t.game]) totals[t.game] = { dropR: 0, dropV: 0, result: 0, label };
+      const r = tableStats[t.id] || { dropR: 0, dropV: 0, result: 0 };
+      totals[t.game].dropR += r.dropR;
+      totals[t.game].dropV += r.dropV;
+      totals[t.game].result += r.result;
+    });
+    return totals;
+  }, [tables, tableStats]);
+
+  const totalDropR = Object.values(tableStats).reduce((s, r) => s + r.dropR, 0);
+  const totalDropV = Object.values(tableStats).reduce((s, r) => s + r.dropV, 0);
+  const totalResult = Object.values(tableStats).reduce((s, r) => s + r.result, 0);
+
+  // Floor Staff filters
+  const [deptFilter, setDeptFilter] = useState<StaffDepartment[]>([]);
+  const [shiftFilter, setShiftFilter] = useState<string[]>([]);
+
+  const rotaMap = useMemo(() => {
+    const m = new Map<string, string>();
+    staffRota.forEach((r: any) => m.set(r.staff_id, r.shift));
+    return m;
+  }, [staffRota]);
+
+  const floorStaff = useMemo(() => {
+    return staffMembers
+      .filter(s => s.is_active)
+      .map(s => ({ ...s, shift: rotaMap.get(s.id) || "—" }))
+      .filter(s => deptFilter.length === 0 || deptFilter.includes(s.department))
+      .filter(s => shiftFilter.length === 0 || shiftFilter.includes(s.shift))
+      .sort((a, b) => {
+        const dA = DEPARTMENT_ORDER.indexOf(a.department);
+        const dB = DEPARTMENT_ORDER.indexOf(b.department);
+        if (dA !== dB) return dA - dB;
+        return a.name.localeCompare(b.name);
+      });
+  }, [staffMembers, rotaMap, deptFilter, shiftFilter]);
+
+  const toggleDept = (d: StaffDepartment) =>
+    setDeptFilter(prev => prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d]);
+  const toggleShift = (s: string) =>
+    setShiftFilter(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]);
 
   if (isInitialLoading) {
     return (
@@ -134,6 +139,8 @@ const Dashboard = () => {
     );
   }
 
+  const gameTypeCount = Object.keys(gameTypeTotals).length;
+
   return (
     <PageShell>
       <PageHeader
@@ -143,7 +150,7 @@ const Dashboard = () => {
         date
       />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {showFinancials && <StatCard label="Total Drop" value={formatCurrency(totalDrop)} icon={Landmark} href="/cage" />}
         {showFinancials && (
           <Link to="/tables?tab=tracker" className="cms-panel p-4 hover:border-primary/30 transition-colors group">
@@ -160,7 +167,6 @@ const Dashboard = () => {
             </div>
           </Link>
         )}
-        
         {showFinancials && (
           isManager ? (
             <StatCard label="Pending Expenses" value={pendingExpenses} icon={Receipt} href="/expenses" />
@@ -180,130 +186,99 @@ const Dashboard = () => {
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Players in Casino */}
-        <div className="cms-panel">
-          <div className="cms-header flex items-center justify-between">
-            <span>Players In Casino</span>
-            <span className="text-xs font-mono text-muted-foreground">{playersInCasino.length} players</span>
-          </div>
-          <div className="p-4 space-y-1 max-h-[400px] overflow-y-auto">
-            {playersInCasino.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">No players checked in</p>
-            ) : playersInCasino.map((p) => (
-              <div key={p.visitId} className="flex items-center justify-between py-1.5 border-b border-border last:border-0">
-                <div className="flex items-center gap-2 min-w-0">
-                  {p.photoUrl ? (
-                    <img src={p.photoUrl} alt="" className="w-7 h-7 rounded-full object-cover flex-shrink-0" />
-                  ) : (
-                    <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                      <Users className="w-3.5 h-3.5 text-muted-foreground" />
-                    </div>
-                  )}
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-sm font-medium text-card-foreground truncate">{p.name}</span>
-                      {p.nickname && <span className="text-xs text-muted-foreground">({p.nickname})</span>}
-                      {p.incomplete.length > 0 && <AlertTriangle className="w-3.5 h-3.5 text-yellow-600 dark:text-yellow-400 flex-shrink-0" />}
-                    </div>
-                    <div className="flex items-center gap-1 flex-wrap">
-                      <span className={`text-[10px] px-1 py-0.5 rounded ${
-                        p.status === "blacklist" ? "bg-destructive/20 text-destructive" :
-                        p.position === "hall" ? "bg-muted text-muted-foreground" :
-                        "bg-primary/10 text-primary"
-                      }`}>
-                        {p.position || "hall"}
-                      </span>
-                      {p.tags.slice(0, 3).map((tag: string) => (
-                        <span key={tag} className="text-[10px] px-1 py-0.5 rounded bg-accent text-accent-foreground">{tag}</span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1 text-xs text-muted-foreground flex-shrink-0">
-                  <Clock className="w-3 h-3" />
-                  <span className="font-mono">{formatDistanceToNow(new Date(p.checkedInAt), { addSuffix: false })}</span>
-                </div>
-              </div>
+      {/* Tables Totals — mirrors Tables page */}
+      {showFinancials && gameTypeCount > 0 && (
+        <div className="mb-6">
+          <div className="cms-header mb-2">Tables Totals</div>
+          <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${gameTypeCount + 1}, minmax(0, 1fr))` }}>
+            {Object.entries(gameTypeTotals).map(([game, t]) => (
+              <Link to="/tables" key={game} className="cms-panel p-2 hover:border-primary/30 transition-colors">
+                <p className="text-[9px] uppercase text-muted-foreground tracking-wider">{t.label}</p>
+                <p className={`font-mono text-sm font-bold ${t.result >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
+                  {t.result >= 0 ? "+" : ""}{formatCurrency(t.result)}
+                </p>
+                <p className="font-mono text-[10px] text-muted-foreground">R: {formatCurrency(t.dropR)} · V: {formatCurrency(t.dropV)}</p>
+              </Link>
             ))}
+            <Link to="/tables" className="cms-panel p-2 border-primary/30 hover:border-primary/60 transition-colors">
+              <p className="text-[9px] uppercase text-muted-foreground tracking-wider">Total Casino</p>
+              <p className={`font-mono text-sm font-bold ${totalResult >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
+                {totalResult >= 0 ? "+" : ""}{formatCurrency(totalResult)}
+              </p>
+              <p className="font-mono text-[10px] text-muted-foreground">R: {formatCurrency(totalDropR)} · V: {formatCurrency(totalDropV)}</p>
+            </Link>
           </div>
         </div>
+      )}
 
-        {/* Floor Staff on Shift */}
-        <div className="cms-panel">
-          <div className="cms-header flex items-center justify-between">
-            <span>Floor Staff on Shift</span>
-            <span className="text-xs font-mono text-muted-foreground">{floorStaffOnShift.length} staff</span>
-          </div>
-          <div className="p-4 space-y-1 max-h-[400px] overflow-y-auto">
-            {floorStaffOnShift.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">No rota data for today</p>
-            ) : floorStaffOnShift.map((s) => (
-              <div key={s.id} className="flex items-center justify-between py-1.5 border-b border-border last:border-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-card-foreground">{s.name}</span>
-                  <span className="text-xs text-muted-foreground">{DEPARTMENT_LABELS[s.department]}</span>
+      {/* Floor Staff on Shift — full width, fills remaining height */}
+      <div className="cms-panel flex flex-col" style={{ minHeight: "60vh" }}>
+        <div className="cms-header flex items-center justify-between gap-2 flex-wrap">
+          <span>Floor Staff on Shift</span>
+          <div className="flex items-center gap-2">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="h-7 gap-1.5">
+                  <Filter className="w-3.5 h-3.5" />
+                  Department{deptFilter.length > 0 ? ` (${deptFilter.length})` : ""}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-52 p-2" align="end">
+                <div className="space-y-1 max-h-64 overflow-y-auto">
+                  {DEPARTMENT_ORDER.map(d => (
+                    <label key={d} className="flex items-center gap-2 px-2 py-1 rounded hover:bg-accent cursor-pointer text-sm">
+                      <Checkbox checked={deptFilter.includes(d)} onCheckedChange={() => toggleDept(d)} />
+                      <span>{DEPARTMENT_LABELS[d]}</span>
+                    </label>
+                  ))}
                 </div>
-                <span className={`text-xs px-1.5 py-0.5 rounded font-mono ${STAFF_SHIFT_COLORS[s.shift] || "bg-muted text-muted-foreground"}`}>
-                  {STAFF_SHIFT_LABELS[s.shift] || s.shift}
-                </span>
-              </div>
-            ))}
+                {deptFilter.length > 0 && (
+                  <Button variant="ghost" size="sm" className="w-full mt-1 h-7" onClick={() => setDeptFilter([])}>Clear</Button>
+                )}
+              </PopoverContent>
+            </Popover>
+
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="h-7 gap-1.5">
+                  <Filter className="w-3.5 h-3.5" />
+                  Shift{shiftFilter.length > 0 ? ` (${shiftFilter.length})` : ""}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-52 p-2" align="end">
+                <div className="space-y-1">
+                  {ALL_SHIFTS.map(s => (
+                    <label key={s} className="flex items-center gap-2 px-2 py-1 rounded hover:bg-accent cursor-pointer text-sm">
+                      <Checkbox checked={shiftFilter.includes(s)} onCheckedChange={() => toggleShift(s)} />
+                      <span className={`text-xs px-1.5 py-0.5 rounded font-mono ${STAFF_SHIFT_COLORS[s] || "bg-muted text-muted-foreground"}`}>{s}</span>
+                      <span className="text-xs text-muted-foreground">{STAFF_SHIFT_LABELS[s] || s}</span>
+                    </label>
+                  ))}
+                </div>
+                {shiftFilter.length > 0 && (
+                  <Button variant="ghost" size="sm" className="w-full mt-1 h-7" onClick={() => setShiftFilter([])}>Clear</Button>
+                )}
+              </PopoverContent>
+            </Popover>
+
+            <span className="text-xs font-mono text-muted-foreground">{floorStaff.length} staff</span>
           </div>
         </div>
-
-        {showFinancials && (
-          <div className="cms-panel">
-            <div className="cms-header">Top Players</div>
-            <div className="p-4 space-y-1">
-              {topLosers.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">No data</p>
-              ) : topLosers.map((p, i) => (
-                <div key={p.player_id} className="flex items-center justify-between py-1.5 border-b border-border last:border-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-mono text-muted-foreground w-5">{i + 1}</span>
-                    <span className="text-sm font-medium text-card-foreground">{p.name}</span>
-                    {p.nickname && <span className="text-xs text-muted-foreground">({p.nickname})</span>}
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <span className="font-mono text-xs text-muted-foreground">{formatCurrency(p.drop)}</span>
-                    <span className={`font-mono text-xs font-bold ${p.result >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
-                      {p.result >= 0 ? "+" : ""}{formatCurrency(p.result)}
-                    </span>
-                  </div>
-                </div>
-              ))}
+        <div className="flex-1 overflow-y-auto p-4 space-y-1">
+          {floorStaff.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-8">No staff matching filters</p>
+          ) : floorStaff.map((s) => (
+            <div key={s.id} className="flex items-center justify-between py-1.5 border-b border-border last:border-0">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-sm font-medium text-card-foreground truncate">{s.name}</span>
+                <span className="text-xs text-muted-foreground">{DEPARTMENT_LABELS[s.department]}</span>
+              </div>
+              <span className={`text-xs px-1.5 py-0.5 rounded font-mono ${STAFF_SHIFT_COLORS[s.shift] || "bg-muted text-muted-foreground"}`}>
+                {s.shift !== "—" ? (STAFF_SHIFT_LABELS[s.shift] || s.shift) : "—"}
+              </span>
             </div>
-          </div>
-        )}
-
-        {showFinancials && (
-          <div className="cms-panel">
-            <div className="cms-header">Tables</div>
-            <div className="p-4 space-y-1">
-              {tables.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">No tables</p>
-              ) : tables.map(table => {
-                const trackerVal = tableTrackerTotals[table.id] || 0;
-                const result = table.closing_result !== null ? Number(table.closing_result) : trackerVal;
-                return (
-                  <div key={table.id} className="flex items-center justify-between py-1.5 border-b border-border last:border-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-card-foreground">{table.name}</span>
-                      <span className="text-xs text-muted-foreground">{table.game}</span>
-                      <span className={`text-xs px-1.5 py-0.5 rounded font-mono ${table.status === "open" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>
-                        {table.status}
-                      </span>
-                    </div>
-                    <span className={`font-mono text-xs font-bold ${result >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
-                      {result >= 0 ? "+" : ""}{formatCurrency(result)}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
+          ))}
+        </div>
       </div>
     </PageShell>
   );
