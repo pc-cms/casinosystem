@@ -147,6 +147,7 @@ type SectionsProps = {
   isStaffActive: boolean;
   isTablesActive: boolean;
   currentTab: string;
+  currentGroup: string;
   roles: AppRole[];
   onNavigate?: () => void;
   renderSubItems: (basePath: string, items: typeof TABLE_SUBITEMS) => JSX.Element;
@@ -154,7 +155,7 @@ type SectionsProps = {
 
 const SidebarSections = ({
   visibleItems, isManager, isPitActive, isStaffActive, isTablesActive,
-  currentTab, roles, onNavigate, renderSubItems,
+  currentTab, currentGroup, roles, onNavigate, renderSubItems,
 }: SectionsProps) => {
   const location = useLocation();
 
