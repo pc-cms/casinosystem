@@ -202,7 +202,7 @@ const Players = () => {
                     onClick={() => navigate(`/players/${p.id}`)}
                     className="grid items-center border-b border-border last:border-0 hover:bg-muted/50 cursor-pointer transition-colors absolute w-full px-3 gap-2"
                     style={{
-                      gridTemplateColumns: "70px minmax(180px,1.4fr) 110px 80px 60px 60px 110px 110px 110px 90px 110px 80px 110px 110px",
+                      gridTemplateColumns: "70px minmax(180px,1.4fr) 80px 60px 60px 110px 110px 110px 90px 110px 80px 110px 110px",
                       height: `${virtualRow.size}px`,
                       transform: `translateY(${virtualRow.start}px)`,
                     }}
@@ -212,9 +212,6 @@ const Players = () => {
                       {p.first_name} {p.last_name}
                       {p.nickname && <span className="text-xs text-muted-foreground ml-1.5">({p.nickname})</span>}
                     </div>
-                    <span className="font-mono text-xs text-muted-foreground truncate">
-                      {p.player_cards?.find(c => c.is_active)?.card_number || "—"}
-                    </span>
                     <span className={p.status === "active" ? "cms-status-active text-[11px]" : "cms-status-blacklist text-[11px]"}>
                       <span className={`w-1.5 h-1.5 rounded-full inline-block ${p.status === "active" ? "bg-success" : "bg-danger"}`} />
                       {p.status}
