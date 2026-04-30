@@ -945,6 +945,8 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
             })}
             <th className="text-center text-[10px] font-medium text-muted-foreground uppercase px-1 py-2 w-8">Σsh</th>
             <th className="text-center text-[10px] font-medium text-muted-foreground uppercase px-1 py-2 w-8">Σh</th>
+            <th className="text-center text-[10px] font-medium text-rose-600 dark:text-rose-400 uppercase px-1 py-2 w-8">A</th>
+            <th className="text-center text-[10px] font-medium text-amber-600 dark:text-amber-400 uppercase px-1 py-2 w-8">S</th>
           </tr>
         </thead>
         <tbody>
