@@ -392,20 +392,7 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
     return (
       <TooltipProvider delayDuration={150}>
         <div className="flex flex-col items-center py-3 gap-1 h-full">
-          {/* Logo + expand */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                onClick={onToggle}
-                className="w-10 h-10 flex items-center justify-center rounded-md hover:bg-sidebar-accent transition-colors text-sidebar-foreground"
-              >
-                <ChevronsRight className="w-4 h-4" />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="right">Expand sidebar</TooltipContent>
-          </Tooltip>
-
-          <div className="w-8 border-t border-sidebar-border my-1" />
+          {/* Nav icons start directly at the top (expand button moved to bottom) */}
 
           {/* Nav icons (only top-level items, no sub-tabs) */}
           <nav className="flex-1 flex flex-col items-center gap-0.5 w-full px-2 overflow-hidden">
@@ -493,6 +480,21 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
             </TooltipTrigger>
             <TooltipContent side="right">Sign out</TooltipContent>
           </Tooltip>
+
+          <div className="w-8 border-t border-sidebar-border my-1" />
+
+          {/* Expand sidebar — kept at the bottom in same position */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={onToggle}
+                className="w-10 h-10 flex items-center justify-center rounded-md hover:bg-sidebar-accent transition-colors text-sidebar-foreground"
+              >
+                <ChevronsRight className="w-4 h-4" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="right">Expand sidebar</TooltipContent>
+          </Tooltip>
         </div>
       </TooltipProvider>
     );
@@ -537,8 +539,23 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
           )}
         </div>
 
+      </div>
+
+      <SidebarSections
+        visibleItems={visibleItems}
+        isManager={isManager}
+        isPitActive={isPitActive}
+        isStaffActive={isStaffActive}
+        isTablesActive={isTablesActive}
+        currentTab={currentTab}
+        roles={roles as AppRole[]}
+        onNavigate={onNavigate}
+        renderSubItems={renderSubItems}
+      />
+
+      <div className="px-3 py-2 border-t border-sidebar-border space-y-2">
         {(!nativeManager || onToggle) && (
-          <div className="mt-3 flex items-center gap-2">
+          <div className="flex items-center gap-2">
             {!nativeManager && (
               managerOverride.active ? (
                 <button
@@ -574,21 +591,6 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
             )}
           </div>
         )}
-      </div>
-
-      <SidebarSections
-        visibleItems={visibleItems}
-        isManager={isManager}
-        isPitActive={isPitActive}
-        isStaffActive={isStaffActive}
-        isTablesActive={isTablesActive}
-        currentTab={currentTab}
-        roles={roles as AppRole[]}
-        onNavigate={onNavigate}
-        renderSubItems={renderSubItems}
-      />
-
-      <div className="px-3 py-2 border-t border-sidebar-border">
         <div className="flex items-center gap-2 px-1">
           <p className="text-xs font-medium text-sidebar-foreground truncate flex-1" title={displayName ?? undefined}>
             {displayName}
