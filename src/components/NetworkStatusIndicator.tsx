@@ -1,8 +1,14 @@
 import { Wifi, WifiOff, RefreshCw } from "lucide-react";
 import { useNetworkStatus } from "@/hooks/use-network-status";
 import { cn } from "@/lib/utils";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
-export const NetworkStatusIndicator = () => {
+interface Props {
+  /** Compact = only colored dot, with tooltip showing full status. */
+  compact?: boolean;
+}
+
+export const NetworkStatusIndicator = ({ compact = false }: Props) => {
   const { status, pendingCount } = useNetworkStatus();
 
   const config = {
@@ -30,6 +36,26 @@ export const NetworkStatusIndicator = () => {
   }[status];
 
   const Icon = config.icon;
+
+  if (compact) {
+    return (
+      <TooltipProvider delayDuration={150}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span
+              aria-label={config.label}
+              className={cn(
+                "inline-block w-2 h-2 rounded-full shrink-0",
+                config.dot,
+                status === "syncing" && "animate-pulse"
+              )}
+            />
+          </TooltipTrigger>
+          <TooltipContent side="right">{config.label}</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  }
 
   return (
     <div className={cn("flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-mono uppercase tracking-wider", config.bg, config.text)}>
