@@ -1,0 +1,8 @@
+{
+  "supabaseUrl": "__RUNTIME_SUPABASE_URL__",
+  "supabasePublishableKey": "__RUNTIME_SUPABASE_KEY__",
+  "casinoId": "__RUNTIME_CASINO_ID__",
+  "casinoSlug": "__RUNTIME_CASINO_SLUG__",
+  "localMode": false,
+  "version": "__RUNTIME_VERSION__"
+}
