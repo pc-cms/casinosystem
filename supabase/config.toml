@@ -1,7 +1,13 @@
 project_id = "rpehngjvwcnipvkouluu"
 
-[auth]
-min_password_length = 8
+[functions.pull-changes]
+verify_jwt = false
 
-[auth.password]
-hibp_enabled = true
+[functions.push-data]
+verify_jwt = false
+
+[functions.report-health]
+verify_jwt = false
+
+[functions.upload-backup]
+verify_jwt = false
