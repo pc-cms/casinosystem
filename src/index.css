@@ -1,11 +1,26 @@
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&family=Cinzel:wght@500;600;700&display=swap');
 
+@font-face {
+  font-family: 'Faberge';
+  src: url('/fonts/Faberge-Regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Faberge';
+  src: url('/fonts/Faberge-Italic.otf') format('opentype');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer utilities {
-  /* Faberge brand font (premium serif). Falls back to Cinzel if Faberge isn't installed. */
+  /* Faberge brand font (premium serif). */
   .font-faberge {
     font-family: 'Faberge', 'Cinzel', 'Trajan Pro', Georgia, serif;
     letter-spacing: 0.04em;
