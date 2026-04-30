@@ -204,12 +204,15 @@ services:
     <<: [*restart_policy, *default_logging]
     pull_policy: missing
     environment:
-      VITE_SUPABASE_URL: https://${LOCAL_DOMAIN}/api
-      VITE_SUPABASE_PUBLISHABLE_KEY: ${ANON_KEY}
-      VITE_SUPABASE_PROJECT_ID: local
-      VITE_CASINO_ID: ${CASINO_ID}
-      VITE_CASINO_SLUG: ${CASINO_SLUG}
-      VITE_LOCAL_MODE: "true"
+      # Передаются в frontend-entrypoint.sh, который патчит runtime-config.json
+      # и генерирует /manifest-local.json динамически под текущее казино.
+      RUNTIME_SUPABASE_URL: https://${LOCAL_DOMAIN}/api
+      RUNTIME_SUPABASE_KEY: ${ANON_KEY}
+      RUNTIME_CASINO_ID:    ${CASINO_ID}
+      RUNTIME_CASINO_SLUG:  ${CASINO_SLUG}
+      RUNTIME_CASINO_NAME:  ${CASINO_NAME:-${CASINO_SLUG}}
+      RUNTIME_LOCAL_MODE:   "true"
+      RUNTIME_VERSION:      ${FRONTEND_VERSION:-latest}
     volumes:
       - frontend_dist:/usr/share/nginx/html
     networks:
