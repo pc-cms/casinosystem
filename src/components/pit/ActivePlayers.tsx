@@ -577,17 +577,17 @@ const ActivePlayers = () => {
                             return (
                               <Tooltip key={tag}>
                                 <TooltipTrigger asChild>
-                                  <Badge variant="outline" className={`${def?.className ?? ""} text-xs px-1.5 py-0 leading-none gap-0.5 group/tag cursor-default`}>
+                                  <span className="inline-flex items-center gap-0.5 group/tag cursor-default text-base leading-none">
                                     <span aria-label={hint}>{label}</span>
                                     {isManager && (
                                       <button
                                         onClick={() => removeTag.mutate({ playerId: p.id, tag })}
-                                        className="opacity-0 group-hover/tag:opacity-100 transition-opacity ml-0.5"
+                                        className="opacity-0 group-hover/tag:opacity-100 transition-opacity"
                                       >
                                         <X className="w-2.5 h-2.5 text-destructive" />
                                       </button>
                                     )}
-                                  </Badge>
+                                  </span>
                                 </TooltipTrigger>
                                 <TooltipContent side="top">{hint}</TooltipContent>
                               </Tooltip>
