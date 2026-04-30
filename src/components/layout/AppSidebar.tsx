@@ -209,7 +209,56 @@ const SidebarSections = ({
     });
   };
 
+  const renderVirtualGroup = (
+    key: "attendance" | "rota",
+    item: NavItem,
+    sectionCtx: Section,
+    subs: VirtualSub[],
+  ) => {
+    const groupKey = `__virtual:${key}`;
+    const isGroupActive = subs.some(s => location.pathname === s.matchPath && currentTab === s.matchTab);
+    const isOpen = open[groupKey] ?? isGroupActive;
+    return (
+      <div key={`${sectionCtx}:${item.to}`}>
+        <button
+          type="button"
+          onClick={() => toggle(groupKey)}
+          className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
+            isGroupActive ? "bg-sidebar-accent text-sidebar-primary font-medium" : "text-sidebar-foreground hover:bg-sidebar-accent"
+          }`}
+        >
+          <item.icon className="w-4 h-4 shrink-0" />
+          <span className="flex-1 text-left">{item.label}</span>
+          {isOpen ? <ChevronDown className="w-3 h-3 text-muted-foreground" /> : <ChevronRight className="w-3 h-3 text-muted-foreground" />}
+        </button>
+        {isOpen && (
+          <div className="ml-4 mt-0.5 space-y-0.5 border-l border-sidebar-border pl-2">
+            {subs.map(sub => {
+              const active = location.pathname === sub.matchPath && currentTab === sub.matchTab;
+              return (
+                <NavLink
+                  key={sub.to}
+                  to={sub.to}
+                  end
+                  onClick={onNavigate}
+                  className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-xs transition-colors ${
+                    active ? "bg-sidebar-accent text-sidebar-primary font-medium" : "text-sidebar-foreground hover:bg-sidebar-accent"
+                  }`}
+                >
+                  <sub.icon className="w-3.5 h-3.5 shrink-0" />
+                  <span>{sub.label}</span>
+                </NavLink>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const renderItem = (item: NavItem, sectionCtx: Section) => {
+    if (item.to === "__attendance__") return renderVirtualGroup("attendance", item, sectionCtx, ATTENDANCE_SUBITEMS);
+    if (item.to === "__rota__") return renderVirtualGroup("rota", item, sectionCtx, ROTA_SUBITEMS);
     const { base: itemBase, tab: itemTab } = parseItemTo(item.to);
     const isTabAware = itemTab !== null;
     const isTabAwareActive =
