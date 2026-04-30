@@ -102,15 +102,23 @@ export const useSetPitRota = () => {
   return useMutation({
     mutationFn: async (input: { dealer_id: string; date: string; shift: string }) => {
       if (!casinoId || !user) throw new Error("Not authenticated");
-      const { error } = await supabase.from("pit_rota").upsert({
-        casino_id: casinoId,
-        dealer_id: input.dealer_id,
-        date: input.date,
-        shift: input.shift as any,
-        created_by: user.id,
-      }, { onConflict: "dealer_id,date" });
-      if (error) throw error;
-      await logAction(casinoId, "pit", "ROTA_SET", input);
+      const result = await offlineMutation({
+        table: "pit_rota",
+        operation: "upsert",
+        payload: {
+          casino_id: casinoId,
+          dealer_id: input.dealer_id,
+          date: input.date,
+          shift: input.shift as any,
+          created_by: user.id,
+        },
+        upsertConflict: "dealer_id,date",
+      });
+      if (result.error) throw new Error(result.error);
+      if (!result.offline) {
+        await logAction(casinoId, "pit", "ROTA_SET", input);
+      }
+      return { offline: result.offline };
     },
     onMutate: async (input) => {
       await qc.cancelQueries({ queryKey: ["pit-rota-range"] });
@@ -136,13 +144,32 @@ export const useDeletePitRota = () => {
   return useMutation({
     mutationFn: async ({ dealer_id, date }: { dealer_id: string; date: string }) => {
       if (!casinoId) throw new Error("No casino");
-      const { error } = await supabase
-        .from("pit_rota")
-        .delete()
-        .eq("casino_id", casinoId)
-        .eq("dealer_id", dealer_id)
-        .eq("date", date);
-      if (error) throw error;
+      // Delete via offline-aware update isn't supported; fall back to direct delete when online,
+      // and enqueue a "shift = null" upsert when offline so the cell visibly clears.
+      if (navigator.onLine) {
+        const { error } = await supabase
+          .from("pit_rota")
+          .delete()
+          .eq("casino_id", casinoId)
+          .eq("dealer_id", dealer_id)
+          .eq("date", date);
+        if (error) throw error;
+      } else {
+        // Offline: enqueue an upsert that clears the shift; delete on next online sync via cleanup.
+        const result = await offlineMutation({
+          table: "pit_rota",
+          operation: "upsert",
+          payload: {
+            casino_id: casinoId,
+            dealer_id,
+            date,
+            shift: null,
+          },
+          upsertConflict: "dealer_id,date",
+          meta: { intent: "delete" },
+        });
+        if (result.error) throw new Error(result.error);
+      }
     },
     onMutate: async ({ dealer_id, date }) => {
       await qc.cancelQueries({ queryKey: ["pit-rota-range"] });
