@@ -8,9 +8,12 @@
     <meta name="author" content="Casino System" />
 
     <link rel="icon" href="/favicon.png" type="image/png" />
-    <link rel="apple-touch-icon" href="/icon-192.png" />
+    <link rel="apple-touch-icon" href="/icon-192-any.png" />
     <link id="app-manifest" rel="manifest" href="/manifest.json" />
-    <meta name="theme-color" content="#1a1a2e" />
+    <meta name="theme-color" content="#000000" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Casino System" />
     <script>
       // Single PWA for the whole Casino System.
       // Name is dynamically branded per subdomain (arusha → "Casino System — Premier Arusha", etc.).
@@ -57,6 +60,8 @@
             if (fav) fav.setAttribute("href", "/arusha-logo.png");
             var apple = document.querySelector('link[rel="apple-touch-icon"]');
             if (apple) apple.setAttribute("href", "/arusha-logo.png");
+            var appleTitle = document.querySelector('meta[name="apple-mobile-web-app-title"]');
+            if (appleTitle) appleTitle.setAttribute("content", "Premier Arusha");
           }
         } catch (e) { /* noop */ }
       })();

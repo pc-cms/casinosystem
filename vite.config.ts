@@ -33,7 +33,7 @@ export default defineConfig(({ mode }) => ({
       registerType: "autoUpdate",
       injectRegister: null, // we register manually with iframe/preview guard
       devOptions: { enabled: false },
-      includeAssets: ["favicon.png", "icon-192.png"],
+      includeAssets: ["favicon.png", "icon-192-any.png", "icon-512-any.png", "icon-192-maskable.png", "icon-512-maskable.png", "arusha-logo.png"],
       manifest: false, // we ship our own /public/manifest.json
       workbox: {
         cleanupOutdatedCaches: true,
