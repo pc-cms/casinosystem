@@ -512,7 +512,7 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
             {isArusha ? (
               <>
                 <img src={arushaLogo} alt="Arusha" className="w-7 h-7 shrink-0 object-contain" />
-                <span className="font-faberge font-semibold text-base uppercase tracking-wide" style={{ color: "#E8C688" }}>PREMIER</span>
+                <span className="font-faberge font-semibold text-sm uppercase tracking-wide" style={{ color: "#E8C688" }}>PREMIER</span>
               </>
             ) : (
               <>
@@ -523,7 +523,7 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
           </div>
           {isArusha ? (
             <span
-              className="font-faberge font-semibold text-base uppercase tracking-wide truncate text-right"
+              className="font-faberge font-semibold text-sm uppercase tracking-wide truncate text-right"
               style={{ color: "#E8C688" }}
               title={isSummaryMode ? "All Casinos" : activeCasino?.name ?? "Arusha"}
             >
