@@ -12,6 +12,34 @@ import { Badge } from "@/components/ui/badge";
 import { Play, Square, Clock, Search, Check, Pencil } from "lucide-react";
 import { formatNumberSpaces } from "@/lib/currency";
 import { toast } from "sonner";
+import type { Database } from "@/integrations/supabase/types";
+
+// ============================================================================
+// SERVER-COMPUTED FIELDS GUARD
+// ----------------------------------------------------------------------------
+// These columns on `client_sessions` are computed exclusively by the DB
+// trigger `client_session_recalc` (BEFORE INSERT/UPDATE). The UI must NEVER
+// send them — doing so would race with the trigger and corrupt the per-segment
+// total_bet ledger.
+//
+// The types below produce a TypeScript compile error if someone tries to put
+// any of these keys into an insert/update payload from this file.
+// ============================================================================
+type ClientSessionRow = Database["public"]["Tables"]["client_sessions"]["Row"];
+type ClientSessionInsert = Database["public"]["Tables"]["client_sessions"]["Insert"];
+type ClientSessionUpdate = Database["public"]["Tables"]["client_sessions"]["Update"];
+
+type ServerComputedSessionField =
+  | "total_bet"
+  | "bet_changed_at"
+  | "duration_minutes";
+
+type SafeSessionInsert = Omit<ClientSessionInsert, ServerComputedSessionField> & {
+  [K in ServerComputedSessionField]?: never;
+};
+type SafeSessionUpdate = Omit<ClientSessionUpdate, ServerComputedSessionField> & {
+  [K in ServerComputedSessionField]?: never;
+};
 
 const HANDS_PER_HOUR: Record<string, number> = {
   "Blackjack": 35,
