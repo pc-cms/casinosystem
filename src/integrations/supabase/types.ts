@@ -704,6 +704,39 @@ export type Database = {
           },
         ]
       }
+      casino_visits_archive: {
+        Row: {
+          casino_id: string
+          checked_in_at: string
+          checked_in_by: string
+          checked_out_at: string | null
+          date: string
+          id: string
+          player_id: string
+          position: string
+        }
+        Insert: {
+          casino_id: string
+          checked_in_at?: string
+          checked_in_by: string
+          checked_out_at?: string | null
+          date?: string
+          id?: string
+          player_id: string
+          position?: string
+        }
+        Update: {
+          casino_id?: string
+          checked_in_at?: string
+          checked_in_by?: string
+          checked_out_at?: string | null
+          date?: string
+          id?: string
+          player_id?: string
+          position?: string
+        }
+        Relationships: []
+      }
       casinos: {
         Row: {
           breaklist_lock: string
@@ -1130,6 +1163,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      client_sessions_archive: {
+        Row: {
+          avg_bet: number
+          bet_changed_at: string | null
+          casino_id: string
+          created_at: string
+          created_by: string
+          duration_minutes: number
+          hands_played: number
+          id: string
+          player_id: string
+          started_at: string
+          stopped_at: string | null
+          table_id: string
+          total_bet: number
+        }
+        Insert: {
+          avg_bet?: number
+          bet_changed_at?: string | null
+          casino_id: string
+          created_at?: string
+          created_by: string
+          duration_minutes?: number
+          hands_played?: number
+          id?: string
+          player_id: string
+          started_at?: string
+          stopped_at?: string | null
+          table_id: string
+          total_bet?: number
+        }
+        Update: {
+          avg_bet?: number
+          bet_changed_at?: string | null
+          casino_id?: string
+          created_at?: string
+          created_by?: string
+          duration_minutes?: number
+          hands_played?: number
+          id?: string
+          player_id?: string
+          started_at?: string
+          stopped_at?: string | null
+          table_id?: string
+          total_bet?: number
+        }
+        Relationships: []
       }
       daily_summaries: {
         Row: {
@@ -2635,6 +2716,7 @@ export type Database = {
     }
     Functions: {
       activity_logs_purge: { Args: { p_days?: number }; Returns: number }
+      cleanup_old_data: { Args: never; Returns: Json }
       generate_card_number: { Args: never; Returns: string }
       get_business_date_for_casino: {
         Args: { _casino_id: string }
