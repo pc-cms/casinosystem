@@ -90,7 +90,6 @@ const Staff = () => {
     const [y, m] = month.split("-").map(Number);
     const d = new Date(y, m - 1 + delta, 1);
     const next = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-    if (next > currentMonth) return;
     setMonth(next);
   };
 
@@ -99,8 +98,13 @@ const Staff = () => {
     return `${MONTH_NAMES[m - 1]} ${y}`;
   }, [month]);
 
-  const canGoPrev = isMgr;
-  const canGoNext = month < currentMonth;
+  const [searchParams] = useSearchParams();
+  const activeTab = searchParams.get("tab") || "employee";
+
+  const isRotaTab = activeTab.startsWith("rota_");
+  const isPast = month < currentMonth;
+  // Rota allows next month (filled in advance); Attendance does not.
+  const canGoNext = isRotaTab ? true : month < currentMonth;
 
   const [searchParams] = useSearchParams();
   const activeTab = searchParams.get("tab") || "employee";
