@@ -847,7 +847,9 @@ const DepartmentBlock = ({
 );
 
 // =================== STAFF ATTENDANCE GRID ===================
-const StaffAttendanceGrid = ({ month, monthLabel, readOnly = false }: { month: string; monthLabel: string; readOnly?: boolean }) => {
+const StaffAttendanceGrid = ({ month, monthLabel, groupKey = "floor", readOnly = false }: { month: string; monthLabel: string; groupKey?: RotaGroupKey; readOnly?: boolean }) => {
+  const group = ROTA_GROUPS[groupKey];
+  const groupDepts = group.departments as readonly StaffDepartment[];
   const [y, m] = month.split("-").map(Number);
   const daysInMonth = new Date(y, m, 0).getDate();
   const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
@@ -865,7 +867,10 @@ const StaffAttendanceGrid = ({ month, monthLabel, readOnly = false }: { month: s
     setAttendanceRaw.mutate(v);
   } };
 
-  const activeStaff = staff.filter(s => s.is_active);
+  const activeStaff = useMemo(
+    () => staff.filter(s => s.is_active && groupDepts.includes(s.department as StaffDepartment)),
+    [staff, groupDepts]
+  );
 
   const today = new Date();
   const todayDay = today.getDate();
