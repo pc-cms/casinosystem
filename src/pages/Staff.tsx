@@ -848,8 +848,6 @@ const DepartmentBlock = ({
 
 // =================== STAFF ATTENDANCE GRID ===================
 const StaffAttendanceGrid = ({ month, monthLabel, groupKey = "floor", readOnly = false }: { month: string; monthLabel: string; groupKey?: RotaGroupKey; readOnly?: boolean }) => {
-  const group = ROTA_GROUPS[groupKey];
-  const groupDepts = group.departments as readonly StaffDepartment[];
   const [y, m] = month.split("-").map(Number);
   const daysInMonth = new Date(y, m, 0).getDate();
   const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
@@ -867,10 +865,7 @@ const StaffAttendanceGrid = ({ month, monthLabel, groupKey = "floor", readOnly =
     setAttendanceRaw.mutate(v);
   } };
 
-  const activeStaff = useMemo(
-    () => staff.filter(s => s.is_active && groupDepts.includes(s.department as StaffDepartment)),
-    [staff, groupDepts]
-  );
+  const activeStaff = staff.filter(s => s.is_active);
 
   const today = new Date();
   const todayDay = today.getDate();
@@ -917,20 +912,20 @@ const StaffAttendanceGrid = ({ month, monthLabel, groupKey = "floor", readOnly =
     return { shifts, hours, absent, sick };
   };
 
-  const visibleDepts = filterDept === "all" ? groupDepts : groupDepts.filter(d => d === filterDept);
+  const visibleDepts = filterDept === "all" ? DEPARTMENT_ORDER : DEPARTMENT_ORDER.filter(d => d === filterDept);
 
   const grouped = useMemo(() => {
     const groups: Record<string, typeof activeStaff> = {};
-    groupDepts.forEach(d => { groups[d] = []; });
+    DEPARTMENT_ORDER.forEach(d => { groups[d] = []; });
     activeStaff.forEach(s => {
       if (!groups[s.department]) groups[s.department] = [];
       groups[s.department].push(s);
     });
     return groups;
-  }, [activeStaff, groupDepts]);
+  }, [activeStaff]);
 
   // Departments that actually have members
-  const availableDepts = groupDepts.filter(d => (grouped[d] || []).length > 0);
+  const availableDepts = DEPARTMENT_ORDER.filter(d => (grouped[d] || []).length > 0);
 
   return (
     <>
