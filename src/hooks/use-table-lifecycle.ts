@@ -319,25 +319,31 @@ export const useReopenSingleTable = () => {
   });
 };
 
-// Close all tables (Cashier action) — sets status to 'closed'
+// Close all tables (Cashier action) — sets status to 'closed' (offline-aware)
 export const useCloseAllTables = () => {
   const qc = useQueryClient();
   const { casinoId } = useAuth();
   return useMutation({
     mutationFn: async (tableIds: string[]) => {
       if (!casinoId) throw new Error("No casino");
+      let anyOffline = false;
       for (const id of tableIds) {
-        const { error } = await supabase
-          .from("gaming_tables")
-          .update({ status: "closed" as any })
-          .eq("id", id);
-        if (error) throw error;
+        const res = await offlineMutation({
+          table: "gaming_tables",
+          operation: "update",
+          payload: { _match: { id }, status: "closed" },
+        });
+        if (res.error) throw new Error(res.error);
+        if (res.offline) anyOffline = true;
       }
-      await logAction(casinoId, "system", "TABLES_CLOSED_BY_CASHIER", { table_ids: tableIds });
+      if (!anyOffline) {
+        await logAction(casinoId, "system", "TABLES_CLOSED_BY_CASHIER", { table_ids: tableIds });
+      }
+      return { offline: anyOffline };
     },
-    onSuccess: () => {
+    onSuccess: (res: any) => {
       qc.invalidateQueries({ queryKey: ["gaming-tables"] });
-      toast.success("Tables closed");
+      toast.success(res?.offline ? "Tables closed (offline — will sync)" : "Tables closed");
     },
     onError: (e) => toast.error(e.message),
   });
