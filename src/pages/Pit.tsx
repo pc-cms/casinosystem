@@ -238,8 +238,8 @@ const Pit = () => {
 
       <Suspense fallback={<><CardSkeleton count={2} /><TableSkeleton rows={5} cols={4} /></>}>
         {activeTab === "employee" && <DealerEmployeeList />}
-        {activeTab === "rota" && <RotaGrid month={month} />}
-        {activeTab === "attendance" && <AttendanceGrid month={month} />}
+        {activeTab === "rota" && <RotaGrid month={month} readOnly={isPast && !isManager} />}
+        {activeTab === "attendance" && <AttendanceGrid month={month} readOnly={isPast && !isManager} />}
         {activeTab === "breaklist" && (
           <BreaklistGrid
             date={date}
