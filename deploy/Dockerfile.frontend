@@ -1,0 +1,69 @@
+# ──────────────────────────────────────────────────────────────
+# Casino System — frontend Docker image
+# Multistage:
+#   1) builder: ставит зависимости + собирает Vite
+#   2) runtime: nginx:alpine + entrypoint, подменяющий runtime-config.json
+#
+# Образ публикуется как ghcr.io/<org>/cms-frontend:vX.Y.Z
+# и используется на каждом локальном сервере казино.
+#
+# Build:
+#   docker build -f deploy/Dockerfile.frontend -t cms-frontend:dev .
+#
+# Run (локально, для теста):
+#   docker run --rm -p 8080:80 \
+#     -e RUNTIME_SUPABASE_URL=https://arusha.local/api \
+#     -e RUNTIME_SUPABASE_KEY=eyJhbGc... \
+#     -e RUNTIME_CASINO_ID=00000000-... \
+#     -e RUNTIME_CASINO_SLUG=arusha \
+#     -e RUNTIME_LOCAL_MODE=true \
+#     -e RUNTIME_VERSION=0.1.0 \
+#     cms-frontend:dev
+# ──────────────────────────────────────────────────────────────
+
+# ───── Stage 1: builder ─────
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Зависимости: сначала только манифесты для лучшего кеширования
+COPY package.json package-lock.json* bun.lockb* ./
+RUN if [ -f bun.lockb ]; then \
+      npm install -g bun && bun install --frozen-lockfile; \
+    elif [ -f package-lock.json ]; then \
+      npm ci; \
+    else \
+      npm install; \
+    fi
+
+# Исходники
+COPY . .
+
+# Билд
+ARG VITE_BUILD_VERSION=0.1.0
+ENV VITE_BUILD_VERSION=$VITE_BUILD_VERSION
+RUN npm run build
+
+
+# ───── Stage 2: runtime ─────
+FROM nginx:1.27-alpine AS runtime
+
+# Утилиты для entrypoint
+RUN apk add --no-cache bash gettext jq
+
+# Удаляем дефолтные конфиги — наш собственный nginx.conf ставится из docker-compose volume.
+# Тут оставляем только статику.
+RUN rm -rf /usr/share/nginx/html/*
+
+# Копируем билд
+COPY --from=builder /app/dist /usr/share/nginx/html
+
+# Entrypoint, подменяющий placeholders в runtime-config.json
+COPY deploy/docker/frontend-entrypoint.sh /docker-entrypoint.d/40-runtime-config.sh
+RUN chmod +x /docker-entrypoint.d/40-runtime-config.sh
+
+# Healthcheck
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD wget -qO- http://127.0.0.1/healthz >/dev/null || exit 1
+
+EXPOSE 80
