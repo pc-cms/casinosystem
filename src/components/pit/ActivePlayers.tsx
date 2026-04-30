@@ -630,8 +630,12 @@ const ActivePlayers = () => {
                               <button
                                 key={t.id}
                                 onClick={async () => {
-                                  // Update position to table
-                                  await supabase.from("casino_visits").update({ position: "table" }).eq("casino_id", casinoId!).eq("player_id", p.id).eq("date", today);
+                                  // Update position to table (offline-aware)
+                                  await offlineMutation({
+                                    table: "casino_visits",
+                                    operation: "update",
+                                    payload: { _match: { casino_id: casinoId!, player_id: p.id, date: today }, position: "table" },
+                                  });
                                   changeTable.mutate({ playerId: p.id, tableId: t.id, avgBet: 0 });
                                 }}
                                 className={`px-3 py-1 text-xs rounded hover:bg-muted transition-colors text-left font-mono ${p.tableName === t.name ? "bg-primary/10 text-primary font-medium" : "text-foreground"}`}
@@ -643,14 +647,20 @@ const ActivePlayers = () => {
                             <button
                               onClick={async () => {
                                 if (p.isLive) {
-                                  await supabase
-                                    .from("client_sessions")
-                                    .update({ stopped_at: new Date().toISOString() })
-                                    .eq("casino_id", casinoId!)
-                                    .eq("player_id", p.id)
-                                    .is("stopped_at", null);
+                                  await offlineMutation({
+                                    table: "client_sessions",
+                                    operation: "update",
+                                    payload: {
+                                      _match: { casino_id: casinoId!, player_id: p.id, stopped_at: null as any },
+                                      stopped_at: new Date().toISOString(),
+                                    },
+                                  });
                                 }
-                                await supabase.from("casino_visits").update({ position: "hall" }).eq("casino_id", casinoId!).eq("player_id", p.id).eq("date", today);
+                                await offlineMutation({
+                                  table: "casino_visits",
+                                  operation: "update",
+                                  payload: { _match: { casino_id: casinoId!, player_id: p.id, date: today }, position: "hall" },
+                                });
                                 queryClient.invalidateQueries({ queryKey: ["client_sessions"] });
                                 queryClient.invalidateQueries({ queryKey: ["casino_visits"] });
                                 toast.success("Moved to Hall");
@@ -663,14 +673,20 @@ const ActivePlayers = () => {
                             <button
                               onClick={async () => {
                                 if (p.isLive) {
-                                  await supabase
-                                    .from("client_sessions")
-                                    .update({ stopped_at: new Date().toISOString() })
-                                    .eq("casino_id", casinoId!)
-                                    .eq("player_id", p.id)
-                                    .is("stopped_at", null);
+                                  await offlineMutation({
+                                    table: "client_sessions",
+                                    operation: "update",
+                                    payload: {
+                                      _match: { casino_id: casinoId!, player_id: p.id, stopped_at: null as any },
+                                      stopped_at: new Date().toISOString(),
+                                    },
+                                  });
                                 }
-                                await supabase.from("casino_visits").update({ position: "slots" }).eq("casino_id", casinoId!).eq("player_id", p.id).eq("date", today);
+                                await offlineMutation({
+                                  table: "casino_visits",
+                                  operation: "update",
+                                  payload: { _match: { casino_id: casinoId!, player_id: p.id, date: today }, position: "slots" },
+                                });
                                 queryClient.invalidateQueries({ queryKey: ["client_sessions"] });
                                 queryClient.invalidateQueries({ queryKey: ["casino_visits"] });
                                 toast.success("Moved to Slots");
