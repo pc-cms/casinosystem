@@ -917,20 +917,20 @@ const StaffAttendanceGrid = ({ month, monthLabel, groupKey = "floor", readOnly =
     return { shifts, hours, absent, sick };
   };
 
-  const visibleDepts = filterDept === "all" ? DEPARTMENT_ORDER : DEPARTMENT_ORDER.filter(d => d === filterDept);
+  const visibleDepts = filterDept === "all" ? groupDepts : groupDepts.filter(d => d === filterDept);
 
   const grouped = useMemo(() => {
     const groups: Record<string, typeof activeStaff> = {};
-    DEPARTMENT_ORDER.forEach(d => { groups[d] = []; });
+    groupDepts.forEach(d => { groups[d] = []; });
     activeStaff.forEach(s => {
       if (!groups[s.department]) groups[s.department] = [];
       groups[s.department].push(s);
     });
     return groups;
-  }, [activeStaff]);
+  }, [activeStaff, groupDepts]);
 
   // Departments that actually have members
-  const availableDepts = DEPARTMENT_ORDER.filter(d => (grouped[d] || []).length > 0);
+  const availableDepts = groupDepts.filter(d => (grouped[d] || []).length > 0);
 
   return (
     <>
