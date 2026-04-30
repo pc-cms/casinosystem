@@ -58,6 +58,8 @@ while [[ $# -gt 0 ]]; do
     --casino-id)      CLI[CASINO_ID]="$2";     NONINTERACTIVE=1; shift 2 ;;
     --sync-secret)    CLI[SYNC_SECRET]="$2";   NONINTERACTIVE=1; shift 2 ;;
     --github-owner)   CLI[GITHUB_OWNER]="$2";  NONINTERACTIVE=1; shift 2 ;;
+    --upgrade-to)     CLI[UPGRADE_TO]="$2";    shift 2 ;;
+    --skip-update-check) SKIP_UPDATE_CHECK=1;  shift ;;
     -h|--help)
       sed -n '4,30p' "$0"; exit 0 ;;
     *) fail "Неизвестный аргумент: $1" ;;
