@@ -60,6 +60,8 @@
             if (fav) fav.setAttribute("href", "/arusha-logo.png");
             var apple = document.querySelector('link[rel="apple-touch-icon"]');
             if (apple) apple.setAttribute("href", "/arusha-logo.png");
+            var appleTitle = document.querySelector('meta[name="apple-mobile-web-app-title"]');
+            if (appleTitle) appleTitle.setAttribute("content", "Premier Arusha");
           }
         } catch (e) { /* noop */ }
       })();
