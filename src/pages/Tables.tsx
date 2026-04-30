@@ -16,7 +16,6 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { CloseTableWizard } from "@/components/tables/CloseTableWizard";
 
 const Tables = () => {
-  const { roles } = useAuth();
   const businessDay = getBusinessDate();
   const [date, setDate] = useState(businessDay);
   const { data: tables = [] } = useGamingTables();
