@@ -520,7 +520,7 @@ const DealerEmployeeList = () => {
 };
 
 // =================== MONTHLY ROTA GRID ===================
-const RotaGrid = ({ month }: { month: string }) => {
+const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boolean }) => {
   const [y, m] = month.split("-").map(Number);
   const daysInMonth = new Date(y, m, 0).getDate();
   const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
