@@ -635,11 +635,13 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
             <LogOut className="w-3.5 h-3.5" />
           </button>
         </div>
-        {managerOverride.active && !nativeManager && (
-          <span className="text-[9px] font-mono px-1 py-0.5 rounded bg-primary/20 text-primary font-bold mt-1 ml-1 inline-block">
-            Manager ↑
-          </span>
-        )}
+        <div className="min-h-[14px]">
+          {managerOverride.active && !nativeManager && (
+            <span className="text-[9px] font-mono px-1 py-0.5 rounded bg-primary/20 text-primary font-bold ml-1 inline-block">
+              Manager ↑
+            </span>
+          )}
+        </div>
         <div className="mt-1 pt-1 border-t border-sidebar-border/50">
           <VersionIndicator />
         </div>
