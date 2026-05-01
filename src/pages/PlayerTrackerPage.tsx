@@ -16,13 +16,15 @@ import { ResponsiveDialog, ResponsiveDialogFooter } from "@/components/ui/respon
 import { formatNumberSpaces } from "@/lib/currency";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import { getBusinessDate, businessDayHourUTC } from "@/lib/business-day";
 
 const PlayerTrackerPage = () => {
   const { data: players = [] } = usePlayers();
   const { data: tables = [] } = useGamingTables();
   const { casinoId, user } = useAuth();
   const queryClient = useQueryClient();
-  const today = new Date().toISOString().split("T")[0];
+  const today = getBusinessDate();
+  const windowStartUTC = businessDayHourUTC(today, 13);
 
   const { data: sessions = [] } = useQuery({
     queryKey: ["client_sessions", casinoId, today],
@@ -31,7 +33,7 @@ const PlayerTrackerPage = () => {
         .from("client_sessions")
         .select("*")
         .eq("casino_id", casinoId!)
-        .gte("created_at", `${today}T00:00:00`)
+        .gte("started_at", windowStartUTC)
         .order("started_at", { ascending: false });
       return (data || []) as any[];
     },
