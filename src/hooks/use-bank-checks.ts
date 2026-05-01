@@ -64,9 +64,14 @@ export const useCreateBankCheck = () => {
     mutationFn: async (input: BankCheckInput) => {
       if (!activeCasinoId) throw new Error("No active casino");
       if (!user?.id) throw new Error("Not authenticated");
+      const insertPayload: SafeBankCheckInsert = {
+        ...input,
+        casino_id: activeCasinoId,
+        created_by: user.id,
+      };
       const { data, error } = await supabase
         .from("bank_checks")
-        .insert({ ...input, casino_id: activeCasinoId, created_by: user.id })
+        .insert(insertPayload)
         .select()
         .single();
       if (error) throw error;
@@ -83,7 +88,7 @@ export const useCreateBankCheck = () => {
 export const useUpdateBankCheck = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, patch }: { id: string; patch: Partial<BankCheckInput> }) => {
+    mutationFn: async ({ id, patch }: { id: string; patch: SafeBankCheckUpdate }) => {
       const { error } = await supabase.from("bank_checks").update(patch).eq("id", id);
       if (error) throw error;
     },
