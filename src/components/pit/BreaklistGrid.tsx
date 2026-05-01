@@ -141,12 +141,6 @@ const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }
     //   - Inspector slot (Pi / BJi / ARi)
     //   - Croupier slot  (ARc, roulette only)
     // BR is manual — never auto-filled. Block conflicts with an error.
-    const roleSlot = (r: string): "D" | "I" | "C" | null => {
-      if (r === "P" || r === "BJ" || r === "AR") return "D";
-      if (r === "Pi" || r === "BJi" || r === "ARi") return "I";
-      if (r === "ARc") return "C";
-      return null;
-    };
     const slot = roleSlot(role);
     if (tableId && slot) {
       const conflict = breaklist.find((b: any) => {
