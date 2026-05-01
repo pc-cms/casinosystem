@@ -127,7 +127,7 @@ const PlayerProfile = () => {
     const realResult = Number.isFinite(result) ? result : drop - cashout - comps;
     const hold = holdPct(drop, cashout, comps);
     const firstVisit = visits.length ? visits[visits.length - 1].checked_in_at : null;
-    const lastVisit = visits[0]?.checked_in_at || null;
+    const lastVisit = visits[0] ? (visits[0].checked_out_at || visits[0].checked_in_at) : null;
     const daysSinceLast = lastVisit
       ? Math.floor((Date.now() - new Date(lastVisit).getTime()) / 86400000)
       : null;
