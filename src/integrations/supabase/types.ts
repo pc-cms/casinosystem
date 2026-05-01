@@ -52,6 +52,36 @@ export type Database = {
           },
         ]
       }
+      activity_logs_archive: {
+        Row: {
+          action: string
+          casino_id: string
+          category: Database["public"]["Enums"]["log_category"]
+          created_at: string
+          details: Json
+          id: string
+          operator_id: string
+        }
+        Insert: {
+          action: string
+          casino_id: string
+          category: Database["public"]["Enums"]["log_category"]
+          created_at?: string
+          details?: Json
+          id?: string
+          operator_id: string
+        }
+        Update: {
+          action?: string
+          casino_id?: string
+          category?: Database["public"]["Enums"]["log_category"]
+          created_at?: string
+          details?: Json
+          id?: string
+          operator_id?: string
+        }
+        Relationships: []
+      }
       bank_checks: {
         Row: {
           amount: number
@@ -279,6 +309,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      breaklist_logs_archive: {
+        Row: {
+          action: string
+          breaklist_id: string | null
+          casino_id: string
+          created_at: string
+          date: string
+          dealer_id: string
+          id: string
+          new_role: string | null
+          new_table_id: string | null
+          old_role: string | null
+          old_table_id: string | null
+          operator_id: string
+          time_slot: string
+        }
+        Insert: {
+          action: string
+          breaklist_id?: string | null
+          casino_id: string
+          created_at?: string
+          date: string
+          dealer_id: string
+          id?: string
+          new_role?: string | null
+          new_table_id?: string | null
+          old_role?: string | null
+          old_table_id?: string | null
+          operator_id: string
+          time_slot: string
+        }
+        Update: {
+          action?: string
+          breaklist_id?: string | null
+          casino_id?: string
+          created_at?: string
+          date?: string
+          dealer_id?: string
+          id?: string
+          new_role?: string | null
+          new_table_id?: string | null
+          old_role?: string | null
+          old_table_id?: string | null
+          operator_id?: string
+          time_slot?: string
+        }
+        Relationships: []
       }
       budget_categories: {
         Row: {
@@ -1218,6 +1296,33 @@ export type Database = {
           stopped_at?: string | null
           table_id?: string
           total_bet?: number
+        }
+        Relationships: []
+      }
+      cron_run_log: {
+        Row: {
+          created_at: string
+          details: Json | null
+          duration_ms: number | null
+          id: number
+          job_name: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          details?: Json | null
+          duration_ms?: number | null
+          id?: number
+          job_name: string
+          status: string
+        }
+        Update: {
+          created_at?: string
+          details?: Json | null
+          duration_ms?: number | null
+          id?: number
+          job_name?: string
+          status?: string
         }
         Relationships: []
       }
@@ -2701,6 +2806,18 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      cron_job_health: {
+        Row: {
+          age: string | null
+          is_unhealthy: boolean | null
+          job_name: string | null
+          last_details: Json | null
+          last_duration_ms: number | null
+          last_run_at: string | null
+          last_status: string | null
+        }
+        Relationships: []
       }
       cron_recent_runs: {
         Row: {
