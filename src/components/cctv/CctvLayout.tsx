@@ -3,6 +3,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useCasino } from "@/lib/casino-context";
 import { useTheme } from "@/lib/theme";
 import { NetworkStatusIndicator } from "@/components/NetworkStatusIndicator";
+import { LogoutButton } from "@/components/LogoutButton";
 import {
   LayoutDashboard, Users, Landmark, Table2, ListChecks, CalendarDays,
   ClipboardCheck, ClipboardList, ShieldAlert, Eye, Sun, Moon, LogOut,
