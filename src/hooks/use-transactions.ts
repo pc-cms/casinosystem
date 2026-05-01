@@ -4,6 +4,7 @@ import { useAuth } from "@/lib/auth-context";
 import { offlineMutation } from "@/lib/offline-mutation";
 import { toast } from "sonner";
 import { formatNumberSpaces } from "@/lib/currency";
+import type { SafeTransactionInsert } from "@/lib/safe-inserts";
 
 export const useTransactions = (date?: string) => {
   const { casinoId } = useAuth();
