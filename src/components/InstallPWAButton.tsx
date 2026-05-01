@@ -46,8 +46,15 @@ export const InstallPWAButton = ({ className, label = "Install App" }: { classNa
 
   if (installed) {
     return (
-      <div className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-mono uppercase tracking-wider bg-emerald-500/15 text-emerald-500 ${className ?? ""}`}>
-        <CheckCircle2 className="w-3 h-3" />
+      <div
+        className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-mono uppercase tracking-wider ${className ?? ""}`}
+        style={{
+          backgroundColor: "rgba(232, 198, 136, 0.12)",
+          color: "#E8C688",
+          border: "1px solid rgba(232, 198, 136, 0.35)",
+        }}
+      >
+        <CheckCircle2 className="w-2.5 h-2.5" />
         <span>Installed</span>
       </div>
     );

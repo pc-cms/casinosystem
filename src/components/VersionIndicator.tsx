@@ -16,6 +16,7 @@ import { RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { getRuntimeConfig } from "@/lib/runtime-config";
+import { InstallPWAButton } from "@/components/InstallPWAButton";
 
 declare const __APP_VERSION__: string | undefined;
 
@@ -87,16 +88,19 @@ export const VersionIndicator = ({ collapsed = false }: Props) => {
   }
 
   return (
-    <button
-      onClick={handleCheck}
-      title="Проверить обновления"
-      className="w-full flex items-center justify-between gap-2 px-2 py-1 rounded text-[10px] font-mono text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors group"
-    >
-      <span className="truncate">v{version}</span>
-      <span className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-        <RefreshCw className={cn("w-2.5 h-2.5", checking && "animate-spin")} />
-        <span>check</span>
-      </span>
-    </button>
+    <div className="w-full flex items-center justify-between gap-2">
+      <button
+        onClick={handleCheck}
+        title="Проверить обновления"
+        className="flex-1 min-w-0 flex items-center justify-between gap-2 px-2 py-1 rounded text-[10px] font-mono text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors group"
+      >
+        <span className="truncate">v{version}</span>
+        <span className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <RefreshCw className={cn("w-2.5 h-2.5", checking && "animate-spin")} />
+          <span>check</span>
+        </span>
+      </button>
+      <InstallPWAButton />
+    </div>
   );
 };
