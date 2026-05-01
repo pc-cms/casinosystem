@@ -47,12 +47,16 @@ export const useUpdateChipConservationMode = () => {
     },
     onSuccess: (mode) => {
       qc.invalidateQueries({ queryKey: ["chip-conservation-mode"] });
+      qc.invalidateQueries({ queryKey: ["chip-conservation"] });
       toast.success(
         mode === "strict"
           ? "Strict mode: hard chip invariant enforced"
           : "Observation mode: anomalies tracked monthly, no hard block"
       );
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => {
+      console.error("[chip-conservation-mode] update failed:", e);
+      toast.error(e.message);
+    },
   });
 };
