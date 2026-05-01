@@ -22,6 +22,8 @@
 import { supabase } from "@/integrations/supabase/client";
 
 let initialized = false;
+let lockHeld = false;
+let waitingForLock = false;
 
 export function initAuthLeaderElection() {
   if (initialized) return;
@@ -39,10 +41,16 @@ export function initAuthLeaderElection() {
 
   // Try to acquire the lock. The first tab wins and holds it for its lifetime.
   // When that tab closes, the lock is released and the next waiting tab takes over.
-  void navigator.locks.request(
-    "supabase-auth-refresh-leader",
-    { mode: "exclusive" },
+  const requestLeaderLock = () => {
+    if (lockHeld || waitingForLock) return;
+    waitingForLock = true;
+
+    void navigator.locks.request(
+      "supabase-auth-refresh-leader",
+      { mode: "exclusive" },
     async () => {
+      waitingForLock = false;
+      lockHeld = true;
       // We are the leader. Run the refresh loop here.
       await supabase.auth.startAutoRefresh();
 
@@ -52,12 +60,20 @@ export function initAuthLeaderElection() {
       await new Promise<void>((resolve) => {
         const release = () => {
           window.removeEventListener("pagehide", release);
+          void supabase.auth.stopAutoRefresh();
+          lockHeld = false;
           resolve();
         };
         window.addEventListener("pagehide", release, { once: true });
       });
     },
-  );
+    ).catch(() => {
+      waitingForLock = false;
+      lockHeld = false;
+    });
+  };
+
+  requestLeaderLock();
 
   // When the tab becomes visible again, give it a chance to become leader if
   // the previous leader died. The lock request above keeps waiting in the
@@ -67,6 +83,8 @@ export function initAuthLeaderElection() {
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "hidden") {
       // No-op: leader keeps refreshing in the background, followers are already paused.
+    } else {
+      requestLeaderLock();
     }
   });
 }
