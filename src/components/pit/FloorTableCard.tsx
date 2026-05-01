@@ -17,12 +17,13 @@ interface Props {
   players: SeatedPlayer[];
   onOpen: () => void;
   onPlayerDropped: (playerId: string) => void;
+  onStopPlayer?: (playerId: string) => void;
   isTouch: boolean;
 }
 
 const PREVIEW_LIMIT = 4;
 
-const FloorTableCard = ({ table, players, onOpen, onPlayerDropped, isTouch }: Props) => {
+const FloorTableCard = ({ table, players, onOpen, onPlayerDropped, onStopPlayer, isTouch }: Props) => {
   const [dragOver, setDragOver] = useState(false);
   const isClosed = table.status === "closed";
   const count = players.length;
@@ -47,14 +48,16 @@ const FloorTableCard = ({ table, players, onOpen, onPlayerDropped, isTouch }: Pr
   };
 
   const card = (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onOpen}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpen(); } }}
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
       onDrop={onDrop}
       className={cn(
-        "cms-panel text-left w-full p-2 transition-all flex flex-col gap-1.5 min-h-[110px]",
+        "cms-panel text-left w-full p-2 transition-all flex flex-col gap-1.5 min-h-[110px] cursor-pointer",
         "hover:border-primary/50 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary/40",
         isClosed && "opacity-50 hover:border-border hover:shadow-none cursor-not-allowed",
         dragOver && "border-primary ring-2 ring-primary/40 bg-primary/5"
@@ -88,6 +91,7 @@ const FloorTableCard = ({ table, players, onOpen, onPlayerDropped, isTouch }: Pr
               player={p}
               draggable={!isTouch && !isClosed}
               compact
+              onStop={onStopPlayer}
             />
           ))
         )}
@@ -95,7 +99,7 @@ const FloorTableCard = ({ table, players, onOpen, onPlayerDropped, isTouch }: Pr
           <span className="text-[9px] font-mono text-muted-foreground pl-1">+{overflow} more</span>
         )}
       </div>
-    </button>
+    </div>
   );
 
   if (count === 0) return card;

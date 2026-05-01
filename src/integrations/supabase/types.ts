@@ -3041,6 +3041,7 @@ export type Database = {
     }
     Functions: {
       activity_logs_purge: { Args: { p_days?: number }; Returns: number }
+      auto_close_business_day: { Args: never; Returns: Json }
       cleanup_old_data: { Args: never; Returns: Json }
       compute_shift_close: { Args: { p_shift_id: string }; Returns: Json }
       cron_health_overview: {
