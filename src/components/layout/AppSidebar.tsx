@@ -57,7 +57,9 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/expenses", icon: Receipt, label: "Expenses", roles: ["super_admin", "manager", "cashier", "finance_manager"], section: "CASHIER" },
 
   // RECEPTION — Players & entry
-  { to: "/players", icon: Users, label: "Players", roles: ["super_admin", "manager", "finance_manager"], section: "RECEPTION" },
+  { to: "/reception", icon: DoorOpen, label: "Reception", roles: ["super_admin", "manager", "reception", "finance_manager"], section: "RECEPTION" },
+  { to: "/in-casino", icon: UserCheck, label: "In Casino", roles: ["super_admin", "manager", "reception", "pit", "finance_manager", "surveillance"], section: "RECEPTION" },
+  { to: "/players", icon: Users, label: "Players", roles: ["super_admin", "manager", "reception", "finance_manager"], section: "RECEPTION" },
   { to: "/blacklist", icon: ShieldAlert, label: "Blacklist", roles: ["super_admin", "manager", "reception", "finance_manager", "surveillance"], section: "RECEPTION" },
 
   // FINANCE — alphabetical, separate routes (no tabs)
