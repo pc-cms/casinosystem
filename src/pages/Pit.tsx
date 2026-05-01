@@ -651,7 +651,7 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
     return counts;
   };
 
-  const renderDealerRows = (dealerList: any[], label: string, accentColor: string, extraRowClass = "") => (
+  const renderDealerRows = (dealerList: any[], label: string, accentColor: string, extraRowClass = "", forcePitBoss = false) => (
     <>
       <tr className={extraRowClass}>
         <td colSpan={days.length + 5} className="px-0 py-0 sticky left-0">
