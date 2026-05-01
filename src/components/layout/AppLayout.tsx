@@ -4,6 +4,7 @@ import { AppSidebar } from "./AppSidebar";
 import { useRealtimeSubscriptions } from "@/hooks/use-realtime";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { MobileHeader } from "./AppSidebar";
+import { BusinessDayBanner } from "@/components/BusinessDayBanner";
 import { cn } from "@/lib/utils";
 
 const PageLoader = () => (
@@ -41,6 +42,7 @@ export const AppLayout = () => {
       )}
       <div className="flex-1 flex flex-col overflow-hidden relative">
         {isMobile && <div className="no-print"><MobileHeader /></div>}
+        <BusinessDayBanner />
         <main className="flex-1 overflow-y-auto">
           {isFullWidth ? (
             <div className="p-3 sm:p-4 animate-fade-in h-full">
