@@ -866,7 +866,7 @@ const StaffAttendanceGrid = ({ month, monthLabel, groupKey = "floor", readOnly =
   const { data: rota = [] } = useStaffRotaRange(startDate, endDate);
   const setAttendanceRaw = useSetStaffAttendance();
   const setAttendance = { mutate: (v: any) => {
-    if (readOnly) { toast.error("Manager Access required to edit past months"); return; }
+    if (readOnly) { toast.error("Read-only — Manager or HR access required"); return; }
     setAttendanceRaw.mutate(v);
   } };
 
