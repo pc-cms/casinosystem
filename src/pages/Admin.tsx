@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Shield, Trash2, UserPlus, Coins, Clock, Building2, Server, Link2, Unlink, Globe, Palette, Settings, RefreshCw, SlidersHorizontal, Rocket, KeyRound, Activity } from "lucide-react";
+import { Plus, Shield, Trash2, UserPlus, Coins, Clock, Building2, Server, Link2, Unlink, Globe, Palette, Settings, RefreshCw, SlidersHorizontal, Rocket, KeyRound, Activity, LayoutGrid } from "lucide-react";
 import { UserPermissionsDialog } from "@/components/admin/UserPermissionsDialog";
 import { ServerPushUpdateDialog } from "@/components/admin/ServerPushUpdateDialog";
 import { NetworkHealthPanel } from "@/components/admin/NetworkHealthPanel";
@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import { logAction } from "@/lib/logging";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import FloatManagement from "@/components/admin/FloatManagement";
+import TableManagement from "@/components/admin/TableManagement";
 import ChipColorSettings from "@/components/admin/ChipColorSettings";
 import { BrandingSettings } from "@/components/admin/BrandingSettings";
 import { ChipConservationModeCard } from "@/components/admin/ChipConservationModeCard";
@@ -160,6 +161,9 @@ const Admin = () => {
           <TabsTrigger value="schedule" className="gap-1.5">
             <Clock className="w-3.5 h-3.5" /> Working Hours
           </TabsTrigger>
+          <TabsTrigger value="tables" className="gap-1.5">
+            <LayoutGrid className="w-3.5 h-3.5" /> Tables
+          </TabsTrigger>
           <TabsTrigger value="float" className="gap-1.5">
             <Coins className="w-3.5 h-3.5" /> Float Management
           </TabsTrigger>
@@ -184,6 +188,7 @@ const Admin = () => {
 
         <TabsContent value="users"><UsersAndRoles /></TabsContent>
         <TabsContent value="schedule"><ScheduleSettings /></TabsContent>
+        <TabsContent value="tables"><TableManagement /></TabsContent>
         <TabsContent value="float">
           <div className="space-y-4">
             <div className="flex justify-end">
