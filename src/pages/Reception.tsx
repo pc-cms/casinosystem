@@ -226,6 +226,15 @@ const CheckInTab = () => {
                   </p>
                   <p className="text-xs text-muted-foreground font-mono truncate">
                     {p.player_cards?.[0]?.card_number || "No card"}
+                    {(() => {
+                      const lv = lastVisitMap?.get(p.id);
+                      if (!lv) return null;
+                      return (
+                        <span className="ml-2 text-muted-foreground/80">
+                          · last: {format(new Date(lv), "dd.MM.yyyy HH:mm")}
+                        </span>
+                      );
+                    })()}
                   </p>
                 </div>
                 <div className="flex items-center gap-1 shrink-0 flex-wrap justify-end">
