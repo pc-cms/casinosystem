@@ -216,7 +216,7 @@ const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }
                     <th
                       key={slot}
                       className={`text-center text-[9px] font-mono px-0.5 py-2 min-w-[52px] ${
-                        isActive ? "bg-primary/20 text-primary font-bold" : "text-muted-foreground"
+                        isActive ? "bg-primary text-primary-foreground font-bold border-x-2 border-primary" : "text-muted-foreground"
                       }`}
                     >
                       {slot}
