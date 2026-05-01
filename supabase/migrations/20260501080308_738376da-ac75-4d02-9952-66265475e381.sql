@@ -1,0 +1,1 @@
+ALTER VIEW public.cron_job_health SET (security_invoker = true);
