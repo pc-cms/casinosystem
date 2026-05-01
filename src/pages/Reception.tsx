@@ -30,7 +30,7 @@ import PhotoCapture from "@/components/PhotoCapture";
 import { FormGrid, FormField } from "@/components/ui/form-grid";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { InstallPWAButton } from "@/components/InstallPWAButton";
+
 
 
 const isProfileIncomplete = (player: any): string[] => {
