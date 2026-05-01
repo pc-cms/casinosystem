@@ -17,6 +17,7 @@ interface Props {
   players: SeatedPlayer[];
   onOpen: () => void;
   onPlayerDropped: (playerId: string) => void;
+  onStopPlayer?: (playerId: string) => void;
   isTouch: boolean;
 }
 
