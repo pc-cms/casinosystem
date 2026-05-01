@@ -45,7 +45,7 @@ export const useCreateExpense = () => {
       shift_id?: string | null;
     }) => {
       if (!casinoId || !user) throw new Error("Not authenticated");
-      const payload = {
+      const payload: SafeExpenseInsert = {
         casino_id: casinoId,
         category: input.category as any,
         amount: input.amount,
