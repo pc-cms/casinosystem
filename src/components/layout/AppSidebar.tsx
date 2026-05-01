@@ -18,6 +18,7 @@ import { useMyModulePermissions } from "@/hooks/use-module-permissions";
 import { moduleKeyForRoute } from "@/lib/route-module-map";
 import { NetworkStatusIndicator } from "@/components/NetworkStatusIndicator";
 import { VersionIndicator } from "@/components/VersionIndicator";
+import { LogoutButton } from "@/components/LogoutButton";
 import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
 import { toast } from "sonner";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -479,12 +480,11 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
-              <button
-                onClick={signOut}
+              <LogoutButton
                 className="w-10 h-10 flex items-center justify-center rounded-md hover:bg-sidebar-accent transition-colors text-sidebar-foreground"
               >
                 <LogOut className="w-4 h-4" />
-              </button>
+              </LogoutButton>
             </TooltipTrigger>
             <TooltipContent side="right">Sign out</TooltipContent>
           </Tooltip>
@@ -627,13 +627,12 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
           >
             <RefreshCw className="w-3.5 h-3.5" />
           </button>
-          <button
-            onClick={signOut}
+          <LogoutButton
             title="Sign out"
             className="h-7 w-7 flex items-center justify-center rounded-md text-sidebar-foreground hover:bg-sidebar-accent transition-colors shrink-0"
           >
             <LogOut className="w-3.5 h-3.5" />
-          </button>
+          </LogoutButton>
         </div>
         <div className="min-h-[14px]">
           {managerOverride.active && !nativeManager && (

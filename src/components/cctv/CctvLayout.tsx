@@ -3,6 +3,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useCasino } from "@/lib/casino-context";
 import { useTheme } from "@/lib/theme";
 import { NetworkStatusIndicator } from "@/components/NetworkStatusIndicator";
+import { LogoutButton } from "@/components/LogoutButton";
 import {
   LayoutDashboard, Users, Landmark, Table2, ListChecks, CalendarDays,
   ClipboardCheck, ClipboardList, ShieldAlert, Eye, Sun, Moon, LogOut,
@@ -104,10 +105,10 @@ export const CctvLayout = ({ activeSection, onSectionChange, children }: CctvLay
           {theme === "dark" ? <Sun className="w-3 h-3" /> : <Moon className="w-3 h-3" />}
           {theme === "dark" ? "Light" : "Dark"}
         </button>
-        <button onClick={signOut}
+        <LogoutButton
           className="flex items-center gap-2 w-full px-3 py-1.5 rounded-md text-xs text-sidebar-foreground hover:bg-sidebar-accent transition-colors">
           <LogOut className="w-3 h-3" /> Sign Out
-        </button>
+        </LogoutButton>
       </div>
     </>
   );
