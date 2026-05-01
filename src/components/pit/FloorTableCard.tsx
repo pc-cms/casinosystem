@@ -23,7 +23,7 @@ interface Props {
 
 const PREVIEW_LIMIT = 4;
 
-const FloorTableCard = ({ table, players, onOpen, onPlayerDropped, isTouch }: Props) => {
+const FloorTableCard = ({ table, players, onOpen, onPlayerDropped, onStopPlayer, isTouch }: Props) => {
   const [dragOver, setDragOver] = useState(false);
   const isClosed = table.status === "closed";
   const count = players.length;
