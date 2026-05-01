@@ -21,23 +21,30 @@ export const useActivityLogs = (limit = 100) => {
   });
 };
 
+/**
+ * Returns the total cumulative bet across all completed client sessions for a
+ * given business date. Uses the `sessions_total_bet_sum` view (security_invoker)
+ * — the SUM is computed server-side so the UI cannot tamper with the figure or
+ * be misled by RLS-filtered partial rows.
+ */
 export const useClientSessionsTotalBet = (date?: string) => {
   const { casinoId } = useAuth();
   return useQuery({
     queryKey: ["client-sessions-total-bet", casinoId, date],
     queryFn: async () => {
       if (!casinoId) return 0;
-      let query = supabase
-        .from("client_sessions")
+      let query = (supabase as any)
+        .from("sessions_total_bet_sum")
         .select("total_bet")
-        .eq("casino_id", casinoId)
-        .not("stopped_at", "is", null);
-      if (date) {
-        query = query.gte("started_at", `${date}T00:00:00`).lte("started_at", `${date}T23:59:59`);
+        .eq("casino_id", casinoId);
+      if (date) query = query.eq("business_date", date);
+      const { data, error } = await query.maybeSingle();
+      if (error) {
+        // Graceful fallback if the view is missing in older deployments.
+        if ((error as any)?.code === "42P01") return 0;
+        throw error;
       }
-      const { data, error } = await query;
-      if (error) throw error;
-      return (data || []).reduce((sum, s) => sum + Number(s.total_bet || 0), 0);
+      return Number(data?.total_bet || 0);
     },
     enabled: !!casinoId,
     staleTime: 1000 * 60 * 2,

@@ -69,11 +69,29 @@ export const useCloseShift = () => {
       closing_count: Record<string, any>;
       closing_cash: Record<string, any>;
       notes: string;
+      // The fields below are intentionally IGNORED on the server side —
+      // they're sent only as a UI-side reference and are overwritten by the
+      // authoritative `compute_shift_close` RPC result before persisting.
       cash_result?: number;
       miss_total?: number;
       shift_result?: number;
     }) => {
       if (!casinoId || !user) throw new Error("Not authenticated");
+
+      // 1. Authoritative recomputation server-side. The DB function reads
+      //    transactions/expenses/miss_chips for the shift and returns the
+      //    canonical totals. UI-supplied numbers are never trusted.
+      const { data: rpcData, error: rpcError } = await (supabase as any)
+        .rpc("compute_shift_close", { p_shift_id: input.shift_id });
+      if (rpcError) throw rpcError;
+      const totals = (rpcData || {}) as {
+        cash_result?: number;
+        miss_total?: number;
+        shift_result?: number;
+        expected_cash?: number;
+      };
+
+      // 2. Persist the closing snapshot using server-truth values.
       const { error } = await supabase
         .from("shifts")
         .update({
@@ -81,15 +99,24 @@ export const useCloseShift = () => {
           closed_at: new Date().toISOString(),
           closed_by: user.id,
           closing_count: input.closing_count,
-          closing_cash: input.closing_cash,
+          closing_cash: {
+            ...input.closing_cash,
+            // Overwrite with authoritative numbers in case the UI drifted.
+            cash_result: Number(totals.cash_result ?? input.cash_result ?? 0),
+            shift_result: Number(totals.shift_result ?? input.shift_result ?? 0),
+            expected_authoritative: Number(totals.expected_cash ?? 0),
+          },
           notes: input.notes,
-          cash_result: input.cash_result ?? null,
-          miss_total: input.miss_total ?? null,
-          shift_result: input.shift_result ?? null,
+          cash_result: Number(totals.cash_result ?? input.cash_result ?? 0),
+          miss_total: Number(totals.miss_total ?? input.miss_total ?? 0),
+          shift_result: Number(totals.shift_result ?? input.shift_result ?? 0),
         } as any)
         .eq("id", input.shift_id);
       if (error) throw error;
-      await logAction(casinoId, "system", "SHIFT_CLOSED", { shift_id: input.shift_id });
+      await logAction(casinoId, "system", "SHIFT_CLOSED", {
+        shift_id: input.shift_id,
+        server_totals: totals,
+      });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["active-shift"] });
