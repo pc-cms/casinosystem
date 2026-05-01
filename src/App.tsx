@@ -9,6 +9,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/lib/theme";
 import { AuthProvider, useAuth } from "@/lib/auth-context";
 import { CasinoProvider, useCasino, getSlugFromHostname } from "@/lib/casino-context";
+import { BrandingProvider } from "@/lib/branding";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { createIDBPersister } from "@/lib/query-persister";
 import { usePrefetchCriticalData } from "@/hooks/use-prefetch";
@@ -264,11 +265,13 @@ const App = () => (
       <TooltipProvider>
         <AuthProvider>
           <CasinoProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <AppRoutes />
-            </BrowserRouter>
+            <BrandingProvider>
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
+                <AppRoutes />
+              </BrowserRouter>
+            </BrandingProvider>
           </CasinoProvider>
         </AuthProvider>
       </TooltipProvider>
