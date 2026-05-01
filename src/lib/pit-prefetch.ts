@@ -16,8 +16,12 @@ export async function prefetchPitData(qc: QueryClient, casinoId: string) {
   const lastDay = new Date(y, m, 0).getDate();
   const monthEnd = `${y}-${String(m).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
 
-  await Promise.all([
-    qc.prefetchQuery({
+  // Run sequentially — parallel auth-bearing requests can trigger
+  // multiple simultaneous token refreshes when several tabs/PWA instances
+  // share the same account, hitting Supabase's /token rate limit (429)
+  // and forcing the user back to /login.
+  const tasks: Array<() => Promise<unknown>> = [
+    () => qc.prefetchQuery({
       queryKey: ["dealers", casinoId],
       queryFn: async () => {
         const { data, error } = await supabase
