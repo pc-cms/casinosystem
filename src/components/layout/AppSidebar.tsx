@@ -230,7 +230,7 @@ const SidebarSections = ({
         <button
           type="button"
           onClick={() => toggle(groupKey)}
-          className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
+          className={`w-full flex items-center gap-3 px-3 h-8 rounded-md text-sm transition-colors ${
             isGroupActive ? "bg-sidebar-accent text-sidebar-primary font-medium" : "text-sidebar-foreground hover:bg-sidebar-accent"
           }`}
         >
@@ -248,7 +248,7 @@ const SidebarSections = ({
                   to={sub.to}
                   end
                   onClick={onNavigate}
-                  className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-xs transition-colors ${
+                  className={`flex items-center gap-2 px-2 h-7 rounded-md text-xs transition-colors ${
                     active ? "bg-sidebar-accent text-sidebar-primary font-medium" : "text-sidebar-foreground hover:bg-sidebar-accent"
                   }`}
                 >
