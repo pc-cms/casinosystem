@@ -1,25 +1,34 @@
 /**
  * Warm cache for the Pit module so the installed PWA loads instantly
  * (and survives short network drops) with all data the pit boss needs.
+ *
+ * Requests run SEQUENTIALLY on purpose: when the same account is open in
+ * several tabs / on several devices (PWA + browser), 8 parallel auth-bearing
+ * requests can each kick off their own /token refresh. Supabase's auth server
+ * rate-limits /token at a low ceiling — once we hit 429, the SDK drops the
+ * session and the user is bounced back to /login. Sequential prefetch keeps
+ * us under that ceiling at the cost of a slightly slower warm-up.
  */
 import type { QueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { getBusinessDate } from "@/lib/business-day";
 
+// In-flight guard so a remount of <PitShell> can't fire a second wave.
+const inFlight = new Map<string, Promise<void>>();
+
 export async function prefetchPitData(qc: QueryClient, casinoId: string) {
   if (!casinoId) return;
   const today = getBusinessDate();
 
-  // Build month range for rota / attendance
   const [y, m] = today.split("-").map(Number);
   const monthStart = `${y}-${String(m).padStart(2, "0")}-01`;
   const lastDay = new Date(y, m, 0).getDate();
   const monthEnd = `${y}-${String(m).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
 
-  // Run sequentially — parallel auth-bearing requests can trigger
-  // multiple simultaneous token refreshes when several tabs/PWA instances
-  // share the same account, hitting Supabase's /token rate limit (429)
-  // and forcing the user back to /login.
+  const key = `${casinoId}|${today}`;
+  const existing = inFlight.get(key);
+  if (existing) return existing;
+
   const tasks: Array<() => Promise<unknown>> = [
     () => qc.prefetchQuery({
       queryKey: ["dealers", casinoId],
@@ -30,7 +39,7 @@ export async function prefetchPitData(qc: QueryClient, casinoId: string) {
         return data;
       },
     }),
-    qc.prefetchQuery({
+    () => qc.prefetchQuery({
       queryKey: ["gaming-tables", casinoId, false],
       queryFn: async () => {
         const { data, error } = await supabase
@@ -40,7 +49,7 @@ export async function prefetchPitData(qc: QueryClient, casinoId: string) {
         return data;
       },
     }),
-    qc.prefetchQuery({
+    () => qc.prefetchQuery({
       queryKey: ["chip-baseline", casinoId],
       queryFn: async () => {
         const { data, error } = await supabase
@@ -49,7 +58,7 @@ export async function prefetchPitData(qc: QueryClient, casinoId: string) {
         return data;
       },
     }),
-    qc.prefetchQuery({
+    () => qc.prefetchQuery({
       queryKey: ["chip-snapshots", casinoId, today],
       queryFn: async () => {
         const { data, error } = await supabase
@@ -58,7 +67,7 @@ export async function prefetchPitData(qc: QueryClient, casinoId: string) {
         return data;
       },
     }),
-    qc.prefetchQuery({
+    () => qc.prefetchQuery({
       queryKey: ["pit-rota-range", casinoId, monthStart, monthEnd],
       queryFn: async () => {
         const { data, error } = await supabase
@@ -68,7 +77,7 @@ export async function prefetchPitData(qc: QueryClient, casinoId: string) {
         return data;
       },
     }),
-    qc.prefetchQuery({
+    () => qc.prefetchQuery({
       queryKey: ["dealer-attendance-range", casinoId, monthStart, monthEnd],
       queryFn: async () => {
         const { data, error } = await supabase
@@ -78,7 +87,7 @@ export async function prefetchPitData(qc: QueryClient, casinoId: string) {
         return data as any[];
       },
     }),
-    qc.prefetchQuery({
+    () => qc.prefetchQuery({
       queryKey: ["breaklist", casinoId, today],
       queryFn: async () => {
         const { data, error } = await supabase
@@ -88,7 +97,7 @@ export async function prefetchPitData(qc: QueryClient, casinoId: string) {
         return data;
       },
     }),
-    qc.prefetchQuery({
+    () => qc.prefetchQuery({
       queryKey: ["table-tracker", casinoId, today],
       queryFn: async () => {
         const { data, error } = await supabase
@@ -98,5 +107,18 @@ export async function prefetchPitData(qc: QueryClient, casinoId: string) {
         return data;
       },
     }),
-  ]);
+  ];
+
+  const run = (async () => {
+    try {
+      for (const task of tasks) {
+        try { await task(); } catch { /* keep warming the rest */ }
+      }
+    } finally {
+      inFlight.delete(key);
+    }
+  })();
+
+  inFlight.set(key, run);
+  return run;
 }
