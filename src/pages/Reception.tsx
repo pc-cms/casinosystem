@@ -114,6 +114,9 @@ const CheckInTab = () => {
     ).slice(0, 20);
   }, [debouncedQuery, players]);
 
+  const filteredIds = useMemo(() => filtered.map(p => p.id), [filtered]);
+  const { data: lastVisitMap } = useLastVisitsByPlayers(filteredIds);
+
   const handleSelectPlayer = (player: any) => {
     setSelectedPlayer(player);
     const missing = isProfileIncomplete(player);
