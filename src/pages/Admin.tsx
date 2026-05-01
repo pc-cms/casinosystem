@@ -18,6 +18,7 @@ import { logAction } from "@/lib/logging";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import FloatManagement from "@/components/admin/FloatManagement";
 import ChipColorSettings from "@/components/admin/ChipColorSettings";
+import { BrandingSettings } from "@/components/admin/BrandingSettings";
 import { ChipConservationModeCard } from "@/components/admin/ChipConservationModeCard";
 import { ChipEmissionDialog } from "@/components/chips/ChipEmissionDialog";
 import { useCasinoInfo, useUpdateCasinoSchedule } from "@/hooks/use-table-lifecycle";
@@ -159,6 +160,11 @@ const Admin = () => {
           <TabsTrigger value="chip-colors" className="gap-1.5">
             <Palette className="w-3.5 h-3.5" /> Chip Colors
           </TabsTrigger>
+          {isSuperAdmin && (
+            <TabsTrigger value="branding" className="gap-1.5">
+              <Palette className="w-3.5 h-3.5" /> Branding
+            </TabsTrigger>
+          )}
         </TabsList>
 
         {isSuperAdmin && (
@@ -181,6 +187,7 @@ const Admin = () => {
           </div>
         </TabsContent>
         <TabsContent value="chip-colors"><ChipColorSettings /></TabsContent>
+        {isSuperAdmin && <TabsContent value="branding"><BrandingSettings /></TabsContent>}
       </Tabs>
     </div>
   );
