@@ -4,6 +4,7 @@ import { useAuth } from "@/lib/auth-context";
 import { logAction } from "@/lib/logging";
 import { offlineMutation } from "@/lib/offline-mutation";
 import { toast } from "sonner";
+import type { SafeExpenseInsert } from "@/lib/safe-inserts";
 
 export const useExpenses = (date?: string) => {
   const { casinoId } = useAuth();
@@ -44,7 +45,7 @@ export const useCreateExpense = () => {
       shift_id?: string | null;
     }) => {
       if (!casinoId || !user) throw new Error("Not authenticated");
-      const payload = {
+      const payload: SafeExpenseInsert = {
         casino_id: casinoId,
         category: input.category as any,
         amount: input.amount,

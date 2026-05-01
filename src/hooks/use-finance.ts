@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
+import type { SafeWalletTxInsert } from "@/lib/safe-inserts";
 
 // Types matching DB enums
 export type WalletType = "main_cash" | "office_safe" | "rent_reserve" | "license_reserve" | "tax_reserve" | "other_reserve" | "cage_slot" | "cage_table" | "mobile_money" | "bank_account";
@@ -113,7 +114,7 @@ export function useInitializeWallets() {
       const { error } = await supabase.from("financial_wallets").upsert(wallets, { onConflict: "casino_id,wallet_type" });
       if (error) throw error;
 
-      const txs = Object.entries(initialBalances)
+      const txs: SafeWalletTxInsert[] = Object.entries(initialBalances)
         .filter(([, amount]) => amount && amount > 0)
         .map(([wt, amount]) => ({
           casino_id: casinoId,
@@ -171,7 +172,7 @@ export function useCreateWalletTransaction() {
     }) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user || !casinoId) throw new Error("Not authenticated");
-      const { error } = await supabase.from("wallet_transactions").insert({
+      const insertPayload: SafeWalletTxInsert = {
         casino_id: casinoId,
         tx_type: tx.tx_type,
         from_wallet: tx.from_wallet || null,
@@ -181,7 +182,8 @@ export function useCreateWalletTransaction() {
         description: tx.description || "",
         operator_id: user.id,
         business_date: tx.business_date || null,
-      });
+      };
+      const { error } = await supabase.from("wallet_transactions").insert(insertPayload);
       if (error) throw error;
     },
     onSuccess: () => {

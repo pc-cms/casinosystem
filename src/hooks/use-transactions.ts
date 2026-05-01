@@ -4,6 +4,7 @@ import { useAuth } from "@/lib/auth-context";
 import { offlineMutation } from "@/lib/offline-mutation";
 import { toast } from "sonner";
 import { formatNumberSpaces } from "@/lib/currency";
+import type { SafeTransactionInsert } from "@/lib/safe-inserts";
 
 export const useTransactions = (date?: string) => {
   const { casinoId } = useAuth();
@@ -43,7 +44,7 @@ export const useCreateTransaction = () => {
       shift_id?: string;
     }) => {
       if (!casinoId || !user) throw new Error("Not authenticated");
-      const payload = {
+      const payload: SafeTransactionInsert = {
         casino_id: casinoId,
         player_id: input.player_id,
         table_id: input.table_id,
