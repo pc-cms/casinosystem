@@ -8,7 +8,9 @@ import pkg from "./package.json";
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   define: {
-    __APP_VERSION__: JSON.stringify(pkg.version || "0.0.0"),
+    __APP_VERSION__: JSON.stringify(
+      `${pkg.version || "1.0.0"}+${new Date().toISOString().slice(2, 10).replace(/-/g, "")}`
+    ),
   },
   server: {
     host: "::",
