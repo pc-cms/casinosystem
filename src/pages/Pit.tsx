@@ -103,7 +103,7 @@ const Pit = () => {
   };
 
   // Breaklist zoom + action callbacks
-  const [breaklistZoom, setBreaklistZoom] = useState(100);
+  const [breaklistZoom, setBreaklistZoom] = useState(125);
   const breaklistRefreshRef = React.useRef<(() => void) | null>(null);
   const breaklistAcceptRef = React.useRef<(() => void) | null>(null);
 
