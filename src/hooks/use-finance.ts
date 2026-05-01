@@ -114,7 +114,7 @@ export function useInitializeWallets() {
       const { error } = await supabase.from("financial_wallets").upsert(wallets, { onConflict: "casino_id,wallet_type" });
       if (error) throw error;
 
-      const txs = Object.entries(initialBalances)
+      const txs: SafeWalletTxInsert[] = Object.entries(initialBalances)
         .filter(([, amount]) => amount && amount > 0)
         .map(([wt, amount]) => ({
           casino_id: casinoId,
