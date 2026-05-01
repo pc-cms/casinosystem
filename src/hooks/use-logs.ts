@@ -35,7 +35,7 @@ export const useClientSessionsTotalBet = (date?: string) => {
       if (!casinoId) return 0;
       let query = (supabase as any)
         .from("sessions_total_bet_sum")
-        .select("total_bet_sum")
+        .select("total_bet")
         .eq("casino_id", casinoId);
       if (date) query = query.eq("business_date", date);
       const { data, error } = await query.maybeSingle();
@@ -44,7 +44,7 @@ export const useClientSessionsTotalBet = (date?: string) => {
         if ((error as any)?.code === "42P01") return 0;
         throw error;
       }
-      return Number(data?.total_bet_sum || 0);
+      return Number(data?.total_bet || 0);
     },
     enabled: !!casinoId,
     staleTime: 1000 * 60 * 2,
