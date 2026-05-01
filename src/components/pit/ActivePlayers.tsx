@@ -13,13 +13,15 @@ import type { PlayerCategory } from "@/components/player/CategoryBadge";
 import FloorTableCard, { type FloorTable } from "./FloorTableCard";
 import TableSeatingDialog from "./TableSeatingDialog";
 import type { SeatedPlayer } from "./SeatedPlayerChip";
+import { getBusinessDate, businessDayHourUTC } from "@/lib/business-day";
 
 const POKER_GAMES = ["Poker", "Texas Holdem", "Omaha", "PLO"];
 
 const ActivePlayers = () => {
   const { data: players = [] } = usePlayers();
   const { data: tables = [] } = useGamingTables();
-  const today = new Date().toISOString().split("T")[0];
+  const today = getBusinessDate();
+  const windowStartUTC = businessDayHourUTC(today, 13);
   const { data: transactions = [] } = useTransactions(today);
   const { casinoId, user } = useAuth();
   const queryClient = useQueryClient();
