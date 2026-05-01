@@ -306,8 +306,8 @@ const SidebarSections = ({
           : grouped[section] || [];
         if (!items.length) return null;
 
-        // OVERVIEW and PIT render flat (no collapse, no section label)
-        if (section === FLAT_SECTION || section === "PIT") {
+        // OVERVIEW renders flat without label
+        if (section === FLAT_SECTION) {
           return (
             <div key={section} className={idx > 0 ? "mt-1 border-t border-sidebar-border pt-1 space-y-0.5" : "mb-1 space-y-0.5"}>
               {items.map(it => renderItem(it, section))}
@@ -315,18 +315,13 @@ const SidebarSections = ({
           );
         }
 
-        const isOpen = !!open[section];
+        // All other sections: static label + flat list (no collapse)
         return (
           <div key={section} className={idx > 0 ? "mt-1 border-t border-sidebar-border pt-1" : ""}>
-            <button
-              type="button"
-              onClick={() => toggle(section)}
-              className="w-full flex items-center gap-1 px-3 pt-2 pb-1 text-left hover:bg-sidebar-accent/50 rounded-md transition-colors"
-            >
-              {isOpen ? <ChevronDown className="w-3 h-3 text-muted-foreground" /> : <ChevronRight className="w-3 h-3 text-muted-foreground" />}
+            <div className="px-3 pt-2 pb-1">
               <span className="text-[9px] font-mono text-muted-foreground uppercase tracking-widest">{section}</span>
-            </button>
-            {isOpen && <div className="space-y-0.5">{items.map(it => renderItem(it, section))}</div>}
+            </div>
+            <div className="space-y-0.5">{items.map(it => renderItem(it, section))}</div>
           </div>
         );
       })}
