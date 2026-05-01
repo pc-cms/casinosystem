@@ -48,7 +48,7 @@ const SeatedPlayerChip = ({ player, draggable = false, compact = false, onClick,
     e.dataTransfer.effectAllowed = "move";
   };
 
-  const handleStop = (e: React.MouseEvent | React.PointerEvent) => {
+  const handleStop = (e: { stopPropagation: () => void; preventDefault: () => void }) => {
     e.stopPropagation();
     e.preventDefault();
     onStop?.(player.id);
