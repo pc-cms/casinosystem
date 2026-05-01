@@ -31,7 +31,7 @@ import { FormGrid, FormField } from "@/components/ui/form-grid";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { InstallPWAButton } from "@/components/InstallPWAButton";
-import { NetworkStatusIndicator } from "@/components/NetworkStatusIndicator";
+
 
 const isProfileIncomplete = (player: any): string[] => {
   const missing: string[] = [];

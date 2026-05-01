@@ -3,7 +3,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth-context";
 import { prefetchPitData } from "@/lib/pit-prefetch";
 import { InstallPWAButton } from "@/components/InstallPWAButton";
-import { NetworkStatusIndicator } from "@/components/NetworkStatusIndicator";
 
 /**
  * Wraps Pit module pages: warms the cache on mount and surfaces
