@@ -131,38 +131,27 @@ const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }
     // Per-table role exclusivity:
     //   - Regular tables: at most one D and one I
     //   - Roulette: at most one D, one I, one C
-    // If another dealer already holds the same role on this table+slot, demote them to BR.
+    // BR is assigned manually by Pit — never auto-filled. Block conflicts with an error.
     const ALLOWED_TABLE_ROLES = ["D", "I", "C"];
     if (tableId && ALLOWED_TABLE_ROLES.includes(role)) {
       const table = openTables.find(t => t.id === tableId);
       const isRoulette = (table as any)?.game?.toLowerCase().includes("roulette");
-      // C is only valid on roulette
       if (role === "C" && !isRoulette) {
         toast.error("Croupier (C) only allowed on roulette tables");
         return;
       }
-      const conflicts = breaklist.filter(
+      const conflict = breaklist.find(
         (b: any) =>
           b.time_slot === activeCell.timeSlot &&
           b.table_id === tableId &&
           b.role === role &&
           b.dealer_id !== activeCell.dealerId,
       );
-      conflicts.forEach((c: any) => {
-        setCell.mutate({
-          date,
-          dealer_id: c.dealer_id,
-          time_slot: c.time_slot,
-          role: "BR",
-          table_id: null,
-        });
-      });
-      if (conflicts.length > 0) {
-        const evicted = conflicts
-          .map((c: any) => activeDealers.find(d => d.id === c.dealer_id)?.name)
-          .filter(Boolean)
-          .join(", ");
-        toast.info(`Reassigned ${role} on this table — ${evicted} → BR`);
+      if (conflict) {
+        const occupant = activeDealers.find(d => d.id === conflict.dealer_id)?.name || "another dealer";
+        const tableName = table?.name || "this table";
+        toast.error(`${tableName} ${role} already taken by ${occupant} at ${activeCell.timeSlot}`);
+        return;
       }
     }
 
@@ -174,44 +163,6 @@ const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }
       table_id: tableId || null,
     });
     setActiveCell(null);
-  };
-
-  const handleAccept = () => {
-    // Only fill BR in time slots that already have at least one assignment
-    const activeSlots = new Set(breaklist.map(b => b.time_slot));
-    if (activeSlots.size === 0) {
-      toast.error("No assigned slots to fill");
-      return;
-    }
-    breaklistDealers.forEach(dealer => {
-      activeSlots.forEach(slot => {
-        const existing = getCellData(dealer.id, slot);
-        if (!existing) {
-          setCell.mutate({ date, dealer_id: dealer.id, time_slot: slot, role: "BR", table_id: null });
-        }
-      });
-    });
-    toast.success("Empty slots filled with BR");
-  };
-
-  const handleRefreshFromRota = () => {
-    // Add any rota dealers that don't have breaklist entries yet
-    breaklistDealers.forEach(dealer => {
-      const hasAnyCell = breaklist.some(b => b.dealer_id === dealer.id);
-      if (!hasAnyCell) {
-        const shift = getDealerShift(dealer.id);
-        // M starts at 18:00, N starts at 21:00, E starts at 18:00
-        const startSlot = shift === "N" ? "21:00" : "18:00";
-        TIME_SLOTS.forEach(slot => {
-          if (slot >= startSlot || slot < "05:00") {
-            // For N shift, only slots from 21:00 onwards; for M/E all slots
-            if (shift === "N" && slot >= "05:00" && slot < "21:00") return;
-            setCell.mutate({ date, dealer_id: dealer.id, time_slot: slot, role: "BR", table_id: null });
-          }
-        });
-      }
-    });
-    toast.success("Breaklist refreshed from rota");
   };
 
   const handleToggleCellLock = (dealerId: string, timeSlot: string) => {
@@ -228,11 +179,11 @@ const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }
     Pi: "i", BJi: "i",
   };
 
-  // Register callbacks for parent controls
+  // Parent controls (Refresh/Accept) are no longer auto-filling BR — disabled.
   useEffect(() => {
-    onRegisterRefresh?.(handleRefreshFromRota);
-    onRegisterAccept?.(handleAccept);
-  }, [breaklistDealers, breaklist]);
+    onRegisterRefresh?.(() => {});
+    onRegisterAccept?.(() => {});
+  }, []);
 
   return (
     <>
