@@ -753,6 +753,13 @@ const UsersAndRoles = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <UserPermissionsDialog
+        open={!!permsTarget}
+        onOpenChange={(o) => !o && setPermsTarget(null)}
+        userId={permsTarget?.id ?? null}
+        userName={permsTarget?.name ?? ""}
+      />
     </div>
   );
 };
