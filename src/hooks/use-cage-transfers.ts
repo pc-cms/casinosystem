@@ -5,6 +5,7 @@ import { offlineMutation } from "@/lib/offline-mutation";
 import { toast } from "sonner";
 import { formatNumberSpaces } from "@/lib/currency";
 import type { Tables } from "@/integrations/supabase/types";
+import type { SafeCageTransferInsert } from "@/lib/safe-inserts";
 
 export type CageTransferType = "add_float" | "collection" | "fill" | "credit";
 export type CageTransferDirection = "cash_in" | "cash_out" | "chip_to_table" | "chip_from_table";
@@ -61,7 +62,7 @@ export const useCreateCageTransfer = () => {
     }) => {
       if (!casinoId || !user) throw new Error("Not authenticated");
 
-      const payload = {
+      const payload: SafeCageTransferInsert = {
         casino_id: casinoId,
         shift_id: input.shift_id,
         transfer_type: input.transfer_type,

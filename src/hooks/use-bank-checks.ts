@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCasino } from "@/lib/casino-context";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
+import type { SafeBankCheckInsert, SafeBankCheckUpdate } from "@/lib/safe-inserts";
 
 export type BankCheck = {
   id: string;
@@ -23,7 +24,15 @@ export type BankCheck = {
   created_at: string;
 };
 
-export type BankCheckInput = Omit<BankCheck, "id" | "casino_id" | "created_by" | "created_at">;
+/**
+ * Fields the user fills in for a new check.
+ * `casino_id` and `created_by` are added by the hook; trigger-computed fields
+ * (`expected_balance`, `discrepancy`, `is_balanced`) are forbidden by SafeBankCheckInsert.
+ */
+export type BankCheckInput = Omit<
+  SafeBankCheckInsert,
+  "casino_id" | "created_by"
+>;
 
 export const useBankChecks = (fromDate?: string, toDate?: string) => {
   const { activeCasinoId } = useCasino();
@@ -55,9 +64,14 @@ export const useCreateBankCheck = () => {
     mutationFn: async (input: BankCheckInput) => {
       if (!activeCasinoId) throw new Error("No active casino");
       if (!user?.id) throw new Error("Not authenticated");
+      const insertPayload: SafeBankCheckInsert = {
+        ...input,
+        casino_id: activeCasinoId,
+        created_by: user.id,
+      };
       const { data, error } = await supabase
         .from("bank_checks")
-        .insert({ ...input, casino_id: activeCasinoId, created_by: user.id })
+        .insert(insertPayload)
         .select()
         .single();
       if (error) throw error;
@@ -74,7 +88,7 @@ export const useCreateBankCheck = () => {
 export const useUpdateBankCheck = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, patch }: { id: string; patch: Partial<BankCheckInput> }) => {
+    mutationFn: async ({ id, patch }: { id: string; patch: SafeBankCheckUpdate }) => {
       const { error } = await supabase.from("bank_checks").update(patch).eq("id", id);
       if (error) throw error;
     },
@@ -132,7 +146,7 @@ export const useImportBankChecks = () => {
         return { inserted: 0, skipped: checks.length };
       }
 
-      const records = toInsert.map((c) => ({
+      const records: SafeBankCheckInsert[] = toInsert.map((c) => ({
         ...c,
         casino_id: activeCasinoId,
         created_by: user.id,

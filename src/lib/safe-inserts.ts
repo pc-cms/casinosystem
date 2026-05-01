@@ -35,10 +35,32 @@ export type SafeExpenseInsert = Omit<
   ServerManaged | "approved" | "approved_by" | "approved_at"
 >;
 
-/** cage_transfers: immutable; chip inventory delta is trigger-driven. */
+/**
+ * cage_transfers: immutable; chip inventory delta is trigger-driven.
+ * `direction` is derived from `transfer_type` server-side validator, but UI
+ * still passes it for clarity — left allowed.
+ */
 export type SafeCageTransferInsert = Omit<
   T["cage_transfers"]["Insert"],
   ServerManaged
+>;
+
+/**
+ * bank_checks: `expected_balance`, `discrepancy`, `is_balanced` are computed
+ * by the `bank_check_compute` BEFORE-INSERT trigger. UI must never send them.
+ */
+export type SafeBankCheckInsert = Omit<
+  T["bank_checks"]["Insert"],
+  ServerManaged | "expected_balance" | "discrepancy" | "is_balanced"
+>;
+
+/**
+ * bank_checks UPDATE: same trigger-computed fields are forbidden, plus the
+ * audit columns (`casino_id`, `created_by`) which must never change.
+ */
+export type SafeBankCheckUpdate = Omit<
+  T["bank_checks"]["Update"],
+  ServerManaged | "expected_balance" | "discrepancy" | "is_balanced" | "casino_id" | "created_by"
 >;
 
 /** chip_emissions: immutable; baseline mutation is trigger-driven. */
@@ -55,3 +77,4 @@ export type SafeActivityLogInsert = Omit<
   T["activity_logs"]["Insert"],
   ServerManaged
 >;
+
