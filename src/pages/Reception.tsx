@@ -54,9 +54,7 @@ const Reception = () => {
         title="Reception"
         subtitle="Entry control · Player registration"
         date
-      >
-        <InstallPWAButton />
-      </PageHeader>
+      />
 
       <Tabs value={tab} onValueChange={v => setSearchParams({ tab: v })}>
         <TabsList className="mb-3 sm:mb-4 w-full sm:w-auto grid grid-cols-3 sm:inline-flex">

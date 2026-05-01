@@ -16,6 +16,7 @@ import { RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { getRuntimeConfig } from "@/lib/runtime-config";
+import { InstallPWAButton } from "@/components/InstallPWAButton";
 
 declare const __APP_VERSION__: string | undefined;
 
