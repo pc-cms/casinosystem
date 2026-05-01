@@ -17,6 +17,7 @@ import { useCasino } from "@/lib/casino-context";
 import { useMyModulePermissions } from "@/hooks/use-module-permissions";
 import { moduleKeyForRoute } from "@/lib/route-module-map";
 import { NetworkStatusIndicator } from "@/components/NetworkStatusIndicator";
+import { VersionIndicator } from "@/components/VersionIndicator";
 import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
 import { toast } from "sonner";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -523,6 +524,10 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
             </TooltipTrigger>
             <TooltipContent side="right">Expand sidebar</TooltipContent>
           </Tooltip>
+
+          <div className="w-10 mt-1">
+            <VersionIndicator collapsed />
+          </div>
         </div>
       </TooltipProvider>
     );
@@ -656,6 +661,9 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
             Manager ↑
           </span>
         )}
+        <div className="mt-1 pt-1 border-t border-sidebar-border/50">
+          <VersionIndicator />
+        </div>
       </div>
 
       <ManagerOverrideDialog
