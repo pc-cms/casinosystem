@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { offlineMutation } from "@/lib/offline-mutation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth-context";
+import { logAction } from "@/lib/logging";
 import { ArrowUpDown, ArrowUp, ArrowDown, LogIn, LogOut, Search, MapPin, Play, X, Plus, ChevronDown, Pencil } from "lucide-react";
 import PlayerEditDialog from "@/components/PlayerEditDialog";
 import { Input } from "@/components/ui/input";
@@ -91,8 +92,25 @@ const ActivePlayers = () => {
     refetchInterval: 15000,
   });
 
+  // Shared guard: blocks blacklisted players and cross-casino dual check-in.
+  const guardCheckIn = async (playerId: string) => {
+    const player = players.find(p => p.id === playerId);
+    if (player?.status === "blacklist") throw new Error("BLACKLISTED — entry denied");
+    if (navigator.onLine) {
+      const { data: activeElsewhere } = await supabase
+        .rpc("player_active_visit_casino", { _player_id: playerId } as any);
+      if (activeElsewhere && activeElsewhere.length > 0) {
+        const loc = activeElsewhere[0];
+        if (loc.casino_id !== casinoId) {
+          throw new Error(`Player is currently active at ${loc.casino_name}`);
+        }
+      }
+    }
+  };
+
    const checkIn = useMutation({
     mutationFn: async (playerId: string) => {
+      await guardCheckIn(playerId);
       const res = await offlineMutation({
         table: "casino_visits",
         operation: "upsert",
@@ -105,6 +123,9 @@ const ActivePlayers = () => {
         upsertConflict: "casino_id,player_id,date",
       });
       if (res.error) throw new Error(res.error);
+      if (!res.offline && casinoId) {
+        await logAction(casinoId, "player", "PLAYER_CHECKED_IN", { player_id: playerId, source: "pit" });
+      }
       return { offline: res.offline };
     },
     onSuccess: (res: any) => {
@@ -116,6 +137,7 @@ const ActivePlayers = () => {
 
   const placeAtTable = useMutation({
     mutationFn: async ({ playerId, tableId, avgBet }: { playerId: string; tableId: string; avgBet: number }) => {
+      await guardCheckIn(playerId);
       const sessionId = crypto.randomUUID();
       const sRes = await offlineMutation({
         table: "client_sessions",

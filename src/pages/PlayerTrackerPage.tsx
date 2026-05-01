@@ -131,6 +131,8 @@ const PlayerTrackerPage = () => {
       if (!editing) return;
       const bet = Number(editing.avgBet);
       if (!bet || bet <= 0) throw new Error("Avg Bet must be > 0");
+      const player = players.find(p => p.id === editing.playerId);
+      if (player?.status === "blacklist") throw new Error("BLACKLISTED — cannot start session");
 
       // If existing session: stop it and start a new one (table or bet may have changed)
       if (editing.sessionId) {
