@@ -302,6 +302,8 @@ const ClientTracker = () => {
 
   const startSession = useMutation({
     mutationFn: async () => {
+      const player = players.find((p: any) => p.id === selectedPlayer);
+      if (player?.status === "blacklist") throw new Error("BLACKLISTED — cannot start session");
       // Start the client session (offline-aware, idempotent via client UUID)
       const sessionId = crypto.randomUUID();
       const insertPayload: SafeSessionInsert = {
