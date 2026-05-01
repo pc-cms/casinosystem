@@ -10,6 +10,7 @@ import { User } from "lucide-react";
 import CategoryBadge, { type PlayerCategory } from "@/components/player/CategoryBadge";
 import { LazyImage } from "@/components/LazyImage";
 import type { Tables } from "@/integrations/supabase/types";
+import { getBusinessDate, businessDayHourUTC } from "@/lib/business-day";
 
 interface Props {
   player: Tables<"players"> | null;
@@ -18,7 +19,8 @@ interface Props {
 
 const PlayerInfoCard = ({ player, tables }: Props) => {
   const { casinoId } = useAuth();
-  const today = new Date().toISOString().split("T")[0];
+  const today = getBusinessDate();
+  const windowStartUTC = businessDayHourUTC(today, 13);
 
   const { data: currentSession } = useQuery({
     queryKey: ["player-current-session", player?.id, today],
@@ -30,7 +32,7 @@ const PlayerInfoCard = ({ player, tables }: Props) => {
         .eq("casino_id", casinoId!)
         .eq("player_id", player.id)
         .is("stopped_at", null)
-        .gte("created_at", `${today}T00:00:00`)
+        .gte("started_at", windowStartUTC)
         .order("started_at", { ascending: false })
         .limit(1)
         .maybeSingle();
