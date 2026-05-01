@@ -87,8 +87,8 @@ const FullScreenLoader = ({ label = "Loading CMS..." }: { label?: string }) => (
 // Role-based route access map
 const ROUTE_ROLES: Record<string, string[]> = {
   "/": ["super_admin", "manager", "pit", "reception", "finance_manager", "surveillance"],
-  "/players": ["super_admin", "manager", "reception", "finance_manager", "surveillance"],
-  "/players/:id": ["super_admin", "manager", "reception", "finance_manager", "surveillance"],
+  "/players": ["super_admin", "manager", "finance_manager", "surveillance"],
+  "/players/:id": ["super_admin", "manager", "finance_manager", "surveillance"],
   "/in-casino": ["super_admin", "manager", "reception", "pit", "finance_manager", "surveillance"],
   "/blacklist": ["super_admin", "manager", "reception", "finance_manager", "surveillance"],
   "/reception": ["super_admin", "manager", "reception", "finance_manager"],
