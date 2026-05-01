@@ -408,11 +408,14 @@ const LocalServerManagement = () => {
   const { data: casinos = [] } = useAllCasinos();
   const { user } = useAuth();
   const qc = useQueryClient();
+  const rotate = useRotateServerSecret();
 
   const [showLink, setShowLink] = useState(false);
   const [selectedCasino, setSelectedCasino] = useState("");
   const [serverIp, setServerIp] = useState("");
   const [serverName, setServerName] = useState("");
+  const [pushTarget, setPushTarget] = useState<{ casinoId: string; casinoName: string } | null>(null);
+  const [secretReveal, setSecretReveal] = useState<{ name: string; secret: string } | null>(null);
 
   const linkedCasinoIds = servers.map(s => s.casino_id);
   const availableCasinos = casinos.filter(c => !linkedCasinoIds.includes(c.id));
@@ -448,6 +451,12 @@ const LocalServerManagement = () => {
       toast.success("Server unlinked");
     },
   });
+
+  const handleRotate = async (id: string, name: string) => {
+    if (!confirm(`Rotate sync secret for "${name}"? The local server will go offline until you update its .env.`)) return;
+    const newSecret = await rotate.mutateAsync(id);
+    setSecretReveal({ name, secret: newSecret });
+  };
 
   const getCasinoName = (casinoId: string) => casinos.find(c => c.id === casinoId)?.name ?? casinoId.slice(0, 8);
 
