@@ -146,7 +146,7 @@ export const useImportBankChecks = () => {
         return { inserted: 0, skipped: checks.length };
       }
 
-      const records = toInsert.map((c) => ({
+      const records: SafeBankCheckInsert[] = toInsert.map((c) => ({
         ...c,
         casino_id: activeCasinoId,
         created_by: user.id,
