@@ -2,6 +2,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { cn } from "@/lib/utils";
 import { formatNumberSpaces } from "@/lib/currency";
 import type { PlayerCategory } from "@/components/player/CategoryBadge";
+import { X } from "lucide-react";
 
 const CATEGORY_DOT: Record<PlayerCategory, string> = {
   diamond: "bg-blue-500",
