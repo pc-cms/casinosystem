@@ -76,8 +76,8 @@ const OpenShiftScreen = ({ tables }: { tables: Tables<"gaming_tables">[] }) => {
         icon={Landmark}
         title="Cage"
         subtitle={`Open shift · Step ${step} of 2`}
-        belowHeader={
-          <div className="flex items-center gap-4 flex-wrap">
+        centerSlot={
+          <div className="flex items-center gap-4 flex-wrap justify-center">
             {FOREIGN_CURRENCIES.map(c => (
               <span key={c} className="text-base font-semibold font-mono tabular-nums text-foreground">
                 <span className="text-muted-foreground text-xs font-medium uppercase mr-1">{c}</span>
@@ -86,7 +86,6 @@ const OpenShiftScreen = ({ tables }: { tables: Tables<"gaming_tables">[] }) => {
             ))}
           </div>
         }
-        date
       >
         <Button variant="outline" size="sm" onClick={() => setShowRates(true)} className="gap-1.5">
           <Settings2 className="w-3.5 h-3.5" /> Rates
