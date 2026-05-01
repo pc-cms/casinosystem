@@ -718,10 +718,8 @@ export const MobileHeader = () => {
           <Menu className="w-5 h-5" />
         </Button>
         <div className="flex items-center gap-2 flex-1 min-w-0">
-          <Shield className="w-4 h-4 text-primary shrink-0" />
           <span className="text-sm font-bold text-foreground truncate">{pageTitle}</span>
         </div>
-        <NetworkStatusIndicator />
       </header>
 
       <Sheet open={open} onOpenChange={setOpen}>
