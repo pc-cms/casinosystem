@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { offlineMutation } from "@/lib/offline-mutation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth-context";
+import { logAction } from "@/lib/logging";
 import { ArrowUpDown, ArrowUp, ArrowDown, LogIn, LogOut, Search, MapPin, Play, X, Plus, ChevronDown, Pencil } from "lucide-react";
 import PlayerEditDialog from "@/components/PlayerEditDialog";
 import { Input } from "@/components/ui/input";
