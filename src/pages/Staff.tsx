@@ -78,7 +78,10 @@ const DEPT_ROW_COLORS: Record<string, string> = {
 };
 
 const Staff = () => {
-  const { isManager: isMgr } = useAuth();
+  const { isManager: isMgr, roles } = useAuth();
+  // Only manager/HR (and super_admin via isManager) can edit Floor/Security/Office schedules.
+  // Pit can navigate here (read-only) but must not write to non-Live-Game personnel.
+  const canManagePersonnel = isMgr || roles.includes("hr");
   const businessToday = getBusinessDate();
   const currentMonth = useMemo(() => {
     const [y, m] = businessToday.split("-").map(Number);
@@ -189,8 +192,8 @@ const Staff = () => {
       </PageHeader>
 
       {activeTab === "employee" && <EmployeeList />}
-      {isRotaTab && rotaGroupKey && <StaffRotaGrid month={month} groupKey={rotaGroupKey} monthLabel={monthLabel} readOnly={isPast && !isMgr} />}
-      {activeTab === "attendance" && <StaffAttendanceGrid month={month} monthLabel={monthLabel} groupKey={attGroupKey} readOnly={isPast && !isMgr} />}
+      {isRotaTab && rotaGroupKey && <StaffRotaGrid month={month} groupKey={rotaGroupKey} monthLabel={monthLabel} readOnly={(isPast && !isMgr) || !canManagePersonnel} />}
+      {activeTab === "attendance" && <StaffAttendanceGrid month={month} monthLabel={monthLabel} groupKey={attGroupKey} readOnly={(isPast && !isMgr) || !canManagePersonnel} />}
     </div>
   );
 };
@@ -463,7 +466,7 @@ const StaffRotaGrid = ({ month, groupKey, monthLabel, readOnly = false }: { mont
   const { data: monthAttendance = [] } = useStaffAttendanceRange(startDate, endDate);
   const setRotaRaw = useSetStaffRota();
   const deleteRotaRaw = useDeleteStaffRota();
-  const guard = () => { if (readOnly) { toast.error("Manager Access required to edit past months"); return false; } return true; };
+  const guard = () => { if (readOnly) { toast.error("Read-only — Manager or HR access required"); return false; } return true; };
   const setRota = { mutate: (v: any) => { if (guard()) setRotaRaw.mutate(v); } };
   const deleteRota = { mutate: (v: any) => { if (guard()) deleteRotaRaw.mutate(v); } };
 
@@ -863,7 +866,7 @@ const StaffAttendanceGrid = ({ month, monthLabel, groupKey = "floor", readOnly =
   const { data: rota = [] } = useStaffRotaRange(startDate, endDate);
   const setAttendanceRaw = useSetStaffAttendance();
   const setAttendance = { mutate: (v: any) => {
-    if (readOnly) { toast.error("Manager Access required to edit past months"); return; }
+    if (readOnly) { toast.error("Read-only — Manager or HR access required"); return; }
     setAttendanceRaw.mutate(v);
   } };
 

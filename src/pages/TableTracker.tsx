@@ -40,6 +40,7 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
   const openTables = tables.filter(t => t.status === "open");
   const isToday = date === today;
   const currentSlot = useMemo(() => getCurrentSlot(), []);
+  const readOnly = !isToday && !isManager;
 
   const getVal = useCallback((tableId: string, slot: string) => {
     const entry = trackerData.find(t => t.table_id === tableId && t.time_slot === slot);
@@ -47,6 +48,7 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
   }, [trackerData]);
 
   const handleSave = (tableId: string, slot: string, val: string) => {
+    if (readOnly) return;
     const numVal = parseSpacedNumber(val);
     if (isNaN(numVal)) return;
     const current = getVal(tableId, slot);
@@ -171,14 +173,16 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
                             inputMode="numeric"
                             defaultValue={val ? formatInputWithSpaces(String(val)) : ""}
                             key={`${table.id}-${slot}-${val}`}
+                            readOnly={readOnly}
                             onChange={(e) => {
+                              if (readOnly) return;
                               e.target.value = formatInputWithSpaces(e.target.value);
                             }}
                             onBlur={(e) => handleSave(table.id, slot, e.target.value)}
                             onKeyDown={(e) => handleKeyDown(e, ti, si)}
                             className={`w-full h-7 text-center text-xs font-mono bg-transparent border border-border rounded-md px-1 focus:border-primary focus:outline-none text-card-foreground ${
                               isActive ? "border-primary/30" : ""
-                            }`}
+                            } ${readOnly ? "cursor-not-allowed opacity-70" : ""}`}
                             placeholder="·"
                           />
                         </td>
