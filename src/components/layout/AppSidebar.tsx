@@ -230,7 +230,7 @@ const SidebarSections = ({
         <button
           type="button"
           onClick={() => toggle(groupKey)}
-          className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
+          className={`w-full flex items-center gap-3 px-3 h-8 rounded-md text-sm transition-colors ${
             isGroupActive ? "bg-sidebar-accent text-sidebar-primary font-medium" : "text-sidebar-foreground hover:bg-sidebar-accent"
           }`}
         >
@@ -248,7 +248,7 @@ const SidebarSections = ({
                   to={sub.to}
                   end
                   onClick={onNavigate}
-                  className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-xs transition-colors ${
+                  className={`flex items-center gap-2 px-2 h-7 rounded-md text-xs transition-colors ${
                     active ? "bg-sidebar-accent text-sidebar-primary font-medium" : "text-sidebar-foreground hover:bg-sidebar-accent"
                   }`}
                 >
@@ -270,9 +270,6 @@ const SidebarSections = ({
     const isTabAware = itemTab !== null;
     const isTabAwareActive =
       isTabAware && location.pathname === itemBase && currentTab === itemTab;
-    // Section-aware sub-items: HR section gets Employee tab, PIT section does not
-    const pitSubs = sectionCtx === "HR" ? PIT_SUBITEMS_HR : PIT_SUBITEMS_OPS;
-    const staffSubs = sectionCtx === "HR" ? STAFF_SUBITEMS_HR : STAFF_SUBITEMS_OPS;
     return (
       <div key={`${sectionCtx}:${item.to}`}>
         <NavLink
@@ -281,7 +278,7 @@ const SidebarSections = ({
           onClick={onNavigate}
           className={({ isActive }) => {
             const active = isTabAware ? isTabAwareActive : isActive;
-            return `flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
+            return `flex items-center gap-3 px-3 h-8 rounded-md text-sm transition-colors ${
               active ? "bg-sidebar-accent text-sidebar-primary font-medium" : "text-sidebar-foreground hover:bg-sidebar-accent"
             }`;
           }}
@@ -289,8 +286,6 @@ const SidebarSections = ({
           <item.icon className="w-4 h-4 shrink-0" />
           <span className="flex-1">{item.label}</span>
         </NavLink>
-        {item.to === "/pit" && isPitActive && renderSubItems("/pit", pitSubs)}
-        {item.to === "/staff" && isStaffActive && renderSubItems("/staff", staffSubs)}
       </div>
     );
   };
@@ -640,11 +635,13 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
             <LogOut className="w-3.5 h-3.5" />
           </button>
         </div>
-        {managerOverride.active && !nativeManager && (
-          <span className="text-[9px] font-mono px-1 py-0.5 rounded bg-primary/20 text-primary font-bold mt-1 ml-1 inline-block">
-            Manager ↑
-          </span>
-        )}
+        <div className="min-h-[14px]">
+          {managerOverride.active && !nativeManager && (
+            <span className="text-[9px] font-mono px-1 py-0.5 rounded bg-primary/20 text-primary font-bold ml-1 inline-block">
+              Manager ↑
+            </span>
+          )}
+        </div>
         <div className="mt-1 pt-1 border-t border-sidebar-border/50">
           <VersionIndicator />
         </div>
