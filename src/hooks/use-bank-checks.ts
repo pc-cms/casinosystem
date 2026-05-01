@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCasino } from "@/lib/casino-context";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
+import type { SafeBankCheckInsert, SafeBankCheckUpdate } from "@/lib/safe-inserts";
 
 export type BankCheck = {
   id: string;
@@ -23,7 +24,15 @@ export type BankCheck = {
   created_at: string;
 };
 
-export type BankCheckInput = Omit<BankCheck, "id" | "casino_id" | "created_by" | "created_at">;
+/**
+ * Fields the user fills in for a new check.
+ * `casino_id` and `created_by` are added by the hook; trigger-computed fields
+ * (`expected_balance`, `discrepancy`, `is_balanced`) are forbidden by SafeBankCheckInsert.
+ */
+export type BankCheckInput = Omit<
+  SafeBankCheckInsert,
+  "casino_id" | "created_by"
+>;
 
 export const useBankChecks = (fromDate?: string, toDate?: string) => {
   const { activeCasinoId } = useCasino();
