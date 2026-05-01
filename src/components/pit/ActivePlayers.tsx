@@ -1,67 +1,37 @@
 import { useState, useMemo } from "react";
-import { usePlayers, useTransactions, useGamingTables, useAddPlayerTag, useRemovePlayerTag } from "@/hooks/use-casino-data";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { formatNumberSpaces } from "@/lib/currency";
+import { usePlayers, useTransactions, useGamingTables } from "@/hooks/use-casino-data";
+import { Input } from "@/components/ui/input";
+import { Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { offlineMutation } from "@/lib/offline-mutation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth-context";
 import { logAction } from "@/lib/logging";
-import { ArrowUpDown, ArrowUp, ArrowDown, LogIn, LogOut, Search, MapPin, Play, X, Plus, ChevronDown, Pencil } from "lucide-react";
-import PlayerEditDialog from "@/components/PlayerEditDialog";
-import { Input } from "@/components/ui/input";
-import { NumberInput } from "@/components/ui/number-input";
-import CategoryBadge, { CATEGORY_PRIORITY, type PlayerCategory } from "@/components/player/CategoryBadge";
-import FlagBadges from "@/components/player/FlagBadges";
-import CategoryFilter from "@/components/player/CategoryFilter";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { toast } from "sonner";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import CategoryFilter from "@/components/player/CategoryFilter";
+import type { PlayerCategory } from "@/components/player/CategoryBadge";
+import FloorTableCard, { type FloorTable } from "./FloorTableCard";
+import TableSeatingDialog from "./TableSeatingDialog";
+import type { SeatedPlayer } from "./SeatedPlayerChip";
 
-type SortKey = "name" | "dropR" | "dropT" | "cashout" | "result" | "category";
-type SortDir = "asc" | "desc";
-
-const PLAYER_TYPES = ["table", "mix", "slots"] as const;
-import { PLAYER_TAGS, getTagDef } from "@/lib/player-tags";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-const COMMON_TAGS = PLAYER_TAGS.map(t => t.key);
+const POKER_GAMES = ["Poker", "Texas Holdem", "Omaha", "PLO"];
 
 const ActivePlayers = () => {
   const { data: players = [] } = usePlayers();
   const { data: tables = [] } = useGamingTables();
   const today = new Date().toISOString().split("T")[0];
   const { data: transactions = [] } = useTransactions(today);
-  const { casinoId, user, isManager } = useAuth();
+  const { casinoId, user } = useAuth();
   const queryClient = useQueryClient();
-  const addTag = useAddPlayerTag();
-  const removeTag = useRemovePlayerTag();
 
-  const [sortKey, setSortKey] = useState<SortKey>("category");
-  const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [search, setSearch] = useState("");
-  const [typeFilter, setTypeFilter] = useState<Set<string>>(new Set(["slots", "table", "mix"]));
-  const [categoryFilter, setCategoryFilter] = useState<Set<PlayerCategory>>(new Set(["diamond", "platinum", "gold", "normal"]));
-  const [placingPlayer, setPlacingPlayer] = useState<string | null>(null);
-  const [placingTable, setPlacingTable] = useState<string | null>(null);
-  const [placingBet, setPlacingBet] = useState("");
-  const [editPlayer, setEditPlayer] = useState<any>(null);
+  const [categoryFilter, setCategoryFilter] = useState<Set<PlayerCategory>>(
+    new Set(["diamond", "platinum", "gold", "normal"])
+  );
+  const [openTableId, setOpenTableId] = useState<string | null>(null);
+  const [pendingDropPlayer, setPendingDropPlayer] = useState<string | null>(null);
 
-  const { data: allTags = [] } = useQuery({
-    queryKey: ["player_tags", casinoId],
-    queryFn: async () => {
-      const { data } = await supabase.from("player_tags").select("player_id, tag");
-      return data || [];
-    },
-    enabled: !!casinoId,
-  });
+  const isTouch = typeof window !== "undefined" && "ontouchstart" in window;
 
   const { data: sessions = [] } = useQuery({
     queryKey: ["client_sessions", casinoId, today],
@@ -92,7 +62,7 @@ const ActivePlayers = () => {
     refetchInterval: 15000,
   });
 
-  // Shared guard: blocks blacklisted players and cross-casino dual check-in.
+  // Shared guard
   const guardCheckIn = async (playerId: string) => {
     const player = players.find(p => p.id === playerId);
     if (player?.status === "blacklist") throw new Error("BLACKLISTED — entry denied");
@@ -108,33 +78,6 @@ const ActivePlayers = () => {
     }
   };
 
-   const checkIn = useMutation({
-    mutationFn: async (playerId: string) => {
-      await guardCheckIn(playerId);
-      const res = await offlineMutation({
-        table: "casino_visits",
-        operation: "upsert",
-        payload: {
-          casino_id: casinoId!,
-          player_id: playerId,
-          date: today,
-          checked_in_by: user!.id,
-        },
-        upsertConflict: "casino_id,player_id,date",
-      });
-      if (res.error) throw new Error(res.error);
-      if (!res.offline && casinoId) {
-        await logAction(casinoId, "player", "PLAYER_CHECKED_IN", { player_id: playerId, source: "pit" });
-      }
-      return { offline: res.offline };
-    },
-    onSuccess: (res: any) => {
-      queryClient.invalidateQueries({ queryKey: ["casino_visits"] });
-      toast.success(res?.offline ? "Check-in saved offline" : "Player checked in");
-    },
-    onError: (e: any) => toast.error(e.message),
-  });
-
   const placeAtTable = useMutation({
     mutationFn: async ({ playerId, tableId, avgBet }: { playerId: string; tableId: string; avgBet: number }) => {
       await guardCheckIn(playerId);
@@ -142,83 +85,31 @@ const ActivePlayers = () => {
       const sRes = await offlineMutation({
         table: "client_sessions",
         operation: "insert",
-        payload: {
-          id: sessionId,
-          casino_id: casinoId!,
-          player_id: playerId,
-          table_id: tableId,
-          avg_bet: avgBet,
-          created_by: user!.id,
-        },
+        payload: { id: sessionId, casino_id: casinoId!, player_id: playerId, table_id: tableId, avg_bet: avgBet, created_by: user!.id },
       });
       if (sRes.error) throw new Error(sRes.error);
       const vRes = await offlineMutation({
         table: "casino_visits",
         operation: "upsert",
-        payload: {
-          casino_id: casinoId!,
-          player_id: playerId,
-          date: today,
-          checked_in_by: user!.id,
-        },
+        payload: { casino_id: casinoId!, player_id: playerId, date: today, checked_in_by: user!.id, position: "table" },
         upsertConflict: "casino_id,player_id,date",
       });
       if (vRes.error) throw new Error(vRes.error);
+      if (!sRes.offline && casinoId) {
+        await logAction(casinoId, "player", "PLAYER_SEATED", { player_id: playerId, table_id: tableId, avg_bet: avgBet });
+      }
       return { offline: sRes.offline || vRes.offline };
     },
     onSuccess: (res: any) => {
       queryClient.invalidateQueries({ queryKey: ["client_sessions"] });
       queryClient.invalidateQueries({ queryKey: ["casino_visits"] });
-      setPlacingPlayer(null);
-      setPlacingTable(null);
-      setPlacingBet("");
-      setSearch("");
-      toast.success(res?.offline ? "Session saved offline — will sync" : "Session started & player checked in");
-    },
-    onError: (e: any) => toast.error(e.message),
-  });
-
-  const checkOut = useMutation({
-    mutationFn: async (playerId: string) => {
-      const res = await offlineMutation({
-        table: "casino_visits",
-        operation: "update",
-        payload: {
-          _match: { casino_id: casinoId!, player_id: playerId, date: today },
-          checked_out_at: new Date().toISOString(),
-        },
-      });
-      if (res.error) throw new Error(res.error);
-      return { offline: res.offline };
-    },
-    onSuccess: (res: any) => {
-      queryClient.invalidateQueries({ queryKey: ["casino_visits"] });
-      toast.success(res?.offline ? "Check-out saved offline" : "Player checked out");
-    },
-    onError: (e: any) => toast.error(e.message),
-  });
-
-  const updatePlayerType = useMutation({
-    mutationFn: async ({ id, player_type }: { id: string; player_type: string }) => {
-      const res = await offlineMutation({
-        table: "players",
-        operation: "update",
-        payload: { _match: { id }, player_type },
-      });
-      if (res.error) throw new Error(res.error);
-      return { offline: res.offline };
-    },
-    onSuccess: (res: any) => {
-      queryClient.invalidateQueries({ queryKey: ["players"] });
-      queryClient.invalidateQueries({ queryKey: ["player_tags"] });
-      toast.success(res?.offline ? "Saved offline" : "Player type updated");
+      toast.success(res?.offline ? "Saved offline" : "Player seated");
     },
     onError: (e: any) => toast.error(e.message),
   });
 
   const changeTable = useMutation({
     mutationFn: async ({ playerId, tableId, avgBet }: { playerId: string; tableId: string; avgBet: number }) => {
-      // Stop existing active sessions for this player (best-effort offline)
       const stopRes = await offlineMutation({
         table: "client_sessions",
         operation: "update",
@@ -228,589 +119,262 @@ const ActivePlayers = () => {
         },
       });
       if (stopRes.error && navigator.onLine) throw new Error(stopRes.error);
-      // Start new session with idempotent UUID
       const sessionId = crypto.randomUUID();
       const insRes = await offlineMutation({
         table: "client_sessions",
         operation: "insert",
-        payload: {
-          id: sessionId,
-          casino_id: casinoId!,
-          player_id: playerId,
-          table_id: tableId,
-          avg_bet: avgBet,
-          created_by: user!.id,
-        },
+        payload: { id: sessionId, casino_id: casinoId!, player_id: playerId, table_id: tableId, avg_bet: avgBet, created_by: user!.id },
       });
       if (insRes.error) throw new Error(insRes.error);
       return { offline: stopRes.offline || insRes.offline };
     },
     onSuccess: (res: any) => {
       queryClient.invalidateQueries({ queryKey: ["client_sessions"] });
-      toast.success(res?.offline ? "Saved offline — will sync" : "Table changed");
+      toast.success(res?.offline ? "Saved offline" : "Player moved");
     },
     onError: (e: any) => toast.error(e.message),
   });
 
-  const activePlayers = useMemo(() => {
-    const txPlayerIds = new Set(transactions.map((t: any) => t.player_id));
+  const stopSession = useMutation({
+    mutationFn: async (playerId: string) => {
+      const res = await offlineMutation({
+        table: "client_sessions",
+        operation: "update",
+        payload: {
+          _match: { casino_id: casinoId!, player_id: playerId, stopped_at: null as any },
+          stopped_at: new Date().toISOString(),
+        },
+      });
+      if (res.error) throw new Error(res.error);
+      // Move position back to hall
+      await offlineMutation({
+        table: "casino_visits",
+        operation: "update",
+        payload: { _match: { casino_id: casinoId!, player_id: playerId, date: today }, position: "hall" },
+      });
+      return { offline: res.offline };
+    },
+    onSuccess: (res: any) => {
+      queryClient.invalidateQueries({ queryKey: ["client_sessions"] });
+      queryClient.invalidateQueries({ queryKey: ["casino_visits"] });
+      toast.success(res?.offline ? "Saved offline" : "Session stopped");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const updateAvgBet = useMutation({
+    mutationFn: async ({ playerId, avgBet }: { playerId: string; avgBet: number }) => {
+      const res = await offlineMutation({
+        table: "client_sessions",
+        operation: "update",
+        payload: {
+          _match: { casino_id: casinoId!, player_id: playerId, stopped_at: null as any },
+          avg_bet: avgBet,
+        },
+      });
+      if (res.error) throw new Error(res.error);
+      return { offline: res.offline };
+    },
+    onSuccess: (res: any) => {
+      queryClient.invalidateQueries({ queryKey: ["client_sessions"] });
+      toast.success(res?.offline ? "Saved offline" : "Avg bet updated");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  // Build seated map: tableId -> SeatedPlayer[]
+  const { seatedByTable, allSeatedIds } = useMemo(() => {
+    const map: Record<string, SeatedPlayer[]> = {};
+    const ids = new Set<string>();
     const activeSessions = sessions.filter((s: any) => !s.stopped_at);
-    const sessionPlayerIds = new Set(activeSessions.map((s: any) => s.player_id));
-    const visitPlayerIds = new Set(
+    for (const s of activeSessions) {
+      const p = players.find(pl => pl.id === s.player_id);
+      if (!p || !s.table_id) continue;
+      const cat = ((p as any).category as PlayerCategory) || "normal";
+      if (!categoryFilter.has(cat)) continue;
+      const playerTx = transactions.filter((t: any) => t.player_id === p.id);
+      const dropR = playerTx
+        .filter((t: any) => t.type === "buy" || t.type === "in")
+        .reduce((sum: number, t: any) => sum + Number(t.amount), 0);
+      const cashout = playerTx
+        .filter((t: any) => t.type === "cashout" || t.type === "out")
+        .reduce((sum: number, t: any) => sum + Number(t.amount), 0);
+      const sp: SeatedPlayer = {
+        id: p.id,
+        first_name: p.first_name,
+        last_name: p.last_name,
+        nickname: (p as any).nickname,
+        category: cat,
+        avgBet: Number(s.avg_bet || 0),
+        startedAt: s.started_at ? new Date(s.started_at) : null,
+        dropR,
+        result: dropR - cashout,
+      };
+      if (!map[s.table_id]) map[s.table_id] = [];
+      map[s.table_id].push(sp);
+      ids.add(p.id);
+    }
+    // Sort players within each table by category priority then started time
+    Object.values(map).forEach(arr => arr.sort((a, b) => {
+      if (a.category !== b.category) {
+        const order: Record<PlayerCategory, number> = { diamond: 0, platinum: 1, gold: 2, normal: 3 };
+        return order[a.category] - order[b.category];
+      }
+      return (a.startedAt?.getTime() ?? 0) - (b.startedAt?.getTime() ?? 0);
+    }));
+    return { seatedByTable: map, allSeatedIds: ids };
+  }, [sessions, players, transactions, categoryFilter]);
+
+  // Candidates: checked-in players not seated + (if search) any player matching
+  const candidates = useMemo(() => {
+    const visitIds = new Set(
       visits.filter((v: any) => !v.checked_out_at).map((v: any) => v.player_id)
     );
-
-    const relevantIds = new Set([...txPlayerIds, ...sessionPlayerIds, ...visitPlayerIds]);
-
-    const list = players
-      .filter(p => relevantIds.has(p.id))
-      .map(p => {
-        const playerTx = transactions.filter((t: any) => t.player_id === p.id);
-        const dropR = playerTx.filter((t: any) => (t.type === "buy" || t.type === "in")).reduce((s: number, t: any) => s + Number(t.amount), 0);
-        const cashout = playerTx.filter((t: any) => (t.type === "cashout" || t.type === "out")).reduce((s: number, t: any) => s + Number(t.amount), 0);
-        const playerAllSessions = sessions.filter((s: any) => s.player_id === p.id);
-        const dropV = playerAllSessions.reduce((s: number, ses: any) => s + Number(ses.total_bet || 0), 0);
-        const dropT = dropR + dropV;
-        const result = dropR - cashout;
-        const tags = allTags.filter(t => t.player_id === p.id).map(t => t.tag);
-        const activeSession = activeSessions.find((s: any) => s.player_id === p.id);
-        const table = activeSession?.table_id ? tables.find(t => t.id === activeSession.table_id) : null;
-        const visit = visits.find((v: any) => v.player_id === p.id);
-        const isCheckedIn = visit && !visit.checked_out_at;
-
-        // First seen: earliest of transaction, session, or visit check-in
-        const times: number[] = [];
-        const firstTx = playerTx.sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())[0];
-        if (firstTx) times.push(new Date(firstTx.created_at).getTime());
-        const playerSessions = sessions.filter((s: any) => s.player_id === p.id);
-        const firstSession = playerSessions.sort((a: any, b: any) => new Date(a.started_at).getTime() - new Date(b.started_at).getTime())[0];
-        if (firstSession) times.push(new Date(firstSession.started_at).getTime());
-        if (visit) times.push(new Date(visit.checked_in_at).getTime());
-        const firstSeenTs = times.length > 0 ? Math.min(...times) : null;
-        const firstSeen = firstSeenTs ? new Date(firstSeenTs) : null;
-
-        return {
-          id: p.id,
-          first_name: p.first_name,
-          last_name: p.last_name,
-          nickname: p.nickname,
-          status: p.status,
-          player_type: (p as any).player_type as string || "table",
-          category: ((p as any).category as PlayerCategory) || "normal",
-          dropR,
-          dropV,
-          dropT,
-          cashout,
-          result,
-          tags,
-          tableName: table?.name || null,
-          isLive: !!activeSession,
-          isCheckedIn: !!isCheckedIn,
-          hasVisit: !!visit,
-          position: (visit as any)?.position as string || "hall",
-          firstSeen,
-        };
-      });
-
-    // Filter by type
-    const typeFiltered = typeFilter.size === 3
-      ? list
-      : list.filter(p => typeFilter.has(p.player_type));
-
-    // Filter by category
-    const catFiltered = categoryFilter.size === 4
-      ? typeFiltered
-      : typeFiltered.filter(p => categoryFilter.has(p.category));
-
-    // Filter by search
-    const filtered = search
-      ? catFiltered.filter(p => `${p.first_name} ${p.last_name} ${p.nickname}`.toLowerCase().includes(search.toLowerCase()))
-      : catFiltered;
-
-    // Sort
-    filtered.sort((a, b) => {
-      let cmp = 0;
-      switch (sortKey) {
-        case "category": cmp = CATEGORY_PRIORITY[a.category] - CATEGORY_PRIORITY[b.category]; break;
-        case "name": cmp = `${a.first_name} ${a.last_name}`.localeCompare(`${b.first_name} ${b.last_name}`); break;
-        case "dropR": cmp = a.dropR - b.dropR; break;
-        case "dropT": cmp = a.dropT - b.dropT; break;
-        case "cashout": cmp = a.cashout - b.cashout; break;
-        case "result": cmp = a.result - b.result; break;
-      }
-      return sortDir === "desc" ? -cmp : cmp;
-    });
-
-    return filtered;
-  }, [players, transactions, allTags, sessions, tables, visits, sortKey, sortDir, search, typeFilter, categoryFilter]);
-
-  // Players not yet active — for check-in search
-  const activeIds = new Set(activePlayers.map(p => p.id));
-  const inactivePlayers = useMemo(() => {
-    if (!search) return [];
     return players
-      .filter(p => p.status === "active" && !activeIds.has(p.id))
-      .filter(p => `${p.first_name} ${p.last_name} ${p.nickname}`.toLowerCase().includes(search.toLowerCase()))
-      .slice(0, 5);
-  }, [players, activeIds, search]);
+      .filter(p => p.status === "active" && !allSeatedIds.has(p.id))
+      .map(p => ({
+        id: p.id,
+        first_name: p.first_name,
+        last_name: p.last_name,
+        nickname: (p as any).nickname,
+        category: ((p as any).category as PlayerCategory) || "normal",
+        isCheckedIn: visitIds.has(p.id),
+      }));
+  }, [players, visits, allSeatedIds]);
 
-  const handleSort = (key: SortKey) => {
-    if (sortKey === key) setSortDir(d => (d === "desc" ? "asc" : "desc"));
-    else { setSortKey(key); setSortDir("desc"); }
+  // Split tables into AR/BJ vs Poker columns (matches /tables page layout)
+  const sortedTables = useMemo(() => {
+    const all = [...tables].sort((a, b) => a.name.localeCompare(b.name));
+    return {
+      left: all.filter(t => !POKER_GAMES.includes(t.game)) as FloorTable[],
+      right: all.filter(t => POKER_GAMES.includes(t.game)) as FloorTable[],
+    };
+  }, [tables]);
+
+  // Search filter on tables (by player name)
+  const tableMatchesSearch = (tableId: string): boolean => {
+    if (!search) return true;
+    const q = search.toLowerCase();
+    const players = seatedByTable[tableId] || [];
+    return players.some(p => `${p.first_name} ${p.last_name} ${p.nickname ?? ""}`.toLowerCase().includes(q));
   };
 
-  const SortIcon = ({ col }: { col: SortKey }) => {
-    if (sortKey !== col) return <ArrowUpDown className="w-3 h-3 ml-1 opacity-40" />;
-    return sortDir === "desc"
-      ? <ArrowDown className="w-3 h-3 ml-1 text-primary" />
-      : <ArrowUp className="w-3 h-3 ml-1 text-primary" />;
+  const handleOpenTable = (tableId: string) => {
+    const t = tables.find(x => x.id === tableId);
+    if (t?.status === "closed") {
+      toast.info("Table is closed");
+      return;
+    }
+    setPendingDropPlayer(null);
+    setOpenTableId(tableId);
   };
 
-  const totalDropR = activePlayers.reduce((s, p) => s + p.dropR, 0);
-  const totalDropT = activePlayers.reduce((s, p) => s + p.dropT, 0);
-  const totalCashout = activePlayers.reduce((s, p) => s + p.cashout, 0);
-  const totalResult = totalDropR - totalCashout;
+  const handlePlayerDropped = (tableId: string, playerId: string) => {
+    const t = tables.find(x => x.id === tableId);
+    if (t?.status === "closed") return;
+    // If dropped on the same table, no-op
+    const currentTable = Object.entries(seatedByTable).find(([_, arr]) => arr.some(p => p.id === playerId))?.[0];
+    if (currentTable === tableId) return;
+    setPendingDropPlayer(playerId);
+    setOpenTableId(tableId);
+  };
+
+  const openTable = openTableId ? (tables.find(t => t.id === openTableId) as FloorTable | undefined) ?? null : null;
+  const seatedHere = openTableId ? (seatedByTable[openTableId] || []) : [];
+  const otherTables = useMemo(() => {
+    if (!openTableId) return [];
+    return tables
+      .filter(t => t.id !== openTableId)
+      .map(t => ({ table: t as FloorTable, players: seatedByTable[t.id] || [] }));
+  }, [openTableId, tables, seatedByTable]);
+
+  const totalSeated = Object.values(seatedByTable).reduce((s, arr) => s + arr.length, 0);
+
+  const renderTable = (t: FloorTable) => {
+    const dim = !tableMatchesSearch(t.id);
+    return (
+      <div key={t.id} className={dim ? "opacity-30 transition-opacity" : "transition-opacity"}>
+        <FloorTableCard
+          table={t}
+          players={seatedByTable[t.id] || []}
+          onOpen={() => handleOpenTable(t.id)}
+          onPlayerDropped={(pid) => handlePlayerDropped(t.id, pid)}
+          isTouch={isTouch}
+        />
+      </div>
+    );
+  };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <div className="cms-panel">
-        <div className="px-4 py-2 border-b border-border flex items-center justify-between gap-3">
-          <h3 className="text-sm font-semibold text-card-foreground shrink-0">
-            Active Players ({activePlayers.length})
-          </h3>
+        <div className="px-3 py-2 border-b border-border flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-3">
+            <h3 className="text-sm font-semibold text-card-foreground">
+              Floor Map · {totalSeated} seated
+            </h3>
+            {!isTouch && (
+              <span className="text-[10px] text-muted-foreground hidden md:inline">
+                Drag a player chip onto another table to move
+              </span>
+            )}
+          </div>
           <div className="flex items-center gap-2">
-            <div className="flex items-center rounded-md border border-border overflow-hidden">
-              {([["table", "Table"], ["mix", "Mix"], ["slots", "Slot"]] as const).map(([key, label]) => (
-                <button
-                  key={key}
-                  onClick={() => setTypeFilter(prev => {
-                    const next = new Set(prev);
-                    if (next.has(key)) { if (next.size > 1) next.delete(key); }
-                    else next.add(key);
-                    return next;
-                  })}
-                  className={`px-2.5 py-1 text-[10px] font-medium uppercase transition-colors ${
-                    typeFilter.has(key)
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
             <CategoryFilter selected={categoryFilter} onChange={setCategoryFilter} />
-            <div className="relative max-w-[200px] w-full">
+            <div className="relative max-w-[220px] w-full">
               <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Search / Check in..."
+                placeholder="Search seated player..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                className="h-8 pl-8 text-xs"
+                className="pl-8"
               />
             </div>
           </div>
         </div>
 
-        {/* Player placement panel */}
-        {inactivePlayers.length > 0 && (
-          <div className="px-4 py-3 border-b border-border bg-muted/10 space-y-2">
-            <p className="text-[10px] text-muted-foreground uppercase">Add active player</p>
-            <div className="flex flex-wrap gap-2">
-              {inactivePlayers.map(p => (
-                <Button
-                  key={p.id}
-                  variant={placingPlayer === p.id ? "default" : "outline"}
-                  size="sm"
-                  className="h-7 text-xs gap-1"
-                  onClick={() => {
-                    setPlacingPlayer(placingPlayer === p.id ? null : p.id);
-                    setPlacingTable(null);
-                    setPlacingBet("");
-                  }}
-                >
-                  <LogIn className="w-3 h-3" />
-                  {p.first_name} {p.last_name}
-                </Button>
-              ))}
-            </div>
-
-            {/* Table/Hall selection for selected player */}
-            {placingPlayer && (
-              <div className="pt-2 space-y-2">
-                <p className="text-[10px] text-muted-foreground uppercase">
-                  Where is {inactivePlayers.find(p => p.id === placingPlayer)?.first_name}?
-                </p>
-                <div className="flex flex-wrap gap-1.5">
-                  <Button
-                    variant={placingTable === "hall" ? "default" : "outline"}
-                    size="sm"
-                    className="h-7 text-xs gap-1"
-                    onClick={() => { setPlacingTable("hall"); setPlacingBet(""); }}
-                  >
-                    <MapPin className="w-3 h-3" /> In Hall
-                  </Button>
-                  {tables.filter(t => t.status === "open").map(t => (
-                    <Button
-                      key={t.id}
-                      variant={placingTable === t.id ? "default" : "outline"}
-                      size="sm"
-                      className="h-7 text-xs font-mono"
-                      onClick={() => setPlacingTable(t.id)}
-                    >
-                      {t.name}
-                    </Button>
-                  ))}
+        <div className="p-3">
+          {tables.length === 0 ? (
+            <p className="text-xs text-muted-foreground text-center py-6">No tables configured</p>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <h4 className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider px-1 border-b border-border pb-1">AR / BJ</h4>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {sortedTables.left.map(renderTable)}
                 </div>
-
-                {/* Avg bet input for table placement */}
-                {placingTable && placingTable !== "hall" && (
-                  <div className="flex items-center gap-2 pt-1">
-                    <label className="text-xs text-muted-foreground shrink-0">Avg Bet:</label>
-                    <NumberInput
-                      placeholder="e.g. 5 000"
-                      value={placingBet}
-                      onChange={setPlacingBet}
-                      className="h-8 w-[140px]"
-                    />
-                    <Button
-                      size="sm"
-                      className="h-8 gap-1"
-                      disabled={!placingBet || Number(placingBet) <= 0 || placeAtTable.isPending}
-                      onClick={() => placeAtTable.mutate({
-                        playerId: placingPlayer,
-                        tableId: placingTable,
-                        avgBet: Number(placingBet),
-                      })}
-                    >
-                      <Play className="w-3 h-3" /> Start
-                    </Button>
-                  </div>
-                )}
-
-                {/* Hall check-in confirm */}
-                {placingTable === "hall" && (
-                  <div className="pt-1">
-                    <Button
-                      size="sm"
-                      className="h-8 gap-1"
-                      disabled={checkIn.isPending}
-                      onClick={() => {
-                        checkIn.mutate(placingPlayer);
-                        setPlacingPlayer(null);
-                        setPlacingTable(null);
-                        setSearch("");
-                      }}
-                    >
-                      <LogIn className="w-3 h-3" /> Check In
-                    </Button>
-                  </div>
+                {sortedTables.left.length === 0 && (
+                  <p className="text-[11px] text-muted-foreground text-center py-3">No AR/BJ tables</p>
                 )}
               </div>
-            )}
-          </div>
-        )}
-
-        {activePlayers.length === 0 ? (
-          <p className="text-center text-muted-foreground text-sm py-8">No active players today</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[30px] cursor-pointer select-none hover:text-foreground" onClick={() => handleSort("category")}>
-                    <span className="flex items-center">Cat <SortIcon col="category" /></span>
-                  </TableHead>
-                  <TableHead className="cursor-pointer select-none hover:text-foreground" onClick={() => handleSort("name")}>
-                    <span className="flex items-center">Player <SortIcon col="name" /></span>
-                  </TableHead>
-                  <TableHead className="text-center">Type</TableHead>
-                  <TableHead className="text-center">Tags</TableHead>
-                  <TableHead className="text-center">Position</TableHead>
-                  <TableHead className="text-center">Arrived</TableHead>
-                  <TableHead className="text-right cursor-pointer select-none hover:text-foreground" onClick={() => handleSort("dropR")}>
-                    <span className="flex items-center justify-end">Drop R <SortIcon col="dropR" /></span>
-                  </TableHead>
-                  <TableHead className="text-right cursor-pointer select-none hover:text-foreground" onClick={() => handleSort("dropT")}>
-                    <span className="flex items-center justify-end">Drop T <SortIcon col="dropT" /></span>
-                  </TableHead>
-                  <TableHead className="text-right cursor-pointer select-none hover:text-foreground" onClick={() => handleSort("cashout")}>
-                    <span className="flex items-center justify-end">Cash Out <SortIcon col="cashout" /></span>
-                  </TableHead>
-                  <TableHead className="text-right cursor-pointer select-none hover:text-foreground" onClick={() => handleSort("result")}>
-                    <span className="flex items-center justify-end">Result <SortIcon col="result" /></span>
-                  </TableHead>
-                   <TableHead className="text-center w-[60px]">In/Out</TableHead>
-                   <TableHead className="w-[40px]" />
-                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {activePlayers.map(p => (
-                  <TableRow key={p.id}>
-                    <TableCell className="text-center">
-                      <CategoryBadge category={p.category} />
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        {p.isCheckedIn && <span className="w-1.5 h-1.5 rounded-full bg-green-500 shrink-0" />}
-                        <span className="font-medium text-card-foreground">{p.first_name} {p.last_name}</span>
-                        {p.nickname && <span className="text-xs text-muted-foreground">"{p.nickname}"</span>}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {isManager ? (
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <button className={`text-[9px] font-mono font-bold uppercase px-1.5 py-0.5 rounded cursor-pointer hover:ring-1 hover:ring-primary/50 transition-all ${
-                              p.player_type === "table" ? "bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-400"
-                              : p.player_type === "mix" ? "bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-400"
-                              : "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400"
-                            }`}>{p.player_type === "table" ? "TBL" : p.player_type === "mix" ? "MIX" : "SLT"}</button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-1" align="center">
-                            <div className="flex flex-col gap-0.5">
-                              {PLAYER_TYPES.map(t => (
-                                <button
-                                  key={t}
-                                  onClick={() => updatePlayerType.mutate({ id: p.id, player_type: t })}
-                                  className={`px-3 py-1 text-xs rounded hover:bg-muted transition-colors text-left capitalize ${p.player_type === t ? "bg-primary/10 text-primary font-medium" : "text-foreground"}`}
-                                >
-                                  {t}
-                                </button>
-                              ))}
-                            </div>
-                          </PopoverContent>
-                        </Popover>
-                      ) : (
-                        <span className={`text-[9px] font-mono font-bold uppercase px-1.5 py-0.5 rounded ${
-                          p.player_type === "table" ? "bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-400"
-                          : p.player_type === "mix" ? "bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-400"
-                          : "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400"
-                        }`}>{p.player_type === "table" ? "TBL" : p.player_type === "mix" ? "MIX" : "SLT"}</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <div className="flex gap-1 flex-wrap justify-center items-center">
-                        <TooltipProvider delayDuration={150}>
-                          {p.tags.map(tag => {
-                            const def = getTagDef(tag);
-                            const label = def?.emoji ?? tag;
-                            const hint = def?.hint ?? tag;
-                            return (
-                              <Tooltip key={tag}>
-                                <TooltipTrigger asChild>
-                                  <span className="inline-flex items-center gap-0.5 group/tag cursor-default text-base leading-none">
-                                    <span aria-label={hint}>{label}</span>
-                                    {isManager && (
-                                      <button
-                                        onClick={() => removeTag.mutate({ playerId: p.id, tag })}
-                                        className="opacity-0 group-hover/tag:opacity-100 transition-opacity"
-                                      >
-                                        <X className="w-2.5 h-2.5 text-destructive" />
-                                      </button>
-                                    )}
-                                  </span>
-                                </TooltipTrigger>
-                                <TooltipContent side="top">{hint}</TooltipContent>
-                              </Tooltip>
-                            );
-                          })}
-                        </TooltipProvider>
-                        {isManager && (
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <button className="w-4 h-4 rounded-full border border-dashed border-muted-foreground/40 flex items-center justify-center hover:border-primary hover:text-primary transition-colors text-muted-foreground/40">
-                                <Plus className="w-2.5 h-2.5" />
-                              </button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-1" align="center">
-                              <div className="flex flex-col gap-0.5 max-h-[240px] overflow-y-auto">
-                                {COMMON_TAGS.filter(t => !p.tags.includes(t)).map(tag => {
-                                  const def = getTagDef(tag)!;
-                                  return (
-                                    <button
-                                      key={tag}
-                                      onClick={() => {
-                                        addTag.mutate({ playerId: p.id, tag });
-                                        queryClient.invalidateQueries({ queryKey: ["player_tags"] });
-                                      }}
-                                      className="px-3 py-1 text-xs rounded hover:bg-muted transition-colors text-left text-foreground flex items-center gap-2"
-                                    >
-                                      <span className="text-base leading-none">{def.emoji}</span>
-                                      <span>{def.hint}</span>
-                                    </button>
-                                  );
-                                })}
-                              </div>
-                            </PopoverContent>
-                          </Popover>
-                        )}
-                        {!isManager && p.tags.length === 0 && <span className="text-muted-foreground/40">·</span>}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <button className="inline-flex items-center gap-1 cursor-pointer">
-                            {p.isLive && p.tableName ? (
-                              <Badge className="bg-primary/20 text-primary border-primary/30 text-[10px] px-2 py-0.5 font-mono hover:bg-primary/30 transition-colors">{p.tableName}</Badge>
-                            ) : p.isCheckedIn && p.position === "slots" ? (
-                              <Badge variant="outline" className="text-[10px] px-2 py-0.5 font-mono border-amber-300 bg-amber-100 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-400">Slots</Badge>
-                            ) : p.isCheckedIn ? (
-                              <Badge variant="outline" className="text-[10px] px-2 py-0.5 font-mono border-sky-500/30 bg-sky-500/10 text-sky-400">Hall</Badge>
-                            ) : (
-                              <span className="text-muted-foreground/40"><MapPin className="w-3.5 h-3.5 inline" /></span>
-                            )}
-                            <ChevronDown className="w-3 h-3 text-muted-foreground" />
-                          </button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-1" align="center">
-                          <div className="flex flex-col gap-0.5 max-h-[200px] overflow-y-auto">
-                            {tables.filter(t => t.status === "open").map(t => (
-                              <button
-                                key={t.id}
-                                onClick={async () => {
-                                  // Update position to table (offline-aware)
-                                  await offlineMutation({
-                                    table: "casino_visits",
-                                    operation: "update",
-                                    payload: { _match: { casino_id: casinoId!, player_id: p.id, date: today }, position: "table" },
-                                  });
-                                  changeTable.mutate({ playerId: p.id, tableId: t.id, avgBet: 0 });
-                                }}
-                                className={`px-3 py-1 text-xs rounded hover:bg-muted transition-colors text-left font-mono ${p.tableName === t.name ? "bg-primary/10 text-primary font-medium" : "text-foreground"}`}
-                              >
-                                {t.name}
-                              </button>
-                            ))}
-                            <div className="border-t border-border my-0.5" />
-                            <button
-                              onClick={async () => {
-                                if (p.isLive) {
-                                  await offlineMutation({
-                                    table: "client_sessions",
-                                    operation: "update",
-                                    payload: {
-                                      _match: { casino_id: casinoId!, player_id: p.id, stopped_at: null as any },
-                                      stopped_at: new Date().toISOString(),
-                                    },
-                                  });
-                                }
-                                await offlineMutation({
-                                  table: "casino_visits",
-                                  operation: "update",
-                                  payload: { _match: { casino_id: casinoId!, player_id: p.id, date: today }, position: "hall" },
-                                });
-                                queryClient.invalidateQueries({ queryKey: ["client_sessions"] });
-                                queryClient.invalidateQueries({ queryKey: ["casino_visits"] });
-                                toast.success("Moved to Hall");
-                              }}
-                              className={`px-3 py-1 text-xs rounded transition-colors text-left flex items-center gap-1.5 ${!p.isLive && p.position === "hall" ? "bg-sky-500/15 text-sky-400 font-medium" : "text-foreground hover:bg-sky-500/10 hover:text-sky-400"}`}
-                            >
-                              <span className="w-1.5 h-1.5 rounded-full bg-sky-400 shrink-0" />
-                              Hall
-                            </button>
-                            <button
-                              onClick={async () => {
-                                if (p.isLive) {
-                                  await offlineMutation({
-                                    table: "client_sessions",
-                                    operation: "update",
-                                    payload: {
-                                      _match: { casino_id: casinoId!, player_id: p.id, stopped_at: null as any },
-                                      stopped_at: new Date().toISOString(),
-                                    },
-                                  });
-                                }
-                                await offlineMutation({
-                                  table: "casino_visits",
-                                  operation: "update",
-                                  payload: { _match: { casino_id: casinoId!, player_id: p.id, date: today }, position: "slots" },
-                                });
-                                queryClient.invalidateQueries({ queryKey: ["client_sessions"] });
-                                queryClient.invalidateQueries({ queryKey: ["casino_visits"] });
-                                toast.success("Moved to Slots");
-                              }}
-                              className={`px-3 py-1 text-xs rounded transition-colors text-left flex items-center gap-1.5 ${!p.isLive && p.position === "slots" ? "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400 font-medium" : "text-foreground hover:bg-amber-100 hover:text-amber-700 dark:hover:bg-amber-500/10 dark:hover:text-amber-400"}`}
-                            >
-                              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
-                              Slots
-                            </button>
-                          </div>
-                        </PopoverContent>
-                      </Popover>
-                    </TableCell>
-                    <TableCell className="text-center text-[10px] font-mono text-muted-foreground">
-                      {p.firstSeen
-                        ? `${String(p.firstSeen.getHours()).padStart(2, "0")}:${String(p.firstSeen.getMinutes()).padStart(2, "0")}`
-                        : <span className="text-muted-foreground/40">·</span>
-                      }
-                    </TableCell>
-                    <TableCell className="text-right font-mono font-bold text-card-foreground">
-                      {p.dropR > 0 ? formatNumberSpaces(p.dropR) : <span className="text-muted-foreground/40">·</span>}
-                    </TableCell>
-                    <TableCell className="text-right font-mono font-bold text-muted-foreground">
-                      {p.dropT > 0 ? formatNumberSpaces(p.dropT) : <span className="text-muted-foreground/40">·</span>}
-                    </TableCell>
-                    <TableCell className="text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                      {p.cashout > 0 ? formatNumberSpaces(p.cashout) : <span className="text-muted-foreground/40">·</span>}
-                    </TableCell>
-                    <TableCell className={`text-right font-mono font-bold ${p.result > 0 ? "text-emerald-600 dark:text-emerald-400" : p.result < 0 ? "text-red-600 dark:text-red-400" : "text-muted-foreground"}`}>
-                      {p.result !== 0 ? <>{p.result > 0 ? "+" : ""}{formatNumberSpaces(p.result)}</> : <span className="text-muted-foreground/40">·</span>}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {p.isCheckedIn ? (
-                        <button
-                          onClick={() => checkOut.mutate(p.id)}
-                          className="text-muted-foreground hover:text-red-600 dark:hover:text-red-400 transition-colors"
-                          title="Check out"
-                        >
-                          <LogOut className="w-3.5 h-3.5" />
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => checkIn.mutate(p.id)}
-                          className="text-muted-foreground hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"
-                          title="Check in"
-                        >
-                          <LogIn className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <button
-                        onClick={() => {
-                          const pl = players.find(pl => pl.id === p.id);
-                          if (pl) setEditPlayer(pl);
-                        }}
-                        className="text-muted-foreground hover:text-primary transition-colors"
-                        title="Edit player"
-                      >
-                        <Pencil className="w-3.5 h-3.5" />
-                      </button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {/* Totals row */}
-                {activePlayers.length > 0 && (totalDropR > 0 || totalCashout > 0) && (
-                  <TableRow className="border-t-2 border-border bg-muted/20">
-                    <TableCell className="font-bold text-xs text-card-foreground" colSpan={6}>TOTAL</TableCell>
-                    <TableCell className="text-right font-mono font-bold text-card-foreground">{formatNumberSpaces(totalDropR)}</TableCell>
-                    <TableCell className="text-right font-mono font-bold text-muted-foreground">{formatNumberSpaces(totalDropT)}</TableCell>
-                    <TableCell className="text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">{formatNumberSpaces(totalCashout)}</TableCell>
-                    <TableCell className={`text-right font-mono font-bold ${totalResult > 0 ? "text-emerald-600 dark:text-emerald-400" : totalResult < 0 ? "text-red-600 dark:text-red-400" : "text-muted-foreground"}`}>
-                      {totalResult > 0 ? "+" : ""}{formatNumberSpaces(totalResult)}
-                    </TableCell>
-                    <TableCell />
-                    <TableCell />
-                  </TableRow>
+              <div className="space-y-2">
+                <h4 className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider px-1 border-b border-border pb-1">Poker</h4>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {sortedTables.right.map(renderTable)}
+                </div>
+                {sortedTables.right.length === 0 && (
+                  <p className="text-[11px] text-muted-foreground text-center py-3">No Poker tables</p>
                 )}
-              </TableBody>
-            </Table>
-          </div>
-        )}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
-      <PlayerEditDialog player={editPlayer} open={!!editPlayer} onOpenChange={(v) => { if (!v) setEditPlayer(null); }} />
+
+      <TableSeatingDialog
+        open={!!openTableId}
+        onOpenChange={(v) => { if (!v) { setOpenTableId(null); setPendingDropPlayer(null); } }}
+        table={openTable}
+        seated={seatedHere}
+        otherTables={otherTables}
+        candidates={candidates}
+        prefilledPlayerId={pendingDropPlayer}
+        isPending={placeAtTable.isPending || changeTable.isPending || stopSession.isPending || updateAvgBet.isPending}
+        onPlace={(pid, bet) => openTableId && placeAtTable.mutate({ playerId: pid, tableId: openTableId, avgBet: bet })}
+        onMove={(pid, bet) => openTableId && changeTable.mutate({ playerId: pid, tableId: openTableId, avgBet: bet })}
+        onStop={(pid) => stopSession.mutate(pid)}
+        onUpdateBet={(pid, bet) => updateAvgBet.mutate({ playerId: pid, avgBet: bet })}
+      />
     </div>
   );
 };
