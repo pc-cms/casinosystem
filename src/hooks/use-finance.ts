@@ -172,7 +172,7 @@ export function useCreateWalletTransaction() {
     }) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user || !casinoId) throw new Error("Not authenticated");
-      const { error } = await supabase.from("wallet_transactions").insert({
+      const insertPayload: SafeWalletTxInsert = {
         casino_id: casinoId,
         tx_type: tx.tx_type,
         from_wallet: tx.from_wallet || null,
@@ -182,7 +182,8 @@ export function useCreateWalletTransaction() {
         description: tx.description || "",
         operator_id: user.id,
         business_date: tx.business_date || null,
-      });
+      };
+      const { error } = await supabase.from("wallet_transactions").insert(insertPayload);
       if (error) throw error;
     },
     onSuccess: () => {
