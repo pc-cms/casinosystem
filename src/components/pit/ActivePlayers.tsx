@@ -42,7 +42,7 @@ const ActivePlayers = () => {
         .from("client_sessions")
         .select("*")
         .eq("casino_id", casinoId!)
-        .gte("created_at", `${today}T00:00:00`)
+        .gte("started_at", windowStartUTC)
         .order("started_at", { ascending: false });
       return (data || []) as any[];
     },
