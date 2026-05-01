@@ -357,6 +357,10 @@ const PlayerProfile = () => {
               <Field label="Status" value={player.status || "active"} />
               <Field label="First visit" value={lifetime.firstVisit ? fmtDate(lifetime.firstVisit) : "—"} />
               <Field
+                label="Last visit"
+                value={lifetime.lastVisit ? fmtDateTime(lifetime.lastVisit) : "—"}
+              />
+              <Field
                 label="Days since last"
                 value={lifetime.daysSinceLast === null ? "—" : `${lifetime.daysSinceLast}d`}
               />
