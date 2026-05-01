@@ -40,6 +40,7 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
   const openTables = tables.filter(t => t.status === "open");
   const isToday = date === today;
   const currentSlot = useMemo(() => getCurrentSlot(), []);
+  const readOnly = !isToday && !isManager;
 
   const getVal = useCallback((tableId: string, slot: string) => {
     const entry = trackerData.find(t => t.table_id === tableId && t.time_slot === slot);
@@ -47,6 +48,7 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
   }, [trackerData]);
 
   const handleSave = (tableId: string, slot: string, val: string) => {
+    if (readOnly) return;
     const numVal = parseSpacedNumber(val);
     if (isNaN(numVal)) return;
     const current = getVal(tableId, slot);
