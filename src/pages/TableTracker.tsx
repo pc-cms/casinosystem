@@ -173,14 +173,16 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
                             inputMode="numeric"
                             defaultValue={val ? formatInputWithSpaces(String(val)) : ""}
                             key={`${table.id}-${slot}-${val}`}
+                            readOnly={readOnly}
                             onChange={(e) => {
+                              if (readOnly) return;
                               e.target.value = formatInputWithSpaces(e.target.value);
                             }}
                             onBlur={(e) => handleSave(table.id, slot, e.target.value)}
                             onKeyDown={(e) => handleKeyDown(e, ti, si)}
                             className={`w-full h-7 text-center text-xs font-mono bg-transparent border border-border rounded-md px-1 focus:border-primary focus:outline-none text-card-foreground ${
                               isActive ? "border-primary/30" : ""
-                            }`}
+                            } ${readOnly ? "cursor-not-allowed opacity-70" : ""}`}
                             placeholder="·"
                           />
                         </td>
