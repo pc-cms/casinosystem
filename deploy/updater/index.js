@@ -37,6 +37,8 @@ const {
 const TICK_MS = Math.max(parseInt(CHECK_INTERVAL_MINUTES, 10), 5) * 60 * 1000;
 const LOG_FILE = `${COMPOSE_PROJECT_DIR}/updater.log`;
 const FLAG_FILE = `${COMPOSE_PROJECT_DIR}/UPDATE_AVAILABLE`;
+const PUSH_FILE = `${COMPOSE_PROJECT_DIR}/PUSH_COMMAND.json`;
+const ACK_FILE = `${COMPOSE_PROJECT_DIR}/PUSH_COMMAND_ACK.json`;
 const HEALTH_URL = "https://nginx/healthz";
 const HEALTH_TIMEOUT_S = 30;
 
