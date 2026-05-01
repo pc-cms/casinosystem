@@ -826,6 +826,8 @@ export type Database = {
       }
       casinos: {
         Row: {
+          brand_accent_hsl: string | null
+          brand_primary_hsl: string | null
           breaklist_lock: string
           cage_float: number
           chip_conservation_mode: string
@@ -833,6 +835,7 @@ export type Database = {
           created_at: string
           float_locked: boolean
           id: string
+          logo_url: string | null
           name: string
           shift_end: string
           shift_start: string
@@ -841,6 +844,8 @@ export type Database = {
           timezone: string
         }
         Insert: {
+          brand_accent_hsl?: string | null
+          brand_primary_hsl?: string | null
           breaklist_lock?: string
           cage_float?: number
           chip_conservation_mode?: string
@@ -848,6 +853,7 @@ export type Database = {
           created_at?: string
           float_locked?: boolean
           id?: string
+          logo_url?: string | null
           name: string
           shift_end?: string
           shift_start?: string
@@ -856,6 +862,8 @@ export type Database = {
           timezone?: string
         }
         Update: {
+          brand_accent_hsl?: string | null
+          brand_primary_hsl?: string | null
           breaklist_lock?: string
           cage_float?: number
           chip_conservation_mode?: string
@@ -863,6 +871,7 @@ export type Database = {
           created_at?: string
           float_locked?: boolean
           id?: string
+          logo_url?: string | null
           name?: string
           shift_end?: string
           shift_start?: string
@@ -2692,6 +2701,36 @@ export type Database = {
           id?: string
           pin_hash?: string | null
           rfid_tag?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_module_permissions: {
+        Row: {
+          can_view: boolean
+          created_at: string
+          granted_by: string | null
+          id: string
+          module_key: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          can_view?: boolean
+          created_at?: string
+          granted_by?: string | null
+          id?: string
+          module_key: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          can_view?: boolean
+          created_at?: string
+          granted_by?: string | null
+          id?: string
+          module_key?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
