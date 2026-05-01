@@ -663,11 +663,12 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
       </tr>
       {dealerList.map((dealer: any, idx: number) => {
         const stats = getDealerStats(dealer.id);
+        const catKey = forcePitBoss ? "pit_boss" : dealer.category;
         return (
           <tr key={dealer.id} className={`border-b border-border last:border-0 ${idx % 2 === 0 ? "" : "bg-muted/10"} ${extraRowClass}`}>
             <td className={`px-1 py-1 text-center sticky left-0 z-10 ${idx % 2 === 0 ? "bg-card" : "bg-card/95"}`}>
-              <span className={`inline-flex items-center justify-center w-5 h-5 rounded text-[9px] font-mono font-bold ${CATEGORY_COLORS[dealer.category] || "text-muted-foreground bg-muted/20"}`}>
-                {CATEGORY_LETTER[dealer.category] || "?"}
+              <span className={`inline-flex items-center justify-center w-5 h-5 rounded text-[9px] font-mono font-bold ${CATEGORY_COLORS[catKey] || "text-muted-foreground bg-muted/20"}`}>
+                {CATEGORY_LETTER[catKey] || "?"}
               </span>
             </td>
             <td className={`px-3 py-1 text-xs font-medium text-card-foreground sticky left-[28px] z-10 ${idx % 2 === 0 ? "bg-card" : "bg-card/95"}`}>
