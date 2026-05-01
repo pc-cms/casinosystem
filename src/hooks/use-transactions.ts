@@ -44,7 +44,7 @@ export const useCreateTransaction = () => {
       shift_id?: string;
     }) => {
       if (!casinoId || !user) throw new Error("Not authenticated");
-      const payload = {
+      const payload: SafeTransactionInsert = {
         casino_id: casinoId,
         player_id: input.player_id,
         table_id: input.table_id,
