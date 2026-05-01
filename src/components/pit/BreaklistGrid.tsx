@@ -212,12 +212,13 @@ const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }
                 </th>
                 {TIME_SLOTS.map(slot => {
                   const isActive = isToday && slot === currentSlot;
+                  const isHourStart = slot.endsWith(":00");
                   return (
                     <th
                       key={slot}
                       className={`text-center text-[9px] font-mono px-0.5 py-2 min-w-[52px] ${
                         isActive ? "bg-primary text-primary-foreground font-bold border-x-2 border-primary" : "text-muted-foreground"
-                      }`}
+                      } ${isHourStart && !isActive ? "border-l-2 border-foreground/25" : ""}`}
                     >
                       {slot}
                     </th>
@@ -264,8 +265,9 @@ const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }
                         : "·";
                       const isActiveCell = activeCell?.dealerId === dealer.id && activeCell?.timeSlot === slot;
                       const isCurrentCol = isToday && slot === currentSlot;
+                      const isHourStart = slot.endsWith(":00");
                       return (
-                        <td key={slot} className={`px-0.5 py-0.5 text-center relative group ${isCurrentCol ? "bg-primary/15 border-x-2 border-primary" : ""}`}>
+                        <td key={slot} className={`px-0.5 py-0.5 text-center relative group ${isCurrentCol ? "bg-primary/15 border-x-2 border-primary" : isHourStart ? "border-l-2 border-foreground/25" : ""}`}>
                           <div
                             onClick={() => isEditable && handleCellClick(dealer.id, slot)}
                             className={`w-full h-7 rounded text-[13px] font-mono font-extrabold relative transition-colors cursor-pointer flex items-center justify-center ${
