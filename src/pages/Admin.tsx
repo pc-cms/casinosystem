@@ -149,6 +149,9 @@ const Admin = () => {
               <TabsTrigger value="servers" className="gap-1.5">
                 <Server className="w-3.5 h-3.5" /> Local Servers
               </TabsTrigger>
+              <TabsTrigger value="network" className="gap-1.5">
+                <Activity className="w-3.5 h-3.5" /> Network
+              </TabsTrigger>
             </>
           )}
           <TabsTrigger value="users" className="gap-1.5">
@@ -175,6 +178,7 @@ const Admin = () => {
             <TabsContent value="casinos"><CasinoManagement /></TabsContent>
             <TabsContent value="access"><CasinoAccessManagement /></TabsContent>
             <TabsContent value="servers"><LocalServerManagement /></TabsContent>
+            <TabsContent value="network"><NetworkHealthPanel /></TabsContent>
           </>
         )}
 
