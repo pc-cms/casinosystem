@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
+import type { SafeWalletTxInsert } from "@/lib/safe-inserts";
 
 // Types matching DB enums
 export type WalletType = "main_cash" | "office_safe" | "rent_reserve" | "license_reserve" | "tax_reserve" | "other_reserve" | "cage_slot" | "cage_table" | "mobile_money" | "bank_account";
