@@ -123,7 +123,7 @@ const InCasino = () => {
       await logAction(casinoId, "player", "PLAYER_EXIT_CONFIRMED", { visit_id: visitId, player_id: visit.player_id });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["casino-visits-today"] });
+      queryClient.invalidateQueries({ queryKey: ["casino-visits-live"] });
       toast.success("Exit confirmed");
     },
     onError: (e) => toast.error(e.message),

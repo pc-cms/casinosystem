@@ -61,7 +61,7 @@ export function usePrefetchCriticalData() {
     });
 
     qc.prefetchQuery({
-      queryKey: ["casino-visits-today", casinoId, today],
+      queryKey: ["casino-visits-live", casinoId, today],
       queryFn: queryFns.visits(casinoId, today),
       staleTime: 1000 * 60 * 2,
     });
