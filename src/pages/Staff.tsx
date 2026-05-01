@@ -78,7 +78,10 @@ const DEPT_ROW_COLORS: Record<string, string> = {
 };
 
 const Staff = () => {
-  const { isManager: isMgr } = useAuth();
+  const { isManager: isMgr, roles } = useAuth();
+  // Only manager/HR (and super_admin via isManager) can edit Floor/Security/Office schedules.
+  // Pit can navigate here (read-only) but must not write to non-Live-Game personnel.
+  const canManagePersonnel = isMgr || roles.includes("hr");
   const businessToday = getBusinessDate();
   const currentMonth = useMemo(() => {
     const [y, m] = businessToday.split("-").map(Number);
