@@ -306,22 +306,9 @@ const SidebarSections = ({
           : grouped[section] || [];
         if (!items.length) return null;
 
-        // OVERVIEW renders flat without label
-        if (section === FLAT_SECTION) {
-          return (
-            <div key={section} className={idx > 0 ? "mt-1 border-t border-sidebar-border pt-1 space-y-0.5" : "mb-1 space-y-0.5"}>
-              {items.map(it => renderItem(it, section))}
-            </div>
-          );
-        }
-
-        // All other sections: static label + flat list (no collapse)
         return (
-          <div key={section} className={idx > 0 ? "mt-1 border-t border-sidebar-border pt-1" : ""}>
-            <div className="px-3 pt-2 pb-1">
-              <span className="text-[9px] font-mono text-muted-foreground uppercase tracking-widest">{section}</span>
-            </div>
-            <div className="space-y-0.5">{items.map(it => renderItem(it, section))}</div>
+          <div key={section} className={idx > 0 ? "mt-1 border-t border-sidebar-border pt-1 space-y-0.5" : "mb-1 space-y-0.5"}>
+            {items.map(it => renderItem(it, section))}
           </div>
         );
       })}
