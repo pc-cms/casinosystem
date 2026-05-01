@@ -58,6 +58,14 @@ const isInWorkingHours = (slot: string) => {
   return h >= 18 || h < 5;
 };
 
+// Map a stored role to the per-table exclusivity slot.
+const roleSlot = (r: string): "D" | "I" | "C" | null => {
+  if (r === "P" || r === "BJ" || r === "AR") return "D";
+  if (r === "Pi" || r === "BJi" || r === "ARi") return "I";
+  if (r === "ARc") return "C";
+  return null;
+};
+
 const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }: BreaklistGridProps) => {
   const { data: dealers = [] } = useDealers();
   const { data: breaklist = [] } = useBreaklistData(date);
