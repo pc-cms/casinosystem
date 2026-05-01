@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { usePlayers, useVisitsToday } from "@/hooks/use-casino-data";
+import { useLastVisitsByPlayers } from "@/hooks/use-last-visit";
 import { useDebouncedValue } from "@/hooks/use-debounce";
 import { useDuplicateCheck } from "@/hooks/use-duplicate-check";
 import { logAction } from "@/lib/logging";
@@ -112,6 +113,9 @@ const CheckInTab = () => {
       p.player_cards?.some((c: any) => c.rfid_uid?.includes(debouncedQuery))
     ).slice(0, 20);
   }, [debouncedQuery, players]);
+
+  const filteredIds = useMemo(() => filtered.map(p => p.id), [filtered]);
+  const { data: lastVisitMap } = useLastVisitsByPlayers(filteredIds);
 
   const handleSelectPlayer = (player: any) => {
     setSelectedPlayer(player);
@@ -222,6 +226,15 @@ const CheckInTab = () => {
                   </p>
                   <p className="text-xs text-muted-foreground font-mono truncate">
                     {p.player_cards?.[0]?.card_number || "No card"}
+                    {(() => {
+                      const lv = lastVisitMap?.get(p.id);
+                      if (!lv) return null;
+                      return (
+                        <span className="ml-2 text-muted-foreground/80">
+                          · last: {format(new Date(lv), "dd.MM.yyyy HH:mm")}
+                        </span>
+                      );
+                    })()}
                   </p>
                 </div>
                 <div className="flex items-center gap-1 shrink-0 flex-wrap justify-end">

@@ -127,7 +127,7 @@ const PlayerProfile = () => {
     const realResult = Number.isFinite(result) ? result : drop - cashout - comps;
     const hold = holdPct(drop, cashout, comps);
     const firstVisit = visits.length ? visits[visits.length - 1].checked_in_at : null;
-    const lastVisit = visits[0]?.checked_in_at || null;
+    const lastVisit = visits[0] ? (visits[0].checked_out_at || visits[0].checked_in_at) : null;
     const daysSinceLast = lastVisit
       ? Math.floor((Date.now() - new Date(lastVisit).getTime()) / 86400000)
       : null;
@@ -356,6 +356,10 @@ const PlayerProfile = () => {
               <Field label="Player type" value={player.player_type || "—"} />
               <Field label="Status" value={player.status || "active"} />
               <Field label="First visit" value={lifetime.firstVisit ? fmtDate(lifetime.firstVisit) : "—"} />
+              <Field
+                label="Last visit"
+                value={lifetime.lastVisit ? fmtDateTime(lifetime.lastVisit) : "—"}
+              />
               <Field
                 label="Days since last"
                 value={lifetime.daysSinceLast === null ? "—" : `${lifetime.daysSinceLast}d`}
