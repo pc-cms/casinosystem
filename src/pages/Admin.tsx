@@ -480,30 +480,53 @@ const LocalServerManagement = () => {
               <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-3">Server IP</th>
               <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-3">Status</th>
               <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-3">Last Sync</th>
-              <th className="w-[60px]"></th>
+              <th className="text-right text-xs font-medium text-muted-foreground uppercase px-4 py-3">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {servers.map(s => (
-              <tr key={s.id} className="border-b border-border last:border-0">
-                <td className="px-4 py-3 text-sm font-medium text-card-foreground">{getCasinoName(s.casino_id)}</td>
-                <td className="px-4 py-3 text-sm font-mono text-muted-foreground">{s.server_ip}</td>
-                <td className="px-4 py-3">
-                  <Badge variant={s.is_online ? "default" : "secondary"} className="text-[10px]">
-                    {s.is_online ? "Online" : "Offline"}
-                  </Badge>
-                </td>
-                <td className="px-4 py-3 text-xs text-muted-foreground">
-                  {s.last_sync_at ? new Date(s.last_sync_at).toLocaleString() : "Never"}
-                </td>
-                <td className="px-2 py-3">
-                  <button onClick={() => unlinkServer.mutate(s.id)}
-                    className="text-muted-foreground/40 hover:text-destructive transition-colors">
-                    <Unlink className="w-3.5 h-3.5" />
-                  </button>
-                </td>
-              </tr>
-            ))}
+            {servers.map(s => {
+              const cName = getCasinoName(s.casino_id);
+              return (
+                <tr key={s.id} className="border-b border-border last:border-0">
+                  <td className="px-4 py-3 text-sm font-medium text-card-foreground">{cName}</td>
+                  <td className="px-4 py-3 text-sm font-mono text-muted-foreground">{s.server_ip}</td>
+                  <td className="px-4 py-3">
+                    <Badge variant={s.is_online ? "default" : "secondary"} className="text-[10px]">
+                      {s.is_online ? "Online" : "Offline"}
+                    </Badge>
+                  </td>
+                  <td className="px-4 py-3 text-xs text-muted-foreground">
+                    {s.last_sync_at ? new Date(s.last_sync_at).toLocaleString() : "Never"}
+                  </td>
+                  <td className="px-2 py-3">
+                    <div className="flex gap-0.5 justify-end items-center">
+                      <button
+                        onClick={() => setPushTarget({ casinoId: s.casino_id, casinoName: cName })}
+                        className="text-muted-foreground/60 hover:text-primary transition-colors p-1"
+                        title="Push update"
+                      >
+                        <Rocket className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => handleRotate(s.id, cName)}
+                        className="text-muted-foreground/60 hover:text-warning transition-colors p-1"
+                        title="Rotate sync secret"
+                        disabled={rotate.isPending}
+                      >
+                        <KeyRound className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => unlinkServer.mutate(s.id)}
+                        className="text-muted-foreground/40 hover:text-destructive transition-colors p-1"
+                        title="Unlink"
+                      >
+                        <Unlink className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
             {servers.length === 0 && (
               <tr><td colSpan={5} className="text-center py-8 text-sm text-muted-foreground">No local servers linked</td></tr>
             )}
