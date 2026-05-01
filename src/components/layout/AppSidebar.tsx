@@ -323,7 +323,15 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
   const { theme, toggle } = useTheme();
   const { displayName, roles, signOut, isManager, managerOverride, activateManagerOverride, deactivateManagerOverride } = useAuth();
   const { activeCasino, isSummaryMode } = useCasino();
-  const isArusha = (activeCasino?.slug ?? "").toLowerCase() === "arusha";
+  // Brand by subdomain first (sync, available before activeCasino loads),
+  // fall back to activeCasino.slug. Without this, Pit/Cashier accounts whose
+  // profile hasn't finished loading get the generic "CMS / Casino Ops" header
+  // instead of the Arusha brand.
+  const subdomainLabel = typeof window !== "undefined"
+    ? (window.location.hostname.split(".")[0] || "").toLowerCase()
+    : "";
+  const isArusha = subdomainLabel === "arusha"
+    || (activeCasino?.slug ?? "").toLowerCase() === "arusha";
   const location = useLocation();
   const [showOverrideDialog, setShowOverrideDialog] = useState(false);
 
