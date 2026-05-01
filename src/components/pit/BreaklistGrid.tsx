@@ -127,6 +127,35 @@ const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }
 
   const handleRoleSelect = (role: string, tableId?: string) => {
     if (!activeCell) return;
+
+    // Auto-evict: only D and I are exclusive per (table, time_slot, role).
+    // If another dealer holds the same table+role in this slot, demote them to BR.
+    if (tableId && (role === "D" || role === "I")) {
+      const conflicts = breaklist.filter(
+        (b: any) =>
+          b.time_slot === activeCell.timeSlot &&
+          b.table_id === tableId &&
+          b.role === role &&
+          b.dealer_id !== activeCell.dealerId,
+      );
+      conflicts.forEach((c: any) => {
+        setCell.mutate({
+          date,
+          dealer_id: c.dealer_id,
+          time_slot: c.time_slot,
+          role: "BR",
+          table_id: null,
+        });
+      });
+      if (conflicts.length > 0) {
+        const evicted = conflicts
+          .map((c: any) => activeDealers.find(d => d.id === c.dealer_id)?.name)
+          .filter(Boolean)
+          .join(", ");
+        toast.info(`Reassigned ${role} on this table — ${evicted} → BR`);
+      }
+    }
+
     setCell.mutate({
       date,
       dealer_id: activeCell.dealerId,
