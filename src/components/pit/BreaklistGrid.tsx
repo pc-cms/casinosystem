@@ -128,9 +128,19 @@ const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }
   const handleRoleSelect = (role: string, tableId?: string) => {
     if (!activeCell) return;
 
-    // Auto-evict: only D and I are exclusive per (table, time_slot, role).
-    // If another dealer holds the same table+role in this slot, demote them to BR.
-    if (tableId && (role === "D" || role === "I")) {
+    // Per-table role exclusivity:
+    //   - Regular tables: at most one D and one I
+    //   - Roulette: at most one D, one I, one C
+    // If another dealer already holds the same role on this table+slot, demote them to BR.
+    const ALLOWED_TABLE_ROLES = ["D", "I", "C"];
+    if (tableId && ALLOWED_TABLE_ROLES.includes(role)) {
+      const table = openTables.find(t => t.id === tableId);
+      const isRoulette = (table as any)?.game?.toLowerCase().includes("roulette");
+      // C is only valid on roulette
+      if (role === "C" && !isRoulette) {
+        toast.error("Croupier (C) only allowed on roulette tables");
+        return;
+      }
       const conflicts = breaklist.filter(
         (b: any) =>
           b.time_slot === activeCell.timeSlot &&
