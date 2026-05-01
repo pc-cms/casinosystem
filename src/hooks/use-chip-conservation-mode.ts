@@ -33,12 +33,16 @@ export const useUpdateChipConservationMode = () => {
   const { casinoId } = useAuth();
   return useMutation({
     mutationFn: async (mode: ChipConservationMode) => {
-      if (!casinoId) throw new Error("No active casino");
-      const { error } = await supabase
+      if (!casinoId) throw new Error("No active casino selected");
+      const { data, error } = await supabase
         .from("casinos")
         .update({ chip_conservation_mode: mode } as any)
-        .eq("id", casinoId);
+        .eq("id", casinoId)
+        .select("id, chip_conservation_mode");
       if (error) throw error;
+      if (!data || data.length === 0) {
+        throw new Error("No permission to change this setting (Manager / Super Admin only)");
+      }
       return mode;
     },
     onSuccess: (mode) => {
