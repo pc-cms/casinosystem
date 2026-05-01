@@ -66,23 +66,37 @@ export function useLatestCashCounts() {
   });
 }
 
+/**
+ * Safe input for `cash_count_snapshots`.
+ *
+ * Server-computed fields are intentionally excluded from this type to prevent
+ * client tampering. The `cash_count_snapshot_compute` trigger fills them:
+ *   - `discrepancy`         = expected_balance − physical_total_tzs
+ *   - `physical_total_tzs`  = physical_total × exchange_rate (when not provided)
+ *
+ * `expected_balance` is also a *reference* value, but it is supplied by the UI
+ * because it reflects the ledger snapshot at the moment of counting (audit
+ * trail). The trigger uses it as-is to compute discrepancy.
+ */
+export type CashCountInput = {
+  wallet_type: WalletType;
+  currency: string;
+  denominations: Record<string, number>;
+  physical_total: number;
+  expected_balance: number;
+  exchange_rate: number;
+  note?: string;
+};
+
 export function useCreateCashCount() {
   const { casinoId } = useAuth() as any;
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (snapshot: {
-      wallet_type: WalletType;
-      currency: string;
-      denominations: Record<string, number>;
-      physical_total: number;
-      expected_balance: number;
-      discrepancy: number;
-      exchange_rate: number;
-      physical_total_tzs: number;
-      note?: string;
-    }) => {
+    mutationFn: async (snapshot: CashCountInput) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user || !casinoId) throw new Error("Not authenticated");
+      // NOTE: `discrepancy` and `physical_total_tzs` are deliberately omitted —
+      // they are computed by the `cash_count_snapshot_compute` DB trigger.
       const { error } = await supabase.from("cash_count_snapshots").insert({
         casino_id: casinoId,
         wallet_type: snapshot.wallet_type,
@@ -90,12 +104,10 @@ export function useCreateCashCount() {
         denominations: snapshot.denominations as any,
         physical_total: snapshot.physical_total,
         expected_balance: snapshot.expected_balance,
-        discrepancy: snapshot.discrepancy,
         exchange_rate: snapshot.exchange_rate,
-        physical_total_tzs: snapshot.physical_total_tzs,
         counted_by: user.id,
         note: snapshot.note || "",
-      });
+      } as any);
       if (error) throw error;
     },
     onSuccess: () => {
