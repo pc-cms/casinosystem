@@ -55,7 +55,6 @@ const Reception = () => {
         subtitle="Entry control · Player registration"
         date
       >
-        <NetworkStatusIndicator />
         <InstallPWAButton />
       </PageHeader>
 
