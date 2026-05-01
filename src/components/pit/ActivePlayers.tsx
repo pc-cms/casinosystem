@@ -299,6 +299,7 @@ const ActivePlayers = () => {
           players={seatedByTable[t.id] || []}
           onOpen={() => handleOpenTable(t.id)}
           onPlayerDropped={(pid) => handlePlayerDropped(t.id, pid)}
+          onStopPlayer={(pid) => stopSession.mutate(pid)}
           isTouch={isTouch}
         />
       </div>
