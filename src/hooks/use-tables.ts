@@ -49,6 +49,29 @@ export const useArchiveTable = () => {
   });
 };
 
+export const useRenameTable = () => {
+  const qc = useQueryClient();
+  const { casinoId, user } = useAuth();
+  return useMutation({
+    mutationFn: async ({ tableId, name }: { tableId: string; name: string }) => {
+      if (!casinoId || !user) throw new Error("Not authenticated");
+      const trimmed = name.trim();
+      if (!trimmed) throw new Error("Name cannot be empty");
+      const { error } = await supabase
+        .from("gaming_tables")
+        .update({ name: trimmed } as any)
+        .eq("id", tableId);
+      if (error) throw error;
+      await logAction(casinoId, "system", "TABLE_RENAMED", { table_id: tableId, name: trimmed });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["gaming-tables"] });
+      toast.success("Table renamed");
+    },
+    onError: (e) => toast.error(e.message),
+  });
+};
+
 export const useCloseTable = () => {
   const qc = useQueryClient();
   const { casinoId, user } = useAuth();
