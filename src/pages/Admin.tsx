@@ -568,6 +568,37 @@ const LocalServerManagement = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ServerPushUpdateDialog
+        open={!!pushTarget}
+        onOpenChange={(o) => !o && setPushTarget(null)}
+        casinoId={pushTarget?.casinoId ?? null}
+        casinoName={pushTarget?.casinoName ?? ""}
+      />
+
+      <Dialog open={!!secretReveal} onOpenChange={(o) => !o && setSecretReveal(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>New sync secret — {secretReveal?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              Copy this once — it will not be shown again. Update <code className="font-mono">SYNC_SECRET</code> in the local server's <code className="font-mono">/compose/.env</code> and restart cms-sync &amp; cms-monitor.
+            </p>
+            <pre className="bg-muted p-3 rounded font-mono text-xs break-all whitespace-pre-wrap select-all">
+              {secretReveal?.secret}
+            </pre>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => { if (secretReveal) { navigator.clipboard.writeText(secretReveal.secret); toast.success("Copied"); } }}
+            >Copy</Button>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setSecretReveal(null)}>Done</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
