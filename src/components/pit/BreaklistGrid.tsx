@@ -305,10 +305,26 @@ const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }
                                       ARi: "i", ARc: "c", AR1i: "i", AR1c: "c",
                                       Pi: "i", BJi: "i",
                                     };
+                                    // Slots already taken on this table for this time slot (by other dealers)
+                                    const takenSlots = new Set(
+                                      breaklist
+                                        .filter((b: any) =>
+                                          b.table_id === t.id &&
+                                          b.time_slot === activeCell!.timeSlot &&
+                                          b.dealer_id !== activeCell!.dealerId,
+                                        )
+                                        .map((b: any) => roleSlot(b.role))
+                                        .filter(Boolean),
+                                    );
+                                    const availableRoles = roles.filter(r => {
+                                      const s = roleSlot(r);
+                                      return !s || !takenSlots.has(s);
+                                    });
+                                    if (availableRoles.length === 0) return null;
                                     return (
                                       <div key={t.id} className="flex items-center gap-0.5 px-1">
                                         <span className="text-[9px] font-mono text-card-foreground min-w-[28px]">{t.name}</span>
-                                        {roles.map(r => (
+                                        {availableRoles.map(r => (
                                           <button key={r} onClick={() => handleRoleSelect(r, t.id)}
                                             className={`px-1 py-0.5 rounded text-[8px] font-mono font-bold ${ROLE_COLORS[r] || ""} hover:opacity-80`}>
                                             {t.name}{rSuffix[r] || ""}
