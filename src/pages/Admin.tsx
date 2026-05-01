@@ -9,7 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Shield, Trash2, UserPlus, Coins, Clock, Building2, Server, Link2, Unlink, Globe, Palette, Settings, RefreshCw } from "lucide-react";
+import { Plus, Shield, Trash2, UserPlus, Coins, Clock, Building2, Server, Link2, Unlink, Globe, Palette, Settings, RefreshCw, SlidersHorizontal } from "lucide-react";
+import { UserPermissionsDialog } from "@/components/admin/UserPermissionsDialog";
 import { resetPWACache } from "@/lib/pwa-register";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { toast } from "sonner";
@@ -542,6 +543,7 @@ const UsersAndRoles = () => {
   const [newCasinoId, setNewCasinoId] = useState("");
   const [selectedUser, setSelectedUser] = useState("");
   const [selectedRole, setSelectedRole] = useState("");
+  const [permsTarget, setPermsTarget] = useState<{ id: string; name: string } | null>(null);
 
   const { data: casinos = [] } = useAllCasinos();
 
@@ -668,16 +670,23 @@ const UsersAndRoles = () => {
                     </div>
                   </td>
                   <td className="px-2 py-3">
-                    {profile.user_id !== user?.id && userRoles.length > 0 && (
-                      <div className="flex gap-0.5 justify-end">
-                        {userRoles.map(role => (
-                          <button key={role} onClick={() => removeRole.mutate({ userId: profile.user_id, role })}
-                            className="text-muted-foreground/40 hover:text-destructive transition-colors" title={`Remove ${ROLE_LABELS[role]}`}>
-                            <Trash2 className="w-3 h-3" />
-                          </button>
-                        ))}
-                      </div>
-                    )}
+                    <div className="flex gap-0.5 justify-end items-center">
+                      {isSuperAdmin && (
+                        <button
+                          onClick={() => setPermsTarget({ id: profile.user_id, name: profile.display_name || "User" })}
+                          className="text-muted-foreground/60 hover:text-foreground transition-colors p-1"
+                          title="Module permissions"
+                        >
+                          <SlidersHorizontal className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                      {profile.user_id !== user?.id && userRoles.length > 0 && userRoles.map(role => (
+                        <button key={role} onClick={() => removeRole.mutate({ userId: profile.user_id, role })}
+                          className="text-muted-foreground/40 hover:text-destructive transition-colors" title={`Remove ${ROLE_LABELS[role]}`}>
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      ))}
+                    </div>
                   </td>
                 </tr>
               );
