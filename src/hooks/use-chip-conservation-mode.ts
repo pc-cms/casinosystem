@@ -33,22 +33,30 @@ export const useUpdateChipConservationMode = () => {
   const { casinoId } = useAuth();
   return useMutation({
     mutationFn: async (mode: ChipConservationMode) => {
-      if (!casinoId) throw new Error("No active casino");
-      const { error } = await supabase
+      if (!casinoId) throw new Error("No active casino selected");
+      const { data, error } = await supabase
         .from("casinos")
         .update({ chip_conservation_mode: mode } as any)
-        .eq("id", casinoId);
+        .eq("id", casinoId)
+        .select("id, chip_conservation_mode");
       if (error) throw error;
+      if (!data || data.length === 0) {
+        throw new Error("No permission to change this setting (Manager / Super Admin only)");
+      }
       return mode;
     },
     onSuccess: (mode) => {
       qc.invalidateQueries({ queryKey: ["chip-conservation-mode"] });
+      qc.invalidateQueries({ queryKey: ["chip-conservation"] });
       toast.success(
         mode === "strict"
           ? "Strict mode: hard chip invariant enforced"
           : "Observation mode: anomalies tracked monthly, no hard block"
       );
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => {
+      console.error("[chip-conservation-mode] update failed:", e);
+      toast.error(e.message);
+    },
   });
 };
