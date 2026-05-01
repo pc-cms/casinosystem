@@ -14,6 +14,7 @@ import { Save, Coins, Play, Lock, LayoutGrid } from "lucide-react";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { CloseTableWizard } from "@/components/tables/CloseTableWizard";
+import { liveTableResult, buildLatestTableSnapshot } from "@/lib/table-live-result";
 
 const Tables = () => {
   const businessDay = getBusinessDate();
@@ -47,6 +48,8 @@ const Tables = () => {
     return transactions.filter(t => t.shift_id === shift.id);
   }, [transactions, shift]);
 
+  const snapshotIndex = useMemo(() => buildLatestTableSnapshot(snapshots as any), [snapshots]);
+
   const tableStats = useMemo(() => {
     const stats: Record<string, { dropR: number; dropV: number; result: number }> = {};
     tables.forEach(t => {
@@ -56,11 +59,17 @@ const Tables = () => {
       const dropV = trackerData
         .filter(tr => tr.table_id === t.id)
         .reduce((s, tr) => s + Number(tr.value), 0);
-      const result = t.closing_result !== null ? Number(t.closing_result) : dropV;
+      const result = liveTableResult({
+        tableId: t.id,
+        closingResult: t.closing_result as any,
+        trackerData: trackerData as any,
+        snapshotIndex,
+        baselineMap,
+      });
       stats[t.id] = { dropR, dropV, result };
     });
     return stats;
-  }, [tables, shiftTransactions, trackerData]);
+  }, [tables, shiftTransactions, trackerData, snapshotIndex, baselineMap]);
 
   // Chip Count operates only on TABLES (Pit only deals with tables)
   // Latest snapshot per table for prefill

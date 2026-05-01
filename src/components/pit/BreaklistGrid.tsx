@@ -83,7 +83,8 @@ const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }
 
   const breaklistDealers = useMemo(() => {
     const rotaDealerIds = new Set(rotaDealers.map(r => r.dealerId));
-    const filtered = activeDealers.filter(d => rotaDealerIds.has(d.id));
+    // Pit Bosses must NOT appear in the Breaklist grid
+    const filtered = activeDealers.filter(d => rotaDealerIds.has(d.id) && !(d as any).is_pit_boss);
     if (sortBy === "name") {
       return filtered.sort((a, b) => a.name.localeCompare(b.name));
     }

@@ -2,7 +2,10 @@ import { useState, useMemo, lazy, Suspense } from "react";
 import { CctvLayout, type CctvSection } from "@/components/cctv/CctvLayout";
 import { useAuth } from "@/lib/auth-context";
 import { useCasino } from "@/lib/casino-context";
-import { usePlayers, useTransactions, useGamingTables, useExpenses, usePlayerEconomy, useVisitsToday } from "@/hooks/use-casino-data";
+import { usePlayers, useTransactions, useGamingTables, useExpenses, usePlayerEconomy, useVisitsToday, useTableTracker } from "@/hooks/use-casino-data";
+import { useChipSnapshots } from "@/hooks/use-chips";
+import { useChipBaseline, baselineToMap } from "@/hooks/use-table-lifecycle";
+import { liveTableResult, buildLatestTableSnapshot } from "@/lib/table-live-result";
 import { useDealers, usePitRotaRange, useDealerAttendanceRange, useBreaklistData } from "@/hooks/use-casino-data";
 import { useCctvObservations, useCreateObservation } from "@/hooks/use-cctv";
 import { useActiveShift } from "@/hooks/use-shift";
@@ -37,12 +40,23 @@ const CctvDashboard = () => {
   const { data: tables = [] } = useGamingTables();
   const { data: expenses = [] } = useExpenses(businessDate);
   const { data: allVisits = [] } = useVisitsToday("*, players(first_name, last_name, nickname, photo_url, status, player_tags(tag))") as { data: any[] };
+  const { data: trackerData = [] } = useTableTracker(businessDate);
+  const { data: snapshots = [] } = useChipSnapshots(businessDate);
+  const { data: baseline = [] } = useChipBaseline();
   const visits = useMemo(() => allVisits.filter((v: any) => !v.checked_out_at), [allVisits]);
 
   const buyInDrop = transactions.filter(t => (t.type === "buy" || t.type === "in")).reduce((s, t) => s + Number(t.amount), 0);
   const cashoutTotal = transactions.filter(t => (t.type === "cashout" || t.type === "out")).reduce((s, t) => s + Number(t.amount), 0);
   const pendingExpenses = expenses.filter(e => !e.approved).reduce((s, e) => s + Number(e.amount), 0);
-  const tableResult = tables.filter(t => t.closing_result != null).reduce((s, t) => s + Number(t.closing_result), 0);
+  const baselineMap = useMemo(() => baselineToMap(baseline), [baseline]);
+  const snapshotIndex = useMemo(() => buildLatestTableSnapshot(snapshots as any), [snapshots]);
+  const tableResult = useMemo(() => tables.reduce((s, t) => s + liveTableResult({
+    tableId: t.id,
+    closingResult: t.closing_result as any,
+    trackerData: trackerData as any,
+    snapshotIndex,
+    baselineMap,
+  }), 0), [tables, trackerData, snapshotIndex, baselineMap]);
 
   return (
     <div className="space-y-6">
