@@ -49,6 +49,8 @@ const Dashboard = () => {
   const { data: expenses = [] } = useExpenses(businessDate);
   const { data: sessionsTotalBet = 0 } = useClientSessionsTotalBet(businessDate);
   const { data: trackerData = [] } = useTableTracker(businessDate);
+  const { data: snapshots = [] } = useChipSnapshots(businessDate);
+  const { data: baseline = [] } = useChipBaseline();
   const { data: staffMembers = [] } = useStaffMembers();
   const { data: staffRota = [] } = useStaffRotaRange(businessDate, businessDate);
 
@@ -58,7 +60,10 @@ const Dashboard = () => {
   const totalDrop = buyInDrop + sessionsTotalBet;
   const pendingExpenses = expenses.filter(e => !e.approved).length;
 
-  // Per-table tracker totals (for game type totals like in Tables page)
+  const baselineMap = useMemo(() => baselineToMap(baseline), [baseline]);
+  const snapshotIndex = useMemo(() => buildLatestTableSnapshot(snapshots as any), [snapshots]);
+
+  // Per-table tracker totals (raw drop indicator)
   const tableTrackerTotals = useMemo(() => {
     const totals: Record<string, number> = {};
     trackerData.forEach((d: any) => {
@@ -67,7 +72,7 @@ const Dashboard = () => {
     return totals;
   }, [trackerData]);
 
-  // Tables stats and game type totals — mirrored from Tables page
+  // Tables stats and game type totals — Chip Count overrides Tracker until next hourly TT entry
   const tableStats = useMemo(() => {
     const stats: Record<string, { dropR: number; dropV: number; result: number }> = {};
     tables.forEach(t => {
@@ -75,11 +80,17 @@ const Dashboard = () => {
         .filter(tx => tx.table_id === t.id && (tx.type === "buy" || tx.type === "in"))
         .reduce((s, tx) => s + Number(tx.amount), 0);
       const dropV = tableTrackerTotals[t.id] || 0;
-      const result = t.closing_result !== null ? Number(t.closing_result) : dropV;
+      const result = liveTableResult({
+        tableId: t.id,
+        closingResult: t.closing_result as any,
+        trackerData: trackerData as any,
+        snapshotIndex,
+        baselineMap,
+      });
       stats[t.id] = { dropR, dropV, result };
     });
     return stats;
-  }, [tables, transactions, tableTrackerTotals]);
+  }, [tables, transactions, tableTrackerTotals, trackerData, snapshotIndex, baselineMap]);
 
   const gameTypeTotals = useMemo(() => {
     const totals: Record<string, { dropR: number; dropV: number; result: number; label: string }> = {};
