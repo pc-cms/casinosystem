@@ -14,6 +14,8 @@ import { resetPWACache } from "@/lib/pwa-register";
 import { useTheme } from "@/lib/theme";
 import { useAuth } from "@/lib/auth-context";
 import { useCasino } from "@/lib/casino-context";
+import { useMyModulePermissions } from "@/hooks/use-module-permissions";
+import { moduleKeyForRoute } from "@/lib/route-module-map";
 import { NetworkStatusIndicator } from "@/components/NetworkStatusIndicator";
 import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
 import { toast } from "sonner";
@@ -352,9 +354,18 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
     (location.pathname === "/pit" ? "employee" : isTablesActive ? "tables" : "employee");
   const currentGroup = new URLSearchParams(location.search).get("group") || "floor";
 
-  const visibleItems = NAV_ITEMS.filter(item =>
-    roles.some(r => item.roles.includes(r as AppRole))
-  );
+  const { data: allowedModules } = useMyModulePermissions();
+  const isSuper = roles.includes("super_admin" as AppRole);
+  const visibleItems = NAV_ITEMS.filter(item => {
+    // Role gate
+    if (!roles.some(r => item.roles.includes(r as AppRole))) return false;
+    // Per-user module gate (super_admin bypass; null = role defaults)
+    if (isSuper) return true;
+    if (allowedModules == null) return true;
+    const mk = moduleKeyForRoute(item.to, item.label);
+    if (!mk) return true; // no mapping → not gated
+    return allowedModules.has(mk);
+  });
 
   const nativeManager = roles.includes("manager" as AppRole);
 
