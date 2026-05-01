@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { usePlayers, useVisitsToday } from "@/hooks/use-casino-data";
+import { useLastVisitsByPlayers } from "@/hooks/use-last-visit";
 import { useDebouncedValue } from "@/hooks/use-debounce";
 import { useDuplicateCheck } from "@/hooks/use-duplicate-check";
 import { logAction } from "@/lib/logging";
