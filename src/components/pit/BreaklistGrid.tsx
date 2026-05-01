@@ -129,28 +129,29 @@ const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }
     if (!activeCell) return;
 
     // Per-table role exclusivity:
-    //   - Regular tables: at most one D and one I
-    //   - Roulette: at most one D, one I, one C
-    // BR is assigned manually by Pit — never auto-filled. Block conflicts with an error.
-    const ALLOWED_TABLE_ROLES = ["D", "I", "C"];
-    if (tableId && ALLOWED_TABLE_ROLES.includes(role)) {
-      const table = openTables.find(t => t.id === tableId);
-      const isRoulette = (table as any)?.game?.toLowerCase().includes("roulette");
-      if (role === "C" && !isRoulette) {
-        toast.error("Croupier (C) only allowed on roulette tables");
-        return;
-      }
-      const conflict = breaklist.find(
-        (b: any) =>
-          b.time_slot === activeCell.timeSlot &&
-          b.table_id === tableId &&
-          b.role === role &&
-          b.dealer_id !== activeCell.dealerId,
-      );
+    //   - Dealer slot   (P / BJ / AR)
+    //   - Inspector slot (Pi / BJi / ARi)
+    //   - Croupier slot  (ARc, roulette only)
+    // BR is manual — never auto-filled. Block conflicts with an error.
+    const roleSlot = (r: string): "D" | "I" | "C" | null => {
+      if (r === "P" || r === "BJ" || r === "AR") return "D";
+      if (r === "Pi" || r === "BJi" || r === "ARi") return "I";
+      if (r === "ARc") return "C";
+      return null;
+    };
+    const slot = roleSlot(role);
+    if (tableId && slot) {
+      const conflict = breaklist.find((b: any) => {
+        if (b.time_slot !== activeCell.timeSlot) return false;
+        if (b.table_id !== tableId) return false;
+        if (b.dealer_id === activeCell.dealerId) return false;
+        return roleSlot(b.role) === slot;
+      });
       if (conflict) {
         const occupant = activeDealers.find(d => d.id === conflict.dealer_id)?.name || "another dealer";
+        const table = openTables.find(t => t.id === tableId);
         const tableName = table?.name || "this table";
-        toast.error(`${tableName} ${role} already taken by ${occupant} at ${activeCell.timeSlot}`);
+        toast.error(`${tableName} ${slot} already taken by ${occupant} at ${activeCell.timeSlot}`);
         return;
       }
     }
