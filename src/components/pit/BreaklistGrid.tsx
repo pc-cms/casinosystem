@@ -216,7 +216,7 @@ const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }
                     <th
                       key={slot}
                       className={`text-center text-[9px] font-mono px-0.5 py-2 min-w-[52px] ${
-                        isActive ? "bg-primary/20 text-primary font-bold" : "text-muted-foreground"
+                        isActive ? "bg-primary text-primary-foreground font-bold border-x-2 border-primary" : "text-muted-foreground"
                       }`}
                     >
                       {slot}
@@ -265,7 +265,7 @@ const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }
                       const isActiveCell = activeCell?.dealerId === dealer.id && activeCell?.timeSlot === slot;
                       const isCurrentCol = isToday && slot === currentSlot;
                       return (
-                        <td key={slot} className={`px-0.5 py-0.5 text-center relative group ${isCurrentCol ? "bg-primary/5" : ""}`}>
+                        <td key={slot} className={`px-0.5 py-0.5 text-center relative group ${isCurrentCol ? "bg-primary/15 border-x-2 border-primary" : ""}`}>
                           <div
                             onClick={() => isEditable && handleCellClick(dealer.id, slot)}
                             className={`w-full h-7 rounded text-[13px] font-mono font-extrabold relative transition-colors cursor-pointer flex items-center justify-center ${
