@@ -21,7 +21,7 @@
  * Все события — в /compose/updater.log (json lines).
  */
 import { execSync, spawnSync } from "node:child_process";
-import { readFileSync, writeFileSync, existsSync, appendFileSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, appendFileSync, unlinkSync } from "node:fs";
 
 const {
   GITHUB_OWNER,
@@ -37,6 +37,8 @@ const {
 const TICK_MS = Math.max(parseInt(CHECK_INTERVAL_MINUTES, 10), 5) * 60 * 1000;
 const LOG_FILE = `${COMPOSE_PROJECT_DIR}/updater.log`;
 const FLAG_FILE = `${COMPOSE_PROJECT_DIR}/UPDATE_AVAILABLE`;
+const PUSH_FILE = `${COMPOSE_PROJECT_DIR}/PUSH_COMMAND.json`;
+const ACK_FILE = `${COMPOSE_PROJECT_DIR}/PUSH_COMMAND_ACK.json`;
 const HEALTH_URL = "https://nginx/healthz";
 const HEALTH_TIMEOUT_S = 30;
 
@@ -141,9 +143,78 @@ async function healthCheck() {
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-// ───────────── main flow ─────────────
+function writeAck(cmdId, status, message) {
+  try {
+    writeFileSync(ACK_FILE, JSON.stringify({ command_id: cmdId, status, message: message ?? null, ts: new Date().toISOString() }, null, 2));
+  } catch (e) { log("error", "ack.write_fail", { err: String(e?.message ?? e) }); }
+}
+
+function readPushCommand() {
+  if (!existsSync(PUSH_FILE)) return null;
+  try { return JSON.parse(readFileSync(PUSH_FILE, "utf8")); } catch { return null; }
+}
+
+async function applyVersion(target, autoApply, cmdId) {
+  const env = readEnv();
+  const owner = env.GITHUB_OWNER || GITHUB_OWNER;
+  const image = `ghcr.io/${owner}/cms-frontend:${target}`;
+  const pull = dockerPull(image);
+  if (pull.code !== 0) {
+    log("error", "push.pull_fail", { image, out: pull.out.slice(0, 500) });
+    if (cmdId) writeAck(cmdId, "failed", `pull failed: ${pull.out.slice(0, 200)}`);
+    return false;
+  }
+  log("info", "push.pull_ok", { image });
+
+  if (cmdId) writeAck(cmdId, "acknowledged", `pulled ${image}`);
+
+  if (!autoApply) {
+    writeFileSync(FLAG_FILE, JSON.stringify({ available: target, image, push: true, ts: new Date().toISOString() }, null, 2));
+    log("info", "push.flag_written", { target });
+    return true;
+  }
+
+  const current = (env.FRONTEND_VERSION || FRONTEND_VERSION || "latest").replace(/^v/, "");
+  writeEnvKey("PREVIOUS_VERSION", current);
+  writeEnvKey("FRONTEND_VERSION", target);
+  const up = compose(["up", "-d", "cms-frontend", "nginx"]);
+  if (up.code !== 0) {
+    log("error", "push.compose_fail", { out: up.out.slice(0, 500) });
+    rollback(current);
+    if (cmdId) writeAck(cmdId, "failed", `compose up failed`);
+    return false;
+  }
+  if (!(await healthCheck())) {
+    rollback(current);
+    if (cmdId) writeAck(cmdId, "failed", `healthcheck failed`);
+    return false;
+  }
+  log("info", "push.applied", { from: current, to: target });
+  if (cmdId) writeAck(cmdId, "applied", `version ${target}`);
+  try { unlinkSync(PUSH_FILE); } catch {}
+  return true;
+}
+
 async function tick() {
   log("info", "tick.start");
+
+  // 1) Check pushed command first (Cloud admin push). Always processed even offline-from-GitHub.
+  const cmd = readPushCommand();
+  if (cmd?.id && cmd?.target_version) {
+    const env = readEnv();
+    const current = (env.FRONTEND_VERSION || FRONTEND_VERSION || "latest").replace(/^v/, "");
+    const target = String(cmd.target_version).replace(/^v/, "");
+    if (target === current) {
+      log("info", "push.already_current", { target });
+      writeAck(cmd.id, "applied", "already at target version");
+      try { unlinkSync(PUSH_FILE); } catch {}
+    } else {
+      const autoApply = cmd.auto_apply === true || AUTO_APPLY === "true";
+      log("info", "push.process", { target, autoApply, current });
+      await applyVersion(target, autoApply, cmd.id);
+    }
+    return;
+  }
 
   if (!(await checkInternet())) {
     log("warn", "no_internet");

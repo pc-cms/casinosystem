@@ -2652,6 +2652,53 @@ export type Database = {
           },
         ]
       }
+      update_commands: {
+        Row: {
+          acknowledged_at: string | null
+          applied_at: string | null
+          auto_apply: boolean
+          casino_id: string
+          id: string
+          issued_at: string
+          issued_by: string
+          status: string
+          status_message: string | null
+          target_version: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          applied_at?: string | null
+          auto_apply?: boolean
+          casino_id: string
+          id?: string
+          issued_at?: string
+          issued_by: string
+          status?: string
+          status_message?: string | null
+          target_version: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          applied_at?: string | null
+          auto_apply?: boolean
+          casino_id?: string
+          id?: string
+          issued_at?: string
+          issued_by?: string
+          status?: string
+          status_message?: string | null
+          target_version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "update_commands_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_casino_access: {
         Row: {
           casino_id: string
@@ -2996,6 +3043,18 @@ export type Database = {
       activity_logs_purge: { Args: { p_days?: number }; Returns: number }
       cleanup_old_data: { Args: never; Returns: Json }
       compute_shift_close: { Args: { p_shift_id: string }; Returns: Json }
+      cron_health_overview: {
+        Args: never
+        Returns: {
+          active: boolean
+          jobname: string
+          last_run_start: string
+          last_runtime_ms: number
+          last_status: string
+          schedule: string
+          total_failures_24h: number
+        }[]
+      }
       generate_card_number: { Args: never; Returns: string }
       get_business_date_for_casino: {
         Args: { _casino_id: string }
@@ -3044,6 +3103,10 @@ export type Database = {
           checked_in_at: string
         }[]
       }
+      rotate_local_server_secret: {
+        Args: { _server_id: string }
+        Returns: string
+      }
       sync_apply_remote: {
         Args: {
           p_casino_id: string
@@ -3057,6 +3120,15 @@ export type Database = {
       }
       sync_attach: { Args: { p_table: unknown }; Returns: undefined }
       sync_outbox_gc: { Args: never; Returns: undefined }
+      sync_outbox_health: {
+        Args: never
+        Returns: {
+          casino_id: string
+          failed_count: number
+          oldest_pending_at: string
+          pending_count: number
+        }[]
+      }
       user_has_casino_access: {
         Args: { _casino_id: string; _user_id: string }
         Returns: boolean
