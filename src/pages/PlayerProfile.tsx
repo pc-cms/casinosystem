@@ -481,6 +481,18 @@ const PlayerProfile = () => {
           </PageSection>
         </TabsContent>
 
+        {/* TAB — Visits (Month → Week → Day breakdown, full lifetime) */}
+        <TabsContent value="visits" className="space-y-4">
+          <PageSection card title="Visits breakdown">
+            <PlayerVisitsBreakdown
+              visits={visits as any}
+              transactions={transactions as any}
+              expenses={expenses as any}
+              showFinancials={canSeePlayerFinancials(roles)}
+            />
+          </PageSection>
+        </TabsContent>
+
         {/* TAB 2 — Statistics */}
         <TabsContent value="stats" className="space-y-4">
           {/* Period summary strip */}
