@@ -21,6 +21,7 @@ import type { SeatedPlayer } from "@/components/pit/SeatedPlayerChip";
 import type { PlayerCategory } from "@/components/player/CategoryBadge";
 import { useAuth } from "@/lib/auth-context";
 import { useBusinessDayFilter } from "@/hooks/use-business-day-filter";
+import { useTablesDropSplit } from "@/hooks/use-drop-split";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { offlineMutation } from "@/lib/offline-mutation";
@@ -274,15 +275,30 @@ const Tables = () => {
 
   const snapshotIndex = useMemo(() => buildLatestTableSnapshot(snapshots as any), [snapshots]);
 
+  // NEP-split window for the current shift (or today). Drop R = External part of cash-in.
+  const splitWindow = useMemo(() => {
+    if (!effectiveDate) return { from: null as string | null, to: null as string | null };
+    return {
+      from: businessDayHourUTC(effectiveDate, 13), // 13:00 UTC = 16:00 EAT-ish; safe lower bound for shift start
+      to: businessDayHourUTC(effectiveDate, 13 + 24), // next-day 13:00 UTC, fully covers business day
+    };
+  }, [effectiveDate]);
+  const { data: splitMap } = useTablesDropSplit(splitWindow.from, splitWindow.to);
+
   const tableStats = useMemo(() => {
     const stats: Record<string, { dropR: number; dropV: number; result: number }> = {};
     tables.forEach(t => {
-      const dropR = shiftTransactions
+      const split = splitMap?.get(t.id);
+      // Fallback to raw sum until split RPC resolves (keeps UI usable on first paint).
+      const fallbackBuy = shiftTransactions
         .filter(tx => tx.table_id === t.id && (tx.type === "buy" || tx.type === "in"))
         .reduce((s, tx) => s + Number(tx.amount), 0);
-      const dropV = trackerData
+      const dropR = split ? split.dropR : fallbackBuy;
+      const recycled = split ? split.recycled : 0;
+      const trackerSum = trackerData
         .filter(tr => tr.table_id === t.id)
         .reduce((s, tr) => s + Number(tr.value), 0);
+      const dropV = trackerSum + recycled;
       const result = liveTableResult({
         tableId: t.id,
         closingResult: t.closing_result as any,
@@ -293,7 +309,7 @@ const Tables = () => {
       stats[t.id] = { dropR, dropV, result };
     });
     return stats;
-  }, [tables, shiftTransactions, trackerData, snapshotIndex, baselineMap]);
+  }, [tables, shiftTransactions, trackerData, snapshotIndex, baselineMap, splitMap]);
 
   const handleOpenAll = () => {
     const ids = closedTables.map(t => t.id);
