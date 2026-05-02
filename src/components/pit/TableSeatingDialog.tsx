@@ -78,6 +78,10 @@ const TableSeatingDialog = ({
 
   if (!table) return null;
   const isClosed = table.status === "closed";
+  const isRoulette = /roulette/i.test(table.game);
+  const betPresets = isRoulette
+    ? [1000, 2000, 5000, 10000, 25000, 50000]
+    : [10000, 20000, 50000, 100000, 200000];
 
   const submitPlace = () => {
     if (!pickPlayerId || !pickBet) return;
