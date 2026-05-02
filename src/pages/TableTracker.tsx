@@ -173,7 +173,7 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
                     return (
                       <th
                         key={slot}
-                        className={`text-center text-xs font-mono px-2 py-2 min-w-[110px] ${
+                        className={`text-center text-xs font-mono px-2 py-2 min-w-[130px] whitespace-nowrap ${
                           isActive
                             ? "bg-primary/20 text-primary font-bold"
                             : "text-muted-foreground"
