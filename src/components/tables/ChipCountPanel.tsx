@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Save } from "lucide-react";
+import { Save, Maximize2, Minimize2 } from "lucide-react";
 import { useChipSnapshots, useBatchChipSnapshot } from "@/hooks/use-chips";
 import { useChipBaseline, baselineToMap } from "@/hooks/use-table-lifecycle";
 import { useGamingTables } from "@/hooks/use-casino-data";
 import { CHIP_DENOMS, CHIP_COLORS, formatChipLabel, formatCurrency } from "@/lib/currency";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 interface ChipCountPanelProps {
   date: string;
@@ -51,6 +52,7 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
   };
 
   const [counts, setCounts] = useState<Record<string, Record<number, number>>>({});
+  const [fullscreen, setFullscreen] = useState(false);
 
   // Initialize / refresh prefill when underlying data changes
   useEffect(() => {
@@ -108,89 +110,149 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
     return <p className="text-muted-foreground text-sm text-center py-8">No open tables</p>;
   }
 
-  return (
-    <div className="rounded-md border border-border bg-card">
-      <div className="flex items-center justify-between px-3 py-2 border-b border-border">
-        <div>
-          <h3 className="text-sm font-semibold text-card-foreground">Chip Count</h3>
-          <p className="text-[10px] text-muted-foreground">Rows: tables · Columns: denominations</p>
+  const renderGrid = (full: boolean) => {
+    // Tokens: на fullscreen всё крупнее. Колонки чипов имеют min-width чтобы label не переносился.
+    const t = full
+      ? {
+          chipText: "text-[11px]",
+          chipPad: "px-2 py-1",
+          inputH: "h-10",
+          inputText: "text-sm",
+          firstColW: "minmax(140px, 200px)",
+          chipColW: "minmax(96px, 1fr)",
+          resultColW: "minmax(140px, 180px)",
+          rowPadX: "px-2",
+          rowPadY: "py-1.5",
+          headerPadY: "py-3",
+          totalText: "text-base",
+          resultText: "text-sm",
+        }
+      : {
+          chipText: "text-[10px]",
+          chipPad: "px-1.5 py-0.5",
+          inputH: "h-9",
+          inputText: "text-sm",
+          firstColW: "minmax(110px, 140px)",
+          chipColW: "minmax(78px, 1fr)",
+          resultColW: "minmax(110px, 140px)",
+          rowPadX: "px-1.5",
+          rowPadY: "py-1",
+          headerPadY: "py-2.5",
+          totalText: "text-sm",
+          resultText: "text-sm",
+        };
+
+    return (
+      <div className={`rounded-md border border-border bg-card ${full ? "h-full flex flex-col" : ""}`}>
+        <div className="flex items-center justify-between px-3 py-2 border-b border-border shrink-0">
+          <div>
+            <h3 className="text-sm font-semibold text-card-foreground">Chip Count</h3>
+            <p className="text-[10px] text-muted-foreground">Rows: tables · Columns: denominations</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setFullscreen(f => !f)}
+              className="gap-1.5 h-8"
+              title={fullscreen ? "Exit fullscreen" : "Open fullscreen"}
+            >
+              {fullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+              <span className="hidden sm:inline">{fullscreen ? "Exit" : "Fullscreen"}</span>
+            </Button>
+            <Button size="sm" onClick={handleSave} disabled={batchSnapshot.isPending} className="gap-1.5 h-8">
+              <Save className="w-4 h-4" /> {batchSnapshot.isPending ? "Saving…" : "Save Snapshot"}
+            </Button>
+          </div>
         </div>
-        <Button size="sm" onClick={handleSave} disabled={batchSnapshot.isPending} className="gap-1.5 h-8">
-          <Save className="w-4 h-4" /> {batchSnapshot.isPending ? "Saving…" : "Save Snapshot"}
-        </Button>
-      </div>
-      <div className="overflow-x-auto">
-        <table className="text-xs border-collapse w-full table-fixed">
-          <colgroup>
-            <col style={{ width: "84px" }} />
-            {visibleDenoms.map(d => (
-              <col key={d} />
-            ))}
-            <col style={{ width: "100px" }} />
-          </colgroup>
-          <thead>
-            <tr className="border-b border-border">
-              <th className="text-left py-2 px-2 text-muted-foreground font-medium sticky left-0 bg-card z-10">
-                Table
-              </th>
+        <div className={`overflow-auto ${full ? "flex-1" : ""}`}>
+          <table className="border-collapse w-full" style={{ tableLayout: "fixed" }}>
+            <colgroup>
+              <col style={{ width: t.firstColW.split(",")[0].replace("minmax(", "").trim() }} />
               {visibleDenoms.map(d => (
-                <th key={d} className="text-center py-2 px-0.5 font-medium">
-                  <span className={`cms-chip text-[8px] ${CHIP_COLORS[d] || "bg-muted text-foreground"}`}>
-                    {formatChipLabel(d)}
-                  </span>
-                </th>
+                <col key={d} style={{ minWidth: t.chipColW.split(",")[0].replace("minmax(", "").trim() }} />
               ))}
-              <th className="text-right py-2 px-2 text-muted-foreground font-medium">Result</th>
-            </tr>
-          </thead>
-          <tbody>
-            {countLocations.map((loc, ri) => {
-              const locCounts = counts[loc.key] || {};
-              const tableBaseline = baselineMap[loc.id] || {};
-              const rowResult = rowResults[ri]?.total ?? 0;
-              return (
-                <tr key={loc.key} className={`border-b border-border last:border-0 ${ri % 2 === 1 ? "bg-muted/10" : ""}`}>
-                  <td className={`py-1 px-2 font-medium text-card-foreground sticky left-0 z-10 ${ri % 2 === 1 ? "bg-card/95" : "bg-card"}`}>
-                    {loc.label}
-                  </td>
-                  {visibleDenoms.map(d => {
-                    if (!loc.denoms.includes(d)) {
-                      return <td key={d} className="px-1 py-0.5 text-center text-muted-foreground/30">·</td>;
-                    }
-                    const bsl = tableBaseline[d] || 0;
-                    return (
-                      <td key={d} className="px-0.5 py-0.5">
-                        <input
-                          type="number" min="0"
-                          value={locCounts[d] ?? ""}
-                          onChange={e => {
-                            const val = e.target.value === "" ? 0 : parseInt(e.target.value, 10);
-                            setCounts(c => ({ ...c, [loc.key]: { ...(c[loc.key] || {}), [d]: isNaN(val) ? 0 : val } }));
-                          }}
-                          className="w-full h-7 rounded text-[11px] font-mono text-center border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary text-card-foreground"
-                          placeholder={String(bsl)}
-                        />
-                      </td>
-                    );
-                  })}
-                  <td className={`px-2 py-1 text-right font-mono text-xs font-bold ${rowResult >= 0 ? "text-success" : "text-destructive"}`}>
-                    {rowResult >= 0 ? "+" : ""}{formatCurrency(rowResult)}
-                  </td>
-                </tr>
-              );
-            })}
-            <tr className="border-t-2 border-primary/30 bg-muted/30">
-              <td className="py-2 px-2 text-xs font-bold uppercase text-card-foreground sticky left-0 bg-muted/30 z-10">
-                Total
-              </td>
-              <td colSpan={visibleDenoms.length} />
-              <td className={`px-2 py-2 text-right font-mono text-sm font-bold ${grandTotal >= 0 ? "text-success" : "text-destructive"}`}>
-                {grandTotal >= 0 ? "+" : ""}{formatCurrency(grandTotal)}
-              </td>
-            </tr>
-          </tbody>
-        </table>
+              <col style={{ width: t.resultColW.split(",")[0].replace("minmax(", "").trim() }} />
+            </colgroup>
+            <thead>
+              <tr className="border-b border-border">
+                <th className={`text-left ${t.headerPadY} px-2 text-muted-foreground font-medium sticky left-0 bg-card z-10 text-xs uppercase tracking-wider`}>
+                  Table
+                </th>
+                {visibleDenoms.map(d => (
+                  <th key={d} className={`text-center ${t.headerPadY} px-1 font-medium`}>
+                    <span
+                      className={`inline-flex items-center justify-center rounded-full font-bold whitespace-nowrap ring-1 ring-black/10 ${t.chipText} ${t.chipPad} ${CHIP_COLORS[d] || "bg-muted text-foreground"}`}
+                    >
+                      {formatChipLabel(d)}
+                    </span>
+                  </th>
+                ))}
+                <th className={`text-right ${t.headerPadY} px-2 text-muted-foreground font-medium text-xs uppercase tracking-wider`}>Result</th>
+              </tr>
+            </thead>
+            <tbody>
+              {countLocations.map((loc, ri) => {
+                const locCounts = counts[loc.key] || {};
+                const tableBaseline = baselineMap[loc.id] || {};
+                const rowResult = rowResults[ri]?.total ?? 0;
+                return (
+                  <tr key={loc.key} className={`border-b border-border last:border-0 ${ri % 2 === 1 ? "bg-muted/10" : ""}`}>
+                    <td
+                      className={`${t.rowPadY} px-2 font-semibold text-card-foreground sticky left-0 z-10 whitespace-nowrap ${full ? "text-sm" : "text-xs"} ${ri % 2 === 1 ? "bg-card/95" : "bg-card"}`}
+                    >
+                      {loc.label}
+                    </td>
+                    {visibleDenoms.map(d => {
+                      if (!loc.denoms.includes(d)) {
+                        return <td key={d} className={`${t.rowPadX} ${t.rowPadY} text-center text-muted-foreground/30`}>·</td>;
+                      }
+                      const bsl = tableBaseline[d] || 0;
+                      return (
+                        <td key={d} className={`${t.rowPadX} ${t.rowPadY}`}>
+                          <input
+                            type="number" min="0"
+                            value={locCounts[d] ?? ""}
+                            onChange={e => {
+                              const val = e.target.value === "" ? 0 : parseInt(e.target.value, 10);
+                              setCounts(c => ({ ...c, [loc.key]: { ...(c[loc.key] || {}), [d]: isNaN(val) ? 0 : val } }));
+                            }}
+                            className={`w-full ${t.inputH} ${t.inputText} rounded font-mono text-center border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary text-card-foreground`}
+                            placeholder={String(bsl)}
+                          />
+                        </td>
+                      );
+                    })}
+                    <td className={`px-2 ${t.rowPadY} text-right font-mono ${t.resultText} font-bold whitespace-nowrap ${rowResult >= 0 ? "text-success" : "text-destructive"}`}>
+                      {rowResult >= 0 ? "+" : ""}{formatCurrency(rowResult)}
+                    </td>
+                  </tr>
+                );
+              })}
+              <tr className="border-t-2 border-primary/30 bg-muted/30">
+                <td className={`py-2 px-2 ${t.totalText} font-bold uppercase text-card-foreground sticky left-0 bg-muted/30 z-10`}>
+                  Total
+                </td>
+                <td colSpan={visibleDenoms.length} />
+                <td className={`px-2 py-2 text-right font-mono ${t.totalText} font-bold whitespace-nowrap ${grandTotal >= 0 ? "text-success" : "text-destructive"}`}>
+                  {grandTotal >= 0 ? "+" : ""}{formatCurrency(grandTotal)}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
-    </div>
+    );
+  };
+
+  return (
+    <>
+      {renderGrid(false)}
+      <Dialog open={fullscreen} onOpenChange={setFullscreen}>
+        <DialogContent className="max-w-[98vw] w-[98vw] h-[96vh] p-0 sm:rounded-lg overflow-hidden flex flex-col">
+          {renderGrid(true)}
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
