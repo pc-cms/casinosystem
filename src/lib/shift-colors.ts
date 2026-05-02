@@ -25,9 +25,9 @@ export const UNIFIED_ATT_COLORS: Record<string, string> = {
 
 // Lighter tint for scheduled-but-empty rota cells
 export const UNIFIED_SHIFT_TINTS: Record<string, string> = {
-  D: "bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400",
-  M: "bg-teal-50 text-teal-600 dark:bg-teal-500/10 dark:text-teal-400",
-  N: "bg-sky-50 text-sky-500 dark:bg-sky-500/10 dark:text-sky-400",
+  D: "bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400",
+  M: "bg-teal-100 text-teal-700 dark:bg-teal-500/10 dark:text-teal-400",
+  N: "bg-blue-200 text-blue-800 dark:bg-sky-500/10 dark:text-sky-400",
   G: "bg-indigo-50 text-indigo-500 dark:bg-indigo-500/10 dark:text-indigo-400",
   L: "bg-emerald-50 text-emerald-500 dark:bg-emerald-500/10 dark:text-emerald-400",
   E: "bg-purple-50 text-purple-500 dark:bg-purple-500/10 dark:text-purple-400",
