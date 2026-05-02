@@ -127,14 +127,16 @@ const PlayerProfile = () => {
     return map;
   }, [visits, transactions, expenses]);
 
-  // Lifetime KPIs — prefer authoritative `player_economy` view, fall back to derived.
+  // Lifetime KPIs — perspective: PLAYER (positive = player won, negative = player lost).
+  // result = cashout − drop  (clean play)
+  // total  = result − comps  (with comps/expenses)
   const lifetime = useMemo(() => {
     const totalMins = visits.reduce((s, v) => s + visitDuration(v), 0);
     const drop = Number(economy?.total_drop) || 0;
     const cashout = Number(economy?.total_cashout) || 0;
     const comps = Number(economy?.total_expenses) || 0;
-    const result = Number(economy?.real_result);
-    const realResult = Number.isFinite(result) ? result : drop - cashout - comps;
+    const result = cashout - drop;
+    const total = result - comps;
     const hold = holdPct(drop, cashout, comps);
     const firstVisit = visits.length ? visits[visits.length - 1].checked_in_at : null;
     const lastVisit = visits[0] ? (visits[0].checked_out_at || visits[0].checked_in_at) : null;
@@ -149,7 +151,8 @@ const PlayerProfile = () => {
       drop,
       cashout,
       comps,
-      realResult,
+      result,
+      total,
       hold,
       firstVisit,
       lastVisit,
