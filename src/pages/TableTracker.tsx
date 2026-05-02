@@ -221,7 +221,7 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
                             id={`cell-${ti}-${si}`}
                             type="text"
                             inputMode="numeric"
-                            defaultValue={val ? formatInputWithSpaces(String(val)) : ""}
+                            defaultValue={val !== null && val !== undefined ? formatSignedInput(String(val)) : ""}
                             key={`${table.id}-${slot}-${val}`}
                             readOnly={readOnly}
                             onChange={(e) => {
