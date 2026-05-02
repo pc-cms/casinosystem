@@ -164,6 +164,8 @@ const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }
           table_id: null,
         });
       });
+      // Auto-mark Attendance = S for this dealer for this business date
+      setAttendance.mutate({ dealer_id: activeCell.dealerId, date, value: "S" });
       toast.success(`Marked Sick for ${slotsToFill.length} slots`);
       setActiveCell(null);
       return;
