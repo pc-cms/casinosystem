@@ -1255,6 +1255,54 @@ export type Database = {
           },
         ]
       }
+      chip_transfers: {
+        Row: {
+          amount: number
+          casino_id: string
+          chips: Json | null
+          counterparty_player_id: string
+          created_at: string
+          direction: string
+          id: string
+          note: string
+          operator_id: string
+          pair_id: string
+          player_id: string
+          shift_id: string
+          table_id: string | null
+        }
+        Insert: {
+          amount: number
+          casino_id: string
+          chips?: Json | null
+          counterparty_player_id: string
+          created_at?: string
+          direction: string
+          id?: string
+          note?: string
+          operator_id: string
+          pair_id: string
+          player_id: string
+          shift_id: string
+          table_id?: string | null
+        }
+        Update: {
+          amount?: number
+          casino_id?: string
+          chips?: Json | null
+          counterparty_player_id?: string
+          created_at?: string
+          direction?: string
+          id?: string
+          note?: string
+          operator_id?: string
+          pair_id?: string
+          player_id?: string
+          shift_id?: string
+          table_id?: string | null
+        }
+        Relationships: []
+      }
       client_sessions: {
         Row: {
           avg_bet: number
@@ -3219,6 +3267,17 @@ export type Database = {
           drop_recycled: number
           table_id: string
         }[]
+      }
+      create_chip_transfer_pair: {
+        Args: {
+          _amount: number
+          _chips?: Json
+          _from_player: string
+          _note?: string
+          _table_id?: string
+          _to_player: string
+        }
+        Returns: Json
       }
       cron_health_overview: {
         Args: never
