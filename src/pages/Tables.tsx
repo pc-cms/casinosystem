@@ -8,7 +8,7 @@ import { getBusinessDate } from "@/lib/business-day";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ChevronUp, X } from "lucide-react";
+import { X } from "lucide-react";
 import { CHIP_DENOMS, CHIP_COLORS, formatChipLabel, formatCurrency } from "@/lib/currency";
 import { Save, Coins, Play, Lock, LayoutGrid } from "lucide-react";
 import { PageShell } from "@/components/layout/PageShell";
