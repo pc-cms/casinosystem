@@ -47,6 +47,7 @@ const PlayerProfile = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { roles, isManager } = useAuth();
+  const showFinancials = canSeePlayerFinancials(roles);
 
   const { data: player, isLoading } = usePlayer(id);
   const { data: visits = [] } = usePlayerVisits(id);
