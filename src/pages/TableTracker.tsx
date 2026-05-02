@@ -251,12 +251,14 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
                   </td>
                   {SLOTS.map((slot) => {
                     const isActive = isToday && slot === currentSlot;
+                    const tot = getSlotTotal(slot);
+                    const colorClass = tot > 0 ? "cms-amount-positive" : tot < 0 ? "cms-amount-negative" : "text-card-foreground";
                     return (
                       <td
                         key={slot}
-                        className={`px-2 py-2 text-center font-mono tabular-nums text-sm font-bold text-card-foreground whitespace-nowrap ${isActive ? "bg-primary/10" : ""}`}
+                        className={`px-2 py-2 text-center font-mono tabular-nums text-sm font-bold whitespace-nowrap ${colorClass} ${isActive ? "bg-primary/10" : ""}`}
                       >
-                        {getSlotTotal(slot) ? formatCurrency(getSlotTotal(slot)) : "·"}
+                        {tot ? formatCurrency(tot) : "·"}
                       </td>
                     );
                   })}
