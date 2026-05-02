@@ -232,7 +232,7 @@ const Expenses = () => {
                   <span className={`text-[10px] font-mono uppercase px-1.5 py-0.5 rounded ${CAT_COLORS[exp.category] || CAT_COLORS.other}`}>{exp.category}</span>
                 </td>
                 <td className="px-3 py-2 text-sm text-muted-foreground">
-                  {exp.players ? `${exp.players.first_name} ${exp.players.last_name}` : "Casino"}
+                  {exp.players ? `${exp.players.first_name} ${exp.players.last_name}` : (exp.player_name || "Casino")}
                 </td>
                 <td className="px-3 py-2 text-right font-mono text-sm cms-amount-negative">
                   {formatCurrency(Number(exp.amount))}
