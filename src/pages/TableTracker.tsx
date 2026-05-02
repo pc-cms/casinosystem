@@ -226,7 +226,7 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
                             readOnly={readOnly}
                             onChange={(e) => {
                               if (readOnly) return;
-                              e.target.value = formatInputWithSpaces(e.target.value);
+                              e.target.value = formatSignedInput(e.target.value);
                             }}
                             onBlur={(e) => handleSave(table.id, slot, e.target.value)}
                             onKeyDown={(e) => handleKeyDown(e, ti, si)}
