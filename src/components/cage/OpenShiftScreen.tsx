@@ -1,6 +1,8 @@
-import { useState, useMemo, useCallback } from "react";
-import { useOpenShift } from "@/hooks/use-shift";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { useOpenShift, useLastClosedShift } from "@/hooks/use-shift";
 import { useAuth } from "@/lib/auth-context";
+import { logAction } from "@/lib/logging";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { NumberInput } from "@/components/ui/number-input";
 import { Play, Settings2, ChevronRight, ChevronLeft, Landmark } from "lucide-react";
