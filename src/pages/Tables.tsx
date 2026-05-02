@@ -36,9 +36,9 @@ const Tables = () => {
   const effectiveDate = restrictedToToday ? businessDay : date;
   const { data: tables = [] } = useGamingTables();
   const { data: players = [] } = usePlayers();
-  const { data: transactions = [] } = useTransactions(date);
+  const { data: transactions = [] } = useTransactions(effectiveDate);
   const { data: shift } = useActiveShift();
-  const { data: snapshots = [] } = useChipSnapshots(date);
+  const { data: snapshots = [] } = useChipSnapshots(effectiveDate);
   const { data: baseline = [] } = useChipBaseline();
   const openAllTables = useOpenAllTables();
   const reopenTable = useReopenTable();
@@ -60,7 +60,7 @@ const Tables = () => {
   const tablesWithResults = useMemo(() => tables.filter(t => t.closing_result !== null && t.status === "open"), [tables]);
   const hasResults = tablesWithResults.length > 0;
 
-  const { data: trackerData = [] } = useTableTracker(date);
+  const { data: trackerData = [] } = useTableTracker(effectiveDate);
 
   // Active sessions & visits for today (for seating dialog)
   const { data: sessions = [] } = useQuery({
@@ -421,12 +421,18 @@ const Tables = () => {
         title="Live Tables"
         subtitle="Float, Result & Seating"
       >
-        <Input
-          type="date"
-          value={date}
-          onChange={e => setDate(e.target.value)}
-          className="w-44 font-mono h-9"
-        />
+        {restrictedToToday ? (
+          <div className="text-[10px] uppercase font-mono text-muted-foreground px-2 py-1 rounded bg-muted/40 border border-border">
+            Business day · {businessDay}
+          </div>
+        ) : (
+          <Input
+            type="date"
+            value={date}
+            onChange={e => setDate(e.target.value)}
+            className="w-44 font-mono h-9"
+          />
+        )}
 
         {closedTables.length > 0 && (
           <Button variant="outline" size="sm" onClick={handleOpenAll} disabled={openAllTables.isPending} className="gap-1.5">
