@@ -866,6 +866,18 @@ const PlayerProfile = () => {
         open={editOpen}
         onOpenChange={setEditOpen}
       />
+
+      <ChipTransferDialog
+        open={transferOpen}
+        onOpenChange={setTransferOpen}
+        player={player ? {
+          id: (player as any).id,
+          first_name: (player as any).first_name,
+          last_name: (player as any).last_name,
+          nickname: (player as any).nickname,
+        } : null}
+        defaultDirection="out"
+      />
     </PageShell>
   );
 };
