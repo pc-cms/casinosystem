@@ -10,7 +10,8 @@ import { useAuth } from "@/lib/auth-context";
 import { Link } from "react-router-dom";
 import { formatCurrency } from "@/lib/currency";
 import { canSeePlayerFinancials } from "@/lib/role-access";
-import { getBusinessDate } from "@/lib/business-day";
+import { getBusinessDate, businessDayHourUTC } from "@/lib/business-day";
+import { useTablesDropSplit } from "@/hooks/use-drop-split";
 import {
   useStaffMembers, useStaffRotaRange,
   DEPARTMENT_LABELS, DEPARTMENT_ORDER,
@@ -75,14 +76,23 @@ const Dashboard = () => {
     return totals;
   }, [trackerData]);
 
+  // NEP-aware Drop R / Recycled per table for the business day
+  const fromIso = useMemo(() => businessDayHourUTC(businessDate, 13), [businessDate]);
+  const toIso = useMemo(() => businessDayHourUTC(businessDate, 13 + 24), [businessDate]);
+  const { data: splitMap } = useTablesDropSplit(fromIso, toIso);
+
   // Tables stats and game type totals — Chip Count overrides Tracker until next hourly TT entry
   const tableStats = useMemo(() => {
     const stats: Record<string, { dropR: number; dropV: number; result: number }> = {};
     tables.forEach(t => {
-      const dropR = transactions
+      const split = splitMap?.get(t.id);
+      const fallbackBuy = transactions
         .filter(tx => tx.table_id === t.id && (tx.type === "buy" || tx.type === "in"))
         .reduce((s, tx) => s + Number(tx.amount), 0);
-      const dropV = tableTrackerTotals[t.id] || 0;
+      const dropR = split ? split.dropR : fallbackBuy;
+      const recycled = split ? split.recycled : 0;
+      const trackerSum = tableTrackerTotals[t.id] || 0;
+      const dropV = trackerSum + recycled;
       const result = liveTableResult({
         tableId: t.id,
         closingResult: t.closing_result as any,
@@ -93,7 +103,7 @@ const Dashboard = () => {
       stats[t.id] = { dropR, dropV, result };
     });
     return stats;
-  }, [tables, transactions, tableTrackerTotals, trackerData, snapshotIndex, baselineMap]);
+  }, [tables, transactions, tableTrackerTotals, trackerData, snapshotIndex, baselineMap, splitMap]);
 
   const gameTypeTotals = useMemo(() => {
     const totals: Record<string, { dropR: number; dropV: number; result: number; label: string }> = {};
