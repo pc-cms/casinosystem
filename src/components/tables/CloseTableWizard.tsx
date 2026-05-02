@@ -14,7 +14,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Check, Lock, ChevronLeft, ChevronRight, ShieldAlert, X } from "lucide-react";
-import { CHIP_COLORS, formatChipLabel, formatCurrency } from "@/lib/currency";
+import { formatChipLabel, formatCurrency } from "@/lib/currency";
+import { useChipColors, resolveChipColor } from "@/hooks/use-chip-colors";
 import { useChipBaseline, useSetSingleTableResult, useReopenSingleTable, useCloseAllTables, baselineToMap } from "@/hooks/use-table-lifecycle";
 import { useChipSnapshots } from "@/hooks/use-chips";
 import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
