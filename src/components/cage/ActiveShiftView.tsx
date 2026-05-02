@@ -269,6 +269,12 @@ const ActiveShiftView = ({ shift, players, tables }: {
         }}
         loading={closeShift.isPending}
       />
+
+      <EditOpeningChipsDialog
+        shift={shift}
+        open={showEditChips}
+        onClose={() => setShowEditChips(false)}
+      />
     </PageShell>
   );
 };
