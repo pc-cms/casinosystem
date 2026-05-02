@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Save } from "lucide-react";
+import { Save, Maximize2, Minimize2 } from "lucide-react";
 import { useChipSnapshots, useBatchChipSnapshot } from "@/hooks/use-chips";
 import { useChipBaseline, baselineToMap } from "@/hooks/use-table-lifecycle";
 import { useGamingTables } from "@/hooks/use-casino-data";
 import { CHIP_DENOMS, CHIP_COLORS, formatChipLabel, formatCurrency } from "@/lib/currency";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 interface ChipCountPanelProps {
   date: string;
