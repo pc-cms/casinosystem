@@ -3081,6 +3081,8 @@ export type Database = {
           total: number | null
           total_cashout: number | null
           total_drop: number | null
+          total_drop_r: number | null
+          total_drop_recycled: number | null
           total_expenses: number | null
         }
         Relationships: [
@@ -3202,7 +3204,22 @@ export type Database = {
       activity_logs_purge: { Args: { p_days?: number }; Returns: number }
       auto_close_business_day: { Args: never; Returns: Json }
       cleanup_old_data: { Args: never; Returns: Json }
+      compute_player_drop_split: {
+        Args: { _from?: string; _player_id: string; _to?: string }
+        Returns: {
+          drop_r: number
+          drop_recycled: number
+        }[]
+      }
       compute_shift_close: { Args: { p_shift_id: string }; Returns: Json }
+      compute_tables_drop_split: {
+        Args: { _casino_id: string; _from: string; _to: string }
+        Returns: {
+          drop_r: number
+          drop_recycled: number
+          table_id: string
+        }[]
+      }
       cron_health_overview: {
         Args: never
         Returns: {
@@ -3268,6 +3285,13 @@ export type Database = {
           casino_id: string
           casino_name: string
           checked_in_at: string
+        }[]
+      }
+      player_drop_split_lifetime: {
+        Args: { _player_id: string }
+        Returns: {
+          drop_r: number
+          drop_recycled: number
         }[]
       }
       rotate_local_server_secret: {
