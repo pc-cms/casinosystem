@@ -1,8 +1,6 @@
-import { useState, useMemo, useCallback, useEffect, useRef } from "react";
-import { useOpenShift, useLastClosedShift } from "@/hooks/use-shift";
+import { useState, useMemo, useCallback } from "react";
+import { useOpenShift } from "@/hooks/use-shift";
 import { useAuth } from "@/lib/auth-context";
-import { logAction } from "@/lib/logging";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { NumberInput } from "@/components/ui/number-input";
 import { Play, Settings2, ChevronRight, ChevronLeft, Landmark } from "lucide-react";
@@ -25,8 +23,7 @@ import type { Tables } from "@/integrations/supabase/types";
 
 const OpenShiftScreen = ({ tables }: { tables: Tables<"gaming_tables">[] }) => {
   const openShift = useOpenShift();
-  const { managerOverride, casinoId } = useAuth();
-  const { data: lastShift } = useLastClosedShift();
+  const { managerOverride } = useAuth();
   const [step, setStep] = useState<1 | 2>(1);
   const [rates, setRates] = useState<Record<string, number>>({ ...DEFAULT_EXCHANGE_RATES });
   const [closingChips, setClosingChips] = useState<Record<number, number>>({});
@@ -45,55 +42,6 @@ const OpenShiftScreen = ({ tables }: { tables: Tables<"gaming_tables">[] }) => {
     setLocks(prev => ({ ...prev, [key]: !prev[key] }));
   }, []);
 
-  // Snapshot of carry-over from yesterday (for diff/audit on submit).
-  const carryOriginal = useRef<{
-    closingChips: Record<number, number>;
-    openingChips: Record<number, number>;
-    cash: Record<string, Record<number, number>>;
-    bank: Banks;
-    mobile: MobileProviders;
-  } | null>(null);
-  const prefilledRef = useRef(false);
-
-  // One-shot prefill from the most recent closed shift.
-  useEffect(() => {
-    if (prefilledRef.current || !lastShift) return;
-    const cc = (lastShift.closing_count || {}) as any;
-    const closing = (cc.chips || {}) as Record<number, number>;
-    const cash = (cc.cash || {}) as Record<string, Record<number, number>>;
-    const bank = (cc.bank || emptyBanks) as Banks;
-    const mobile = (cc.mobile || emptyMobile) as MobileProviders;
-    // Carry: closing chips become BOTH the "Chips from Closing" reference and the new opening chips.
-    setClosingChips(closing);
-    setOpeningChips(closing);
-    setOpeningCash(cash && Object.keys(cash).length ? cash : emptyCash);
-    setBankBalance(bank);
-    setMobileBalance(mobile);
-    if (lastShift.exchange_rates) setRates(lastShift.exchange_rates as Record<string, number>);
-    carryOriginal.current = {
-      closingChips: { ...closing },
-      openingChips: { ...closing },
-      cash: JSON.parse(JSON.stringify(cash || emptyCash)),
-      bank: { ...bank },
-      mobile: { ...mobile },
-    };
-    prefilledRef.current = true;
-  }, [lastShift]);
-
-  // Diff helper — returns a list of edited sections with old/new values.
-  const computeCarryDiff = () => {
-    if (!carryOriginal.current) return null;
-    const o = carryOriginal.current;
-    const changes: Record<string, { old: unknown; new: unknown }> = {};
-    const eq = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
-    if (!eq(o.closingChips, closingChips)) changes.closing_chips = { old: o.closingChips, new: closingChips };
-    if (!eq(o.openingChips, openingChips)) changes.opening_chips = { old: o.openingChips, new: openingChips };
-    if (!eq(o.cash, openingCash)) changes.cash = { old: o.cash, new: openingCash };
-    if (!eq(o.bank, bankBalance)) changes.bank = { old: o.bank, new: bankBalance };
-    if (!eq(o.mobile, mobileBalance)) changes.mobile = { old: o.mobile, new: mobileBalance };
-    return Object.keys(changes).length ? changes : null;
-  };
-
   const closingChipTotal = useMemo(() => chipSum(closingChips), [closingChips]);
   const openingChipTotal = useMemo(() => chipSum(openingChips), [openingChips]);
   const cashTotalTzs = useMemo(() => calcCashTotalTzs(openingCash, rates), [openingCash, rates]);
@@ -101,22 +49,7 @@ const OpenShiftScreen = ({ tables }: { tables: Tables<"gaming_tables">[] }) => {
   const bankTotal = useMemo(() => bankTotalTzs(bankBalance, rates), [bankBalance, rates]);
   const openingTotal = openingChipTotal + cashTotalTzs + mobTotal + bankTotal;
 
-  const handleOpen = async () => {
-    // Audit any edit to the carried-over closed float — requires Manager Access.
-    const diff = computeCarryDiff();
-    if (diff) {
-      if (!managerOverride.active) {
-        toast.error("Manager Access required to edit yesterday's float");
-        return;
-      }
-      if (casinoId) {
-        await logAction(casinoId, "system", "CARRY_FLOAT_EDITED", {
-          previous_shift_id: lastShift?.id,
-          previous_closed_at: lastShift?.closed_at,
-          changes: diff,
-        });
-      }
-    }
+  const handleOpen = () => {
     openShift.mutate({
       exchange_rates: rates,
       opening_float: {
@@ -125,7 +58,6 @@ const OpenShiftScreen = ({ tables }: { tables: Tables<"gaming_tables">[] }) => {
         cash: openingCash,
         bank: bankBalance,
         mobile: mobileBalance,
-        carry_edited: !!diff,
         totals: {
           closing_chips_tzs: closingChipTotal,
           chips_tzs: openingChipTotal,
@@ -176,25 +108,14 @@ const OpenShiftScreen = ({ tables }: { tables: Tables<"gaming_tables">[] }) => {
 
       {step === 1 && (
         <div className="space-y-2">
-          {lastShift && prefilledRef.current && (
-            <div className="cms-panel px-3 py-2 flex items-center justify-between gap-3 border-warning/30 bg-warning/5">
-              <p className="text-[11px] text-card-foreground">
-                Carried over from shift closed{" "}
-                <span className="font-mono">
-                  {lastShift.closed_at ? new Date(lastShift.closed_at).toLocaleString() : "—"}
-                </span>.{" "}
-                <span className="text-muted-foreground">Edits to these values require Manager Access and are audited.</span>
-              </p>
-              <span className={`text-[10px] font-semibold px-2 py-0.5 rounded ${managerOverride.active ? "bg-success/15 text-success" : "bg-muted text-muted-foreground"}`}>
-                {managerOverride.active ? "Manager Access ON" : "View only"}
-              </span>
-            </div>
-          )}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
             <LockableSection title="Chips from Closing" locked={locks.closingChips} onToggleLock={() => toggleLock("closingChips")}>
-              <div className={!managerOverride.active ? "opacity-60 pointer-events-none" : ""}>
+              <div className={!managerOverride.active ? "opacity-50 pointer-events-none" : ""}>
                 <ChipDenomInput values={closingChips} onChange={setClosingChips} showValue={false} />
               </div>
+              {!managerOverride.active && (
+                <p className="text-[9px] text-destructive font-medium">Manager access required</p>
+              )}
             </LockableSection>
             <LockableSection title="Opening Chips" locked={locks.openingChips} onToggleLock={() => toggleLock("openingChips")}>
               <ChipDenomInput values={openingChips} onChange={setOpeningChips} showValue={false} />
