@@ -65,7 +65,10 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
 
   const handleSave = (tableId: string, slot: string, val: string) => {
     if (readOnly) return;
-    const numVal = parseSpacedNumber(val);
+    const trimmed = val.trim();
+    // Empty input = no value (skip save)
+    if (trimmed === "" || trimmed === "-") return;
+    const numVal = parseSignedNumber(val);
     if (isNaN(numVal)) return;
     const current = getVal(tableId, slot);
     if (current === numVal) return;
