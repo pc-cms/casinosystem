@@ -59,9 +59,6 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
     setValue.mutate({ table_id: tableId, date, time_slot: slot, value: numVal });
   };
 
-  const getTableTotal = (tableId: string) =>
-    trackerData.filter(t => t.table_id === tableId).reduce((s, t) => s + Number(t.value), 0);
-
   const getSlotTotal = (slot: string) =>
     trackerData.filter(t => t.time_slot === slot).reduce((s, t) => s + Number(t.value), 0);
 
@@ -165,11 +162,10 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
 
       <PageSection card={false}>
         <div className="rounded-md border border-border bg-card overflow-x-auto">
-          <div className="min-w-[1000px]">
-            <table className="w-full border-collapse">
+          <table className="border-collapse" style={{ minWidth: "100%" }}>
               <thead>
                 <tr className="border-b border-border">
-                  <th className="text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground px-3 py-2 sticky left-0 bg-card z-10 min-w-[100px]">
+                  <th className="text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground px-3 py-2 sticky left-0 bg-card z-10 min-w-[110px]">
                     Table
                   </th>
                   {SLOTS.map((slot) => {
@@ -177,7 +173,7 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
                     return (
                       <th
                         key={slot}
-                        className={`text-center text-[10px] font-mono px-1 py-2 min-w-[70px] ${
+                        className={`text-center text-xs font-mono px-2 py-2 min-w-[110px] ${
                           isActive
                             ? "bg-primary/20 text-primary font-bold"
                             : "text-muted-foreground"
@@ -187,9 +183,6 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
                       </th>
                     );
                   })}
-                  <th className="text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground px-3 py-2 min-w-[80px]">
-                    Total
-                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -207,7 +200,7 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
                       const val = getVal(table.id, slot);
                       const isActive = isToday && slot === currentSlot;
                       return (
-                        <td key={slot} className={`px-0.5 py-0.5 ${isActive ? "bg-primary/5" : ""}`}>
+                        <td key={slot} className={`px-1 py-0.5 ${isActive ? "bg-primary/5" : ""}`}>
                           <input
                             id={`cell-${ti}-${si}`}
                             type="text"
@@ -221,7 +214,7 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
                             }}
                             onBlur={(e) => handleSave(table.id, slot, e.target.value)}
                             onKeyDown={(e) => handleKeyDown(e, ti, si)}
-                            className={`w-full h-7 text-center text-xs font-mono bg-transparent border border-border rounded-md px-1 focus:border-primary focus:outline-none text-card-foreground ${
+                            className={`w-full h-9 text-center text-base font-mono tabular-nums bg-transparent border border-border rounded-md px-1 focus:border-primary focus:outline-none text-card-foreground ${
                               isActive ? "border-primary/30" : ""
                             } ${readOnly ? "cursor-not-allowed opacity-70" : ""}`}
                             placeholder="·"
@@ -229,9 +222,6 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
                         </td>
                       );
                     })}
-                    <td className="px-3 py-1 text-right font-mono tabular-nums text-xs font-bold text-card-foreground">
-                      {formatCurrency(getTableTotal(table.id))}
-                    </td>
                   </tr>
                 ))}
                 <tr className="border-t-2 border-primary/30 bg-muted/30">
@@ -243,18 +233,19 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
                     return (
                       <td
                         key={slot}
-                        className={`px-1 py-2 text-center font-mono tabular-nums text-[10px] font-bold text-card-foreground ${isActive ? "bg-primary/10" : ""}`}
+                        className={`px-2 py-2 text-center font-mono tabular-nums text-sm font-bold text-card-foreground ${isActive ? "bg-primary/10" : ""}`}
                       >
                         {getSlotTotal(slot) ? formatCurrency(getSlotTotal(slot)) : "·"}
                       </td>
                     );
                   })}
-                  <td className="px-3 py-2 text-right font-mono tabular-nums text-sm font-bold text-primary">
-                    {formatCurrency(grandTotal)}
-                  </td>
                 </tr>
               </tbody>
             </table>
+        </div>
+        <div className="mt-2 flex justify-end">
+          <div className="text-sm font-mono tabular-nums font-bold text-primary">
+            Grand Total: {formatCurrency(grandTotal)}
           </div>
         </div>
         {openTables.length === 0 && (
