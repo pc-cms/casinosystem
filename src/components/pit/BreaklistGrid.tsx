@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { useDealers, useBreaklistData, useSetBreaklistCell, useLockBreaklistCell, useGamingTables, usePitRotaRange } from "@/hooks/use-casino-data";
+import { useDealers, useBreaklistData, useSetBreaklistCell, useLockBreaklistCell, useGamingTables, usePitRotaRange, useSetDealerAttendance } from "@/hooks/use-casino-data";
 import { useCasinoInfo } from "@/hooks/use-table-lifecycle";
 import { useAuth } from "@/lib/auth-context";
 import { Lock, Unlock, LockKeyhole } from "lucide-react";
@@ -74,6 +74,7 @@ const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }
   const { data: rota = [] } = usePitRotaRange(date, date);
   const { data: casino } = useCasinoInfo();
   const setCell = useSetBreaklistCell();
+  const setAttendance = useSetDealerAttendance();
   const lockCell = useLockBreaklistCell();
   const { isManager } = useAuth();
 
@@ -163,6 +164,8 @@ const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }
           table_id: null,
         });
       });
+      // Auto-mark Attendance = S for this dealer for this business date
+      setAttendance.mutate({ dealer_id: activeCell.dealerId, date, value: "S" });
       toast.success(`Marked Sick for ${slotsToFill.length} slots`);
       setActiveCell(null);
       return;
