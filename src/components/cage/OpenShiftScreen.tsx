@@ -3,10 +3,11 @@ import { useOpenShift } from "@/hooks/use-shift";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { NumberInput } from "@/components/ui/number-input";
-import { Play, Settings2, ChevronRight, ChevronLeft, Landmark } from "lucide-react";
+import { Play, Settings2, ChevronRight, ChevronLeft, Landmark, Pencil } from "lucide-react";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
 import {
   CHIP_DENOMS, formatCurrency, formatNumberSpaces, CURRENCIES, FOREIGN_CURRENCIES,
   DEFAULT_EXCHANGE_RATES, CASH_DENOMS,
@@ -23,7 +24,7 @@ import type { Tables } from "@/integrations/supabase/types";
 
 const OpenShiftScreen = ({ tables }: { tables: Tables<"gaming_tables">[] }) => {
   const openShift = useOpenShift();
-  const { managerOverride } = useAuth();
+  const { managerOverride, activateManagerOverride, displayName } = useAuth();
   const [step, setStep] = useState<1 | 2>(1);
   const [rates, setRates] = useState<Record<string, number>>({ ...DEFAULT_EXCHANGE_RATES });
   const [closingChips, setClosingChips] = useState<Record<number, number>>({});
@@ -32,6 +33,7 @@ const OpenShiftScreen = ({ tables }: { tables: Tables<"gaming_tables">[] }) => {
   const [bankBalance, setBankBalance] = useState<Banks>(emptyBanks);
   const [mobileBalance, setMobileBalance] = useState<MobileProviders>(emptyMobile);
   const [showRates, setShowRates] = useState(false);
+  const [showManagerAccess, setShowManagerAccess] = useState(false);
 
   const [locks, setLocks] = useState({
     closingChips: false, openingChips: false, tzsCash: false, mobile: false,
