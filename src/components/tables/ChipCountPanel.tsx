@@ -214,7 +214,7 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
                   return (
                     <th key={d} className={`text-center ${t.headerPadY} px-0.5 font-medium`}>
                       <span
-                        className={`inline-flex items-center justify-center rounded-full font-bold whitespace-nowrap ring-1 ring-[hsl(45_75%_52%/0.85)] ${t.chipText} ${t.chipPad}`}
+                        className={t.chipClass}
                         style={{ backgroundColor: c.bg, color: c.text }}
                       >
                         {formatChipLabel(d)}
