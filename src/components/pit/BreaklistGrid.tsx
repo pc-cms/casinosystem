@@ -280,7 +280,11 @@ const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }
                           <div
                             onClick={() => isEditable && handleCellClick(dealer.id, slot)}
                             className={`w-full h-7 rounded text-[13px] font-mono font-extrabold relative transition-colors cursor-pointer flex items-center justify-center ${
-                              cell ? ROLE_COLORS[cell.role] || "bg-muted text-muted-foreground" : isEditable ? "bg-transparent hover:bg-muted/50 text-transparent hover:text-muted-foreground" : "bg-transparent text-transparent"
+                              cell
+                                ? cell.table_id && tableColorIndex.has(cell.table_id)
+                                  ? getTableCellClasses(cell.table_id, tableColorIndex.get(cell.table_id)!, cell.role)
+                                  : ROLE_COLORS[cell.role] || "bg-muted text-muted-foreground"
+                                : isEditable ? "bg-transparent hover:bg-muted/50 text-transparent hover:text-muted-foreground" : "bg-transparent text-transparent"
                             } ${cell?.is_locked ? "ring-1 ring-yellow-500/40" : ""} ${isActiveCell ? "ring-2 ring-primary" : ""} ${!isEditable ? "cursor-default" : ""}`}
                             title={tableName ? `${cell?.role} @ ${tableName}` : cell?.role}
                           >
