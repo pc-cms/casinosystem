@@ -37,7 +37,7 @@ const CAT_COLORS: Record<string, string> = {
 interface DraftRow {
   uid: string;
   target: "casino" | "player" | "";
-  player_id: string;
+  player_name: string;
   category: string;
   amount: string;
   description: string;
@@ -46,7 +46,7 @@ interface DraftRow {
 const newDraft = (): DraftRow => ({
   uid: Math.random().toString(36).slice(2),
   target: "",
-  player_id: "",
+  player_name: "",
   category: "",
   amount: "",
   description: "",
