@@ -157,10 +157,6 @@ const Tables = () => {
           </Button>
         )}
 
-        <Button variant="outline" size="sm" onClick={handleOpenChipCount} disabled={openTables.length === 0} className="gap-1.5">
-          <Coins className="w-4 h-4" /> Chip Count
-        </Button>
-
         <Button size="sm" onClick={() => setShowCloseWizard(true)} disabled={openTables.length === 0} className="gap-1.5">
           <Lock className="w-4 h-4" /> Close Table
         </Button>
