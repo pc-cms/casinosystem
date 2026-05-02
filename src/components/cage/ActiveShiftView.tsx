@@ -167,7 +167,20 @@ const ActiveShiftView = ({ shift, players, tables }: {
 
       <div className="cms-panel p-2 mb-4">
         <div className="grid grid-cols-3 md:grid-cols-8 gap-2">
-          <div><p className="text-[9px] uppercase text-muted-foreground">Opening</p><p className="font-mono text-sm font-bold text-card-foreground">{formatCurrency(openingFloat)}</p></div>
+          <div>
+            <p className="text-[9px] uppercase text-muted-foreground flex items-center gap-1">
+              Opening
+              <button
+                type="button"
+                onClick={() => setShowEditChips(true)}
+                title="Edit opening chips (manager)"
+                className="inline-flex items-center justify-center w-3.5 h-3.5 rounded hover:bg-muted text-muted-foreground hover:text-primary transition-colors"
+              >
+                <Pencil className="w-2.5 h-2.5" />
+              </button>
+            </p>
+            <p className="font-mono text-sm font-bold text-card-foreground">{formatCurrency(openingFloat)}</p>
+          </div>
           <div><p className="text-[9px] uppercase text-muted-foreground">+ IN</p><p className="font-mono text-sm font-bold text-success">+{formatCurrency(totalIns)}</p></div>
           <div><p className="text-[9px] uppercase text-muted-foreground">− OUT</p><p className="font-mono text-sm font-bold text-destructive">−{formatCurrency(totalOuts)}</p></div>
           <div><p className="text-[9px] uppercase text-muted-foreground">+ Add Float</p><p className="font-mono text-sm font-bold text-success">+{formatCurrency(totalAddFloat)}</p></div>
