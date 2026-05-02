@@ -877,16 +877,21 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
               const isToday = isCurrentMonth && day === todayDay;
               const dateObj = new Date(y, m - 1, day);
               const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
-              const isStatus = val === "A" || val === "S";
-              const isHours = val !== "" && !isStatus;
+              const parsed = parseValue(val);
+              const isStatus = parsed.kind === "absent" || parsed.kind === "sick";
+              const isHoursSick = parsed.kind === "hours-sick";
+              const isHours = parsed.kind === "hours";
               const rotaShift = getRotaShift(dealer.id, day);
               const isScheduled = !!rotaShift;
               const isEmpty = val === "";
+              const displayVal = isHoursSick ? String(parsed.hours) : val;
+              const cellTitle = isHoursSick ? `Sick — worked ${parsed.hours}h then went home` : undefined;
               return (
                 <td key={day} className={`px-0.5 py-0.5 text-center ${isToday ? "bg-primary/25" : isWeekend ? "bg-muted/15" : ""}`}>
                   <input
                     type="text"
-                    defaultValue={val}
+                    defaultValue={displayVal}
+                    title={cellTitle}
                     key={`${dealer.id}-${month}-${day}-${val}`}
                     onBlur={e => handleSave(dealer.id, day, e.target.value)}
                     onKeyDown={e => {
@@ -918,6 +923,7 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
                     }}
                     className={`w-full h-7 rounded text-[10px] font-mono text-center border-0 focus:outline-none focus:ring-1 focus:ring-primary transition-colors ${
                       isStatus ? ATT_COLORS[val]
+                        : isHoursSick ? "bg-transparent text-card-foreground font-bold ring-2 ring-amber-500/70 dark:ring-amber-400/70 ring-inset cursor-help"
                         : isHours ? "bg-transparent text-card-foreground font-bold"
                         : isScheduled && isEmpty
                           ? `${UNIFIED_SHIFT_TINTS[rotaShift] || "bg-muted/30 text-muted-foreground"} placeholder:text-current`
