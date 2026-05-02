@@ -257,7 +257,7 @@ const Cashless = () => {
                   <span className={`text-[10px] font-mono uppercase px-1.5 py-0.5 rounded ${PROVIDER_COLORS[r.provider]}`}>{r.provider}</span>
                 </td>
                 <td className="px-3 py-2 text-sm text-card-foreground">
-                  {r.players ? `${r.players.first_name} ${r.players.last_name}` : "—"}
+                  {r.players ? `${r.players.first_name} ${r.players.last_name}` : (r.player_name || "—")}
                 </td>
                 <td className={`px-3 py-2 text-right font-mono text-sm ${r.direction === "IN" ? "cms-amount-positive" : "cms-amount-negative"}`}>
                   {formatCurrency(Number(r.amount))}
