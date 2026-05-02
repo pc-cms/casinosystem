@@ -132,12 +132,14 @@ const PlayerProfile = () => {
   // total  = result − comps  (with comps/expenses)
   const lifetime = useMemo(() => {
     const totalMins = visits.reduce((s, v) => s + visitDuration(v), 0);
-    const drop = Number(economy?.total_drop) || 0;
+    const dropGross = Number(economy?.total_drop) || 0;
+    const dropR = Number((economy as any)?.total_drop_r) || 0;
+    const drop = dropR; // Lifetime "Drop" KPI = NEP-aware Drop R (External part of cash-in)
     const cashout = Number(economy?.total_cashout) || 0;
     const comps = Number(economy?.total_expenses) || 0;
-    const result = cashout - drop;
+    const result = cashout - dropGross; // result based on gross buy (player PnL)
     const total = result - comps;
-    const hold = holdPct(drop, cashout, comps);
+    const hold = holdPct(dropGross, cashout, comps);
     const firstVisit = visits.length ? visits[visits.length - 1].checked_in_at : null;
     const lastVisit = visits[0] ? (visits[0].checked_out_at || visits[0].checked_in_at) : null;
     const daysSinceLast = lastVisit
