@@ -8,7 +8,7 @@ import { getBusinessDate } from "@/lib/business-day";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { X } from "lucide-react";
 import { CHIP_DENOMS, CHIP_COLORS, formatChipLabel, formatCurrency } from "@/lib/currency";
 import { Save, Coins, Play, Lock, LayoutGrid } from "lucide-react";
 import { PageShell } from "@/components/layout/PageShell";
@@ -279,7 +279,107 @@ const Tables = () => {
         </div>
       </div>
 
-      {/* Result Summary Banner */}
+      {/* Chip Count inline panel — tables as rows, denominations as columns */}
+      {showCount && (
+        <div className="cms-panel mb-4 border-primary/30">
+          <div className="flex items-center justify-between px-4 py-2 border-b border-border">
+            <div>
+              <h3 className="text-sm font-semibold text-card-foreground">Chip Count — Tables (mid-shift snapshot)</h3>
+              <p className="text-[10px] text-muted-foreground">Rows: tables · Columns: denominations</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button size="sm" onClick={handleSaveCount} disabled={batchSnapshot.isPending} className="gap-1.5">
+                <Save className="w-4 h-4" /> {batchSnapshot.isPending ? "Saving…" : "Save Snapshot"}
+              </Button>
+              <Button variant="ghost" size="icon" onClick={() => setShowCount(false)} title="Close">
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+          {(() => {
+            const visibleDenoms = CHIP_DENOMS.filter(d =>
+              countLocations.some(loc => loc.denoms.includes(d))
+            );
+            return (
+              <div className="overflow-x-auto">
+                <table className="text-xs border-collapse w-full">
+                  <thead>
+                    <tr className="border-b border-border">
+                      <th className="text-left py-2 px-2 text-muted-foreground font-medium sticky left-0 bg-card z-10 min-w-[120px]">
+                        Table
+                      </th>
+                      {visibleDenoms.map(d => (
+                        <th key={d} className="text-center py-2 px-1 font-medium min-w-[78px]">
+                          <span className={`cms-chip text-[8px] ${CHIP_COLORS[d] || "bg-muted text-foreground"}`}>
+                            {formatChipLabel(d)}
+                          </span>
+                        </th>
+                      ))}
+                      <th className="text-right py-2 px-3 text-muted-foreground font-medium min-w-[110px]">
+                        Result
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {countLocations.map((loc, ri) => {
+                      const locCounts = counts[loc.key] || {};
+                      const tableBaseline = baselineMap[loc.id] || {};
+                      let rowResult = 0;
+                      visibleDenoms.forEach(d => {
+                        if (!loc.denoms.includes(d)) return;
+                        const expected = tableBaseline[d] || 0;
+                        const actual = locCounts[d] ?? expected;
+                        rowResult += (actual - expected) * d;
+                      });
+                      return (
+                        <tr key={loc.key} className={`border-b border-border last:border-0 ${ri % 2 === 1 ? "bg-muted/10" : ""}`}>
+                          <td className={`py-1 px-2 font-medium text-card-foreground sticky left-0 z-10 ${ri % 2 === 1 ? "bg-card/95" : "bg-card"}`}>
+                            {loc.label}
+                          </td>
+                          {visibleDenoms.map(d => {
+                            if (!loc.denoms.includes(d)) {
+                              return <td key={d} className="px-1 py-0.5 text-center text-muted-foreground/30">—</td>;
+                            }
+                            const bsl = tableBaseline[d] || 0;
+                            return (
+                              <td key={d} className="px-1 py-0.5">
+                                <input
+                                  type="number" min="0"
+                                  value={locCounts[d] ?? ""}
+                                  onChange={e => {
+                                    const val = e.target.value === "" ? 0 : parseInt(e.target.value, 10);
+                                    setCounts(c => ({ ...c, [loc.key]: { ...(c[loc.key] || {}), [d]: isNaN(val) ? 0 : val } }));
+                                  }}
+                                  className="w-full h-7 rounded text-[11px] font-mono text-center border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary text-card-foreground"
+                                  placeholder={String(bsl)}
+                                />
+                              </td>
+                            );
+                          })}
+                          <td className={`px-3 py-1 text-right font-mono text-xs font-bold ${rowResult >= 0 ? "text-success" : "text-destructive"}`}>
+                            {rowResult >= 0 ? "+" : ""}{formatCurrency(rowResult)}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    <tr className="border-t-2 border-primary/30 bg-muted/30">
+                      <td className="py-2 px-2 text-xs font-bold uppercase text-card-foreground sticky left-0 bg-muted/30 z-10">
+                        Total
+                      </td>
+                      <td colSpan={visibleDenoms.length} />
+                      <td className={`px-3 py-2 text-right font-mono text-sm font-bold ${countResultPreview.reduce((s, r) => s + r.total, 0) >= 0 ? "text-success" : "text-destructive"}`}>
+                        {countResultPreview.reduce((s, r) => s + r.total, 0) >= 0 ? "+" : ""}
+                        {formatCurrency(countResultPreview.reduce((s, r) => s + r.total, 0))}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            );
+          })()}
+        </div>
+      )}
+
       {hasResults && (
         <div className="cms-panel p-4 mb-4 border-success/30">
           <p className="text-xs font-semibold text-card-foreground mb-2">📊 Table Results (waiting for Cashier to close)</p>
@@ -313,92 +413,6 @@ const Tables = () => {
         </div>
       </div>
       {tables.length === 0 && <p className="text-muted-foreground text-sm text-center py-8">No tables configured</p>}
-
-      {/* Chip Count Dialog (mid-shift snapshot) — tables only */}
-      <Dialog open={showCount} onOpenChange={setShowCount}>
-        <DialogContent className="max-w-none w-auto overflow-visible" style={{ maxHeight: 'none' }}>
-          <DialogHeader>
-            <DialogTitle>Chip Count — Tables (mid-shift snapshot)</DialogTitle>
-          </DialogHeader>
-
-          <div>
-            <table className="text-xs border-collapse">
-              <thead>
-                <tr className="border-b border-border">
-                  <th className="text-left py-2 px-2 text-muted-foreground font-medium sticky left-0 bg-background z-10 min-w-[70px]">Denom</th>
-                  {countLocations.map(loc => (
-                    <th key={loc.key} className="text-center py-2 px-3 text-muted-foreground font-medium min-w-[80px] whitespace-nowrap">
-                      {loc.label}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {CHIP_DENOMS.map(d => {
-                  const anyLocationHasDenom = countLocations.some(loc => loc.denoms.includes(d));
-                  if (!anyLocationHasDenom) return null;
-                  return (
-                    <tr key={d} className="border-b border-border last:border-0">
-                      <td className="py-1 px-2 sticky left-0 bg-background z-10">
-                        <span className={`cms-chip text-[8px] ${CHIP_COLORS[d] || "bg-muted text-foreground"}`}>{formatChipLabel(d)}</span>
-                      </td>
-                      {countLocations.map(loc => {
-                        if (!loc.denoms.includes(d)) {
-                          return <td key={loc.key} className="px-1 py-0.5 text-center text-muted-foreground/30">—</td>;
-                        }
-                        const locCounts = counts[loc.key] || {};
-                        const bsl = baselineMap[loc.id]?.[d] || 0;
-                        return (
-                          <td key={loc.key} className="px-1 py-0.5">
-                            <input
-                              type="number" min="0"
-                              value={locCounts[d] ?? ""}
-                              onChange={e => {
-                                const val = e.target.value === "" ? 0 : parseInt(e.target.value, 10);
-                                setCounts(c => ({ ...c, [loc.key]: { ...(c[loc.key] || {}), [d]: isNaN(val) ? 0 : val } }));
-                              }}
-                              className="w-16 h-7 rounded text-[11px] font-mono text-center border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary text-card-foreground mx-auto block"
-                              placeholder={String(bsl)}
-                            />
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Live result preview */}
-          <div className="border-t border-border pt-3 space-y-2">
-            <p className="text-xs font-semibold text-card-foreground">Current Result (Actual − Baseline)</p>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-              {countResultPreview.map(r => (
-                <div key={r.id} className="cms-panel p-2 flex items-center justify-between">
-                  <span className="text-xs text-card-foreground truncate">{r.label}</span>
-                  <span className={`font-mono text-xs font-bold ${r.total >= 0 ? "text-success" : "text-destructive"}`}>
-                    {r.total >= 0 ? "+" : ""}{formatCurrency(r.total)}
-                  </span>
-                </div>
-              ))}
-            </div>
-            <div className="cms-panel p-2 text-center border-primary/30">
-              <p className="text-[9px] uppercase text-muted-foreground">Total</p>
-              <p className={`font-mono text-lg font-bold ${countResultPreview.reduce((s, r) => s + r.total, 0) >= 0 ? "text-success" : "text-destructive"}`}>
-                {countResultPreview.reduce((s, r) => s + r.total, 0) >= 0 ? "+" : ""}{formatCurrency(countResultPreview.reduce((s, r) => s + r.total, 0))}
-              </p>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCount(false)}>Cancel</Button>
-            <Button onClick={handleSaveCount} disabled={batchSnapshot.isPending} className="gap-1.5">
-              <Save className="w-4 h-4" /> {batchSnapshot.isPending ? "Saving…" : "Save Snapshot"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Close Table Wizard */}
       <CloseTableWizard

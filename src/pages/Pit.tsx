@@ -99,7 +99,7 @@ const Pit = () => {
     breaklist: "Breaklist",
     activeplayers: "Active Players",
     tracker: "Player Tracker",
-    tabletracker: "Table Tracker",
+    tabletracker: "Table Check",
   };
 
   // Breaklist zoom + action callbacks

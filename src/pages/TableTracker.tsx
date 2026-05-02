@@ -96,7 +96,7 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
       {!embedded && (
         <PageHeader
           icon={Target}
-          title="Table Tracker"
+          title="Table Check"
           subtitle="Enter values · auto-saves on blur/Enter"
           date={date}
         >
