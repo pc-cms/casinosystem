@@ -177,12 +177,20 @@
     font-size: 10px;
     line-height: 1;
     letter-spacing: -0.02em;
-    box-shadow: 0 0 0 1px hsl(45 75% 52% / 0.85);
+    /* Layered ring: thick gold outer + thin inner highlight for a poker-chip look */
+    box-shadow:
+      inset 0 0 0 2.5px hsl(45 80% 55% / 0.95),
+      inset 0 0 0 3.5px hsl(0 0% 100% / 0.35),
+      0 1px 2px hsl(0 0% 0% / 0.25);
   }
   .cms-chip-token-lg {
     width: 2.75rem;   /* 44px — fullscreen / lg surfaces */
     height: 2.75rem;
     font-size: 11px;
+    box-shadow:
+      inset 0 0 0 3px hsl(45 80% 55% / 0.95),
+      inset 0 0 0 4.5px hsl(0 0% 100% / 0.35),
+      0 1px 3px hsl(0 0% 0% / 0.3);
   }
   /* Hide number input spinners */
   input[type="number"].no-spin::-webkit-outer-spin-button,
