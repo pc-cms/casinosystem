@@ -279,18 +279,20 @@ export default function PlayerVisitsBreakdown({ visits, transactions, expenses, 
         </tbody>
         <tfoot>
           {(() => {
-            const total = months.reduce((acc, m) => add(acc, m.agg), blank());
-            const r = result(total);
+            const tot = months.reduce((acc, m) => add(acc, m.agg), blank());
+            const r = result(tot);
+            const t = total(tot);
             return (
               <tr className="border-t-2 border-border font-semibold bg-muted/30">
                 <td className="py-2 px-2 uppercase text-xs text-muted-foreground">Lifetime total</td>
-                <td className="py-2 px-2 text-right font-mono">{total.visits}</td>
-                <td className="py-2 px-2 text-right font-mono">{fmtDuration(total.minutes)}</td>
+                <td className="py-2 px-2 text-right font-mono">{tot.visits}</td>
+                <td className="py-2 px-2 text-right font-mono">{fmtDuration(tot.minutes)}</td>
                 {showFinancials && <>
-                  <td className="py-2 px-2 text-right font-mono">{fmtMoney(total.drop)}</td>
-                  <td className="py-2 px-2 text-right font-mono">{fmtMoney(total.out)}</td>
-                  <td className="py-2 px-2 text-right font-mono">{fmtMoney(total.comps)}</td>
-                  <td className={`py-2 px-2 text-right font-mono ${r >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>{fmtMoney(r)}</td>
+                  <td className="py-2 px-2 text-right font-mono">{fmtMoney(tot.drop)}</td>
+                  <td className="py-2 px-2 text-right font-mono">{fmtMoney(tot.out)}</td>
+                  <td className={`py-2 px-2 text-right font-mono ${r === 0 ? "" : r > 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>{fmtMoney(r)}</td>
+                  <td className="py-2 px-2 text-right font-mono">{fmtMoney(tot.comps)}</td>
+                  <td className={`py-2 px-2 text-right font-mono ${t === 0 ? "" : t > 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>{fmtMoney(t)}</td>
                 </>}
               </tr>
             );
