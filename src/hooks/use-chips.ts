@@ -79,13 +79,27 @@ export const useChipSnapshots = (date: string) => {
     queryKey: ["chip-snapshots", casinoId, date],
     queryFn: async () => {
       if (!casinoId) return [];
-      const { data, error } = await supabase
-        .from("chip_snapshots")
-        .select("*")
-        .eq("casino_id", casinoId)
-        .eq("date", date);
-      if (error) throw error;
-      return data;
+      // Paginate to bypass the default 1000-row Supabase cap
+      // (a single business day can easily exceed 1000 rows: 8 tables × 11 denoms × 20+ saves).
+      const PAGE = 1000;
+      const all: any[] = [];
+      let from = 0;
+      // Hard upper bound to avoid infinite loops
+      for (let i = 0; i < 50; i++) {
+        const { data, error } = await supabase
+          .from("chip_snapshots")
+          .select("*")
+          .eq("casino_id", casinoId)
+          .eq("date", date)
+          .order("created_at", { ascending: false })
+          .range(from, from + PAGE - 1);
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        all.push(...data);
+        if (data.length < PAGE) break;
+        from += PAGE;
+      }
+      return all;
     },
     enabled: !!casinoId,
   });
