@@ -20,6 +20,7 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
   const { data: tables = [] } = useGamingTables();
   const { data: snapshots = [] } = useChipSnapshots(date);
   const { data: baseline = [] } = useChipBaseline();
+  const { data: chipColorOverrides } = useChipColors();
   const batchSnapshot = useBatchChipSnapshot();
 
   const baselineMap = useMemo(() => baselineToMap(baseline), [baseline]);
