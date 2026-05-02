@@ -14,6 +14,7 @@ import FloorTableCard, { type FloorTable } from "./FloorTableCard";
 import TableSeatingDialog from "./TableSeatingDialog";
 import type { SeatedPlayer } from "./SeatedPlayerChip";
 import { getBusinessDate, businessDayHourUTC } from "@/lib/business-day";
+import ChipTransferDialog from "@/components/player/ChipTransferDialog";
 
 const POKER_GAMES = ["Poker", "Texas Holdem", "Omaha", "PLO"];
 
@@ -23,7 +24,8 @@ const ActivePlayers = () => {
   const today = getBusinessDate();
   const windowStartUTC = businessDayHourUTC(today, 13);
   const { data: transactions = [] } = useTransactions(today);
-  const { casinoId, user } = useAuth();
+  const { casinoId, user, roles } = useAuth();
+  const canTransfer = roles.some(r => ["pit", "manager", "super_admin"].includes(r));
   const queryClient = useQueryClient();
 
   const [search, setSearch] = useState("");
@@ -32,6 +34,7 @@ const ActivePlayers = () => {
   );
   const [openTableId, setOpenTableId] = useState<string | null>(null);
   const [pendingDropPlayer, setPendingDropPlayer] = useState<string | null>(null);
+  const [transferPlayer, setTransferPlayer] = useState<{ id: string; first_name: string; last_name: string; nickname?: string | null; tableId?: string | null } | null>(null);
 
   const isTouch = typeof window !== "undefined" && "ontouchstart" in window;
 
