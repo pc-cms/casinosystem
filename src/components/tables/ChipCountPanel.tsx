@@ -1,12 +1,29 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Save, Maximize2, Minimize2 } from "lucide-react";
+import { Save, Maximize2, Minimize2, History } from "lucide-react";
 import { useChipSnapshots, useBatchChipSnapshot } from "@/hooks/use-chips";
 import { useChipBaseline, baselineToMap } from "@/hooks/use-table-lifecycle";
-import { useGamingTables } from "@/hooks/use-casino-data";
+import { useGamingTables, useSetTableTrackerValue } from "@/hooks/use-casino-data";
 import { CHIP_DENOMS, formatChipLabel, formatCurrency } from "@/lib/currency";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useChipColors, resolveChipColor } from "@/hooks/use-chip-colors";
+import { nowEAT } from "@/lib/business-day";
+
+/** Compute the Number-Count tracker slot for a Chip Count taken at the given EAT time.
+ *  Window: HH:50–HH+1:10 → slot HH+1:00. Otherwise null (no auto-write).
+ *  Slots are constrained to 18:00..04:00 (live-game window). */
+const slotForChipCount = (now: Date): string | null => {
+  const h = now.getHours();
+  const m = now.getMinutes();
+  let targetH: number;
+  if (m >= 50) targetH = (h + 1) % 24;
+  else if (m <= 10) targetH = h;
+  else return null;
+  // Allowed slots: 18..23 and 00..04
+  const allowed = (targetH >= 18 && targetH <= 23) || (targetH >= 0 && targetH <= 4);
+  if (!allowed) return null;
+  return `${String(targetH).padStart(2, "0")}:00`;
+};
 
 interface ChipCountPanelProps {
   date: string;
