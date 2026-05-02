@@ -11,7 +11,7 @@ import { nowEAT } from "@/lib/business-day";
 
 /** Compute the Number-Count tracker slot for a Chip Count taken at the given EAT time.
  *  Window: HH:50–HH+1:10 → slot HH+1:00. Otherwise null (no auto-write).
- *  Slots are constrained to 18:00..04:00 (live-game window). */
+ *  Slots are constrained to 18:00..05:00 (live-game window). */
 const slotForChipCount = (now: Date): string | null => {
   const h = now.getHours();
   const m = now.getMinutes();
