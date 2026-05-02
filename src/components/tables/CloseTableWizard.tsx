@@ -294,9 +294,11 @@ export const CloseTableWizard = ({ open, onClose, tables, date }: Props) => {
                         return (
                           <tr key={d} className="border-b border-border/50 last:border-0">
                             <td className="py-1.5 px-2">
-                              <span className={`cms-chip text-[9px] ${CHIP_COLORS[d] || "bg-muted text-foreground"}`}>
-                                {formatChipLabel(d)}
-                              </span>
+                              {(() => { const c = resolveChipColor(d, chipColorOverrides); return (
+                                <span className="cms-chip text-[9px]" style={{ backgroundColor: c.bg, color: c.text }}>
+                                  {formatChipLabel(d)}
+                                </span>
+                              ); })()}
                             </td>
                             <td className="py-1.5 px-2 text-center font-mono text-[11px] text-muted-foreground">
                               {expected}
