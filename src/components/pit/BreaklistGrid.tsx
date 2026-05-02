@@ -175,9 +175,26 @@ const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }
           table_id: null,
         });
       });
-      // Auto-mark Attendance = S for this dealer for this business date
-      setAttendance.mutate({ dealer_id: activeCell.dealerId, date, value: "S" });
-      toast.success(`Marked Sick for ${slotsToFill.length} slots`);
+      // Compute hours worked BEFORE this Sick click:
+      // from the earliest occupied (non-S) slot of this dealer up to the click slot,
+      // rounded UP to whole hours. Each slot = 20 minutes.
+      const dealerActive = breaklist
+        .filter((b: any) => b.dealer_id === activeCell.dealerId && b.role !== "S")
+        .map((b: any) => TIME_SLOTS.indexOf(b.time_slot as string))
+        .filter((i: number) => i >= 0);
+      let hoursWorked = 0;
+      if (dealerActive.length > 0) {
+        const firstIdx = Math.min(...dealerActive);
+        const slotsWorked = startIdx - firstIdx; // slots between first activity and click (exclusive of click)
+        if (slotsWorked > 0) {
+          hoursWorked = Math.ceil((slotsWorked * 20) / 60);
+        }
+      }
+      // Store as "{H}S" to encode "worked H hours, then went sick".
+      // If 0 hours, store plain "S".
+      const attValue = hoursWorked > 0 ? `${hoursWorked}S` : "S";
+      setAttendance.mutate({ dealer_id: activeCell.dealerId, date, value: attValue });
+      toast.success(`Marked Sick: ${hoursWorked}h worked, ${slotsToFill.length} slots ahead`);
       setActiveCell(null);
       return;
     }
