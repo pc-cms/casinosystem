@@ -98,6 +98,18 @@ const PlayerStatistics = () => {
     return m;
   }, [sessions]);
 
+  // Sum chip transfers per player for today
+  const chipByPlayer = useMemo(() => {
+    const m = new Map<string, { in: number; out: number }>();
+    for (const ct of chipTransfers as any[]) {
+      let cur = m.get(ct.player_id);
+      if (!cur) { cur = { in: 0, out: 0 }; m.set(ct.player_id, cur); }
+      if (ct.direction === "in") cur.in += Number(ct.amount) || 0;
+      else cur.out += Number(ct.amount) || 0;
+    }
+    return m;
+  }, [chipTransfers]);
+
   // Build per-player day rows
   const rows = useMemo(() => {
     const playerById: Record<string, any> = {};
@@ -115,7 +127,9 @@ const PlayerStatistics = () => {
       const out = playerTx
         .filter((t: any) => t.type === "cashout" || t.type === "out")
         .reduce((s: number, t: any) => s + Number(t.amount), 0);
-      const result = out - inDrop;
+      const chip = chipByPlayer.get(v.player_id) || { in: 0, out: 0 };
+      // Result via NEP semantics: (cash in + chip in) − (cash out + chip out)
+      const result = (out + chip.out) - (inDrop + chip.in);
 
       const activeSession = activeSessionByPlayer[v.player_id];
       const isPresent = !v.checked_out_at;
@@ -136,11 +150,14 @@ const PlayerStatistics = () => {
         avgBet: activeSession ? Number(activeSession.avg_bet || 0) : 0,
         inDrop,
         out,
+        chipIn: chip.in,
+        chipOut: chip.out,
+        chipDelta: chip.in - chip.out,
         result,
         isPresent,
       };
     }).filter(Boolean) as Array<NonNullable<ReturnType<typeof Object>>>;
-  }, [visits, players, transactions, activeSessionByPlayer, tableNameById]);
+  }, [visits, players, transactions, chipByPlayer, activeSessionByPlayer, tableNameById]);
 
   const filtered = useMemo(() => {
     let list = rows;
