@@ -907,4 +907,48 @@ const Field = ({ label, value }: { label: string; value: string }) => (
   </div>
 );
 
+/* moved */
+
+const NotesPanel = ({ playerId, notes, canPost }: { playerId: string; notes: any[]; canPost: boolean }) => {
+  const [text, setText] = useState("");
+  const create = useCreatePlayerNote();
+  const submit = async () => {
+    if (!text.trim()) return;
+    await create.mutateAsync({ player_id: playerId, content: text });
+    setText("");
+  };
+  return (
+    <div className="space-y-3">
+      {canPost && (
+        <div className="space-y-2">
+          <Textarea
+            value={text}
+            onChange={e => setText(e.target.value)}
+            placeholder="Write a note about this player…"
+            rows={2}
+            className="text-sm resize-none"
+          />
+          <div className="flex justify-end">
+            <Button size="sm" onClick={submit} disabled={!text.trim() || create.isPending}>
+              Post Note
+            </Button>
+          </div>
+        </div>
+      )}
+      {notes.length === 0 ? (
+        <div className="text-sm text-muted-foreground">No notes yet.</div>
+      ) : (
+        <div className="space-y-2 max-h-[320px] overflow-y-auto">
+          {notes.map((n: any) => (
+            <div key={n.id} className="text-xs p-2 rounded bg-muted/40 border border-border border-l-2 border-l-primary">
+              <div className="text-[9px] font-mono uppercase text-muted-foreground">{n.note_type || "info"}</div>
+              <div className="text-card-foreground mt-0.5 whitespace-pre-wrap">{n.content}</div>
+              <div className="text-[10px] text-muted-foreground mt-1">{fmtDateTime(n.created_at)}</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 export default PlayerProfile;
