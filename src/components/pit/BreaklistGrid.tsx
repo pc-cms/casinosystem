@@ -341,7 +341,7 @@ const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }
                                         <span className="text-[9px] font-mono text-card-foreground min-w-[28px]">{t.name}</span>
                                         {availableRoles.map(r => (
                                           <button key={r} onClick={() => handleRoleSelect(r, t.id)}
-                                            className={`px-1 py-0.5 rounded text-[8px] font-mono font-bold ${ROLE_COLORS[r] || ""} hover:opacity-80`}>
+                                            className={`px-1 py-0.5 rounded text-[8px] font-mono font-bold ${getTableCellClasses(t.id, tableColorIndex.get(t.id) ?? 0, r)} hover:opacity-80`}>
                                             {t.name}{rSuffix[r] || ""}
                                           </button>
                                         ))}
