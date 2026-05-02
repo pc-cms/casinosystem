@@ -681,24 +681,29 @@ const PlayerProfile = () => {
                     <tr className="text-xs text-muted-foreground uppercase">
                       <th className="text-left py-2 px-2">Casino</th>
                       <th className="text-right py-2 px-2">Visits</th>
-                      <th className="text-right py-2 px-2">IN</th>
-                      <th className="text-right py-2 px-2">OUT</th>
-                      <th className="text-right py-2 px-2">Comps</th>
+                      <th className="text-right py-2 px-2">Drop</th>
+                      <th className="text-right py-2 px-2">Cashout</th>
                       <th className="text-right py-2 px-2">Result</th>
+                      <th className="text-right py-2 px-2">Comps</th>
+                      <th className="text-right py-2 px-2">Total</th>
                     </tr>
                   </thead>
                   <tbody>
                     {casinoStats.map((c) => {
-                      const result = c.totalIn - c.totalOut - c.comps;
+                      const result = c.totalOut - c.totalIn;
+                      const total = result - c.comps;
                       return (
                         <tr key={c.id} className="border-t border-border">
                           <td className="py-1.5 px-2">{c.name}</td>
                           <td className="py-1.5 px-2 text-right font-mono">{c.visits}</td>
                           <td className="py-1.5 px-2 text-right font-mono">{c.totalIn ? fmtMoney(c.totalIn) : dot()}</td>
                           <td className="py-1.5 px-2 text-right font-mono">{c.totalOut ? fmtMoney(c.totalOut) : dot()}</td>
-                          <td className="py-1.5 px-2 text-right font-mono">{c.comps ? fmtMoney(c.comps) : dot()}</td>
                           <td className={`py-1.5 px-2 text-right font-mono ${result === 0 ? "text-muted-foreground" : result > 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
                             {result === 0 ? "·" : fmtMoney(result)}
+                          </td>
+                          <td className="py-1.5 px-2 text-right font-mono">{c.comps ? fmtMoney(c.comps) : dot()}</td>
+                          <td className={`py-1.5 px-2 text-right font-mono ${total === 0 ? "text-muted-foreground" : total > 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
+                            {total === 0 ? "·" : fmtMoney(total)}
                           </td>
                         </tr>
                       );
