@@ -3061,7 +3061,9 @@ export type Database = {
           nickname: string | null
           player_id: string | null
           real_result: number | null
+          result: number | null
           status: Database["public"]["Enums"]["player_status"] | null
+          total: number | null
           total_cashout: number | null
           total_drop: number | null
           total_expenses: number | null
