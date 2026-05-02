@@ -30,7 +30,7 @@ const formatTime = (iso?: string | null) => {
 
 const PlayerStatistics = () => {
   const navigate = useNavigate();
-  const { casinoId, roles } = useAuth();
+  const { casinoId, roles, user } = useAuth();
   const today = getBusinessDate();
   const windowStartUTC = businessDayHourUTC(today, 13);
   const queryClient = useQueryClient();
