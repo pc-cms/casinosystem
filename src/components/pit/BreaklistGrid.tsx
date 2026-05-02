@@ -145,6 +145,29 @@ const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }
   const handleRoleSelect = (role: string, tableId?: string) => {
     if (!activeCell) return;
 
+    // S = Sick: fill all slots from current one until end of shift with S.
+    // No table assignment, no per-table conflict checks (S overrides everything for this dealer).
+    if (role === "S") {
+      const startIdx = TIME_SLOTS.indexOf(activeCell.timeSlot);
+      if (startIdx === -1) {
+        setActiveCell(null);
+        return;
+      }
+      const slotsToFill = TIME_SLOTS.slice(startIdx);
+      slotsToFill.forEach(slot => {
+        setCell.mutate({
+          date,
+          dealer_id: activeCell.dealerId,
+          time_slot: slot,
+          role: "S",
+          table_id: null,
+        });
+      });
+      toast.success(`Marked Sick for ${slotsToFill.length} slots`);
+      setActiveCell(null);
+      return;
+    }
+
     // Per-table role exclusivity:
     //   - Dealer slot   (P / BJ / AR)
     //   - Inspector slot (Pi / BJi / ARi)
@@ -309,6 +332,11 @@ const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }
                                 <button onClick={() => handleRoleSelect("BR")}
                                   className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold transition-colors ${ROLE_COLORS["BR"] || "bg-muted text-muted-foreground"} hover:opacity-80`}>
                                   BR
+                                </button>
+                                <button onClick={() => handleRoleSelect("S")}
+                                  title="Sick — fills all remaining slots until shift end"
+                                  className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold transition-colors ${ROLE_COLORS["S"] || "bg-muted text-muted-foreground"} hover:opacity-80`}>
+                                  S
                                 </button>
                               </div>
                               {openTables.length > 0 && (

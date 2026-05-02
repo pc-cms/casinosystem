@@ -106,8 +106,8 @@ export const TABLE_ROLES: Record<string, string[]> = {
   "American Roulette": ["AR", "ARi", "ARc"],
 };
 
-// All possible breaklist roles (including BR for break)
-export const ALL_ROLES = ["P", "Pi", "BJ", "BJi", "AR", "ARi", "ARc", "BR"] as const;
+// All possible breaklist roles (BR = break, S = sick — fills until shift end)
+export const ALL_ROLES = ["P", "Pi", "BJ", "BJi", "AR", "ARi", "ARc", "BR", "S"] as const;
 
 // Chip distribution per location type
 export const CHIP_DISTRIBUTION = {
@@ -127,6 +127,8 @@ export const ROLE_COLORS: Record<string, string> = {
   ARi: "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300",
   ARc: "bg-teal-50 text-teal-700 dark:bg-emerald-400/15 dark:text-emerald-200",
   BR: "bg-muted text-muted-foreground",
+  // Sick — neutral slate, not used by any other role/category
+  S: "bg-slate-200 text-slate-700 dark:bg-slate-600/30 dark:text-slate-300",
 };
 
 // Get roles available for a specific table

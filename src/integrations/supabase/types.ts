@@ -3339,6 +3339,7 @@ export type Database = {
         | "AR"
         | "ARi"
         | "ARc"
+        | "S"
       expense_category:
         | "food"
         | "alcohol"
@@ -3565,6 +3566,7 @@ export const Constants = {
         "AR",
         "ARi",
         "ARc",
+        "S",
       ],
       expense_category: ["food", "alcohol", "taxi", "hotel", "flight", "other"],
       log_category: [
