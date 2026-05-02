@@ -177,9 +177,11 @@ const FloatManagement = () => {
                 return (
                   <tr key={d} className="border-b border-border last:border-0">
                     <td className="py-1 px-3 sticky left-0 bg-card z-10">
-                      <span className={`cms-chip text-[8px] ${CHIP_COLORS[d] || "bg-muted text-foreground"}`}>
-                        {formatChipLabel(d)}
-                      </span>
+                      {(() => { const c = resolveChipColor(d, chipColorOverrides); return (
+                        <span className="cms-chip text-[8px]" style={{ backgroundColor: c.bg, color: c.text }}>
+                          {formatChipLabel(d)}
+                        </span>
+                      ); })()}
                     </td>
                     {locations.map(loc => {
                       if (!loc.denoms.includes(d)) {
