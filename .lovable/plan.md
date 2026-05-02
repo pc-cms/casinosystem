@@ -1,105 +1,84 @@
-## Единый стандарт статистики игрока
+## План
 
-Везде, где показывается статистика **конкретного игрока** (Player Profile, Player Statistics, Player Visits Breakdown, Players list, Groups, Reports → Players/Groups), переходим на одну прозрачную модель:
+### Часть 1. Бизнес-день — применять со следующей смены
+
+**Поведение сейчас:** `shift_end` и `breaklist_lock` читаются из `casinos` на каждый рендер и применяются мгновенно — это опасно посреди активной смены.
+
+**Что меняем:**
+
+1. **БД (`casinos`):** добавляем колонки
+   - `shift_end_pending text` (новое значение, ждёт активации)
+   - `shift_end_pending_from date` (с какого бизнес-дня применить)
+   - `breaklist_lock_pending text`
+   - аналогично `breaklist_lock_pending_from date`
+
+2. **БД-функция `get_effective_shift_end(casino_id)`** — возвращает `pending`, если сегодняшний бизнес-день ≥ `pending_from`, иначе текущий `shift_end`. При первом вызове после активации — переносит `pending → shift_end` и обнуляет pending.
+
+3. **Frontend (`Admin.tsx` → блок настроек смены):**
+   - При сохранении новые значения пишутся в `*_pending` + `*_pending_from = следующий бизнес-день`.
+   - Под полями отображаем баннер: «Изменения применятся со следующей смены (с DD.MM.YYYY 18:00)».
+   - Если pending уже есть — показываем текущее активное значение и pending-значение рядом, кнопкой «Отменить запланированное».
+
+4. **Frontend (`src/lib/business-day.ts` + `useAuth`):**
+   - В `AuthContext` грузим эффективный `shift_end` через RPC `get_effective_shift_end`, кэшируем в контексте.
+   - Все вызовы `getBusinessDate()` берут это значение из контекста (через хук `useShiftEnd()`), не перечитывая casino напрямую.
+
+**Эффект:** даже если менеджер сохранил настройку в 03:00 ночи, текущая смена продолжит закрываться по старому правилу; новое начнёт действовать с 18:00 следующего дня.
+
+---
+
+### Часть 2. Двухцветные фишки с 6 настраиваемыми вставками
+
+**Цель:** визуал как на референсе — основной круг с 6 контрастными «вставками» по краю и внутренним диском с цифрой.
+
+1. **БД (`chip_color_settings`):** добавить колонку
+   - `edge_color text NOT NULL DEFAULT '#FFFFFF'`
+
+2. **`src/hooks/use-chip-colors.ts`:**
+   - Расширяем тип: `{ bg, edge, text }`.
+   - В `DEFAULT_CHIP_HEX` добавляем `edge` для каждого номинала (по умолчанию белый, для жёлтых/белых — чёрный).
+   - `useUpsertChipColor` принимает `edge_color`.
+
+3. **`src/index.css` — переписываем `.cms-chip-token`:**
+   - Внешний круг: `background: conic-gradient(var(--chip-bg) 0 30deg, var(--chip-edge) 30deg 60deg, var(--chip-bg) 60deg 90deg, ...)` — 12 секторов по 30° (6 bg + 6 edge, чередуются).
+   - Псевдоэлемент `::before`: внутренний диск ~70% диаметра, `background: var(--chip-bg)`, тонкая золотая обводка.
+   - Цифра поверх (`z-index`), `color: var(--chip-text)`.
+   - `cms-chip-token-lg` — те же пропорции, увеличенный размер.
+   - CSS-переменные `--chip-bg`, `--chip-edge`, `--chip-text` задаются inline-стилем компонента-обёртки.
+
+4. **Компонент-обёртка `<ChipToken denom={...} />`** (новый, `src/components/ChipToken.tsx`):
+   - Резолвит цвета через `resolveChipColor(denom, overrides)`.
+   - Рендерит `<span class="cms-chip-token" style={{ '--chip-bg': bg, '--chip-edge': edge, '--chip-text': text }}>{label}</span>`.
+   - Заменяем все ручные `<span class="cms-chip-token" style={...}>` (~6-8 мест: `ChipDenomInput`, `ChipCountPanel`, `CloseTableWizard`, `TransfersForm`, `ChipColorSettings`, превью на дашборде) на `<ChipToken/>`.
+
+5. **`src/components/admin/ChipColorSettings.tsx`:**
+   - Добавляем третий color-picker «Edge» рядом с Background / Text.
+   - Превью использует новый `<ChipToken/>`.
+   - Кнопка «Default» сбрасывает все три цвета.
+
+6. **Memory:** обновить `mem://ui/visual-patterns` — упомянуть трёхцветную модель фишки (bg/edge/text).
+
+7. **Версия:** bump `package.json` → `1.0.37`.
+
+---
+
+### Технические детали
 
 ```text
-Result = Cashout − Drop          ← чистая игра
-Total  = Result − Comps − Expenses   ← с учётом подарков/расходов казино на игрока
+Фишка (упрощённо):
+
+   ┌───── conic-gradient (12 секторов) ─────┐
+   │  bg │edge│ bg │edge│ bg │edge│ ...     │
+   │     ┌──────────────────┐               │
+   │     │   inner disk     │               │
+   │     │   = bg color     │               │
+   │     │   "5K" = text    │               │
+   │     └──────────────────┘               │
+   └────────────────────────────────────────┘
 ```
 
-Знак — **с точки зрения игрока**:
-- `+` (зелёный) → игрок выиграл / казино потеряло
-- `−` (красный) → игрок проиграл / казино заработало
-
-Финансовые модули казино (Daily Review, Cage, Wallets, Finance Summary, Cash Reconciliation) **не трогаем** — там по-прежнему перспектива казино.
-
-## Текущая каша (что чиним)
-
-| Файл | Сейчас | Перспектива |
-|---|---|---|
-| `Players.tsx` | `result = cashout − drop`, `realResult = cashout − drop − comps` | Игрок ✓ |
-| `Groups.tsx` | `result = cashout − drop`, `realResult = result − expenses` | Игрок ✓ |
-| `Reports.tsx` (players, groups) | `cashout − drop` | Игрок ✓ |
-| `PlayerProfile.tsx` | `realResult = drop − cashout − comps` | **Казино — ломаем** |
-| `PlayerVisitsBreakdown.tsx` | `result = drop − out − comps` | **Казино — ломаем** |
-| `PlayerStatistics.tsx` | `result = inDrop − out` | **Казино — ломаем** |
-| `player_economy` view (DB) | `real_result = cashout − drop − comps` | Игрок ✓ (но смешивает) |
-
-## Изменения
-
-### 1. Колонки везде: `Drop · Cashout · Result · Comps · Expenses · Total · Hold%`
-
-Колонка **Result** — только чистая игра (`Cashout − Drop`).
-Колонка **Total** — итог с компсами и расходами (`Result − Comps − Expenses`).
-Comps и Expenses — отдельные нейтральные столбцы (без зелёного/красного).
-Hold% — оставляем как метрику казино (`(Drop − Cashout − Comps) / Drop`).
-
-### 2. Frontend
-
-**`src/pages/PlayerProfile.tsx`**
-- Lifetime KPIs: добавить `result = cashout − drop` (зелёный/красный), переименовать «Real result» → **Total** = `result − comps`. (`expenses` и `comps` сейчас в БД одно и то же — `expenses` таблица; см. п. 4.)
-- Period summary: то же самое — две метрики `Result` и `Total`.
-- Не использовать `economy.real_result` напрямую — пересчитывать на клиенте, чтобы знак был очевиден.
-- Таблица визитов и развёртка по транзакциям — считать `result = out − in` для каждой строки.
-
-**`src/components/player/PlayerVisitsBreakdown.tsx`**
-- Заменить `result(a) = drop − out − comps` на две функции:
-  - `result(a) = a.out − a.drop`
-  - `total(a) = result(a) − a.comps`
-- Добавить колонку **Total** рядом с Result во все три уровня (месяц / неделя / день) и в строку итогов.
-
-**`src/pages/PlayerStatistics.tsx`**
-- Заменить `result = inDrop − out` на `result = out − inDrop`.
-- Цветовая логика остаётся (`>0` зелёный, `<0` красный) — теперь работает правильно для игрока.
-
-**`src/pages/Players.tsx`** и **`src/pages/Groups.tsx`**
-- Уже считают правильно. Только переименовать в UI: `Real Result` → **Total**, чтобы термин был единым.
-
-**`src/pages/Reports.tsx`**
-- Players tab и Groups tab: добавить колонку **Total** = `Result − Comps − Expenses` (сейчас в Groups есть `realResult`, но без отдельного Total-заголовка). Переименовать.
-
-### 3. Hold %
-
-Формула остаётся `(Drop − Cashout − Comps) / Drop` — это всегда показатель удержания казино, цвет нейтральный или по знаку (положительный hold = казино удерживает, нормально).
-
-### 4. Backend (одна миграция)
-
-`player_economy` view сейчас отдаёт `real_result = cashout − drop − comps` — это смешанная метрика. Чтобы клиент мог разделять Result и Total, **расширяем view** двумя полями (старое поле оставляем для обратной совместимости):
-
-```sql
-CREATE OR REPLACE VIEW public.player_economy
-WITH (security_invoker = true) AS
-SELECT 
-  p.id AS player_id, p.casino_id, p.first_name, p.last_name, p.nickname, p.status,
-  COALESCE(buy.total, 0)  AS total_drop,
-  COALESCE(cash.total, 0) AS total_cashout,
-  COALESCE(exp.total, 0)  AS total_expenses,
-  -- NEW: чистый результат игрока (cashout − drop)
-  COALESCE(cash.total, 0) - COALESCE(buy.total, 0)                         AS result,
-  -- NEW: total с учётом expenses/comps
-  COALESCE(cash.total, 0) - COALESCE(buy.total, 0) - COALESCE(exp.total, 0) AS total,
-  -- LEGACY (то же самое что total): оставляем чтобы не сломать старых потребителей
-  COALESCE(cash.total, 0) - COALESCE(buy.total, 0) - COALESCE(exp.total, 0) AS real_result
-FROM public.players p
-LEFT JOIN LATERAL (SELECT SUM(amount) AS total FROM public.transactions WHERE player_id = p.id AND type = 'buy')     buy  ON true
-LEFT JOIN LATERAL (SELECT SUM(amount) AS total FROM public.transactions WHERE player_id = p.id AND type = 'cashout') cash ON true
-LEFT JOIN LATERAL (SELECT SUM(amount) AS total FROM public.expenses     WHERE player_id = p.id AND approved = true)  exp  ON true;
-```
-
-### 5. Терминология (для документации и тултипов)
-
-- **Drop** — сумма Cash-In игрока
-- **Cashout** — сумма Cash-Out игрока
-- **Result** = Cashout − Drop (чистая игра)
-- **Comps / Expenses** — расходы казино на игрока
-- **Total** = Result − Comps − Expenses (итог с учётом подарков)
-- **Hold %** — метрика казино, считается всегда `(Drop − Cashout − Comps) / Drop`
-
-Bump версии до **1.0.36**. Обновлю memory `mem://features/player-management` (или создам `mem://features/player-stats-formula`) с этой формулой как канонической, чтобы в будущем не плодить варианты.
-
-## Проверка
-
-1. Игрок: Drop 100k, Cashout 50k → Result `−50 000` (красный), Total `−50 000`.
-2. Игрок: Drop 100k, Cashout 150k, Comps 10k → Result `+50 000` (зелёный), Total `+40 000` (зелёный).
-3. Daily Review / Cage / Wallets — без изменений, цифры те же.
-4. Hold% — без изменений.
+**Файлы:**
+- Миграция: добавить `shift_end_pending*`, `breaklist_lock_pending*` в `casinos`; добавить `edge_color` в `chip_color_settings`; создать `get_effective_shift_end()`.
+- `src/lib/business-day.ts`, `src/lib/auth-context.tsx`, `src/pages/Admin.tsx`
+- `src/hooks/use-chip-colors.ts`, `src/index.css`, `src/components/ChipToken.tsx` (new), `src/components/admin/ChipColorSettings.tsx`, и ~6 файлов с заменой inline-spans
+- `package.json` (1.0.37)

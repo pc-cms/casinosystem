@@ -886,6 +886,8 @@ export type Database = {
           brand_accent_hsl: string | null
           brand_primary_hsl: string | null
           breaklist_lock: string
+          breaklist_lock_pending: string | null
+          breaklist_lock_pending_from: string | null
           cage_float: number
           chip_conservation_mode: string
           code: string
@@ -895,6 +897,8 @@ export type Database = {
           logo_url: string | null
           name: string
           shift_end: string
+          shift_end_pending: string | null
+          shift_end_pending_from: string | null
           shift_start: string
           slug: string | null
           tables_open: string
@@ -904,6 +908,8 @@ export type Database = {
           brand_accent_hsl?: string | null
           brand_primary_hsl?: string | null
           breaklist_lock?: string
+          breaklist_lock_pending?: string | null
+          breaklist_lock_pending_from?: string | null
           cage_float?: number
           chip_conservation_mode?: string
           code: string
@@ -913,6 +919,8 @@ export type Database = {
           logo_url?: string | null
           name: string
           shift_end?: string
+          shift_end_pending?: string | null
+          shift_end_pending_from?: string | null
           shift_start?: string
           slug?: string | null
           tables_open?: string
@@ -922,6 +930,8 @@ export type Database = {
           brand_accent_hsl?: string | null
           brand_primary_hsl?: string | null
           breaklist_lock?: string
+          breaklist_lock_pending?: string | null
+          breaklist_lock_pending_from?: string | null
           cage_float?: number
           chip_conservation_mode?: string
           code?: string
@@ -931,6 +941,8 @@ export type Database = {
           logo_url?: string | null
           name?: string
           shift_end?: string
+          shift_end_pending?: string | null
+          shift_end_pending_from?: string | null
           shift_start?: string
           slug?: string | null
           tables_open?: string
@@ -1024,6 +1036,7 @@ export type Database = {
           casino_id: string
           created_at: string
           denomination: number
+          edge_color: string
           id: string
           text_color: string
           updated_at: string
@@ -1034,6 +1047,7 @@ export type Database = {
           casino_id: string
           created_at?: string
           denomination: number
+          edge_color?: string
           id?: string
           text_color?: string
           updated_at?: string
@@ -1044,6 +1058,7 @@ export type Database = {
           casino_id?: string
           created_at?: string
           denomination?: number
+          edge_color?: string
           id?: string
           text_color?: string
           updated_at?: string
@@ -3204,6 +3219,13 @@ export type Database = {
       get_business_date_for_casino: {
         Args: { _casino_id: string }
         Returns: string
+      }
+      get_effective_shift_settings: {
+        Args: { _casino_id: string }
+        Returns: {
+          breaklist_lock: string
+          shift_end: string
+        }[]
       }
       get_expected_chips:
         | {
