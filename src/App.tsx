@@ -152,8 +152,8 @@ const getDefaultRoute = (roles: string[]) => {
 };
 
 const ProtectedRoutes = () => {
-  const { user, loading, roles } = useAuth();
-  const detectedSlug = getSlugFromHostname();
+  const { user, loading } = useAuth();
+
 
   // Prefetch critical data in background
   usePrefetchCriticalData();
