@@ -10,8 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ArrowDownToLine, ArrowUpFromLine, Calculator, Square, CheckCircle2, Package, ArrowLeftRight, Landmark, Pencil } from "lucide-react";
-import EditOpeningChipsDialog from "@/components/cage/EditOpeningChipsDialog";
+import { ArrowDownToLine, ArrowUpFromLine, Calculator, Square, CheckCircle2, Package, ArrowLeftRight, Landmark } from "lucide-react";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import TransfersForm from "@/components/cage/TransfersForm";
@@ -96,7 +95,7 @@ const ActiveShiftView = ({ shift, players, tables }: {
   const closeShift = useCloseShift();
   const [showClose, setShowClose] = useState(false);
   const [showCloseTables, setShowCloseTables] = useState(false);
-  const [showEditChips, setShowEditChips] = useState(false);
+  
 
   const activePlayers = useMemo(() => players.filter(p => p.status === "active"), [players]);
   const openTables = useMemo(() => tables.filter(t => t.status === "open"), [tables]);
@@ -168,17 +167,7 @@ const ActiveShiftView = ({ shift, players, tables }: {
       <div className="cms-panel p-2 mb-4">
         <div className="grid grid-cols-3 md:grid-cols-8 gap-2">
           <div>
-            <div className="flex items-center justify-between gap-1">
-              <p className="text-[9px] uppercase text-muted-foreground">Opening</p>
-              <button
-                type="button"
-                onClick={() => setShowEditChips(true)}
-                title="Edit opening chips (manager required)"
-                className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[9px] font-semibold uppercase bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
-              >
-                <Pencil className="w-2.5 h-2.5" /> Edit
-              </button>
-            </div>
+            <p className="text-[9px] uppercase text-muted-foreground">Opening</p>
             <p className="font-mono text-sm font-bold text-card-foreground">{formatCurrency(openingFloat)}</p>
           </div>
           <div><p className="text-[9px] uppercase text-muted-foreground">+ IN</p><p className="font-mono text-sm font-bold text-success">+{formatCurrency(totalIns)}</p></div>
@@ -270,11 +259,6 @@ const ActiveShiftView = ({ shift, players, tables }: {
         loading={closeShift.isPending}
       />
 
-      <EditOpeningChipsDialog
-        shift={shift}
-        open={showEditChips}
-        onClose={() => setShowEditChips(false)}
-      />
     </PageShell>
   );
 };
