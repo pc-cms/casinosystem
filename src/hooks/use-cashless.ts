@@ -15,6 +15,7 @@ export interface CashlessRow {
   direction: CashlessDirection;
   provider: CashlessProvider;
   player_id: string | null;
+  player_name: string;
   amount: number;
   currency: string;
   reference: string;
