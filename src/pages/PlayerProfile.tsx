@@ -17,6 +17,7 @@ import {
   usePlayerNotes, usePlayerTransactions, usePlayerEconomy, usePlayerExpenses,
 } from "@/hooks/use-player-profile";
 import { useAuth } from "@/lib/auth-context";
+import { useBusinessDayFilter } from "@/hooks/use-business-day-filter";
 import { edgeFor, theoFromHands, theoFromDrop, holdPct } from "@/lib/casino-edges";
 
 // CCTV (surveillance) and finance_manager get read-only access on this page.
@@ -47,6 +48,7 @@ const PlayerProfile = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { roles, isManager } = useAuth();
+  const showFinancials = canSeePlayerFinancials(roles);
 
   const { data: player, isLoading } = usePlayer(id);
   const { data: visits = [] } = usePlayerVisits(id);
@@ -57,8 +59,14 @@ const PlayerProfile = () => {
   const canSeeNotes = roles.some(r => ["pit", "surveillance", "manager"].includes(r)) || isManager;
   const { data: notes = [] } = usePlayerNotes(id, canSeeNotes);
 
-  const [preset, setPreset] = useState<DatePreset>("month");
-  const [range, setRange] = useState(() => presetRange("month"));
+  // Pit / Cashier / Reception are restricted to the current business day
+  // unless the Manager Access override is active.
+  const { restrictedToToday, businessDate } = useBusinessDayFilter();
+  const initialPreset: DatePreset = restrictedToToday ? "day" : "month";
+  const [preset, setPreset] = useState<DatePreset>(initialPreset);
+  const [range, setRange] = useState(() => restrictedToToday
+    ? { from: businessDate!, to: businessDate! }
+    : presetRange("month"));
   const { data: sessions = [] } = usePlayerSessions(id, range);
 
   const [editOpen, setEditOpen] = useState(false);
@@ -337,19 +345,23 @@ const PlayerProfile = () => {
               <Kpi label="Visits" value={lifetime.visitCount.toString()} />
               <Kpi label="Total time" value={fmtDuration(lifetime.totalMins)} />
               <Kpi label="Avg session" value={lifetime.avgSession ? fmtDuration(lifetime.avgSession) : "—"} />
-              <Kpi label="Drop" value={fmtMoney(lifetime.drop)} />
-              <Kpi label="Cashout" value={fmtMoney(lifetime.cashout)} />
-              <Kpi label="Comps" value={fmtMoney(lifetime.comps)} />
-              <Kpi
-                label="Real result"
-                value={fmtMoney(lifetime.realResult)}
-                valueClass={lifetime.realResult >= 0 ? "cms-amount-positive" : "cms-amount-negative"}
-              />
-              <Kpi
-                label="Hold %"
-                value={lifetime.hold === null ? "—" : `${lifetime.hold.toFixed(1)}%`}
-                valueClass={lifetime.hold === null ? undefined : lifetime.hold >= 0 ? "cms-amount-positive" : "cms-amount-negative"}
-              />
+              {showFinancials && (
+                <>
+                  <Kpi label="Drop" value={fmtMoney(lifetime.drop)} />
+                  <Kpi label="Cashout" value={fmtMoney(lifetime.cashout)} />
+                  <Kpi label="Comps" value={fmtMoney(lifetime.comps)} />
+                  <Kpi
+                    label="Real result"
+                    value={fmtMoney(lifetime.realResult)}
+                    valueClass={lifetime.realResult >= 0 ? "cms-amount-positive" : "cms-amount-negative"}
+                  />
+                  <Kpi
+                    label="Hold %"
+                    value={lifetime.hold === null ? "—" : `${lifetime.hold.toFixed(1)}%`}
+                    valueClass={lifetime.hold === null ? undefined : lifetime.hold >= 0 ? "cms-amount-positive" : "cms-amount-negative"}
+                  />
+                </>
+              )}
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3 text-xs text-muted-foreground">
@@ -376,18 +388,24 @@ const PlayerProfile = () => {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <TabsList className="w-full sm:w-auto overflow-x-auto justify-start">
             <TabsTrigger value="info"><History className="w-3.5 h-3.5 mr-1" /> Info & History</TabsTrigger>
-            <TabsTrigger value="visits"><CalendarDays className="w-3.5 h-3.5 mr-1" /> Visits</TabsTrigger>
-            <TabsTrigger value="stats"><BarChart3 className="w-3.5 h-3.5 mr-1" /> Statistics</TabsTrigger>
+            {showFinancials && <TabsTrigger value="visits"><CalendarDays className="w-3.5 h-3.5 mr-1" /> Visits</TabsTrigger>}
+            {showFinancials && <TabsTrigger value="stats"><BarChart3 className="w-3.5 h-3.5 mr-1" /> Statistics</TabsTrigger>}
             <TabsTrigger value="connections"><UsersIcon className="w-3.5 h-3.5 mr-1" /> Connections</TabsTrigger>
             <TabsTrigger value="lotteries"><Trophy className="w-3.5 h-3.5 mr-1" /> Lotteries</TabsTrigger>
             <TabsTrigger value="tickets"><Ticket className="w-3.5 h-3.5 mr-1" /> Tickets</TabsTrigger>
           </TabsList>
-          <DateRangePresets
-            preset={preset}
-            from={range.from}
-            to={range.to}
-            onChange={(next) => { setPreset(next.preset); setRange({ from: next.from, to: next.to }); }}
-          />
+          {restrictedToToday ? (
+            <div className="text-[10px] uppercase font-mono text-muted-foreground px-2 py-1 rounded bg-muted/40 border border-border">
+              Business day · {businessDate}
+            </div>
+          ) : (
+            <DateRangePresets
+              preset={preset}
+              from={range.from}
+              to={range.to}
+              onChange={(next) => { setPreset(next.preset); setRange({ from: next.from, to: next.to }); }}
+            />
+          )}
         </div>
 
         {/* TAB 1 */}
@@ -424,10 +442,10 @@ const PlayerProfile = () => {
                       <th className="text-left py-2 px-2">Check-out</th>
                       <th className="text-left py-2 px-2">Duration</th>
                       <th className="text-left py-2 px-2">Position</th>
-                      <th className="text-right py-2 px-2">Drop</th>
-                      <th className="text-right py-2 px-2">Cashout</th>
-                      <th className="text-right py-2 px-2">Comps</th>
-                      <th className="text-right py-2 px-2">Result</th>
+                      {showFinancials && <th className="text-right py-2 px-2">Drop</th>}
+                      {showFinancials && <th className="text-right py-2 px-2">Cashout</th>}
+                      {showFinancials && <th className="text-right py-2 px-2">Comps</th>}
+                      {showFinancials && <th className="text-right py-2 px-2">Result</th>}
                     </tr>
                   </thead>
                   <tbody>
@@ -442,12 +460,14 @@ const PlayerProfile = () => {
                           <td className="py-1.5 px-2 font-mono text-xs">{v.checked_out_at ? fmtDateTime(v.checked_out_at) : "—"}</td>
                           <td className="py-1.5 px-2">{fmtDuration(visitDuration(v))}</td>
                           <td className="py-1.5 px-2"><span className="inline-flex items-center gap-1 text-xs"><MapPin className="w-3 h-3" />{v.position}</span></td>
-                          <td className="py-1.5 px-2 font-mono text-xs text-right">{f.totalIn ? fmtMoney(f.totalIn) : dot()}</td>
-                          <td className="py-1.5 px-2 font-mono text-xs text-right">{f.cashout ? fmtMoney(f.cashout) : dot()}</td>
-                          <td className="py-1.5 px-2 font-mono text-xs text-right">{f.comps ? fmtMoney(f.comps) : dot()}</td>
-                          <td className={`py-1.5 px-2 font-mono text-xs text-right ${result === 0 ? "text-muted-foreground" : result > 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
-                            {result === 0 ? "·" : fmtMoney(result)}
-                          </td>
+                          {showFinancials && <td className="py-1.5 px-2 font-mono text-xs text-right">{f.totalIn ? fmtMoney(f.totalIn) : dot()}</td>}
+                          {showFinancials && <td className="py-1.5 px-2 font-mono text-xs text-right">{f.cashout ? fmtMoney(f.cashout) : dot()}</td>}
+                          {showFinancials && <td className="py-1.5 px-2 font-mono text-xs text-right">{f.comps ? fmtMoney(f.comps) : dot()}</td>}
+                          {showFinancials && (
+                            <td className={`py-1.5 px-2 font-mono text-xs text-right ${result === 0 ? "text-muted-foreground" : result > 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
+                              {result === 0 ? "·" : fmtMoney(result)}
+                            </td>
+                          )}
                         </tr>
                       );
                     })}
@@ -467,10 +487,10 @@ const PlayerProfile = () => {
                           <td className="py-2 px-2 text-xs uppercase text-muted-foreground" colSpan={4}>Total (period)</td>
                           <td className="py-2 px-2">{fmtDuration(periodMins)}</td>
                           <td className="py-2 px-2"></td>
-                          <td className="py-2 px-2 font-mono text-xs text-right">{fmtMoney(pIn)}</td>
-                          <td className="py-2 px-2 font-mono text-xs text-right">{fmtMoney(pOut)}</td>
-                          <td className="py-2 px-2 font-mono text-xs text-right">{fmtMoney(pComps)}</td>
-                          <td className={`py-2 px-2 font-mono text-xs text-right ${pRes >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>{fmtMoney(pRes)}</td>
+                          {showFinancials && <td className="py-2 px-2 font-mono text-xs text-right">{fmtMoney(pIn)}</td>}
+                          {showFinancials && <td className="py-2 px-2 font-mono text-xs text-right">{fmtMoney(pOut)}</td>}
+                          {showFinancials && <td className="py-2 px-2 font-mono text-xs text-right">{fmtMoney(pComps)}</td>}
+                          {showFinancials && <td className={`py-2 px-2 font-mono text-xs text-right ${pRes >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>{fmtMoney(pRes)}</td>}
                         </tr>
                       );
                     })()}
