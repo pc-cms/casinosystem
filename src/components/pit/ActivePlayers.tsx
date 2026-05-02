@@ -404,6 +404,20 @@ const ActivePlayers = () => {
         onMove={(pid, bet) => openTableId && changeTable.mutate({ playerId: pid, tableId: openTableId, avgBet: bet })}
         onStop={(pid) => stopSession.mutate(pid)}
         onUpdateBet={(pid, bet) => updateAvgBet.mutate({ playerId: pid, avgBet: bet })}
+        onChipTransfer={canTransfer ? (p) => setTransferPlayer({
+          id: p.id, first_name: p.first_name, last_name: p.last_name, nickname: p.nickname, tableId: openTableId,
+        }) : undefined}
+      />
+
+      <ChipTransferDialog
+        open={!!transferPlayer}
+        onOpenChange={(v) => { if (!v) setTransferPlayer(null); }}
+        player={transferPlayer}
+        defaultDirection="out"
+        tableId={transferPlayer?.tableId ?? null}
+        presentPlayerIds={new Set(
+          visits.filter((v: any) => !v.checked_out_at).map((v: any) => v.player_id)
+        )}
       />
     </div>
   );
