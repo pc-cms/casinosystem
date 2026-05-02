@@ -17,6 +17,7 @@ import {
   usePlayerNotes, usePlayerTransactions, usePlayerEconomy, usePlayerExpenses,
 } from "@/hooks/use-player-profile";
 import { useAuth } from "@/lib/auth-context";
+import { useBusinessDayFilter } from "@/hooks/use-business-day-filter";
 import { edgeFor, theoFromHands, theoFromDrop, holdPct } from "@/lib/casino-edges";
 
 // CCTV (surveillance) and finance_manager get read-only access on this page.
@@ -61,7 +62,7 @@ const PlayerProfile = () => {
   // Pit / Cashier / Reception are restricted to the current business day
   // unless the Manager Access override is active.
   const { restrictedToToday, businessDate } = useBusinessDayFilter();
-  const initialPreset: DatePreset = restrictedToToday ? "today" : "month";
+  const initialPreset: DatePreset = restrictedToToday ? "day" : "month";
   const [preset, setPreset] = useState<DatePreset>(initialPreset);
   const [range, setRange] = useState(() => restrictedToToday
     ? { from: businessDate!, to: businessDate! }
