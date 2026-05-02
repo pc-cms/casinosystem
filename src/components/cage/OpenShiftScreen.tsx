@@ -25,7 +25,8 @@ import type { Tables } from "@/integrations/supabase/types";
 
 const OpenShiftScreen = ({ tables }: { tables: Tables<"gaming_tables">[] }) => {
   const openShift = useOpenShift();
-  const { managerOverride } = useAuth();
+  const { managerOverride, casinoId } = useAuth();
+  const { data: lastShift } = useLastClosedShift();
   const [step, setStep] = useState<1 | 2>(1);
   const [rates, setRates] = useState<Record<string, number>>({ ...DEFAULT_EXCHANGE_RATES });
   const [closingChips, setClosingChips] = useState<Record<number, number>>({});
