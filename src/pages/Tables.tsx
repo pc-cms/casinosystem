@@ -3,6 +3,7 @@ import { useGamingTables, useTransactions, useTableTracker, usePlayers } from "@
 import { useActiveShift } from "@/hooks/use-shift";
 import { useChipSnapshots } from "@/hooks/use-chips";
 import { useChipBaseline, useOpenAllTables, baselineToMap } from "@/hooks/use-table-lifecycle";
+import { useReopenTable } from "@/hooks/use-tables";
 
 import { getBusinessDate, businessDayHourUTC } from "@/lib/business-day";
 import { Badge } from "@/components/ui/badge";
@@ -36,6 +37,7 @@ const Tables = () => {
   const { data: snapshots = [] } = useChipSnapshots(date);
   const { data: baseline = [] } = useChipBaseline();
   const openAllTables = useOpenAllTables();
+  const reopenTable = useReopenTable();
   const { casinoId, user } = useAuth();
   const queryClient = useQueryClient();
 
@@ -340,12 +342,11 @@ const Tables = () => {
     const seated = seatedByTable[table.id] || [];
 
     return (
-      <button
-        type="button"
+      <div
         key={table.id}
-        onClick={() => handleTableClick(table)}
-        disabled={!isOpen}
-        className="cms-panel text-left w-full transition-colors hover:bg-muted/30 disabled:opacity-60 disabled:cursor-not-allowed"
+        className={`cms-panel text-left w-full transition-colors ${isOpen ? "hover:bg-muted/30 cursor-pointer" : "opacity-80"}`}
+        onClick={() => isOpen && handleTableClick(table)}
+        role={isOpen ? "button" : undefined}
       >
         <div className="flex items-center justify-between px-4 py-3 border-b border-border">
           <div className="flex items-center gap-3 min-w-0">
@@ -364,6 +365,17 @@ const Tables = () => {
               <Badge variant={Number(table.closing_result) >= 0 ? "default" : "destructive"} className="text-[10px] font-mono">
                 {Number(table.closing_result) >= 0 ? "+" : ""}{formatCurrency(Number(table.closing_result))}
               </Badge>
+            )}
+            {!isOpen && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 gap-1 text-xs"
+                disabled={reopenTable.isPending}
+                onClick={(e) => { e.stopPropagation(); reopenTable.mutate(table.id); }}
+              >
+                <Play className="w-3 h-3" /> Open Table
+              </Button>
             )}
           </div>
         </div>
@@ -394,7 +406,7 @@ const Tables = () => {
             </p>
           </div>
         </div>
-      </button>
+      </div>
     );
   };
 
