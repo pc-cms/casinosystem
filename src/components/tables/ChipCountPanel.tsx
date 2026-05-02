@@ -108,6 +108,8 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
 
   const grandTotal = rowResults.reduce((s, r) => s + r.total, 0);
 
+  const setTrackerValue = useSetTableTrackerValue();
+
   const handleSave = () => {
     const rows: Array<{
       location_type: string; location_id: string | null;
@@ -123,6 +125,16 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
       });
     });
     batchSnapshot.mutate({ date, counts: rows });
+
+    // Auto-write per-table row result into Number Count tracker for the rounded slot
+    // (HH:50–HH+1:10 → slot HH+1:00 / HH:00).
+    const slot = slotForChipCount(nowEAT());
+    if (slot) {
+      countLocations.forEach((loc, ri) => {
+        const total = rowResults[ri]?.total ?? 0;
+        setTrackerValue.mutate({ table_id: loc.id, date, time_slot: slot, value: total });
+      });
+    }
   };
 
   if (openTables.length === 0) {
