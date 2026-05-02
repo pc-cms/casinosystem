@@ -302,20 +302,27 @@ const Tables = () => {
             );
             return (
               <div className="overflow-x-auto">
-                <table className="text-xs border-collapse w-full">
+                <table className="text-xs border-collapse w-full table-fixed">
+                  <colgroup>
+                    <col style={{ width: "72px" }} />
+                    {visibleDenoms.map(d => (
+                      <col key={d} />
+                    ))}
+                    <col style={{ width: "96px" }} />
+                  </colgroup>
                   <thead>
                     <tr className="border-b border-border">
-                      <th className="text-left py-2 px-2 text-muted-foreground font-medium sticky left-0 bg-card z-10 min-w-[120px]">
+                      <th className="text-left py-2 px-2 text-muted-foreground font-medium sticky left-0 bg-card z-10">
                         Table
                       </th>
                       {visibleDenoms.map(d => (
-                        <th key={d} className="text-center py-2 px-1 font-medium min-w-[78px]">
+                        <th key={d} className="text-center py-2 px-0.5 font-medium">
                           <span className={`cms-chip text-[8px] ${CHIP_COLORS[d] || "bg-muted text-foreground"}`}>
                             {formatChipLabel(d)}
                           </span>
                         </th>
                       ))}
-                      <th className="text-right py-2 px-3 text-muted-foreground font-medium min-w-[110px]">
+                      <th className="text-right py-2 px-2 text-muted-foreground font-medium">
                         Result
                       </th>
                     </tr>
