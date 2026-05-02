@@ -5,8 +5,10 @@ import { Input } from "@/components/ui/input";
 import { formatCurrency, formatInputWithSpaces, parseSpacedNumber } from "@/lib/currency";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { Target, Lock } from "lucide-react";
+import { Target, Lock, Hash, Coins } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
+import { ChipCountPanel } from "@/components/tables/ChipCountPanel";
+import { Button } from "@/components/ui/button";
 
 // 18:00 → 05:00, 30-minute intervals
 const generateSlots = () => {
