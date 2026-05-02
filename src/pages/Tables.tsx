@@ -374,7 +374,7 @@ const Tables = () => {
                         Total
                       </td>
                       <td colSpan={visibleDenoms.length} />
-                      <td className={`px-3 py-2 text-right font-mono text-sm font-bold ${countResultPreview.reduce((s, r) => s + r.total, 0) >= 0 ? "text-success" : "text-destructive"}`}>
+                      <td className={`px-2 py-2 text-right font-mono text-sm font-bold ${countResultPreview.reduce((s, r) => s + r.total, 0) >= 0 ? "text-success" : "text-destructive"}`}>
                         {countResultPreview.reduce((s, r) => s + r.total, 0) >= 0 ? "+" : ""}
                         {formatCurrency(countResultPreview.reduce((s, r) => s + r.total, 0))}
                       </td>
