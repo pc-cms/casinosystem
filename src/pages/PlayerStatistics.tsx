@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { BarChart3, Search } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { usePlayers, useTransactions, useGamingTables } from "@/hooks/use-casino-data";
@@ -12,10 +12,13 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import CategoryBadge, { type PlayerCategory } from "@/components/player/CategoryBadge";
 import CategoryFilter from "@/components/player/CategoryFilter";
 import FlagBadges from "@/components/player/FlagBadges";
 import { formatCurrency } from "@/lib/currency";
+import { offlineMutation } from "@/lib/offline-mutation";
+import { toast } from "sonner";
 
 type TabKey = "day" | "present" | "left";
 
@@ -30,6 +33,8 @@ const PlayerStatistics = () => {
   const { casinoId, roles } = useAuth();
   const today = getBusinessDate();
   const windowStartUTC = businessDayHourUTC(today, 13);
+  const queryClient = useQueryClient();
+  const canEditPosition = roles.some(r => ["pit", "manager", "reception", "super_admin"].includes(r));
 
   const { data: players = [] } = usePlayers();
   const { data: tables = [] } = useGamingTables();
