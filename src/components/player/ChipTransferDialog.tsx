@@ -297,13 +297,25 @@ export const ChipTransferDialog = ({
             </div>
           </div>
         )}
+
+        {/* Pairing requirement banner — shown until both sides + amount are valid */}
+        {!validation.ok && (
+          <div className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-700 dark:text-amber-400 flex items-start gap-2">
+            <span className="font-semibold shrink-0">Pairing required:</span>
+            <span>{validation.reason} — every CHIP IN is created together with its matching CHIP OUT atomically. No partial records.</span>
+          </div>
+        )}
       </div>
 
       <ResponsiveDialogFooter>
         <Button variant="outline" onClick={() => onOpenChange(false)} disabled={create.isPending}>
           Cancel
         </Button>
-        <Button onClick={handleSubmit} disabled={!canSubmit}>
+        <Button
+          onClick={handleSubmit}
+          disabled={!canSubmit}
+          title={!canSubmit && !create.isPending ? validation.reason : undefined}
+        >
           {create.isPending ? "Recording…" : "Record Transfer"}
         </Button>
       </ResponsiveDialogFooter>
