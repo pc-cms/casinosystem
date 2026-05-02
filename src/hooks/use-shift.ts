@@ -45,6 +45,8 @@ export const useLastClosedShift = () => {
     enabled: !!casinoId,
   });
 };
+
+export const useOpenShift = () => {
   const qc = useQueryClient();
   const { casinoId, user } = useAuth();
   return useMutation({
