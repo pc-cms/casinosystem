@@ -37,6 +37,7 @@ const Tables = () => {
   const { data: snapshots = [] } = useChipSnapshots(date);
   const { data: baseline = [] } = useChipBaseline();
   const openAllTables = useOpenAllTables();
+  const reopenTable = useReopenTable();
   const { casinoId, user } = useAuth();
   const queryClient = useQueryClient();
 
