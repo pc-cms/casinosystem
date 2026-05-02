@@ -219,9 +219,27 @@ const PlayerStatistics = () => {
       <Tabs value={tab} onValueChange={(v) => setTab(v as TabKey)} className="space-y-3">
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <TabsList>
-            <TabsTrigger value="day">Day <Badge variant="secondary" className="ml-1.5 text-[10px]">{counts.day}</Badge></TabsTrigger>
-            <TabsTrigger value="present">Present <Badge variant="secondary" className="ml-1.5 text-[10px]">{counts.present}</Badge></TabsTrigger>
-            <TabsTrigger value="left">Left <Badge variant="secondary" className="ml-1.5 text-[10px]">{counts.left}</Badge></TabsTrigger>
+            <TabsTrigger
+              value="day"
+              className="data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:border-primary/40 border border-transparent"
+            >
+              Daily
+              <Badge className="ml-1.5 text-[10px] bg-primary/20 text-primary border-primary/30 hover:bg-primary/20">{counts.day}</Badge>
+            </TabsTrigger>
+            <TabsTrigger
+              value="present"
+              className="data-[state=active]:bg-success/15 data-[state=active]:text-success data-[state=active]:border-success/40 border border-transparent"
+            >
+              Present
+              <Badge className="ml-1.5 text-[10px] bg-success/20 text-success border-success/30 hover:bg-success/20">{counts.present}</Badge>
+            </TabsTrigger>
+            <TabsTrigger
+              value="left"
+              className="data-[state=active]:bg-muted data-[state=active]:text-muted-foreground data-[state=active]:border-border border border-transparent"
+            >
+              Left
+              <Badge variant="secondary" className="ml-1.5 text-[10px]">{counts.left}</Badge>
+            </TabsTrigger>
           </TabsList>
 
           <div className="flex items-center gap-2">
