@@ -14,6 +14,7 @@ import FloorTableCard, { type FloorTable } from "./FloorTableCard";
 import TableSeatingDialog from "./TableSeatingDialog";
 import type { SeatedPlayer } from "./SeatedPlayerChip";
 import { getBusinessDate, businessDayHourUTC } from "@/lib/business-day";
+import ChipTransferDialog from "@/components/player/ChipTransferDialog";
 
 const POKER_GAMES = ["Poker", "Texas Holdem", "Omaha", "PLO"];
 
@@ -23,7 +24,8 @@ const ActivePlayers = () => {
   const today = getBusinessDate();
   const windowStartUTC = businessDayHourUTC(today, 13);
   const { data: transactions = [] } = useTransactions(today);
-  const { casinoId, user } = useAuth();
+  const { casinoId, user, roles } = useAuth();
+  const canTransfer = roles.some(r => ["pit", "manager", "super_admin"].includes(r));
   const queryClient = useQueryClient();
 
   const [search, setSearch] = useState("");
@@ -32,6 +34,7 @@ const ActivePlayers = () => {
   );
   const [openTableId, setOpenTableId] = useState<string | null>(null);
   const [pendingDropPlayer, setPendingDropPlayer] = useState<string | null>(null);
+  const [transferPlayer, setTransferPlayer] = useState<{ id: string; first_name: string; last_name: string; nickname?: string | null; tableId?: string | null } | null>(null);
 
   const isTouch = typeof window !== "undefined" && "ontouchstart" in window;
 
@@ -401,6 +404,20 @@ const ActivePlayers = () => {
         onMove={(pid, bet) => openTableId && changeTable.mutate({ playerId: pid, tableId: openTableId, avgBet: bet })}
         onStop={(pid) => stopSession.mutate(pid)}
         onUpdateBet={(pid, bet) => updateAvgBet.mutate({ playerId: pid, avgBet: bet })}
+        onChipTransfer={canTransfer ? (p) => setTransferPlayer({
+          id: p.id, first_name: p.first_name, last_name: p.last_name, nickname: p.nickname, tableId: openTableId,
+        }) : undefined}
+      />
+
+      <ChipTransferDialog
+        open={!!transferPlayer}
+        onOpenChange={(v) => { if (!v) setTransferPlayer(null); }}
+        player={transferPlayer}
+        defaultDirection="out"
+        tableId={transferPlayer?.tableId ?? null}
+        presentPlayerIds={new Set(
+          visits.filter((v: any) => !v.checked_out_at).map((v: any) => v.player_id)
+        )}
       />
     </div>
   );

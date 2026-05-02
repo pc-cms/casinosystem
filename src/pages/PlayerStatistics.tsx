@@ -329,6 +329,17 @@ const PlayerStatistics = () => {
           <td className="px-2 py-1.5 font-mono text-xs text-right">
             {r.out > 0 ? formatCurrency(r.out) : "·"}
           </td>
+          <td className="px-2 py-1.5 font-mono text-xs text-right text-success">
+            {r.chipIn > 0 ? formatCurrency(r.chipIn) : "·"}
+          </td>
+          <td className="px-2 py-1.5 font-mono text-xs text-right text-destructive">
+            {r.chipOut > 0 ? formatCurrency(r.chipOut) : "·"}
+          </td>
+          <td className={`px-2 py-1.5 font-mono text-xs text-right ${
+            r.chipDelta > 0 ? "cms-amount-positive" : r.chipDelta < 0 ? "cms-amount-negative" : ""
+          }`}>
+            {r.chipDelta !== 0 ? `${r.chipDelta > 0 ? "+" : ""}${formatCurrency(r.chipDelta)}` : "·"}
+          </td>
           <td className={`px-2 py-1.5 font-mono text-xs text-right font-bold ${
             r.result > 0 ? "cms-amount-positive" : r.result < 0 ? "cms-amount-negative" : ""
           }`}>
@@ -336,7 +347,33 @@ const PlayerStatistics = () => {
           </td>
         </>
       )}
+      {canTransfer && (
+        <td className="px-2 py-1.5 text-right">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 w-6 p-0"
+            title="Chip Transfer"
+            onClick={(e) => {
+              e.stopPropagation();
+              setTransferPlayer({
+                id: r.playerId,
+                first_name: r.firstName,
+                last_name: r.lastName,
+                nickname: r.nickname,
+              });
+            }}
+          >
+            <ArrowLeftRight className="w-3.5 h-3.5" />
+          </Button>
+        </td>
+      )}
     </tr>
+  );
+
+  const presentPlayerIds = useMemo(
+    () => new Set(rows.filter((r: any) => r.isPresent).map((r: any) => r.playerId)),
+    [rows]
   );
 
   return (
@@ -403,15 +440,19 @@ const PlayerStatistics = () => {
                         <th className="px-2 py-2 text-right">Avg Bet</th>
                         <th className="px-2 py-2 text-right">In / Drop</th>
                         <th className="px-2 py-2 text-right">Out</th>
+                        <th className="px-2 py-2 text-right" title="Chips received from another player (NEP-tracked, no cash)">Chip In</th>
+                        <th className="px-2 py-2 text-right" title="Chips given to another player (NEP-tracked, no cash)">Chip Out</th>
+                        <th className="px-2 py-2 text-right">Chip Δ</th>
                         <th className="px-2 py-2 text-right">Result</th>
                       </>
                     )}
+                    {canTransfer && <th className="px-2 py-2 text-right w-8"></th>}
                   </tr>
                 </thead>
                 <tbody>
                   {filtered.length === 0 ? (
                     <tr>
-                      <td colSpan={showFinancials ? 8 : 4} className="px-2 py-8 text-center text-muted-foreground text-xs">
+                      <td colSpan={4 + (showFinancials ? 7 : 0) + (canTransfer ? 1 : 0)} className="px-2 py-8 text-center text-muted-foreground text-xs">
                         No players to display
                       </td>
                     </tr>
@@ -424,6 +465,14 @@ const PlayerStatistics = () => {
           </div>
         </TabsContent>
       </Tabs>
+
+      <ChipTransferDialog
+        open={!!transferPlayer}
+        onOpenChange={(v) => { if (!v) setTransferPlayer(null); }}
+        player={transferPlayer}
+        defaultDirection="out"
+        presentPlayerIds={presentPlayerIds}
+      />
     </PageShell>
   );
 };

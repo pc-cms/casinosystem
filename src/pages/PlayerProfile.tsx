@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
-import { ArrowLeft, User, Users as UsersIcon, BarChart3, Ticket, Trophy, History, MapPin, Gift, CalendarDays } from "lucide-react";
+import { ArrowLeft, ArrowLeftRight, User, Users as UsersIcon, BarChart3, Ticket, Trophy, History, MapPin, Gift, CalendarDays } from "lucide-react";
+import ChipTransferDialog from "@/components/player/ChipTransferDialog";
 import PlayerVisitsBreakdown from "@/components/player/PlayerVisitsBreakdown";
 import { canSeePlayerFinancials } from "@/lib/role-access";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
@@ -70,6 +71,7 @@ const PlayerProfile = () => {
   const { data: sessions = [] } = usePlayerSessions(id, range);
 
   const [editOpen, setEditOpen] = useState(false);
+  const [transferOpen, setTransferOpen] = useState(false);
 
   // Range bounds (apply to all tabs).
   const rangeStartMs = useMemo(() => new Date(`${range.from}T00:00:00`).getTime(), [range.from]);
@@ -314,11 +316,18 @@ const PlayerProfile = () => {
         <Button variant="ghost" size="sm" onClick={() => navigate("/players")} className="h-9">
           <ArrowLeft className="w-4 h-4 mr-1" /> Players
         </Button>
-        {(isManager || roles.includes("super_admin")) && (
-          <Button variant="outline" size="sm" className="h-9" onClick={() => setEditOpen(true)}>
-            Edit player
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {roles.some(r => ["pit", "manager", "super_admin"].includes(r)) && (
+            <Button variant="outline" size="sm" className="h-9" onClick={() => setTransferOpen(true)}>
+              <ArrowLeftRight className="w-3.5 h-3.5 mr-1.5" /> Chip Transfer
+            </Button>
+          )}
+          {(isManager || roles.includes("super_admin")) && (
+            <Button variant="outline" size="sm" className="h-9" onClick={() => setEditOpen(true)}>
+              Edit player
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Header card: photo left, info right */}
@@ -856,6 +865,18 @@ const PlayerProfile = () => {
         player={player as any}
         open={editOpen}
         onOpenChange={setEditOpen}
+      />
+
+      <ChipTransferDialog
+        open={transferOpen}
+        onOpenChange={setTransferOpen}
+        player={player ? {
+          id: (player as any).id,
+          first_name: (player as any).first_name,
+          last_name: (player as any).last_name,
+          nickname: (player as any).nickname,
+        } : null}
+        defaultDirection="out"
       />
     </PageShell>
   );
