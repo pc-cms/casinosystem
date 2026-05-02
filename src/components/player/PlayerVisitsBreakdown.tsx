@@ -180,6 +180,7 @@ export default function PlayerVisitsBreakdown({ visits, transactions, expenses, 
           {months.map((mo) => {
             const moOpen = openMonths[mo.monthKey] ?? false;
             const moRes = result(mo.agg);
+            const moTot = total(mo.agg);
             return (
               <Fragment key={mo.monthKey}>
                 <tr
@@ -198,9 +199,12 @@ export default function PlayerVisitsBreakdown({ visits, transactions, expenses, 
                   {showFinancials && <>
                     <td className="py-2 px-2 text-right font-mono">{mo.agg.drop ? fmtMoney(mo.agg.drop) : dot}</td>
                     <td className="py-2 px-2 text-right font-mono">{mo.agg.out ? fmtMoney(mo.agg.out) : dot}</td>
-                    <td className="py-2 px-2 text-right font-mono">{mo.agg.comps ? fmtMoney(mo.agg.comps) : dot}</td>
                     <td className={`py-2 px-2 text-right font-mono ${moRes === 0 ? "text-muted-foreground" : moRes > 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
                       {moRes === 0 ? "·" : fmtMoney(moRes)}
+                    </td>
+                    <td className="py-2 px-2 text-right font-mono">{mo.agg.comps ? fmtMoney(mo.agg.comps) : dot}</td>
+                    <td className={`py-2 px-2 text-right font-mono ${moTot === 0 ? "text-muted-foreground" : moTot > 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
+                      {moTot === 0 ? "·" : fmtMoney(moTot)}
                     </td>
                   </>}
                 </tr>
