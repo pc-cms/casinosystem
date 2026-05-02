@@ -85,7 +85,7 @@ const ChipDenomInput = ({
                 type="button"
                 onClick={() => handleChipClick(d)}
                 title={`+1 × ${formatChipLabel(d)}`}
-                className={`inline-flex items-center justify-center rounded-full font-bold shrink-0 ring-1 ring-[hsl(45_75%_52%/0.85)] transition-transform hover:scale-105 active:scale-95 cursor-pointer ${tokens.chipH} ${tokens.chipW} ${tokens.chipText}`}
+                className={`${tokens.chipClass} transition-transform hover:scale-105 active:scale-95 cursor-pointer`}
                 style={{ backgroundColor: color.bg, color: color.text }}
               >
                 {formatChipLabel(d)}
