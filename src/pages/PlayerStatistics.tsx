@@ -117,7 +117,7 @@ const PlayerStatistics = () => {
         lastName: p.last_name,
         nickname: (p as any).nickname,
         category: cat,
-        flags: (p as any).flags || [],
+        flags: ((p as any).player_tags || []).map((t: any) => t.tag),
         entryAt: v.checked_in_at as string,
         exitAt: v.checked_out_at as string | null,
         position: v.position as string,
