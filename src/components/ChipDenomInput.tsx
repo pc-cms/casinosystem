@@ -21,10 +21,12 @@ type Props = {
   size?: Size;
 };
 
-const SIZE_TOKENS: Record<Size, { chipH: string; chipW: string; inputH: string; chipText: string; inputText: string }> = {
-  sm: { chipH: "h-6",  chipW: "w-14", inputH: "h-6",  chipText: "text-[8px]",  inputText: "text-xs"  },
-  md: { chipH: "h-8",  chipW: "w-16", inputH: "h-8",  chipText: "text-[10px]", inputText: "text-sm"  },
-  lg: { chipH: "h-10", chipW: "w-20", inputH: "h-10", chipText: "text-xs",     inputText: "text-base" },
+// Unified chip visual is provided by .cms-chip-token (CSS). Only the input height
+// and font scale here — the chip itself is the same size everywhere.
+const SIZE_TOKENS: Record<Size, { inputH: string; inputText: string; chipClass: string }> = {
+  sm: { inputH: "h-7",  inputText: "text-xs",  chipClass: "cms-chip-token" },
+  md: { inputH: "h-8",  inputText: "text-sm",  chipClass: "cms-chip-token" },
+  lg: { inputH: "h-10", inputText: "text-base", chipClass: "cms-chip-token cms-chip-token-lg" },
 };
 
 const ChipDenomInput = ({
@@ -83,7 +85,7 @@ const ChipDenomInput = ({
                 type="button"
                 onClick={() => handleChipClick(d)}
                 title={`+1 × ${formatChipLabel(d)}`}
-                className={`inline-flex items-center justify-center rounded-full font-bold shrink-0 ring-1 ring-[hsl(45_75%_52%/0.85)] transition-transform hover:scale-105 active:scale-95 cursor-pointer ${tokens.chipH} ${tokens.chipW} ${tokens.chipText}`}
+                className={`${tokens.chipClass} transition-transform hover:scale-105 active:scale-95 cursor-pointer`}
                 style={{ backgroundColor: color.bg, color: color.text }}
               >
                 {formatChipLabel(d)}

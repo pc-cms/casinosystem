@@ -142,29 +142,28 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
   }
 
   const renderGrid = (full: boolean) => {
-    // Tokens: на fullscreen всё крупнее. Колонки чипов имеют min-width чтобы label не переносился.
+    // Unified chip token (cms-chip-token / -lg). Cells are sized for max 3 digits since
+    // there are never more than 500 chips of one denomination on a single table.
     const t = full
       ? {
-          chipText: "text-[10px]",
-          chipPad: "px-1.5 py-0.5",
-          inputH: "h-10",
+          chipClass: "cms-chip-token cms-chip-token-lg",
+          inputH: "h-9",
           inputText: "text-sm",
           firstColW: "150px",
-          chipColW: "72px",
+          chipColW: "60px",
           resultColW: "150px",
-          rowPadX: "px-1.5",
+          rowPadX: "px-1",
           rowPadY: "py-1.5",
-          headerPadY: "py-3",
+          headerPadY: "py-2",
           totalText: "text-base",
           resultText: "text-sm",
         }
       : {
-          chipText: "text-[9px]",
-          chipPad: "px-1 py-0.5",
+          chipClass: "cms-chip-token",
           inputH: "h-8",
           inputText: "text-xs",
           firstColW: "110px",
-          chipColW: "56px",
+          chipColW: "52px",
           resultColW: "120px",
           rowPadX: "px-1",
           rowPadY: "py-1",
@@ -215,7 +214,7 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
                   return (
                     <th key={d} className={`text-center ${t.headerPadY} px-0.5 font-medium`}>
                       <span
-                        className={`inline-flex items-center justify-center rounded-full font-bold whitespace-nowrap ring-1 ring-[hsl(45_75%_52%/0.85)] ${t.chipText} ${t.chipPad}`}
+                        className={t.chipClass}
                         style={{ backgroundColor: c.bg, color: c.text }}
                       >
                         {formatChipLabel(d)}
@@ -246,13 +245,15 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
                       return (
                         <td key={d} className={`${t.rowPadX} ${t.rowPadY}`}>
                           <input
-                            type="number" min="0"
+                            type="number" min="0" max="999" maxLength={3}
                             value={locCounts[d] ?? ""}
                             onChange={e => {
-                              const val = e.target.value === "" ? 0 : parseInt(e.target.value, 10);
-                              setCounts(c => ({ ...c, [loc.key]: { ...(c[loc.key] || {}), [d]: isNaN(val) ? 0 : val } }));
+                              let val = e.target.value === "" ? 0 : parseInt(e.target.value, 10);
+                              if (isNaN(val)) val = 0;
+                              if (val > 999) val = 999;
+                              setCounts(c => ({ ...c, [loc.key]: { ...(c[loc.key] || {}), [d]: val } }));
                             }}
-                            className={`w-full ${t.inputH} ${t.inputText} rounded font-mono text-center border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary text-card-foreground`}
+                            className={`no-spin w-full ${t.inputH} ${t.inputText} rounded font-mono text-center border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary text-card-foreground`}
                             placeholder={String(bsl)}
                           />
                         </td>
