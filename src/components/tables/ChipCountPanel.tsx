@@ -280,6 +280,21 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
     );
   };
 
+  // ===== Snapshot history (per save = group of rows sharing created_at) =====
+  const history = useMemo(() => {
+    const groups: Record<string, { ts: string; perTable: Record<string, number>; total: number }> = {};
+    snapshots.forEach((s: any) => {
+      if (s.location_type !== "table" || !s.location_id) return;
+      const ts = s.created_at;
+      if (!groups[ts]) groups[ts] = { ts, perTable: {}, total: 0 };
+      const expected = baselineMap[s.location_id]?.[Number(s.denomination)] ?? Number(s.expected_quantity || 0);
+      const delta = (Number(s.actual_quantity) - expected) * Number(s.denomination);
+      groups[ts].perTable[s.location_id] = (groups[ts].perTable[s.location_id] || 0) + delta;
+      groups[ts].total += delta;
+    });
+    return Object.values(groups).sort((a, b) => b.ts.localeCompare(a.ts));
+  }, [snapshots, baselineMap]);
+
   return (
     <>
       {renderGrid(false)}
@@ -288,6 +303,51 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
           {renderGrid(true)}
         </DialogContent>
       </Dialog>
+
+      {history.length > 0 && (
+        <div className="mt-3 rounded-md border border-border bg-card">
+          <div className="flex items-center gap-2 px-3 py-2 border-b border-border">
+            <History className="w-4 h-4 text-muted-foreground" />
+            <h4 className="text-sm font-semibold text-card-foreground">Snapshot history · {date}</h4>
+            <span className="text-[10px] text-muted-foreground ml-auto">{history.length} saves</span>
+          </div>
+          <div className="overflow-auto max-h-[280px]">
+            <table className="w-full border-collapse text-xs">
+              <thead className="sticky top-0 bg-card">
+                <tr className="border-b border-border">
+                  <th className="text-left px-2 py-1.5 font-medium text-muted-foreground uppercase tracking-wider text-[10px]">Time</th>
+                  {countLocations.map(loc => (
+                    <th key={loc.id} className="text-right px-2 py-1.5 font-medium text-muted-foreground text-[10px]">{loc.label}</th>
+                  ))}
+                  <th className="text-right px-2 py-1.5 font-medium text-muted-foreground uppercase tracking-wider text-[10px]">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {history.map((g, i) => {
+                  const time = new Date(g.ts).toLocaleTimeString("en-GB", { timeZone: "Africa/Dar_es_Salaam", hour: "2-digit", minute: "2-digit" });
+                  return (
+                    <tr key={g.ts} className={`border-b border-border last:border-0 ${i % 2 === 1 ? "bg-muted/10" : ""}`}>
+                      <td className="px-2 py-1 font-mono text-card-foreground">{time}</td>
+                      {countLocations.map(loc => {
+                        const v = g.perTable[loc.id];
+                        if (v === undefined) return <td key={loc.id} className="px-2 py-1 text-right text-muted-foreground/30">·</td>;
+                        return (
+                          <td key={loc.id} className={`px-2 py-1 text-right font-mono ${v >= 0 ? "text-success" : "text-destructive"}`}>
+                            {v >= 0 ? "+" : ""}{formatCurrency(v)}
+                          </td>
+                        );
+                      })}
+                      <td className={`px-2 py-1 text-right font-mono font-bold ${g.total >= 0 ? "text-success" : "text-destructive"}`}>
+                        {g.total >= 0 ? "+" : ""}{formatCurrency(g.total)}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </>
   );
 };
