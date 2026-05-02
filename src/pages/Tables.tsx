@@ -23,12 +23,10 @@ const Tables = () => {
   const { data: shift } = useActiveShift();
   const { data: snapshots = [] } = useChipSnapshots(date);
   const { data: baseline = [] } = useChipBaseline();
-  const batchSnapshot = useBatchChipSnapshot();
   const openAllTables = useOpenAllTables();
 
-  // Chip Count snapshot dialog (mid-shift)
-  const [counts, setCounts] = useState<Record<string, Record<number, number>>>({});
-  const [showCount, setShowCount] = useState(false);
+  // Close Table wizard
+  const [showCloseWizard, setShowCloseWizard] = useState(false);
 
   // Close Table wizard
   const [showCloseWizard, setShowCloseWizard] = useState(false);
