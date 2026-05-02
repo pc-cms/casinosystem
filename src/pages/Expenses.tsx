@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/layout/PageHeader";
 import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
+import { PlayerNameAutocomplete } from "@/components/PlayerNameAutocomplete";
 import { formatCurrency } from "@/lib/currency";
 
 const CATS = [
