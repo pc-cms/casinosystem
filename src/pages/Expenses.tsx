@@ -76,7 +76,7 @@ const Expenses = () => {
     const row = drafts.find(r => r.uid === uid);
     if (!row) return;
     if (!row.target) return toast.error("Choose target");
-    if (row.target === "player" && !row.player_id) return toast.error("Choose player");
+    if (row.target === "player" && !row.player_name.trim()) return toast.error("Enter player name");
     if (!row.category) return toast.error("Choose category");
     const amt = Number(row.amount);
     if (!amt || amt <= 0) return toast.error("Amount must be > 0");
@@ -87,7 +87,8 @@ const Expenses = () => {
           category: row.category,
           amount: amt,
           description: row.description,
-          player_id: row.target === "player" ? row.player_id : null,
+          player_id: null,
+          player_name: row.target === "player" ? row.player_name.trim() : "",
           shift_id: shift.id,
         }, { onSuccess: () => resolve(), onError: (e: any) => reject(e) });
       });
