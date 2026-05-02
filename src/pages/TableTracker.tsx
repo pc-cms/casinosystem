@@ -114,7 +114,7 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
           icon={Target}
           title="Table Check"
           subtitle={mode === "numbers" ? "Enter values · auto-saves on blur/Enter" : "Count chips on tables · save snapshot"}
-          date={date}
+          date={isManager ? false : date}
         >
           <div className="inline-flex rounded-md border border-border overflow-hidden h-9">
             <Button
