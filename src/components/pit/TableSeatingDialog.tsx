@@ -259,12 +259,31 @@ const TableSeatingDialog = ({
               ))}
             </div>
             {movePlayerId && (
-              <div className="flex items-center gap-2 pt-1">
-                <label className="text-xs text-muted-foreground shrink-0">New avg bet:</label>
-                <NumberInput value={moveBet} onChange={setMoveBet} placeholder="e.g. 5 000" className="w-40" />
-                <Button size="sm" onClick={submitMove} disabled={!moveBet || Number(moveBet) <= 0 || isPending} className="gap-1">
-                  <ArrowRight className="w-3.5 h-3.5" /> Move
-                </Button>
+              <div className="space-y-1.5 pt-1">
+                <div className="flex items-center gap-2">
+                  <label className="text-xs text-muted-foreground shrink-0">New avg bet:</label>
+                  <NumberInput value={moveBet} onChange={setMoveBet} placeholder="e.g. 5 000" className="w-40" />
+                  <Button size="sm" onClick={submitMove} disabled={!moveBet || Number(moveBet) <= 0 || isPending} className="gap-1">
+                    <ArrowRight className="w-3.5 h-3.5" /> Move
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  {betPresets.map(v => (
+                    <button
+                      key={v}
+                      type="button"
+                      onClick={() => setMoveBet(String(v))}
+                      className={cn(
+                        "px-2 py-0.5 rounded border text-[10px] font-mono transition-colors",
+                        Number(moveBet) === v
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border bg-background hover:bg-muted/50"
+                      )}
+                    >
+                      {formatNumberSpaces(v)}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
           </section>
