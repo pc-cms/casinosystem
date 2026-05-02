@@ -51,6 +51,7 @@ const MissChips = lazy(() => import("@/pages/MissChips"));
 const TableTracker = lazy(() => import("@/pages/TableTracker"));
 const TablesAnalytics = lazy(() => import("@/pages/TablesAnalytics"));
 const PlayerStatistics = lazy(() => import("@/pages/PlayerStatistics"));
+const Cashless = lazy(() => import("@/pages/Cashless"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 
 const queryClient = new QueryClient({
