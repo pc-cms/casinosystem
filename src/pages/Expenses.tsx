@@ -2,7 +2,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Receipt, CheckCircle, Plus, X } from "lucide-react";
 import { CardSkeleton, TableSkeleton } from "@/components/LoadingSkeletons";
-import { usePlayers, useExpenses, useCreateExpense, useApproveExpense } from "@/hooks/use-casino-data";
+import { useExpenses, useCreateExpense, useApproveExpense } from "@/hooks/use-casino-data";
 import { useActiveShift } from "@/hooks/use-shift";
 import { useExpenseAnalytics } from "@/hooks/use-expenses-analytics";
 import { useAuth } from "@/lib/auth-context";
