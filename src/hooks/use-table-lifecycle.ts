@@ -93,6 +93,14 @@ export const useCasinoInfo = () => {
     queryKey: ["casino-info", casinoId],
     queryFn: async () => {
       if (!casinoId) return null;
+      // Trigger pending → active promotion if its activation date has arrived.
+      // Result is ignored; the row read below will reflect the up-to-date values.
+      try {
+        await supabase.rpc("get_effective_shift_settings", { _casino_id: casinoId });
+      } catch (e) {
+        // Non-fatal — RPC may not exist on legacy backends; row read below still works.
+        console.warn("get_effective_shift_settings rpc warn", e);
+      }
       const { data, error } = await supabase
         .from("casinos")
         .select("*")
