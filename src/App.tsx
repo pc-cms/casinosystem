@@ -100,6 +100,7 @@ const ROUTE_ROLES: Record<string, string[]> = {
   "/table-tracker": ["super_admin", "manager", "pit", "finance_manager"],
   "/tables/analytics": ["super_admin", "manager", "finance_manager", "pit"],
   "/expenses": ["super_admin", "manager", "cashier", "finance_manager"],
+  "/cashless": ["super_admin", "manager", "cashier", "finance_manager"],
   "/pit": ["super_admin", "manager", "pit", "finance_manager", "hr"],
   "/floor": ["super_admin", "manager", "pit", "finance_manager", "hr"],
   "/groups": ["super_admin", "manager", "finance_manager"],
