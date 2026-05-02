@@ -160,6 +160,76 @@ const PlayerStatistics = () => {
     left: rows.filter((r: any) => !r.isPresent).length,
   }), [rows]);
 
+  const setPosition = useMutation({
+    mutationFn: async ({ visitId, playerId, newPos }: { visitId: string; playerId: string; newPos: string }) => {
+      // Update casino_visit position — DB trigger writes player_position_history.
+      const res = await offlineMutation({
+        table: "casino_visits",
+        operation: "update",
+        payload: { _match: { id: visitId }, position: newPos },
+      });
+      if (res.error) throw new Error(res.error);
+
+      // If leaving a table, stop the active client_session for this player (cleanly closes the table seat).
+      if (newPos !== "table") {
+        await offlineMutation({
+          table: "client_sessions",
+          operation: "update",
+          payload: {
+            _match: { casino_id: casinoId!, player_id: playerId, stopped_at: null as any },
+            stopped_at: new Date().toISOString(),
+          },
+        });
+      }
+      return { offline: res.offline };
+    },
+    onSuccess: (res: any) => {
+      queryClient.invalidateQueries({ queryKey: ["casino_visits"] });
+      queryClient.invalidateQueries({ queryKey: ["client_sessions"] });
+      toast.success(res?.offline ? "Saved offline" : "Position updated");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const renderPositionCell = (r: any) => {
+    if (!r.isPresent) return <span className="text-[10px] text-muted-foreground">—</span>;
+    if (!canEditPosition) {
+      return r.position === "table" ? (
+        r.tableName ? (
+          <Badge variant="outline" className="text-[10px] font-mono">{r.tableName}</Badge>
+        ) : (
+          <Badge variant="outline" className="text-[10px]">Table</Badge>
+        )
+      ) : r.position === "slots" ? (
+        <Badge className="text-[10px] bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30">Slots</Badge>
+      ) : (
+        <Badge variant="secondary" className="text-[10px]">Hall</Badge>
+      );
+    }
+    return (
+      <div onClick={(e) => e.stopPropagation()}>
+        <Select
+          value={r.position}
+          onValueChange={(v) => setPosition.mutate({ visitId: r.id, playerId: r.playerId, newPos: v })}
+          disabled={setPosition.isPending}
+        >
+          <SelectTrigger className="h-6 px-2 py-0 text-[10px] w-auto min-w-[78px]">
+            <SelectValue>
+              {r.position === "table"
+                ? (r.tableName ? <span className="font-mono">{r.tableName}</span> : "Table")
+                : r.position === "slots" ? "Slots" : "Hall"}
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="hall">Hall</SelectItem>
+            <SelectItem value="table">Table</SelectItem>
+            <SelectItem value="slots">Slots</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+    );
+  };
+
   const renderRow = (r: any) => (
     <tr
       key={r.id}
@@ -178,17 +248,7 @@ const PlayerStatistics = () => {
           </div>
         </div>
       </td>
-      <td className="px-2 py-1.5">
-        {r.isPresent ? (
-          r.tableName ? (
-            <Badge variant="outline" className="text-[10px] font-mono">{r.tableName}</Badge>
-          ) : (
-            <Badge variant="secondary" className="text-[10px]">Hall</Badge>
-          )
-        ) : (
-          <span className="text-[10px] text-muted-foreground">—</span>
-        )}
-      </td>
+      <td className="px-2 py-1.5">{renderPositionCell(r)}</td>
       <td className="px-2 py-1.5 font-mono text-xs">{formatTime(r.entryAt)}</td>
       <td className="px-2 py-1.5 font-mono text-xs">{r.exitAt ? formatTime(r.exitAt) : "·"}</td>
       {showFinancials && (
