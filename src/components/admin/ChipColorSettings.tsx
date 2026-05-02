@@ -61,7 +61,7 @@ const ChipColorSettings = () => {
               <div className="flex items-center gap-3">
                 {/* Preview */}
                 <span
-                  className="inline-flex items-center justify-center w-16 h-10 rounded-full font-bold text-sm shrink-0 ring-1 ring-black/10"
+                  className="inline-flex items-center justify-center w-16 h-10 rounded-full font-bold text-sm shrink-0 ring-1 ring-[hsl(45_75%_52%/0.85)]"
                   style={{ backgroundColor: r.bg, color: r.text }}
                 >
                   {formatChipLabel(d)}
