@@ -795,11 +795,33 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
     return entry ? String((entry as any).value) : "";
   };
 
+  // Parse attendance value into kind + numeric hours.
+  // Supported: "" | "A" | "S" | "<n>" | "<n>S" (worked n hours then went sick mid-shift)
+  const parseValue = (val: string): { kind: "empty" | "absent" | "sick" | "hours" | "hours-sick"; hours: number } => {
+    if (val === "") return { kind: "empty", hours: 0 };
+    if (val === "A") return { kind: "absent", hours: 0 };
+    if (val === "S") return { kind: "sick", hours: 0 };
+    const m = val.match(/^(\d+(?:\.\d+)?)(S?)$/i);
+    if (m) {
+      const n = Number(m[1]);
+      if (!isNaN(n)) return { kind: m[2] ? "hours-sick" : "hours", hours: n };
+    }
+    return { kind: "empty", hours: 0 };
+  };
+
   const handleSave = (dealerId: string, day: number, val: string) => {
     const dateStr = `${month}-${String(day).padStart(2, "0")}`;
     const trimmed = val.trim().toUpperCase();
     if (trimmed === "") { setAttendance.mutate({ dealer_id: dealerId, date: dateStr, value: "" }); return; }
     if (trimmed === "A" || trimmed === "S") { setAttendance.mutate({ dealer_id: dealerId, date: dateStr, value: trimmed }); return; }
+    const ms = trimmed.match(/^(\d+(?:\.\d+)?)S$/);
+    if (ms) {
+      const n = Number(ms[1]);
+      if (!isNaN(n) && n >= 0 && n <= 24) {
+        setAttendance.mutate({ dealer_id: dealerId, date: dateStr, value: `${n}S` });
+      }
+      return;
+    }
     const num = Number(trimmed);
     if (!isNaN(num) && num >= 0 && num <= 24) { setAttendance.mutate({ dealer_id: dealerId, date: dateStr, value: String(num) }); }
   };
@@ -811,12 +833,18 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
     let sick = 0;
     days.forEach(day => {
       const val = getValue(dealerId, day);
-      if (val === "A") { absent += 1; return; }
-      if (val === "S") { sick += 1; return; }
-      const num = Number(val);
-      if (!isNaN(num) && num > 0) {
+      const p = parseValue(val);
+      if (p.kind === "absent") { absent += 1; return; }
+      if (p.kind === "sick") { sick += 1; return; }
+      if (p.kind === "hours" && p.hours > 0) {
         shifts += 1;
-        hours += num;
+        hours += p.hours;
+        return;
+      }
+      if (p.kind === "hours-sick") {
+        // Counts both: worked hours AND a sick day.
+        sick += 1;
+        if (p.hours > 0) { shifts += 1; hours += p.hours; }
       }
     });
     return { shifts, hours, absent, sick };
