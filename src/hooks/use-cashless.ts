@@ -15,6 +15,7 @@ export interface CashlessRow {
   direction: CashlessDirection;
   provider: CashlessProvider;
   player_id: string | null;
+  player_name: string;
   amount: number;
   currency: string;
   reference: string;
@@ -56,7 +57,8 @@ export const useCreateCashless = () => {
     mutationFn: async (input: {
       direction: CashlessDirection;
       provider: CashlessProvider;
-      player_id: string | null;
+      player_id?: string | null;
+      player_name: string;
       amount: number;
       reference?: string;
       note?: string;
@@ -69,7 +71,8 @@ export const useCreateCashless = () => {
         business_date: input.business_date,
         direction: input.direction,
         provider: input.provider,
-        player_id: input.player_id,
+        player_id: input.player_id ?? null,
+        player_name: input.player_name,
         amount: input.amount,
         currency: "TZS",
         reference: input.reference || "",

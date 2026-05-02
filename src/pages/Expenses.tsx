@@ -2,7 +2,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Receipt, CheckCircle, Plus, X } from "lucide-react";
 import { CardSkeleton, TableSkeleton } from "@/components/LoadingSkeletons";
-import { usePlayers, useExpenses, useCreateExpense, useApproveExpense } from "@/hooks/use-casino-data";
+import { useExpenses, useCreateExpense, useApproveExpense } from "@/hooks/use-casino-data";
 import { useActiveShift } from "@/hooks/use-shift";
 import { useExpenseAnalytics } from "@/hooks/use-expenses-analytics";
 import { useAuth } from "@/lib/auth-context";
@@ -37,7 +37,7 @@ const CAT_COLORS: Record<string, string> = {
 interface DraftRow {
   uid: string;
   target: "casino" | "player" | "";
-  player_id: string;
+  player_name: string;
   category: string;
   amount: string;
   description: string;
@@ -46,7 +46,7 @@ interface DraftRow {
 const newDraft = (): DraftRow => ({
   uid: Math.random().toString(36).slice(2),
   target: "",
-  player_id: "",
+  player_name: "",
   category: "",
   amount: "",
   description: "",
@@ -57,13 +57,12 @@ const Expenses = () => {
   const businessDate = getBusinessDate();
   const { data: shift } = useActiveShift();
   const { data: expenses = [], isLoading: loadingExpenses } = useExpenses(businessDate);
-  const { data: players = [], isLoading: loadingPlayers } = usePlayers();
   const create = useCreateExpense();
   const approve = useApproveExpense();
   const [pendingApproveId, setPendingApproveId] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<DraftRow[]>([newDraft()]);
 
-  const isLoading = loadingExpenses || loadingPlayers;
+  const isLoading = loadingExpenses;
   const analytics = useExpenseAnalytics(expenses as any);
 
   const updateDraft = (uid: string, patch: Partial<DraftRow>) =>
@@ -76,7 +75,7 @@ const Expenses = () => {
     const row = drafts.find(r => r.uid === uid);
     if (!row) return;
     if (!row.target) return toast.error("Choose target");
-    if (row.target === "player" && !row.player_id) return toast.error("Choose player");
+    if (row.target === "player" && !row.player_name.trim()) return toast.error("Enter player name");
     if (!row.category) return toast.error("Choose category");
     const amt = Number(row.amount);
     if (!amt || amt <= 0) return toast.error("Amount must be > 0");
@@ -87,7 +86,8 @@ const Expenses = () => {
           category: row.category,
           amount: amt,
           description: row.description,
-          player_id: row.target === "player" ? row.player_id : null,
+          player_id: null,
+          player_name: row.target === "player" ? row.player_name.trim() : "",
           shift_id: shift.id,
         }, { onSuccess: () => resolve(), onError: (e: any) => reject(e) });
       });
@@ -155,7 +155,7 @@ const Expenses = () => {
                 <td className="px-2 py-1.5">
                   <Select
                     value={d.target}
-                    onValueChange={v => updateDraft(d.uid, { target: v as "casino" | "player", player_id: "" })}
+                    onValueChange={v => updateDraft(d.uid, { target: v as "casino" | "player", player_name: "" })}
                   >
                     <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Target" /></SelectTrigger>
                     <SelectContent>
@@ -165,20 +165,13 @@ const Expenses = () => {
                   </Select>
                 </td>
                 <td className="px-2 py-1.5">
-                  <Select
-                    value={d.player_id}
-                    onValueChange={v => updateDraft(d.uid, { player_id: v })}
+                  <Input
+                    placeholder={d.target === "player" ? "Player name" : "—"}
+                    value={d.player_name}
+                    onChange={e => updateDraft(d.uid, { player_name: e.target.value })}
                     disabled={d.target !== "player"}
-                  >
-                    <SelectTrigger className="h-8 text-xs">
-                      <SelectValue placeholder={d.target === "player" ? "Player" : "—"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(players as any[]).filter(p => p.status === "active").map(p => (
-                        <SelectItem key={p.id} value={p.id}>{p.first_name} {p.last_name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    className="h-8 text-xs"
+                  />
                 </td>
                 <td className="px-2 py-1.5">
                   <Select value={d.category} onValueChange={v => updateDraft(d.uid, { category: v })}>
@@ -238,7 +231,7 @@ const Expenses = () => {
                   <span className={`text-[10px] font-mono uppercase px-1.5 py-0.5 rounded ${CAT_COLORS[exp.category] || CAT_COLORS.other}`}>{exp.category}</span>
                 </td>
                 <td className="px-3 py-2 text-sm text-muted-foreground">
-                  {exp.players ? `${exp.players.first_name} ${exp.players.last_name}` : "Casino"}
+                  {exp.players ? `${exp.players.first_name} ${exp.players.last_name}` : (exp.player_name || "Casino")}
                 </td>
                 <td className="px-3 py-2 text-right font-mono text-sm cms-amount-negative">
                   {formatCurrency(Number(exp.amount))}

@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import { CreditCard, CheckCircle, Plus, X } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { getBusinessDate } from "@/lib/business-day";
-import { usePlayers } from "@/hooks/use-casino-data";
+
 import {
   useCashless, useCreateCashless, useApproveCashless,
   type CashlessDirection, type CashlessProvider,
@@ -35,7 +35,7 @@ interface DraftRow {
   uid: string;
   direction: CashlessDirection;
   provider: CashlessProvider | "";
-  player_id: string;
+  player_name: string;
   amount: string;
   reference: string;
 }
@@ -44,7 +44,7 @@ const newDraft = (): DraftRow => ({
   uid: Math.random().toString(36).slice(2),
   direction: "IN",
   provider: "",
-  player_id: "",
+  player_name: "",
   amount: "",
   reference: "",
 });
@@ -53,7 +53,7 @@ const Cashless = () => {
   const { isManager } = useAuth();
   const businessDate = getBusinessDate();
   const { data: rows = [] } = useCashless(businessDate);
-  const { data: players = [] } = usePlayers();
+  
   const create = useCreateCashless();
   const approve = useApproveCashless();
   const [pendingApproveId, setPendingApproveId] = useState<string | null>(null);
@@ -70,14 +70,14 @@ const Cashless = () => {
     const row = drafts.find(r => r.uid === uid);
     if (!row) return;
     if (!row.provider) return toast.error("Choose provider");
-    if (!row.player_id) return toast.error("Choose player");
+    if (!row.player_name.trim()) return toast.error("Enter player name");
     const amt = Number(row.amount);
     if (!amt || amt <= 0) return toast.error("Amount must be > 0");
     try {
       await create.mutateAsync({
         direction: row.direction,
         provider: row.provider as CashlessProvider,
-        player_id: row.player_id,
+        player_name: row.player_name.trim(),
         amount: amt,
         reference: row.reference,
         business_date: businessDate,
@@ -196,14 +196,12 @@ const Cashless = () => {
                   </Select>
                 </td>
                 <td className="px-2 py-1.5">
-                  <Select value={d.player_id} onValueChange={v => updateDraft(d.uid, { player_id: v })}>
-                    <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Player" /></SelectTrigger>
-                    <SelectContent>
-                      {(players as any[]).filter(p => p.status === "active").map(p => (
-                        <SelectItem key={p.id} value={p.id}>{p.first_name} {p.last_name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Input
+                    placeholder="Player name"
+                    value={d.player_name}
+                    onChange={e => updateDraft(d.uid, { player_name: e.target.value })}
+                    className="h-8 text-xs"
+                  />
                 </td>
                 <td className="px-2 py-1.5">
                   <NumberInput placeholder="0" value={d.amount} onChange={v => updateDraft(d.uid, { amount: v })} className="h-8 text-xs text-right" />
@@ -259,7 +257,7 @@ const Cashless = () => {
                   <span className={`text-[10px] font-mono uppercase px-1.5 py-0.5 rounded ${PROVIDER_COLORS[r.provider]}`}>{r.provider}</span>
                 </td>
                 <td className="px-3 py-2 text-sm text-card-foreground">
-                  {r.players ? `${r.players.first_name} ${r.players.last_name}` : "—"}
+                  {r.players ? `${r.players.first_name} ${r.players.last_name}` : (r.player_name || "—")}
                 </td>
                 <td className={`px-3 py-2 text-right font-mono text-sm ${r.direction === "IN" ? "cms-amount-positive" : "cms-amount-negative"}`}>
                   {formatCurrency(Number(r.amount))}

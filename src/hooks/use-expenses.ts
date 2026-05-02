@@ -42,6 +42,7 @@ export const useCreateExpense = () => {
       amount: number;
       description: string;
       player_id: string | null;
+      player_name?: string;
       shift_id?: string | null;
     }) => {
       if (!casinoId || !user) throw new Error("Not authenticated");
@@ -51,9 +52,10 @@ export const useCreateExpense = () => {
         amount: input.amount,
         description: input.description,
         player_id: input.player_id,
+        player_name: input.player_name || "",
         shift_id: input.shift_id || null,
         created_by: user.id,
-      };
+      } as any;
 
       const result = await offlineMutation({
         table: "expenses",
