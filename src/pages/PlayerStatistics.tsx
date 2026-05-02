@@ -329,6 +329,17 @@ const PlayerStatistics = () => {
           <td className="px-2 py-1.5 font-mono text-xs text-right">
             {r.out > 0 ? formatCurrency(r.out) : "·"}
           </td>
+          <td className="px-2 py-1.5 font-mono text-xs text-right text-success">
+            {r.chipIn > 0 ? formatCurrency(r.chipIn) : "·"}
+          </td>
+          <td className="px-2 py-1.5 font-mono text-xs text-right text-destructive">
+            {r.chipOut > 0 ? formatCurrency(r.chipOut) : "·"}
+          </td>
+          <td className={`px-2 py-1.5 font-mono text-xs text-right ${
+            r.chipDelta > 0 ? "cms-amount-positive" : r.chipDelta < 0 ? "cms-amount-negative" : ""
+          }`}>
+            {r.chipDelta !== 0 ? `${r.chipDelta > 0 ? "+" : ""}${formatCurrency(r.chipDelta)}` : "·"}
+          </td>
           <td className={`px-2 py-1.5 font-mono text-xs text-right font-bold ${
             r.result > 0 ? "cms-amount-positive" : r.result < 0 ? "cms-amount-negative" : ""
           }`}>
@@ -336,7 +347,33 @@ const PlayerStatistics = () => {
           </td>
         </>
       )}
+      {canTransfer && (
+        <td className="px-2 py-1.5 text-right">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 w-6 p-0"
+            title="Chip Transfer"
+            onClick={(e) => {
+              e.stopPropagation();
+              setTransferPlayer({
+                id: r.playerId,
+                first_name: r.firstName,
+                last_name: r.lastName,
+                nickname: r.nickname,
+              });
+            }}
+          >
+            <ArrowLeftRight className="w-3.5 h-3.5" />
+          </Button>
+        </td>
+      )}
     </tr>
+  );
+
+  const presentPlayerIds = useMemo(
+    () => new Set(rows.filter((r: any) => r.isPresent).map((r: any) => r.playerId)),
+    [rows]
   );
 
   return (
