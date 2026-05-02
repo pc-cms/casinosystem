@@ -279,41 +279,6 @@ const Tables = () => {
         </div>
       </div>
 
-      {/* Result Summary Banner */}
-      {hasResults && (
-        <div className="cms-panel p-4 mb-4 border-success/30">
-          <p className="text-xs font-semibold text-card-foreground mb-2">📊 Table Results (waiting for Cashier to close)</p>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
-            {tablesWithResults.map(t => (
-              <div key={t.id} className="p-2 rounded bg-muted/30 text-center">
-                <p className="text-xs font-medium text-card-foreground">{t.name}</p>
-                <p className={`font-mono text-sm font-bold ${Number(t.closing_result) >= 0 ? "text-success" : "text-destructive"}`}>
-                  {Number(t.closing_result) >= 0 ? "+" : ""}{formatCurrency(Number(t.closing_result))}
-                </p>
-              </div>
-            ))}
-          </div>
-          <p className="text-[10px] text-muted-foreground mt-2">
-            Total chip result: <span className="font-mono font-bold">{formatCurrency(tablesWithResults.reduce((s, t) => s + Number(t.closing_result || 0), 0))}</span>
-          </p>
-        </div>
-      )}
-
-      {/* Two-column Table Cards */}
-      <div className="grid grid-cols-2 gap-6 mb-6">
-        <div className="space-y-3">
-          <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-1 border-b border-border pb-1">AR / BJ</h3>
-          {leftTables.map(renderTableCard)}
-          {leftTables.length === 0 && <p className="text-xs text-muted-foreground text-center py-4">No AR/BJ tables</p>}
-        </div>
-        <div className="space-y-3">
-          <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-1 border-b border-border pb-1">Poker</h3>
-          {rightTables.map(renderTableCard)}
-          {rightTables.length === 0 && <p className="text-xs text-muted-foreground text-center py-4">No Poker tables</p>}
-        </div>
-      </div>
-      {tables.length === 0 && <p className="text-muted-foreground text-sm text-center py-8">No tables configured</p>}
-
       {/* Chip Count inline panel — tables as rows, denominations as columns */}
       {showCount && (
         <div className="cms-panel mb-4 border-primary/30">
@@ -331,8 +296,6 @@ const Tables = () => {
               </Button>
             </div>
           </div>
-
-          {/* Visible denominations (any table uses them) */}
           {(() => {
             const visibleDenoms = CHIP_DENOMS.filter(d =>
               countLocations.some(loc => loc.denoms.includes(d))
@@ -416,6 +379,40 @@ const Tables = () => {
           })()}
         </div>
       )}
+
+      {hasResults && (
+        <div className="cms-panel p-4 mb-4 border-success/30">
+          <p className="text-xs font-semibold text-card-foreground mb-2">📊 Table Results (waiting for Cashier to close)</p>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
+            {tablesWithResults.map(t => (
+              <div key={t.id} className="p-2 rounded bg-muted/30 text-center">
+                <p className="text-xs font-medium text-card-foreground">{t.name}</p>
+                <p className={`font-mono text-sm font-bold ${Number(t.closing_result) >= 0 ? "text-success" : "text-destructive"}`}>
+                  {Number(t.closing_result) >= 0 ? "+" : ""}{formatCurrency(Number(t.closing_result))}
+                </p>
+              </div>
+            ))}
+          </div>
+          <p className="text-[10px] text-muted-foreground mt-2">
+            Total chip result: <span className="font-mono font-bold">{formatCurrency(tablesWithResults.reduce((s, t) => s + Number(t.closing_result || 0), 0))}</span>
+          </p>
+        </div>
+      )}
+
+      {/* Two-column Table Cards */}
+      <div className="grid grid-cols-2 gap-6 mb-6">
+        <div className="space-y-3">
+          <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-1 border-b border-border pb-1">AR / BJ</h3>
+          {leftTables.map(renderTableCard)}
+          {leftTables.length === 0 && <p className="text-xs text-muted-foreground text-center py-4">No AR/BJ tables</p>}
+        </div>
+        <div className="space-y-3">
+          <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-1 border-b border-border pb-1">Poker</h3>
+          {rightTables.map(renderTableCard)}
+          {rightTables.length === 0 && <p className="text-xs text-muted-foreground text-center py-4">No Poker tables</p>}
+        </div>
+      </div>
+      {tables.length === 0 && <p className="text-muted-foreground text-sm text-center py-8">No tables configured</p>}
 
       {/* Close Table Wizard */}
       <CloseTableWizard
