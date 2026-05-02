@@ -58,8 +58,14 @@ const PlayerProfile = () => {
   const canSeeNotes = roles.some(r => ["pit", "surveillance", "manager"].includes(r)) || isManager;
   const { data: notes = [] } = usePlayerNotes(id, canSeeNotes);
 
-  const [preset, setPreset] = useState<DatePreset>("month");
-  const [range, setRange] = useState(() => presetRange("month"));
+  // Pit / Cashier / Reception are restricted to the current business day
+  // unless the Manager Access override is active.
+  const { restrictedToToday, businessDate } = useBusinessDayFilter();
+  const initialPreset: DatePreset = restrictedToToday ? "today" : "month";
+  const [preset, setPreset] = useState<DatePreset>(initialPreset);
+  const [range, setRange] = useState(() => restrictedToToday
+    ? { from: businessDate!, to: businessDate! }
+    : presetRange("month"));
   const { data: sessions = [] } = usePlayerSessions(id, range);
 
   const [editOpen, setEditOpen] = useState(false);
