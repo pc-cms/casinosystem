@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { getBusinessDate, isBusinessToday, timeToMinutes } from "@/lib/business-day";
 import { chipSum, calcCashTotalTzs, calcGrandTotal, emptyMobile, emptyBanks, emptyCash } from "@/components/cage/CageHelpers";
 import { cashSum } from "@/components/cage/CashDenomInput";
+import { chipSnapshotResult } from "@/lib/table-live-result";
 
 // ============ business-day.ts ============
 describe("getBusinessDate", () => {
@@ -83,5 +84,16 @@ describe("empty helpers", () => {
     const b = emptyBanks();
     expect(b.tzs).toBe(0);
     expect(b.usd).toBe(0);
+  });
+});
+
+describe("chipSnapshotResult", () => {
+  it("calculates every snapshot from the saved baseline, not from a newer baseline", () => {
+    const actual = { 100000: 103, 5000: 101 };
+    const savedBaseline = { 100000: 100, 5000: 100 };
+    const newerBaseline = { 100000: 120, 5000: 100 };
+
+    expect(chipSnapshotResult(actual, savedBaseline)).toBe(305000);
+    expect(chipSnapshotResult(actual, newerBaseline)).toBe(-1695000);
   });
 });
