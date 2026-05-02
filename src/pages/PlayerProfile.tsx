@@ -3,6 +3,7 @@ import { useNavigate, useParams, Link } from "react-router-dom";
 import { ArrowLeft, ArrowLeftRight, User, Users as UsersIcon, BarChart3, Ticket, Trophy, History, MapPin, Gift, CalendarDays } from "lucide-react";
 import ChipTransferDialog from "@/components/player/ChipTransferDialog";
 import PlayerVisitsBreakdown from "@/components/player/PlayerVisitsBreakdown";
+import PlayerChipTransfersLog from "@/components/player/PlayerChipTransfersLog";
 import { canSeePlayerFinancials } from "@/lib/role-access";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { Button } from "@/components/ui/button";
@@ -549,6 +550,12 @@ const PlayerProfile = () => {
               showFinancials={canSeePlayerFinancials(roles)}
             />
           </PageSection>
+
+          {canSeePlayerFinancials(roles) && id && (
+            <PageSection card title="Chip Transfers (lifetime)">
+              <PlayerChipTransfersLog playerId={id} />
+            </PageSection>
+          )}
         </TabsContent>
 
         {/* TAB 2 — Statistics */}
