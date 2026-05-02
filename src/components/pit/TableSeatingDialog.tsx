@@ -78,6 +78,10 @@ const TableSeatingDialog = ({
 
   if (!table) return null;
   const isClosed = table.status === "closed";
+  const isRoulette = /roulette/i.test(table.game);
+  const betPresets = isRoulette
+    ? [1000, 2000, 5000, 10000, 25000, 50000]
+    : [10000, 20000, 50000, 100000, 200000];
 
   const submitPlace = () => {
     if (!pickPlayerId || !pickBet) return;
@@ -194,12 +198,31 @@ const TableSeatingDialog = ({
               </div>
             )}
             {pickPlayerId && (
-              <div className="flex items-center gap-2 pt-1">
-                <label className="text-xs text-muted-foreground shrink-0">Avg Bet:</label>
-                <NumberInput value={pickBet} onChange={setPickBet} placeholder="e.g. 5 000" className="w-40" />
-                <Button size="sm" onClick={submitPlace} disabled={!pickBet || Number(pickBet) <= 0 || isPending} className="gap-1">
-                  <Play className="w-3.5 h-3.5" /> Seat
-                </Button>
+              <div className="space-y-1.5 pt-1">
+                <div className="flex items-center gap-2">
+                  <label className="text-xs text-muted-foreground shrink-0">Avg Bet:</label>
+                  <NumberInput value={pickBet} onChange={setPickBet} placeholder="e.g. 5 000" className="w-40" />
+                  <Button size="sm" onClick={submitPlace} disabled={!pickBet || Number(pickBet) <= 0 || isPending} className="gap-1">
+                    <Play className="w-3.5 h-3.5" /> Seat
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  {betPresets.map(v => (
+                    <button
+                      key={v}
+                      type="button"
+                      onClick={() => setPickBet(String(v))}
+                      className={cn(
+                        "px-2 py-0.5 rounded border text-[10px] font-mono transition-colors",
+                        Number(pickBet) === v
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border bg-background hover:bg-muted/50"
+                      )}
+                    >
+                      {formatNumberSpaces(v)}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
           </section>
@@ -236,12 +259,31 @@ const TableSeatingDialog = ({
               ))}
             </div>
             {movePlayerId && (
-              <div className="flex items-center gap-2 pt-1">
-                <label className="text-xs text-muted-foreground shrink-0">New avg bet:</label>
-                <NumberInput value={moveBet} onChange={setMoveBet} placeholder="e.g. 5 000" className="w-40" />
-                <Button size="sm" onClick={submitMove} disabled={!moveBet || Number(moveBet) <= 0 || isPending} className="gap-1">
-                  <ArrowRight className="w-3.5 h-3.5" /> Move
-                </Button>
+              <div className="space-y-1.5 pt-1">
+                <div className="flex items-center gap-2">
+                  <label className="text-xs text-muted-foreground shrink-0">New avg bet:</label>
+                  <NumberInput value={moveBet} onChange={setMoveBet} placeholder="e.g. 5 000" className="w-40" />
+                  <Button size="sm" onClick={submitMove} disabled={!moveBet || Number(moveBet) <= 0 || isPending} className="gap-1">
+                    <ArrowRight className="w-3.5 h-3.5" /> Move
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  {betPresets.map(v => (
+                    <button
+                      key={v}
+                      type="button"
+                      onClick={() => setMoveBet(String(v))}
+                      className={cn(
+                        "px-2 py-0.5 rounded border text-[10px] font-mono transition-colors",
+                        Number(moveBet) === v
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border bg-background hover:bg-muted/50"
+                      )}
+                    >
+                      {formatNumberSpaces(v)}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
           </section>
