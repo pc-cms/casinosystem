@@ -42,14 +42,17 @@ const PlayerStatistics = () => {
   const { data: players = [] } = usePlayers();
   const { data: tables = [] } = useGamingTables();
   const { data: transactions = [] } = useTransactions(today);
+  const { data: chipTransfers = [] } = useChipTransfers(today);
 
   const [tab, setTab] = useState<TabKey>("day");
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<Set<PlayerCategory>>(
     new Set(["diamond", "platinum", "gold", "normal"])
   );
+  const [transferPlayer, setTransferPlayer] = useState<{ id: string; first_name: string; last_name: string; nickname?: string | null } | null>(null);
 
   const showFinancials = canSeePlayerFinancials(roles);
+  const canTransfer = roles.some(r => ["pit", "manager", "super_admin"].includes(r));
 
   const { data: visits = [] } = useQuery({
     queryKey: ["casino_visits", casinoId, today],
