@@ -206,7 +206,9 @@
       inset 0 0 0 1px hsl(0 0% 0% / 0.25),
       0 1px 2px hsl(0 0% 0% / 0.25);
   }
-  /* Inner disk = solid bg with thin gold ring; sits above conic-gradient rim */
+  /* Establish stacking context so ::before stays under the text content */
+  .cms-chip-token { isolation: isolate; }
+  /* Inner disk = solid bg with thin gold ring; sits above conic-gradient rim, BELOW text */
   .cms-chip-token::before {
     content: "";
     position: absolute;
@@ -214,18 +216,12 @@
     border-radius: 9999px;
     background: var(--chip-bg);
     box-shadow: inset 0 0 0 1px hsl(45 80% 55% / 0.85);
-    z-index: 0;
+    z-index: -1;
   }
-  /* Label sits above the inner disk — covers both wrapped (<span>) and bare text nodes */
+  /* Defensive: if a child element wraps the label, keep it above too */
   .cms-chip-token > * {
     position: relative;
     z-index: 1;
-  }
-  .cms-chip-token {
-    isolation: isolate;
-  }
-  .cms-chip-token::after {
-    /* Force text content above ::before disk via stacking context on the element itself */
   }
   .cms-chip-token-lg {
     width: 2.75rem;   /* 44px — fullscreen / lg surfaces */
