@@ -168,17 +168,7 @@ const ActiveShiftView = ({ shift, players, tables }: {
       <div className="cms-panel p-2 mb-4">
         <div className="grid grid-cols-3 md:grid-cols-8 gap-2">
           <div>
-            <div className="flex items-center justify-between gap-1">
-              <p className="text-[9px] uppercase text-muted-foreground">Opening</p>
-              <button
-                type="button"
-                onClick={() => setShowEditChips(true)}
-                title="Edit opening chips (manager required)"
-                className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[9px] font-semibold uppercase bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
-              >
-                <Pencil className="w-2.5 h-2.5" /> Edit
-              </button>
-            </div>
+            <p className="text-[9px] uppercase text-muted-foreground">Opening</p>
             <p className="font-mono text-sm font-bold text-card-foreground">{formatCurrency(openingFloat)}</p>
           </div>
           <div><p className="text-[9px] uppercase text-muted-foreground">+ IN</p><p className="font-mono text-sm font-bold text-success">+{formatCurrency(totalIns)}</p></div>
