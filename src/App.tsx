@@ -168,21 +168,6 @@ const ProtectedRoutes = () => {
   }
   if (!user) return <Navigate to="/login" replace />;
 
-  // CCTV mode: surveillance role on premier subdomain gets dedicated interface
-  const isCctvMode = detectedSlug === "__premier__" && roles.includes("surveillance") &&
-    !roles.includes("super_admin") && !roles.includes("finance_manager");
-
-  if (isCctvMode) {
-    return (
-      <ErrorBoundary>
-        <Suspense fallback={<PageLoader />}>
-          <Routes>
-            <Route path="*" element={<CctvView />} />
-          </Routes>
-        </Suspense>
-      </ErrorBoundary>
-    );
-  }
 
   return (
     <ErrorBoundary>
