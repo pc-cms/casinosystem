@@ -227,12 +227,17 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
                             onChange={(e) => {
                               if (readOnly) return;
                               e.target.value = formatSignedInput(e.target.value);
+                              const n = parseSignedNumber(e.target.value);
+                              e.target.classList.remove("cms-amount-positive", "cms-amount-negative", "text-card-foreground");
+                              if (n > 0) e.target.classList.add("cms-amount-positive");
+                              else if (n < 0) e.target.classList.add("cms-amount-negative");
+                              else e.target.classList.add("text-card-foreground");
                             }}
                             onBlur={(e) => handleSave(table.id, slot, e.target.value)}
                             onKeyDown={(e) => handleKeyDown(e, ti, si)}
-                            className={`w-full h-9 text-center text-sm font-mono tabular-nums whitespace-nowrap bg-transparent border border-border rounded-md px-1 focus:border-primary focus:outline-none text-card-foreground ${
-                              isActive ? "border-primary/30" : ""
-                            } ${readOnly ? "cursor-not-allowed opacity-70" : ""}`}
+                            className={`w-full h-9 text-center text-sm font-mono tabular-nums whitespace-nowrap bg-transparent border border-border rounded-md px-1 focus:border-primary focus:outline-none ${
+                              val && val > 0 ? "cms-amount-positive" : val && val < 0 ? "cms-amount-negative" : "text-card-foreground"
+                            } ${isActive ? "border-primary/30" : ""} ${readOnly ? "cursor-not-allowed opacity-70" : ""}`}
                             placeholder="·"
                           />
                         </td>
