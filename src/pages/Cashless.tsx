@@ -197,11 +197,10 @@ const Cashless = () => {
                   </Select>
                 </td>
                 <td className="px-2 py-1.5">
-                  <Input
+                  <PlayerNameAutocomplete
                     placeholder="Player name"
                     value={d.player_name}
-                    onChange={e => updateDraft(d.uid, { player_name: e.target.value })}
-                    className="h-8 text-xs"
+                    onChange={v => updateDraft(d.uid, { player_name: v })}
                   />
                 </td>
                 <td className="px-2 py-1.5">
