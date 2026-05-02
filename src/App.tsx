@@ -17,7 +17,6 @@ import { useRealtimeSubscriptions } from "@/hooks/use-realtime";
 import { initSyncEngine } from "@/lib/sync-engine";
 import Login from "@/pages/Login";
 const Landing = lazy(() => import("@/pages/Landing"));
-const CctvView = lazy(() => import("@/pages/CctvView"));
 
 // Lazy-loaded pages — each becomes a separate chunk
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
@@ -85,23 +84,24 @@ const FullScreenLoader = ({ label = "Loading CMS..." }: { label?: string }) => (
   </div>
 );
 
-// Role-based route access map
+// Role-based route access map.
+// Surveillance gets a strict allow-list: Dashboard, Pit, Player Statistics, Cage, Blacklist, and the Player card.
 const ROUTE_ROLES: Record<string, string[]> = {
   "/": ["super_admin", "manager", "pit", "reception", "finance_manager", "surveillance"],
-  "/players": ["super_admin", "manager", "finance_manager", "surveillance"],
+  "/players": ["super_admin", "manager", "finance_manager"],
   "/players/:id": ["super_admin", "manager", "pit", "reception", "finance_manager", "surveillance"],
-  "/in-casino": ["super_admin", "manager", "reception", "finance_manager", "surveillance"],
+  "/in-casino": ["super_admin", "manager", "reception", "finance_manager"],
   "/blacklist": ["super_admin", "manager", "reception", "finance_manager", "surveillance"],
   "/reception": ["super_admin", "manager", "reception", "finance_manager"],
-  "/cage": ["super_admin", "manager", "cashier", "finance_manager"],
-  "/tables": ["super_admin", "manager", "cashier", "pit", "finance_manager", "surveillance"],
+  "/cage": ["super_admin", "manager", "cashier", "finance_manager", "surveillance"],
+  "/tables": ["super_admin", "manager", "cashier", "pit", "finance_manager"],
   "/active-players": ["super_admin", "manager", "pit", "finance_manager"],
-  "/player-statistics": ["super_admin", "manager", "pit", "finance_manager"],
+  "/player-statistics": ["super_admin", "manager", "pit", "finance_manager", "surveillance"],
   "/table-tracker": ["super_admin", "manager", "pit", "finance_manager"],
   "/tables/analytics": ["super_admin", "manager", "finance_manager", "pit"],
   "/expenses": ["super_admin", "manager", "cashier", "finance_manager"],
   "/cashless": ["super_admin", "manager", "cashier", "finance_manager"],
-  "/pit": ["super_admin", "manager", "pit", "finance_manager", "hr"],
+  "/pit": ["super_admin", "manager", "pit", "finance_manager", "hr", "surveillance"],
   "/floor": ["super_admin", "manager", "pit", "finance_manager", "hr"],
   "/groups": ["super_admin", "manager", "finance_manager"],
   "/finance": ["super_admin", "manager", "finance_manager"],
@@ -113,15 +113,14 @@ const ROUTE_ROLES: Record<string, string[]> = {
   "/finance/cash-count": ["super_admin", "manager", "finance_manager"],
   "/finance/summary": ["super_admin", "finance_manager"],
   "/finance/transfers": ["super_admin", "finance_manager"],
-  "/reports": ["super_admin", "manager", "finance_manager", "surveillance"],
-  
-  "/logs": ["super_admin", "manager", "finance_manager", "surveillance"],
+  "/reports": ["super_admin", "manager", "finance_manager"],
+  "/logs": ["super_admin", "manager", "finance_manager"],
   "/admin": ["super_admin", "manager"],
   "/import-reports": ["super_admin", "manager"],
-  "/table-results": ["super_admin", "manager", "finance_manager", "surveillance"],
+  "/table-results": ["super_admin", "manager", "finance_manager"],
   "/staff": ["super_admin", "manager", "pit", "finance_manager", "hr"],
   "/bank-checks": ["super_admin", "manager", "finance_manager"],
-  "/miss-chips": ["super_admin", "manager", "finance_manager", "surveillance"],
+  "/miss-chips": ["super_admin", "manager", "finance_manager"],
 };
 
 const RoleGuard = ({ path, children }: { path: string; children: React.ReactNode }) => {
