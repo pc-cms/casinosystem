@@ -14,7 +14,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Check, Lock, ChevronLeft, ChevronRight, ShieldAlert, X } from "lucide-react";
-import { CHIP_COLORS, formatChipLabel, formatCurrency } from "@/lib/currency";
+import { formatChipLabel, formatCurrency } from "@/lib/currency";
+import { useChipColors, resolveChipColor } from "@/hooks/use-chip-colors";
 import { useChipBaseline, useSetSingleTableResult, useReopenSingleTable, useCloseAllTables, baselineToMap } from "@/hooks/use-table-lifecycle";
 import { useChipSnapshots } from "@/hooks/use-chips";
 import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
@@ -51,6 +52,7 @@ export const CloseTableWizard = ({ open, onClose, tables, date }: Props) => {
 
   const { data: baseline = [] } = useChipBaseline();
   const { data: snapshots = [] } = useChipSnapshots(date);
+  const { data: chipColorOverrides } = useChipColors();
   const baselineMap = useMemo(() => baselineToMap(baseline), [baseline]);
   const setSingleResult = useSetSingleTableResult();
   const reopenSingle = useReopenSingleTable();
@@ -292,9 +294,11 @@ export const CloseTableWizard = ({ open, onClose, tables, date }: Props) => {
                         return (
                           <tr key={d} className="border-b border-border/50 last:border-0">
                             <td className="py-1.5 px-2">
-                              <span className={`cms-chip text-[9px] ${CHIP_COLORS[d] || "bg-muted text-foreground"}`}>
-                                {formatChipLabel(d)}
-                              </span>
+                              {(() => { const c = resolveChipColor(d, chipColorOverrides); return (
+                                <span className="cms-chip text-[9px]" style={{ backgroundColor: c.bg, color: c.text }}>
+                                  {formatChipLabel(d)}
+                                </span>
+                              ); })()}
                             </td>
                             <td className="py-1.5 px-2 text-center font-mono text-[11px] text-muted-foreground">
                               {expected}

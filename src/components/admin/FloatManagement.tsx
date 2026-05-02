@@ -8,7 +8,8 @@ import { useChipBaseline, useUpsertBaseline, useCasinoInfo, useLockFloat } from 
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CHIP_DENOMS, CHIP_COLORS, formatChipLabel, formatCurrency } from "@/lib/currency";
+import { CHIP_DENOMS, formatChipLabel, formatCurrency } from "@/lib/currency";
+import { useChipColors, resolveChipColor } from "@/hooks/use-chip-colors";
 import { Lock, Save, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
@@ -25,6 +26,7 @@ const FloatManagement = () => {
   const { data: tables = [] } = useGamingTables();
   const { data: baseline = [] } = useChipBaseline();
   const { data: casinoInfo } = useCasinoInfo();
+  const { data: chipColorOverrides } = useChipColors();
   const upsertBaseline = useUpsertBaseline();
   const lockFloat = useLockFloat();
   const { casinoId } = useAuth();
@@ -175,9 +177,11 @@ const FloatManagement = () => {
                 return (
                   <tr key={d} className="border-b border-border last:border-0">
                     <td className="py-1 px-3 sticky left-0 bg-card z-10">
-                      <span className={`cms-chip text-[8px] ${CHIP_COLORS[d] || "bg-muted text-foreground"}`}>
-                        {formatChipLabel(d)}
-                      </span>
+                      {(() => { const c = resolveChipColor(d, chipColorOverrides); return (
+                        <span className="cms-chip text-[8px]" style={{ backgroundColor: c.bg, color: c.text }}>
+                          {formatChipLabel(d)}
+                        </span>
+                      ); })()}
                     </td>
                     {locations.map(loc => {
                       if (!loc.denoms.includes(d)) {

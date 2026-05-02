@@ -4,8 +4,9 @@ import { Save, Maximize2, Minimize2 } from "lucide-react";
 import { useChipSnapshots, useBatchChipSnapshot } from "@/hooks/use-chips";
 import { useChipBaseline, baselineToMap } from "@/hooks/use-table-lifecycle";
 import { useGamingTables } from "@/hooks/use-casino-data";
-import { CHIP_DENOMS, CHIP_COLORS, formatChipLabel, formatCurrency } from "@/lib/currency";
+import { CHIP_DENOMS, formatChipLabel, formatCurrency } from "@/lib/currency";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { useChipColors, resolveChipColor } from "@/hooks/use-chip-colors";
 
 interface ChipCountPanelProps {
   date: string;
@@ -19,6 +20,7 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
   const { data: tables = [] } = useGamingTables();
   const { data: snapshots = [] } = useChipSnapshots(date);
   const { data: baseline = [] } = useChipBaseline();
+  const { data: chipColorOverrides } = useChipColors();
   const batchSnapshot = useBatchChipSnapshot();
 
   const baselineMap = useMemo(() => baselineToMap(baseline), [baseline]);
@@ -114,32 +116,32 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
     // Tokens: на fullscreen всё крупнее. Колонки чипов имеют min-width чтобы label не переносился.
     const t = full
       ? {
-          chipText: "text-[11px]",
-          chipPad: "px-2 py-1",
+          chipText: "text-[10px]",
+          chipPad: "px-1.5 py-0.5",
           inputH: "h-10",
           inputText: "text-sm",
-          firstColW: "minmax(140px, 200px)",
-          chipColW: "minmax(96px, 1fr)",
-          resultColW: "minmax(140px, 180px)",
-          rowPadX: "px-2",
+          firstColW: "150px",
+          chipColW: "72px",
+          resultColW: "150px",
+          rowPadX: "px-1.5",
           rowPadY: "py-1.5",
           headerPadY: "py-3",
           totalText: "text-base",
           resultText: "text-sm",
         }
       : {
-          chipText: "text-[10px]",
-          chipPad: "px-1.5 py-0.5",
-          inputH: "h-9",
-          inputText: "text-sm",
-          firstColW: "minmax(110px, 140px)",
-          chipColW: "minmax(78px, 1fr)",
-          resultColW: "minmax(110px, 140px)",
-          rowPadX: "px-1.5",
+          chipText: "text-[9px]",
+          chipPad: "px-1 py-0.5",
+          inputH: "h-8",
+          inputText: "text-xs",
+          firstColW: "110px",
+          chipColW: "56px",
+          resultColW: "120px",
+          rowPadX: "px-1",
           rowPadY: "py-1",
-          headerPadY: "py-2.5",
+          headerPadY: "py-2",
           totalText: "text-sm",
-          resultText: "text-sm",
+          resultText: "text-xs",
         };
 
     return (
@@ -166,28 +168,32 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
           </div>
         </div>
         <div className={`overflow-auto ${full ? "flex-1" : ""}`}>
-          <table className="border-collapse w-full" style={{ tableLayout: "fixed" }}>
+          <table className="border-collapse w-full">
             <colgroup>
-              <col style={{ width: t.firstColW.split(",")[0].replace("minmax(", "").trim() }} />
+              <col style={{ width: t.firstColW }} />
               {visibleDenoms.map(d => (
-                <col key={d} style={{ minWidth: t.chipColW.split(",")[0].replace("minmax(", "").trim() }} />
+                <col key={d} style={{ width: t.chipColW }} />
               ))}
-              <col style={{ width: t.resultColW.split(",")[0].replace("minmax(", "").trim() }} />
+              <col style={{ width: t.resultColW }} />
             </colgroup>
             <thead>
               <tr className="border-b border-border">
                 <th className={`text-left ${t.headerPadY} px-2 text-muted-foreground font-medium sticky left-0 bg-card z-10 text-xs uppercase tracking-wider`}>
                   Table
                 </th>
-                {visibleDenoms.map(d => (
-                  <th key={d} className={`text-center ${t.headerPadY} px-1 font-medium`}>
-                    <span
-                      className={`inline-flex items-center justify-center rounded-full font-bold whitespace-nowrap ring-1 ring-[hsl(45_75%_52%/0.85)] ${t.chipText} ${t.chipPad} ${CHIP_COLORS[d] || "bg-muted text-foreground"}`}
-                    >
-                      {formatChipLabel(d)}
-                    </span>
-                  </th>
-                ))}
+                {visibleDenoms.map(d => {
+                  const c = resolveChipColor(d, chipColorOverrides);
+                  return (
+                    <th key={d} className={`text-center ${t.headerPadY} px-0.5 font-medium`}>
+                      <span
+                        className={`inline-flex items-center justify-center rounded-full font-bold whitespace-nowrap ring-1 ring-[hsl(45_75%_52%/0.85)] ${t.chipText} ${t.chipPad}`}
+                        style={{ backgroundColor: c.bg, color: c.text }}
+                      >
+                        {formatChipLabel(d)}
+                      </span>
+                    </th>
+                  );
+                })}
                 <th className={`text-right ${t.headerPadY} px-2 text-muted-foreground font-medium text-xs uppercase tracking-wider`}>Result</th>
               </tr>
             </thead>
