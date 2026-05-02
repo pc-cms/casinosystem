@@ -8,6 +8,7 @@ import { CHIP_DENOMS, formatChipLabel, formatCurrency } from "@/lib/currency";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useChipColors, resolveChipColor } from "@/hooks/use-chip-colors";
 import { nowEAT } from "@/lib/business-day";
+import { chipSnapshotResult } from "@/lib/table-live-result";
 
 /** Compute the Number-Count tracker slot for a Chip Count taken at the given EAT time.
  *  Window: HH:50–HH+1:10 → slot HH+1:00. Otherwise null (no auto-write).
@@ -54,18 +55,19 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
   }, [openTables]);
 
   const latestSnapshotPerTable = useMemo(() => {
-    const map: Record<string, Record<number, number>> = {};
+    const map: Record<string, { actual: Record<number, number>; expected: Record<number, number> }> = {};
     const sorted = [...snapshots].sort((a, b) => (a.created_at || "").localeCompare(b.created_at || ""));
     sorted.forEach((s: any) => {
       if (s.location_type !== "table" || !s.location_id) return;
-      if (!map[s.location_id]) map[s.location_id] = {};
-      map[s.location_id][Number(s.denomination)] = Number(s.actual_quantity);
+      if (!map[s.location_id]) map[s.location_id] = { actual: {}, expected: {} };
+      map[s.location_id].actual[Number(s.denomination)] = Number(s.actual_quantity);
+      map[s.location_id].expected[Number(s.denomination)] = Number(s.expected_quantity);
     });
     return map;
   }, [snapshots]);
 
   const getDefault = (tableId: string, denom: number): number => {
-    const snap = latestSnapshotPerTable[tableId]?.[denom];
+    const snap = latestSnapshotPerTable[tableId]?.actual[denom];
     if (snap !== undefined) return snap;
     return baselineMap[tableId]?.[denom] ?? 0;
   };
@@ -303,17 +305,24 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
 
   // ===== Snapshot history (per save = group of rows sharing created_at) =====
   const history = useMemo(() => {
-    const groups: Record<string, { ts: string; perTable: Record<string, number>; total: number }> = {};
+    const groups: Record<string, { ts: string; perTableDenoms: Record<string, { actual: Record<number, number>; expected: Record<number, number> }> }> = {};
     snapshots.forEach((s: any) => {
       if (s.location_type !== "table" || !s.location_id) return;
       const ts = s.created_at;
-      if (!groups[ts]) groups[ts] = { ts, perTable: {}, total: 0 };
-      const expected = baselineMap[s.location_id]?.[Number(s.denomination)] ?? Number(s.expected_quantity || 0);
-      const delta = (Number(s.actual_quantity) - expected) * Number(s.denomination);
-      groups[ts].perTable[s.location_id] = (groups[ts].perTable[s.location_id] || 0) + delta;
-      groups[ts].total += delta;
+      if (!groups[ts]) groups[ts] = { ts, perTableDenoms: {} };
+      if (!groups[ts].perTableDenoms[s.location_id]) {
+        groups[ts].perTableDenoms[s.location_id] = { actual: {}, expected: {} };
+      }
+      groups[ts].perTableDenoms[s.location_id].actual[Number(s.denomination)] = Number(s.actual_quantity);
+      groups[ts].perTableDenoms[s.location_id].expected[Number(s.denomination)] = Number(s.expected_quantity);
     });
-    return Object.values(groups).sort((a, b) => b.ts.localeCompare(a.ts));
+    return Object.values(groups).map(g => {
+      const perTable: Record<string, number> = {};
+      Object.entries(g.perTableDenoms).forEach(([tableId, denoms]) => {
+        perTable[tableId] = chipSnapshotResult(denoms.actual, denoms.expected);
+      });
+      return { ts: g.ts, perTable, total: Object.values(perTable).reduce((s, v) => s + v, 0) };
+    }).sort((a, b) => b.ts.localeCompare(a.ts));
   }, [snapshots, baselineMap]);
 
   return (

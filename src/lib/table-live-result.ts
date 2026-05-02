@@ -51,7 +51,7 @@ export const latestTrackerTime = (trackerData: TrackerRow[], tableId: string) =>
  * Chip Count share a created_at).
  */
 export const buildLatestTableSnapshot = (snapshots: SnapshotRow[]) => {
-  const map: Record<string, { latestTime: string; perDenom: Record<number, number> }> = {};
+  const map: Record<string, { latestTime: string; perDenom: Record<number, number>; expectedPerDenom: Record<number, number> }> = {};
   // Sort ascending by time so later writes overwrite.
   const sorted = [...snapshots].sort((a, b) => (a.created_at || "").localeCompare(b.created_at || ""));
   sorted.forEach(s => {
@@ -61,11 +61,12 @@ export const buildLatestTableSnapshot = (snapshots: SnapshotRow[]) => {
     if (!cur || t > cur.latestTime) {
       // New (later) batch — reset per-denom to only this batch's rows
       if (!cur || t > cur.latestTime) {
-        map[s.location_id] = { latestTime: t, perDenom: {} };
+        map[s.location_id] = { latestTime: t, perDenom: {}, expectedPerDenom: {} };
       }
     }
     if (map[s.location_id].latestTime === t) {
       map[s.location_id].perDenom[Number(s.denomination)] = Number(s.actual_quantity);
+      map[s.location_id].expectedPerDenom[Number(s.denomination)] = Number(s.expected_quantity);
     }
   });
   return map;
@@ -114,7 +115,7 @@ export const liveTableResult = ({
   const trackerTime = latestTrackerTime(trackerData, tableId);
   // Chip Count overrides Tracker only if it was taken AFTER the last tracker entry.
   if (snap.latestTime && snap.latestTime > trackerTime) {
-    return chipSnapshotResult(snap.perDenom, baselineMap[tableId] || {});
+    return chipSnapshotResult(snap.perDenom, snap.expectedPerDenom || baselineMap[tableId] || {});
   }
   return trackerSum;
 };

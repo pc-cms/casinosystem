@@ -9,6 +9,7 @@ import { useChipSnapshots } from "@/hooks/use-chips";
 import { useChipBaseline, baselineToMap } from "@/hooks/use-table-lifecycle";
 import { formatCurrency } from "@/lib/currency";
 import { useBusinessDayFilter } from "@/hooks/use-business-day-filter";
+import { chipSnapshotResult } from "@/lib/table-live-result";
 import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, Legend, ReferenceLine,
 } from "recharts";
@@ -49,19 +50,24 @@ const TablesAnalytics = () => {
   // Each unique created_at = one save event = one X point.
   // Per-table value = delta from baseline at that snapshot.
   const snapshotPoints = useMemo(() => {
-    const groups: Record<string, Record<string, number>> = {}; // ts -> tableId -> delta
+    const groups: Record<string, Record<string, { actual: Record<number, number>; expected: Record<number, number> }>> = {};
     snapshots.forEach((s: any) => {
       if (s.location_type !== "table" || !s.location_id) return;
       const ts = s.created_at;
       if (!groups[ts]) groups[ts] = {};
-      const expected = baselineMap[s.location_id]?.[Number(s.denomination)] ?? Number(s.expected_quantity || 0);
-      const delta = (Number(s.actual_quantity) - expected) * Number(s.denomination);
-      groups[ts][s.location_id] = (groups[ts][s.location_id] || 0) + delta;
+      if (!groups[ts][s.location_id]) groups[ts][s.location_id] = { actual: {}, expected: {} };
+      groups[ts][s.location_id].actual[Number(s.denomination)] = Number(s.actual_quantity);
+      groups[ts][s.location_id].expected[Number(s.denomination)] = Number(s.expected_quantity);
     });
     return Object.entries(groups)
-      .map(([ts, perTable]) => ({ ts, perTable }))
+      .map(([ts, perTableDenoms]) => ({
+        ts,
+        perTable: Object.fromEntries(
+          Object.entries(perTableDenoms).map(([tableId, denoms]) => [tableId, chipSnapshotResult(denoms.actual, denoms.expected)])
+        ) as Record<string, number>,
+      }))
       .sort((a, b) => a.ts.localeCompare(b.ts));
-  }, [snapshots, baselineMap]);
+  }, [snapshots]);
 
   // Tracker (Number Count) entries — one point per (table, slot)
   const trackerPoints = useMemo(() => {
