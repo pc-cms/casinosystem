@@ -212,6 +212,7 @@ export default function PlayerVisitsBreakdown({ visits, transactions, expenses, 
                 {moOpen && mo.weeks.map((wk) => {
                   const wkOpen = openWeeks[wk.weekKey] ?? false;
                   const wkRes = result(wk.agg);
+                  const wkTot = total(wk.agg);
                   return (
                     <Fragment key={wk.weekKey}>
                       <tr
@@ -229,15 +230,19 @@ export default function PlayerVisitsBreakdown({ visits, transactions, expenses, 
                         {showFinancials && <>
                           <td className="py-1.5 px-2 text-right font-mono text-xs">{wk.agg.drop ? fmtMoney(wk.agg.drop) : dot}</td>
                           <td className="py-1.5 px-2 text-right font-mono text-xs">{wk.agg.out ? fmtMoney(wk.agg.out) : dot}</td>
-                          <td className="py-1.5 px-2 text-right font-mono text-xs">{wk.agg.comps ? fmtMoney(wk.agg.comps) : dot}</td>
                           <td className={`py-1.5 px-2 text-right font-mono text-xs ${wkRes === 0 ? "text-muted-foreground" : wkRes > 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
                             {wkRes === 0 ? "·" : fmtMoney(wkRes)}
+                          </td>
+                          <td className="py-1.5 px-2 text-right font-mono text-xs">{wk.agg.comps ? fmtMoney(wk.agg.comps) : dot}</td>
+                          <td className={`py-1.5 px-2 text-right font-mono text-xs ${wkTot === 0 ? "text-muted-foreground" : wkTot > 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
+                            {wkTot === 0 ? "·" : fmtMoney(wkTot)}
                           </td>
                         </>}
                       </tr>
 
                       {wkOpen && wk.days.map((day) => {
                         const dRes = result(day.agg);
+                        const dTot = total(day.agg);
                         return (
                           <tr key={day.dayKey} className="border-t border-border/30 hover:bg-muted/15">
                             <td className="py-1 pl-12 pr-2 text-xs font-mono text-muted-foreground">
@@ -254,9 +259,12 @@ export default function PlayerVisitsBreakdown({ visits, transactions, expenses, 
                             {showFinancials && <>
                               <td className="py-1 px-2 text-right font-mono text-xs">{day.agg.drop ? fmtMoney(day.agg.drop) : dot}</td>
                               <td className="py-1 px-2 text-right font-mono text-xs">{day.agg.out ? fmtMoney(day.agg.out) : dot}</td>
-                              <td className="py-1 px-2 text-right font-mono text-xs">{day.agg.comps ? fmtMoney(day.agg.comps) : dot}</td>
                               <td className={`py-1 px-2 text-right font-mono text-xs ${dRes === 0 ? "text-muted-foreground" : dRes > 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
                                 {dRes === 0 ? "·" : fmtMoney(dRes)}
+                              </td>
+                              <td className="py-1 px-2 text-right font-mono text-xs">{day.agg.comps ? fmtMoney(day.agg.comps) : dot}</td>
+                              <td className={`py-1 px-2 text-right font-mono text-xs ${dTot === 0 ? "text-muted-foreground" : dTot > 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
+                                {dTot === 0 ? "·" : fmtMoney(dTot)}
                               </td>
                             </>}
                           </tr>
