@@ -93,7 +93,7 @@ const Expenses = () => {
         </div>
         <div className="cms-panel p-3">
           <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Pending</p>
-          <p className="font-mono text-lg font-bold text-accent">{formatCurrency(analytics.pendingAmount)}</p>
+          <p className="font-mono text-lg font-bold text-accent">{analytics.pendingCount}</p>
         </div>
       </div>
 
