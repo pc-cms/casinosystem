@@ -154,7 +154,18 @@ const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }
         setActiveCell(null);
         return;
       }
-      const slotsToFill = TIME_SLOTS.slice(startIdx);
+      // Only fill EMPTY slots from current onwards; existing assignments are preserved.
+      const occupied = new Set(
+        breaklist
+          .filter((b: any) => b.dealer_id === activeCell.dealerId)
+          .map((b: any) => b.time_slot as string)
+      );
+      const slotsToFill = TIME_SLOTS.slice(startIdx).filter(s => !occupied.has(s));
+      if (slotsToFill.length === 0) {
+        toast.info("No empty slots ahead to mark Sick");
+        setActiveCell(null);
+        return;
+      }
       slotsToFill.forEach(slot => {
         setCell.mutate({
           date,
