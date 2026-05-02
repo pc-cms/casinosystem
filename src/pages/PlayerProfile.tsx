@@ -318,9 +318,14 @@ const PlayerProfile = () => {
           <ArrowLeft className="w-4 h-4 mr-1" /> Players
         </Button>
         <div className="flex items-center gap-2">
-          {roles.some(r => ["pit", "manager", "super_admin"].includes(r)) && (
+          {roles.some(r => ["pit", "manager", "surveillance", "super_admin"].includes(r)) && (
             <Button variant="outline" size="sm" className="h-9" onClick={() => setTransferOpen(true)}>
               <ArrowLeftRight className="w-3.5 h-3.5 mr-1.5" /> Chip Transfer
+            </Button>
+          )}
+          {roles.some(r => ["pit", "manager", "surveillance", "super_admin"].includes(r)) && player.status !== "blacklist" && (
+            <Button variant="outline" size="sm" className="h-9 text-destructive border-destructive/50 hover:bg-destructive/10" onClick={() => setBlacklistOpen(true)}>
+              <Ban className="w-3.5 h-3.5 mr-1.5" /> Add to Blacklist
             </Button>
           )}
           {(isManager || roles.includes("super_admin")) && (
