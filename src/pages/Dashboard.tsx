@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Landmark, Receipt, TrendingDown, LayoutDashboard, Filter, ArrowUpDown, CreditCard } from "lucide-react";
+import { Landmark, Receipt, TrendingDown, LayoutDashboard, Filter, ArrowUpDown, Smartphone } from "lucide-react";
 import { CardSkeleton, PlayerListSkeleton } from "@/components/LoadingSkeletons";
 import { usePlayers, useTransactions, useGamingTables, useExpenses, useClientSessionsTotalBet, useTableTracker } from "@/hooks/use-casino-data";
 import { useCashless } from "@/hooks/use-cashless";
@@ -217,7 +217,7 @@ const Dashboard = () => {
           )
         )}
         {showFinancials && (
-          <StatCard label="Pending Cashless" value={pendingCashless} icon={CreditCard} href="/cashless" />
+          <StatCard label="Pending Cashless" value={pendingCashless} icon={Smartphone} href="/cashless" />
         )}
       </div>
 
