@@ -233,7 +233,7 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
                     return (
                       <td
                         key={slot}
-                        className={`px-2 py-2 text-center font-mono tabular-nums text-sm font-bold text-card-foreground ${isActive ? "bg-primary/10" : ""}`}
+                        className={`px-2 py-2 text-center font-mono tabular-nums text-sm font-bold text-card-foreground whitespace-nowrap ${isActive ? "bg-primary/10" : ""}`}
                       >
                         {getSlotTotal(slot) ? formatCurrency(getSlotTotal(slot)) : "·"}
                       </td>
@@ -242,11 +242,6 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
                 </tr>
               </tbody>
             </table>
-        </div>
-        <div className="mt-2 flex justify-end">
-          <div className="text-sm font-mono tabular-nums font-bold text-primary">
-            Grand Total: {formatCurrency(grandTotal)}
-          </div>
         </div>
         {openTables.length === 0 && (
           <p className="text-muted-foreground text-sm text-center py-8 mt-4">
