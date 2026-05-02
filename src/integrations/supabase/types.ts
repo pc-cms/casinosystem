@@ -750,6 +750,7 @@ export type Database = {
           note: string
           operator_id: string
           player_id: string | null
+          player_name: string
           provider: string
           reference: string
           status: string
@@ -767,6 +768,7 @@ export type Database = {
           note?: string
           operator_id: string
           player_id?: string | null
+          player_name?: string
           provider: string
           reference?: string
           status?: string
@@ -784,6 +786,7 @@ export type Database = {
           note?: string
           operator_id?: string
           player_id?: string | null
+          player_name?: string
           provider?: string
           reference?: string
           status?: string
@@ -1559,6 +1562,7 @@ export type Database = {
           description: string
           id: string
           player_id: string | null
+          player_name: string
           shift_id: string | null
         }
         Insert: {
@@ -1573,6 +1577,7 @@ export type Database = {
           description?: string
           id?: string
           player_id?: string | null
+          player_name?: string
           shift_id?: string | null
         }
         Update: {
@@ -1587,6 +1592,7 @@ export type Database = {
           description?: string
           id?: string
           player_id?: string | null
+          player_name?: string
           shift_id?: string | null
         }
         Relationships: [
