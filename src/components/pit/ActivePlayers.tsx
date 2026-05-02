@@ -227,13 +227,14 @@ const ActivePlayers = () => {
     return { seatedByTable: map, allSeatedIds: ids };
   }, [sessions, players, transactions, categoryFilter]);
 
-  // Candidates: checked-in players not seated + (if search) any player matching
+  // Candidates: any player checked-in (present in casino) and not seated.
+  // Falls back to status==="active" for legacy data without visits.
   const candidates = useMemo(() => {
     const visitIds = new Set(
       visits.filter((v: any) => !v.checked_out_at).map((v: any) => v.player_id)
     );
     return players
-      .filter(p => p.status === "active" && !allSeatedIds.has(p.id))
+      .filter(p => (visitIds.has(p.id) || p.status === "active") && !allSeatedIds.has(p.id))
       .map(p => ({
         id: p.id,
         first_name: p.first_name,
