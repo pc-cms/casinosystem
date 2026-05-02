@@ -18,7 +18,9 @@ import { fmtDate, fmtDateTime } from "@/lib/format-date";
 import {
   usePlayer, usePlayerVisits, usePlayerSessions, usePlayerGroupHistory,
   usePlayerNotes, usePlayerTransactions, usePlayerEconomy, usePlayerExpenses,
+  useCreatePlayerNote,
 } from "@/hooks/use-player-profile";
+import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/lib/auth-context";
 import { useBusinessDayFilter } from "@/hooks/use-business-day-filter";
 import { edgeFor, theoFromHands, theoFromDrop, holdPct } from "@/lib/casino-edges";
@@ -449,19 +451,7 @@ const PlayerProfile = () => {
         <TabsContent value="info" className="space-y-4">
           {canSeeNotes && (
             <PageSection card title={`Notes (${notes.length})`}>
-              {notes.length === 0 ? (
-                <div className="text-sm text-muted-foreground">No notes yet.</div>
-              ) : (
-                <div className="space-y-2 max-h-[320px] overflow-y-auto">
-                  {notes.map((n: any) => (
-                    <div key={n.id} className="text-xs p-2 rounded bg-muted/40 border border-border border-l-2 border-l-primary">
-                      <div className="text-[9px] font-mono uppercase text-muted-foreground">{n.note_type || "info"}</div>
-                      <div className="text-card-foreground mt-0.5">{n.content}</div>
-                      <div className="text-[10px] text-muted-foreground mt-1">{fmtDateTime(n.created_at)}</div>
-                    </div>
-                  ))}
-                </div>
-              )}
+              <NotesPanel playerId={(player as any).id} notes={notes} canPost={roles.some(r => ["pit","manager","surveillance","super_admin"].includes(r))} />
             </PageSection>
           )}
 
