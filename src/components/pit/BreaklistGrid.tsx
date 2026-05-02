@@ -74,6 +74,7 @@ const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }
   const { data: rota = [] } = usePitRotaRange(date, date);
   const { data: casino } = useCasinoInfo();
   const setCell = useSetBreaklistCell();
+  const setAttendance = useSetDealerAttendance();
   const lockCell = useLockBreaklistCell();
   const { isManager } = useAuth();
 
