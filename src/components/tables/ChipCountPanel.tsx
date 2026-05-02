@@ -247,7 +247,7 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
                         <td key={d} className={`${t.rowPadX} ${t.rowPadY}`}>
                           <input
                             type="number" min="0" max="999" maxLength={3}
-                            value={current}
+                            value={Number.isNaN(current as any) ? "" : current}
                             onFocus={e => {
                               // Remember previous value on the element for blur-restore on misclicks
                               (e.target as any).dataset.prev = String(current);
