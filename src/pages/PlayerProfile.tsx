@@ -353,7 +353,7 @@ const PlayerProfile = () => {
               <Kpi label="Avg session" value={lifetime.avgSession ? fmtDuration(lifetime.avgSession) : "—"} />
               {showFinancials && (
                 <>
-                  <Kpi label="Drop" value={fmtMoney(lifetime.drop)} />
+                  <Kpi label="Drop R" value={fmtMoney(lifetime.drop)} />
                   <Kpi label="Cashout" value={fmtMoney(lifetime.cashout)} />
                   <Kpi
                     label="Result"
@@ -538,7 +538,7 @@ const PlayerProfile = () => {
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2">
             <Kpi label="Visits" value={period.visits.toString()} />
             <Kpi label="Time" value={fmtDuration(period.pMins)} />
-            <Kpi label="Drop" value={fmtMoney(period.pIn)} />
+            <Kpi label="Drop R" value={fmtMoney(period.pIn)} />
             <Kpi label="Cashout" value={fmtMoney(period.pOut)} />
             <Kpi
               label="Result"
