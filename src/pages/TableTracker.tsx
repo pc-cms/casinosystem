@@ -252,6 +252,8 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
           </p>
         )}
       </PageSection>
+      </>
+      )}
     </Wrapper>
   );
 };
