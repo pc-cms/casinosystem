@@ -127,7 +127,7 @@ const TablesAnalytics = () => {
         icon={LineChartIcon}
         title="Table Analytics"
         subtitle="Per-snapshot dynamics for the shift · combines Chip Counts (priority) and Number Counts"
-        date={effectiveDate}
+        date={restrictedToToday ? effectiveDate : false}
       >
         {restrictedToToday ? (
           <div className="inline-flex items-center gap-1.5 h-9 px-3 rounded-md border border-border text-xs font-mono text-muted-foreground">
