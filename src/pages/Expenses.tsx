@@ -156,7 +156,7 @@ const Expenses = () => {
                 <td className="px-2 py-1.5">
                   <Select
                     value={d.target}
-                    onValueChange={v => updateDraft(d.uid, { target: v as "casino" | "player", player_id: "" })}
+                    onValueChange={v => updateDraft(d.uid, { target: v as "casino" | "player", player_name: "" })}
                   >
                     <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Target" /></SelectTrigger>
                     <SelectContent>
@@ -166,20 +166,13 @@ const Expenses = () => {
                   </Select>
                 </td>
                 <td className="px-2 py-1.5">
-                  <Select
-                    value={d.player_id}
-                    onValueChange={v => updateDraft(d.uid, { player_id: v })}
+                  <Input
+                    placeholder={d.target === "player" ? "Player name" : "—"}
+                    value={d.player_name}
+                    onChange={e => updateDraft(d.uid, { player_name: e.target.value })}
                     disabled={d.target !== "player"}
-                  >
-                    <SelectTrigger className="h-8 text-xs">
-                      <SelectValue placeholder={d.target === "player" ? "Player" : "—"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(players as any[]).filter(p => p.status === "active").map(p => (
-                        <SelectItem key={p.id} value={p.id}>{p.first_name} {p.last_name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    className="h-8 text-xs"
+                  />
                 </td>
                 <td className="px-2 py-1.5">
                   <Select value={d.category} onValueChange={v => updateDraft(d.uid, { category: v })}>
