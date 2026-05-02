@@ -20,6 +20,7 @@ import type { FloorTable } from "@/components/pit/FloorTableCard";
 import type { SeatedPlayer } from "@/components/pit/SeatedPlayerChip";
 import type { PlayerCategory } from "@/components/player/CategoryBadge";
 import { useAuth } from "@/lib/auth-context";
+import { useBusinessDayFilter } from "@/hooks/use-business-day-filter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { offlineMutation } from "@/lib/offline-mutation";
@@ -29,7 +30,10 @@ import CategoryBadge from "@/components/player/CategoryBadge";
 
 const Tables = () => {
   const businessDay = getBusinessDate();
+  const { restrictedToToday } = useBusinessDayFilter();
   const [date, setDate] = useState(businessDay);
+  // Operational roles (Pit) without Manager Access cannot browse other days.
+  const effectiveDate = restrictedToToday ? businessDay : date;
   const { data: tables = [] } = useGamingTables();
   const { data: players = [] } = usePlayers();
   const { data: transactions = [] } = useTransactions(date);
