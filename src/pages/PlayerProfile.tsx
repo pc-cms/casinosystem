@@ -452,8 +452,9 @@ const PlayerProfile = () => {
                       <th className="text-left py-2 px-2">Position</th>
                       {showFinancials && <th className="text-right py-2 px-2">Drop</th>}
                       {showFinancials && <th className="text-right py-2 px-2">Cashout</th>}
-                      {showFinancials && <th className="text-right py-2 px-2">Comps</th>}
                       {showFinancials && <th className="text-right py-2 px-2">Result</th>}
+                      {showFinancials && <th className="text-right py-2 px-2">Comps</th>}
+                      {showFinancials && <th className="text-right py-2 px-2">Total</th>}
                     </tr>
                   </thead>
                   <tbody>
