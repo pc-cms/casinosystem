@@ -196,14 +196,12 @@ const Cashless = () => {
                   </Select>
                 </td>
                 <td className="px-2 py-1.5">
-                  <Select value={d.player_id} onValueChange={v => updateDraft(d.uid, { player_id: v })}>
-                    <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Player" /></SelectTrigger>
-                    <SelectContent>
-                      {(players as any[]).filter(p => p.status === "active").map(p => (
-                        <SelectItem key={p.id} value={p.id}>{p.first_name} {p.last_name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Input
+                    placeholder="Player name"
+                    value={d.player_name}
+                    onChange={e => updateDraft(d.uid, { player_name: e.target.value })}
+                    className="h-8 text-xs"
+                  />
                 </td>
                 <td className="px-2 py-1.5">
                   <NumberInput placeholder="0" value={d.amount} onChange={v => updateDraft(d.uid, { amount: v })} className="h-8 text-xs text-right" />
