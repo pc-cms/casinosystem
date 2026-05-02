@@ -1,10 +1,10 @@
 import { useState, useMemo } from "react";
-import { useGamingTables, useTransactions, useTableTracker } from "@/hooks/use-casino-data";
+import { useGamingTables, useTransactions, useTableTracker, usePlayers } from "@/hooks/use-casino-data";
 import { useActiveShift } from "@/hooks/use-shift";
 import { useChipSnapshots } from "@/hooks/use-chips";
 import { useChipBaseline, useOpenAllTables, baselineToMap } from "@/hooks/use-table-lifecycle";
 
-import { getBusinessDate } from "@/lib/business-day";
+import { getBusinessDate, businessDayHourUTC } from "@/lib/business-day";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,19 +14,38 @@ import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { CloseTableWizard } from "@/components/tables/CloseTableWizard";
 import { liveTableResult, buildLatestTableSnapshot } from "@/lib/table-live-result";
+import TableSeatingDialog from "@/components/pit/TableSeatingDialog";
+import type { FloorTable } from "@/components/pit/FloorTableCard";
+import type { SeatedPlayer } from "@/components/pit/SeatedPlayerChip";
+import type { PlayerCategory } from "@/components/player/CategoryBadge";
+import { useAuth } from "@/lib/auth-context";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { offlineMutation } from "@/lib/offline-mutation";
+import { logAction } from "@/lib/logging";
+import { toast } from "sonner";
+import CategoryBadge from "@/components/player/CategoryBadge";
 
 const Tables = () => {
   const businessDay = getBusinessDate();
   const [date, setDate] = useState(businessDay);
   const { data: tables = [] } = useGamingTables();
+  const { data: players = [] } = usePlayers();
   const { data: transactions = [] } = useTransactions(date);
   const { data: shift } = useActiveShift();
   const { data: snapshots = [] } = useChipSnapshots(date);
   const { data: baseline = [] } = useChipBaseline();
   const openAllTables = useOpenAllTables();
+  const { casinoId, user } = useAuth();
+  const queryClient = useQueryClient();
+
+  const today = getBusinessDate();
+  const windowStartUTC = businessDayHourUTC(today, 13);
 
   // Close Table wizard
   const [showCloseWizard, setShowCloseWizard] = useState(false);
+  // Seating dialog
+  const [openTableId, setOpenTableId] = useState<string | null>(null);
 
   const baselineMap = useMemo(() => baselineToMap(baseline), [baseline]);
 
@@ -36,6 +55,211 @@ const Tables = () => {
   const hasResults = tablesWithResults.length > 0;
 
   const { data: trackerData = [] } = useTableTracker(date);
+
+  // Active sessions & visits for today (for seating dialog)
+  const { data: sessions = [] } = useQuery({
+    queryKey: ["client_sessions", casinoId, today],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("client_sessions")
+        .select("*")
+        .eq("casino_id", casinoId!)
+        .gte("started_at", windowStartUTC)
+        .order("started_at", { ascending: false });
+      return (data || []) as any[];
+    },
+    enabled: !!casinoId,
+    refetchInterval: 15000,
+  });
+
+  const { data: visits = [] } = useQuery({
+    queryKey: ["casino_visits", casinoId, today],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("casino_visits")
+        .select("*")
+        .eq("casino_id", casinoId!)
+        .eq("date", today);
+      return (data || []) as any[];
+    },
+    enabled: !!casinoId,
+    refetchInterval: 15000,
+  });
+
+  const guardCheckIn = async (playerId: string) => {
+    const player = players.find(p => p.id === playerId);
+    if ((player as any)?.status === "blacklist") throw new Error("BLACKLISTED — entry denied");
+    if (navigator.onLine) {
+      const { data: activeElsewhere } = await supabase
+        .rpc("player_active_visit_casino", { _player_id: playerId } as any);
+      if (activeElsewhere && activeElsewhere.length > 0) {
+        const loc = activeElsewhere[0];
+        if (loc.casino_id !== casinoId) {
+          throw new Error(`Player is currently active at ${loc.casino_name}`);
+        }
+      }
+    }
+  };
+
+  const placeAtTable = useMutation({
+    mutationFn: async ({ playerId, tableId, avgBet }: { playerId: string; tableId: string; avgBet: number }) => {
+      await guardCheckIn(playerId);
+      const sessionId = crypto.randomUUID();
+      const sRes = await offlineMutation({
+        table: "client_sessions",
+        operation: "insert",
+        payload: { id: sessionId, casino_id: casinoId!, player_id: playerId, table_id: tableId, avg_bet: avgBet, created_by: user!.id },
+      });
+      if (sRes.error) throw new Error(sRes.error);
+      const vRes = await offlineMutation({
+        table: "casino_visits",
+        operation: "upsert",
+        payload: { casino_id: casinoId!, player_id: playerId, date: today, checked_in_by: user!.id, position: "table" },
+        upsertConflict: "casino_id,player_id,date",
+      });
+      if (vRes.error) throw new Error(vRes.error);
+      if (!sRes.offline && casinoId) {
+        await logAction(casinoId, "player", "PLAYER_SEATED", { player_id: playerId, table_id: tableId, avg_bet: avgBet });
+      }
+      return { offline: sRes.offline || vRes.offline };
+    },
+    onSuccess: (res: any) => {
+      queryClient.invalidateQueries({ queryKey: ["client_sessions"] });
+      queryClient.invalidateQueries({ queryKey: ["casino_visits"] });
+      toast.success(res?.offline ? "Saved offline" : "Player seated");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const changeTable = useMutation({
+    mutationFn: async ({ playerId, tableId, avgBet }: { playerId: string; tableId: string; avgBet: number }) => {
+      const stopRes = await offlineMutation({
+        table: "client_sessions",
+        operation: "update",
+        payload: {
+          _match: { casino_id: casinoId!, player_id: playerId, stopped_at: null as any },
+          stopped_at: new Date().toISOString(),
+        },
+      });
+      if (stopRes.error && navigator.onLine) throw new Error(stopRes.error);
+      const sessionId = crypto.randomUUID();
+      const insRes = await offlineMutation({
+        table: "client_sessions",
+        operation: "insert",
+        payload: { id: sessionId, casino_id: casinoId!, player_id: playerId, table_id: tableId, avg_bet: avgBet, created_by: user!.id },
+      });
+      if (insRes.error) throw new Error(insRes.error);
+      return { offline: stopRes.offline || insRes.offline };
+    },
+    onSuccess: (res: any) => {
+      queryClient.invalidateQueries({ queryKey: ["client_sessions"] });
+      toast.success(res?.offline ? "Saved offline" : "Player moved");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const stopSession = useMutation({
+    mutationFn: async (playerId: string) => {
+      const res = await offlineMutation({
+        table: "client_sessions",
+        operation: "update",
+        payload: {
+          _match: { casino_id: casinoId!, player_id: playerId, stopped_at: null as any },
+          stopped_at: new Date().toISOString(),
+        },
+      });
+      if (res.error) throw new Error(res.error);
+      await offlineMutation({
+        table: "casino_visits",
+        operation: "update",
+        payload: { _match: { casino_id: casinoId!, player_id: playerId, date: today }, position: "hall" },
+      });
+      return { offline: res.offline };
+    },
+    onSuccess: (res: any) => {
+      queryClient.invalidateQueries({ queryKey: ["client_sessions"] });
+      queryClient.invalidateQueries({ queryKey: ["casino_visits"] });
+      toast.success(res?.offline ? "Saved offline" : "Session stopped");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const updateAvgBet = useMutation({
+    mutationFn: async ({ playerId, avgBet }: { playerId: string; avgBet: number }) => {
+      const res = await offlineMutation({
+        table: "client_sessions",
+        operation: "update",
+        payload: {
+          _match: { casino_id: casinoId!, player_id: playerId, stopped_at: null as any },
+          avg_bet: avgBet,
+        },
+      });
+      if (res.error) throw new Error(res.error);
+      return { offline: res.offline };
+    },
+    onSuccess: (res: any) => {
+      queryClient.invalidateQueries({ queryKey: ["client_sessions"] });
+      toast.success(res?.offline ? "Saved offline" : "Avg bet updated");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  // Build seated map: tableId -> SeatedPlayer[]
+  const { seatedByTable, allSeatedIds } = useMemo(() => {
+    const map: Record<string, SeatedPlayer[]> = {};
+    const ids = new Set<string>();
+    const activeSessions = sessions.filter((s: any) => !s.stopped_at);
+    for (const s of activeSessions) {
+      const p = players.find(pl => pl.id === s.player_id);
+      if (!p || !s.table_id) continue;
+      const cat = ((p as any).category as PlayerCategory) || "normal";
+      const playerTx = transactions.filter((t: any) => t.player_id === p.id);
+      const dropR = playerTx
+        .filter((t: any) => t.type === "buy" || t.type === "in")
+        .reduce((sum: number, t: any) => sum + Number(t.amount), 0);
+      const cashout = playerTx
+        .filter((t: any) => t.type === "cashout" || t.type === "out")
+        .reduce((sum: number, t: any) => sum + Number(t.amount), 0);
+      const sp: SeatedPlayer = {
+        id: p.id,
+        first_name: p.first_name,
+        last_name: p.last_name,
+        nickname: (p as any).nickname,
+        category: cat,
+        avgBet: Number(s.avg_bet || 0),
+        startedAt: s.started_at ? new Date(s.started_at) : null,
+        dropR,
+        result: dropR - cashout,
+      };
+      if (!map[s.table_id]) map[s.table_id] = [];
+      map[s.table_id].push(sp);
+      ids.add(p.id);
+    }
+    Object.values(map).forEach(arr => arr.sort((a, b) => {
+      if (a.category !== b.category) {
+        const order: Record<PlayerCategory, number> = { diamond: 0, platinum: 1, gold: 2, normal: 3 };
+        return order[a.category] - order[b.category];
+      }
+      return (a.startedAt?.getTime() ?? 0) - (b.startedAt?.getTime() ?? 0);
+    }));
+    return { seatedByTable: map, allSeatedIds: ids };
+  }, [sessions, players, transactions]);
+
+  const candidates = useMemo(() => {
+    const visitIds = new Set(
+      visits.filter((v: any) => !v.checked_out_at).map((v: any) => v.player_id)
+    );
+    return players
+      .filter(p => (p as any).status === "active" && !allSeatedIds.has(p.id))
+      .map(p => ({
+        id: p.id,
+        first_name: p.first_name,
+        last_name: p.last_name,
+        nickname: (p as any).nickname,
+        category: ((p as any).category as PlayerCategory) || "normal",
+        isCheckedIn: visitIds.has(p.id),
+      }));
+  }, [players, visits, allSeatedIds]);
 
   const shiftTransactions = useMemo(() => {
     if (!shift) return transactions;
@@ -70,7 +294,6 @@ const Tables = () => {
     openAllTables.mutate(ids);
   };
 
-
   const gameTypeTotals = useMemo(() => {
     const totals: Record<string, { dropR: number; dropV: number; result: number; label: string }> = {};
     const gameLabels: Record<string, string> = { "American Roulette": "Total ARs", "Poker": "Total P", "Blackjack": "Total BJ" };
@@ -93,30 +316,68 @@ const Tables = () => {
   const leftTables = tables.filter(t => !pokerGames.includes(t.game)).sort((a, b) => a.name.localeCompare(b.name));
   const rightTables = tables.filter(t => pokerGames.includes(t.game)).sort((a, b) => a.name.localeCompare(b.name));
 
+  const openTable = openTableId ? (tables.find(t => t.id === openTableId) as FloorTable | undefined) ?? null : null;
+  const seatedHere = openTableId ? (seatedByTable[openTableId] || []) : [];
+  const otherTables = useMemo(() => {
+    if (!openTableId) return [];
+    return tables
+      .filter(t => t.id !== openTableId)
+      .map(t => ({ table: t as FloorTable, players: seatedByTable[t.id] || [] }));
+  }, [openTableId, tables, seatedByTable]);
+
+  const handleTableClick = (table: typeof tables[0]) => {
+    if (table.status === "closed") {
+      toast.info("Table is closed");
+      return;
+    }
+    setOpenTableId(table.id);
+  };
+
   const renderTableCard = (table: typeof tables[0]) => {
     const r = tableStats[table.id] || { dropR: 0, dropV: 0, result: 0 };
     const isOpen = table.status === "open";
     const hasTableResult = table.closing_result !== null;
+    const seated = seatedByTable[table.id] || [];
 
     return (
-      <div key={table.id} className="cms-panel">
+      <button
+        type="button"
+        key={table.id}
+        onClick={() => handleTableClick(table)}
+        disabled={!isOpen}
+        className="cms-panel text-left w-full transition-colors hover:bg-muted/30 disabled:opacity-60 disabled:cursor-not-allowed"
+      >
         <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-          <div className="flex items-center gap-3">
-            <div className={`w-2.5 h-2.5 rounded-full ${isOpen ? "bg-success" : "bg-destructive"}`} />
-            <div>
-              <h3 className="text-sm font-semibold text-card-foreground">{table.name}</h3>
-              <p className="text-xs text-muted-foreground">{table.game}</p>
+          <div className="flex items-center gap-3 min-w-0">
+            <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${isOpen ? "bg-success" : "bg-destructive"}`} />
+            <div className="min-w-0">
+              <h3 className="text-sm font-semibold text-card-foreground truncate">{table.name}</h3>
+              <p className="text-xs text-muted-foreground truncate">{table.game}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
+            {seated.length > 0 && (
+              <Badge variant="outline" className="text-[10px]">{seated.length} seated</Badge>
+            )}
             <Badge variant={isOpen ? "default" : "secondary"} className="text-[10px] uppercase">{table.status}</Badge>
             {hasTableResult && (
               <Badge variant={Number(table.closing_result) >= 0 ? "default" : "destructive"} className="text-[10px] font-mono">
-                Result: {Number(table.closing_result) >= 0 ? "+" : ""}{formatCurrency(Number(table.closing_result))}
+                {Number(table.closing_result) >= 0 ? "+" : ""}{formatCurrency(Number(table.closing_result))}
               </Badge>
             )}
           </div>
         </div>
+        {seated.length > 0 && (
+          <div className="px-4 py-2 border-b border-border flex flex-wrap gap-1">
+            {seated.map(p => (
+              <span key={p.id} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-muted/40 text-[10px]">
+                <CategoryBadge category={p.category} />
+                <span className="font-medium truncate max-w-[90px]">{p.first_name} {p.last_name}</span>
+                <span className="font-mono text-muted-foreground">{p.avgBet}</span>
+              </span>
+            ))}
+          </div>
+        )}
         <div className="px-4 py-3 grid grid-cols-3 gap-2">
           <div>
             <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Drop R</p>
@@ -133,7 +394,7 @@ const Tables = () => {
             </p>
           </div>
         </div>
-      </div>
+      </button>
     );
   };
 
@@ -141,8 +402,8 @@ const Tables = () => {
     <PageShell>
       <PageHeader
         icon={LayoutGrid}
-        title="Tables & Chip Accounting"
-        subtitle="Float, Result & Tracking"
+        title="Live Tables"
+        subtitle="Float, Result & Seating"
       >
         <Input
           type="date"
@@ -169,8 +430,6 @@ const Tables = () => {
       </PageHeader>
 
       <>
-
-
       <div className="grid gap-2 mb-4" style={{ gridTemplateColumns: `repeat(${Object.keys(gameTypeTotals).length + 1}, minmax(0, 1fr))` }}>
         {Object.entries(gameTypeTotals).map(([game, t]) => (
           <div key={game} className="cms-panel p-2">
@@ -210,7 +469,7 @@ const Tables = () => {
       )}
 
       {/* Two-column Table Cards */}
-      <div className="grid grid-cols-2 gap-6 mb-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <div className="space-y-3">
           <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-1 border-b border-border pb-1">AR / BJ</h3>
           {leftTables.map(renderTableCard)}
@@ -224,12 +483,26 @@ const Tables = () => {
       </div>
       {tables.length === 0 && <p className="text-muted-foreground text-sm text-center py-8">No tables configured</p>}
 
-      {/* Close Table Wizard */}
       <CloseTableWizard
         open={showCloseWizard}
         onClose={() => setShowCloseWizard(false)}
         tables={tables as any}
         date={date}
+      />
+
+      <TableSeatingDialog
+        open={!!openTableId}
+        onOpenChange={(v) => { if (!v) setOpenTableId(null); }}
+        table={openTable}
+        seated={seatedHere}
+        otherTables={otherTables}
+        candidates={candidates}
+        prefilledPlayerId={null}
+        isPending={placeAtTable.isPending || changeTable.isPending || stopSession.isPending || updateAvgBet.isPending}
+        onPlace={(pid, bet) => openTableId && placeAtTable.mutate({ playerId: pid, tableId: openTableId, avgBet: bet })}
+        onMove={(pid, bet) => openTableId && changeTable.mutate({ playerId: pid, tableId: openTableId, avgBet: bet })}
+        onStop={(pid) => stopSession.mutate(pid)}
+        onUpdateBet={(pid, bet) => updateAvgBet.mutate({ playerId: pid, avgBet: bet })}
       />
       </>
     </PageShell>
