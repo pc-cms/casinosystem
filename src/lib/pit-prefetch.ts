@@ -12,6 +12,7 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { getBusinessDate } from "@/lib/business-day";
+import { fetchChipSnapshots } from "@/lib/chip-snapshots";
 
 // In-flight guard so a remount of <PitShell> can't fire a second wave.
 const inFlight = new Map<string, Promise<void>>();
@@ -61,10 +62,7 @@ export async function prefetchPitData(qc: QueryClient, casinoId: string) {
     () => qc.prefetchQuery({
       queryKey: ["chip-snapshots", casinoId, today],
       queryFn: async () => {
-        const { data, error } = await supabase
-          .from("chip_snapshots").select("*").eq("casino_id", casinoId).eq("date", today);
-        if (error) throw error;
-        return data;
+        return fetchChipSnapshots(casinoId, today);
       },
     }),
     () => qc.prefetchQuery({
