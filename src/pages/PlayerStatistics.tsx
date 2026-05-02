@@ -440,15 +440,19 @@ const PlayerStatistics = () => {
                         <th className="px-2 py-2 text-right">Avg Bet</th>
                         <th className="px-2 py-2 text-right">In / Drop</th>
                         <th className="px-2 py-2 text-right">Out</th>
+                        <th className="px-2 py-2 text-right" title="Chips received from another player (NEP-tracked, no cash)">Chip In</th>
+                        <th className="px-2 py-2 text-right" title="Chips given to another player (NEP-tracked, no cash)">Chip Out</th>
+                        <th className="px-2 py-2 text-right">Chip Δ</th>
                         <th className="px-2 py-2 text-right">Result</th>
                       </>
                     )}
+                    {canTransfer && <th className="px-2 py-2 text-right w-8"></th>}
                   </tr>
                 </thead>
                 <tbody>
                   {filtered.length === 0 ? (
                     <tr>
-                      <td colSpan={showFinancials ? 8 : 4} className="px-2 py-8 text-center text-muted-foreground text-xs">
+                      <td colSpan={4 + (showFinancials ? 7 : 0) + (canTransfer ? 1 : 0)} className="px-2 py-8 text-center text-muted-foreground text-xs">
                         No players to display
                       </td>
                     </tr>
