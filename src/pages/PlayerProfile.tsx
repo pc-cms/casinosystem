@@ -549,6 +549,12 @@ const PlayerProfile = () => {
               showFinancials={canSeePlayerFinancials(roles)}
             />
           </PageSection>
+
+          {canSeePlayerFinancials(roles) && id && (
+            <PageSection card title="Chip Transfers (lifetime)">
+              <PlayerChipTransfersLog playerId={id} />
+            </PageSection>
+          )}
         </TabsContent>
 
         {/* TAB 2 — Statistics */}
