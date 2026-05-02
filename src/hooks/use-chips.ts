@@ -137,7 +137,7 @@ export const useBatchChipSnapshot = () => {
       }>;
     }) => {
       if (!casinoId || !user) throw new Error("Not authenticated");
-      const rows = input.counts.map(c => ({
+      const rows = ((input as any).optimisticRows ?? input.counts.map(c => ({
         id: crypto.randomUUID(),
         casino_id: casinoId,
         date: input.date,
@@ -147,7 +147,8 @@ export const useBatchChipSnapshot = () => {
         expected_quantity: c.expected_quantity,
         actual_quantity: c.actual_quantity,
         recorded_by: user.id,
-      }));
+        created_at: new Date().toISOString(),
+      }))) as any[];
       const result = await offlineMutation({
         table: "chip_snapshots",
         operation: "insert",
@@ -163,11 +164,37 @@ export const useBatchChipSnapshot = () => {
       }
       return { offline: result.offline };
     },
+    onMutate: async (input) => {
+      if (!casinoId || !user) return;
+      const createdAt = new Date().toISOString();
+      const optimisticRows = input.counts.map(c => ({
+        id: crypto.randomUUID(),
+        casino_id: casinoId,
+        date: input.date,
+        location_type: c.location_type,
+        location_id: c.location_id,
+        denomination: c.denomination,
+        expected_quantity: c.expected_quantity,
+        actual_quantity: c.actual_quantity,
+        recorded_by: user.id,
+        created_at: createdAt,
+      }));
+      (input as any).optimisticRows = optimisticRows;
+      const queryKey = ["chip-snapshots", casinoId, input.date];
+      await qc.cancelQueries({ queryKey });
+      qc.setQueryData<any[]>(queryKey, (old = []) => [...optimisticRows, ...old]);
+      return { queryKey, optimisticIds: optimisticRows.map(r => r.id) };
+    },
     onSuccess: (res: any) => {
       qc.invalidateQueries({ queryKey: ["chip-snapshots"] });
       toast.success(res?.offline ? "Chip count saved offline" : "Chip count recorded");
     },
-    onError: (e) => toast.error(e.message),
+    onError: (e, _input, ctx: any) => {
+      if (ctx?.queryKey && ctx?.optimisticIds) {
+        qc.setQueryData<any[]>(ctx.queryKey, (old = []) => old.filter(r => !ctx.optimisticIds.includes(r.id)));
+      }
+      toast.error(e.message);
+    },
   });
 };
 
