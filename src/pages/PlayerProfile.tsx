@@ -447,12 +447,14 @@ const PlayerProfile = () => {
                           <td className="py-1.5 px-2 font-mono text-xs">{v.checked_out_at ? fmtDateTime(v.checked_out_at) : "—"}</td>
                           <td className="py-1.5 px-2">{fmtDuration(visitDuration(v))}</td>
                           <td className="py-1.5 px-2"><span className="inline-flex items-center gap-1 text-xs"><MapPin className="w-3 h-3" />{v.position}</span></td>
-                          <td className="py-1.5 px-2 font-mono text-xs text-right">{f.totalIn ? fmtMoney(f.totalIn) : dot()}</td>
-                          <td className="py-1.5 px-2 font-mono text-xs text-right">{f.cashout ? fmtMoney(f.cashout) : dot()}</td>
-                          <td className="py-1.5 px-2 font-mono text-xs text-right">{f.comps ? fmtMoney(f.comps) : dot()}</td>
-                          <td className={`py-1.5 px-2 font-mono text-xs text-right ${result === 0 ? "text-muted-foreground" : result > 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
-                            {result === 0 ? "·" : fmtMoney(result)}
-                          </td>
+                          {showFinancials && <td className="py-1.5 px-2 font-mono text-xs text-right">{f.totalIn ? fmtMoney(f.totalIn) : dot()}</td>}
+                          {showFinancials && <td className="py-1.5 px-2 font-mono text-xs text-right">{f.cashout ? fmtMoney(f.cashout) : dot()}</td>}
+                          {showFinancials && <td className="py-1.5 px-2 font-mono text-xs text-right">{f.comps ? fmtMoney(f.comps) : dot()}</td>}
+                          {showFinancials && (
+                            <td className={`py-1.5 px-2 font-mono text-xs text-right ${result === 0 ? "text-muted-foreground" : result > 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
+                              {result === 0 ? "·" : fmtMoney(result)}
+                            </td>
+                          )}
                         </tr>
                       );
                     })}
