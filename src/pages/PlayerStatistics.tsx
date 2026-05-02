@@ -109,7 +109,7 @@ const PlayerStatistics = () => {
       const out = playerTx
         .filter((t: any) => t.type === "cashout" || t.type === "out")
         .reduce((s: number, t: any) => s + Number(t.amount), 0);
-      const result = inDrop - out;
+      const result = out - inDrop;
 
       const activeSession = activeSessionByPlayer[v.player_id];
       const isPresent = !v.checked_out_at;

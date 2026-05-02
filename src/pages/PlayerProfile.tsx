@@ -127,14 +127,16 @@ const PlayerProfile = () => {
     return map;
   }, [visits, transactions, expenses]);
 
-  // Lifetime KPIs — prefer authoritative `player_economy` view, fall back to derived.
+  // Lifetime KPIs — perspective: PLAYER (positive = player won, negative = player lost).
+  // result = cashout − drop  (clean play)
+  // total  = result − comps  (with comps/expenses)
   const lifetime = useMemo(() => {
     const totalMins = visits.reduce((s, v) => s + visitDuration(v), 0);
     const drop = Number(economy?.total_drop) || 0;
     const cashout = Number(economy?.total_cashout) || 0;
     const comps = Number(economy?.total_expenses) || 0;
-    const result = Number(economy?.real_result);
-    const realResult = Number.isFinite(result) ? result : drop - cashout - comps;
+    const result = cashout - drop;
+    const total = result - comps;
     const hold = holdPct(drop, cashout, comps);
     const firstVisit = visits.length ? visits[visits.length - 1].checked_in_at : null;
     const lastVisit = visits[0] ? (visits[0].checked_out_at || visits[0].checked_in_at) : null;
@@ -149,7 +151,8 @@ const PlayerProfile = () => {
       drop,
       cashout,
       comps,
-      realResult,
+      result,
+      total,
       hold,
       firstVisit,
       lastVisit,
@@ -157,7 +160,7 @@ const PlayerProfile = () => {
     };
   }, [visits, economy]);
 
-  // Period summary (uses range-filtered tx + expenses + visits).
+  // Period summary (uses range-filtered tx + expenses + visits). Player perspective.
   const period = useMemo(() => {
     let pIn = 0, pOut = 0;
     for (const t of txInRange as any[]) {
@@ -167,8 +170,9 @@ const PlayerProfile = () => {
     }
     const pComps = expensesInRange.reduce((s, e: any) => s + (Number(e.amount) || 0), 0);
     const pMins = visitsInRange.reduce((s, v) => s + visitDuration(v), 0);
-    const result = pIn - pOut - pComps;
-    return { pIn, pOut, pComps, pMins, result, hold: holdPct(pIn, pOut, pComps), visits: visitsInRange.length };
+    const result = pOut - pIn;
+    const total = result - pComps;
+    return { pIn, pOut, pComps, pMins, result, total, hold: holdPct(pIn, pOut, pComps), visits: visitsInRange.length };
   }, [txInRange, expensesInRange, visitsInRange]);
 
   // Per-table aggregates (Position / Sessions / Hands / Avg bet / Duration / IN / OUT / Theo / Result / Hold).
@@ -341,7 +345,7 @@ const PlayerProfile = () => {
 
             {tags.length > 0 && <FlagBadges tags={tags} />}
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2 pt-2">
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-9 gap-2 pt-2">
               <Kpi label="Visits" value={lifetime.visitCount.toString()} />
               <Kpi label="Total time" value={fmtDuration(lifetime.totalMins)} />
               <Kpi label="Avg session" value={lifetime.avgSession ? fmtDuration(lifetime.avgSession) : "—"} />
@@ -349,16 +353,20 @@ const PlayerProfile = () => {
                 <>
                   <Kpi label="Drop" value={fmtMoney(lifetime.drop)} />
                   <Kpi label="Cashout" value={fmtMoney(lifetime.cashout)} />
+                  <Kpi
+                    label="Result"
+                    value={fmtMoney(lifetime.result)}
+                    valueClass={lifetime.result === 0 ? undefined : lifetime.result > 0 ? "cms-amount-positive" : "cms-amount-negative"}
+                  />
                   <Kpi label="Comps" value={fmtMoney(lifetime.comps)} />
                   <Kpi
-                    label="Real result"
-                    value={fmtMoney(lifetime.realResult)}
-                    valueClass={lifetime.realResult >= 0 ? "cms-amount-positive" : "cms-amount-negative"}
+                    label="Total"
+                    value={fmtMoney(lifetime.total)}
+                    valueClass={lifetime.total === 0 ? undefined : lifetime.total > 0 ? "cms-amount-positive" : "cms-amount-negative"}
                   />
                   <Kpi
                     label="Hold %"
                     value={lifetime.hold === null ? "—" : `${lifetime.hold.toFixed(1)}%`}
-                    valueClass={lifetime.hold === null ? undefined : lifetime.hold >= 0 ? "cms-amount-positive" : "cms-amount-negative"}
                   />
                 </>
               )}
@@ -444,14 +452,16 @@ const PlayerProfile = () => {
                       <th className="text-left py-2 px-2">Position</th>
                       {showFinancials && <th className="text-right py-2 px-2">Drop</th>}
                       {showFinancials && <th className="text-right py-2 px-2">Cashout</th>}
-                      {showFinancials && <th className="text-right py-2 px-2">Comps</th>}
                       {showFinancials && <th className="text-right py-2 px-2">Result</th>}
+                      {showFinancials && <th className="text-right py-2 px-2">Comps</th>}
+                      {showFinancials && <th className="text-right py-2 px-2">Total</th>}
                     </tr>
                   </thead>
                   <tbody>
                     {visitsInRange.slice(0, 200).map((v: any) => {
                       const f = visitFinancials.get(v.id) || { totalIn: 0, cashout: 0, comps: 0 };
-                      const result = f.totalIn - f.cashout - f.comps;
+                      const result = f.cashout - f.totalIn;
+                      const total = result - f.comps;
                       return (
                         <tr key={v.id} className="border-t border-border">
                           <td className="py-1.5 px-2 font-mono text-xs">{fmtDate(v.date)}</td>
@@ -462,10 +472,15 @@ const PlayerProfile = () => {
                           <td className="py-1.5 px-2"><span className="inline-flex items-center gap-1 text-xs"><MapPin className="w-3 h-3" />{v.position}</span></td>
                           {showFinancials && <td className="py-1.5 px-2 font-mono text-xs text-right">{f.totalIn ? fmtMoney(f.totalIn) : dot()}</td>}
                           {showFinancials && <td className="py-1.5 px-2 font-mono text-xs text-right">{f.cashout ? fmtMoney(f.cashout) : dot()}</td>}
-                          {showFinancials && <td className="py-1.5 px-2 font-mono text-xs text-right">{f.comps ? fmtMoney(f.comps) : dot()}</td>}
                           {showFinancials && (
                             <td className={`py-1.5 px-2 font-mono text-xs text-right ${result === 0 ? "text-muted-foreground" : result > 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
                               {result === 0 ? "·" : fmtMoney(result)}
+                            </td>
+                          )}
+                          {showFinancials && <td className="py-1.5 px-2 font-mono text-xs text-right">{f.comps ? fmtMoney(f.comps) : dot()}</td>}
+                          {showFinancials && (
+                            <td className={`py-1.5 px-2 font-mono text-xs text-right ${total === 0 ? "text-muted-foreground" : total > 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
+                              {total === 0 ? "·" : fmtMoney(total)}
                             </td>
                           )}
                         </tr>
@@ -481,7 +496,8 @@ const PlayerProfile = () => {
                         if (!f) continue;
                         pIn += f.totalIn; pOut += f.cashout; pComps += f.comps;
                       }
-                      const pRes = pIn - pOut - pComps;
+                      const pRes = pOut - pIn;
+                      const pTotal = pRes - pComps;
                       return (
                         <tr className="border-t-2 border-border font-semibold">
                           <td className="py-2 px-2 text-xs uppercase text-muted-foreground" colSpan={4}>Total (period)</td>
@@ -489,8 +505,9 @@ const PlayerProfile = () => {
                           <td className="py-2 px-2"></td>
                           {showFinancials && <td className="py-2 px-2 font-mono text-xs text-right">{fmtMoney(pIn)}</td>}
                           {showFinancials && <td className="py-2 px-2 font-mono text-xs text-right">{fmtMoney(pOut)}</td>}
+                          {showFinancials && <td className={`py-2 px-2 font-mono text-xs text-right ${pRes === 0 ? "" : pRes > 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>{fmtMoney(pRes)}</td>}
                           {showFinancials && <td className="py-2 px-2 font-mono text-xs text-right">{fmtMoney(pComps)}</td>}
-                          {showFinancials && <td className={`py-2 px-2 font-mono text-xs text-right ${pRes >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>{fmtMoney(pRes)}</td>}
+                          {showFinancials && <td className={`py-2 px-2 font-mono text-xs text-right ${pTotal === 0 ? "" : pTotal > 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>{fmtMoney(pTotal)}</td>}
                         </tr>
                       );
                     })()}
@@ -516,16 +533,21 @@ const PlayerProfile = () => {
         {/* TAB 2 — Statistics */}
         <TabsContent value="stats" className="space-y-4">
           {/* Period summary strip */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2">
             <Kpi label="Visits" value={period.visits.toString()} />
             <Kpi label="Time" value={fmtDuration(period.pMins)} />
             <Kpi label="Drop" value={fmtMoney(period.pIn)} />
             <Kpi label="Cashout" value={fmtMoney(period.pOut)} />
-            <Kpi label="Comps" value={fmtMoney(period.pComps)} />
             <Kpi
               label="Result"
               value={fmtMoney(period.result)}
-              valueClass={period.result >= 0 ? "cms-amount-positive" : "cms-amount-negative"}
+              valueClass={period.result === 0 ? undefined : period.result > 0 ? "cms-amount-positive" : "cms-amount-negative"}
+            />
+            <Kpi label="Comps" value={fmtMoney(period.pComps)} />
+            <Kpi
+              label="Total"
+              value={fmtMoney(period.total)}
+              valueClass={period.total === 0 ? undefined : period.total > 0 ? "cms-amount-positive" : "cms-amount-negative"}
             />
           </div>
 
@@ -552,7 +574,7 @@ const PlayerProfile = () => {
                   </thead>
                   <tbody>
                     {tableStats.rows.map((r) => {
-                      const result = r.totalIn - r.totalOut;
+                      const result = r.totalOut - r.totalIn;
                       const avgBet = r.hands ? r.betSum / r.hands : 0;
                       const theo = r.hands
                         ? theoFromHands(avgBet, r.hands, r.game)
@@ -583,7 +605,7 @@ const PlayerProfile = () => {
                     {(() => {
                       const t = tableStats.total;
                       const avgBet = t.hands ? t.betSum / t.hands : 0;
-                      const result = t.totalIn - t.totalOut;
+                      const result = t.totalOut - t.totalIn;
                       const hold = holdPct(t.totalIn, t.totalOut, 0);
                       return (
                         <tr className="border-t-2 border-border bg-muted/30 font-semibold">
@@ -627,7 +649,7 @@ const PlayerProfile = () => {
                   </thead>
                   <tbody>
                     {gameStats.map((g) => {
-                      const result = g.totalIn - g.totalOut;
+                      const result = g.totalOut - g.totalIn;
                       const hold = holdPct(g.totalIn, g.totalOut, 0);
                       return (
                         <tr key={g.game} className="border-t border-border">
@@ -659,24 +681,29 @@ const PlayerProfile = () => {
                     <tr className="text-xs text-muted-foreground uppercase">
                       <th className="text-left py-2 px-2">Casino</th>
                       <th className="text-right py-2 px-2">Visits</th>
-                      <th className="text-right py-2 px-2">IN</th>
-                      <th className="text-right py-2 px-2">OUT</th>
-                      <th className="text-right py-2 px-2">Comps</th>
+                      <th className="text-right py-2 px-2">Drop</th>
+                      <th className="text-right py-2 px-2">Cashout</th>
                       <th className="text-right py-2 px-2">Result</th>
+                      <th className="text-right py-2 px-2">Comps</th>
+                      <th className="text-right py-2 px-2">Total</th>
                     </tr>
                   </thead>
                   <tbody>
                     {casinoStats.map((c) => {
-                      const result = c.totalIn - c.totalOut - c.comps;
+                      const result = c.totalOut - c.totalIn;
+                      const total = result - c.comps;
                       return (
                         <tr key={c.id} className="border-t border-border">
                           <td className="py-1.5 px-2">{c.name}</td>
                           <td className="py-1.5 px-2 text-right font-mono">{c.visits}</td>
                           <td className="py-1.5 px-2 text-right font-mono">{c.totalIn ? fmtMoney(c.totalIn) : dot()}</td>
                           <td className="py-1.5 px-2 text-right font-mono">{c.totalOut ? fmtMoney(c.totalOut) : dot()}</td>
-                          <td className="py-1.5 px-2 text-right font-mono">{c.comps ? fmtMoney(c.comps) : dot()}</td>
                           <td className={`py-1.5 px-2 text-right font-mono ${result === 0 ? "text-muted-foreground" : result > 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
                             {result === 0 ? "·" : fmtMoney(result)}
+                          </td>
+                          <td className="py-1.5 px-2 text-right font-mono">{c.comps ? fmtMoney(c.comps) : dot()}</td>
+                          <td className={`py-1.5 px-2 text-right font-mono ${total === 0 ? "text-muted-foreground" : total > 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
+                            {total === 0 ? "·" : fmtMoney(total)}
                           </td>
                         </tr>
                       );
