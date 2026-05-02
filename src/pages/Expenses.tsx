@@ -57,13 +57,12 @@ const Expenses = () => {
   const businessDate = getBusinessDate();
   const { data: shift } = useActiveShift();
   const { data: expenses = [], isLoading: loadingExpenses } = useExpenses(businessDate);
-  const { data: players = [], isLoading: loadingPlayers } = usePlayers();
   const create = useCreateExpense();
   const approve = useApproveExpense();
   const [pendingApproveId, setPendingApproveId] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<DraftRow[]>([newDraft()]);
 
-  const isLoading = loadingExpenses || loadingPlayers;
+  const isLoading = loadingExpenses;
   const analytics = useExpenseAnalytics(expenses as any);
 
   const updateDraft = (uid: string, patch: Partial<DraftRow>) =>
