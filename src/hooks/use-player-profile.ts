@@ -1,5 +1,7 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth-context";
+import { toast } from "sonner";
 
 /** Single player + cards + tags. */
 export const usePlayer = (id: string | undefined) => {
@@ -153,5 +155,49 @@ export const usePlayerNotes = (playerId: string | undefined, enabled = true) => 
       return data || [];
     },
     enabled: !!playerId && enabled,
+  });
+};
+
+/** Add a note to a player (Pit / Manager / Surveillance / Reception / Cashier). */
+export const useCreatePlayerNote = () => {
+  const qc = useQueryClient();
+  const { user, casinoId } = useAuth();
+  return useMutation({
+    mutationFn: async (input: { player_id: string; content: string; note_type?: string }) => {
+      if (!user || !casinoId) throw new Error("Not authenticated");
+      const { error } = await supabase.from("player_notes").insert({
+        player_id: input.player_id,
+        casino_id: casinoId,
+        created_by: user.id,
+        content: input.content.trim(),
+        note_type: input.note_type || "info",
+      } as any);
+      if (error) throw error;
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ["player-notes", vars.player_id] });
+      toast.success("Note added");
+    },
+    onError: (e: any) => toast.error(e.message || "Failed to add note"),
+  });
+};
+
+/** Update a player's status (active <-> blacklist). */
+export const useSetPlayerStatus = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { player_id: string; status: "active" | "blacklist" }) => {
+      const { error } = await supabase
+        .from("players")
+        .update({ status: input.status })
+        .eq("id", input.player_id);
+      if (error) throw error;
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ["player", vars.player_id] });
+      qc.invalidateQueries({ queryKey: ["players"] });
+      toast.success(vars.status === "blacklist" ? "Player blacklisted" : "Player reactivated");
+    },
+    onError: (e: any) => toast.error(e.message || "Failed to update status"),
   });
 };

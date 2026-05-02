@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
-import { ArrowLeft, ArrowLeftRight, User, Users as UsersIcon, BarChart3, Ticket, Trophy, History, MapPin, Gift, CalendarDays } from "lucide-react";
+import { ArrowLeft, ArrowLeftRight, Ban, User, Users as UsersIcon, BarChart3, Ticket, Trophy, History, MapPin, Gift, CalendarDays } from "lucide-react";
 import ChipTransferDialog from "@/components/player/ChipTransferDialog";
+import BlacklistPlayerDialog from "@/components/player/BlacklistPlayerDialog";
 import PlayerVisitsBreakdown from "@/components/player/PlayerVisitsBreakdown";
 import PlayerChipTransfersLog from "@/components/player/PlayerChipTransfersLog";
 import { canSeePlayerFinancials } from "@/lib/role-access";
@@ -17,7 +18,9 @@ import { fmtDate, fmtDateTime } from "@/lib/format-date";
 import {
   usePlayer, usePlayerVisits, usePlayerSessions, usePlayerGroupHistory,
   usePlayerNotes, usePlayerTransactions, usePlayerEconomy, usePlayerExpenses,
+  useCreatePlayerNote,
 } from "@/hooks/use-player-profile";
+import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/lib/auth-context";
 import { useBusinessDayFilter } from "@/hooks/use-business-day-filter";
 import { edgeFor, theoFromHands, theoFromDrop, holdPct } from "@/lib/casino-edges";
@@ -73,6 +76,7 @@ const PlayerProfile = () => {
 
   const [editOpen, setEditOpen] = useState(false);
   const [transferOpen, setTransferOpen] = useState(false);
+  const [blacklistOpen, setBlacklistOpen] = useState(false);
 
   // Range bounds (apply to all tabs).
   const rangeStartMs = useMemo(() => new Date(`${range.from}T00:00:00`).getTime(), [range.from]);
@@ -318,9 +322,14 @@ const PlayerProfile = () => {
           <ArrowLeft className="w-4 h-4 mr-1" /> Players
         </Button>
         <div className="flex items-center gap-2">
-          {roles.some(r => ["pit", "manager", "super_admin"].includes(r)) && (
+          {roles.some(r => ["pit", "manager", "surveillance", "super_admin"].includes(r)) && (
             <Button variant="outline" size="sm" className="h-9" onClick={() => setTransferOpen(true)}>
               <ArrowLeftRight className="w-3.5 h-3.5 mr-1.5" /> Chip Transfer
+            </Button>
+          )}
+          {roles.some(r => ["pit", "manager", "surveillance", "super_admin"].includes(r)) && player.status !== "blacklist" && (
+            <Button variant="outline" size="sm" className="h-9 text-destructive border-destructive/50 hover:bg-destructive/10" onClick={() => setBlacklistOpen(true)}>
+              <Ban className="w-3.5 h-3.5 mr-1.5" /> Add to Blacklist
             </Button>
           )}
           {(isManager || roles.includes("super_admin")) && (
@@ -442,19 +451,7 @@ const PlayerProfile = () => {
         <TabsContent value="info" className="space-y-4">
           {canSeeNotes && (
             <PageSection card title={`Notes (${notes.length})`}>
-              {notes.length === 0 ? (
-                <div className="text-sm text-muted-foreground">No notes yet.</div>
-              ) : (
-                <div className="space-y-2 max-h-[320px] overflow-y-auto">
-                  {notes.map((n: any) => (
-                    <div key={n.id} className="text-xs p-2 rounded bg-muted/40 border border-border border-l-2 border-l-primary">
-                      <div className="text-[9px] font-mono uppercase text-muted-foreground">{n.note_type || "info"}</div>
-                      <div className="text-card-foreground mt-0.5">{n.content}</div>
-                      <div className="text-[10px] text-muted-foreground mt-1">{fmtDateTime(n.created_at)}</div>
-                    </div>
-                  ))}
-                </div>
-              )}
+              <NotesPanel playerId={(player as any).id} notes={notes} canPost={roles.some(r => ["pit","manager","surveillance","super_admin"].includes(r))} />
             </PageSection>
           )}
 
@@ -885,6 +882,13 @@ const PlayerProfile = () => {
         } : null}
         defaultDirection="out"
       />
+
+      <BlacklistPlayerDialog
+        open={blacklistOpen}
+        onClose={() => setBlacklistOpen(false)}
+        playerId={(player as any).id}
+        playerName={fullName}
+      />
     </PageShell>
   );
 };
@@ -903,4 +907,48 @@ const Field = ({ label, value }: { label: string; value: string }) => (
   </div>
 );
 
+/* moved */
+
+const NotesPanel = ({ playerId, notes, canPost }: { playerId: string; notes: any[]; canPost: boolean }) => {
+  const [text, setText] = useState("");
+  const create = useCreatePlayerNote();
+  const submit = async () => {
+    if (!text.trim()) return;
+    await create.mutateAsync({ player_id: playerId, content: text });
+    setText("");
+  };
+  return (
+    <div className="space-y-3">
+      {canPost && (
+        <div className="space-y-2">
+          <Textarea
+            value={text}
+            onChange={e => setText(e.target.value)}
+            placeholder="Write a note about this player…"
+            rows={2}
+            className="text-sm resize-none"
+          />
+          <div className="flex justify-end">
+            <Button size="sm" onClick={submit} disabled={!text.trim() || create.isPending}>
+              Post Note
+            </Button>
+          </div>
+        </div>
+      )}
+      {notes.length === 0 ? (
+        <div className="text-sm text-muted-foreground">No notes yet.</div>
+      ) : (
+        <div className="space-y-2 max-h-[320px] overflow-y-auto">
+          {notes.map((n: any) => (
+            <div key={n.id} className="text-xs p-2 rounded bg-muted/40 border border-border border-l-2 border-l-primary">
+              <div className="text-[9px] font-mono uppercase text-muted-foreground">{n.note_type || "info"}</div>
+              <div className="text-card-foreground mt-0.5 whitespace-pre-wrap">{n.content}</div>
+              <div className="text-[10px] text-muted-foreground mt-1">{fmtDateTime(n.created_at)}</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 export default PlayerProfile;

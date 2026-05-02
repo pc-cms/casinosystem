@@ -44,9 +44,14 @@ const NAV_ITEMS: NavItem[] = [
   // OVERVIEW
   { to: "/", icon: LayoutDashboard, label: "Dashboard", roles: ["super_admin", "manager", "pit", "reception", "finance_manager", "surveillance"], section: "OVERVIEW" },
 
+  // SURVEILLANCE-only condensed entries (single Pit + single Cage + Player Statistics)
+  { to: "/pit", icon: Gamepad2, label: "Pit", roles: ["surveillance"], section: "PIT" },
+  { to: "/player-statistics", icon: Users, label: "Player Statistics", roles: ["surveillance"], section: "PIT" },
+  { to: "/cage", icon: Landmark, label: "Cage", roles: ["surveillance"], section: "CASHIER" },
+
   // PIT — Break List, Live Tables, trackers, Attendance (parent), Rota (parent)
   { to: "/pit?tab=breaklist", icon: ListChecks, label: "Break List", roles: ["super_admin", "manager", "pit", "finance_manager"], section: "PIT" },
-  { to: "/tables", icon: Table2, label: "Live Tables", roles: ["super_admin", "manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
+  { to: "/tables", icon: Table2, label: "Live Tables", roles: ["super_admin", "manager", "pit", "finance_manager"], section: "PIT" },
   { to: "/player-statistics", icon: Users, label: "Player Statistics", roles: ["super_admin", "manager", "pit", "finance_manager"], section: "PIT" },
   { to: "/table-tracker", icon: Target, label: "Table Check", roles: ["super_admin", "manager", "pit", "finance_manager"], section: "PIT" },
   { to: "/tables/analytics", icon: Target, label: "Table Analytics", roles: ["super_admin", "manager", "finance_manager", "pit"], section: "PIT" },
@@ -60,7 +65,7 @@ const NAV_ITEMS: NavItem[] = [
 
   // RECEPTION — Players & entry
   { to: "/reception", icon: DoorOpen, label: "Reception", roles: ["super_admin", "manager", "reception", "finance_manager"], section: "RECEPTION" },
-  { to: "/in-casino", icon: UserCheck, label: "In Casino", roles: ["super_admin", "manager", "reception", "finance_manager", "surveillance"], section: "RECEPTION" },
+  { to: "/in-casino", icon: UserCheck, label: "In Casino", roles: ["super_admin", "manager", "reception", "finance_manager"], section: "RECEPTION" },
   { to: "/players", icon: Users, label: "Players", roles: ["super_admin", "manager", "finance_manager"], section: "RECEPTION" },
   { to: "/blacklist", icon: ShieldAlert, label: "Blacklist", roles: ["super_admin", "manager", "reception", "finance_manager", "surveillance"], section: "RECEPTION" },
 
@@ -82,13 +87,13 @@ const NAV_ITEMS: NavItem[] = [
 
   // ANALYTICS — shared
   { to: "/groups", icon: UsersRound, label: "Groups", roles: ["super_admin", "manager", "finance_manager"], section: "ANALYTICS" },
-  { to: "/reports", icon: FileBarChart, label: "Reports", roles: ["super_admin", "manager", "finance_manager", "surveillance"], section: "ANALYTICS" },
-  
-  { to: "/table-results", icon: FileText, label: "Table Results", roles: ["super_admin", "manager", "finance_manager", "surveillance"], section: "ANALYTICS" },
+  { to: "/reports", icon: FileBarChart, label: "Reports", roles: ["super_admin", "manager", "finance_manager"], section: "ANALYTICS" },
+
+  { to: "/table-results", icon: FileText, label: "Table Results", roles: ["super_admin", "manager", "finance_manager"], section: "ANALYTICS" },
 
   // SYSTEM — admin/system tools
   { to: "/import-reports", icon: Upload, label: "Import Reports", roles: ["super_admin", "manager"], section: "SYSTEM" },
-  { to: "/logs", icon: ClipboardList, label: "Logs", roles: ["super_admin", "manager", "finance_manager", "surveillance"], section: "SYSTEM" },
+  { to: "/logs", icon: ClipboardList, label: "Logs", roles: ["super_admin", "manager", "finance_manager"], section: "SYSTEM" },
 
 
 ];
