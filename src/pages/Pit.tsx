@@ -795,11 +795,33 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
     return entry ? String((entry as any).value) : "";
   };
 
+  // Parse attendance value into kind + numeric hours.
+  // Supported: "" | "A" | "S" | "<n>" | "<n>S" (worked n hours then went sick mid-shift)
+  const parseValue = (val: string): { kind: "empty" | "absent" | "sick" | "hours" | "hours-sick"; hours: number } => {
+    if (val === "") return { kind: "empty", hours: 0 };
+    if (val === "A") return { kind: "absent", hours: 0 };
+    if (val === "S") return { kind: "sick", hours: 0 };
+    const m = val.match(/^(\d+(?:\.\d+)?)(S?)$/i);
+    if (m) {
+      const n = Number(m[1]);
+      if (!isNaN(n)) return { kind: m[2] ? "hours-sick" : "hours", hours: n };
+    }
+    return { kind: "empty", hours: 0 };
+  };
+
   const handleSave = (dealerId: string, day: number, val: string) => {
     const dateStr = `${month}-${String(day).padStart(2, "0")}`;
     const trimmed = val.trim().toUpperCase();
     if (trimmed === "") { setAttendance.mutate({ dealer_id: dealerId, date: dateStr, value: "" }); return; }
     if (trimmed === "A" || trimmed === "S") { setAttendance.mutate({ dealer_id: dealerId, date: dateStr, value: trimmed }); return; }
+    const ms = trimmed.match(/^(\d+(?:\.\d+)?)S$/);
+    if (ms) {
+      const n = Number(ms[1]);
+      if (!isNaN(n) && n >= 0 && n <= 24) {
+        setAttendance.mutate({ dealer_id: dealerId, date: dateStr, value: `${n}S` });
+      }
+      return;
+    }
     const num = Number(trimmed);
     if (!isNaN(num) && num >= 0 && num <= 24) { setAttendance.mutate({ dealer_id: dealerId, date: dateStr, value: String(num) }); }
   };
@@ -811,12 +833,18 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
     let sick = 0;
     days.forEach(day => {
       const val = getValue(dealerId, day);
-      if (val === "A") { absent += 1; return; }
-      if (val === "S") { sick += 1; return; }
-      const num = Number(val);
-      if (!isNaN(num) && num > 0) {
+      const p = parseValue(val);
+      if (p.kind === "absent") { absent += 1; return; }
+      if (p.kind === "sick") { sick += 1; return; }
+      if (p.kind === "hours" && p.hours > 0) {
         shifts += 1;
-        hours += num;
+        hours += p.hours;
+        return;
+      }
+      if (p.kind === "hours-sick") {
+        // Counts both: worked hours AND a sick day.
+        sick += 1;
+        if (p.hours > 0) { shifts += 1; hours += p.hours; }
       }
     });
     return { shifts, hours, absent, sick };
@@ -849,16 +877,21 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
               const isToday = isCurrentMonth && day === todayDay;
               const dateObj = new Date(y, m - 1, day);
               const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
-              const isStatus = val === "A" || val === "S";
-              const isHours = val !== "" && !isStatus;
+              const parsed = parseValue(val);
+              const isStatus = parsed.kind === "absent" || parsed.kind === "sick";
+              const isHoursSick = parsed.kind === "hours-sick";
+              const isHours = parsed.kind === "hours";
               const rotaShift = getRotaShift(dealer.id, day);
               const isScheduled = !!rotaShift;
               const isEmpty = val === "";
+              const displayVal = isHoursSick ? String(parsed.hours) : val;
+              const cellTitle = isHoursSick ? `Sick — worked ${parsed.hours}h then went home` : undefined;
               return (
                 <td key={day} className={`px-0.5 py-0.5 text-center ${isToday ? "bg-primary/25" : isWeekend ? "bg-muted/15" : ""}`}>
                   <input
                     type="text"
-                    defaultValue={val}
+                    defaultValue={displayVal}
+                    title={cellTitle}
                     key={`${dealer.id}-${month}-${day}-${val}`}
                     onBlur={e => handleSave(dealer.id, day, e.target.value)}
                     onKeyDown={e => {
@@ -890,6 +923,7 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
                     }}
                     className={`w-full h-7 rounded text-[10px] font-mono text-center border-0 focus:outline-none focus:ring-1 focus:ring-primary transition-colors ${
                       isStatus ? ATT_COLORS[val]
+                        : isHoursSick ? "bg-transparent text-card-foreground font-bold ring-2 ring-amber-500/70 dark:ring-amber-400/70 ring-inset cursor-help"
                         : isHours ? "bg-transparent text-card-foreground font-bold"
                         : isScheduled && isEmpty
                           ? `${UNIFIED_SHIFT_TINTS[rotaShift] || "bg-muted/30 text-muted-foreground"} placeholder:text-current`
