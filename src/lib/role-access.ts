@@ -7,15 +7,19 @@ export type FinancialScope = "all" | "shift" | "none";
 
 /**
  * Determines the financial data visibility scope for a user based on their roles.
- * - "all": Can see all historical financial data (manager, finance_manager, security)
- * - "shift": Can see only current shift/day data (cashier, pit)  
- * - "none": Cannot see any financial data (reception)
+ * - "all":   Full historical financial data (manager, finance_manager, surveillance, super_admin)
+ * - "shift": Current business-day only (pit). Manager Override toggle lifts the limit
+ *            but still uses the "shift" filter unless the toggle is active.
+ * - "none":  No financial data at all (cashier, reception, hr).
+ *
+ * NOTE: Cashier sees their own active shift transactions inside the Cage UI itself,
+ * but in player-card / player-report contexts they get "none" — no lifetime totals.
  */
 export const getFinancialScope = (roles: string[]): FinancialScope => {
   if (roles.includes("manager") || roles.includes("finance_manager") || roles.includes("surveillance") || roles.includes("super_admin")) {
     return "all";
   }
-  if (roles.includes("cashier") || roles.includes("pit")) {
+  if (roles.includes("pit")) {
     return "shift";
   }
   return "none";
