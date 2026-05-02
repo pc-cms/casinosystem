@@ -49,7 +49,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/tables", icon: Table2, label: "Live Tables", roles: ["super_admin", "manager", "cashier", "pit", "finance_manager", "surveillance"], section: "PIT" },
   { to: "/active-players", icon: Users, label: "Active Players", roles: ["super_admin", "manager", "pit", "finance_manager"], section: "PIT" },
   { to: "/player-tracker", icon: Eye, label: "Player Tracker", roles: ["super_admin", "manager", "pit", "finance_manager"], section: "PIT" },
-  { to: "/table-tracker", icon: Target, label: "Table Tracker", roles: ["super_admin", "manager", "pit", "finance_manager"], section: "PIT" },
+  { to: "/table-tracker", icon: Target, label: "Table Check", roles: ["super_admin", "manager", "pit", "finance_manager"], section: "PIT" },
   { to: "__attendance__", icon: ClipboardPen, label: "Attendance", roles: ["super_admin", "manager", "pit", "finance_manager"], section: "PIT" },
   { to: "__rota__", icon: CalendarDays, label: "Rota", roles: ["super_admin", "manager", "pit", "finance_manager"], section: "PIT" },
 
@@ -95,7 +95,7 @@ const NAV_ITEMS: NavItem[] = [
 const TABLE_SUBITEMS = [
   { tab: "activeplayers", icon: Users, label: "Active Players" },
   { tab: "tracker", icon: Eye, label: "Player Tracker" },
-  { tab: "tabletracker", icon: Target, label: "Table Tracker" },
+  { tab: "tabletracker", icon: Target, label: "Table Check" },
 ];
 
 // PIT-section variant (no Employee — Personnel admin lives in HR)
