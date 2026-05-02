@@ -195,7 +195,7 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
                             : "text-muted-foreground"
                         }`}
                       >
-                        {slot}
+                        {slot === "05:00" ? "Final" : slot}
                       </th>
                     );
                   })}
