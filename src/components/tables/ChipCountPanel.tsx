@@ -182,7 +182,7 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
                 {visibleDenoms.map(d => (
                   <th key={d} className={`text-center ${t.headerPadY} px-1 font-medium`}>
                     <span
-                      className={`inline-flex items-center justify-center rounded-full font-bold whitespace-nowrap ring-1 ring-black/10 ${t.chipText} ${t.chipPad} ${CHIP_COLORS[d] || "bg-muted text-foreground"}`}
+                      className={`inline-flex items-center justify-center rounded-full font-bold whitespace-nowrap ring-1 ring-[hsl(45_75%_52%/0.85)] ${t.chipText} ${t.chipPad} ${CHIP_COLORS[d] || "bg-muted text-foreground"}`}
                     >
                       {formatChipLabel(d)}
                     </span>
