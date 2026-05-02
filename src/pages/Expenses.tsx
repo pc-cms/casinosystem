@@ -166,12 +166,11 @@ const Expenses = () => {
                   </Select>
                 </td>
                 <td className="px-2 py-1.5">
-                  <Input
+                  <PlayerNameAutocomplete
                     placeholder={d.target === "player" ? "Player name" : "—"}
                     value={d.player_name}
-                    onChange={e => updateDraft(d.uid, { player_name: e.target.value })}
+                    onChange={v => updateDraft(d.uid, { player_name: v })}
                     disabled={d.target !== "player"}
-                    className="h-8 text-xs"
                   />
                 </td>
                 <td className="px-2 py-1.5">
