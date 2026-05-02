@@ -10,11 +10,10 @@ import { useAuth } from "@/lib/auth-context";
 import { ChipCountPanel } from "@/components/tables/ChipCountPanel";
 import { Button } from "@/components/ui/button";
 
-// 18:00 → 05:00, 30-minute intervals
+// 18:00 → 05:00, 1-hour intervals
 const generateSlots = () => {
   const slots: string[] = [];
-  for (let h = 18; h <= 28; h++) { // 28 = 04:xx next day
-    if (h === 29) break;
+  for (let h = 18; h <= 29; h++) { // 29 = 05:00 next day
     const hour = h % 24;
     slots.push(`${String(hour).padStart(2, "0")}:00`);
   }
