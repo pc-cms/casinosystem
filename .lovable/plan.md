@@ -1,84 +1,79 @@
-## План
+# Drop R / Drop V — модель NEP (External vs Recycled)
 
-### Часть 1. Бизнес-день — применять со следующей смены
+## Проблема
 
-**Поведение сейчас:** `shift_end` и `breaklist_lock` читаются из `casinos` на каждый рендер и применяются мгновенно — это опасно посреди активной смены.
+Сейчас `Drop R` = просто сумма всех `buy`-транзакций игрока. Если игрок:
+1. Внёс 2M (NEP = +2M)
+2. Забрал 3M (NEP = −1M, играет на «деньги казино»)
+3. Снова приносит 1M
 
-**Что меняем:**
+— текущая система засчитает +1M в Drop R, хотя по сути это **возврат выигрыша**, а не новые внешние деньги. Это «фейк-дроп».
 
-1. **БД (`casinos`):** добавляем колонки
-   - `shift_end_pending text` (новое значение, ждёт активации)
-   - `shift_end_pending_from date` (с какого бизнес-дня применить)
-   - `breaklist_lock_pending text`
-   - аналогично `breaklist_lock_pending_from date`
+## Решение: NEP-модель
 
-2. **БД-функция `get_effective_shift_end(casino_id)`** — возвращает `pending`, если сегодняшний бизнес-день ≥ `pending_from`, иначе текущий `shift_end`. При первом вызове после активации — переносит `pending → shift_end` и обнуляет pending.
+Для каждого игрока ведём бегущий счёт **NEP = Σ Cash In − Σ Cash Out** в хронологическом порядке.
 
-3. **Frontend (`Admin.tsx` → блок настроек смены):**
-   - При сохранении новые значения пишутся в `*_pending` + `*_pending_from = следующий бизнес-день`.
-   - Под полями отображаем баннер: «Изменения применятся со следующей смены (с DD.MM.YYYY 18:00)».
-   - Если pending уже есть — показываем текущее активное значение и pending-значение рядом, кнопкой «Отменить запланированное».
-
-4. **Frontend (`src/lib/business-day.ts` + `useAuth`):**
-   - В `AuthContext` грузим эффективный `shift_end` через RPC `get_effective_shift_end`, кэшируем в контексте.
-   - Все вызовы `getBusinessDate()` берут это значение из контекста (через хук `useShiftEnd()`), не перечитывая casino напрямую.
-
-**Эффект:** даже если менеджер сохранил настройку в 03:00 ночи, текущая смена продолжит закрываться по старому правилу; новое начнёт действовать с 18:00 следующего дня.
-
----
-
-### Часть 2. Двухцветные фишки с 6 настраиваемыми вставками
-
-**Цель:** визуал как на референсе — основной круг с 6 контрастными «вставками» по краю и внутренним диском с цифрой.
-
-1. **БД (`chip_color_settings`):** добавить колонку
-   - `edge_color text NOT NULL DEFAULT '#FFFFFF'`
-
-2. **`src/hooks/use-chip-colors.ts`:**
-   - Расширяем тип: `{ bg, edge, text }`.
-   - В `DEFAULT_CHIP_HEX` добавляем `edge` для каждого номинала (по умолчанию белый, для жёлтых/белых — чёрный).
-   - `useUpsertChipColor` принимает `edge_color`.
-
-3. **`src/index.css` — переписываем `.cms-chip-token`:**
-   - Внешний круг: `background: conic-gradient(var(--chip-bg) 0 30deg, var(--chip-edge) 30deg 60deg, var(--chip-bg) 60deg 90deg, ...)` — 12 секторов по 30° (6 bg + 6 edge, чередуются).
-   - Псевдоэлемент `::before`: внутренний диск ~70% диаметра, `background: var(--chip-bg)`, тонкая золотая обводка.
-   - Цифра поверх (`z-index`), `color: var(--chip-text)`.
-   - `cms-chip-token-lg` — те же пропорции, увеличенный размер.
-   - CSS-переменные `--chip-bg`, `--chip-edge`, `--chip-text` задаются inline-стилем компонента-обёртки.
-
-4. **Компонент-обёртка `<ChipToken denom={...} />`** (новый, `src/components/ChipToken.tsx`):
-   - Резолвит цвета через `resolveChipColor(denom, overrides)`.
-   - Рендерит `<span class="cms-chip-token" style={{ '--chip-bg': bg, '--chip-edge': edge, '--chip-text': text }}>{label}</span>`.
-   - Заменяем все ручные `<span class="cms-chip-token" style={...}>` (~6-8 мест: `ChipDenomInput`, `ChipCountPanel`, `CloseTableWizard`, `TransfersForm`, `ChipColorSettings`, превью на дашборде) на `<ChipToken/>`.
-
-5. **`src/components/admin/ChipColorSettings.tsx`:**
-   - Добавляем третий color-picker «Edge» рядом с Background / Text.
-   - Превью использует новый `<ChipToken/>`.
-   - Кнопка «Default» сбрасывает все три цвета.
-
-6. **Memory:** обновить `mem://ui/visual-patterns` — упомянуть трёхцветную модель фишки (bg/edge/text).
-
-7. **Версия:** bump `package.json` → `1.0.37`.
-
----
-
-### Технические детали
+При каждом новом `buy` (cash-in) сумма автоматически делится на 2 части:
 
 ```text
-Фишка (упрощённо):
-
-   ┌───── conic-gradient (12 секторов) ─────┐
-   │  bg │edge│ bg │edge│ bg │edge│ ...     │
-   │     ┌──────────────────┐               │
-   │     │   inner disk     │               │
-   │     │   = bg color     │               │
-   │     │   "5K" = text    │               │
-   │     └──────────────────┘               │
-   └────────────────────────────────────────┘
+recycledPart = min(cashIn, max(0, -prevNEP))   // покрытие отрицательного NEP
+externalPart = cashIn - recycledPart            // остаток = новые внешние деньги
 ```
 
-**Файлы:**
-- Миграция: добавить `shift_end_pending*`, `breaklist_lock_pending*` в `casinos`; добавить `edge_color` в `chip_color_settings`; создать `get_effective_shift_end()`.
-- `src/lib/business-day.ts`, `src/lib/auth-context.tsx`, `src/pages/Admin.tsx`
-- `src/hooks/use-chip-colors.ts`, `src/index.css`, `src/components/ChipToken.tsx` (new), `src/components/admin/ChipColorSettings.tsx`, и ~6 файлов с заменой inline-spans
-- `package.json` (1.0.37)
+После транзакции: `NEP_new = prevNEP + cashIn − cashOut_за_тот_же_момент`. Для `cashout` целиком уменьшаем NEP, externalPart = 0, recycledPart = 0 (cash-out не дробится — он только смещает NEP).
+
+### Итог:
+- **Drop R** (Real Drop) = Σ `externalPart` всех buy за период
+- **Drop V** (Volume Drop) = Σ `recycledPart` + Σ `total_bet` из Table Tracker
+- **Result** считается как и раньше: `cashout − total_buy` (логика «чистой игры» не меняется — это касса, не PnL игрока)
+
+## Где правим
+
+### 1. БД: новая RPC + view-расширение
+
+Создать SQL-функцию `compute_player_drop_split(player_id, from_ts, to_ts)` возвращающую `(drop_r bigint, drop_v_recycled bigint)`. Алгоритм: SELECT все `transactions` игрока с `created_at <= to_ts` ORDER BY `created_at, id`, итерируем, ведём `nep`, для каждой buy в диапазоне `[from_ts, to_ts]` накапливаем external/recycled.
+
+Дополнительно — RPC `compute_table_drop_split(casino_id, shift_id_or_date_range)`: тот же алгоритм, но возвращает Map<table_id, {drop_r, recycled}>; для каждой `buy.table_id` присваиваем split на основе глобального NEP игрока на момент транзакции.
+
+> **Важно:** NEP считается **глобально по игроку** (lifetime), а не по смене/столу — игрок может «принести выигрыш вчерашней смены» сегодня. Splitting по таблицам/сменам — атрибуция уже посчитанных частей.
+
+### 2. Frontend
+
+- **`src/pages/Tables.tsx`** (строки 277–296, 213–252): заменить `dropR = sum(buy.amount)` на split из RPC; `dropV` дополнить recycled-частью.
+- **`src/pages/Dashboard.tsx`** (строки 80–117): то же самое.
+- **`src/components/pit/ActivePlayers.tsx`** (≈198) и **`src/components/pit/SeatedPlayerChip.tsx`**: показывать `dropR` (external) — будет 0 у игроков, играющих на выигрыше.
+- **`src/components/pit/TableSeatingDialog.tsx`** (≈136): то же.
+- **`src/components/player/PlayerVisitsBreakdown.tsx`** (строки 71–105, 200, 231, 260, 291): добавить колонку `Drop R` рядом с `Drop` (текущий = total buy, оставить как «Drop V cash-side» / переименовать). Решение по UI ниже.
+- **`src/hooks/use-players.ts`** (`usePlayerEconomyRange`, ≈125–215): добавить вычисление NEP-split на клиенте для диапазона (или дёрнуть RPC).
+
+### 3. View `player_economy`
+Добавить два столбца:
+- `total_drop_r bigint` — lifetime External
+- `total_drop_recycled bigint` — lifetime Recycled
+`total_drop` (= sum buy) **оставить как есть** для обратной совместимости и аудита.
+
+## ASCII-схема
+
+```text
+buy 2M  ─► NEP: 0  → +2M  | ext=2M  rec=0
+cashout 3M ► NEP: +2M → −1M | (no split)
+buy 1M  ─► NEP: −1M → 0   | ext=0   rec=1M  ◄── фейк-дроп нейтрализован
+buy 500K ► NEP: 0   → +500K| ext=500K rec=0
+```
+
+## Тесты
+
+- `src/test/business-logic.test.ts`: добавить describe `dropSplit`:
+  - простой кейс «всегда в минусе» → весь buy = external
+  - кейс из примера выше: 2M / −3M / 1M → drop_r=2M, recycled=1M
+  - несколько cashout подряд: NEP уходит глубоко в минус, потом большой buy частично гасит
+  - порядок по `created_at` соблюдается даже если транзакции из разных смен/столов
+
+## Открытые вопросы (нужно подтверждение)
+
+1. **Старт NEP**: с момента регистрации игрока? (предполагаю «да, lifetime от первой транзакции»)
+2. **Comps/expenses** влияют на NEP? (предполагаю **нет** — это не касса, не cash-flow игрока)
+3. **`type='in'` / `type='out'`** считать как buy/cashout для NEP? (по текущему коду dropR их учитывает — оставлю так же)
+4. UI в `PlayerVisitsBreakdown`: добавить отдельную колонку `Drop R` или **заменить** текущую `Drop` (lifetime = total buy) на `Drop R`? Рекомендую **заменить**, оставив total buy только в детальной карточке игрока.
+
+После подтверждения — реализую миграцию + RPC + правки во всех перечисленных файлах + тесты.
