@@ -465,6 +465,14 @@ const PlayerStatistics = () => {
           </div>
         </TabsContent>
       </Tabs>
+
+      <ChipTransferDialog
+        open={!!transferPlayer}
+        onOpenChange={(v) => { if (!v) setTransferPlayer(null); }}
+        player={transferPlayer}
+        defaultDirection="out"
+        presentPlayerIds={presentPlayerIds}
+      />
     </PageShell>
   );
 };
