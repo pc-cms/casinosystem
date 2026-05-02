@@ -892,6 +892,13 @@ const PlayerProfile = () => {
         } : null}
         defaultDirection="out"
       />
+
+      <BlacklistPlayerDialog
+        open={blacklistOpen}
+        onClose={() => setBlacklistOpen(false)}
+        playerId={(player as any).id}
+        playerName={fullName}
+      />
     </PageShell>
   );
 };
