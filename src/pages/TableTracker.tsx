@@ -100,9 +100,29 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
         <PageHeader
           icon={Target}
           title="Table Check"
-          subtitle="Enter values · auto-saves on blur/Enter"
+          subtitle={mode === "numbers" ? "Enter values · auto-saves on blur/Enter" : "Count chips on tables · save snapshot"}
           date={date}
         >
+          <div className="inline-flex rounded-md border border-border overflow-hidden h-9">
+            <Button
+              type="button"
+              variant={mode === "numbers" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setMode("numbers")}
+              className="rounded-none gap-1.5 h-9 px-3"
+            >
+              <Hash className="h-4 w-4" /> Numbers
+            </Button>
+            <Button
+              type="button"
+              variant={mode === "chips" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setMode("chips")}
+              className="rounded-none gap-1.5 h-9 px-3"
+            >
+              <Coins className="h-4 w-4" /> Chips
+            </Button>
+          </div>
           {isManager ? (
             <Input
               type="date"
@@ -124,6 +144,13 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
           ) : null}
         </PageHeader>
       )}
+
+      {mode === "chips" ? (
+        <PageSection card={false}>
+          <ChipCountPanel date={date} />
+        </PageSection>
+      ) : (
+      <>
 
       <PageSection card={false}>
         <div className="rounded-md border border-border bg-card overflow-x-auto">
