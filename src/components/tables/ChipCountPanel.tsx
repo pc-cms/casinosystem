@@ -52,6 +52,7 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
   };
 
   const [counts, setCounts] = useState<Record<string, Record<number, number>>>({});
+  const [fullscreen, setFullscreen] = useState(false);
 
   // Initialize / refresh prefill when underlying data changes
   useEffect(() => {
