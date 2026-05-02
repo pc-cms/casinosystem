@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Landmark, Receipt, TrendingDown, LayoutDashboard, Filter, ArrowUpDown, CreditCard } from "lucide-react";
 import { CardSkeleton, PlayerListSkeleton } from "@/components/LoadingSkeletons";
 import { usePlayers, useTransactions, useGamingTables, useExpenses, useClientSessionsTotalBet, useTableTracker } from "@/hooks/use-casino-data";
+import { useCashless } from "@/hooks/use-cashless";
 import { useChipSnapshots } from "@/hooks/use-chips";
 import { useChipBaseline, baselineToMap } from "@/hooks/use-table-lifecycle";
 import { liveTableResult, buildLatestTableSnapshot } from "@/lib/table-live-result";
@@ -59,6 +60,8 @@ const Dashboard = () => {
   const buyInDrop = transactions.filter(t => (t.type === "buy" || t.type === "in")).reduce((s, t) => s + Number(t.amount), 0);
   const totalDrop = buyInDrop + sessionsTotalBet;
   const pendingExpenses = expenses.filter(e => !e.approved).length;
+  const { data: cashless = [] } = useCashless(businessDate);
+  const pendingCashless = cashless.filter((r: any) => r.status === "pending").length;
 
   const baselineMap = useMemo(() => baselineToMap(baseline), [baseline]);
   const snapshotIndex = useMemo(() => buildLatestTableSnapshot(snapshots as any), [snapshots]);
@@ -214,17 +217,7 @@ const Dashboard = () => {
           )
         )}
         {showFinancials && (
-          <div className="cms-panel p-4 opacity-75">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Pending Cashless</p>
-                <p className="text-2xl font-bold font-mono mt-1 text-card-foreground">0</p>
-              </div>
-              <div className="p-2 rounded-md bg-muted text-muted-foreground">
-                <CreditCard className="w-5 h-5" />
-              </div>
-            </div>
-          </div>
+          <StatCard label="Pending Cashless" value={pendingCashless} icon={CreditCard} href="/cashless" />
         )}
       </div>
 

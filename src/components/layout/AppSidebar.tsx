@@ -56,6 +56,7 @@ const NAV_ITEMS: NavItem[] = [
   // CASHIER — Cage operations
   { to: "/cage", icon: Landmark, label: "Cage", roles: ["super_admin", "manager", "cashier", "finance_manager"], section: "CASHIER" },
   { to: "/expenses", icon: Receipt, label: "Expenses", roles: ["super_admin", "manager", "cashier", "finance_manager"], section: "CASHIER" },
+  { to: "/cashless", icon: CreditCard, label: "Cashless", roles: ["super_admin", "manager", "cashier", "finance_manager"], section: "CASHIER" },
 
   // RECEPTION — Players & entry
   { to: "/reception", icon: DoorOpen, label: "Reception", roles: ["super_admin", "manager", "reception", "finance_manager"], section: "RECEPTION" },

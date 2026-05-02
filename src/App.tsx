@@ -51,6 +51,7 @@ const MissChips = lazy(() => import("@/pages/MissChips"));
 const TableTracker = lazy(() => import("@/pages/TableTracker"));
 const TablesAnalytics = lazy(() => import("@/pages/TablesAnalytics"));
 const PlayerStatistics = lazy(() => import("@/pages/PlayerStatistics"));
+const Cashless = lazy(() => import("@/pages/Cashless"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -99,6 +100,7 @@ const ROUTE_ROLES: Record<string, string[]> = {
   "/table-tracker": ["super_admin", "manager", "pit", "finance_manager"],
   "/tables/analytics": ["super_admin", "manager", "finance_manager", "pit"],
   "/expenses": ["super_admin", "manager", "cashier", "finance_manager"],
+  "/cashless": ["super_admin", "manager", "cashier", "finance_manager"],
   "/pit": ["super_admin", "manager", "pit", "finance_manager", "hr"],
   "/floor": ["super_admin", "manager", "pit", "finance_manager", "hr"],
   "/groups": ["super_admin", "manager", "finance_manager"],
@@ -201,6 +203,7 @@ const ProtectedRoutes = () => {
           <Route path="/table-tracker" element={<RoleGuard path="/table-tracker"><TableTracker /></RoleGuard>} />
           <Route path="/tables/analytics" element={<RoleGuard path="/tables/analytics"><TablesAnalytics /></RoleGuard>} />
           <Route path="/expenses" element={<RoleGuard path="/expenses"><Expenses /></RoleGuard>} />
+          <Route path="/cashless" element={<RoleGuard path="/cashless"><Cashless /></RoleGuard>} />
           <Route path="/pit" element={<RoleGuard path="/pit"><ErrorBoundary><Pit /></ErrorBoundary></RoleGuard>} />
           <Route path="/staff" element={<RoleGuard path="/floor"><Staff /></RoleGuard>} />
           <Route path="/floor" element={<RoleGuard path="/floor"><Staff /></RoleGuard>} />

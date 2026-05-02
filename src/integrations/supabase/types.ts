@@ -736,6 +736,60 @@ export type Database = {
           },
         ]
       }
+      cashless_transactions: {
+        Row: {
+          amount: number
+          approved_at: string | null
+          approved_by: string | null
+          business_date: string
+          casino_id: string
+          created_at: string
+          currency: string
+          direction: string
+          id: string
+          note: string
+          operator_id: string
+          player_id: string | null
+          provider: string
+          reference: string
+          status: string
+        }
+        Insert: {
+          amount: number
+          approved_at?: string | null
+          approved_by?: string | null
+          business_date: string
+          casino_id: string
+          created_at?: string
+          currency?: string
+          direction: string
+          id?: string
+          note?: string
+          operator_id: string
+          player_id?: string | null
+          provider: string
+          reference?: string
+          status?: string
+        }
+        Update: {
+          amount?: number
+          approved_at?: string | null
+          approved_by?: string | null
+          business_date?: string
+          casino_id?: string
+          created_at?: string
+          currency?: string
+          direction?: string
+          id?: string
+          note?: string
+          operator_id?: string
+          player_id?: string | null
+          provider?: string
+          reference?: string
+          status?: string
+        }
+        Relationships: []
+      }
       casino_visits: {
         Row: {
           casino_id: string
