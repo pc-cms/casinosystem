@@ -184,6 +184,35 @@ const ActivePlayers = () => {
     onError: (e: any) => toast.error(e.message),
   });
 
+  // NEP-aware per-player split walked over current transactions list (shift scope).
+  const playerSplits = useMemo(() => {
+    const byPlayer = new Map<string, any[]>();
+    for (const t of transactions as any[]) {
+      if (!t.player_id) continue;
+      let arr = byPlayer.get(t.player_id);
+      if (!arr) { arr = []; byPlayer.set(t.player_id, arr); }
+      arr.push(t);
+    }
+    const out = new Map<string, { dropR: number; cashout: number }>();
+    for (const [pid, txs] of byPlayer) {
+      txs.sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)));
+      let nep = 0, dropR = 0, cashout = 0;
+      for (const t of txs) {
+        const amt = Number(t.amount) || 0;
+        if (t.type === "buy" || t.type === "in") {
+          const rec = nep < 0 ? Math.min(amt, -nep) : 0;
+          dropR += amt - rec;
+          nep += amt;
+        } else if (t.type === "cashout" || t.type === "out") {
+          cashout += amt;
+          nep -= amt;
+        }
+      }
+      out.set(pid, { dropR, cashout });
+    }
+    return out;
+  }, [transactions]);
+
   // Build seated map: tableId -> SeatedPlayer[]
   const { seatedByTable, allSeatedIds } = useMemo(() => {
     const map: Record<string, SeatedPlayer[]> = {};
@@ -194,13 +223,7 @@ const ActivePlayers = () => {
       if (!p || !s.table_id) continue;
       const cat = ((p as any).category as PlayerCategory) || "normal";
       if (!categoryFilter.has(cat)) continue;
-      const playerTx = transactions.filter((t: any) => t.player_id === p.id);
-      const dropR = playerTx
-        .filter((t: any) => t.type === "buy" || t.type === "in")
-        .reduce((sum: number, t: any) => sum + Number(t.amount), 0);
-      const cashout = playerTx
-        .filter((t: any) => t.type === "cashout" || t.type === "out")
-        .reduce((sum: number, t: any) => sum + Number(t.amount), 0);
+      const sp_split = playerSplits.get(p.id) || { dropR: 0, cashout: 0 };
       const sp: SeatedPlayer = {
         id: p.id,
         first_name: p.first_name,
@@ -209,8 +232,8 @@ const ActivePlayers = () => {
         category: cat,
         avgBet: Number(s.avg_bet || 0),
         startedAt: s.started_at ? new Date(s.started_at) : null,
-        dropR,
-        result: dropR - cashout,
+        dropR: sp_split.dropR,
+        result: sp_split.dropR - sp_split.cashout,
       };
       if (!map[s.table_id]) map[s.table_id] = [];
       map[s.table_id].push(sp);
@@ -225,7 +248,7 @@ const ActivePlayers = () => {
       return (a.startedAt?.getTime() ?? 0) - (b.startedAt?.getTime() ?? 0);
     }));
     return { seatedByTable: map, allSeatedIds: ids };
-  }, [sessions, players, transactions, categoryFilter]);
+  }, [sessions, players, playerSplits, categoryFilter]);
 
   // Candidates: any player checked-in (present in casino) and not seated.
   // Falls back to status==="active" for legacy data without visits.
