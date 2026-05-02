@@ -28,9 +28,6 @@ const Tables = () => {
   // Close Table wizard
   const [showCloseWizard, setShowCloseWizard] = useState(false);
 
-  // Close Table wizard
-  const [showCloseWizard, setShowCloseWizard] = useState(false);
-
   const baselineMap = useMemo(() => baselineToMap(baseline), [baseline]);
 
   const closedTables = useMemo(() => tables.filter(t => t.status === "closed"), [tables]);
@@ -68,90 +65,11 @@ const Tables = () => {
     return stats;
   }, [tables, shiftTransactions, trackerData, snapshotIndex, baselineMap]);
 
-  // Chip Count operates only on TABLES (Pit only deals with tables)
-  // Latest snapshot per table for prefill
-  const latestSnapshotPerTable = useMemo(() => {
-    const map: Record<string, Record<number, number>> = {};
-    const sorted = [...snapshots].sort((a, b) => (a.created_at || "").localeCompare(b.created_at || ""));
-    sorted.forEach((s: any) => {
-      if (s.location_type !== "table" || !s.location_id) return;
-      if (!map[s.location_id]) map[s.location_id] = {};
-      map[s.location_id][Number(s.denomination)] = Number(s.actual_quantity);
-    });
-    return map;
-  }, [snapshots]);
-
-  const countLocations = useMemo(() => {
-    return openTables.map(t => ({
-      key: `table-${t.id}`,
-      label: t.name,
-      type: "table" as const,
-      id: t.id,
-      denoms: t.denominations || [],
-    }));
-  }, [openTables]);
-
-  // Default value for a (table, denom) input: latest snapshot → baseline (float)
-  const getDefaultCount = (tableId: string, denom: number): number => {
-    const snap = latestSnapshotPerTable[tableId]?.[denom];
-    if (snap !== undefined) return snap;
-    return baselineMap[tableId]?.[denom] ?? 0;
-  };
-
-  const handleOpenChipCount = () => {
-    // Prefill from baseline / last snapshot so the first count of the shift shows the float
-    const initial: Record<string, Record<number, number>> = {};
-    countLocations.forEach(loc => {
-      initial[loc.key] = {};
-      loc.denoms.forEach(d => {
-        initial[loc.key][d] = getDefaultCount(loc.id, d);
-      });
-    });
-    setCounts(initial);
-    setShowCount(true);
-  };
-
-  const handleSaveCount = () => {
-    const rows: Array<{
-      location_type: string; location_id: string | null;
-      denomination: number; expected_quantity: number; actual_quantity: number;
-    }> = [];
-    countLocations.forEach(loc => {
-      const locCounts = counts[loc.key] || {};
-      const tableBaseline = baselineMap[loc.id] || {};
-      loc.denoms.forEach(d => {
-        const expected = tableBaseline[d] || 0;
-        const actual = locCounts[d] ?? expected;
-        rows.push({ location_type: loc.type, location_id: loc.id, denomination: d, expected_quantity: expected, actual_quantity: actual });
-      });
-    });
-    batchSnapshot.mutate({ date, counts: rows }, {
-      onSuccess: () => {
-        setCounts({});
-        setShowCount(false);
-      },
-    });
-  };
-
   const handleOpenAll = () => {
     const ids = closedTables.map(t => t.id);
     openAllTables.mutate(ids);
   };
 
-  // Live result preview per table inside Chip Count dialog
-  const countResultPreview = useMemo(() => {
-    return countLocations.map(loc => {
-      const locCounts = counts[loc.key] || {};
-      const tableBaseline = baselineMap[loc.id] || {};
-      let total = 0;
-      loc.denoms.forEach(d => {
-        const expected = tableBaseline[d] || 0;
-        const actual = locCounts[d] ?? expected;
-        total += (actual - expected) * d;
-      });
-      return { id: loc.id, label: loc.label, total };
-    });
-  }, [countLocations, counts, baselineMap]);
 
   const gameTypeTotals = useMemo(() => {
     const totals: Record<string, { dropR: number; dropV: number; result: number; label: string }> = {};
