@@ -1,139 +1,148 @@
-## Chip Transfer (CHIP IN ↔ CHIP OUT) — парные транзакции, влияющие на NEP
+# Surveillance — финальная версия (с нуля)
 
-### Концепция
+Полностью переписываем интерфейс роли `surveillance`. Никаких лишних вкладок, никаких кнопок редактирования. Доступно строго 5 пунктов меню. Глубина истории — **90 дней**. Старый `CctvView` / `CctvLayout` удаляем — Surveillance везде использует обычный `AppLayout`.
 
-Когда фишка пересекает границу «игрок ↔ игрок» вне кассы — это эквивалентно cash-операции для NEP, но **без движения денег в кассе**. Pit фиксирует передачу как **парную** запись: один игрок отдаёт (CHIP OUT), другой получает (CHIP IN), на одну и ту же сумму.
+---
 
-### Семантика для NEP
+## Меню (только эти пункты)
 
-| Запись | Эффект на NEP игрока | Аналог |
-|---|---|---|
-| **CHIP IN** (получил) | `NEP += amount` | как `buy` |
-| **CHIP OUT** (отдал) | `NEP -= amount` | как `cashout` |
+### 1. Dashboard
+- Полная копия менеджерского `Dashboard` (KPI, In Casino, Tables, последние транзакции).
+- Внизу добавлен блок **Floor Staff** — список вышедшего на смену стафа.
+- Селектор бизнес-дня в шапке (до 90 дней назад).
+- Никаких кнопок действия (Check-out, Approve и т.п.).
 
-Пересчёт **Drop R / Drop V / Recycled** идёт по той же формуле NEP-split (`src/lib/nep-split.ts`) — Chip In при отрицательном NEP уйдёт в **Recycled**, как обычный buy.
+### 2. Pit (всё, что есть у Pit-роли — read-only)
+Один пункт меню `/pit` с табами:
+- **Breaklist** — таблица только для просмотра.
+- **Live Tables** — статус столов, текущий результат.
+- **Active Players / Player Tracker** — посадка, ставки, время.
+- **Table Check** + **Table Analytics**.
+- **Attendance** + **Rota** — Live + Floor + Security + Office.
 
-### Пример (закрытие «дыры»)
+Селектор бизнес-дня (90 дней) переключает все табы на выбранный день.
 
-Player A отдал фишку 1M Player B, B пошёл в кассу за cashout 1M:
+### 3. Player Statistics (как у менеджера, полная)
+- Полный список игроков с финансовой статистикой.
+- Поиск, фильтры, сортировки — как у менеджера.
+- Вход в карточку игрока (см. глобальный блок ниже): можно оставлять **Notes**, проставлять **Tags**, отправлять в **Blacklist**, делать **Chip Transfer**.
 
-| Шаг | A: NEP | B: NEP | B: Drop R |
-|---|---|---|---|
-| Pit фиксирует transfer | −1M | +1M | 0 |
-| B → cashout 1M | −1M | 0 | 0 |
+### 4. Cage (read-only списки + Chip Transfers)
+Одна страница `/cage` с табами:
+- **IN / OUT** — все cash-транзакции (`transactions`) за выбранный день.
+- **Cashless** — все `cashless_transactions` за выбранный день.
+- **Cage Transfers** — `cage_transfers` (Cage↔Table) за выбранный день.
+- **Chip Transfers** — `chip_transfers` (player↔player) за выбранный день, **с кнопкой «New Chip Transfer»** — открывает существующий `ChipTransferDialog` (выбираем from-player, to-player, сумму/фишки). Это единственное действие, доступное Surveillance в Cage.
 
-Результат: A в минусе на 1M (унёс фишку), B чисто 0, никакого «фейк-плюса» и никакого ложного Drop R.
+В шапке: селектор даты + список **закрытых смен** этого дня. Глубина — 90 дней. Никаких форм Add Float / Collection / Fill / Credit / Cashless.
 
-### База данных
+### 5. Blacklist
+- Верхняя строка — глобальный поиск игроков (по имени/никнейму/ID/карте) для отправки в blacklist.
+- Под ней — список забаненных (фото, имя, **дата бана**, **последнее посещение**).
+- Кнопка «Reactivate» **скрыта** для Surveillance (только Manager).
 
-Новая таблица `chip_transfers`:
+---
 
-```
-id uuid PK
-casino_id uuid NOT NULL
-shift_id uuid NOT NULL              -- auto-fill из открытой смены
-table_id uuid NULL                  -- опционально, где произошло
-pair_id uuid NOT NULL               -- общий ID для двух связанных строк
-direction text NOT NULL CHECK (direction IN ('in','out'))
-player_id uuid NOT NULL
-counterparty_player_id uuid NOT NULL  -- обязательно (парность)
-amount bigint NOT NULL CHECK (amount > 0)
-chips jsonb NULL                    -- опц. разбивка по номиналам
-note text DEFAULT ''
-operator_id uuid NOT NULL
-created_at timestamptz DEFAULT now()
-```
+## Глобальные изменения карточки игрока (`/players/:id`)
 
-**RLS:**
-- INSERT: `pit OR manager`, `casino_id = get_user_casino_id(auth.uid())`, `operator_id = auth.uid()`
-- SELECT: казино-пользователи свои; super_admin/FM глобально; surveillance read-only по доступным
-- UPDATE/DELETE: запрещены (immutable trigger как у `transactions`)
+Видны для **Pit / Manager / Surveillance / Super Admin**.
 
-**Триггеры:**
-1. `validate_chip_transfer` — проверки: сумма > 0, два игрока разные, оба существуют в этом казино, shift открыт, парная запись с тем же `pair_id` создаётся атомарно.
-2. `prevent_chip_transfer_modify` — block UPDATE/DELETE.
-3. `auto_log_chip_transfer` — пишет в `activity_logs` (`category='player'`, action `CHIP_TRANSFER_IN/OUT`).
-4. `sync_attach('chip_transfers')` — для multi-casino sync engine.
-5. `ensure_visit_on_chip_transfer` — если у игрока нет открытого визита сегодня, создать (как `ensure_visit_on_transaction`), чтобы он попал в Player Statistics.
+### A. Кнопка «Add to Blacklist»
+- В верхней панели рядом с «Chip Transfer».
+- Открывает диалог с обязательным полем «Причина» → `players.status='blacklist'` + запись в `activity_logs`.
 
-### Атомарность парной записи
+### B. Вкладка «Notes»
+- Лента сообщений: **дата · автор · текст**, новые сверху.
+- Поле ввода + «Post» — Pit / Manager / Surveillance.
+- Хранится в `player_notes`.
 
-Через RPC `create_chip_transfer_pair(from_player, to_player, amount, table_id, chips, note)` — внутри транзакции INSERT обеих строк с одним `pair_id = gen_random_uuid()`. Если одна падает — обе откатываются. RPC доступна `pit` и `manager`.
+### C. Tags
+- Surveillance может добавлять/снимать теги (как Pit/Manager).
 
-Альтернатива (отбрасываем): два отдельных INSERT с клиента — риск рассинхрона при падении сети между запросами.
+### D. Chip Transfer
+- Кнопка уже есть — добавляем `surveillance` в условие видимости.
 
-### NEP-split: расширение
+---
 
-`src/lib/nep-split.ts` уже принимает массив транзакций и считает NEP. Меняем его сигнатуру так, чтобы на вход шёл **унифицированный поток событий**: `{ created_at, type: 'in'|'out', amount }`. Отдельный helper мерджит `transactions` + `chip_transfers` (CHIP IN → 'in', CHIP OUT → 'out') и сортирует по времени.
+## Технические детали
 
-Затронутые места (используют сейчас сырые транзакции для NEP):
-- `src/components/pit/ActivePlayers.tsx` (`playerSplits` useMemo)
-- `src/hooks/use-drop-split.ts`
-- `src/components/player/PlayerVisitsBreakdown.tsx`
-- `src/pages/Dashboard.tsx`, `src/pages/Tables.tsx`
-- `src/pages/PlayerProfile.tsx`
+### Маршрутизация
+`src/App.tsx`:
+- Удалить ветку `isCctvMode` и lazy-импорт `CctvView`.
+- `ROUTE_ROLES`: оставить `surveillance` только в `/`, `/pit`, `/player-statistics`, `/players/:id`, `/cage`, `/blacklist`. Убрать из `/tables`, `/in-casino`, `/players`, `/reports`, `/logs`, `/table-results`, `/miss-chips`.
+- `getDefaultRoute` для чистого Surveillance → `/`.
 
-Все они переходят на единый helper `mergeFinancialEvents(transactions, chipTransfers)` → `nepSplit(events)`.
+### Read-only режим
+- Новый хук `src/hooks/use-readonly-mode.ts` → `true` если `surveillance` без `manager`/`super_admin` (и без активного `managerOverride`).
+- В компонентах Pit (BreaklistGrid, ActivePlayers, TableSeatingDialog, FloorTableCard, Attendance/Rota grids) — на верхнем уровне: если `readOnly`, отключаем onClick/onChange/drop, скрываем кнопки Add/Edit/Save/Approve/Close/Delete, ставим `pointer-events-none` на интерактивные ячейки.
+- Surveillance-разрешённые действия (Notes post, Tags toggle, Add to Blacklist, Chip Transfer, поиск в Blacklist) — read-only **не** блокирует.
 
-### UI
+### Сайдбар
+`src/components/layout/AppSidebar.tsx` `NAV_ITEMS` — для `surveillance` оставить только:
+- `/` (Dashboard)
+- `/pit` (Pit, без подпунктов в сайдбаре — табы внутри)
+- `/player-statistics` (Player Statistics)
+- `/cage` (Cage)
+- `/blacklist` (Blacklist)
 
-**1. ChipTransferDialog (новый компонент)** — `ResponsiveDialog` (mobile = bottom drawer):
-- From player (текущий игрок, locked)
-- To player (autocomplete по присутствующим в казино сегодня; toggle «Show all players» с предупреждением)
-- Direction radio: `Give chips out` / `Receive chips in` (определяет, кто `from`/`to`)
-- Amount (number-input + быстрые кнопки 100k / 500k / 1M)
-- Optional note
-- Submit → RPC `create_chip_transfer_pair` через `offlineMutation`
+Все остальные пункты убрать из видимости Surveillance.
 
-**2. Точки входа («везде»):**
-- **Floor Map → SeatedPlayerChip** (`src/components/pit/SeatedPlayerChip.tsx` / в `TableSeatingDialog`) — пункт меню «Chip Transfer» рядом со «Stop session» / «Change avg bet».
-- **Player Statistics** (`src/pages/PlayerStatistics.tsx`) — иконка `ArrowLeftRight` в строке игрока (видна pit/manager). Открывает диалог с pre-filled `from = player`.
-- **Player Profile** (`src/pages/PlayerProfile.tsx`) — кнопка в action-баре «Chip Transfer» + новый раздел истории Chip Transfers (lifetime).
+### Селектор бизнес-дня
+- Контекст `src/lib/surveillance-date-context.tsx` (день + опционально `shift_id`).
+- Компонент `src/components/SurveillanceDatePicker.tsx` встраивается в `PageHeader` когда `useReadOnlyMode()`.
+- Лимит: max 90 дней назад, max — сегодня.
+- На страницах Dashboard / Pit / Cage / Player Statistics использовать выбранную дату вместо `getBusinessDate()`.
 
-**3. Player Statistics: новые колонки** (только для `canSeePlayerFinancials`):
+### Cage страница для Surveillance
+- Новый компонент `src/components/cage/CageHistoryView.tsx`: 4 таба (IN/OUT, Cashless, Cage Transfers, Chip Transfers).
+- Фильтры по дате/смене.
+- В табе **Chip Transfers** — кнопка «New Chip Transfer» открывает `ChipTransferDialog` (уже существует, использует `useCreateChipTransferPair`).
+- В `src/pages/Cage.tsx`: если `useReadOnlyMode()` → рендерим `CageHistoryView` вместо обычного Cage UI.
 
-```
-| Player | Pos | Entry | Exit | Avg | In | Out | Chip In | Chip Out | Chip Δ | Result |
-```
+### Blacklist страница
+`src/pages/Blacklist.tsx`:
+- Сверху строка поиска игроков (использует `usePlayers`) с кнопкой «Send to Blacklist» (диалог с причиной).
+- В карточках — добавить «Banned at» и «Last visit».
+- Скрыть «Reactivate» для Surveillance.
 
-- **Chip In/Out** — суммы за сегодня (визит)
-- **Chip Δ** = ChipIn − ChipOut, окрашен `cms-amount-positive/negative`
-- **Result** теперь = `(In + ChipIn) − (Out + ChipOut)` — единый итог через NEP
+### Карточка игрока
+`src/pages/PlayerProfile.tsx`:
+- Условие на «Chip Transfer»/«Add to Blacklist»: `["pit","manager","surveillance","super_admin"]`.
+- Новый диалог `src/components/player/BlacklistPlayerDialog.tsx` (причина обязательна) → update `players.status='blacklist'` + лог.
+- Вкладка «Notes» с формой ввода видна Pit/Manager/Surveillance.
+- `usePlayerNotes` уже есть → нужен `useCreatePlayerNote`.
 
-**4. Player Profile / PlayerVisitsBreakdown** — добавить lifetime суммы Chip In, Chip Out, Chip Δ в существующий breakdown; список последних chip-transfers с counterparty.
-
-### Что НЕ затрагивается
-
-- **Касса** (cash counts, wallets, financial reconciliation) — chip_transfers не пишут в `transactions`, не двигают кошельки
-- **Chip inventory / conservation law** — фишки физически в казино, просто сменили владельца, ничего не меняется
-- **Shift close, daily review, expenses, miss chips** — никаких эффектов
-- **Drop V со столов (Table Tracker)** — без изменений
+### RLS / миграции
+Новая миграция `supabase/migrations/<timestamp>_surveillance_full_access.sql`:
+- `player_notes`: добавить INSERT policy для `surveillance` (по `user_has_casino_access`).
+- `player_tags`: INSERT/DELETE для `surveillance` в своих казино.
+- `players`: UPDATE `status` доступен `surveillance` (отдельный policy с `user_has_casino_access`).
+- `chip_transfers` уже разрешён через INSERT policy `pit/manager` — расширить до `surveillance`. Также проверить, что RPC `create_chip_transfer_pair` не делает `has_role('pit') OR has_role('manager')` явно — если делает, добавить `surveillance`.
+- SELECT policies для `transactions`, `cashless_transactions`, `cage_transfers`, `chip_transfers` для Surveillance уже есть — оставляем.
 
 ### Файлы
 
 **Новые:**
-- `supabase/migrations/<ts>_chip_transfers.sql` — таблица, RLS, триггеры, RPC `create_chip_transfer_pair`, `sync_attach`
-- `src/hooks/use-chip-transfers.ts` — `useChipTransfers(date?)`, `useCreateChipTransferPair()`
-- `src/components/player/ChipTransferDialog.tsx`
-- `mem://features/chip-transfers` — правила и связь с NEP
+- `src/hooks/use-readonly-mode.ts`
+- `src/lib/surveillance-date-context.tsx`
+- `src/components/SurveillanceDatePicker.tsx`
+- `src/components/cage/CageHistoryView.tsx`
+- `src/components/player/BlacklistPlayerDialog.tsx`
+- `supabase/migrations/<timestamp>_surveillance_full_access.sql`
 
-**Изменяются:**
-- `src/lib/nep-split.ts` — обобщить до event-stream + добавить `mergeFinancialEvents()`
-- `src/hooks/use-drop-split.ts` — подмешать chip_transfers
-- `src/pages/PlayerStatistics.tsx` — 3 новые колонки + кнопка ChipTransfer + Result через NEP
-- `src/pages/PlayerProfile.tsx` + `src/components/player/PlayerVisitsBreakdown.tsx` — lifetime Chip In/Out/Δ + история
-- `src/components/pit/ActivePlayers.tsx` — `playerSplits` через единый helper
-- `src/components/pit/SeatedPlayerChip.tsx` (или меню в `TableSeatingDialog.tsx`) — пункт «Chip Transfer»
-- `src/pages/Dashboard.tsx`, `src/pages/Tables.tsx` — пересчёт Drop через единый helper
-- `src/integrations/supabase/types.ts` — авто
+**Изменённые:**
+- `src/App.tsx` — убрать CCTV ветку, обновить `ROUTE_ROLES`, default route.
+- `src/components/layout/AppSidebar.tsx` — урезать видимость Surveillance до 5 пунктов.
+- `src/pages/Dashboard.tsx` — добавить Floor Staff блок, использовать SurveillanceDate.
+- `src/pages/Pit.tsx` + `src/components/pit/*` — read-only хуки, поддержка SurveillanceDate.
+- `src/pages/Cage.tsx` — branch на `CageHistoryView` для Surveillance.
+- `src/pages/Blacklist.tsx` — поиск + send-to-blacklist + новые поля + скрытие Reactivate.
+- `src/pages/PlayerProfile.tsx` — кнопка Blacklist, расширить Chip Transfer на surveillance, вкладка Notes.
+- `src/hooks/use-player-profile.ts` — `useCreatePlayerNote`.
 
-### Оффлайн / Sync
+**Удалённые:**
+- `src/pages/CctvView.tsx`
+- `src/components/cctv/CctvLayout.tsx`
+- `src/hooks/use-cctv.ts` (если используется только в CctvView).
 
-- RPC `create_chip_transfer_pair` идёт через `offlineMutation` с типом `rpc` (или мы делаем два INSERT в одной выкладке — но безопаснее RPC). Для оффлайна — допускаем два связанных INSERT с одним `pair_id`, валидация парности на чтение (warning если одиночка > 5 минут).
-- `sync_capture_change` через стандартный `sync_attach('chip_transfers')` подхватит автоматически в multi-casino topology.
-
-### Memory
-
-- Новый `mem://features/chip-transfers` (Operations) — правила парности, влияние на NEP, доступ pit/manager.
-- Обновить `mem://features/nep-drop-split` — добавить ссылку на chip_transfers как часть event-stream.
-- Core-rule добавить: «Chip Transfer = парная транзакция (CHIP IN ↔ CHIP OUT), влияет на NEP/Drop, не влияет на кассу/инвентарь».
+После approve выйду из plan-mode и реализую всё разом.
