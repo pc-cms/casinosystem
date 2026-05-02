@@ -21,10 +21,12 @@ type Props = {
   size?: Size;
 };
 
-const SIZE_TOKENS: Record<Size, { chipH: string; chipW: string; inputH: string; chipText: string; inputText: string }> = {
-  sm: { chipH: "h-6",  chipW: "w-14", inputH: "h-6",  chipText: "text-[8px]",  inputText: "text-xs"  },
-  md: { chipH: "h-8",  chipW: "w-16", inputH: "h-8",  chipText: "text-[10px]", inputText: "text-sm"  },
-  lg: { chipH: "h-10", chipW: "w-20", inputH: "h-10", chipText: "text-xs",     inputText: "text-base" },
+// Unified chip visual is provided by .cms-chip-token (CSS). Only the input height
+// and font scale here — the chip itself is the same size everywhere.
+const SIZE_TOKENS: Record<Size, { inputH: string; inputText: string; chipClass: string }> = {
+  sm: { inputH: "h-7",  inputText: "text-xs",  chipClass: "cms-chip-token" },
+  md: { inputH: "h-8",  inputText: "text-sm",  chipClass: "cms-chip-token" },
+  lg: { inputH: "h-10", inputText: "text-base", chipClass: "cms-chip-token cms-chip-token-lg" },
 };
 
 const ChipDenomInput = ({
