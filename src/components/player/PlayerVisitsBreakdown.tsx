@@ -74,7 +74,8 @@ const add = (a: Agg, b: Agg): Agg => ({
   visits: a.visits + b.visits, minutes: a.minutes + b.minutes,
   drop: a.drop + b.drop, out: a.out + b.out, comps: a.comps + b.comps,
 });
-const result = (a: Agg) => a.drop - a.out - a.comps;
+const result = (a: Agg) => a.out - a.drop;
+const total = (a: Agg) => result(a) - a.comps;
 
 export default function PlayerVisitsBreakdown({ visits, transactions, expenses, showFinancials }: Props) {
   const [openMonths, setOpenMonths] = useState<Record<string, boolean>>({});
