@@ -164,10 +164,9 @@
     color: hsl(var(--danger));
   }
   .cms-chip {
-    @apply inline-flex items-center justify-center rounded-full font-mono text-xs font-bold min-w-[40px] h-7 px-2;
-  }
-  .cms-chip {
     @apply inline-flex items-center justify-center rounded-full font-mono text-xs font-bold min-w-[40px] h-6 px-2;
+    /* Thin gold ring to separate the chip from any background (light + dark) */
+    box-shadow: 0 0 0 1px hsl(45 75% 52% / 0.85);
   }
   /* Hide number input spinners */
   input[type="number"].no-spin::-webkit-outer-spin-button,
