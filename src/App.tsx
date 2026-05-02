@@ -50,7 +50,6 @@ const BankChecks = lazy(() => import("@/pages/BankChecks"));
 const MissChips = lazy(() => import("@/pages/MissChips"));
 const TableTracker = lazy(() => import("@/pages/TableTracker"));
 const PlayerStatistics = lazy(() => import("@/pages/PlayerStatistics"));
-const PlayerTrackerPage = lazy(() => import("@/pages/PlayerTrackerPage"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -96,7 +95,6 @@ const ROUTE_ROLES: Record<string, string[]> = {
   "/tables": ["super_admin", "manager", "cashier", "pit", "finance_manager", "surveillance"],
   "/active-players": ["super_admin", "manager", "pit", "finance_manager"],
   "/player-statistics": ["super_admin", "manager", "pit", "finance_manager"],
-  "/player-tracker": ["super_admin", "manager", "pit", "finance_manager"],
   "/table-tracker": ["super_admin", "manager", "pit", "finance_manager"],
   "/expenses": ["super_admin", "manager", "cashier", "finance_manager"],
   "/pit": ["super_admin", "manager", "pit", "finance_manager", "hr"],
@@ -197,7 +195,7 @@ const ProtectedRoutes = () => {
           <Route path="/tables" element={<RoleGuard path="/tables"><Tables /></RoleGuard>} />
           <Route path="/active-players" element={<Navigate to="/player-statistics" replace />} />
           <Route path="/player-statistics" element={<RoleGuard path="/player-statistics"><PlayerStatistics /></RoleGuard>} />
-          <Route path="/player-tracker" element={<RoleGuard path="/player-tracker"><PlayerTrackerPage /></RoleGuard>} />
+          <Route path="/player-tracker" element={<Navigate to="/player-statistics" replace />} />
           <Route path="/table-tracker" element={<RoleGuard path="/table-tracker"><TableTracker /></RoleGuard>} />
           <Route path="/expenses" element={<RoleGuard path="/expenses"><Expenses /></RoleGuard>} />
           <Route path="/pit" element={<RoleGuard path="/pit"><ErrorBoundary><Pit /></ErrorBoundary></RoleGuard>} />

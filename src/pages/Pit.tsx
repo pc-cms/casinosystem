@@ -12,7 +12,6 @@ import { ChevronLeft, ChevronRight, UserPlus, ArrowUpDown, ZoomIn, ZoomOut, Refr
 import EmployeePhotoCell from "@/components/EmployeePhotoCell";
 import BreaklistGrid from "@/components/pit/BreaklistGrid";
 import ActivePlayers from "@/components/pit/ActivePlayers";
-import ClientTracker from "@/components/pit/PlayerTracker";
 import TableTracker from "@/pages/TableTracker";
 import { getBusinessDate, isBusinessToday } from "@/lib/business-day";
 import { UNIFIED_SHIFT_COLORS, UNIFIED_ATT_COLORS, UNIFIED_SHIFT_TINTS } from "@/lib/shift-colors";
@@ -98,7 +97,6 @@ const Pit = () => {
     attendance: "Live Game Attendance",
     breaklist: "Breaklist",
     activeplayers: "Active Players",
-    tracker: "Player Tracker",
     tabletracker: "Table Check",
   };
 
@@ -236,7 +234,6 @@ const Pit = () => {
           />
         )}
         {activeTab === "activeplayers" && <ActivePlayers />}
-        {activeTab === "tracker" && <ClientTracker />}
         {activeTab === "tabletracker" && <TableTracker />}
       </Suspense>
     </PageShell>

@@ -2035,6 +2035,84 @@ export type Database = {
           },
         ]
       }
+      player_position_history: {
+        Row: {
+          casino_id: string
+          created_at: string
+          created_by: string | null
+          duration_seconds: number | null
+          ended_at: string | null
+          id: string
+          player_id: string
+          position: string
+          started_at: string
+          table_id: string | null
+          visit_id: string | null
+        }
+        Insert: {
+          casino_id: string
+          created_at?: string
+          created_by?: string | null
+          duration_seconds?: number | null
+          ended_at?: string | null
+          id?: string
+          player_id: string
+          position: string
+          started_at?: string
+          table_id?: string | null
+          visit_id?: string | null
+        }
+        Update: {
+          casino_id?: string
+          created_at?: string
+          created_by?: string | null
+          duration_seconds?: number | null
+          ended_at?: string | null
+          id?: string
+          player_id?: string
+          position?: string
+          started_at?: string
+          table_id?: string | null
+          visit_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "player_position_history_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "player_position_history_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "player_economy"
+            referencedColumns: ["player_id"]
+          },
+          {
+            foreignKeyName: "player_position_history_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "player_position_history_table_id_fkey"
+            columns: ["table_id"]
+            isOneToOne: false
+            referencedRelation: "gaming_tables"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "player_position_history_visit_id_fkey"
+            columns: ["visit_id"]
+            isOneToOne: false
+            referencedRelation: "casino_visits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       player_tags: {
         Row: {
           created_at: string
@@ -3040,6 +3118,10 @@ export type Database = {
       }
     }
     Functions: {
+      _close_open_position: {
+        Args: { _at: string; _casino_id: string; _player_id: string }
+        Returns: undefined
+      }
       activity_logs_purge: { Args: { p_days?: number }; Returns: number }
       auto_close_business_day: { Args: never; Returns: Json }
       cleanup_old_data: { Args: never; Returns: Json }
