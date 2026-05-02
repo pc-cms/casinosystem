@@ -80,14 +80,38 @@ export const ChipTransferDialog = ({
 
   const counterparty = (allPlayers as any[]).find(p => p.id === counterpartyId) ?? null;
   const amtNum = Number(amount) || 0;
-  const canSubmit = !!player && !!counterpartyId && amtNum > 0 && !create.isPending;
+
+  // Pairing validation — mirrors DB-side guarantees so the user sees the reason BEFORE submit.
+  const validation = useMemo(() => {
+    if (!player) return { ok: false, reason: "No player selected" };
+    if (!counterpartyId) {
+      return { ok: false, reason: direction === "out"
+        ? "Pick the recipient — chip transfers must be paired"
+        : "Pick the donor — chip transfers must be paired" };
+    }
+    if (counterpartyId === player.id) {
+      return { ok: false, reason: "Counterparty must be a different player" };
+    }
+    if (amtNum <= 0) return { ok: false, reason: "Enter an amount greater than zero" };
+    return { ok: true, reason: "" as string };
+  }, [player, counterpartyId, amtNum, direction]);
+
+  const canSubmit = validation.ok && !create.isPending;
 
   const handleSubmit = async () => {
-    if (!player || !counterpartyId || amtNum <= 0) return;
+    if (!validation.ok || !player || !counterpartyId) {
+      if (!validation.ok) toast.error(validation.reason);
+      return;
+    }
     // direction = "out": player gives chips to counterparty (player = from)
     // direction = "in":  player receives chips from counterparty (player = to)
     const from_player = direction === "out" ? player.id : counterpartyId;
     const to_player = direction === "out" ? counterpartyId : player.id;
+    // Final defensive guard — DB enforces this too, but fail fast on the client.
+    if (from_player === to_player) {
+      toast.error("From and To players must differ");
+      return;
+    }
     try {
       await create.mutateAsync({
         from_player,
