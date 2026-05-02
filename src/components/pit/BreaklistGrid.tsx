@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/auth-context";
 import { Lock, Unlock, LockKeyhole } from "lucide-react";
 import { toast } from "sonner";
 import { ALL_ROLES, ROLE_COLORS, TABLE_ROLES } from "@/lib/currency";
+import { getTableCellClasses } from "@/lib/table-colors";
 import { isBusinessToday, isAfterBreaklistLock, nowEAT } from "@/lib/business-day";
 const CATEGORY_LABELS: Record<string, string> = {
   trainee: "T",
@@ -78,6 +79,14 @@ const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }
 
   const activeDealers = dealers.filter(d => d.is_active);
   const openTables = tables.filter(t => t.status === "open");
+
+  // Stable color index per table — based on alphabetical order of open tables.
+  const tableColorIndex = useMemo(() => {
+    const sorted = [...openTables].sort((a, b) => a.name.localeCompare(b.name));
+    const map = new Map<string, number>();
+    sorted.forEach((t, i) => map.set(t.id, i));
+    return map;
+  }, [openTables]);
 
   // Dealers scheduled in rota for this date (M or N only)
   const rotaDealers = useMemo(() => {
@@ -271,7 +280,11 @@ const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }
                           <div
                             onClick={() => isEditable && handleCellClick(dealer.id, slot)}
                             className={`w-full h-7 rounded text-[13px] font-mono font-extrabold relative transition-colors cursor-pointer flex items-center justify-center ${
-                              cell ? ROLE_COLORS[cell.role] || "bg-muted text-muted-foreground" : isEditable ? "bg-transparent hover:bg-muted/50 text-transparent hover:text-muted-foreground" : "bg-transparent text-transparent"
+                              cell
+                                ? cell.table_id && tableColorIndex.has(cell.table_id)
+                                  ? getTableCellClasses(cell.table_id, tableColorIndex.get(cell.table_id)!, cell.role)
+                                  : ROLE_COLORS[cell.role] || "bg-muted text-muted-foreground"
+                                : isEditable ? "bg-transparent hover:bg-muted/50 text-transparent hover:text-muted-foreground" : "bg-transparent text-transparent"
                             } ${cell?.is_locked ? "ring-1 ring-yellow-500/40" : ""} ${isActiveCell ? "ring-2 ring-primary" : ""} ${!isEditable ? "cursor-default" : ""}`}
                             title={tableName ? `${cell?.role} @ ${tableName}` : cell?.role}
                           >
@@ -328,7 +341,7 @@ const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }
                                         <span className="text-[9px] font-mono text-card-foreground min-w-[28px]">{t.name}</span>
                                         {availableRoles.map(r => (
                                           <button key={r} onClick={() => handleRoleSelect(r, t.id)}
-                                            className={`px-1 py-0.5 rounded text-[8px] font-mono font-bold ${ROLE_COLORS[r] || ""} hover:opacity-80`}>
+                                            className={`px-1 py-0.5 rounded text-[8px] font-mono font-bold ${getTableCellClasses(t.id, tableColorIndex.get(t.id) ?? 0, r)} hover:opacity-80`}>
                                             {t.name}{rSuffix[r] || ""}
                                           </button>
                                         ))}
