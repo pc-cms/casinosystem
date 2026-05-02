@@ -34,6 +34,7 @@ interface TableTrackerProps { embedded?: boolean }
 const TableTracker = ({ embedded = false }: TableTrackerProps) => {
   const today = getBusinessDate();
   const [date, setDate] = useState(today);
+  const [mode, setMode] = useState<"numbers" | "chips">("numbers");
   const { isManager } = useAuth();
   const { data: tables = [] } = useGamingTables();
   const { data: trackerData = [] } = useTableTracker(date);
