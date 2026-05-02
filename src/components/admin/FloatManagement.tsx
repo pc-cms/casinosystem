@@ -2,7 +2,7 @@
  * FloatManagement — Manager UI for setting chip baseline (tables, cashier, safe).
  * Allows filling default float per location and locking the casino float.
  */
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, type CSSProperties } from "react";
 import { useGamingTables } from "@/hooks/use-casino-data";
 import { useChipBaseline, useUpsertBaseline, useCasinoInfo, useLockFloat } from "@/hooks/use-table-lifecycle";
 import { useAuth } from "@/lib/auth-context";

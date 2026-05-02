@@ -2,7 +2,7 @@
  * ChipDenomInput — chip denomination input list with configurable columns and size.
  * Supports per-casino color overrides via use-chip-colors hook.
  */
-import { useRef, useCallback } from "react";
+import { useRef, useCallback, type CSSProperties } from "react";
 import { CHIP_DENOMS, formatChipLabel, formatNumberSpaces } from "@/lib/currency";
 import { useChipColors, resolveChipColor } from "@/hooks/use-chip-colors";
 

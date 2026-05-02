@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { Button } from "@/components/ui/button";
 import { Save, Maximize2, Minimize2, History } from "lucide-react";
 import { useChipSnapshots, useBatchChipSnapshot } from "@/hooks/use-chips";
