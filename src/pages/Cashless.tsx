@@ -70,14 +70,14 @@ const Cashless = () => {
     const row = drafts.find(r => r.uid === uid);
     if (!row) return;
     if (!row.provider) return toast.error("Choose provider");
-    if (!row.player_id) return toast.error("Choose player");
+    if (!row.player_name.trim()) return toast.error("Enter player name");
     const amt = Number(row.amount);
     if (!amt || amt <= 0) return toast.error("Amount must be > 0");
     try {
       await create.mutateAsync({
         direction: row.direction,
         provider: row.provider as CashlessProvider,
-        player_id: row.player_id,
+        player_name: row.player_name.trim(),
         amount: amt,
         reference: row.reference,
         business_date: businessDate,
