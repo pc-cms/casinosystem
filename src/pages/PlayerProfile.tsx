@@ -649,7 +649,7 @@ const PlayerProfile = () => {
                   </thead>
                   <tbody>
                     {gameStats.map((g) => {
-                      const result = g.totalIn - g.totalOut;
+                      const result = g.totalOut - g.totalIn;
                       const hold = holdPct(g.totalIn, g.totalOut, 0);
                       return (
                         <tr key={g.game} className="border-t border-border">
