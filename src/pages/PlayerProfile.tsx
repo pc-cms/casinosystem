@@ -460,7 +460,8 @@ const PlayerProfile = () => {
                   <tbody>
                     {visitsInRange.slice(0, 200).map((v: any) => {
                       const f = visitFinancials.get(v.id) || { totalIn: 0, cashout: 0, comps: 0 };
-                      const result = f.totalIn - f.cashout - f.comps;
+                      const result = f.cashout - f.totalIn;
+                      const total = result - f.comps;
                       return (
                         <tr key={v.id} className="border-t border-border">
                           <td className="py-1.5 px-2 font-mono text-xs">{fmtDate(v.date)}</td>
@@ -471,10 +472,15 @@ const PlayerProfile = () => {
                           <td className="py-1.5 px-2"><span className="inline-flex items-center gap-1 text-xs"><MapPin className="w-3 h-3" />{v.position}</span></td>
                           {showFinancials && <td className="py-1.5 px-2 font-mono text-xs text-right">{f.totalIn ? fmtMoney(f.totalIn) : dot()}</td>}
                           {showFinancials && <td className="py-1.5 px-2 font-mono text-xs text-right">{f.cashout ? fmtMoney(f.cashout) : dot()}</td>}
-                          {showFinancials && <td className="py-1.5 px-2 font-mono text-xs text-right">{f.comps ? fmtMoney(f.comps) : dot()}</td>}
                           {showFinancials && (
                             <td className={`py-1.5 px-2 font-mono text-xs text-right ${result === 0 ? "text-muted-foreground" : result > 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
                               {result === 0 ? "·" : fmtMoney(result)}
+                            </td>
+                          )}
+                          {showFinancials && <td className="py-1.5 px-2 font-mono text-xs text-right">{f.comps ? fmtMoney(f.comps) : dot()}</td>}
+                          {showFinancials && (
+                            <td className={`py-1.5 px-2 font-mono text-xs text-right ${total === 0 ? "text-muted-foreground" : total > 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
+                              {total === 0 ? "·" : fmtMoney(total)}
                             </td>
                           )}
                         </tr>
