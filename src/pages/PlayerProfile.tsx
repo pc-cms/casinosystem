@@ -394,12 +394,18 @@ const PlayerProfile = () => {
             <TabsTrigger value="lotteries"><Trophy className="w-3.5 h-3.5 mr-1" /> Lotteries</TabsTrigger>
             <TabsTrigger value="tickets"><Ticket className="w-3.5 h-3.5 mr-1" /> Tickets</TabsTrigger>
           </TabsList>
-          <DateRangePresets
-            preset={preset}
-            from={range.from}
-            to={range.to}
-            onChange={(next) => { setPreset(next.preset); setRange({ from: next.from, to: next.to }); }}
-          />
+          {restrictedToToday ? (
+            <div className="text-[10px] uppercase font-mono text-muted-foreground px-2 py-1 rounded bg-muted/40 border border-border">
+              Business day · {businessDate}
+            </div>
+          ) : (
+            <DateRangePresets
+              preset={preset}
+              from={range.from}
+              to={range.to}
+              onChange={(next) => { setPreset(next.preset); setRange({ from: next.from, to: next.to }); }}
+            />
+          )}
         </div>
 
         {/* TAB 1 */}
