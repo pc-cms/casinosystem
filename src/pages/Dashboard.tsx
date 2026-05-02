@@ -60,6 +60,8 @@ const Dashboard = () => {
   const buyInDrop = transactions.filter(t => (t.type === "buy" || t.type === "in")).reduce((s, t) => s + Number(t.amount), 0);
   const totalDrop = buyInDrop + sessionsTotalBet;
   const pendingExpenses = expenses.filter(e => !e.approved).length;
+  const { data: cashless = [] } = useCashless(businessDate);
+  const pendingCashless = cashless.filter((r: any) => r.status === "pending").length;
 
   const baselineMap = useMemo(() => baselineToMap(baseline), [baseline]);
   const snapshotIndex = useMemo(() => buildLatestTableSnapshot(snapshots as any), [snapshots]);
