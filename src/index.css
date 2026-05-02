@@ -168,6 +168,22 @@
     /* Thin gold ring to separate the chip from any background (light + dark) */
     box-shadow: 0 0 0 1px hsl(45 75% 52% / 0.85);
   }
+  /* Unified chip "token" — single size used everywhere a chip denomination is displayed.
+     ~40% larger than the legacy small pill, perfectly round (square aspect). */
+  .cms-chip-token {
+    @apply inline-flex items-center justify-center rounded-full font-bold whitespace-nowrap shrink-0 select-none;
+    width: 2.25rem;   /* 36px */
+    height: 2.25rem;  /* 36px → round */
+    font-size: 10px;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    box-shadow: 0 0 0 1px hsl(45 75% 52% / 0.85);
+  }
+  .cms-chip-token-lg {
+    width: 2.75rem;   /* 44px — fullscreen / lg surfaces */
+    height: 2.75rem;
+    font-size: 11px;
+  }
   /* Hide number input spinners */
   input[type="number"].no-spin::-webkit-outer-spin-button,
   input[type="number"].no-spin::-webkit-inner-spin-button {
