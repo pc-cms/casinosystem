@@ -5,8 +5,10 @@ import { Input } from "@/components/ui/input";
 import { formatCurrency, formatInputWithSpaces, parseSpacedNumber } from "@/lib/currency";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { Target, Lock } from "lucide-react";
+import { Target, Lock, Hash, Coins } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
+import { ChipCountPanel } from "@/components/tables/ChipCountPanel";
+import { Button } from "@/components/ui/button";
 
 // 18:00 → 05:00, 30-minute intervals
 const generateSlots = () => {
@@ -32,6 +34,7 @@ interface TableTrackerProps { embedded?: boolean }
 const TableTracker = ({ embedded = false }: TableTrackerProps) => {
   const today = getBusinessDate();
   const [date, setDate] = useState(today);
+  const [mode, setMode] = useState<"numbers" | "chips">("numbers");
   const { isManager } = useAuth();
   const { data: tables = [] } = useGamingTables();
   const { data: trackerData = [] } = useTableTracker(date);
@@ -97,9 +100,29 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
         <PageHeader
           icon={Target}
           title="Table Check"
-          subtitle="Enter values · auto-saves on blur/Enter"
+          subtitle={mode === "numbers" ? "Enter values · auto-saves on blur/Enter" : "Count chips on tables · save snapshot"}
           date={date}
         >
+          <div className="inline-flex rounded-md border border-border overflow-hidden h-9">
+            <Button
+              type="button"
+              variant={mode === "numbers" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setMode("numbers")}
+              className="rounded-none gap-1.5 h-9 px-3"
+            >
+              <Hash className="h-4 w-4" /> Numbers
+            </Button>
+            <Button
+              type="button"
+              variant={mode === "chips" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setMode("chips")}
+              className="rounded-none gap-1.5 h-9 px-3"
+            >
+              <Coins className="h-4 w-4" /> Chips
+            </Button>
+          </div>
           {isManager ? (
             <Input
               type="date"
@@ -121,6 +144,24 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
           ) : null}
         </PageHeader>
       )}
+
+      {embedded && (
+        <div className="mb-2 inline-flex rounded-md border border-border overflow-hidden h-8">
+          <Button type="button" variant={mode === "numbers" ? "default" : "ghost"} size="sm" onClick={() => setMode("numbers")} className="rounded-none gap-1.5 h-8 px-3">
+            <Hash className="h-3.5 w-3.5" /> Numbers
+          </Button>
+          <Button type="button" variant={mode === "chips" ? "default" : "ghost"} size="sm" onClick={() => setMode("chips")} className="rounded-none gap-1.5 h-8 px-3">
+            <Coins className="h-3.5 w-3.5" /> Chips
+          </Button>
+        </div>
+      )}
+
+      {mode === "chips" ? (
+        <PageSection card={false}>
+          <ChipCountPanel date={date} />
+        </PageSection>
+      ) : (
+      <>
 
       <PageSection card={false}>
         <div className="rounded-md border border-border bg-card overflow-x-auto">
@@ -222,6 +263,8 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
           </p>
         )}
       </PageSection>
+      </>
+      )}
     </Wrapper>
   );
 };
