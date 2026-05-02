@@ -142,29 +142,28 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
   }
 
   const renderGrid = (full: boolean) => {
-    // Tokens: на fullscreen всё крупнее. Колонки чипов имеют min-width чтобы label не переносился.
+    // Unified chip token (cms-chip-token / -lg). Cells are sized for max 3 digits since
+    // there are never more than 500 chips of one denomination on a single table.
     const t = full
       ? {
-          chipText: "text-[10px]",
-          chipPad: "px-1.5 py-0.5",
-          inputH: "h-10",
+          chipClass: "cms-chip-token cms-chip-token-lg",
+          inputH: "h-9",
           inputText: "text-sm",
           firstColW: "150px",
-          chipColW: "72px",
+          chipColW: "60px",
           resultColW: "150px",
-          rowPadX: "px-1.5",
+          rowPadX: "px-1",
           rowPadY: "py-1.5",
-          headerPadY: "py-3",
+          headerPadY: "py-2",
           totalText: "text-base",
           resultText: "text-sm",
         }
       : {
-          chipText: "text-[9px]",
-          chipPad: "px-1 py-0.5",
+          chipClass: "cms-chip-token",
           inputH: "h-8",
           inputText: "text-xs",
           firstColW: "110px",
-          chipColW: "56px",
+          chipColW: "52px",
           resultColW: "120px",
           rowPadX: "px-1",
           rowPadY: "py-1",
