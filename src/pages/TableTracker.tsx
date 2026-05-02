@@ -3,6 +3,20 @@ import { getBusinessDate, nowEAT } from "@/lib/business-day";
 import { useGamingTables, useTableTracker, useSetTableTrackerValue } from "@/hooks/use-casino-data";
 import { Input } from "@/components/ui/input";
 import { formatCurrency, formatInputWithSpaces, parseSpacedNumber } from "@/lib/currency";
+
+// Sign-aware variants for tracker (negative table results are valid)
+const formatSignedInput = (value: string): string => {
+  const neg = value.trim().startsWith("-");
+  const body = formatInputWithSpaces(value);
+  if (!body) return neg ? "-" : "";
+  return (neg ? "-" : "") + body;
+};
+const parseSignedNumber = (str: string): number => {
+  const s = str.replace(/\s/g, "").trim();
+  if (s === "" || s === "-") return 0;
+  const n = Number(s);
+  return isNaN(n) ? 0 : n;
+};
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Target, Lock, Hash, Coins } from "lucide-react";
