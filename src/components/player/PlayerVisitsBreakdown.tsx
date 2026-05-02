@@ -1,0 +1,286 @@
+import { useMemo, useState, Fragment } from "react";
+import { ChevronRight, ChevronDown, Calendar } from "lucide-react";
+import { fmtDate } from "@/lib/format-date";
+
+// Visits breakdown grouped Month → Week → Day.
+// Result column = drop − cashout − comps (negative = casino loss / player win).
+
+type Visit = {
+  id: string;
+  casino_id: string;
+  date: string;
+  checked_in_at: string;
+  checked_out_at: string | null;
+  casinos?: { name?: string } | null;
+};
+type Tx = { id: string; casino_id: string; created_at: string; type: string; amount: number };
+type Exp = { id: string; casino_id: string; created_at: string; amount: number };
+
+type Props = {
+  visits: Visit[];
+  transactions: Tx[];
+  expenses: Exp[];
+  showFinancials: boolean;
+};
+
+const fmtMoney = (n: number) => {
+  const sign = n < 0 ? "-" : "";
+  return `${sign}${Math.abs(Math.round(n)).toLocaleString()}`;
+};
+const dot = <span className="text-muted-foreground">·</span>;
+const fmtDuration = (mins: number) => {
+  if (!mins || mins < 0) return "—";
+  const h = Math.floor(mins / 60);
+  const m = Math.round(mins % 60);
+  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+};
+const visitMins = (v: Visit) => {
+  if (!v.checked_out_at) return 0;
+  return Math.max(0, Math.round((new Date(v.checked_out_at).getTime() - new Date(v.checked_in_at).getTime()) / 60000));
+};
+
+// Week starting Monday (ISO).
+const startOfIsoWeek = (d: Date) => {
+  const day = d.getDay();
+  const diff = (day === 0 ? -6 : 1 - day);
+  const out = new Date(d);
+  out.setDate(d.getDate() + diff);
+  out.setHours(0, 0, 0, 0);
+  return out;
+};
+const isoWeekKey = (d: Date) => {
+  const s = startOfIsoWeek(d);
+  return `${s.getFullYear()}-${String(s.getMonth() + 1).padStart(2, "0")}-${String(s.getDate()).padStart(2, "0")}`;
+};
+const monthKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+const monthLabel = (d: Date) =>
+  d.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+const weekLabel = (start: Date) => {
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6);
+  const sameMonth = start.getMonth() === end.getMonth();
+  const fmt = (x: Date) =>
+    sameMonth
+      ? x.getDate().toString()
+      : x.toLocaleDateString(undefined, { day: "numeric", month: "short" });
+  return `Week ${fmt(start)}–${fmt(end)} ${start.toLocaleDateString(undefined, { month: "short" })}`;
+};
+
+type Agg = { visits: number; minutes: number; drop: number; out: number; comps: number };
+const blank = (): Agg => ({ visits: 0, minutes: 0, drop: 0, out: 0, comps: 0 });
+const add = (a: Agg, b: Agg): Agg => ({
+  visits: a.visits + b.visits, minutes: a.minutes + b.minutes,
+  drop: a.drop + b.drop, out: a.out + b.out, comps: a.comps + b.comps,
+});
+const result = (a: Agg) => a.drop - a.out - a.comps;
+
+export default function PlayerVisitsBreakdown({ visits, transactions, expenses, showFinancials }: Props) {
+  const [openMonths, setOpenMonths] = useState<Record<string, boolean>>({});
+  const [openWeeks, setOpenWeeks] = useState<Record<string, boolean>>({});
+
+  // Per-visit financial map.
+  const visitFin = useMemo(() => {
+    const m = new Map<string, Agg>();
+    for (const v of visits) {
+      const start = new Date(v.checked_in_at).getTime();
+      const end = v.checked_out_at ? new Date(v.checked_out_at).getTime() : start + 86400000;
+      let drop = 0, out = 0, comps = 0;
+      for (const t of transactions) {
+        if (t.casino_id !== v.casino_id) continue;
+        const ts = new Date(t.created_at).getTime();
+        if (ts < start || ts > end) continue;
+        const amt = Number(t.amount) || 0;
+        if (t.type === "buy") drop += amt;
+        else if (t.type === "cashout") out += amt;
+      }
+      for (const e of expenses) {
+        if (e.casino_id !== v.casino_id) continue;
+        const ts = new Date(e.created_at).getTime();
+        if (ts < start || ts > end) continue;
+        comps += Number(e.amount) || 0;
+      }
+      m.set(v.id, { visits: 1, minutes: visitMins(v), drop, out, comps });
+    }
+    return m;
+  }, [visits, transactions, expenses]);
+
+  // Build hierarchy: month → week → day → visits[].
+  const months = useMemo(() => {
+    type Day = { dayKey: string; date: Date; visits: Visit[]; agg: Agg };
+    type Week = { weekKey: string; start: Date; days: Map<string, Day>; agg: Agg };
+    type Month = { monthKey: string; date: Date; weeks: Map<string, Week>; agg: Agg };
+    const result = new Map<string, Month>();
+
+    for (const v of visits) {
+      const d = new Date(v.checked_in_at);
+      const mKey = monthKey(d);
+      const wStart = startOfIsoWeek(d);
+      const wKey = isoWeekKey(d);
+      const dKey = v.date || d.toISOString().slice(0, 10);
+
+      let mo = result.get(mKey);
+      if (!mo) {
+        const md = new Date(d.getFullYear(), d.getMonth(), 1);
+        mo = { monthKey: mKey, date: md, weeks: new Map(), agg: blank() };
+        result.set(mKey, mo);
+      }
+      let wk = mo.weeks.get(wKey);
+      if (!wk) {
+        wk = { weekKey: wKey, start: wStart, days: new Map(), agg: blank() };
+        mo.weeks.set(wKey, wk);
+      }
+      let day = wk.days.get(dKey);
+      if (!day) {
+        day = { dayKey: dKey, date: new Date(dKey + "T00:00:00"), visits: [], agg: blank() };
+        wk.days.set(dKey, day);
+      }
+      day.visits.push(v);
+      const fin = visitFin.get(v.id) || blank();
+      day.agg = add(day.agg, fin);
+      wk.agg = add(wk.agg, fin);
+      mo.agg = add(mo.agg, fin);
+    }
+    // Sort newest first.
+    return Array.from(result.values()).sort((a, b) => b.date.getTime() - a.date.getTime()).map(m => ({
+      ...m,
+      weeks: Array.from(m.weeks.values()).sort((a, b) => b.start.getTime() - a.start.getTime()).map(w => ({
+        ...w,
+        days: Array.from(w.days.values()).sort((a, b) => b.date.getTime() - a.date.getTime()),
+      })),
+    }));
+  }, [visits, visitFin]);
+
+  if (months.length === 0) {
+    return <div className="text-sm text-muted-foreground py-6 text-center">No visits recorded.</div>;
+  }
+
+  const colSpan = showFinancials ? 6 : 3;
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="text-xs text-muted-foreground uppercase border-b border-border">
+            <th className="text-left py-2 px-2">Period</th>
+            <th className="text-right py-2 px-2">Visits</th>
+            <th className="text-right py-2 px-2">Time</th>
+            {showFinancials && <>
+              <th className="text-right py-2 px-2">Drop</th>
+              <th className="text-right py-2 px-2">Cashout</th>
+              <th className="text-right py-2 px-2">Comps</th>
+              <th className="text-right py-2 px-2">Result</th>
+            </>}
+          </tr>
+        </thead>
+        <tbody>
+          {months.map((mo) => {
+            const moOpen = openMonths[mo.monthKey] ?? false;
+            const moRes = result(mo.agg);
+            return (
+              <Fragment key={mo.monthKey}>
+                <tr
+                  className="border-t border-border bg-muted/40 cursor-pointer hover:bg-muted/60 font-semibold"
+                  onClick={() => setOpenMonths(s => ({ ...s, [mo.monthKey]: !moOpen }))}
+                >
+                  <td className="py-2 px-2">
+                    <span className="inline-flex items-center gap-1.5">
+                      {moOpen ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+                      <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
+                      {monthLabel(mo.date)}
+                    </span>
+                  </td>
+                  <td className="py-2 px-2 text-right font-mono">{mo.agg.visits}</td>
+                  <td className="py-2 px-2 text-right font-mono">{fmtDuration(mo.agg.minutes)}</td>
+                  {showFinancials && <>
+                    <td className="py-2 px-2 text-right font-mono">{mo.agg.drop ? fmtMoney(mo.agg.drop) : dot}</td>
+                    <td className="py-2 px-2 text-right font-mono">{mo.agg.out ? fmtMoney(mo.agg.out) : dot}</td>
+                    <td className="py-2 px-2 text-right font-mono">{mo.agg.comps ? fmtMoney(mo.agg.comps) : dot}</td>
+                    <td className={`py-2 px-2 text-right font-mono ${moRes === 0 ? "text-muted-foreground" : moRes > 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
+                      {moRes === 0 ? "·" : fmtMoney(moRes)}
+                    </td>
+                  </>}
+                </tr>
+
+                {moOpen && mo.weeks.map((wk) => {
+                  const wkOpen = openWeeks[wk.weekKey] ?? false;
+                  const wkRes = result(wk.agg);
+                  return (
+                    <Fragment key={wk.weekKey}>
+                      <tr
+                        className="border-t border-border/60 bg-muted/15 cursor-pointer hover:bg-muted/30"
+                        onClick={() => setOpenWeeks(s => ({ ...s, [wk.weekKey]: !wkOpen }))}
+                      >
+                        <td className="py-1.5 pl-7 pr-2 text-xs">
+                          <span className="inline-flex items-center gap-1.5 text-card-foreground">
+                            {wkOpen ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+                            {weekLabel(wk.start)}
+                          </span>
+                        </td>
+                        <td className="py-1.5 px-2 text-right font-mono text-xs">{wk.agg.visits}</td>
+                        <td className="py-1.5 px-2 text-right font-mono text-xs">{fmtDuration(wk.agg.minutes)}</td>
+                        {showFinancials && <>
+                          <td className="py-1.5 px-2 text-right font-mono text-xs">{wk.agg.drop ? fmtMoney(wk.agg.drop) : dot}</td>
+                          <td className="py-1.5 px-2 text-right font-mono text-xs">{wk.agg.out ? fmtMoney(wk.agg.out) : dot}</td>
+                          <td className="py-1.5 px-2 text-right font-mono text-xs">{wk.agg.comps ? fmtMoney(wk.agg.comps) : dot}</td>
+                          <td className={`py-1.5 px-2 text-right font-mono text-xs ${wkRes === 0 ? "text-muted-foreground" : wkRes > 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
+                            {wkRes === 0 ? "·" : fmtMoney(wkRes)}
+                          </td>
+                        </>}
+                      </tr>
+
+                      {wkOpen && wk.days.map((day) => {
+                        const dRes = result(day.agg);
+                        return (
+                          <tr key={day.dayKey} className="border-t border-border/30 hover:bg-muted/15">
+                            <td className="py-1 pl-12 pr-2 text-xs font-mono text-muted-foreground">
+                              {fmtDate(day.dayKey)}
+                              <span className="ml-2 text-[10px] uppercase">
+                                {day.date.toLocaleDateString(undefined, { weekday: "short" })}
+                              </span>
+                              {day.visits.length > 1 && (
+                                <span className="ml-2 text-[10px]">×{day.visits.length}</span>
+                              )}
+                            </td>
+                            <td className="py-1 px-2 text-right font-mono text-xs">{day.agg.visits}</td>
+                            <td className="py-1 px-2 text-right font-mono text-xs">{fmtDuration(day.agg.minutes)}</td>
+                            {showFinancials && <>
+                              <td className="py-1 px-2 text-right font-mono text-xs">{day.agg.drop ? fmtMoney(day.agg.drop) : dot}</td>
+                              <td className="py-1 px-2 text-right font-mono text-xs">{day.agg.out ? fmtMoney(day.agg.out) : dot}</td>
+                              <td className="py-1 px-2 text-right font-mono text-xs">{day.agg.comps ? fmtMoney(day.agg.comps) : dot}</td>
+                              <td className={`py-1 px-2 text-right font-mono text-xs ${dRes === 0 ? "text-muted-foreground" : dRes > 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
+                                {dRes === 0 ? "·" : fmtMoney(dRes)}
+                              </td>
+                            </>}
+                          </tr>
+                        );
+                      })}
+                    </Fragment>
+                  );
+                })}
+              </Fragment>
+            );
+          })}
+        </tbody>
+        <tfoot>
+          {(() => {
+            const total = months.reduce((acc, m) => add(acc, m.agg), blank());
+            const r = result(total);
+            return (
+              <tr className="border-t-2 border-border font-semibold bg-muted/30">
+                <td className="py-2 px-2 uppercase text-xs text-muted-foreground">Lifetime total</td>
+                <td className="py-2 px-2 text-right font-mono">{total.visits}</td>
+                <td className="py-2 px-2 text-right font-mono">{fmtDuration(total.minutes)}</td>
+                {showFinancials && <>
+                  <td className="py-2 px-2 text-right font-mono">{fmtMoney(total.drop)}</td>
+                  <td className="py-2 px-2 text-right font-mono">{fmtMoney(total.out)}</td>
+                  <td className="py-2 px-2 text-right font-mono">{fmtMoney(total.comps)}</td>
+                  <td className={`py-2 px-2 text-right font-mono ${r >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>{fmtMoney(r)}</td>
+                </>}
+              </tr>
+            );
+          })()}
+        </tfoot>
+      </table>
+    </div>
+  );
+}

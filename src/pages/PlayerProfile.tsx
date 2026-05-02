@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
-import { ArrowLeft, User, Users as UsersIcon, BarChart3, Ticket, Trophy, History, MapPin, Gift } from "lucide-react";
+import { ArrowLeft, User, Users as UsersIcon, BarChart3, Ticket, Trophy, History, MapPin, Gift, CalendarDays } from "lucide-react";
+import PlayerVisitsBreakdown from "@/components/player/PlayerVisitsBreakdown";
+import { canSeePlayerFinancials } from "@/lib/role-access";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -374,6 +376,7 @@ const PlayerProfile = () => {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <TabsList className="w-full sm:w-auto overflow-x-auto justify-start">
             <TabsTrigger value="info"><History className="w-3.5 h-3.5 mr-1" /> Info & History</TabsTrigger>
+            <TabsTrigger value="visits"><CalendarDays className="w-3.5 h-3.5 mr-1" /> Visits</TabsTrigger>
             <TabsTrigger value="stats"><BarChart3 className="w-3.5 h-3.5 mr-1" /> Statistics</TabsTrigger>
             <TabsTrigger value="connections"><UsersIcon className="w-3.5 h-3.5 mr-1" /> Connections</TabsTrigger>
             <TabsTrigger value="lotteries"><Trophy className="w-3.5 h-3.5 mr-1" /> Lotteries</TabsTrigger>
@@ -475,6 +478,18 @@ const PlayerProfile = () => {
                 </table>
               </div>
             )}
+          </PageSection>
+        </TabsContent>
+
+        {/* TAB — Visits (Month → Week → Day breakdown, full lifetime) */}
+        <TabsContent value="visits" className="space-y-4">
+          <PageSection card title="Visits breakdown">
+            <PlayerVisitsBreakdown
+              visits={visits as any}
+              transactions={transactions as any}
+              expenses={expenses as any}
+              showFinancials={canSeePlayerFinancials(roles)}
+            />
           </PageSection>
         </TabsContent>
 
