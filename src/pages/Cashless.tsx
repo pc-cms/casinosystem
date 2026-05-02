@@ -53,7 +53,7 @@ const Cashless = () => {
   const { isManager } = useAuth();
   const businessDate = getBusinessDate();
   const { data: rows = [] } = useCashless(businessDate);
-  const { data: players = [] } = usePlayers();
+  
   const create = useCreateCashless();
   const approve = useApproveCashless();
   const [pendingApproveId, setPendingApproveId] = useState<string | null>(null);
