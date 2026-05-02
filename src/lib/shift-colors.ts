@@ -2,12 +2,12 @@
 // D = Day (amber), M = Mid/Afternoon (teal), N = Night (sky), G = Graveyard (indigo)
 
 export const UNIFIED_SHIFT_COLORS: Record<string, string> = {
-  // Day — amber
-  D: "bg-amber-100 text-amber-800 dark:bg-amber-500/25 dark:text-amber-300 font-bold",
+  // Day — amber (saturated for clear day/night contrast in light mode)
+  D: "bg-amber-300 text-amber-950 dark:bg-amber-500/25 dark:text-amber-300 font-bold",
   // Mid/Afternoon — teal (distinct from D for Security where both coexist)
-  M: "bg-teal-100 text-teal-800 dark:bg-teal-500/25 dark:text-teal-300 font-bold",
-  // Night — sky blue
-  N: "bg-sky-100 text-sky-700 dark:bg-sky-500/25 dark:text-sky-300 font-bold",
+  M: "bg-teal-200 text-teal-900 dark:bg-teal-500/25 dark:text-teal-300 font-bold",
+  // Night — deep blue (clearly distinct from Day)
+  N: "bg-blue-700 text-white dark:bg-sky-500/25 dark:text-sky-300 font-bold",
   // Guard — indigo (security overnight)
   G: "bg-indigo-100 text-indigo-700 dark:bg-indigo-500/25 dark:text-indigo-300 font-bold",
   // Leave — emerald
