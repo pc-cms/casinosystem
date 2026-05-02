@@ -80,6 +80,14 @@ const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }
   const activeDealers = dealers.filter(d => d.is_active);
   const openTables = tables.filter(t => t.status === "open");
 
+  // Stable color index per table — based on alphabetical order of open tables.
+  const tableColorIndex = useMemo(() => {
+    const sorted = [...openTables].sort((a, b) => a.name.localeCompare(b.name));
+    const map = new Map<string, number>();
+    sorted.forEach((t, i) => map.set(t.id, i));
+    return map;
+  }, [openTables]);
+
   // Dealers scheduled in rota for this date (M or N only)
   const rotaDealers = useMemo(() => {
     return rota
