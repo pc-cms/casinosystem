@@ -59,9 +59,6 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
     setValue.mutate({ table_id: tableId, date, time_slot: slot, value: numVal });
   };
 
-  const getTableTotal = (tableId: string) =>
-    trackerData.filter(t => t.table_id === tableId).reduce((s, t) => s + Number(t.value), 0);
-
   const getSlotTotal = (slot: string) =>
     trackerData.filter(t => t.time_slot === slot).reduce((s, t) => s + Number(t.value), 0);
 
