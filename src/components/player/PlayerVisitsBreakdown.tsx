@@ -81,28 +81,54 @@ export default function PlayerVisitsBreakdown({ visits, transactions, expenses, 
   const [openMonths, setOpenMonths] = useState<Record<string, boolean>>({});
   const [openWeeks, setOpenWeeks] = useState<Record<string, boolean>>({});
 
-  // Per-visit financial map.
+  // Per-visit financial map. Drop here = Drop R (NEP External part).
+  // We walk ALL player transactions chronologically (lifetime NEP) and attribute
+  // each cash-in's External portion to the visit window it falls into.
   const visitFin = useMemo(() => {
     const m = new Map<string, Agg>();
-    for (const v of visits) {
-      const start = new Date(v.checked_in_at).getTime();
-      const end = v.checked_out_at ? new Date(v.checked_out_at).getTime() : start + 86400000;
-      let drop = 0, out = 0, comps = 0;
-      for (const t of transactions) {
-        if (t.casino_id !== v.casino_id) continue;
-        const ts = new Date(t.created_at).getTime();
-        if (ts < start || ts > end) continue;
-        const amt = Number(t.amount) || 0;
-        if (t.type === "buy") drop += amt;
-        else if (t.type === "cashout") out += amt;
+    for (const v of visits) m.set(v.id, { visits: 1, minutes: visitMins(v), drop: 0, out: 0, comps: 0 });
+
+    // Build sorted ranges of visits per casino for fast lookup.
+    type Range = { id: string; casinoId: string; start: number; end: number };
+    const ranges: Range[] = visits.map(v => ({
+      id: v.id,
+      casinoId: v.casino_id,
+      start: new Date(v.checked_in_at).getTime(),
+      end: v.checked_out_at ? new Date(v.checked_out_at).getTime() : new Date(v.checked_in_at).getTime() + 86400000,
+    }));
+    const findVisit = (casinoId: string, ts: number): string | null => {
+      for (const r of ranges) {
+        if (r.casinoId === casinoId && ts >= r.start && ts <= r.end) return r.id;
       }
-      for (const e of expenses) {
-        if (e.casino_id !== v.casino_id) continue;
-        const ts = new Date(e.created_at).getTime();
-        if (ts < start || ts > end) continue;
-        comps += Number(e.amount) || 0;
+      return null;
+    };
+
+    // NEP walk over lifetime transactions
+    const sortedTx = [...transactions].sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)));
+    let nep = 0;
+    for (const t of sortedTx) {
+      const amt = Number(t.amount) || 0;
+      const ts = new Date(t.created_at).getTime();
+      if (t.type === "buy" || (t.type as string) === "in") {
+        const rec = nep < 0 ? Math.min(amt, -nep) : 0;
+        const ext = amt - rec;
+        nep += amt;
+        const vid = findVisit(t.casino_id, ts);
+        if (vid) {
+          const cur = m.get(vid)!;
+          cur.drop += ext; // Drop R only — recycled excluded from "real drop"
+        }
+      } else if (t.type === "cashout" || (t.type as string) === "out") {
+        nep -= amt;
+        const vid = findVisit(t.casino_id, ts);
+        if (vid) m.get(vid)!.out += amt;
       }
-      m.set(v.id, { visits: 1, minutes: visitMins(v), drop, out, comps });
+    }
+    // Comps per visit
+    for (const e of expenses) {
+      const ts = new Date(e.created_at).getTime();
+      const vid = findVisit(e.casino_id, ts);
+      if (vid) m.get(vid)!.comps += Number(e.amount) || 0;
     }
     return m;
   }, [visits, transactions, expenses]);
@@ -168,7 +194,7 @@ export default function PlayerVisitsBreakdown({ visits, transactions, expenses, 
             <th className="text-right py-2 px-2">Visits</th>
             <th className="text-right py-2 px-2">Time</th>
             {showFinancials && <>
-              <th className="text-right py-2 px-2">Drop</th>
+              <th className="text-right py-2 px-2" title="Real drop (External part of cash-in, NEP-aware)">Drop R</th>
               <th className="text-right py-2 px-2">Cashout</th>
               <th className="text-right py-2 px-2">Result</th>
               <th className="text-right py-2 px-2">Comps</th>

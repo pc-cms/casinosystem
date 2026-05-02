@@ -21,6 +21,7 @@ import type { SeatedPlayer } from "@/components/pit/SeatedPlayerChip";
 import type { PlayerCategory } from "@/components/player/CategoryBadge";
 import { useAuth } from "@/lib/auth-context";
 import { useBusinessDayFilter } from "@/hooks/use-business-day-filter";
+import { useTablesDropSplit } from "@/hooks/use-drop-split";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { offlineMutation } from "@/lib/offline-mutation";
@@ -210,7 +211,37 @@ const Tables = () => {
     onError: (e: any) => toast.error(e.message),
   });
 
-  // Build seated map: tableId -> SeatedPlayer[]
+  // Per-player Drop R for seated players (NEP-aware via useTablesDropSplit gives per-table; for per-player use windowed walk over current transactions list).
+  // Sufficient: take all txs of the player up to "now" and apply NEP locally.
+  const playerSplitsForSeated = useMemo(() => {
+    // Group all txs by player
+    const byPlayer = new Map<string, any[]>();
+    for (const t of transactions as any[]) {
+      if (!t.player_id) continue;
+      let arr = byPlayer.get(t.player_id);
+      if (!arr) { arr = []; byPlayer.set(t.player_id, arr); }
+      arr.push(t);
+    }
+    const out = new Map<string, { dropR: number; cashout: number }>();
+    for (const [pid, txs] of byPlayer) {
+      txs.sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)));
+      let nep = 0, dropR = 0, cashout = 0;
+      for (const t of txs) {
+        const amt = Number(t.amount) || 0;
+        if (t.type === "buy" || t.type === "in") {
+          const rec = nep < 0 ? Math.min(amt, -nep) : 0;
+          dropR += amt - rec;
+          nep += amt;
+        } else if (t.type === "cashout" || t.type === "out") {
+          cashout += amt;
+          nep -= amt;
+        }
+      }
+      out.set(pid, { dropR, cashout });
+    }
+    return out;
+  }, [transactions]);
+
   const { seatedByTable, allSeatedIds } = useMemo(() => {
     const map: Record<string, SeatedPlayer[]> = {};
     const ids = new Set<string>();
@@ -219,13 +250,7 @@ const Tables = () => {
       const p = players.find(pl => pl.id === s.player_id);
       if (!p || !s.table_id) continue;
       const cat = ((p as any).category as PlayerCategory) || "normal";
-      const playerTx = transactions.filter((t: any) => t.player_id === p.id);
-      const dropR = playerTx
-        .filter((t: any) => t.type === "buy" || t.type === "in")
-        .reduce((sum: number, t: any) => sum + Number(t.amount), 0);
-      const cashout = playerTx
-        .filter((t: any) => t.type === "cashout" || t.type === "out")
-        .reduce((sum: number, t: any) => sum + Number(t.amount), 0);
+      const sp_split = playerSplitsForSeated.get(p.id) || { dropR: 0, cashout: 0 };
       const sp: SeatedPlayer = {
         id: p.id,
         first_name: p.first_name,
@@ -234,8 +259,8 @@ const Tables = () => {
         category: cat,
         avgBet: Number(s.avg_bet || 0),
         startedAt: s.started_at ? new Date(s.started_at) : null,
-        dropR,
-        result: dropR - cashout,
+        dropR: sp_split.dropR,
+        result: sp_split.dropR - sp_split.cashout,
       };
       if (!map[s.table_id]) map[s.table_id] = [];
       map[s.table_id].push(sp);
@@ -249,7 +274,7 @@ const Tables = () => {
       return (a.startedAt?.getTime() ?? 0) - (b.startedAt?.getTime() ?? 0);
     }));
     return { seatedByTable: map, allSeatedIds: ids };
-  }, [sessions, players, transactions]);
+  }, [sessions, players, playerSplitsForSeated]);
 
   const candidates = useMemo(() => {
     const visitIds = new Set(
@@ -274,15 +299,30 @@ const Tables = () => {
 
   const snapshotIndex = useMemo(() => buildLatestTableSnapshot(snapshots as any), [snapshots]);
 
+  // NEP-split window for the current shift (or today). Drop R = External part of cash-in.
+  const splitWindow = useMemo(() => {
+    if (!effectiveDate) return { from: null as string | null, to: null as string | null };
+    return {
+      from: businessDayHourUTC(effectiveDate, 13), // 13:00 UTC = 16:00 EAT-ish; safe lower bound for shift start
+      to: businessDayHourUTC(effectiveDate, 13 + 24), // next-day 13:00 UTC, fully covers business day
+    };
+  }, [effectiveDate]);
+  const { data: splitMap } = useTablesDropSplit(splitWindow.from, splitWindow.to);
+
   const tableStats = useMemo(() => {
     const stats: Record<string, { dropR: number; dropV: number; result: number }> = {};
     tables.forEach(t => {
-      const dropR = shiftTransactions
+      const split = splitMap?.get(t.id);
+      // Fallback to raw sum until split RPC resolves (keeps UI usable on first paint).
+      const fallbackBuy = shiftTransactions
         .filter(tx => tx.table_id === t.id && (tx.type === "buy" || tx.type === "in"))
         .reduce((s, tx) => s + Number(tx.amount), 0);
-      const dropV = trackerData
+      const dropR = split ? split.dropR : fallbackBuy;
+      const recycled = split ? split.recycled : 0;
+      const trackerSum = trackerData
         .filter(tr => tr.table_id === t.id)
         .reduce((s, tr) => s + Number(tr.value), 0);
+      const dropV = trackerSum + recycled;
       const result = liveTableResult({
         tableId: t.id,
         closingResult: t.closing_result as any,
@@ -293,7 +333,7 @@ const Tables = () => {
       stats[t.id] = { dropR, dropV, result };
     });
     return stats;
-  }, [tables, shiftTransactions, trackerData, snapshotIndex, baselineMap]);
+  }, [tables, shiftTransactions, trackerData, snapshotIndex, baselineMap, splitMap]);
 
   const handleOpenAll = () => {
     const ids = closedTables.map(t => t.id);

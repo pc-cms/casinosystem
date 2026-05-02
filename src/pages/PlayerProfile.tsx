@@ -132,12 +132,14 @@ const PlayerProfile = () => {
   // total  = result − comps  (with comps/expenses)
   const lifetime = useMemo(() => {
     const totalMins = visits.reduce((s, v) => s + visitDuration(v), 0);
-    const drop = Number(economy?.total_drop) || 0;
+    const dropGross = Number(economy?.total_drop) || 0;
+    const dropR = Number((economy as any)?.total_drop_r) || 0;
+    const drop = dropR; // Lifetime "Drop" KPI = NEP-aware Drop R (External part of cash-in)
     const cashout = Number(economy?.total_cashout) || 0;
     const comps = Number(economy?.total_expenses) || 0;
-    const result = cashout - drop;
+    const result = cashout - dropGross; // result based on gross buy (player PnL)
     const total = result - comps;
-    const hold = holdPct(drop, cashout, comps);
+    const hold = holdPct(dropGross, cashout, comps);
     const firstVisit = visits.length ? visits[visits.length - 1].checked_in_at : null;
     const lastVisit = visits[0] ? (visits[0].checked_out_at || visits[0].checked_in_at) : null;
     const daysSinceLast = lastVisit
@@ -160,20 +162,30 @@ const PlayerProfile = () => {
     };
   }, [visits, economy]);
 
-  // Period summary (uses range-filtered tx + expenses + visits). Player perspective.
+  // Period summary (NEP-aware Drop R: lifetime walk, attribute External part to in-range cash-ins).
   const period = useMemo(() => {
-    let pIn = 0, pOut = 0;
-    for (const t of txInRange as any[]) {
+    const sorted = [...transactions].sort((a: any, b: any) => String(a.created_at).localeCompare(String(b.created_at)));
+    let nep = 0, pIn = 0, pOut = 0;
+    for (const t of sorted as any[]) {
       const amt = Number(t.amount) || 0;
-      if (t.type === "buy") pIn += amt;
-      else if (t.type === "cashout") pOut += amt;
+      const ts = new Date(t.created_at).getTime();
+      const inRange = ts >= rangeStartMs && ts <= rangeEndMs;
+      if (t.type === "buy" || t.type === "in") {
+        const rec = nep < 0 ? Math.min(amt, -nep) : 0;
+        const ext = amt - rec;
+        nep += amt;
+        if (inRange) pIn += ext; // Drop R only
+      } else if (t.type === "cashout" || t.type === "out") {
+        nep -= amt;
+        if (inRange) pOut += amt;
+      }
     }
     const pComps = expensesInRange.reduce((s, e: any) => s + (Number(e.amount) || 0), 0);
     const pMins = visitsInRange.reduce((s, v) => s + visitDuration(v), 0);
     const result = pOut - pIn;
     const total = result - pComps;
     return { pIn, pOut, pComps, pMins, result, total, hold: holdPct(pIn, pOut, pComps), visits: visitsInRange.length };
-  }, [txInRange, expensesInRange, visitsInRange]);
+  }, [transactions, rangeStartMs, rangeEndMs, expensesInRange, visitsInRange]);
 
   // Per-table aggregates (Position / Sessions / Hands / Avg bet / Duration / IN / OUT / Theo / Result / Hold).
   const tableStats = useMemo(() => {
@@ -351,7 +363,7 @@ const PlayerProfile = () => {
               <Kpi label="Avg session" value={lifetime.avgSession ? fmtDuration(lifetime.avgSession) : "—"} />
               {showFinancials && (
                 <>
-                  <Kpi label="Drop" value={fmtMoney(lifetime.drop)} />
+                  <Kpi label="Drop R" value={fmtMoney(lifetime.drop)} />
                   <Kpi label="Cashout" value={fmtMoney(lifetime.cashout)} />
                   <Kpi
                     label="Result"
@@ -536,7 +548,7 @@ const PlayerProfile = () => {
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2">
             <Kpi label="Visits" value={period.visits.toString()} />
             <Kpi label="Time" value={fmtDuration(period.pMins)} />
-            <Kpi label="Drop" value={fmtMoney(period.pIn)} />
+            <Kpi label="Drop R" value={fmtMoney(period.pIn)} />
             <Kpi label="Cashout" value={fmtMoney(period.pOut)} />
             <Kpi
               label="Result"
