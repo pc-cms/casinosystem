@@ -86,7 +86,7 @@ const ChipDenomInput = ({
                 onClick={() => handleChipClick(d)}
                 title={`+1 × ${formatChipLabel(d)}`}
                 className={`${tokens.chipClass} transition-transform hover:scale-105 active:scale-95 cursor-pointer`}
-                style={{ backgroundColor: color.bg, color: color.text }}
+                style={{ "--chip-bg": color.bg, "--chip-edge": color.edge, "--chip-text": color.text } as React.CSSProperties}
               >
                 {formatChipLabel(d)}
               </button>
