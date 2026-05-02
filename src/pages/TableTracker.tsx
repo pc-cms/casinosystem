@@ -2,7 +2,21 @@ import { useState, useCallback, useMemo } from "react";
 import { getBusinessDate, nowEAT } from "@/lib/business-day";
 import { useGamingTables, useTableTracker, useSetTableTrackerValue } from "@/hooks/use-casino-data";
 import { Input } from "@/components/ui/input";
-import { formatCurrency, formatInputWithSpaces, parseSpacedNumber } from "@/lib/currency";
+import { formatCurrency, formatInputWithSpaces } from "@/lib/currency";
+
+// Sign-aware variants for tracker (negative table results are valid)
+const formatSignedInput = (value: string): string => {
+  const neg = value.trim().startsWith("-");
+  const body = formatInputWithSpaces(value);
+  if (!body) return neg ? "-" : "";
+  return (neg ? "-" : "") + body;
+};
+const parseSignedNumber = (str: string): number => {
+  const s = str.replace(/\s/g, "").trim();
+  if (s === "" || s === "-") return 0;
+  const n = Number(s);
+  return isNaN(n) ? 0 : n;
+};
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Target, Lock, Hash, Coins } from "lucide-react";
@@ -51,7 +65,10 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
 
   const handleSave = (tableId: string, slot: string, val: string) => {
     if (readOnly) return;
-    const numVal = parseSpacedNumber(val);
+    const trimmed = val.trim();
+    // Empty input = no value (skip save)
+    if (trimmed === "" || trimmed === "-") return;
+    const numVal = parseSignedNumber(val);
     if (isNaN(numVal)) return;
     const current = getVal(tableId, slot);
     if (current === numVal) return;
@@ -178,7 +195,7 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
                             : "text-muted-foreground"
                         }`}
                       >
-                        {slot}
+                        {slot === "05:00" ? "Final" : slot}
                       </th>
                     );
                   })}
@@ -204,12 +221,12 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
                             id={`cell-${ti}-${si}`}
                             type="text"
                             inputMode="numeric"
-                            defaultValue={val ? formatInputWithSpaces(String(val)) : ""}
+                            defaultValue={val !== null && val !== undefined ? formatSignedInput(String(val)) : ""}
                             key={`${table.id}-${slot}-${val}`}
                             readOnly={readOnly}
                             onChange={(e) => {
                               if (readOnly) return;
-                              e.target.value = formatInputWithSpaces(e.target.value);
+                              e.target.value = formatSignedInput(e.target.value);
                             }}
                             onBlur={(e) => handleSave(table.id, slot, e.target.value)}
                             onKeyDown={(e) => handleKeyDown(e, ti, si)}
