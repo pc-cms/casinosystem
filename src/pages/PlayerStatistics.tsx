@@ -160,26 +160,52 @@ const PlayerStatistics = () => {
     left: rows.filter((r: any) => !r.isPresent).length,
   }), [rows]);
 
+  const { user } = useAuth();
+
+  // Position change: handles "hall", "slots", or specific table id (UUID).
+  // Picking a table creates a new client_sessions row with min avg bet (10000 poker/BJ, 2000 roulette).
+  // Picking hall/slots stops any active session and updates visit position.
   const setPosition = useMutation({
     mutationFn: async ({ visitId, playerId, newPos }: { visitId: string; playerId: string; newPos: string }) => {
-      // Update casino_visit position — DB trigger writes player_position_history.
+      const isTable = newPos !== "hall" && newPos !== "slots";
+      const visitPosition = isTable ? "table" : newPos;
+
+      // Always stop any open session first (so a new table or hall/slots is clean).
+      await offlineMutation({
+        table: "client_sessions",
+        operation: "update",
+        payload: {
+          _match: { casino_id: casinoId!, player_id: playerId, stopped_at: null as any },
+          stopped_at: new Date().toISOString(),
+        },
+      });
+
+      // Update visit position (DB trigger writes player_position_history).
       const res = await offlineMutation({
         table: "casino_visits",
         operation: "update",
-        payload: { _match: { id: visitId }, position: newPos },
+        payload: { _match: { id: visitId }, position: visitPosition },
       });
       if (res.error) throw new Error(res.error);
 
-      // If leaving a table, stop the active client_session for this player (cleanly closes the table seat).
-      if (newPos !== "table") {
-        await offlineMutation({
+      // Start a new session at the chosen table.
+      if (isTable) {
+        const tbl = tables.find(t => t.id === newPos);
+        const isRoulette = tbl ? /roulette/i.test(tbl.game) : false;
+        const avgBet = isRoulette ? 2000 : 10000;
+        const insRes = await offlineMutation({
           table: "client_sessions",
-          operation: "update",
+          operation: "insert",
           payload: {
-            _match: { casino_id: casinoId!, player_id: playerId, stopped_at: null as any },
-            stopped_at: new Date().toISOString(),
+            id: crypto.randomUUID(),
+            casino_id: casinoId!,
+            player_id: playerId,
+            table_id: newPos,
+            avg_bet: avgBet,
+            created_by: user!.id,
           },
         });
+        if (insRes.error) throw new Error(insRes.error);
       }
       return { offline: res.offline };
     },
@@ -191,8 +217,21 @@ const PlayerStatistics = () => {
     onError: (e: any) => toast.error(e.message),
   });
 
+  // Open tables (skip closed/archived) for the dropdown.
+  const openTables = useMemo(
+    () => tables.filter((t: any) => t.status === "open"),
+    [tables]
+  );
+
   const renderPositionCell = (r: any) => {
     if (!r.isPresent) return <span className="text-[10px] text-muted-foreground">—</span>;
+
+    // Current value: table id if seated at one, else "hall" or "slots".
+    const activeSession = activeSessionByPlayer[r.playerId];
+    const currentValue = r.position === "table" && activeSession?.table_id
+      ? activeSession.table_id
+      : (r.position === "slots" ? "slots" : "hall");
+
     if (!canEditPosition) {
       return r.position === "table" ? (
         r.tableName ? (
@@ -209,21 +248,26 @@ const PlayerStatistics = () => {
     return (
       <div onClick={(e) => e.stopPropagation()}>
         <Select
-          value={r.position}
+          value={currentValue}
           onValueChange={(v) => setPosition.mutate({ visitId: r.id, playerId: r.playerId, newPos: v })}
           disabled={setPosition.isPending}
         >
-          <SelectTrigger className="h-6 px-2 py-0 text-[10px] w-auto min-w-[78px]">
+          <SelectTrigger className="h-6 px-2 py-0 text-[10px] w-auto min-w-[90px]">
             <SelectValue>
-              {r.position === "table"
-                ? (r.tableName ? <span className="font-mono">{r.tableName}</span> : "Table")
-                : r.position === "slots" ? "Slots" : "Hall"}
+              {currentValue === "hall" ? "Hall"
+                : currentValue === "slots" ? "Slots"
+                : <span className="font-mono">{r.tableName ?? "Table"}</span>}
             </SelectValue>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="hall">Hall</SelectItem>
-            <SelectItem value="table">Table</SelectItem>
             <SelectItem value="slots">Slots</SelectItem>
+            {openTables.map((t: any) => (
+              <SelectItem key={t.id} value={t.id}>
+                <span className="font-mono">{t.name}</span>
+                <span className="text-muted-foreground text-[10px] ml-1.5">{t.game}</span>
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
