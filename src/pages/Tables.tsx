@@ -363,7 +363,7 @@ const Tables = () => {
                               </td>
                             );
                           })}
-                          <td className={`px-3 py-1 text-right font-mono text-xs font-bold ${rowResult >= 0 ? "text-success" : "text-destructive"}`}>
+                          <td className={`px-2 py-1 text-right font-mono text-xs font-bold ${rowResult >= 0 ? "text-success" : "text-destructive"}`}>
                             {rowResult >= 0 ? "+" : ""}{formatCurrency(rowResult)}
                           </td>
                         </tr>
