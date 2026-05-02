@@ -35,7 +35,7 @@ interface DraftRow {
   uid: string;
   direction: CashlessDirection;
   provider: CashlessProvider | "";
-  player_id: string;
+  player_name: string;
   amount: string;
   reference: string;
 }
@@ -44,7 +44,7 @@ const newDraft = (): DraftRow => ({
   uid: Math.random().toString(36).slice(2),
   direction: "IN",
   provider: "",
-  player_id: "",
+  player_name: "",
   amount: "",
   reference: "",
 });
