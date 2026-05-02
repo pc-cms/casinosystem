@@ -3,10 +3,11 @@ import { useOpenShift } from "@/hooks/use-shift";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { NumberInput } from "@/components/ui/number-input";
-import { Play, Settings2, ChevronRight, ChevronLeft, Landmark } from "lucide-react";
+import { Play, Settings2, ChevronRight, ChevronLeft, Landmark, Pencil } from "lucide-react";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
 import {
   CHIP_DENOMS, formatCurrency, formatNumberSpaces, CURRENCIES, FOREIGN_CURRENCIES,
   DEFAULT_EXCHANGE_RATES, CASH_DENOMS,
@@ -23,7 +24,7 @@ import type { Tables } from "@/integrations/supabase/types";
 
 const OpenShiftScreen = ({ tables }: { tables: Tables<"gaming_tables">[] }) => {
   const openShift = useOpenShift();
-  const { managerOverride } = useAuth();
+  const { managerOverride, activateManagerOverride, displayName } = useAuth();
   const [step, setStep] = useState<1 | 2>(1);
   const [rates, setRates] = useState<Record<string, number>>({ ...DEFAULT_EXCHANGE_RATES });
   const [closingChips, setClosingChips] = useState<Record<number, number>>({});
@@ -32,6 +33,7 @@ const OpenShiftScreen = ({ tables }: { tables: Tables<"gaming_tables">[] }) => {
   const [bankBalance, setBankBalance] = useState<Banks>(emptyBanks);
   const [mobileBalance, setMobileBalance] = useState<MobileProviders>(emptyMobile);
   const [showRates, setShowRates] = useState(false);
+  const [showManagerAccess, setShowManagerAccess] = useState(false);
 
   const [locks, setLocks] = useState({
     closingChips: false, openingChips: false, tzsCash: false, mobile: false,
@@ -109,7 +111,22 @@ const OpenShiftScreen = ({ tables }: { tables: Tables<"gaming_tables">[] }) => {
       {step === 1 && (
         <div className="space-y-2">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
-            <LockableSection title="Chips from Closing" locked={locks.closingChips} onToggleLock={() => toggleLock("closingChips")}>
+            <LockableSection
+              title="Chips from Closing"
+              locked={locks.closingChips}
+              onToggleLock={() => toggleLock("closingChips")}
+              headerActions={
+                !managerOverride.active ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowManagerAccess(true)}
+                    className="inline-flex items-center gap-0.5 text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                  >
+                    <Pencil className="w-2.5 h-2.5" /> Edit
+                  </button>
+                ) : null
+              }
+            >
               <div className={!managerOverride.active ? "opacity-50 pointer-events-none" : ""}>
                 <ChipDenomInput values={closingChips} onChange={setClosingChips} showValue={false} />
               </div>
@@ -240,6 +257,19 @@ const OpenShiftScreen = ({ tables }: { tables: Tables<"gaming_tables">[] }) => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ManagerOverrideDialog
+        open={showManagerAccess}
+        onClose={() => setShowManagerAccess(false)}
+        onConfirm={(managerId) => {
+          activateManagerOverride(managerId, "Manager");
+          setShowManagerAccess(false);
+        }}
+        title="Edit Opening Chips"
+        description="Manager access required to edit chips from closing during shift opening. Only chips are unlocked."
+        actionType="OPEN_SHIFT_CHIPS_EDIT_UNLOCKED"
+        actionDetails={{ activated_by: displayName }}
+      />
     </PageShell>
   );
 };
