@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NumberInput } from "@/components/ui/number-input";
 import { Badge } from "@/components/ui/badge";
-import { Search, Play, ArrowRight, LogOut, Pencil, X } from "lucide-react";
+import { Search, Play, ArrowRight, ArrowLeftRight, LogOut, Pencil, X } from "lucide-react";
 import { formatNumberSpaces } from "@/lib/currency";
 import CategoryBadge from "@/components/player/CategoryBadge";
 import type { SeatedPlayer } from "./SeatedPlayerChip";
@@ -36,6 +36,7 @@ interface Props {
   onMove: (playerId: string, avgBet: number) => void; // move from other table to this
   onUpdateBet: (playerId: string, avgBet: number) => void;
   onStop: (playerId: string) => void;
+  onChipTransfer?: (player: SeatedPlayer) => void;
   isPending: boolean;
   prefilledPlayerId?: string | null; // for drop
 }
@@ -47,7 +48,7 @@ const formatTime = (d: Date | null) => {
 
 const TableSeatingDialog = ({
   open, onOpenChange, table, seated, otherTables, candidates,
-  onPlace, onMove, onUpdateBet, onStop, isPending, prefilledPlayerId,
+  onPlace, onMove, onUpdateBet, onStop, onChipTransfer, isPending, prefilledPlayerId,
 }: Props) => {
   const [search, setSearch] = useState("");
   const [pickPlayerId, setPickPlayerId] = useState<string | null>(prefilledPlayerId ?? null);
@@ -150,6 +151,11 @@ const TableSeatingDialog = ({
                         onClick={() => { setEditPlayerId(p.id); setEditBet(String(p.avgBet || "")); }}>
                         <Pencil className="w-3.5 h-3.5" />
                       </Button>
+                      {onChipTransfer && (
+                        <Button size="sm" variant="ghost" title="Chip Transfer" onClick={() => onChipTransfer(p)}>
+                          <ArrowLeftRight className="w-3.5 h-3.5" />
+                        </Button>
+                      )}
                       <Button size="sm" variant="ghost" title="Stop session" onClick={() => onStop(p.id)} disabled={isPending}>
                         <LogOut className="w-3.5 h-3.5" />
                       </Button>
