@@ -496,7 +496,8 @@ const PlayerProfile = () => {
                         if (!f) continue;
                         pIn += f.totalIn; pOut += f.cashout; pComps += f.comps;
                       }
-                      const pRes = pIn - pOut - pComps;
+                      const pRes = pOut - pIn;
+                      const pTotal = pRes - pComps;
                       return (
                         <tr className="border-t-2 border-border font-semibold">
                           <td className="py-2 px-2 text-xs uppercase text-muted-foreground" colSpan={4}>Total (period)</td>
@@ -504,8 +505,9 @@ const PlayerProfile = () => {
                           <td className="py-2 px-2"></td>
                           {showFinancials && <td className="py-2 px-2 font-mono text-xs text-right">{fmtMoney(pIn)}</td>}
                           {showFinancials && <td className="py-2 px-2 font-mono text-xs text-right">{fmtMoney(pOut)}</td>}
+                          {showFinancials && <td className={`py-2 px-2 font-mono text-xs text-right ${pRes === 0 ? "" : pRes > 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>{fmtMoney(pRes)}</td>}
                           {showFinancials && <td className="py-2 px-2 font-mono text-xs text-right">{fmtMoney(pComps)}</td>}
-                          {showFinancials && <td className={`py-2 px-2 font-mono text-xs text-right ${pRes >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>{fmtMoney(pRes)}</td>}
+                          {showFinancials && <td className={`py-2 px-2 font-mono text-xs text-right ${pTotal === 0 ? "" : pTotal > 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>{fmtMoney(pTotal)}</td>}
                         </tr>
                       );
                     })()}
