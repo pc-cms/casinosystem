@@ -338,19 +338,23 @@ const PlayerProfile = () => {
               <Kpi label="Visits" value={lifetime.visitCount.toString()} />
               <Kpi label="Total time" value={fmtDuration(lifetime.totalMins)} />
               <Kpi label="Avg session" value={lifetime.avgSession ? fmtDuration(lifetime.avgSession) : "—"} />
-              <Kpi label="Drop" value={fmtMoney(lifetime.drop)} />
-              <Kpi label="Cashout" value={fmtMoney(lifetime.cashout)} />
-              <Kpi label="Comps" value={fmtMoney(lifetime.comps)} />
-              <Kpi
-                label="Real result"
-                value={fmtMoney(lifetime.realResult)}
-                valueClass={lifetime.realResult >= 0 ? "cms-amount-positive" : "cms-amount-negative"}
-              />
-              <Kpi
-                label="Hold %"
-                value={lifetime.hold === null ? "—" : `${lifetime.hold.toFixed(1)}%`}
-                valueClass={lifetime.hold === null ? undefined : lifetime.hold >= 0 ? "cms-amount-positive" : "cms-amount-negative"}
-              />
+              {showFinancials && (
+                <>
+                  <Kpi label="Drop" value={fmtMoney(lifetime.drop)} />
+                  <Kpi label="Cashout" value={fmtMoney(lifetime.cashout)} />
+                  <Kpi label="Comps" value={fmtMoney(lifetime.comps)} />
+                  <Kpi
+                    label="Real result"
+                    value={fmtMoney(lifetime.realResult)}
+                    valueClass={lifetime.realResult >= 0 ? "cms-amount-positive" : "cms-amount-negative"}
+                  />
+                  <Kpi
+                    label="Hold %"
+                    value={lifetime.hold === null ? "—" : `${lifetime.hold.toFixed(1)}%`}
+                    valueClass={lifetime.hold === null ? undefined : lifetime.hold >= 0 ? "cms-amount-positive" : "cms-amount-negative"}
+                  />
+                </>
+              )}
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3 text-xs text-muted-foreground">
