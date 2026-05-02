@@ -605,7 +605,7 @@ const PlayerProfile = () => {
                     {(() => {
                       const t = tableStats.total;
                       const avgBet = t.hands ? t.betSum / t.hands : 0;
-                      const result = t.totalIn - t.totalOut;
+                      const result = t.totalOut - t.totalIn;
                       const hold = holdPct(t.totalIn, t.totalOut, 0);
                       return (
                         <tr className="border-t-2 border-border bg-muted/30 font-semibold">
