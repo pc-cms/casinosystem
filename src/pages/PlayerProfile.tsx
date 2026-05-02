@@ -474,10 +474,10 @@ const PlayerProfile = () => {
                           <td className="py-2 px-2 text-xs uppercase text-muted-foreground" colSpan={4}>Total (period)</td>
                           <td className="py-2 px-2">{fmtDuration(periodMins)}</td>
                           <td className="py-2 px-2"></td>
-                          <td className="py-2 px-2 font-mono text-xs text-right">{fmtMoney(pIn)}</td>
-                          <td className="py-2 px-2 font-mono text-xs text-right">{fmtMoney(pOut)}</td>
-                          <td className="py-2 px-2 font-mono text-xs text-right">{fmtMoney(pComps)}</td>
-                          <td className={`py-2 px-2 font-mono text-xs text-right ${pRes >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>{fmtMoney(pRes)}</td>
+                          {showFinancials && <td className="py-2 px-2 font-mono text-xs text-right">{fmtMoney(pIn)}</td>}
+                          {showFinancials && <td className="py-2 px-2 font-mono text-xs text-right">{fmtMoney(pOut)}</td>}
+                          {showFinancials && <td className="py-2 px-2 font-mono text-xs text-right">{fmtMoney(pComps)}</td>}
+                          {showFinancials && <td className={`py-2 px-2 font-mono text-xs text-right ${pRes >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>{fmtMoney(pRes)}</td>}
                         </tr>
                       );
                     })()}
