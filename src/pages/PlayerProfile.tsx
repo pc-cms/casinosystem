@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
-import { ArrowLeft, User, Users as UsersIcon, BarChart3, Ticket, Trophy, History, MapPin, Gift } from "lucide-react";
+import { ArrowLeft, User, Users as UsersIcon, BarChart3, Ticket, Trophy, History, MapPin, Gift, CalendarDays } from "lucide-react";
+import PlayerVisitsBreakdown from "@/components/player/PlayerVisitsBreakdown";
+import { canSeePlayerFinancials } from "@/lib/role-access";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
