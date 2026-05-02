@@ -8,7 +8,12 @@ import { useGamingTables, useTableTracker } from "@/hooks/use-casino-data";
 import { useChipSnapshots } from "@/hooks/use-chips";
 import { useChipBaseline, baselineToMap } from "@/hooks/use-table-lifecycle";
 import { formatCurrency } from "@/lib/currency";
-import { tableColor } from "@/lib/table-colors";
+const CHART_COLORS = [
+  "#2563eb", "#10b981", "#f59e0b", "#7c3aed", "#e11d48",
+  "#0891b2", "#ea580c", "#c026d3", "#65a30d", "#4f46e5",
+  "#0d9488", "#db2777", "#ca8a04", "#0284c7", "#dc2626",
+];
+const tableColor = (i: number) => CHART_COLORS[i % CHART_COLORS.length];
 import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, Legend, ReferenceLine,
 } from "recharts";
