@@ -1,12 +1,29 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Save, Maximize2, Minimize2 } from "lucide-react";
+import { Save, Maximize2, Minimize2, History } from "lucide-react";
 import { useChipSnapshots, useBatchChipSnapshot } from "@/hooks/use-chips";
 import { useChipBaseline, baselineToMap } from "@/hooks/use-table-lifecycle";
-import { useGamingTables } from "@/hooks/use-casino-data";
+import { useGamingTables, useSetTableTrackerValue } from "@/hooks/use-casino-data";
 import { CHIP_DENOMS, formatChipLabel, formatCurrency } from "@/lib/currency";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useChipColors, resolveChipColor } from "@/hooks/use-chip-colors";
+import { nowEAT } from "@/lib/business-day";
+
+/** Compute the Number-Count tracker slot for a Chip Count taken at the given EAT time.
+ *  Window: HH:50–HH+1:10 → slot HH+1:00. Otherwise null (no auto-write).
+ *  Slots are constrained to 18:00..04:00 (live-game window). */
+const slotForChipCount = (now: Date): string | null => {
+  const h = now.getHours();
+  const m = now.getMinutes();
+  let targetH: number;
+  if (m >= 50) targetH = (h + 1) % 24;
+  else if (m <= 10) targetH = h;
+  else return null;
+  // Allowed slots: 18..23 and 00..04
+  const allowed = (targetH >= 18 && targetH <= 23) || (targetH >= 0 && targetH <= 4);
+  if (!allowed) return null;
+  return `${String(targetH).padStart(2, "0")}:00`;
+};
 
 interface ChipCountPanelProps {
   date: string;
@@ -91,6 +108,8 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
 
   const grandTotal = rowResults.reduce((s, r) => s + r.total, 0);
 
+  const setTrackerValue = useSetTableTrackerValue();
+
   const handleSave = () => {
     const rows: Array<{
       location_type: string; location_id: string | null;
@@ -106,6 +125,16 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
       });
     });
     batchSnapshot.mutate({ date, counts: rows });
+
+    // Auto-write per-table row result into Number Count tracker for the rounded slot
+    // (HH:50–HH+1:10 → slot HH+1:00 / HH:00).
+    const slot = slotForChipCount(nowEAT());
+    if (slot) {
+      countLocations.forEach((loc, ri) => {
+        const total = rowResults[ri]?.total ?? 0;
+        setTrackerValue.mutate({ table_id: loc.id, date, time_slot: slot, value: total });
+      });
+    }
   };
 
   if (openTables.length === 0) {
@@ -251,6 +280,21 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
     );
   };
 
+  // ===== Snapshot history (per save = group of rows sharing created_at) =====
+  const history = useMemo(() => {
+    const groups: Record<string, { ts: string; perTable: Record<string, number>; total: number }> = {};
+    snapshots.forEach((s: any) => {
+      if (s.location_type !== "table" || !s.location_id) return;
+      const ts = s.created_at;
+      if (!groups[ts]) groups[ts] = { ts, perTable: {}, total: 0 };
+      const expected = baselineMap[s.location_id]?.[Number(s.denomination)] ?? Number(s.expected_quantity || 0);
+      const delta = (Number(s.actual_quantity) - expected) * Number(s.denomination);
+      groups[ts].perTable[s.location_id] = (groups[ts].perTable[s.location_id] || 0) + delta;
+      groups[ts].total += delta;
+    });
+    return Object.values(groups).sort((a, b) => b.ts.localeCompare(a.ts));
+  }, [snapshots, baselineMap]);
+
   return (
     <>
       {renderGrid(false)}
@@ -259,6 +303,51 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
           {renderGrid(true)}
         </DialogContent>
       </Dialog>
+
+      {history.length > 0 && (
+        <div className="mt-3 rounded-md border border-border bg-card">
+          <div className="flex items-center gap-2 px-3 py-2 border-b border-border">
+            <History className="w-4 h-4 text-muted-foreground" />
+            <h4 className="text-sm font-semibold text-card-foreground">Snapshot history · {date}</h4>
+            <span className="text-[10px] text-muted-foreground ml-auto">{history.length} saves</span>
+          </div>
+          <div className="overflow-auto max-h-[280px]">
+            <table className="w-full border-collapse text-xs">
+              <thead className="sticky top-0 bg-card">
+                <tr className="border-b border-border">
+                  <th className="text-left px-2 py-1.5 font-medium text-muted-foreground uppercase tracking-wider text-[10px]">Time</th>
+                  {countLocations.map(loc => (
+                    <th key={loc.id} className="text-right px-2 py-1.5 font-medium text-muted-foreground text-[10px]">{loc.label}</th>
+                  ))}
+                  <th className="text-right px-2 py-1.5 font-medium text-muted-foreground uppercase tracking-wider text-[10px]">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {history.map((g, i) => {
+                  const time = new Date(g.ts).toLocaleTimeString("en-GB", { timeZone: "Africa/Dar_es_Salaam", hour: "2-digit", minute: "2-digit" });
+                  return (
+                    <tr key={g.ts} className={`border-b border-border last:border-0 ${i % 2 === 1 ? "bg-muted/10" : ""}`}>
+                      <td className="px-2 py-1 font-mono text-card-foreground">{time}</td>
+                      {countLocations.map(loc => {
+                        const v = g.perTable[loc.id];
+                        if (v === undefined) return <td key={loc.id} className="px-2 py-1 text-right text-muted-foreground/30">·</td>;
+                        return (
+                          <td key={loc.id} className={`px-2 py-1 text-right font-mono ${v >= 0 ? "text-success" : "text-destructive"}`}>
+                            {v >= 0 ? "+" : ""}{formatCurrency(v)}
+                          </td>
+                        );
+                      })}
+                      <td className={`px-2 py-1 text-right font-mono font-bold ${g.total >= 0 ? "text-success" : "text-destructive"}`}>
+                        {g.total >= 0 ? "+" : ""}{formatCurrency(g.total)}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </>
   );
 };
