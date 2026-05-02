@@ -217,17 +217,7 @@ const Dashboard = () => {
           )
         )}
         {showFinancials && (
-          <div className="cms-panel p-4 opacity-75">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Pending Cashless</p>
-                <p className="text-2xl font-bold font-mono mt-1 text-card-foreground">0</p>
-              </div>
-              <div className="p-2 rounded-md bg-muted text-muted-foreground">
-                <CreditCard className="w-5 h-5" />
-              </div>
-            </div>
-          </div>
+          <StatCard label="Pending Cashless" value={pendingCashless} icon={CreditCard} href="/cashless" />
         )}
       </div>
 
