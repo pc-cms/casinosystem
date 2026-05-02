@@ -49,7 +49,7 @@ const TableResults = lazy(() => import("@/pages/TableResults"));
 const BankChecks = lazy(() => import("@/pages/BankChecks"));
 const MissChips = lazy(() => import("@/pages/MissChips"));
 const TableTracker = lazy(() => import("@/pages/TableTracker"));
-const ActivePlayersPage = lazy(() => import("@/pages/ActivePlayersPage"));
+const PlayerStatistics = lazy(() => import("@/pages/PlayerStatistics"));
 const PlayerTrackerPage = lazy(() => import("@/pages/PlayerTrackerPage"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 
@@ -95,6 +95,7 @@ const ROUTE_ROLES: Record<string, string[]> = {
   "/cage": ["super_admin", "manager", "cashier", "finance_manager"],
   "/tables": ["super_admin", "manager", "cashier", "pit", "finance_manager", "surveillance"],
   "/active-players": ["super_admin", "manager", "pit", "finance_manager"],
+  "/player-statistics": ["super_admin", "manager", "pit", "finance_manager"],
   "/player-tracker": ["super_admin", "manager", "pit", "finance_manager"],
   "/table-tracker": ["super_admin", "manager", "pit", "finance_manager"],
   "/expenses": ["super_admin", "manager", "cashier", "finance_manager"],
@@ -194,7 +195,8 @@ const ProtectedRoutes = () => {
           <Route path="/in-casino" element={<RoleGuard path="/in-casino"><InCasino /></RoleGuard>} />
           <Route path="/blacklist" element={<RoleGuard path="/blacklist"><Blacklist /></RoleGuard>} />
           <Route path="/tables" element={<RoleGuard path="/tables"><Tables /></RoleGuard>} />
-          <Route path="/active-players" element={<RoleGuard path="/active-players"><ActivePlayersPage /></RoleGuard>} />
+          <Route path="/active-players" element={<Navigate to="/player-statistics" replace />} />
+          <Route path="/player-statistics" element={<RoleGuard path="/player-statistics"><PlayerStatistics /></RoleGuard>} />
           <Route path="/player-tracker" element={<RoleGuard path="/player-tracker"><PlayerTrackerPage /></RoleGuard>} />
           <Route path="/table-tracker" element={<RoleGuard path="/table-tracker"><TableTracker /></RoleGuard>} />
           <Route path="/expenses" element={<RoleGuard path="/expenses"><Expenses /></RoleGuard>} />

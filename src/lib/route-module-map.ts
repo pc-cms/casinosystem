@@ -18,7 +18,7 @@ export const moduleKeyForRoute = (to: string, label?: string): ModuleKey | null 
   if (base === "/pit") return "pit_rota";
   if (base === "/staff") return "pit_rota";
   if (base === "/tables") return "tables";
-  if (base === "/active-players") return "pit_active_players";
+  if (base === "/active-players" || base === "/player-statistics") return "pit_active_players";
   if (base === "/player-tracker") return "pit_player_tracker";
   if (base === "/table-tracker") return "table_tracker";
   if (base === "/cage") return "cage";

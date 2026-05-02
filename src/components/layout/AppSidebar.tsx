@@ -47,7 +47,7 @@ const NAV_ITEMS: NavItem[] = [
   // PIT — Break List, Live Tables, trackers, Attendance (parent), Rota (parent)
   { to: "/pit?tab=breaklist", icon: ListChecks, label: "Break List", roles: ["super_admin", "manager", "pit", "finance_manager"], section: "PIT" },
   { to: "/tables", icon: Table2, label: "Live Tables", roles: ["super_admin", "manager", "cashier", "pit", "finance_manager", "surveillance"], section: "PIT" },
-  { to: "/active-players", icon: Users, label: "Active Players", roles: ["super_admin", "manager", "pit", "finance_manager"], section: "PIT" },
+  { to: "/player-statistics", icon: Users, label: "Player Statistics", roles: ["super_admin", "manager", "pit", "finance_manager"], section: "PIT" },
   { to: "/player-tracker", icon: Eye, label: "Player Tracker", roles: ["super_admin", "manager", "pit", "finance_manager"], section: "PIT" },
   { to: "/table-tracker", icon: Target, label: "Table Check", roles: ["super_admin", "manager", "pit", "finance_manager"], section: "PIT" },
   { to: "__attendance__", icon: ClipboardPen, label: "Attendance", roles: ["super_admin", "manager", "pit", "finance_manager"], section: "PIT" },
