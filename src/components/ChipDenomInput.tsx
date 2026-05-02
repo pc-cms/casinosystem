@@ -2,7 +2,7 @@
  * ChipDenomInput — chip denomination input list with configurable columns and size.
  * Supports per-casino color overrides via use-chip-colors hook.
  */
-import { useRef, useCallback } from "react";
+import { useRef, useCallback, type CSSProperties } from "react";
 import { CHIP_DENOMS, formatChipLabel, formatNumberSpaces } from "@/lib/currency";
 import { useChipColors, resolveChipColor } from "@/hooks/use-chip-colors";
 
@@ -86,7 +86,7 @@ const ChipDenomInput = ({
                 onClick={() => handleChipClick(d)}
                 title={`+1 × ${formatChipLabel(d)}`}
                 className={`${tokens.chipClass} transition-transform hover:scale-105 active:scale-95 cursor-pointer`}
-                style={{ backgroundColor: color.bg, color: color.text }}
+                style={{ "--chip-bg": color.bg, "--chip-edge": color.edge, "--chip-text": color.text } as CSSProperties}
               >
                 {formatChipLabel(d)}
               </button>

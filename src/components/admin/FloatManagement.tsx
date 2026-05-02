@@ -2,7 +2,7 @@
  * FloatManagement — Manager UI for setting chip baseline (tables, cashier, safe).
  * Allows filling default float per location and locking the casino float.
  */
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, type CSSProperties } from "react";
 import { useGamingTables } from "@/hooks/use-casino-data";
 import { useChipBaseline, useUpsertBaseline, useCasinoInfo, useLockFloat } from "@/hooks/use-table-lifecycle";
 import { useAuth } from "@/lib/auth-context";
@@ -178,7 +178,7 @@ const FloatManagement = () => {
                   <tr key={d} className="border-b border-border last:border-0">
                     <td className="py-1 px-3 sticky left-0 bg-card z-10">
                       {(() => { const c = resolveChipColor(d, chipColorOverrides); return (
-                        <span className="cms-chip-token" style={{ backgroundColor: c.bg, color: c.text }}>
+                        <span className="cms-chip-token" style={{ "--chip-bg": c.bg, "--chip-edge": c.edge, "--chip-text": c.text } as CSSProperties}>
                           {formatChipLabel(d)}
                         </span>
                       ); })()}

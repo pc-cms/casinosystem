@@ -93,6 +93,14 @@ export const useCasinoInfo = () => {
     queryKey: ["casino-info", casinoId],
     queryFn: async () => {
       if (!casinoId) return null;
+      // Trigger pending → active promotion if its activation date has arrived.
+      // Result is ignored; the row read below will reflect the up-to-date values.
+      try {
+        await supabase.rpc("get_effective_shift_settings", { _casino_id: casinoId });
+      } catch (e) {
+        // Non-fatal — RPC may not exist on legacy backends; row read below still works.
+        console.warn("get_effective_shift_settings rpc warn", e);
+      }
       const { data, error } = await supabase
         .from("casinos")
         .select("*")
@@ -126,21 +134,95 @@ export const useLockFloat = () => {
   });
 };
 
+/**
+ * Update casino schedule.
+ * `shift_end` and `breaklist_lock` are critical timing parameters — changing
+ * them mid-shift would shift the business-day boundary instantly. Instead we
+ * write them to *_pending with an activation date = next business day.
+ * The DB function `get_effective_shift_settings` promotes pending → active
+ * once that date arrives.
+ */
 export const useUpdateCasinoSchedule = () => {
   const qc = useQueryClient();
   const { casinoId } = useAuth();
   return useMutation({
-    mutationFn: async (input: { shift_start: string; shift_end: string; tables_open: string; breaklist_lock: string; cage_float?: number }) => {
+    mutationFn: async (input: {
+      shift_start: string;
+      shift_end: string;
+      tables_open: string;
+      breaklist_lock: string;
+      cage_float?: number;
+      /** Current values (for diffing — only changed shift_end/breaklist_lock get deferred) */
+      current_shift_end?: string;
+      current_breaklist_lock?: string;
+    }) => {
       if (!casinoId) throw new Error("No casino");
+
+      // Compute "next business day start" date (today's business date + 1).
+      // Using the *current* shift_end so pending activates from tomorrow's shift.
+      const { getBusinessDate } = await import("@/lib/business-day");
+      const curEnd = parseInt((input.current_shift_end || input.shift_end).split(":")[0], 10) || 5;
+      const today = getBusinessDate(curEnd);
+      const next = new Date(today + "T00:00:00Z");
+      next.setUTCDate(next.getUTCDate() + 1);
+      const nextDate = next.toISOString().slice(0, 10);
+
+      const update: Record<string, unknown> = {
+        shift_start: input.shift_start,
+        tables_open: input.tables_open,
+      };
+      if (input.cage_float !== undefined) update.cage_float = input.cage_float;
+
+      // Defer shift_end if changed
+      if (input.current_shift_end !== undefined && input.shift_end !== input.current_shift_end) {
+        update.shift_end_pending = input.shift_end;
+        update.shift_end_pending_from = nextDate;
+      } else if (input.current_shift_end === undefined) {
+        // First-time set or no diff info — apply immediately (legacy)
+        update.shift_end = input.shift_end;
+      }
+
+      // Defer breaklist_lock if changed
+      if (input.current_breaklist_lock !== undefined && input.breaklist_lock !== input.current_breaklist_lock) {
+        update.breaklist_lock_pending = input.breaklist_lock;
+        update.breaklist_lock_pending_from = nextDate;
+      } else if (input.current_breaklist_lock === undefined) {
+        update.breaklist_lock = input.breaklist_lock;
+      }
+
       const { error } = await supabase
         .from("casinos")
-        .update(input as any)
+        .update(update as any)
         .eq("id", casinoId);
       if (error) throw error;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["casino-info"] });
       toast.success("Schedule updated");
+    },
+    onError: (e) => toast.error(e.message),
+  });
+};
+
+/** Cancel a previously-scheduled (pending) shift_end or breaklist_lock change. */
+export const useCancelPendingSchedule = () => {
+  const qc = useQueryClient();
+  const { casinoId } = useAuth();
+  return useMutation({
+    mutationFn: async (field: "shift_end" | "breaklist_lock") => {
+      if (!casinoId) throw new Error("No casino");
+      const update = field === "shift_end"
+        ? { shift_end_pending: null, shift_end_pending_from: null }
+        : { breaklist_lock_pending: null, breaklist_lock_pending_from: null };
+      const { error } = await supabase
+        .from("casinos")
+        .update(update as any)
+        .eq("id", casinoId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["casino-info"] });
+      toast.success("Pending change cancelled");
     },
     onError: (e) => toast.error(e.message),
   });

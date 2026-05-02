@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { Button } from "@/components/ui/button";
 import { Save, Maximize2, Minimize2, History } from "lucide-react";
 import { useChipSnapshots, useBatchChipSnapshot } from "@/hooks/use-chips";
@@ -215,7 +215,7 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
                     <th key={d} className={`text-center ${t.headerPadY} px-0.5 font-medium`}>
                       <span
                         className={t.chipClass}
-                        style={{ backgroundColor: c.bg, color: c.text }}
+                        style={{ "--chip-bg": c.bg, "--chip-edge": c.edge, "--chip-text": c.text } as CSSProperties}
                       >
                         {formatChipLabel(d)}
                       </span>

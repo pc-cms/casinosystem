@@ -168,29 +168,62 @@
     /* Thin gold ring to separate the chip from any background (light + dark) */
     box-shadow: 0 0 0 1px hsl(45 75% 52% / 0.85);
   }
-  /* Unified chip "token" — single size used everywhere a chip denomination is displayed.
-     ~40% larger than the legacy small pill, perfectly round (square aspect). */
+  /* Unified chip "token" — two-color poker chip with 6 edge inserts.
+     CSS variables (set via inline style on the element):
+       --chip-bg     main body color
+       --chip-edge   color of the 6 inserts around the rim
+       --chip-text   denomination label color
+     Inner disk = bg color so the cylinder reads as a solid chip. */
   .cms-chip-token {
+    --chip-bg: #6B7280;
+    --chip-edge: #FFFFFF;
+    --chip-text: #FFFFFF;
+    position: relative;
     @apply inline-flex items-center justify-center rounded-full font-bold whitespace-nowrap shrink-0 select-none;
     width: 2.25rem;   /* 36px */
     height: 2.25rem;  /* 36px → round */
     font-size: 10px;
     line-height: 1;
     letter-spacing: -0.02em;
-    /* Layered ring: thick gold outer + thin inner highlight for a poker-chip look */
+    color: var(--chip-text);
+    /* Outer ring: 12-sector conic-gradient = 6 bg + 6 edge inserts (alternating, 30° each) */
+    background:
+      conic-gradient(
+        var(--chip-bg) 0deg 30deg,
+        var(--chip-edge) 30deg 60deg,
+        var(--chip-bg) 60deg 90deg,
+        var(--chip-edge) 90deg 120deg,
+        var(--chip-bg) 120deg 150deg,
+        var(--chip-edge) 150deg 180deg,
+        var(--chip-bg) 180deg 210deg,
+        var(--chip-edge) 210deg 240deg,
+        var(--chip-bg) 240deg 270deg,
+        var(--chip-edge) 270deg 300deg,
+        var(--chip-bg) 300deg 330deg,
+        var(--chip-edge) 330deg 360deg
+      );
     box-shadow:
-      inset 0 0 0 2.5px hsl(45 80% 55% / 0.95),
-      inset 0 0 0 3.5px hsl(0 0% 100% / 0.35),
+      inset 0 0 0 1px hsl(0 0% 0% / 0.25),
       0 1px 2px hsl(0 0% 0% / 0.25);
+  }
+  /* Inner disk = solid bg with thin gold ring; sits above conic-gradient rim */
+  .cms-chip-token::before {
+    content: "";
+    position: absolute;
+    inset: 22%;
+    border-radius: 9999px;
+    background: var(--chip-bg);
+    box-shadow: inset 0 0 0 1px hsl(45 80% 55% / 0.85);
+  }
+  /* Label sits above the inner disk */
+  .cms-chip-token > * {
+    position: relative;
+    z-index: 1;
   }
   .cms-chip-token-lg {
     width: 2.75rem;   /* 44px — fullscreen / lg surfaces */
     height: 2.75rem;
     font-size: 11px;
-    box-shadow:
-      inset 0 0 0 3px hsl(45 80% 55% / 0.95),
-      inset 0 0 0 4.5px hsl(0 0% 100% / 0.35),
-      0 1px 3px hsl(0 0% 0% / 0.3);
   }
   /* Hide number input spinners */
   input[type="number"].no-spin::-webkit-outer-spin-button,
