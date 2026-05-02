@@ -169,7 +169,7 @@ const PlayerStatistics = () => {
               {r.firstName} {r.lastName}
               {r.nickname && <span className="text-muted-foreground font-normal"> "{r.nickname}"</span>}
             </p>
-            {r.flags?.length > 0 && <FlagBadges flags={r.flags} />}
+            {r.flags?.length > 0 && <FlagBadges tags={r.flags} compact />}
           </div>
         </div>
       </td>
