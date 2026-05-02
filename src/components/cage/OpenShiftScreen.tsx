@@ -176,14 +176,25 @@ const OpenShiftScreen = ({ tables }: { tables: Tables<"gaming_tables">[] }) => {
 
       {step === 1 && (
         <div className="space-y-2">
+          {lastShift && prefilledRef.current && (
+            <div className="cms-panel px-3 py-2 flex items-center justify-between gap-3 border-warning/30 bg-warning/5">
+              <p className="text-[11px] text-card-foreground">
+                Carried over from shift closed{" "}
+                <span className="font-mono">
+                  {lastShift.closed_at ? new Date(lastShift.closed_at).toLocaleString() : "—"}
+                </span>.{" "}
+                <span className="text-muted-foreground">Edits to these values require Manager Access and are audited.</span>
+              </p>
+              <span className={`text-[10px] font-semibold px-2 py-0.5 rounded ${managerOverride.active ? "bg-success/15 text-success" : "bg-muted text-muted-foreground"}`}>
+                {managerOverride.active ? "Manager Access ON" : "View only"}
+              </span>
+            </div>
+          )}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
             <LockableSection title="Chips from Closing" locked={locks.closingChips} onToggleLock={() => toggleLock("closingChips")}>
-              <div className={!managerOverride.active ? "opacity-50 pointer-events-none" : ""}>
+              <div className={!managerOverride.active ? "opacity-60 pointer-events-none" : ""}>
                 <ChipDenomInput values={closingChips} onChange={setClosingChips} showValue={false} />
               </div>
-              {!managerOverride.active && (
-                <p className="text-[9px] text-destructive font-medium">Manager access required</p>
-              )}
             </LockableSection>
             <LockableSection title="Opening Chips" locked={locks.openingChips} onToggleLock={() => toggleLock("openingChips")}>
               <ChipDenomInput values={openingChips} onChange={setOpeningChips} showValue={false} />
