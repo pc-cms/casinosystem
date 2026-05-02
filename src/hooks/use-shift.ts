@@ -24,6 +24,28 @@ export const useActiveShift = () => {
   });
 };
 
+// Most recent closed shift (used to carry the float into the next open).
+export const useLastClosedShift = () => {
+  const { casinoId } = useAuth();
+  return useQuery({
+    queryKey: ["last-closed-shift", casinoId],
+    queryFn: async () => {
+      if (!casinoId) return null;
+      const { data, error } = await supabase
+        .from("shifts")
+        .select("*")
+        .eq("casino_id", casinoId)
+        .eq("status", "closed")
+        .order("closed_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!casinoId,
+  });
+};
+
 export const useOpenShift = () => {
   const qc = useQueryClient();
   const { casinoId, user } = useAuth();
