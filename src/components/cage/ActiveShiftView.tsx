@@ -96,6 +96,7 @@ const ActiveShiftView = ({ shift, players, tables }: {
   const closeShift = useCloseShift();
   const [showClose, setShowClose] = useState(false);
   const [showCloseTables, setShowCloseTables] = useState(false);
+  const [showEditChips, setShowEditChips] = useState(false);
 
   const activePlayers = useMemo(() => players.filter(p => p.status === "active"), [players]);
   const openTables = useMemo(() => tables.filter(t => t.status === "open"), [tables]);
