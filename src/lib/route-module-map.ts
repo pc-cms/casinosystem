@@ -24,6 +24,7 @@ export const moduleKeyForRoute = (to: string, label?: string): ModuleKey | null 
   if (base === "/tables/analytics") return "tables";
   if (base === "/cage") return "cage";
   if (base === "/expenses") return "expenses";
+  if (base === "/cashless") return "expenses";
   if (base === "/players") return "players";
   if (base === "/blacklist") return "blacklist";
   if (base === "/reception") return "reception";
