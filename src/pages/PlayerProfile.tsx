@@ -574,7 +574,7 @@ const PlayerProfile = () => {
                   </thead>
                   <tbody>
                     {tableStats.rows.map((r) => {
-                      const result = r.totalIn - r.totalOut;
+                      const result = r.totalOut - r.totalIn;
                       const avgBet = r.hands ? r.betSum / r.hands : 0;
                       const theo = r.hands
                         ? theoFromHands(avgBet, r.hands, r.game)
