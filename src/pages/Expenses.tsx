@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { toast } from "sonner";
+import { Receipt, CheckCircle, Plus, X } from "lucide-react";
 import { CardSkeleton, TableSkeleton } from "@/components/LoadingSkeletons";
 import { usePlayers, useExpenses, useCreateExpense, useApproveExpense } from "@/hooks/use-casino-data";
 import { useActiveShift } from "@/hooks/use-shift";
@@ -11,17 +12,17 @@ import { Input } from "@/components/ui/input";
 import { NumberInput } from "@/components/ui/number-input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Plus, CheckCircle, Receipt } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
-
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
 import { formatCurrency } from "@/lib/currency";
 
 const CATS = [
-  { value: "food", label: "Food" }, { value: "alcohol", label: "Alcohol" },
-  { value: "taxi", label: "Taxi" }, { value: "hotel", label: "Hotel" },
-  { value: "flight", label: "Flight" }, { value: "other", label: "Other" },
+  { value: "food", label: "Food" },
+  { value: "alcohol", label: "Alcohol" },
+  { value: "taxi", label: "Taxi" },
+  { value: "hotel", label: "Hotel" },
+  { value: "flight", label: "Flight" },
+  { value: "other", label: "Other" },
 ];
 
 const CAT_COLORS: Record<string, string> = {
@@ -33,31 +34,65 @@ const CAT_COLORS: Record<string, string> = {
   other: "bg-muted text-muted-foreground",
 };
 
-/**
- * EXPENSES (STRICT):
- * - General or player-linked
- * - If player selected → expense belongs to player
- * - Cannot edit/delete
- * - REAL RESULT = CASHOUT - DROP - EXPENSES
- */
+interface DraftRow {
+  uid: string;
+  target: "casino" | "player" | "";
+  player_id: string;
+  category: string;
+  amount: string;
+  description: string;
+}
+
+const newDraft = (): DraftRow => ({
+  uid: Math.random().toString(36).slice(2),
+  target: "",
+  player_id: "",
+  category: "",
+  amount: "",
+  description: "",
+});
+
 const Expenses = () => {
   const { isManager } = useAuth();
   const businessDate = getBusinessDate();
   const { data: shift } = useActiveShift();
   const { data: expenses = [], isLoading: loadingExpenses } = useExpenses(businessDate);
   const { data: players = [], isLoading: loadingPlayers } = usePlayers();
+  const create = useCreateExpense();
   const approve = useApproveExpense();
-  const [showAdd, setShowAdd] = useState(false);
-  
-  const [pendingOverride, setPendingOverride] = useState<string | null>(null);
+  const [pendingApproveId, setPendingApproveId] = useState<string | null>(null);
+  const [drafts, setDrafts] = useState<DraftRow[]>([newDraft()]);
 
   const isLoading = loadingExpenses || loadingPlayers;
   const analytics = useExpenseAnalytics(expenses as any);
 
-  const handleApprove = (id: string) => {
-    if (isManager) {
-      setPendingOverride(id);
-    }
+  const updateDraft = (uid: string, patch: Partial<DraftRow>) =>
+    setDrafts(d => d.map(r => (r.uid === uid ? { ...r, ...patch } : r)));
+
+  const removeDraft = (uid: string) =>
+    setDrafts(d => (d.length > 1 ? d.filter(r => r.uid !== uid) : d));
+
+  const submitDraft = async (uid: string) => {
+    const row = drafts.find(r => r.uid === uid);
+    if (!row) return;
+    if (!row.target) return toast.error("Choose target");
+    if (row.target === "player" && !row.player_id) return toast.error("Choose player");
+    if (!row.category) return toast.error("Choose category");
+    const amt = Number(row.amount);
+    if (!amt || amt <= 0) return toast.error("Amount must be > 0");
+    if (!shift?.id) return toast.error("No active shift");
+    try {
+      await new Promise<void>((resolve, reject) => {
+        create.mutate({
+          category: row.category,
+          amount: amt,
+          description: row.description,
+          player_id: row.target === "player" ? row.player_id : null,
+          shift_id: shift.id,
+        }, { onSuccess: () => resolve(), onError: (e: any) => reject(e) });
+      });
+      setDrafts(d => [...d.filter(r => r.uid !== uid), newDraft()]);
+    } catch {/* toast handled */}
   };
 
   if (isLoading) {
@@ -77,11 +112,9 @@ const Expenses = () => {
         title="Expenses"
         subtitle={`Immutable · ${expenses.length} records · ${analytics.pendingCount} pending`}
         date
-      >
-        <Button onClick={() => setShowAdd(true)} size="sm"><Plus className="w-4 h-4 mr-1" /> Add Expense</Button>
-      </PageHeader>
+      />
 
-      {/* Analytics Cards */}
+      {/* KPI cards */}
       <div className="grid grid-cols-3 gap-3 mb-6">
         <div className="cms-panel p-3">
           <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Total</p>
@@ -97,34 +130,130 @@ const Expenses = () => {
         </div>
       </div>
 
+      {/* Entry table — every OK adds a fresh row */}
+      <div className="cms-panel overflow-hidden mb-6">
+        <div className="px-4 py-2 border-b border-border flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-card-foreground">New entries</h3>
+          <Button size="sm" variant="outline" onClick={() => setDrafts(d => [...d, newDraft()])} className="h-8 gap-1.5">
+            <Plus className="w-3.5 h-3.5" /> Row
+          </Button>
+        </div>
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-border text-[10px] uppercase tracking-wider text-muted-foreground">
+              <th className="text-left px-3 py-2">Target</th>
+              <th className="text-left px-3 py-2">Player</th>
+              <th className="text-left px-3 py-2">Category</th>
+              <th className="text-right px-3 py-2">Amount (TZS)</th>
+              <th className="text-left px-3 py-2">Description</th>
+              <th className="text-center px-3 py-2 w-[140px]">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {drafts.map(d => (
+              <tr key={d.uid} className="border-b border-border last:border-0">
+                <td className="px-2 py-1.5">
+                  <Select
+                    value={d.target}
+                    onValueChange={v => updateDraft(d.uid, { target: v as "casino" | "player", player_id: "" })}
+                  >
+                    <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Target" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="casino">Casino</SelectItem>
+                      <SelectItem value="player">Player</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </td>
+                <td className="px-2 py-1.5">
+                  <Select
+                    value={d.player_id}
+                    onValueChange={v => updateDraft(d.uid, { player_id: v })}
+                    disabled={d.target !== "player"}
+                  >
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue placeholder={d.target === "player" ? "Player" : "—"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(players as any[]).filter(p => p.status === "active").map(p => (
+                        <SelectItem key={p.id} value={p.id}>{p.first_name} {p.last_name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </td>
+                <td className="px-2 py-1.5">
+                  <Select value={d.category} onValueChange={v => updateDraft(d.uid, { category: v })}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Category" /></SelectTrigger>
+                    <SelectContent>
+                      {CATS.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </td>
+                <td className="px-2 py-1.5">
+                  <NumberInput placeholder="0" value={d.amount} onChange={v => updateDraft(d.uid, { amount: v })} className="h-8 text-xs text-right" />
+                </td>
+                <td className="px-2 py-1.5">
+                  <Input placeholder="Description" value={d.description} onChange={e => updateDraft(d.uid, { description: e.target.value })} className="h-8 text-xs" />
+                </td>
+                <td className="px-2 py-1.5 text-center">
+                  <div className="inline-flex gap-1">
+                    <Button size="sm" className="h-8 px-3" onClick={() => submitDraft(d.uid)} disabled={create.isPending}>
+                      OK
+                    </Button>
+                    {drafts.length > 1 && (
+                      <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => removeDraft(d.uid)}>
+                        <X className="w-3.5 h-3.5" />
+                      </Button>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
-      {/* Expenses Table */}
+      {/* History */}
       <div className="cms-panel overflow-hidden">
         <table className="w-full">
           <thead>
-            <tr className="border-b border-border">
-              {["Category", "Description", "Target", "Amount", "Status", "Action"].map(h => (
-                <th key={h} className={`text-xs font-medium text-muted-foreground uppercase px-4 py-3 ${h === "Amount" ? "text-right" : h === "Status" || h === "Action" ? "text-center" : "text-left"}`}>{h}</th>
-              ))}
+            <tr className="border-b border-border text-[10px] uppercase tracking-wider text-muted-foreground">
+              <th className="text-left px-3 py-2">Time</th>
+              <th className="text-left px-3 py-2">Category</th>
+              <th className="text-left px-3 py-2">Target</th>
+              <th className="text-right px-3 py-2">Amount</th>
+              <th className="text-left px-3 py-2">Description</th>
+              <th className="text-center px-3 py-2">Status</th>
+              <th className="text-center px-3 py-2">Action</th>
             </tr>
           </thead>
           <tbody>
             {analytics.filtered.length === 0 ? (
-              <tr><td colSpan={6} className="text-center text-muted-foreground text-sm py-8">No expenses</td></tr>
-            ) : analytics.filtered.map(exp => (
+              <tr><td colSpan={7} className="text-center text-muted-foreground text-sm py-8">No expenses today</td></tr>
+            ) : analytics.filtered.map((exp: any) => (
               <tr key={exp.id} className="border-b border-border last:border-0">
-                <td className="px-4 py-2">
+                <td className="px-3 py-2 text-xs font-mono text-muted-foreground">
+                  {new Date(exp.created_at).toLocaleTimeString("en-GB", { timeZone: "Africa/Dar_es_Salaam", hour: "2-digit", minute: "2-digit" })}
+                </td>
+                <td className="px-3 py-2">
                   <span className={`text-[10px] font-mono uppercase px-1.5 py-0.5 rounded ${CAT_COLORS[exp.category] || CAT_COLORS.other}`}>{exp.category}</span>
                 </td>
-                <td className="px-4 py-2 text-sm text-card-foreground">{(exp as any).description || "—"}</td>
-                <td className="px-4 py-2 text-sm text-muted-foreground">{exp.players ? `${exp.players.first_name} ${exp.players.last_name}` : "Casino"}</td>
-                <td className="px-4 py-2 text-right font-mono text-sm text-card-foreground">{formatCurrency(Number(exp.amount))}</td>
-                <td className="px-4 py-2 text-center">
-                  {exp.approved ? <span className="cms-status-active text-xs"><CheckCircle className="w-3 h-3 inline mr-0.5" /> Approved</span> : <Badge variant="secondary" className="text-[10px]">Pending</Badge>}
+                <td className="px-3 py-2 text-sm text-muted-foreground">
+                  {exp.players ? `${exp.players.first_name} ${exp.players.last_name}` : "Casino"}
                 </td>
-                <td className="px-4 py-2 text-center">
+                <td className="px-3 py-2 text-right font-mono text-sm cms-amount-negative">
+                  {formatCurrency(Number(exp.amount))}
+                </td>
+                <td className="px-3 py-2 text-xs text-muted-foreground">{exp.description || "—"}</td>
+                <td className="px-3 py-2 text-center">
+                  {exp.approved ? (
+                    <span className="cms-status-active text-xs"><CheckCircle className="w-3 h-3 inline mr-0.5" /> Approved</span>
+                  ) : (
+                    <Badge variant="secondary" className="text-[10px]">Pending</Badge>
+                  )}
+                </td>
+                <td className="px-3 py-2 text-center">
                   {!exp.approved && isManager && (
-                    <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => handleApprove(exp.id)}>Approve</Button>
+                    <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => setPendingApproveId(exp.id)}>Approve</Button>
                   )}
                 </td>
               </tr>
@@ -133,76 +262,21 @@ const Expenses = () => {
         </table>
       </div>
 
-      <AddExpenseDialog open={showAdd} onClose={() => setShowAdd(false)} players={players} shiftId={shift?.id || null} />
-
       <ManagerOverrideDialog
-        open={!!pendingOverride}
-        onClose={() => setPendingOverride(null)}
-        onConfirm={(managerId) => {
-          if (pendingOverride) {
-            approve.mutate(pendingOverride);
-            setPendingOverride(null);
+        open={!!pendingApproveId}
+        onClose={() => setPendingApproveId(null)}
+        onConfirm={() => {
+          if (pendingApproveId) {
+            approve.mutate(pendingApproveId);
+            setPendingApproveId(null);
           }
         }}
         title="Approve Expense"
         description="Manager authentication required to approve this expense."
         actionType="APPROVE_EXPENSE"
-        actionDetails={{ expense_id: pendingOverride }}
+        actionDetails={{ expense_id: pendingApproveId }}
       />
     </div>
-  );
-};
-
-const AddExpenseDialog = ({ open, onClose, players, shiftId }: { open: boolean; onClose: () => void; players: any[]; shiftId: string | null }) => {
-  const create = useCreateExpense();
-  const [form, setForm] = useState({ target: "" as "casino" | "player" | "", category: "", amount: "", description: "", player_id: "" });
-
-  const handleSubmit = () => {
-    if (!form.category || !form.amount || !form.target) return;
-    const amt = Number(form.amount);
-    if (amt <= 0) { toast.error("Amount must be greater than zero"); return; }
-    if (!shiftId) { toast.error("Cannot create expense without an active shift"); return; }
-    if (form.target === "player" && !form.player_id) { toast.error("Select a player"); return; }
-    create.mutate({ category: form.category, amount: amt, description: form.description, player_id: form.target === "player" ? form.player_id : null, shift_id: shiftId },
-      { onSuccess: () => { setForm({ target: "", category: "", amount: "", description: "", player_id: "" }); onClose(); } });
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent>
-        <DialogHeader><DialogTitle>Add Expense</DialogTitle></DialogHeader>
-        <p className="text-xs text-muted-foreground">Cannot be edited or deleted after creation.</p>
-        <div className="space-y-3">
-          {/* Target: Casino or Player */}
-          <Select value={form.target} onValueChange={v => setForm(f => ({ ...f, target: v as "casino" | "player", player_id: "" }))}>
-            <SelectTrigger><SelectValue placeholder="Target" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="casino">Casino</SelectItem>
-              <SelectItem value="player">Player</SelectItem>
-            </SelectContent>
-          </Select>
-
-          {/* Player selector — only when target is "player" */}
-          {form.target === "player" && (
-            <Select value={form.player_id} onValueChange={v => setForm(f => ({ ...f, player_id: v }))}>
-              <SelectTrigger><SelectValue placeholder="Select player" /></SelectTrigger>
-              <SelectContent>{players.filter((p: any) => p.status === "active").map((p: any) => <SelectItem key={p.id} value={p.id}>{p.first_name} {p.last_name}</SelectItem>)}</SelectContent>
-            </Select>
-          )}
-
-          <Select value={form.category} onValueChange={v => setForm(f => ({ ...f, category: v }))}>
-            <SelectTrigger><SelectValue placeholder="Category" /></SelectTrigger>
-            <SelectContent>{CATS.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}</SelectContent>
-          </Select>
-          <NumberInput placeholder="Amount (TZS)" value={form.amount} onChange={v => setForm(f => ({ ...f, amount: v }))} />
-          <Input placeholder="Description" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={handleSubmit} disabled={!form.target || !form.category || !form.amount || create.isPending}>Record</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
   );
 };
 
