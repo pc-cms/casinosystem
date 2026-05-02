@@ -25,7 +25,7 @@ import ChipColorSettings from "@/components/admin/ChipColorSettings";
 import { BrandingSettings } from "@/components/admin/BrandingSettings";
 import { ChipConservationModeCard } from "@/components/admin/ChipConservationModeCard";
 import { ChipEmissionDialog } from "@/components/chips/ChipEmissionDialog";
-import { useCasinoInfo, useUpdateCasinoSchedule } from "@/hooks/use-table-lifecycle";
+import { useCasinoInfo, useUpdateCasinoSchedule, useCancelPendingSchedule } from "@/hooks/use-table-lifecycle";
 
 const ROLES = ["manager", "cashier", "pit", "reception", "finance_manager", "surveillance", "hr"] as const;
 const ALL_ROLES = ["super_admin", ...ROLES] as const;
@@ -850,6 +850,7 @@ const UsersAndRoles = () => {
 const ScheduleSettings = () => {
   const { data: casino } = useCasinoInfo();
   const updateSchedule = useUpdateCasinoSchedule();
+  const cancelPending = useCancelPendingSchedule();
 
   const [tablesOpen, setTablesOpen] = useState("");
   const [shiftStart, setShiftStart] = useState("");
@@ -874,14 +875,42 @@ const ScheduleSettings = () => {
       shift_end: shiftEnd,
       breaklist_lock: breaklistLock,
       cage_float: Number(cageFloat) || 0,
+      current_shift_end: casino?.shift_end,
+      current_breaklist_lock: casino?.breaklist_lock,
     });
   };
 
-  const fields = [
+  const formatPendingDate = (d?: string | null) => {
+    if (!d) return "";
+    const [y, m, day] = d.split("-");
+    return `${day}.${m}.${y}`;
+  };
+
+  type FieldDef = {
+    label: string;
+    value: string;
+    set: (v: string) => void;
+    hint: string;
+    pending?: { value?: string | null; from?: string | null; field: "shift_end" | "breaklist_lock" };
+  };
+
+  const fields: FieldDef[] = [
     { label: "Tables Open (Cage/Pit)", value: tablesOpen, set: setTablesOpen, hint: "When cashiers/pit can open tables" },
     { label: "Shift Start (Dealers)", value: shiftStart, set: setShiftStart, hint: "When dealer breaklist starts" },
-    { label: "Shift End", value: shiftEnd, set: setShiftEnd, hint: "When shift operations end" },
-    { label: "Breaklist Lock", value: breaklistLock, set: setBreaklistLock, hint: "After this time breaklist requires manager override" },
+    {
+      label: "Shift End",
+      value: shiftEnd,
+      set: setShiftEnd,
+      hint: "Applied from next business day. Active value: " + (casino?.shift_end || "—"),
+      pending: { value: casino?.shift_end_pending, from: casino?.shift_end_pending_from, field: "shift_end" },
+    },
+    {
+      label: "Breaklist Lock",
+      value: breaklistLock,
+      set: setBreaklistLock,
+      hint: "Applied from next business day. Active value: " + (casino?.breaklist_lock || "—"),
+      pending: { value: casino?.breaklist_lock_pending, from: casino?.breaklist_lock_pending_from, field: "breaklist_lock" },
+    },
   ];
 
   return (
@@ -889,11 +918,30 @@ const ScheduleSettings = () => {
       <h3 className="text-sm font-semibold text-card-foreground mb-4">Casino Settings</h3>
       <div className="space-y-4">
         <p className="text-[10px] uppercase text-muted-foreground tracking-wider font-medium">Working Hours</p>
+        <div className="rounded-md border border-warning/30 bg-warning/10 px-3 py-2 text-[11px] text-warning-foreground">
+          Shift End and Breaklist Lock changes apply from the <strong>next business day</strong> at 18:00. The current shift continues with old values.
+        </div>
         {fields.map(f => (
           <div key={f.label}>
             <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1 block">{f.label}</label>
             <Input type="time" value={f.value} onChange={e => f.set(e.target.value)} className="w-32 font-mono" />
             <p className="text-[10px] text-muted-foreground mt-0.5">{f.hint}</p>
+            {f.pending?.value && (
+              <div className="mt-1.5 flex items-center gap-2 rounded-md border border-primary/30 bg-primary/5 px-2 py-1 text-[11px]">
+                <Clock className="w-3 h-3 text-primary" />
+                <span className="font-mono">Pending: {f.pending.value}</span>
+                <span className="text-muted-foreground">from {formatPendingDate(f.pending.from)}</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 px-2 text-[10px] ml-auto"
+                  onClick={() => cancelPending.mutate(f.pending!.field)}
+                  disabled={cancelPending.isPending}
+                >
+                  Cancel
+                </Button>
+              </div>
+            )}
           </div>
         ))}
         <div className="border-t border-border pt-4 mt-4">
