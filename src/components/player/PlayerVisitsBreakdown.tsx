@@ -170,8 +170,9 @@ export default function PlayerVisitsBreakdown({ visits, transactions, expenses, 
             {showFinancials && <>
               <th className="text-right py-2 px-2">Drop</th>
               <th className="text-right py-2 px-2">Cashout</th>
-              <th className="text-right py-2 px-2">Comps</th>
               <th className="text-right py-2 px-2">Result</th>
+              <th className="text-right py-2 px-2">Comps</th>
+              <th className="text-right py-2 px-2">Total</th>
             </>}
           </tr>
         </thead>
