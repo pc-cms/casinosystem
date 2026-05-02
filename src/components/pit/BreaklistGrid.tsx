@@ -60,11 +60,12 @@ const isInWorkingHours = (slot: string) => {
 };
 
 // Map a stored role to the per-table exclusivity slot.
+// Three independent slots per table: Dealer (D), Inspector (I, ends with 'i'), Chipper (C, ends with 'c').
 const roleSlot = (r: string): "D" | "I" | "C" | null => {
-  if (r === "P" || r === "BJ" || r === "AR") return "D";
-  if (r === "Pi" || r === "BJi" || r === "ARi") return "I";
-  if (r === "ARc") return "C";
-  return null;
+  if (!r || r === "BR" || r === "S") return null;
+  if (/c$/i.test(r)) return "C";
+  if (/i$/.test(r)) return "I";
+  return "D";
 };
 
 const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }: BreaklistGridProps) => {
