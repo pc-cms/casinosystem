@@ -160,7 +160,7 @@ const PlayerProfile = () => {
     };
   }, [visits, economy]);
 
-  // Period summary (uses range-filtered tx + expenses + visits).
+  // Period summary (uses range-filtered tx + expenses + visits). Player perspective.
   const period = useMemo(() => {
     let pIn = 0, pOut = 0;
     for (const t of txInRange as any[]) {
@@ -170,8 +170,9 @@ const PlayerProfile = () => {
     }
     const pComps = expensesInRange.reduce((s, e: any) => s + (Number(e.amount) || 0), 0);
     const pMins = visitsInRange.reduce((s, v) => s + visitDuration(v), 0);
-    const result = pIn - pOut - pComps;
-    return { pIn, pOut, pComps, pMins, result, hold: holdPct(pIn, pOut, pComps), visits: visitsInRange.length };
+    const result = pOut - pIn;
+    const total = result - pComps;
+    return { pIn, pOut, pComps, pMins, result, total, hold: holdPct(pIn, pOut, pComps), visits: visitsInRange.length };
   }, [txInRange, expensesInRange, visitsInRange]);
 
   // Per-table aggregates (Position / Sessions / Hands / Avg bet / Duration / IN / OUT / Theo / Result / Hold).
