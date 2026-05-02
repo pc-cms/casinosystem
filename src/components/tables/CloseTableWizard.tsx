@@ -52,6 +52,7 @@ export const CloseTableWizard = ({ open, onClose, tables, date }: Props) => {
 
   const { data: baseline = [] } = useChipBaseline();
   const { data: snapshots = [] } = useChipSnapshots(date);
+  const { data: chipColorOverrides } = useChipColors();
   const baselineMap = useMemo(() => baselineToMap(baseline), [baseline]);
   const setSingleResult = useSetSingleTableResult();
   const reopenSingle = useReopenSingleTable();
