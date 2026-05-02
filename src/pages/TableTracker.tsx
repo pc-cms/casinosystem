@@ -214,7 +214,7 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
                             }}
                             onBlur={(e) => handleSave(table.id, slot, e.target.value)}
                             onKeyDown={(e) => handleKeyDown(e, ti, si)}
-                            className={`w-full h-9 text-center text-base font-mono tabular-nums bg-transparent border border-border rounded-md px-1 focus:border-primary focus:outline-none text-card-foreground ${
+                            className={`w-full h-9 text-center text-sm font-mono tabular-nums whitespace-nowrap bg-transparent border border-border rounded-md px-1 focus:border-primary focus:outline-none text-card-foreground ${
                               isActive ? "border-primary/30" : ""
                             } ${readOnly ? "cursor-not-allowed opacity-70" : ""}`}
                             placeholder="·"
