@@ -8,7 +8,8 @@ import { useChipBaseline, useUpsertBaseline, useCasinoInfo, useLockFloat } from 
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CHIP_DENOMS, CHIP_COLORS, formatChipLabel, formatCurrency } from "@/lib/currency";
+import { CHIP_DENOMS, formatChipLabel, formatCurrency } from "@/lib/currency";
+import { useChipColors, resolveChipColor } from "@/hooks/use-chip-colors";
 import { Lock, Save, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
