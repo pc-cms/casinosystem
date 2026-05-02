@@ -245,13 +245,15 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
                       return (
                         <td key={d} className={`${t.rowPadX} ${t.rowPadY}`}>
                           <input
-                            type="number" min="0"
+                            type="number" min="0" max="999" maxLength={3}
                             value={locCounts[d] ?? ""}
                             onChange={e => {
-                              const val = e.target.value === "" ? 0 : parseInt(e.target.value, 10);
-                              setCounts(c => ({ ...c, [loc.key]: { ...(c[loc.key] || {}), [d]: isNaN(val) ? 0 : val } }));
+                              let val = e.target.value === "" ? 0 : parseInt(e.target.value, 10);
+                              if (isNaN(val)) val = 0;
+                              if (val > 999) val = 999;
+                              setCounts(c => ({ ...c, [loc.key]: { ...(c[loc.key] || {}), [d]: val } }));
                             }}
-                            className={`w-full ${t.inputH} ${t.inputText} rounded font-mono text-center border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary text-card-foreground`}
+                            className={`no-spin w-full ${t.inputH} ${t.inputText} rounded font-mono text-center border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary text-card-foreground`}
                             placeholder={String(bsl)}
                           />
                         </td>
