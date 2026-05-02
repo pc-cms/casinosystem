@@ -160,7 +160,7 @@ const PlayerStatistics = () => {
     left: rows.filter((r: any) => !r.isPresent).length,
   }), [rows]);
 
-  const { user } = useAuth();
+  // (user already destructured from useAuth above)
 
   // Position change: handles "hall", "slots", or specific table id (UUID).
   // Picking a table creates a new client_sessions row with min avg bet (10000 poker/BJ, 2000 roulette).
