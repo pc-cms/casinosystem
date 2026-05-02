@@ -111,7 +111,22 @@ const OpenShiftScreen = ({ tables }: { tables: Tables<"gaming_tables">[] }) => {
       {step === 1 && (
         <div className="space-y-2">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
-            <LockableSection title="Chips from Closing" locked={locks.closingChips} onToggleLock={() => toggleLock("closingChips")}>
+            <LockableSection
+              title="Chips from Closing"
+              locked={locks.closingChips}
+              onToggleLock={() => toggleLock("closingChips")}
+              headerActions={
+                !managerOverride.active ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowManagerAccess(true)}
+                    className="inline-flex items-center gap-0.5 text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                  >
+                    <Pencil className="w-2.5 h-2.5" /> Edit
+                  </button>
+                ) : null
+              }
+            >
               <div className={!managerOverride.active ? "opacity-50 pointer-events-none" : ""}>
                 <ChipDenomInput values={closingChips} onChange={setClosingChips} showValue={false} />
               </div>
@@ -242,6 +257,19 @@ const OpenShiftScreen = ({ tables }: { tables: Tables<"gaming_tables">[] }) => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ManagerOverrideDialog
+        open={showManagerAccess}
+        onClose={() => setShowManagerAccess(false)}
+        onConfirm={(managerId) => {
+          activateManagerOverride(managerId, "Manager");
+          setShowManagerAccess(false);
+        }}
+        title="Edit Opening Chips"
+        description="Manager access required to edit chips from closing during shift opening. Only chips are unlocked."
+        actionType="OPEN_SHIFT_CHIPS_EDIT_UNLOCKED"
+        actionDetails={{ activated_by: displayName }}
+      />
     </PageShell>
   );
 };
