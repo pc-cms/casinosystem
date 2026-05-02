@@ -1,12 +1,15 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { BarChart3, Search } from "lucide-react";
+import { BarChart3, Search, ArrowLeftRight } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { usePlayers, useTransactions, useGamingTables } from "@/hooks/use-casino-data";
+import { useChipTransfers } from "@/hooks/use-chip-transfers";
 import { getBusinessDate, businessDayHourUTC } from "@/lib/business-day";
 import { canSeePlayerFinancials } from "@/lib/role-access";
+import { Button } from "@/components/ui/button";
+import ChipTransferDialog from "@/components/player/ChipTransferDialog";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -39,14 +42,17 @@ const PlayerStatistics = () => {
   const { data: players = [] } = usePlayers();
   const { data: tables = [] } = useGamingTables();
   const { data: transactions = [] } = useTransactions(today);
+  const { data: chipTransfers = [] } = useChipTransfers(today);
 
   const [tab, setTab] = useState<TabKey>("day");
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<Set<PlayerCategory>>(
     new Set(["diamond", "platinum", "gold", "normal"])
   );
+  const [transferPlayer, setTransferPlayer] = useState<{ id: string; first_name: string; last_name: string; nickname?: string | null } | null>(null);
 
   const showFinancials = canSeePlayerFinancials(roles);
+  const canTransfer = roles.some(r => ["pit", "manager", "super_admin"].includes(r));
 
   const { data: visits = [] } = useQuery({
     queryKey: ["casino_visits", casinoId, today],
@@ -92,6 +98,18 @@ const PlayerStatistics = () => {
     return m;
   }, [sessions]);
 
+  // Sum chip transfers per player for today
+  const chipByPlayer = useMemo(() => {
+    const m = new Map<string, { in: number; out: number }>();
+    for (const ct of chipTransfers as any[]) {
+      let cur = m.get(ct.player_id);
+      if (!cur) { cur = { in: 0, out: 0 }; m.set(ct.player_id, cur); }
+      if (ct.direction === "in") cur.in += Number(ct.amount) || 0;
+      else cur.out += Number(ct.amount) || 0;
+    }
+    return m;
+  }, [chipTransfers]);
+
   // Build per-player day rows
   const rows = useMemo(() => {
     const playerById: Record<string, any> = {};
@@ -109,7 +127,9 @@ const PlayerStatistics = () => {
       const out = playerTx
         .filter((t: any) => t.type === "cashout" || t.type === "out")
         .reduce((s: number, t: any) => s + Number(t.amount), 0);
-      const result = out - inDrop;
+      const chip = chipByPlayer.get(v.player_id) || { in: 0, out: 0 };
+      // Result via NEP semantics: (cash in + chip in) − (cash out + chip out)
+      const result = (out + chip.out) - (inDrop + chip.in);
 
       const activeSession = activeSessionByPlayer[v.player_id];
       const isPresent = !v.checked_out_at;
@@ -130,11 +150,14 @@ const PlayerStatistics = () => {
         avgBet: activeSession ? Number(activeSession.avg_bet || 0) : 0,
         inDrop,
         out,
+        chipIn: chip.in,
+        chipOut: chip.out,
+        chipDelta: chip.in - chip.out,
         result,
         isPresent,
       };
     }).filter(Boolean) as Array<NonNullable<ReturnType<typeof Object>>>;
-  }, [visits, players, transactions, activeSessionByPlayer, tableNameById]);
+  }, [visits, players, transactions, chipByPlayer, activeSessionByPlayer, tableNameById]);
 
   const filtered = useMemo(() => {
     let list = rows;
