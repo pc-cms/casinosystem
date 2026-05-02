@@ -26,6 +26,7 @@ const FloatManagement = () => {
   const { data: tables = [] } = useGamingTables();
   const { data: baseline = [] } = useChipBaseline();
   const { data: casinoInfo } = useCasinoInfo();
+  const { data: chipColorOverrides } = useChipColors();
   const upsertBaseline = useUpsertBaseline();
   const lockFloat = useLockFloat();
   const { casinoId } = useAuth();
