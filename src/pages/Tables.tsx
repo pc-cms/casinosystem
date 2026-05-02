@@ -1,16 +1,15 @@
 import { useState, useMemo } from "react";
 import { useGamingTables, useTransactions, useTableTracker } from "@/hooks/use-casino-data";
 import { useActiveShift } from "@/hooks/use-shift";
-import { useChipSnapshots, useBatchChipSnapshot } from "@/hooks/use-chips";
+import { useChipSnapshots } from "@/hooks/use-chips";
 import { useChipBaseline, useOpenAllTables, baselineToMap } from "@/hooks/use-table-lifecycle";
 
 import { getBusinessDate } from "@/lib/business-day";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { X } from "lucide-react";
-import { CHIP_DENOMS, CHIP_COLORS, formatChipLabel, formatCurrency } from "@/lib/currency";
-import { Save, Coins, Play, Lock, LayoutGrid } from "lucide-react";
+import { formatCurrency } from "@/lib/currency";
+import { Play, Lock, LayoutGrid } from "lucide-react";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { CloseTableWizard } from "@/components/tables/CloseTableWizard";
