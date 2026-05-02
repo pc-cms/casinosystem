@@ -3,7 +3,9 @@ import { ChevronRight, ChevronDown, Calendar } from "lucide-react";
 import { fmtDate } from "@/lib/format-date";
 
 // Visits breakdown grouped Month → Week → Day.
-// Result column = drop − cashout − comps (negative = casino loss / player win).
+// Player perspective:
+//   Result = Cashout − Drop  (positive = player won)
+//   Total  = Result − Comps  (with comps/expenses)
 
 type Visit = {
   id: string;
