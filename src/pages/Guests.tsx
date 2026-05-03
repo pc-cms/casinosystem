@@ -1,10 +1,11 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
-import { UserCheck, Search, ArrowUp, ArrowDown, ArrowUpDown, LogOut, User, Eye, CheckCircle2 } from "lucide-react";
+import { UserCheck, Search, ArrowUp, ArrowDown, ArrowUpDown, LogOut, User, Eye, CheckCircle2, LogIn } from "lucide-react";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
+import { useDebouncedValue } from "@/hooks/use-debounce";
 import { useVisitsToday } from "@/hooks/use-casino-data";
 import { logAction } from "@/lib/logging";
 import { toast } from "sonner";
