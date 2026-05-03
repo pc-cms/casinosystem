@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AlertTriangle, Camera, User, FileImage, StickyNote, Send, Shield, ImagePlus } from "lucide-react";
+import { AlertTriangle, Camera, User, FileImage, StickyNote, Send, Shield, ImagePlus, Ban } from "lucide-react";
 import PhotoCapture from "@/components/PhotoCapture";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
@@ -19,6 +19,8 @@ import CategoryBadge, { ALL_CATEGORIES, type PlayerCategory } from "@/components
 import FlagBadges from "@/components/player/FlagBadges";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { FormGrid, FormField, FormSection } from "@/components/ui/form-grid";
+import { compressImage } from "@/lib/image-compress";
+import { BlacklistPlayerDialog } from "@/components/player/BlacklistPlayerDialog";
 
 interface PlayerEditDialogProps {
   player: {
@@ -67,6 +69,7 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
   const [newNote, setNewNote] = useState("");
   const [noteType, setNoteType] = useState<string>("info");
   const [addingNote, setAddingNote] = useState(false);
+  const [blacklistOpen, setBlacklistOpen] = useState(false);
 
   // Pit gets read-only view: can see Notes but cannot edit fields or add notes.
   // Reception/HR/etc. get the standard editable view (no Notes).
@@ -144,17 +147,21 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
     if (!player) return;
     setUploading(true);
     try {
-      const ext = file.name.split(".").pop();
-      const path = `players/${player.id}/photo.${ext}`;
-      const { error: upErr } = await supabase.storage.from("player-photos").upload(path, file, { upsert: true });
+      // Compress to keep upload small and consistent (jpeg)
+      const { thumbnail } = await compressImage(file);
+      const path = `${casinoId || "global"}/${player.id}/photo.jpg`;
+      const { error: upErr } = await supabase.storage
+        .from("player-photos")
+        .upload(path, thumbnail, { upsert: true, contentType: "image/jpeg", cacheControl: "0" });
       if (upErr) throw upErr;
       const { data: urlData } = supabase.storage.from("player-photos").getPublicUrl(path);
       const url = `${urlData.publicUrl}?t=${Date.now()}`;
       await supabase.from("players").update({ photo_url: url }).eq("id", player.id);
       setPhotoUrl(url);
+      queryClient.invalidateQueries({ queryKey: ["players"] });
       toast.success("Photo updated");
     } catch (err: any) {
-      toast.error(err.message);
+      toast.error(err?.message || "Photo upload failed");
     } finally {
       setUploading(false);
     }
@@ -416,45 +423,76 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
     </span>
   );
 
+  const isBlacklisted = (player as any)?.status === "blacklist";
+  const canBlacklist = isManager && !readOnly && !isBlacklisted && !!player;
+
   const footerContent = readOnly ? (
     <Button variant="outline" size="sm" onClick={() => onOpenChange(false)} className="flex-1 sm:flex-none h-10">Close</Button>
   ) : (
     <>
+      {canBlacklist && (
+        <Button
+          variant="destructive"
+          size="sm"
+          onClick={() => setBlacklistOpen(true)}
+          className="flex-1 sm:flex-none h-10 gap-1.5"
+        >
+          <Ban className="w-4 h-4" /> Blacklist
+        </Button>
+      )}
       <Button variant="outline" size="sm" onClick={() => onOpenChange(false)} className="flex-1 sm:flex-none h-10">Cancel</Button>
       <Button size="sm" onClick={handleSave} disabled={saving} className="flex-1 sm:flex-none h-10">{saving ? "Saving…" : "Save"}</Button>
     </>
   );
 
+  const blacklistDialog = player ? (
+    <BlacklistPlayerDialog
+      open={blacklistOpen}
+      onClose={() => {
+        setBlacklistOpen(false);
+        queryClient.invalidateQueries({ queryKey: ["players"] });
+      }}
+      playerId={player.id}
+      playerName={`${player.first_name} ${player.last_name}`}
+    />
+  ) : null;
+
   if (isMobile) {
     return (
-      <Drawer open={open} onOpenChange={onOpenChange}>
-        <DrawerContent className="max-h-[92vh]">
-          <DrawerHeader>
-            <DrawerTitle>{titleContent}</DrawerTitle>
-          </DrawerHeader>
-          <div className="overflow-y-auto flex-1 px-4 pb-2">
-            {formContent}
-          </div>
-          <DrawerFooter className="flex-row gap-2">
-            {footerContent}
-          </DrawerFooter>
-        </DrawerContent>
-      </Drawer>
+      <>
+        <Drawer open={open} onOpenChange={onOpenChange}>
+          <DrawerContent className="max-h-[92vh]">
+            <DrawerHeader>
+              <DrawerTitle>{titleContent}</DrawerTitle>
+            </DrawerHeader>
+            <div className="overflow-y-auto flex-1 px-4 pb-2">
+              {formContent}
+            </div>
+            <DrawerFooter className="flex-row gap-2 flex-wrap">
+              {footerContent}
+            </DrawerFooter>
+          </DrawerContent>
+        </Drawer>
+        {blacklistDialog}
+      </>
     );
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[92vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{titleContent}</DialogTitle>
-        </DialogHeader>
-        {formContent}
-        <DialogFooter>
-          {footerContent}
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-2xl max-h-[92vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{titleContent}</DialogTitle>
+          </DialogHeader>
+          {formContent}
+          <DialogFooter className="flex-wrap gap-2">
+            {footerContent}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {blacklistDialog}
+    </>
   );
 };
 
