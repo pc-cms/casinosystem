@@ -172,11 +172,15 @@ const Guests = () => {
     return <Badge variant="secondary" className="text-[10px]">Hall</Badge>;
   };
 
-  const renderRow = (r: any) => (
+  const renderRow = (r: any, idx: number) => (
     <tr
       key={r.id}
       className={`border-b border-border hover:bg-muted/30 transition-colors ${!r.isInside ? "opacity-70" : ""}`}
     >
+      {/* # */}
+      <td className="px-2 py-1.5 w-[36px] text-center font-mono text-[10px] text-muted-foreground">
+        {idx + 1}
+      </td>
       {/* Photo */}
       <td className="px-2 py-1.5 w-[42px]">
         <div className="w-8 h-8 rounded-full bg-muted overflow-hidden flex items-center justify-center shrink-0">
@@ -187,18 +191,18 @@ const Guests = () => {
           )}
         </div>
       </td>
+      {/* Level (category) */}
+      <td className="px-1 py-1.5 w-[44px]">
+        <CategoryBadge category={r.category} />
+      </td>
       {/* Player name */}
       <td className="px-2 py-1.5 max-w-[180px]">
         <p className="text-xs font-semibold text-card-foreground truncate">
           {r.firstName} {r.lastName}
         </p>
       </td>
-      {/* Level (category) */}
-      <td className="px-1 py-1.5 w-[44px]">
-        <CategoryBadge category={r.category} />
-      </td>
-      {/* Tags */}
-      <td className="px-2 py-1.5 max-w-[180px]">
+      {/* Tags - long field */}
+      <td className="px-2 py-1.5 min-w-[280px]">
         {r.tags.length > 0 ? <FlagBadges tags={r.tags} compact /> : <span className="text-muted-foreground text-[10px]">·</span>}
       </td>
       {/* Type */}
@@ -342,10 +346,11 @@ const Guests = () => {
               <table className="w-full text-xs">
                 <thead className="bg-muted/30 border-b border-border">
                   <tr className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                    <th className="px-2 py-2 w-[36px] text-center">#</th>
                     <th className="px-2 py-2 w-[42px]"></th>
-                    <H k="name">Player</H>
                     <th className="px-1 py-2 text-left w-[44px]">Lvl</th>
-                    <th className="px-2 py-2 text-left">Tags</th>
+                    <H k="name">Player</H>
+                    <th className="px-2 py-2 text-left min-w-[280px]">Tags</th>
                     <H k="type">Type</H>
                     <H k="position">Position</H>
                     <H k="entry" align="center">Entry</H>
@@ -356,12 +361,12 @@ const Guests = () => {
                 <tbody>
                   {filtered.length === 0 ? (
                     <tr>
-                      <td colSpan={9} className="px-2 py-8 text-center text-muted-foreground text-xs">
+                      <td colSpan={10} className="px-2 py-8 text-center text-muted-foreground text-xs">
                         No guests to display
                       </td>
                     </tr>
                   ) : (
-                    filtered.map(renderRow)
+                    filtered.map((r, i) => renderRow(r, i))
                   )}
                 </tbody>
               </table>
