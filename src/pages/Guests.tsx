@@ -356,7 +356,7 @@ const Guests = () => {
                 <tbody>
                   {filtered.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="px-2 py-8 text-center text-muted-foreground text-xs">
+                      <td colSpan={9} className="px-2 py-8 text-center text-muted-foreground text-xs">
                         No guests to display
                       </td>
                     </tr>
