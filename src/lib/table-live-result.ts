@@ -30,27 +30,11 @@ export type BaselineMap = Record<string, Record<number, number>>;
 const ts = (r: { created_at?: string | null; updated_at?: string | null }) =>
   r.updated_at || r.created_at || "";
 
-/**
- * Latest tracker snapshot value for a table.
- *
- * Each Table Tracker hourly cell is a SNAPSHOT of the table's current
- * result at that hour — not an increment. To get the live result we must
- * pick the most recent (by time_slot, fallback to created_at/updated_at)
- * non-null entry, NOT sum the cells.
- */
-export const trackerTotal = (trackerData: TrackerRow[], tableId: string) => {
-  const rows = trackerData.filter(t => t.table_id === tableId);
-  if (rows.length === 0) return 0;
-  const sorted = [...rows].sort((a, b) => {
-    const sa = (a as any).time_slot || "";
-    const sb = (b as any).time_slot || "";
-    if (sa !== sb) return sa < sb ? -1 : 1;
-    return ts(a).localeCompare(ts(b));
-  });
-  const last = sorted[sorted.length - 1];
-  return Number(last?.value || 0);
-};
-
+/** Sum of `value` over all tracker rows for a table. */
+export const trackerTotal = (trackerData: TrackerRow[], tableId: string) =>
+  trackerData
+    .filter(t => t.table_id === tableId)
+    .reduce((s, t) => s + Number(t.value || 0), 0);
 
 /** Most recent timestamp among tracker rows for a table (or "" if none). */
 export const latestTrackerTime = (trackerData: TrackerRow[], tableId: string) =>

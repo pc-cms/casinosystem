@@ -67,21 +67,11 @@ const Dashboard = () => {
   const baselineMap = useMemo(() => baselineToMap(baseline), [baseline]);
   const snapshotIndex = useMemo(() => buildLatestTableSnapshot(snapshots as any), [snapshots]);
 
-  // Per-table latest tracker snapshot (NOT cumulative — each cell is a
-  // point-in-time snapshot of the table's current result).
+  // Per-table tracker totals (raw drop indicator)
   const tableTrackerTotals = useMemo(() => {
-    const byTable: Record<string, { slot: string; ts: string; value: number }[]> = {};
-    trackerData.forEach((d: any) => {
-      (byTable[d.table_id] ||= []).push({
-        slot: d.time_slot || "",
-        ts: d.updated_at || d.created_at || "",
-        value: Number(d.value),
-      });
-    });
     const totals: Record<string, number> = {};
-    Object.entries(byTable).forEach(([tid, rows]) => {
-      rows.sort((a, b) => (a.slot !== b.slot ? a.slot.localeCompare(b.slot) : a.ts.localeCompare(b.ts)));
-      totals[tid] = rows[rows.length - 1]?.value || 0;
+    trackerData.forEach((d: any) => {
+      totals[d.table_id] = (totals[d.table_id] || 0) + Number(d.value);
     });
     return totals;
   }, [trackerData]);

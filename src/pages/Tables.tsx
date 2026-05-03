@@ -322,17 +322,9 @@ const Tables = () => {
         .reduce((s, tx) => s + Number(tx.amount), 0);
       const dropR = split ? split.dropR : fallbackBuy;
       const recycled = split ? split.recycled : 0;
-      // Tracker cells are point-in-time SNAPSHOTS, not increments.
-      // Pick the latest snapshot (by time_slot, then timestamp) instead of summing.
-      const trackerRows = trackerData
+      const trackerSum = trackerData
         .filter(tr => tr.table_id === t.id)
-        .slice()
-        .sort((a: any, b: any) => {
-          const sa = a.time_slot || ""; const sb = b.time_slot || "";
-          if (sa !== sb) return sa < sb ? -1 : 1;
-          return (a.updated_at || a.created_at || "").localeCompare(b.updated_at || b.created_at || "");
-        });
-      const trackerSum = trackerRows.length ? Number(trackerRows[trackerRows.length - 1].value || 0) : 0;
+        .reduce((s, tr) => s + Number(tr.value), 0);
       const dropV = trackerSum + recycled;
       const result = liveTableResult({
         tableId: t.id,
