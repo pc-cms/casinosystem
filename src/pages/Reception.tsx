@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import PlayerEditDialog from "@/components/PlayerEditDialog";
 import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
+import { BlacklistPlayerDialog } from "@/components/player/BlacklistPlayerDialog";
 import DuplicateCheckResult from "@/components/registration/DuplicateCheckResult";
 import {
   Search, UserPlus, LogIn, LogOut, ShieldAlert, Camera,
@@ -86,7 +87,7 @@ const Reception = () => {
 
 // ============ CHECK-IN TAB ============
 const CheckInTab = () => {
-  const { casinoId, user } = useAuth();
+  const { casinoId, user, isManager } = useAuth();
   const { data: players = [] } = usePlayers();
   const { data: visits = [] } = useVisitsToday("*, players(first_name, last_name, nickname, photo_url, status, id_number, category, player_type)") as { data: any[] };
   const queryClient = useQueryClient();
@@ -95,6 +96,7 @@ const CheckInTab = () => {
   const [selectedPlayer, setSelectedPlayer] = useState<any | null>(null);
   const [incompleteWarning, setIncompleteWarning] = useState<string[] | null>(null);
   const [profilePlayer, setProfilePlayer] = useState<any>(null);
+  const [blacklistTarget, setBlacklistTarget] = useState<any | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const today = getBusinessDate();
 
@@ -246,6 +248,18 @@ const CheckInTab = () => {
                   ) : isIn ? (
                     <Badge className="bg-primary/15 text-primary border-primary/30 text-[10px] shrink-0">IN</Badge>
                   ) : null}
+                  {isManager && !isBlacklisted && (
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      onClick={(e) => { e.stopPropagation(); setBlacklistTarget(p); }}
+                      onKeyDown={(e) => { if (e.key === "Enter") { e.stopPropagation(); setBlacklistTarget(p); } }}
+                      className="inline-flex items-center justify-center h-7 w-7 rounded-md text-destructive hover:bg-destructive/10 cursor-pointer"
+                      title="Add to Blacklist"
+                    >
+                      <Ban className="w-3.5 h-3.5" />
+                    </span>
+                  )}
                 </div>
               </button>
             );
@@ -290,6 +304,18 @@ const CheckInTab = () => {
         open={!!profilePlayer}
         onOpenChange={(v) => { if (!v) setProfilePlayer(null); }}
       />
+
+      {blacklistTarget && (
+        <BlacklistPlayerDialog
+          open={!!blacklistTarget}
+          onClose={() => {
+            setBlacklistTarget(null);
+            queryClient.invalidateQueries({ queryKey: ["players"] });
+          }}
+          playerId={blacklistTarget.id}
+          playerName={`${blacklistTarget.first_name} ${blacklistTarget.last_name}`}
+        />
+      )}
     </div>
   );
 };
