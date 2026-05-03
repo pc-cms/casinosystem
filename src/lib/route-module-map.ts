@@ -28,7 +28,7 @@ export const moduleKeyForRoute = (to: string, label?: string): ModuleKey | null 
   if (base === "/players") return "players";
   if (base === "/blacklist") return "blacklist";
   if (base === "/reception") return "reception";
-  if (base === "/in-casino") return "in_casino";
+  if (base === "/guests" || base === "/in-casino") return "in_casino";
   if (base === "/bank-checks") return "bank_checks";
   if (base === "/finance/budget") return "finance_budget";
   if (base === "/finance/cash-count") return "finance_cash_count";
