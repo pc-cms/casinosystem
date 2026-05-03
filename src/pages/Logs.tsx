@@ -17,23 +17,31 @@ const CATEGORY_STYLES: Record<string, string> = {
 
 const Logs = () => {
   const { data: logs = [], isLoading } = useActivityLogs(500);
+  const { data: lookups = {} } = useLogLookups();
   const [search, setSearch] = useState("");
   const [catFilter, setCatFilter] = useState("all");
 
+  const enriched = useMemo(() => logs.map(l => ({
+    ...l,
+    _label: actionLabel(l.action),
+    _pretty: formatLogDetails(l.action, l.details, lookups),
+    _operator: lookups.users?.[l.operator_id] || `${l.operator_id.slice(0, 8)}…`,
+  })), [logs, lookups]);
+
   const filtered = useMemo(() => {
-    let result = logs;
-    if (catFilter !== "all") {
-      result = result.filter(l => l.category === catFilter);
-    }
+    let result = enriched;
+    if (catFilter !== "all") result = result.filter(l => l.category === catFilter);
     if (search) {
       const q = search.toLowerCase();
-      result = result.filter(l => {
-        const details = typeof l.details === "object" ? JSON.stringify(l.details) : String(l.details);
-        return l.action.toLowerCase().includes(q) || details.toLowerCase().includes(q) || l.operator_id.includes(q);
-      });
+      result = result.filter(l =>
+        l._label.toLowerCase().includes(q) ||
+        l._pretty.toLowerCase().includes(q) ||
+        l._operator.toLowerCase().includes(q) ||
+        l.action.toLowerCase().includes(q)
+      );
     }
     return result;
-  }, [logs, search, catFilter]);
+  }, [enriched, search, catFilter]);
 
   const categories = useMemo(() => {
     const cats = new Set(logs.map(l => l.category));
