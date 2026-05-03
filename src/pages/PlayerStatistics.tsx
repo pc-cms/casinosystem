@@ -177,12 +177,34 @@ const PlayerStatistics = () => {
         `${r.firstName} ${r.lastName} ${r.nickname ?? ""}`.toLowerCase().includes(q)
       );
     }
-    // Sort: present first (active), most recent entry first
+    // Default sort: present first, recent entry first. Override when user clicked a column.
     return [...list].sort((a: any, b: any) => {
+      if (sortKey) {
+        const dir = sortDir === "asc" ? 1 : -1;
+        const get = (r: any) => {
+          switch (sortKey) {
+            case "name": return `${r.firstName} ${r.lastName}`.toLowerCase();
+            case "position": return r.position === "table" ? (r.tableName ?? "zzz") : r.position;
+            case "entry": return new Date(r.entryAt).getTime();
+            case "exit": return r.exitAt ? new Date(r.exitAt).getTime() : 0;
+            case "avgBet": return r.avgBet;
+            case "inDrop": return r.inDrop;
+            case "out": return r.out;
+            case "chipIn": return r.chipIn;
+            case "chipOut": return r.chipOut;
+            case "chipDelta": return r.chipDelta;
+            case "result": return r.result;
+          }
+        };
+        const av = get(a), bv = get(b);
+        if (av < bv) return -1 * dir;
+        if (av > bv) return 1 * dir;
+        return 0;
+      }
       if (a.isPresent !== b.isPresent) return a.isPresent ? -1 : 1;
       return new Date(b.entryAt).getTime() - new Date(a.entryAt).getTime();
     });
-  }, [rows, tab, categoryFilter, search]);
+  }, [rows, tab, categoryFilter, search, sortKey, sortDir]);
 
   const counts = useMemo(() => ({
     day: rows.length,
