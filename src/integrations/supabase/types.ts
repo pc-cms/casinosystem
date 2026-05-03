@@ -562,6 +562,44 @@ export type Database = {
           },
         ]
       }
+      business_day_closures: {
+        Row: {
+          business_date: string
+          casino_id: string
+          closed_at: string
+          closed_by: string | null
+          closed_method: string
+          id: string
+          snapshot: Json
+        }
+        Insert: {
+          business_date: string
+          casino_id: string
+          closed_at?: string
+          closed_by?: string | null
+          closed_method: string
+          id?: string
+          snapshot?: Json
+        }
+        Update: {
+          business_date?: string
+          casino_id?: string
+          closed_at?: string
+          closed_by?: string | null
+          closed_method?: string
+          id?: string
+          snapshot?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_day_closures_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cage_transfers: {
         Row: {
           amount: number
@@ -3251,7 +3289,12 @@ export type Database = {
       }
       activity_logs_purge: { Args: { p_days?: number }; Returns: number }
       auto_close_business_day: { Args: never; Returns: Json }
+      auto_close_forgotten_business_days: { Args: never; Returns: undefined }
       cleanup_old_data: { Args: never; Returns: Json }
+      close_business_day: {
+        Args: { _casino_id: string; _method?: string }
+        Returns: Json
+      }
       compute_player_drop_split: {
         Args: { _from?: string; _player_id: string; _to?: string }
         Returns: {
@@ -3293,6 +3336,10 @@ export type Database = {
       }
       generate_card_number: { Args: never; Returns: string }
       get_business_date_for_casino: {
+        Args: { _casino_id: string }
+        Returns: string
+      }
+      get_current_business_date: {
         Args: { _casino_id: string }
         Returns: string
       }
