@@ -443,6 +443,22 @@ const PlayerStatistics = () => {
           </TabsList>
 
           <div className="flex items-center gap-2">
+            <div className="flex items-center rounded-md border border-border overflow-hidden h-8">
+              {(["mix", "table", "slots"] as const).map(p => (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => setPosFilter(p)}
+                  className={`px-2.5 h-full text-[11px] uppercase tracking-wide transition-colors ${
+                    posFilter === p
+                      ? "bg-primary/15 text-primary font-semibold"
+                      : "text-muted-foreground hover:bg-muted/40"
+                  }`}
+                >
+                  {p === "mix" ? "Mix" : p === "table" ? "Table" : "Slot"}
+                </button>
+              ))}
+            </div>
             <CategoryFilter selected={categoryFilter} onChange={setCategoryFilter} />
             <div className="relative w-56">
               <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
