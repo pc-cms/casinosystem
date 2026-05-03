@@ -198,26 +198,32 @@ const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }
           table_id: null,
         });
       });
-      // Compute hours worked BEFORE this Sick click:
-      // from the earliest occupied (non-S) slot of this dealer up to the click slot,
-      // rounded UP to whole hours. Each slot = 20 minutes.
-      const dealerActive = breaklist
-        .filter((b: any) => b.dealer_id === activeCell.dealerId && b.role !== "S")
-        .map((b: any) => TIME_SLOTS.indexOf(b.time_slot as string))
-        .filter((i: number) => i >= 0);
-      let hoursWorked = 0;
-      if (dealerActive.length > 0) {
-        const firstIdx = Math.min(...dealerActive);
-        const slotsWorked = startIdx - firstIdx; // slots between first activity and click (exclusive of click)
-        if (slotsWorked > 0) {
-          hoursWorked = Math.ceil((slotsWorked * 20) / 60);
-        }
+      // Hours worked BEFORE this Sick click = from the START OF SHIFT to the
+      // click slot, rounded UP to whole hours. Each slot = 20 minutes.
+      //   M (Morning/Mid) — shift starts at 18:00 (first slot, index 0).
+      //   N (Night)        — shift starts at 00:00.
+      //   E (Extra)        — falls back to the dealer's first occupied slot.
+      const dealerShift = rotaDealers.find(rd => rd.dealerId === activeCell.dealerId)?.shift;
+      let shiftStartIdx = 0; // default = 18:00 (first slot)
+      if (dealerShift === "N") {
+        const nIdx = TIME_SLOTS.indexOf("00:00");
+        shiftStartIdx = nIdx >= 0 ? nIdx : 0;
+      } else if (dealerShift === "E") {
+        const occupiedIdx = breaklist
+          .filter((b: any) => b.dealer_id === activeCell.dealerId && b.role !== "S")
+          .map((b: any) => TIME_SLOTS.indexOf(b.time_slot as string))
+          .filter((i: number) => i >= 0);
+        shiftStartIdx = occupiedIdx.length > 0 ? Math.min(...occupiedIdx) : 0;
       }
+      let hoursWorked = 0;
+      const slotsWorked = startIdx - shiftStartIdx;
+      if (slotsWorked > 0) hoursWorked = Math.ceil((slotsWorked * 20) / 60);
       // Store as "{H}S" to encode "worked H hours, then went sick".
       // If 0 hours, store plain "S".
       const attValue = hoursWorked > 0 ? `${hoursWorked}S` : "S";
       setAttendance.mutate({ dealer_id: activeCell.dealerId, date, value: attValue });
-      toast.success(`Marked Sick: ${hoursWorked}h worked, ${slotsToFill.length} slots ahead`);
+      toast.success(`Marked Sick: ${hoursWorked}h worked (shift ${dealerShift || "?"}), ${slotsToFill.length} slots ahead`);
+
       setActiveCell(null);
       return;
     }

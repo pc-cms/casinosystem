@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useRef, Suspense } from "react";
+import React, { useState, useMemo, useCallback, useRef, useEffect, Suspense } from "react";
 import { CardSkeleton, TableSkeleton } from "@/components/LoadingSkeletons";
 import { useSearchParams } from "react-router-dom";
 import { useDealers, useCreateDealer, useUpdateDealer, useDeleteDealer, usePitRotaRange, useSetPitRota, useDeletePitRota, useSetDealerAttendance, useDealerAttendanceRange } from "@/hooks/use-casino-data";
@@ -827,6 +827,49 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
     const num = Number(trimmed);
     if (!isNaN(num) && num >= 0 && num <= 24) { setAttendance.mutate({ dealer_id: dealerId, date: dateStr, value: String(num) }); }
   };
+
+  // Auto-fill: for past business days (and today if EAT >= 11:00), any dealer
+  // scheduled M / N / E in pit_rota with an empty attendance cell gets 9 hours.
+  // Cells that already have any value (S, A, "{n}S", number) are skipped.
+  const autoFilledRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (readOnly) return;
+    if (!dealers.length) return;
+
+    const eatNow = new Date(
+      `${new Date().toLocaleDateString("en-CA", { timeZone: "Africa/Dar_es_Salaam" })}T${new Date().toLocaleTimeString("en-GB", { timeZone: "Africa/Dar_es_Salaam", hour12: false })}`
+    );
+    const eatY = eatNow.getFullYear();
+    const eatM = eatNow.getMonth() + 1;
+    const eatD = eatNow.getDate();
+    const eatHour = eatNow.getHours();
+
+    const monthIsPast = (y < eatY) || (y === eatY && m < eatM);
+    const monthIsCurrent = y === eatY && m === eatM;
+    if (!monthIsPast && !monthIsCurrent) return;
+
+    let cutoffDay = daysInMonth;
+    if (monthIsCurrent) cutoffDay = eatHour >= 11 ? eatD : eatD - 1;
+    if (cutoffDay < 1) return;
+
+    for (const d of activeDealers) {
+      for (let day = 1; day <= cutoffDay; day++) {
+        const dateStr = `${month}-${String(day).padStart(2, "0")}`;
+        const key = `${d.id}|${dateStr}`;
+        if (autoFilledRef.current.has(key)) continue;
+
+        const rotaShift = getRotaShift(d.id, day);
+        if (rotaShift !== "M" && rotaShift !== "N" && rotaShift !== "E") continue;
+
+        const current = getValue(d.id, day);
+        if (current !== "") continue;
+
+        autoFilledRef.current.add(key);
+        setAttendanceRaw.mutate({ dealer_id: d.id, date: dateStr, value: "9" });
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dealers, monthAttendance, rota, month, readOnly]);
 
   const getDealerTotals = (dealerId: string) => {
     let shifts = 0;
