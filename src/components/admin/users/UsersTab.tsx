@@ -15,10 +15,20 @@ import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Pencil, SlidersHorizontal, Shield } from "lucide-react";
+import { Plus, Search, Pencil, SlidersHorizontal, Shield, Trash2 } from "lucide-react";
 import { UserEditorDialog, type UserEditorTarget } from "./UserEditorDialog";
 import { UserPermissionsDialog } from "@/components/admin/UserPermissionsDialog";
-import { ROLE_LABELS, useUsersProfiles, useUsersRoles, useAllCasinos } from "./users-hooks";
+import { ROLE_LABELS, useUsersProfiles, useUsersRoles, useAllCasinos, useDisableUser } from "./users-hooks";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export const UsersTab = () => {
   const { user, roles: callerRoles } = useAuth();
@@ -30,11 +40,13 @@ export const UsersTab = () => {
   const userIds = useMemo(() => profiles.map(p => p.user_id), [profiles]);
   const { data: rolesByUser = {} } = useUsersRoles(userIds);
   const { data: casinos = [] } = useAllCasinos();
+  const disableUser = useDisableUser();
 
   const [search, setSearch] = useState("");
   const [editorTarget, setEditorTarget] = useState<UserEditorTarget | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
   const [permsTarget, setPermsTarget] = useState<{ id: string; name: string } | null>(null);
+  const [disableTarget, setDisableTarget] = useState<{ id: string; name: string } | null>(null);
 
   const casinoName = (id: string | null) =>
     id ? (casinos.find(c => c.id === id)?.name ?? id.slice(0, 8)) : "—";
@@ -120,6 +132,7 @@ export const UsersTab = () => {
                           <div className="text-sm font-medium text-card-foreground flex items-center gap-1.5">
                             {p.display_name || <span className="text-muted-foreground italic">No name</span>}
                             {isSelf && <span className="text-[10px] text-muted-foreground">(you)</span>}
+                            {p.disabled_at && <Badge variant="outline" className="text-[10px]">Disabled</Badge>}
                           </div>
                           <div className="text-[10px] font-mono text-muted-foreground/60">
                             {p.user_id.slice(0, 8)}
@@ -168,6 +181,16 @@ export const UsersTab = () => {
                             <SlidersHorizontal className="w-3.5 h-3.5" />
                           </Button>
                         )}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setDisableTarget({ id: p.user_id, name: p.display_name || "User" })}
+                          title="Disable user"
+                          disabled={isSelf || !!p.disabled_at}
+                          className="h-8 w-8 text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
                       </div>
                     </td>
                   </tr>
@@ -203,6 +226,28 @@ export const UsersTab = () => {
         userId={permsTarget?.id ?? null}
         userName={permsTarget?.name ?? ""}
       />
+
+      <AlertDialog open={!!disableTarget} onOpenChange={o => !o && setDisableTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Disable user?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {disableTarget?.name} will no longer be able to sign in. Historical logs and records stay intact.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (!disableTarget) return;
+                disableUser.mutate({ userId: disableTarget.id }, { onSuccess: () => setDisableTarget(null) });
+              }}
+            >
+              Disable
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

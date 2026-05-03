@@ -42,7 +42,21 @@ export type Profile = {
   user_id: string;
   display_name: string | null;
   casino_id: string | null;
+  disabled_at?: string | null;
   created_at?: string;
+};
+
+const readFunctionError = async (error: Error) => {
+  let detail = error.message;
+  try {
+    const ctx = (error as any).context;
+    const response = typeof ctx?.clone === "function" ? ctx.clone() : ctx;
+    if (response && typeof response.json === "function") {
+      const parsed = await response.json();
+      if (parsed?.error) detail = parsed.error;
+    }
+  } catch { /* ignore */ }
+  return detail;
 };
 
 /** Profiles visible to the current user (own casino, or all for super/FM). */
@@ -54,7 +68,7 @@ export const useUsersProfiles = () => {
   return useQuery({
     queryKey: ["admin-users:profiles", isSuperOrFM ? "all" : activeCasinoId],
     queryFn: async () => {
-      let q = supabase.from("profiles").select("user_id, display_name, casino_id, created_at");
+      let q = supabase.from("profiles").select("user_id, display_name, casino_id, disabled_at, created_at");
       if (!isSuperOrFM && activeCasinoId) q = q.eq("casino_id", activeCasinoId);
       const { data, error } = await q.order("display_name");
       if (error) throw error;
@@ -142,16 +156,7 @@ export const useCreateUser = () => {
       if (isSuperAdmin && input.casino_id) body.casino_id = input.casino_id;
       const { data, error } = await supabase.functions.invoke("create-user", { body });
       if (error) {
-        // invoke() swallows the response body on non-2xx; pull it out of FunctionsHttpError.
-        let detail = error.message;
-        try {
-          const ctx = (error as any).context;
-          if (ctx && typeof ctx.json === "function") {
-            const parsed = await ctx.json();
-            if (parsed?.error) detail = parsed.error;
-          }
-        } catch { /* ignore */ }
-        throw new Error(detail);
+        throw new Error(await readFunctionError(error));
       }
       if (data?.error) throw new Error(data.error);
       return data;
@@ -160,6 +165,26 @@ export const useCreateUser = () => {
       qc.invalidateQueries({ queryKey: ["admin-users:profiles"] });
       qc.invalidateQueries({ queryKey: ["admin-users:roles"] });
       toast.success(`User "${vars.login}" created`);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+};
+
+/** Disable a user login while keeping historical audit records intact. */
+export const useDisableUser = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ userId }: { userId: string }) => {
+      const { data, error } = await supabase.functions.invoke("disable-user", {
+        body: { user_id: userId },
+      });
+      if (error) throw new Error(await readFunctionError(error));
+      if (data?.error) throw new Error(data.error);
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-users:profiles"] });
+      toast.success("User disabled");
     },
     onError: (e: Error) => toast.error(e.message),
   });

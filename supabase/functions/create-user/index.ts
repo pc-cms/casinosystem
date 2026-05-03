@@ -37,7 +37,8 @@ Deno.serve(async (req) => {
     if (!hasManager && !hasSuperAdmin) throw new Error("Manager or Super Admin role required");
 
     const { login, password, display_name, roles, casino_id } = await req.json();
-    if (!login || !password || !display_name) throw new Error("Missing fields");
+    const cleanLogin = String(login || "").trim().toLowerCase();
+    if (!cleanLogin || !password || !display_name) throw new Error("Missing fields");
 
     // Determine target casino_id
     let targetCasinoId = casino_id;
@@ -62,7 +63,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    const email = `${login.toLowerCase().trim()}@cms.local`;
+    const email = `${cleanLogin}@cms.local`;
 
     // Create user via admin API
     const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({
@@ -71,7 +72,18 @@ Deno.serve(async (req) => {
       email_confirm: true,
       user_metadata: { display_name },
     });
-    if (createError) throw createError;
+    if (createError) {
+      const code = (createError as { code?: string }).code;
+      if (code === "email_exists" || createError.message.toLowerCase().includes("already been registered")) {
+        return new Response(JSON.stringify({
+          error: `Login "${cleanLogin}" already exists. Choose another login or edit the existing user.`,
+        }), {
+          status: 409,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      throw createError;
+    }
 
     // Update profile with correct casino_id (trigger creates it with default casino)
     await adminClient
@@ -94,7 +106,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    return new Response(JSON.stringify({ id: newUser.user.id, login }), {
+    return new Response(JSON.stringify({ id: newUser.user.id, login: cleanLogin }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
