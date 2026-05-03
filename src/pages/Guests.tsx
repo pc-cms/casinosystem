@@ -19,7 +19,7 @@ import CategoryFilter from "@/components/player/CategoryFilter";
 import FlagBadges from "@/components/player/FlagBadges";
 import PlayerEditDialog from "@/components/PlayerEditDialog";
 
-type TabKey = "all" | "inside" | "out";
+type TabKey = "day" | "present" | "left";
 type SortKey = "name" | "type" | "position" | "entry" | "exit";
 
 const formatTime = (iso?: string | null) => {
@@ -40,7 +40,7 @@ const Guests = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const [tab, setTab] = useState<TabKey>("all");
+  const [tab, setTab] = useState<TabKey>("day");
   const [search, setSearch] = useState("");
   const [posFilter, setPosFilter] = useState<"all" | "table" | "slots" | "hall">("all");
   const [typeFilter, setTypeFilter] = useState<"all" | "slots" | "table" | "mix">("all");
@@ -106,8 +106,8 @@ const Guests = () => {
 
   const filtered = useMemo(() => {
     let list = rows;
-    if (tab === "inside") list = list.filter(r => r.isInside);
-    if (tab === "out") list = list.filter(r => !r.isInside);
+    if (tab === "present") list = list.filter(r => r.isInside);
+    if (tab === "left") list = list.filter(r => !r.isInside);
     if (posFilter !== "all") list = list.filter(r => r.position === posFilter);
     if (typeFilter !== "all") list = list.filter(r => r.playerType === typeFilter);
     list = list.filter(r => categoryFilter.has(r.category));
@@ -141,9 +141,9 @@ const Guests = () => {
   }, [rows, tab, posFilter, typeFilter, categoryFilter, search, sortKey, sortDir]);
 
   const counts = useMemo(() => ({
-    all: rows.length,
-    inside: rows.filter(r => r.isInside).length,
-    out: rows.filter(r => !r.isInside).length,
+    day: rows.length,
+    present: rows.filter(r => r.isInside).length,
+    left: rows.filter(r => !r.isInside).length,
   }), [rows]);
 
   const confirmExit = useMutation({
@@ -261,7 +261,7 @@ const Guests = () => {
       <PageHeader
         icon={UserCheck}
         title="Guests"
-        subtitle={`${counts.inside} inside · ${counts.out} checked out`}
+        subtitle={`${counts.present} present · ${counts.left} left`}
         date
       />
 
@@ -269,25 +269,25 @@ const Guests = () => {
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <TabsList>
             <TabsTrigger
-              value="all"
+              value="day"
               className="data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:border-primary/40 border border-transparent"
             >
-              All
-              <Badge className="ml-1.5 text-[10px] bg-primary/20 text-primary border-primary/30 hover:bg-primary/20">{counts.all}</Badge>
+              Daily
+              <Badge className="ml-1.5 text-[10px] bg-primary/20 text-primary border-primary/30 hover:bg-primary/20">{counts.day}</Badge>
             </TabsTrigger>
             <TabsTrigger
-              value="inside"
+              value="present"
               className="data-[state=active]:bg-success/15 data-[state=active]:text-success data-[state=active]:border-success/40 border border-transparent"
             >
-              Inside
-              <Badge className="ml-1.5 text-[10px] bg-success/20 text-success border-success/30 hover:bg-success/20">{counts.inside}</Badge>
+              Present
+              <Badge className="ml-1.5 text-[10px] bg-success/20 text-success border-success/30 hover:bg-success/20">{counts.present}</Badge>
             </TabsTrigger>
             <TabsTrigger
-              value="out"
+              value="left"
               className="data-[state=active]:bg-muted data-[state=active]:text-muted-foreground data-[state=active]:border-border border border-transparent"
             >
-              Out
-              <Badge variant="secondary" className="ml-1.5 text-[10px]">{counts.out}</Badge>
+              Left
+              <Badge variant="secondary" className="ml-1.5 text-[10px]">{counts.left}</Badge>
             </TabsTrigger>
           </TabsList>
 
