@@ -21,7 +21,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { PitShell } from "@/components/pit/PitShell";
 
 
-const ROTA_SHIFTS = ["M", "N", "L", "E"] as const;
+const ROTA_SHIFTS = ["M", "N", "L", "E", "O"] as const;
 
 const SHIFT_COLORS = UNIFIED_SHIFT_COLORS;
 
