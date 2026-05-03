@@ -54,19 +54,23 @@ interface Props {
 }
 
 export const UserEditorDialog = ({ open, onOpenChange, target }: Props) => {
-  const { roles: callerRoles } = useAuth();
+  const { user: currentUser, roles: callerRoles } = useAuth();
   const isSuperAdmin = callerRoles.includes("super_admin");
   const availableRoles = isSuperAdmin ? (ALL_ROLES as readonly string[]) : NON_SUPER_ROLES;
 
   const { data: casinos = [] } = useAllCasinos();
   const createUser = useCreateUser();
   const updateRoles = useUpdateUserRoles();
+  const resetPassword = useResetPassword();
+  const disableUser = useDisableUser();
 
   const [login, setLogin] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [casinoId, setCasinoId] = useState("");
   const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmDisable, setConfirmDisable] = useState(false);
 
   // Hydrate form when dialog opens
   useEffect(() => {
