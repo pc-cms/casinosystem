@@ -3449,6 +3449,13 @@ export type Database = {
           pending_count: number
         }[]
       }
+      update_user_roles: {
+        Args: {
+          _roles: Database["public"]["Enums"]["app_role"][]
+          _user_id: string
+        }
+        Returns: undefined
+      }
       user_has_casino_access: {
         Args: { _casino_id: string; _user_id: string }
         Returns: boolean
