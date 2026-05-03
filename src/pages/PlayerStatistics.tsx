@@ -460,21 +460,40 @@ const PlayerStatistics = () => {
               <table className="w-full text-xs">
                 <thead className="bg-muted/30 border-b border-border">
                   <tr className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                    <th className="px-2 py-2 text-left">Player</th>
-                    <th className="px-2 py-2 text-left">Position</th>
-                    <th className="px-2 py-2 text-left">Entry</th>
-                    <th className="px-2 py-2 text-left">Exit</th>
-                    {showFinancials && (
-                      <>
-                        <th className="px-2 py-2 text-right">Avg Bet</th>
-                        <th className="px-2 py-2 text-right">In / Drop</th>
-                        <th className="px-2 py-2 text-right">Out</th>
-                        <th className="px-2 py-2 text-right" title="Chips received from another player (NEP-tracked, no cash)">Chip In</th>
-                        <th className="px-2 py-2 text-right" title="Chips given to another player (NEP-tracked, no cash)">Chip Out</th>
-                        <th className="px-2 py-2 text-right">Chip Δ</th>
-                        <th className="px-2 py-2 text-right">Result</th>
-                      </>
-                    )}
+                    {(() => {
+                      const SortIcon = ({ k }: { k: SortKey }) =>
+                        sortKey !== k ? <ArrowUpDown className="w-3 h-3 inline ml-1 opacity-40" />
+                          : sortDir === "asc" ? <ArrowUp className="w-3 h-3 inline ml-1" />
+                          : <ArrowDown className="w-3 h-3 inline ml-1" />;
+                      const H = ({ k, align = "left", children, title }: { k: SortKey; align?: "left" | "right"; children: any; title?: string }) => (
+                        <th
+                          title={title}
+                          className={`px-2 py-2 cursor-pointer select-none hover:text-foreground ${align === "right" ? "text-right" : "text-left"}`}
+                          onClick={() => toggleSort(k)}
+                        >
+                          {children}<SortIcon k={k} />
+                        </th>
+                      );
+                      return (
+                        <>
+                          <H k="name">Player</H>
+                          <H k="position">Position</H>
+                          <H k="entry">Entry</H>
+                          <H k="exit">Exit</H>
+                          {showFinancials && (
+                            <>
+                              <H k="avgBet" align="right">Avg Bet</H>
+                              <H k="inDrop" align="right">In / Drop</H>
+                              <H k="out" align="right">Out</H>
+                              <H k="chipIn" align="right" title="Chips received from another player (NEP-tracked, no cash)">Chip In</H>
+                              <H k="chipOut" align="right" title="Chips given to another player (NEP-tracked, no cash)">Chip Out</H>
+                              <H k="chipDelta" align="right">Chip Δ</H>
+                              <H k="result" align="right">Result</H>
+                            </>
+                          )}
+                        </>
+                      );
+                    })()}
                     {canTransfer && <th className="px-2 py-2 text-right w-8"></th>}
                   </tr>
                 </thead>
