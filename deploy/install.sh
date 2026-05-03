@@ -267,6 +267,16 @@ if [[ $INTERNET_OK -eq 1 ]]; then
   else
     warn "GitHub недоступен"
   fi
+
+  # 3.4 — docker login в ghcr.io (нужен для приватного репо/пакета)
+  if [[ ${#GH_AUTH[@]} -gt 0 && $REGISTRY_OK -eq 1 ]]; then
+    log "Логин в ghcr.io..."
+    if echo "$GITHUB_TOKEN" | docker login ghcr.io -u "${GITHUB_OWNER}" --password-stdin >/dev/null 2>&1; then
+      ok "docker login ghcr.io OK (как ${GITHUB_OWNER})"
+    else
+      warn "docker login ghcr.io не удался — приватный pull будет недоступен"
+    fi
+  fi
 fi
 
 # Сводка
