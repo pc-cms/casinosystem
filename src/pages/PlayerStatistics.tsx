@@ -440,13 +440,38 @@ const PlayerStatistics = () => {
     [rows]
   );
 
+  const dateControl = canBrowseHistory ? (
+    <div className="flex items-center gap-1.5">
+      <Button variant="ghost" size="icon-sm" onClick={() => shiftDate(-1)} disabled={date <= minDate}>
+        <ChevronLeft className="w-4 h-4" />
+      </Button>
+      <Input
+        type="date"
+        value={date}
+        min={minDate}
+        max={today}
+        onChange={e => e.target.value && setDate(e.target.value)}
+        className="w-44 font-mono h-9"
+      />
+      <Button variant="ghost" size="icon-sm" onClick={() => shiftDate(1)} disabled={date >= today}>
+        <ChevronRight className="w-4 h-4" />
+      </Button>
+      {date !== today && (
+        <Button variant="outline" size="sm" className="h-7 text-[10px]" onClick={() => setDate(today)}>
+          Today
+        </Button>
+      )}
+    </div>
+  ) : undefined;
+
   return (
     <PageShell>
       <PageHeader
         icon={BarChart3}
         title="Player Statistics"
-        subtitle="Today's visitors — entry, position, results"
-        date={true}
+        subtitle={isHistorical ? `Historical · ${effectiveDate}` : "Today's visitors — entry, position, results"}
+        centerSlot={dateControl}
+        date={!canBrowseHistory}
       />
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as TabKey)} className="space-y-3">
