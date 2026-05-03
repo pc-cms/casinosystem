@@ -274,11 +274,61 @@ const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }
     Pi: "i", BJi: "i",
   };
 
-  // Parent controls (Refresh/Accept) are no longer auto-filling BR — disabled.
+  // Bulk-fill empty cells with BR.
+  //   Refresh — only slots from shift start up to (and including) the current time slot.
+  //   Accept  — every slot from shift start to end of working hours.
+  // Never overwrites occupied/locked cells. Uses each dealer's own shift (M/N/E)
+  // to decide where their working window begins.
+  const bulkFillBreaks = (mode: "current" | "all") => {
+    if (!isEditable) {
+      toast.error("Breaklist is not editable right now");
+      return;
+    }
+    const currentIdx = TIME_SLOTS.indexOf(currentSlot);
+    let writes = 0;
+    breaklistDealers.forEach(dealer => {
+      const shift = getDealerShift(dealer.id);
+      let shiftStartIdx = 0;
+      if (shift === "N") {
+        const ni = TIME_SLOTS.indexOf("21:00");
+        shiftStartIdx = ni >= 0 ? ni : 0;
+      } else if (shift === "E") {
+        const occupiedIdx = breaklist
+          .filter((b: any) => b.dealer_id === dealer.id)
+          .map((b: any) => TIME_SLOTS.indexOf(b.time_slot as string))
+          .filter((i: number) => i >= 0);
+        shiftStartIdx = occupiedIdx.length > 0 ? Math.min(...occupiedIdx) : 0;
+      }
+      const endIdx = mode === "current"
+        ? (currentIdx >= 0 ? currentIdx : TIME_SLOTS.length - 1)
+        : TIME_SLOTS.length - 1;
+      if (endIdx < shiftStartIdx) return;
+      for (let i = shiftStartIdx; i <= endIdx; i++) {
+        const slot = TIME_SLOTS[i];
+        const cell = getCellData(dealer.id, slot);
+        if (cell) continue; // never overwrite existing assignments
+        setCell.mutate({
+          date,
+          dealer_id: dealer.id,
+          time_slot: slot,
+          role: "BR",
+          table_id: null,
+        });
+        writes++;
+      }
+    });
+    if (writes === 0) {
+      toast.info("No empty slots to fill");
+    } else {
+      toast.success(`Filled ${writes} empty slots with BR`);
+    }
+  };
+
   useEffect(() => {
-    onRegisterRefresh?.(() => {});
-    onRegisterAccept?.(() => {});
-  }, []);
+    onRegisterRefresh?.(() => bulkFillBreaks("current"));
+    onRegisterAccept?.(() => bulkFillBreaks("all"));
+    // Re-register when dataset changes so callbacks see fresh state.
+  }, [breaklistDealers, breaklist, currentSlot, isEditable, date]);
 
   return (
     <>
