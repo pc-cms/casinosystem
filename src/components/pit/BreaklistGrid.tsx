@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { useDealers, useBreaklistData, useSetBreaklistCell, useLockBreaklistCell, useGamingTables, usePitRotaRange, useSetDealerAttendance } from "@/hooks/use-casino-data";
+import { useDealers, useBreaklistData, useSetBreaklistCell, useLockBreaklistCell, useGamingTables, usePitRotaRange, useSetDealerAttendance, useDealerAttendance } from "@/hooks/use-casino-data";
 import { useCasinoInfo } from "@/hooks/use-table-lifecycle";
 import { useAuth } from "@/lib/auth-context";
 import { Lock, Unlock, LockKeyhole } from "lucide-react";
@@ -62,7 +62,7 @@ const isInWorkingHours = (slot: string) => {
 // Map a stored role to the per-table exclusivity slot.
 // Three independent slots per table: Dealer (D), Inspector (I, ends with 'i'), Chipper (C, ends with 'c').
 const roleSlot = (r: string): "D" | "I" | "C" | null => {
-  if (!r || r === "BR" || r === "S") return null;
+  if (!r || r === "BR" || r === "S" || r === "STR" || r === "CLS") return null;
   if (/c$/i.test(r)) return "C";
   if (/i$/.test(r)) return "I";
   return "D";
@@ -73,6 +73,7 @@ const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }
   const { data: breaklist = [] } = useBreaklistData(date);
   const { data: tables = [] } = useGamingTables();
   const { data: rota = [] } = usePitRotaRange(date, date);
+  const { data: attendance = [] } = useDealerAttendance(date);
   const { data: casino } = useCasinoInfo();
   const setCell = useSetBreaklistCell();
   const setAttendance = useSetDealerAttendance();
@@ -97,24 +98,45 @@ const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }
       .map((r: any) => ({ dealerId: r.dealer_id, shift: r.shift as string }));
   }, [rota]);
 
-  // Only show dealers that are in the rota for this date
-  const [sortBy, setSortBy] = useState<"name" | "shift">("shift");
+  // Absent dealer set — attendance value === "A" hides them from the grid entirely.
+  const absentDealerIds = useMemo(() => {
+    const s = new Set<string>();
+    (attendance as any[]).forEach((a: any) => {
+      if ((a.value ?? "").toString().trim().toUpperCase() === "A") s.add(a.dealer_id);
+    });
+    return s;
+  }, [attendance]);
+
+  // Sort options: # (insertion order) is meaningless without a base sort,
+  // so sort cycles between Shift / Category / Name. Numbering is then derived from current sort.
+  const [sortBy, setSortBy] = useState<"name" | "shift" | "category">("shift");
 
   const breaklistDealers = useMemo(() => {
     const rotaDealerIds = new Set(rotaDealers.map(r => r.dealerId));
-    // Pit Bosses must NOT appear in the Breaklist grid
-    const filtered = activeDealers.filter(d => rotaDealerIds.has(d.id) && !(d as any).is_pit_boss);
-    if (sortBy === "name") {
-      return filtered.sort((a, b) => a.name.localeCompare(b.name));
-    }
+    // Pit Bosses must NOT appear; absent dealers (A) must NOT appear either.
+    const filtered = activeDealers.filter(
+      d => rotaDealerIds.has(d.id) && !(d as any).is_pit_boss && !absentDealerIds.has(d.id),
+    );
     const shiftOrder: Record<string, number> = { M: 0, N: 1, E: 2 };
-    return filtered.sort((a, b) => {
+    const categoryOrder: Record<string, number> = { trainee: 0, dealer: 1, inspector: 2, expert: 3, pit_boss: 4 };
+    if (sortBy === "name") {
+      return [...filtered].sort((a, b) => a.name.localeCompare(b.name));
+    }
+    if (sortBy === "category") {
+      return [...filtered].sort((a, b) => {
+        const ca = categoryOrder[a.category] ?? 99;
+        const cb = categoryOrder[b.category] ?? 99;
+        return ca !== cb ? ca - cb : a.name.localeCompare(b.name);
+      });
+    }
+    // shift
+    return [...filtered].sort((a, b) => {
       const sa = rotaDealers.find(r => r.dealerId === a.id)?.shift || "Z";
       const sb = rotaDealers.find(r => r.dealerId === b.id)?.shift || "Z";
       const diff = (shiftOrder[sa] ?? 9) - (shiftOrder[sb] ?? 9);
       return diff !== 0 ? diff : a.name.localeCompare(b.name);
     });
-  }, [activeDealers, rotaDealers, sortBy]);
+  }, [activeDealers, rotaDealers, sortBy, absentDealerIds]);
 
   const getDealerShift = (dealerId: string) => {
     return rotaDealers.find(r => r.dealerId === dealerId)?.shift || null;
@@ -259,18 +281,27 @@ const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }
           <table className="w-full border-collapse">
             <thead>
               <tr className="border-b border-border">
-                <th className="text-center text-[9px] font-medium text-muted-foreground uppercase px-1 py-2 min-w-[24px] sticky left-0 bg-card z-10">
-                  C
+                <th className="text-center text-[9px] font-medium text-muted-foreground uppercase px-1 py-2 min-w-[26px] sticky left-0 bg-card z-10">
+                  #
+                </th>
+                <th
+                  onClick={() => setSortBy("category")}
+                  className={`text-center text-[9px] font-medium uppercase px-1 py-2 min-w-[24px] sticky left-[26px] bg-card z-10 cursor-pointer hover:text-foreground select-none ${sortBy === "category" ? "text-foreground" : "text-muted-foreground"}`}
+                  title="Sort by Category"
+                >
+                  C {sortBy === "category" && "↓"}
                 </th>
                 <th
                   onClick={() => setSortBy("name")}
-                  className="text-left text-xs font-medium text-muted-foreground uppercase px-3 py-2 sticky left-[24px] bg-card z-10 min-w-[120px] cursor-pointer hover:text-foreground select-none"
+                  className={`text-left text-xs font-medium uppercase px-3 py-2 sticky left-[50px] bg-card z-10 min-w-[120px] cursor-pointer hover:text-foreground select-none ${sortBy === "name" ? "text-foreground" : "text-muted-foreground"}`}
+                  title="Sort by Name"
                 >
                   Name {sortBy === "name" && "↓"}
                 </th>
                 <th
                   onClick={() => setSortBy("shift")}
-                  className="text-center text-[9px] font-medium text-muted-foreground uppercase px-1 py-2 min-w-[32px] cursor-pointer hover:text-foreground select-none"
+                  className={`text-center text-[9px] font-medium uppercase px-1 py-2 min-w-[32px] cursor-pointer hover:text-foreground select-none ${sortBy === "shift" ? "text-foreground" : "text-muted-foreground"}`}
+                  title="Sort by Shift"
                 >
                   S {sortBy === "shift" && "↓"}
                 </th>
@@ -296,12 +327,15 @@ const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }
                 const shift = getDealerShift(dealer.id);
                 return (
                   <tr key={dealer.id} className={`border-b border-border last:border-0 ${idx % 2 === 1 ? "bg-muted/10" : ""}`}>
-                    <td className={`text-center py-1 sticky left-0 z-10 ${idx % 2 === 1 ? "bg-card/95" : "bg-card"}`}>
+                    <td className={`text-center py-1 sticky left-0 z-10 text-[10px] font-mono font-bold text-muted-foreground ${idx % 2 === 1 ? "bg-card/95" : "bg-card"}`}>
+                      {idx + 1}
+                    </td>
+                    <td className={`text-center py-1 sticky left-[26px] z-10 ${idx % 2 === 1 ? "bg-card/95" : "bg-card"}`}>
                       <span className={`inline-flex items-center justify-center w-5 h-5 rounded text-[9px] font-mono font-bold ${CATEGORY_COLORS[dealer.category] || "text-muted-foreground"}`}>
                         {CATEGORY_LABELS[dealer.category] || "?"}
                       </span>
                     </td>
-                    <td className={`px-3 py-1 text-xs font-medium text-card-foreground sticky left-[24px] z-10 ${idx % 2 === 1 ? "bg-card/95" : "bg-card"}`}>
+                    <td className={`px-3 py-1 text-xs font-medium text-card-foreground sticky left-[50px] z-10 ${idx % 2 === 1 ? "bg-card/95" : "bg-card"}`}>
                       <div className="flex items-center justify-between">
                         <span>{dealer.name}</span>
                         {lockedCount > 0 && (
@@ -362,8 +396,19 @@ const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }
                               onMouseLeave={() => setActiveCell(null)}>
                               <div className="flex flex-wrap gap-0.5 mb-1">
                                 <button onClick={() => handleRoleSelect("BR")}
+                                  title="Break"
                                   className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold transition-colors ${ROLE_COLORS["BR"] || "bg-muted text-muted-foreground"} hover:opacity-80`}>
                                   BR
+                                </button>
+                                <button onClick={() => handleRoleSelect("STR")}
+                                  title="Sorting"
+                                  className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold transition-colors ${ROLE_COLORS["STR"] || "bg-muted text-muted-foreground"} hover:opacity-80`}>
+                                  STR
+                                </button>
+                                <button onClick={() => handleRoleSelect("CLS")}
+                                  title="Closing"
+                                  className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold transition-colors ${ROLE_COLORS["CLS"] || "bg-muted text-muted-foreground"} hover:opacity-80`}>
+                                  CLS
                                 </button>
                                 <button onClick={() => handleRoleSelect("S")}
                                   title="Sick — fills all remaining slots until shift end"
