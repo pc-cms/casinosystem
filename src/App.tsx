@@ -89,7 +89,7 @@ const FullScreenLoader = ({ label = "Loading CMS..." }: { label?: string }) => (
 // Surveillance gets a strict allow-list: Dashboard, Pit, Player Statistics, Cage, Blacklist, and the Player card.
 const ROUTE_ROLES: Record<string, string[]> = {
   "/": ["super_admin", "manager", "pit", "reception", "finance_manager", "surveillance"],
-  "/players": ["super_admin", "manager", "finance_manager"],
+  "/players": ["super_admin", "manager", "pit", "finance_manager", "surveillance"],
   "/players/:id": ["super_admin", "manager", "pit", "reception", "finance_manager", "surveillance"],
   "/in-casino": ["super_admin", "manager", "reception", "finance_manager"],
   "/blacklist": ["super_admin", "manager", "reception", "finance_manager", "surveillance"],
