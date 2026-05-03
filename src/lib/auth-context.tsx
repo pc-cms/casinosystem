@@ -60,9 +60,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const fetchProfile = useCallback(async (userId: string) => {
     const [{ data: profile, error: profileError }, { data: userRoles, error: rolesError }] = await Promise.all([
-      supabase.from("profiles").select("casino_id, display_name").eq("user_id", userId).maybeSingle(),
+      supabase.from("profiles").select("casino_id, display_name, disabled_at").eq("user_id", userId).maybeSingle(),
       supabase.from("user_roles").select("role").eq("user_id", userId),
     ]);
+
+    if ((profile as { disabled_at?: string | null } | null)?.disabled_at) {
+      await supabase.auth.signOut();
+      throw new Error("User account is disabled");
+    }
 
     if (profileError) console.error("fetchProfile profile error", profileError);
     if (rolesError) console.error("fetchProfile roles error", rolesError);
