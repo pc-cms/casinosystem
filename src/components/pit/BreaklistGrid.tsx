@@ -62,7 +62,7 @@ const isInWorkingHours = (slot: string) => {
 // Map a stored role to the per-table exclusivity slot.
 // Three independent slots per table: Dealer (D), Inspector (I, ends with 'i'), Chipper (C, ends with 'c').
 const roleSlot = (r: string): "D" | "I" | "C" | null => {
-  if (!r || r === "BR" || r === "S" || r === "STR" || r === "CLS") return null;
+  if (!r || r === "BR" || r === "TR" || r === "S" || r === "STR" || r === "CLS") return null;
   if (/c$/i.test(r)) return "C";
   if (/i$/.test(r)) return "I";
   return "D";
@@ -399,6 +399,11 @@ const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }
                                   title="Break"
                                   className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold transition-colors ${ROLE_COLORS["BR"] || "bg-muted text-muted-foreground"} hover:opacity-80`}>
                                   BR
+                                </button>
+                                <button onClick={() => handleRoleSelect("TR")}
+                                  title="Training"
+                                  className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold transition-colors ${ROLE_COLORS["TR"] || "bg-muted text-muted-foreground"} hover:opacity-80`}>
+                                  TR
                                 </button>
                                 <button onClick={() => handleRoleSelect("STR")}
                                   title="Sorting"
