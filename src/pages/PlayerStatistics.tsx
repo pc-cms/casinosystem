@@ -307,11 +307,11 @@ const PlayerStatistics = () => {
           onValueChange={(v) => setPosition.mutate({ visitId: r.id, playerId: r.playerId, newPos: v })}
           disabled={setPosition.isPending}
         >
-          <SelectTrigger className="h-6 px-2 py-0 text-[10px] w-auto min-w-[90px]">
+          <SelectTrigger className="h-6 px-1.5 py-0 text-[10px] w-full min-w-0">
             <SelectValue>
               {currentValue === "hall" ? "Hall"
                 : currentValue === "slots" ? "Slots"
-                : <span className="font-mono">{r.tableName ?? "Table"}</span>}
+                : <span className="font-mono truncate">{r.tableName ?? "T"}</span>}
             </SelectValue>
           </SelectTrigger>
           <SelectContent>
