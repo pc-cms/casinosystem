@@ -360,8 +360,19 @@ export const useSetBreaklistCell = () => {
       });
       return { queries };
     },
-    onError: (_err) => { toast.error("Sync error (breaklist) — will retry", { duration: 2000 }); },
-    onSettled: () => {},
+    onError: (err: any, _input, ctx: any) => {
+      // Restore previous cache on failure so the optimistic write doesn't linger.
+      if (ctx?.queries) {
+        ctx.queries.forEach(([key, data]: [any, any]) => qc.setQueryData(key, data));
+      }
+      const msg = err?.message || "Unknown error";
+      // Surface real reason (RLS / enum / network) instead of a generic toast.
+      toast.error(`Breaklist not saved: ${msg}`, { duration: 4000 });
+    },
+    onSettled: () => {
+      // Refetch so the grid reflects the authoritative server state (incl. is_locked, ids).
+      qc.invalidateQueries({ queryKey: ["breaklist"] });
+    },
   });
 };
 
