@@ -63,29 +63,7 @@ const useProfiles = () => {
   });
 };
 
-const useAllRoles = () => {
-  const { data: profiles = [] } = useProfiles();
-  return useQuery({
-    queryKey: ["all-user-roles", profiles.map(p => p.user_id)],
-    queryFn: async () => {
-      const allRoles: Record<string, string[]> = {};
-      for (const profile of profiles) {
-        for (const role of ALL_ROLES) {
-          const { data } = await supabase.rpc("has_role", {
-            _user_id: profile.user_id,
-            _role: role,
-          } as any);
-          if (data) {
-            if (!allRoles[profile.user_id]) allRoles[profile.user_id] = [];
-            allRoles[profile.user_id].push(role);
-          }
-        }
-      }
-      return allRoles;
-    },
-    enabled: profiles.length > 0,
-  });
-};
+// (Old useAllRoles removed — UsersTab now uses a single batched query in users-hooks.ts)
 
 const useAllCasinos = () => useQuery({
   queryKey: ["all-casinos"],
