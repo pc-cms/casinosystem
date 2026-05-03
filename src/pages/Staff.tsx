@@ -914,9 +914,12 @@ const StaffAttendanceGrid = ({ month, monthLabel, groupKey = "floor", readOnly =
     if (!staff.length) return;
     if (!closedDates || closedDates.size === 0) return;
 
+    const todayBd = getBusinessDate();
     for (const s of activeStaff) {
       for (let day = 1; day <= daysInMonth; day++) {
         const dateStr = `${month}-${String(day).padStart(2, "0")}`;
+        // HARD GUARD: never auto-fill the current open business day.
+        if (dateStr === todayBd) continue;
         if (!closedDates.has(dateStr)) continue;
         const key = `${s.id}|${dateStr}`;
         if (autoFilledRef.current.has(key)) continue;

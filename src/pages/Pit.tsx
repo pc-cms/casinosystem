@@ -845,7 +845,8 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
 
   // Auto-fill: a day is auto-filled with 9 hours ONLY if its business day has
   // been CLOSED (record exists in `business_day_closures`). The current open
-  // business day is never auto-filled, regardless of wall-clock time.
+  // business day is NEVER auto-filled — double-guarded with both
+  // closedDates membership AND a hard check against today's business date.
   // Cells that already have any value (S, A, "{n}S", number) are skipped.
   const autoFilledRef = useRef<Set<string>>(new Set());
   useEffect(() => {
@@ -853,9 +854,13 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
     if (!dealers.length) return;
     if (!closedDates || closedDates.size === 0) return;
 
+    const todayBd = getBusinessDate();
     for (const d of activeDealers) {
       for (let day = 1; day <= daysInMonth; day++) {
         const dateStr = `${month}-${String(day).padStart(2, "0")}`;
+        // HARD GUARD: never auto-fill the current open business day,
+        // even if it somehow appears in closedDates.
+        if (dateStr === todayBd) continue;
         if (!closedDates.has(dateStr)) continue;
         const key = `${d.id}|${dateStr}`;
         if (autoFilledRef.current.has(key)) continue;
