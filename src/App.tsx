@@ -20,7 +20,7 @@ const Landing = lazy(() => import("@/pages/Landing"));
 
 // Lazy-loaded pages — each becomes a separate chunk
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
-const Players = lazy(() => import("@/pages/Players"));
+
 const PlayerProfile = lazy(() => import("@/pages/PlayerProfile"));
 const Cage = lazy(() => import("@/pages/Cage"));
 const Tables = lazy(() => import("@/pages/Tables"));
@@ -89,7 +89,7 @@ const FullScreenLoader = ({ label = "Loading CMS..." }: { label?: string }) => (
 // Surveillance gets a strict allow-list: Dashboard, Pit, Player Statistics, Cage, Blacklist, and the Player card.
 const ROUTE_ROLES: Record<string, string[]> = {
   "/": ["super_admin", "manager", "pit", "reception", "finance_manager", "surveillance"],
-  "/players": ["super_admin", "manager", "finance_manager"],
+  
   "/players/:id": ["super_admin", "manager", "pit", "reception", "finance_manager", "surveillance"],
   "/in-casino": ["super_admin", "manager", "reception", "finance_manager"],
   "/blacklist": ["super_admin", "manager", "reception", "finance_manager", "surveillance"],
@@ -176,7 +176,7 @@ const ProtectedRoutes = () => {
       <Routes>
         <Route element={<AppLayout />}>
           <Route path="/" element={<RoleGuard path="/"><Dashboard /></RoleGuard>} />
-          <Route path="/players" element={<RoleGuard path="/players"><Players /></RoleGuard>} />
+          <Route path="/players" element={<Navigate to="/player-statistics" replace />} />
           <Route path="/players/:id" element={<RoleGuard path="/players/:id"><PlayerProfile /></RoleGuard>} />
           <Route path="/cage" element={<RoleGuard path="/cage"><ErrorBoundary><Cage /></ErrorBoundary></RoleGuard>} />
           <Route path="/reception" element={<RoleGuard path="/reception"><Reception /></RoleGuard>} />
@@ -204,7 +204,7 @@ const ProtectedRoutes = () => {
           <Route path="/finance/summary" element={<RoleGuard path="/finance/summary"><ErrorBoundary><FinanceSummaryPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/finance/transfers" element={<RoleGuard path="/finance/transfers"><ErrorBoundary><FinanceTransfersPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/reports" element={<RoleGuard path="/reports"><Reports /></RoleGuard>} />
-          <Route path="/stats" element={<Navigate to="/players" replace />} />
+          <Route path="/stats" element={<Navigate to="/player-statistics" replace />} />
           <Route path="/logs" element={<RoleGuard path="/logs"><Logs /></RoleGuard>} />
           <Route path="/admin" element={<RoleGuard path="/admin"><Admin /></RoleGuard>} />
           <Route path="/import-reports" element={<RoleGuard path="/import-reports"><ImportReports /></RoleGuard>} />
