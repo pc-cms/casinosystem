@@ -26,6 +26,7 @@ import { BrandingSettings } from "@/components/admin/BrandingSettings";
 import { ChipConservationModeCard } from "@/components/admin/ChipConservationModeCard";
 import { ChipEmissionDialog } from "@/components/chips/ChipEmissionDialog";
 import { useCasinoInfo, useUpdateCasinoSchedule, useCancelPendingSchedule } from "@/hooks/use-table-lifecycle";
+import { UsersTab } from "@/components/admin/users/UsersTab";
 
 const ROLES = ["manager", "cashier", "pit", "reception", "finance_manager", "surveillance", "hr"] as const;
 const ALL_ROLES = ["super_admin", ...ROLES] as const;
@@ -186,7 +187,7 @@ const Admin = () => {
           </>
         )}
 
-        <TabsContent value="users"><UsersAndRoles /></TabsContent>
+        <TabsContent value="users"><UsersTab /></TabsContent>
         <TabsContent value="schedule"><ScheduleSettings /></TabsContent>
         <TabsContent value="tables"><TableManagement /></TabsContent>
         <TabsContent value="float">
