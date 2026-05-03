@@ -14,7 +14,27 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ResponsiveDialog, ResponsiveDialogFooter } from "@/components/ui/responsive-dialog";
-import { ROLE_LABELS, ALL_ROLES, NON_SUPER_ROLES, useAllCasinos, useCreateUser, useUpdateUserRoles } from "./users-hooks";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  ROLE_LABELS,
+  ALL_ROLES,
+  NON_SUPER_ROLES,
+  useAllCasinos,
+  useCreateUser,
+  useUpdateUserRoles,
+  useResetPassword,
+  useDisableUser,
+} from "./users-hooks";
+import { KeyRound, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 export type UserEditorTarget =
@@ -34,23 +54,29 @@ interface Props {
 }
 
 export const UserEditorDialog = ({ open, onOpenChange, target }: Props) => {
-  const { roles: callerRoles } = useAuth();
+  const { user: currentUser, roles: callerRoles } = useAuth();
   const isSuperAdmin = callerRoles.includes("super_admin");
   const availableRoles = isSuperAdmin ? (ALL_ROLES as readonly string[]) : NON_SUPER_ROLES;
 
   const { data: casinos = [] } = useAllCasinos();
   const createUser = useCreateUser();
   const updateRoles = useUpdateUserRoles();
+  const resetPassword = useResetPassword();
+  const disableUser = useDisableUser();
 
   const [login, setLogin] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [casinoId, setCasinoId] = useState("");
   const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmDisable, setConfirmDisable] = useState(false);
 
   // Hydrate form when dialog opens
   useEffect(() => {
     if (!open || !target) return;
+    setNewPassword("");
+    setConfirmDisable(false);
     if (target.mode === "edit") {
       setLogin("");
       setPassword("");
@@ -216,7 +242,107 @@ export const UserEditorDialog = ({ open, onOpenChange, target }: Props) => {
             screens; the UI never hides things from one role just because another role is selected.
           </p>
         </div>
+
+        {/* Danger zone — edit mode only */}
+        {!isCreate && target?.mode === "edit" && (
+          <div className="rounded-md border border-destructive/30 bg-destructive/5 p-4 space-y-4">
+            <div className="flex items-center gap-2 text-destructive">
+              <Trash2 className="hidden" />
+              <span className="text-xs font-semibold uppercase tracking-wider">Danger Zone</span>
+            </div>
+
+            {/* Reset password */}
+            <div>
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1 block">
+                Reset Password
+              </label>
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <KeyRound className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    type="text"
+                    value={newPassword}
+                    onChange={e => setNewPassword(e.target.value)}
+                    placeholder="New password (min 6 chars)"
+                    className="pl-8 font-mono"
+                  />
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={async () => {
+                    if (target.mode !== "edit") return;
+                    if (newPassword.length < 6) {
+                      toast.error("Password must be at least 6 characters");
+                      return;
+                    }
+                    try {
+                      await resetPassword.mutateAsync({ userId: target.userId, newPassword });
+                      setNewPassword("");
+                    } catch {/* toast in hook */}
+                  }}
+                  disabled={resetPassword.isPending || newPassword.length < 6}
+                >
+                  {resetPassword.isPending ? "Resetting…" : "Reset"}
+                </Button>
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-1">
+                The user will need to use this password on next sign-in. Make sure to communicate it securely.
+              </p>
+            </div>
+
+            {/* Disable user */}
+            <div className="pt-3 border-t border-destructive/20">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1 block">
+                Disable User
+              </label>
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-[11px] text-muted-foreground">
+                  Blocks sign-in but keeps all historical records and audit logs intact. Cannot be undone from this UI.
+                </p>
+                <Button
+                  variant="destructive"
+                  onClick={() => setConfirmDisable(true)}
+                  disabled={target.userId === currentUser?.id || disableUser.isPending}
+                  className="gap-1.5 shrink-0"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  {disableUser.isPending ? "Disabling…" : "Disable"}
+                </Button>
+              </div>
+              {target.userId === currentUser?.id && (
+                <p className="text-[10px] text-destructive/80 mt-1">You cannot disable your own account.</p>
+              )}
+            </div>
+          </div>
+        )}
       </div>
+
+      <AlertDialog open={confirmDisable} onOpenChange={setConfirmDisable}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Disable user?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {target?.mode === "edit" ? target.displayName : "This user"} will no longer be able to sign in.
+              Historical logs and records remain intact.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                if (target?.mode !== "edit") return;
+                try {
+                  await disableUser.mutateAsync({ userId: target.userId });
+                  setConfirmDisable(false);
+                  onOpenChange(false);
+                } catch {/* toast in hook */}
+              }}
+            >
+              Disable
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <ResponsiveDialogFooter className="mt-6">
         <Button variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>

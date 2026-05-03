@@ -170,6 +170,22 @@ export const useCreateUser = () => {
   });
 };
 
+/** Reset another user's password (manager scoped to own casino). */
+export const useResetPassword = () => {
+  return useMutation({
+    mutationFn: async ({ userId, newPassword }: { userId: string; newPassword: string }) => {
+      const { data, error } = await supabase.functions.invoke("reset-user-password", {
+        body: { user_id: userId, new_password: newPassword },
+      });
+      if (error) throw new Error(await readFunctionError(error));
+      if (data?.error) throw new Error(data.error);
+      return data;
+    },
+    onSuccess: () => toast.success("Password reset"),
+    onError: (e: Error) => toast.error(e.message),
+  });
+};
+
 /** Disable a user login while keeping historical audit records intact. */
 export const useDisableUser = () => {
   const qc = useQueryClient();
