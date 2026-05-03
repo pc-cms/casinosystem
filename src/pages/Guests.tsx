@@ -19,7 +19,7 @@ import CategoryFilter from "@/components/player/CategoryFilter";
 import FlagBadges from "@/components/player/FlagBadges";
 import PlayerEditDialog from "@/components/PlayerEditDialog";
 
-type TabKey = "all" | "inside" | "out";
+type TabKey = "day" | "present" | "left";
 type SortKey = "name" | "type" | "position" | "entry" | "exit";
 
 const formatTime = (iso?: string | null) => {
