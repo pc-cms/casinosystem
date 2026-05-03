@@ -396,8 +396,19 @@ const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }
                               onMouseLeave={() => setActiveCell(null)}>
                               <div className="flex flex-wrap gap-0.5 mb-1">
                                 <button onClick={() => handleRoleSelect("BR")}
+                                  title="Break"
                                   className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold transition-colors ${ROLE_COLORS["BR"] || "bg-muted text-muted-foreground"} hover:opacity-80`}>
                                   BR
+                                </button>
+                                <button onClick={() => handleRoleSelect("STR")}
+                                  title="Sorting"
+                                  className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold transition-colors ${ROLE_COLORS["STR"] || "bg-muted text-muted-foreground"} hover:opacity-80`}>
+                                  STR
+                                </button>
+                                <button onClick={() => handleRoleSelect("CLS")}
+                                  title="Closing"
+                                  className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold transition-colors ${ROLE_COLORS["CLS"] || "bg-muted text-muted-foreground"} hover:opacity-80`}>
+                                  CLS
                                 </button>
                                 <button onClick={() => handleRoleSelect("S")}
                                   title="Sick — fills all remaining slots until shift end"
