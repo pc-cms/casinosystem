@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useDealers, useBreaklistData, useSetBreaklistCell, useLockBreaklistCell, useGamingTables, usePitRotaRange, useSetDealerAttendance } from "@/hooks/use-casino-data";
+import { useDealerAttendance } from "@/hooks/use-dealers";
 import { useCasinoInfo } from "@/hooks/use-table-lifecycle";
 import { useAuth } from "@/lib/auth-context";
 import { Lock, Unlock, LockKeyhole } from "lucide-react";
