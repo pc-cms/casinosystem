@@ -47,10 +47,161 @@ export const NetworkHealthPanel = () => {
   const { data: cron = [] } = useCronHealth();
   const { data: sync = [] } = useSyncOutboxHealth();
   const { data: cmds = [] } = useUpdateCommands();
+  const { data: servers = [] } = useLocalServersOverview();
+  const { data: inbox = [] } = useSyncInboxHealth();
+  const { data: outboxPerTable = [] } = useSyncOutboxPerTable();
   const names = useCasinoNameMap();
 
   return (
     <div className="space-y-6">
+      {/* Local servers */}
+      <div className="cms-panel p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <Server className="w-4 h-4 text-muted-foreground" />
+          <h3 className="text-sm font-semibold text-card-foreground">Local Servers</h3>
+          <span className="ml-auto text-[10px] text-muted-foreground">auto-refresh 30s</span>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border text-[10px] uppercase tracking-wider text-muted-foreground">
+                <th className="text-left px-3 py-2">Casino</th>
+                <th className="text-left px-3 py-2">Server</th>
+                <th className="text-left px-3 py-2">IP</th>
+                <th className="text-center px-3 py-2">Status</th>
+                <th className="text-left px-3 py-2">Version</th>
+                <th className="text-right px-3 py-2">Uptime</th>
+                <th className="text-center px-3 py-2">Containers</th>
+                <th className="text-right px-3 py-2">Disk</th>
+                <th className="text-left px-3 py-2">Last sync</th>
+              </tr>
+            </thead>
+            <tbody>
+              {servers.map(s => {
+                const stale = (s.minutes_since_sync ?? 0) > 5;
+                const containersOk = s.containers_running != null && s.containers_total != null && s.containers_running === s.containers_total;
+                const diskWarn = (s.disk_used_pct ?? 0) > 85;
+                return (
+                  <tr key={s.id} className="border-b border-border last:border-0">
+                    <td className="px-3 py-2 font-medium">{names.get(s.casino_id) ?? s.casino_id.slice(0, 8)}</td>
+                    <td className="px-3 py-2 font-mono text-xs">{s.server_name}</td>
+                    <td className="px-3 py-2 font-mono text-xs text-muted-foreground">{s.server_ip ?? "—"}</td>
+                    <td className="px-3 py-2 text-center">
+                      {s.is_online
+                        ? <Badge variant="default" className="text-[10px] gap-1"><Wifi className="w-3 h-3" />online</Badge>
+                        : <Badge variant="destructive" className="text-[10px] gap-1"><WifiOff className="w-3 h-3" />offline</Badge>}
+                    </td>
+                    <td className="px-3 py-2 font-mono text-xs">{s.current_version ?? "—"}</td>
+                    <td className="px-3 py-2 text-right text-xs text-muted-foreground">{fmtUptime(s.uptime_seconds)}</td>
+                    <td className="px-3 py-2 text-center text-xs">
+                      {s.containers_running != null
+                        ? <span className={containersOk ? "text-emerald-500" : "text-destructive font-semibold"}>{s.containers_running}/{s.containers_total}</span>
+                        : "—"}
+                    </td>
+                    <td className="px-3 py-2 text-right text-xs">
+                      {s.disk_used_pct != null
+                        ? <span className={diskWarn ? "text-warning font-semibold" : "text-muted-foreground"}>{s.disk_used_pct.toFixed(0)}%</span>
+                        : "—"}
+                    </td>
+                    <td className="px-3 py-2 text-xs">
+                      <span className={stale ? "text-warning" : "text-muted-foreground"}>
+                        {fmtMinutes(s.minutes_since_sync)} ago
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+              {servers.length === 0 && (
+                <tr><td colSpan={9} className="text-center py-6 text-sm text-muted-foreground">No local servers linked yet</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Sync inbox (incoming from local servers) */}
+      <div className="cms-panel p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <Inbox className="w-4 h-4 text-muted-foreground" />
+          <h3 className="text-sm font-semibold text-card-foreground">Sync Inbox — Incoming from Local (24h)</h3>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border text-[10px] uppercase tracking-wider text-muted-foreground">
+                <th className="text-left px-3 py-2">Casino</th>
+                <th className="text-right px-3 py-2">Applied 24h</th>
+                <th className="text-right px-3 py-2">Errors 24h</th>
+                <th className="text-left px-3 py-2">Last applied</th>
+                <th className="text-left px-3 py-2">Oldest error</th>
+              </tr>
+            </thead>
+            <tbody>
+              {inbox.map(i => (
+                <tr key={i.casino_id} className="border-b border-border last:border-0">
+                  <td className="px-3 py-2 font-medium">{names.get(i.casino_id) ?? i.casino_id.slice(0, 8)}</td>
+                  <td className="px-3 py-2 text-right font-mono">{i.total_24h}</td>
+                  <td className="px-3 py-2 text-right">
+                    {i.errors_24h > 0
+                      ? <span className="text-destructive font-semibold">{i.errors_24h}</span>
+                      : <span className="text-muted-foreground">0</span>}
+                  </td>
+                  <td className="px-3 py-2 text-xs text-muted-foreground">{fmtTime(i.last_applied_at)}</td>
+                  <td className="px-3 py-2 text-xs">
+                    {i.oldest_error_at
+                      ? <span className="text-destructive">{fmtTime(i.oldest_error_at)}</span>
+                      : <span className="text-muted-foreground">—</span>}
+                  </td>
+                </tr>
+              ))}
+              {inbox.length === 0 && (
+                <tr><td colSpan={5} className="text-center py-6 text-sm text-muted-foreground">No inbox activity in the last 24h</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Outbox per table breakdown */}
+      <div className="cms-panel p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <HardDrive className="w-4 h-4 text-muted-foreground" />
+          <h3 className="text-sm font-semibold text-card-foreground">Outbox by Table — Pending Changes</h3>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border text-[10px] uppercase tracking-wider text-muted-foreground">
+                <th className="text-left px-3 py-2">Casino</th>
+                <th className="text-left px-3 py-2">Table</th>
+                <th className="text-right px-3 py-2">Pending</th>
+                <th className="text-right px-3 py-2">Oldest (min)</th>
+                <th className="text-left px-3 py-2">Since</th>
+              </tr>
+            </thead>
+            <tbody>
+              {outboxPerTable.map((t, idx) => {
+                const stuck = (t.oldest_minutes ?? 0) > 10;
+                return (
+                  <tr key={`${t.casino_id}-${t.table_name}-${idx}`} className="border-b border-border last:border-0">
+                    <td className="px-3 py-2 font-medium">{names.get(t.casino_id) ?? t.casino_id.slice(0, 8)}</td>
+                    <td className="px-3 py-2 font-mono text-xs">{t.table_name}</td>
+                    <td className="px-3 py-2 text-right font-mono">{t.pending_count}</td>
+                    <td className={`px-3 py-2 text-right font-mono text-xs ${stuck ? "text-warning font-semibold" : "text-muted-foreground"}`}>
+                      {t.oldest_minutes != null ? Math.round(t.oldest_minutes) : "—"}
+                    </td>
+                    <td className="px-3 py-2 text-xs text-muted-foreground">{fmtTime(t.oldest_change_at)}</td>
+                  </tr>
+                );
+              })}
+              {outboxPerTable.length === 0 && (
+                <tr><td colSpan={5} className="text-center py-6 text-sm text-muted-foreground">All tables in sync ✓</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       {/* Cron health */}
       <div className="cms-panel p-4">
         <div className="flex items-center gap-2 mb-3">
