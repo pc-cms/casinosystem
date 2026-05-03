@@ -19,7 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import CategoryBadge, { type PlayerCategory } from "@/components/player/CategoryBadge";
 import CategoryFilter from "@/components/player/CategoryFilter";
 import FlagBadges from "@/components/player/FlagBadges";
-import { formatCurrency } from "@/lib/currency";
+import { formatCurrency, formatNumberCompact } from "@/lib/currency";
 import { offlineMutation } from "@/lib/offline-mutation";
 import { toast } from "sonner";
 
