@@ -189,9 +189,6 @@ const Pit = () => {
           <span className="opacity-80">{SHIFT_LABELS[s]}</span>
         </span>
       ))}
-      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono ${SHIFT_COLORS["O"]}`}>
-        <span className="font-bold">O</span><span className="opacity-80">Off</span>
-      </span>
       {activeTab === "attendance" && (
         <>
           <span className="mx-1 h-4 w-px bg-border" />
