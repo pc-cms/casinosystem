@@ -75,10 +75,35 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
     setValue.mutate({ table_id: tableId, date, time_slot: slot, value: numVal });
   };
 
-  const getSlotTotal = (slot: string) =>
-    trackerData.filter(t => t.time_slot === slot).reduce((s, t) => s + Number(t.value), 0);
+  // TOTALS = SNAPSHOT in time, NOT cumulative.
+  // Each cell is the table's CURRENT result at that hour (a snapshot,
+  // not an increment). So the column total is the sum across tables of
+  // each table's latest known snapshot at-or-before this slot.
+  // Tables not updated this hour keep their last reported value.
+  const getSlotTotal = (slot: string) => {
+    const slotIdx = SLOTS.indexOf(slot);
+    if (slotIdx < 0) return 0;
+    let sum = 0;
+    openTables.forEach(tbl => {
+      let last: number | null = null;
+      for (let i = 0; i <= slotIdx; i++) {
+        const v = getVal(tbl.id, SLOTS[i]);
+        if (v !== null && v !== undefined) last = v;
+      }
+      if (last !== null) sum += last;
+    });
+    return sum;
+  };
 
-  const grandTotal = trackerData.reduce((s, t) => s + Number(t.value), 0);
+  // Grand total of the day = sum of each table's latest snapshot across all slots.
+  const grandTotal = openTables.reduce((s, tbl) => {
+    let last: number | null = null;
+    SLOTS.forEach(slot => {
+      const v = getVal(tbl.id, slot);
+      if (v !== null && v !== undefined) last = v;
+    });
+    return s + (last ?? 0);
+  }, 0);
 
   const focusCell = (ti: number, si: number) => {
     const id = `cell-${ti}-${si}`;
