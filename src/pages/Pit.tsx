@@ -14,6 +14,7 @@ import BreaklistGrid from "@/components/pit/BreaklistGrid";
 import ActivePlayers from "@/components/pit/ActivePlayers";
 import TableTracker from "@/pages/TableTracker";
 import { getBusinessDate, isBusinessToday } from "@/lib/business-day";
+import { useClosedBusinessDates } from "@/hooks/use-business-day-closure";
 import { UNIFIED_SHIFT_COLORS, UNIFIED_ATT_COLORS, UNIFIED_SHIFT_TINTS } from "@/lib/shift-colors";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -770,6 +771,7 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
   const { data: dealers = [] } = useDealers();
   const { data: monthAttendance = [] } = useDealerAttendanceRange(startDate, endDate);
   const { data: rota = [] } = usePitRotaRange(startDate, endDate);
+  const { data: closedDates = new Set<string>() } = useClosedBusinessDates(startDate, endDate);
   const setAttendanceRaw = useSetDealerAttendance();
   const setAttendance = { mutate: (v: any) => {
     if (readOnly) { toast.error("Manager Access required to edit past months"); return; }
@@ -828,33 +830,20 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
     if (!isNaN(num) && num >= 0 && num <= 24) { setAttendance.mutate({ dealer_id: dealerId, date: dateStr, value: String(num) }); }
   };
 
-  // Auto-fill: for past business days (and today if EAT >= 11:00), any dealer
-  // scheduled M / N / E in pit_rota with an empty attendance cell gets 9 hours.
+  // Auto-fill: a day is auto-filled with 9 hours ONLY if its business day has
+  // been CLOSED (record exists in `business_day_closures`). The current open
+  // business day is never auto-filled, regardless of wall-clock time.
   // Cells that already have any value (S, A, "{n}S", number) are skipped.
   const autoFilledRef = useRef<Set<string>>(new Set());
   useEffect(() => {
     if (readOnly) return;
     if (!dealers.length) return;
-
-    const eatNow = new Date(
-      `${new Date().toLocaleDateString("en-CA", { timeZone: "Africa/Dar_es_Salaam" })}T${new Date().toLocaleTimeString("en-GB", { timeZone: "Africa/Dar_es_Salaam", hour12: false })}`
-    );
-    const eatY = eatNow.getFullYear();
-    const eatM = eatNow.getMonth() + 1;
-    const eatD = eatNow.getDate();
-    const eatHour = eatNow.getHours();
-
-    const monthIsPast = (y < eatY) || (y === eatY && m < eatM);
-    const monthIsCurrent = y === eatY && m === eatM;
-    if (!monthIsPast && !monthIsCurrent) return;
-
-    let cutoffDay = daysInMonth;
-    if (monthIsCurrent) cutoffDay = eatHour >= 11 ? eatD : eatD - 1;
-    if (cutoffDay < 1) return;
+    if (!closedDates || closedDates.size === 0) return;
 
     for (const d of activeDealers) {
-      for (let day = 1; day <= cutoffDay; day++) {
+      for (let day = 1; day <= daysInMonth; day++) {
         const dateStr = `${month}-${String(day).padStart(2, "0")}`;
+        if (!closedDates.has(dateStr)) continue;
         const key = `${d.id}|${dateStr}`;
         if (autoFilledRef.current.has(key)) continue;
 
@@ -869,7 +858,7 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dealers, monthAttendance, rota, month, readOnly]);
+  }, [dealers, monthAttendance, rota, month, readOnly, closedDates]);
 
   const getDealerTotals = (dealerId: string) => {
     let shifts = 0;
