@@ -990,31 +990,46 @@ export type Database = {
       }
       cctv_observations: {
         Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
           casino_id: string
           content: string
           created_at: string
           id: string
           observation_type: string
           observer_id: string
+          player_id: string | null
           shift_id: string | null
+          subject_type: string
+          table_id: string | null
         }
         Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
           casino_id: string
           content: string
           created_at?: string
           id?: string
           observation_type?: string
           observer_id: string
+          player_id?: string | null
           shift_id?: string | null
+          subject_type?: string
+          table_id?: string | null
         }
         Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
           casino_id?: string
           content?: string
           created_at?: string
           id?: string
           observation_type?: string
           observer_id?: string
+          player_id?: string | null
           shift_id?: string | null
+          subject_type?: string
+          table_id?: string | null
         }
         Relationships: [
           {
