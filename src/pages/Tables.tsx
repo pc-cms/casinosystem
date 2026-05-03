@@ -490,6 +490,8 @@ const Tables = () => {
             <Lock className="w-3 h-3" /> All counted — ready to close
           </Badge>
         )}
+
+        <CloseBusinessDayButton />
       </PageHeader>
 
       <>
