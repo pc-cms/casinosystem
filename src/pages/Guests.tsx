@@ -344,9 +344,10 @@ const Guests = () => {
                   <tr className="text-[10px] uppercase tracking-wider text-muted-foreground">
                     <th className="px-2 py-2 w-[42px]"></th>
                     <H k="name">Player</H>
+                    <th className="px-1 py-2 text-left w-[44px]">Lvl</th>
+                    <th className="px-2 py-2 text-left">Tags</th>
                     <H k="type">Type</H>
                     <H k="position">Position</H>
-                    <th className="px-2 py-2 text-left">Tags</th>
                     <H k="entry" align="center">Entry</H>
                     <H k="exit" align="center">Exit</H>
                     <th className="px-2 py-2 text-right w-[150px]">Actions</th>
