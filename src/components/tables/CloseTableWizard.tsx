@@ -315,11 +315,14 @@ export const CloseTableWizard = ({ open, onClose, tables, date, readOnly = false
                                 type="number"
                                 min="0"
                                 value={currentCounts[d] ?? ""}
+                                readOnly={readOnly}
+                                disabled={readOnly}
                                 onChange={e => {
+                                  if (readOnly) return;
                                   const v = e.target.value === "" ? 0 : parseInt(e.target.value, 10);
                                   setCount(d, isNaN(v) ? 0 : v);
                                 }}
-                                className="w-24 h-8 mx-auto block rounded text-[12px] font-mono text-center border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary text-card-foreground"
+                                className="w-24 h-8 mx-auto block rounded text-[12px] font-mono text-center border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary text-card-foreground disabled:opacity-100 disabled:cursor-default"
                                 placeholder={String(expected)}
                               />
                             </td>
