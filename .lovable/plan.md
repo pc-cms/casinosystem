@@ -1,148 +1,80 @@
-# Surveillance — финальная версия (с нуля)
+## Глобальный принцип CCTV
 
-Полностью переписываем интерфейс роли `surveillance`. Никаких лишних вкладок, никаких кнопок редактирования. Доступно строго 5 пунктов меню. Глубина истории — **90 дней**. Старый `CctvView` / `CctvLayout` удаляем — Surveillance везде использует обычный `AppLayout`.
+Surveillance **не вносит ничего** в финансовые/операционные модули. Единственное место, где он что-то постит — это **Pitbook** (общение с Pit). Везде остальное — только просмотр.
 
----
+## Что меняем
 
-## Меню (только эти пункты)
+### 1. Cage для surveillance — снять все write-кнопки
 
-### 1. Dashboard
-- Полная копия менеджерского `Dashboard` (KPI, In Casino, Tables, последние транзакции).
-- Внизу добавлен блок **Floor Staff** — список вышедшего на смену стафа.
-- Селектор бизнес-дня в шапке (до 90 дней назад).
-- Никаких кнопок действия (Check-out, Approve и т.п.).
+Файл: `src/components/cage/CageHistoryView.tsx`
 
-### 2. Pit (всё, что есть у Pit-роли — read-only)
-Один пункт меню `/pit` с табами:
-- **Breaklist** — таблица только для просмотра.
-- **Live Tables** — статус столов, текущий результат.
-- **Active Players / Player Tracker** — посадка, ставки, время.
-- **Table Check** + **Table Analytics**.
-- **Attendance** + **Rota** — Live + Floor + Security + Office.
+- **Удалить кнопку "New Chip Transfer"** во вкладке Chip Transfers (строки 261–269) и сопутствующий `ChipTransferPickerDialog` (строки 366+) — это сейчас единственный write-action в этом view.
+- **Убрать вкладку Expenses** (ты сказал отмена) — оставить 4 вкладки: IN/OUT, Cashless, Cage Transfers, Chip Transfers.
+- **Поправить grid вкладок**: сейчас `grid-cols-4`, оставляем `grid-cols-4` (Expenses и так была 5-й, удаляем — числа сходятся, но проверим JSX).
+- В Cashless вернуть/оставить provider-фильтр (MTN/Tigo/Airtel/Halopesa) — он уже есть.
 
-Селектор бизнес-дня (90 дней) переключает все табы на выбранный день.
+Итог Cage для CCTV: 4 read-only таба, ноль кнопок ввода.
 
-### 3. Player Statistics (как у менеджера, полная)
-- Полный список игроков с финансовой статистикой.
-- Поиск, фильтры, сортировки — как у менеджера.
-- Вход в карточку игрока (см. глобальный блок ниже): можно оставлять **Notes**, проставлять **Tags**, отправлять в **Blacklist**, делать **Chip Transfer**.
+### 2. Снять права на запись chip_transfers для surveillance
 
-### 4. Cage (read-only списки + Chip Transfers)
-Одна страница `/cage` с табами:
-- **IN / OUT** — все cash-транзакции (`transactions`) за выбранный день.
-- **Cashless** — все `cashless_transactions` за выбранный день.
-- **Cage Transfers** — `cage_transfers` (Cage↔Table) за выбранный день.
-- **Chip Transfers** — `chip_transfers` (player↔player) за выбранный день, **с кнопкой «New Chip Transfer»** — открывает существующий `ChipTransferDialog` (выбираем from-player, to-player, сумму/фишки). Это единственное действие, доступное Surveillance в Cage.
+Сейчас RLS даёт surveillance INSERT в `chip_transfers`. Меняем миграцией:
+- Drop INSERT policy для surveillance на `chip_transfers`.
+- Surveillance остаётся с SELECT.
 
-В шапке: селектор даты + список **закрытых смен** этого дня. Глубина — 90 дней. Никаких форм Add Float / Collection / Fill / Credit / Cashless.
+Также проверяем и удаляем у surveillance возможность писать в `players.status='blacklist'` через UI — оставляем только просмотр Blacklist (см. п. 5).
 
-### 5. Blacklist
-- Верхняя строка — глобальный поиск игроков (по имени/никнейму/ID/карте) для отправки в blacklist.
-- Под ней — список забаненных (фото, имя, **дата бана**, **последнее посещение**).
-- Кнопка «Reactivate» **скрыта** для Surveillance (только Manager).
+### 3. Новая страница /pitbook (CCTV ↔ Pit общение)
 
----
+Использует существующую таблицу `cctv_observations`.
 
-## Глобальные изменения карточки игрока (`/players/:id`)
+Маршрут: `/pitbook` — доступен ролям: `surveillance`, `pit`, `manager`, `super_admin`, `finance_manager`.
 
-Видны для **Pit / Manager / Surveillance / Super Admin**.
+UI (PageShell + PageHeader + PageSection):
+- Лента наблюдений (последние 7 дней) — автор, время, привязка (player / table / freeform), текст, статус (new / acknowledged).
+- Surveillance: видит форму "New observation" (textarea + опц. выбор player/table) → INSERT в `cctv_observations`.
+- Pit / Manager: видит ленту + кнопка "Acknowledge" (UPDATE флага).
+- Realtime подписка на таблицу для мгновенного обновления у Pit.
 
-### A. Кнопка «Add to Blacklist»
-- В верхней панели рядом с «Chip Transfer».
-- Открывает диалог с обязательным полем «Причина» → `players.status='blacklist'` + запись в `activity_logs`.
+Сайдбар:
+- Новая секция "PITBOOK" (или внутри существующего PIT-блока) с пунктом **Pitbook** — иконка `MessageSquare`, видна тем же ролям что и страница.
 
-### B. Вкладка «Notes»
-- Лента сообщений: **дата · автор · текст**, новые сверху.
-- Поле ввода + «Post» — Pit / Manager / Surveillance.
-- Хранится в `player_notes`.
+### 4. RLS для cctv_observations
 
-### C. Tags
-- Surveillance может добавлять/снимать теги (как Pit/Manager).
+Проверить/добавить миграцией:
+- SELECT: surveillance, pit, manager, super_admin, finance_manager (по своему casino).
+- INSERT: surveillance, manager, super_admin (author = auth.uid()).
+- UPDATE (acknowledge): pit, manager, super_admin.
 
-### D. Chip Transfer
-- Кнопка уже есть — добавляем `surveillance` в условие видимости.
+### 5. PIT-блок и остальное меню — без изменений
 
----
+По твоему ответу:
+- **Все 7 PIT-пунктов остаются read-only** (Break List, Live Tables, Player Statistics, Table Check, Table Analytics, Attendance, Rota) — ничего не трогаем.
+- Dashboard, Guests, Blacklist, Player Profile — остаются.
+- В Player Profile у surveillance остаются: notes, tags (это разрешённые "пятна" записи). Это согласуется с прошлым решением — НЕ трогаем.
+- В Blacklist surveillance может банить (создавать), не может снимать бан — оставляем как есть.
+
+### 6. Версия
+
+Бамп `package.json` patch (миграция RLS + новая страница) → 1.0.52.
 
 ## Технические детали
 
-### Маршрутизация
-`src/App.tsx`:
-- Удалить ветку `isCctvMode` и lazy-импорт `CctvView`.
-- `ROUTE_ROLES`: оставить `surveillance` только в `/`, `/pit`, `/player-statistics`, `/players/:id`, `/cage`, `/blacklist`. Убрать из `/tables`, `/in-casino`, `/players`, `/reports`, `/logs`, `/table-results`, `/miss-chips`.
-- `getDefaultRoute` для чистого Surveillance → `/`.
+**Файлы к правке:**
+- `src/components/cage/CageHistoryView.tsx` — убрать вкладку Expenses, удалить кнопку и диалог Chip Transfer.
+- `src/components/layout/AppSidebar.tsx` — добавить пункт Pitbook.
+- `src/App.tsx` — добавить маршрут `/pitbook` + permissions.
+- `src/pages/Pitbook.tsx` — новый файл (лента + форма).
+- `src/hooks/use-cctv-observations.ts` — новый хук (list / insert / acknowledge + realtime).
+- `src/lib/route-module-map.ts` — зарегистрировать `/pitbook`.
+- Миграция БД:
+  - DROP INSERT policy on `chip_transfers` for surveillance.
+  - Ensure RLS policies on `cctv_observations` (см. п. 4).
+  - Добавить колонку `acknowledged_at`, `acknowledged_by` в `cctv_observations` если их нет.
+- `package.json` → 1.0.52.
 
-### Read-only режим
-- Новый хук `src/hooks/use-readonly-mode.ts` → `true` если `surveillance` без `manager`/`super_admin` (и без активного `managerOverride`).
-- В компонентах Pit (BreaklistGrid, ActivePlayers, TableSeatingDialog, FloorTableCard, Attendance/Rota grids) — на верхнем уровне: если `readOnly`, отключаем onClick/onChange/drop, скрываем кнопки Add/Edit/Save/Approve/Close/Delete, ставим `pointer-events-none` на интерактивные ячейки.
-- Surveillance-разрешённые действия (Notes post, Tags toggle, Add to Blacklist, Chip Transfer, поиск в Blacklist) — read-only **не** блокирует.
+**Что НЕ делаем:**
+- Не трогаем PIT-меню surveillance.
+- Не добавляем Expenses в Cage.
+- Не трогаем Player Profile / Blacklist write-actions surveillance.
 
-### Сайдбар
-`src/components/layout/AppSidebar.tsx` `NAV_ITEMS` — для `surveillance` оставить только:
-- `/` (Dashboard)
-- `/pit` (Pit, без подпунктов в сайдбаре — табы внутри)
-- `/player-statistics` (Player Statistics)
-- `/cage` (Cage)
-- `/blacklist` (Blacklist)
-
-Все остальные пункты убрать из видимости Surveillance.
-
-### Селектор бизнес-дня
-- Контекст `src/lib/surveillance-date-context.tsx` (день + опционально `shift_id`).
-- Компонент `src/components/SurveillanceDatePicker.tsx` встраивается в `PageHeader` когда `useReadOnlyMode()`.
-- Лимит: max 90 дней назад, max — сегодня.
-- На страницах Dashboard / Pit / Cage / Player Statistics использовать выбранную дату вместо `getBusinessDate()`.
-
-### Cage страница для Surveillance
-- Новый компонент `src/components/cage/CageHistoryView.tsx`: 4 таба (IN/OUT, Cashless, Cage Transfers, Chip Transfers).
-- Фильтры по дате/смене.
-- В табе **Chip Transfers** — кнопка «New Chip Transfer» открывает `ChipTransferDialog` (уже существует, использует `useCreateChipTransferPair`).
-- В `src/pages/Cage.tsx`: если `useReadOnlyMode()` → рендерим `CageHistoryView` вместо обычного Cage UI.
-
-### Blacklist страница
-`src/pages/Blacklist.tsx`:
-- Сверху строка поиска игроков (использует `usePlayers`) с кнопкой «Send to Blacklist» (диалог с причиной).
-- В карточках — добавить «Banned at» и «Last visit».
-- Скрыть «Reactivate» для Surveillance.
-
-### Карточка игрока
-`src/pages/PlayerProfile.tsx`:
-- Условие на «Chip Transfer»/«Add to Blacklist»: `["pit","manager","surveillance","super_admin"]`.
-- Новый диалог `src/components/player/BlacklistPlayerDialog.tsx` (причина обязательна) → update `players.status='blacklist'` + лог.
-- Вкладка «Notes» с формой ввода видна Pit/Manager/Surveillance.
-- `usePlayerNotes` уже есть → нужен `useCreatePlayerNote`.
-
-### RLS / миграции
-Новая миграция `supabase/migrations/<timestamp>_surveillance_full_access.sql`:
-- `player_notes`: добавить INSERT policy для `surveillance` (по `user_has_casino_access`).
-- `player_tags`: INSERT/DELETE для `surveillance` в своих казино.
-- `players`: UPDATE `status` доступен `surveillance` (отдельный policy с `user_has_casino_access`).
-- `chip_transfers` уже разрешён через INSERT policy `pit/manager` — расширить до `surveillance`. Также проверить, что RPC `create_chip_transfer_pair` не делает `has_role('pit') OR has_role('manager')` явно — если делает, добавить `surveillance`.
-- SELECT policies для `transactions`, `cashless_transactions`, `cage_transfers`, `chip_transfers` для Surveillance уже есть — оставляем.
-
-### Файлы
-
-**Новые:**
-- `src/hooks/use-readonly-mode.ts`
-- `src/lib/surveillance-date-context.tsx`
-- `src/components/SurveillanceDatePicker.tsx`
-- `src/components/cage/CageHistoryView.tsx`
-- `src/components/player/BlacklistPlayerDialog.tsx`
-- `supabase/migrations/<timestamp>_surveillance_full_access.sql`
-
-**Изменённые:**
-- `src/App.tsx` — убрать CCTV ветку, обновить `ROUTE_ROLES`, default route.
-- `src/components/layout/AppSidebar.tsx` — урезать видимость Surveillance до 5 пунктов.
-- `src/pages/Dashboard.tsx` — добавить Floor Staff блок, использовать SurveillanceDate.
-- `src/pages/Pit.tsx` + `src/components/pit/*` — read-only хуки, поддержка SurveillanceDate.
-- `src/pages/Cage.tsx` — branch на `CageHistoryView` для Surveillance.
-- `src/pages/Blacklist.tsx` — поиск + send-to-blacklist + новые поля + скрытие Reactivate.
-- `src/pages/PlayerProfile.tsx` — кнопка Blacklist, расширить Chip Transfer на surveillance, вкладка Notes.
-- `src/hooks/use-player-profile.ts` — `useCreatePlayerNote`.
-
-**Удалённые:**
-- `src/pages/CctvView.tsx`
-- `src/components/cctv/CctvLayout.tsx`
-- `src/hooks/use-cctv.ts` (если используется только в CctvView).
-
-После approve выйду из plan-mode и реализую всё разом.
+После апрува переключаюсь в build mode и применяю.
