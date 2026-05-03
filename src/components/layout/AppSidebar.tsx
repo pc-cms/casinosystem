@@ -44,19 +44,17 @@ const NAV_ITEMS: NavItem[] = [
   // OVERVIEW
   { to: "/", icon: LayoutDashboard, label: "Dashboard", roles: ["super_admin", "manager", "pit", "reception", "finance_manager", "surveillance"], section: "OVERVIEW" },
 
-  // SURVEILLANCE-only condensed entries (single Pit + single Cage + Player Statistics)
-  { to: "/pit", icon: Gamepad2, label: "Pit", roles: ["surveillance"], section: "PIT" },
-  { to: "/player-statistics", icon: Users, label: "Player Statistics", roles: ["surveillance"], section: "PIT" },
+  // SURVEILLANCE-only condensed entries (Cage stays single — read-only viewer)
   { to: "/cage", icon: Landmark, label: "Cage", roles: ["surveillance"], section: "CASHIER" },
 
-  // PIT — Break List, Live Tables, trackers, Attendance (parent), Rota (parent)
-  { to: "/pit?tab=breaklist", icon: ListChecks, label: "Break List", roles: ["super_admin", "manager", "pit", "finance_manager"], section: "PIT" },
-  { to: "/tables", icon: Table2, label: "Live Tables", roles: ["super_admin", "manager", "pit", "finance_manager"], section: "PIT" },
-  { to: "/player-statistics", icon: Users, label: "Player Statistics", roles: ["super_admin", "manager", "pit", "finance_manager"], section: "PIT" },
-  { to: "/table-tracker", icon: Target, label: "Table Check", roles: ["super_admin", "manager", "pit", "finance_manager"], section: "PIT" },
-  { to: "/tables/analytics", icon: Target, label: "Table Analytics", roles: ["super_admin", "manager", "finance_manager", "pit"], section: "PIT" },
-  { to: "__attendance__", icon: ClipboardPen, label: "Attendance", roles: ["super_admin", "manager", "pit", "finance_manager"], section: "PIT" },
-  { to: "__rota__", icon: CalendarDays, label: "Rota", roles: ["super_admin", "manager", "pit", "finance_manager"], section: "PIT" },
+  // PIT — Break List, Live Tables, trackers, Attendance (parent), Rota (parent). Surveillance: read-only access to all.
+  { to: "/pit?tab=breaklist", icon: ListChecks, label: "Break List", roles: ["super_admin", "manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
+  { to: "/tables", icon: Table2, label: "Live Tables", roles: ["super_admin", "manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
+  { to: "/player-statistics", icon: Users, label: "Player Statistics", roles: ["super_admin", "manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
+  { to: "/table-tracker", icon: Target, label: "Table Check", roles: ["super_admin", "manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
+  { to: "/tables/analytics", icon: Target, label: "Table Analytics", roles: ["super_admin", "manager", "finance_manager", "pit", "surveillance"], section: "PIT" },
+  { to: "__attendance__", icon: ClipboardPen, label: "Attendance", roles: ["super_admin", "manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
+  { to: "__rota__", icon: CalendarDays, label: "Rota", roles: ["super_admin", "manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
 
   // CASHIER — Cage operations
   { to: "/cage", icon: Landmark, label: "Cage", roles: ["super_admin", "manager", "cashier", "finance_manager"], section: "CASHIER" },
