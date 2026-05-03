@@ -8,7 +8,7 @@ import {
   Building2, UserCheck, ClipboardPen, ShieldCheck, ShieldOff,
   Wallet, DoorOpen, ShieldAlert, Menu, Upload, FileText,
   ChevronsLeft, ChevronsRight, CreditCard, CalendarDays, ChevronDown, ChevronRight, Coins, Briefcase,
-  RefreshCw,
+  RefreshCw, MessageSquare,
 } from "lucide-react";
 import { resetPWACache } from "@/lib/pwa-register";
 import { useTheme } from "@/lib/theme";
