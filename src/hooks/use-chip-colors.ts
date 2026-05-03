@@ -44,6 +44,33 @@ export const DEFAULT_CHIP_HEX: Record<number, ChipColors> = {
 
 export const useChipColors = () => {
   const { casinoId } = useAuth();
+  const qc = useQueryClient();
+
+  // Live updates: any user in this casino who edits chip colors via Admin
+  // → all other connected clients (Pit, Cashier, Reception) refresh in 1-2s.
+  // No "force update" button needed.
+  useEffect(() => {
+    if (!casinoId) return;
+    const channel = supabase
+      .channel(`chip_color_settings:${casinoId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "chip_color_settings",
+          filter: `casino_id=eq.${casinoId}`,
+        },
+        () => {
+          qc.invalidateQueries({ queryKey: ["chip_color_settings", casinoId] });
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [casinoId, qc]);
+
   return useQuery({
     queryKey: ["chip_color_settings", casinoId],
     queryFn: async (): Promise<Record<number, ChipColors>> => {
@@ -64,7 +91,8 @@ export const useChipColors = () => {
       return map;
     },
     enabled: !!casinoId,
-    staleTime: 1000 * 60 * 5,
+    // staleTime intentionally short — realtime channel handles freshness.
+    staleTime: 30_000,
   });
 };
 
