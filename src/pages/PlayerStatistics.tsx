@@ -172,6 +172,8 @@ const PlayerStatistics = () => {
     if (tab === "present") list = list.filter((r: any) => r.isPresent);
     if (tab === "left") list = list.filter((r: any) => !r.isPresent);
     list = list.filter((r: any) => categoryFilter.has(r.category));
+    if (posFilter === "table") list = list.filter((r: any) => r.position === "table");
+    else if (posFilter === "slots") list = list.filter((r: any) => r.position === "slots");
     if (search) {
       const q = search.toLowerCase();
       list = list.filter((r: any) =>
