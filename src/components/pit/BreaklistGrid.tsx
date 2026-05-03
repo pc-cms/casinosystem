@@ -281,18 +281,27 @@ const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }
           <table className="w-full border-collapse">
             <thead>
               <tr className="border-b border-border">
-                <th className="text-center text-[9px] font-medium text-muted-foreground uppercase px-1 py-2 min-w-[24px] sticky left-0 bg-card z-10">
-                  C
+                <th className="text-center text-[9px] font-medium text-muted-foreground uppercase px-1 py-2 min-w-[26px] sticky left-0 bg-card z-10">
+                  #
+                </th>
+                <th
+                  onClick={() => setSortBy("category")}
+                  className={`text-center text-[9px] font-medium uppercase px-1 py-2 min-w-[24px] sticky left-[26px] bg-card z-10 cursor-pointer hover:text-foreground select-none ${sortBy === "category" ? "text-foreground" : "text-muted-foreground"}`}
+                  title="Sort by Category"
+                >
+                  C {sortBy === "category" && "↓"}
                 </th>
                 <th
                   onClick={() => setSortBy("name")}
-                  className="text-left text-xs font-medium text-muted-foreground uppercase px-3 py-2 sticky left-[24px] bg-card z-10 min-w-[120px] cursor-pointer hover:text-foreground select-none"
+                  className={`text-left text-xs font-medium uppercase px-3 py-2 sticky left-[50px] bg-card z-10 min-w-[120px] cursor-pointer hover:text-foreground select-none ${sortBy === "name" ? "text-foreground" : "text-muted-foreground"}`}
+                  title="Sort by Name"
                 >
                   Name {sortBy === "name" && "↓"}
                 </th>
                 <th
                   onClick={() => setSortBy("shift")}
-                  className="text-center text-[9px] font-medium text-muted-foreground uppercase px-1 py-2 min-w-[32px] cursor-pointer hover:text-foreground select-none"
+                  className={`text-center text-[9px] font-medium uppercase px-1 py-2 min-w-[32px] cursor-pointer hover:text-foreground select-none ${sortBy === "shift" ? "text-foreground" : "text-muted-foreground"}`}
+                  title="Sort by Shift"
                 >
                   S {sortBy === "shift" && "↓"}
                 </th>
