@@ -1,17 +1,34 @@
 /**
  * NetworkHealthPanel — super_admin / finance_manager view of:
- *   - cron job health (last run, status, 24h failures)
- *   - sync outbox depth per casino (pending / failed / oldest pending)
- *   - recent update_commands queue
+ *   - local servers status (online/offline, version, disk, containers)
+ *   - cron job health
+ *   - sync outbox depth per casino + per-table breakdown
+ *   - sync inbox stats (incoming changes from local servers)
+ *   - update_commands queue
  */
-import { useCronHealth, useSyncOutboxHealth, useUpdateCommands } from "@/hooks/use-network-admin";
+import {
+  useCronHealth, useSyncOutboxHealth, useUpdateCommands,
+  useLocalServersOverview, useSyncInboxHealth, useSyncOutboxPerTable,
+} from "@/hooks/use-network-admin";
 import { Badge } from "@/components/ui/badge";
-import { Activity, Database, Rocket, AlertTriangle, CheckCircle2, Clock } from "lucide-react";
+import { Activity, Database, Rocket, AlertTriangle, CheckCircle2, Clock, Server, Inbox, HardDrive, Wifi, WifiOff } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 const fmtMs = (ms: number | null) => ms == null ? "—" : ms < 1000 ? `${Math.round(ms)} ms` : `${(ms / 1000).toFixed(2)} s`;
 const fmtTime = (ts: string | null) => ts ? new Date(ts).toLocaleString() : "—";
+const fmtUptime = (s: number | null) => {
+  if (s == null) return "—";
+  const d = Math.floor(s / 86400);
+  const h = Math.floor((s % 86400) / 3600);
+  return d > 0 ? `${d}d ${h}h` : `${h}h`;
+};
+const fmtMinutes = (m: number | null) => {
+  if (m == null) return "—";
+  if (m < 1) return "<1m";
+  if (m < 60) return `${Math.round(m)}m`;
+  return `${(m / 60).toFixed(1)}h`;
+};
 
 const useCasinoNameMap = () => {
   const { data } = useQuery({
