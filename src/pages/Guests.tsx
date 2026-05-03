@@ -230,69 +230,41 @@ const Guests = () => {
   const renderRow = (r: any, idx: number) => (
     <tr
       key={r.id}
-      className={`border-b border-border hover:bg-muted/30 transition-colors ${!r.isInside ? "opacity-70" : ""}`}
+      className={`border-b border-border hover:bg-muted/30 transition-colors ${r.isCandidate ? "bg-primary/5" : !r.isInside ? "opacity-70" : ""}`}
     >
-      {/* # */}
-      <td className="px-2 py-1.5 w-[36px] text-center font-mono text-[10px] text-muted-foreground">
-        {idx + 1}
-      </td>
-      {/* Photo */}
+      <td className="px-2 py-1.5 w-[36px] text-center font-mono text-[10px] text-muted-foreground">{idx + 1}</td>
       <td className="px-2 py-1.5 w-[42px]">
         <div className="w-8 h-8 rounded-full bg-muted overflow-hidden flex items-center justify-center shrink-0">
-          {r.photoUrl ? (
-            <img src={r.photoUrl} alt="" className="w-full h-full object-cover" />
-          ) : (
-            <User className="w-4 h-4 text-muted-foreground" />
-          )}
+          {r.photoUrl ? <img src={r.photoUrl} alt="" className="w-full h-full object-cover" /> : <User className="w-4 h-4 text-muted-foreground" />}
         </div>
       </td>
-      {/* Level (category) */}
-      <td className="px-1 py-1.5 w-[44px]">
-        <CategoryBadge category={r.category} />
-      </td>
-      {/* Player name */}
+      <td className="px-1 py-1.5 w-[44px]"><CategoryBadge category={r.category} /></td>
       <td className="px-2 py-1.5 max-w-[180px]">
-        <p className="text-xs font-semibold text-card-foreground truncate">
-          {r.firstName} {r.lastName}
-        </p>
+        <p className="text-xs font-semibold text-card-foreground truncate">{r.firstName} {r.lastName}</p>
+        {r.isCandidate && <p className="text-[9px] text-muted-foreground italic">Not checked in today</p>}
       </td>
-      {/* Tags - long field */}
       <td className="px-2 py-1.5 min-w-[280px]">
         {r.tags.length > 0 ? <FlagBadges tags={r.tags} compact /> : <span className="text-muted-foreground text-[10px]">·</span>}
       </td>
-      {/* Type */}
       <td className="px-1 py-1.5 w-[70px]">
-        {r.playerType ? (
-          <Badge className={`${TYPE_CLASSES[r.playerType] || ""} text-[10px]`}>{TYPE_LABELS[r.playerType] || r.playerType}</Badge>
-        ) : <span className="text-muted-foreground text-[10px]">·</span>}
+        {r.playerType ? <Badge className={`${TYPE_CLASSES[r.playerType] || ""} text-[10px]`}>{TYPE_LABELS[r.playerType] || r.playerType}</Badge> : <span className="text-muted-foreground text-[10px]">·</span>}
       </td>
-      {/* Position */}
       <td className="px-1 py-1.5 w-[70px]">
-        <PositionBadge pos={r.position} />
+        {r.isCandidate ? <span className="text-muted-foreground text-[10px]">·</span> : <PositionBadge pos={r.position} />}
       </td>
-      {/* Entry */}
-      <td className="px-1 py-1.5 font-mono text-xs w-[44px] text-center">{formatTime(r.entryAt)}</td>
-      {/* Exit */}
-      <td className="px-1 py-1.5 font-mono text-xs w-[44px] text-center">{formatTime(r.exitAt)}</td>
-      {/* Actions */}
+      <td className="px-1 py-1.5 font-mono text-xs w-[44px] text-center">{r.isCandidate ? "·" : formatTime(r.entryAt)}</td>
+      <td className="px-1 py-1.5 font-mono text-xs w-[44px] text-center">{r.isCandidate ? "·" : formatTime(r.exitAt)}</td>
       <td className="px-1 py-1.5 text-right whitespace-nowrap">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-7 w-7 p-0"
-          title="View profile"
-          onClick={(e) => { e.stopPropagation(); setProfilePlayer(r.rawPlayer); }}
-        >
+        <Button variant="ghost" size="sm" className="h-7 w-7 p-0" title="View profile" onClick={(e) => { e.stopPropagation(); setProfilePlayer(r.rawPlayer); }}>
           <Eye className="w-3.5 h-3.5" />
         </Button>
-        {r.isInside && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-7 ml-1 text-xs gap-1"
-            onClick={() => confirmExit.mutate(r.id)}
-            disabled={confirmExit.isPending}
-          >
+        {r.isCandidate && canCheckIn && (
+          <Button variant="default" size="sm" className="h-7 ml-1 text-xs gap-1" onClick={() => checkIn.mutate(r.playerId)} disabled={checkIn.isPending}>
+            <LogIn className="w-3 h-3" /> Check In
+          </Button>
+        )}
+        {!r.isCandidate && r.isInside && (
+          <Button variant="outline" size="sm" className="h-7 ml-1 text-xs gap-1" onClick={() => confirmExit.mutate(r.id)} disabled={confirmExit.isPending}>
             <LogOut className="w-3 h-3" /> Check Out
           </Button>
         )}
