@@ -187,14 +187,19 @@ const Guests = () => {
           )}
         </div>
       </td>
-      {/* Player */}
+      {/* Player name */}
       <td className="px-2 py-1.5 max-w-[180px]">
-        <div className="flex items-center gap-1.5 min-w-0">
-          <CategoryBadge category={r.category} />
-          <p className="text-xs font-semibold text-card-foreground truncate">
-            {r.firstName} {r.lastName}
-          </p>
-        </div>
+        <p className="text-xs font-semibold text-card-foreground truncate">
+          {r.firstName} {r.lastName}
+        </p>
+      </td>
+      {/* Level (category) */}
+      <td className="px-1 py-1.5 w-[44px]">
+        <CategoryBadge category={r.category} />
+      </td>
+      {/* Tags */}
+      <td className="px-2 py-1.5 max-w-[180px]">
+        {r.tags.length > 0 ? <FlagBadges tags={r.tags} compact /> : <span className="text-muted-foreground text-[10px]">·</span>}
       </td>
       {/* Type */}
       <td className="px-1 py-1.5 w-[70px]">
@@ -205,10 +210,6 @@ const Guests = () => {
       {/* Position */}
       <td className="px-1 py-1.5 w-[70px]">
         <PositionBadge pos={r.position} />
-      </td>
-      {/* Tags */}
-      <td className="px-2 py-1.5 max-w-[180px]">
-        {r.tags.length > 0 ? <FlagBadges tags={r.tags} compact /> : <span className="text-muted-foreground text-[10px]">·</span>}
       </td>
       {/* Entry */}
       <td className="px-1 py-1.5 font-mono text-xs w-[44px] text-center">{formatTime(r.entryAt)}</td>
@@ -343,9 +344,10 @@ const Guests = () => {
                   <tr className="text-[10px] uppercase tracking-wider text-muted-foreground">
                     <th className="px-2 py-2 w-[42px]"></th>
                     <H k="name">Player</H>
+                    <th className="px-1 py-2 text-left w-[44px]">Lvl</th>
+                    <th className="px-2 py-2 text-left">Tags</th>
                     <H k="type">Type</H>
                     <H k="position">Position</H>
-                    <th className="px-2 py-2 text-left">Tags</th>
                     <H k="entry" align="center">Entry</H>
                     <H k="exit" align="center">Exit</H>
                     <th className="px-2 py-2 text-right w-[150px]">Actions</th>
@@ -354,7 +356,7 @@ const Guests = () => {
                 <tbody>
                   {filtered.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="px-2 py-8 text-center text-muted-foreground text-xs">
+                      <td colSpan={9} className="px-2 py-8 text-center text-muted-foreground text-xs">
                         No guests to display
                       </td>
                     </tr>
