@@ -91,6 +91,7 @@ const ROUTE_ROLES: Record<string, string[]> = {
   "/": ["super_admin", "manager", "pit", "reception", "finance_manager", "surveillance"],
   
   "/players/:id": ["super_admin", "manager", "pit", "reception", "finance_manager", "surveillance"],
+  "/guests": ["super_admin", "manager", "reception", "finance_manager"],
   "/in-casino": ["super_admin", "manager", "reception", "finance_manager"],
   "/blacklist": ["super_admin", "manager", "reception", "finance_manager", "surveillance"],
   "/reception": ["super_admin", "manager", "reception", "finance_manager"],
