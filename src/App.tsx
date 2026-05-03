@@ -183,9 +183,9 @@ const ProtectedRoutes = () => {
           <Route path="/in-casino" element={<RoleGuard path="/in-casino"><InCasino /></RoleGuard>} />
           <Route path="/blacklist" element={<RoleGuard path="/blacklist"><Blacklist /></RoleGuard>} />
           <Route path="/tables" element={<RoleGuard path="/tables"><Tables /></RoleGuard>} />
-          <Route path="/active-players" element={<Navigate to="/player-statistics" replace />} />
-          <Route path="/player-statistics" element={<RoleGuard path="/player-statistics"><PlayerStatistics /></RoleGuard>} />
-          <Route path="/player-tracker" element={<Navigate to="/player-statistics" replace />} />
+          <Route path="/active-players" element={<Navigate to="/players" replace />} />
+          <Route path="/player-statistics" element={<Navigate to="/players" replace />} />
+          <Route path="/player-tracker" element={<Navigate to="/players" replace />} />
           <Route path="/table-tracker" element={<RoleGuard path="/table-tracker"><TableTracker /></RoleGuard>} />
           <Route path="/tables/analytics" element={<RoleGuard path="/tables/analytics"><TablesAnalytics /></RoleGuard>} />
           <Route path="/expenses" element={<RoleGuard path="/expenses"><Expenses /></RoleGuard>} />
