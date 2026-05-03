@@ -65,7 +65,7 @@ const NAV_ITEMS: NavItem[] = [
 
   // RECEPTION — Players & entry
   { to: "/reception", icon: DoorOpen, label: "Reception", roles: ["super_admin", "manager", "reception", "finance_manager"], section: "RECEPTION" },
-  { to: "/in-casino", icon: UserCheck, label: "In Casino", roles: ["super_admin", "manager", "reception", "finance_manager"], section: "RECEPTION" },
+  { to: "/guests", icon: UserCheck, label: "Guests", roles: ["super_admin", "manager", "reception", "finance_manager"], section: "RECEPTION" },
   
   { to: "/blacklist", icon: ShieldAlert, label: "Blacklist", roles: ["super_admin", "manager", "reception", "finance_manager", "surveillance"], section: "RECEPTION" },
 
