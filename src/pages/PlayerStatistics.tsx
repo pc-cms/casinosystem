@@ -49,6 +49,7 @@ const PlayerStatistics = () => {
   const [categoryFilter, setCategoryFilter] = useState<Set<PlayerCategory>>(
     new Set(["diamond", "platinum", "gold", "normal"])
   );
+  const [posFilter, setPosFilter] = useState<"mix" | "table" | "slots">("mix");
   const [transferPlayer, setTransferPlayer] = useState<{ id: string; first_name: string; last_name: string; nickname?: string | null } | null>(null);
   type SortKey = "name" | "position" | "entry" | "exit" | "avgBet" | "inDrop" | "out" | "chipIn" | "chipOut" | "chipDelta" | "result";
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
