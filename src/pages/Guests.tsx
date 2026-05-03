@@ -40,7 +40,7 @@ const Guests = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const [tab, setTab] = useState<TabKey>("all");
+  const [tab, setTab] = useState<TabKey>("day");
   const [search, setSearch] = useState("");
   const [posFilter, setPosFilter] = useState<"all" | "table" | "slots" | "hall">("all");
   const [typeFilter, setTypeFilter] = useState<"all" | "slots" | "table" | "mix">("all");
