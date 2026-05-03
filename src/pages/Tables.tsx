@@ -329,7 +329,6 @@ const Tables = () => {
       const result = liveTableResult({
         tableId: t.id,
         closingResult: t.closing_result as any,
-        trackerData: trackerData as any,
         snapshotIndex,
         baselineMap,
       });

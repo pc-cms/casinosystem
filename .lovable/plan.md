@@ -1,42 +1,50 @@
-# Pending Task: DB Scaling for 3+ Years
+## Цель
 
-**Status**: APPROVED, deferred. Не запускать пока пользователь не скажет (завтра после 13:00 EAT).
+Сделать **Result** на всех экранах единым по правилу:
 
-## Что будет сделано (по команде пользователя)
+- **DROP R** = реальный дроп денег (с учётом NEP) — без изменений
+- **DROP V** = счётчики столов (Table Tracker) + турновер — без изменений
+- **Result** = **последний Chip Count snapshot vs исходный baseline стола**. Никаких кумулятивных сумм. Никакого Table Tracker в Result.
 
-### 1. Сохранить задачу в память
-Создать `mem://tasks/db-scaling-3-years` с полным контекстом плана, чтобы при возврате к задаче я сразу знал что делать.
+Применяется **глобально ко всем столам** (AR, BJ, Poker, Texas Holdem и т.д.) во всех экранах.
 
-### 2. Миграция: cron `archive_operational_purge` (ежедневно 04:00 EAT)
-Удаляет из `chip_snapshots`, `breaklist`, `breaklist_logs`, `table_tracker` записи старше 95 дней — **только для (casino_id, date), у которых есть запись в `business_day_closures`**. Логирует в `cron_run_log`. SECURITY DEFINER.
+## Логика для каждого стола
 
-### 3. Миграция: BRIN-индексы по `created_at`
-Для `transactions`, `cashless_transactions`, `cage_transfers`, `client_sessions`, `chip_snapshots`. Дешёвые (~10 КБ на 1M записей), идеальны для time-range запросов.
+```text
+if (table.closing_result != null) → closing_result   // стол закрыт
+else if (есть snapshot)            → Σ (snap.actual − baseline.expected) × denom
+else                                → 0
+```
 
-### 4. Миграция: `player_lifetime_stats` + триггеры
-Таблица `player_id, total_drop, total_nep, total_cashin, total_cashout, last_visit, visit_count`. Обновляется триггерами на `transactions`, `chip_transfers`, `casino_visits`. Player Card / Tracker читают одну строку вместо агрегации миллионов.
+## Изменения в файлах
 
-### 5. Snapshot fallback в `/business-days`
-Проверить, что хук `use-business-day-history` корректно отдаёт данные из `business_day_closures.snapshot` когда live-таблицы уже очищены.
+1. **`src/lib/table-live-result.ts`** — упростить `liveTableResult`:
+   - Убрать аргумент `trackerData` и всю логику сравнения времён snapshot vs tracker.
+   - Snapshot есть → считать против `baselineMap[tableId]` (исходный baseline).
+   - Snapshot нет → `0`.
 
-### 6. UI: виджет «Database Health» в Admin
-Размер БД, топ-10 таблиц, дни оперативного хранения, дата последнего purge.
+2. **`src/pages/Dashboard.tsx`** — убрать `trackerData` из вызова `liveTableResult`.
 
-### 7. Auto-bump `package.json` patch version
-Согласно правилу — есть бэкенд-изменения.
+3. **`src/pages/Tables.tsx`** — убрать `trackerData` из вызова `liveTableResult`.
 
-## Что НЕ трогаем (вечное хранение)
-`transactions`, `cashless_transactions`, `cage_transfers`, `chip_transfers`, `expenses`, `bank_checks`, `cash_count_snapshots`, `table_daily_results`, `daily_summaries`, `business_day_closures`, `wallet_transactions`, `budget_*`, `chip_emissions`, `miss_chips`, `casino_visits`, `client_sessions`, `cctv_observations`, `player_position_history`.
+4. **`src/pages/TablesAnalytics.tsx`** — убрать `trackerData` из вызова `liveTableResult`.
 
-## Защита
-- НЕ запускать в рабочие часы казино (18:00–05:00 EAT).
-- Cron purge работает в 04:00 — между авто-закрытием и утренним handover.
-- Каждый DELETE проверяет `business_day_closures` перед удалением.
-- Все изменения SECURITY DEFINER + логирование в `cron_run_log`.
+5. **DROP V** — оставить как есть: `trackerSum + recycled` (`useTablesDropSplit` + `tableTrackerTotals`).
 
-## Прогноз
-3 года × 5 казино: ~13 ГБ итого. Postgres легко работает с 100+ ГБ.
+6. **DROP R** — оставить как есть: из `useTablesDropSplit` (NEP-aware) с fallback на buy/in транзакции.
 
----
+7. **Snapshot history таблица** в `ChipCountPanel.tsx` — НЕ трогать (там специально дельта между сейвами).
 
-**После апрува**: я только сохраню задачу в память. Все миграции запускаются ТОЛЬКО когда пользователь явно скажет «запускай DB scaling» завтра.
+## Memory
+
+Обновить `mem://features/live-table-result-resolution`:
+- Result = только последний snapshot vs baseline. Никаких кумулятивных значений.
+- Tracker используется только для Drop V, не для Result.
+
+## Проверка ожидаемых значений (03.05.2026, AR1)
+
+- Последний snapshot 23:57: actual − исходный baseline = **+TZS 3 240 000** ✓
+- DROP R = 5 000 000 (внешний) — без изменений
+- DROP V = 6 975 000 (tracker+recycled) — без изменений
+
+То же поведение применится автоматически ко всем остальным столам (AR2, BJ1, P1–P4 и далее).
