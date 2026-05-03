@@ -49,6 +49,7 @@ const PlayerStatistics = () => {
   const [categoryFilter, setCategoryFilter] = useState<Set<PlayerCategory>>(
     new Set(["diamond", "platinum", "gold", "normal"])
   );
+  const [posFilter, setPosFilter] = useState<"mix" | "table" | "slots">("mix");
   const [transferPlayer, setTransferPlayer] = useState<{ id: string; first_name: string; last_name: string; nickname?: string | null } | null>(null);
   type SortKey = "name" | "position" | "entry" | "exit" | "avgBet" | "inDrop" | "out" | "chipIn" | "chipOut" | "chipDelta" | "result";
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
@@ -171,6 +172,8 @@ const PlayerStatistics = () => {
     if (tab === "present") list = list.filter((r: any) => r.isPresent);
     if (tab === "left") list = list.filter((r: any) => !r.isPresent);
     list = list.filter((r: any) => categoryFilter.has(r.category));
+    if (posFilter === "table") list = list.filter((r: any) => r.position === "table");
+    else if (posFilter === "slots") list = list.filter((r: any) => r.position === "slots");
     if (search) {
       const q = search.toLowerCase();
       list = list.filter((r: any) =>
@@ -204,7 +207,7 @@ const PlayerStatistics = () => {
       if (a.isPresent !== b.isPresent) return a.isPresent ? -1 : 1;
       return new Date(b.entryAt).getTime() - new Date(a.entryAt).getTime();
     });
-  }, [rows, tab, categoryFilter, search, sortKey, sortDir]);
+  }, [rows, tab, categoryFilter, posFilter, search, sortKey, sortDir]);
 
   const counts = useMemo(() => ({
     day: rows.length,
@@ -304,11 +307,11 @@ const PlayerStatistics = () => {
           onValueChange={(v) => setPosition.mutate({ visitId: r.id, playerId: r.playerId, newPos: v })}
           disabled={setPosition.isPending}
         >
-          <SelectTrigger className="h-6 px-2 py-0 text-[10px] w-auto min-w-[90px]">
+          <SelectTrigger className="h-6 px-1.5 py-0 text-[10px] w-full min-w-0">
             <SelectValue>
               {currentValue === "hall" ? "Hall"
                 : currentValue === "slots" ? "Slots"
-                : <span className="font-mono">{r.tableName ?? "Table"}</span>}
+                : <span className="font-mono truncate">{r.tableName ?? "T"}</span>}
             </SelectValue>
           </SelectTrigger>
           <SelectContent>
@@ -332,44 +335,43 @@ const PlayerStatistics = () => {
       onClick={() => navigate(`/players/${r.playerId}`)}
       className="border-b border-border hover:bg-muted/30 cursor-pointer transition-colors"
     >
-      <td className="px-2 py-1.5">
-        <div className="flex items-center gap-2 min-w-0">
+      <td className="px-2 py-1.5 max-w-[180px]">
+        <div className="flex items-center gap-1.5 min-w-0">
           <CategoryBadge category={r.category} />
           <div className="min-w-0">
             <p className="text-xs font-semibold text-card-foreground truncate">
               {r.firstName} {r.lastName}
-              {r.nickname && <span className="text-muted-foreground font-normal"> "{r.nickname}"</span>}
             </p>
             {r.flags?.length > 0 && <FlagBadges tags={r.flags} compact />}
           </div>
         </div>
       </td>
-      <td className="px-2 py-1.5">{renderPositionCell(r)}</td>
-      <td className="px-2 py-1.5 font-mono text-xs">{formatTime(r.entryAt)}</td>
-      <td className="px-2 py-1.5 font-mono text-xs">{r.exitAt ? formatTime(r.exitAt) : "·"}</td>
+      <td className="px-1 py-1.5 w-[110px]">{renderPositionCell(r)}</td>
+      <td className="px-1 py-1.5 font-mono text-xs w-[44px] text-center">{formatTime(r.entryAt)}</td>
+      <td className="px-1 py-1.5 font-mono text-xs w-[44px] text-center">{r.exitAt ? formatTime(r.exitAt) : "·"}</td>
       {showFinancials && (
         <>
-          <td className="px-2 py-1.5 font-mono text-xs text-right">
+          <td className="px-2 py-1.5 font-mono text-xs text-right w-[80px]">
             {r.avgBet > 0 ? formatCurrency(r.avgBet) : "·"}
           </td>
-          <td className="px-2 py-1.5 font-mono text-xs text-right">
+          <td className="px-2 py-1.5 font-mono text-xs text-right w-[110px]">
             {r.inDrop > 0 ? formatCurrency(r.inDrop) : "·"}
           </td>
-          <td className="px-2 py-1.5 font-mono text-xs text-right">
+          <td className="px-2 py-1.5 font-mono text-xs text-right w-[110px]">
             {r.out > 0 ? formatCurrency(r.out) : "·"}
           </td>
-          <td className="px-2 py-1.5 font-mono text-xs text-right text-success">
+          <td className="px-2 py-1.5 font-mono text-xs text-right text-success w-[95px]">
             {r.chipIn > 0 ? formatCurrency(r.chipIn) : "·"}
           </td>
-          <td className="px-2 py-1.5 font-mono text-xs text-right text-destructive">
+          <td className="px-2 py-1.5 font-mono text-xs text-right text-destructive w-[95px]">
             {r.chipOut > 0 ? formatCurrency(r.chipOut) : "·"}
           </td>
-          <td className={`px-2 py-1.5 font-mono text-xs text-right ${
+          <td className={`px-2 py-1.5 font-mono text-xs text-right w-[95px] ${
             r.chipDelta > 0 ? "cms-amount-positive" : r.chipDelta < 0 ? "cms-amount-negative" : ""
           }`}>
             {r.chipDelta !== 0 ? `${r.chipDelta > 0 ? "+" : ""}${formatCurrency(r.chipDelta)}` : "·"}
           </td>
-          <td className={`px-2 py-1.5 font-mono text-xs text-right font-bold ${
+          <td className={`px-2 py-1.5 font-mono text-xs text-right font-bold w-[110px] ${
             r.result > 0 ? "cms-amount-positive" : r.result < 0 ? "cms-amount-negative" : ""
           }`}>
             {r.result !== 0 ? `${r.result > 0 ? "+" : ""}${formatCurrency(r.result)}` : "·"}
@@ -377,7 +379,7 @@ const PlayerStatistics = () => {
         </>
       )}
       {canTransfer && (
-        <td className="px-2 py-1.5 text-right">
+        <td className="px-1 py-1.5 text-right w-8">
           <Button
             variant="ghost"
             size="sm"
@@ -441,6 +443,22 @@ const PlayerStatistics = () => {
           </TabsList>
 
           <div className="flex items-center gap-2">
+            <div className="flex items-center rounded-md border border-border overflow-hidden h-8">
+              {(["mix", "table", "slots"] as const).map(p => (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => setPosFilter(p)}
+                  className={`px-2.5 h-full text-[11px] uppercase tracking-wide transition-colors ${
+                    posFilter === p
+                      ? "bg-primary/15 text-primary font-semibold"
+                      : "text-muted-foreground hover:bg-muted/40"
+                  }`}
+                >
+                  {p === "mix" ? "Mix" : p === "table" ? "Table" : "Slot"}
+                </button>
+              ))}
+            </div>
             <CategoryFilter selected={categoryFilter} onChange={setCategoryFilter} />
             <div className="relative w-56">
               <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -483,7 +501,7 @@ const PlayerStatistics = () => {
                           {showFinancials && (
                             <>
                               <H k="avgBet" align="right">Avg Bet</H>
-                              <H k="inDrop" align="right">In / Drop</H>
+                              <H k="inDrop" align="right" title="Drop R — external cash buy-ins">Drop R</H>
                               <H k="out" align="right">Out</H>
                               <H k="chipIn" align="right" title="Chips received from another player (NEP-tracked, no cash)">Chip In</H>
                               <H k="chipOut" align="right" title="Chips given to another player (NEP-tracked, no cash)">Chip Out</H>
