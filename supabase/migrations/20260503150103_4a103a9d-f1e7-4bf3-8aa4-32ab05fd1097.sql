@@ -1,0 +1,3 @@
+ALTER TYPE public.dealer_role ADD VALUE IF NOT EXISTS 'TR';
+ALTER TYPE public.dealer_role ADD VALUE IF NOT EXISTS 'SRT';
+ALTER TYPE public.dealer_role ADD VALUE IF NOT EXISTS 'CLS';
