@@ -555,6 +555,11 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
     (e.currentTarget as HTMLButtonElement).focus();
     const dateStr = `${month}-${String(day).padStart(2, "0")}`;
     const current = getRotaEntry(dealerId, day);
+    // Shift+Click or Alt+Click — instant clear.
+    if (current && (e.shiftKey || e.altKey)) {
+      deleteRota.mutate({ dealer_id: dealerId, date: dateStr });
+      return;
+    }
     if (!current) {
       setRota.mutate({ dealer_id: dealerId, date: dateStr, shift: "M" });
     } else {
@@ -565,6 +570,13 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
         deleteRota.mutate({ dealer_id: dealerId, date: dateStr });
       }
     }
+  };
+
+  const handleContextMenu = (e: React.MouseEvent<HTMLButtonElement>, dealerId: string, day: number) => {
+    e.preventDefault();
+    const dateStr = `${month}-${String(day).padStart(2, "0")}`;
+    const current = getRotaEntry(dealerId, day);
+    if (current) deleteRota.mutate({ dealer_id: dealerId, date: dateStr });
   };
 
   const focusNextCell = (current: HTMLElement) => {
@@ -672,8 +684,10 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
                 <td key={day} className={`px-0.5 py-0.5 text-center ${isToday ? "bg-primary/25" : isWeekend ? "bg-muted/15" : ""}`}>
                   <button
                     onClick={(e) => handleClick(e, dealer.id, day)}
+                    onContextMenu={(e) => handleContextMenu(e, dealer.id, day)}
                     onKeyDown={e => handleKeyDown(e, dealer.id, day)}
                     onPaste={e => handlePaste(e, dealer.id, day)}
+                    title={display ? "Click — next shift • Shift/Alt+Click or Right-click — clear • Delete — clear" : "Click to assign Middle"}
                     className={`w-full h-7 rounded text-[10px] font-mono transition-colors focus:outline-none focus:ring-1 focus:ring-primary ${
                       display
                         ? `${SHIFT_COLORS[display.shift] || "bg-muted text-muted-foreground"} ${display.isAuto ? "border border-dashed border-emerald-500/50" : ""}`
