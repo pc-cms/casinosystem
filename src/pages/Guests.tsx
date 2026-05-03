@@ -37,7 +37,8 @@ const TYPE_CLASSES: Record<string, string> = {
 };
 
 const Guests = () => {
-  const { casinoId } = useAuth();
+  const { casinoId, user, roles } = useAuth();
+  const canCheckIn = roles.some(r => ["reception", "pit", "manager", "super_admin"].includes(r));
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -167,6 +168,59 @@ const Guests = () => {
     onError: (e: any) => toast.error(e.message),
   });
 
+  // Search all players (not just today's visitors) when user types.
+  const debouncedSearch = useDebouncedValue(search, 250);
+  const presentPlayerIds = useMemo(
+    () => new Set(visits.filter((v: any) => !v.checked_out_at).map((v: any) => v.player_id)),
+    [visits]
+  );
+  const visitedPlayerIds = useMemo(
+    () => new Set(visits.map((v: any) => v.player_id)),
+    [visits]
+  );
+  const { data: searchedPlayers = [] } = useQuery({
+    queryKey: ["guests-player-search", casinoId, debouncedSearch],
+    queryFn: async () => {
+      if (!casinoId || debouncedSearch.trim().length < 2) return [];
+      const q = debouncedSearch.trim().replace(/[%,]/g, " ");
+      const { data } = await supabase
+        .from("players")
+        .select("id, first_name, last_name, nickname, photo_url, status, player_type, phone, id_number, id_document_url, category")
+        .eq("casino_id", casinoId)
+        .or(`first_name.ilike.%${q}%,last_name.ilike.%${q}%,nickname.ilike.%${q}%`)
+        .limit(50);
+      return data || [];
+    },
+    enabled: !!casinoId && debouncedSearch.trim().length >= 2,
+  });
+
+  const checkIn = useMutation({
+    mutationFn: async (playerId: string) => {
+      if (!casinoId || !user) throw new Error("Not authenticated");
+      const { data: existing } = await supabase
+        .from("casino_visits")
+        .select("id, checked_out_at")
+        .eq("casino_id", casinoId)
+        .eq("player_id", playerId)
+        .eq("date", new Date().toISOString().slice(0, 10))
+        .is("checked_out_at", null)
+        .maybeSingle();
+      if (existing) return existing.id;
+      const { error } = await supabase.from("casino_visits").insert({
+        casino_id: casinoId,
+        player_id: playerId,
+        checked_in_by: user.id,
+        position: "hall",
+      });
+      if (error) throw error;
+      await logAction(casinoId, "player", "PLAYER_CHECKED_IN", { player_id: playerId });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["casino-visits-live"] });
+      toast.success("Checked in");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
   const PositionBadge = ({ pos }: { pos: string }) => {
     if (pos === "table") return <Badge variant="outline" className="text-[10px] gap-0.5"><CheckCircle2 className="w-2.5 h-2.5" />Table</Badge>;
     if (pos === "slots") return <Badge className="text-[10px] bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30">Slots</Badge>;
