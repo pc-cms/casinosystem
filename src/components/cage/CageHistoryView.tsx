@@ -89,6 +89,24 @@ const CageHistoryView = () => {
   // Chip transfers for the date (uses existing hook scoped by day)
   const { data: chipTransfers = [] } = useChipTransfers(date);
 
+  // Chip transfers for the date (uses existing hook scoped by day)
+  const { data: chipTransfers = [] } = useChipTransfers(date);
+
+  // Expenses for the date
+  const { data: expenses = [] } = useExpenses(date);
+
+  // Cashless provider filter
+  const [providerFilter, setProviderFilter] = useState<string>("ALL");
+  const cashlessProviders = useMemo(() => {
+    const s = new Set<string>();
+    cashless.forEach((c: any) => c.provider && s.add(String(c.provider)));
+    return Array.from(s).sort();
+  }, [cashless]);
+  const cashlessFiltered = useMemo(() =>
+    providerFilter === "ALL" ? cashless : cashless.filter((c: any) => String(c.provider) === providerFilter),
+    [cashless, providerFilter]
+  );
+
   // Chip Transfer dialog — surveillance can create new ones
   const [transferOpen, setTransferOpen] = useState(false);
   const [transferPlayer, setTransferPlayer] = useState<any>(null);
