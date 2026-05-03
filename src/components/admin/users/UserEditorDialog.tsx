@@ -75,6 +75,8 @@ export const UserEditorDialog = ({ open, onOpenChange, target }: Props) => {
   // Hydrate form when dialog opens
   useEffect(() => {
     if (!open || !target) return;
+    setNewPassword("");
+    setConfirmDisable(false);
     if (target.mode === "edit") {
       setLogin("");
       setPassword("");
