@@ -864,6 +864,7 @@ const StaffAttendanceGrid = ({ month, monthLabel, groupKey = "floor", readOnly =
   const { data: staff = [] } = useStaffMembers();
   const { data: attendance = [] } = useStaffAttendanceRange(startDate, endDate);
   const { data: rota = [] } = useStaffRotaRange(startDate, endDate);
+  const { data: closedDates = new Set<string>() } = useClosedBusinessDates(startDate, endDate);
   const setAttendanceRaw = useSetStaffAttendance();
   const setAttendance = { mutate: (v: any) => {
     if (readOnly) { toast.error("Read-only — Manager or HR access required"); return; }
@@ -902,40 +903,20 @@ const StaffAttendanceGrid = ({ month, monthLabel, groupKey = "floor", readOnly =
     if (!isNaN(num) && num >= 0 && num <= 24) { setAttendance.mutate({ staff_id: staffId, date: dateStr, value: String(num) }); }
   };
 
-  // Auto-fill: for past business days (and today if EAT >= 11:00), any staff
-  // scheduled M (D) or N in rota with an empty attendance cell gets 9 hours.
+  // Auto-fill: a day is auto-filled with 9 hours ONLY if its business day has
+  // been CLOSED (record exists in `business_day_closures`). The current open
+  // business day is never auto-filled, regardless of wall-clock time.
   // Cells that already have any value (S, A, hours number) are skipped.
   const autoFilledRef = useRef<Set<string>>(new Set());
   useEffect(() => {
     if (readOnly) return;
     if (!staff.length) return;
-
-    // Determine cutoff day in this displayed month.
-    // EAT wall clock now:
-    const eatNow = new Date(
-      `${new Date().toLocaleDateString("en-CA", { timeZone: "Africa/Dar_es_Salaam" })}T${new Date().toLocaleTimeString("en-GB", { timeZone: "Africa/Dar_es_Salaam", hour12: false })}`
-    );
-    const eatY = eatNow.getFullYear();
-    const eatM = eatNow.getMonth() + 1;
-    const eatD = eatNow.getDate();
-    const eatHour = eatNow.getHours();
-
-    // Only act on months that are in the past or current month (EAT)
-    const monthIsPast = (y < eatY) || (y === eatY && m < eatM);
-    const monthIsCurrent = y === eatY && m === eatM;
-    if (!monthIsPast && !monthIsCurrent) return;
-
-    // Highest day to auto-fill (inclusive)
-    let cutoffDay = daysInMonth;
-    if (monthIsCurrent) {
-      // Past days are always eligible. Today is eligible only if EAT >= 11:00.
-      cutoffDay = eatHour >= 11 ? eatD : eatD - 1;
-    }
-    if (cutoffDay < 1) return;
+    if (!closedDates || closedDates.size === 0) return;
 
     for (const s of activeStaff) {
-      for (let day = 1; day <= cutoffDay; day++) {
+      for (let day = 1; day <= daysInMonth; day++) {
         const dateStr = `${month}-${String(day).padStart(2, "0")}`;
+        if (!closedDates.has(dateStr)) continue;
         const key = `${s.id}|${dateStr}`;
         if (autoFilledRef.current.has(key)) continue;
 
@@ -943,14 +924,14 @@ const StaffAttendanceGrid = ({ month, monthLabel, groupKey = "floor", readOnly =
         if (rotaShift !== "D" && rotaShift !== "N") continue;
 
         const current = getValue(s.id, day);
-        if (current !== "") continue; // Skip if anything already set (S, A, number)
+        if (current !== "") continue;
 
         autoFilledRef.current.add(key);
         setAttendanceRaw.mutate({ staff_id: s.id, date: dateStr, value: "9" });
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [staff, attendance, rota, month, readOnly]);
+  }, [staff, attendance, rota, month, readOnly, closedDates]);
 
   const getTotals = (staffId: string) => {
     let shifts = 0;
