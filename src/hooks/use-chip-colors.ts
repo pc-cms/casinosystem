@@ -7,6 +7,7 @@
  *   edge  — color of the 6 inserts around the rim
  *   text  — denomination label color
  */
+import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
