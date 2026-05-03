@@ -1,8 +1,9 @@
 import { useState, useMemo } from "react";
 import { useActivityLogs } from "@/hooks/use-casino-data";
+import { useLogLookups } from "@/hooks/use-log-lookups";
+import { actionLabel, formatLogDetails } from "@/lib/format-log";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { formatCurrency } from "@/lib/currency";
 import { Search, ClipboardList } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { FilterBar } from "@/components/layout/FilterBar";
