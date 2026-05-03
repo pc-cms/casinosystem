@@ -1,13 +1,13 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { BarChart3, Search, ArrowLeftRight, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
+import { BarChart3, Search, ArrowLeftRight, ArrowUp, ArrowDown, ArrowUpDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { usePlayers, useTransactions, useGamingTables } from "@/hooks/use-casino-data";
 import { useChipTransfers } from "@/hooks/use-chip-transfers";
 import { getBusinessDate, businessDayHourUTC } from "@/lib/business-day";
-import { canSeePlayerFinancials } from "@/lib/role-access";
+import { canSeePlayerFinancials, canSeeAllTimeData } from "@/lib/role-access";
 import { Button } from "@/components/ui/button";
 import ChipTransferDialog from "@/components/player/ChipTransferDialog";
 import { PageShell } from "@/components/layout/PageShell";
