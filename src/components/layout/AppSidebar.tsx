@@ -46,7 +46,7 @@ const NAV_ITEMS: NavItem[] = [
 
   // SURVEILLANCE-only condensed entries (single Pit + single Cage + Player Statistics)
   { to: "/pit", icon: Gamepad2, label: "Pit", roles: ["surveillance"], section: "PIT" },
-  { to: "/player-statistics", icon: Users, label: "Player Statistics", roles: ["surveillance"], section: "PIT" },
+  { to: "/players", icon: Users, label: "Players", roles: ["surveillance"], section: "PIT" },
   { to: "/cage", icon: Landmark, label: "Cage", roles: ["surveillance"], section: "CASHIER" },
 
   // PIT — Break List, Live Tables, trackers, Attendance (parent), Rota (parent)
