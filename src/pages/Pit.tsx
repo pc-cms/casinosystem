@@ -951,6 +951,8 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
                       const key = e.key.toUpperCase();
                       if (key === "A" || key === "S") {
                         e.preventDefault();
+                        // Set the input value so onBlur won't overwrite our save with stale text
+                        input.value = key;
                         handleSave(dealer.id, day, key);
                         const nextInput = input.closest("td")?.nextElementSibling?.querySelector("input") as HTMLInputElement;
                         nextInput?.focus();
