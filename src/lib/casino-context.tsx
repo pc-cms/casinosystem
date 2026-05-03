@@ -88,6 +88,10 @@ export const CasinoProvider = ({ children }: { children: ReactNode }) => {
   const [detectedSlug] = useState<string | null>(() => getSlugFromHostname());
 
   const isSuperOrFM = roles.includes("super_admin") || roles.includes("finance_manager");
+  const isSurveillance = roles.includes("surveillance");
+  // Surveillance has network-wide visibility (read-only via existing access controls).
+  // Per-casino isolation is enforced by the subdomain → activeCasinoId resolver below.
+  const hasGlobalAccess = isSuperOrFM || isSurveillance;
   const isSummaryMode = detectedSlug === "__premier__" && isSuperOrFM;
 
   // Fetch accessible casinos
@@ -102,8 +106,9 @@ export const CasinoProvider = ({ children }: { children: ReactNode }) => {
     const fetchCasinos = async () => {
       setLoading(true);
 
-      if (isSuperOrFM) {
-        // Super admin and FM see all casinos
+      if (hasGlobalAccess) {
+        // Super admin, FM and Surveillance see all casinos.
+        // Subdomain dictates which one is active; data isolation stays per-casino.
         const { data } = await supabase
           .from("casinos")
           .select("id, name, slug, code")
@@ -134,7 +139,7 @@ export const CasinoProvider = ({ children }: { children: ReactNode }) => {
     };
 
     fetchCasinos();
-  }, [user, primaryCasinoId, isSuperOrFM]);
+  }, [user, primaryCasinoId, hasGlobalAccess]);
 
   // Resolve active casino from slug or primary
   useEffect(() => {
