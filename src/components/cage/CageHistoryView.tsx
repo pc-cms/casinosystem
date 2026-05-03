@@ -89,9 +89,6 @@ const CageHistoryView = () => {
   // Chip transfers for the date (uses existing hook scoped by day)
   const { data: chipTransfers = [] } = useChipTransfers(date);
 
-  // Chip transfers for the date (uses existing hook scoped by day)
-  const { data: chipTransfers = [] } = useChipTransfers(date);
-
   // Expenses for the date
   const { data: expenses = [] } = useExpenses(date);
 
