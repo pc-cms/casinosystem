@@ -19,7 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import CategoryBadge, { type PlayerCategory } from "@/components/player/CategoryBadge";
 import CategoryFilter from "@/components/player/CategoryFilter";
 import FlagBadges from "@/components/player/FlagBadges";
-import { formatCurrency } from "@/lib/currency";
+import { formatCurrency, formatNumberCompact } from "@/lib/currency";
 import { offlineMutation } from "@/lib/offline-mutation";
 import { toast } from "sonner";
 
@@ -349,35 +349,48 @@ const PlayerStatistics = () => {
       <td className="px-1 py-1.5 w-[110px]">{renderPositionCell(r)}</td>
       <td className="px-1 py-1.5 font-mono text-xs w-[44px] text-center">{formatTime(r.entryAt)}</td>
       <td className="px-1 py-1.5 font-mono text-xs w-[44px] text-center">{r.exitAt ? formatTime(r.exitAt) : "·"}</td>
-      {showFinancials && (
-        <>
-          <td className="px-2 py-1.5 font-mono text-xs text-right w-[80px]">
-            {r.avgBet > 0 ? formatCurrency(r.avgBet) : "·"}
-          </td>
-          <td className="px-2 py-1.5 font-mono text-xs text-right w-[110px]">
-            {r.inDrop > 0 ? formatCurrency(r.inDrop) : "·"}
-          </td>
-          <td className="px-2 py-1.5 font-mono text-xs text-right w-[110px]">
-            {r.out > 0 ? formatCurrency(r.out) : "·"}
-          </td>
-          <td className="px-2 py-1.5 font-mono text-xs text-right text-success w-[95px]">
-            {r.chipIn > 0 ? formatCurrency(r.chipIn) : "·"}
-          </td>
-          <td className="px-2 py-1.5 font-mono text-xs text-right text-destructive w-[95px]">
-            {r.chipOut > 0 ? formatCurrency(r.chipOut) : "·"}
-          </td>
-          <td className={`px-2 py-1.5 font-mono text-xs text-right w-[95px] ${
-            r.chipDelta > 0 ? "cms-amount-positive" : r.chipDelta < 0 ? "cms-amount-negative" : ""
-          }`}>
-            {r.chipDelta !== 0 ? `${r.chipDelta > 0 ? "+" : ""}${formatCurrency(r.chipDelta)}` : "·"}
-          </td>
-          <td className={`px-2 py-1.5 font-mono text-xs text-right font-bold w-[110px] ${
-            r.result > 0 ? "cms-amount-positive" : r.result < 0 ? "cms-amount-negative" : ""
-          }`}>
-            {r.result !== 0 ? `${r.result > 0 ? "+" : ""}${formatCurrency(r.result)}` : "·"}
-          </td>
-        </>
-      )}
+      {showFinancials && (() => {
+        // Dual render: full number on md+, compact (K/M) on small screens.
+        const Money = ({ value, sign = false }: { value: number; sign?: boolean }) => {
+          if (!value) return <>·</>;
+          const prefix = sign && value > 0 ? "+" : "";
+          return (
+            <>
+              <span className="hidden md:inline">{prefix}{formatCurrency(value)}</span>
+              <span className="md:hidden">{prefix}{formatNumberCompact(value)}</span>
+            </>
+          );
+        };
+        return (
+          <>
+            <td className="px-2 py-1.5 font-mono text-xs text-right md:w-[80px]">
+              <Money value={r.avgBet} />
+            </td>
+            <td className="px-2 py-1.5 font-mono text-xs text-right md:w-[110px]">
+              <Money value={r.inDrop} />
+            </td>
+            <td className="px-2 py-1.5 font-mono text-xs text-right md:w-[110px]">
+              <Money value={r.out} />
+            </td>
+            <td className="px-2 py-1.5 font-mono text-xs text-right text-success md:w-[95px]">
+              <Money value={r.chipIn} />
+            </td>
+            <td className="px-2 py-1.5 font-mono text-xs text-right text-destructive md:w-[95px]">
+              <Money value={r.chipOut} />
+            </td>
+            <td className={`px-2 py-1.5 font-mono text-xs text-right md:w-[95px] ${
+              r.chipDelta > 0 ? "cms-amount-positive" : r.chipDelta < 0 ? "cms-amount-negative" : ""
+            }`}>
+              <Money value={r.chipDelta} sign />
+            </td>
+            <td className={`px-2 py-1.5 font-mono text-xs text-right font-bold md:w-[110px] ${
+              r.result > 0 ? "cms-amount-positive" : r.result < 0 ? "cms-amount-negative" : ""
+            }`}>
+              <Money value={r.result} sign />
+            </td>
+          </>
+        );
+      })()}
       {canTransfer && (
         <td className="px-1 py-1.5 text-right w-8">
           <Button

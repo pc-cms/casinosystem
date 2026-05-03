@@ -79,6 +79,25 @@ export const formatCurrency = (amount: number, currency: string = "TZS"): string
   return `${sym} ${formatNumberSpaces(amount)}`;
 };
 
+// Compact number for narrow screens: 1 250 000 -> "1.25M", 12 500 -> "12.5K"
+// Drops trailing ".0". Negatives preserved. Below 1000 shown as-is.
+export const formatNumberCompact = (num: number): string => {
+  if (!num) return "0";
+  const isNeg = num < 0;
+  const abs = Math.abs(num);
+  let out: string;
+  if (abs >= 1_000_000) {
+    const v = abs / 1_000_000;
+    out = (v >= 100 ? v.toFixed(0) : v.toFixed(2).replace(/\.?0+$/, "")) + "M";
+  } else if (abs >= 1_000) {
+    const v = abs / 1_000;
+    out = (v >= 100 ? v.toFixed(0) : v.toFixed(1).replace(/\.0$/, "")) + "K";
+  } else {
+    out = String(Math.round(abs));
+  }
+  return isNeg ? `-${out}` : out;
+};
+
 // Parse a space-formatted string back to number
 export const parseSpacedNumber = (str: string): number => {
   return Number(str.replace(/\s/g, "")) || 0;
