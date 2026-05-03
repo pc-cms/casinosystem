@@ -106,8 +106,8 @@ const Guests = () => {
 
   const filtered = useMemo(() => {
     let list = rows;
-    if (tab === "inside") list = list.filter(r => r.isInside);
-    if (tab === "out") list = list.filter(r => !r.isInside);
+    if (tab === "present") list = list.filter(r => r.isInside);
+    if (tab === "left") list = list.filter(r => !r.isInside);
     if (posFilter !== "all") list = list.filter(r => r.position === posFilter);
     if (typeFilter !== "all") list = list.filter(r => r.playerType === typeFilter);
     list = list.filter(r => categoryFilter.has(r.category));
