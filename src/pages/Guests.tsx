@@ -261,7 +261,7 @@ const Guests = () => {
       <PageHeader
         icon={UserCheck}
         title="Guests"
-        subtitle={`${counts.inside} inside · ${counts.out} checked out`}
+        subtitle={`${counts.present} present · ${counts.left} left`}
         date
       />
 
@@ -269,25 +269,25 @@ const Guests = () => {
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <TabsList>
             <TabsTrigger
-              value="all"
+              value="day"
               className="data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:border-primary/40 border border-transparent"
             >
-              All
-              <Badge className="ml-1.5 text-[10px] bg-primary/20 text-primary border-primary/30 hover:bg-primary/20">{counts.all}</Badge>
+              Daily
+              <Badge className="ml-1.5 text-[10px] bg-primary/20 text-primary border-primary/30 hover:bg-primary/20">{counts.day}</Badge>
             </TabsTrigger>
             <TabsTrigger
-              value="inside"
+              value="present"
               className="data-[state=active]:bg-success/15 data-[state=active]:text-success data-[state=active]:border-success/40 border border-transparent"
             >
-              Inside
-              <Badge className="ml-1.5 text-[10px] bg-success/20 text-success border-success/30 hover:bg-success/20">{counts.inside}</Badge>
+              Present
+              <Badge className="ml-1.5 text-[10px] bg-success/20 text-success border-success/30 hover:bg-success/20">{counts.present}</Badge>
             </TabsTrigger>
             <TabsTrigger
-              value="out"
+              value="left"
               className="data-[state=active]:bg-muted data-[state=active]:text-muted-foreground data-[state=active]:border-border border border-transparent"
             >
-              Out
-              <Badge variant="secondary" className="ml-1.5 text-[10px]">{counts.out}</Badge>
+              Left
+              <Badge variant="secondary" className="ml-1.5 text-[10px]">{counts.left}</Badge>
             </TabsTrigger>
           </TabsList>
 
