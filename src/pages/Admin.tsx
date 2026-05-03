@@ -15,7 +15,7 @@ import { useRotateServerSecret } from "@/hooks/use-network-admin";
 import { resetPWACache } from "@/lib/pwa-register";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { toast } from "sonner";
-import { logAction } from "@/lib/logging";
+// (logAction import removed — was only used by old in-page UsersAndRoles)
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import FloatManagement from "@/components/admin/FloatManagement";
 import TableManagement from "@/components/admin/TableManagement";
@@ -26,19 +26,7 @@ import { ChipEmissionDialog } from "@/components/chips/ChipEmissionDialog";
 import { useCasinoInfo, useUpdateCasinoSchedule, useCancelPendingSchedule } from "@/hooks/use-table-lifecycle";
 import { UsersTab } from "@/components/admin/users/UsersTab";
 
-const ROLES = ["manager", "cashier", "pit", "reception", "finance_manager", "surveillance", "hr"] as const;
-const ALL_ROLES = ["super_admin", ...ROLES] as const;
-
-const ROLE_LABELS: Record<string, string> = {
-  super_admin: "Super Admin",
-  manager: "Manager",
-  cashier: "Cashier",
-  pit: "Pit Boss",
-  reception: "Reception",
-  finance_manager: "Finance",
-  surveillance: "Surveillance",
-  hr: "HR",
-};
+// (ROLES / ALL_ROLES / ROLE_LABELS moved to src/components/admin/users/users-hooks.ts)
 
 // =================== HOOKS ===================
 const useProfiles = () => {
