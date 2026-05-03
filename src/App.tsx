@@ -52,6 +52,7 @@ const TablesAnalytics = lazy(() => import("@/pages/TablesAnalytics"));
 const PlayerStatistics = lazy(() => import("@/pages/PlayerStatistics"));
 const Cashless = lazy(() => import("@/pages/Cashless"));
 const BusinessDays = lazy(() => import("@/pages/BusinessDays"));
+const Pitbook = lazy(() => import("@/pages/Pitbook"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 
 const queryClient = new QueryClient({
