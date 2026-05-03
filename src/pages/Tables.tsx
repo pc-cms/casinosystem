@@ -463,7 +463,7 @@ const Tables = () => {
         subtitle="Float, Result & Seating"
       >
         {restrictedToToday ? (
-          <div className="text-[10px] uppercase font-mono text-muted-foreground px-2 py-1 rounded bg-muted/40 border border-border">
+          <div className="text-sm font-semibold font-mono text-foreground px-3 py-1.5 rounded bg-muted/60 border border-border">
             Business day · {businessDay}
           </div>
         ) : (
