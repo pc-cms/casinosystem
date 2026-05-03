@@ -141,7 +141,18 @@ export const useCreateUser = () => {
       };
       if (isSuperAdmin && input.casino_id) body.casino_id = input.casino_id;
       const { data, error } = await supabase.functions.invoke("create-user", { body });
-      if (error) throw error;
+      if (error) {
+        // invoke() swallows the response body on non-2xx; pull it out of FunctionsHttpError.
+        let detail = error.message;
+        try {
+          const ctx = (error as any).context;
+          if (ctx && typeof ctx.json === "function") {
+            const parsed = await ctx.json();
+            if (parsed?.error) detail = parsed.error;
+          }
+        } catch { /* ignore */ }
+        throw new Error(detail);
+      }
       if (data?.error) throw new Error(data.error);
       return data;
     },
