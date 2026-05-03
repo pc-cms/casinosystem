@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Shield, Coins, Clock, Building2, Server, Link2, Unlink, Globe, Palette, Settings, RefreshCw, Rocket, KeyRound, Activity, LayoutGrid } from "lucide-react";
 import { ServerPushUpdateDialog } from "@/components/admin/ServerPushUpdateDialog";
