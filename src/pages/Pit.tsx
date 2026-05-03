@@ -555,6 +555,11 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
     (e.currentTarget as HTMLButtonElement).focus();
     const dateStr = `${month}-${String(day).padStart(2, "0")}`;
     const current = getRotaEntry(dealerId, day);
+    // Shift+Click or Alt+Click — instant clear.
+    if (current && (e.shiftKey || e.altKey)) {
+      deleteRota.mutate({ dealer_id: dealerId, date: dateStr });
+      return;
+    }
     if (!current) {
       setRota.mutate({ dealer_id: dealerId, date: dateStr, shift: "M" });
     } else {
@@ -565,6 +570,13 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
         deleteRota.mutate({ dealer_id: dealerId, date: dateStr });
       }
     }
+  };
+
+  const handleContextMenu = (e: React.MouseEvent<HTMLButtonElement>, dealerId: string, day: number) => {
+    e.preventDefault();
+    const dateStr = `${month}-${String(day).padStart(2, "0")}`;
+    const current = getRotaEntry(dealerId, day);
+    if (current) deleteRota.mutate({ dealer_id: dealerId, date: dateStr });
   };
 
   const focusNextCell = (current: HTMLElement) => {
