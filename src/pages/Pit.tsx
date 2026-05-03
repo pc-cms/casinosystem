@@ -30,6 +30,7 @@ const SHIFT_LABELS: Record<string, string> = {
   N: "Night (20:45)",
   L: "Leave",
   E: "Extra",
+  O: "Off (day off)",
 };
 
 const ATT_COLORS = UNIFIED_ATT_COLORS;
