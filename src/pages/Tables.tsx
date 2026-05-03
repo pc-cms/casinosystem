@@ -22,6 +22,7 @@ import type { SeatedPlayer } from "@/components/pit/SeatedPlayerChip";
 import type { PlayerCategory } from "@/components/player/CategoryBadge";
 import { useAuth } from "@/lib/auth-context";
 import { useBusinessDayFilter } from "@/hooks/use-business-day-filter";
+import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
 import { useReadOnlyMode } from "@/hooks/use-readonly-mode";
 import { useTablesDropSplit } from "@/hooks/use-drop-split";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -32,7 +33,8 @@ import { toast } from "sonner";
 import CategoryBadge from "@/components/player/CategoryBadge";
 
 const Tables = () => {
-  const businessDay = getBusinessDate();
+  const { data: serverBusinessDate } = useEffectiveBusinessDate();
+  const businessDay = serverBusinessDate || getBusinessDate();
   const { restrictedToToday } = useBusinessDayFilter();
   const [date, setDate] = useState(businessDay);
   // Operational roles (Pit) without Manager Access cannot browse other days.
@@ -49,7 +51,7 @@ const Tables = () => {
   const isReadOnly = useReadOnlyMode();
   const queryClient = useQueryClient();
 
-  const today = getBusinessDate();
+  const today = businessDay;
   const windowStartUTC = businessDayHourUTC(today, 13);
 
   // Close Table wizard

@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { CreditCard, CheckCircle, Plus, X } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { getBusinessDate } from "@/lib/business-day";
+import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
 
 import {
   useCashless, useCreateCashless, useApproveCashless,
@@ -52,7 +53,8 @@ const newDraft = (): DraftRow => ({
 
 const Cashless = () => {
   const { isManager } = useAuth();
-  const businessDate = getBusinessDate();
+  const { data: serverBusinessDate } = useEffectiveBusinessDate();
+  const businessDate = serverBusinessDate || getBusinessDate();
   const { data: rows = [] } = useCashless(businessDate);
   
   const create = useCreateCashless();

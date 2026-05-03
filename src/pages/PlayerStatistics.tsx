@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth-context";
 import { usePlayers, useTransactions, useGamingTables } from "@/hooks/use-casino-data";
 import { useChipTransfers } from "@/hooks/use-chip-transfers";
 import { getBusinessDate, businessDayHourUTC } from "@/lib/business-day";
+import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
 import { canSeePlayerFinancials, canSeeAllTimeData } from "@/lib/role-access";
 import { Button } from "@/components/ui/button";
 import ChipTransferDialog from "@/components/player/ChipTransferDialog";
@@ -41,7 +42,8 @@ const subDays = (iso: string, n: number) => {
 const PlayerStatistics = () => {
   const navigate = useNavigate();
   const { casinoId, roles, user } = useAuth();
-  const today = getBusinessDate();
+  const { data: serverBusinessDate } = useEffectiveBusinessDate();
+  const today = serverBusinessDate || getBusinessDate();
   const canBrowseHistory = canSeeAllTimeData(roles);
   const minDate = subDays(today, -MAX_DAYS_BACK);
   const [date, setDate] = useState(today);

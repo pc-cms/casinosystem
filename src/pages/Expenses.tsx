@@ -7,6 +7,7 @@ import { useActiveShift } from "@/hooks/use-shift";
 import { useExpenseAnalytics } from "@/hooks/use-expenses-analytics";
 import { useAuth } from "@/lib/auth-context";
 import { getBusinessDate } from "@/lib/business-day";
+import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NumberInput } from "@/components/ui/number-input";
@@ -55,7 +56,8 @@ const newDraft = (): DraftRow => ({
 
 const Expenses = () => {
   const { isManager } = useAuth();
-  const businessDate = getBusinessDate();
+  const { data: serverBusinessDate } = useEffectiveBusinessDate();
+  const businessDate = serverBusinessDate || getBusinessDate();
   const { data: shift } = useActiveShift();
   const { data: expenses = [], isLoading: loadingExpenses } = useExpenses(businessDate);
   const create = useCreateExpense();
