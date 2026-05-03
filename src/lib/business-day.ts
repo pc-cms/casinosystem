@@ -1,8 +1,8 @@
 /**
  * Casino business day logic.
  * All time calculations use Africa/Dar_es_Salaam (EAT, UTC+3).
- * A shift runs across midnight, so between midnight and shiftEnd
- * the "business date" is still the previous calendar day.
+ * A shift runs across midnight and is manually closed. The fallback rollover
+ * keeps the previous business date until 13:00 EAT.
  */
 
 /** Get current date/time as a Date object whose LOCAL fields (getHours/getMinutes/getDate)
@@ -24,14 +24,14 @@ function ymdEAT(d: Date = new Date()): string {
   return d.toLocaleDateString("en-CA", { timeZone: "Africa/Dar_es_Salaam" });
 }
 
-export function getBusinessDate(shiftEndHour = 5): string {
+export function getBusinessDate(shiftEndHour = 13): string {
   const now = new Date();
   // Hour in EAT regardless of browser timezone
   const eatHour = parseInt(
     now.toLocaleString("en-GB", { timeZone: "Africa/Dar_es_Salaam", hour: "2-digit", hour12: false }),
     10
   );
-  // Before shift end → still the previous EAT calendar day
+  // Before fallback rollover → still the previous EAT calendar day
   const target = eatHour < shiftEndHour
     ? new Date(now.getTime() - 24 * 60 * 60 * 1000)
     : now;
@@ -42,7 +42,7 @@ export function getBusinessDate(shiftEndHour = 5): string {
 /**
  * Check if a given date string matches the current business day.
  */
-export function isBusinessToday(date: string, shiftEndHour = 5): boolean {
+export function isBusinessToday(date: string, shiftEndHour = 13): boolean {
   return date === getBusinessDate(shiftEndHour);
 }
 

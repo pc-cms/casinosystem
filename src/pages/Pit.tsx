@@ -14,7 +14,7 @@ import BreaklistGrid from "@/components/pit/BreaklistGrid";
 import ActivePlayers from "@/components/pit/ActivePlayers";
 import TableTracker from "@/pages/TableTracker";
 import { getBusinessDate, isBusinessToday } from "@/lib/business-day";
-import { useClosedBusinessDates } from "@/hooks/use-business-day-closure";
+import { useClosedBusinessDates, useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
 import { UNIFIED_SHIFT_COLORS, UNIFIED_ATT_COLORS, UNIFIED_SHIFT_TINTS } from "@/lib/shift-colors";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -785,6 +785,7 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
   const { data: monthAttendance = [] } = useDealerAttendanceRange(startDate, endDate);
   const { data: rota = [] } = usePitRotaRange(startDate, endDate);
   const { data: closedDates = new Set<string>() } = useClosedBusinessDates(startDate, endDate);
+  const { data: effectiveBusinessDate } = useEffectiveBusinessDate();
   const setAttendanceRaw = useSetDealerAttendance();
   const setAttendance = { mutate: (v: any) => {
     if (readOnly) { toast.error("Manager Access required to edit past months"); return; }
@@ -854,7 +855,7 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
     if (!dealers.length) return;
     if (!closedDates || closedDates.size === 0) return;
 
-    const todayBd = getBusinessDate();
+    const todayBd = effectiveBusinessDate || getBusinessDate();
     for (const d of activeDealers) {
       for (let day = 1; day <= daysInMonth; day++) {
         const dateStr = `${month}-${String(day).padStart(2, "0")}`;
@@ -876,7 +877,7 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dealers, monthAttendance, rota, month, readOnly, closedDates]);
+  }, [dealers, monthAttendance, rota, month, readOnly, closedDates, effectiveBusinessDate]);
 
   const getDealerTotals = (dealerId: string) => {
     let shifts = 0;
