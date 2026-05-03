@@ -684,8 +684,10 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
                 <td key={day} className={`px-0.5 py-0.5 text-center ${isToday ? "bg-primary/25" : isWeekend ? "bg-muted/15" : ""}`}>
                   <button
                     onClick={(e) => handleClick(e, dealer.id, day)}
+                    onContextMenu={(e) => handleContextMenu(e, dealer.id, day)}
                     onKeyDown={e => handleKeyDown(e, dealer.id, day)}
                     onPaste={e => handlePaste(e, dealer.id, day)}
+                    title={display ? "Click — next shift • Shift/Alt+Click or Right-click — clear • Delete — clear" : "Click to assign Middle"}
                     className={`w-full h-7 rounded text-[10px] font-mono transition-colors focus:outline-none focus:ring-1 focus:ring-primary ${
                       display
                         ? `${SHIFT_COLORS[display.shift] || "bg-muted text-muted-foreground"} ${display.isAuto ? "border border-dashed border-emerald-500/50" : ""}`
