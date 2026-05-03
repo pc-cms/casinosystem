@@ -212,8 +212,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return { error: error?.message ?? null };
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) return { error: error.message };
+
+    const userId = data.user?.id;
+    if (userId) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("disabled_at")
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (profile?.disabled_at) {
+        await supabase.auth.signOut();
+        return { error: "User account is disabled" };
+      }
+    }
+
+    return { error: null };
   };
 
   const signOut = async () => {
