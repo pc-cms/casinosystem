@@ -23,7 +23,7 @@ const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
 import { UNIFIED_ATT_COLORS, UNIFIED_SHIFT_TINTS } from "@/lib/shift-colors";
-import { useClosedBusinessDates } from "@/hooks/use-business-day-closure";
+import { useClosedBusinessDates, useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
 const ATT_COLORS = UNIFIED_ATT_COLORS;
 
 const DEPT_BADGE_COLORS: Record<string, string> = {
@@ -866,6 +866,7 @@ const StaffAttendanceGrid = ({ month, monthLabel, groupKey = "floor", readOnly =
   const { data: attendance = [] } = useStaffAttendanceRange(startDate, endDate);
   const { data: rota = [] } = useStaffRotaRange(startDate, endDate);
   const { data: closedDates = new Set<string>() } = useClosedBusinessDates(startDate, endDate);
+  const { data: effectiveBusinessDate } = useEffectiveBusinessDate();
   const setAttendanceRaw = useSetStaffAttendance();
   const setAttendance = { mutate: (v: any) => {
     if (readOnly) { toast.error("Read-only — Manager or HR access required"); return; }
@@ -914,7 +915,7 @@ const StaffAttendanceGrid = ({ month, monthLabel, groupKey = "floor", readOnly =
     if (!staff.length) return;
     if (!closedDates || closedDates.size === 0) return;
 
-    const todayBd = getBusinessDate();
+    const todayBd = effectiveBusinessDate || getBusinessDate();
     for (const s of activeStaff) {
       for (let day = 1; day <= daysInMonth; day++) {
         const dateStr = `${month}-${String(day).padStart(2, "0")}`;
@@ -935,7 +936,7 @@ const StaffAttendanceGrid = ({ month, monthLabel, groupKey = "floor", readOnly =
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [staff, attendance, rota, month, readOnly, closedDates]);
+  }, [staff, attendance, rota, month, readOnly, closedDates, effectiveBusinessDate]);
 
   const getTotals = (staffId: string) => {
     let shifts = 0;
