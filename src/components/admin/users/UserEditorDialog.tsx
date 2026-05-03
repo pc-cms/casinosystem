@@ -247,7 +247,7 @@ export const UserEditorDialog = ({ open, onOpenChange, target }: Props) => {
         {!isCreate && target?.mode === "edit" && (
           <div className="rounded-md border border-destructive/30 bg-destructive/5 p-4 space-y-4">
             <div className="flex items-center gap-2 text-destructive">
-              <Shield className="hidden" />
+              <Trash2 className="hidden" />
               <span className="text-xs font-semibold uppercase tracking-wider">Danger Zone</span>
             </div>
 
