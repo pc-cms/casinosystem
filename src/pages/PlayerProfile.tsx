@@ -302,7 +302,7 @@ const PlayerProfile = () => {
         <div className="text-center text-muted-foreground py-12">
           Player not found.
           <div className="mt-3">
-            <Button size="sm" variant="outline" onClick={() => navigate("/players")}>Back</Button>
+            <Button size="sm" variant="outline" onClick={() => navigate("/player-statistics")}>Back</Button>
           </div>
         </div>
       </PageShell>
@@ -318,7 +318,7 @@ const PlayerProfile = () => {
     <PageShell>
       {/* Top bar */}
       <div className="flex items-center justify-between gap-2">
-        <Button variant="ghost" size="sm" onClick={() => navigate("/players")} className="h-9">
+        <Button variant="ghost" size="sm" onClick={() => navigate("/player-statistics")} className="h-9">
           <ArrowLeft className="w-4 h-4 mr-1" /> Players
         </Button>
         <div className="flex items-center gap-2">
