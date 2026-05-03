@@ -1,15 +1,16 @@
 /**
- * Surveillance Cage view — strictly read-only history with 4 tabs:
- *  · IN/OUT       — transactions for the picked business date
- *  · Cashless     — cashless_transactions for the date
- *  · Cage Transfers — Add Float / Collection / Fill / Credit
- *  · Chip Transfers — paired player↔player chip moves (with "New Transfer" button)
+ * Surveillance Cage view — strictly read-only history with 5 tabs:
+ *  · IN/OUT          — transactions for the picked business date
+ *  · Cashless        — cashless_transactions for the date (Mobile Money providers filterable)
+ *  · Cage Transfers  — Add Float / Collection / Fill / Credit
+ *  · Expenses        — read-only expenses for the date
+ *  · Chip Transfers  — paired player↔player chip moves (with "New Transfer" button)
  *
  * Date selector spans up to 90 days back.
  */
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Landmark, ArrowDownToLine, ArrowUpFromLine, CreditCard, ArrowLeftRight, Coins, ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { Landmark, ArrowDownToLine, CreditCard, ArrowLeftRight, Coins, ChevronLeft, ChevronRight, Plus, Receipt } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { PageShell } from "@/components/layout/PageShell";
@@ -21,6 +22,7 @@ import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/currency";
 import { useCashless } from "@/hooks/use-cashless";
 import { useChipTransfers } from "@/hooks/use-chip-transfers";
+import { useExpenses } from "@/hooks/use-expenses";
 import { usePlayers, useGamingTables } from "@/hooks/use-casino-data";
 import { getBusinessDate } from "@/lib/business-day";
 import ChipTransferDialog from "@/components/player/ChipTransferDialog";
@@ -86,6 +88,21 @@ const CageHistoryView = () => {
 
   // Chip transfers for the date (uses existing hook scoped by day)
   const { data: chipTransfers = [] } = useChipTransfers(date);
+
+  // Expenses for the date
+  const { data: expenses = [] } = useExpenses(date);
+
+  // Cashless provider filter
+  const [providerFilter, setProviderFilter] = useState<string>("ALL");
+  const cashlessProviders = useMemo(() => {
+    const s = new Set<string>();
+    cashless.forEach((c: any) => c.provider && s.add(String(c.provider)));
+    return Array.from(s).sort();
+  }, [cashless]);
+  const cashlessFiltered = useMemo(() =>
+    providerFilter === "ALL" ? cashless : cashless.filter((c: any) => String(c.provider) === providerFilter),
+    [cashless, providerFilter]
+  );
 
   // Chip Transfer dialog — surveillance can create new ones
   const [transferOpen, setTransferOpen] = useState(false);
