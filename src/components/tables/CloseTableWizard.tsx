@@ -37,9 +37,11 @@ type Props = {
   onClose: () => void;
   tables: GamingTable[];
   date: string;
+  /** Surveillance "Closing Check" mode — view-only, only Cancel button works. */
+  readOnly?: boolean;
 };
 
-export const CloseTableWizard = ({ open, onClose, tables, date }: Props) => {
+export const CloseTableWizard = ({ open, onClose, tables, date, readOnly = false }: Props) => {
   // Only OPEN tables enter the wizard (closed tables are already done)
   const wizardTables = useMemo(
     () => tables.filter(t => t.status === "open").sort((a, b) => a.name.localeCompare(b.name)),
@@ -185,20 +187,25 @@ export const CloseTableWizard = ({ open, onClose, tables, date }: Props) => {
             <div className="flex items-center justify-between gap-4">
               <DialogTitle className="flex items-center gap-2">
                 <Lock className="w-4 h-4" />
-                Close Tables
+                {readOnly ? "Closing Check" : "Close Tables"}
                 <Badge variant="outline" className="ml-2 font-mono text-[10px]">
                   {wizardTables.filter(isCounted).length} / {wizardTables.length} counted
                 </Badge>
+                {readOnly && (
+                  <Badge variant="outline" className="ml-1 text-[10px]">View only</Badge>
+                )}
               </DialogTitle>
-              <Button
-                onClick={handleTablesClose}
-                disabled={!allCounted || closeAll.isPending}
-                size="sm"
-                className="gap-1.5"
-              >
-                <Lock className="w-3.5 h-3.5" />
-                {closeAll.isPending ? "Closing…" : "Tables Close"}
-              </Button>
+              {!readOnly && (
+                <Button
+                  onClick={handleTablesClose}
+                  disabled={!allCounted || closeAll.isPending}
+                  size="sm"
+                  className="gap-1.5"
+                >
+                  <Lock className="w-3.5 h-3.5" />
+                  {closeAll.isPending ? "Closing…" : "Tables Close"}
+                </Button>
+              )}
             </div>
           </DialogHeader>
 
@@ -308,11 +315,14 @@ export const CloseTableWizard = ({ open, onClose, tables, date }: Props) => {
                                 type="number"
                                 min="0"
                                 value={currentCounts[d] ?? ""}
+                                readOnly={readOnly}
+                                disabled={readOnly}
                                 onChange={e => {
+                                  if (readOnly) return;
                                   const v = e.target.value === "" ? 0 : parseInt(e.target.value, 10);
                                   setCount(d, isNaN(v) ? 0 : v);
                                 }}
-                                className="w-24 h-8 mx-auto block rounded text-[12px] font-mono text-center border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary text-card-foreground"
+                                className="w-24 h-8 mx-auto block rounded text-[12px] font-mono text-center border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary text-card-foreground disabled:opacity-100 disabled:cursor-default"
                                 placeholder={String(expected)}
                               />
                             </td>
@@ -348,41 +358,49 @@ export const CloseTableWizard = ({ open, onClose, tables, date }: Props) => {
                   </div>
 
                   {/* Actions */}
-                  <div className="flex items-center justify-between gap-2 pt-1">
-                    <div>
-                      {isCounted(current) && (
+                  {readOnly ? (
+                    <div className="flex items-center justify-end gap-2 pt-1">
+                      <Button variant="outline" size="sm" onClick={onClose} className="gap-1.5">
+                        <X className="w-3.5 h-3.5" /> Cancel
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between gap-2 pt-1">
+                      <div>
+                        {isCounted(current) && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setShowOverride(true)}
+                            className="gap-1.5 text-destructive hover:text-destructive"
+                          >
+                            <ShieldAlert className="w-3.5 h-3.5" /> Reopen (Manager)
+                          </Button>
+                        )}
+                      </div>
+                      <div className="flex gap-2">
+                        <Button variant="ghost" size="sm" onClick={onClose} className="gap-1.5">
+                          <X className="w-3.5 h-3.5" /> Close
+                        </Button>
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => setShowOverride(true)}
-                          className="gap-1.5 text-destructive hover:text-destructive"
+                          onClick={() => handleSave(false)}
+                          disabled={setSingleResult.isPending}
                         >
-                          <ShieldAlert className="w-3.5 h-3.5" /> Reopen (Manager)
+                          Save
                         </Button>
-                      )}
+                        <Button
+                          size="sm"
+                          onClick={() => handleSave(true)}
+                          disabled={setSingleResult.isPending || currentIdx === wizardTables.length - 1}
+                          className="gap-1.5"
+                        >
+                          Save & Next <ChevronRight className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
                     </div>
-                    <div className="flex gap-2">
-                      <Button variant="ghost" size="sm" onClick={onClose} className="gap-1.5">
-                        <X className="w-3.5 h-3.5" /> Close
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleSave(false)}
-                        disabled={setSingleResult.isPending}
-                      >
-                        Save
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={() => handleSave(true)}
-                        disabled={setSingleResult.isPending || currentIdx === wizardTables.length - 1}
-                        className="gap-1.5"
-                      >
-                        Save & Next <ChevronRight className="w-3.5 h-3.5" />
-                      </Button>
-                    </div>
-                  </div>
+                  )}
                 </div>
               )}
             </div>

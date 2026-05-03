@@ -51,8 +51,12 @@ export const useChipColors = () => {
   // No "force update" button needed.
   useEffect(() => {
     if (!casinoId) return;
+    // Unique channel per hook instance — multiple components mount this hook
+    // simultaneously, and reusing the same channel name causes
+    // "cannot add 'postgres_changes' callbacks after subscribe()".
+    const channelName = `chip_color_settings:${casinoId}:${Math.random().toString(36).slice(2, 10)}`;
     const channel = supabase
-      .channel(`chip_color_settings:${casinoId}`)
+      .channel(channelName)
       .on(
         "postgres_changes",
         {

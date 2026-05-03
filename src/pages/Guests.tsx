@@ -1,10 +1,11 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
-import { UserCheck, Search, ArrowUp, ArrowDown, ArrowUpDown, LogOut, User, Eye, CheckCircle2 } from "lucide-react";
+import { UserCheck, Search, ArrowUp, ArrowDown, ArrowUpDown, LogOut, User, Eye, CheckCircle2, LogIn } from "lucide-react";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
+import { useDebouncedValue } from "@/hooks/use-debounce";
 import { useVisitsToday } from "@/hooks/use-casino-data";
 import { logAction } from "@/lib/logging";
 import { toast } from "sonner";
@@ -36,7 +37,8 @@ const TYPE_CLASSES: Record<string, string> = {
 };
 
 const Guests = () => {
-  const { casinoId } = useAuth();
+  const { casinoId, user, roles } = useAuth();
+  const canCheckIn = roles.some(r => ["reception", "pit", "manager", "super_admin"].includes(r));
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -166,6 +168,59 @@ const Guests = () => {
     onError: (e: any) => toast.error(e.message),
   });
 
+  // Search all players (not just today's visitors) when user types.
+  const debouncedSearch = useDebouncedValue(search, 250);
+  const presentPlayerIds = useMemo(
+    () => new Set(visits.filter((v: any) => !v.checked_out_at).map((v: any) => v.player_id)),
+    [visits]
+  );
+  const visitedPlayerIds = useMemo(
+    () => new Set(visits.map((v: any) => v.player_id)),
+    [visits]
+  );
+  const { data: searchedPlayers = [] } = useQuery({
+    queryKey: ["guests-player-search", casinoId, debouncedSearch],
+    queryFn: async () => {
+      if (!casinoId || debouncedSearch.trim().length < 2) return [];
+      const q = debouncedSearch.trim().replace(/[%,]/g, " ");
+      const { data } = await supabase
+        .from("players")
+        .select("id, first_name, last_name, nickname, photo_url, status, player_type, phone, id_number, id_document_url, category")
+        .eq("casino_id", casinoId)
+        .or(`first_name.ilike.%${q}%,last_name.ilike.%${q}%,nickname.ilike.%${q}%`)
+        .limit(50);
+      return data || [];
+    },
+    enabled: !!casinoId && debouncedSearch.trim().length >= 2,
+  });
+
+  const checkIn = useMutation({
+    mutationFn: async (playerId: string) => {
+      if (!casinoId || !user) throw new Error("Not authenticated");
+      const { data: existing } = await supabase
+        .from("casino_visits")
+        .select("id, checked_out_at")
+        .eq("casino_id", casinoId)
+        .eq("player_id", playerId)
+        .eq("date", new Date().toISOString().slice(0, 10))
+        .is("checked_out_at", null)
+        .maybeSingle();
+      if (existing) return existing.id;
+      const { error } = await supabase.from("casino_visits").insert({
+        casino_id: casinoId,
+        player_id: playerId,
+        checked_in_by: user.id,
+        position: "hall",
+      });
+      if (error) throw error;
+      await logAction(casinoId, "player", "PLAYER_CHECKED_IN", { player_id: playerId });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["casino-visits-live"] });
+      toast.success("Checked in");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
   const PositionBadge = ({ pos }: { pos: string }) => {
     if (pos === "table") return <Badge variant="outline" className="text-[10px] gap-0.5"><CheckCircle2 className="w-2.5 h-2.5" />Table</Badge>;
     if (pos === "slots") return <Badge className="text-[10px] bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30">Slots</Badge>;
@@ -175,69 +230,41 @@ const Guests = () => {
   const renderRow = (r: any, idx: number) => (
     <tr
       key={r.id}
-      className={`border-b border-border hover:bg-muted/30 transition-colors ${!r.isInside ? "opacity-70" : ""}`}
+      className={`border-b border-border hover:bg-muted/30 transition-colors ${r.isCandidate ? "bg-primary/5" : !r.isInside ? "opacity-70" : ""}`}
     >
-      {/* # */}
-      <td className="px-2 py-1.5 w-[36px] text-center font-mono text-[10px] text-muted-foreground">
-        {idx + 1}
-      </td>
-      {/* Photo */}
+      <td className="px-2 py-1.5 w-[36px] text-center font-mono text-[10px] text-muted-foreground">{idx + 1}</td>
       <td className="px-2 py-1.5 w-[42px]">
         <div className="w-8 h-8 rounded-full bg-muted overflow-hidden flex items-center justify-center shrink-0">
-          {r.photoUrl ? (
-            <img src={r.photoUrl} alt="" className="w-full h-full object-cover" />
-          ) : (
-            <User className="w-4 h-4 text-muted-foreground" />
-          )}
+          {r.photoUrl ? <img src={r.photoUrl} alt="" className="w-full h-full object-cover" /> : <User className="w-4 h-4 text-muted-foreground" />}
         </div>
       </td>
-      {/* Level (category) */}
-      <td className="px-1 py-1.5 w-[44px]">
-        <CategoryBadge category={r.category} />
-      </td>
-      {/* Player name */}
+      <td className="px-1 py-1.5 w-[44px]"><CategoryBadge category={r.category} /></td>
       <td className="px-2 py-1.5 max-w-[180px]">
-        <p className="text-xs font-semibold text-card-foreground truncate">
-          {r.firstName} {r.lastName}
-        </p>
+        <p className="text-xs font-semibold text-card-foreground truncate">{r.firstName} {r.lastName}</p>
+        {r.isCandidate && <p className="text-[9px] text-muted-foreground italic">Not checked in today</p>}
       </td>
-      {/* Tags - long field */}
       <td className="px-2 py-1.5 min-w-[280px]">
         {r.tags.length > 0 ? <FlagBadges tags={r.tags} compact /> : <span className="text-muted-foreground text-[10px]">·</span>}
       </td>
-      {/* Type */}
       <td className="px-1 py-1.5 w-[70px]">
-        {r.playerType ? (
-          <Badge className={`${TYPE_CLASSES[r.playerType] || ""} text-[10px]`}>{TYPE_LABELS[r.playerType] || r.playerType}</Badge>
-        ) : <span className="text-muted-foreground text-[10px]">·</span>}
+        {r.playerType ? <Badge className={`${TYPE_CLASSES[r.playerType] || ""} text-[10px]`}>{TYPE_LABELS[r.playerType] || r.playerType}</Badge> : <span className="text-muted-foreground text-[10px]">·</span>}
       </td>
-      {/* Position */}
       <td className="px-1 py-1.5 w-[70px]">
-        <PositionBadge pos={r.position} />
+        {r.isCandidate ? <span className="text-muted-foreground text-[10px]">·</span> : <PositionBadge pos={r.position} />}
       </td>
-      {/* Entry */}
-      <td className="px-1 py-1.5 font-mono text-xs w-[44px] text-center">{formatTime(r.entryAt)}</td>
-      {/* Exit */}
-      <td className="px-1 py-1.5 font-mono text-xs w-[44px] text-center">{formatTime(r.exitAt)}</td>
-      {/* Actions */}
+      <td className="px-1 py-1.5 font-mono text-xs w-[44px] text-center">{r.isCandidate ? "·" : formatTime(r.entryAt)}</td>
+      <td className="px-1 py-1.5 font-mono text-xs w-[44px] text-center">{r.isCandidate ? "·" : formatTime(r.exitAt)}</td>
       <td className="px-1 py-1.5 text-right whitespace-nowrap">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-7 w-7 p-0"
-          title="View profile"
-          onClick={(e) => { e.stopPropagation(); setProfilePlayer(r.rawPlayer); }}
-        >
+        <Button variant="ghost" size="sm" className="h-7 w-7 p-0" title="View profile" onClick={(e) => { e.stopPropagation(); setProfilePlayer(r.rawPlayer); }}>
           <Eye className="w-3.5 h-3.5" />
         </Button>
-        {r.isInside && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-7 ml-1 text-xs gap-1"
-            onClick={() => confirmExit.mutate(r.id)}
-            disabled={confirmExit.isPending}
-          >
+        {r.isCandidate && canCheckIn && (
+          <Button variant="default" size="sm" className="h-7 ml-1 text-xs gap-1" onClick={() => checkIn.mutate(r.playerId)} disabled={checkIn.isPending}>
+            <LogIn className="w-3 h-3" /> Check In
+          </Button>
+        )}
+        {!r.isCandidate && r.isInside && (
+          <Button variant="outline" size="sm" className="h-7 ml-1 text-xs gap-1" onClick={() => confirmExit.mutate(r.id)} disabled={confirmExit.isPending}>
             <LogOut className="w-3 h-3" /> Check Out
           </Button>
         )}
@@ -359,15 +386,34 @@ const Guests = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.length === 0 ? (
-                    <tr>
-                      <td colSpan={10} className="px-2 py-8 text-center text-muted-foreground text-xs">
-                        No guests to display
-                      </td>
-                    </tr>
-                  ) : (
-                    filtered.map((r, i) => renderRow(r, i))
-                  )}
+                  {(() => {
+                    const candidateRows = (searchedPlayers as any[])
+                      .filter(p => !visitedPlayerIds.has(p.id))
+                      .map(p => ({
+                        id: `candidate-${p.id}`,
+                        playerId: p.id,
+                        firstName: p.first_name,
+                        lastName: p.last_name,
+                        nickname: p.nickname,
+                        photoUrl: p.photo_url,
+                        category: (p.category as PlayerCategory) || "normal",
+                        playerType: p.player_type,
+                        position: "hall",
+                        entryAt: null,
+                        exitAt: null,
+                        tags: tagsByPlayer.get(p.id) || [],
+                        rawPlayer: p,
+                        isInside: false,
+                        isCandidate: true,
+                      }));
+                    const combined = [...filtered, ...candidateRows];
+                    if (combined.length === 0) {
+                      return (
+                        <tr><td colSpan={10} className="px-2 py-8 text-center text-muted-foreground text-xs">No guests to display</td></tr>
+                      );
+                    }
+                    return combined.map((r, i) => renderRow(r, i));
+                  })()}
                 </tbody>
               </table>
             </div>

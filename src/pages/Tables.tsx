@@ -22,6 +22,7 @@ import type { SeatedPlayer } from "@/components/pit/SeatedPlayerChip";
 import type { PlayerCategory } from "@/components/player/CategoryBadge";
 import { useAuth } from "@/lib/auth-context";
 import { useBusinessDayFilter } from "@/hooks/use-business-day-filter";
+import { useReadOnlyMode } from "@/hooks/use-readonly-mode";
 import { useTablesDropSplit } from "@/hooks/use-drop-split";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -45,6 +46,7 @@ const Tables = () => {
   const openAllTables = useOpenAllTables();
   const reopenTable = useReopenTable();
   const { casinoId, user } = useAuth();
+  const isReadOnly = useReadOnlyMode();
   const queryClient = useQueryClient();
 
   const today = getBusinessDate();
@@ -482,7 +484,7 @@ const Tables = () => {
         )}
 
         <Button size="sm" onClick={() => setShowCloseWizard(true)} disabled={openTables.length === 0} className="gap-1.5">
-          <Lock className="w-4 h-4" /> Close Table
+          <Lock className="w-4 h-4" /> {isReadOnly ? "Closing Check" : "Close Table"}
         </Button>
 
         {hasResults && tablesWithResults.length === openTables.length && (
@@ -553,6 +555,7 @@ const Tables = () => {
         onClose={() => setShowCloseWizard(false)}
         tables={tables as any}
         date={date}
+        readOnly={isReadOnly}
       />
 
       <TableSeatingDialog

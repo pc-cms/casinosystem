@@ -1,13 +1,13 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { BarChart3, Search, ArrowLeftRight, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
+import { BarChart3, Search, ArrowLeftRight, ArrowUp, ArrowDown, ArrowUpDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { usePlayers, useTransactions, useGamingTables } from "@/hooks/use-casino-data";
 import { useChipTransfers } from "@/hooks/use-chip-transfers";
 import { getBusinessDate, businessDayHourUTC } from "@/lib/business-day";
-import { canSeePlayerFinancials } from "@/lib/role-access";
+import { canSeePlayerFinancials, canSeeAllTimeData } from "@/lib/role-access";
 import { Button } from "@/components/ui/button";
 import ChipTransferDialog from "@/components/player/ChipTransferDialog";
 import { PageShell } from "@/components/layout/PageShell";
@@ -31,18 +31,36 @@ const formatTime = (iso?: string | null) => {
   return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 };
 
+const MAX_DAYS_BACK = 90;
+const subDays = (iso: string, n: number) => {
+  const d = new Date(iso + "T12:00:00Z");
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+};
+
 const PlayerStatistics = () => {
   const navigate = useNavigate();
   const { casinoId, roles, user } = useAuth();
   const today = getBusinessDate();
-  const windowStartUTC = businessDayHourUTC(today, 13);
+  const canBrowseHistory = canSeeAllTimeData(roles);
+  const minDate = subDays(today, -MAX_DAYS_BACK);
+  const [date, setDate] = useState(today);
+  const effectiveDate = canBrowseHistory ? date : today;
+  const isHistorical = effectiveDate !== today;
+  const windowStartUTC = businessDayHourUTC(effectiveDate, 13);
   const queryClient = useQueryClient();
-  const canEditPosition = roles.some(r => ["pit", "manager", "reception", "super_admin"].includes(r));
+  const canEditPosition = !isHistorical && roles.some(r => ["pit", "manager", "reception", "super_admin"].includes(r));
 
   const { data: players = [] } = usePlayers();
   const { data: tables = [] } = useGamingTables();
-  const { data: transactions = [] } = useTransactions(today);
-  const { data: chipTransfers = [] } = useChipTransfers(today);
+  const { data: transactions = [] } = useTransactions(effectiveDate);
+  const { data: chipTransfers = [] } = useChipTransfers(effectiveDate);
+
+  const shiftDate = (delta: number) => {
+    const next = subDays(date, delta);
+    if (next < minDate || next > today) return;
+    setDate(next);
+  };
 
   const [tab, setTab] = useState<TabKey>("day");
   const [search, setSearch] = useState("");
@@ -63,32 +81,34 @@ const PlayerStatistics = () => {
   const canTransfer = roles.some(r => ["pit", "manager", "super_admin"].includes(r));
 
   const { data: visits = [] } = useQuery({
-    queryKey: ["casino_visits", casinoId, today],
+    queryKey: ["casino_visits", casinoId, effectiveDate],
     queryFn: async () => {
       const { data } = await supabase
         .from("casino_visits")
         .select("*")
         .eq("casino_id", casinoId!)
-        .eq("date", today);
+        .eq("date", effectiveDate);
       return (data || []) as any[];
     },
     enabled: !!casinoId,
-    refetchInterval: 15000,
+    refetchInterval: isHistorical ? false : 15000,
   });
 
   const { data: sessions = [] } = useQuery({
-    queryKey: ["client_sessions", casinoId, today],
+    queryKey: ["client_sessions", casinoId, effectiveDate],
     queryFn: async () => {
+      const endIso = businessDayHourUTC(effectiveDate, 13 + 24);
       const { data } = await supabase
         .from("client_sessions")
         .select("*")
         .eq("casino_id", casinoId!)
         .gte("started_at", windowStartUTC)
+        .lt("started_at", endIso)
         .order("started_at", { ascending: false });
       return (data || []) as any[];
     },
     enabled: !!casinoId,
-    refetchInterval: 15000,
+    refetchInterval: isHistorical ? false : 15000,
   });
 
   const tableNameById = useMemo(() => {
@@ -420,13 +440,38 @@ const PlayerStatistics = () => {
     [rows]
   );
 
+  const dateControl = canBrowseHistory ? (
+    <div className="flex items-center gap-1.5">
+      <Button variant="ghost" size="icon-sm" onClick={() => shiftDate(-1)} disabled={date <= minDate}>
+        <ChevronLeft className="w-4 h-4" />
+      </Button>
+      <Input
+        type="date"
+        value={date}
+        min={minDate}
+        max={today}
+        onChange={e => e.target.value && setDate(e.target.value)}
+        className="w-44 font-mono h-9"
+      />
+      <Button variant="ghost" size="icon-sm" onClick={() => shiftDate(1)} disabled={date >= today}>
+        <ChevronRight className="w-4 h-4" />
+      </Button>
+      {date !== today && (
+        <Button variant="outline" size="sm" className="h-7 text-[10px]" onClick={() => setDate(today)}>
+          Today
+        </Button>
+      )}
+    </div>
+  ) : undefined;
+
   return (
     <PageShell>
       <PageHeader
         icon={BarChart3}
         title="Player Statistics"
-        subtitle="Today's visitors — entry, position, results"
-        date={true}
+        subtitle={isHistorical ? `Historical · ${effectiveDate}` : "Today's visitors — entry, position, results"}
+        centerSlot={dateControl}
+        date={!canBrowseHistory}
       />
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as TabKey)} className="space-y-3">
