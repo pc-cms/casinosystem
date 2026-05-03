@@ -33,13 +33,15 @@ const Groups = () => {
   const createGroup = useCreateGroup();
   const addMember = useAddGroupMember();
   const removeMember = useRemoveGroupMember();
+  const { data: serverBusinessDate } = useEffectiveBusinessDate();
+  const today = serverBusinessDate || getBusinessDate();
 
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState("");
   const [addingToGroup, setAddingToGroup] = useState<string | null>(null);
 
   const [preset, setPreset] = useState<DatePreset>("month");
-  const initial = monthToDateRange();
+  const initial = monthToDateRange(today);
   const [dateRange, setDateRange] = useState<{ from: string; to: string }>(initial);
 
   // Per-member period stats — accounts for membership window AND date filter
