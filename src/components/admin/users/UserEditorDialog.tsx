@@ -14,7 +14,27 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ResponsiveDialog, ResponsiveDialogFooter } from "@/components/ui/responsive-dialog";
-import { ROLE_LABELS, ALL_ROLES, NON_SUPER_ROLES, useAllCasinos, useCreateUser, useUpdateUserRoles } from "./users-hooks";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  ROLE_LABELS,
+  ALL_ROLES,
+  NON_SUPER_ROLES,
+  useAllCasinos,
+  useCreateUser,
+  useUpdateUserRoles,
+  useResetPassword,
+  useDisableUser,
+} from "./users-hooks";
+import { KeyRound, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 export type UserEditorTarget =
