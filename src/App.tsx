@@ -41,7 +41,7 @@ const FinanceCashCountPage = lazy(() => import("@/pages/finance/FinanceCashCount
 const FinanceSummaryPage = lazy(() => import("@/pages/finance/FinanceSummaryPage"));
 const FinanceTransfersPage = lazy(() => import("@/pages/finance/FinanceTransfersPage"));
 const Reception = lazy(() => import("@/pages/Reception"));
-const InCasino = lazy(() => import("@/pages/InCasino"));
+const Guests = lazy(() => import("@/pages/Guests"));
 const Blacklist = lazy(() => import("@/pages/Blacklist"));
 const ImportReports = lazy(() => import("@/pages/ImportReports"));
 const TableResults = lazy(() => import("@/pages/TableResults"));
