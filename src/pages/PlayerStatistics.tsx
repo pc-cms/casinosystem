@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { BarChart3, Search, ArrowLeftRight } from "lucide-react";
+import { BarChart3, Search, ArrowLeftRight, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
@@ -50,6 +50,13 @@ const PlayerStatistics = () => {
     new Set(["diamond", "platinum", "gold", "normal"])
   );
   const [transferPlayer, setTransferPlayer] = useState<{ id: string; first_name: string; last_name: string; nickname?: string | null } | null>(null);
+  type SortKey = "name" | "position" | "entry" | "exit" | "avgBet" | "inDrop" | "out" | "chipIn" | "chipOut" | "chipDelta" | "result";
+  const [sortKey, setSortKey] = useState<SortKey | null>(null);
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) setSortDir(d => d === "asc" ? "desc" : "asc");
+    else { setSortKey(key); setSortDir("desc"); }
+  };
 
   const showFinancials = canSeePlayerFinancials(roles);
   const canTransfer = roles.some(r => ["pit", "manager", "super_admin"].includes(r));
@@ -170,12 +177,34 @@ const PlayerStatistics = () => {
         `${r.firstName} ${r.lastName} ${r.nickname ?? ""}`.toLowerCase().includes(q)
       );
     }
-    // Sort: present first (active), most recent entry first
+    // Default sort: present first, recent entry first. Override when user clicked a column.
     return [...list].sort((a: any, b: any) => {
+      if (sortKey) {
+        const dir = sortDir === "asc" ? 1 : -1;
+        const get = (r: any) => {
+          switch (sortKey) {
+            case "name": return `${r.firstName} ${r.lastName}`.toLowerCase();
+            case "position": return r.position === "table" ? (r.tableName ?? "zzz") : r.position;
+            case "entry": return new Date(r.entryAt).getTime();
+            case "exit": return r.exitAt ? new Date(r.exitAt).getTime() : 0;
+            case "avgBet": return r.avgBet;
+            case "inDrop": return r.inDrop;
+            case "out": return r.out;
+            case "chipIn": return r.chipIn;
+            case "chipOut": return r.chipOut;
+            case "chipDelta": return r.chipDelta;
+            case "result": return r.result;
+          }
+        };
+        const av = get(a), bv = get(b);
+        if (av < bv) return -1 * dir;
+        if (av > bv) return 1 * dir;
+        return 0;
+      }
       if (a.isPresent !== b.isPresent) return a.isPresent ? -1 : 1;
       return new Date(b.entryAt).getTime() - new Date(a.entryAt).getTime();
     });
-  }, [rows, tab, categoryFilter, search]);
+  }, [rows, tab, categoryFilter, search, sortKey, sortDir]);
 
   const counts = useMemo(() => ({
     day: rows.length,
@@ -431,21 +460,40 @@ const PlayerStatistics = () => {
               <table className="w-full text-xs">
                 <thead className="bg-muted/30 border-b border-border">
                   <tr className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                    <th className="px-2 py-2 text-left">Player</th>
-                    <th className="px-2 py-2 text-left">Position</th>
-                    <th className="px-2 py-2 text-left">Entry</th>
-                    <th className="px-2 py-2 text-left">Exit</th>
-                    {showFinancials && (
-                      <>
-                        <th className="px-2 py-2 text-right">Avg Bet</th>
-                        <th className="px-2 py-2 text-right">In / Drop</th>
-                        <th className="px-2 py-2 text-right">Out</th>
-                        <th className="px-2 py-2 text-right" title="Chips received from another player (NEP-tracked, no cash)">Chip In</th>
-                        <th className="px-2 py-2 text-right" title="Chips given to another player (NEP-tracked, no cash)">Chip Out</th>
-                        <th className="px-2 py-2 text-right">Chip Δ</th>
-                        <th className="px-2 py-2 text-right">Result</th>
-                      </>
-                    )}
+                    {(() => {
+                      const SortIcon = ({ k }: { k: SortKey }) =>
+                        sortKey !== k ? <ArrowUpDown className="w-3 h-3 inline ml-1 opacity-40" />
+                          : sortDir === "asc" ? <ArrowUp className="w-3 h-3 inline ml-1" />
+                          : <ArrowDown className="w-3 h-3 inline ml-1" />;
+                      const H = ({ k, align = "left", children, title }: { k: SortKey; align?: "left" | "right"; children: any; title?: string }) => (
+                        <th
+                          title={title}
+                          className={`px-2 py-2 cursor-pointer select-none hover:text-foreground ${align === "right" ? "text-right" : "text-left"}`}
+                          onClick={() => toggleSort(k)}
+                        >
+                          {children}<SortIcon k={k} />
+                        </th>
+                      );
+                      return (
+                        <>
+                          <H k="name">Player</H>
+                          <H k="position">Position</H>
+                          <H k="entry">Entry</H>
+                          <H k="exit">Exit</H>
+                          {showFinancials && (
+                            <>
+                              <H k="avgBet" align="right">Avg Bet</H>
+                              <H k="inDrop" align="right">In / Drop</H>
+                              <H k="out" align="right">Out</H>
+                              <H k="chipIn" align="right" title="Chips received from another player (NEP-tracked, no cash)">Chip In</H>
+                              <H k="chipOut" align="right" title="Chips given to another player (NEP-tracked, no cash)">Chip Out</H>
+                              <H k="chipDelta" align="right">Chip Δ</H>
+                              <H k="result" align="right">Result</H>
+                            </>
+                          )}
+                        </>
+                      );
+                    })()}
                     {canTransfer && <th className="px-2 py-2 text-right w-8"></th>}
                   </tr>
                 </thead>
