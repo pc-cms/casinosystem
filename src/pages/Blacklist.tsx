@@ -67,7 +67,7 @@ const Blacklist = () => {
   const canBlacklist = roles.some(r => ["pit", "manager", "surveillance", "super_admin"].includes(r));
   const [pendingAction, setPendingAction] = useState<{ player: any; action: "blacklist" | "reactivate" } | null>(null);
   const [search, setSearch] = useState("");
-  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [addTarget, setAddTarget] = useState<{ id: string; name: string } | null>(null);
 
   const { data: players = [] } = useQuery({
     queryKey: ["players"],
@@ -174,9 +174,9 @@ const Blacklist = () => {
         date
       >
         {canBlacklist && (
-          <Button size="sm" className="gap-1.5" onClick={() => setAddDialogOpen(true)}>
-            <Plus className="w-3.5 h-3.5" /> Add to Blacklist
-          </Button>
+          <span className="text-[10px] text-muted-foreground">
+            Search a player below, then click <Plus className="inline w-3 h-3" /> to blacklist
+          </span>
         )}
       </PageHeader>
 
@@ -194,18 +194,24 @@ const Blacklist = () => {
         {search && searchResults.length > 0 && (
           <div className="mt-2 border border-border rounded-md divide-y divide-border bg-card max-h-72 overflow-y-auto">
             {searchResults.map(p => (
-              <Link
-                key={p.id}
-                to={`/players/${p.id}`}
-                className="flex items-center justify-between px-3 py-2 text-sm hover:bg-muted/40"
-              >
-                <div>
+              <div key={p.id} className="flex items-center justify-between px-3 py-2 text-sm hover:bg-muted/40">
+                <Link to={`/players/${p.id}`} className="flex-1">
                   <span className="font-medium">{p.first_name} {p.last_name}</span>
                   {p.nickname && <span className="text-muted-foreground text-xs ml-1.5">"{p.nickname}"</span>}
                   <span className="text-[10px] text-muted-foreground ml-2 font-mono">{p.id_number || ""}</span>
-                </div>
-                <span className="text-[10px] text-muted-foreground">Last visit: {fmtDate(lastVisits[p.id])}</span>
-              </Link>
+                </Link>
+                <span className="text-[10px] text-muted-foreground mr-3">Last visit: {fmtDate(lastVisits[p.id])}</span>
+                {canBlacklist && (
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    className="h-7 gap-1 text-xs"
+                    onClick={() => setAddTarget({ id: p.id, name: `${p.first_name} ${p.last_name}` })}
+                  >
+                    <Ban className="w-3 h-3" /> Blacklist
+                  </Button>
+                )}
+              </div>
             ))}
           </div>
         )}
@@ -285,12 +291,12 @@ const Blacklist = () => {
         }}
       />
 
-      {addDialogOpen && (
+      {addTarget && (
         <BlacklistPlayerDialog
-          open={addDialogOpen}
-          onOpenChange={setAddDialogOpen}
-          // No locked player → dialog will show its own player picker
-          player={null}
+          open={!!addTarget}
+          onClose={() => setAddTarget(null)}
+          playerId={addTarget.id}
+          playerName={addTarget.name}
         />
       )}
     </PageShell>
