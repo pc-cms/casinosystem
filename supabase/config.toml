@@ -18,3 +18,8 @@ verify_jwt = false
 
 [functions.upload-backup]
 verify_jwt = false
+
+# Initial data seed for fresh on-prem servers (см. install.sh шаг 6.5).
+# verify_jwt=false: функция сама проверяет x-service-key header.
+[functions.cloud-seed-export]
+verify_jwt = false

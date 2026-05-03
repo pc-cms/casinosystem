@@ -397,6 +397,65 @@ else
   warn "Каталог ../supabase/migrations не найден"
 fi
 
+# ────────── 6.5. Seed from Cloud (опционально, только при первой установке) ──────────
+# Если локальная БД пуста — предлагаем перенести данные этого казино из Cloud.
+# Маркер «уже сделано» — файл .seed-done в каталоге установки.
+SEED_DONE_FILE="${SCRIPT_DIR}/.seed-done"
+if [[ ! -f "$SEED_DONE_FILE" && $NONINTERACTIVE -eq 0 && $INTERNET_OK -eq 1 ]]; then
+  title "6.5/8  Перенос данных из Cloud (первая установка)"
+  echo "  Cloud-сервер уже содержит данные этого казино (config + транзакции)?"
+  echo "  Скрипт может загрузить их сейчас в локальную БД (~30-90 МБ)."
+  echo
+  read -r -p "  Перенести данные из Cloud? [Y/n]: " seed_yn
+  if [[ "${seed_yn,,}" != "n" ]]; then
+    # Стартуем postgres заранее (миграции уже скопированы в init/, накатятся при первом старте)
+    log "Запускаю postgres для импорта..."
+    docker compose up -d postgres
+    for i in $(seq 1 30); do
+      docker compose exec -T postgres pg_isready -U "${POSTGRES_USER:-postgres}" &>/dev/null && break
+      sleep 2
+      [[ $i -eq 30 ]] && fail "Postgres не стартовал — docker compose logs postgres"
+    done
+    ok "Postgres готов"
+
+    read -r -p "  Cloud Supabase URL (например https://abc.supabase.co): " CLOUD_URL
+    read -r -s -p "  Service-role key (вставьте и Enter): " CLOUD_KEY; echo
+    DAYS_DEFAULT=90
+    read -r -p "  Сколько дней операционных данных перенести? [${DAYS_DEFAULT}]: " DAYS_INPUT
+    DAYS=${DAYS_INPUT:-$DAYS_DEFAULT}
+
+    if [[ -z "$CLOUD_URL" || -z "$CLOUD_KEY" ]]; then
+      warn "URL или ключ не указаны — пропускаю seed"
+    else
+      log "Запрашиваю поток NDJSON из ${CLOUD_URL} ..."
+      # Стрим NDJSON прямо в node-импортёр внутри отдельного контейнера node:20.
+      # Контейнер видит postgres по docker-сети compose (имя сервиса = postgres).
+      set +e
+      curl -fsSL --max-time 600 \
+        "${CLOUD_URL%/}/functions/v1/cloud-seed-export?casino_id=${CASINO_ID}&days=${DAYS}" \
+        -H "x-service-key: ${CLOUD_KEY}" \
+      | docker run --rm -i \
+          --network "$(docker compose ps --format json postgres 2>/dev/null | jq -r '.Networks // empty' | head -1 || echo casino-net)" \
+          -v "${SCRIPT_DIR}/postgres/seed-import.js:/seed-import.js:ro" \
+          -e PGHOST=postgres \
+          -e PGUSER="${POSTGRES_USER:-postgres}" \
+          -e PGPASSWORD="${POSTGRES_PASSWORD}" \
+          -e PGDATABASE="${POSTGRES_DB:-postgres}" \
+          node:20-alpine sh -c "npm i --silent --no-fund --no-audit pg >/dev/null && node /seed-import.js"
+      SEED_RC=$?
+      set -e
+      if [[ $SEED_RC -eq 0 ]]; then
+        touch "$SEED_DONE_FILE"
+        ok "Данные перенесены, маркер ${SEED_DONE_FILE} установлен"
+      else
+        warn "Seed завершился с ошибкой (код $SEED_RC). Можно запустить повторно: sudo ./install.sh"
+      fi
+    fi
+  else
+    log "Пропускаю seed — БД останется пустой (или будет наполнена через cms-sync)"
+  fi
+fi
+
 # ────────── 7. Решение по версии Docker-образа ──────────
 title "7/8  Версия Docker-образа"
 
