@@ -400,6 +400,11 @@ const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }
                                   className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold transition-colors ${ROLE_COLORS["BR"] || "bg-muted text-muted-foreground"} hover:opacity-80`}>
                                   BR
                                 </button>
+                                <button onClick={() => handleRoleSelect("TR")}
+                                  title="Training"
+                                  className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold transition-colors ${ROLE_COLORS["TR"] || "bg-muted text-muted-foreground"} hover:opacity-80`}>
+                                  TR
+                                </button>
                                 <button onClick={() => handleRoleSelect("STR")}
                                   title="Sorting"
                                   className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold transition-colors ${ROLE_COLORS["STR"] || "bg-muted text-muted-foreground"} hover:opacity-80`}>
