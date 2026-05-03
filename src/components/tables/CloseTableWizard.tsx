@@ -37,9 +37,11 @@ type Props = {
   onClose: () => void;
   tables: GamingTable[];
   date: string;
+  /** Surveillance "Closing Check" mode — view-only, only Cancel button works. */
+  readOnly?: boolean;
 };
 
-export const CloseTableWizard = ({ open, onClose, tables, date }: Props) => {
+export const CloseTableWizard = ({ open, onClose, tables, date, readOnly = false }: Props) => {
   // Only OPEN tables enter the wizard (closed tables are already done)
   const wizardTables = useMemo(
     () => tables.filter(t => t.status === "open").sort((a, b) => a.name.localeCompare(b.name)),
@@ -185,20 +187,25 @@ export const CloseTableWizard = ({ open, onClose, tables, date }: Props) => {
             <div className="flex items-center justify-between gap-4">
               <DialogTitle className="flex items-center gap-2">
                 <Lock className="w-4 h-4" />
-                Close Tables
+                {readOnly ? "Closing Check" : "Close Tables"}
                 <Badge variant="outline" className="ml-2 font-mono text-[10px]">
                   {wizardTables.filter(isCounted).length} / {wizardTables.length} counted
                 </Badge>
+                {readOnly && (
+                  <Badge variant="outline" className="ml-1 text-[10px]">View only</Badge>
+                )}
               </DialogTitle>
-              <Button
-                onClick={handleTablesClose}
-                disabled={!allCounted || closeAll.isPending}
-                size="sm"
-                className="gap-1.5"
-              >
-                <Lock className="w-3.5 h-3.5" />
-                {closeAll.isPending ? "Closing…" : "Tables Close"}
-              </Button>
+              {!readOnly && (
+                <Button
+                  onClick={handleTablesClose}
+                  disabled={!allCounted || closeAll.isPending}
+                  size="sm"
+                  className="gap-1.5"
+                >
+                  <Lock className="w-3.5 h-3.5" />
+                  {closeAll.isPending ? "Closing…" : "Tables Close"}
+                </Button>
+              )}
             </div>
           </DialogHeader>
 
