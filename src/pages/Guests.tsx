@@ -141,9 +141,9 @@ const Guests = () => {
   }, [rows, tab, posFilter, typeFilter, categoryFilter, search, sortKey, sortDir]);
 
   const counts = useMemo(() => ({
-    all: rows.length,
-    inside: rows.filter(r => r.isInside).length,
-    out: rows.filter(r => !r.isInside).length,
+    day: rows.length,
+    present: rows.filter(r => r.isInside).length,
+    left: rows.filter(r => !r.isInside).length,
   }), [rows]);
 
   const confirmExit = useMutation({
