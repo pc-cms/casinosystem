@@ -153,6 +153,7 @@ const Pit = () => {
   ) : null;
 
   // Right slot: action buttons / legend
+  const isCCTV = roles.includes("surveillance") && !isManager;
   const rightControls = (
     <>
       {activeTab === "breaklist" && (
@@ -164,6 +165,28 @@ const Pit = () => {
           <Button variant="outline" size="icon-xs" onClick={() => setBreaklistZoom(z => Math.min(200, z + 10))}>
             <ZoomIn className="w-3.5 h-3.5" />
           </Button>
+          {!isCCTV && (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1 text-xs"
+                onClick={() => breaklistRefreshRef.current?.()}
+                title="Fill empty slots up to current time with BR"
+              >
+                <RefreshCw className="w-3.5 h-3.5" /> Refresh
+              </Button>
+              <Button
+                variant="default"
+                size="sm"
+                className="gap-1 text-xs"
+                onClick={() => breaklistAcceptRef.current?.()}
+                title="Fill all remaining empty slots until end of shift with BR"
+              >
+                <Check className="w-3.5 h-3.5" /> Accept
+              </Button>
+            </>
+          )}
         </>
       )}
       {activeTab === "rota" && (
