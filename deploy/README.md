@@ -42,6 +42,20 @@
 ### Шаг 1. Получите параметры у Premier admin
 - `CASINO_ID` (UUID локации из таблицы `casinos`)
 - `SYNC_SECRET` (выдаётся при регистрации `local_servers`)
+- **GitHub Personal Access Token** с правом `read:packages` — нужен для скачивания
+  Docker-образа `cms-frontend` из приватного `ghcr.io/pc-cms/cms-frontend`.
+  Создаётся на github.com/settings/tokens (classic) → scopes = `read:packages`.
+  Один токен можно использовать для всех локаций.
+- (опционально) **Service-role key** Cloud Supabase — нужен только при первой
+  установке, если хотите перенести существующие данные казино из Cloud в локальную БД.
+
+### Шаг 1.5. Подготовьте GitHub-релиз (один раз для всей сети)
+Если репозиторий ещё не выпускал релизов, на github.com/pc-cms/casinosystem:
+- **Releases → Draft a new release → Choose a tag → `v0.1.0` → Publish**
+- Workflow `release-onprem.yml` соберёт `ghcr.io/pc-cms/cms-frontend:0.1.0` (~3 мин)
+- Если пакет приватный (по умолчанию) — на странице пакета можно
+  `Settings → Change visibility → Public`, тогда `read:packages` token не нужен.
+
 
 ### Шаг 2. Скопируйте `deploy/` на сервер
 ```bash
