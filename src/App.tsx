@@ -49,7 +49,7 @@ const BankChecks = lazy(() => import("@/pages/BankChecks"));
 const MissChips = lazy(() => import("@/pages/MissChips"));
 const TableTracker = lazy(() => import("@/pages/TableTracker"));
 const TablesAnalytics = lazy(() => import("@/pages/TablesAnalytics"));
-const PlayerStatistics = lazy(() => import("@/pages/PlayerStatistics"));
+
 const Cashless = lazy(() => import("@/pages/Cashless"));
 const BusinessDays = lazy(() => import("@/pages/BusinessDays"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
