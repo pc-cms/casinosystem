@@ -3406,6 +3406,24 @@ export type Database = {
         }
         Returns: boolean
       }
+      local_servers_overview: {
+        Args: never
+        Returns: {
+          casino_id: string
+          containers_running: number
+          containers_total: number
+          current_version: string
+          disk_used_pct: number
+          health_updated_at: string
+          id: string
+          is_online: boolean
+          last_sync_at: string
+          minutes_since_sync: number
+          server_ip: string
+          server_name: string
+          uptime_seconds: number
+        }[]
+      }
       lookup_rfid_user: {
         Args: { rfid: string }
         Returns: {
@@ -3445,6 +3463,16 @@ export type Database = {
         Returns: Json
       }
       sync_attach: { Args: { p_table: unknown }; Returns: undefined }
+      sync_inbox_health: {
+        Args: never
+        Returns: {
+          casino_id: string
+          errors_24h: number
+          last_applied_at: string
+          oldest_error_at: string
+          total_24h: number
+        }[]
+      }
       sync_outbox_gc: { Args: never; Returns: undefined }
       sync_outbox_health: {
         Args: never
@@ -3453,6 +3481,16 @@ export type Database = {
           failed_count: number
           oldest_pending_at: string
           pending_count: number
+        }[]
+      }
+      sync_outbox_per_table: {
+        Args: never
+        Returns: {
+          casino_id: string
+          oldest_change_at: string
+          oldest_minutes: number
+          pending_count: number
+          table_name: string
         }[]
       }
       update_user_roles: {

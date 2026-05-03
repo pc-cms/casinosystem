@@ -108,3 +108,65 @@ export const useSyncOutboxHealth = () => useQuery({
   },
   refetchInterval: 30_000,
 });
+
+export interface LocalServerOverview {
+  id: string;
+  casino_id: string;
+  server_name: string;
+  server_ip: string | null;
+  is_online: boolean;
+  last_sync_at: string | null;
+  health_updated_at: string | null;
+  current_version: string | null;
+  uptime_seconds: number | null;
+  containers_running: number | null;
+  containers_total: number | null;
+  disk_used_pct: number | null;
+  minutes_since_sync: number | null;
+}
+
+export const useLocalServersOverview = () => useQuery({
+  queryKey: ["local-servers-overview"],
+  queryFn: async (): Promise<LocalServerOverview[]> => {
+    const { data, error } = await supabase.rpc("local_servers_overview" as any);
+    if (error) throw error;
+    return (data ?? []) as unknown as LocalServerOverview[];
+  },
+  refetchInterval: 30_000,
+});
+
+export interface SyncInboxHealth {
+  casino_id: string;
+  total_24h: number;
+  errors_24h: number;
+  last_applied_at: string | null;
+  oldest_error_at: string | null;
+}
+
+export const useSyncInboxHealth = () => useQuery({
+  queryKey: ["sync-inbox-health"],
+  queryFn: async (): Promise<SyncInboxHealth[]> => {
+    const { data, error } = await supabase.rpc("sync_inbox_health" as any);
+    if (error) throw error;
+    return (data ?? []) as unknown as SyncInboxHealth[];
+  },
+  refetchInterval: 30_000,
+});
+
+export interface SyncOutboxPerTable {
+  casino_id: string;
+  table_name: string;
+  pending_count: number;
+  oldest_change_at: string | null;
+  oldest_minutes: number | null;
+}
+
+export const useSyncOutboxPerTable = () => useQuery({
+  queryKey: ["sync-outbox-per-table"],
+  queryFn: async (): Promise<SyncOutboxPerTable[]> => {
+    const { data, error } = await supabase.rpc("sync_outbox_per_table" as any);
+    if (error) throw error;
+    return (data ?? []) as unknown as SyncOutboxPerTable[];
+  },
+  refetchInterval: 30_000,
+});
