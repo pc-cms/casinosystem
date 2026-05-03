@@ -386,15 +386,34 @@ const Guests = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.length === 0 ? (
-                    <tr>
-                      <td colSpan={10} className="px-2 py-8 text-center text-muted-foreground text-xs">
-                        No guests to display
-                      </td>
-                    </tr>
-                  ) : (
-                    filtered.map((r, i) => renderRow(r, i))
-                  )}
+                  {(() => {
+                    const candidateRows = (searchedPlayers as any[])
+                      .filter(p => !visitedPlayerIds.has(p.id))
+                      .map(p => ({
+                        id: `candidate-${p.id}`,
+                        playerId: p.id,
+                        firstName: p.first_name,
+                        lastName: p.last_name,
+                        nickname: p.nickname,
+                        photoUrl: p.photo_url,
+                        category: (p.category as PlayerCategory) || "normal",
+                        playerType: p.player_type,
+                        position: "hall",
+                        entryAt: null,
+                        exitAt: null,
+                        tags: tagsByPlayer.get(p.id) || [],
+                        rawPlayer: p,
+                        isInside: false,
+                        isCandidate: true,
+                      }));
+                    const combined = [...filtered, ...candidateRows];
+                    if (combined.length === 0) {
+                      return (
+                        <tr><td colSpan={10} className="px-2 py-8 text-center text-muted-foreground text-xs">No guests to display</td></tr>
+                      );
+                    }
+                    return combined.map((r, i) => renderRow(r, i));
+                  })()}
                 </tbody>
               </table>
             </div>
