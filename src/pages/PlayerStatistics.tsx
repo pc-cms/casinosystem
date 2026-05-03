@@ -81,32 +81,34 @@ const PlayerStatistics = () => {
   const canTransfer = roles.some(r => ["pit", "manager", "super_admin"].includes(r));
 
   const { data: visits = [] } = useQuery({
-    queryKey: ["casino_visits", casinoId, today],
+    queryKey: ["casino_visits", casinoId, effectiveDate],
     queryFn: async () => {
       const { data } = await supabase
         .from("casino_visits")
         .select("*")
         .eq("casino_id", casinoId!)
-        .eq("date", today);
+        .eq("date", effectiveDate);
       return (data || []) as any[];
     },
     enabled: !!casinoId,
-    refetchInterval: 15000,
+    refetchInterval: isHistorical ? false : 15000,
   });
 
   const { data: sessions = [] } = useQuery({
-    queryKey: ["client_sessions", casinoId, today],
+    queryKey: ["client_sessions", casinoId, effectiveDate],
     queryFn: async () => {
+      const endIso = businessDayHourUTC(effectiveDate, 13 + 24);
       const { data } = await supabase
         .from("client_sessions")
         .select("*")
         .eq("casino_id", casinoId!)
         .gte("started_at", windowStartUTC)
+        .lt("started_at", endIso)
         .order("started_at", { ascending: false });
       return (data || []) as any[];
     },
     enabled: !!casinoId,
-    refetchInterval: 15000,
+    refetchInterval: isHistorical ? false : 15000,
   });
 
   const tableNameById = useMemo(() => {
