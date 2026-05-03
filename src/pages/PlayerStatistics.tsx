@@ -50,6 +50,13 @@ const PlayerStatistics = () => {
     new Set(["diamond", "platinum", "gold", "normal"])
   );
   const [transferPlayer, setTransferPlayer] = useState<{ id: string; first_name: string; last_name: string; nickname?: string | null } | null>(null);
+  type SortKey = "name" | "position" | "entry" | "exit" | "avgBet" | "inDrop" | "out" | "chipIn" | "chipOut" | "chipDelta" | "result";
+  const [sortKey, setSortKey] = useState<SortKey | null>(null);
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) setSortDir(d => d === "asc" ? "desc" : "asc");
+    else { setSortKey(key); setSortDir("desc"); }
+  };
 
   const showFinancials = canSeePlayerFinancials(roles);
   const canTransfer = roles.some(r => ["pit", "manager", "super_admin"].includes(r));
