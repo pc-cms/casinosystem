@@ -207,7 +207,7 @@ const PlayerStatistics = () => {
       if (a.isPresent !== b.isPresent) return a.isPresent ? -1 : 1;
       return new Date(b.entryAt).getTime() - new Date(a.entryAt).getTime();
     });
-  }, [rows, tab, categoryFilter, search, sortKey, sortDir]);
+  }, [rows, tab, categoryFilter, posFilter, search, sortKey, sortDir]);
 
   const counts = useMemo(() => ({
     day: rows.length,
