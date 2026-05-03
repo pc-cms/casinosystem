@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import PlayerEditDialog from "@/components/PlayerEditDialog";
 import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
+import { BlacklistPlayerDialog } from "@/components/player/BlacklistPlayerDialog";
 import DuplicateCheckResult from "@/components/registration/DuplicateCheckResult";
 import {
   Search, UserPlus, LogIn, LogOut, ShieldAlert, Camera,
@@ -303,6 +304,18 @@ const CheckInTab = () => {
         open={!!profilePlayer}
         onOpenChange={(v) => { if (!v) setProfilePlayer(null); }}
       />
+
+      {blacklistTarget && (
+        <BlacklistPlayerDialog
+          open={!!blacklistTarget}
+          onClose={() => {
+            setBlacklistTarget(null);
+            queryClient.invalidateQueries({ queryKey: ["players"] });
+          }}
+          playerId={blacklistTarget.id}
+          playerName={`${blacklistTarget.first_name} ${blacklistTarget.last_name}`}
+        />
+      )}
     </div>
   );
 };
