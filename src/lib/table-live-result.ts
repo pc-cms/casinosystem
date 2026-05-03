@@ -98,7 +98,20 @@ export interface LiveResultArgs {
   baselineMap: BaselineMap;
 }
 
-/** Returns the current displayed result for a single table. */
+/**
+ * Returns the current displayed result for a single table.
+ *
+ * Authoritative source = latest Chip Count snapshot, computed against the
+ * ORIGINAL chip baseline (NOT the per-snapshot `expected_quantity`, which is a
+ * delta-vs-previous-snapshot and would only show the last hour's change).
+ *
+ * The Chip Count trigger also writes a Table Tracker row, so the snapshot
+ * timestamp is typically a fraction of a second BEFORE the tracker row.
+ * We therefore consider the snapshot authoritative if it is within ~10 minutes
+ * of the latest tracker entry — covering the trigger lag and small clock skew.
+ */
+const SNAPSHOT_TRACKER_LAG_MS = 10 * 60 * 1000;
+
 export const liveTableResult = ({
   tableId,
   closingResult,
@@ -110,12 +123,21 @@ export const liveTableResult = ({
 
   const trackerSum = trackerTotal(trackerData, tableId);
   const snap = snapshotIndex[tableId];
-  if (!snap) return trackerSum;
+  if (!snap || !snap.latestTime) return trackerSum;
 
   const trackerTime = latestTrackerTime(trackerData, tableId);
-  // Chip Count overrides Tracker only if it was taken AFTER the last tracker entry.
-  if (snap.latestTime && snap.latestTime > trackerTime) {
-    return chipSnapshotResult(snap.perDenom, snap.expectedPerDenom || baselineMap[tableId] || {});
+  const snapMs = Date.parse(snap.latestTime);
+  const trkMs = trackerTime ? Date.parse(trackerTime) : 0;
+
+  // Snapshot wins if it is newer than tracker, OR was taken at roughly the
+  // same time (the snapshot trigger creates the tracker row a moment later).
+  const snapshotIsAuthoritative =
+    !trackerTime || snapMs >= trkMs - SNAPSHOT_TRACKER_LAG_MS;
+
+  if (snapshotIsAuthoritative) {
+    // Always compare against the ORIGINAL baseline so the result reflects the
+    // table's net position for the day, not just the last delta.
+    return chipSnapshotResult(snap.perDenom, baselineMap[tableId] || {});
   }
   return trackerSum;
 };
