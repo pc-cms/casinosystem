@@ -1,5 +1,6 @@
 import { useAuth } from "@/lib/auth-context";
 import { getBusinessDate } from "@/lib/business-day";
+import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
 
 /**
  * Operational role visibility rule:
@@ -14,6 +15,7 @@ import { getBusinessDate } from "@/lib/business-day";
  */
 export function useBusinessDayFilter() {
   const { roles, managerOverride } = useAuth();
+  const { data: serverDate } = useEffectiveBusinessDate();
 
   const isOperational =
     roles.includes("pit") ||
@@ -30,9 +32,13 @@ export function useBusinessDayFilter() {
   const restrictedToToday =
     isOperational && !isPrivileged && !managerOverride.active;
 
+  // Prefer server-side effective business date (respects manual closures + 11am auto-close).
+  // Fall back to legacy 05:00 calc if RPC is unavailable / still loading.
+  const businessDate = restrictedToToday ? (serverDate || getBusinessDate()) : null;
+
   return {
     restrictedToToday,
-    businessDate: restrictedToToday ? getBusinessDate() : null,
+    businessDate,
   };
 }
 
