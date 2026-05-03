@@ -104,11 +104,11 @@ const Logs = () => {
                   <td className="px-3 py-1.5">
                     <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded uppercase ${CATEGORY_STYLES[log.category] || ""}`}>{log.category}</span>
                   </td>
-                  <td className="px-3 py-1.5 text-xs font-medium text-card-foreground font-mono">{log.action}</td>
-                  <td className="px-3 py-1.5 text-[10px] text-muted-foreground max-w-xs truncate font-mono">
-                    {typeof log.details === "object" ? JSON.stringify(log.details) : String(log.details)}
+                  <td className="px-3 py-1.5 text-xs font-medium text-card-foreground">{log._label}</td>
+                  <td className="px-3 py-1.5 text-[11px] text-foreground/80 max-w-md truncate" title={log._pretty}>
+                    {log._pretty || <span className="text-muted-foreground">—</span>}
                   </td>
-                  <td className="px-3 py-1.5 text-[10px] font-mono text-muted-foreground">{log.operator_id.slice(0, 8)}…</td>
+                  <td className="px-3 py-1.5 text-[10px] text-muted-foreground" title={log.operator_id}>{log._operator}</td>
                 </tr>
               ))}
             </tbody>
