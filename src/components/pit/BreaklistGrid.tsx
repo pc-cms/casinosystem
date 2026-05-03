@@ -73,6 +73,7 @@ const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }
   const { data: breaklist = [] } = useBreaklistData(date);
   const { data: tables = [] } = useGamingTables();
   const { data: rota = [] } = usePitRotaRange(date, date);
+  const { data: attendance = [] } = useDealerAttendance(date);
   const { data: casino } = useCasinoInfo();
   const setCell = useSetBreaklistCell();
   const setAttendance = useSetDealerAttendance();
@@ -97,24 +98,45 @@ const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }
       .map((r: any) => ({ dealerId: r.dealer_id, shift: r.shift as string }));
   }, [rota]);
 
-  // Only show dealers that are in the rota for this date
-  const [sortBy, setSortBy] = useState<"name" | "shift">("shift");
+  // Absent dealer set — attendance value === "A" hides them from the grid entirely.
+  const absentDealerIds = useMemo(() => {
+    const s = new Set<string>();
+    (attendance as any[]).forEach((a: any) => {
+      if ((a.value ?? "").toString().trim().toUpperCase() === "A") s.add(a.dealer_id);
+    });
+    return s;
+  }, [attendance]);
+
+  // Sort options: # (insertion order) is meaningless without a base sort,
+  // so sort cycles between Shift / Category / Name. Numbering is then derived from current sort.
+  const [sortBy, setSortBy] = useState<"name" | "shift" | "category">("shift");
 
   const breaklistDealers = useMemo(() => {
     const rotaDealerIds = new Set(rotaDealers.map(r => r.dealerId));
-    // Pit Bosses must NOT appear in the Breaklist grid
-    const filtered = activeDealers.filter(d => rotaDealerIds.has(d.id) && !(d as any).is_pit_boss);
-    if (sortBy === "name") {
-      return filtered.sort((a, b) => a.name.localeCompare(b.name));
-    }
+    // Pit Bosses must NOT appear; absent dealers (A) must NOT appear either.
+    const filtered = activeDealers.filter(
+      d => rotaDealerIds.has(d.id) && !(d as any).is_pit_boss && !absentDealerIds.has(d.id),
+    );
     const shiftOrder: Record<string, number> = { M: 0, N: 1, E: 2 };
-    return filtered.sort((a, b) => {
+    const categoryOrder: Record<string, number> = { trainee: 0, dealer: 1, inspector: 2, expert: 3, pit_boss: 4 };
+    if (sortBy === "name") {
+      return [...filtered].sort((a, b) => a.name.localeCompare(b.name));
+    }
+    if (sortBy === "category") {
+      return [...filtered].sort((a, b) => {
+        const ca = categoryOrder[a.category] ?? 99;
+        const cb = categoryOrder[b.category] ?? 99;
+        return ca !== cb ? ca - cb : a.name.localeCompare(b.name);
+      });
+    }
+    // shift
+    return [...filtered].sort((a, b) => {
       const sa = rotaDealers.find(r => r.dealerId === a.id)?.shift || "Z";
       const sb = rotaDealers.find(r => r.dealerId === b.id)?.shift || "Z";
       const diff = (shiftOrder[sa] ?? 9) - (shiftOrder[sb] ?? 9);
       return diff !== 0 ? diff : a.name.localeCompare(b.name);
     });
-  }, [activeDealers, rotaDealers, sortBy]);
+  }, [activeDealers, rotaDealers, sortBy, absentDealerIds]);
 
   const getDealerShift = (dealerId: string) => {
     return rotaDealers.find(r => r.dealerId === dealerId)?.shift || null;
