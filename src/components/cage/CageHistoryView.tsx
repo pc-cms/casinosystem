@@ -1,16 +1,15 @@
 /**
- * Surveillance Cage view — strictly read-only history with 5 tabs:
+ * Surveillance Cage view — strictly read-only history with 4 tabs:
  *  · IN/OUT          — transactions for the picked business date
  *  · Cashless        — cashless_transactions for the date (Mobile Money providers filterable)
  *  · Cage Transfers  — Add Float / Collection / Fill / Credit
- *  · Expenses        — read-only expenses for the date
- *  · Chip Transfers  — paired player↔player chip moves (with "New Transfer" button)
+ *  · Chip Transfers  — paired player↔player chip moves (read-only — surveillance can no longer create)
  *
- * Date selector spans up to 90 days back.
+ * Date selector spans up to 90 days back. CCTV cannot post anything from this view.
  */
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Landmark, ArrowDownToLine, CreditCard, ArrowLeftRight, Coins, ChevronLeft, ChevronRight, Plus, Receipt } from "lucide-react";
+import { Landmark, ArrowDownToLine, CreditCard, ArrowLeftRight, Coins, ChevronLeft, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { PageShell } from "@/components/layout/PageShell";
@@ -22,10 +21,8 @@ import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/currency";
 import { useCashless } from "@/hooks/use-cashless";
 import { useChipTransfers } from "@/hooks/use-chip-transfers";
-import { useExpenses } from "@/hooks/use-expenses";
 import { usePlayers, useGamingTables } from "@/hooks/use-casino-data";
 import { getBusinessDate } from "@/lib/business-day";
-import ChipTransferDialog from "@/components/player/ChipTransferDialog";
 
 const MAX_DAYS_BACK = 90;
 
@@ -34,6 +31,8 @@ const subDays = (iso: string, n: number) => {
   d.setUTCDate(d.getUTCDate() + n);
   return d.toISOString().slice(0, 10);
 };
+
+const PROVIDERS = ["MTN", "Tigo", "Airtel", "Halopesa"];
 
 const CageHistoryView = () => {
   const today = getBusinessDate();
@@ -89,24 +88,12 @@ const CageHistoryView = () => {
   // Chip transfers for the date (uses existing hook scoped by day)
   const { data: chipTransfers = [] } = useChipTransfers(date);
 
-  // Expenses for the date
-  const { data: expenses = [] } = useExpenses(date);
-
-  // Cashless provider filter
+  // Cashless provider filter (Mobile Money providers)
   const [providerFilter, setProviderFilter] = useState<string>("ALL");
-  const cashlessProviders = useMemo(() => {
-    const s = new Set<string>();
-    cashless.forEach((c: any) => c.provider && s.add(String(c.provider)));
-    return Array.from(s).sort();
-  }, [cashless]);
   const cashlessFiltered = useMemo(() =>
     providerFilter === "ALL" ? cashless : cashless.filter((c: any) => String(c.provider) === providerFilter),
     [cashless, providerFilter]
   );
-
-  // Chip Transfer dialog — surveillance can create new ones
-  const [transferOpen, setTransferOpen] = useState(false);
-  const [transferPlayer, setTransferPlayer] = useState<any>(null);
 
   const isInTx = (t: string) => t === "buy" || t === "in";
   const ins = transactions.filter((t: any) => isInTx(t.type));
@@ -181,7 +168,30 @@ const CageHistoryView = () => {
         {/* Cashless */}
         <TabsContent value="cashless" className="space-y-3">
           <div className="cms-panel">
-            <div className="cms-header">Cashless ({cashless.length})</div>
+            <div className="cms-header flex items-center justify-between gap-2 flex-wrap">
+              <span>Cashless ({cashlessFiltered.length})</span>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant={providerFilter === "ALL" ? "default" : "outline"}
+                  size="sm"
+                  className="h-7 text-[10px]"
+                  onClick={() => setProviderFilter("ALL")}
+                >
+                  ALL
+                </Button>
+                {PROVIDERS.map(p => (
+                  <Button
+                    key={p}
+                    variant={providerFilter === p ? "default" : "outline"}
+                    size="sm"
+                    className="h-7 text-[10px]"
+                    onClick={() => setProviderFilter(p)}
+                  >
+                    {p}
+                  </Button>
+                ))}
+              </div>
+            </div>
             <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
               <table className="w-full text-xs">
                 <thead className="sticky top-0 bg-card z-10">
@@ -192,9 +202,9 @@ const CageHistoryView = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {cashless.length === 0 ? (
+                  {cashlessFiltered.length === 0 ? (
                     <tr><td colSpan={7} className="text-center text-muted-foreground py-6">No cashless transactions</td></tr>
-                  ) : cashless.map((c: any) => (
+                  ) : cashlessFiltered.map((c: any) => (
                     <tr key={c.id} className="border-b border-border last:border-0">
                       <td className="px-3 py-1.5">
                         <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${c.direction === "IN" ? "bg-primary/10 text-primary" : "bg-accent/10 text-accent"}`}>
@@ -255,19 +265,10 @@ const CageHistoryView = () => {
           </div>
         </TabsContent>
 
-        {/* Chip transfers — pairs only; surveillance can create new ones */}
+        {/* Chip transfers — pairs only; READ-ONLY for surveillance */}
         <TabsContent value="chip" className="space-y-3">
           <div className="cms-panel">
-            <div className="cms-header flex items-center justify-between gap-2">
-              <span>Chip Transfers ({chipTransfers.length})</span>
-              <Button size="sm" className="h-7 gap-1.5" onClick={() => {
-                // Open dialog with first present player as anchor — surveillance can pick both sides.
-                setTransferPlayer({ id: "__pick__", first_name: "Select", last_name: "player", nickname: null });
-                setTransferOpen(true);
-              }}>
-                <Plus className="w-3.5 h-3.5" /> New Chip Transfer
-              </Button>
-            </div>
+            <div className="cms-header">Chip Transfers ({chipTransfers.length})</div>
             <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
               <table className="w-full text-xs">
                 <thead className="sticky top-0 bg-card z-10">
@@ -281,7 +282,6 @@ const CageHistoryView = () => {
                   {chipTransfers.length === 0 ? (
                     <tr><td colSpan={6} className="text-center text-muted-foreground py-6">No chip transfers</td></tr>
                   ) : chipTransfers
-                    // Show only one row per pair to avoid double-counting (the OUT side)
                     .filter(t => t.direction === "out")
                     .map((t) => {
                       const from = playerMap.get(t.player_id);
@@ -311,14 +311,6 @@ const CageHistoryView = () => {
           </div>
         </TabsContent>
       </Tabs>
-
-      {transferOpen && (
-        <ChipTransferPickerDialog
-          open={transferOpen}
-          onOpenChange={(v) => { setTransferOpen(v); if (!v) setTransferPlayer(null); }}
-          players={players as any[]}
-        />
-      )}
     </PageShell>
   );
 };
@@ -357,62 +349,5 @@ const TxTable = ({ title, rows, tableMap, variant }: {
     </div>
   </div>
 );
-
-/**
- * Surveillance variant of ChipTransferDialog: lets the user pick BOTH players
- * (the standard dialog locks one side to the player whose card it was opened from).
- * We model this by first picking a "donor" player, then handing off to ChipTransferDialog.
- */
-const ChipTransferPickerDialog = ({
-  open, onOpenChange, players,
-}: { open: boolean; onOpenChange: (v: boolean) => void; players: any[] }) => {
-  const [donor, setDonor] = useState<any | null>(null);
-  const [search, setSearch] = useState("");
-
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return players
-      .filter(p => p.status !== "blacklist")
-      .filter(p => !q || `${p.first_name} ${p.last_name} ${p.nickname ?? ""}`.toLowerCase().includes(q))
-      .slice(0, 50);
-  }, [players, search]);
-
-  if (donor) {
-    return (
-      <ChipTransferDialog
-        open={open}
-        onOpenChange={(v) => { onOpenChange(v); if (!v) setDonor(null); }}
-        player={donor}
-        defaultDirection="out"
-      />
-    );
-  }
-
-  return (
-    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => onOpenChange(false)}>
-      <div className="bg-card rounded-md border border-border w-full max-w-md p-4 space-y-3" onClick={e => e.stopPropagation()}>
-        <h3 className="font-semibold text-sm">Pick the donor (Chip OUT side)</h3>
-        <Input autoFocus placeholder="Search player…" value={search} onChange={e => setSearch(e.target.value)} />
-        <div className="max-h-72 overflow-y-auto border border-border rounded-md divide-y divide-border">
-          {filtered.length === 0 ? (
-            <div className="p-4 text-center text-xs text-muted-foreground">No matches</div>
-          ) : filtered.map(p => (
-            <button
-              key={p.id}
-              className="w-full text-left px-3 py-2 text-sm hover:bg-muted/50"
-              onClick={() => setDonor(p)}
-            >
-              <span className="font-medium">{p.first_name} {p.last_name}</span>
-              {p.nickname && <span className="text-muted-foreground"> "{p.nickname}"</span>}
-            </button>
-          ))}
-        </div>
-        <div className="flex justify-end">
-          <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>Cancel</Button>
-        </div>
-      </div>
-    </div>
-  );
-};
 
 export default CageHistoryView;
