@@ -90,6 +90,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/reports", icon: FileBarChart, label: "Reports", roles: ["super_admin", "manager", "finance_manager"], section: "ANALYTICS" },
 
   { to: "/table-results", icon: FileText, label: "Table Results", roles: ["super_admin", "manager", "finance_manager"], section: "ANALYTICS" },
+  { to: "/business-days", icon: CalendarDays, label: "Business Days", roles: ["super_admin", "manager", "finance_manager"], section: "ANALYTICS" },
 
   // SYSTEM — admin/system tools
   { to: "/import-reports", icon: Upload, label: "Import Reports", roles: ["super_admin", "manager"], section: "SYSTEM" },

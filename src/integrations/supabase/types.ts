@@ -3290,6 +3290,10 @@ export type Database = {
       activity_logs_purge: { Args: { p_days?: number }; Returns: number }
       auto_close_business_day: { Args: never; Returns: Json }
       auto_close_forgotten_business_days: { Args: never; Returns: undefined }
+      build_business_day_snapshot: {
+        Args: { _business_date: string; _casino_id: string }
+        Returns: Json
+      }
       cleanup_old_data: { Args: never; Returns: Json }
       close_business_day: {
         Args: { _casino_id: string; _method?: string }
@@ -3333,6 +3337,10 @@ export type Database = {
           schedule: string
           total_failures_24h: number
         }[]
+      }
+      edit_business_day_snapshot: {
+        Args: { _closure_id: string; _patches: Json; _section: string }
+        Returns: Json
       }
       generate_card_number: { Args: never; Returns: string }
       get_business_date_for_casino: {
