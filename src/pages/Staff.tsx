@@ -1133,6 +1133,7 @@ const AttendanceDepartmentBlock = ({
                     const key = e.key.toUpperCase();
                     if (key === "A" || key === "S") {
                       e.preventDefault();
+                      input.value = key;
                       handleSave(staff.id, day, key);
                       const nextInput = input.closest("td")?.nextElementSibling?.querySelector("input") as HTMLInputElement;
                       nextInput?.focus();
