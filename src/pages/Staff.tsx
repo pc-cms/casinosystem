@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import EmployeePhotoCell from "@/components/EmployeePhotoCell";
 import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -901,6 +901,56 @@ const StaffAttendanceGrid = ({ month, monthLabel, groupKey = "floor", readOnly =
     const num = Number(trimmed);
     if (!isNaN(num) && num >= 0 && num <= 24) { setAttendance.mutate({ staff_id: staffId, date: dateStr, value: String(num) }); }
   };
+
+  // Auto-fill: for past business days (and today if EAT >= 11:00), any staff
+  // scheduled M (D) or N in rota with an empty attendance cell gets 9 hours.
+  // Cells that already have any value (S, A, hours number) are skipped.
+  const autoFilledRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (readOnly) return;
+    if (!staff.length) return;
+
+    // Determine cutoff day in this displayed month.
+    // EAT wall clock now:
+    const eatNow = new Date(
+      `${new Date().toLocaleDateString("en-CA", { timeZone: "Africa/Dar_es_Salaam" })}T${new Date().toLocaleTimeString("en-GB", { timeZone: "Africa/Dar_es_Salaam", hour12: false })}`
+    );
+    const eatY = eatNow.getFullYear();
+    const eatM = eatNow.getMonth() + 1;
+    const eatD = eatNow.getDate();
+    const eatHour = eatNow.getHours();
+
+    // Only act on months that are in the past or current month (EAT)
+    const monthIsPast = (y < eatY) || (y === eatY && m < eatM);
+    const monthIsCurrent = y === eatY && m === eatM;
+    if (!monthIsPast && !monthIsCurrent) return;
+
+    // Highest day to auto-fill (inclusive)
+    let cutoffDay = daysInMonth;
+    if (monthIsCurrent) {
+      // Past days are always eligible. Today is eligible only if EAT >= 11:00.
+      cutoffDay = eatHour >= 11 ? eatD : eatD - 1;
+    }
+    if (cutoffDay < 1) return;
+
+    for (const s of activeStaff) {
+      for (let day = 1; day <= cutoffDay; day++) {
+        const dateStr = `${month}-${String(day).padStart(2, "0")}`;
+        const key = `${s.id}|${dateStr}`;
+        if (autoFilledRef.current.has(key)) continue;
+
+        const rotaShift = getRotaShift(s.id, day);
+        if (rotaShift !== "D" && rotaShift !== "N") continue;
+
+        const current = getValue(s.id, day);
+        if (current !== "") continue; // Skip if anything already set (S, A, number)
+
+        autoFilledRef.current.add(key);
+        setAttendanceRaw.mutate({ staff_id: s.id, date: dateStr, value: "9" });
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [staff, attendance, rota, month, readOnly]);
 
   const getTotals = (staffId: string) => {
     let shifts = 0;
