@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import EmployeePhotoCell from "@/components/EmployeePhotoCell";
 import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
