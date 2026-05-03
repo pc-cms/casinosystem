@@ -13,6 +13,7 @@ import {
 } from "@/components/cage/CageHelpers";
 import { useBatchChipSnapshot, getExpectedChips, getInitialTotal } from "@/hooks/use-chips";
 import { getBusinessDate } from "@/lib/business-day";
+import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
@@ -72,7 +73,8 @@ const CloseShiftDialog = ({
   const isPerfect = diff === 0;
   const shiftResult = (cashResult || 0) + totalMissValue;
 
-  const businessDate = getBusinessDate();
+  const { data: serverBusinessDate } = useEffectiveBusinessDate();
+  const businessDate = serverBusinessDate || getBusinessDate();
 
   const handleClose = () => {
     if (hasAnyChipCount) {

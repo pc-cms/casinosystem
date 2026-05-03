@@ -3,6 +3,7 @@ import { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { fmtDate } from "@/lib/format-date";
 import { getBusinessDate } from "@/lib/business-day";
+import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
 
 interface PageHeaderProps {
   icon?: LucideIcon;
@@ -44,8 +45,9 @@ export const PageHeader = ({
   belowHeader,
   className,
 }: PageHeaderProps) => {
+  const { data: serverBusinessDate } = useEffectiveBusinessDate();
   const dateValue: Date | string | null =
-    date === true ? getBusinessDate() : date && typeof date !== "boolean" ? date : null;
+    date === true ? (serverBusinessDate || getBusinessDate()) : date && typeof date !== "boolean" ? date : null;
 
   return (
     <div className={cn("mb-4 pb-3 border-b border-border space-y-3", className)}>

@@ -10,6 +10,7 @@ import CategoryBadge, { type PlayerCategory } from "@/components/player/Category
 import { LazyImage } from "@/components/LazyImage";
 import type { Tables } from "@/integrations/supabase/types";
 import { getBusinessDate, businessDayHourUTC } from "@/lib/business-day";
+import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
 
 interface Props {
   players: Tables<"players">[];
@@ -19,7 +20,8 @@ interface Props {
 
 const ActivePlayersList = ({ players, tables, onSelect }: Props) => {
   const { casinoId } = useAuth();
-  const today = getBusinessDate();
+  const { data: serverBusinessDate } = useEffectiveBusinessDate();
+  const today = serverBusinessDate || getBusinessDate();
   const windowStartUTC = businessDayHourUTC(today, 13);
 
   const { data: sessions = [] } = useQuery({

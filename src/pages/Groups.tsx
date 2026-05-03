@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { DateRangePresets, type DatePreset, presetRange } from "@/components/ui/date-range-presets";
 import { getBusinessDate } from "@/lib/business-day";
+import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
 
 /**
  * GROUPS (STRICT):
@@ -19,8 +20,7 @@ import { getBusinessDate } from "@/lib/business-day";
  * - Time-based membership (join/leave)
  * - Group result = sum of per-member period results
  */
-const monthToDateRange = (): { from: string; to: string } => {
-  const today = getBusinessDate();
+const monthToDateRange = (today: string): { from: string; to: string } => {
   return { from: `${today.slice(0, 7)}-01`, to: today };
 };
 
