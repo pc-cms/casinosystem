@@ -335,44 +335,43 @@ const PlayerStatistics = () => {
       onClick={() => navigate(`/players/${r.playerId}`)}
       className="border-b border-border hover:bg-muted/30 cursor-pointer transition-colors"
     >
-      <td className="px-2 py-1.5">
-        <div className="flex items-center gap-2 min-w-0">
+      <td className="px-2 py-1.5 max-w-[180px]">
+        <div className="flex items-center gap-1.5 min-w-0">
           <CategoryBadge category={r.category} />
           <div className="min-w-0">
             <p className="text-xs font-semibold text-card-foreground truncate">
               {r.firstName} {r.lastName}
-              {r.nickname && <span className="text-muted-foreground font-normal"> "{r.nickname}"</span>}
             </p>
             {r.flags?.length > 0 && <FlagBadges tags={r.flags} compact />}
           </div>
         </div>
       </td>
-      <td className="px-2 py-1.5">{renderPositionCell(r)}</td>
-      <td className="px-2 py-1.5 font-mono text-xs">{formatTime(r.entryAt)}</td>
-      <td className="px-2 py-1.5 font-mono text-xs">{r.exitAt ? formatTime(r.exitAt) : "·"}</td>
+      <td className="px-1 py-1.5 w-[110px]">{renderPositionCell(r)}</td>
+      <td className="px-1 py-1.5 font-mono text-xs w-[44px] text-center">{formatTime(r.entryAt)}</td>
+      <td className="px-1 py-1.5 font-mono text-xs w-[44px] text-center">{r.exitAt ? formatTime(r.exitAt) : "·"}</td>
       {showFinancials && (
         <>
-          <td className="px-2 py-1.5 font-mono text-xs text-right">
+          <td className="px-2 py-1.5 font-mono text-xs text-right w-[80px]">
             {r.avgBet > 0 ? formatCurrency(r.avgBet) : "·"}
           </td>
-          <td className="px-2 py-1.5 font-mono text-xs text-right">
+          <td className="px-2 py-1.5 font-mono text-xs text-right w-[110px]">
             {r.inDrop > 0 ? formatCurrency(r.inDrop) : "·"}
           </td>
-          <td className="px-2 py-1.5 font-mono text-xs text-right">
+          <td className="px-2 py-1.5 font-mono text-xs text-right w-[110px]">
             {r.out > 0 ? formatCurrency(r.out) : "·"}
           </td>
-          <td className="px-2 py-1.5 font-mono text-xs text-right text-success">
+          <td className="px-2 py-1.5 font-mono text-xs text-right text-success w-[95px]">
             {r.chipIn > 0 ? formatCurrency(r.chipIn) : "·"}
           </td>
-          <td className="px-2 py-1.5 font-mono text-xs text-right text-destructive">
+          <td className="px-2 py-1.5 font-mono text-xs text-right text-destructive w-[95px]">
             {r.chipOut > 0 ? formatCurrency(r.chipOut) : "·"}
           </td>
-          <td className={`px-2 py-1.5 font-mono text-xs text-right ${
+          <td className={`px-2 py-1.5 font-mono text-xs text-right w-[95px] ${
             r.chipDelta > 0 ? "cms-amount-positive" : r.chipDelta < 0 ? "cms-amount-negative" : ""
           }`}>
             {r.chipDelta !== 0 ? `${r.chipDelta > 0 ? "+" : ""}${formatCurrency(r.chipDelta)}` : "·"}
           </td>
-          <td className={`px-2 py-1.5 font-mono text-xs text-right font-bold ${
+          <td className={`px-2 py-1.5 font-mono text-xs text-right font-bold w-[110px] ${
             r.result > 0 ? "cms-amount-positive" : r.result < 0 ? "cms-amount-negative" : ""
           }`}>
             {r.result !== 0 ? `${r.result > 0 ? "+" : ""}${formatCurrency(r.result)}` : "·"}
@@ -380,7 +379,7 @@ const PlayerStatistics = () => {
         </>
       )}
       {canTransfer && (
-        <td className="px-2 py-1.5 text-right">
+        <td className="px-1 py-1.5 text-right w-8">
           <Button
             variant="ghost"
             size="sm"
