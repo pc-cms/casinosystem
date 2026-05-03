@@ -83,7 +83,8 @@ const Staff = () => {
   // Only manager/HR (and super_admin via isManager) can edit Floor/Security/Office schedules.
   // Pit can navigate here (read-only) but must not write to non-Live-Game personnel.
   const canManagePersonnel = isMgr || roles.includes("hr");
-  const businessToday = getBusinessDate();
+  const { data: serverBusinessDate } = useEffectiveBusinessDate();
+  const businessToday = serverBusinessDate || getBusinessDate();
   const currentMonth = useMemo(() => {
     const [y, m] = businessToday.split("-").map(Number);
     return `${y}-${String(m).padStart(2, "0")}`;

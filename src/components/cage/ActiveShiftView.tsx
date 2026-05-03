@@ -4,6 +4,7 @@ import { useTransactions, useExpenses, useCreateTransaction } from "@/hooks/use-
 import { useCloseShift, useCreateCashCount, useCashCounts } from "@/hooks/use-shift";
 import { useChipBaseline, useCloseAllTables, baselineToMap } from "@/hooks/use-table-lifecycle";
 import { getBusinessDate } from "@/lib/business-day";
+import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
 import { Button } from "@/components/ui/button";
 import { NumberInput } from "@/components/ui/number-input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -86,7 +87,8 @@ const ActiveShiftView = ({ shift, players, tables }: {
   players: Tables<"players">[];
   tables: Tables<"gaming_tables">[];
 }) => {
-  const businessDate = getBusinessDate();
+  const { data: serverBusinessDate } = useEffectiveBusinessDate();
+  const businessDate = serverBusinessDate || getBusinessDate();
   const { data: transactions = [] } = useTransactions(businessDate);
   const { data: expenses = [] } = useExpenses(businessDate);
   const { data: cashChecks = [] } = useCashCounts(shift.id);

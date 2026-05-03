@@ -27,6 +27,7 @@ import CasinoBadge from "@/components/player/CasinoBadge";
 import FlagBadges from "@/components/player/FlagBadges";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { getBusinessDate } from "@/lib/business-day";
+import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
 import { compressImage, thumbnailPath } from "@/lib/image-compress";
 import PhotoCapture from "@/components/PhotoCapture";
 import { FormGrid, FormField } from "@/components/ui/form-grid";
@@ -98,7 +99,8 @@ const CheckInTab = () => {
   const [profilePlayer, setProfilePlayer] = useState<any>(null);
   const [blacklistTarget, setBlacklistTarget] = useState<any | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
-  const today = getBusinessDate();
+  const { data: serverBusinessDate } = useEffectiveBusinessDate();
+  const today = serverBusinessDate || getBusinessDate();
 
   const activePlayers = useMemo(() => {
     return new Set(visits.filter(v => !v.checked_out_at).map(v => v.player_id));

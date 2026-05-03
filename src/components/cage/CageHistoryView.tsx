@@ -23,6 +23,7 @@ import { useCashless } from "@/hooks/use-cashless";
 import { useChipTransfers } from "@/hooks/use-chip-transfers";
 import { usePlayers, useGamingTables } from "@/hooks/use-casino-data";
 import { getBusinessDate } from "@/lib/business-day";
+import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
 
 const MAX_DAYS_BACK = 90;
 
@@ -35,7 +36,8 @@ const subDays = (iso: string, n: number) => {
 const PROVIDERS = ["MTN", "Tigo", "Airtel", "Halopesa"];
 
 const CageHistoryView = () => {
-  const today = getBusinessDate();
+  const { data: serverBusinessDate } = useEffectiveBusinessDate();
+  const today = serverBusinessDate || getBusinessDate();
   const minDate = subDays(today, -MAX_DAYS_BACK);
   const [date, setDate] = useState(today);
   const { casinoId } = useAuth();

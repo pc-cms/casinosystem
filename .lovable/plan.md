@@ -1,50 +1,80 @@
-## Цель
+## Проблема
 
-Сделать **Result** на всех экранах единым по правилу:
+Фронт и БД переключают бизнес-день в разное время:
 
-- **DROP R** = реальный дроп денег (с учётом NEP) — без изменений
-- **DROP V** = счётчики столов (Table Tracker) + турновер — без изменений
-- **Result** = **последний Chip Count snapshot vs исходный baseline стола**. Никаких кумулятивных сумм. Никакого Table Tracker в Result.
+- **БД**: `business_day_closures` (ручное закрытие Pit/Manager **или** авто-закрытие в 11:00 EAT) → RPC `get_current_business_date` возвращает новую дату сразу.
+- **Фронт**: legacy `getBusinessDate()` из `src/lib/business-day.ts` — hardcoded fallback на **13:00 EAT**.
 
-Применяется **глобально ко всем столам** (AR, BJ, Poker, Texas Holdem и т.д.) во всех экранах.
+Результат: между моментом закрытия дня (например, 09:30 ручное или 11:00 авто) и 13:00 EAT все дешборды/страницы показывают старые данные «текущего дня», хотя в БД день уже сменился. В 11:00 пользователь видит «обнуление» некоторых блоков, потому что часть запросов уже идёт по новой дате (через `useBusinessDayFilter` → RPC), а часть — по старой (через `getBusinessDate()`).
 
-## Логика для каждого стола
+Хук `useEffectiveBusinessDate()` уже существует в `src/hooks/use-business-day-closure.ts` и корректно ходит в RPC. Нужно перевести все операционные surface'ы на него.
 
-```text
-if (table.closing_result != null) → closing_result   // стол закрыт
-else if (есть snapshot)            → Σ (snap.actual − baseline.expected) × denom
-else                                → 0
+## Что меняем
+
+### 1. Dashboard (главная цель)
+
+`src/pages/Dashboard.tsx` — заменить:
+```ts
+const businessDate = getBusinessDate();
+```
+на:
+```ts
+const { data: serverBusinessDate } = useEffectiveBusinessDate();
+const businessDate = serverBusinessDate || getBusinessDate();
 ```
 
-## Изменения в файлах
+Все нижележащие хуки (`useTransactions`, `useExpenses`, `useTableTracker`, `useChipSnapshots`, `useStaffRotaRange`, `useCashless`, `useClientSessionsTotalBet`) автоматически переключатся на новую дату.
 
-1. **`src/lib/table-live-result.ts`** — упростить `liveTableResult`:
-   - Убрать аргумент `trackerData` и всю логику сравнения времён snapshot vs tracker.
-   - Snapshot есть → считать против `baselineMap[tableId]` (исходный baseline).
-   - Snapshot нет → `0`.
+### 2. Операционные страницы (та же замена)
 
-2. **`src/pages/Dashboard.tsx`** — убрать `trackerData` из вызова `liveTableResult`.
+- `src/pages/Tables.tsx` (строки 35, 52)
+- `src/pages/TableTracker.tsx` (48)
+- `src/pages/TablesAnalytics.tsx` (80)
+- `src/pages/Expenses.tsx` (58)
+- `src/pages/Cashless.tsx` (55)
+- `src/pages/Groups.tsx` (23)
+- `src/pages/PlayerStatistics.tsx` (44)
+- `src/pages/Reception.tsx` (101)
+- `src/pages/Pit.tsx` (68) — `Pit.tsx:856` уже правильно использует `effectiveBusinessDate`
+- `src/pages/Staff.tsx` (86) — `Staff.tsx:918` уже использует `effectiveBusinessDate`
+- `src/components/BusinessDayBanner.tsx` (31)
+- `src/components/cage/PlayerInfoCard.tsx` (22)
+- `src/components/cage/CageHistoryView.tsx` (38)
+- `src/components/cage/ActivePlayersList.tsx` (22)
+- `src/components/cage/ActiveShiftView.tsx` (89)
+- `src/components/cage/CloseShiftDialog.tsx` (75)
+- `src/components/pit/ActivePlayers.tsx` (24)
+- `src/components/layout/PageHeader.tsx` (48) — date prop helper
 
-3. **`src/pages/Tables.tsx`** — убрать `trackerData` из вызова `liveTableResult`.
+Везде паттерн один:
+```ts
+const { data: serverDate } = useEffectiveBusinessDate();
+const today = serverDate || getBusinessDate();
+```
 
-4. **`src/pages/TablesAnalytics.tsx`** — убрать `trackerData` из вызова `liveTableResult`.
+### 3. Хуки/утилиты (НЕ трогаем)
 
-5. **DROP V** — оставить как есть: `trackerSum + recycled` (`useTablesDropSplit` + `tableTrackerTotals`).
+- `src/lib/business-day.ts` — `getBusinessDate()` остаётся как fallback (без сети, мгновенный).
+- `src/hooks/use-business-day-filter.ts` — уже корректно использует RPC.
+- `src/hooks/use-transactions.ts:71`, `use-visits.ts:18`, `use-prefetch.ts:54`, `use-table-lifecycle.ts:165`, `lib/pit-prefetch.ts:22` — используют `getBusinessDate()` как **default параметра**, когда вызывающий не передал дату. Оставляем — вызывающие компоненты теперь будут передавать корректную дату из `useEffectiveBusinessDate()`.
+- `src/test/business-logic.test.ts` — тесты, не трогаем.
 
-6. **DROP R** — оставить как есть: из `useTablesDropSplit` (NEP-aware) с fallback на buy/in транзакции.
+### 4. FinanceDashboard
 
-7. **Snapshot history таблица** в `ChipCountPanel.tsx` — НЕ трогать (там специально дельта между сейвами).
+`src/components/finance/FinanceDashboard.tsx` использует `new Date().toISOString().slice(0,10)` (UTC), а не `getBusinessDate()`. Это отдельный баг (UTC ≠ EAT), но **в эту задачу не входит** — финансовые дешборды работают по календарной дате, не по бизнес-дню. Если хочешь — отдельной задачей.
 
-## Memory
+## Поведение после фикса
 
-Обновить `mem://features/live-table-result-resolution`:
-- Result = только последний snapshot vs baseline. Никаких кумулятивных значений.
-- Tracker используется только для Drop V, не для Result.
+- Pit/Manager закрывает день вручную в 09:30 → `business_day_closures` insert → RPC возвращает новую дату → через ≤60 сек (`refetchInterval`) Dashboard и все операционные страницы показывают пустой новый день (старый ушёл в `/business-days`).
+- Авто-закрытие в 11:00 EAT → то же поведение, без рассинхрона до 13:00.
+- Если RPC временно недоступен → fallback на `getBusinessDate()` (legacy 13:00) — поведение как сейчас.
 
-## Проверка ожидаемых значений (03.05.2026, AR1)
+## Технические детали
 
-- Последний snapshot 23:57: actual − исходный baseline = **+TZS 3 240 000** ✓
-- DROP R = 5 000 000 (внешний) — без изменений
-- DROP V = 6 975 000 (tracker+recycled) — без изменений
+- `useEffectiveBusinessDate()`: `staleTime: 60_000`, `refetchInterval: 60_000` — задержка переключения до 1 минуты, что приемлемо.
+- На первом рендере `data` будет `undefined` → fallback на `getBusinessDate()` → UI не мигает.
+- Версия `package.json` — патч-бамп **не нужен** (нет backend changes, только клиент).
 
-То же поведение применится автоматически ко всем остальным столам (AR2, BJ1, P1–P4 и далее).
+## Файлы изменены
+
+~17 файлов, везде одинаковая 2-строчная замена. Без миграций, без RPC, без edge functions.

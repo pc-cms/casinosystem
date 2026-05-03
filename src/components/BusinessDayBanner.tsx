@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { AlertTriangle } from "lucide-react";
 import { nowEAT, getBusinessDate } from "@/lib/business-day";
+import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
 import { cn } from "@/lib/utils";
 
 /**
@@ -13,6 +14,7 @@ export const BusinessDayBanner = () => {
   const [dismissed, setDismissed] = useState(() =>
     typeof window !== "undefined" && sessionStorage.getItem("cms.bd-banner.dismissed") === "1"
   );
+  const { data: serverBusinessDate } = useEffectiveBusinessDate();
 
   useEffect(() => {
     const t = setInterval(() => setTick((n) => n + 1), 60_000);
@@ -28,7 +30,7 @@ export const BusinessDayBanner = () => {
   if (!inWindow) return null;
 
   const beforeRollover = minutes < 300;
-  const businessDate = getBusinessDate();
+  const businessDate = serverBusinessDate || getBusinessDate();
 
   return (
     <div

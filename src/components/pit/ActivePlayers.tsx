@@ -14,6 +14,7 @@ import FloorTableCard, { type FloorTable } from "./FloorTableCard";
 import TableSeatingDialog from "./TableSeatingDialog";
 import type { SeatedPlayer } from "./SeatedPlayerChip";
 import { getBusinessDate, businessDayHourUTC } from "@/lib/business-day";
+import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
 import ChipTransferDialog from "@/components/player/ChipTransferDialog";
 
 const POKER_GAMES = ["Poker", "Texas Holdem", "Omaha", "PLO"];
@@ -21,7 +22,8 @@ const POKER_GAMES = ["Poker", "Texas Holdem", "Omaha", "PLO"];
 const ActivePlayers = () => {
   const { data: players = [] } = usePlayers();
   const { data: tables = [] } = useGamingTables();
-  const today = getBusinessDate();
+  const { data: serverBusinessDate } = useEffectiveBusinessDate();
+  const today = serverBusinessDate || getBusinessDate();
   const windowStartUTC = businessDayHourUTC(today, 13);
   const { data: transactions = [] } = useTransactions(today);
   const { casinoId, user, roles } = useAuth();

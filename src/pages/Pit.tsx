@@ -65,7 +65,8 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 const Pit = () => {
-  const businessToday = getBusinessDate();
+  const { data: serverBusinessDate } = useEffectiveBusinessDate();
+  const businessToday = serverBusinessDate || getBusinessDate();
   const [date, setDate] = useState(businessToday);
   const currentMonth = useMemo(() => {
     const [y, m] = businessToday.split("-").map(Number);

@@ -1,5 +1,6 @@
 import { useState, useCallback, useMemo } from "react";
 import { getBusinessDate, nowEAT } from "@/lib/business-day";
+import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
 import { useGamingTables, useTableTracker, useSetTableTrackerValue } from "@/hooks/use-casino-data";
 import { Input } from "@/components/ui/input";
 import { formatCurrency, formatInputWithSpaces } from "@/lib/currency";
@@ -45,7 +46,8 @@ const getCurrentSlot = () => {
 
 interface TableTrackerProps { embedded?: boolean }
 const TableTracker = ({ embedded = false }: TableTrackerProps) => {
-  const today = getBusinessDate();
+  const { data: serverBusinessDate } = useEffectiveBusinessDate();
+  const today = serverBusinessDate || getBusinessDate();
   const [date, setDate] = useState(today);
   const [mode, setMode] = useState<"numbers" | "chips">("numbers");
   const { isManager } = useAuth();

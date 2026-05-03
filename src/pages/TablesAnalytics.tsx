@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { Input } from "@/components/ui/input";
 import { LineChart as LineChartIcon, Lock } from "lucide-react";
 import { getBusinessDate } from "@/lib/business-day";
+import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
 import { useGamingTables, useTableTracker } from "@/hooks/use-casino-data";
 import { useChipSnapshots } from "@/hooks/use-chips";
 import { useChipBaseline, baselineToMap } from "@/hooks/use-table-lifecycle";
@@ -77,7 +78,8 @@ const niceMax = (v: number): number => {
 };
 
 const TablesAnalytics = () => {
-  const today = getBusinessDate();
+  const { data: serverBusinessDate } = useEffectiveBusinessDate();
+  const today = serverBusinessDate || getBusinessDate();
   const { restrictedToToday } = useBusinessDayFilter();
   const [date, setDate] = useState(today);
   const effectiveDate = restrictedToToday ? today : date;
