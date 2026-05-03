@@ -56,7 +56,7 @@ export const MODULES: ModuleDef[] = [
   { key: "table_tracker", label: "Table Check", group: "Operations" },
   { key: "reception", label: "Reception", group: "Players" },
   { key: "players", label: "Players", group: "Players" },
-  { key: "in_casino", label: "In Casino", group: "Players" },
+  { key: "in_casino", label: "Guests", group: "Players" },
   { key: "blacklist", label: "Blacklist", group: "Players" },
   { key: "groups", label: "Groups", group: "Players" },
   { key: "bank_checks", label: "Bank Checks", group: "Finance" },

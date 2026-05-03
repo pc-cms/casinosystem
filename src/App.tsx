@@ -41,7 +41,7 @@ const FinanceCashCountPage = lazy(() => import("@/pages/finance/FinanceCashCount
 const FinanceSummaryPage = lazy(() => import("@/pages/finance/FinanceSummaryPage"));
 const FinanceTransfersPage = lazy(() => import("@/pages/finance/FinanceTransfersPage"));
 const Reception = lazy(() => import("@/pages/Reception"));
-const InCasino = lazy(() => import("@/pages/InCasino"));
+const Guests = lazy(() => import("@/pages/Guests"));
 const Blacklist = lazy(() => import("@/pages/Blacklist"));
 const ImportReports = lazy(() => import("@/pages/ImportReports"));
 const TableResults = lazy(() => import("@/pages/TableResults"));
@@ -91,6 +91,7 @@ const ROUTE_ROLES: Record<string, string[]> = {
   "/": ["super_admin", "manager", "pit", "reception", "finance_manager", "surveillance"],
   
   "/players/:id": ["super_admin", "manager", "pit", "reception", "finance_manager", "surveillance"],
+  "/guests": ["super_admin", "manager", "reception", "finance_manager"],
   "/in-casino": ["super_admin", "manager", "reception", "finance_manager"],
   "/blacklist": ["super_admin", "manager", "reception", "finance_manager", "surveillance"],
   "/reception": ["super_admin", "manager", "reception", "finance_manager"],
@@ -180,7 +181,8 @@ const ProtectedRoutes = () => {
           <Route path="/players/:id" element={<RoleGuard path="/players/:id"><PlayerProfile /></RoleGuard>} />
           <Route path="/cage" element={<RoleGuard path="/cage"><ErrorBoundary><Cage /></ErrorBoundary></RoleGuard>} />
           <Route path="/reception" element={<RoleGuard path="/reception"><Reception /></RoleGuard>} />
-          <Route path="/in-casino" element={<RoleGuard path="/in-casino"><InCasino /></RoleGuard>} />
+          <Route path="/guests" element={<RoleGuard path="/guests"><Guests /></RoleGuard>} />
+          <Route path="/in-casino" element={<Navigate to="/guests" replace />} />
           <Route path="/blacklist" element={<RoleGuard path="/blacklist"><Blacklist /></RoleGuard>} />
           <Route path="/tables" element={<RoleGuard path="/tables"><Tables /></RoleGuard>} />
           <Route path="/active-players" element={<Navigate to="/player-statistics" replace />} />
