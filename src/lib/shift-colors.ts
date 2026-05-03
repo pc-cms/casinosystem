@@ -4,8 +4,8 @@
 export const UNIFIED_SHIFT_COLORS: Record<string, string> = {
   // Day — bright amber (high contrast vs Night)
   D: "bg-amber-300 text-amber-950 dark:bg-amber-400 dark:text-amber-950 font-bold",
-  // Mid/Afternoon — teal
-  M: "bg-teal-200 text-teal-900 dark:bg-teal-400 dark:text-teal-950 font-bold",
+  // Mid/Afternoon — bright teal (clearly distinct from Day amber and Night blue)
+  M: "bg-teal-500 text-white dark:bg-teal-500 dark:text-white font-bold",
   // Night — deep blue, white text (maximum contrast vs Day in both themes)
   N: "bg-blue-700 text-white dark:bg-blue-600 dark:text-white font-bold",
   // Guard — indigo (security overnight)
