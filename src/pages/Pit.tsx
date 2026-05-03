@@ -550,7 +550,9 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
     return null;
   };
 
-  const handleClick = (dealerId: string, day: number) => {
+  const handleClick = (e: React.MouseEvent<HTMLButtonElement>, dealerId: string, day: number) => {
+    // Ensure the cell receives focus so Delete/Backspace can clear it on next keystroke.
+    (e.currentTarget as HTMLButtonElement).focus();
     const dateStr = `${month}-${String(day).padStart(2, "0")}`;
     const current = getRotaEntry(dealerId, day);
     if (!current) {
@@ -669,7 +671,7 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
               return (
                 <td key={day} className={`px-0.5 py-0.5 text-center ${isToday ? "bg-primary/25" : isWeekend ? "bg-muted/15" : ""}`}>
                   <button
-                    onClick={() => handleClick(dealer.id, day)}
+                    onClick={(e) => handleClick(e, dealer.id, day)}
                     onKeyDown={e => handleKeyDown(e, dealer.id, day)}
                     onPaste={e => handlePaste(e, dealer.id, day)}
                     className={`w-full h-7 rounded text-[10px] font-mono transition-colors focus:outline-none focus:ring-1 focus:ring-primary ${
