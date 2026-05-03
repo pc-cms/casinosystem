@@ -2,33 +2,33 @@
 // D = Day (amber), M = Mid/Afternoon (teal), N = Night (sky), G = Graveyard (indigo)
 
 export const UNIFIED_SHIFT_COLORS: Record<string, string> = {
-  // Day — amber (saturated for clear day/night contrast in light mode)
-  D: "bg-amber-300 text-amber-950 dark:bg-amber-500/25 dark:text-amber-300 font-bold",
-  // Mid/Afternoon — teal (distinct from D for Security where both coexist)
-  M: "bg-teal-200 text-teal-900 dark:bg-teal-500/25 dark:text-teal-300 font-bold",
-  // Night — deep blue (clearly distinct from Day)
-  N: "bg-blue-700 text-white dark:bg-sky-500/25 dark:text-sky-300 font-bold",
+  // Day — bright amber (high contrast vs Night)
+  D: "bg-amber-300 text-amber-950 dark:bg-amber-400 dark:text-amber-950 font-bold",
+  // Mid/Afternoon — teal
+  M: "bg-teal-200 text-teal-900 dark:bg-teal-400 dark:text-teal-950 font-bold",
+  // Night — deep blue, white text (maximum contrast vs Day in both themes)
+  N: "bg-blue-700 text-white dark:bg-blue-600 dark:text-white font-bold",
   // Guard — indigo (security overnight)
-  G: "bg-indigo-100 text-indigo-700 dark:bg-indigo-500/25 dark:text-indigo-300 font-bold",
+  G: "bg-indigo-200 text-indigo-900 dark:bg-indigo-500 dark:text-white font-bold",
   // Leave — emerald
-  L: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/25 dark:text-emerald-300 font-bold",
+  L: "bg-emerald-200 text-emerald-900 dark:bg-emerald-500 dark:text-emerald-950 font-bold",
   // Extra — purple
-  E: "bg-purple-100 text-purple-700 dark:bg-purple-500/25 dark:text-purple-300 font-bold",
+  E: "bg-purple-200 text-purple-900 dark:bg-purple-500 dark:text-white font-bold",
   // Off — muted
   O: "bg-muted/30 text-muted-foreground",
 };
 
 export const UNIFIED_ATT_COLORS: Record<string, string> = {
-  A: "bg-red-100 text-red-700 dark:bg-red-500/25 dark:text-red-300",
-  S: "bg-orange-100 text-orange-700 dark:bg-orange-500/25 dark:text-orange-300",
+  A: "bg-red-200 text-red-900 dark:bg-red-500 dark:text-white font-bold",
+  S: "bg-orange-200 text-orange-900 dark:bg-orange-500 dark:text-white font-bold",
 };
 
-// Lighter tint for scheduled-but-empty rota cells
+// Lighter tint for scheduled-but-empty rota cells (still clear day vs night separation)
 export const UNIFIED_SHIFT_TINTS: Record<string, string> = {
-  D: "bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400",
-  M: "bg-teal-100 text-teal-700 dark:bg-teal-500/10 dark:text-teal-400",
-  N: "bg-blue-200 text-blue-800 dark:bg-sky-500/10 dark:text-sky-400",
-  G: "bg-indigo-50 text-indigo-500 dark:bg-indigo-500/10 dark:text-indigo-400",
-  L: "bg-emerald-50 text-emerald-500 dark:bg-emerald-500/10 dark:text-emerald-400",
-  E: "bg-purple-50 text-purple-500 dark:bg-purple-500/10 dark:text-purple-400",
+  D: "bg-amber-100 text-amber-800 dark:bg-amber-500/40 dark:text-amber-200",
+  M: "bg-teal-100 text-teal-800 dark:bg-teal-500/40 dark:text-teal-200",
+  N: "bg-blue-300 text-blue-900 dark:bg-blue-600/60 dark:text-white",
+  G: "bg-indigo-100 text-indigo-700 dark:bg-indigo-500/30 dark:text-indigo-200",
+  L: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/30 dark:text-emerald-200",
+  E: "bg-purple-100 text-purple-700 dark:bg-purple-500/30 dark:text-purple-200",
 };
