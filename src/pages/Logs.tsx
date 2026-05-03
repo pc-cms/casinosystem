@@ -1,8 +1,9 @@
 import { useState, useMemo } from "react";
 import { useActivityLogs } from "@/hooks/use-casino-data";
+import { useLogLookups } from "@/hooks/use-log-lookups";
+import { actionLabel, formatLogDetails } from "@/lib/format-log";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { formatCurrency } from "@/lib/currency";
 import { Search, ClipboardList } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { FilterBar } from "@/components/layout/FilterBar";
@@ -16,23 +17,31 @@ const CATEGORY_STYLES: Record<string, string> = {
 
 const Logs = () => {
   const { data: logs = [], isLoading } = useActivityLogs(500);
+  const { data: lookups = {} } = useLogLookups();
   const [search, setSearch] = useState("");
   const [catFilter, setCatFilter] = useState("all");
 
+  const enriched = useMemo(() => logs.map(l => ({
+    ...l,
+    _label: actionLabel(l.action),
+    _pretty: formatLogDetails(l.action, l.details, lookups),
+    _operator: lookups.users?.[l.operator_id] || `${l.operator_id.slice(0, 8)}…`,
+  })), [logs, lookups]);
+
   const filtered = useMemo(() => {
-    let result = logs;
-    if (catFilter !== "all") {
-      result = result.filter(l => l.category === catFilter);
-    }
+    let result = enriched;
+    if (catFilter !== "all") result = result.filter(l => l.category === catFilter);
     if (search) {
       const q = search.toLowerCase();
-      result = result.filter(l => {
-        const details = typeof l.details === "object" ? JSON.stringify(l.details) : String(l.details);
-        return l.action.toLowerCase().includes(q) || details.toLowerCase().includes(q) || l.operator_id.includes(q);
-      });
+      result = result.filter(l =>
+        l._label.toLowerCase().includes(q) ||
+        l._pretty.toLowerCase().includes(q) ||
+        l._operator.toLowerCase().includes(q) ||
+        l.action.toLowerCase().includes(q)
+      );
     }
     return result;
-  }, [logs, search, catFilter]);
+  }, [enriched, search, catFilter]);
 
   const categories = useMemo(() => {
     const cats = new Set(logs.map(l => l.category));
@@ -95,11 +104,11 @@ const Logs = () => {
                   <td className="px-3 py-1.5">
                     <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded uppercase ${CATEGORY_STYLES[log.category] || ""}`}>{log.category}</span>
                   </td>
-                  <td className="px-3 py-1.5 text-xs font-medium text-card-foreground font-mono">{log.action}</td>
-                  <td className="px-3 py-1.5 text-[10px] text-muted-foreground max-w-xs truncate font-mono">
-                    {typeof log.details === "object" ? JSON.stringify(log.details) : String(log.details)}
+                  <td className="px-3 py-1.5 text-xs font-medium text-card-foreground">{log._label}</td>
+                  <td className="px-3 py-1.5 text-[11px] text-foreground/80 max-w-md truncate" title={log._pretty}>
+                    {log._pretty || <span className="text-muted-foreground">—</span>}
                   </td>
-                  <td className="px-3 py-1.5 text-[10px] font-mono text-muted-foreground">{log.operator_id.slice(0, 8)}…</td>
+                  <td className="px-3 py-1.5 text-[10px] text-muted-foreground" title={log.operator_id}>{log._operator}</td>
                 </tr>
               ))}
             </tbody>
