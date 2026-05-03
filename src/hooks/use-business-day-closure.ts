@@ -75,3 +75,25 @@ export function useCloseBusinessDay() {
     onError: (e: Error) => toast.error(e.message),
   });
 }
+
+/** Set of YYYY-MM-DD dates that have been closed for this casino in [from, to]. */
+export function useClosedBusinessDates(fromDate: string, toDate: string) {
+  const { casinoId } = useAuth();
+  return useQuery({
+    queryKey: ["closed-business-dates", casinoId, fromDate, toDate],
+    queryFn: async (): Promise<Set<string>> => {
+      if (!casinoId) return new Set();
+      const { data, error } = await supabase
+        .from("business_day_closures")
+        .select("business_date")
+        .eq("casino_id", casinoId)
+        .gte("business_date", fromDate)
+        .lte("business_date", toDate);
+      if (error) return new Set();
+      return new Set((data || []).map((r: any) => r.business_date as string));
+    },
+    enabled: !!casinoId,
+    staleTime: 30_000,
+    refetchInterval: 60_000,
+  });
+}
