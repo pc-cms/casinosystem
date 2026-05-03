@@ -2394,6 +2394,8 @@ export type Database = {
         Row: {
           casino_id: string
           created_at: string
+          disabled_at: string | null
+          disabled_by: string | null
           display_name: string
           id: string
           updated_at: string
@@ -2402,6 +2404,8 @@ export type Database = {
         Insert: {
           casino_id: string
           created_at?: string
+          disabled_at?: string | null
+          disabled_by?: string | null
           display_name: string
           id?: string
           updated_at?: string
@@ -2410,6 +2414,8 @@ export type Database = {
         Update: {
           casino_id?: string
           created_at?: string
+          disabled_at?: string | null
+          disabled_by?: string | null
           display_name?: string
           id?: string
           updated_at?: string
