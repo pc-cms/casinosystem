@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChevronLeft, ChevronRight, UserPlus, ArrowUpDown, ZoomIn, ZoomOut, RefreshCw, Check, Printer, Trash2, Users as UsersIcon, Lock } from "lucide-react";
+import { ChevronLeft, ChevronRight, UserPlus, ArrowUpDown, ZoomIn, ZoomOut, Printer, Trash2, Users as UsersIcon, Lock } from "lucide-react";
 import EmployeePhotoCell from "@/components/EmployeePhotoCell";
 import BreaklistGrid from "@/components/pit/BreaklistGrid";
 import ActivePlayers from "@/components/pit/ActivePlayers";
@@ -102,10 +102,8 @@ const Pit = () => {
     tabletracker: "Table Check",
   };
 
-  // Breaklist zoom + action callbacks
+  // Breaklist zoom
   const [breaklistZoom, setBreaklistZoom] = useState(125);
-  const breaklistRefreshRef = React.useRef<(() => void) | null>(null);
-  const breaklistAcceptRef = React.useRef<(() => void) | null>(null);
 
   // Free month navigation; write-protection enforced inside grids.
   // Rota allows next month (filled in advance); Attendance does not.
@@ -165,28 +163,6 @@ const Pit = () => {
           <Button variant="outline" size="icon-xs" onClick={() => setBreaklistZoom(z => Math.min(200, z + 10))}>
             <ZoomIn className="w-3.5 h-3.5" />
           </Button>
-          {!isCCTV && (
-            <>
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-1 text-xs"
-                onClick={() => breaklistRefreshRef.current?.()}
-                title="Fill empty slots up to current time with BR"
-              >
-                <RefreshCw className="w-3.5 h-3.5" /> Refresh
-              </Button>
-              <Button
-                variant="default"
-                size="sm"
-                className="gap-1 text-xs"
-                onClick={() => breaklistAcceptRef.current?.()}
-                title="Fill all remaining empty slots until end of shift with BR"
-              >
-                <Check className="w-3.5 h-3.5" /> Accept
-              </Button>
-            </>
-          )}
         </>
       )}
       {activeTab === "rota" && (
@@ -255,8 +231,6 @@ const Pit = () => {
           <BreaklistGrid
             date={date}
             zoom={breaklistZoom}
-            onRegisterRefresh={(fn) => { breaklistRefreshRef.current = fn; }}
-            onRegisterAccept={(fn) => { breaklistAcceptRef.current = fn; }}
           />
         )}
         {activeTab === "activeplayers" && <ActivePlayers />}
