@@ -1,0 +1,380 @@
+import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
+import { UserCheck, Search, ArrowUp, ArrowDown, ArrowUpDown, LogOut, User, Eye, CheckCircle2 } from "lucide-react";
+import { format } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth-context";
+import { useVisitsToday } from "@/hooks/use-casino-data";
+import { logAction } from "@/lib/logging";
+import { toast } from "sonner";
+import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import CategoryBadge, { type PlayerCategory } from "@/components/player/CategoryBadge";
+import CategoryFilter from "@/components/player/CategoryFilter";
+import FlagBadges from "@/components/player/FlagBadges";
+import PlayerEditDialog from "@/components/PlayerEditDialog";
+
+type TabKey = "all" | "inside" | "out";
+type SortKey = "name" | "type" | "position" | "entry" | "exit";
+
+const formatTime = (iso?: string | null) => {
+  if (!iso) return "·";
+  const d = new Date(iso);
+  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+};
+
+const TYPE_LABELS: Record<string, string> = { slots: "Slots", table: "Table", mix: "Mix" };
+const TYPE_CLASSES: Record<string, string> = {
+  slots: "bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-500/15 dark:text-blue-400 dark:border-blue-500/30",
+  table: "bg-emerald-100 text-emerald-700 border-emerald-300 dark:bg-emerald-500/15 dark:text-emerald-400 dark:border-emerald-500/30",
+  mix: "bg-amber-100 text-amber-700 border-amber-300 dark:bg-amber-500/15 dark:text-amber-400 dark:border-amber-500/30",
+};
+
+const Guests = () => {
+  const { casinoId } = useAuth();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  const [tab, setTab] = useState<TabKey>("all");
+  const [search, setSearch] = useState("");
+  const [posFilter, setPosFilter] = useState<"all" | "table" | "slots" | "hall">("all");
+  const [typeFilter, setTypeFilter] = useState<"all" | "slots" | "table" | "mix">("all");
+  const [categoryFilter, setCategoryFilter] = useState<Set<PlayerCategory>>(
+    new Set(["diamond", "platinum", "gold", "normal"])
+  );
+  const [sortKey, setSortKey] = useState<SortKey | null>(null);
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const [profilePlayer, setProfilePlayer] = useState<any>(null);
+
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) setSortDir(d => (d === "asc" ? "desc" : "asc"));
+    else { setSortKey(key); setSortDir("asc"); }
+  };
+
+  const { data: visits = [] } = useVisitsToday(
+    "*, players(id, first_name, last_name, nickname, photo_url, status, player_type, phone, id_number, id_document_url, category)"
+  ) as { data: any[] };
+
+  const playerIds = useMemo(() => visits.map(v => v.player_id), [visits]);
+  const { data: allTags = [] } = useQuery({
+    queryKey: ["player_tags_guests", playerIds],
+    queryFn: async () => {
+      if (playerIds.length === 0) return [];
+      const { data } = await supabase.from("player_tags").select("player_id, tag").in("player_id", playerIds);
+      return data || [];
+    },
+    enabled: playerIds.length > 0,
+  });
+
+  const tagsByPlayer = useMemo(() => {
+    const m = new Map<string, string[]>();
+    allTags.forEach((t: any) => {
+      const list = m.get(t.player_id) || [];
+      list.push(t.tag);
+      m.set(t.player_id, list);
+    });
+    return m;
+  }, [allTags]);
+
+  const rows = useMemo(() => {
+    return visits.map((v: any) => {
+      const p = v.players;
+      if (!p) return null;
+      return {
+        id: v.id,
+        playerId: p.id,
+        firstName: p.first_name,
+        lastName: p.last_name,
+        nickname: p.nickname,
+        photoUrl: p.photo_url,
+        category: (p.category as PlayerCategory) || "normal",
+        playerType: p.player_type,
+        position: (v.position as string) || "hall",
+        entryAt: v.checked_in_at as string,
+        exitAt: v.checked_out_at as string | null,
+        tags: tagsByPlayer.get(p.id) || [],
+        rawPlayer: p,
+        isInside: !v.checked_out_at,
+      };
+    }).filter(Boolean) as any[];
+  }, [visits, tagsByPlayer]);
+
+  const filtered = useMemo(() => {
+    let list = rows;
+    if (tab === "inside") list = list.filter(r => r.isInside);
+    if (tab === "out") list = list.filter(r => !r.isInside);
+    if (posFilter !== "all") list = list.filter(r => r.position === posFilter);
+    if (typeFilter !== "all") list = list.filter(r => r.playerType === typeFilter);
+    list = list.filter(r => categoryFilter.has(r.category));
+    if (search) {
+      const q = search.toLowerCase();
+      list = list.filter(r =>
+        `${r.firstName} ${r.lastName} ${r.nickname ?? ""}`.toLowerCase().includes(q)
+      );
+    }
+    return [...list].sort((a, b) => {
+      if (sortKey) {
+        const dir = sortDir === "asc" ? 1 : -1;
+        const get = (r: any) => {
+          switch (sortKey) {
+            case "name": return `${r.firstName} ${r.lastName}`.toLowerCase();
+            case "type": return r.playerType || "zzz";
+            case "position": return r.position;
+            case "entry": return new Date(r.entryAt).getTime();
+            case "exit": return r.exitAt ? new Date(r.exitAt).getTime() : 0;
+          }
+        };
+        const av = get(a), bv = get(b);
+        if (av < bv) return -1 * dir;
+        if (av > bv) return 1 * dir;
+        return 0;
+      }
+      // default: inside first, recent entry first
+      if (a.isInside !== b.isInside) return a.isInside ? -1 : 1;
+      return new Date(b.entryAt).getTime() - new Date(a.entryAt).getTime();
+    });
+  }, [rows, tab, posFilter, typeFilter, categoryFilter, search, sortKey, sortDir]);
+
+  const counts = useMemo(() => ({
+    all: rows.length,
+    inside: rows.filter(r => r.isInside).length,
+    out: rows.filter(r => !r.isInside).length,
+  }), [rows]);
+
+  const confirmExit = useMutation({
+    mutationFn: async (visitId: string) => {
+      if (!casinoId) throw new Error("No casino");
+      const visit = visits.find(v => v.id === visitId);
+      if (!visit) throw new Error("Visit not found");
+      if (visit.checked_out_at) return;
+      const { error } = await supabase
+        .from("casino_visits")
+        .update({ checked_out_at: new Date().toISOString() })
+        .eq("id", visitId);
+      if (error) throw error;
+      await logAction(casinoId, "player", "PLAYER_EXIT_CONFIRMED", { visit_id: visitId, player_id: visit.player_id });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["casino-visits-live"] });
+      toast.success("Checked out");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const PositionBadge = ({ pos }: { pos: string }) => {
+    if (pos === "table") return <Badge variant="outline" className="text-[10px] gap-0.5"><CheckCircle2 className="w-2.5 h-2.5" />Table</Badge>;
+    if (pos === "slots") return <Badge className="text-[10px] bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30">Slots</Badge>;
+    return <Badge variant="secondary" className="text-[10px]">Hall</Badge>;
+  };
+
+  const renderRow = (r: any) => (
+    <tr
+      key={r.id}
+      className={`border-b border-border hover:bg-muted/30 transition-colors ${!r.isInside ? "opacity-70" : ""}`}
+    >
+      {/* Photo */}
+      <td className="px-2 py-1.5 w-[42px]">
+        <div className="w-8 h-8 rounded-full bg-muted overflow-hidden flex items-center justify-center shrink-0">
+          {r.photoUrl ? (
+            <img src={r.photoUrl} alt="" className="w-full h-full object-cover" />
+          ) : (
+            <User className="w-4 h-4 text-muted-foreground" />
+          )}
+        </div>
+      </td>
+      {/* Player */}
+      <td className="px-2 py-1.5 max-w-[180px]">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <CategoryBadge category={r.category} />
+          <p className="text-xs font-semibold text-card-foreground truncate">
+            {r.firstName} {r.lastName}
+          </p>
+        </div>
+      </td>
+      {/* Type */}
+      <td className="px-1 py-1.5 w-[70px]">
+        {r.playerType ? (
+          <Badge className={`${TYPE_CLASSES[r.playerType] || ""} text-[10px]`}>{TYPE_LABELS[r.playerType] || r.playerType}</Badge>
+        ) : <span className="text-muted-foreground text-[10px]">·</span>}
+      </td>
+      {/* Position */}
+      <td className="px-1 py-1.5 w-[70px]">
+        <PositionBadge pos={r.position} />
+      </td>
+      {/* Tags */}
+      <td className="px-2 py-1.5 max-w-[180px]">
+        {r.tags.length > 0 ? <FlagBadges tags={r.tags} compact /> : <span className="text-muted-foreground text-[10px]">·</span>}
+      </td>
+      {/* Entry */}
+      <td className="px-1 py-1.5 font-mono text-xs w-[44px] text-center">{formatTime(r.entryAt)}</td>
+      {/* Exit */}
+      <td className="px-1 py-1.5 font-mono text-xs w-[44px] text-center">{formatTime(r.exitAt)}</td>
+      {/* Actions */}
+      <td className="px-1 py-1.5 text-right whitespace-nowrap">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-7 w-7 p-0"
+          title="View profile"
+          onClick={(e) => { e.stopPropagation(); setProfilePlayer(r.rawPlayer); }}
+        >
+          <Eye className="w-3.5 h-3.5" />
+        </Button>
+        {r.isInside && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 ml-1 text-xs gap-1"
+            onClick={() => confirmExit.mutate(r.id)}
+            disabled={confirmExit.isPending}
+          >
+            <LogOut className="w-3 h-3" /> Check Out
+          </Button>
+        )}
+      </td>
+    </tr>
+  );
+
+  const SortIcon = ({ k }: { k: SortKey }) =>
+    sortKey !== k ? <ArrowUpDown className="w-3 h-3 inline ml-1 opacity-40" />
+      : sortDir === "asc" ? <ArrowUp className="w-3 h-3 inline ml-1" />
+      : <ArrowDown className="w-3 h-3 inline ml-1" />;
+
+  const H = ({ k, align = "left", children }: { k: SortKey; align?: "left" | "center" | "right"; children: any }) => (
+    <th
+      className={`px-2 py-2 cursor-pointer select-none hover:text-foreground ${
+        align === "right" ? "text-right" : align === "center" ? "text-center" : "text-left"
+      }`}
+      onClick={() => toggleSort(k)}
+    >
+      {children}<SortIcon k={k} />
+    </th>
+  );
+
+  return (
+    <PageShell>
+      <PageHeader
+        icon={UserCheck}
+        title="Guests"
+        subtitle={`${counts.inside} inside · ${counts.out} checked out`}
+        date
+      />
+
+      <Tabs value={tab} onValueChange={(v) => setTab(v as TabKey)} className="space-y-3">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <TabsList>
+            <TabsTrigger
+              value="all"
+              className="data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:border-primary/40 border border-transparent"
+            >
+              All
+              <Badge className="ml-1.5 text-[10px] bg-primary/20 text-primary border-primary/30 hover:bg-primary/20">{counts.all}</Badge>
+            </TabsTrigger>
+            <TabsTrigger
+              value="inside"
+              className="data-[state=active]:bg-success/15 data-[state=active]:text-success data-[state=active]:border-success/40 border border-transparent"
+            >
+              Inside
+              <Badge className="ml-1.5 text-[10px] bg-success/20 text-success border-success/30 hover:bg-success/20">{counts.inside}</Badge>
+            </TabsTrigger>
+            <TabsTrigger
+              value="out"
+              className="data-[state=active]:bg-muted data-[state=active]:text-muted-foreground data-[state=active]:border-border border border-transparent"
+            >
+              Out
+              <Badge variant="secondary" className="ml-1.5 text-[10px]">{counts.out}</Badge>
+            </TabsTrigger>
+          </TabsList>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Position filter */}
+            <div className="flex items-center rounded-md border border-border overflow-hidden h-8">
+              {(["all", "table", "slots", "hall"] as const).map(p => (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => setPosFilter(p)}
+                  className={`px-2.5 h-full text-[11px] uppercase tracking-wide transition-colors ${
+                    posFilter === p ? "bg-primary/15 text-primary font-semibold" : "text-muted-foreground hover:bg-muted/40"
+                  }`}
+                >
+                  {p === "all" ? "Pos" : p === "table" ? "Table" : p === "slots" ? "Slot" : "Hall"}
+                </button>
+              ))}
+            </div>
+            {/* Type filter */}
+            <div className="flex items-center rounded-md border border-border overflow-hidden h-8">
+              {(["all", "slots", "table", "mix"] as const).map(p => (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => setTypeFilter(p)}
+                  className={`px-2.5 h-full text-[11px] uppercase tracking-wide transition-colors ${
+                    typeFilter === p ? "bg-primary/15 text-primary font-semibold" : "text-muted-foreground hover:bg-muted/40"
+                  }`}
+                >
+                  {p === "all" ? "Type" : TYPE_LABELS[p]}
+                </button>
+              ))}
+            </div>
+            <CategoryFilter selected={categoryFilter} onChange={setCategoryFilter} />
+            <div className="relative w-56">
+              <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Search guests..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="pl-8"
+              />
+            </div>
+          </div>
+        </div>
+
+        <TabsContent value={tab} className="mt-0">
+          <div className="cms-panel overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead className="bg-muted/30 border-b border-border">
+                  <tr className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                    <th className="px-2 py-2 w-[42px]"></th>
+                    <H k="name">Player</H>
+                    <H k="type">Type</H>
+                    <H k="position">Position</H>
+                    <th className="px-2 py-2 text-left">Tags</th>
+                    <H k="entry" align="center">Entry</H>
+                    <H k="exit" align="center">Exit</H>
+                    <th className="px-2 py-2 text-right w-[150px]">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="px-2 py-8 text-center text-muted-foreground text-xs">
+                        No guests to display
+                      </td>
+                    </tr>
+                  ) : (
+                    filtered.map(renderRow)
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </TabsContent>
+      </Tabs>
+
+      <PlayerEditDialog
+        player={profilePlayer}
+        open={!!profilePlayer}
+        onOpenChange={(v) => { if (!v) setProfilePlayer(null); }}
+      />
+    </PageShell>
+  );
+};
+
+export default Guests;
