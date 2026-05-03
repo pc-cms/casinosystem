@@ -1,80 +1,55 @@
-## Глобальный принцип CCTV
+Проверка показала две разные вещи:
 
-Surveillance **не вносит ничего** в финансовые/операционные модули. Единственное место, где он что-то постит — это **Pitbook** (общение с Pit). Везде остальное — только просмотр.
+1. Права Pit на `breaklist` в базе есть. Политика INSERT разрешает `pit` и `manager` писать строки своего casino_id. То есть это не CCTV-проблема и не запрет Surveillance.
+2. В интерфейсе Breaklist сейчас явно отключено автозаполнение BR:
 
-## Что меняем
+```text
+// Parent controls (Refresh/Accept) are no longer auto-filling BR — disabled.
+onRegisterRefresh?.(() => {});
+onRegisterAccept?.(() => {});
+```
 
-### 1. Cage для surveillance — снять все write-кнопки
+Поэтому от Pit “Брейк не заполняется”: кнопки/коллбеки есть в структуре страницы, но фактически они зарегистрированы как пустые функции. Ручной клик по одной клетке должен работать, но массовое/автоматическое заполнение Break сейчас отключено.
 
-Файл: `src/components/cage/CageHistoryView.tsx`
+План исправления:
 
-- **Удалить кнопку "New Chip Transfer"** во вкладке Chip Transfers (строки 261–269) и сопутствующий `ChipTransferPickerDialog` (строки 366+) — это сейчас единственный write-action в этом view.
-- **Убрать вкладку Expenses** (ты сказал отмена) — оставить 4 вкладки: IN/OUT, Cashless, Cage Transfers, Chip Transfers.
-- **Поправить grid вкладок**: сейчас `grid-cols-4`, оставляем `grid-cols-4` (Expenses и так была 5-й, удаляем — числа сходятся, но проверим JSX).
-- В Cashless вернуть/оставить provider-фильтр (MTN/Tigo/Airtel/Halopesa) — он уже есть.
+1. Вернуть заполнение Breaklist от Pit
+   - В `BreaklistGrid` восстановить рабочую логику для `Refresh` / `Accept` вместо пустых функций.
+   - Заполнение будет создавать `BR` только в пустых клетках.
+   - Не трогать уже занятые клетки: столы, инспекторы, sick, training, sorting, closing.
+   - Не трогать locked-клетки без manager-доступа.
+   - Pit Bosses по-прежнему не попадают в Breaklist grid.
 
-Итог Cage для CCTV: 4 read-only таба, ноль кнопок ввода.
+2. Вернуть/подключить кнопки управления в Pit header
+   - В `Pit.tsx` проверить и восстановить кнопки `Refresh` / `Accept` для вкладки Breaklist, чтобы они реально вызывали `breaklistRefreshRef.current()` и `breaklistAcceptRef.current()`.
+   - Оставить текущий zoom-контроль.
+   - Для Surveillance эти действия не должны быть доступны как write-action; CCTV остаётся read-only.
 
-### 2. Снять права на запись chip_transfers для surveillance
+3. Защитить запись от тихих ошибок
+   - В `useSetBreaklistCell` после ошибки показывать реальную причину в toast/log, а не только общий `Sync error`.
+   - После успешной записи инвалидировать/обновлять query `breaklist`, чтобы данные не оставались только в optimistic cache.
+   - Если запись ушла offline, оставить текущую write-and-sync модель.
 
-Сейчас RLS даёт surveillance INSERT в `chip_transfers`. Меняем миграцией:
-- Drop INSERT policy для surveillance на `chip_transfers`.
-- Surveillance остаётся с SELECT.
+4. Уточнить роль `TR`, `SRT`, `CLS`
+   - Сейчас UI предлагает `TR`, `SRT`, `CLS`, но enum `dealer_role` в базе содержит только: `AR`, `AR1`, `AR1c`, `AR1i`, `ARc`, `ARi`, `BJ`, `BJi`, `BR`, `P`, `Pi`, `S`.
+   - Поэтому при выборе `TR/SRT/CLS` база может отказывать с invalid enum value.
+   - Исправление: либо убрать эти кнопки из UI, либо миграцией добавить их в enum. Так как проект придерживается ручного аудита и эти роли уже видны в UI, я предлагаю добавить enum-значения `TR`, `SRT`, `CLS` миграцией.
+   - Это backend change, значит после миграции будет patch bump версии package.json.
 
-Также проверяем и удаляем у surveillance возможность писать в `players.status='blacklist'` через UI — оставляем только просмотр Blacklist (см. п. 5).
+5. Проверить RLS без расширения прав CCTV
+   - Оставить `surveillance` только SELECT для `breaklist`.
+   - Не добавлять CCTV insert/update.
+   - Pit/Manager остаются единственными ролями, кто может заполнять Breaklist.
 
-### 3. Новая страница /pitbook (CCTV ↔ Pit общение)
+6. Проверка после внедрения
+   - Pit-пользователь на сегодняшнем business day видит сотрудников из Rota M/N/E.
+   - Нажатие ручного `BR` пишет одну клетку.
+   - `Refresh/Accept` заполняет пустые клетки `BR` согласно логике, не перетирая существующие назначения.
+   - Ошибки RLS/enum больше не маскируются общим сообщением.
 
-Использует существующую таблицу `cctv_observations`.
-
-Маршрут: `/pitbook` — доступен ролям: `surveillance`, `pit`, `manager`, `super_admin`, `finance_manager`.
-
-UI (PageShell + PageHeader + PageSection):
-- Лента наблюдений (последние 7 дней) — автор, время, привязка (player / table / freeform), текст, статус (new / acknowledged).
-- Surveillance: видит форму "New observation" (textarea + опц. выбор player/table) → INSERT в `cctv_observations`.
-- Pit / Manager: видит ленту + кнопка "Acknowledge" (UPDATE флага).
-- Realtime подписка на таблицу для мгновенного обновления у Pit.
-
-Сайдбар:
-- Новая секция "PITBOOK" (или внутри существующего PIT-блока) с пунктом **Pitbook** — иконка `MessageSquare`, видна тем же ролям что и страница.
-
-### 4. RLS для cctv_observations
-
-Проверить/добавить миграцией:
-- SELECT: surveillance, pit, manager, super_admin, finance_manager (по своему casino).
-- INSERT: surveillance, manager, super_admin (author = auth.uid()).
-- UPDATE (acknowledge): pit, manager, super_admin.
-
-### 5. PIT-блок и остальное меню — без изменений
-
-По твоему ответу:
-- **Все 7 PIT-пунктов остаются read-only** (Break List, Live Tables, Player Statistics, Table Check, Table Analytics, Attendance, Rota) — ничего не трогаем.
-- Dashboard, Guests, Blacklist, Player Profile — остаются.
-- В Player Profile у surveillance остаются: notes, tags (это разрешённые "пятна" записи). Это согласуется с прошлым решением — НЕ трогаем.
-- В Blacklist surveillance может банить (создавать), не может снимать бан — оставляем как есть.
-
-### 6. Версия
-
-Бамп `package.json` patch (миграция RLS + новая страница) → 1.0.52.
-
-## Технические детали
-
-**Файлы к правке:**
-- `src/components/cage/CageHistoryView.tsx` — убрать вкладку Expenses, удалить кнопку и диалог Chip Transfer.
-- `src/components/layout/AppSidebar.tsx` — добавить пункт Pitbook.
-- `src/App.tsx` — добавить маршрут `/pitbook` + permissions.
-- `src/pages/Pitbook.tsx` — новый файл (лента + форма).
-- `src/hooks/use-cctv-observations.ts` — новый хук (list / insert / acknowledge + realtime).
-- `src/lib/route-module-map.ts` — зарегистрировать `/pitbook`.
-- Миграция БД:
-  - DROP INSERT policy on `chip_transfers` for surveillance.
-  - Ensure RLS policies on `cctv_observations` (см. п. 4).
-  - Добавить колонку `acknowledged_at`, `acknowledged_by` в `cctv_observations` если их нет.
-- `package.json` → 1.0.52.
-
-**Что НЕ делаем:**
-- Не трогаем PIT-меню surveillance.
-- Не добавляем Expenses в Cage.
-- Не трогаем Player Profile / Blacklist write-actions surveillance.
-
-После апрува переключаюсь в build mode и применяю.
+Файлы, которые будут изменены:
+- `src/components/pit/BreaklistGrid.tsx`
+- `src/pages/Pit.tsx`
+- `src/hooks/use-dealers.ts`
+- `supabase/migrations/...sql` для enum `dealer_role`, если подтверждаем `TR/SRT/CLS`
+- `package.json` patch version bump из-за backend change
