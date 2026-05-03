@@ -31,18 +31,36 @@ const formatTime = (iso?: string | null) => {
   return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 };
 
+const MAX_DAYS_BACK = 90;
+const subDays = (iso: string, n: number) => {
+  const d = new Date(iso + "T12:00:00Z");
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+};
+
 const PlayerStatistics = () => {
   const navigate = useNavigate();
   const { casinoId, roles, user } = useAuth();
   const today = getBusinessDate();
-  const windowStartUTC = businessDayHourUTC(today, 13);
+  const canBrowseHistory = canSeeAllTimeData(roles);
+  const minDate = subDays(today, -MAX_DAYS_BACK);
+  const [date, setDate] = useState(today);
+  const effectiveDate = canBrowseHistory ? date : today;
+  const isHistorical = effectiveDate !== today;
+  const windowStartUTC = businessDayHourUTC(effectiveDate, 13);
   const queryClient = useQueryClient();
-  const canEditPosition = roles.some(r => ["pit", "manager", "reception", "super_admin"].includes(r));
+  const canEditPosition = !isHistorical && roles.some(r => ["pit", "manager", "reception", "super_admin"].includes(r));
 
   const { data: players = [] } = usePlayers();
   const { data: tables = [] } = useGamingTables();
-  const { data: transactions = [] } = useTransactions(today);
-  const { data: chipTransfers = [] } = useChipTransfers(today);
+  const { data: transactions = [] } = useTransactions(effectiveDate);
+  const { data: chipTransfers = [] } = useChipTransfers(effectiveDate);
+
+  const shiftDate = (delta: number) => {
+    const next = subDays(date, delta);
+    if (next < minDate || next > today) return;
+    setDate(next);
+  };
 
   const [tab, setTab] = useState<TabKey>("day");
   const [search, setSearch] = useState("");
