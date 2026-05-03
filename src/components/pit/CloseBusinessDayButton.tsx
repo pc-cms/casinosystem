@@ -8,11 +8,13 @@ import {
   useEffectiveBusinessDate,
   useLastBusinessDayClosure,
 } from "@/hooks/use-business-day-closure";
+import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
 
 /**
  * Manager (always) or Pit (with active Manager Access) closes the current
- * business day. After closing, all operational filters advance to the next
- * day; if forgotten, an automatic close runs at 11:00 AM EAT.
+ * business day. Closing requires manager password (or RFID) confirmation.
+ * After closing, all operational filters advance to the next day; if
+ * forgotten, an automatic close runs at 11:00 AM EAT.
  */
 export function CloseBusinessDayButton() {
   const { roles, managerOverride } = useAuth();
@@ -20,6 +22,7 @@ export function CloseBusinessDayButton() {
   const { data: lastClosure } = useLastBusinessDayClosure();
   const closeMut = useCloseBusinessDay();
   const [open, setOpen] = useState(false);
+  const [askPassword, setAskPassword] = useState(false);
 
   const isManager = roles.includes("manager");
   const isPit = roles.includes("pit");
@@ -27,10 +30,15 @@ export function CloseBusinessDayButton() {
 
   if (!canClose) return null;
 
-  const handleConfirm = async () => {
+  const handleProceed = () => {
+    setOpen(false);
+    setAskPassword(true);
+  };
+
+  const handleManagerVerified = async () => {
+    setAskPassword(false);
     try {
       await closeMut.mutateAsync();
-      setOpen(false);
     } catch {
       /* toast already shown */
     }
@@ -40,7 +48,7 @@ export function CloseBusinessDayButton() {
     <>
       <Button variant="outline" size="sm" onClick={() => setOpen(true)} className="gap-1.5">
         <Lock className="h-3.5 w-3.5" />
-        Close Business Day
+        Close Day
       </Button>
 
       <ResponsiveDialog
@@ -61,6 +69,9 @@ export function CloseBusinessDayButton() {
             <li>Today's data becomes historical for operational roles.</li>
             <li>If you forget to close, an automatic close runs at 11:00 AM.</li>
           </ul>
+          <p className="text-xs text-amber-700 dark:text-amber-400 pt-1 font-medium">
+            Manager password will be required to confirm.
+          </p>
           {lastClosure && (
             <p className="text-xs text-muted-foreground pt-1">
               Last closure: {lastClosure.business_date} ({lastClosure.closed_method === "auto_11am" ? "auto" : "manual"})
@@ -71,11 +82,22 @@ export function CloseBusinessDayButton() {
           <Button variant="outline" onClick={() => setOpen(false)} disabled={closeMut.isPending}>
             Cancel
           </Button>
-          <Button onClick={handleConfirm} disabled={closeMut.isPending}>
-            {closeMut.isPending ? "Closing…" : "Confirm close"}
+          <Button onClick={handleProceed} disabled={closeMut.isPending}>
+            Continue
           </Button>
         </ResponsiveDialogFooter>
       </ResponsiveDialog>
+
+      <ManagerOverrideDialog
+        open={askPassword}
+        onClose={() => setAskPassword(false)}
+        onConfirm={handleManagerVerified}
+        title="Confirm Close Business Day"
+        description={`Enter manager credentials to close business day ${currentDate || ""}.`}
+        actionType="BUSINESS_DAY_CLOSE_CONFIRM"
+        actionDetails={{ business_date: currentDate }}
+      />
     </>
   );
 }
+
