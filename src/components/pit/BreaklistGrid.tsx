@@ -201,12 +201,12 @@ const BreaklistGrid = ({ date, zoom = 100, onRegisterRefresh, onRegisterAccept }
       // Hours worked BEFORE this Sick click = from the START OF SHIFT to the
       // click slot, rounded UP to whole hours. Each slot = 20 minutes.
       //   M (Morning/Mid) — shift starts at 18:00 (first slot, index 0).
-      //   N (Night)        — shift starts at 00:00.
+      //   N (Night)        — shift starts at 21:00.
       //   E (Extra)        — falls back to the dealer's first occupied slot.
       const dealerShift = rotaDealers.find(rd => rd.dealerId === activeCell.dealerId)?.shift;
       let shiftStartIdx = 0; // default = 18:00 (first slot)
       if (dealerShift === "N") {
-        const nIdx = TIME_SLOTS.indexOf("00:00");
+        const nIdx = TIME_SLOTS.indexOf("21:00");
         shiftStartIdx = nIdx >= 0 ? nIdx : 0;
       } else if (dealerShift === "E") {
         const occupiedIdx = breaklist
