@@ -55,8 +55,18 @@ const CloseShiftDialog = ({
   const [bankBal, setBankBal] = useState<Banks>(emptyBanks);
   const [mobileBal, setMobileBal] = useState<MobileProviders>(emptyMobile);
 
-  const expectedChips = useMemo(() => getExpectedChips(tables), [tables]);
-  const initialTotal = useMemo(() => getInitialTotal(tables), [tables]);
+  // Baseline = chips that were in the cage at shift OPEN (carried over from previous day's closing).
+  // Tables are NOT included — they are reconciled separately via per-table chip counts.
+  const expectedChips = useMemo(() => {
+    const opening = (shift?.opening_float as any)?.chips as Record<string, number> | undefined;
+    const out: Record<number, number> = {};
+    CHIP_DENOMS.forEach(d => { out[d] = Number(opening?.[d] ?? opening?.[String(d)] ?? 0); });
+    return out;
+  }, [shift]);
+  const initialTotal = useMemo(
+    () => CHIP_DENOMS.reduce((s, d) => s + d * (expectedChips[d] || 0), 0),
+    [expectedChips],
+  );
   const missPerDenom = useMemo(() => {
     const miss: Record<number, number> = {};
     CHIP_DENOMS.forEach(d => { miss[d] = (chipCounts[d] || 0) - (expectedChips[d] || 0); });
