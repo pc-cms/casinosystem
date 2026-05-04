@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { NumberInput } from "@/components/ui/number-input";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeftRight, Banknote, HandCoins, ArrowUpRight, ArrowDownLeft } from "lucide-react";
+import { ArrowLeftRight, Banknote, HandCoins, ArrowUpRight, ArrowDownLeft, Dice5, Coins } from "lucide-react";
 import ChipDenomInput from "@/components/ChipDenomInput";
 import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
 import { useCreateCageTransfer, useCageTransfers, type CageTransferType, cageTransferLabel } from "@/hooks/use-cage-transfers";
@@ -22,6 +22,8 @@ const TYPE_OPTIONS: Array<{ value: CageTransferType; label: string; icon: typeof
   { value: "collection", label: "Collection", icon: HandCoins, description: "Cash OUT to manager safe", needsOverride: true },
   { value: "fill", label: "Fill (to Table)", icon: ArrowUpRight, description: "Chips OUT to table", needsOverride: false },
   { value: "credit", label: "Credit (from Table)", icon: ArrowDownLeft, description: "Chips IN from table", needsOverride: false },
+  { value: "slots_out", label: "Slots Cage Out", icon: Dice5, description: "Cash OUT to slots cashier", needsOverride: true },
+  { value: "slots_in", label: "Slots Cage In", icon: Coins, description: "Cash IN from slots cashier", needsOverride: false },
 ];
 
 const TransfersForm = ({ shiftId, tables }: Props) => {
