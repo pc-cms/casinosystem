@@ -82,17 +82,7 @@ export function isAfterBreaklistLock(lockTime = "05:30"): boolean {
  * Example: businessDayHourUTC("2026-05-01", 13) → "2026-05-01T10:00:00.000Z"
  */
 export function businessDayHourUTC(businessDate: string, hourEAT: number): string {
-  const hh = String(Math.floor(hourEAT)).padStart(2, "0");
-  // EAT is UTC+3 → UTC = EAT - 3
-  const utcHour = ((hourEAT - 3) % 24 + 24) % 24;
-  // If hour wrapped past midnight backwards, shift the date by -1 day
-  let date = businessDate;
-  if (hourEAT - 3 < 0) {
-    const d = new Date(`${businessDate}T00:00:00.000Z`);
-    d.setUTCDate(d.getUTCDate() - 1);
-    date = d.toISOString().slice(0, 10);
-  }
-  const uhh = String(utcHour).padStart(2, "0");
-  void hh;
-  return `${date}T${uhh}:00:00.000Z`;
+  const baseUtc = new Date(`${businessDate}T00:00:00.000Z`).getTime();
+  const utcTime = baseUtc + (hourEAT - 3) * 60 * 60 * 1000;
+  return new Date(utcTime).toISOString();
 }

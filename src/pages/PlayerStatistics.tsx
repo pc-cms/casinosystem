@@ -246,6 +246,7 @@ const PlayerStatistics = () => {
     mutationFn: async ({ visitId, playerId, newPos }: { visitId: string; playerId: string; newPos: string }) => {
       const isTable = newPos !== "hall" && newPos !== "slots";
       const visitPosition = isTable ? "table" : newPos;
+      const sessionStoppedAt = new Date().toISOString();
 
       // Always stop any open session first (so a new table or hall/slots is clean).
       await offlineMutation({
@@ -253,7 +254,7 @@ const PlayerStatistics = () => {
         operation: "update",
         payload: {
           _match: { casino_id: casinoId!, player_id: playerId, stopped_at: null as any },
-          stopped_at: new Date().toISOString(),
+          stopped_at: sessionStoppedAt,
         },
       });
 
@@ -266,10 +267,11 @@ const PlayerStatistics = () => {
       if (res.error) throw new Error(res.error);
 
       // Start a new session at the chosen table.
+      let nextAvgBet = 0;
       if (isTable) {
         const tbl = tables.find(t => t.id === newPos);
         const isRoulette = tbl ? /roulette/i.test(tbl.game) : false;
-        const avgBet = isRoulette ? 2000 : 10000;
+        nextAvgBet = isRoulette ? 2000 : 10000;
         const insRes = await offlineMutation({
           table: "client_sessions",
           operation: "insert",
@@ -278,15 +280,42 @@ const PlayerStatistics = () => {
             casino_id: casinoId!,
             player_id: playerId,
             table_id: newPos,
-            avg_bet: avgBet,
+            avg_bet: nextAvgBet,
             created_by: user!.id,
           },
         });
         if (insRes.error) throw new Error(insRes.error);
       }
-      return { offline: res.offline };
+      return {
+        offline: res.offline,
+        visitId,
+        playerId,
+        visitPosition,
+        tableId: isTable ? newPos : null,
+        avgBet: nextAvgBet,
+        sessionStoppedAt,
+      };
     },
     onSuccess: (res: any) => {
+      queryClient.setQueryData<any[]>(["casino_visits", casinoId, effectiveDate], (old = []) =>
+        old.map(v => v.id === res.visitId ? { ...v, position: res.visitPosition } : v)
+      );
+      queryClient.setQueryData<any[]>(["client_sessions", casinoId, effectiveDate], (old = []) => {
+        const stopped = old.map(s =>
+          s.player_id === res.playerId && !s.stopped_at ? { ...s, stopped_at: res.sessionStoppedAt } : s
+        );
+        if (!res.tableId) return stopped;
+        return [{
+          id: `pending-${res.playerId}-${res.tableId}-${Date.now()}`,
+          casino_id: casinoId!,
+          player_id: res.playerId,
+          table_id: res.tableId,
+          avg_bet: res.avgBet,
+          started_at: new Date().toISOString(),
+          stopped_at: null,
+          created_by: user!.id,
+        }, ...stopped];
+      });
       queryClient.invalidateQueries({ queryKey: ["casino_visits"] });
       queryClient.invalidateQueries({ queryKey: ["client_sessions"] });
       toast.success(res?.offline ? "Saved offline" : "Position updated");
