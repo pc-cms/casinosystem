@@ -102,8 +102,9 @@ const CloseShiftDialog = ({
       closingChips: closingChipsTzs,
       closingCash: closingCashTotalTzs,
       missTotal,
+      expenses: totalExpenses || 0,
     }),
-    [resultTable, openingChipsTzs, openingCashTzs, closingChipsTzs, closingCashTotalTzs, missTotal],
+    [resultTable, openingChipsTzs, openingCashTzs, closingChipsTzs, closingCashTotalTzs, missTotal, totalExpenses],
   );
   const isBalanced = balance === 0;
   const requiresNote = !isBalanced;
