@@ -158,10 +158,9 @@ const PlayerStatistics = () => {
         .filter((t: any) => t.type === "cashout" || t.type === "out")
         .reduce((s: number, t: any) => s + Number(t.amount), 0);
       const chip = chipByPlayer.get(v.player_id) || { in: 0, out: 0 };
-      // Result is only meaningful once player has cashed out (cash or chip out).
-      // Without any OUT, the IN is just chips on the table — not a realized result.
-      const hasOut = out > 0 || chip.out > 0;
-      const result = hasOut ? (out + chip.out) - (inDrop + chip.in) : 0;
+      // Result = (cashout + chipOut) − (drop + chipIn). Always computed.
+      // Player still at table without cashout → negative result (chips owed to casino on paper).
+      const result = (out + chip.out) - (inDrop + chip.in);
 
       const activeSession = activeSessionByPlayer[v.player_id];
       const isPresent = !v.checked_out_at;
