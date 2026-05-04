@@ -548,12 +548,20 @@ const CashCheckForm = ({ expectedBalance, shiftId, exchangeRates, cashChecks }: 
         <div className="cms-panel">
           <div className="cms-header text-xs">Previous ({cashChecks.length})</div>
           <div className="divide-y divide-border">
-            {cashChecks.slice(0, 5).map(cc => (
-              <div key={cc.id} className="px-3 py-1.5 flex items-center justify-between">
-                <span className="text-[10px] text-muted-foreground font-mono">{new Date(cc.created_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}</span>
-                <span className="font-mono text-xs font-medium text-card-foreground">{formatCurrency(Number(cc.total))}</span>
-              </div>
-            ))}
+            {cashChecks.slice(0, 5).map(cc => {
+              const t = ((cc.denominations || {}) as Record<string, any>).totals || {};
+              const diff = Number(t.difference ?? 0);
+              const balanced = !!t.balanced || diff === 0;
+              return (
+                <div key={cc.id} className="px-3 py-1.5 flex items-center justify-between gap-3">
+                  <span className="text-[10px] text-muted-foreground font-mono">{new Date(cc.created_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}</span>
+                  <span className="font-mono text-xs font-medium text-card-foreground flex-1 text-right">{formatCurrency(Number(cc.total))}</span>
+                  <span className={`font-mono text-[10px] font-bold w-24 text-right ${balanced ? "text-success" : "text-destructive"}`}>
+                    {balanced ? "Balanced" : `${diff >= 0 ? "+" : ""}${formatCurrency(diff)}`}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
