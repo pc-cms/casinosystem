@@ -222,10 +222,16 @@ const PlayerStatistics = () => {
             case "result": return r.result;
           }
         };
-        const av = get(a), bv = get(b);
-        if (av < bv) return -1 * dir;
-        if (av > bv) return 1 * dir;
-        return 0;
+         const av = get(a), bv = get(b);
+         // For result column: push rows with no result (0) to the bottom regardless of direction.
+         if (sortKey === "result") {
+           const aZero = !a.result;
+           const bZero = !b.result;
+           if (aZero !== bZero) return aZero ? 1 : -1;
+         }
+         if (av < bv) return -1 * dir;
+         if (av > bv) return 1 * dir;
+         return 0;
       }
       if (a.isPresent !== b.isPresent) return a.isPresent ? -1 : 1;
       return new Date(b.entryAt).getTime() - new Date(a.entryAt).getTime();
