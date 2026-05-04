@@ -146,7 +146,7 @@ export const CashCount = () => {
     for (const wt of COUNTABLE_WALLETS) {
       for (const cur of CURRENCIES) {
         const denoms = CASH_DENOMS[cur] || [];
-        const rate = cur === "TZS" ? 1 : (DEFAULT_EXCHANGE_RATES[cur] || 1);
+        const rate = getRate(cur);
         const denomMap: Record<string, number> = {};
         let hasData = false;
         let physTotal = 0;
