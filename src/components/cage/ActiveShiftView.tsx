@@ -489,10 +489,19 @@ const CashCheckForm = ({ expectedBalance, shiftId, exchangeRates, cashChecks }: 
   cashChecks: Tables<"cash_counts">[];
 }) => {
   const createCount = useCreateCashCount();
-  const [chipCounts, setChipCounts] = useState<Record<number, number>>({});
-  const [cash, setCash] = useState<Record<string, Record<number, number>>>(emptyCash);
-  const [bankBal, setBankBal] = useState<Banks>(emptyBanks);
-  const [mobileBal, setMobileBal] = useState<MobileProviders>(emptyMobile);
+  const lastCheck = cashChecks[0];
+  const lastDenoms = (lastCheck?.denominations || {}) as Record<string, unknown>;
+  const [chipCounts, setChipCounts] = useState<Record<number, number>>(() => (lastDenoms.chips as Record<number, number>) || {});
+  const [cash, setCash] = useState<Record<string, Record<number, number>>>(() => (lastDenoms.cash as Record<string, Record<number, number>>) || emptyCash());
+  const [bankBal, setBankBal] = useState<Banks>(() => (lastDenoms.bank as Banks) || emptyBanks());
+  const [mobileBal, setMobileBal] = useState<MobileProviders>(() => (lastDenoms.mobile as MobileProviders) || emptyMobile());
+  const seededId = useRef<string | null>(lastCheck?.id || null);
+  useEffect(() => {
+    // Re-seed only when a NEW check arrives (and current form is back to empty after submit)
+    if (lastCheck && lastCheck.id !== seededId.current) {
+      seededId.current = lastCheck.id;
+    }
+  }, [lastCheck]);
 
   const totalTzs = useMemo(() => calcGrandTotal(chipCounts, cash, bankBal, mobileBal, exchangeRates), [chipCounts, cash, bankBal, mobileBal, exchangeRates]);
   const difference = totalTzs - expectedBalance;
