@@ -11,7 +11,7 @@ import {
   emptyMobile, emptyBanks, chipSum, emptyCash, calcGrandTotal,
   type MobileProviders, type Banks,
 } from "@/components/cage/CageHelpers";
-import { useBatchChipSnapshot, getExpectedChips, getInitialTotal } from "@/hooks/use-chips";
+import { useBatchChipSnapshot } from "@/hooks/use-chips";
 import { getBusinessDate } from "@/lib/business-day";
 import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
 import { supabase } from "@/integrations/supabase/client";
