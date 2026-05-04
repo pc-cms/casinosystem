@@ -267,10 +267,11 @@ const PlayerStatistics = () => {
       if (res.error) throw new Error(res.error);
 
       // Start a new session at the chosen table.
+      let nextAvgBet = 0;
       if (isTable) {
         const tbl = tables.find(t => t.id === newPos);
         const isRoulette = tbl ? /roulette/i.test(tbl.game) : false;
-        const avgBet = isRoulette ? 2000 : 10000;
+        nextAvgBet = isRoulette ? 2000 : 10000;
         const insRes = await offlineMutation({
           table: "client_sessions",
           operation: "insert",
@@ -279,7 +280,7 @@ const PlayerStatistics = () => {
             casino_id: casinoId!,
             player_id: playerId,
             table_id: newPos,
-            avg_bet: avgBet,
+            avg_bet: nextAvgBet,
             created_by: user!.id,
           },
         });
@@ -291,7 +292,7 @@ const PlayerStatistics = () => {
         playerId,
         visitPosition,
         tableId: isTable ? newPos : null,
-        avgBet: isTable ? (tables.find(t => t.id === newPos) && /roulette/i.test((tables.find(t => t.id === newPos) as any).game) ? 2000 : 10000) : 0,
+        avgBet: nextAvgBet,
         sessionStoppedAt,
       };
     },
