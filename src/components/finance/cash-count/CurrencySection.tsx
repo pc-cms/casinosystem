@@ -7,7 +7,7 @@ export { qKey };
 export type { QtyState };
 
 export const CurrencySection = ({
-  wallet, currency, denoms, rate, quantities, total, totalTzs, onChange,
+  wallet, currency, denoms, rate, quantities, total, totalTzs, onChange, onRateChange,
 }: {
   wallet: string;
   currency: string;
@@ -17,12 +17,29 @@ export const CurrencySection = ({
   total: number;
   totalTzs: number;
   onChange: (wallet: string, currency: string, denom: number, raw: string) => void;
+  onRateChange?: (currency: string, rate: number) => void;
 }) => (
   <div className="border border-border rounded p-2 space-y-1">
     <div className="flex items-center justify-between mb-1">
       <span className="text-xs font-semibold text-foreground">{currency}</span>
       {currency !== "TZS" && (
-        <span className="text-[9px] text-muted-foreground">×{formatNumberSpaces(rate)}</span>
+        onRateChange ? (
+          <label className="flex items-center gap-1 text-[9px] text-muted-foreground">
+            ×
+            <input
+              type="number"
+              className="no-spin font-mono text-[10px] h-5 w-16 rounded border border-border bg-background px-1 text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              value={rate || ""}
+              onChange={e => onRateChange(currency, Number(e.target.value) || 0)}
+              placeholder="rate"
+              inputMode="decimal"
+              min={0}
+              step="0.01"
+            />
+          </label>
+        ) : (
+          <span className="text-[9px] text-muted-foreground">×{formatNumberSpaces(rate)}</span>
+        )
       )}
     </div>
     {denoms.map(d => {
