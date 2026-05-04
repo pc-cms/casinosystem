@@ -160,9 +160,6 @@ const ActiveShiftView = ({ shift, players, tables }: {
         }
         date
       >
-        <Button variant="outline" size="sm" onClick={() => navigate("/reception?tab=register")} className="gap-1.5">
-          <UserPlus className="w-3.5 h-3.5" /> New Player
-        </Button>
         <Button variant="outline" size="sm" onClick={() => setShowCloseTables(true)} className="gap-1.5">
           <Package className="w-3.5 h-3.5" /> Close Tables
         </Button>
