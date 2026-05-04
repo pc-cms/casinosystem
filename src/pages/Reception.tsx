@@ -429,7 +429,7 @@ const PlayerConfirmCard = ({
 };
 
 // ============ REGISTER TAB ============
-const RegisterTab = () => {
+export const RegisterTab = ({ onRegistered }: { onRegistered?: () => void } = {}) => {
   const { casinoId, user } = useAuth();
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
@@ -634,6 +634,7 @@ const RegisterTab = () => {
       resetDuplicates();
       setOverrideGranted(false);
       toast.success("Player registered successfully");
+      onRegistered?.();
     } catch (e: any) {
       toast.error(e.message);
     } finally {
