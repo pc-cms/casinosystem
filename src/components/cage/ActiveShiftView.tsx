@@ -96,6 +96,7 @@ const ActiveShiftView = ({ shift, players, tables }: {
   const { data: cageTransfers = [] } = useCageTransfers(shift.id);
   const createTx = useCreateTransaction();
   const closeShift = useCloseShift();
+  const navigate = useNavigate();
   const [showClose, setShowClose] = useState(false);
   const [showCloseTables, setShowCloseTables] = useState(false);
   
