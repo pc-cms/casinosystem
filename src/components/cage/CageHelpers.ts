@@ -58,8 +58,11 @@ export const missTotalValue = (missByDenom: Record<number, number>): number =>
 // фишки на самой кассе).
 //
 //   netCashDeskMovement = (closingChips + closingCash) − (openingChips + openingCash)
-//   expectedMovement    = resultTable + missTotal
+//   expectedMovement    = resultTable + missTotal − expenses
 //   Balance             = netCashDeskMovement − expectedMovement
+//
+// Расходы оплачиваются из кассы, поэтому уменьшают closingCash. В ожидаемом
+// движении их нужно вычесть, иначе баланс покажет ложную недостачу.
 //
 // Идеал = 0. Плюс — излишек, минус — недостача.
 export const cashDeskBalance = ({
@@ -69,6 +72,7 @@ export const cashDeskBalance = ({
   closingChips,
   closingCash,
   missTotal,
+  expenses = 0,
 }: {
   resultTable: number;
   openingChips: number;
@@ -76,7 +80,9 @@ export const cashDeskBalance = ({
   closingChips: number;
   closingCash: number;
   missTotal: number;
+  expenses?: number;
 }): number =>
   ((closingChips + closingCash) - (openingChips + openingCash))
   - resultTable
-  - missTotal;
+  - missTotal
+  + expenses;

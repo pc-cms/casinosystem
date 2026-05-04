@@ -102,8 +102,9 @@ const CloseShiftDialog = ({
       closingChips: closingChipsTzs,
       closingCash: closingCashTotalTzs,
       missTotal,
+      expenses: totalExpenses || 0,
     }),
-    [resultTable, openingChipsTzs, openingCashTzs, closingChipsTzs, closingCashTotalTzs, missTotal],
+    [resultTable, openingChipsTzs, openingCashTzs, closingChipsTzs, closingCashTotalTzs, missTotal, totalExpenses],
   );
   const isBalanced = balance === 0;
   const requiresNote = !isBalanced;
@@ -357,8 +358,9 @@ const CloseShiftDialog = ({
                     {(totalTzs - openingTotal) >= 0 ? "+" : ""}{formatNumberSpaces(totalTzs - openingTotal)}
                   </span>
                 </div>
-                <div className="flex justify-between pt-2"><span className="text-muted-foreground">− Result Table</span><span className={resultTable >= 0 ? "text-card-foreground" : "text-card-foreground"}>−{formatNumberSpaces(resultTable)}</span></div>
+                <div className="flex justify-between pt-2"><span className="text-muted-foreground">− Result Table</span><span className="text-card-foreground">−{formatNumberSpaces(resultTable)}</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">− Miss Chips</span><span className={missTotal === 0 ? "text-card-foreground" : missTotal > 0 ? "cms-amount-positive" : "cms-amount-negative"}>−{formatNumberSpaces(missTotal)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">+ Expenses (paid from cash)</span><span className="text-card-foreground">+{formatNumberSpaces(totalExpenses || 0)}</span></div>
                 <div className="flex justify-between border-t border-border pt-2 mt-2 text-base font-bold">
                   <span className="text-card-foreground">= Cash Desk Balance</span>
                   <span className={isBalanced ? "text-success" : balance > 0 ? "cms-amount-positive" : "cms-amount-negative"}>
