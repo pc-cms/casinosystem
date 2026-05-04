@@ -16,14 +16,12 @@ const NewPlayerDialog = ({ open, onOpenChange }: Props) => {
       title="New Player Registration"
       size="2xl"
     >
-      <div className="max-h-[80vh] overflow-y-auto -mx-1 px-1">
-        <RegisterTab
-          onRegistered={() => {
-            qc.invalidateQueries({ queryKey: ["players"] });
-            onOpenChange(false);
-          }}
-        />
-      </div>
+      <RegisterTab
+        onRegistered={() => {
+          qc.invalidateQueries({ queryKey: ["players"] });
+          onOpenChange(false);
+        }}
+      />
     </ResponsiveDialog>
   );
 };
