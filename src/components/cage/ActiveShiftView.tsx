@@ -128,8 +128,14 @@ const ActiveShiftView = ({ shift, players, tables }: {
     return totals?.total_tzs || 0;
   }, [shift]);
 
+  // Cage running cash position (cash-only, used for Cash Result/Close Shift):
+  // IN adds cash to cage, OUT removes cash. Add-Float adds, Collection/Expenses/Slots-Out remove.
   const expectedCash = openingFloat + totalIns + totalAddFloat + totalSlotsIn - totalOuts - totalCollection - totalSlotsOut - totalExpenses;
   const cashResult = totalIns - totalOuts;
+  // Total cage VALUE (chips + cash). IN/OUT are pure swaps (cash↔chips) — they
+  // do NOT change the total. Only money entering/leaving the cage matters.
+  // This is what the physical Check (chips + cash + bank + mobile) must equal.
+  const expectedTotal = openingFloat + totalAddFloat + totalSlotsIn - totalCollection - totalSlotsOut - totalExpenses;
 
   const shiftDuration = useMemo(() => {
     const start = new Date(shift.opened_at);
