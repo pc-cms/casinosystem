@@ -119,6 +119,8 @@ const ActiveShiftView = ({ shift, players, tables }: {
   // Cage transfer totals (cash-affecting only — Fill/Credit are chip-only)
   const totalAddFloat = useMemo(() => cageTransfers.filter(t => t.transfer_type === "add_float").reduce((s, t) => s + Number(t.amount), 0), [cageTransfers]);
   const totalCollection = useMemo(() => cageTransfers.filter(t => t.transfer_type === "collection").reduce((s, t) => s + Number(t.amount), 0), [cageTransfers]);
+  const totalSlotsOut = useMemo(() => cageTransfers.filter(t => t.transfer_type === "slots_out").reduce((s, t) => s + Number(t.amount), 0), [cageTransfers]);
+  const totalSlotsIn = useMemo(() => cageTransfers.filter(t => t.transfer_type === "slots_in").reduce((s, t) => s + Number(t.amount), 0), [cageTransfers]);
 
   const openingFloat = useMemo(() => {
     const of = shift.opening_float as Record<string, unknown> | null;
@@ -126,7 +128,7 @@ const ActiveShiftView = ({ shift, players, tables }: {
     return totals?.total_tzs || 0;
   }, [shift]);
 
-  const expectedCash = openingFloat + totalIns + totalAddFloat - totalOuts - totalCollection - totalExpenses;
+  const expectedCash = openingFloat + totalIns + totalAddFloat + totalSlotsIn - totalOuts - totalCollection - totalSlotsOut - totalExpenses;
   const cashResult = totalIns - totalOuts;
 
   const shiftDuration = useMemo(() => {
