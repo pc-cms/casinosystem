@@ -158,8 +158,10 @@ const PlayerStatistics = () => {
         .filter((t: any) => t.type === "cashout" || t.type === "out")
         .reduce((s: number, t: any) => s + Number(t.amount), 0);
       const chip = chipByPlayer.get(v.player_id) || { in: 0, out: 0 };
-      // Result via NEP semantics: (cash in + chip in) − (cash out + chip out)
-      const result = (out + chip.out) - (inDrop + chip.in);
+      // Result is only meaningful once player has cashed out (cash or chip out).
+      // Without any OUT, the IN is just chips on the table — not a realized result.
+      const hasOut = out > 0 || chip.out > 0;
+      const result = hasOut ? (out + chip.out) - (inDrop + chip.in) : 0;
 
       const activeSession = activeSessionByPlayer[v.player_id];
       const isPresent = !v.checked_out_at;
