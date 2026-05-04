@@ -303,9 +303,11 @@ const PlayerStatistics = () => {
   const renderPositionCell = (r: any) => {
     if (!r.isPresent) return <span className="text-[10px] text-muted-foreground">—</span>;
 
-    // Current value: table id if seated at one, else "hall" or "slots".
+    // Current value: prefer active session's table_id (most up-to-date after mutation),
+    // then fall back to visit.position. visits and sessions refetch independently, so
+    // an active session with table_id is the source of truth for "seated at table".
     const activeSession = activeSessionByPlayer[r.playerId];
-    const currentValue = r.position === "table" && activeSession?.table_id
+    const currentValue = activeSession?.table_id
       ? activeSession.table_id
       : (r.position === "slots" ? "slots" : "hall");
 
