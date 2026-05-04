@@ -11,7 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ArrowDownToLine, ArrowUpFromLine, Calculator, Square, CheckCircle2, Package, ArrowLeftRight, Landmark } from "lucide-react";
+import { ArrowDownToLine, ArrowUpFromLine, Calculator, Square, CheckCircle2, Package, ArrowLeftRight, Landmark, UserPlus } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import TransfersForm from "@/components/cage/TransfersForm";
@@ -95,6 +96,7 @@ const ActiveShiftView = ({ shift, players, tables }: {
   const { data: cageTransfers = [] } = useCageTransfers(shift.id);
   const createTx = useCreateTransaction();
   const closeShift = useCloseShift();
+  const navigate = useNavigate();
   const [showClose, setShowClose] = useState(false);
   const [showCloseTables, setShowCloseTables] = useState(false);
   
@@ -158,6 +160,9 @@ const ActiveShiftView = ({ shift, players, tables }: {
         }
         date
       >
+        <Button variant="outline" size="sm" onClick={() => navigate("/reception?tab=register")} className="gap-1.5">
+          <UserPlus className="w-3.5 h-3.5" /> New Player
+        </Button>
         <Button variant="outline" size="sm" onClick={() => setShowCloseTables(true)} className="gap-1.5">
           <Package className="w-3.5 h-3.5" /> Close Tables
         </Button>
