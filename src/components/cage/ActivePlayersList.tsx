@@ -50,9 +50,17 @@ const ActivePlayersList = ({ players, tables, onSelect }: Props) => {
 
   return (
     <div className="cms-panel h-full flex flex-col">
-      <div className="cms-header flex items-center gap-2">
-        <Users className="w-3.5 h-3.5" />
-        Active Players ({activeRows.length})
+      <div className="cms-header flex items-center justify-between gap-2">
+        <span className="flex items-center gap-2">
+          <Users className="w-3.5 h-3.5" />
+          Active Players ({activeRows.length})
+        </span>
+        <Link
+          to="/reception?tab=register"
+          className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline"
+        >
+          <UserPlus className="w-3 h-3" /> New Player
+        </Link>
       </div>
       <div className="flex-1 overflow-y-auto divide-y divide-border min-h-0">
         {activeRows.length === 0 ? (
