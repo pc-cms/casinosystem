@@ -7,7 +7,7 @@ import { formatNumberSpaces } from "@/lib/currency";
 import type { Tables } from "@/integrations/supabase/types";
 import type { SafeCageTransferInsert } from "@/lib/safe-inserts";
 
-export type CageTransferType = "add_float" | "collection" | "fill" | "credit";
+export type CageTransferType = "add_float" | "collection" | "fill" | "credit" | "slots_out" | "slots_in";
 export type CageTransferDirection = "cash_in" | "cash_out" | "chip_to_table" | "chip_from_table";
 
 export type CageTransferRow = Tables<"cage_transfers">;
@@ -17,6 +17,8 @@ const DIRECTION_FOR_TYPE: Record<CageTransferType, CageTransferDirection> = {
   collection: "cash_out",
   fill: "chip_to_table",
   credit: "chip_from_table",
+  slots_out: "cash_out",
+  slots_in: "cash_in",
 };
 
 const LABELS: Record<CageTransferType, string> = {
@@ -24,6 +26,8 @@ const LABELS: Record<CageTransferType, string> = {
   collection: "Collection",
   fill: "Fill",
   credit: "Credit",
+  slots_out: "Slots Cage Out",
+  slots_in: "Slots Cage In",
 };
 
 export const useCageTransfers = (shiftId?: string) => {
