@@ -634,6 +634,7 @@ export const RegisterTab = ({ onRegistered }: { onRegistered?: () => void } = {}
       resetDuplicates();
       setOverrideGranted(false);
       toast.success("Player registered successfully");
+      onRegistered?.();
     } catch (e: any) {
       toast.error(e.message);
     } finally {
