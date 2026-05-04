@@ -14,7 +14,7 @@ const NewPlayerDialog = ({ open, onOpenChange }: Props) => {
       open={open}
       onOpenChange={onOpenChange}
       title="New Player Registration"
-      className="max-w-2xl"
+      size="2xl"
     >
       <div className="max-h-[80vh] overflow-y-auto -mx-1 px-1">
         <RegisterTab
