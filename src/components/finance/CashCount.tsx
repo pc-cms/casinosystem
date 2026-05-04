@@ -298,7 +298,7 @@ export const CashCount = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
                     {CURRENCIES.map(cur => {
                       const denoms = CASH_DENOMS[cur] || [];
-                      const rate = cur === "TZS" ? 1 : (DEFAULT_EXCHANGE_RATES[cur] || 1);
+                      const rate = getRate(cur);
                       const curTotal = walletTotals[wt]?.byCurrency[cur] || 0;
                       const curTotalTzs = curTotal * rate;
                       return (
@@ -312,6 +312,7 @@ export const CashCount = () => {
                           total={curTotal}
                           totalTzs={curTotalTzs}
                           onChange={handleQuantityChange}
+                          onRateChange={wt === COUNTABLE_WALLETS[0] ? handleRateChange : undefined}
                         />
                       );
                     })}
