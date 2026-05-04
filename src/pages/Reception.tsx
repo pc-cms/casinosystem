@@ -429,7 +429,7 @@ const PlayerConfirmCard = ({
 };
 
 // ============ REGISTER TAB ============
-const RegisterTab = () => {
+export const RegisterTab = ({ onRegistered }: { onRegistered?: () => void } = {}) => {
   const { casinoId, user } = useAuth();
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
