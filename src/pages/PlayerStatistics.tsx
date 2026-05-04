@@ -353,6 +353,8 @@ const PlayerStatistics = () => {
         <Badge variant="secondary" className="text-[10px]">Hall</Badge>
       );
     }
+    const selectedTable = openTables.find((t: any) => t.id === currentValue);
+    const selectedTableName = selectedTable?.name ?? r.tableName;
     return (
       <div onClick={(e) => e.stopPropagation()}>
         <Select
@@ -364,7 +366,7 @@ const PlayerStatistics = () => {
             <SelectValue>
               {currentValue === "hall" ? "Hall"
                 : currentValue === "slots" ? "Slots"
-                : <span className="font-mono truncate">{r.tableName ?? "T"}</span>}
+                : <span className="font-mono truncate">{selectedTableName ?? "T"}</span>}
             </SelectValue>
           </SelectTrigger>
           <SelectContent>
