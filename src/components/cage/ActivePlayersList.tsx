@@ -5,7 +5,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
-import { Users, User } from "lucide-react";
+import { Users, User, UserPlus } from "lucide-react";
+import { Link } from "react-router-dom";
 import CategoryBadge, { type PlayerCategory } from "@/components/player/CategoryBadge";
 import { LazyImage } from "@/components/LazyImage";
 import type { Tables } from "@/integrations/supabase/types";
@@ -49,9 +50,17 @@ const ActivePlayersList = ({ players, tables, onSelect }: Props) => {
 
   return (
     <div className="cms-panel h-full flex flex-col">
-      <div className="cms-header flex items-center gap-2">
-        <Users className="w-3.5 h-3.5" />
-        Active Players ({activeRows.length})
+      <div className="cms-header flex items-center justify-between gap-2">
+        <span className="flex items-center gap-2">
+          <Users className="w-3.5 h-3.5" />
+          Active Players ({activeRows.length})
+        </span>
+        <Link
+          to="/reception?tab=register"
+          className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline"
+        >
+          <UserPlus className="w-3 h-3" /> New Player
+        </Link>
       </div>
       <div className="flex-1 overflow-y-auto divide-y divide-border min-h-0">
         {activeRows.length === 0 ? (
