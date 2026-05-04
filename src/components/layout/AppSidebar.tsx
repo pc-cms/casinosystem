@@ -63,7 +63,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/cashless", icon: CreditCard, label: "Cashless", roles: ["super_admin", "manager", "cashier", "finance_manager"], section: "CASHIER" },
 
   // RECEPTION — Players & entry
-  { to: "/reception", icon: DoorOpen, label: "Reception", roles: ["super_admin", "manager", "reception", "finance_manager"], section: "RECEPTION" },
+  { to: "/reception", icon: DoorOpen, label: "Reception", roles: ["super_admin", "manager", "reception", "cashier", "finance_manager"], section: "RECEPTION" },
   { to: "/guests", icon: UserCheck, label: "Guests", roles: ["super_admin", "manager", "pit", "reception", "finance_manager", "surveillance"], section: "RECEPTION" },
   
   { to: "/blacklist", icon: ShieldAlert, label: "Blacklist", roles: ["super_admin", "manager", "reception", "finance_manager", "surveillance"], section: "RECEPTION" },
