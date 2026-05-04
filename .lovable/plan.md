@@ -1,102 +1,157 @@
-# Plan: подключение GitHub + миграция данных на локальный сервер
 
-## Текущее состояние (проверено)
+# Закрытие кассы — финальная логика
 
-- **Git remote `origin`** → `lovable.code.storage/8c2793b0-…git` (внутренний Lovable storage). Это нормально, но не GitHub.
-- **GitHub remote отсутствует.** Поэтому:
-  - `release-onprem.yml` workflow существует, но никогда не запускается.
-  - В `ghcr.io/<owner>/cms-frontend` нет ни одного образа.
-  - `cms-updater` после старта будет вечно писать `fetch_releases.fail` / `pull.fail` — обновляться не с чего.
-  - `install.sh` упадёт на `docker compose pull cms-frontend` (образа нет).
-- **Миграция данных** при первой установке локального сервера сейчас **не работает**: `install.sh` создаёт только пустую схему из `supabase/migrations/`. Edge-function `pull-changes` отдаёт операционные таблицы, но НЕ конфиг (employees, gaming_tables, currencies, casino_settings, roles, chip_colors и т.д.).
+## 1. Принцип
 
-## Что нужно сделать (3 этапа)
+Касса — изолированная зона. У неё свой **Chip Float** и **Cash Float**, унаследованные с закрытия предыдущей смены. Закрытие кассы сходится **само в себе** через формулу с учётом результата столов и Miss по номиналам.
 
-### Этап 1 — Подключить GitHub (делает пользователь, ~3 минуты)
+## 2. Условие старта
 
-Без этого ничего из остального не имеет смысла.
+Кнопка **Close Shift** в кассе становится активной **только** когда Пит закрыл все столы за текущий business day (нет `gaming_tables` со статусом open за этот casino_id и дату). Иначе — disabled с подсказкой "Waiting for Pit to close all tables".
 
-1. В Lovable: **Connectors → GitHub → Connect project** → авторизовать Lovable GitHub App.
-2. Выбрать аккаунт/организацию, нажать **Create Repository** (имя, например, `casino-system`).
-3. После создания репозитория: **Settings → Actions → General**:
-   - Workflow permissions = **Read and write permissions**
-   - **Allow GitHub Actions to create and approve PRs** = on
-4. Сообщить мне `GITHUB_OWNER` (owner или org name) и `GITHUB_REPO` (имя репо).
+## 3. Главная формула
 
-После этого Lovable начнёт двусторонне синхронизировать код с GitHub автоматически, а `release-onprem.yml` запустится на ближайшем push в `main`.
-
-### Этап 2 — Выпустить первый релиз v0.1.0 (делаю я после Этапа 1)
-
-1. Обновить `deploy/env.template`: подставить реальные `GITHUB_OWNER` / `GITHUB_REPO` дефолтами (или оставить пустыми с комментом).
-2. Обновить `deploy/README.md` инструкцией: «как создать GitHub Personal Access Token (`read:packages`) для приватного pull из ghcr.io», если репо приватное. Если публичное — токен не нужен.
-3. Создать тег `v0.1.0` (через `git tag` в Lovable нельзя, поэтому пользователь делает это в GitHub UI: **Releases → Draft a new release → Choose a tag → v0.1.0 → Publish**). Workflow соберёт образ `ghcr.io/<owner>/cms-frontend:0.1.0` и `:latest` + создаст Release с `migrations-0.1.0.tar.gz`.
-4. Проверить что образ виден: `ghcr.io/<owner>/cms-frontend:0.1.0`. Если репо приватное — сделать пакет публичным (Packages → cms-frontend → Settings → Change visibility → Public), чтобы `docker pull` работал без логина.
-
-### Этап 3 — «Seed from Cloud» в install.sh (делаю я)
-
-Цель: при первой установке локального сервера админ вводит данные доступа к Cloud + `casino_id`, и скрипт переносит ВСЕ данные этого казино локально.
-
-#### 3.1. Новая edge-function `cloud-seed-export`
-- Вход: `x-service-key` (service_role JWT) + `casino_id` в query.
-- Выход: NDJSON-стрим — построчно `{table, row}` для всего, что относится к этому casino_id:
-  - **Конфиг (полные таблицы):** `currencies`, `casinos` (только эта строка), `casino_settings`, `gaming_tables`, `chip_colors`, `chip_denominations`, `roles`, `app_modules`, `module_permissions`, `global_categories`, `wallets`, `employees`, `users` + `user_casino_access` + `user_roles` (только относящиеся к этому казино), `players` + `player_cards` (только этого казино).
-  - **Операционные данные за последние 90 дней:** `transactions`, `visits`, `breaklist_entries`, `rota_entries`, `cage_shifts`, `chip_count_snapshots`, `table_tracker`, `business_day_closures`, `expenses`, `wallet_ledger`, `cash_count_*`, `bank_checks`, `cctv_observations`, `chip_transfers`, `position_history`.
-  - **Storage**: фото сотрудников и документы игроков выгружаем отдельно через signed URLs (этап 3.3).
-- Использует `verify_jwt = false` + явная проверка service_role через `supabase.auth.admin.getUser`.
-
-#### 3.2. Расширение `install.sh` — интерактивный шаг 7.5 «Seed from Cloud»
-```bash
-read -p "Migrate existing data from Cloud? [Y/n] " seed
-if [[ "$seed" != "n" ]]; then
-  read -p "Cloud Supabase URL: " CLOUD_URL
-  read -sp "Service-role key: " CLOUD_KEY
-  read -p "Casino ID (UUID): " CASINO_ID
-
-  curl -fsSL "$CLOUD_URL/functions/v1/cloud-seed-export?casino_id=$CASINO_ID" \
-    -H "x-service-key: $CLOUD_KEY" \
-    | docker compose exec -T postgres node /seed/import.js
-fi
+```text
+Cash Desk Balance =
+      Result Table
+    + Result Cash Desk (Chips + Cash + Mobile + Bank)
+    − Opening (Chips + Cash)
+    ± MISS CHIPS
 ```
-- `deploy/postgres/seed-import.js` — потоковый NDJSON → `INSERT … ON CONFLICT DO NOTHING` через `pg`. Идёт в порядке зависимостей (FK).
-- Запускается ДО старта `cms-sync`, чтобы не было гонок с outbox.
 
-#### 3.3. Storage seeding
-- Та же edge-function вторым проходом отдаёт список путей в Storage + signed URL для каждого.
-- `install.sh` качает их параллельно (xargs -P 8) и кладёт в локальный `minio` (если используется) или в файловый volume `/storage`.
+- `Result Table` — `SUM(result)` всех `gaming_tables` (через закрытия столов) за business_date смены.
+- `Result Cash Desk` — финальный пересчёт всех ценностей в кассе.
+- `Opening` — `shift.opening_float` (chips + cash), то что было на открытии.
+- `MISS CHIPS` — сумма стоимостей расхождений по каждому номиналу (со знаком).
 
-#### 3.4. После seed
-- Прописать в локальную таблицу `sync_state` cursor = `now()`, чтобы `cms-sync` подтягивал ТОЛЬКО изменения после момента seed (не дублировал то, что уже залили).
-- Записать в `casino_settings` флаг `seeded_from_cloud_at = now()` для аудита.
+Идеал = **0**. Если `> 0` — лишние деньги. Если `< 0` — недостача. В обоих случаях:
+- Обязательный комментарий кассира.
+- Обязательный Manager Access (пароль/RFID менеджера) для подтверждения.
+- Закрыть смену **можно**, расхождение логируется в `cash_desk_balance` и в `activity_logs`.
 
-## Что остаётся БЕЗ изменений
+При балансе = 0 — всё равно требуем Manager Access для закрытия смены (менеджер всегда присутствует).
 
-- `cms-sync` (outbox/inbox loop) — работает как сейчас, после seed просто продолжает с `since=now()`.
-- `cms-updater` — после Этапа 2 начнёт находить релизы и обновляться (`AUTO_APPLY=true` или ручной push через Network admin → `update_commands`).
-- Frontend, схема БД, миграции — не трогаем.
+## 4. Miss Chips — по каждому номиналу
 
-## Порядок выполнения
+```text
+Для каждого номинала D:
+  miss_qty[D]   = counted[D] − opening[D]
+  miss_value[D] = miss_qty[D] × D
 
-| Шаг | Кто | Зависит от |
-|----|----|-----------|
-| 1. Connect GitHub в Lovable | пользователь | — |
-| 2. Сообщить мне owner/repo | пользователь | 1 |
-| 3. Обновить env.template + README | я | 2 |
-| 4. Создать tag v0.1.0 в GitHub | пользователь | 3 |
-| 5. Дождаться зелёного workflow + проверить ghcr.io | пользователь + я | 4 |
-| 6. Edge-function `cloud-seed-export` | я | — (можно параллельно с 1-5) |
-| 7. `seed-import.js` + правка install.sh | я | 6 |
-| 8. Тест: чистая Ubuntu VM → `install.sh` → данные на месте | пользователь | 5+7 |
+MISS_TOTAL = Σ miss_value[D]   (со знаком)
+```
 
-## Технические детали (для разработчика)
+Хранение в `cage_shifts.closing_count`:
+```json
+{
+  "chip_miss_by_denom": { "1000": -2, "5000": +1, ... },
+  "chip_miss_total": -1000
+}
+```
 
-- **Размер дампа.** Для одного казино за 90 дней транзакций обычно <50 МБ NDJSON. NDJSON-стрим избегает буферизации в RAM и edge-function timeout (60s по умолчанию — увеличим до 400s в `supabase/config.toml`).
-- **FK-порядок импорта:** casinos → currencies → roles/users → user_casino_access → employees → gaming_tables → chip_* → players → player_cards → транзакционные таблицы.
-- **Идемпотентность:** все INSERT с `ON CONFLICT (id) DO NOTHING`. Можно перезапускать seed безопасно.
-- **Безопасность service-role key:** ключ вводится в TTY, никогда не пишется в файл. Если админ закроет терминал — придётся ввести заново (не страшно, шаг идемпотентный).
-- **Откат:** если seed упал на середине — `docker compose down -v` сносит volume и можно начать заново.
+Месячный отчёт `/reports/miss-chips` — разворот по номиналам + итог.
 
-## Что обновится в памяти после выполнения
+## 5. UI закрытия — один экран, четыре блока
 
-- `mem://architecture/sync-engine-impl` — добавить раздел «initial seed».
-- `mem://architecture/self-hosted-deployment` — упомянуть шаг seed в install.sh.
-- Новый файл `mem://architecture/cloud-seed-export` с описанием edge-function и порядка таблиц.
+Мастер на 3 шага упраздняем. Один длинный диалог с секциями:
+
+### Block 1 — Tables (read-only)
+Таблица: `Table | Result`. Снизу `Total Result Table: +X XXX XXX`.
+Подгружается из закрытий столов за business_date смены.
+
+### Block 2 — Cash Desk: Chips (per denom)
+Сетка по номиналам:
+```text
+Denom │ Open │ Close │ Miss (qty) │ Miss (value)
+1 000 │  120 │   118 │     −2     │   −2 000
+5 000 │   40 │    41 │     +1     │   +5 000
+…
+```
+Внизу: `MISS TOTAL: +3 000`.
+
+### Block 3 — Cash Desk: Cash + Mobile + Bank
+Существующий `CashCountGrid` + Mobile + Bank секции. Внизу: `Cash Desk Total (TZS).`
+
+### Block 4 — Balance (formula card)
+```text
+  Result Table              +X XXX XXX
++ Cash Desk Result          +Z ZZZ ZZZ
+− Opening                   −O OOO OOO
+± Miss Chips                ±Y YYY
+─────────────────────────────────────
+  Cash Desk Balance         = 0  ✓
+```
+Цветовое выделение:
+- = 0 → success.
+- ≠ 0 → destructive + обязательный комментарий + блок "Manager confirmation required".
+
+### Footer
+- Textarea Notes (обязателен если balance ≠ 0).
+- Кнопка `Close Shift (Manager Confirm)` → открывает `ManagerOverrideDialog` (пароль/RFID) → после подтверждения смена закрывается.
+
+## 6. Технические изменения
+
+### Frontend
+
+**`src/components/cage/CloseShiftDialog.tsx`** — переписать:
+- Убрать 3-шаговый wizard, сделать секционный layout.
+- Гард: `disabled` пока есть открытые столы (новый хук `useOpenTablesCount(businessDate)`).
+- Заменить `expectedChips` на per-denom diff против `shift.opening_float.chips`.
+- Добавить блок `Tables Result` (новый хук `useTableResultsForBusinessDate(businessDate)`).
+- Добавить расчёт `cashDeskBalance` по формуле.
+- Обязательный `ManagerOverrideDialog` перед `onConfirm`.
+- Запрет confirm если balance ≠ 0 и notes пуст.
+
+**`src/components/cage/CageHelpers.ts`** — новые утилиты:
+- `computeMissByDenom(opening, counted)` → `{denom: qty}`.
+- `missTotalValue(missByDenom)` → number.
+- `cashDeskBalance({ resultTable, openingChips, openingCash, closingChips, closingCash, missTotal })` → number.
+
+**`src/hooks/use-tables.ts`** (или новый):
+- `useTableResultsForBusinessDate(date)` — `SUM(result)` из `gaming_tables`/`table_closings` за дату.
+- `useOpenTablesCount(date)` — кол-во `gaming_tables` со статусом open.
+
+**`src/pages/MissChips.tsx`** — переключить на per-denom отображение из `chip_miss_by_denom`.
+
+**`src/components/business-days/SnapshotTable.tsx`** — добавить секцию `cash_desk_balance` (формула + итог) в snapshot.
+
+### Database (migration)
+
+1. Расширить `cage_shifts.closing_count` (JSONB) — никаких schema changes, просто новые поля внутри:
+   - `chip_miss_by_denom: jsonb`
+   - `chip_miss_total: numeric`
+   - `cash_desk_balance: numeric`
+   - `result_table: numeric`
+   - `manager_confirmed_by: uuid`
+
+2. Триггер `cage_shifts_close_validate` (новый):
+   - При UPDATE `cage_shifts` со статусом → closed:
+     - Запрет если есть `gaming_tables` со статусом open за casino_id + business_date.
+     - Авто-вычисление `cash_desk_balance` server-side из закрытия (security: не доверять клиенту).
+     - Запись `cash_desk_balance` обратно в `closing_count`.
+
+3. RPC `get_table_results_for_business_date(p_casino_id uuid, p_date date)` → `numeric` (sum of results).
+
+4. Snapshot бизнес-дня (`business_day_closures.snapshot`) — добавить секцию `cash_desk` с формулой.
+
+### Backend version bump
+Auto-bump `package.json` patch version (миграция + триггер + RPC).
+
+## 7. Что НЕ меняем
+
+- `opening_float` формат — уже хранит chips и cash.
+- Логику buy-ins/cashouts/transfers/expenses — `cash_result` считается как сейчас.
+- Daily Review — продолжает получать `cash_result` через `useShiftClosingForDate`.
+- `ChipConservationCard` (общий по казино) — отдельная плоскость для Manager, не смешивается с балансом кассы.
+
+## 8. Порядок реализации
+
+1. Migration: расширение `closing_count` + триггер блокировки + RPC `get_table_results_for_business_date`.
+2. Хуки: `useOpenTablesCount`, `useTableResultsForBusinessDate`.
+3. Helpers: `computeMissByDenom`, `cashDeskBalance`.
+4. Переписать `CloseShiftDialog` (секционный layout + 4 блока + Manager confirm).
+5. Обновить `MissChips` отчёт на per-denom.
+6. Добавить секцию `cash_desk_balance` в `BusinessDays` snapshot.
+7. Bump version.
+
+После твоего апрува — переключаюсь в build mode и поехали.
