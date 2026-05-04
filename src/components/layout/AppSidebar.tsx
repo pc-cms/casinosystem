@@ -569,7 +569,7 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
 
       <SidebarSections
         visibleItems={visibleItems}
-        isManager={isManager}
+        isManager={nativeManager}
         isPitActive={isPitActive}
         isStaffActive={isStaffActive}
         isTablesActive={isTablesActive}
