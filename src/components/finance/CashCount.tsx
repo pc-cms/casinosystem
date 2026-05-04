@@ -23,6 +23,7 @@ export const CashCount = () => {
   const createAdjustment = useCreateWalletTransaction();
 
   const [quantities, setQuantities] = useState<QtyState>({});
+  const [rates, setRates] = useState<Record<string, number>>(() => ({ ...DEFAULT_EXCHANGE_RATES }));
   const [cageSafe, setCageSafe] = useState<CageSafeState>(emptyCageSafe());
   const [mobile, setMobile] = useState<MobileMoneyState>(emptyMobileMoney());
   const [banks, setBanks] = useState<BankState>(emptyBankState());
@@ -30,17 +31,28 @@ export const CashCount = () => {
   const [showHistory, setShowHistory] = useState(false);
   const [prefilled, setPrefilled] = useState(false);
 
-  // Pre-fill from latest snapshots
+  const getRate = useCallback((cur: string) => cur === "TZS" ? 1 : (rates[cur] || DEFAULT_EXCHANGE_RATES[cur] || 1), [rates]);
+  const handleRateChange = useCallback((cur: string, val: number) => {
+    setRates(prev => ({ ...prev, [cur]: val }));
+  }, []);
+
+  // Pre-fill from latest snapshots (quantities + saved exchange rates from previous day)
   useEffect(() => {
     if (prefilled || latestSnapshots.length === 0) return;
     const q: QtyState = {};
     const cage = emptyCageSafe();
     const mob = emptyMobileMoney();
     const bnk = emptyBankState();
+    const r: Record<string, number> = { ...DEFAULT_EXCHANGE_RATES };
 
     for (const snap of latestSnapshots) {
       const wt = snap.wallet_type as string;
       const denoms = snap.denominations as Record<string, number>;
+
+      // Carry over saved exchange rate from previous day
+      if (snap.currency && snap.currency !== "TZS" && Number(snap.exchange_rate) > 0) {
+        r[snap.currency] = Number(snap.exchange_rate);
+      }
 
       if (COUNTABLE_WALLETS.includes(wt as WalletType)) {
         for (const [denomStr, qty] of Object.entries(denoms)) {
@@ -69,6 +81,7 @@ export const CashCount = () => {
     setCageSafe(cage);
     setMobile(mob);
     setBanks(bnk);
+    setRates(r);
     setPrefilled(true);
   }, [latestSnapshots, prefilled]);
 
