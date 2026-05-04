@@ -128,8 +128,14 @@ const ActiveShiftView = ({ shift, players, tables }: {
     return totals?.total_tzs || 0;
   }, [shift]);
 
+  // Cage running cash position (cash-only, used for Cash Result/Close Shift):
+  // IN adds cash to cage, OUT removes cash. Add-Float adds, Collection/Expenses/Slots-Out remove.
   const expectedCash = openingFloat + totalIns + totalAddFloat + totalSlotsIn - totalOuts - totalCollection - totalSlotsOut - totalExpenses;
   const cashResult = totalIns - totalOuts;
+  // Total cage VALUE (chips + cash). IN/OUT are pure swaps (cash↔chips) — they
+  // do NOT change the total. Only money entering/leaving the cage matters.
+  // This is what the physical Check (chips + cash + bank + mobile) must equal.
+  const expectedTotal = openingFloat + totalAddFloat + totalSlotsIn - totalCollection - totalSlotsOut - totalExpenses;
 
   const shiftDuration = useMemo(() => {
     const start = new Date(shift.opened_at);
@@ -219,7 +225,7 @@ const ActiveShiftView = ({ shift, players, tables }: {
           />
         </TabsContent>
         <TabsContent value="check" className="space-y-3">
-          <CashCheckForm expectedBalance={expectedCash} shiftId={shift.id} exchangeRates={exchangeRates} cashChecks={cashChecks} />
+          <CashCheckForm expectedBalance={expectedTotal} shiftId={shift.id} exchangeRates={exchangeRates} cashChecks={cashChecks} />
           <TransactionsTable
             transactions={shiftTransactions}
             tableMap={tableMap}
@@ -483,10 +489,19 @@ const CashCheckForm = ({ expectedBalance, shiftId, exchangeRates, cashChecks }: 
   cashChecks: Tables<"cash_counts">[];
 }) => {
   const createCount = useCreateCashCount();
-  const [chipCounts, setChipCounts] = useState<Record<number, number>>({});
-  const [cash, setCash] = useState<Record<string, Record<number, number>>>(emptyCash);
-  const [bankBal, setBankBal] = useState<Banks>(emptyBanks);
-  const [mobileBal, setMobileBal] = useState<MobileProviders>(emptyMobile);
+  const lastCheck = cashChecks[0];
+  const lastDenoms = (lastCheck?.denominations || {}) as Record<string, unknown>;
+  const [chipCounts, setChipCounts] = useState<Record<number, number>>(() => (lastDenoms.chips as Record<number, number>) || {});
+  const [cash, setCash] = useState<Record<string, Record<number, number>>>(() => (lastDenoms.cash as Record<string, Record<number, number>>) || emptyCash());
+  const [bankBal, setBankBal] = useState<Banks>(() => (lastDenoms.bank as Banks) || emptyBanks());
+  const [mobileBal, setMobileBal] = useState<MobileProviders>(() => (lastDenoms.mobile as MobileProviders) || emptyMobile());
+  const seededId = useRef<string | null>(lastCheck?.id || null);
+  useEffect(() => {
+    // Re-seed only when a NEW check arrives (and current form is back to empty after submit)
+    if (lastCheck && lastCheck.id !== seededId.current) {
+      seededId.current = lastCheck.id;
+    }
+  }, [lastCheck]);
 
   const totalTzs = useMemo(() => calcGrandTotal(chipCounts, cash, bankBal, mobileBal, exchangeRates), [chipCounts, cash, bankBal, mobileBal, exchangeRates]);
   const difference = totalTzs - expectedBalance;
@@ -501,11 +516,13 @@ const CashCheckForm = ({ expectedBalance, shiftId, exchangeRates, cashChecks }: 
           chips_tzs: chipSum(chipCounts),
           ...Object.fromEntries(CURRENCIES.map(c => [c, cashSum(cash[c] || {})])),
           bank: bankBal, mobile: mobileBal,
+          expected: expectedBalance,
+          counted: totalTzs,
+          difference,
+          balanced: difference === 0,
         },
       },
       total: totalTzs,
-    }, {
-      onSuccess: () => { setChipCounts({}); setCash(emptyCash()); setBankBal(emptyBanks()); setMobileBal(emptyMobile()); },
     });
   };
 
@@ -531,12 +548,20 @@ const CashCheckForm = ({ expectedBalance, shiftId, exchangeRates, cashChecks }: 
         <div className="cms-panel">
           <div className="cms-header text-xs">Previous ({cashChecks.length})</div>
           <div className="divide-y divide-border">
-            {cashChecks.slice(0, 5).map(cc => (
-              <div key={cc.id} className="px-3 py-1.5 flex items-center justify-between">
-                <span className="text-[10px] text-muted-foreground font-mono">{new Date(cc.created_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}</span>
-                <span className="font-mono text-xs font-medium text-card-foreground">{formatCurrency(Number(cc.total))}</span>
-              </div>
-            ))}
+            {cashChecks.slice(0, 5).map(cc => {
+              const t = ((cc.denominations || {}) as Record<string, any>).totals || {};
+              const diff = Number(t.difference ?? 0);
+              const balanced = !!t.balanced || diff === 0;
+              return (
+                <div key={cc.id} className="px-3 py-1.5 flex items-center justify-between gap-3">
+                  <span className="text-[10px] text-muted-foreground font-mono">{new Date(cc.created_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}</span>
+                  <span className="font-mono text-xs font-medium text-card-foreground flex-1 text-right">{formatCurrency(Number(cc.total))}</span>
+                  <span className={`font-mono text-[10px] font-bold w-24 text-right ${balanced ? "text-success" : "text-destructive"}`}>
+                    {balanced ? "Balanced" : `${diff >= 0 ? "+" : ""}${formatCurrency(diff)}`}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
