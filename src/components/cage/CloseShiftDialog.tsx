@@ -1,21 +1,22 @@
 import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { AlertTriangle, CheckCircle2 } from "lucide-react";
-import { CHIP_DENOMS, formatCurrency, formatNumberSpaces, CURRENCIES } from "@/lib/currency";
+import { AlertTriangle, CheckCircle2, ShieldAlert, Lock } from "lucide-react";
+import { CHIP_DENOMS, formatCurrency, formatChipLabel, formatNumberSpaces, CURRENCIES } from "@/lib/currency";
 import { cashSum } from "@/components/cage/CashDenomInput";
 import CashCountGrid from "@/components/cage/CashCountGrid";
+import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
 import {
   emptyMobile, emptyBanks, chipSum, emptyCash, calcGrandTotal,
+  calcCashTotalTzs, bankTotalTzs, mobileTotal,
+  computeMissByDenom, missTotalValue, cashDeskBalance,
   type MobileProviders, type Banks,
 } from "@/components/cage/CageHelpers";
 import { useBatchChipSnapshot } from "@/hooks/use-chips";
 import { getBusinessDate } from "@/lib/business-day";
 import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import type { Tables } from "@/integrations/supabase/types";
 
 interface CloseShiftDialogProps {
@@ -44,10 +45,8 @@ const CloseShiftDialog = ({
   open, onClose, shift, expectedBalance, cashResult, totalBuyIns, totalCashouts,
   totalExpenses, openingFloat, tables, onConfirm, loading,
 }: CloseShiftDialogProps) => {
-  const [step, setStep] = useState(1);
   const [notes, setNotes] = useState("");
-  const [tableReady, setTableReady] = useState<Record<string, boolean>>({});
-  const allTablesReady = tables.length === 0 || tables.every(t => tableReady[t.id]);
+  const [showManagerConfirm, setShowManagerConfirm] = useState(false);
   const batchSnapshot = useBatchChipSnapshot();
 
   const [chipCounts, setChipCounts] = useState<Record<number, number>>({});
@@ -55,44 +54,78 @@ const CloseShiftDialog = ({
   const [bankBal, setBankBal] = useState<Banks>(emptyBanks);
   const [mobileBal, setMobileBal] = useState<MobileProviders>(emptyMobile);
 
-  // Baseline = chips that were in the cage at shift OPEN (carried over from previous day's closing).
-  // Tables are NOT included — they are reconciled separately via per-table chip counts.
-  const expectedChips = useMemo(() => {
+  // ── Opening (carried from previous closing) ───────────────────────────────
+  const openingChips = useMemo(() => {
     const opening = (shift?.opening_float as any)?.chips as Record<string, number> | undefined;
     const out: Record<number, number> = {};
     CHIP_DENOMS.forEach(d => { out[d] = Number(opening?.[d] ?? opening?.[String(d)] ?? 0); });
     return out;
   }, [shift]);
-  const initialTotal = useMemo(
-    () => CHIP_DENOMS.reduce((s, d) => s + d * (expectedChips[d] || 0), 0),
-    [expectedChips],
-  );
-  const missPerDenom = useMemo(() => {
-    const miss: Record<number, number> = {};
-    CHIP_DENOMS.forEach(d => { miss[d] = (chipCounts[d] || 0) - (expectedChips[d] || 0); });
-    return miss;
-  }, [chipCounts, expectedChips]);
-  const chipTotal = useMemo(() => chipSum(chipCounts), [chipCounts]);
-  const totalMissValue = chipTotal - initialTotal;
-  const hasIncident = chipTotal > initialTotal;
-  const hasAnyChipCount = Object.values(chipCounts).some(v => v > 0);
+  const openingChipsTzs = useMemo(() => chipSum(openingChips), [openingChips]);
+  const openingCashTzs = openingFloat || 0;
+  const openingTotal = openingChipsTzs + openingCashTzs;
 
+  // ── Tables (must be all closed before cage close) ─────────────────────────
+  const openTables = useMemo(() => tables.filter(t => t.status === "open" && !t.is_archived), [tables]);
+  const closedTables = useMemo(
+    () => tables.filter(t => t.status === "closed" && !t.is_archived),
+    [tables],
+  );
+  const tablesAllClosed = openTables.length === 0;
+  const resultTable = useMemo(
+    () => closedTables.reduce((s, t) => s + Number(t.closing_result || 0), 0),
+    [closedTables],
+  );
+
+  // ── Closing chips: per-denom miss ─────────────────────────────────────────
+  const missPerDenom = useMemo(
+    () => computeMissByDenom(openingChips, chipCounts, CHIP_DENOMS),
+    [openingChips, chipCounts],
+  );
+  const missTotal = useMemo(() => missTotalValue(missPerDenom), [missPerDenom]);
+  const closingChipsTzs = useMemo(() => chipSum(chipCounts), [chipCounts]);
+
+  // ── Cash side (cash + mobile + bank, all in TZS) ──────────────────────────
   const rates = (shift?.exchange_rates || {}) as Record<string, number>;
-  const totalTzs = useMemo(() => calcGrandTotal(chipCounts, cashCounts, bankBal, mobileBal, rates), [chipCounts, cashCounts, bankBal, mobileBal, rates]);
+  const closingCashOnlyTzs = useMemo(() => calcCashTotalTzs(cashCounts, rates), [cashCounts, rates]);
+  const closingMobileTzs = useMemo(() => mobileTotal(mobileBal), [mobileBal]);
+  const closingBankTzs = useMemo(() => bankTotalTzs(bankBal, rates), [bankBal, rates]);
+  const closingCashTotalTzs = closingCashOnlyTzs + closingMobileTzs + closingBankTzs;
+  const totalTzs = closingChipsTzs + closingCashTotalTzs;
+
+  // ── Balance formula ──────────────────────────────────────────────────────
+  const balance = useMemo(
+    () => cashDeskBalance({
+      resultTable,
+      openingChips: openingChipsTzs,
+      openingCash: openingCashTzs,
+      closingChips: closingChipsTzs,
+      closingCash: closingCashTotalTzs,
+      missTotal,
+    }),
+    [resultTable, openingChipsTzs, openingCashTzs, closingChipsTzs, closingCashTotalTzs, missTotal],
+  );
+  const isBalanced = balance === 0;
+  const requiresNote = !isBalanced;
+  const noteValid = !requiresNote || notes.trim().length > 0;
+
+  // ── Legacy diff vs cash-only expected (kept for log parity) ───────────────
   const diff = totalTzs - expectedBalance;
-  const isPerfect = diff === 0;
-  const shiftResult = (cashResult || 0) + totalMissValue;
+  const shiftResult = (cashResult || 0) + missTotal;
 
   const { data: serverBusinessDate } = useEffectiveBusinessDate();
   const businessDate = serverBusinessDate || getBusinessDate();
 
-  const handleClose = () => {
+  const handleManagerConfirmed = (managerId: string) => {
+    setShowManagerConfirm(false);
+
+    const hasAnyChipCount = Object.values(chipCounts).some(v => v > 0);
     if (hasAnyChipCount) {
-      const snapRows = CHIP_DENOMS.filter(d => expectedChips[d] > 0 || chipCounts[d] > 0).map(d => ({
+      const snapRows = CHIP_DENOMS.filter(d => openingChips[d] > 0 || chipCounts[d] > 0).map(d => ({
         location_type: "closing",
         location_id: null,
         denomination: d,
-        expected_quantity: expectedChips[d] || 0,
+        expected_quantity: openingChips[d] || 0,
         actual_quantity: chipCounts[d] || 0,
       }));
       batchSnapshot.mutate({ date: businessDate, counts: snapRows });
@@ -100,127 +133,292 @@ const CloseShiftDialog = ({
 
     onConfirm({
       closingCount: {
-        chips: chipCounts, chip_miss: missPerDenom, chip_miss_total: totalMissValue, chip_incident: hasIncident,
-        cash: cashCounts, bank: bankBal, mobile: mobileBal,
+        chips: chipCounts,
+        chip_miss: missPerDenom,            // legacy key (qty per denom, signed)
+        chip_miss_by_denom: missPerDenom,   // canonical key per spec
+        chip_miss_total: missTotal,
+        cash: cashCounts,
+        bank: bankBal,
+        mobile: mobileBal,
+        result_table: resultTable,
+        cash_desk_balance: balance,
+        manager_confirmed_by: managerId,
         totals: {
-          chips_tzs: chipTotal,
+          chips_tzs: closingChipsTzs,
           ...Object.fromEntries(CURRENCIES.map(c => [c, cashSum(cashCounts[c] || {})])),
-          bank: bankBal, mobile: mobileBal, total_tzs: totalTzs,
+          bank: bankBal,
+          mobile: mobileBal,
+          total_tzs: totalTzs,
         },
       },
       closingCash: {
-        expected: expectedBalance, actual: totalTzs, difference: diff,
-        cash_result: cashResult, shift_result: shiftResult, table_readiness: tableReady,
+        expected: expectedBalance,
+        actual: totalTzs,
+        difference: diff,
+        cash_result: cashResult,
+        shift_result: shiftResult,
+        result_table: resultTable,
+        cash_desk_balance: balance,
       },
-      notes: `${notes} | CASH: ${cashResult >= 0 ? "+" : ""}${formatNumberSpaces(cashResult)} | MISS: ${totalMissValue >= 0 ? "+" : ""}${formatNumberSpaces(totalMissValue)} | RESULT: ${shiftResult >= 0 ? "+" : ""}${formatNumberSpaces(shiftResult)} | DIFF: ${diff >= 0 ? "+" : ""}${formatNumberSpaces(diff)} TZS`.trim(),
-      cashResult: cashResult,
-      missTotal: totalMissValue,
-      shiftResult: shiftResult,
+      notes: `${notes} | TABLES: ${resultTable >= 0 ? "+" : ""}${formatNumberSpaces(resultTable)} | MISS: ${missTotal >= 0 ? "+" : ""}${formatNumberSpaces(missTotal)} | BALANCE: ${balance >= 0 ? "+" : ""}${formatNumberSpaces(balance)} TZS | mgr:${managerId}`.trim(),
+      cashResult,
+      missTotal,
+      shiftResult,
     });
   };
 
+  const handleCloseRequest = () => {
+    if (!tablesAllClosed) return;
+    if (!noteValid) return;
+    setShowManagerConfirm(true);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={v => { if (!v) { setStep(1); onClose(); } }}>
-      <DialogContent className="max-w-[1280px] max-h-[85vh] overflow-y-auto">
-        <DialogHeader><DialogTitle>Close Shift — Step {step}/3</DialogTitle></DialogHeader>
+    <>
+      <Dialog open={open} onOpenChange={v => { if (!v) onClose(); }}>
+        <DialogContent className="max-w-[1280px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              Close Shift
+              {!tablesAllClosed && (
+                <span className="ml-2 inline-flex items-center gap-1 text-xs font-normal text-destructive">
+                  <Lock className="w-3.5 h-3.5" /> Waiting for Pit to close all tables ({openTables.length})
+                </span>
+              )}
+            </DialogTitle>
+          </DialogHeader>
 
-        {step === 1 && (
-          <div className="space-y-3">
-            <p className="text-xs text-muted-foreground">Confirm tables restored to base float.</p>
-            {tables.map(t => (
-              <div key={t.id} className="flex items-center gap-3 cms-panel p-2.5">
-                <Checkbox checked={!!tableReady[t.id]} onCheckedChange={c => setTableReady(r => ({ ...r, [t.id]: !!c }))} id={`t-${t.id}`} />
-                <label htmlFor={`t-${t.id}`} className="flex-1 cursor-pointer text-sm text-card-foreground">{t.name} <span className="text-xs text-muted-foreground">({t.game})</span></label>
-                {tableReady[t.id] && <CheckCircle2 className="w-4 h-4 text-success" />}
+          <div className="space-y-4">
+            {/* ── BLOCK 1: Tables (read-only) ─────────────────────────── */}
+            <section className="cms-panel p-3">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-[10px] uppercase text-muted-foreground tracking-wider font-medium">Tables Result</p>
+                {!tablesAllClosed && (
+                  <span className="text-[10px] text-destructive font-medium">
+                    {openTables.length} open table(s) — Pit must close them first
+                  </span>
+                )}
               </div>
-            ))}
-            <DialogFooter>
-              <Button variant="outline" onClick={onClose}>Cancel</Button>
-              <Button onClick={() => setStep(2)} disabled={!allTablesReady}>Next →</Button>
-            </DialogFooter>
-          </div>
-        )}
-
-        {step === 2 && (
-          <div className="space-y-3">
-            <p className="text-xs text-muted-foreground">Count chips and cash across the entire casino.</p>
-            <CashCountGrid chips={chipCounts} onChipsChange={setChipCounts} cash={cashCounts}
-              onCashChange={(cur, v) => setCashCounts(c => ({ ...c, [cur]: v }))} banks={bankBal} onBanksChange={setBankBal}
-              mobile={mobileBal} onMobileChange={setMobileBal} chipPlaceholder={expectedChips} rates={rates} />
-
-            {hasAnyChipCount && (
-              <div className="grid grid-cols-3 gap-2 pt-2 border-t border-border">
-                <div className="text-center"><p className="text-[9px] uppercase text-muted-foreground">Chip Expected</p><p className="font-mono text-xs font-bold text-card-foreground">{formatCurrency(initialTotal)}</p></div>
-                <div className="text-center"><p className="text-[9px] uppercase text-muted-foreground">Chip Counted</p><p className="font-mono text-xs font-bold text-card-foreground">{formatCurrency(chipTotal)}</p></div>
-                <div className="text-center"><p className="text-[9px] uppercase text-muted-foreground">MISS</p><p className={`font-mono text-xs font-bold ${totalMissValue === 0 ? "text-success" : "text-destructive"}`}>{totalMissValue >= 0 ? "+" : ""}{formatCurrency(totalMissValue)}</p></div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs font-mono">
+                  <thead className="border-b border-border">
+                    <tr>
+                      <th className="text-left px-2 py-1 text-muted-foreground font-medium">Table</th>
+                      <th className="text-left px-2 py-1 text-muted-foreground font-medium">Game</th>
+                      <th className="text-left px-2 py-1 text-muted-foreground font-medium">Status</th>
+                      <th className="text-right px-2 py-1 text-muted-foreground font-medium">Result</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {tables.filter(t => !t.is_archived).map(t => {
+                      const isOpen = t.status === "open";
+                      const r = Number(t.closing_result || 0);
+                      return (
+                        <tr key={t.id} className="border-b border-border/40">
+                          <td className="px-2 py-1 text-card-foreground">{t.name}</td>
+                          <td className="px-2 py-1 text-muted-foreground">{t.game}</td>
+                          <td className="px-2 py-1">
+                            {isOpen
+                              ? <span className="text-destructive">OPEN</span>
+                              : <span className="text-success inline-flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> CLOSED</span>}
+                          </td>
+                          <td className={cn(
+                            "px-2 py-1 text-right",
+                            isOpen ? "text-muted-foreground" :
+                              r > 0 ? "cms-amount-positive" : r < 0 ? "cms-amount-negative" : "text-muted-foreground",
+                          )}>
+                            {isOpen ? "·" : `${r >= 0 ? "+" : ""}${formatNumberSpaces(r)}`}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    {tables.filter(t => !t.is_archived).length === 0 && (
+                      <tr><td colSpan={4} className="text-center text-muted-foreground py-3">No tables</td></tr>
+                    )}
+                  </tbody>
+                  <tfoot className="border-t border-border">
+                    <tr>
+                      <td colSpan={3} className="px-2 py-1.5 font-semibold text-card-foreground">Total Result Table</td>
+                      <td className={cn(
+                        "px-2 py-1.5 text-right font-bold",
+                        resultTable > 0 ? "cms-amount-positive" : resultTable < 0 ? "cms-amount-negative" : "text-card-foreground",
+                      )}>
+                        {resultTable >= 0 ? "+" : ""}{formatNumberSpaces(resultTable)}
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
               </div>
-            )}
+            </section>
 
-            {hasIncident && (
-              <div className="p-2 rounded-md bg-destructive/10 border border-destructive/30 flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 text-destructive shrink-0" />
-                <p className="text-xs text-destructive font-bold">INCIDENT: Chips exceed initial total</p>
+            {/* ── BLOCK 2: Cash Desk Chips per denom ──────────────────── */}
+            <section className="cms-panel p-3">
+              <p className="text-[10px] uppercase text-muted-foreground tracking-wider font-medium mb-2">
+                Cash Desk · Chips (per denomination)
+              </p>
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs font-mono">
+                  <thead className="border-b border-border">
+                    <tr>
+                      <th className="text-left px-2 py-1 text-muted-foreground font-medium">Denom</th>
+                      <th className="text-right px-2 py-1 text-muted-foreground font-medium">Open (qty)</th>
+                      <th className="text-right px-2 py-1 text-muted-foreground font-medium">Close (qty)</th>
+                      <th className="text-right px-2 py-1 text-muted-foreground font-medium">Miss (qty)</th>
+                      <th className="text-right px-2 py-1 text-muted-foreground font-medium">Miss (TZS)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {CHIP_DENOMS.map(d => {
+                      const op = openingChips[d] || 0;
+                      const cl = chipCounts[d] || 0;
+                      const mq = missPerDenom[d] || 0;
+                      const mv = mq * d;
+                      const colorCls = mq > 0 ? "cms-amount-positive" : mq < 0 ? "cms-amount-negative" : "text-muted-foreground";
+                      return (
+                        <tr key={d} className="border-b border-border/30">
+                          <td className="px-2 py-1 text-card-foreground">{formatChipLabel(d)}</td>
+                          <td className="px-2 py-1 text-right text-muted-foreground">{op || "·"}</td>
+                          <td className="px-2 py-1 text-right">
+                            <input
+                              type="number"
+                              value={cl || ""}
+                              onChange={e => setChipCounts(c => ({ ...c, [d]: Number(e.target.value) || 0 }))}
+                              placeholder={op ? String(op) : "0"}
+                              className="no-spin h-6 w-20 font-mono text-xs text-right px-1.5 bg-background border border-border rounded"
+                            />
+                          </td>
+                          <td className={cn("px-2 py-1 text-right font-semibold", colorCls)}>
+                            {mq === 0 ? "·" : `${mq > 0 ? "+" : ""}${mq}`}
+                          </td>
+                          <td className={cn("px-2 py-1 text-right", colorCls)}>
+                            {mv === 0 ? "·" : `${mv > 0 ? "+" : ""}${formatNumberSpaces(mv)}`}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                  <tfoot className="border-t border-border">
+                    <tr>
+                      <td className="px-2 py-1.5 font-semibold text-card-foreground" colSpan={4}>MISS TOTAL</td>
+                      <td className={cn(
+                        "px-2 py-1.5 text-right font-bold",
+                        missTotal > 0 ? "cms-amount-positive" : missTotal < 0 ? "cms-amount-negative" : "text-card-foreground",
+                      )}>
+                        {missTotal >= 0 ? "+" : ""}{formatNumberSpaces(missTotal)}
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
               </div>
-            )}
+            </section>
 
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setStep(1)}>← Back</Button>
-              <Button onClick={() => setStep(3)}>Review →</Button>
-            </DialogFooter>
-          </div>
-        )}
-
-        {step === 3 && (
-          <div className="space-y-3">
-            <div className={`cms-panel p-3 text-center ${isPerfect ? "border-success/30" : "border-destructive/30"}`}>
-              {isPerfect ? <CheckCircle2 className="w-6 h-6 text-success mx-auto mb-1" /> : <AlertTriangle className="w-6 h-6 text-destructive mx-auto mb-1" />}
-              <p className="text-sm font-medium text-card-foreground">{isPerfect ? "Balanced" : "Mismatch Detected"}</p>
-            </div>
-
-            <div className="cms-panel p-3">
-              <p className="text-[10px] uppercase text-muted-foreground tracking-wider mb-2 font-medium">Cash Flow</p>
-              <div className="space-y-1 text-xs font-mono">
-                <div className="flex justify-between"><span className="text-muted-foreground">Opening Float</span><span className="text-card-foreground">{formatCurrency(openingFloat || 0)}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">+ IN</span><span className="text-success">+{formatCurrency(totalBuyIns || 0)}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">− OUT</span><span className="text-destructive">−{formatCurrency(totalCashouts || 0)}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">− Expenses</span><span className="text-warning">−{formatCurrency(totalExpenses || 0)}</span></div>
-                <div className="flex justify-between border-t border-border pt-1 font-bold"><span className="text-card-foreground">= Expected</span><span className="text-card-foreground">{formatCurrency(expectedBalance)}</span></div>
-                <div className="flex justify-between"><span className="text-card-foreground">Counted</span><span className="text-card-foreground">{formatCurrency(totalTzs)}</span></div>
-                <div className="flex justify-between font-bold"><span className="text-card-foreground">Difference</span><span className={isPerfect ? "text-success" : "text-destructive"}>{diff >= 0 ? "+" : ""}{formatCurrency(diff)}</span></div>
+            {/* ── BLOCK 3: Cash + Mobile + Bank (existing grid, chips column ignored) ── */}
+            <section className="cms-panel p-3">
+              <p className="text-[10px] uppercase text-muted-foreground tracking-wider font-medium mb-2">
+                Cash Desk · Cash + Mobile + Bank
+              </p>
+              <CashCountGrid
+                chips={chipCounts}
+                onChipsChange={setChipCounts}
+                cash={cashCounts}
+                onCashChange={(cur, v) => setCashCounts(c => ({ ...c, [cur]: v }))}
+                banks={bankBal}
+                onBanksChange={setBankBal}
+                mobile={mobileBal}
+                onMobileChange={setMobileBal}
+                chipPlaceholder={openingChips}
+                rates={rates}
+              />
+              <div className="grid grid-cols-4 gap-2 pt-3 mt-2 border-t border-border">
+                <div className="text-center"><p className="text-[9px] uppercase text-muted-foreground">Chips</p><p className="font-mono text-xs font-bold text-card-foreground">{formatCurrency(closingChipsTzs)}</p></div>
+                <div className="text-center"><p className="text-[9px] uppercase text-muted-foreground">Cash</p><p className="font-mono text-xs font-bold text-card-foreground">{formatCurrency(closingCashOnlyTzs)}</p></div>
+                <div className="text-center"><p className="text-[9px] uppercase text-muted-foreground">Mobile</p><p className="font-mono text-xs font-bold text-card-foreground">{formatCurrency(closingMobileTzs)}</p></div>
+                <div className="text-center"><p className="text-[9px] uppercase text-muted-foreground">Bank</p><p className="font-mono text-xs font-bold text-card-foreground">{formatCurrency(closingBankTzs)}</p></div>
               </div>
-            </div>
+            </section>
 
-            <div className="cms-panel p-3">
-              <p className="text-[10px] uppercase text-muted-foreground tracking-wider mb-2 font-medium">Shift Result</p>
-              <div className="space-y-1 text-xs font-mono">
-                <div className="flex justify-between"><span className="text-muted-foreground">Cash Result (IN − OUT)</span><span className={`${(cashResult || 0) >= 0 ? "text-success" : "text-destructive"}`}>{(cashResult || 0) >= 0 ? "+" : ""}{formatCurrency(cashResult || 0)}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Chip MISS</span><span className={`${totalMissValue === 0 ? "text-success" : "text-destructive"}`}>{totalMissValue >= 0 ? "+" : ""}{formatCurrency(totalMissValue)}</span></div>
-                <div className="flex justify-between border-t border-border pt-1 font-bold text-sm"><span className="text-card-foreground">= Shift Result</span><span className={`${shiftResult >= 0 ? "text-success" : "text-destructive"}`}>{shiftResult >= 0 ? "+" : ""}{formatCurrency(shiftResult)}</span></div>
+            {/* ── BLOCK 4: Balance formula ────────────────────────────── */}
+            <section className={cn(
+              "cms-panel p-4 border-2",
+              isBalanced ? "border-success/50" : "border-destructive/50",
+            )}>
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground">Cash Desk Balance</p>
+                {isBalanced
+                  ? <span className="inline-flex items-center gap-1 text-xs font-semibold text-success"><CheckCircle2 className="w-4 h-4" /> Balanced</span>
+                  : <span className="inline-flex items-center gap-1 text-xs font-semibold text-destructive"><AlertTriangle className="w-4 h-4" /> {balance > 0 ? "Surplus" : "Shortage"}</span>}
               </div>
-            </div>
-
-            {hasIncident && (
-              <div className="p-2 rounded-md bg-destructive/10 border border-destructive/30 flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 text-destructive shrink-0" />
-                <p className="text-xs text-destructive font-bold">INCIDENT: Chip total exceeds initial system total</p>
+              <div className="space-y-1 text-sm font-mono">
+                <div className="flex justify-between"><span className="text-muted-foreground">  Result Table</span><span className={resultTable >= 0 ? "text-card-foreground" : "cms-amount-negative"}>{resultTable >= 0 ? "+" : ""}{formatNumberSpaces(resultTable)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">+ Cash Desk Result (Chips + Cash + Mobile + Bank)</span><span className="text-card-foreground">+{formatNumberSpaces(totalTzs)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">− Opening (Chips + Cash)</span><span className="text-card-foreground">−{formatNumberSpaces(openingTotal)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">± Miss Chips</span><span className={missTotal === 0 ? "text-card-foreground" : missTotal > 0 ? "cms-amount-positive" : "cms-amount-negative"}>{missTotal >= 0 ? "+" : ""}{formatNumberSpaces(missTotal)}</span></div>
+                <div className="flex justify-between border-t border-border pt-2 mt-2 text-base font-bold">
+                  <span className="text-card-foreground">= Cash Desk Balance</span>
+                  <span className={isBalanced ? "text-success" : balance > 0 ? "cms-amount-positive" : "cms-amount-negative"}>
+                    {balance >= 0 ? "+" : ""}{formatNumberSpaces(balance)} TZS
+                  </span>
+                </div>
               </div>
-            )}
+              {!isBalanced && (
+                <p className="mt-2 text-[11px] text-destructive flex items-center gap-1">
+                  <AlertTriangle className="w-3 h-3" />
+                  Discrepancy will be logged. Cashier comment + Manager confirmation required.
+                </p>
+              )}
+            </section>
 
+            {/* ── Notes ───────────────────────────────────────────────── */}
             <div>
-              <p className="text-[10px] font-medium text-muted-foreground uppercase mb-1">Notes</p>
-              <Textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Shift notes…" rows={2} />
+              <p className="text-[10px] font-medium text-muted-foreground uppercase mb-1">
+                Notes {requiresNote && <span className="text-destructive">*</span>}
+              </p>
+              <Textarea
+                value={notes}
+                onChange={e => setNotes(e.target.value)}
+                placeholder={requiresNote ? "Required: explain the discrepancy…" : "Optional shift notes…"}
+                rows={2}
+                className={requiresNote && !noteValid ? "border-destructive" : ""}
+              />
             </div>
-            {!isPerfect && (
-              <p className="text-[10px] text-destructive flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> Mismatch of {formatCurrency(Math.abs(diff))} will be logged.</p>
-            )}
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setStep(2)}>← Back</Button>
-              <Button variant="destructive" onClick={handleClose} disabled={loading}>{loading ? "Closing…" : "Close Shift"}</Button>
-            </DialogFooter>
           </div>
-        )}
-      </DialogContent>
-    </Dialog>
+
+          <DialogFooter className="mt-2">
+            <Button variant="outline" onClick={onClose}>Cancel</Button>
+            <Button
+              variant={isBalanced ? "default" : "destructive"}
+              onClick={handleCloseRequest}
+              disabled={loading || !tablesAllClosed || !noteValid}
+              className="gap-1.5"
+            >
+              <ShieldAlert className="w-4 h-4" />
+              {loading ? "Closing…" : "Close Shift (Manager Confirm)"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <ManagerOverrideDialog
+        open={showManagerConfirm}
+        onClose={() => setShowManagerConfirm(false)}
+        onConfirm={handleManagerConfirmed}
+        title="Manager Confirmation — Close Shift"
+        description={
+          isBalanced
+            ? "Confirm cash desk closing. Balance is zero."
+            : `Balance is ${balance >= 0 ? "+" : ""}${formatNumberSpaces(balance)} TZS (${balance > 0 ? "surplus" : "shortage"}). Manager approval required to proceed.`
+        }
+        actionType="CAGE_SHIFT_CLOSE"
+        actionDetails={{
+          shift_id: shift.id,
+          result_table: resultTable,
+          cash_desk_total: totalTzs,
+          opening_total: openingTotal,
+          miss_total: missTotal,
+          cash_desk_balance: balance,
+        }}
+      />
+    </>
   );
 };
 

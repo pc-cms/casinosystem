@@ -34,3 +34,44 @@ export const calcGrandTotal = (
   mobile: MobileProviders,
   rates: Record<string, number>,
 ) => chipSum(chips) + calcCashTotalTzs(cash, rates) + bankTotalTzs(banks, rates) + mobileTotal(mobile);
+
+// Per-denomination miss QUANTITY: counted - opening (signed).
+export const computeMissByDenom = (
+  opening: Record<number, number>,
+  counted: Record<number, number>,
+  denoms: readonly number[],
+): Record<number, number> => {
+  const out: Record<number, number> = {};
+  denoms.forEach(d => { out[d] = (counted[d] || 0) - (opening[d] || 0); });
+  return out;
+};
+
+// Total signed VALUE in TZS of per-denom miss.
+export const missTotalValue = (missByDenom: Record<number, number>): number =>
+  Object.entries(missByDenom).reduce((s, [d, q]) => s + Number(d) * (q || 0), 0);
+
+// Cash Desk Balance per agreed formula:
+//   resultTable + cashDeskResult − opening ± missTotal
+// where:
+//   cashDeskResult = closingChipsTzs + closingCashTzs (already includes mobile/bank in closingCashTzs upstream)
+//   opening        = openingChipsTzs + openingCashTzs
+// Ideal = 0.
+export const cashDeskBalance = ({
+  resultTable,
+  openingChips,
+  openingCash,
+  closingChips,
+  closingCash,
+  missTotal,
+}: {
+  resultTable: number;
+  openingChips: number;
+  openingCash: number;
+  closingChips: number;
+  closingCash: number;
+  missTotal: number;
+}): number =>
+  resultTable
+  + (closingChips + closingCash)
+  - (openingChips + openingCash)
+  + missTotal;
