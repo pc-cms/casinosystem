@@ -99,7 +99,7 @@ export const CashCount = () => {
       const byCurrency: Record<string, number> = {};
       for (const cur of CURRENCIES) {
         const denoms = CASH_DENOMS[cur] || [];
-        const rate = cur === "TZS" ? 1 : (DEFAULT_EXCHANGE_RATES[cur] || 1);
+        const rate = getRate(cur);
         let curTotal = 0;
         for (const d of denoms) {
           curTotal += d * (quantities[qKey(wt, cur, d)] || 0);
