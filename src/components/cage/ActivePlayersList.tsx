@@ -107,6 +107,7 @@ const ActivePlayersList = ({ players, tables, onSelect }: Props) => {
           })
         )}
       </div>
+      <NewPlayerDialog open={showNew} onOpenChange={setShowNew} />
     </div>
   );
 };
