@@ -57,12 +57,12 @@ const ActivePlayersList = ({ players, tables, onSelect }: Props) => {
           <Users className="w-3.5 h-3.5" />
           Active Players ({activeRows.length})
         </span>
-        <Link
-          to="/reception?tab=register"
+        <button
+          onClick={() => setShowNew(true)}
           className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline"
         >
           <UserPlus className="w-3 h-3" /> New Player
-        </Link>
+        </button>
       </div>
       <div className="flex-1 overflow-y-auto divide-y divide-border min-h-0">
         {activeRows.length === 0 ? (
