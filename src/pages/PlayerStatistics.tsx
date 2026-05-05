@@ -256,10 +256,11 @@ const PlayerStatistics = () => {
 
   // Totals across the currently filtered list (period + tab + filters + search).
   const totals = useMemo(() => {
-    const t = { count: 0, avgBetSum: 0, avgBetN: 0, inDrop: 0, out: 0, chipIn: 0, chipOut: 0, chipDelta: 0, result: 0 };
+    const t = { count: 0, avgBetSum: 0, avgBetN: 0, dropR: 0, inDrop: 0, out: 0, chipIn: 0, chipOut: 0, chipDelta: 0, result: 0 };
     for (const r of filtered as any[]) {
       t.count += 1;
       if (r.avgBet) { t.avgBetSum += r.avgBet; t.avgBetN += 1; }
+      t.dropR += r.dropR;
       t.inDrop += r.inDrop;
       t.out += r.out;
       t.chipIn += r.chipIn;
