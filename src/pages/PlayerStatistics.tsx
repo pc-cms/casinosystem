@@ -485,30 +485,25 @@ const PlayerStatistics = () => {
         const Money = ({ value, sign = false }: { value: number; sign?: boolean }) => {
           if (!value) return <>·</>;
           const prefix = sign && value > 0 ? "+" : "";
-          return (
-            <>
-              <span className="hidden md:inline">{prefix}{formatCurrency(value)}</span>
-              <span className="md:hidden">{prefix}{formatNumberCompact(value)}</span>
-            </>
-          );
+          return <>{prefix}{formatCurrency(value)}</>;
         };
         return (
           <>
-            <td className="px-2 py-1.5 font-mono text-xs text-right md:w-[80px]">
+            <td className="px-2 py-1.5 font-mono text-sm text-right whitespace-nowrap min-w-[90px]">
               <Money value={r.avgBet} />
             </td>
-            <td className="px-2 py-1.5 font-mono text-xs text-right md:w-[110px]">
+            <td className="px-2 py-1.5 font-mono text-sm text-right whitespace-nowrap min-w-[120px]">
               <Money value={r.inDrop} />
             </td>
-            <td className="px-2 py-1.5 font-mono text-xs text-right md:w-[60px]">{r.inCount || "·"}</td>
-            <td className="px-2 py-1.5 font-mono text-xs text-right md:w-[60px]">{r.outCount || "·"}</td>
-            <td className="px-2 py-1.5 font-mono text-xs text-right text-success md:w-[95px]">
+            <td className="px-2 py-1.5 font-mono text-sm text-right whitespace-nowrap min-w-[50px]">{r.inCount || "·"}</td>
+            <td className="px-2 py-1.5 font-mono text-sm text-right whitespace-nowrap min-w-[50px]">{r.outCount || "·"}</td>
+            <td className="px-2 py-1.5 font-mono text-sm text-right text-success whitespace-nowrap min-w-[110px]">
               <Money value={r.chipIn} />
             </td>
-            <td className="px-2 py-1.5 font-mono text-xs text-right text-destructive md:w-[95px]">
+            <td className="px-2 py-1.5 font-mono text-sm text-right text-destructive whitespace-nowrap min-w-[110px]">
               <Money value={r.chipOut} />
             </td>
-            <td className={`px-2 py-1.5 font-mono text-xs text-right font-bold md:w-[110px] ${
+            <td className={`px-2 py-1.5 font-mono text-sm text-right font-bold whitespace-nowrap min-w-[120px] ${
               r.result > 0 ? "cms-amount-positive" : r.result < 0 ? "cms-amount-negative" : ""
             }`}>
               <Money value={r.result} sign />
