@@ -219,10 +219,10 @@ const PlayerStatistics = () => {
             case "exit": return r.exitAt ? new Date(r.exitAt).getTime() : 0;
             case "avgBet": return r.avgBet;
             case "inDrop": return r.inDrop;
-            case "out": return r.out;
+            case "inCount": return r.inCount;
+            case "outCount": return r.outCount;
             case "chipIn": return r.chipIn;
             case "chipOut": return r.chipOut;
-            case "chipDelta": return r.chipDelta;
             case "result": return r.result;
           }
         };
