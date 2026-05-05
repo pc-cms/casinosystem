@@ -632,7 +632,7 @@ const PlayerStatistics = () => {
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <thead className="bg-muted/30 border-b border-border">
-                  <tr className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                  <tr className="text-xs uppercase tracking-wider text-muted-foreground">
                     {(() => {
                       const SortIcon = ({ k }: { k: SortKey }) =>
                         sortKey !== k ? <ArrowUpDown className="w-3 h-3 inline ml-1 opacity-40" />
@@ -641,7 +641,7 @@ const PlayerStatistics = () => {
                       const H = ({ k, align = "left", children, title, sticky }: { k: SortKey; align?: "left" | "right"; children: any; title?: string; sticky?: string }) => (
                         <th
                           title={title}
-                          className={`px-2 py-2.5 cursor-pointer select-none hover:text-foreground ${align === "right" ? "text-right" : "text-left"} ${sticky ? `${sticky} bg-muted/30 z-20` : ""}`}
+                          className={`px-2 py-3 cursor-pointer select-none hover:text-foreground whitespace-nowrap font-semibold ${align === "right" ? "text-right" : "text-left"} ${sticky ? `${sticky} bg-muted/30 z-20` : ""}`}
                           onClick={() => toggleSort(k)}
                         >
                           {children}<SortIcon k={k} />
