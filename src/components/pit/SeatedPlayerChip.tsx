@@ -16,6 +16,7 @@ export interface SeatedPlayer {
   first_name: string;
   last_name: string;
   nickname?: string | null;
+  photo_url?: string | null;
   category: PlayerCategory;
   avgBet: number;
   startedAt: Date | null;
