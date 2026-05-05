@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
-  LayoutDashboard, Users, Landmark, Table2, Receipt,
+  LayoutDashboard, Users, Landmark, Table2, Receipt, BarChart3,
   ClipboardList, Sun, Moon, Shield, Gamepad2,
   UsersRound, LogOut, Settings, FileBarChart,
   ListChecks, Eye, Target,
