@@ -93,6 +93,7 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
   const [chipOut, setChipOut] = useState("");
   const [note, setNote] = useState("");
   const createAdj = useCreatePlayerChipAdjustment();
+  const [photoOpen, setPhotoOpen] = useState(false);
 
   if (!playerId) return null;
 
@@ -118,7 +119,7 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
   return (
     <div
       className={cn(
-        "sticky top-0 z-20 -mx-4 mb-4 border-b backdrop-blur supports-[backdrop-filter]:bg-opacity-90 px-4 py-4 shadow-sm",
+        "relative -mx-4 mb-4 border-b border-border px-4 py-4 shadow-sm",
         tint,
         className
       )}
@@ -133,8 +134,13 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
         </div>
       ) : (
         <div className="flex items-stretch gap-5">
-          {/* Photo */}
-          <div className="h-32 w-32 rounded-2xl overflow-hidden bg-muted border border-border shrink-0 flex items-center justify-center">
+          {/* Photo — click opens lightbox */}
+          <button
+            type="button"
+            onClick={() => setPhotoOpen(true)}
+            aria-label="View photo"
+            className="h-32 w-32 rounded-2xl overflow-hidden bg-muted border border-border shrink-0 flex items-center justify-center hover:ring-2 hover:ring-primary/40 transition"
+          >
             {player.photo_url ? (
               <img
                 src={player.photo_url}
@@ -144,7 +150,7 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
             ) : (
               <User className="h-14 w-14 text-muted-foreground" />
             )}
-          </div>
+          </button>
 
           {/* Identity block: Name+Nick / Cash In + Result / Tags */}
           <div className="min-w-0 flex-1 flex flex-col justify-between gap-1.5 py-0.5">
