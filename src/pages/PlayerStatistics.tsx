@@ -54,6 +54,7 @@ const PlayerStatistics = () => {
   const effectiveDate = canBrowseHistory ? date : today;
   const isHistorical = effectiveDate !== today;
   const windowStartUTC = businessDayHourUTC(effectiveDate, 13);
+  const windowEndUTC = businessDayHourUTC(effectiveDate, 13 + 24);
   const queryClient = useQueryClient();
   const canEditPosition = !isHistorical && roles.some(r => ["pit", "manager", "reception", "super_admin"].includes(r));
 
@@ -61,6 +62,7 @@ const PlayerStatistics = () => {
   const { data: tables = [] } = useGamingTables();
   const { data: transactions = [] } = useTransactions(effectiveDate);
   const { data: chipTransfers = [] } = useChipTransfers(effectiveDate);
+  const { data: playersDropSplit } = usePlayersDropSplit(windowStartUTC, windowEndUTC);
 
   const shiftDate = (delta: number) => {
     const next = subDays(date, delta);
