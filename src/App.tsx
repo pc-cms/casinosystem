@@ -7,6 +7,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/lib/theme";
+import { DensityProvider } from "@/lib/density";
 import { AuthProvider, useAuth } from "@/lib/auth-context";
 import { CasinoProvider, useCasino, getSlugFromHostname } from "@/lib/casino-context";
 import { BrandingProvider } from "@/lib/branding";
@@ -275,15 +276,17 @@ const App = () => (
     >
       <TooltipProvider>
         <AuthProvider>
-          <CasinoProvider>
-            <BrandingProvider>
-              <Toaster />
-              <Sonner />
-              <BrowserRouter>
-                <AppRoutes />
-              </BrowserRouter>
-            </BrandingProvider>
-          </CasinoProvider>
+          <DensityProvider>
+            <CasinoProvider>
+              <BrandingProvider>
+                <Toaster />
+                <Sonner />
+                <BrowserRouter>
+                  <AppRoutes />
+                </BrowserRouter>
+              </BrandingProvider>
+            </CasinoProvider>
+          </DensityProvider>
         </AuthProvider>
       </TooltipProvider>
     </PersistQueryClientProvider>
