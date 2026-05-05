@@ -252,7 +252,7 @@ const Expenses = () => {
                 <td className="px-3 py-2 text-center">
                   <div className="inline-flex gap-1">
                     {!exp.approved && isManager && (
-                      <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => setPendingApproveId(exp.id)}>Approve</Button>
+                      <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => approve.mutate(exp.id)} disabled={approve.isPending}>Approve</Button>
                     )}
                     {isManager && (
                       <Button
