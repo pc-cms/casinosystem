@@ -113,7 +113,7 @@ const ShiftReport = ({ from, to }: { from: string; to: string }) => {
           { label: "Result", value: formatCurrency(totals.cashout - totals.buy), cls: totals.cashout - totals.buy >= 0 ? "cms-amount-positive" : "cms-amount-negative" },
         ].map(c => (
           <div key={c.label} className="cms-panel p-2">
-            <p className="text-[9px] uppercase text-muted-foreground tracking-wider">{c.label}</p>
+            <p className="uppercase text-muted-foreground tracking-wider text-lg">{c.label}</p>
             <p className={`font-mono text-sm font-bold ${c.cls}`}>{c.value}</p>
           </div>
         ))}
@@ -401,9 +401,9 @@ const ExpenseReport = ({ from, to }: { from: string; to: string }) => {
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-3 gap-2">
-        <div className="cms-panel p-2"><p className="text-[9px] uppercase text-muted-foreground">Total</p><p className="font-mono text-sm font-bold text-card-foreground">{formatCurrency(data.total)}</p></div>
-        <div className="cms-panel p-2"><p className="text-[9px] uppercase text-muted-foreground">Approved</p><p className="font-mono text-sm font-bold text-success">{formatCurrency(data.approved)}</p></div>
-        <div className="cms-panel p-2"><p className="text-[9px] uppercase text-muted-foreground">Pending</p><p className="font-mono text-sm font-bold text-warning">{formatCurrency(data.pending)}</p></div>
+        <div className="cms-panel p-2"><p className="uppercase text-muted-foreground tracking-wider text-lg">Total</p><p className="font-mono text-sm font-bold text-card-foreground">{formatCurrency(data.total)}</p></div>
+        <div className="cms-panel p-2"><p className="uppercase text-muted-foreground tracking-wider text-lg">Approved</p><p className="font-mono font-bold text-success text-3xl">{formatCurrency(data.approved)}</p></div>
+        <div className="cms-panel p-2"><p className="uppercase text-muted-foreground tracking-wider text-lg">Pending</p><p className="font-mono text-sm font-bold text-warning">{formatCurrency(data.pending)}</p></div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
