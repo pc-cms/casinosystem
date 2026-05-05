@@ -497,11 +497,15 @@ const PlayerStatistics = () => {
             <td className="px-2 py-1.5 font-mono text-sm text-right whitespace-nowrap min-w-[90px]">
               <Money value={r.avgBet} />
             </td>
-            <td className="px-2 py-1.5 font-mono text-sm text-right whitespace-nowrap min-w-[120px]">
+            <td className="px-2 py-1.5 font-mono text-sm text-right whitespace-nowrap min-w-[120px]" title="Drop R — external cash only (NEP)">
+              <Money value={r.dropR} />
+            </td>
+            <td className="px-2 py-1.5 font-mono text-sm text-right whitespace-nowrap min-w-[110px]">
               <Money value={r.inDrop} />
             </td>
-            <td className="px-2 py-1.5 font-mono text-sm text-right whitespace-nowrap min-w-[50px]">{r.inCount || "·"}</td>
-            <td className="px-2 py-1.5 font-mono text-sm text-right whitespace-nowrap min-w-[50px]">{r.outCount || "·"}</td>
+            <td className="px-2 py-1.5 font-mono text-sm text-right whitespace-nowrap min-w-[110px]">
+              <Money value={r.out} />
+            </td>
             <td className="px-2 py-1.5 font-mono text-sm text-right text-success whitespace-nowrap min-w-[110px]">
               <Money value={r.chipIn} />
             </td>
