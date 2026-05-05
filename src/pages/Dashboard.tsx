@@ -28,14 +28,14 @@ import { Checkbox } from "@/components/ui/checkbox";
 const StatCard = ({ label, value, icon: Icon, href }: {
   label: string; value: string | number; icon: any; href: string;
 }) => (
-  <Link to={href} className="cms-panel p-4 hover:border-primary/30 transition-colors group">
+  <Link to={href} className="cms-panel p-6 hover:border-primary/30 transition-colors group">
     <div className="flex items-start justify-between">
       <div>
-        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{label}</p>
-        <p className="text-2xl font-bold font-mono mt-1 text-card-foreground">{value}</p>
+        <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">{label}</p>
+        <p className="text-4xl font-bold font-mono mt-2 text-card-foreground">{value}</p>
       </div>
-      <div className="p-2 rounded-md bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors">
-        <Icon className="w-5 h-5" />
+      <div className="p-3 rounded-md bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors">
+        <Icon className="w-7 h-7" />
       </div>
     </div>
   </Link>
