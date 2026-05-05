@@ -57,6 +57,7 @@ const CloseShiftPage = lazy(() => import("@/pages/cage/CloseShiftPage"));
 const RegisterPlayerPage = lazy(() => import("@/pages/cage/RegisterPlayerPage"));
 const EditOpeningChipsPage = lazy(() => import("@/pages/cage/EditOpeningChipsPage"));
 const CloseTablesPage = lazy(() => import("@/pages/tables/CloseTablesPage"));
+const ChipTransferPage = lazy(() => import("@/pages/players/ChipTransferPage"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -184,6 +185,7 @@ const ProtectedRoutes = () => {
           <Route path="/" element={<RoleGuard path="/"><Dashboard /></RoleGuard>} />
           <Route path="/players" element={<Navigate to="/player-statistics" replace />} />
           <Route path="/players/:id" element={<RoleGuard path="/players/:id"><PlayerProfile /></RoleGuard>} />
+          <Route path="/players/:id/chip-transfer" element={<RoleGuard path="/players/:id"><ErrorBoundary><ChipTransferPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/cage" element={<RoleGuard path="/cage"><ErrorBoundary><Cage /></ErrorBoundary></RoleGuard>} />
           <Route path="/cage/close-shift" element={<RoleGuard path="/cage"><ErrorBoundary><CloseShiftPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/cage/shift/:id/edit-opening" element={<RoleGuard path="/cage"><ErrorBoundary><EditOpeningChipsPage /></ErrorBoundary></RoleGuard>} />
