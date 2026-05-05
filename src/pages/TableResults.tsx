@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,6 +22,7 @@ import { downloadXlsx } from "@/lib/excel-export";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { fmtDate, fmtWeekdayShort } from "@/lib/format-date";
+import { useAuth } from "@/lib/auth-context";
 
 /* ------------------------------------------------------------------ */
 /* Layout config — order of columns in the horizontal report          */
