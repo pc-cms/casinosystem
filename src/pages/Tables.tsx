@@ -484,7 +484,7 @@ const Tables = () => {
           </Button>
         )}
 
-        <Button size="sm" onClick={() => setShowCloseWizard(true)} disabled={openTables.length === 0} className="gap-1.5">
+        <Button size="sm" onClick={() => navigate("/tables/close")} disabled={openTables.length === 0} className="gap-1.5">
           <Lock className="w-4 h-4" /> {isReadOnly ? "Closing Check" : "Close Table"}
         </Button>
 
