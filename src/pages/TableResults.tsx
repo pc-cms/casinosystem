@@ -433,9 +433,10 @@ const TableResults = () => {
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
                 <div className="p-3 grid grid-cols-3 gap-1 w-56">
-                  {Array.from({ length: 12 }).map((_, i) => {
-                    const baseYear = new Date().getFullYear() - 8;
-                    const y = baseYear + i;
+                  {(isSurveillanceOnly
+                    ? [currentYear]
+                    : Array.from({ length: 12 }, (_, i) => new Date().getFullYear() - 8 + i)
+                  ).map((y) => {
                     const isActive = yearAnchor.getFullYear() === y;
                     return (
                       <Button
