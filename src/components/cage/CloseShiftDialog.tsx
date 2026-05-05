@@ -364,7 +364,7 @@ const CloseShiftDialog = ({
                   </span>
                 </div>
                 <div className="flex justify-between pt-2"><span className="text-muted-foreground">− Result Table</span><span className="text-card-foreground">−{formatNumberSpaces(resultTable)}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">− Miss Chips</span><span className={missTotal === 0 ? "text-card-foreground" : missTotal > 0 ? "cms-amount-positive" : "cms-amount-negative"}>−{formatNumberSpaces(missTotal)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">− External Cash Movement</span><span className={externalCashMovement === 0 ? "text-card-foreground" : externalCashMovement > 0 ? "cms-amount-positive" : "cms-amount-negative"}>−{formatNumberSpaces(externalCashMovement)}</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">+ Expenses (paid from cash)</span><span className="text-card-foreground">+{formatNumberSpaces(totalExpenses || 0)}</span></div>
                 <div className="flex justify-between border-t border-border pt-2 mt-2 text-base font-bold">
                   <span className="text-card-foreground">= Cash Desk Balance</span>
