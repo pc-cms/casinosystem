@@ -1,5 +1,5 @@
-import { useState, useMemo, useCallback } from "react";
-import { useOpenShift } from "@/hooks/use-shift";
+import { useState, useMemo, useCallback, useEffect } from "react";
+import { useOpenShift, useLastClosedShift } from "@/hooks/use-shift";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { NumberInput } from "@/components/ui/number-input";
