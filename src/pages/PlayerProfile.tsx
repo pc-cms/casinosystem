@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
-import { ArrowLeft, ArrowLeftRight, Ban, User, Users as UsersIcon, BarChart3, Ticket, Trophy, History, MapPin, Gift, CalendarDays } from "lucide-react";
+import { ArrowLeft, Ban, User, Users as UsersIcon, BarChart3, Ticket, Trophy, History, MapPin, Gift, CalendarDays } from "lucide-react";
 
 import BlacklistPlayerDialog from "@/components/player/BlacklistPlayerDialog";
 import PlayerVisitsBreakdown from "@/components/player/PlayerVisitsBreakdown";

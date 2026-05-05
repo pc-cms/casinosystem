@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NumberInput } from "@/components/ui/number-input";
 import { Badge } from "@/components/ui/badge";
-import { Search, Play, ArrowRight, ArrowLeftRight, LogOut, Pencil, X } from "lucide-react";
+import { Search, Play, ArrowRight, LogOut, Pencil, X } from "lucide-react";
 import { formatNumberSpaces } from "@/lib/currency";
 import CategoryBadge from "@/components/player/CategoryBadge";
 import type { SeatedPlayer } from "./SeatedPlayerChip";
