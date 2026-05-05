@@ -553,13 +553,6 @@ const Tables = () => {
       </div>
       {tables.length === 0 && <p className="text-muted-foreground text-sm text-center py-8">No tables configured</p>}
 
-      <CloseTableWizard
-        open={showCloseWizard}
-        onClose={() => setShowCloseWizard(false)}
-        tables={tables as any}
-        date={date}
-        readOnly={isReadOnly}
-      />
 
       <TableSeatingDialog
         open={!!openTableId}
