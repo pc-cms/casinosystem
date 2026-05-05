@@ -1,18 +1,28 @@
-import { create } from "zustand";
+import { useSyncExternalStore } from "react";
 
 /**
- * useSelectedPlayer — global selected player id for the Sticky Preview Header
- * pattern (M3 in modal redesign). Lists call `select(id)` on row click; the
- * <PlayerPreviewHeader /> on the same surface reads it and renders.
+ * useSelectedPlayer — minimal global store (no zustand) for the
+ * Sticky Preview Header pattern. Lists call `select(id)` on row click;
+ * the <PlayerPreviewHeader /> on the same surface reads it and renders.
  */
-interface State {
-  playerId: string | null;
-  select: (id: string | null) => void;
-  clear: () => void;
-}
+let _id: string | null = null;
+const _listeners = new Set<() => void>();
 
-export const useSelectedPlayer = create<State>((set) => ({
-  playerId: null,
-  select: (id) => set({ playerId: id }),
-  clear: () => set({ playerId: null }),
-}));
+const subscribe = (l: () => void) => {
+  _listeners.add(l);
+  return () => _listeners.delete(l);
+};
+const getSnapshot = () => _id;
+const emit = () => _listeners.forEach((l) => l());
+
+export const selectPlayer = (id: string | null) => {
+  if (_id === id) return;
+  _id = id;
+  emit();
+};
+export const clearSelectedPlayer = () => selectPlayer(null);
+
+export function useSelectedPlayer() {
+  const playerId = useSyncExternalStore(subscribe, getSnapshot, () => null);
+  return { playerId, select: selectPlayer, clear: clearSelectedPlayer };
+}
