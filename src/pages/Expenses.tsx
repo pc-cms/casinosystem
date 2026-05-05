@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { Receipt, CheckCircle, Plus, X } from "lucide-react";
+import { Receipt, CheckCircle, Plus, X, Trash2 } from "lucide-react";
 import { CardSkeleton, TableSkeleton } from "@/components/LoadingSkeletons";
-import { useExpenses, useCreateExpense, useApproveExpense } from "@/hooks/use-casino-data";
+import { useExpenses, useCreateExpense, useApproveExpense, useDeleteExpense } from "@/hooks/use-casino-data";
 import { useActiveShift } from "@/hooks/use-shift";
 import { useExpenseAnalytics } from "@/hooks/use-expenses-analytics";
 import { useAuth } from "@/lib/auth-context";
@@ -62,7 +62,9 @@ const Expenses = () => {
   const { data: expenses = [], isLoading: loadingExpenses } = useExpenses(businessDate);
   const create = useCreateExpense();
   const approve = useApproveExpense();
+  const del = useDeleteExpense();
   const [pendingApproveId, setPendingApproveId] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<{ id: string; amount: number; category: string } | null>(null);
   const [drafts, setDrafts] = useState<DraftRow[]>([newDraft()]);
 
   const isLoading = loadingExpenses;
@@ -247,9 +249,22 @@ const Expenses = () => {
                   )}
                 </td>
                 <td className="px-3 py-2 text-center">
-                  {!exp.approved && isManager && (
-                    <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => setPendingApproveId(exp.id)}>Approve</Button>
-                  )}
+                  <div className="inline-flex gap-1">
+                    {!exp.approved && isManager && (
+                      <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => setPendingApproveId(exp.id)}>Approve</Button>
+                    )}
+                    {isManager && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => setPendingDelete({ id: exp.id, amount: Number(exp.amount), category: exp.category })}
+                        title="Delete (manager override)"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}
@@ -270,6 +285,21 @@ const Expenses = () => {
         description="Manager authentication required to approve this expense."
         actionType="APPROVE_EXPENSE"
         actionDetails={{ expense_id: pendingApproveId }}
+      />
+
+      <ManagerOverrideDialog
+        open={!!pendingDelete}
+        onClose={() => setPendingDelete(null)}
+        onConfirm={() => {
+          if (pendingDelete) {
+            del.mutate(pendingDelete);
+            setPendingDelete(null);
+          }
+        }}
+        title="Delete Expense"
+        description="This permanently removes the expense. Manager authentication required. The deletion is logged for audit."
+        actionType="DELETE_EXPENSE"
+        actionDetails={pendingDelete || {}}
       />
     </div>
   );
