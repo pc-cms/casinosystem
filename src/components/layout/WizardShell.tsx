@@ -100,7 +100,7 @@ export const WizardShell = ({
 
   return (
     <PageShell className={className}>
-      <PageHeader title={title} description={description}>
+      <PageHeader title={title} subtitle={subtitle}>
         <Button variant="ghost" size="sm" onClick={handleCancel} className="gap-1">
           <X className="h-4 w-4" /> Cancel
         </Button>
