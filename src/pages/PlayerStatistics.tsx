@@ -598,16 +598,16 @@ const PlayerStatistics = () => {
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <thead className="bg-muted/30 border-b border-border">
-                  <tr className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                  <tr className="text-[11px] uppercase tracking-wider text-muted-foreground">
                     {(() => {
                       const SortIcon = ({ k }: { k: SortKey }) =>
                         sortKey !== k ? <ArrowUpDown className="w-3 h-3 inline ml-1 opacity-40" />
                           : sortDir === "asc" ? <ArrowUp className="w-3 h-3 inline ml-1" />
                           : <ArrowDown className="w-3 h-3 inline ml-1" />;
-                      const H = ({ k, align = "left", children, title }: { k: SortKey; align?: "left" | "right"; children: any; title?: string }) => (
+                      const H = ({ k, align = "left", children, title, sticky }: { k: SortKey; align?: "left" | "right"; children: any; title?: string; sticky?: string }) => (
                         <th
                           title={title}
-                          className={`px-2 py-2 cursor-pointer select-none hover:text-foreground ${align === "right" ? "text-right" : "text-left"}`}
+                          className={`px-2 py-2.5 cursor-pointer select-none hover:text-foreground ${align === "right" ? "text-right" : "text-left"} ${sticky ? `${sticky} bg-muted/30 z-20` : ""}`}
                           onClick={() => toggleSort(k)}
                         >
                           {children}<SortIcon k={k} />
@@ -615,34 +615,36 @@ const PlayerStatistics = () => {
                       );
                       return (
                         <>
-                          <H k="name">Player</H>
-                          <H k="position">Position</H>
+                          <th className="px-2 py-2.5 text-center sticky left-0 bg-muted/30 z-20 w-10">№</th>
+                          <H k="name" sticky="sticky left-10">Name</H>
                           <H k="entry">Entry</H>
-                          <H k="exit">Exit</H>
+                          <H k="exit">Left</H>
+                          <H k="position">Position</H>
                           {showFinancials && (
                             <>
-                              <H k="avgBet" align="right">Avg Bet</H>
-                              <H k="inDrop" align="right" title="Drop R — external cash buy-ins">Drop R</H>
-                              <H k="out" align="right">Out</H>
-                              <H k="chipIn" align="right" title="Chips received from another player (NEP-tracked, no cash)">Chip In</H>
-                              <H k="chipOut" align="right" title="Chips given to another player (NEP-tracked, no cash)">Chip Out</H>
-                              <H k="chipDelta" align="right">Chip Δ</H>
+                              <H k="avgBet" align="right">Bet</H>
+                              <H k="inDrop" align="right" title="Drop R — external cash buy-ins">Drop</H>
+                              <H k="inCount" align="right" title="Number of buy-in transactions">In</H>
+                              <H k="outCount" align="right" title="Number of cashout transactions">Out</H>
+                              <H k="chipIn" align="right" title="Chips received from another player">C In</H>
+                              <H k="chipOut" align="right" title="Chips given to another player">C Out</H>
                               <H k="result" align="right">Result</H>
                             </>
                           )}
                         </>
                       );
                     })()}
-                    {canTransfer && <th className="px-2 py-2 text-right w-8"></th>}
+                    {canTransfer && <th className="px-2 py-2.5 text-right w-8"></th>}
                   </tr>
                   {filtered.length > 0 && (
-                    <tr className="text-[11px] bg-primary/5 border-b border-border font-mono">
-                      <td className="px-2 py-1.5 text-left uppercase tracking-wider text-muted-foreground font-semibold">
-                        Total · {totals.count}
+                    <tr className="text-sm bg-primary/10 border-b-2 border-primary/30 font-mono">
+                      <td className="px-2 py-2 text-center text-muted-foreground sticky left-0 bg-primary/10 z-20 font-semibold">{totals.count}</td>
+                      <td className="px-2 py-2 text-left uppercase tracking-wider text-muted-foreground font-bold sticky left-10 bg-primary/10 z-20">
+                        Total
                       </td>
-                      <td className="px-1 py-1.5"></td>
-                      <td className="px-1 py-1.5"></td>
-                      <td className="px-1 py-1.5"></td>
+                      <td className="px-1 py-2"></td>
+                      <td className="px-1 py-2"></td>
+                      <td className="px-1 py-2"></td>
                       {showFinancials && (() => {
                         const Money = ({ value, sign = false }: { value: number; sign?: boolean }) => {
                           if (!value) return <>·</>;
@@ -657,17 +659,15 @@ const PlayerStatistics = () => {
                         const avgBetAvg = totals.avgBetN ? Math.round(totals.avgBetSum / totals.avgBetN) : 0;
                         return (
                           <>
-                            <td className="px-2 py-1.5 text-right" title="Average of avg bet across present players">
+                            <td className="px-2 py-2 text-right" title="Average bet">
                               <Money value={avgBetAvg} />
                             </td>
-                            <td className="px-2 py-1.5 text-right font-semibold"><Money value={totals.inDrop} /></td>
-                            <td className="px-2 py-1.5 text-right font-semibold"><Money value={totals.out} /></td>
-                            <td className="px-2 py-1.5 text-right text-success"><Money value={totals.chipIn} /></td>
-                            <td className="px-2 py-1.5 text-right text-destructive"><Money value={totals.chipOut} /></td>
-                            <td className={`px-2 py-1.5 text-right ${totals.chipDelta > 0 ? "cms-amount-positive" : totals.chipDelta < 0 ? "cms-amount-negative" : ""}`}>
-                              <Money value={totals.chipDelta} sign />
-                            </td>
-                            <td className={`px-2 py-1.5 text-right font-bold ${totals.result > 0 ? "cms-amount-positive" : totals.result < 0 ? "cms-amount-negative" : ""}`}>
+                            <td className="px-2 py-2 text-right font-semibold"><Money value={totals.inDrop} /></td>
+                            <td className="px-2 py-2 text-right font-semibold">·</td>
+                            <td className="px-2 py-2 text-right font-semibold">·</td>
+                            <td className="px-2 py-2 text-right text-success"><Money value={totals.chipIn} /></td>
+                            <td className="px-2 py-2 text-right text-destructive"><Money value={totals.chipOut} /></td>
+                            <td className={`px-2 py-2 text-right font-bold text-base ${totals.result > 0 ? "cms-amount-positive" : totals.result < 0 ? "cms-amount-negative" : ""}`}>
                               <Money value={totals.result} sign />
                             </td>
                           </>
@@ -680,12 +680,12 @@ const PlayerStatistics = () => {
                 <tbody>
                   {filtered.length === 0 ? (
                     <tr>
-                      <td colSpan={4 + (showFinancials ? 7 : 0) + (canTransfer ? 1 : 0)} className="px-2 py-8 text-center text-muted-foreground text-xs">
+                      <td colSpan={5 + (showFinancials ? 7 : 0) + (canTransfer ? 1 : 0)} className="px-2 py-8 text-center text-muted-foreground text-xs">
                         No players to display
                       </td>
                     </tr>
                   ) : (
-                    filtered.map(renderRow)
+                    filtered.map((r, i) => renderRow(r, i))
                   )}
                 </tbody>
               </table>
