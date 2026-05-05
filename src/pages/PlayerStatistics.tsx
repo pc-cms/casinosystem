@@ -480,7 +480,7 @@ const PlayerStatistics = () => {
       </td>
       <td className="px-1 py-1.5 font-mono text-xs w-[44px] text-center">{formatTime(r.entryAt)}</td>
       <td className="px-1 py-1.5 font-mono text-xs w-[44px] text-center">{r.exitAt ? formatTime(r.exitAt) : "·"}</td>
-      <td className="px-1 py-1.5 w-[110px]">{renderPositionCell(r)}</td>
+      <td className="px-1 py-1.5 w-[64px]">{renderPositionCell(r)}</td>
       {showFinancials && (() => {
         const Money = ({ value, sign = false }: { value: number; sign?: boolean }) => {
           if (!value) return <>·</>;
