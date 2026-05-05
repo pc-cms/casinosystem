@@ -28,6 +28,7 @@ interface CloseShiftDialogProps {
   totalBuyIns: number;
   totalCashouts: number;
   totalExpenses: number;
+  externalCashMovement?: number;
   openingFloat: number;
   tables: Tables<"gaming_tables">[];
   onConfirm: (data: {
@@ -43,7 +44,7 @@ interface CloseShiftDialogProps {
 
 const CloseShiftDialog = ({
   open, onClose, shift, expectedBalance, cashResult, totalBuyIns, totalCashouts,
-  totalExpenses, openingFloat, tables, onConfirm, loading,
+  totalExpenses, externalCashMovement = 0, openingFloat, tables, onConfirm, loading,
 }: CloseShiftDialogProps) => {
   const [notes, setNotes] = useState("");
   const [showManagerConfirm, setShowManagerConfirm] = useState(false);
@@ -105,10 +106,10 @@ const CloseShiftDialog = ({
       openingCash: openingCashTzs,
       closingChips: closingChipsTzs,
       closingCash: closingCashTotalTzs,
-      missTotal,
+      externalCashMovement,
       expenses: totalExpenses || 0,
     }),
-    [resultTable, openingChipsTzs, openingCashTzs, closingChipsTzs, closingCashTotalTzs, missTotal, totalExpenses],
+    [resultTable, openingChipsTzs, openingCashTzs, closingChipsTzs, closingCashTotalTzs, externalCashMovement, totalExpenses],
   );
   const isBalanced = balance === 0;
   const requiresNote = !isBalanced;
