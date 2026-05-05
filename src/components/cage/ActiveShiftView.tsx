@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { toast } from "sonner";
 import { useTransactions, useExpenses, useCreateTransaction } from "@/hooks/use-casino-data";
-import { useCloseShift, useCreateCashCount, useCashCounts } from "@/hooks/use-shift";
+import { useCreateCashCount, useCashCounts } from "@/hooks/use-shift";
 import { useChipBaseline, useCloseAllTables, baselineToMap } from "@/hooks/use-table-lifecycle";
 import { getBusinessDate } from "@/lib/business-day";
 import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
@@ -27,7 +27,7 @@ import ActivePlayersList from "@/components/cage/ActivePlayersList";
 import ChipDenomInput from "@/components/ChipDenomInput";
 import CashDenomInput, { cashSum } from "@/components/cage/CashDenomInput";
 import CashCountGrid from "@/components/cage/CashCountGrid";
-import CloseShiftDialog from "@/components/cage/CloseShiftDialog";
+
 import {
   MOBILE_PROVIDERS, emptyMobile, emptyBanks, mobileTotal, bankTotalTzs,
   chipSum, emptyCash, calcGrandTotal,
@@ -95,7 +95,6 @@ const ActiveShiftView = ({ shift, players, tables }: {
   const { data: cashChecks = [] } = useCashCounts(shift.id);
   const { data: cageTransfers = [] } = useCageTransfers(shift.id);
   const createTx = useCreateTransaction();
-  const closeShift = useCloseShift();
   const navigate = useNavigate();
   const [showCloseTables, setShowCloseTables] = useState(false);
   
