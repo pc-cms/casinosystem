@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Pencil } from "lucide-react";
-import PlayerEditDialog from "@/components/PlayerEditDialog";
+import { useSelectedPlayer } from "@/hooks/use-selected-player";
 import CasinoBadge from "@/components/player/CasinoBadge";
 
 interface Player {
@@ -30,7 +30,7 @@ const PlayerSearch = ({ players, value, onChange, placeholder = "Search playerâ€
   const ref = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [highlightIdx, setHighlightIdx] = useState(0);
-  const [editPlayer, setEditPlayer] = useState<Player | null>(null);
+  const { selectPlayer } = useSelectedPlayer();
 
   const selected = players.find(p => p.id === value);
 
@@ -112,7 +112,7 @@ const PlayerSearch = ({ players, value, onChange, placeholder = "Search playerâ€
                 </span>
               </button>
               <button
-                onClick={(e) => { e.stopPropagation(); setEditPlayer(p); setOpen(false); }}
+                onClick={(e) => { e.stopPropagation(); selectPlayer(p.id); setOpen(false); }}
                 className="px-2 py-1.5 text-muted-foreground hover:text-primary transition-colors shrink-0"
                 title="Edit player"
               >
@@ -127,7 +127,7 @@ const PlayerSearch = ({ players, value, onChange, placeholder = "Search playerâ€
           No players found
         </div>
       )}
-      <PlayerEditDialog player={editPlayer} open={!!editPlayer} onOpenChange={(v) => { if (!v) setEditPlayer(null); }} />
+      
     </div>
   );
 };
