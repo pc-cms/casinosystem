@@ -19,7 +19,13 @@ export const useExpenses = (date?: string) => {
         .order("created_at", { ascending: false });
       
       if (date) {
-        query = query.gte("created_at", `${date}T00:00:00`).lte("created_at", `${date}T23:59:59`);
+        // Business day in Africa/Dar_es_Salaam runs 05:00 → 05:00 next day.
+        // EAT = UTC+3, so business day D in UTC = [D 02:00 UTC, D+1 02:00 UTC).
+        const start = new Date(`${date}T02:00:00.000Z`).toISOString();
+        const endDate = new Date(`${date}T02:00:00.000Z`);
+        endDate.setUTCDate(endDate.getUTCDate() + 1);
+        const end = endDate.toISOString();
+        query = query.gte("created_at", start).lt("created_at", end);
       } else {
         query = query.limit(200);
       }
