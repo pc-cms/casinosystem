@@ -91,8 +91,15 @@ export const useDeleteExpense = () => {
   return useMutation({
     mutationFn: async (exp: { id: string; amount: number; category: string }) => {
       if (!user || !casinoId) throw new Error("Not authenticated");
-      const { error } = await supabase.from("expenses").delete().eq("id", exp.id);
+      const { data, error } = await supabase
+        .from("expenses")
+        .delete()
+        .eq("id", exp.id)
+        .select("id");
       if (error) throw error;
+      if (!data || data.length === 0) {
+        throw new Error("Cannot cancel: expense already approved or no permission");
+      }
       await logAction(casinoId, "expense", "EXPENSE_DELETED", {
         expense_id: exp.id,
         category: exp.category,
