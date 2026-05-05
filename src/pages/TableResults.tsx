@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,6 +22,7 @@ import { downloadXlsx } from "@/lib/excel-export";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { fmtDate, fmtWeekdayShort } from "@/lib/format-date";
+import { useAuth } from "@/lib/auth-context";
 
 /* ------------------------------------------------------------------ */
 /* Layout config — order of columns in the horizontal report          */
@@ -144,6 +145,14 @@ const dayNum = (iso: string) => Number(iso.slice(8, 10));
 /* ------------------------------------------------------------------ */
 
 const TableResults = () => {
+  const { roles } = useAuth();
+  const isSurveillanceOnly = roles.includes("surveillance" as any) &&
+    !roles.some((r) => ["manager", "super_admin", "finance_manager"].includes(r as string));
+  const currentYear = new Date().getFullYear();
+  const visiblePresets = isSurveillanceOnly
+    ? PRESETS.filter((p) => p.key !== "custom")
+    : PRESETS;
+
   const [preset, setPreset] = useState<PresetKey>("month");
   const [weekAnchor, setWeekAnchor] = useState<Date>(new Date());
   const [monthAnchor, setMonthAnchor] = useState<Date>(new Date());
@@ -151,6 +160,15 @@ const TableResults = () => {
   const [customFrom, setCustomFrom] = useState(daysAgoStr(29));
   const [customTo, setCustomTo] = useState(todayStr());
   const [openDate, setOpenDate] = useState<string | null>(null);
+
+  // Surveillance: clamp anchors to current calendar year, force off custom preset
+  useEffect(() => {
+    if (!isSurveillanceOnly) return;
+    if (preset === "custom") setPreset("month");
+    if (weekAnchor.getFullYear() !== currentYear) setWeekAnchor(new Date());
+    if (monthAnchor.getFullYear() !== currentYear) setMonthAnchor(new Date());
+    if (yearAnchor.getFullYear() !== currentYear) setYearAnchor(new Date(currentYear, 0, 1));
+  }, [isSurveillanceOnly, preset, weekAnchor, monthAnchor, yearAnchor, currentYear]);
 
   const { from, to } =
     preset === "custom"
@@ -315,7 +333,7 @@ const TableResults = () => {
       <Card className="p-3 md:p-4">
         <div className="flex items-end gap-2 flex-wrap">
           <div className="flex gap-1 flex-wrap">
-            {PRESETS.map((p) => (
+            {visiblePresets.map((p) => (
               <Button
                 key={p.key}
                 size="sm"
@@ -343,6 +361,7 @@ const TableResults = () => {
                   onSelect={(d) => d && setWeekAnchor(d)}
                   weekStartsOn={0}
                   initialFocus
+                  disabled={isSurveillanceOnly ? (date) => date.getFullYear() !== currentYear : undefined}
                   className={cn("p-3 pointer-events-auto")}
                 />
               </PopoverContent>
@@ -363,6 +382,7 @@ const TableResults = () => {
                     <Button
                       size="sm"
                       variant="ghost"
+                      disabled={isSurveillanceOnly}
                       onClick={() =>
                         setMonthAnchor(new Date(monthAnchor.getFullYear() - 1, monthAnchor.getMonth(), 1))
                       }
@@ -373,6 +393,7 @@ const TableResults = () => {
                     <Button
                       size="sm"
                       variant="ghost"
+                      disabled={isSurveillanceOnly}
                       onClick={() =>
                         setMonthAnchor(new Date(monthAnchor.getFullYear() + 1, monthAnchor.getMonth(), 1))
                       }
@@ -412,9 +433,10 @@ const TableResults = () => {
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
                 <div className="p-3 grid grid-cols-3 gap-1 w-56">
-                  {Array.from({ length: 12 }).map((_, i) => {
-                    const baseYear = new Date().getFullYear() - 8;
-                    const y = baseYear + i;
+                  {(isSurveillanceOnly
+                    ? [currentYear]
+                    : Array.from({ length: 12 }, (_, i) => new Date().getFullYear() - 8 + i)
+                  ).map((y) => {
                     const isActive = yearAnchor.getFullYear() === y;
                     return (
                       <Button

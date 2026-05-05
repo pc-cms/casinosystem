@@ -128,7 +128,7 @@ const ROUTE_ROLES: Record<string, string[]> = {
   "/logs": ["super_admin", "manager", "finance_manager"],
   "/admin": ["super_admin", "manager"],
   "/import-reports": ["super_admin", "manager"],
-  "/table-results": ["super_admin", "manager", "finance_manager"],
+  "/table-results": ["super_admin", "manager", "finance_manager", "surveillance"],
   "/staff": ["super_admin", "manager", "pit", "finance_manager", "hr"],
   "/bank-checks": ["super_admin", "manager", "finance_manager"],
   "/miss-chips": ["super_admin", "manager", "finance_manager"],

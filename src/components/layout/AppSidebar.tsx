@@ -89,7 +89,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/groups", icon: UsersRound, label: "Groups", roles: ["super_admin", "manager", "finance_manager"], section: "ANALYTICS" },
   { to: "/reports", icon: FileBarChart, label: "Reports", roles: ["super_admin", "manager", "finance_manager"], section: "ANALYTICS" },
 
-  { to: "/table-results", icon: FileText, label: "Table Results", roles: ["super_admin", "manager", "finance_manager"], section: "ANALYTICS" },
+  { to: "/table-results", icon: FileText, label: "Table Results", roles: ["super_admin", "manager", "finance_manager", "surveillance"], section: "ANALYTICS" },
   { to: "/business-days", icon: CalendarDays, label: "Business Days", roles: ["super_admin", "manager", "finance_manager"], section: "ANALYTICS" },
   
 
