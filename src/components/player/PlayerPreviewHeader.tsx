@@ -266,6 +266,12 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
           </div>
         </div>
       )}
+      <PlayerPhotoLightbox
+        open={photoOpen}
+        onOpenChange={setPhotoOpen}
+        src={player?.photo_url}
+        alt={player ? `${player.first_name} ${player.last_name}` : undefined}
+      />
     </div>
   );
 };
