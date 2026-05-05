@@ -1,79 +1,36 @@
+Понял проблему: CCTV в Cage History сейчас фильтрует транзакции по календарному дню `00:00–23:59`, поэтому операция в 04:00 попадает в “today”. Это неправильно для операционных экранов. Нужно везде, где пользователь выбирает/видит бизнес-день, брать интервал бизнес-дня, а не календарный день.
 
-# Density System (Comfort / Compact / Touch)
+План исправления:
 
-Variant **C**: роль задаёт дефолт, пользователь может переопределить через тумблер. Сохраняем выбор в localStorage per-user.
+1. Ввести единый helper для UTC-интервала бизнес-дня
+   - Для бизнес-даты `D`: `D 13:00 EAT` → `D+1 13:00 EAT`.
+   - Использовать уже существующую концепцию `businessDayHourUTC(date, 13)` как единый источник интервала.
+   - Это важно: 04:00 утра после полуночи относится к предыдущему бизнес-дню, пока Пит/касса/CCTV смотрят текущий открытый бизнес-день.
 
-## 1. Density provider
+2. Исправить CageHistoryView для CCTV/read-only Cage
+   - IN/OUT транзакции: заменить фильтр `created_at >= dateT00:00` / `<= dateT23:59` на бизнес-интервал `13:00 EAT → 13:00 EAT next day`.
+   - Cage Transfers: так же заменить календарный фильтр на бизнес-интервал.
+   - Chip Transfers: использовать бизнес-интервал через общий hook, чтобы передачи фишек в 04:00 тоже относились к предыдущему бизнес-дню.
+   - Cashless уже хранит `business_date`, оставить как есть.
 
-Новый файл `src/lib/density.tsx`:
-- Тип `Density = "comfort" | "compact" | "touch"`.
-- `DensityProvider` оборачивает app в `App.tsx` (рядом с `ThemeProvider`).
-- Источник дефолта:
-  - `pointer: coarse` (touch-устройство) → `touch`
-  - роль `cashier` / `pit` → `compact`
-  - роль `manager` / `finance_manager` / `super_admin` / `hr` / `reception` / `surveillance` → `comfort`
-- Override — `localStorage["cms.density"]` (`auto` | `comfort` | `compact` | `touch`). Дефолт `auto`.
-- Применение: `document.documentElement.dataset.density = effective`.
+3. Исправить общий hook `useTransactions(date)`
+   - Сейчас он тоже режет по календарному дню.
+   - Заменить на бизнес-интервал.
+   - Это автоматически исправит Dashboard, Player Statistics, Tables, Cage active shift summaries, Close Shift page и другие места, где передается бизнес-дата.
+   - При `date` отсутствует — оставить текущий lifetime/recent behavior без изменения.
 
-## 2. CSS-токены плотности
+4. Исправить общий hook `useChipTransfers(date)`
+   - Сейчас тоже календарный день.
+   - Заменить на бизнес-интервал.
+   - Это исправит Player Statistics и CCTV chip transfer tab.
 
-В `src/index.css` (`@layer base`) добавить переменные, переключаемые `[data-density="..."]`:
-```
-:root { --density-row: 2.25rem; --density-input: 2.25rem; --density-btn: 2.25rem;
-        --density-px: 0.75rem; --density-py: 0.5rem; --density-gap: 0.5rem;
-        --density-text: 0.875rem; }
-[data-density="compact"] { --density-row:1.75rem; --density-input:2rem; --density-btn:2rem;
-        --density-px:0.5rem; --density-py:0.25rem; --density-gap:0.375rem; --density-text:0.8125rem; }
-[data-density="touch"]   { --density-row:2.75rem; --density-input:2.75rem; --density-btn:2.75rem;
-        --density-px:1rem;   --density-py:0.625rem; --density-gap:0.625rem; --density-text:0.9375rem; }
-```
+5. Проверить expenses отдельно
+   - `useExpenses(date)` сейчас использует старый интервал `05:00 → 05:00`.
+   - Привести к тому же бизнес-дню `13:00 → 13:00`, чтобы Cage/Close Shift/Dashboard не расходились.
 
-## 3. Подключение к design-system
+6. Минимальная проверка после изменений
+   - Проверить, что транзакция в 04:00 не показывается в CCTV Cage History за текущий новый бизнес-день.
+   - Проверить, что она показывается при выборе предыдущей бизнес-даты.
+   - Проверить, что активный cashier shift не потерял свои текущие записи, потому что они дополнительно фильтруются по `shift_id`.
 
-Минимально-инвазивно (без переписывания компонентов):
-- `DataTable` — высота строки `style={{height:'var(--density-row)'}}`.
-- `FormGrid` / `PageShell` — `gap: var(--density-gap)`.
-- `Input`, `Button` (shadcn `ui/input.tsx`, `ui/button.tsx` — default size) — `h-[var(--density-input)]`, `px-[var(--density-px)]`, `text-[length:var(--density-text)]`.
-- `ResponsiveDialog` body padding через `var(--density-px)`.
-
-Важно: меняем только `default` size. Явные `size="sm"` / `size="lg"` остаются как есть (печать, иконочные кнопки).
-
-## 4. UI переключатель
-
-`src/components/DensityToggle.tsx` — segmented control из 4 опций:
-`Auto · Comfort · Compact · Touch`. Подсказывает текущий effective когда выбран Auto.
-
-Размещение: в **профиле пользователя** (см. п.5), рядом с переключателем темы.
-
-## 5. Профиль пользователя в сайдбаре
-
-Сейчас в `AppSidebar` нет ссылки на профиль. Добавить:
-- Внизу сайдбара (над `LogoutButton`) — кнопка с email + ролью, открывает `ResponsiveDialog` "Profile".
-- Содержимое диалога:
-  - Имя/email/роль (read-only).
-  - **Theme**: Light / Dark (использует существующий `useTheme`).
-  - **Density**: Auto / Comfort / Compact / Touch.
-  - **Change password** — форма (current → new → confirm) через `supabase.auth.updateUser({ password })`.
-- В мобильном `MobileHeader` — та же кнопка профиля.
-
-## 6. Memory
-
-Обновить `mem://index.md` Core: добавить строку про density tokens + per-role default.
-Создать `mem://design/density-system` с описанием токенов и правил применения.
-
-## Технические детали
-
-Файлы создать:
-- `src/lib/density.tsx`
-- `src/components/DensityToggle.tsx`
-- `src/components/UserProfileDialog.tsx`
-
-Файлы править:
-- `src/App.tsx` — обернуть в `DensityProvider`.
-- `src/index.css` — токены density + правки `cms-*` где нужно.
-- `src/components/ui/input.tsx`, `src/components/ui/button.tsx` — default size через CSS-переменные.
-- `src/components/layout/AppSidebar.tsx` — кнопка профиля + проброс в Mobile header.
-- `src/components/ui/data-table.tsx` (или где задаётся высота строки) — `var(--density-row)`.
-- `mem://index.md`, новый `mem://design/density-system`.
-
-Без миграций БД, без edge functions — версию НЕ бампим.
+Технически это UI/query-level исправление. Базу менять не нужно, потому что у `transactions`, `cage_transfers`, `chip_transfers` нет `business_date`, и их можно корректно фильтровать по `created_at` через бизнес-интервал.

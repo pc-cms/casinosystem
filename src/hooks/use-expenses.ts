@@ -19,13 +19,9 @@ export const useExpenses = (date?: string) => {
         .order("created_at", { ascending: false });
       
       if (date) {
-        // Business day in Africa/Dar_es_Salaam runs 05:00 → 05:00 next day.
-        // EAT = UTC+3, so business day D in UTC = [D 02:00 UTC, D+1 02:00 UTC).
-        const start = new Date(`${date}T02:00:00.000Z`).toISOString();
-        const endDate = new Date(`${date}T02:00:00.000Z`);
-        endDate.setUTCDate(endDate.getUTCDate() + 1);
-        const end = endDate.toISOString();
-        query = query.gte("created_at", start).lt("created_at", end);
+        // Business day window: D 13:00 EAT → D+1 13:00 EAT (matches transactions/chip transfers).
+        const { businessDayHourUTC } = await import("@/lib/business-day");
+        query = query.gte("created_at", businessDayHourUTC(date, 13)).lt("created_at", businessDayHourUTC(date, 13 + 24));
       } else {
         query = query.limit(200);
       }

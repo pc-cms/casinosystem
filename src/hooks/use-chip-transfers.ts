@@ -8,6 +8,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
+import { businessDayHourUTC } from "@/lib/business-day";
 
 export type ChipTransfer = {
   id: string;
@@ -36,7 +37,7 @@ export const useChipTransfers = (date?: string) => {
         .select("*")
         .eq("casino_id", casinoId)
         .order("created_at", { ascending: false });
-      if (date) q = q.gte("created_at", `${date}T00:00:00`).lte("created_at", `${date}T23:59:59`);
+      if (date) q = q.gte("created_at", businessDayHourUTC(date, 13)).lt("created_at", businessDayHourUTC(date, 13 + 24));
       const { data, error } = await q.limit(500);
       if (error) throw error;
       return (data || []) as ChipTransfer[];
