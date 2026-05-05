@@ -87,7 +87,7 @@ const PlayerStatistics = () => {
   };
 
   const showFinancials = canSeePlayerFinancials(roles);
-  const canTransfer = roles.some(r => ["pit", "manager", "super_admin"].includes(r));
+  const canTransfer = false;
 
   const { data: visits = [] } = useQuery({
     queryKey: ["casino_visits", casinoId, effectiveDate],
@@ -661,7 +661,7 @@ const PlayerStatistics = () => {
                         </>
                       );
                     })()}
-                    {canTransfer && <th className="px-2 py-2.5 text-right w-8"></th>}
+                    
                   </tr>
                   {filtered.length > 0 && (
                     <tr className="text-sm bg-primary/10 border-b-2 border-primary/30 font-mono">
