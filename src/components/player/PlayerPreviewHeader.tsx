@@ -161,7 +161,7 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
               onClick={() => nav(`/players/${player.id}`)}
               className="gap-1 mt-1"
             >
-              Open profile <ExternalLink className="h-3.5 w-3.5" />
+              Profile <ExternalLink className="h-3.5 w-3.5" />
             </Button>
           </div>
 
