@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { useGamingTables, useTransactions, useTableTracker, usePlayers } from "@/hooks/use-casino-data";
 import { useActiveShift } from "@/hooks/use-shift";
 import { useChipSnapshots } from "@/hooks/use-chips";
@@ -13,7 +14,7 @@ import { formatCurrency } from "@/lib/currency";
 import { Play, Lock, LayoutGrid } from "lucide-react";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { CloseTableWizard } from "@/components/tables/CloseTableWizard";
+
 import { CloseBusinessDayButton } from "@/components/pit/CloseBusinessDayButton";
 import { liveTableResult, buildLatestTableSnapshot } from "@/lib/table-live-result";
 import TableSeatingDialog from "@/components/pit/TableSeatingDialog";
@@ -50,12 +51,13 @@ const Tables = () => {
   const { casinoId, user } = useAuth();
   const isReadOnly = useReadOnlyMode();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const today = businessDay;
   const windowStartUTC = businessDayHourUTC(today, 13);
 
   // Close Table wizard
-  const [showCloseWizard, setShowCloseWizard] = useState(false);
+  
   // Seating dialog
   const [openTableId, setOpenTableId] = useState<string | null>(null);
 
@@ -484,7 +486,7 @@ const Tables = () => {
           </Button>
         )}
 
-        <Button size="sm" onClick={() => setShowCloseWizard(true)} disabled={openTables.length === 0} className="gap-1.5">
+        <Button size="sm" onClick={() => navigate("/tables/close")} disabled={openTables.length === 0} className="gap-1.5">
           <Lock className="w-4 h-4" /> {isReadOnly ? "Closing Check" : "Close Table"}
         </Button>
 
@@ -551,13 +553,6 @@ const Tables = () => {
       </div>
       {tables.length === 0 && <p className="text-muted-foreground text-sm text-center py-8">No tables configured</p>}
 
-      <CloseTableWizard
-        open={showCloseWizard}
-        onClose={() => setShowCloseWizard(false)}
-        tables={tables as any}
-        date={date}
-        readOnly={isReadOnly}
-      />
 
       <TableSeatingDialog
         open={!!openTableId}

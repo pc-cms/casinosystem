@@ -39,9 +39,11 @@ type Props = {
   date: string;
   /** Surveillance "Closing Check" mode — view-only, only Cancel button works. */
   readOnly?: boolean;
+  /** Render content inline (full-page route) instead of inside a Dialog. */
+  asPage?: boolean;
 };
 
-export const CloseTableWizard = ({ open, onClose, tables, date, readOnly = false }: Props) => {
+export const CloseTableWizard = ({ open, onClose, tables, date, readOnly = false, asPage = false }: Props) => {
   // Only OPEN tables enter the wizard (closed tables are already done)
   const wizardTables = useMemo(
     () => tables.filter(t => t.status === "open").sort((a, b) => a.name.localeCompare(b.name)),
@@ -179,238 +181,269 @@ export const CloseTableWizard = ({ open, onClose, tables, date, readOnly = false
   const liveResult = current ? calcResult(current, currentCounts) : 0;
   const tableBaseline = current ? baselineMap[current.id] || {} : {};
 
+  const headerNode = (
+    <div className="flex items-center justify-between gap-4">
+      <div className="flex items-center gap-2 text-base font-semibold">
+        <Lock className="w-4 h-4" />
+        {readOnly ? "Closing Check" : "Close Tables"}
+        <Badge variant="outline" className="ml-2 font-mono text-[10px]">
+          {wizardTables.filter(isCounted).length} / {wizardTables.length} saved
+        </Badge>
+        {readOnly && (
+          <Badge variant="outline" className="ml-1 text-[10px]">View only</Badge>
+        )}
+      </div>
+      {!readOnly && wizardTables.filter(isCounted).length > 0 && (
+        <span className="text-[10px] text-muted-foreground hidden sm:block">
+          Saved tables are sent to Cashier for payout
+        </span>
+      )}
+    </div>
+  );
+
+  const bodyNode = wizardTables.length === 0 ? (
+    <p className="text-center text-sm text-muted-foreground py-8">No open tables to close</p>
+  ) : (
+    <div className="grid grid-cols-[200px_1fr] gap-4">
+      {/* LEFT — table list */}
+      <div className={cn("space-y-1 border-r border-border pr-3 overflow-y-auto", asPage ? "max-h-[calc(100vh-260px)]" : "max-h-[60vh]")}>
+        {wizardTables.map((t, i) => {
+          const counted = isCounted(t);
+          return (
+            <button
+              key={t.id}
+              onClick={() => setCurrentIdx(i)}
+              className={cn(
+                "w-full flex items-center justify-between gap-2 px-2 py-1.5 rounded-md text-xs transition-colors text-left",
+                i === currentIdx
+                  ? "bg-primary/10 text-primary font-medium border border-primary/30"
+                  : "hover:bg-muted/40 text-card-foreground"
+              )}
+            >
+              <span className="flex items-center gap-1.5 truncate">
+                {counted ? (
+                  <Check className="w-3.5 h-3.5 text-success shrink-0" />
+                ) : (
+                  <div className="w-3.5 h-3.5 rounded-full border border-muted-foreground/40 shrink-0" />
+                )}
+                <span className="truncate">{t.name}</span>
+              </span>
+              {counted && (
+                <span
+                  className={cn(
+                    "font-mono text-[10px]",
+                    Number(t.closing_result) >= 0 ? "text-success" : "text-destructive"
+                  )}
+                >
+                  {Number(t.closing_result) >= 0 ? "+" : ""}
+                  {formatCurrency(Number(t.closing_result))}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* RIGHT — current table detail */}
+      {current && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between border-b border-border pb-2">
+            <div>
+              <h3 className="text-sm font-semibold text-card-foreground">{current.name}</h3>
+              <p className="text-[11px] text-muted-foreground">{current.game}</p>
+            </div>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                onClick={() => setCurrentIdx(i => Math.max(0, i - 1))}
+                disabled={currentIdx === 0}
+              >
+                <ChevronLeft className="w-3.5 h-3.5" />
+              </Button>
+              <span className="text-[10px] text-muted-foreground font-mono">
+                {currentIdx + 1} / {wizardTables.length}
+              </span>
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                onClick={() => setCurrentIdx(i => Math.min(wizardTables.length - 1, i + 1))}
+                disabled={currentIdx === wizardTables.length - 1}
+              >
+                <ChevronRight className="w-3.5 h-3.5" />
+              </Button>
+            </div>
+          </div>
+
+          {/* Inputs grid */}
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="border-b border-border">
+                <th className="text-left py-1.5 px-2 text-muted-foreground font-medium">Denom</th>
+                <th className="text-center py-1.5 px-2 text-muted-foreground font-medium">Float (Baseline)</th>
+                <th className="text-center py-1.5 px-2 text-muted-foreground font-medium">Actual Count</th>
+                <th className="text-right py-1.5 px-2 text-muted-foreground font-medium">Diff Value</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(current.denominations || []).map(d => {
+                const expected = tableBaseline[d] || 0;
+                const actual = currentCounts[d] ?? 0;
+                const diff = (actual - expected) * d;
+                return (
+                  <tr key={d} className="border-b border-border/50 last:border-0">
+                    <td className="py-1.5 px-2">
+                      {(() => { const c = resolveChipColor(d, chipColorOverrides); return (
+                        <span className="cms-chip text-[9px]" style={{ backgroundColor: c.bg, color: c.text }}>
+                          {formatChipLabel(d)}
+                        </span>
+                      ); })()}
+                    </td>
+                    <td className="py-1.5 px-2 text-center font-mono text-[11px] text-muted-foreground">
+                      {expected}
+                    </td>
+                    <td className="py-1.5 px-2">
+                      <input
+                        type="number"
+                        min="0"
+                        value={currentCounts[d] ?? ""}
+                        readOnly={readOnly}
+                        disabled={readOnly}
+                        onChange={e => {
+                          if (readOnly) return;
+                          const v = e.target.value === "" ? 0 : parseInt(e.target.value, 10);
+                          setCount(d, isNaN(v) ? 0 : v);
+                        }}
+                        className="w-24 h-8 mx-auto block rounded text-[12px] font-mono text-center border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary text-card-foreground disabled:opacity-100 disabled:cursor-default"
+                        placeholder={String(expected)}
+                      />
+                    </td>
+                    <td
+                      className={cn(
+                        "py-1.5 px-2 text-right font-mono text-[11px]",
+                        diff > 0 && "text-success",
+                        diff < 0 && "text-destructive",
+                        diff === 0 && "text-muted-foreground"
+                      )}
+                    >
+                      {diff > 0 ? "+" : ""}
+                      {formatCurrency(diff)}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+
+          {/* Live result */}
+          <div className="cms-panel p-3 flex items-center justify-between">
+            <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Result</span>
+            <span
+              className={cn(
+                "font-mono text-lg font-bold",
+                liveResult >= 0 ? "text-success" : "text-destructive"
+              )}
+            >
+              {liveResult >= 0 ? "+" : ""}
+              {formatCurrency(liveResult)}
+            </span>
+          </div>
+
+          {/* Actions */}
+          {readOnly ? (
+            <div className="flex items-center justify-end gap-2 pt-1">
+              <Button variant="outline" size="sm" onClick={onClose} className="gap-1.5">
+                <X className="w-3.5 h-3.5" /> Cancel
+              </Button>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between gap-2 pt-1">
+              <div className="flex gap-2">
+                {isCounted(current) && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowOverride(true)}
+                    className="gap-1.5 text-destructive hover:text-destructive"
+                  >
+                    <ShieldAlert className="w-3.5 h-3.5" /> Reopen (Manager)
+                  </Button>
+                )}
+                {asPage && allCounted && (
+                  <Button
+                    size="sm"
+                    variant="default"
+                    onClick={handleTablesClose}
+                    disabled={closeAll.isPending}
+                    className="gap-1.5"
+                  >
+                    <Lock className="w-3.5 h-3.5" /> Tables Close ({wizardTables.length})
+                  </Button>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <Button variant="ghost" size="sm" onClick={onClose} className="gap-1.5">
+                  <X className="w-3.5 h-3.5" /> Close
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleSave(false)}
+                  disabled={setSingleResult.isPending}
+                >
+                  Save
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => handleSave(true)}
+                  disabled={setSingleResult.isPending || currentIdx === wizardTables.length - 1}
+                  className="gap-1.5"
+                >
+                  Save & Next <ChevronRight className="w-3.5 h-3.5" />
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+
+  const overrideNode = (
+    <ManagerOverrideDialog
+      open={showOverride}
+      onClose={() => setShowOverride(false)}
+      onConfirm={handleReopenConfirmed}
+      title="Reopen Table — Manager Access"
+      description={`Reopen ${current?.name ?? ""} for recount? This clears the saved closing result.`}
+      actionType="TABLE_RESULT_REOPEN"
+      actionDetails={{ table_id: current?.id, table_name: current?.name }}
+    />
+  );
+
+  if (asPage) {
+    return (
+      <>
+        <div className="space-y-3">
+          {headerNode}
+          {bodyNode}
+        </div>
+        {overrideNode}
+      </>
+    );
+  }
+
   return (
     <>
       <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
         <DialogContent className="max-w-5xl">
           <DialogHeader>
-            <div className="flex items-center justify-between gap-4">
-              <DialogTitle className="flex items-center gap-2">
-                <Lock className="w-4 h-4" />
-                {readOnly ? "Closing Check" : "Close Tables"}
-                <Badge variant="outline" className="ml-2 font-mono text-[10px]">
-                  {wizardTables.filter(isCounted).length} / {wizardTables.length} saved
-                </Badge>
-                {readOnly && (
-                  <Badge variant="outline" className="ml-1 text-[10px]">View only</Badge>
-                )}
-              </DialogTitle>
-              {!readOnly && wizardTables.filter(isCounted).length > 0 && (
-                <span className="text-[10px] text-muted-foreground hidden sm:block">
-                  Saved tables are sent to Cashier for payout
-                </span>
-              )}
-            </div>
+            <DialogTitle asChild>{headerNode}</DialogTitle>
           </DialogHeader>
-
-          {wizardTables.length === 0 ? (
-            <p className="text-center text-sm text-muted-foreground py-8">No open tables to close</p>
-          ) : (
-            <div className="grid grid-cols-[200px_1fr] gap-4">
-              {/* LEFT — table list */}
-              <div className="space-y-1 border-r border-border pr-3 max-h-[60vh] overflow-y-auto">
-                {wizardTables.map((t, i) => {
-                  const counted = isCounted(t);
-                  return (
-                    <button
-                      key={t.id}
-                      onClick={() => setCurrentIdx(i)}
-                      className={cn(
-                        "w-full flex items-center justify-between gap-2 px-2 py-1.5 rounded-md text-xs transition-colors text-left",
-                        i === currentIdx
-                          ? "bg-primary/10 text-primary font-medium border border-primary/30"
-                          : "hover:bg-muted/40 text-card-foreground"
-                      )}
-                    >
-                      <span className="flex items-center gap-1.5 truncate">
-                        {counted ? (
-                          <Check className="w-3.5 h-3.5 text-success shrink-0" />
-                        ) : (
-                          <div className="w-3.5 h-3.5 rounded-full border border-muted-foreground/40 shrink-0" />
-                        )}
-                        <span className="truncate">{t.name}</span>
-                      </span>
-                      {counted && (
-                        <span
-                          className={cn(
-                            "font-mono text-[10px]",
-                            Number(t.closing_result) >= 0 ? "text-success" : "text-destructive"
-                          )}
-                        >
-                          {Number(t.closing_result) >= 0 ? "+" : ""}
-                          {formatCurrency(Number(t.closing_result))}
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* RIGHT — current table detail */}
-              {current && (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between border-b border-border pb-2">
-                    <div>
-                      <h3 className="text-sm font-semibold text-card-foreground">{current.name}</h3>
-                      <p className="text-[11px] text-muted-foreground">{current.game}</p>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon-xs"
-                        onClick={() => setCurrentIdx(i => Math.max(0, i - 1))}
-                        disabled={currentIdx === 0}
-                      >
-                        <ChevronLeft className="w-3.5 h-3.5" />
-                      </Button>
-                      <span className="text-[10px] text-muted-foreground font-mono">
-                        {currentIdx + 1} / {wizardTables.length}
-                      </span>
-                      <Button
-                        variant="ghost"
-                        size="icon-xs"
-                        onClick={() => setCurrentIdx(i => Math.min(wizardTables.length - 1, i + 1))}
-                        disabled={currentIdx === wizardTables.length - 1}
-                      >
-                        <ChevronRight className="w-3.5 h-3.5" />
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Inputs grid */}
-                  <table className="w-full text-xs">
-                    <thead>
-                      <tr className="border-b border-border">
-                        <th className="text-left py-1.5 px-2 text-muted-foreground font-medium">Denom</th>
-                        <th className="text-center py-1.5 px-2 text-muted-foreground font-medium">Float (Baseline)</th>
-                        <th className="text-center py-1.5 px-2 text-muted-foreground font-medium">Actual Count</th>
-                        <th className="text-right py-1.5 px-2 text-muted-foreground font-medium">Diff Value</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(current.denominations || []).map(d => {
-                        const expected = tableBaseline[d] || 0;
-                        const actual = currentCounts[d] ?? 0;
-                        const diff = (actual - expected) * d;
-                        return (
-                          <tr key={d} className="border-b border-border/50 last:border-0">
-                            <td className="py-1.5 px-2">
-                              {(() => { const c = resolveChipColor(d, chipColorOverrides); return (
-                                <span className="cms-chip text-[9px]" style={{ backgroundColor: c.bg, color: c.text }}>
-                                  {formatChipLabel(d)}
-                                </span>
-                              ); })()}
-                            </td>
-                            <td className="py-1.5 px-2 text-center font-mono text-[11px] text-muted-foreground">
-                              {expected}
-                            </td>
-                            <td className="py-1.5 px-2">
-                              <input
-                                type="number"
-                                min="0"
-                                value={currentCounts[d] ?? ""}
-                                readOnly={readOnly}
-                                disabled={readOnly}
-                                onChange={e => {
-                                  if (readOnly) return;
-                                  const v = e.target.value === "" ? 0 : parseInt(e.target.value, 10);
-                                  setCount(d, isNaN(v) ? 0 : v);
-                                }}
-                                className="w-24 h-8 mx-auto block rounded text-[12px] font-mono text-center border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary text-card-foreground disabled:opacity-100 disabled:cursor-default"
-                                placeholder={String(expected)}
-                              />
-                            </td>
-                            <td
-                              className={cn(
-                                "py-1.5 px-2 text-right font-mono text-[11px]",
-                                diff > 0 && "text-success",
-                                diff < 0 && "text-destructive",
-                                diff === 0 && "text-muted-foreground"
-                              )}
-                            >
-                              {diff > 0 ? "+" : ""}
-                              {formatCurrency(diff)}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-
-                  {/* Live result */}
-                  <div className="cms-panel p-3 flex items-center justify-between">
-                    <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Result</span>
-                    <span
-                      className={cn(
-                        "font-mono text-lg font-bold",
-                        liveResult >= 0 ? "text-success" : "text-destructive"
-                      )}
-                    >
-                      {liveResult >= 0 ? "+" : ""}
-                      {formatCurrency(liveResult)}
-                    </span>
-                  </div>
-
-                  {/* Actions */}
-                  {readOnly ? (
-                    <div className="flex items-center justify-end gap-2 pt-1">
-                      <Button variant="outline" size="sm" onClick={onClose} className="gap-1.5">
-                        <X className="w-3.5 h-3.5" /> Cancel
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-between gap-2 pt-1">
-                      <div>
-                        {isCounted(current) && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setShowOverride(true)}
-                            className="gap-1.5 text-destructive hover:text-destructive"
-                          >
-                            <ShieldAlert className="w-3.5 h-3.5" /> Reopen (Manager)
-                          </Button>
-                        )}
-                      </div>
-                      <div className="flex gap-2">
-                        <Button variant="ghost" size="sm" onClick={onClose} className="gap-1.5">
-                          <X className="w-3.5 h-3.5" /> Close
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleSave(false)}
-                          disabled={setSingleResult.isPending}
-                        >
-                          Save
-                        </Button>
-                        <Button
-                          size="sm"
-                          onClick={() => handleSave(true)}
-                          disabled={setSingleResult.isPending || currentIdx === wizardTables.length - 1}
-                          className="gap-1.5"
-                        >
-                          Save & Next <ChevronRight className="w-3.5 h-3.5" />
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
+          {bodyNode}
         </DialogContent>
       </Dialog>
-
-      <ManagerOverrideDialog
-        open={showOverride}
-        onClose={() => setShowOverride(false)}
-        onConfirm={handleReopenConfirmed}
-        title="Reopen Table — Manager Access"
-        description={`Reopen ${current?.name ?? ""} for recount? This clears the saved closing result.`}
-        actionType="TABLE_RESULT_REOPEN"
-        actionDetails={{ table_id: current?.id, table_name: current?.name }}
-      />
+      {overrideNode}
     </>
   );
 };
