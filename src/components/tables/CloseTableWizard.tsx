@@ -286,7 +286,7 @@ export const CloseTableWizard = ({ open, onClose, tables, date, readOnly = false
               </tr>
             </thead>
             <tbody>
-              {(current.denominations || []).map(d => {
+              {[...(current.denominations || [])].sort((a, b) => b - a).map(d => {
                 const expected = tableBaseline[d] || 0;
                 const actual = currentCounts[d] ?? 0;
                 const diff = (actual - expected) * d;
