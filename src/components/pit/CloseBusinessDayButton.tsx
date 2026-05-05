@@ -11,24 +11,27 @@ import {
 import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
 
 /**
- * Manager (always) or Pit (with active Manager Access) closes the current
- * business day. Closing requires manager password (or RFID) confirmation.
- * After closing, all operational filters advance to the next day; if
- * forgotten, an automatic close runs at 11:00 AM EAT.
+ * Close the current business day. Visible always to staff working the cage
+ * surface (cashier / manager / pit / finance / super_admin). Confirmation
+ * always requires manager password (or RFID) — the role gate only controls
+ * who sees the button, never who can authorize the close.
+ *
+ * Money for the day is reconciled in the Cage, so the close action lives here.
+ * If forgotten, an automatic close runs at 11:00 AM EAT.
  */
 export function CloseBusinessDayButton() {
-  const { roles, managerOverride } = useAuth();
+  const { roles } = useAuth();
   const { data: currentDate } = useEffectiveBusinessDate();
   const { data: lastClosure } = useLastBusinessDayClosure();
   const closeMut = useCloseBusinessDay();
   const [open, setOpen] = useState(false);
   const [askPassword, setAskPassword] = useState(false);
 
-  const isManager = roles.includes("manager");
-  const isPit = roles.includes("pit");
-  const canClose = isManager || (isPit && managerOverride.active);
+  const canSee = roles.some(r =>
+    ["cashier", "manager", "pit", "finance_manager", "super_admin"].includes(r)
+  );
 
-  if (!canClose) return null;
+  if (!canSee) return null;
 
   const handleProceed = () => {
     setOpen(false);
