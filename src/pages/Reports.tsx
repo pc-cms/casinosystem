@@ -402,7 +402,7 @@ const ExpenseReport = ({ from, to }: { from: string; to: string }) => {
     <div className="space-y-3">
       <div className="grid grid-cols-3 gap-2">
         <div className="cms-panel p-2"><p className="text-[9px] uppercase text-muted-foreground">Total</p><p className="font-mono text-sm font-bold text-card-foreground">{formatCurrency(data.total)}</p></div>
-        <div className="cms-panel p-2"><p className="text-[9px] uppercase text-muted-foreground">Approved</p><p className="font-mono text-sm font-bold text-success">{formatCurrency(data.approved)}</p></div>
+        <div className="cms-panel p-2"><p className="text-[9px] uppercase text-muted-foreground">Approved</p><p className="font-mono font-bold text-success text-3xl">{formatCurrency(data.approved)}</p></div>
         <div className="cms-panel p-2"><p className="text-[9px] uppercase text-muted-foreground">Pending</p><p className="font-mono text-sm font-bold text-warning">{formatCurrency(data.pending)}</p></div>
       </div>
 

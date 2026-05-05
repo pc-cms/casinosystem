@@ -249,7 +249,7 @@ const Dashboard = () => {
                 <p className={`font-mono text-2xl font-bold mt-1 whitespace-nowrap ${t.result >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
                   {t.result >= 0 ? "+" : ""}{formatCurrency(t.result)}
                 </p>
-                <p className="font-mono text-xs text-muted-foreground mt-1">R: {formatCurrency(t.dropR)} · V: {formatCurrency(t.dropV)}</p>
+                <p className="font-mono text-xs text-muted-foreground mt-1">​</p>
               </Link>
             ))}
             <Link to="/tables" className="cms-panel p-4 border-primary/30 hover:border-primary/60 transition-colors">
@@ -257,7 +257,7 @@ const Dashboard = () => {
               <p className={`font-mono text-2xl font-bold mt-1 whitespace-nowrap ${totalResult >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
                 {totalResult >= 0 ? "+" : ""}{formatCurrency(totalResult)}
               </p>
-              <p className="font-mono text-xs text-muted-foreground mt-1">R: {formatCurrency(totalDropR)} · V: {formatCurrency(totalDropV)}</p>
+              <p className="font-mono text-xs text-muted-foreground mt-1">​</p>
             </Link>
           </div>
         </div>

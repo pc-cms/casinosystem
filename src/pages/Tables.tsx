@@ -399,7 +399,7 @@ const Tables = () => {
         role={isOpen ? "button" : undefined}
       >
         <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-          <div className="flex items-center gap-3 min-w-0">
+          <div className="flex items-center gap-3 min-w-0 text-xs">
             <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${isOpen ? "bg-success" : "bg-destructive"}`} />
             <div className="min-w-0">
               <h3 className="text-sm font-semibold text-card-foreground truncate">{table.name}</h3>
@@ -446,7 +446,7 @@ const Tables = () => {
             <p className="font-mono text-xs font-bold text-card-foreground">{formatCurrency(r.dropR)}</p>
           </div>
           <div>
-            <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Drop V</p>
+            <p className="text-[10px] uppercase text-muted-foreground tracking-wider">​</p>
             <p className="font-mono text-xs font-bold text-card-foreground">{formatCurrency(r.dropV)}</p>
           </div>
           <div>
@@ -503,7 +503,7 @@ const Tables = () => {
       <div className="grid gap-2 mb-4" style={{ gridTemplateColumns: `repeat(${Object.keys(gameTypeTotals).length + 1}, minmax(0, 1fr))` }}>
         {Object.entries(gameTypeTotals).map(([game, t]) => (
           <div key={game} className="cms-panel p-2">
-            <p className="text-[9px] uppercase text-muted-foreground tracking-wider">{t.label}</p>
+            <p className="uppercase text-muted-foreground tracking-wider text-lg">{t.label}</p>
             <p className={`font-mono text-sm font-bold ${t.result >= 0 ? "text-success" : "text-destructive"}`}>
               {t.result >= 0 ? "+" : ""}{formatCurrency(t.result)}
             </p>
@@ -511,7 +511,7 @@ const Tables = () => {
           </div>
         ))}
         <div className="cms-panel p-2 border-primary/30">
-          <p className="text-[9px] uppercase text-muted-foreground tracking-wider">Total Casino</p>
+          <p className="uppercase text-muted-foreground tracking-wider text-lg">Total Casino</p>
           <p className={`font-mono text-sm font-bold ${totalResult >= 0 ? "text-success" : "text-destructive"}`}>
             {totalResult >= 0 ? "+" : ""}{formatCurrency(totalResult)}
           </p>
@@ -541,12 +541,12 @@ const Tables = () => {
       {/* Two-column Table Cards */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <div className="space-y-3">
-          <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-1 border-b border-border pb-1">AR / BJ</h3>
+          <h3 className="font-medium text-muted-foreground uppercase tracking-wider px-1 border-b border-border pb-1 text-xl">AR / BJ</h3>
           {leftTables.map(renderTableCard)}
           {leftTables.length === 0 && <p className="text-xs text-muted-foreground text-center py-4">No AR/BJ tables</p>}
         </div>
         <div className="space-y-3">
-          <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-1 border-b border-border pb-1">Poker</h3>
+          <h3 className="font-medium text-muted-foreground uppercase tracking-wider px-1 border-b border-border pb-1 text-xl">Poker</h3>
           {rightTables.map(renderTableCard)}
           {rightTables.length === 0 && <p className="text-xs text-muted-foreground text-center py-4">No Poker tables</p>}
         </div>
