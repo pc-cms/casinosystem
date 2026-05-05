@@ -151,11 +151,6 @@ const TableSeatingDialog = ({
                         onClick={() => { setEditPlayerId(p.id); setEditBet(String(p.avgBet || "")); }}>
                         <Pencil className="w-3.5 h-3.5" />
                       </Button>
-                      {onChipTransfer && (
-                        <Button size="sm" variant="ghost" title="Chip Transfer" onClick={() => onChipTransfer(p)}>
-                          <ArrowLeftRight className="w-3.5 h-3.5" />
-                        </Button>
-                      )}
                       <Button size="sm" variant="ghost" title="Stop session" onClick={() => onStop(p.id)} disabled={isPending}>
                         <LogOut className="w-3.5 h-3.5" />
                       </Button>

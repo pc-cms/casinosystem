@@ -407,9 +407,6 @@ const ActivePlayers = () => {
         onMove={(pid, bet) => openTableId && changeTable.mutate({ playerId: pid, tableId: openTableId, avgBet: bet })}
         onStop={(pid) => stopSession.mutate(pid)}
         onUpdateBet={(pid, bet) => updateAvgBet.mutate({ playerId: pid, avgBet: bet })}
-        onChipTransfer={canTransfer ? (p) => navigate(
-          `/players/${p.id}/chip-transfer?dir=out${openTableId ? `&table=${openTableId}` : ""}`
-        ) : undefined}
       />
 
     </div>
