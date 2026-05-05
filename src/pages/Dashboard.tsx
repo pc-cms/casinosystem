@@ -242,22 +242,22 @@ const Dashboard = () => {
       {showFinancials && gameTypeCount > 0 && (
         <div className="mb-6">
           
-          <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${gameTypeCount + 1}, minmax(0, 1fr))` }}>
+          <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${gameTypeCount + 1}, minmax(0, 1fr))` }}>
             {Object.entries(gameTypeTotals).map(([game, t]) => (
-              <Link to="/tables" key={game} className="cms-panel p-2 hover:border-primary/30 transition-colors">
-                <p className="text-[9px] uppercase text-muted-foreground tracking-wider">{t.label}</p>
-                <p className={`font-mono text-sm font-bold ${t.result >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
+              <Link to="/tables" key={game} className="cms-panel p-4 hover:border-primary/30 transition-colors">
+                <p className="text-xs uppercase text-muted-foreground tracking-wider">{t.label}</p>
+                <p className={`font-mono text-2xl font-bold mt-1 ${t.result >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
                   {t.result >= 0 ? "+" : ""}{formatCurrency(t.result)}
                 </p>
-                <p className="font-mono text-[10px] text-muted-foreground">R: {formatCurrency(t.dropR)} · V: {formatCurrency(t.dropV)}</p>
+                <p className="font-mono text-xs text-muted-foreground mt-1">R: {formatCurrency(t.dropR)} · V: {formatCurrency(t.dropV)}</p>
               </Link>
             ))}
-            <Link to="/tables" className="cms-panel p-2 border-primary/30 hover:border-primary/60 transition-colors">
-              <p className="text-[9px] uppercase text-muted-foreground tracking-wider">Total Casino</p>
-              <p className={`font-mono text-sm font-bold ${totalResult >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
+            <Link to="/tables" className="cms-panel p-4 border-primary/30 hover:border-primary/60 transition-colors">
+              <p className="text-xs uppercase text-muted-foreground tracking-wider">Total Casino</p>
+              <p className={`font-mono text-2xl font-bold mt-1 ${totalResult >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
                 {totalResult >= 0 ? "+" : ""}{formatCurrency(totalResult)}
               </p>
-              <p className="font-mono text-[10px] text-muted-foreground">R: {formatCurrency(totalDropR)} · V: {formatCurrency(totalDropV)}</p>
+              <p className="font-mono text-xs text-muted-foreground mt-1">R: {formatCurrency(totalDropR)} · V: {formatCurrency(totalDropV)}</p>
             </Link>
           </div>
         </div>
