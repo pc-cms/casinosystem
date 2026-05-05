@@ -286,6 +286,21 @@ const Expenses = () => {
         actionType="APPROVE_EXPENSE"
         actionDetails={{ expense_id: pendingApproveId }}
       />
+
+      <ManagerOverrideDialog
+        open={!!pendingDelete}
+        onClose={() => setPendingDelete(null)}
+        onConfirm={() => {
+          if (pendingDelete) {
+            del.mutate(pendingDelete);
+            setPendingDelete(null);
+          }
+        }}
+        title="Delete Expense"
+        description="This permanently removes the expense. Manager authentication required. The deletion is logged for audit."
+        actionType="DELETE_EXPENSE"
+        actionDetails={pendingDelete || {}}
+      />
     </div>
   );
 };
