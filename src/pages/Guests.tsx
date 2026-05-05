@@ -18,7 +18,8 @@ import { Button } from "@/components/ui/button";
 import CategoryBadge, { type PlayerCategory } from "@/components/player/CategoryBadge";
 import CategoryFilter from "@/components/player/CategoryFilter";
 import FlagBadges from "@/components/player/FlagBadges";
-import PlayerEditDialog from "@/components/PlayerEditDialog";
+import { PlayerPreviewHeader } from "@/components/player/PlayerPreviewHeader";
+import { useSelectedPlayer } from "@/hooks/use-selected-player";
 
 type TabKey = "day" | "present" | "left";
 type SortKey = "name" | "type" | "position" | "entry" | "exit";
@@ -51,7 +52,7 @@ const Guests = () => {
   );
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
-  const [profilePlayer, setProfilePlayer] = useState<any>(null);
+  const { select: selectPlayer } = useSelectedPlayer();
 
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir(d => (d === "asc" ? "desc" : "asc"));
@@ -255,7 +256,7 @@ const Guests = () => {
       <td className="px-1 py-1.5 font-mono text-xs w-[44px] text-center">{r.isCandidate ? "·" : formatTime(r.entryAt)}</td>
       <td className="px-1 py-1.5 font-mono text-xs w-[44px] text-center">{r.isCandidate ? "·" : formatTime(r.exitAt)}</td>
       <td className="px-1 py-1.5 text-right whitespace-nowrap">
-        <Button variant="ghost" size="sm" className="h-7 w-7 p-0" title="View profile" onClick={(e) => { e.stopPropagation(); setProfilePlayer(r.rawPlayer); }}>
+        <Button variant="ghost" size="sm" className="h-7 w-7 p-0" title="View profile" onClick={(e) => { e.stopPropagation(); selectPlayer(r.playerId); }}>
           <Eye className="w-3.5 h-3.5" />
         </Button>
         {r.isCandidate && canCheckIn && (
@@ -296,6 +297,8 @@ const Guests = () => {
         subtitle={`${counts.present} present · ${counts.left} left`}
         date
       />
+
+      <PlayerPreviewHeader />
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as TabKey)} className="space-y-3">
         <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -421,11 +424,6 @@ const Guests = () => {
         </TabsContent>
       </Tabs>
 
-      <PlayerEditDialog
-        player={profilePlayer}
-        open={!!profilePlayer}
-        onOpenChange={(v) => { if (!v) setProfilePlayer(null); }}
-      />
     </PageShell>
   );
 };

@@ -12,6 +12,8 @@ import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import { Link } from "react-router-dom";
 import { cacheBlacklist, getCachedBlacklist, getLocalPhotoUrl } from "@/lib/blacklist-cache";
+import { PlayerPreviewHeader } from "@/components/player/PlayerPreviewHeader";
+import { useSelectedPlayer } from "@/hooks/use-selected-player";
 
 const BlacklistPhoto = ({ playerId, photoUrl }: { playerId: string; photoUrl: string | null }) => {
   const [src, setSrc] = useState<string | null>(photoUrl);
@@ -68,6 +70,7 @@ const Blacklist = () => {
   const [pendingAction, setPendingAction] = useState<{ player: any; action: "blacklist" | "reactivate" } | null>(null);
   const [search, setSearch] = useState("");
   const [addTarget, setAddTarget] = useState<{ id: string; name: string } | null>(null);
+  const { select: selectPlayer } = useSelectedPlayer();
 
   const { data: players = [] } = useQuery({
     queryKey: ["players"],
@@ -180,6 +183,8 @@ const Blacklist = () => {
         )}
       </PageHeader>
 
+      <PlayerPreviewHeader />
+
       {/* Top global search bar */}
       <div className="cms-panel p-3 mb-4">
         <div className="relative">
@@ -228,12 +233,12 @@ const Blacklist = () => {
               key={p.id}
               className="rounded-md border-2 border-destructive bg-destructive/5 dark:bg-destructive/10 overflow-hidden flex flex-col"
             >
-              <Link to={`/players/${p.id}`} className="relative w-full aspect-square ring-2 ring-destructive ring-inset overflow-hidden bg-destructive/10 block">
+              <button type="button" onClick={() => selectPlayer(p.id)} className="relative w-full aspect-square ring-2 ring-destructive ring-inset overflow-hidden bg-destructive/10 block text-left">
                 <BlacklistPhoto playerId={p.id} photoUrl={p.photo_url} />
                 <div className="absolute top-1 right-1 bg-destructive text-destructive-foreground text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider flex items-center gap-1">
                   <Ban className="w-2.5 h-2.5" /> BL
                 </div>
-              </Link>
+              </button>
               <div className="p-2 space-y-1.5">
                 <div>
                   <p className="text-sm font-bold text-foreground leading-tight truncate">
