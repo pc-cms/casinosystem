@@ -672,7 +672,7 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
               </span>
             </td>
             <td className={`px-3 py-1 text-xs font-medium text-card-foreground sticky left-[28px] z-10 ${idx % 2 === 0 ? "bg-card" : "bg-card/95"}`}>
-              {dealer.name}
+              <span className="text-muted-foreground font-mono mr-1.5">{idx + 1}.</span>{dealer.name}
             </td>
             {days.map(day => {
               const display = getDisplayShift(dealer.id, day);
