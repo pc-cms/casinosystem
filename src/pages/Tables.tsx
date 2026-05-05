@@ -349,7 +349,7 @@ const Tables = () => {
 
   const gameTypeTotals = useMemo(() => {
     const totals: Record<string, { dropR: number; dropV: number; result: number; label: string }> = {};
-    const gameLabels: Record<string, string> = { "American Roulette": "Total ARs", "Poker": "Total P", "Blackjack": "Total BJ" };
+    const gameLabels: Record<string, string> = { "American Roulette": "TOTAL ARs", "Poker": "TOTAL POKER", "Blackjack": "TOTAL BJ" };
     tables.forEach(t => {
       const label = gameLabels[t.game] || `Total ${t.game}`;
       if (!totals[t.game]) totals[t.game] = { dropR: 0, dropV: 0, result: 0, label };
@@ -410,11 +410,11 @@ const Tables = () => {
           </div>
           <div className="text-right">
             <p className="text-[9px] uppercase text-muted-foreground tracking-wider leading-none">Drop</p>
-            <p className="font-mono text-xs font-bold text-card-foreground whitespace-nowrap mt-0.5">{formatCurrency(r.dropR)}</p>
+            <p className="font-mono text-2xl font-bold text-card-foreground whitespace-nowrap mt-0.5">{formatCurrency(r.dropR)}</p>
           </div>
           <div className="text-right">
             <p className="text-[9px] uppercase text-muted-foreground tracking-wider leading-none">Result</p>
-            <p className={`font-mono text-xs font-bold whitespace-nowrap mt-0.5 ${r.result >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
+            <p className={`font-mono text-2xl font-bold whitespace-nowrap mt-0.5 ${r.result >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
               {r.result >= 0 ? "+" : ""}{formatCurrency(r.result)}
             </p>
           </div>
@@ -453,9 +453,6 @@ const Tables = () => {
                         {initials}
                       </div>
                     )}
-                    <span className="absolute -bottom-0.5 -right-0.5">
-                      <CategoryBadge category={p.category} />
-                    </span>
                   </div>
                   <p className="text-[10px] font-medium text-card-foreground truncate max-w-[64px] mt-1 text-center">
                     {p.first_name} {p.last_name?.[0] ?? ""}.
@@ -516,7 +513,7 @@ const Tables = () => {
         {Object.entries(gameTypeTotals).map(([game, t]) => (
           <div key={game} className="cms-panel p-2">
             <p className="uppercase text-muted-foreground tracking-wider text-lg">{t.label}</p>
-            <p className={`font-mono text-sm font-bold ${t.result >= 0 ? "text-success" : "text-destructive"}`}>
+            <p className={`font-mono text-2xl font-bold ${t.result >= 0 ? "text-success" : "text-destructive"}`}>
               {t.result >= 0 ? "+" : ""}{formatCurrency(t.result)}
             </p>
             <p className="font-mono text-[10px] text-muted-foreground">​</p>
@@ -524,7 +521,7 @@ const Tables = () => {
         ))}
         <div className="cms-panel p-2 border-primary/30">
           <p className="uppercase text-muted-foreground tracking-wider text-lg">Total Casino</p>
-          <p className={`font-mono text-sm font-bold ${totalResult >= 0 ? "text-success" : "text-destructive"}`}>
+          <p className={`font-mono text-2xl font-bold ${totalResult >= 0 ? "text-success" : "text-destructive"}`}>
             {totalResult >= 0 ? "+" : ""}{formatCurrency(totalResult)}
           </p>
           <p className="font-mono text-[10px] text-muted-foreground">​</p>
