@@ -53,7 +53,7 @@ const TablesAnalytics = lazy(() => import("@/pages/TablesAnalytics"));
 const PlayerStatistics = lazy(() => import("@/pages/PlayerStatistics"));
 const Cashless = lazy(() => import("@/pages/Cashless"));
 const BusinessDays = lazy(() => import("@/pages/BusinessDays"));
-const TablesReport = lazy(() => import("@/pages/TablesReport"));
+
 const Pitbook = lazy(() => import("@/pages/Pitbook"));
 const CloseShiftPage = lazy(() => import("@/pages/cage/CloseShiftPage"));
 const RegisterPlayerPage = lazy(() => import("@/pages/cage/RegisterPlayerPage"));
