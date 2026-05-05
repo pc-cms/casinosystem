@@ -447,7 +447,7 @@ const Tables = () => {
           </div>
           <div>
             <p className="text-[10px] uppercase text-muted-foreground tracking-wider">​</p>
-            <p className="font-mono text-xs font-bold text-card-foreground">{formatCurrency(r.dropV)}</p>
+            <p className="font-mono text-xs font-bold text-card-foreground">​</p>
           </div>
           <div>
             <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Result</p>
@@ -507,7 +507,7 @@ const Tables = () => {
             <p className={`font-mono text-sm font-bold ${t.result >= 0 ? "text-success" : "text-destructive"}`}>
               {t.result >= 0 ? "+" : ""}{formatCurrency(t.result)}
             </p>
-            <p className="font-mono text-[10px] text-muted-foreground">R: {formatCurrency(t.dropR)} · V: {formatCurrency(t.dropV)}</p>
+            <p className="font-mono text-[10px] text-muted-foreground">​</p>
           </div>
         ))}
         <div className="cms-panel p-2 border-primary/30">
@@ -515,7 +515,7 @@ const Tables = () => {
           <p className={`font-mono text-sm font-bold ${totalResult >= 0 ? "text-success" : "text-destructive"}`}>
             {totalResult >= 0 ? "+" : ""}{formatCurrency(totalResult)}
           </p>
-          <p className="font-mono text-[10px] text-muted-foreground">R: {formatCurrency(totalDropR)} · V: {formatCurrency(totalDropV)}</p>
+          <p className="font-mono text-[10px] text-muted-foreground">​</p>
         </div>
       </div>
 
