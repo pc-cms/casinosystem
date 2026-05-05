@@ -4,6 +4,29 @@ import { useAuth } from "@/lib/auth-context";
 import { logAction } from "@/lib/logging";
 import { toast } from "sonner";
 
+// ============ LAST CLOSED SHIFT (for carrying over rates) ============
+export const useLastClosedShift = () => {
+  const { casinoId } = useAuth();
+  return useQuery({
+    queryKey: ["last-closed-shift", casinoId],
+    queryFn: async () => {
+      if (!casinoId) return null;
+      const { data, error } = await supabase
+        .from("shifts")
+        .select("exchange_rates, closed_at")
+        .eq("casino_id", casinoId)
+        .eq("status", "closed")
+        .order("closed_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!casinoId,
+    staleTime: 60_000,
+  });
+};
+
 // ============ ACTIVE SHIFT ============
 export const useActiveShift = () => {
   const { casinoId } = useAuth();
