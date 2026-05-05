@@ -1,28 +1,33 @@
-## Goal
-Allow CCTV (`surveillance`) role to open **Table Results** in read-only mode, with full Week / Month / Year preset switching, but locked to the **current calendar year** (no access to past years, no Custom range outside the year).
+## Player Statistics — Drop / IN / OUT как суммы
 
-## Context
-- `/table-results` is currently restricted to `super_admin`, `manager`, `finance_manager` (`src/App.tsx` `ROUTE_ROLES`, `src/components/layout/AppSidebar.tsx`).
-- The page (`src/pages/TableResults.tsx`) is purely a read-only report — no edit/save/delete actions exist. So "view-only" is automatic.
-- Presets are: Week / Month / Year / Custom. We will keep Week / Month / Year for surveillance and clamp all anchors to the current year.
+### Что меняется в столбцах
+| Столбец | Сейчас | Будет |
+|---|---|---|
+| **Drop** | Сумма всех CASH IN за день (`buy`+`in`) | NEP **Drop R** за день (только внешний кеш, рециркулированные выигрыши исключены) |
+| **In** | Кол-во транзакций (1, 2…) | **Сумма CASH IN** за день (TZS) |
+| **Out** | Кол-во транзакций | **Сумма CASH OUT** за день (TZS) |
+| C In / C Out / Result | без изменений | без изменений |
 
-## Changes
+Result-формула не меняется: `(out + chipOut) − (cashIn + chipIn)`. Drop теперь чисто аналитический столбец и в Result не входит (как и сейчас — Result считается из `out − inDrop`, где `inDrop` сейчас = total cash-in; после правки переменная просто переименуется в `cashIn`, значение то же).
 
-1. **`src/App.tsx`** — add `"surveillance"` to the `/table-results` entry in `ROUTE_ROLES`.
+### Backend
+Добавить batch RPC `compute_players_drop_split(_casino_id uuid, _from timestamptz, _to timestamptz)` → `(player_id uuid, drop_r bigint, drop_recycled bigint)`. Логика та же, что в существующих `compute_player_drop_split` / `compute_tables_drop_split`, но возвращает строку на каждого игрока, у которого был cash-in в окне. Это один запрос вместо N — критично для страницы со 100+ игроков.
 
-2. **`src/components/layout/AppSidebar.tsx`** — add `"surveillance"` to the `roles` array of the `Table Results` nav item so it shows in their sidebar.
+Версия `package.json` бампается автоматически (новый RPC = backend change).
 
-3. **`src/pages/TableResults.tsx`** — surveillance-only restrictions:
-   - Read `roles` via `useAuth()`. Compute `isSurveillanceOnly = roles.includes("surveillance") && !roles.some(r => ["manager","super_admin","finance_manager"].includes(r))`.
-   - When `isSurveillanceOnly`:
-     - Hide the **Custom** preset button (still allow Week / Month / Year).
-     - If user lands with `preset === "custom"`, force back to `"month"`.
-     - Clamp `weekAnchor`, `monthAnchor`, `yearAnchor` to the **current calendar year**:
-       - Year picker: show only the current year (single button, no list of past years).
-       - Month picker: only months of the current year selectable.
-       - Week picker: disable dates outside the current year in the Calendar `disabled` prop.
-     - Hide the XLSX export button (optional — keep it as it's still read-only data of the same rows already on screen). Default: keep export enabled.
+### Frontend (`src/pages/PlayerStatistics.tsx`)
+1. Подключить новый хук `usePlayersDropSplit(windowStart, windowEnd)` в `src/hooks/use-drop-split.ts` (Map<player_id, dropR>).
+2. В `rows` добавить поле `dropR = playersDropSplit.get(v.player_id) ?? 0`. Переименовать `inDrop` → `cashIn` для ясности.
+3. Шапка / порядок столбцов: `№ / Name / Entry / Left / Pos / Bet / Drop / In / Out / C In / C Out / Result` (как уже есть).
+4. Ячейки:
+   - `Drop` → `<Money value={r.dropR} />` (вместо cash-in суммы)
+   - `In` → `<Money value={r.cashIn} />` (вместо `r.inCount`)
+   - `Out` → `<Money value={r.out} />` (вместо `r.outCount`)
+5. Total-строка: `Drop` = Σ dropR, `In` = Σ cashIn, `Out` = Σ out.
+6. Сортировка: ключи `inDrop` → `dropR`, `inCount` → `cashIn` (числовая), `outCount` → `out` (числовая).
+7. Тултипы: Drop = «Drop R — external cash only (NEP)», In = «Total cash in», Out = «Total cash out».
+8. Min-width у `In`/`Out` поднять с 50px до 110px (чтобы суммы не резались, как сейчас у Drop).
 
-## Out of scope
-- No DB / RLS changes — `daily_results` SELECT is already allowed for surveillance via casino-scoped policies. If a runtime check shows RLS blocks reads, add a SELECT policy in a follow-up.
-- No new module-permission key — `/table-results` already maps to the `reports` module (`src/lib/route-module-map.ts`).
+### Не трогаем
+- Player Card (PlayerPreviewHeader) — там уже "Cash In (mo)" корректен.
+- Логика Result, Chip Transfers, шапка PageHeader, фильтры.
