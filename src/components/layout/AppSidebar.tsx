@@ -8,8 +8,9 @@ import {
   Building2, UserCheck, ClipboardPen, ShieldCheck, ShieldOff,
   Wallet, DoorOpen, ShieldAlert, Menu, Upload, FileText,
   ChevronsLeft, ChevronsRight, CreditCard, CalendarDays, ChevronDown, ChevronRight, Coins, Briefcase,
-  RefreshCw, MessageSquare,
+  RefreshCw, MessageSquare, User as UserIcon,
 } from "lucide-react";
+import { UserProfileDialog } from "@/components/UserProfileDialog";
 import { resetPWACache } from "@/lib/pwa-register";
 import { useTheme } from "@/lib/theme";
 import { useAuth } from "@/lib/auth-context";
@@ -340,6 +341,7 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
     || (activeCasino?.slug ?? "").toLowerCase() === "arusha";
   const location = useLocation();
   const [showOverrideDialog, setShowOverrideDialog] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
 
   const rawTab = new URLSearchParams(location.search).get("tab");
   const isPitActive = location.pathname === "/pit" && rawTab !== "breaklist";
