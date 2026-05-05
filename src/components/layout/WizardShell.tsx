@@ -67,7 +67,7 @@ interface WizardShellProps {
 
 export const WizardShell = ({
   title,
-  description,
+  subtitle,
   steps,
   onConfirm,
   onCancel,
