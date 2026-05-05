@@ -75,6 +75,8 @@ export const formatNumberSpaces = (num: number): string => {
 };
 
 export const formatCurrency = (amount: number, currency: string = "TZS"): string => {
+  // Hide the default TZS prefix to save horizontal space; show symbol only for foreign currencies.
+  if (currency === "TZS") return formatNumberSpaces(amount);
   const sym = CURRENCY_SYMBOLS[currency] || currency;
   return `${sym} ${formatNumberSpaces(amount)}`;
 };
