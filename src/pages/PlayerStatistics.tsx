@@ -352,18 +352,83 @@ const PlayerStatistics = () => {
     onError: (e: any) => toast.error(e.message),
   });
 
-  // Open tables (skip closed/archived) for the dropdown.
+  // Open tables (skip closed/archived) for the picker.
   const openTables = useMemo(
     () => tables.filter((t: any) => t.status === "open"),
     [tables]
   );
 
+  // Stable color index per table — alphabetical order of all tables.
+  const tableColorIndex = useMemo(() => {
+    const sorted = [...tables].sort((a: any, b: any) => (a.name || "").localeCompare(b.name || ""));
+    const m = new Map<string, number>();
+    sorted.forEach((t: any, i: number) => m.set(t.id, i));
+    return m;
+  }, [tables]);
+
+  const PositionPicker = ({ r, currentValue }: { r: any; currentValue: string }) => {
+    const [open, setOpen] = useState(false);
+    const selectedTable = openTables.find((t: any) => t.id === currentValue);
+    const selectedTableName = selectedTable?.name ?? r.tableName;
+    const triggerLabel = currentValue === "hall" ? "Hall"
+      : currentValue === "slots" ? "Slots"
+      : (selectedTableName ?? "T");
+    const triggerClasses = currentValue === "slots"
+      ? "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30"
+      : selectedTable
+        ? getTableCellClasses(selectedTable.id, tableColorIndex.get(selectedTable.id) ?? 0, "D")
+        : "bg-muted text-muted-foreground border-border";
+
+    const pick = (v: string) => {
+      setOpen(false);
+      setPosition.mutate({ visitId: r.id, playerId: r.playerId, newPos: v });
+    };
+
+    return (
+      <div onClick={(e) => e.stopPropagation()}>
+        <Popover open={open} onOpenChange={setOpen}>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              disabled={setPosition.isPending}
+              className={`h-6 px-2 rounded text-[10px] font-mono font-bold border w-full truncate ${triggerClasses}`}
+            >
+              {triggerLabel}
+            </button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-1.5" align="start">
+            <div className="flex flex-wrap gap-1 mb-1.5 max-w-[260px]">
+              <button onClick={() => pick("hall")}
+                className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-secondary text-secondary-foreground hover:opacity-80">
+                Hall
+              </button>
+              <button onClick={() => pick("slots")}
+                className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-500/20 text-amber-700 dark:text-amber-400 hover:opacity-80">
+                Slots
+              </button>
+            </div>
+            {openTables.length > 0 && (
+              <div className="border-t border-border pt-1.5">
+                <p className="text-[8px] text-muted-foreground uppercase px-1 mb-1">Tables</p>
+                <div className="flex flex-wrap gap-1 max-w-[260px]">
+                  {openTables.map((t: any) => (
+                    <button key={t.id} onClick={() => pick(t.id)}
+                      className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold hover:opacity-80 ${getTableCellClasses(t.id, tableColorIndex.get(t.id) ?? 0, "D")}`}>
+                      {t.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </PopoverContent>
+        </Popover>
+      </div>
+    );
+  };
+
   const renderPositionCell = (r: any) => {
     if (!r.isPresent) return <span className="text-[10px] text-muted-foreground">—</span>;
 
-    // Current value: prefer active session's table_id (most up-to-date after mutation),
-    // then fall back to visit.position. visits and sessions refetch independently, so
-    // an active session with table_id is the source of truth for "seated at table".
     const activeSession = activeSessionByPlayer[r.playerId];
     const currentValue = activeSession?.table_id
       ? activeSession.table_id
@@ -382,35 +447,7 @@ const PlayerStatistics = () => {
         <Badge variant="secondary" className="text-[10px]">Hall</Badge>
       );
     }
-    const selectedTable = openTables.find((t: any) => t.id === currentValue);
-    const selectedTableName = selectedTable?.name ?? r.tableName;
-    return (
-      <div onClick={(e) => e.stopPropagation()}>
-        <Select
-          value={currentValue}
-          onValueChange={(v) => setPosition.mutate({ visitId: r.id, playerId: r.playerId, newPos: v })}
-          disabled={setPosition.isPending}
-        >
-          <SelectTrigger className="h-6 px-1.5 py-0 text-[10px] w-full min-w-0">
-            <SelectValue>
-              {currentValue === "hall" ? "Hall"
-                : currentValue === "slots" ? "Slots"
-                : <span className="font-mono truncate">{selectedTableName ?? "T"}</span>}
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="hall">Hall</SelectItem>
-            <SelectItem value="slots">Slots</SelectItem>
-            {openTables.map((t: any) => (
-              <SelectItem key={t.id} value={t.id}>
-                <span className="font-mono">{t.name}</span>
-                <span className="text-muted-foreground text-[10px] ml-1.5">{t.game}</span>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-    );
+    return <PositionPicker r={r} currentValue={currentValue} />;
   };
 
   const { select: selectPlayer } = useSelectedPlayer();
