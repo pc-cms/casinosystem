@@ -695,14 +695,14 @@ const PlayerStatistics = () => {
                           </>
                         );
                       })()}
-                      {canTransfer && <td></td>}
+                      
                     </tr>
                   )}
                 </thead>
                 <tbody>
                   {filtered.length === 0 ? (
                     <tr>
-                      <td colSpan={5 + (showFinancials ? 7 : 0) + (canTransfer ? 1 : 0)} className="px-2 py-8 text-center text-muted-foreground text-xs">
+                      <td colSpan={5 + (showFinancials ? 7 : 0)} className="px-2 py-8 text-center text-muted-foreground text-xs">
                         No players to display
                       </td>
                     </tr>
