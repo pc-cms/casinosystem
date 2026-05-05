@@ -816,7 +816,7 @@ const DepartmentBlock = ({
       return (
         <tr key={staff.id} className={`border-b border-border last:border-0 ${idx % 2 === 0 ? "" : "bg-muted/10"}`}>
           <td className={`px-3 py-1 text-xs font-medium text-card-foreground sticky left-0 z-10 ${idx % 2 === 0 ? "bg-card" : "bg-card/95"}`}>
-            {staff.name}
+            <span className="text-muted-foreground font-mono mr-1.5">{idx + 1}.</span>{staff.name}
           </td>
           {days.map(day => {
             const display = getDisplayShift(staff.id, day);
