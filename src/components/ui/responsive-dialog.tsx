@@ -69,6 +69,16 @@ export const ResponsiveDialog = ({
 }: ResponsiveDialogProps) => {
   const isMobile = useIsMobile();
 
+  // Auto-reset internal state on close: every fresh open remounts children,
+  // so leftover form values / partial edits never persist between sessions.
+  // Increment a key each time the dialog transitions from closed → opened.
+  const [mountKey, setMountKey] = React.useState(0);
+  const wasOpen = React.useRef(open);
+  React.useEffect(() => {
+    if (open && !wasOpen.current) setMountKey((k) => k + 1);
+    wasOpen.current = open;
+  }, [open]);
+
   if (isMobile && !alwaysDialog) {
     return (
       <Drawer open={open} onOpenChange={onOpenChange}>
@@ -79,7 +89,7 @@ export const ResponsiveDialog = ({
               {description && <DrawerDescription>{description}</DrawerDescription>}
             </DrawerHeader>
           )}
-          <div className="px-4 pb-4 overflow-y-auto">{children}</div>
+          <div key={mountKey} className="px-4 pb-4 overflow-y-auto">{children}</div>
         </DrawerContent>
       </Drawer>
     );
@@ -94,7 +104,7 @@ export const ResponsiveDialog = ({
             {description && <DialogDescription>{description}</DialogDescription>}
           </DialogHeader>
         )}
-        {children}
+        <div key={mountKey}>{children}</div>
       </DialogContent>
     </Dialog>
   );
