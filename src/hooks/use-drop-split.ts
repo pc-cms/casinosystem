@@ -36,6 +36,31 @@ export const useTablesDropSplit = (fromIso: string | null, toIso: string | null)
   });
 };
 
+/** Returns Map<player_id, { dropR, recycled }> for casino over [from, to]. */
+export const usePlayersDropSplit = (fromIso: string | null, toIso: string | null) => {
+  const { casinoId } = useAuth();
+  return useQuery({
+    queryKey: ["players-drop-split", casinoId, fromIso, toIso],
+    queryFn: async () => {
+      if (!casinoId || !fromIso || !toIso) return new Map<string, TableSplit>();
+      const { data, error } = await supabase.rpc("compute_players_drop_split" as any, {
+        _casino_id: casinoId,
+        _from: fromIso,
+        _to: toIso,
+      });
+      if (error) throw error;
+      const m = new Map<string, TableSplit>();
+      (data || []).forEach((r: any) => {
+        m.set(r.player_id, { dropR: Number(r.drop_r) || 0, recycled: Number(r.drop_recycled) || 0 });
+      });
+      return m;
+    },
+    enabled: !!casinoId && !!fromIso && !!toIso,
+    staleTime: 1000 * 30,
+    refetchInterval: 60_000,
+  });
+};
+
 /** Returns { dropR, recycled } for a single player over [from, to] (defaults to lifetime). */
 export const usePlayerDropSplit = (
   playerId: string | null | undefined,
