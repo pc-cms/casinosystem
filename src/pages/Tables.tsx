@@ -509,22 +509,22 @@ const Tables = () => {
       </PageHeader>
 
       <>
-      <div className="grid gap-2 mb-4" style={{ gridTemplateColumns: `repeat(${Object.keys(gameTypeTotals).length + 1}, minmax(0, 1fr))` }}>
+      <div className="grid gap-3 mb-6" style={{ gridTemplateColumns: `repeat(${Object.keys(gameTypeTotals).length + 1}, minmax(0, 1fr))` }}>
         {Object.entries(gameTypeTotals).map(([game, t]) => (
-          <div key={game} className="cms-panel p-2">
-            <p className="uppercase text-muted-foreground tracking-wider text-lg">{t.label}</p>
-            <p className={`font-mono text-2xl font-bold ${t.result >= 0 ? "text-success" : "text-destructive"}`}>
+          <div key={game} className="cms-panel p-4">
+            <p className="text-xs uppercase text-muted-foreground tracking-wider">{t.label}</p>
+            <p className={`font-mono text-2xl font-bold mt-1 whitespace-nowrap ${t.result >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
               {t.result >= 0 ? "+" : ""}{formatCurrency(t.result)}
             </p>
-            <p className="font-mono text-[10px] text-muted-foreground">​</p>
+            <p className="font-mono text-xs text-muted-foreground mt-1">​</p>
           </div>
         ))}
-        <div className="cms-panel p-2 border-primary/30">
-          <p className="uppercase text-muted-foreground tracking-wider text-lg">Total Casino</p>
-          <p className={`font-mono text-2xl font-bold ${totalResult >= 0 ? "text-success" : "text-destructive"}`}>
+        <div className="cms-panel p-4 border-primary/30">
+          <p className="text-xs uppercase text-muted-foreground tracking-wider">Total Casino</p>
+          <p className={`font-mono text-2xl font-bold mt-1 whitespace-nowrap ${totalResult >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
             {totalResult >= 0 ? "+" : ""}{formatCurrency(totalResult)}
           </p>
-          <p className="font-mono text-[10px] text-muted-foreground">​</p>
+          <p className="font-mono text-xs text-muted-foreground mt-1">​</p>
         </div>
       </div>
 
