@@ -71,10 +71,10 @@ const NumberInput = ({
 };
 
 const LEVEL_TINT: Record<string, string> = {
-  diamond: "bg-blue-50/70 dark:bg-blue-500/10 border-blue-200 dark:border-blue-500/30",
-  platinum: "bg-purple-50/70 dark:bg-purple-500/10 border-purple-200 dark:border-purple-500/30",
-  gold: "bg-yellow-50/70 dark:bg-yellow-500/10 border-yellow-200 dark:border-yellow-500/30",
-  normal: "bg-card/95 border-border",
+  diamond: "bg-blue-100 dark:bg-[hsl(220_50%_18%)] border-blue-200 dark:border-blue-500/40",
+  platinum: "bg-purple-100 dark:bg-[hsl(270_40%_18%)] border-purple-200 dark:border-purple-500/40",
+  gold: "bg-yellow-100 dark:bg-[hsl(45_50%_18%)] border-yellow-200 dark:border-yellow-500/40",
+  normal: "bg-card border-border",
 };
 
 
@@ -119,7 +119,7 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
   return (
     <div
       className={cn(
-        "relative -mx-4 mb-4 border-b border-border px-4 py-4 shadow-sm",
+        "sticky top-0 z-30 -mx-4 mb-4 border-b border-border px-4 py-4 shadow-sm",
         tint,
         className
       )}
@@ -161,7 +161,7 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
               onClick={() => nav(`/players/${player.id}`)}
               className="gap-1 mt-1"
             >
-              Open profile <ExternalLink className="h-3.5 w-3.5" />
+              Profile <ExternalLink className="h-3.5 w-3.5" />
             </Button>
           </div>
 
