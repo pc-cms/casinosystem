@@ -11,12 +11,12 @@
  *   - Module-permissions dialog reused as-is for super_admin
  */
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Search, Pencil, SlidersHorizontal, Shield, Trash2 } from "lucide-react";
-import { UserEditorDialog, type UserEditorTarget } from "./UserEditorDialog";
 import { UserPermissionsDialog } from "@/components/admin/UserPermissionsDialog";
 import { ROLE_LABELS, useUsersProfiles, useUsersRoles, useAllCasinos, useDisableUser } from "./users-hooks";
 import {
@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 export const UsersTab = () => {
+  const navigate = useNavigate();
   const { user, roles: callerRoles } = useAuth();
   const isSuperAdmin = callerRoles.includes("super_admin");
   const isFinance = callerRoles.includes("finance_manager");
@@ -43,8 +44,6 @@ export const UsersTab = () => {
   const disableUser = useDisableUser();
 
   const [search, setSearch] = useState("");
-  const [editorTarget, setEditorTarget] = useState<UserEditorTarget | null>(null);
-  const [editorOpen, setEditorOpen] = useState(false);
   const [permsTarget, setPermsTarget] = useState<{ id: string; name: string } | null>(null);
   const [disableTarget, setDisableTarget] = useState<{ id: string; name: string } | null>(null);
 
@@ -61,21 +60,8 @@ export const UsersTab = () => {
     });
   }, [search, profiles, rolesByUser]);
 
-  const openCreate = () => {
-    setEditorTarget({ mode: "create" });
-    setEditorOpen(true);
-  };
-
-  const openEdit = (p: typeof profiles[number]) => {
-    setEditorTarget({
-      mode: "edit",
-      userId: p.user_id,
-      displayName: p.display_name || "",
-      casinoId: p.casino_id,
-      roles: rolesByUser[p.user_id] || [],
-    });
-    setEditorOpen(true);
-  };
+  const openCreate = () => navigate("/admin/users/new");
+  const openEdit = (p: typeof profiles[number]) => navigate(`/admin/users/${p.user_id}/edit`);
 
   return (
     <div className="space-y-4">
@@ -218,7 +204,7 @@ export const UsersTab = () => {
         </div>
       </div>
 
-      <UserEditorDialog open={editorOpen} onOpenChange={setEditorOpen} target={editorTarget} />
+      
 
       <UserPermissionsDialog
         open={!!permsTarget}
