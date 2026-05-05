@@ -58,6 +58,8 @@ const RegisterPlayerPage = lazy(() => import("@/pages/cage/RegisterPlayerPage"))
 const EditOpeningChipsPage = lazy(() => import("@/pages/cage/EditOpeningChipsPage"));
 const CloseTablesPage = lazy(() => import("@/pages/tables/CloseTablesPage"));
 const ChipTransferPage = lazy(() => import("@/pages/players/ChipTransferPage"));
+const UserNewPage = lazy(() => import("@/pages/admin/UserNewPage"));
+const UserEditPage = lazy(() => import("@/pages/admin/UserEditPage"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -220,6 +222,8 @@ const ProtectedRoutes = () => {
           <Route path="/stats" element={<Navigate to="/player-statistics" replace />} />
           <Route path="/logs" element={<RoleGuard path="/logs"><Logs /></RoleGuard>} />
           <Route path="/admin" element={<RoleGuard path="/admin"><Admin /></RoleGuard>} />
+          <Route path="/admin/users/new" element={<RoleGuard path="/admin"><ErrorBoundary><UserNewPage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/admin/users/:id/edit" element={<RoleGuard path="/admin"><ErrorBoundary><UserEditPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/import-reports" element={<RoleGuard path="/import-reports"><ImportReports /></RoleGuard>} />
           <Route path="/table-results" element={<RoleGuard path="/table-results"><TableResults /></RoleGuard>} />
           <Route path="/bank-checks" element={<RoleGuard path="/bank-checks"><BankChecks /></RoleGuard>} />
