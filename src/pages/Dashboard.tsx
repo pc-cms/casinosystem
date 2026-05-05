@@ -32,7 +32,7 @@ const StatCard = ({ label, value, icon: Icon, href }: {
     <div className="flex items-start justify-between">
       <div>
         <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">{label}</p>
-        <p className="text-4xl font-bold font-mono mt-2 text-card-foreground">{value}</p>
+        <p className="text-4xl font-bold font-mono mt-2 whitespace-nowrap text-card-foreground">{value}</p>
       </div>
       <div className="p-3 rounded-md bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors">
         <Icon className="w-7 h-7" />
@@ -204,7 +204,7 @@ const Dashboard = () => {
                 <div className="flex items-start justify-between">
                   <div>
                     <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Result</p>
-                    <p className={`text-4xl font-bold font-mono mt-2 ${totalResult >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
+                    <p className={`text-4xl font-bold font-mono mt-2 whitespace-nowrap ${totalResult >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
                       {totalResult >= 0 ? "+" : ""}{formatCurrency(totalResult)}
                     </p>
                   </div>
@@ -222,7 +222,7 @@ const Dashboard = () => {
                   <div className="flex items-start justify-between">
                     <div>
                       <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Pending Expenses</p>
-                      <p className="text-4xl font-bold font-mono mt-2 text-card-foreground">{pendingExpenses}</p>
+                      <p className="text-4xl font-bold font-mono mt-2 whitespace-nowrap text-card-foreground">{pendingExpenses}</p>
                     </div>
                     <div className="p-3 rounded-md bg-muted text-muted-foreground">
                       <Receipt className="w-7 h-7" />
@@ -246,7 +246,7 @@ const Dashboard = () => {
             {Object.entries(gameTypeTotals).map(([game, t]) => (
               <Link to="/tables" key={game} className="cms-panel p-4 hover:border-primary/30 transition-colors">
                 <p className="text-xs uppercase text-muted-foreground tracking-wider">{t.label}</p>
-                <p className={`font-mono text-2xl font-bold mt-1 ${t.result >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
+                <p className={`font-mono text-2xl font-bold mt-1 whitespace-nowrap ${t.result >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
                   {t.result >= 0 ? "+" : ""}{formatCurrency(t.result)}
                 </p>
                 <p className="font-mono text-xs text-muted-foreground mt-1">R: {formatCurrency(t.dropR)} · V: {formatCurrency(t.dropV)}</p>
@@ -254,7 +254,7 @@ const Dashboard = () => {
             ))}
             <Link to="/tables" className="cms-panel p-4 border-primary/30 hover:border-primary/60 transition-colors">
               <p className="text-xs uppercase text-muted-foreground tracking-wider">Total Casino</p>
-              <p className={`font-mono text-2xl font-bold mt-1 ${totalResult >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
+              <p className={`font-mono text-2xl font-bold mt-1 whitespace-nowrap ${totalResult >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
                 {totalResult >= 0 ? "+" : ""}{formatCurrency(totalResult)}
               </p>
               <p className="font-mono text-xs text-muted-foreground mt-1">R: {formatCurrency(totalDropR)} · V: {formatCurrency(totalDropV)}</p>
