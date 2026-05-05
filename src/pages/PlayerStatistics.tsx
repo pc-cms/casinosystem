@@ -649,7 +649,7 @@ const PlayerStatistics = () => {
                       );
                       return (
                         <>
-                          <th className="px-2 py-2.5 text-center sticky left-0 bg-muted/30 z-20 w-10">№</th>
+                          <th className="px-2 py-3 text-center sticky left-0 bg-muted/30 z-20 w-10 font-semibold">№</th>
                           <H k="name" sticky="sticky left-10">Name</H>
                           <H k="entry">Entry</H>
                           <H k="exit">Left</H>
