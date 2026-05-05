@@ -576,10 +576,13 @@ const CloseTablesForm = ({ tables }: { tables: Tables<"gaming_tables">[] }) => {
   const [confirmed, setConfirmed] = useState<Record<string, boolean>>({});
   const baselineMap = useMemo(() => baselineToMap(baseline), [baseline]);
   const tablesWithResults = useMemo(() => tables.filter(t => t.closing_result !== null && t.status === "open"), [tables]);
+  const confirmedIds = useMemo(() => tablesWithResults.filter(t => confirmed[t.id]).map(t => t.id), [tablesWithResults, confirmed]);
+  const anyConfirmed = confirmedIds.length > 0;
   const allConfirmed = tablesWithResults.length > 0 && tablesWithResults.every(t => confirmed[t.id]);
 
   const handleClose = () => {
-    closeAllTables.mutate(tablesWithResults.map(t => t.id), { onSuccess: () => setConfirmed({}) });
+    if (confirmedIds.length === 0) return;
+    closeAllTables.mutate(confirmedIds, { onSuccess: () => setConfirmed({}) });
   };
 
   if (tablesWithResults.length === 0) {
