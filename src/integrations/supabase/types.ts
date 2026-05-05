@@ -2127,6 +2127,64 @@ export type Database = {
           },
         ]
       }
+      player_chip_adjustments: {
+        Row: {
+          business_date: string
+          casino_id: string
+          chip_in: number
+          chip_out: number
+          created_at: string
+          id: string
+          note: string
+          operator_id: string
+          player_id: string
+        }
+        Insert: {
+          business_date?: string
+          casino_id: string
+          chip_in?: number
+          chip_out?: number
+          created_at?: string
+          id?: string
+          note?: string
+          operator_id: string
+          player_id: string
+        }
+        Update: {
+          business_date?: string
+          casino_id?: string
+          chip_in?: number
+          chip_out?: number
+          created_at?: string
+          id?: string
+          note?: string
+          operator_id?: string
+          player_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "player_chip_adjustments_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "player_chip_adjustments_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "player_economy"
+            referencedColumns: ["player_id"]
+          },
+          {
+            foreignKeyName: "player_chip_adjustments_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       player_groups: {
         Row: {
           casino_id: string
