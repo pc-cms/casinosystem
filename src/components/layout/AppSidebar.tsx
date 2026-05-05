@@ -467,7 +467,18 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
 
           <div className="w-8 border-t border-sidebar-border my-1" />
 
-          {/* Theme + sign out */}
+          {/* Profile + theme + sign out */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => setShowProfile(true)}
+                className="w-10 h-10 flex items-center justify-center rounded-md hover:bg-sidebar-accent transition-colors text-sidebar-foreground"
+              >
+                <UserIcon className="w-4 h-4" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="right">Profile</TooltipContent>
+          </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
               <button
@@ -621,9 +632,13 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
           </div>
         )}
         <div className="flex items-center gap-2 px-1">
-          <p className="text-xs font-medium text-sidebar-foreground truncate flex-1" title={displayName ?? undefined}>
+          <button
+            onClick={() => setShowProfile(true)}
+            className="text-xs font-medium text-sidebar-foreground truncate flex-1 text-left hover:text-sidebar-primary transition-colors"
+            title="Open profile"
+          >
             {displayName}
-          </p>
+          </button>
           <NetworkStatusIndicator compact />
           <button
             onClick={() => { toggle(); onNavigate?.(); }}
@@ -671,6 +686,7 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
         actionType="MANAGER_ACCESS_ACTIVATE"
         actionDetails={{ activated_by: displayName }}
       />
+      <UserProfileDialog open={showProfile} onOpenChange={setShowProfile} />
     </>
   );
 };
