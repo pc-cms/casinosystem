@@ -6,8 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { Users, User, UserPlus } from "lucide-react";
-import { useState } from "react";
-import NewPlayerDialog from "@/components/cage/NewPlayerDialog";
+import { useNavigate } from "react-router-dom";
 import CategoryBadge, { type PlayerCategory } from "@/components/player/CategoryBadge";
 import { LazyImage } from "@/components/LazyImage";
 import type { Tables } from "@/integrations/supabase/types";
@@ -22,7 +21,7 @@ interface Props {
 
 const ActivePlayersList = ({ players, tables, onSelect }: Props) => {
   const { casinoId } = useAuth();
-  const [showNew, setShowNew] = useState(false);
+  const navigate = useNavigate();
   const { data: serverBusinessDate } = useEffectiveBusinessDate();
   const today = serverBusinessDate || getBusinessDate();
   const windowStartUTC = businessDayHourUTC(today, 13);
@@ -58,7 +57,7 @@ const ActivePlayersList = ({ players, tables, onSelect }: Props) => {
           Active Players ({activeRows.length})
         </span>
         <button
-          onClick={() => setShowNew(true)}
+          onClick={() => navigate("/players/register")}
           className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline"
         >
           <UserPlus className="w-3 h-3" /> New Player
@@ -107,7 +106,7 @@ const ActivePlayersList = ({ players, tables, onSelect }: Props) => {
           })
         )}
       </div>
-      <NewPlayerDialog open={showNew} onOpenChange={setShowNew} />
+      
     </div>
   );
 };
