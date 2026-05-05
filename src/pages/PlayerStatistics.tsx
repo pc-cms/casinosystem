@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { BarChart3, Search, ArrowLeftRight, ArrowUp, ArrowDown, ArrowUpDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { BarChart3, Search, ArrowUp, ArrowDown, ArrowUpDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
@@ -87,7 +87,7 @@ const PlayerStatistics = () => {
   };
 
   const showFinancials = canSeePlayerFinancials(roles);
-  const canTransfer = roles.some(r => ["pit", "manager", "super_admin"].includes(r));
+  const canTransfer = false;
 
   const { data: visits = [] } = useQuery({
     queryKey: ["casino_visits", casinoId, effectiveDate],
@@ -520,22 +520,6 @@ const PlayerStatistics = () => {
           </>
         );
       })()}
-      {canTransfer && (
-        <td className="px-1 py-1.5 text-right w-8">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-6 w-6 p-0"
-            title="Chip Transfer"
-            onClick={(e) => {
-              e.stopPropagation();
-              navigate(`/players/${r.playerId}/chip-transfer?dir=out`);
-            }}
-          >
-            <ArrowLeftRight className="w-3.5 h-3.5" />
-          </Button>
-        </td>
-      )}
     </tr>
   );
 
@@ -677,7 +661,7 @@ const PlayerStatistics = () => {
                         </>
                       );
                     })()}
-                    {canTransfer && <th className="px-2 py-2.5 text-right w-8"></th>}
+                    
                   </tr>
                   {filtered.length > 0 && (
                     <tr className="text-sm bg-primary/10 border-b-2 border-primary/30 font-mono">
@@ -711,14 +695,14 @@ const PlayerStatistics = () => {
                           </>
                         );
                       })()}
-                      {canTransfer && <td></td>}
+                      
                     </tr>
                   )}
                 </thead>
                 <tbody>
                   {filtered.length === 0 ? (
                     <tr>
-                      <td colSpan={5 + (showFinancials ? 7 : 0) + (canTransfer ? 1 : 0)} className="px-2 py-8 text-center text-muted-foreground text-xs">
+                      <td colSpan={5 + (showFinancials ? 7 : 0)} className="px-2 py-8 text-center text-muted-foreground text-xs">
                         No players to display
                       </td>
                     </tr>
