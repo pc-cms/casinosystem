@@ -662,9 +662,9 @@ const PlayerStatistics = () => {
                           {showFinancials && (
                             <>
                               <H k="avgBet" align="right">Bet</H>
-                              <H k="inDrop" align="right" title="Drop R — external cash buy-ins">Drop</H>
-                              <H k="inCount" align="right" title="Number of buy-in transactions">In</H>
-                              <H k="outCount" align="right" title="Number of cashout transactions">Out</H>
+                              <H k="dropR" align="right" title="Drop R — external cash only (NEP)">Drop</H>
+                              <H k="inDrop" align="right" title="Total cash in (all buy-ins)">In</H>
+                              <H k="out" align="right" title="Total cash out (all cashouts)">Out</H>
                               <H k="chipIn" align="right" title="Chips received from another player">C In</H>
                               <H k="chipOut" align="right" title="Chips given to another player">C Out</H>
                               <H k="result" align="right">Result</H>
