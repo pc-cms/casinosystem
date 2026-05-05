@@ -255,6 +255,7 @@ const ActiveShiftView = ({ shift, players, tables }: {
         totalBuyIns={totalIns}
         totalCashouts={totalOuts}
         totalExpenses={totalExpenses}
+        externalCashMovement={totalAddFloat + totalSlotsIn - totalCollection - totalSlotsOut}
         openingFloat={openingFloat}
         tables={tables}
         onConfirm={(data) => {

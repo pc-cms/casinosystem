@@ -50,28 +50,18 @@ export const computeMissByDenom = (
 export const missTotalValue = (missByDenom: Record<number, number>): number =>
   Object.entries(missByDenom).reduce((s, [d, q]) => s + Number(d) * (q || 0), 0);
 
-// Cash Desk Balance — money-movement reconciliation.
+// Cash Desk Balance — total-value reconciliation.
 //
-// Касса каждый день открывается с предыдущим флотом. За смену реальное
-// движение денег в кассе = Closing − Opening. Это движение должно в точности
-// совпасть с тем, что выиграли/проиграли столы (плюс компенсация за Miss
-// фишки на самой кассе).
-//
-//   netCashDeskMovement = (closingChips + closingCash) − (openingChips + openingCash)
-//   expectedMovement    = resultTable + missTotal − expenses
-//   Balance             = netCashDeskMovement − expectedMovement
-//
-// Расходы оплачиваются из кассы, поэтому уменьшают closingCash. В ожидаемом
-// движении их нужно вычесть, иначе баланс покажет ложную недостачу.
-//
-// Идеал = 0. Плюс — излишек, минус — недостача.
+// Closing already includes physical chips and cash. Chip miss is therefore not
+// a separate movement in this formula; it is already inside Closing. Expected
+// total movement is only table result plus external cash movement minus expenses.
 export const cashDeskBalance = ({
   resultTable,
   openingChips,
   openingCash,
   closingChips,
   closingCash,
-  missTotal,
+  externalCashMovement = 0,
   expenses = 0,
 }: {
   resultTable: number;
@@ -79,10 +69,10 @@ export const cashDeskBalance = ({
   openingCash: number;
   closingChips: number;
   closingCash: number;
-  missTotal: number;
+  externalCashMovement?: number;
   expenses?: number;
 }): number =>
   ((closingChips + closingCash) - (openingChips + openingCash))
   - resultTable
-  - missTotal
+  - externalCashMovement
   + expenses;

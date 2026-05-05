@@ -28,6 +28,7 @@ interface CloseShiftDialogProps {
   totalBuyIns: number;
   totalCashouts: number;
   totalExpenses: number;
+  externalCashMovement?: number;
   openingFloat: number;
   tables: Tables<"gaming_tables">[];
   onConfirm: (data: {
@@ -43,7 +44,7 @@ interface CloseShiftDialogProps {
 
 const CloseShiftDialog = ({
   open, onClose, shift, expectedBalance, cashResult, totalBuyIns, totalCashouts,
-  totalExpenses, openingFloat, tables, onConfirm, loading,
+  totalExpenses, externalCashMovement = 0, openingFloat, tables, onConfirm, loading,
 }: CloseShiftDialogProps) => {
   const [notes, setNotes] = useState("");
   const [showManagerConfirm, setShowManagerConfirm] = useState(false);
@@ -105,10 +106,10 @@ const CloseShiftDialog = ({
       openingCash: openingCashTzs,
       closingChips: closingChipsTzs,
       closingCash: closingCashTotalTzs,
-      missTotal,
+      externalCashMovement,
       expenses: totalExpenses || 0,
     }),
-    [resultTable, openingChipsTzs, openingCashTzs, closingChipsTzs, closingCashTotalTzs, missTotal, totalExpenses],
+    [resultTable, openingChipsTzs, openingCashTzs, closingChipsTzs, closingCashTotalTzs, externalCashMovement, totalExpenses],
   );
   const isBalanced = balance === 0;
   const requiresNote = !isBalanced;
@@ -363,7 +364,7 @@ const CloseShiftDialog = ({
                   </span>
                 </div>
                 <div className="flex justify-between pt-2"><span className="text-muted-foreground">− Result Table</span><span className="text-card-foreground">−{formatNumberSpaces(resultTable)}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">− Miss Chips</span><span className={missTotal === 0 ? "text-card-foreground" : missTotal > 0 ? "cms-amount-positive" : "cms-amount-negative"}>−{formatNumberSpaces(missTotal)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">− External Cash Movement</span><span className={externalCashMovement === 0 ? "text-card-foreground" : externalCashMovement > 0 ? "cms-amount-positive" : "cms-amount-negative"}>−{formatNumberSpaces(externalCashMovement)}</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">+ Expenses (paid from cash)</span><span className="text-card-foreground">+{formatNumberSpaces(totalExpenses || 0)}</span></div>
                 <div className="flex justify-between border-t border-border pt-2 mt-2 text-base font-bold">
                   <span className="text-card-foreground">= Cash Desk Balance</span>
