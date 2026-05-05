@@ -359,7 +359,7 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
                     </td>
                     {TIME_SLOTS.map(slot => {
                       const cell = getCellData(dealer.id, slot);
-                      const table = cell?.table_id ? openTables.find(t => t.id === cell.table_id) : null;
+                      const table = cell?.table_id ? assignableTables.find(t => t.id === cell.table_id) : null;
                       const tableName = table?.name ?? null;
                       const displayLabel = cell
                         ? tableName
