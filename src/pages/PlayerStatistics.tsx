@@ -412,13 +412,23 @@ const PlayerStatistics = () => {
   };
 
   const { select: selectPlayer } = useSelectedPlayer();
-  const renderRow = (r: any) => (
+
+  // Tint applied to the Name cell — matches CategoryBadge palette.
+  const CATEGORY_NAME_TINT: Record<string, string> = {
+    diamond: "bg-blue-100/70 dark:bg-blue-500/15",
+    platinum: "bg-purple-100/70 dark:bg-purple-500/15",
+    gold: "bg-yellow-100/70 dark:bg-yellow-500/15",
+    normal: "bg-muted/40",
+  };
+
+  const renderRow = (r: any, idx: number) => (
     <tr
       key={r.id}
       onClick={() => selectPlayer(r.playerId)}
       className="border-b border-border hover:bg-muted/30 cursor-pointer transition-colors"
     >
-      <td className="px-2 py-1.5 max-w-[180px]">
+      <td className="px-2 py-1.5 font-mono text-[11px] text-center text-muted-foreground sticky left-0 bg-card z-10 w-10">{idx + 1}</td>
+      <td className={`px-2 py-1.5 max-w-[200px] sticky left-10 z-10 ${CATEGORY_NAME_TINT[r.category] || "bg-card"}`}>
         <div className="flex items-center gap-1.5 min-w-0">
           <CategoryBadge category={r.category} />
           <div className="min-w-0">
@@ -429,11 +439,10 @@ const PlayerStatistics = () => {
           </div>
         </div>
       </td>
-      <td className="px-1 py-1.5 w-[110px]">{renderPositionCell(r)}</td>
       <td className="px-1 py-1.5 font-mono text-xs w-[44px] text-center">{formatTime(r.entryAt)}</td>
       <td className="px-1 py-1.5 font-mono text-xs w-[44px] text-center">{r.exitAt ? formatTime(r.exitAt) : "·"}</td>
+      <td className="px-1 py-1.5 w-[110px]">{renderPositionCell(r)}</td>
       {showFinancials && (() => {
-        // Dual render: full number on md+, compact (K/M) on small screens.
         const Money = ({ value, sign = false }: { value: number; sign?: boolean }) => {
           if (!value) return <>·</>;
           const prefix = sign && value > 0 ? "+" : "";
@@ -452,19 +461,13 @@ const PlayerStatistics = () => {
             <td className="px-2 py-1.5 font-mono text-xs text-right md:w-[110px]">
               <Money value={r.inDrop} />
             </td>
-            <td className="px-2 py-1.5 font-mono text-xs text-right md:w-[110px]">
-              <Money value={r.out} />
-            </td>
+            <td className="px-2 py-1.5 font-mono text-xs text-right md:w-[60px]">{r.inCount || "·"}</td>
+            <td className="px-2 py-1.5 font-mono text-xs text-right md:w-[60px]">{r.outCount || "·"}</td>
             <td className="px-2 py-1.5 font-mono text-xs text-right text-success md:w-[95px]">
               <Money value={r.chipIn} />
             </td>
             <td className="px-2 py-1.5 font-mono text-xs text-right text-destructive md:w-[95px]">
               <Money value={r.chipOut} />
-            </td>
-            <td className={`px-2 py-1.5 font-mono text-xs text-right md:w-[95px] ${
-              r.chipDelta > 0 ? "cms-amount-positive" : r.chipDelta < 0 ? "cms-amount-negative" : ""
-            }`}>
-              <Money value={r.chipDelta} sign />
             </td>
             <td className={`px-2 py-1.5 font-mono text-xs text-right font-bold md:w-[110px] ${
               r.result > 0 ? "cms-amount-positive" : r.result < 0 ? "cms-amount-negative" : ""
