@@ -633,13 +633,5 @@ const PlayerStatistics = () => {
       </Tabs>
     </PageShell>
   );
-};
-
-        defaultDirection="out"
-        presentPlayerIds={presentPlayerIds}
-      />
-    </PageShell>
-  );
-};
 
 export default PlayerStatistics;
