@@ -1,95 +1,79 @@
 
-# Modal Redesign — финальный план (v3)
+# Density System (Comfort / Compact / Touch)
 
-## Стратегия — 4 паттерна
+Variant **C**: роль задаёт дефолт, пользователь может переопределить через тумблер. Сохраняем выбор в localStorage per-user.
 
-| Паттерн | Когда | Пример |
-|---|---|---|
-| **Full Page Route (multi-step)** | Любой процесс закрытия / регистрации, длинная форма | Close Shift, Close Table, Register Player, User Editor |
-| **Inline Panel / Row** | Действие в контексте таблицы / карточки | Add expense, Edit budget category, Adjust float, Seat player |
-| **Sticky Preview Header** *(новое)* | Быстрый просмотр сущности из списка без перехода | Player в Players list, в Active Players, в Blacklist, в Group members |
-| **Dialog (минимум)** | Только confirm и микро-формы 1-3 поля | Logout, Override, Delete, Chip Emission, Push Update |
+## 1. Density provider
 
-## Sticky Preview Header — для игроков (новое)
+Новый файл `src/lib/density.tsx`:
+- Тип `Density = "comfort" | "compact" | "touch"`.
+- `DensityProvider` оборачивает app в `App.tsx` (рядом с `ThemeProvider`).
+- Источник дефолта:
+  - `pointer: coarse` (touch-устройство) → `touch`
+  - роль `cashier` / `pit` → `compact`
+  - роль `manager` / `finance_manager` / `super_admin` / `hr` / `reception` / `surveillance` → `comfort`
+- Override — `localStorage["cms.density"]` (`auto` | `comfort` | `compact` | `touch`). Дефолт `auto`.
+- Применение: `document.documentElement.dataset.density = effective`.
 
-Вместо открытия модалки/страницы при клике на игрока в любом списке:
+## 2. CSS-токены плотности
 
-```text
-┌──────────────────────────────────────────────────────────┐
-│  [Photo]  John Doe   #CMS123   D · TZS  ★ Flags  Tags   │
-│           Last visit · Lifetime NEP · Drop · Visits       │
-│                                  [Open profile →] [✕]     │
-├──────────────────────────────────────────────────────────┤
-│  Players list (продолжает работать, можно кликать дальше) │
-└──────────────────────────────────────────────────────────┘
+В `src/index.css` (`@layer base`) добавить переменные, переключаемые `[data-density="..."]`:
+```
+:root { --density-row: 2.25rem; --density-input: 2.25rem; --density-btn: 2.25rem;
+        --density-px: 0.75rem; --density-py: 0.5rem; --density-gap: 0.5rem;
+        --density-text: 0.875rem; }
+[data-density="compact"] { --density-row:1.75rem; --density-input:2rem; --density-btn:2rem;
+        --density-px:0.5rem; --density-py:0.25rem; --density-gap:0.375rem; --density-text:0.8125rem; }
+[data-density="touch"]   { --density-row:2.75rem; --density-input:2.75rem; --density-btn:2.75rem;
+        --density-px:1rem;   --density-py:0.625rem; --density-gap:0.625rem; --density-text:0.9375rem; }
 ```
 
-Поведение:
-- Клик по строке игрока → header «прилипает» сверху списка (sticky), прокрутка списка не блокируется.
-- Кликаешь следующего → header обновляется, без закрытия/открытия. Никаких модалок.
-- Кнопка `Open profile →` ведёт на `/players/:id` — полная статистика по дням, история визитов, transfers, intelligence и т.д.
-- `✕` сворачивает header.
-- Внутри header: photo, name, CMS code, category badge, flags, tags, last visit, lifetime NEP/Drop/Visits, кнопки быстрых действий (Edit / Chip Transfer / Blacklist) — те же, что сейчас в `PlayerEditDialog` карточке-шапке.
-- Если ширина позволяет (FHD), header горизонтальный одной строкой; на узких экранах — компактный mobile preview.
+## 3. Подключение к design-system
 
-Где применяем:
-- `/players` (Players list)
-- `/blacklist`
-- `/groups/:id` members
-- `/cage` Active Players
-- `/pit` Active Players
-- Player search results везде
+Минимально-инвазивно (без переписывания компонентов):
+- `DataTable` — высота строки `style={{height:'var(--density-row)'}}`.
+- `FormGrid` / `PageShell` — `gap: var(--density-gap)`.
+- `Input`, `Button` (shadcn `ui/input.tsx`, `ui/button.tsx` — default size) — `h-[var(--density-input)]`, `px-[var(--density-px)]`, `text-[length:var(--density-text)]`.
+- `ResponsiveDialog` body padding через `var(--density-px)`.
 
-Cashier/Reception: в header скрыты lifetime financials (по правилу `canSeePlayerFinancials`).
+Важно: меняем только `default` size. Явные `size="sm"` / `size="lg"` остаются как есть (печать, иконочные кнопки).
 
-Технически: компонент `<PlayerPreviewHeader playerId={selected} onOpen={...} onClose={...} />` + `useSelectedPlayer()` zustand-стор (или React state на странице).
+## 4. UI переключатель
 
-## Full Page Routes (без изменений с v2)
+`src/components/DensityToggle.tsx` — segmented control из 4 опций:
+`Auto · Comfort · Compact · Touch`. Подсказывает текущий effective когда выбран Auto.
 
-| Текущая модалка | Новый route | Шагов |
-|---|---|---|
-| `CloseShiftDialog` | `/cage/close-shift` | 4 (Chips → Cash → Cashless → Review) |
-| `CloseTableWizard` | `/tables/:id/close` | 2 (Chip Count → Result) |
-| `NewPlayerDialog` (cage) | `/players/register` | 1-2 |
-| `CloseBusinessDayButton` | `/business-day/close` | 1 + confirm |
-| `OpenShiftScreen` | `/cage/open-shift` | 1 |
-| `PlayerEditDialog` | **убирается** — заменяется Sticky Preview Header + кнопкой Open profile (`/players/:id` уже редактируем там же) |
-| `UserEditorDialog` | `/admin/users/:id` (`new`) | 1 |
-| `UserPermissionsDialog` | `/admin/users/:id/permissions` | 1 |
-| `InterCasinoTransfers` create | `/finance/transfers/new` | 2 |
-| `WalletsView` edit | `/finance/wallets/:id` | 1 |
-| `ChipTransferDialog` | `/players/:id/chip-transfer` | 1 |
-| `EditOpeningChipsDialog` | `/cage/shift/:id/edit-opening` | 1 |
+Размещение: в **профиле пользователя** (см. п.5), рядом с переключателем темы.
 
-## Inline (без изменений)
+## 5. Профиль пользователя в сайдбаре
 
-`FloatManagement`, `BudgetCategories`, `FinanceExpenses`, `BankChecks`, `Groups`, `TableSeatingDialog` (в FloorTableCard), `ChipCountPanel` (встраиваем в страницу стола).
+Сейчас в `AppSidebar` нет ссылки на профиль. Добавить:
+- Внизу сайдбара (над `LogoutButton`) — кнопка с email + ролью, открывает `ResponsiveDialog` "Profile".
+- Содержимое диалога:
+  - Имя/email/роль (read-only).
+  - **Theme**: Light / Dark (использует существующий `useTheme`).
+  - **Density**: Auto / Comfort / Compact / Touch.
+  - **Change password** — форма (current → new → confirm) через `supabase.auth.updateUser({ password })`.
+- В мобильном `MobileHeader` — та же кнопка профиля.
 
-## Остаются Dialog (с авто-reset)
+## 6. Memory
 
-`LogoutButton`, `ManagerOverrideDialog`, `BlacklistPlayerDialog`, `ChipEmissionDialog`, `ServerPushUpdateDialog`, `EmployeePhotoCell` lightbox, alert-dialog confirms.
+Обновить `mem://index.md` Core: добавить строку про density tokens + per-role default.
+Создать `mem://design/density-system` с описанием токенов и правил применения.
 
-## Технические артефакты
+## Технические детали
 
-1. `<WizardShell>` — шаги, sessionStorage draft, Cancel-confirm.
-2. `<InlineEditor>` — раскрываемая строка таблицы.
-3. `<PlayerPreviewHeader>` + `useSelectedPlayer` — sticky header для игроков.
-4. `useDraft(key)` — autosave/restore wizard.
-5. `useResetOnClose` — глобально на `ResponsiveDialog` для мгновенной победы над «осталось состояние».
-6. Обновить `route-module-map.ts` для новых routes.
+Файлы создать:
+- `src/lib/density.tsx`
+- `src/components/DensityToggle.tsx`
+- `src/components/UserProfileDialog.tsx`
 
-## Порядок (по итерациям, упаковано с density-rollout)
+Файлы править:
+- `src/App.tsx` — обернуть в `DensityProvider`.
+- `src/index.css` — токены density + правки `cms-*` где нужно.
+- `src/components/ui/input.tsx`, `src/components/ui/button.tsx` — default size через CSS-переменные.
+- `src/components/layout/AppSidebar.tsx` — кнопка профиля + проброс в Mobile header.
+- `src/components/ui/data-table.tsx` (или где задаётся высота строки) — `var(--density-row)`.
+- `mem://index.md`, новый `mem://design/density-system`.
 
-- **M0 — Фундамент**: WizardShell, InlineEditor, PlayerPreviewHeader, useDraft, useResetOnClose глобально.
-- **M1 — Cashier**: `/cage/close-shift`, `/cage/open-shift`, edit-opening, `/players/register`. Density: cashier.
-- **M2 — Tables/Pit**: `/tables/:id/close`, TableSeating inline, ChipCountPanel inline. Density: pit/manager.
-- **M3 — Players**: PlayerPreviewHeader везде где списки игроков, `/players/:id/chip-transfer`, удалить PlayerEditDialog.
-- **M4 — Finance**: `/finance/transfers/new`, `/finance/wallets/:id`, BudgetCategories/Expenses/FloatManagement inline. Density: finance.
-- **M5 — Admin**: `/admin/users/:id`, `/admin/users/:id/permissions`. Density: admin/HR.
-- **M6 — Business Day**: `/business-day/close`.
-
-## Что подтвердить
-
-1. **PlayerPreviewHeader — поведение по умолчанию**: всегда виден сверху списка (даже без выбора, в виде «Select a player to preview»), или появляется только после клика и сворачивается крестиком?
-2. **Стартуем с M0 + M1 (Cashier)** в одной итерации?
-3. **WizardShell drafts**: всегда восстанавливать введённое при возврате (sessionStorage), или чистый старт каждый раз?
+Без миграций БД, без edge functions — версию НЕ бампим.
