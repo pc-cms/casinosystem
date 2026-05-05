@@ -24,39 +24,27 @@ export const BusinessDayBanner = () => {
   if (dismissed) return null;
 
   const now = nowEAT();
-  const minutes = now.getHours() * 60 + now.getMinutes();
-  // 04:30 (270) … 05:30 (330)
-  const inWindow = minutes >= 270 && minutes <= 330;
+  const hour = now.getHours();
+  // Show only in the late-morning window (09:00 … 11:00 EAT) as a reminder
+  // before the automatic 11:00 fallback close kicks in.
+  const inWindow = hour >= 9 && hour < 11;
   if (!inWindow) return null;
 
-  const beforeRollover = minutes < 300;
   const businessDate = serverBusinessDate || getBusinessDate();
 
   return (
     <div
       className={cn(
         "no-print sticky top-0 z-40 flex items-center gap-2 px-3 py-2 text-sm border-b",
-        beforeRollover
-          ? "bg-amber-500/10 border-amber-500/30 text-amber-900 dark:text-amber-200"
-          : "bg-sky-500/10 border-sky-500/30 text-sky-900 dark:text-sky-200"
+        "bg-amber-500/10 border-amber-500/30 text-amber-900 dark:text-amber-200"
       )}
       role="alert"
     >
       <AlertTriangle className="h-4 w-4 shrink-0" />
       <div className="flex-1 leading-tight">
-        {beforeRollover ? (
-          <>
-            <strong>Скоро смена бизнес-дня (05:00 EAT).</strong>{" "}
-            Текущий бизнес-день: <code className="font-mono">{businessDate}</code>.
-            Закройте смену и кассу <em>до</em> 05:00, иначе операции уйдут в новый день.
-          </>
-        ) : (
-          <>
-            <strong>Бизнес-день переключился.</strong>{" "}
-            Новый день: <code className="font-mono">{businessDate}</code>.
-            Все новые транзакции уже относятся к новому дню.
-          </>
-        )}
+        <strong>Бизнес-день <code className="font-mono">{businessDate}</code> ещё открыт.</strong>{" "}
+        Закройте его вручную (кнопка <em>Close Day</em> у Pit/Manager). Если забыть —
+        авто-закрытие сработает в 11:00 EAT.
       </div>
       <button
         type="button"
