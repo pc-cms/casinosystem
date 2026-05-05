@@ -59,7 +59,8 @@ const Expenses = () => {
   const { data: serverBusinessDate } = useEffectiveBusinessDate();
   const businessDate = serverBusinessDate || getBusinessDate();
   const { data: shift } = useActiveShift();
-  const { data: expenses = [], isLoading: loadingExpenses } = useExpenses(businessDate);
+  // Manager (real role or Manager Access toggle) sees all-time expenses; others — current business day only.
+  const { data: expenses = [], isLoading: loadingExpenses } = useExpenses(isManager ? undefined : businessDate);
   const create = useCreateExpense();
   const approve = useApproveExpense();
   const del = useDeleteExpense();
