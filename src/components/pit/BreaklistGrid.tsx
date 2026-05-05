@@ -90,7 +90,7 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
     const map = new Map<string, number>();
     sorted.forEach((t, i) => map.set(t.id, i));
     return map;
-  }, [openTables]);
+  }, [assignableTables]);
 
   // Dealers scheduled in rota for this date (M or N only)
   const rotaDealers = useMemo(() => {
