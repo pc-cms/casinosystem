@@ -179,16 +179,16 @@ const ActiveShiftView = ({ shift, players, tables }: {
       <div className="cms-panel p-2 mb-4">
         <div className="grid grid-cols-3 md:grid-cols-8 gap-2">
           <div>
-            <p className="text-[9px] uppercase text-muted-foreground">Opening</p>
+            <p className="uppercase text-muted-foreground tracking-wider text-lg">Opening</p>
             <p className="font-mono text-sm font-bold text-card-foreground">{formatCurrency(openingFloat)}</p>
           </div>
-          <div><p className="text-[9px] uppercase text-muted-foreground">+ IN</p><p className="font-mono font-bold text-success text-3xl">+{formatCurrency(totalIns)}</p></div>
-          <div><p className="text-[9px] uppercase text-muted-foreground">− OUT</p><p className="font-mono text-sm font-bold text-destructive">−{formatCurrency(totalOuts)}</p></div>
-          <div><p className="text-[9px] uppercase text-muted-foreground">+ Add Float</p><p className="font-mono font-bold text-success text-3xl">+{formatCurrency(totalAddFloat)}</p></div>
-          <div><p className="text-[9px] uppercase text-muted-foreground">− Collection</p><p className="font-mono text-sm font-bold text-destructive">−{formatCurrency(totalCollection)}</p></div>
-          <div><p className="text-[9px] uppercase text-muted-foreground">− Expenses</p><p className="font-mono text-sm font-bold text-warning">−{formatCurrency(totalExpenses)}</p></div>
-          <div><p className="text-[9px] uppercase text-muted-foreground">= Expected</p><p className="font-mono text-sm font-bold text-card-foreground">{formatCurrency(expectedCash)}</p></div>
-          <div><p className="text-[9px] uppercase text-muted-foreground">Cash Result</p><p className={`font-mono text-sm font-bold ${cashResult >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>{cashResult >= 0 ? "+" : ""}{formatCurrency(cashResult)}</p></div>
+          <div><p className="uppercase text-muted-foreground tracking-wider text-lg">+ IN</p><p className="font-mono font-bold text-success text-3xl">+{formatCurrency(totalIns)}</p></div>
+          <div><p className="uppercase text-muted-foreground tracking-wider text-lg">− OUT</p><p className="font-mono text-sm font-bold text-destructive">−{formatCurrency(totalOuts)}</p></div>
+          <div><p className="uppercase text-muted-foreground tracking-wider text-lg">+ Add Float</p><p className="font-mono font-bold text-success text-3xl">+{formatCurrency(totalAddFloat)}</p></div>
+          <div><p className="uppercase text-muted-foreground tracking-wider text-lg">− Collection</p><p className="font-mono text-sm font-bold text-destructive">−{formatCurrency(totalCollection)}</p></div>
+          <div><p className="uppercase text-muted-foreground tracking-wider text-lg">− Expenses</p><p className="font-mono text-sm font-bold text-warning">−{formatCurrency(totalExpenses)}</p></div>
+          <div><p className="uppercase text-muted-foreground tracking-wider text-lg">= Expected</p><p className="font-mono text-sm font-bold text-card-foreground">{formatCurrency(expectedCash)}</p></div>
+          <div><p className="uppercase text-muted-foreground tracking-wider text-lg">Cash Result</p><p className={`font-mono text-sm font-bold ${cashResult >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>{cashResult >= 0 ? "+" : ""}{formatCurrency(cashResult)}</p></div>
         </div>
       </div>
 
