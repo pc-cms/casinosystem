@@ -22,7 +22,7 @@ import { formatCurrency } from "@/lib/currency";
 import { useCashless } from "@/hooks/use-cashless";
 import { useChipTransfers } from "@/hooks/use-chip-transfers";
 import { usePlayers, useGamingTables } from "@/hooks/use-casino-data";
-import { getBusinessDate } from "@/lib/business-day";
+import { getBusinessDate, businessDayHourUTC } from "@/lib/business-day";
 import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
 
 const MAX_DAYS_BACK = 90;
@@ -56,8 +56,8 @@ const CageHistoryView = () => {
         .from("transactions")
         .select("*, players(first_name,last_name)")
         .eq("casino_id", casinoId)
-        .gte("created_at", `${date}T00:00:00`)
-        .lte("created_at", `${date}T23:59:59`)
+        .gte("created_at", businessDayHourUTC(date, 13))
+        .lt("created_at", businessDayHourUTC(date, 13 + 24))
         .order("created_at", { ascending: false })
         .limit(1000);
       if (error) throw error;
@@ -78,8 +78,8 @@ const CageHistoryView = () => {
         .from("cage_transfers")
         .select("*")
         .eq("casino_id", casinoId)
-        .gte("created_at", `${date}T00:00:00`)
-        .lte("created_at", `${date}T23:59:59`)
+        .gte("created_at", businessDayHourUTC(date, 13))
+        .lt("created_at", businessDayHourUTC(date, 13 + 24))
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data || [];

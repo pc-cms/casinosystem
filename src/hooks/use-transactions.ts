@@ -5,6 +5,7 @@ import { offlineMutation } from "@/lib/offline-mutation";
 import { toast } from "sonner";
 import { formatNumberSpaces } from "@/lib/currency";
 import type { SafeTransactionInsert } from "@/lib/safe-inserts";
+import { businessDayHourUTC } from "@/lib/business-day";
 
 export const useTransactions = (date?: string) => {
   const { casinoId } = useAuth();
@@ -19,7 +20,8 @@ export const useTransactions = (date?: string) => {
         .order("created_at", { ascending: false });
       
       if (date) {
-        query = query.gte("created_at", `${date}T00:00:00`).lte("created_at", `${date}T23:59:59`);
+        // Business day window: D 13:00 EAT → D+1 13:00 EAT
+        query = query.gte("created_at", businessDayHourUTC(date, 13)).lt("created_at", businessDayHourUTC(date, 13 + 24));
       }
       
       const { data, error } = await query.limit(200);
