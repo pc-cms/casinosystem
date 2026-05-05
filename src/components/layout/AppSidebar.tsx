@@ -8,8 +8,9 @@ import {
   Building2, UserCheck, ClipboardPen, ShieldCheck, ShieldOff,
   Wallet, DoorOpen, ShieldAlert, Menu, Upload, FileText,
   ChevronsLeft, ChevronsRight, CreditCard, CalendarDays, ChevronDown, ChevronRight, Coins, Briefcase,
-  RefreshCw, MessageSquare,
+  RefreshCw, MessageSquare, User as UserIcon,
 } from "lucide-react";
+import { UserProfileDialog } from "@/components/UserProfileDialog";
 import { resetPWACache } from "@/lib/pwa-register";
 import { useTheme } from "@/lib/theme";
 import { useAuth } from "@/lib/auth-context";
@@ -340,6 +341,7 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
     || (activeCasino?.slug ?? "").toLowerCase() === "arusha";
   const location = useLocation();
   const [showOverrideDialog, setShowOverrideDialog] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
 
   const rawTab = new URLSearchParams(location.search).get("tab");
   const isPitActive = location.pathname === "/pit" && rawTab !== "breaklist";
@@ -465,7 +467,18 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
 
           <div className="w-8 border-t border-sidebar-border my-1" />
 
-          {/* Theme + sign out */}
+          {/* Profile + theme + sign out */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => setShowProfile(true)}
+                className="w-10 h-10 flex items-center justify-center rounded-md hover:bg-sidebar-accent transition-colors text-sidebar-foreground"
+              >
+                <UserIcon className="w-4 h-4" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="right">Profile</TooltipContent>
+          </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
               <button
@@ -619,9 +632,13 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
           </div>
         )}
         <div className="flex items-center gap-2 px-1">
-          <p className="text-xs font-medium text-sidebar-foreground truncate flex-1" title={displayName ?? undefined}>
+          <button
+            onClick={() => setShowProfile(true)}
+            className="text-xs font-medium text-sidebar-foreground truncate flex-1 text-left hover:text-sidebar-primary transition-colors"
+            title="Open profile"
+          >
             {displayName}
-          </p>
+          </button>
           <NetworkStatusIndicator compact />
           <button
             onClick={() => { toggle(); onNavigate?.(); }}
@@ -669,6 +686,7 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
         actionType="MANAGER_ACCESS_ACTIVATE"
         actionDetails={{ activated_by: displayName }}
       />
+      <UserProfileDialog open={showProfile} onOpenChange={setShowProfile} />
     </>
   );
 };
