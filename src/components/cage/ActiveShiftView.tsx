@@ -576,10 +576,13 @@ const CloseTablesForm = ({ tables }: { tables: Tables<"gaming_tables">[] }) => {
   const [confirmed, setConfirmed] = useState<Record<string, boolean>>({});
   const baselineMap = useMemo(() => baselineToMap(baseline), [baseline]);
   const tablesWithResults = useMemo(() => tables.filter(t => t.closing_result !== null && t.status === "open"), [tables]);
+  const confirmedIds = useMemo(() => tablesWithResults.filter(t => confirmed[t.id]).map(t => t.id), [tablesWithResults, confirmed]);
+  const anyConfirmed = confirmedIds.length > 0;
   const allConfirmed = tablesWithResults.length > 0 && tablesWithResults.every(t => confirmed[t.id]);
 
   const handleClose = () => {
-    closeAllTables.mutate(tablesWithResults.map(t => t.id), { onSuccess: () => setConfirmed({}) });
+    if (confirmedIds.length === 0) return;
+    closeAllTables.mutate(confirmedIds, { onSuccess: () => setConfirmed({}) });
   };
 
   if (tablesWithResults.length === 0) {
@@ -594,7 +597,7 @@ const CloseTablesForm = ({ tables }: { tables: Tables<"gaming_tables">[] }) => {
 
   return (
     <div className="space-y-3">
-      <p className="text-xs text-muted-foreground">Distribute chips to restore baseline float, then confirm each table.</p>
+      <p className="text-xs text-muted-foreground">Tick the tables you've physically paid out, then close them. Untouched tables stay open until later.</p>
       {tablesWithResults.map(table => {
         const closingChips = (table.closing_chips || {}) as Record<string, number>;
         const tableBaseline = baselineMap[table.id] || {};
@@ -629,8 +632,13 @@ const CloseTablesForm = ({ tables }: { tables: Tables<"gaming_tables">[] }) => {
           </div>
         );
       })}
-      <Button onClick={handleClose} disabled={!allConfirmed || closeAllTables.isPending} className="w-full gap-1.5">
-        <CheckCircle2 className="w-4 h-4" /> {closeAllTables.isPending ? "Closing…" : "Close All Tables"}
+      <Button onClick={handleClose} disabled={!anyConfirmed || closeAllTables.isPending} className="w-full gap-1.5">
+        <CheckCircle2 className="w-4 h-4" />
+        {closeAllTables.isPending
+          ? "Closing…"
+          : allConfirmed
+            ? `Close All Tables (${confirmedIds.length})`
+            : `Close Selected Tables (${confirmedIds.length})`}
       </Button>
     </div>
   );
