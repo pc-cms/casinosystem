@@ -152,6 +152,11 @@ const PlayerStatistics = () => {
     const playerById: Record<string, any> = {};
     players.forEach(p => { playerById[p.id] = p; });
 
+    // Visit number: stable per business day, by check-in order ascending.
+    const visitNumberById = new Map<string, number>();
+    [...visits]
+      .sort((a: any, b: any) => new Date(a.checked_in_at).getTime() - new Date(b.checked_in_at).getTime())
+      .forEach((v: any, i: number) => visitNumberById.set(v.id, i + 1));
     return visits.map((v: any) => {
       const p = playerById[v.player_id];
       if (!p) return null;
@@ -175,6 +180,7 @@ const PlayerStatistics = () => {
 
       return {
         id: v.id,
+        visitNumber: visitNumberById.get(v.id) ?? 0,
         playerId: v.player_id,
         firstName: p.first_name,
         lastName: p.last_name,
@@ -471,7 +477,7 @@ const PlayerStatistics = () => {
       onClick={() => selectPlayer(r.playerId)}
       className="border-b border-border hover:bg-muted/30 cursor-pointer transition-colors"
     >
-      <td className="px-2 py-1.5 font-mono text-[11px] text-center text-muted-foreground sticky left-0 bg-card z-10 w-10">{idx + 1}</td>
+      <td className="px-2 py-1.5 font-mono text-[11px] text-center text-muted-foreground sticky left-0 bg-card z-10 w-10">{r.visitNumber || idx + 1}</td>
       <td className={`px-2 py-1.5 max-w-[200px] sticky left-10 z-10 ${CATEGORY_NAME_TINT[r.category] || "bg-card"}`}>
         <div className="flex items-center gap-1.5 min-w-0">
           <CategoryBadge category={r.category} />
