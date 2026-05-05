@@ -182,9 +182,9 @@ const ActiveShiftView = ({ shift, players, tables }: {
             <p className="text-[9px] uppercase text-muted-foreground">Opening</p>
             <p className="font-mono text-sm font-bold text-card-foreground">{formatCurrency(openingFloat)}</p>
           </div>
-          <div><p className="text-[9px] uppercase text-muted-foreground">+ IN</p><p className="font-mono text-sm font-bold text-success">+{formatCurrency(totalIns)}</p></div>
+          <div><p className="text-[9px] uppercase text-muted-foreground">+ IN</p><p className="font-mono font-bold text-success text-3xl">+{formatCurrency(totalIns)}</p></div>
           <div><p className="text-[9px] uppercase text-muted-foreground">− OUT</p><p className="font-mono text-sm font-bold text-destructive">−{formatCurrency(totalOuts)}</p></div>
-          <div><p className="text-[9px] uppercase text-muted-foreground">+ Add Float</p><p className="font-mono text-sm font-bold text-success">+{formatCurrency(totalAddFloat)}</p></div>
+          <div><p className="text-[9px] uppercase text-muted-foreground">+ Add Float</p><p className="font-mono font-bold text-success text-3xl">+{formatCurrency(totalAddFloat)}</p></div>
           <div><p className="text-[9px] uppercase text-muted-foreground">− Collection</p><p className="font-mono text-sm font-bold text-destructive">−{formatCurrency(totalCollection)}</p></div>
           <div><p className="text-[9px] uppercase text-muted-foreground">− Expenses</p><p className="font-mono text-sm font-bold text-warning">−{formatCurrency(totalExpenses)}</p></div>
           <div><p className="text-[9px] uppercase text-muted-foreground">= Expected</p><p className="font-mono text-sm font-bold text-card-foreground">{formatCurrency(expectedCash)}</p></div>
