@@ -59,11 +59,11 @@ const Expenses = () => {
   const { data: serverBusinessDate } = useEffectiveBusinessDate();
   const businessDate = serverBusinessDate || getBusinessDate();
   const { data: shift } = useActiveShift();
-  const { data: expenses = [], isLoading: loadingExpenses } = useExpenses(businessDate);
+  // Manager (real role or Manager Access toggle) sees all-time expenses; others — current business day only.
+  const { data: expenses = [], isLoading: loadingExpenses } = useExpenses(isManager ? undefined : businessDate);
   const create = useCreateExpense();
   const approve = useApproveExpense();
   const del = useDeleteExpense();
-  const [pendingApproveId, setPendingApproveId] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<{ id: string; amount: number; category: string } | null>(null);
   const [drafts, setDrafts] = useState<DraftRow[]>([newDraft()]);
 
@@ -251,7 +251,7 @@ const Expenses = () => {
                 <td className="px-3 py-2 text-center">
                   <div className="inline-flex gap-1">
                     {!exp.approved && isManager && (
-                      <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => setPendingApproveId(exp.id)}>Approve</Button>
+                      <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => approve.mutate(exp.id)} disabled={approve.isPending}>Approve</Button>
                     )}
                     {isManager && (
                       <Button
@@ -272,20 +272,6 @@ const Expenses = () => {
         </table>
       </div>
 
-      <ManagerOverrideDialog
-        open={!!pendingApproveId}
-        onClose={() => setPendingApproveId(null)}
-        onConfirm={() => {
-          if (pendingApproveId) {
-            approve.mutate(pendingApproveId);
-            setPendingApproveId(null);
-          }
-        }}
-        title="Approve Expense"
-        description="Manager authentication required to approve this expense."
-        actionType="APPROVE_EXPENSE"
-        actionDetails={{ expense_id: pendingApproveId }}
-      />
 
       <ManagerOverrideDialog
         open={!!pendingDelete}
