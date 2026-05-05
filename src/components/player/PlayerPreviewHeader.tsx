@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { X, ExternalLink, User } from "lucide-react";
 import { usePlayer } from "@/hooks/use-player-profile";
 import { useSelectedPlayer } from "@/hooks/use-selected-player";
-import { CategoryBadge } from "@/components/player/CategoryBadge";
+import CategoryBadge from "@/components/player/CategoryBadge";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth-context";
 import { canSeePlayerFinancials } from "@/lib/role-access";
@@ -30,14 +30,16 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
   const playerId = playerIdProp !== undefined ? playerIdProp : ctx.playerId;
   const { data: player, isLoading } = usePlayer(playerId || undefined);
   const nav = useNavigate();
-  const { profile } = useAuth();
-  const showFinancials = canSeePlayerFinancials(profile?.roles || []);
+  const { roles } = useAuth();
+  const showFinancials = canSeePlayerFinancials(roles || []);
 
   if (!playerId) return null;
 
   const handleClose = () => {
     onClose ? onClose() : ctx.clear();
   };
+
+  const isBlacklisted = player?.status === "blacklist";
 
   return (
     <div
@@ -74,27 +76,28 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-base font-semibold truncate">
                 {player.first_name} {player.last_name}
+                {player.nickname && (
+                  <span className="ml-1 text-muted-foreground font-normal">
+                    "{player.nickname}"
+                  </span>
+                )}
               </span>
-              {player.cms_code && (
-                <span className="font-mono text-xs text-muted-foreground">
-                  #{player.cms_code}
-                </span>
-              )}
-              <CategoryBadge category={(player.category as any) || "normal"} size="sm" />
-              {player.is_blacklisted && (
+              <CategoryBadge category={(player.category as any) || "normal"} />
+              {isBlacklisted && (
                 <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-destructive/10 text-destructive border border-destructive/30">
                   Blacklist
                 </span>
               )}
             </div>
             <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
-              {player.nationality && <span>{player.nationality}</span>}
+              {player.id_number && (
+                <span className="font-mono">ID: {player.id_number}</span>
+              )}
               {player.phone && <span className="font-mono">{player.phone}</span>}
               {showFinancials && (
-                <>
-                  <span>Visits: <span className="text-foreground font-medium tabular-nums">—</span></span>
-                  <span>Last visit: <span className="text-foreground font-medium">—</span></span>
-                </>
+                <span className="text-muted-foreground/70">
+                  Open profile for full statistics
+                </span>
               )}
             </div>
           </div>
