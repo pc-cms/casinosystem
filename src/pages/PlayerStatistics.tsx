@@ -700,9 +700,9 @@ const PlayerStatistics = () => {
                             <td className="px-2 py-2 text-right whitespace-nowrap" title="Average bet">
                               <Money value={avgBetAvg} />
                             </td>
+                            <td className="px-2 py-2 text-right font-semibold whitespace-nowrap"><Money value={totals.dropR} /></td>
                             <td className="px-2 py-2 text-right font-semibold whitespace-nowrap"><Money value={totals.inDrop} /></td>
-                            <td className="px-2 py-2 text-right font-semibold whitespace-nowrap">·</td>
-                            <td className="px-2 py-2 text-right font-semibold whitespace-nowrap">·</td>
+                            <td className="px-2 py-2 text-right font-semibold whitespace-nowrap"><Money value={totals.out} /></td>
                             <td className="px-2 py-2 text-right text-success whitespace-nowrap"><Money value={totals.chipIn} /></td>
                             <td className="px-2 py-2 text-right text-destructive whitespace-nowrap"><Money value={totals.chipOut} /></td>
                             <td className={`px-2 py-2 text-right font-bold text-base whitespace-nowrap ${totals.result > 0 ? "cms-amount-positive" : totals.result < 0 ? "cms-amount-negative" : ""}`}>
