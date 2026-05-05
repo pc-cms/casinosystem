@@ -597,7 +597,7 @@ const CloseTablesForm = ({ tables }: { tables: Tables<"gaming_tables">[] }) => {
 
   return (
     <div className="space-y-3">
-      <p className="text-xs text-muted-foreground">Distribute chips to restore baseline float, then confirm each table.</p>
+      <p className="text-xs text-muted-foreground">Tick the tables you've physically paid out, then close them. Untouched tables stay open until later.</p>
       {tablesWithResults.map(table => {
         const closingChips = (table.closing_chips || {}) as Record<string, number>;
         const tableBaseline = baselineMap[table.id] || {};
