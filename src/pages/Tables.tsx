@@ -263,6 +263,7 @@ const Tables = () => {
         first_name: p.first_name,
         last_name: p.last_name,
         nickname: (p as any).nickname,
+        photo_url: (p as any).photo_url ?? null,
         category: cat,
         avgBet: Number(s.avg_bet || 0),
         startedAt: s.started_at ? new Date(s.started_at) : null,
@@ -398,24 +399,27 @@ const Tables = () => {
         onClick={() => isOpen && handleTableClick(table)}
         role={isOpen ? "button" : undefined}
       >
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-          <div className="flex items-center gap-3 min-w-0 text-xs">
+        {/* Header: Name | DROP | RESULT | OPEN/CLOSED */}
+        <div className="grid grid-cols-[1fr_auto_auto_auto] items-center gap-3 px-4 py-2.5 border-b border-border">
+          <div className="flex items-center gap-2 min-w-0">
             <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${isOpen ? "bg-success" : "bg-destructive"}`} />
             <div className="min-w-0">
-              <h3 className="text-sm font-semibold text-card-foreground truncate">{table.name}</h3>
-              <p className="text-xs text-muted-foreground truncate">{table.game}</p>
+              <h3 className="text-sm font-semibold text-card-foreground truncate leading-tight">{table.name}</h3>
+              <p className="text-[10px] text-muted-foreground truncate leading-tight">{table.game}</p>
             </div>
           </div>
+          <div className="text-right">
+            <p className="text-[9px] uppercase text-muted-foreground tracking-wider leading-none">Drop</p>
+            <p className="font-mono text-xs font-bold text-card-foreground whitespace-nowrap mt-0.5">{formatCurrency(r.dropR)}</p>
+          </div>
+          <div className="text-right">
+            <p className="text-[9px] uppercase text-muted-foreground tracking-wider leading-none">Result</p>
+            <p className={`font-mono text-xs font-bold whitespace-nowrap mt-0.5 ${r.result >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
+              {r.result >= 0 ? "+" : ""}{formatCurrency(r.result)}
+            </p>
+          </div>
           <div className="flex items-center gap-2 shrink-0">
-            {seated.length > 0 && (
-              <Badge variant="outline" className="text-[10px]">{seated.length} seated</Badge>
-            )}
             <Badge variant={isOpen ? "default" : "secondary"} className="text-[10px] uppercase">{table.status}</Badge>
-            {hasTableResult && (
-              <Badge variant={Number(table.closing_result) >= 0 ? "default" : "destructive"} className="text-[10px] font-mono">
-                {Number(table.closing_result) >= 0 ? "+" : ""}{formatCurrency(Number(table.closing_result))}
-              </Badge>
-            )}
             {!isOpen && (
               <Button
                 size="sm"
@@ -424,38 +428,46 @@ const Tables = () => {
                 disabled={reopenTable.isPending}
                 onClick={(e) => { e.stopPropagation(); reopenTable.mutate(table.id); }}
               >
-                <Play className="w-3 h-3" /> Open Table
+                <Play className="w-3 h-3" /> Open
               </Button>
             )}
           </div>
         </div>
+
+        {/* Seated players: photo + name + avg bet */}
         {seated.length > 0 && (
-          <div className="px-4 py-2 border-b border-border flex flex-wrap gap-1">
-            {seated.map(p => (
-              <span key={p.id} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-muted/40 text-[10px]">
-                <CategoryBadge category={p.category} />
-                <span className="font-medium truncate max-w-[90px]">{p.first_name} {p.last_name}</span>
-                <span className="font-mono text-muted-foreground">{p.avgBet}</span>
-              </span>
-            ))}
+          <div className="px-4 py-3 flex flex-wrap gap-3">
+            {seated.map(p => {
+              const initials = `${p.first_name?.[0] ?? ""}${p.last_name?.[0] ?? ""}`.toUpperCase();
+              return (
+                <div key={p.id} className="flex flex-col items-center w-[64px]">
+                  <div className="relative">
+                    {p.photo_url ? (
+                      <img
+                        src={p.photo_url}
+                        alt={`${p.first_name} ${p.last_name}`}
+                        className="w-10 h-10 rounded-full object-cover border border-border"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-[11px] font-mono font-semibold text-muted-foreground border border-border">
+                        {initials}
+                      </div>
+                    )}
+                    <span className="absolute -bottom-0.5 -right-0.5">
+                      <CategoryBadge category={p.category} />
+                    </span>
+                  </div>
+                  <p className="text-[10px] font-medium text-card-foreground truncate max-w-[64px] mt-1 text-center">
+                    {p.first_name} {p.last_name?.[0] ?? ""}.
+                  </p>
+                  <p className="font-mono text-[10px] text-muted-foreground">
+                    {formatNumberSpaces(p.avgBet)}
+                  </p>
+                </div>
+              );
+            })}
           </div>
         )}
-        <div className="px-4 py-3 grid grid-cols-3 gap-2">
-          <div>
-            <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Drop R</p>
-            <p className="font-mono text-xs font-bold text-card-foreground">{formatCurrency(r.dropR)}</p>
-          </div>
-          <div>
-            <p className="text-[10px] uppercase text-muted-foreground tracking-wider">​</p>
-            <p className="font-mono text-xs font-bold text-card-foreground">​</p>
-          </div>
-          <div>
-            <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Result</p>
-            <p className={`font-mono text-xs font-bold ${r.result >= 0 ? "text-success" : "text-destructive"}`}>
-              {r.result >= 0 ? "+" : ""}{formatCurrency(r.result)}
-            </p>
-          </div>
-        </div>
       </div>
     );
   };
