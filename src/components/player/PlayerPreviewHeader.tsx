@@ -152,6 +152,19 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
             )}
           </button>
 
+          {/* Visits + Open Profile (left of identity, with divider) */}
+          <div className="shrink-0 flex flex-col justify-center items-center gap-2 pr-5 border-r border-border self-stretch">
+            <span className="font-mono text-xs text-muted-foreground uppercase tracking-wide">Visits</span>
+            <span className="text-foreground font-bold text-3xl tabular-nums leading-none">{visitsCount}</span>
+            <Button
+              size="sm"
+              onClick={() => nav(`/players/${player.id}`)}
+              className="gap-1 mt-1"
+            >
+              Open profile <ExternalLink className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+
           {/* Identity block: Name+Nick / Cash In + Result / Tags */}
           <div className="min-w-0 flex-1 flex flex-col justify-between gap-1.5 py-0.5">
             {/* Row 1 — Name + Nick + Category */}
@@ -198,6 +211,7 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
             </div>
           </div>
 
+
           {/* Chip IN/OUT — bigger, centered */}
           {canAdjust && (
             <div className="shrink-0 flex flex-col justify-center gap-2.5 w-[460px] border-l border-border pl-5 self-stretch">
@@ -242,8 +256,8 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
             </div>
           )}
 
-          {/* Right-side: Visits + Open Profile */}
-          <div className="shrink-0 flex flex-col items-end justify-between gap-2 py-0.5">
+          {/* Right-side: Close button only */}
+          <div className="shrink-0 flex flex-col items-end justify-start py-0.5">
             <Button
               size="sm"
               variant="ghost"
@@ -252,17 +266,6 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
             >
               <X className="h-5 w-5" />
             </Button>
-            <div className="flex flex-col items-end gap-2">
-              <span className="font-mono text-sm text-muted-foreground">
-                Visits: <span className="text-foreground font-bold text-lg">{visitsCount}</span>
-              </span>
-              <Button
-                onClick={() => nav(`/players/${player.id}`)}
-                className="gap-1"
-              >
-                Open profile <ExternalLink className="h-3.5 w-3.5" />
-              </Button>
-            </div>
           </div>
         </div>
       )}
