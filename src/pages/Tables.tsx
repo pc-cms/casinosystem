@@ -14,7 +14,7 @@ import { formatCurrency } from "@/lib/currency";
 import { Play, Lock, LayoutGrid } from "lucide-react";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { CloseTableWizard } from "@/components/tables/CloseTableWizard";
+
 import { CloseBusinessDayButton } from "@/components/pit/CloseBusinessDayButton";
 import { liveTableResult, buildLatestTableSnapshot } from "@/lib/table-live-result";
 import TableSeatingDialog from "@/components/pit/TableSeatingDialog";
