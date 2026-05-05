@@ -683,25 +683,20 @@ const PlayerStatistics = () => {
                         const Money = ({ value, sign = false }: { value: number; sign?: boolean }) => {
                           if (!value) return <>·</>;
                           const prefix = sign && value > 0 ? "+" : "";
-                          return (
-                            <>
-                              <span className="hidden md:inline">{prefix}{formatCurrency(value)}</span>
-                              <span className="md:hidden">{prefix}{formatNumberCompact(value)}</span>
-                            </>
-                          );
+                          return <>{prefix}{formatCurrency(value)}</>;
                         };
                         const avgBetAvg = totals.avgBetN ? Math.round(totals.avgBetSum / totals.avgBetN) : 0;
                         return (
                           <>
-                            <td className="px-2 py-2 text-right" title="Average bet">
+                            <td className="px-2 py-2 text-right whitespace-nowrap" title="Average bet">
                               <Money value={avgBetAvg} />
                             </td>
-                            <td className="px-2 py-2 text-right font-semibold"><Money value={totals.inDrop} /></td>
-                            <td className="px-2 py-2 text-right font-semibold">·</td>
-                            <td className="px-2 py-2 text-right font-semibold">·</td>
-                            <td className="px-2 py-2 text-right text-success"><Money value={totals.chipIn} /></td>
-                            <td className="px-2 py-2 text-right text-destructive"><Money value={totals.chipOut} /></td>
-                            <td className={`px-2 py-2 text-right font-bold text-base ${totals.result > 0 ? "cms-amount-positive" : totals.result < 0 ? "cms-amount-negative" : ""}`}>
+                            <td className="px-2 py-2 text-right font-semibold whitespace-nowrap"><Money value={totals.inDrop} /></td>
+                            <td className="px-2 py-2 text-right font-semibold whitespace-nowrap">·</td>
+                            <td className="px-2 py-2 text-right font-semibold whitespace-nowrap">·</td>
+                            <td className="px-2 py-2 text-right text-success whitespace-nowrap"><Money value={totals.chipIn} /></td>
+                            <td className="px-2 py-2 text-right text-destructive whitespace-nowrap"><Money value={totals.chipOut} /></td>
+                            <td className={`px-2 py-2 text-right font-bold text-base whitespace-nowrap ${totals.result > 0 ? "cms-amount-positive" : totals.result < 0 ? "cms-amount-negative" : ""}`}>
                               <Money value={totals.result} sign />
                             </td>
                           </>
