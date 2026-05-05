@@ -251,13 +251,13 @@ const Expenses = () => {
                     {!exp.approved && isManager && (
                       <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => approve.mutate(exp.id)} disabled={approve.isPending}>Approve</Button>
                     )}
-                    {isManager && (
+                    {!exp.approved && (
                       <Button
                         variant="ghost"
                         size="sm"
                         className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
                         onClick={() => del.mutate({ id: exp.id, amount: Number(exp.amount), category: exp.category })}
-                        title="Delete expense"
+                        title="Cancel expense"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </Button>
