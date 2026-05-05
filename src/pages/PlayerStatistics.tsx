@@ -10,7 +10,7 @@ import { getBusinessDate, businessDayHourUTC } from "@/lib/business-day";
 import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
 import { canSeePlayerFinancials, canSeeAllTimeData } from "@/lib/role-access";
 import { Button } from "@/components/ui/button";
-import ChipTransferDialog from "@/components/player/ChipTransferDialog";
+
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { PlayerPreviewHeader } from "@/components/player/PlayerPreviewHeader";
@@ -72,7 +72,7 @@ const PlayerStatistics = () => {
     new Set(["diamond", "platinum", "gold", "normal"])
   );
   const [posFilter, setPosFilter] = useState<"mix" | "table" | "slots">("mix");
-  const [transferPlayer, setTransferPlayer] = useState<{ id: string; first_name: string; last_name: string; nickname?: string | null } | null>(null);
+  
   type SortKey = "name" | "position" | "entry" | "exit" | "avgBet" | "inDrop" | "out" | "chipIn" | "chipOut" | "chipDelta" | "result";
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
@@ -465,12 +465,7 @@ const PlayerStatistics = () => {
             title="Chip Transfer"
             onClick={(e) => {
               e.stopPropagation();
-              setTransferPlayer({
-                id: r.playerId,
-                first_name: r.firstName,
-                last_name: r.lastName,
-                nickname: r.nickname,
-              });
+              navigate(`/players/${r.playerId}/chip-transfer?dir=out`);
             }}
           >
             <ArrowLeftRight className="w-3.5 h-3.5" />
@@ -636,14 +631,6 @@ const PlayerStatistics = () => {
           </div>
         </TabsContent>
       </Tabs>
-
-      <ChipTransferDialog
-        open={!!transferPlayer}
-        onOpenChange={(v) => { if (!v) setTransferPlayer(null); }}
-        player={transferPlayer}
-        defaultDirection="out"
-        presentPlayerIds={presentPlayerIds}
-      />
     </PageShell>
   );
 };

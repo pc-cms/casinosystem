@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { ArrowLeft, ArrowLeftRight, Ban, User, Users as UsersIcon, BarChart3, Ticket, Trophy, History, MapPin, Gift, CalendarDays } from "lucide-react";
-import ChipTransferDialog from "@/components/player/ChipTransferDialog";
+
 import BlacklistPlayerDialog from "@/components/player/BlacklistPlayerDialog";
 import PlayerVisitsBreakdown from "@/components/player/PlayerVisitsBreakdown";
 import PlayerChipTransfersLog from "@/components/player/PlayerChipTransfersLog";
@@ -75,7 +75,7 @@ const PlayerProfile = () => {
   const { data: sessions = [] } = usePlayerSessions(id, range);
 
   const [editOpen, setEditOpen] = useState(false);
-  const [transferOpen, setTransferOpen] = useState(false);
+  
   const [blacklistOpen, setBlacklistOpen] = useState(false);
 
   // Range bounds (apply to all tabs).
@@ -323,7 +323,7 @@ const PlayerProfile = () => {
         </Button>
         <div className="flex items-center gap-2">
           {roles.some(r => ["pit", "manager", "surveillance", "super_admin"].includes(r)) && (
-            <Button variant="outline" size="sm" className="h-9" onClick={() => setTransferOpen(true)}>
+            <Button variant="outline" size="sm" className="h-9" onClick={() => navigate(`/players/${(player as any).id}/chip-transfer?dir=out`)}>
               <ArrowLeftRight className="w-3.5 h-3.5 mr-1.5" /> Chip Transfer
             </Button>
           )}
@@ -871,17 +871,6 @@ const PlayerProfile = () => {
         onOpenChange={setEditOpen}
       />
 
-      <ChipTransferDialog
-        open={transferOpen}
-        onOpenChange={setTransferOpen}
-        player={player ? {
-          id: (player as any).id,
-          first_name: (player as any).first_name,
-          last_name: (player as any).last_name,
-          nickname: (player as any).nickname,
-        } : null}
-        defaultDirection="out"
-      />
 
       <BlacklistPlayerDialog
         open={blacklistOpen}
