@@ -111,6 +111,9 @@ const Dashboard = () => {
     const gameLabels: Record<string, string> = {
       "American Roulette": "TOTAL ARs",
       "Poker": "TOTAL POKER",
+      "Texas Holdem": "TOTAL POKER",
+      "Omaha": "TOTAL POKER",
+      "PLO": "TOTAL POKER",
       "Blackjack": "TOTAL BJ",
     };
     tables.forEach(t => {
