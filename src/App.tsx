@@ -133,7 +133,7 @@ const ROUTE_ROLES: Record<string, string[]> = {
   "/bank-checks": ["super_admin", "manager", "finance_manager"],
   "/miss-chips": ["super_admin", "manager", "finance_manager"],
   "/business-days": ["super_admin", "manager", "finance_manager"],
-  "/tables-report": ["super_admin", "manager", "finance_manager"],
+  
   "/pitbook": ["super_admin", "manager", "pit", "finance_manager", "surveillance"],
 };
 
