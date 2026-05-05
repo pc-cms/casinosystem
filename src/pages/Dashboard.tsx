@@ -28,14 +28,14 @@ import { Checkbox } from "@/components/ui/checkbox";
 const StatCard = ({ label, value, icon: Icon, href }: {
   label: string; value: string | number; icon: any; href: string;
 }) => (
-  <Link to={href} className="cms-panel p-4 hover:border-primary/30 transition-colors group">
+  <Link to={href} className="cms-panel p-6 hover:border-primary/30 transition-colors group">
     <div className="flex items-start justify-between">
       <div>
-        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{label}</p>
-        <p className="text-2xl font-bold font-mono mt-1 text-card-foreground">{value}</p>
+        <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">{label}</p>
+        <p className="text-4xl font-bold font-mono mt-2 text-card-foreground">{value}</p>
       </div>
-      <div className="p-2 rounded-md bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors">
-        <Icon className="w-5 h-5" />
+      <div className="p-3 rounded-md bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors">
+        <Icon className="w-7 h-7" />
       </div>
     </div>
   </Link>
@@ -200,16 +200,16 @@ const Dashboard = () => {
           <div className={`grid grid-cols-1 ${gridCols} gap-4 mb-6`}>
             {showFinancials && <StatCard label="Total Drop" value={formatCurrency(totalDrop)} icon={Landmark} href="/cage" />}
             {showFinancials && (
-              <Link to="/tables?tab=tracker" className="cms-panel p-4 hover:border-primary/30 transition-colors group">
+              <Link to="/tables?tab=tracker" className="cms-panel p-6 hover:border-primary/30 transition-colors group">
                 <div className="flex items-start justify-between">
                   <div>
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Result</p>
-                    <p className={`text-2xl font-bold font-mono mt-1 ${totalResult >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
+                    <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Result</p>
+                    <p className={`text-4xl font-bold font-mono mt-2 ${totalResult >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
                       {totalResult >= 0 ? "+" : ""}{formatCurrency(totalResult)}
                     </p>
                   </div>
-                  <div className="p-2 rounded-md bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors">
-                    <TrendingDown className="w-5 h-5" />
+                  <div className="p-3 rounded-md bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors">
+                    <TrendingDown className="w-7 h-7" />
                   </div>
                 </div>
               </Link>
@@ -218,14 +218,14 @@ const Dashboard = () => {
               isManager ? (
                 <StatCard label="Pending Expenses" value={pendingExpenses} icon={Receipt} href="/expenses" />
               ) : (
-                <div className="cms-panel p-4 opacity-75">
+                <div className="cms-panel p-6 opacity-75">
                   <div className="flex items-start justify-between">
                     <div>
-                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Pending Expenses</p>
-                      <p className="text-2xl font-bold font-mono mt-1 text-card-foreground">{pendingExpenses}</p>
+                      <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Pending Expenses</p>
+                      <p className="text-4xl font-bold font-mono mt-2 text-card-foreground">{pendingExpenses}</p>
                     </div>
-                    <div className="p-2 rounded-md bg-muted text-muted-foreground">
-                      <Receipt className="w-5 h-5" />
+                    <div className="p-3 rounded-md bg-muted text-muted-foreground">
+                      <Receipt className="w-7 h-7" />
                     </div>
                   </div>
                 </div>
@@ -242,22 +242,22 @@ const Dashboard = () => {
       {showFinancials && gameTypeCount > 0 && (
         <div className="mb-6">
           
-          <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${gameTypeCount + 1}, minmax(0, 1fr))` }}>
+          <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${gameTypeCount + 1}, minmax(0, 1fr))` }}>
             {Object.entries(gameTypeTotals).map(([game, t]) => (
-              <Link to="/tables" key={game} className="cms-panel p-2 hover:border-primary/30 transition-colors">
-                <p className="text-[9px] uppercase text-muted-foreground tracking-wider">{t.label}</p>
-                <p className={`font-mono text-sm font-bold ${t.result >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
+              <Link to="/tables" key={game} className="cms-panel p-4 hover:border-primary/30 transition-colors">
+                <p className="text-xs uppercase text-muted-foreground tracking-wider">{t.label}</p>
+                <p className={`font-mono text-2xl font-bold mt-1 ${t.result >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
                   {t.result >= 0 ? "+" : ""}{formatCurrency(t.result)}
                 </p>
-                <p className="font-mono text-[10px] text-muted-foreground">R: {formatCurrency(t.dropR)} · V: {formatCurrency(t.dropV)}</p>
+                <p className="font-mono text-xs text-muted-foreground mt-1">R: {formatCurrency(t.dropR)} · V: {formatCurrency(t.dropV)}</p>
               </Link>
             ))}
-            <Link to="/tables" className="cms-panel p-2 border-primary/30 hover:border-primary/60 transition-colors">
-              <p className="text-[9px] uppercase text-muted-foreground tracking-wider">Total Casino</p>
-              <p className={`font-mono text-sm font-bold ${totalResult >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
+            <Link to="/tables" className="cms-panel p-4 border-primary/30 hover:border-primary/60 transition-colors">
+              <p className="text-xs uppercase text-muted-foreground tracking-wider">Total Casino</p>
+              <p className={`font-mono text-2xl font-bold mt-1 ${totalResult >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
                 {totalResult >= 0 ? "+" : ""}{formatCurrency(totalResult)}
               </p>
-              <p className="font-mono text-[10px] text-muted-foreground">R: {formatCurrency(totalDropR)} · V: {formatCurrency(totalDropV)}</p>
+              <p className="font-mono text-xs text-muted-foreground mt-1">R: {formatCurrency(totalDropR)} · V: {formatCurrency(totalDropV)}</p>
             </Link>
           </div>
         </div>
