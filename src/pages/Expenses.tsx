@@ -256,8 +256,8 @@ const Expenses = () => {
                         variant="ghost"
                         size="sm"
                         className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
-                        onClick={() => setPendingDelete({ id: exp.id, amount: Number(exp.amount), category: exp.category })}
-                        title="Delete (manager override)"
+                        onClick={() => del.mutate({ id: exp.id, amount: Number(exp.amount), category: exp.category })}
+                        title="Delete expense"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </Button>
@@ -269,22 +269,6 @@ const Expenses = () => {
           </tbody>
         </table>
       </div>
-
-
-      <ManagerOverrideDialog
-        open={!!pendingDelete}
-        onClose={() => setPendingDelete(null)}
-        onConfirm={() => {
-          if (pendingDelete) {
-            del.mutate(pendingDelete);
-            setPendingDelete(null);
-          }
-        }}
-        title="Delete Expense"
-        description="This permanently removes the expense. Manager authentication required. The deletion is logged for audit."
-        actionType="DELETE_EXPENSE"
-        actionDetails={pendingDelete || {}}
-      />
     </div>
   );
 };
