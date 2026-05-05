@@ -14,7 +14,7 @@ import { NumberInput } from "@/components/ui/number-input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/layout/PageHeader";
-import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
+
 import { PlayerNameAutocomplete } from "@/components/PlayerNameAutocomplete";
 import { formatCurrency } from "@/lib/currency";
 
@@ -59,12 +59,10 @@ const Expenses = () => {
   const { data: serverBusinessDate } = useEffectiveBusinessDate();
   const businessDate = serverBusinessDate || getBusinessDate();
   const { data: shift } = useActiveShift();
-  // Manager (real role or Manager Access toggle) sees all-time expenses; others — current business day only.
-  const { data: expenses = [], isLoading: loadingExpenses } = useExpenses(isManager ? undefined : businessDate);
+  const { data: expenses = [], isLoading: loadingExpenses } = useExpenses(businessDate);
   const create = useCreateExpense();
   const approve = useApproveExpense();
   const del = useDeleteExpense();
-  const [pendingDelete, setPendingDelete] = useState<{ id: string; amount: number; category: string } | null>(null);
   const [drafts, setDrafts] = useState<DraftRow[]>([newDraft()]);
 
   const isLoading = loadingExpenses;
@@ -258,8 +256,8 @@ const Expenses = () => {
                         variant="ghost"
                         size="sm"
                         className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
-                        onClick={() => setPendingDelete({ id: exp.id, amount: Number(exp.amount), category: exp.category })}
-                        title="Delete (manager override)"
+                        onClick={() => del.mutate({ id: exp.id, amount: Number(exp.amount), category: exp.category })}
+                        title="Delete expense"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </Button>
@@ -271,22 +269,6 @@ const Expenses = () => {
           </tbody>
         </table>
       </div>
-
-
-      <ManagerOverrideDialog
-        open={!!pendingDelete}
-        onClose={() => setPendingDelete(null)}
-        onConfirm={() => {
-          if (pendingDelete) {
-            del.mutate(pendingDelete);
-            setPendingDelete(null);
-          }
-        }}
-        title="Delete Expense"
-        description="This permanently removes the expense. Manager authentication required. The deletion is logged for audit."
-        actionType="DELETE_EXPENSE"
-        actionDetails={pendingDelete || {}}
-      />
     </div>
   );
 };
