@@ -63,7 +63,6 @@ const Expenses = () => {
   const create = useCreateExpense();
   const approve = useApproveExpense();
   const del = useDeleteExpense();
-  const [pendingDelete, setPendingDelete] = useState<{ id: string; amount: number; category: string } | null>(null);
   const [drafts, setDrafts] = useState<DraftRow[]>([newDraft()]);
 
   const isLoading = loadingExpenses;
