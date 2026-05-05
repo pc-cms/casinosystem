@@ -80,10 +80,13 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
 
   const activeDealers = dealers.filter(d => d.is_active);
   const openTables = tables.filter(t => t.status === "open");
+  // For displaying existing breaklist assignments — include closed tables too,
+  // so per-table assignments (P1, R1, etc.) remain visible after a table is closed mid-day.
+  const assignableTables = tables;
 
-  // Stable color index per table — based on alphabetical order of open tables.
+  // Stable color index per table — based on alphabetical order of all tables (open + closed).
   const tableColorIndex = useMemo(() => {
-    const sorted = [...openTables].sort((a, b) => a.name.localeCompare(b.name));
+    const sorted = [...assignableTables].sort((a, b) => a.name.localeCompare(b.name));
     const map = new Map<string, number>();
     sorted.forEach((t, i) => map.set(t.id, i));
     return map;
