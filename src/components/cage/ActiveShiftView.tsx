@@ -97,7 +97,6 @@ const ActiveShiftView = ({ shift, players, tables }: {
   const createTx = useCreateTransaction();
   const closeShift = useCloseShift();
   const navigate = useNavigate();
-  const [showClose, setShowClose] = useState(false);
   const [showCloseTables, setShowCloseTables] = useState(false);
   
 
@@ -171,7 +170,7 @@ const ActiveShiftView = ({ shift, players, tables }: {
         <Button variant="outline" size="sm" onClick={() => setShowCloseTables(true)} className="gap-1.5">
           <Package className="w-3.5 h-3.5" /> Close Tables
         </Button>
-        <Button variant="destructive" size="sm" onClick={() => setShowClose(true)} className="gap-1.5">
+        <Button variant="destructive" size="sm" onClick={() => navigate("/cage/close-shift")} className="gap-1.5">
           <Square className="w-3.5 h-3.5" /> Close Shift
         </Button>
       </PageHeader>
@@ -246,31 +245,6 @@ const ActiveShiftView = ({ shift, players, tables }: {
         </DialogContent>
       </Dialog>
 
-      <CloseShiftDialog
-        open={showClose}
-        onClose={() => setShowClose(false)}
-        shift={shift}
-        expectedBalance={expectedCash}
-        cashResult={cashResult}
-        totalBuyIns={totalIns}
-        totalCashouts={totalOuts}
-        totalExpenses={totalExpenses}
-        externalCashMovement={totalAddFloat + totalSlotsIn - totalCollection - totalSlotsOut}
-        openingFloat={openingFloat}
-        tables={tables}
-        onConfirm={(data) => {
-          closeShift.mutate({
-            shift_id: shift.id,
-            closing_count: data.closingCount,
-            closing_cash: data.closingCash,
-            notes: data.notes,
-            cash_result: data.cashResult,
-            miss_total: data.missTotal,
-            shift_result: data.shiftResult,
-          }, { onSuccess: () => setShowClose(false) });
-        }}
-        loading={closeShift.isPending}
-      />
 
     </PageShell>
   );
