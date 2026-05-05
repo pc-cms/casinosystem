@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { usePlayers, useTransactions, useGamingTables } from "@/hooks/use-casino-data";
 import { useChipTransfers } from "@/hooks/use-chip-transfers";
+import { usePlayersDropSplit } from "@/hooks/use-drop-split";
 import { getBusinessDate, businessDayHourUTC } from "@/lib/business-day";
 import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
 import { canSeePlayerFinancials, canSeeAllTimeData } from "@/lib/role-access";
@@ -54,6 +55,7 @@ const PlayerStatistics = () => {
   const effectiveDate = canBrowseHistory ? date : today;
   const isHistorical = effectiveDate !== today;
   const windowStartUTC = businessDayHourUTC(effectiveDate, 13);
+  const windowEndUTC = businessDayHourUTC(effectiveDate, 13 + 24);
   const queryClient = useQueryClient();
   const canEditPosition = !isHistorical && roles.some(r => ["pit", "manager", "reception", "super_admin"].includes(r));
 
@@ -61,6 +63,7 @@ const PlayerStatistics = () => {
   const { data: tables = [] } = useGamingTables();
   const { data: transactions = [] } = useTransactions(effectiveDate);
   const { data: chipTransfers = [] } = useChipTransfers(effectiveDate);
+  const { data: playersDropSplit } = usePlayersDropSplit(windowStartUTC, windowEndUTC);
 
   const shiftDate = (delta: number) => {
     const next = subDays(date, delta);
@@ -75,7 +78,7 @@ const PlayerStatistics = () => {
   );
   const [posFilter, setPosFilter] = useState<"mix" | "table" | "slots">("mix");
   
-  type SortKey = "name" | "position" | "entry" | "exit" | "avgBet" | "inDrop" | "inCount" | "outCount" | "chipIn" | "chipOut" | "result";
+  type SortKey = "name" | "position" | "entry" | "exit" | "avgBet" | "dropR" | "inDrop" | "out" | "chipIn" | "chipOut" | "result";
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const toggleSort = (key: SortKey) => {
@@ -185,6 +188,7 @@ const PlayerStatistics = () => {
         avgBet: activeSession ? Number(activeSession.avg_bet || 0) : 0,
         inDrop,
         out,
+        dropR: playersDropSplit?.get(v.player_id)?.dropR ?? 0,
         inCount: playerTx.filter((t: any) => t.type === "buy" || t.type === "in").length,
         outCount: playerTx.filter((t: any) => t.type === "cashout" || t.type === "out").length,
         chipIn: chip.in,
@@ -194,7 +198,7 @@ const PlayerStatistics = () => {
         isPresent,
       };
     }).filter(Boolean) as Array<NonNullable<ReturnType<typeof Object>>>;
-  }, [visits, players, transactions, chipByPlayer, activeSessionByPlayer, tableNameById]);
+  }, [visits, players, transactions, chipByPlayer, activeSessionByPlayer, tableNameById, playersDropSplit]);
 
   const filtered = useMemo(() => {
     let list = rows;
@@ -220,9 +224,9 @@ const PlayerStatistics = () => {
             case "entry": return new Date(r.entryAt).getTime();
             case "exit": return r.exitAt ? new Date(r.exitAt).getTime() : 0;
             case "avgBet": return r.avgBet;
+            case "dropR": return r.dropR;
             case "inDrop": return r.inDrop;
-            case "inCount": return r.inCount;
-            case "outCount": return r.outCount;
+            case "out": return r.out;
             case "chipIn": return r.chipIn;
             case "chipOut": return r.chipOut;
             case "result": return r.result;
@@ -252,10 +256,11 @@ const PlayerStatistics = () => {
 
   // Totals across the currently filtered list (period + tab + filters + search).
   const totals = useMemo(() => {
-    const t = { count: 0, avgBetSum: 0, avgBetN: 0, inDrop: 0, out: 0, chipIn: 0, chipOut: 0, chipDelta: 0, result: 0 };
+    const t = { count: 0, avgBetSum: 0, avgBetN: 0, dropR: 0, inDrop: 0, out: 0, chipIn: 0, chipOut: 0, chipDelta: 0, result: 0 };
     for (const r of filtered as any[]) {
       t.count += 1;
       if (r.avgBet) { t.avgBetSum += r.avgBet; t.avgBetN += 1; }
+      t.dropR += r.dropR;
       t.inDrop += r.inDrop;
       t.out += r.out;
       t.chipIn += r.chipIn;
@@ -492,11 +497,15 @@ const PlayerStatistics = () => {
             <td className="px-2 py-1.5 font-mono text-sm text-right whitespace-nowrap min-w-[90px]">
               <Money value={r.avgBet} />
             </td>
-            <td className="px-2 py-1.5 font-mono text-sm text-right whitespace-nowrap min-w-[120px]">
+            <td className="px-2 py-1.5 font-mono text-sm text-right whitespace-nowrap min-w-[120px]" title="Drop R — external cash only (NEP)">
+              <Money value={r.dropR} />
+            </td>
+            <td className="px-2 py-1.5 font-mono text-sm text-right whitespace-nowrap min-w-[110px]">
               <Money value={r.inDrop} />
             </td>
-            <td className="px-2 py-1.5 font-mono text-sm text-right whitespace-nowrap min-w-[50px]">{r.inCount || "·"}</td>
-            <td className="px-2 py-1.5 font-mono text-sm text-right whitespace-nowrap min-w-[50px]">{r.outCount || "·"}</td>
+            <td className="px-2 py-1.5 font-mono text-sm text-right whitespace-nowrap min-w-[110px]">
+              <Money value={r.out} />
+            </td>
             <td className="px-2 py-1.5 font-mono text-sm text-right text-success whitespace-nowrap min-w-[110px]">
               <Money value={r.chipIn} />
             </td>
@@ -657,9 +666,9 @@ const PlayerStatistics = () => {
                           {showFinancials && (
                             <>
                               <H k="avgBet" align="right">Bet</H>
-                              <H k="inDrop" align="right" title="Drop R — external cash buy-ins">Drop</H>
-                              <H k="inCount" align="right" title="Number of buy-in transactions">In</H>
-                              <H k="outCount" align="right" title="Number of cashout transactions">Out</H>
+                              <H k="dropR" align="right" title="Drop R — external cash only (NEP)">Drop</H>
+                              <H k="inDrop" align="right" title="Total cash in (all buy-ins)">In</H>
+                              <H k="out" align="right" title="Total cash out (all cashouts)">Out</H>
                               <H k="chipIn" align="right" title="Chips received from another player">C In</H>
                               <H k="chipOut" align="right" title="Chips given to another player">C Out</H>
                               <H k="result" align="right">Result</H>
@@ -691,9 +700,9 @@ const PlayerStatistics = () => {
                             <td className="px-2 py-2 text-right whitespace-nowrap" title="Average bet">
                               <Money value={avgBetAvg} />
                             </td>
+                            <td className="px-2 py-2 text-right font-semibold whitespace-nowrap"><Money value={totals.dropR} /></td>
                             <td className="px-2 py-2 text-right font-semibold whitespace-nowrap"><Money value={totals.inDrop} /></td>
-                            <td className="px-2 py-2 text-right font-semibold whitespace-nowrap">·</td>
-                            <td className="px-2 py-2 text-right font-semibold whitespace-nowrap">·</td>
+                            <td className="px-2 py-2 text-right font-semibold whitespace-nowrap"><Money value={totals.out} /></td>
                             <td className="px-2 py-2 text-right text-success whitespace-nowrap"><Money value={totals.chipIn} /></td>
                             <td className="px-2 py-2 text-right text-destructive whitespace-nowrap"><Money value={totals.chipOut} /></td>
                             <td className={`px-2 py-2 text-right font-bold text-base whitespace-nowrap ${totals.result > 0 ? "cms-amount-positive" : totals.result < 0 ? "cms-amount-negative" : ""}`}>

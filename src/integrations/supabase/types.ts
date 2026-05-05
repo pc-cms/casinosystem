@@ -3327,6 +3327,14 @@ export type Database = {
           drop_recycled: number
         }[]
       }
+      compute_players_drop_split: {
+        Args: { _casino_id: string; _from: string; _to: string }
+        Returns: {
+          drop_r: number
+          drop_recycled: number
+          player_id: string
+        }[]
+      }
       compute_shift_close: { Args: { p_shift_id: string }; Returns: Json }
       compute_tables_drop_split: {
         Args: { _casino_id: string; _from: string; _to: string }
