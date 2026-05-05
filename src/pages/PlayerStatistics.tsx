@@ -477,7 +477,7 @@ const PlayerStatistics = () => {
       onClick={() => selectPlayer(r.playerId)}
       className="border-b border-border hover:bg-muted/30 cursor-pointer transition-colors"
     >
-      <td className="px-2 py-1.5 font-mono text-[11px] text-center text-muted-foreground sticky left-0 bg-card z-10 w-10">{idx + 1}</td>
+      <td className="px-2 py-1.5 font-mono text-[11px] text-center text-muted-foreground sticky left-0 bg-card z-10 w-10">{r.visitNumber || idx + 1}</td>
       <td className={`px-2 py-1.5 max-w-[200px] sticky left-10 z-10 ${CATEGORY_NAME_TINT[r.category] || "bg-card"}`}>
         <div className="flex items-center gap-1.5 min-w-0">
           <CategoryBadge category={r.category} />
