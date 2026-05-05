@@ -382,6 +382,7 @@ const TableResults = () => {
                     <Button
                       size="sm"
                       variant="ghost"
+                      disabled={isSurveillanceOnly}
                       onClick={() =>
                         setMonthAnchor(new Date(monthAnchor.getFullYear() - 1, monthAnchor.getMonth(), 1))
                       }
@@ -392,6 +393,7 @@ const TableResults = () => {
                     <Button
                       size="sm"
                       variant="ghost"
+                      disabled={isSurveillanceOnly}
                       onClick={() =>
                         setMonthAnchor(new Date(monthAnchor.getFullYear() + 1, monthAnchor.getMonth(), 1))
                       }
