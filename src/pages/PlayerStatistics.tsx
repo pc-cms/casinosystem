@@ -651,10 +651,10 @@ const PlayerStatistics = () => {
                             <>
                               <H k="avgBet" align="right">Bet</H>
                               <H k="dropR" align="right" title="Drop R — external cash only (NEP)">Drop</H>
-                              <H k="inDrop" align="right" title="Total cash in (all buy-ins)">In</H>
-                              <H k="out" align="right" title="Total cash out (all cashouts)">Out</H>
-                              <H k="chipIn" align="right" title="Chips received from another player">C In</H>
-                              <H k="chipOut" align="right" title="Chips given to another player">C Out</H>
+                              <H k="inDrop" align="right" title="Total cash in (all buy-ins)">Cash In</H>
+                              <H k="out" align="right" title="Total cash out (all cashouts)">Cash Out</H>
+                              <H k="chipIn" align="right" title="Chip adjustments in (+)">Chip In</H>
+                              <H k="chipOut" align="right" title="Chip adjustments out (−)">Chip Out</H>
                               <H k="result" align="right">Result</H>
                             </>
                           )}
@@ -678,12 +678,9 @@ const PlayerStatistics = () => {
                           const prefix = sign && value > 0 ? "+" : "";
                           return <>{prefix}{formatCurrency(value)}</>;
                         };
-                        const avgBetAvg = totals.avgBetN ? Math.round(totals.avgBetSum / totals.avgBetN) : 0;
                         return (
                           <>
-                            <td className="px-2 py-2 text-right whitespace-nowrap" title="Average bet">
-                              <Money value={avgBetAvg} />
-                            </td>
+                            <td className="px-2 py-2"></td>
                             <td className="px-2 py-2 text-right font-semibold whitespace-nowrap"><Money value={totals.dropR} /></td>
                             <td className="px-2 py-2 text-right font-semibold whitespace-nowrap"><Money value={totals.inDrop} /></td>
                             <td className="px-2 py-2 text-right font-semibold whitespace-nowrap"><Money value={totals.out} /></td>
