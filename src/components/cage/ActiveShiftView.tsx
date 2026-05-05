@@ -632,8 +632,13 @@ const CloseTablesForm = ({ tables }: { tables: Tables<"gaming_tables">[] }) => {
           </div>
         );
       })}
-      <Button onClick={handleClose} disabled={!allConfirmed || closeAllTables.isPending} className="w-full gap-1.5">
-        <CheckCircle2 className="w-4 h-4" /> {closeAllTables.isPending ? "Closing…" : "Close All Tables"}
+      <Button onClick={handleClose} disabled={!anyConfirmed || closeAllTables.isPending} className="w-full gap-1.5">
+        <CheckCircle2 className="w-4 h-4" />
+        {closeAllTables.isPending
+          ? "Closing…"
+          : allConfirmed
+            ? `Close All Tables (${confirmedIds.length})`
+            : `Close Selected Tables (${confirmedIds.length})`}
       </Button>
     </div>
   );
