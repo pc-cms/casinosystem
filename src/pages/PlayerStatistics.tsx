@@ -520,22 +520,6 @@ const PlayerStatistics = () => {
           </>
         );
       })()}
-      {canTransfer && (
-        <td className="px-1 py-1.5 text-right w-8">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-6 w-6 p-0"
-            title="Chip Transfer"
-            onClick={(e) => {
-              e.stopPropagation();
-              navigate(`/players/${r.playerId}/chip-transfer?dir=out`);
-            }}
-          >
-            <ArrowLeftRight className="w-3.5 h-3.5" />
-          </Button>
-        </td>
-      )}
     </tr>
   );
 
