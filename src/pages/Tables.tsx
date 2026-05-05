@@ -349,14 +349,14 @@ const Tables = () => {
 
   const gameTypeTotals = useMemo(() => {
     const totals: Record<string, { dropR: number; dropV: number; result: number; label: string }> = {};
-    const gameLabels: Record<string, string> = { "American Roulette": "TOTAL ARs", "Poker": "TOTAL POKER", "Blackjack": "TOTAL BJ" };
+    const gameLabels: Record<string, string> = { "American Roulette": "TOTAL ARs", "Poker": "TOTAL POKER", "Texas Holdem": "TOTAL POKER", "Omaha": "TOTAL POKER", "PLO": "TOTAL POKER", "Blackjack": "TOTAL BJ" };
     tables.forEach(t => {
       const label = gameLabels[t.game] || `Total ${t.game}`;
-      if (!totals[t.game]) totals[t.game] = { dropR: 0, dropV: 0, result: 0, label };
+      if (!totals[label]) totals[label] = { dropR: 0, dropV: 0, result: 0, label };
       const r = tableStats[t.id] || { dropR: 0, dropV: 0, result: 0 };
-      totals[t.game].dropR += r.dropR;
-      totals[t.game].dropV += r.dropV;
-      totals[t.game].result += r.result;
+      totals[label].dropR += r.dropR;
+      totals[label].dropV += r.dropV;
+      totals[label].result += r.result;
     });
     return totals;
   }, [tables, tableStats]);
@@ -410,11 +410,11 @@ const Tables = () => {
           </div>
           <div className="text-right">
             <p className="text-[9px] uppercase text-muted-foreground tracking-wider leading-none">Drop</p>
-            <p className="font-mono text-2xl font-bold text-card-foreground whitespace-nowrap mt-0.5">{formatCurrency(r.dropR)}</p>
+            <p className="font-mono text-lg font-bold text-card-foreground whitespace-nowrap mt-0.5">{formatCurrency(r.dropR)}</p>
           </div>
           <div className="text-right">
             <p className="text-[9px] uppercase text-muted-foreground tracking-wider leading-none">Result</p>
-            <p className={`font-mono text-2xl font-bold whitespace-nowrap mt-0.5 ${r.result >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
+            <p className={`font-mono text-lg font-bold whitespace-nowrap mt-0.5 ${r.result >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
               {r.result >= 0 ? "+" : ""}{formatCurrency(r.result)}
             </p>
           </div>
