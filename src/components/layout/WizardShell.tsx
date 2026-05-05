@@ -52,7 +52,7 @@ export interface WizardStep {
 
 interface WizardShellProps {
   title: string;
-  description?: ReactNode;
+  subtitle?: string;
   steps: WizardStep[];
   onConfirm: () => void | Promise<void>;
   onCancel?: () => void;
