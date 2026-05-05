@@ -36,7 +36,7 @@ const StatCard = ({ label, value, icon: Icon, href }: {
       <p className="text-xs font-medium uppercase tracking-wider truncate">{label}</p>
     </div>
     <div className="mt-3 overflow-x-auto scrollbar-hide">
-      <p className="text-4xl font-bold font-mono whitespace-nowrap text-card-foreground">{value}</p>
+      <p className="text-3xl font-bold font-mono whitespace-nowrap text-card-foreground">{value}</p>
     </div>
   </Link>
 );
@@ -208,7 +208,7 @@ const Dashboard = () => {
                   <p className="text-xs font-medium uppercase tracking-wider truncate">Result</p>
                 </div>
                 <div className="mt-3 overflow-x-auto scrollbar-hide">
-                  <p className={`text-4xl font-bold font-mono whitespace-nowrap ${totalResult >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
+                  <p className={`text-3xl font-bold font-mono whitespace-nowrap ${totalResult >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
                     {totalResult >= 0 ? "+" : ""}{formatCurrency(totalResult)}
                   </p>
                 </div>
@@ -226,7 +226,7 @@ const Dashboard = () => {
                     <p className="text-xs font-medium uppercase tracking-wider truncate">Pending Expenses</p>
                   </div>
                   <div className="mt-3 overflow-x-auto scrollbar-hide">
-                    <p className="text-4xl font-bold font-mono whitespace-nowrap text-card-foreground">{pendingExpenses}</p>
+                    <p className="text-3xl font-bold font-mono whitespace-nowrap text-card-foreground">{pendingExpenses}</p>
                   </div>
                 </div>
               )
