@@ -189,22 +189,16 @@ export const CloseTableWizard = ({ open, onClose, tables, date, readOnly = false
                 <Lock className="w-4 h-4" />
                 {readOnly ? "Closing Check" : "Close Tables"}
                 <Badge variant="outline" className="ml-2 font-mono text-[10px]">
-                  {wizardTables.filter(isCounted).length} / {wizardTables.length} counted
+                  {wizardTables.filter(isCounted).length} / {wizardTables.length} saved
                 </Badge>
                 {readOnly && (
                   <Badge variant="outline" className="ml-1 text-[10px]">View only</Badge>
                 )}
               </DialogTitle>
-              {!readOnly && (
-                <Button
-                  onClick={handleTablesClose}
-                  disabled={!allCounted || closeAll.isPending}
-                  size="sm"
-                  className="gap-1.5"
-                >
-                  <Lock className="w-3.5 h-3.5" />
-                  {closeAll.isPending ? "Closing…" : "Tables Close"}
-                </Button>
+              {!readOnly && wizardTables.filter(isCounted).length > 0 && (
+                <span className="text-[10px] text-muted-foreground hidden sm:block">
+                  Saved tables are sent to Cashier for payout
+                </span>
               )}
             </div>
           </DialogHeader>
