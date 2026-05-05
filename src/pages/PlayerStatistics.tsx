@@ -246,6 +246,22 @@ const PlayerStatistics = () => {
     left: rows.filter((r: any) => !r.isPresent).length,
   }), [rows]);
 
+  // Totals across the currently filtered list (period + tab + filters + search).
+  const totals = useMemo(() => {
+    const t = { count: 0, avgBetSum: 0, avgBetN: 0, inDrop: 0, out: 0, chipIn: 0, chipOut: 0, chipDelta: 0, result: 0 };
+    for (const r of filtered as any[]) {
+      t.count += 1;
+      if (r.avgBet) { t.avgBetSum += r.avgBet; t.avgBetN += 1; }
+      t.inDrop += r.inDrop;
+      t.out += r.out;
+      t.chipIn += r.chipIn;
+      t.chipOut += r.chipOut;
+      t.chipDelta += r.chipDelta;
+      t.result += r.result;
+    }
+    return t;
+  }, [filtered]);
+
   // (user already destructured from useAuth above)
 
   // Position change: handles "hall", "slots", or specific table id (UUID).
@@ -614,6 +630,47 @@ const PlayerStatistics = () => {
                     })()}
                     {canTransfer && <th className="px-2 py-2 text-right w-8"></th>}
                   </tr>
+                  {filtered.length > 0 && (
+                    <tr className="text-[11px] bg-primary/5 border-b border-border font-mono">
+                      <td className="px-2 py-1.5 text-left uppercase tracking-wider text-muted-foreground font-semibold">
+                        Total · {totals.count}
+                      </td>
+                      <td className="px-1 py-1.5"></td>
+                      <td className="px-1 py-1.5"></td>
+                      <td className="px-1 py-1.5"></td>
+                      {showFinancials && (() => {
+                        const Money = ({ value, sign = false }: { value: number; sign?: boolean }) => {
+                          if (!value) return <>·</>;
+                          const prefix = sign && value > 0 ? "+" : "";
+                          return (
+                            <>
+                              <span className="hidden md:inline">{prefix}{formatCurrency(value)}</span>
+                              <span className="md:hidden">{prefix}{formatNumberCompact(value)}</span>
+                            </>
+                          );
+                        };
+                        const avgBetAvg = totals.avgBetN ? Math.round(totals.avgBetSum / totals.avgBetN) : 0;
+                        return (
+                          <>
+                            <td className="px-2 py-1.5 text-right" title="Average of avg bet across present players">
+                              <Money value={avgBetAvg} />
+                            </td>
+                            <td className="px-2 py-1.5 text-right font-semibold"><Money value={totals.inDrop} /></td>
+                            <td className="px-2 py-1.5 text-right font-semibold"><Money value={totals.out} /></td>
+                            <td className="px-2 py-1.5 text-right text-success"><Money value={totals.chipIn} /></td>
+                            <td className="px-2 py-1.5 text-right text-destructive"><Money value={totals.chipOut} /></td>
+                            <td className={`px-2 py-1.5 text-right ${totals.chipDelta > 0 ? "cms-amount-positive" : totals.chipDelta < 0 ? "cms-amount-negative" : ""}`}>
+                              <Money value={totals.chipDelta} sign />
+                            </td>
+                            <td className={`px-2 py-1.5 text-right font-bold ${totals.result > 0 ? "cms-amount-positive" : totals.result < 0 ? "cms-amount-negative" : ""}`}>
+                              <Money value={totals.result} sign />
+                            </td>
+                          </>
+                        );
+                      })()}
+                      {canTransfer && <td></td>}
+                    </tr>
+                  )}
                 </thead>
                 <tbody>
                   {filtered.length === 0 ? (
