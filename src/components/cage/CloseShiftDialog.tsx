@@ -62,8 +62,12 @@ const CloseShiftDialog = ({
     return out;
   }, [shift]);
   const openingChipsTzs = useMemo(() => chipSum(openingChips), [openingChips]);
-  const openingCashTzs = openingFloat || 0;
-  const openingTotal = openingChipsTzs + openingCashTzs;
+  // `openingFloat` (prop) is the FULL opening total in TZS
+  // (chips + cash + bank + mobile) coming from `opening_float.totals.total_tzs`.
+  // The non-chip portion is everything except chips — used as "Opening (Cash)"
+  // in the balance formula. Avoids double-counting chips on the opening side.
+  const openingTotal = openingFloat || 0;
+  const openingCashTzs = Math.max(0, openingTotal - openingChipsTzs);
 
   // ── Tables (must be all closed before cage close) ─────────────────────────
   const openTables = useMemo(() => tables.filter(t => t.status === "open" && !t.is_archived), [tables]);
