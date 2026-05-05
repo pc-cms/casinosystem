@@ -193,6 +193,7 @@ const ProtectedRoutes = () => {
           
           <Route path="/blacklist" element={<RoleGuard path="/blacklist"><Blacklist /></RoleGuard>} />
           <Route path="/tables" element={<RoleGuard path="/tables"><Tables /></RoleGuard>} />
+          <Route path="/tables/close" element={<RoleGuard path="/tables"><ErrorBoundary><CloseTablesPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/active-players" element={<Navigate to="/player-statistics" replace />} />
           <Route path="/player-statistics" element={<RoleGuard path="/player-statistics"><PlayerStatistics /></RoleGuard>} />
           <Route path="/player-tracker" element={<Navigate to="/player-statistics" replace />} />
