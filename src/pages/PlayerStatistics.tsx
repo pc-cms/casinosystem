@@ -485,30 +485,25 @@ const PlayerStatistics = () => {
         const Money = ({ value, sign = false }: { value: number; sign?: boolean }) => {
           if (!value) return <>·</>;
           const prefix = sign && value > 0 ? "+" : "";
-          return (
-            <>
-              <span className="hidden md:inline">{prefix}{formatCurrency(value)}</span>
-              <span className="md:hidden">{prefix}{formatNumberCompact(value)}</span>
-            </>
-          );
+          return <>{prefix}{formatCurrency(value)}</>;
         };
         return (
           <>
-            <td className="px-2 py-1.5 font-mono text-xs text-right md:w-[80px]">
+            <td className="px-2 py-1.5 font-mono text-sm text-right whitespace-nowrap min-w-[90px]">
               <Money value={r.avgBet} />
             </td>
-            <td className="px-2 py-1.5 font-mono text-xs text-right md:w-[110px]">
+            <td className="px-2 py-1.5 font-mono text-sm text-right whitespace-nowrap min-w-[120px]">
               <Money value={r.inDrop} />
             </td>
-            <td className="px-2 py-1.5 font-mono text-xs text-right md:w-[60px]">{r.inCount || "·"}</td>
-            <td className="px-2 py-1.5 font-mono text-xs text-right md:w-[60px]">{r.outCount || "·"}</td>
-            <td className="px-2 py-1.5 font-mono text-xs text-right text-success md:w-[95px]">
+            <td className="px-2 py-1.5 font-mono text-sm text-right whitespace-nowrap min-w-[50px]">{r.inCount || "·"}</td>
+            <td className="px-2 py-1.5 font-mono text-sm text-right whitespace-nowrap min-w-[50px]">{r.outCount || "·"}</td>
+            <td className="px-2 py-1.5 font-mono text-sm text-right text-success whitespace-nowrap min-w-[110px]">
               <Money value={r.chipIn} />
             </td>
-            <td className="px-2 py-1.5 font-mono text-xs text-right text-destructive md:w-[95px]">
+            <td className="px-2 py-1.5 font-mono text-sm text-right text-destructive whitespace-nowrap min-w-[110px]">
               <Money value={r.chipOut} />
             </td>
-            <td className={`px-2 py-1.5 font-mono text-xs text-right font-bold md:w-[110px] ${
+            <td className={`px-2 py-1.5 font-mono text-sm text-right font-bold whitespace-nowrap min-w-[120px] ${
               r.result > 0 ? "cms-amount-positive" : r.result < 0 ? "cms-amount-negative" : ""
             }`}>
               <Money value={r.result} sign />
@@ -637,7 +632,7 @@ const PlayerStatistics = () => {
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <thead className="bg-muted/30 border-b border-border">
-                  <tr className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                  <tr className="text-xs uppercase tracking-wider text-muted-foreground">
                     {(() => {
                       const SortIcon = ({ k }: { k: SortKey }) =>
                         sortKey !== k ? <ArrowUpDown className="w-3 h-3 inline ml-1 opacity-40" />
@@ -646,7 +641,7 @@ const PlayerStatistics = () => {
                       const H = ({ k, align = "left", children, title, sticky }: { k: SortKey; align?: "left" | "right"; children: any; title?: string; sticky?: string }) => (
                         <th
                           title={title}
-                          className={`px-2 py-2.5 cursor-pointer select-none hover:text-foreground ${align === "right" ? "text-right" : "text-left"} ${sticky ? `${sticky} bg-muted/30 z-20` : ""}`}
+                          className={`px-2 py-3 cursor-pointer select-none hover:text-foreground whitespace-nowrap font-semibold ${align === "right" ? "text-right" : "text-left"} ${sticky ? `${sticky} bg-muted/30 z-20` : ""}`}
                           onClick={() => toggleSort(k)}
                         >
                           {children}<SortIcon k={k} />
@@ -654,7 +649,7 @@ const PlayerStatistics = () => {
                       );
                       return (
                         <>
-                          <th className="px-2 py-2.5 text-center sticky left-0 bg-muted/30 z-20 w-10">№</th>
+                          <th className="px-2 py-3 text-center sticky left-0 bg-muted/30 z-20 w-10 font-semibold">№</th>
                           <H k="name" sticky="sticky left-10">Name</H>
                           <H k="entry">Entry</H>
                           <H k="exit">Left</H>
@@ -688,25 +683,20 @@ const PlayerStatistics = () => {
                         const Money = ({ value, sign = false }: { value: number; sign?: boolean }) => {
                           if (!value) return <>·</>;
                           const prefix = sign && value > 0 ? "+" : "";
-                          return (
-                            <>
-                              <span className="hidden md:inline">{prefix}{formatCurrency(value)}</span>
-                              <span className="md:hidden">{prefix}{formatNumberCompact(value)}</span>
-                            </>
-                          );
+                          return <>{prefix}{formatCurrency(value)}</>;
                         };
                         const avgBetAvg = totals.avgBetN ? Math.round(totals.avgBetSum / totals.avgBetN) : 0;
                         return (
                           <>
-                            <td className="px-2 py-2 text-right" title="Average bet">
+                            <td className="px-2 py-2 text-right whitespace-nowrap" title="Average bet">
                               <Money value={avgBetAvg} />
                             </td>
-                            <td className="px-2 py-2 text-right font-semibold"><Money value={totals.inDrop} /></td>
-                            <td className="px-2 py-2 text-right font-semibold">·</td>
-                            <td className="px-2 py-2 text-right font-semibold">·</td>
-                            <td className="px-2 py-2 text-right text-success"><Money value={totals.chipIn} /></td>
-                            <td className="px-2 py-2 text-right text-destructive"><Money value={totals.chipOut} /></td>
-                            <td className={`px-2 py-2 text-right font-bold text-base ${totals.result > 0 ? "cms-amount-positive" : totals.result < 0 ? "cms-amount-negative" : ""}`}>
+                            <td className="px-2 py-2 text-right font-semibold whitespace-nowrap"><Money value={totals.inDrop} /></td>
+                            <td className="px-2 py-2 text-right font-semibold whitespace-nowrap">·</td>
+                            <td className="px-2 py-2 text-right font-semibold whitespace-nowrap">·</td>
+                            <td className="px-2 py-2 text-right text-success whitespace-nowrap"><Money value={totals.chipIn} /></td>
+                            <td className="px-2 py-2 text-right text-destructive whitespace-nowrap"><Money value={totals.chipOut} /></td>
+                            <td className={`px-2 py-2 text-right font-bold text-base whitespace-nowrap ${totals.result > 0 ? "cms-amount-positive" : totals.result < 0 ? "cms-amount-negative" : ""}`}>
                               <Money value={totals.result} sign />
                             </td>
                           </>
