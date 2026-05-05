@@ -26,7 +26,18 @@ const OpenShiftScreen = ({ tables }: { tables: Tables<"gaming_tables">[] }) => {
   const openShift = useOpenShift();
   const { managerOverride, activateManagerOverride, displayName } = useAuth();
   const [step, setStep] = useState<1 | 2>(1);
+  const { data: lastShift } = useLastClosedShift();
   const [rates, setRates] = useState<Record<string, number>>({ ...DEFAULT_EXCHANGE_RATES });
+  const [ratesPrefilled, setRatesPrefilled] = useState(false);
+
+  useEffect(() => {
+    if (ratesPrefilled) return;
+    const prev = (lastShift?.exchange_rates || {}) as Record<string, number>;
+    if (prev && Object.keys(prev).length > 0) {
+      setRates(r => ({ ...r, ...prev }));
+      setRatesPrefilled(true);
+    }
+  }, [lastShift, ratesPrefilled]);
   const [closingChips, setClosingChips] = useState<Record<number, number>>({});
   const [openingChips, setOpeningChips] = useState<Record<number, number>>({});
   const [openingCash, setOpeningCash] = useState<Record<string, Record<number, number>>>(emptyCash);
