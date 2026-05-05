@@ -13,6 +13,8 @@ import { Button } from "@/components/ui/button";
 import ChipTransferDialog from "@/components/player/ChipTransferDialog";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { PlayerPreviewHeader } from "@/components/player/PlayerPreviewHeader";
+import { useSelectedPlayer } from "@/hooks/use-selected-player";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -391,10 +393,11 @@ const PlayerStatistics = () => {
     );
   };
 
+  const { select: selectPlayer } = useSelectedPlayer();
   const renderRow = (r: any) => (
     <tr
       key={r.id}
-      onClick={() => navigate(`/players/${r.playerId}`)}
+      onClick={() => selectPlayer(r.playerId)}
       className="border-b border-border hover:bg-muted/30 cursor-pointer transition-colors"
     >
       <td className="px-2 py-1.5 max-w-[180px]">
