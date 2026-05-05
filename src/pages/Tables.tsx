@@ -51,6 +51,7 @@ const Tables = () => {
   const { casinoId, user } = useAuth();
   const isReadOnly = useReadOnlyMode();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const today = businessDay;
   const windowStartUTC = businessDayHourUTC(today, 13);
