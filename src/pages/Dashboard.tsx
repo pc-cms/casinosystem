@@ -118,11 +118,11 @@ const Dashboard = () => {
     };
     tables.forEach(t => {
       const label = gameLabels[t.game] || `Total ${t.game}`;
-      if (!totals[t.game]) totals[t.game] = { dropR: 0, dropV: 0, result: 0, label };
+      if (!totals[label]) totals[label] = { dropR: 0, dropV: 0, result: 0, label };
       const r = tableStats[t.id] || { dropR: 0, dropV: 0, result: 0 };
-      totals[t.game].dropR += r.dropR;
-      totals[t.game].dropV += r.dropV;
-      totals[t.game].result += r.result;
+      totals[label].dropR += r.dropR;
+      totals[label].dropV += r.dropV;
+      totals[label].result += r.result;
     });
     return totals;
   }, [tables, tableStats]);
