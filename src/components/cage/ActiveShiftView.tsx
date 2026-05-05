@@ -15,6 +15,7 @@ import { ArrowDownToLine, ArrowUpFromLine, Calculator, Square, CheckCircle2, Pac
 import { useNavigate } from "react-router-dom";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { CloseBusinessDayButton } from "@/components/pit/CloseBusinessDayButton";
 import TransfersForm from "@/components/cage/TransfersForm";
 import { useCageTransfers } from "@/hooks/use-cage-transfers";
 import {
@@ -169,6 +170,7 @@ const ActiveShiftView = ({ shift, players, tables }: {
         <Button variant="outline" size="sm" onClick={() => setShowCloseTables(true)} className="gap-1.5">
           <Package className="w-3.5 h-3.5" /> Close Tables
         </Button>
+        <CloseBusinessDayButton />
         <Button variant="destructive" size="sm" onClick={() => navigate("/cage/close-shift")} className="gap-1.5">
           <Square className="w-3.5 h-3.5" /> Close Shift
         </Button>
