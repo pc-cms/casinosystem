@@ -39,9 +39,11 @@ type Props = {
   date: string;
   /** Surveillance "Closing Check" mode — view-only, only Cancel button works. */
   readOnly?: boolean;
+  /** Render content inline (full-page route) instead of inside a Dialog. */
+  asPage?: boolean;
 };
 
-export const CloseTableWizard = ({ open, onClose, tables, date, readOnly = false }: Props) => {
+export const CloseTableWizard = ({ open, onClose, tables, date, readOnly = false, asPage = false }: Props) => {
   // Only OPEN tables enter the wizard (closed tables are already done)
   const wizardTables = useMemo(
     () => tables.filter(t => t.status === "open").sort((a, b) => a.name.localeCompare(b.name)),
