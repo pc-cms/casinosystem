@@ -109,9 +109,9 @@ const Dashboard = () => {
   const gameTypeTotals = useMemo(() => {
     const totals: Record<string, { dropR: number; dropV: number; result: number; label: string }> = {};
     const gameLabels: Record<string, string> = {
-      "American Roulette": "Total ARs",
-      "Poker": "Total P",
-      "Blackjack": "Total BJ",
+      "American Roulette": "TOTAL ARs",
+      "Poker": "TOTAL POKER",
+      "Blackjack": "TOTAL BJ",
     };
     tables.forEach(t => {
       const label = gameLabels[t.game] || `Total ${t.game}`;
