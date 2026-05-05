@@ -183,6 +183,8 @@ const PlayerStatistics = () => {
         avgBet: activeSession ? Number(activeSession.avg_bet || 0) : 0,
         inDrop,
         out,
+        inCount: playerTx.filter((t: any) => t.type === "buy" || t.type === "in").length,
+        outCount: playerTx.filter((t: any) => t.type === "cashout" || t.type === "out").length,
         chipIn: chip.in,
         chipOut: chip.out,
         chipDelta: chip.in - chip.out,
