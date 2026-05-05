@@ -653,7 +653,7 @@ const PlayerStatistics = () => {
                           <H k="name" sticky="sticky left-10">Name</H>
                           <H k="entry">Entry</H>
                           <H k="exit">Left</H>
-                          <H k="position">Position</H>
+                          <H k="position">Pos</H>
                           {showFinancials && (
                             <>
                               <H k="avgBet" align="right">Bet</H>
