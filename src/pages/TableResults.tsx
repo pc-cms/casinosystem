@@ -145,6 +145,14 @@ const dayNum = (iso: string) => Number(iso.slice(8, 10));
 /* ------------------------------------------------------------------ */
 
 const TableResults = () => {
+  const { roles } = useAuth();
+  const isSurveillanceOnly = roles.includes("surveillance" as any) &&
+    !roles.some((r) => ["manager", "super_admin", "finance_manager"].includes(r as string));
+  const currentYear = new Date().getFullYear();
+  const visiblePresets = isSurveillanceOnly
+    ? PRESETS.filter((p) => p.key !== "custom")
+    : PRESETS;
+
   const [preset, setPreset] = useState<PresetKey>("month");
   const [weekAnchor, setWeekAnchor] = useState<Date>(new Date());
   const [monthAnchor, setMonthAnchor] = useState<Date>(new Date());
@@ -152,6 +160,15 @@ const TableResults = () => {
   const [customFrom, setCustomFrom] = useState(daysAgoStr(29));
   const [customTo, setCustomTo] = useState(todayStr());
   const [openDate, setOpenDate] = useState<string | null>(null);
+
+  // Surveillance: clamp anchors to current calendar year, force off custom preset
+  useEffect(() => {
+    if (!isSurveillanceOnly) return;
+    if (preset === "custom") setPreset("month");
+    if (weekAnchor.getFullYear() !== currentYear) setWeekAnchor(new Date());
+    if (monthAnchor.getFullYear() !== currentYear) setMonthAnchor(new Date());
+    if (yearAnchor.getFullYear() !== currentYear) setYearAnchor(new Date(currentYear, 0, 1));
+  }, [isSurveillanceOnly, preset, weekAnchor, monthAnchor, yearAnchor, currentYear]);
 
   const { from, to } =
     preset === "custom"
