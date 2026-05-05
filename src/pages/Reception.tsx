@@ -13,7 +13,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import PlayerEditDialog from "@/components/PlayerEditDialog";
+import { useSelectedPlayer } from "@/hooks/use-selected-player";
+import { PlayerPreviewHeader } from "@/components/player/PlayerPreviewHeader";
 import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
 import { BlacklistPlayerDialog } from "@/components/player/BlacklistPlayerDialog";
 import DuplicateCheckResult from "@/components/registration/DuplicateCheckResult";
@@ -96,7 +97,7 @@ const CheckInTab = () => {
   const debouncedQuery = useDebouncedValue(query, 200);
   const [selectedPlayer, setSelectedPlayer] = useState<any | null>(null);
   const [incompleteWarning, setIncompleteWarning] = useState<string[] | null>(null);
-  const [profilePlayer, setProfilePlayer] = useState<any>(null);
+  const { select: selectPlayer } = useSelectedPlayer();
   const [blacklistTarget, setBlacklistTarget] = useState<any | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const { data: serverBusinessDate } = useEffectiveBusinessDate();
@@ -295,17 +296,13 @@ const CheckInTab = () => {
             onCheckIn={() => checkIn.mutate(selectedPlayer.id)}
             onCheckOut={() => checkOut.mutate(selectedPlayer.id)}
             onCancel={() => { setSelectedPlayer(null); setIncompleteWarning(null); }}
-            onViewProfile={() => setProfilePlayer(selectedPlayer)}
+            onViewProfile={() => selectPlayer(selectedPlayer.id)}
             isPending={checkIn.isPending || checkOut.isPending}
           />
         </>
       )}
 
-      <PlayerEditDialog
-        player={profilePlayer}
-        open={!!profilePlayer}
-        onOpenChange={(v) => { if (!v) setProfilePlayer(null); }}
-      />
+      <PlayerPreviewHeader />
 
       {blacklistTarget && (
         <BlacklistPlayerDialog
@@ -748,7 +745,7 @@ const UpdateDataTab = () => {
   const queryClient = useQueryClient();
   const [query, setQuery] = useState("");
   const [sortBy, setSortBy] = useState<"newest" | "last_visit">("last_visit");
-  const [profilePlayer, setProfilePlayer] = useState<any>(null);
+  const { select: selectPlayer } = useSelectedPlayer();
   const isMobile = useIsMobile();
 
   const visitMap = useMemo(() => {
@@ -828,7 +825,7 @@ const UpdateDataTab = () => {
           {incomplete.map(p => (
             <button
               key={p.id}
-              onClick={() => setProfilePlayer(p)}
+              onClick={() => selectPlayer(p.id)}
               className="flex items-center gap-2 sm:gap-3 w-full px-3 sm:px-4 py-3 text-left hover:bg-muted/50 active:bg-muted transition-colors"
             >
               <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center overflow-hidden shrink-0">
@@ -860,11 +857,7 @@ const UpdateDataTab = () => {
         </div>
       )}
 
-      <PlayerEditDialog
-        player={profilePlayer}
-        open={!!profilePlayer}
-        onOpenChange={(v) => { if (!v) setProfilePlayer(null); }}
-      />
+      <PlayerPreviewHeader />
     </div>
   );
 };
