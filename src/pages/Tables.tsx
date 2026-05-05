@@ -57,7 +57,7 @@ const Tables = () => {
   const windowStartUTC = businessDayHourUTC(today, 13);
 
   // Close Table wizard
-  const [showCloseWizard, setShowCloseWizard] = useState(false);
+  
   // Seating dialog
   const [openTableId, setOpenTableId] = useState<string | null>(null);
 
