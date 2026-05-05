@@ -188,6 +188,7 @@ const PlayerStatistics = () => {
         avgBet: activeSession ? Number(activeSession.avg_bet || 0) : 0,
         inDrop,
         out,
+        dropR: playersDropSplit?.get(v.player_id)?.dropR ?? 0,
         inCount: playerTx.filter((t: any) => t.type === "buy" || t.type === "in").length,
         outCount: playerTx.filter((t: any) => t.type === "cashout" || t.type === "out").length,
         chipIn: chip.in,
@@ -197,7 +198,7 @@ const PlayerStatistics = () => {
         isPresent,
       };
     }).filter(Boolean) as Array<NonNullable<ReturnType<typeof Object>>>;
-  }, [visits, players, transactions, chipByPlayer, activeSessionByPlayer, tableNameById]);
+  }, [visits, players, transactions, chipByPlayer, activeSessionByPlayer, tableNameById, playersDropSplit]);
 
   const filtered = useMemo(() => {
     let list = rows;
