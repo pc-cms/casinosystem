@@ -85,6 +85,25 @@ export const useCreateExpense = () => {
   });
 };
 
+export const useDeleteExpense = () => {
+  const qc = useQueryClient();
+  const { casinoId, user } = useAuth();
+  return useMutation({
+    mutationFn: async (exp: { id: string; amount: number; category: string }) => {
+      if (!user || !casinoId) throw new Error("Not authenticated");
+      const { error } = await supabase.from("expenses").delete().eq("id", exp.id);
+      if (error) throw error;
+      await logAction(casinoId, "expense", "EXPENSE_DELETED", {
+        expense_id: exp.id,
+        category: exp.category,
+        amount: exp.amount,
+      });
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["expenses"] }); toast.success("Expense deleted"); },
+    onError: (e: any) => toast.error(e.message || "Failed to delete"),
+  });
+};
+
 export const useApproveExpense = () => {
   const qc = useQueryClient();
   const { casinoId, user } = useAuth();
