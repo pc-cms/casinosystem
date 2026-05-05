@@ -333,7 +333,7 @@ const TableResults = () => {
       <Card className="p-3 md:p-4">
         <div className="flex items-end gap-2 flex-wrap">
           <div className="flex gap-1 flex-wrap">
-            {PRESETS.map((p) => (
+            {visiblePresets.map((p) => (
               <Button
                 key={p.key}
                 size="sm"
