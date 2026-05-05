@@ -62,7 +62,9 @@ const Expenses = () => {
   const { data: expenses = [], isLoading: loadingExpenses } = useExpenses(businessDate);
   const create = useCreateExpense();
   const approve = useApproveExpense();
+  const del = useDeleteExpense();
   const [pendingApproveId, setPendingApproveId] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<{ id: string; amount: number; category: string } | null>(null);
   const [drafts, setDrafts] = useState<DraftRow[]>([newDraft()]);
 
   const isLoading = loadingExpenses;
