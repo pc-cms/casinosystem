@@ -152,6 +152,11 @@ const PlayerStatistics = () => {
     const playerById: Record<string, any> = {};
     players.forEach(p => { playerById[p.id] = p; });
 
+    // Visit number: stable per business day, by check-in order ascending.
+    const visitNumberById = new Map<string, number>();
+    [...visits]
+      .sort((a: any, b: any) => new Date(a.checked_in_at).getTime() - new Date(b.checked_in_at).getTime())
+      .forEach((v: any, i: number) => visitNumberById.set(v.id, i + 1));
     return visits.map((v: any) => {
       const p = playerById[v.player_id];
       if (!p) return null;
@@ -175,6 +180,7 @@ const PlayerStatistics = () => {
 
       return {
         id: v.id,
+        visitNumber: visitNumberById.get(v.id) ?? 0,
         playerId: v.player_id,
         firstName: p.first_name,
         lastName: p.last_name,
