@@ -224,9 +224,9 @@ const PlayerStatistics = () => {
             case "entry": return new Date(r.entryAt).getTime();
             case "exit": return r.exitAt ? new Date(r.exitAt).getTime() : 0;
             case "avgBet": return r.avgBet;
+            case "dropR": return r.dropR;
             case "inDrop": return r.inDrop;
-            case "inCount": return r.inCount;
-            case "outCount": return r.outCount;
+            case "out": return r.out;
             case "chipIn": return r.chipIn;
             case "chipOut": return r.chipOut;
             case "result": return r.result;
