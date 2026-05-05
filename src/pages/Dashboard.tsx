@@ -200,16 +200,16 @@ const Dashboard = () => {
           <div className={`grid grid-cols-1 ${gridCols} gap-4 mb-6`}>
             {showFinancials && <StatCard label="Total Drop" value={formatCurrency(totalDrop)} icon={Landmark} href="/cage" />}
             {showFinancials && (
-              <Link to="/tables?tab=tracker" className="cms-panel p-4 hover:border-primary/30 transition-colors group">
+              <Link to="/tables?tab=tracker" className="cms-panel p-6 hover:border-primary/30 transition-colors group">
                 <div className="flex items-start justify-between">
                   <div>
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Result</p>
-                    <p className={`text-2xl font-bold font-mono mt-1 ${totalResult >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
+                    <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Result</p>
+                    <p className={`text-4xl font-bold font-mono mt-2 ${totalResult >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
                       {totalResult >= 0 ? "+" : ""}{formatCurrency(totalResult)}
                     </p>
                   </div>
-                  <div className="p-2 rounded-md bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors">
-                    <TrendingDown className="w-5 h-5" />
+                  <div className="p-3 rounded-md bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors">
+                    <TrendingDown className="w-7 h-7" />
                   </div>
                 </div>
               </Link>
@@ -218,14 +218,14 @@ const Dashboard = () => {
               isManager ? (
                 <StatCard label="Pending Expenses" value={pendingExpenses} icon={Receipt} href="/expenses" />
               ) : (
-                <div className="cms-panel p-4 opacity-75">
+                <div className="cms-panel p-6 opacity-75">
                   <div className="flex items-start justify-between">
                     <div>
-                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Pending Expenses</p>
-                      <p className="text-2xl font-bold font-mono mt-1 text-card-foreground">{pendingExpenses}</p>
+                      <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Pending Expenses</p>
+                      <p className="text-4xl font-bold font-mono mt-2 text-card-foreground">{pendingExpenses}</p>
                     </div>
-                    <div className="p-2 rounded-md bg-muted text-muted-foreground">
-                      <Receipt className="w-5 h-5" />
+                    <div className="p-3 rounded-md bg-muted text-muted-foreground">
+                      <Receipt className="w-7 h-7" />
                     </div>
                   </div>
                 </div>
