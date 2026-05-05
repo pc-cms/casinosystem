@@ -119,7 +119,7 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
   return (
     <div
       className={cn(
-        "relative -mx-4 mb-4 border-b border-border px-4 py-4 shadow-sm",
+        "sticky top-0 z-30 -mx-4 mb-4 border-b border-border px-4 py-4 shadow-sm",
         tint,
         className
       )}
