@@ -633,5 +633,6 @@ const PlayerStatistics = () => {
       </Tabs>
     </PageShell>
   );
+};
 
 export default PlayerStatistics;
