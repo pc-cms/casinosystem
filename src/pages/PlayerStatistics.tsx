@@ -624,7 +624,7 @@ const PlayerStatistics = () => {
           <div className="cms-panel overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
-                <thead className="bg-muted/30 border-b border-border">
+                <thead className="bg-muted border-b border-border">
                   <tr className="text-xs uppercase tracking-wider text-muted-foreground">
                     {(() => {
                       const SortIcon = ({ k }: { k: SortKey }) =>
@@ -634,7 +634,7 @@ const PlayerStatistics = () => {
                       const H = ({ k, align = "left", children, title, sticky }: { k: SortKey; align?: "left" | "right"; children: any; title?: string; sticky?: string }) => (
                         <th
                           title={title}
-                          className={`px-2 py-3 cursor-pointer select-none hover:text-foreground whitespace-nowrap font-semibold ${align === "right" ? "text-right" : "text-left"} ${sticky ? `${sticky} bg-muted/30 z-20` : ""}`}
+                          className={`px-2 py-3 cursor-pointer select-none hover:text-foreground whitespace-nowrap font-semibold ${align === "right" ? "text-right" : "text-left"} ${sticky ? `${sticky} bg-muted z-20` : ""}`}
                           onClick={() => toggleSort(k)}
                         >
                           {children}<SortIcon k={k} />
@@ -642,7 +642,7 @@ const PlayerStatistics = () => {
                       );
                       return (
                         <>
-                          <th className="px-2 py-3 text-center sticky left-0 bg-muted/30 z-20 w-10 font-semibold">№</th>
+                          <th className="px-2 py-3 text-center sticky left-0 bg-muted z-20 w-10 font-semibold">№</th>
                           <H k="name" sticky="sticky left-10">Name</H>
                           <H k="entry">Entry</H>
                           <H k="exit">Left</H>
