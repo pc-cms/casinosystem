@@ -361,6 +361,7 @@ const TableResults = () => {
                   onSelect={(d) => d && setWeekAnchor(d)}
                   weekStartsOn={0}
                   initialFocus
+                  disabled={isSurveillanceOnly ? (date) => date.getFullYear() !== currentYear : undefined}
                   className={cn("p-3 pointer-events-auto")}
                 />
               </PopoverContent>
