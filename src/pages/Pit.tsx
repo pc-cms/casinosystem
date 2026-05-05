@@ -1067,7 +1067,31 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
             })}
             <td colSpan={4} />
           </tr>
-          {pitBosses.length > 0 && renderAttendanceRows(pitBosses, "Pit Bosses", "border-purple-400 dark:border-purple-500/50 text-purple-600 dark:text-purple-400")}
+          {pitBosses.length > 0 && (
+            <>
+              <tr className="border-t-2 border-border bg-muted/20">
+                <th className="text-center text-xs font-medium text-muted-foreground uppercase px-0.5 py-2 sticky left-0 bg-muted/20 z-10 w-7">C</th>
+                <th className="text-left text-xs font-medium text-muted-foreground uppercase px-1 py-2 sticky left-[28px] bg-muted/20 z-10 w-[100px]">Name</th>
+                {days.map(day => {
+                  const dateObj = new Date(y, m - 1, day);
+                  const weekday = WEEKDAYS[dateObj.getDay()];
+                  const isToday = isCurrentMonth && day === todayDay;
+                  const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
+                  return (
+                    <th key={day} className={`text-center px-0 py-1 ${isToday ? "bg-primary/40" : isWeekend ? "bg-muted/30" : ""}`}>
+                      <div className="text-[8px] text-muted-foreground leading-tight">{weekday}</div>
+                      <div className={`text-[10px] font-mono leading-tight ${isToday ? "text-primary font-bold" : "text-card-foreground"}`}>{day}</div>
+                    </th>
+                  );
+                })}
+                <th className="text-center text-[10px] font-medium text-muted-foreground uppercase px-1 py-2 w-8">Σsh</th>
+                <th className="text-center text-[10px] font-medium text-muted-foreground uppercase px-1 py-2 w-8">Σh</th>
+                <th className="text-center text-[10px] font-medium text-rose-600 dark:text-rose-400 uppercase px-1 py-2 w-8">A</th>
+                <th className="text-center text-[10px] font-medium text-amber-600 dark:text-amber-400 uppercase px-1 py-2 w-8">S</th>
+              </tr>
+              {renderAttendanceRows(pitBosses, "Pit Bosses", "border-purple-400 dark:border-purple-500/50 text-purple-600 dark:text-purple-400")}
+            </>
+          )}
         </tbody>
       </table>
     </div>
