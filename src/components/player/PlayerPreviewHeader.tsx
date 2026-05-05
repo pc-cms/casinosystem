@@ -51,8 +51,8 @@ const useThisMonthPlayerStats = (playerId: string | undefined | null) => {
 
 /** Numeric input that displays "10 000" formatting and stores raw integer. */
 const NumberInput = ({
-  value, onChange, placeholder, ariaLabel,
-}: { value: string; onChange: (v: string) => void; placeholder: string; ariaLabel: string }) => {
+  value, onChange, placeholder, ariaLabel, className,
+}: { value: string; onChange: (v: string) => void; placeholder: string; ariaLabel: string; className?: string }) => {
   const display = value ? formatNumberSpaces(Number(value.replace(/\D/g, "")) || 0) : "";
   return (
     <Input
@@ -64,10 +64,18 @@ const NumberInput = ({
         const raw = e.target.value.replace(/\D/g, "");
         onChange(raw);
       }}
-      className="font-mono text-lg font-bold tabular-nums text-right"
+      className={cn("font-mono text-xl font-bold tabular-nums text-right h-12", className)}
     />
   );
 };
+
+const LEVEL_TINT: Record<string, string> = {
+  diamond: "bg-blue-50/70 dark:bg-blue-500/10 border-blue-200 dark:border-blue-500/30",
+  platinum: "bg-purple-50/70 dark:bg-purple-500/10 border-purple-200 dark:border-purple-500/30",
+  gold: "bg-yellow-50/70 dark:bg-yellow-500/10 border-yellow-200 dark:border-yellow-500/30",
+  normal: "bg-card/95 border-border",
+};
+
 
 export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className }: Props) => {
   const ctx = useSelectedPlayer();
