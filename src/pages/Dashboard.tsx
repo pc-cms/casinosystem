@@ -200,17 +200,17 @@ const Dashboard = () => {
           <div className={`grid grid-cols-1 ${gridCols} gap-4 mb-6`}>
             {showFinancials && <StatCard label="Total Drop" value={formatCurrency(totalDrop)} icon={Landmark} href="/cage" />}
             {showFinancials && (
-              <Link to="/tables?tab=tracker" className="cms-panel p-6 hover:border-primary/30 transition-colors group">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Result</p>
-                    <p className={`text-4xl font-bold font-mono mt-2 whitespace-nowrap ${totalResult >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
-                      {totalResult >= 0 ? "+" : ""}{formatCurrency(totalResult)}
-                    </p>
+              <Link to="/tables?tab=tracker" className="cms-panel p-5 hover:border-primary/30 transition-colors group block">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <div className="p-1.5 rounded-md bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors shrink-0">
+                    <TrendingDown className="w-4 h-4" />
                   </div>
-                  <div className="p-3 rounded-md bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors">
-                    <TrendingDown className="w-7 h-7" />
-                  </div>
+                  <p className="text-xs font-medium uppercase tracking-wider truncate">Result</p>
+                </div>
+                <div className="mt-3 overflow-x-auto">
+                  <p className={`text-4xl font-bold font-mono whitespace-nowrap ${totalResult >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
+                    {totalResult >= 0 ? "+" : ""}{formatCurrency(totalResult)}
+                  </p>
                 </div>
               </Link>
             )}
@@ -218,15 +218,15 @@ const Dashboard = () => {
               isManager ? (
                 <StatCard label="Pending Expenses" value={pendingExpenses} icon={Receipt} href="/expenses" />
               ) : (
-                <div className="cms-panel p-6 opacity-75">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Pending Expenses</p>
-                      <p className="text-4xl font-bold font-mono mt-2 whitespace-nowrap text-card-foreground">{pendingExpenses}</p>
+                <div className="cms-panel p-5 opacity-75">
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <div className="p-1.5 rounded-md bg-muted text-muted-foreground shrink-0">
+                      <Receipt className="w-4 h-4" />
                     </div>
-                    <div className="p-3 rounded-md bg-muted text-muted-foreground">
-                      <Receipt className="w-7 h-7" />
-                    </div>
+                    <p className="text-xs font-medium uppercase tracking-wider truncate">Pending Expenses</p>
+                  </div>
+                  <div className="mt-3 overflow-x-auto">
+                    <p className="text-4xl font-bold font-mono whitespace-nowrap text-card-foreground">{pendingExpenses}</p>
                   </div>
                 </div>
               )
