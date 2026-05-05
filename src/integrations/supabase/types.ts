@@ -3447,6 +3447,10 @@ export type Database = {
           drop_recycled: number
         }[]
       }
+      populate_table_daily_results_for_day: {
+        Args: { _business_date: string; _casino_id: string; _user: string }
+        Returns: number
+      }
       rotate_local_server_secret: {
         Args: { _server_id: string }
         Returns: string
