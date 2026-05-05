@@ -630,7 +630,7 @@ const PlayerStatistics = () => {
           <div className="cms-panel overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
-                <thead className="bg-muted border-b border-border">
+                <thead className="bg-muted border-b border-border sticky top-[168px] z-10">
                   <tr className="text-xs uppercase tracking-wider text-muted-foreground">
                     {(() => {
                       const SortIcon = ({ k }: { k: SortKey }) =>
