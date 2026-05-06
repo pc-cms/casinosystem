@@ -377,7 +377,7 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
                       return (
                         <td key={slot} className={`px-0.5 py-0.5 text-center relative group ${isCurrentCol ? "bg-primary/15 border-x-2 border-primary" : isHourStart ? "border-l-2 border-foreground/25" : ""}`}>
                           <div
-                            onClick={() => isEditable && handleCellClick(dealer.id, slot)}
+                            onClick={(e) => isEditable && handleCellClick(dealer.id, slot, e)}
                             className={`w-full h-7 rounded text-[13px] font-mono font-extrabold relative transition-colors cursor-pointer flex items-center justify-center ${
                               cell
                                 ? cell.table_id && tableColorIndex.has(cell.table_id)
@@ -402,7 +402,7 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
                           )}
                           {/* Inline role picker dropdown */}
                           {isActiveCell && (
-                            <div className="absolute z-50 top-8 left-0 bg-popover border border-border rounded-md shadow-lg p-1 min-w-[100px]"
+                            <div className={`absolute z-50 ${activeCell?.dropUp ? "bottom-8" : "top-8"} left-0 bg-popover border border-border rounded-md shadow-lg p-1 min-w-[100px]`}
                               onMouseLeave={() => setActiveCell(null)}>
                               <div className="flex flex-wrap gap-0.5 mb-1">
                                 <button onClick={() => handleRoleSelect("BR")}
