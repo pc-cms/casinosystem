@@ -94,3 +94,30 @@ export const useCreateIncident = () => {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["incidents", casinoId] }),
   });
 };
+
+// Allowed follow-up edits: outcome / points / comments only.
+// All other fields are locked by a DB trigger.
+export type IncidentFollowupPatch = {
+  outcome?: string | null;
+  points?: number;
+  comments?: string | null;
+};
+
+export const useUpdateIncidentFollowup = () => {
+  const { casinoId } = useAuth();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, patch }: { id: string; patch: IncidentFollowupPatch }) => {
+      const { data, error } = await supabase
+        .from("incidents")
+        .update(patch)
+        .eq("id", id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["incidents", casinoId] }),
+  });
+};
+
