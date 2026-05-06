@@ -34,6 +34,9 @@ const VIOLATION_TYPES = ["procedural", "financial", "disciplinary", "technical",
 // Standing managers — always selectable, independent of rota.
 const STANDING_MANAGERS = ["Peter", "Taras", "Daniyar"];
 
+// Standing CCTV observers — always selectable, independent of rota.
+const STANDING_CCTV = ["Andrew", "Alex", "Vladimir", "Vitalii"];
+
 const todayDate = () => new Date().toISOString().slice(0, 10);
 const nowTime = () => new Date().toTimeString().slice(0, 5);
 
