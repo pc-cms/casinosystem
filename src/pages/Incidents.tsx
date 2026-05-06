@@ -14,13 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import {
-  ResponsiveDialog,
-  ResponsiveDialogContent,
-  ResponsiveDialogHeader,
-  ResponsiveDialogTitle,
-  ResponsiveDialogFooter,
-} from "@/components/ui/responsive-dialog";
+import { ResponsiveDialog, ResponsiveDialogFooter } from "@/components/ui/responsive-dialog";
 import { useIncidents, useCreateIncident, type IncidentInput } from "@/hooks/use-incidents";
 import { toast } from "sonner";
 
@@ -158,12 +152,8 @@ const Incidents = () => {
         )}
       </PageSection>
 
-      <ResponsiveDialog open={open} onOpenChange={setOpen}>
-        <ResponsiveDialogContent className="max-w-3xl">
-          <ResponsiveDialogHeader>
-            <ResponsiveDialogTitle>New incident</ResponsiveDialogTitle>
-          </ResponsiveDialogHeader>
-
+      <ResponsiveDialog open={open} onOpenChange={setOpen} title="New incident" size="3xl">
+        <div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 py-2">
             <div className="space-y-1">
               <label className="text-xs text-muted-foreground">Date</label>
