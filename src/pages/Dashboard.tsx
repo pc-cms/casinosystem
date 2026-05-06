@@ -116,7 +116,7 @@ const Dashboard = () => {
     return totals;
   }, [tables, tableStats]);
 
-  const totalDrop = Object.values(tableStats).reduce((s, r) => s + r.drop, 0);
+  const totalTablesDrop = Object.values(tableStats).reduce((s, r) => s + r.drop, 0);
   const totalResult = Object.values(tableStats).reduce((s, r) => s + r.result, 0);
 
   // Floor Staff filters & sort
