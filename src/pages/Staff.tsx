@@ -625,9 +625,9 @@ const StaffRotaGrid = ({ month, groupKey, monthLabel, readOnly = false }: { mont
           const isToday = isCurrentMonth && day === todayDay;
           const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
           return (
-            <th key={day} className={`text-center px-0 py-1 ${isToday ? "bg-primary/40" : isWeekend ? "bg-muted/30" : ""}`}>
-              <div className="text-[8px] text-muted-foreground leading-tight">{weekday}</div>
-              <div className={`text-[10px] font-mono leading-tight ${isToday ? "text-primary font-bold" : "text-card-foreground"}`}>{day}</div>
+            <th key={day} className={`text-center px-0 py-1 border-l border-border/25 ${isToday ? "bg-primary/40" : isWeekend ? "bg-muted/30" : ""}`}>
+              <div className="text-[9px] text-muted-foreground leading-tight">{weekday}</div>
+              <div className={`text-xs font-mono leading-tight ${isToday ? "text-primary font-bold" : "text-card-foreground"}`}>{day}</div>
             </th>
           );
         })}
@@ -815,7 +815,7 @@ const DepartmentBlock = ({
       const stats = getStats(staff.id);
       return (
         <tr key={staff.id} className={`border-b border-border last:border-0 ${idx % 2 === 0 ? "" : "bg-muted/10"}`}>
-          <td className={`px-3 py-1 text-xs font-medium text-card-foreground sticky left-0 z-10 ${idx % 2 === 0 ? "bg-card" : "bg-card/95"}`}>
+          <td className={`px-3 py-1 text-[13px] font-medium text-card-foreground sticky left-0 z-10 ${idx % 2 === 0 ? "bg-card" : "bg-card/95"}`}>
             <span className="text-muted-foreground font-mono mr-1.5">{idx + 1}.</span>{staff.name}
           </td>
           {days.map(day => {
@@ -824,12 +824,12 @@ const DepartmentBlock = ({
             const dateObj = new Date(y, m - 1, day);
             const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
             return (
-              <td key={day} className={`px-0.5 py-0.5 text-center ${isToday ? "bg-primary/25" : isWeekend ? "bg-muted/15" : ""}`}>
+              <td key={day} className={`px-0.5 py-0.5 text-center border-l border-border/25 ${isToday ? "bg-primary/25" : isWeekend ? "bg-muted/15" : ""}`}>
                 <button
                   onClick={() => handleClick(staff.id, day)}
                   onKeyDown={e => handleKeyDown(e, staff.id, day)}
                   onPaste={e => handlePaste(e, staff.id, day)}
-                  className={`w-full h-7 rounded text-[10px] font-mono transition-colors focus:outline-none focus:ring-1 focus:ring-primary ${
+                  className={`w-full h-8 rounded text-xs font-mono font-semibold transition-colors focus:outline-none focus:ring-1 focus:ring-primary ${
                     display
                       ? `${STAFF_SHIFT_COLORS[display.shift] || "bg-muted text-muted-foreground"} ${display.isAuto ? "border border-dashed border-amber-500/50" : ""}`
                       : "bg-transparent hover:bg-muted/50 text-muted-foreground/40 hover:text-muted-foreground"
@@ -841,8 +841,8 @@ const DepartmentBlock = ({
             );
           })}
           {summaryShifts.slice(0, 2).map(s => (
-            <td key={s} className="px-2 py-1 text-center">
-              <span className="text-[10px] font-mono font-bold text-card-foreground">{stats[s] || ""}</span>
+            <td key={s} className="px-2 py-1 text-center border-l border-border/25">
+              <span className="text-xs font-mono font-bold text-card-foreground">{stats[s] || ""}</span>
             </td>
           ))}
         </tr>
@@ -1022,9 +1022,9 @@ const StaffAttendanceGrid = ({ month, monthLabel, groupKey = "floor", readOnly =
               const isToday = isCurrentMonth && day === todayDay;
               const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
               return (
-                <th key={day} className={`text-center px-0 py-1 ${isToday ? "bg-primary/40" : isWeekend ? "bg-muted/30" : ""}`}>
-                  <div className="text-[8px] text-muted-foreground leading-tight">{weekday}</div>
-                  <div className={`text-[10px] font-mono leading-tight ${isToday ? "text-primary font-bold" : "text-card-foreground"}`}>{day}</div>
+                <th key={day} className={`text-center px-0 py-1 border-l border-border/25 ${isToday ? "bg-primary/40" : isWeekend ? "bg-muted/30" : ""}`}>
+                  <div className="text-[9px] text-muted-foreground leading-tight">{weekday}</div>
+                  <div className={`text-xs font-mono leading-tight ${isToday ? "text-primary font-bold" : "text-card-foreground"}`}>{day}</div>
                 </th>
               );
             })}
@@ -1108,7 +1108,7 @@ const AttendanceDepartmentBlock = ({
       const totals = getTotals(staff.id);
       return (
         <tr key={staff.id} className={`border-b border-border last:border-0 ${idx % 2 === 0 ? "" : "bg-muted/10"}`}>
-          <td className={`px-3 py-1 text-xs font-medium text-card-foreground sticky left-0 z-10 ${idx % 2 === 0 ? "bg-card" : "bg-card/95"}`}>
+          <td className={`px-3 py-1 text-[13px] font-medium text-card-foreground sticky left-0 z-10 ${idx % 2 === 0 ? "bg-card" : "bg-card/95"}`}>
             <span className="text-muted-foreground font-mono mr-1.5">{idx + 1}.</span>{staff.name}
           </td>
           {days.map(day => {
@@ -1122,7 +1122,7 @@ const AttendanceDepartmentBlock = ({
             const isScheduled = !!rotaShift;
             const isEmpty = val === "";
             return (
-              <td key={day} className={`px-0.5 py-0.5 text-center ${isToday ? "bg-primary/25" : isWeekend ? "bg-muted/15" : ""}`}>
+              <td key={day} className={`px-0.5 py-0.5 text-center border-l border-border/25 ${isToday ? "bg-primary/25" : isWeekend ? "bg-muted/15" : ""}`}>
                 <input
                   type="text"
                   defaultValue={val}
@@ -1160,7 +1160,7 @@ const AttendanceDepartmentBlock = ({
                       (prevRow?.children[idx2]?.querySelector("input") as HTMLInputElement)?.focus();
                     }
                   }}
-                  className={`w-full h-7 rounded text-[10px] font-mono text-center border-0 focus:outline-none focus:ring-1 focus:ring-primary transition-colors ${
+                  className={`w-full h-8 rounded text-xs font-mono font-semibold text-center border-0 focus:outline-none focus:ring-1 focus:ring-primary transition-colors ${
                     isStatus
                       ? ATT_COLORS[val]
                       : isHours
