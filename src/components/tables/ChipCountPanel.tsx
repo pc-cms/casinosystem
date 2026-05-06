@@ -160,7 +160,7 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
 
   const renderGrid = (full: boolean) => {
     // Tablet mode: extra-large cells & numbers for in-pit chip counts on a tablet.
-    const t = tabletMode
+    const t = (tabletMode || full)
       ? {
           chipClass: "cms-chip-token cms-chip-token-lg",
           inputH: "h-16",
@@ -175,22 +175,6 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
           headerPadY: "py-3",
           totalText: "text-xl",
           resultText: "text-xl",
-        }
-      : full
-      ? {
-          chipClass: "cms-chip-token cms-chip-token-lg",
-          inputH: "h-9",
-          inputText: "text-sm",
-          firstColW: "64px",
-          firstColText: "text-sm",
-          headerText: "text-xs",
-          chipColW: "60px",
-          resultColW: "170px",
-          rowPadX: "px-1",
-          rowPadY: "py-1.5",
-          headerPadY: "py-2",
-          totalText: "text-base",
-          resultText: "text-sm",
         }
       : {
           chipClass: "cms-chip-token",
