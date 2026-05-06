@@ -517,50 +517,16 @@ const Incidents = () => {
                 </tr>
               ) : (
                 filtered.map((i) => (
-                  <tr key={i.id} className="border-t border-border hover:bg-muted/30">
-                    <td className={`px-2 py-1.5 whitespace-nowrap ${stickyDate} border-r border-border`}>
-                      {i.incident_date}
-                    </td>
-                    <td
-                      className={`px-2 py-1.5 whitespace-nowrap ${stickyTime} border-r border-border`}
-                      style={stickyTimeLeft}
-                    >
-                      {i.incident_time?.slice(0, 5)}
-                    </td>
-                    <td className="px-2 py-1.5">{i.cctv_observer || "·"}</td>
-                    <td className="px-2 py-1.5">{i.manager || "·"}</td>
-                    <td className="px-2 py-1.5">{i.department || "·"}</td>
-                    <td className="px-2 py-1.5">{i.table_name || "·"}</td>
-                    <td className="px-2 py-1.5">{i.dealer_name || "·"}</td>
-                    <td className="px-2 py-1.5">{i.inspector_name || "·"}</td>
-                    <td className="px-2 py-1.5">{i.employees || "·"}</td>
-                    <td className="px-2 py-1.5">
-                      {i.violation_type ? (
-                        <Badge variant="outline" className="text-[10px]">{i.violation_type}</Badge>
-                      ) : "·"}
-                    </td>
-                    <td className="px-2 py-1.5 whitespace-normal break-words">{i.incident}</td>
-                    <td className="px-2 py-1.5 whitespace-normal break-words">{i.outcome || "·"}</td>
-                    <td className="px-2 py-1.5 text-right font-semibold">{i.points || 0}</td>
-                    <td className="px-2 py-1.5 whitespace-normal break-words text-muted-foreground">
-                      {i.comments || "·"}
-                    </td>
-                    <td className="px-2 py-1.5 text-center">
-                      {i.photo_url ? (
-                        <button
-                          type="button"
-                          onClick={() => setViewPhoto(i.photo_url)}
-                          className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-primary/10 hover:bg-primary/20 text-primary"
-                          title="View photo"
-                        >
-                          <ImageIcon className="w-3.5 h-3.5" />
-                        </button>
-                      ) : (
-                        <span className="text-muted-foreground">·</span>
-                      )}
-                    </td>
-                    {canPost && <td className="px-2 py-1.5"></td>}
-                  </tr>
+                  <IncidentRow
+                    key={i.id}
+                    incident={i}
+                    canEdit={canPost}
+                    onView={(url) => setViewPhoto(url)}
+                    stickyDate={stickyDate}
+                    stickyTime={stickyTime}
+                    stickyTimeLeft={stickyTimeLeft}
+                    cellInput={cellInput}
+                  />
                 ))
               )}
             </tbody>
