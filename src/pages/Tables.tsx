@@ -332,21 +332,19 @@ const Tables = () => {
   };
 
   const gameTypeTotals = useMemo(() => {
-    const totals: Record<string, { dropR: number; dropV: number; result: number; label: string }> = {};
+    const totals: Record<string, { drop: number; result: number; label: string }> = {};
     const gameLabels: Record<string, string> = { "American Roulette": "TOTAL ARs", "Poker": "TOTAL POKER", "Texas Holdem": "TOTAL POKER", "Omaha": "TOTAL POKER", "PLO": "TOTAL POKER", "Blackjack": "TOTAL BJ" };
     tables.forEach(t => {
       const label = gameLabels[t.game] || `Total ${t.game}`;
-      if (!totals[label]) totals[label] = { dropR: 0, dropV: 0, result: 0, label };
-      const r = tableStats[t.id] || { dropR: 0, dropV: 0, result: 0 };
-      totals[label].dropR += r.dropR;
-      totals[label].dropV += r.dropV;
+      if (!totals[label]) totals[label] = { drop: 0, result: 0, label };
+      const r = tableStats[t.id] || { drop: 0, result: 0 };
+      totals[label].drop += r.drop;
       totals[label].result += r.result;
     });
     return totals;
   }, [tables, tableStats]);
 
-  const totalDropR = Object.values(tableStats).reduce((s, r) => s + r.dropR, 0);
-  const totalDropV = Object.values(tableStats).reduce((s, r) => s + r.dropV, 0);
+  const totalDrop = Object.values(tableStats).reduce((s, r) => s + r.drop, 0);
   const totalResult = Object.values(tableStats).reduce((s, r) => s + r.result, 0);
 
   const pokerGames = ["Poker", "Texas Holdem", "Omaha", "PLO"];
