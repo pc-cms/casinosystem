@@ -194,7 +194,7 @@ export default function PlayerVisitsBreakdown({ visits, transactions, expenses, 
             <th className="text-right py-2 px-2">Visits</th>
             <th className="text-right py-2 px-2">Time</th>
             {showFinancials && <>
-              <th className="text-right py-2 px-2" title="Real drop (External part of cash-in, NEP-aware)">Drop R</th>
+              <th className="text-right py-2 px-2" title="Drop — NEP-aware (external cash only)">Drop</th>
               <th className="text-right py-2 px-2">Cashout</th>
               <th className="text-right py-2 px-2">Result</th>
               <th className="text-right py-2 px-2">Comps</th>
