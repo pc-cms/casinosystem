@@ -214,24 +214,24 @@ export const CloseTableWizard = ({ open, onClose, tables, date, readOnly = false
               key={t.id}
               onClick={() => setCurrentIdx(i)}
               className={cn(
-                "w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-md text-base transition-colors text-left",
+                "w-full flex items-center justify-between gap-2 px-2 py-2 rounded-md text-base transition-colors text-left",
                 i === currentIdx
                   ? "bg-primary/10 text-primary font-semibold border border-primary/30"
                   : "hover:bg-muted/40 text-card-foreground"
               )}
             >
-              <span className="flex items-center gap-2 truncate">
+              <span className="flex items-center gap-1.5 min-w-0 flex-shrink">
                 {counted ? (
-                  <Check className="w-5 h-5 text-success shrink-0" />
+                  <Check className="w-4 h-4 text-success shrink-0" />
                 ) : (
-                  <div className="w-5 h-5 rounded-full border border-muted-foreground/40 shrink-0" />
+                  <div className="w-4 h-4 rounded-full border border-muted-foreground/40 shrink-0" />
                 )}
                 <span className="truncate font-medium">{t.name}</span>
               </span>
               {counted && (
                 <span
                   className={cn(
-                    "font-mono text-sm font-semibold",
+                    "font-mono text-xs font-semibold whitespace-nowrap shrink-0 tabular-nums",
                     Number(t.closing_result) >= 0 ? "text-success" : "text-destructive"
                   )}
                 >
