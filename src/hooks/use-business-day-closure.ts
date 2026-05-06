@@ -64,8 +64,9 @@ export function useCloseBusinessDay() {
       return data as { status: string; business_date: string };
     },
     onSuccess: (res) => {
-      qc.invalidateQueries({ queryKey: ["effective-business-date"] });
-      qc.invalidateQueries({ queryKey: ["last-business-day-closure"] });
+      // Refresh everything — operational dashboards/tables/tracker/transactions
+      // are scoped to the current business day and must roll over immediately.
+      qc.invalidateQueries();
       if (res?.status === "already_closed") {
         toast.info(`Day ${res.business_date} is already closed`);
       } else {
