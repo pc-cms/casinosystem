@@ -108,7 +108,7 @@ const Incidents = () => {
   const { data: allDealers = [] } = useDealers();
   const { data: gamingTables = [] } = useGamingTables();
   const { data: staffMembers = [] } = useStaffMembers();
-  const { data: staffRota = [] } = useStaffRotaRange(form.incident_date, form.incident_date);
+  
 
   // Tables shown in breaklist = open gaming tables.
   const tableOptions = useMemo(
