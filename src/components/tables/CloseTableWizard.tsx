@@ -204,9 +204,9 @@ export const CloseTableWizard = ({ open, onClose, tables, date, readOnly = false
   const bodyNode = wizardTables.length === 0 ? (
     <p className="text-center text-sm text-muted-foreground py-8">No open tables to close</p>
   ) : (
-    <div className="grid grid-cols-[200px_1fr] sm:grid-cols-[260px_1fr] gap-4">
+    <div className="grid grid-cols-[minmax(170px,42%)_1fr] sm:grid-cols-[260px_1fr] gap-2 sm:gap-4">
       {/* LEFT — table list */}
-      <div className={cn("space-y-1.5 border-r border-border pr-3 overflow-y-auto", asPage ? "max-h-[calc(100vh-260px)]" : "max-h-[70vh]")}>
+      <div className={cn("space-y-1 border-r border-border pr-1 sm:pr-3 overflow-y-auto", asPage ? "max-h-[calc(100vh-260px)]" : "max-h-[70vh]")}>
         {wizardTables.map((t, i) => {
           const counted = isCounted(t);
           return (
@@ -276,13 +276,13 @@ export const CloseTableWizard = ({ open, onClose, tables, date, readOnly = false
           </div>
 
           {/* Inputs grid */}
-          <table className="w-full text-sm">
+          <table className="w-full text-sm table-auto">
             <thead>
               <tr className="border-b border-border">
-                <th className="text-left py-2 px-2 text-muted-foreground font-medium">Denom</th>
-                <th className="text-center py-2 px-2 text-muted-foreground font-medium">Float (Baseline)</th>
-                <th className="text-center py-2 px-2 text-muted-foreground font-medium">Actual Count</th>
-                <th className="text-right py-2 px-2 text-muted-foreground font-medium">Diff Value</th>
+                <th className="text-left py-2 px-1 text-muted-foreground font-medium w-px whitespace-nowrap">Denom</th>
+                <th className="text-center py-2 px-1 text-muted-foreground font-medium w-px whitespace-nowrap">Float</th>
+                <th className="text-center py-2 px-1 text-muted-foreground font-medium">Actual Count</th>
+                <th className="text-right py-2 px-1 text-muted-foreground font-medium w-px whitespace-nowrap">Diff</th>
               </tr>
             </thead>
             <tbody>
@@ -292,14 +292,14 @@ export const CloseTableWizard = ({ open, onClose, tables, date, readOnly = false
                 const diff = (actual - expected) * d;
                 return (
                   <tr key={d} className="border-b border-border/50 last:border-0">
-                    <td className="py-2 px-2">
+                    <td className="py-2 px-1 w-px whitespace-nowrap">
                       {(() => { const c = resolveChipColor(d, chipColorOverrides); return (
                         <span className="cms-chip text-xs" style={{ backgroundColor: c.bg, color: c.text }}>
                           {formatChipLabel(d)}
                         </span>
                       ); })()}
                     </td>
-                    <td className="py-2 px-2 text-center font-mono text-sm text-muted-foreground">
+                    <td className="py-2 px-1 text-center font-mono text-sm text-muted-foreground w-px whitespace-nowrap tabular-nums">
                       {expected}
                     </td>
                     <td className="py-1 px-1">
@@ -320,7 +320,7 @@ export const CloseTableWizard = ({ open, onClose, tables, date, readOnly = false
                     </td>
                     <td
                       className={cn(
-                        "py-2 px-2 text-right font-mono text-sm font-semibold",
+                        "py-2 px-1 text-right font-mono text-sm font-semibold w-px whitespace-nowrap tabular-nums",
                         diff > 0 && "text-success",
                         diff < 0 && "text-destructive",
                         diff === 0 && "text-muted-foreground"
