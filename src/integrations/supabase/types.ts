@@ -1311,6 +1311,7 @@ export type Database = {
       chip_transfers: {
         Row: {
           amount: number
+          business_date: string | null
           casino_id: string
           chips: Json | null
           counterparty_player_id: string
@@ -1326,6 +1327,7 @@ export type Database = {
         }
         Insert: {
           amount: number
+          business_date?: string | null
           casino_id: string
           chips?: Json | null
           counterparty_player_id: string
@@ -1341,6 +1343,7 @@ export type Database = {
         }
         Update: {
           amount?: number
+          business_date?: string | null
           casino_id?: string
           chips?: Json | null
           counterparty_player_id?: string
@@ -1671,6 +1674,7 @@ export type Database = {
           approved: boolean
           approved_at: string | null
           approved_by: string | null
+          business_date: string | null
           casino_id: string
           category: Database["public"]["Enums"]["expense_category"]
           created_at: string
@@ -1686,6 +1690,7 @@ export type Database = {
           approved?: boolean
           approved_at?: string | null
           approved_by?: string | null
+          business_date?: string | null
           casino_id: string
           category: Database["public"]["Enums"]["expense_category"]
           created_at?: string
@@ -1701,6 +1706,7 @@ export type Database = {
           approved?: boolean
           approved_at?: string | null
           approved_by?: string | null
+          business_date?: string | null
           casino_id?: string
           category?: Database["public"]["Enums"]["expense_category"]
           created_at?: string
@@ -1875,6 +1881,7 @@ export type Database = {
       }
       incidents: {
         Row: {
+          business_date: string | null
           casino_id: string
           cctv_observer: string | null
           comments: string | null
@@ -1896,6 +1903,7 @@ export type Database = {
           violation_type: string | null
         }
         Insert: {
+          business_date?: string | null
           casino_id: string
           cctv_observer?: string | null
           comments?: string | null
@@ -1917,6 +1925,7 @@ export type Database = {
           violation_type?: string | null
         }
         Update: {
+          business_date?: string | null
           casino_id?: string
           cctv_observer?: string | null
           comments?: string | null
@@ -2834,6 +2843,41 @@ export type Database = {
         }
         Relationships: []
       }
+      system_locks: {
+        Row: {
+          casino_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          locked_until: string
+          reason: string
+        }
+        Insert: {
+          casino_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          locked_until: string
+          reason: string
+        }
+        Update: {
+          casino_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          locked_until?: string
+          reason?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "system_locks_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       table_daily_results: {
         Row: {
           casino_id: string
@@ -2972,6 +3016,7 @@ export type Database = {
       transactions: {
         Row: {
           amount: number
+          business_date: string | null
           casino_id: string
           chips: Json | null
           created_at: string
@@ -2984,6 +3029,7 @@ export type Database = {
         }
         Insert: {
           amount: number
+          business_date?: string | null
           casino_id: string
           chips?: Json | null
           created_at?: string
@@ -2996,6 +3042,7 @@ export type Database = {
         }
         Update: {
           amount?: number
+          business_date?: string | null
           casino_id?: string
           chips?: Json | null
           created_at?: string
@@ -3448,10 +3495,17 @@ export type Database = {
         Returns: Json
       }
       cleanup_old_data: { Args: never; Returns: Json }
-      close_business_day: {
-        Args: { _casino_id: string; _method?: string }
-        Returns: Json
-      }
+      close_business_day:
+        | { Args: { _casino_id: string; _method?: string }; Returns: Json }
+        | {
+            Args: {
+              _casino_id: string
+              _force_close_cycles?: boolean
+              _method?: string
+            }
+            Returns: Json
+          }
+      close_open_sessions_5am: { Args: never; Returns: Json }
       compute_player_drop_split: {
         Args: { _from?: string; _player_id: string; _to?: string }
         Returns: {
@@ -3503,6 +3557,10 @@ export type Database = {
         Args: { _closure_id: string; _patches: Json; _section: string }
         Returns: Json
       }
+      finalize_open_cycles_for_close: {
+        Args: { _casino_id: string; _user: string }
+        Returns: Json
+      }
       generate_card_number: { Args: never; Returns: string }
       get_business_date_for_casino: {
         Args: { _casino_id: string }
@@ -3546,6 +3604,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      list_open_cycles_for_day: { Args: { _casino_id: string }; Returns: Json }
       local_servers_overview: {
         Args: never
         Returns: {
