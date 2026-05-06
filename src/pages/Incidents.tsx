@@ -134,8 +134,8 @@ const Incidents = () => {
       else if (d.category === "I") inspectors.add(name);
       else dealers.add(name);
     }
-    // Dealer & Inspector share the same list (per request).
-    const dealerInspector = [...new Set([...dealers, ...inspectors])].sort();
+    // Dealer & Inspector share the same list (per request) — include pit bosses too.
+    const dealerInspector = [...new Set([...dealers, ...inspectors, ...pitBosses])].sort();
     return {
       dealerInspector,
       managers: [...new Set([...STANDING_MANAGERS, ...pitBosses])].sort(),
