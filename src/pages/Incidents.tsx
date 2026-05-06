@@ -138,17 +138,17 @@ const Incidents = () => {
       <PageHeader
         icon={AlertTriangle}
         title="Incidents"
-        subtitle={`Violation journal · Last ${days} days · ${incidents.length} entries · ${totalPts} pts`}
+        subtitle={`Violation journal · ${filtered.length} entries · ${totalPts} pts`}
       >
-        <Select value={String(days)} onValueChange={v => setDays(Number(v))}>
-          <SelectTrigger className="w-32 h-9"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="7">Last 7 days</SelectItem>
-            <SelectItem value="30">Last 30 days</SelectItem>
-            <SelectItem value="90">Last 90 days</SelectItem>
-            <SelectItem value="365">Last year</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="relative">
+          <Search className="w-4 h-4 absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+          <Input
+            placeholder="Search…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="pl-8 w-56"
+          />
+        </div>
         {canPost && (
           <Button onClick={() => { setForm(emptyForm()); setOpen(true); }} className="gap-2">
             <Plus className="w-4 h-4" /> New incident
