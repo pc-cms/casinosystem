@@ -25,6 +25,10 @@ import { toast } from "sonner";
 const DEPARTMENTS = ["game", "cash", "reception", "floor", "bar", "security", "other"];
 const VIOLATION_TYPES = ["procedural", "financial", "disciplinary", "technical", "other"];
 
+// Standing managers — always selectable in the Manager dropdown,
+// independent of rota. Will be replaced with real user accounts later.
+const STANDING_MANAGERS = ["Peter", "Taras", "Daniyar"];
+
 const todayDate = () => new Date().toISOString().slice(0, 10);
 const nowTime = () => new Date().toTimeString().slice(0, 5);
 
