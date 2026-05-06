@@ -12,7 +12,7 @@
  *  - Min column widths so inputs are comfortable (~100px+); page scrolls horizontally.
  */
 import { useMemo, useRef, useState } from "react";
-import { AlertTriangle, Camera, Check, ImageIcon, Loader2, RotateCcw, Search, X } from "lucide-react";
+import { AlertTriangle, Camera, Check, ChevronLeft, ChevronRight, ImageIcon, Loader2, RotateCcw, Search, X } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -240,6 +240,46 @@ const Incidents = () => {
         icon={AlertTriangle}
         title="Incidents"
         subtitle={`Violation journal · ${filtered.length} entries · ${totalPts} pts`}
+        centerSlot={
+          <div className="flex items-center gap-1.5">
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={() => {
+                const d = new Date(form.incident_date + "T12:00:00Z");
+                d.setUTCDate(d.getUTCDate() - 1);
+                setF("incident_date", d.toISOString().slice(0, 10));
+              }}
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+            <Input
+              type="date"
+              value={form.incident_date}
+              max={todayDate()}
+              onChange={(e) => e.target.value && setF("incident_date", e.target.value)}
+              className="w-44 font-mono h-9"
+            />
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              disabled={form.incident_date >= todayDate()}
+              onClick={() => {
+                const d = new Date(form.incident_date + "T12:00:00Z");
+                d.setUTCDate(d.getUTCDate() + 1);
+                const next = d.toISOString().slice(0, 10);
+                if (next <= todayDate()) setF("incident_date", next);
+              }}
+            >
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+            {form.incident_date !== todayDate() && (
+              <Button variant="outline" size="sm" className="h-7 text-[10px]" onClick={() => setF("incident_date", todayDate())}>
+                Today
+              </Button>
+            )}
+          </div>
+        }
       >
         <div className="relative">
           <Search className="w-4 h-4 absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
@@ -300,26 +340,12 @@ const Incidents = () => {
               {canPost && (
                 <tr className="border-t border-border bg-primary/5">
                   <td className={`px-1 py-1 ${stickyDate} border-r border-border`}>
-                    <div className="flex items-center gap-1">
-                      <Input
-                        type="date"
-                        value={form.incident_date}
-                        onChange={(e) => setF("incident_date", e.target.value)}
-                        className={cellInput}
-                      />
-                      <button
-                        type="button"
-                        title="Yesterday"
-                        onClick={() => {
-                          const d = new Date();
-                          d.setDate(d.getDate() - 1);
-                          setF("incident_date", d.toISOString().slice(0, 10));
-                        }}
-                        className="text-[9px] px-1 py-0.5 rounded bg-muted hover:bg-muted-foreground/20 text-muted-foreground shrink-0"
-                      >
-                        −1
-                      </button>
-                    </div>
+                    <Input
+                      type="date"
+                      value={form.incident_date}
+                      onChange={(e) => setF("incident_date", e.target.value)}
+                      className={cellInput}
+                    />
                   </td>
                   <td className={`px-1 py-1 ${stickyTime} border-r border-border`} style={stickyTimeLeft}>
                     <Input
