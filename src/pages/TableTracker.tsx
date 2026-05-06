@@ -213,7 +213,7 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
                     className={`border-b border-border last:border-0 ${ti % 2 === 1 ? "bg-muted/10" : ""}`}
                   >
                     <td
-                      className={`px-3 py-1 text-xs font-medium text-card-foreground sticky left-0 z-10 ${ti % 2 === 1 ? "bg-card/95" : "bg-card"}`}
+                      className="px-3 py-1 text-xs font-medium text-card-foreground sticky left-0 z-10 bg-card"
                     >
                       {table.name}
                     </td>
