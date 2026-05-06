@@ -757,7 +757,7 @@ const IncidentRow = ({
                 size="sm"
                 variant="ghost"
                 onClick={startEdit}
-                className="h-7 px-2 text-[10px]"
+                className="h-9 px-3 text-xs"
                 title="Edit outcome / pts / comments"
               >
                 Edit
