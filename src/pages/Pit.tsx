@@ -998,7 +998,7 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
                         (td?.closest("tr")?.previousElementSibling?.children[ci]?.querySelector("input") as HTMLInputElement)?.focus();
                       }
                     }}
-                    className={`w-full h-7 rounded text-[10px] font-mono text-center border-0 focus:outline-none focus:ring-1 focus:ring-primary transition-colors ${
+                    className={`w-full h-8 rounded text-xs font-mono font-semibold text-center border-0 focus:outline-none focus:ring-1 focus:ring-primary transition-colors ${
                       isStatus
                         ? `${ATT_COLORS[val]} ring-2 ring-red-500/80 dark:ring-red-400/80 ring-inset`
                         : isHoursSick ? "bg-transparent text-card-foreground font-bold ring-2 ring-red-500/80 dark:ring-red-400/80 ring-inset cursor-help"
