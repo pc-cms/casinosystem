@@ -340,26 +340,12 @@ const Incidents = () => {
               {canPost && (
                 <tr className="border-t border-border bg-primary/5">
                   <td className={`px-1 py-1 ${stickyDate} border-r border-border`}>
-                    <div className="flex items-center gap-1">
-                      <Input
-                        type="date"
-                        value={form.incident_date}
-                        onChange={(e) => setF("incident_date", e.target.value)}
-                        className={cellInput}
-                      />
-                      <button
-                        type="button"
-                        title="Yesterday"
-                        onClick={() => {
-                          const d = new Date();
-                          d.setDate(d.getDate() - 1);
-                          setF("incident_date", d.toISOString().slice(0, 10));
-                        }}
-                        className="text-[9px] px-1 py-0.5 rounded bg-muted hover:bg-muted-foreground/20 text-muted-foreground shrink-0"
-                      >
-                        −1
-                      </button>
-                    </div>
+                    <Input
+                      type="date"
+                      value={form.incident_date}
+                      onChange={(e) => setF("incident_date", e.target.value)}
+                      className={cellInput}
+                    />
                   </td>
                   <td className={`px-1 py-1 ${stickyTime} border-r border-border`} style={stickyTimeLeft}>
                     <Input
