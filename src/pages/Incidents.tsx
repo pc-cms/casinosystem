@@ -28,7 +28,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { compressImage } from "@/lib/image-compress";
 import { toast } from "sonner";
 
-const DEPARTMENTS = ["game", "cash", "reception", "floor", "bar", "security", "other"];
+const DEPARTMENTS = ["game", "cash", "reception", "floor", "bar", "security", "pit"];
+
+// Map incident department → staff_members.department values to filter Employee list.
+const DEPT_STAFF_FILTER: Record<string, string[]> = {
+  cash: ["cashier"],
+  reception: ["reception"],
+  floor: ["bartender", "hostess", "waiter", "cleaner", "it", "hr", "driver"],
+  bar: ["bartender"],
+  security: ["security"],
+  pit: [], // pit bosses only — handled separately
+};
 const VIOLATION_TYPES = ["procedural", "financial", "disciplinary", "technical", "other"];
 
 // Standing managers — always selectable, independent of rota.
