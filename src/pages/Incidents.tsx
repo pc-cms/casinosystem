@@ -22,7 +22,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useIncidents, useCreateIncident, type IncidentInput } from "@/hooks/use-incidents";
 import { usePitRota, useDealers } from "@/hooks/use-dealers";
-import { useStaffMembers, useStaffRotaRange } from "@/hooks/use-staff";
+import { useStaffMembers } from "@/hooks/use-staff";
 import { useGamingTables } from "@/hooks/use-tables";
 import { supabase } from "@/integrations/supabase/client";
 import { compressImage } from "@/lib/image-compress";
