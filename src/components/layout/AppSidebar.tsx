@@ -484,6 +484,24 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
             </TooltipTrigger>
             <TooltipContent side="right">Profile</TooltipContent>
           </Tooltip>
+          {!nativeManager && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => managerOverride.active ? handleDeactivate() : setShowOverrideDialog(true)}
+                  className={cn(
+                    "w-10 h-10 flex items-center justify-center rounded-md transition-colors",
+                    managerOverride.active
+                      ? "bg-primary/20 text-primary border border-primary/40 hover:bg-primary/30"
+                      : "hover:bg-sidebar-accent text-sidebar-foreground"
+                  )}
+                >
+                  <ShieldCheck className="w-4 h-4" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="right">{managerOverride.active ? "Manager Active — click to deactivate" : "Manager Access"}</TooltipContent>
+            </Tooltip>
+          )}
           <Tooltip>
             <TooltipTrigger asChild>
               <button
@@ -610,43 +628,6 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
       />
 
       <div className="px-3 py-2 border-t border-sidebar-border space-y-2">
-        {(!nativeManager || onToggle) && (
-          <div className="flex items-center gap-2">
-            {!nativeManager && (
-              managerOverride.active ? (
-                <button
-                  onClick={handleDeactivate}
-                  className="flex items-center gap-2 flex-1 h-8 px-3 rounded-md text-xs font-medium bg-primary/15 text-primary border border-primary/30 hover:bg-primary/25 transition-colors"
-                >
-                  <ShieldCheck className="w-4 h-4" />
-                  <span className="flex-1 text-left">Manager Active</span>
-                  <ShieldOff className="w-3.5 h-3.5 opacity-60" />
-                </button>
-              ) : (
-                <button
-                  onClick={() => setShowOverrideDialog(true)}
-                  className="flex items-center gap-2 flex-1 h-8 px-3 rounded-md text-xs font-medium text-sidebar-foreground hover:bg-sidebar-accent border border-sidebar-border transition-colors"
-                >
-                  <ShieldCheck className="w-4 h-4" />
-                  <span className="flex-1 text-left">Manager</span>
-                </button>
-              )
-            )}
-            {onToggle && (
-              <button
-                onClick={onToggle}
-                title="Collapse sidebar"
-                className={cn(
-                  "h-8 px-3 flex items-center justify-center rounded-md text-xs font-medium text-sidebar-foreground hover:bg-sidebar-accent border border-sidebar-border transition-colors",
-                  nativeManager && "flex-1 gap-2"
-                )}
-              >
-                <ChevronsLeft className="w-3.5 h-3.5" />
-                {nativeManager && <span className="flex-1 text-left">Hide sidebar</span>}
-              </button>
-            )}
-          </div>
-        )}
         <div className="flex items-center gap-2 px-1">
           <button
             onClick={() => setShowProfile(true)}
@@ -656,17 +637,33 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
             {displayName}
           </button>
           <NetworkStatusIndicator compact />
+        </div>
+        <div className="flex items-center justify-between gap-1 px-1">
+          {!nativeManager && (
+            <button
+              onClick={() => managerOverride.active ? handleDeactivate() : setShowOverrideDialog(true)}
+              title={managerOverride.active ? "Manager Active — click to deactivate" : "Manager Access"}
+              className={cn(
+                "h-7 flex-1 flex items-center justify-center rounded-md transition-colors",
+                managerOverride.active
+                  ? "bg-primary/20 text-primary border border-primary/40 hover:bg-primary/30"
+                  : "text-sidebar-foreground hover:bg-sidebar-accent"
+              )}
+            >
+              <ShieldCheck className="w-3.5 h-3.5" />
+            </button>
+          )}
           <button
             onClick={() => { toggle(); onNavigate?.(); }}
             title={theme === "dark" ? "Light mode" : "Dark mode"}
-            className="h-7 w-7 flex items-center justify-center rounded-md text-sidebar-foreground hover:bg-sidebar-accent transition-colors shrink-0"
+            className="h-7 flex-1 flex items-center justify-center rounded-md text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
           >
             {theme === "dark" ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
           </button>
           <button
             onClick={toggleDensity}
             title={densityEffective === "compact" ? "Comfort density" : "Compact density"}
-            className="h-7 w-7 flex items-center justify-center rounded-md text-sidebar-foreground hover:bg-sidebar-accent transition-colors shrink-0"
+            className="h-7 flex-1 flex items-center justify-center rounded-md text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
           >
             {densityEffective === "compact" ? <Rows3 className="w-3.5 h-3.5" /> : <Rows2 className="w-3.5 h-3.5" />}
           </button>
@@ -677,22 +674,24 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
               }
             }}
             title="Force update"
-            className="h-7 w-7 flex items-center justify-center rounded-md text-sidebar-foreground hover:bg-sidebar-accent transition-colors shrink-0"
+            className="h-7 flex-1 flex items-center justify-center rounded-md text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
           >
             <RefreshCw className="w-3.5 h-3.5" />
           </button>
           <LogoutButton
             title="Sign out"
-            className="h-7 w-7 flex items-center justify-center rounded-md text-sidebar-foreground hover:bg-sidebar-accent transition-colors shrink-0"
+            className="h-7 flex-1 flex items-center justify-center rounded-md text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
           >
             <LogOut className="w-3.5 h-3.5" />
           </LogoutButton>
-        </div>
-        <div className="min-h-[14px]">
-          {managerOverride.active && !nativeManager && (
-            <span className="text-[9px] font-mono px-1 py-0.5 rounded bg-primary/20 text-primary font-bold ml-1 inline-block">
-              Manager ↑
-            </span>
+          {onToggle && (
+            <button
+              onClick={onToggle}
+              title="Collapse sidebar"
+              className="h-7 flex-1 flex items-center justify-center rounded-md text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
+            >
+              <ChevronsLeft className="w-3.5 h-3.5" />
+            </button>
           )}
         </div>
         <div className="mt-1 pt-1 border-t border-sidebar-border/50">
