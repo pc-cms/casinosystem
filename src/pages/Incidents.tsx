@@ -296,7 +296,7 @@ const Incidents = () => {
 
       <PageSection title="Journal" card={false}>
         <div className="rounded-md border border-border overflow-x-auto">
-          <table className="text-xs font-mono border-collapse" style={{ minWidth: "1800px" }}>
+          <table className="text-sm font-mono border-collapse" style={{ minWidth: "2250px" }}>
             <colgroup>
               <col style={{ width: COLS.date }} />
               <col style={{ width: COLS.time }} />
@@ -315,26 +315,26 @@ const Incidents = () => {
               <col style={{ width: COLS.photo }} />
               {canPost && <col style={{ width: COLS.save }} />}
             </colgroup>
-            <thead className="bg-muted/60 text-[10px] uppercase tracking-wide text-muted-foreground">
+            <thead className="bg-muted text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
-                <th className={`px-2 py-2 text-left ${stickyDate} border-r border-border`}>Date</th>
-                <th className={`px-2 py-2 text-left ${stickyTime} border-r border-border`} style={stickyTimeLeft}>
+                <th className={`px-3 py-2.5 text-left ${stickyDateHead} border-r border-border`}>Date</th>
+                <th className={`px-3 py-2.5 text-left ${stickyTimeHead} border-r border-border`} style={stickyTimeLeft}>
                   Time
                 </th>
-                <th className="px-2 py-2 text-left">CCTV</th>
-                <th className="px-2 py-2 text-left">Manager</th>
-                <th className="px-2 py-2 text-left">Dept</th>
-                <th className="px-2 py-2 text-left">Table</th>
-                <th className="px-2 py-2 text-left">Dealer</th>
-                <th className="px-2 py-2 text-left">Inspector</th>
-                <th className="px-2 py-2 text-left">Employee</th>
-                <th className="px-2 py-2 text-left">Type</th>
-                <th className="px-2 py-2 text-left">Incident *</th>
-                <th className="px-2 py-2 text-left">Outcome</th>
-                <th className="px-2 py-2 text-right">Pts</th>
-                <th className="px-2 py-2 text-left">Comments</th>
-                <th className="px-2 py-2 text-center">Photo</th>
-                {canPost && <th className="px-2 py-2 text-center">Save</th>}
+                <th className="px-3 py-2.5 text-left">CCTV</th>
+                <th className="px-3 py-2.5 text-left">Manager</th>
+                <th className="px-3 py-2.5 text-left">Dept</th>
+                <th className="px-3 py-2.5 text-left">Table</th>
+                <th className="px-3 py-2.5 text-left">Dealer</th>
+                <th className="px-3 py-2.5 text-left">Inspector</th>
+                <th className="px-3 py-2.5 text-left">Employee</th>
+                <th className="px-3 py-2.5 text-left">Type</th>
+                <th className="px-3 py-2.5 text-left">Incident *</th>
+                <th className="px-3 py-2.5 text-left">Outcome</th>
+                <th className="px-3 py-2.5 text-right">Pts</th>
+                <th className="px-3 py-2.5 text-left">Comments</th>
+                <th className="px-3 py-2.5 text-center">Photo</th>
+                {canPost && <th className="px-3 py-2.5 text-center">Save</th>}
               </tr>
             </thead>
             <tbody>
