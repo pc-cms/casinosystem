@@ -8,11 +8,12 @@ import {
   Building2, UserCheck, ClipboardPen, ShieldCheck, ShieldOff,
   Wallet, DoorOpen, ShieldAlert, Menu, Upload, FileText,
   ChevronsLeft, ChevronsRight, CreditCard, CalendarDays, ChevronDown, ChevronRight, Coins, Briefcase,
-  RefreshCw, MessageSquare, AlertTriangle, User as UserIcon,
+  RefreshCw, MessageSquare, AlertTriangle, User as UserIcon, Rows3, Rows2,
 } from "lucide-react";
 import { UserProfileDialog } from "@/components/UserProfileDialog";
 import { resetPWACache } from "@/lib/pwa-register";
 import { useTheme } from "@/lib/theme";
+import { useDensity } from "@/lib/density";
 import { useAuth } from "@/lib/auth-context";
 import { useCasino } from "@/lib/casino-context";
 import { useMyModulePermissions } from "@/hooks/use-module-permissions";
@@ -330,6 +331,8 @@ type InnerProps = {
 
 const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) => {
   const { theme, toggle } = useTheme();
+  const { effective: densityEffective, setMode: setDensityMode } = useDensity();
+  const toggleDensity = () => setDensityMode(densityEffective === "compact" ? "comfort" : "compact");
   const { displayName, roles, signOut, isManager, managerOverride, activateManagerOverride, deactivateManagerOverride } = useAuth();
   const { activeCasino, isSummaryMode } = useCasino();
   // Brand by subdomain first (sync, available before activeCasino loads),
