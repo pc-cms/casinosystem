@@ -159,9 +159,22 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
   }
 
   const renderGrid = (full: boolean) => {
-    // Unified chip token (cms-chip-token / -lg). Cells are sized for max 3 digits since
-    // there are never more than 500 chips of one denomination on a single table.
-    const t = full
+    // Tablet mode: extra-large cells & numbers for in-pit chip counts on a tablet.
+    const t = tabletMode
+      ? {
+          chipClass: "cms-chip-token cms-chip-token-lg",
+          inputH: "h-16",
+          inputText: "text-2xl",
+          firstColW: "120px",
+          chipColW: "96px",
+          resultColW: "200px",
+          rowPadX: "px-2",
+          rowPadY: "py-2",
+          headerPadY: "py-3",
+          totalText: "text-xl",
+          resultText: "text-xl",
+        }
+      : full
       ? {
           chipClass: "cms-chip-token cms-chip-token-lg",
           inputH: "h-9",
@@ -197,6 +210,16 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
             <p className="text-[10px] text-muted-foreground">Rows: tables · Columns: denominations</p>
           </div>
           <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant={tabletMode ? "default" : "outline"}
+              onClick={() => setTabletMode(m => !m)}
+              className="gap-1.5 h-8"
+              title={tabletMode ? "Exit tablet mode" : "Tablet mode (XL cells)"}
+            >
+              <Tablet className="w-4 h-4" />
+              <span className="hidden sm:inline">Tablet</span>
+            </Button>
             <Button
               size="sm"
               variant="outline"
