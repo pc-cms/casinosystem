@@ -252,7 +252,7 @@ const Incidents = () => {
               Log incident
             </Button>
           </ResponsiveDialogFooter>
-        </ResponsiveDialogContent>
+        </div>
       </ResponsiveDialog>
     </PageShell>
   );
