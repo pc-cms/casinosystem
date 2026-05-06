@@ -143,25 +143,26 @@ const Incidents = () => {
     };
   }, [rota, allDealers]);
 
-  // Full staff list for "Employee" column (non-game departments).
-  // Includes: scheduled staff for the date + all pit bosses.
+  // Full staff list for "Employee" column, filtered by selected department.
+  // - pit       → only pit bosses
+  // - others    → staff_members whose department matches DEPT_STAFF_FILTER
+  // - fallback  → all active staff (only if filter yields nothing)
   const staffOptions = useMemo(() => {
+    const dept = form.department || "";
+    if (dept === "game" || !dept) return [];
     const names = new Set<string>();
-    const staffMap = new Map(staffMembers.map((s: any) => [s.id, s]));
-    for (const r of staffRota as any[]) {
-      const s = staffMap.get(r.staff_id) as any;
-      if (s?.name) names.add(s.name);
+    if (dept === "pit") {
+      for (const pb of rotaNames.pitBosses) names.add(pb);
+      return [...names].sort();
     }
-    // Add pit bosses too.
-    for (const pb of rotaNames.pitBosses) names.add(pb);
-    // Fallback: if rota empty, expose all active staff.
-    if (names.size === 0) {
+    const allowed = new Set(DEPT_STAFF_FILTER[dept] || []);
+    if (allowed.size > 0) {
       for (const s of staffMembers as any[]) {
-        if (s.is_active !== false) names.add(s.name);
+        if (s.is_active !== false && allowed.has(s.department)) names.add(s.name);
       }
     }
     return [...names].sort();
-  }, [staffRota, staffMembers, rotaNames.pitBosses]);
+  }, [form.department, staffMembers, rotaNames.pitBosses]);
 
   const filtered = useMemo(() => {
     if (!search.trim()) return incidents;
