@@ -369,7 +369,7 @@ const Tables = () => {
   };
 
   const renderTableCard = (table: typeof tables[0]) => {
-    const r = tableStats[table.id] || { dropR: 0, dropV: 0, result: 0 };
+    const r = tableStats[table.id] || { drop: 0, result: 0 };
     const isOpen = table.status === "open";
     const hasTableResult = table.closing_result !== null;
     const seated = seatedByTable[table.id] || [];
