@@ -252,7 +252,7 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
             </colgroup>
             <thead>
               <tr className="border-b border-border">
-                <th className={`text-left ${t.headerPadY} px-2 text-muted-foreground font-medium sticky left-0 bg-card z-10 text-xs uppercase tracking-wider`}>
+                <th className={`text-left ${t.headerPadY} px-2 text-muted-foreground font-medium sticky left-0 bg-card z-10 ${t.headerText} uppercase tracking-wider`}>
                   Table
                 </th>
                 {visibleDenoms.map(d => {
