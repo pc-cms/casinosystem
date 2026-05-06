@@ -6,7 +6,8 @@ import { Lock, Unlock, LockKeyhole } from "lucide-react";
 import { toast } from "sonner";
 import { ALL_ROLES, ROLE_COLORS, TABLE_ROLES } from "@/lib/currency";
 import { getTableCellClasses } from "@/lib/table-colors";
-import { isBusinessToday, isAfterBreaklistLock, nowEAT } from "@/lib/business-day";
+import { isAfterBreaklistLock, nowEAT } from "@/lib/business-day";
+import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
 const CATEGORY_LABELS: Record<string, string> = {
   trainee: "T",
   dealer: "D",
@@ -147,7 +148,8 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
 
   const currentSlot = useMemo(() => getCurrentSlot(), []);
   const shiftEndHour = casino?.shift_end ? parseInt(casino.shift_end.split(":")[0]) : 5;
-  const isToday = isBusinessToday(date, shiftEndHour);
+  const { data: effectiveBusinessDate } = useEffectiveBusinessDate();
+  const isToday = !!effectiveBusinessDate && date === effectiveBusinessDate;
   const pastLock = isToday && isAfterBreaklistLock(casino?.breaklist_lock || "05:30");
   // Editable if it's today AND not past lock time (or if manager)
   const isEditable = isToday && (!pastLock || isManager);
