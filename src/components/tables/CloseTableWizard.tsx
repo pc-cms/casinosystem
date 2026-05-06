@@ -204,9 +204,9 @@ export const CloseTableWizard = ({ open, onClose, tables, date, readOnly = false
   const bodyNode = wizardTables.length === 0 ? (
     <p className="text-center text-sm text-muted-foreground py-8">No open tables to close</p>
   ) : (
-    <div className="grid grid-cols-[200px_1fr] sm:grid-cols-[260px_1fr] gap-4">
+    <div className="grid grid-cols-[minmax(170px,42%)_1fr] sm:grid-cols-[260px_1fr] gap-2 sm:gap-4">
       {/* LEFT — table list */}
-      <div className={cn("space-y-1.5 border-r border-border pr-3 overflow-y-auto", asPage ? "max-h-[calc(100vh-260px)]" : "max-h-[70vh]")}>
+      <div className={cn("space-y-1 border-r border-border pr-1 sm:pr-3 overflow-y-auto", asPage ? "max-h-[calc(100vh-260px)]" : "max-h-[70vh]")}>
         {wizardTables.map((t, i) => {
           const counted = isCounted(t);
           return (
