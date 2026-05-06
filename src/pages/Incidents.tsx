@@ -20,7 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { useIncidents, useCreateIncident, type IncidentInput } from "@/hooks/use-incidents";
+import { useIncidents, useCreateIncident, useUpdateIncidentFollowup, type IncidentInput, type Incident } from "@/hooks/use-incidents";
 import { usePitRota, useDealers } from "@/hooks/use-dealers";
 import { useStaffMembers } from "@/hooks/use-staff";
 import { useGamingTables } from "@/hooks/use-tables";
