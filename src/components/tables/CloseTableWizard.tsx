@@ -279,10 +279,10 @@ export const CloseTableWizard = ({ open, onClose, tables, date, readOnly = false
           <table className="w-full text-sm table-auto">
             <thead>
               <tr className="border-b border-border">
-                <th className="text-left py-2 px-1 text-muted-foreground font-medium w-px whitespace-nowrap">Denom</th>
-                <th className="text-center py-2 px-1 text-muted-foreground font-medium w-px whitespace-nowrap">Float</th>
-                <th className="text-center py-2 px-1 text-muted-foreground font-medium">Actual Count</th>
-                <th className="text-right py-2 px-1 text-muted-foreground font-medium w-px whitespace-nowrap">Diff</th>
+                <th className="text-left py-2 px-1 text-muted-foreground font-medium text-base w-px whitespace-nowrap">Denom</th>
+                <th className="text-center py-2 px-1 text-muted-foreground font-medium text-base w-px whitespace-nowrap">Float</th>
+                <th className="text-center py-2 px-1 text-muted-foreground font-medium text-base">Actual Count</th>
+                <th className="text-right py-2 px-1 text-muted-foreground font-medium text-base w-px whitespace-nowrap">Diff</th>
               </tr>
             </thead>
             <tbody>
@@ -294,12 +294,12 @@ export const CloseTableWizard = ({ open, onClose, tables, date, readOnly = false
                   <tr key={d} className="border-b border-border/50 last:border-0">
                     <td className="py-2 px-1 w-px whitespace-nowrap">
                       {(() => { const c = resolveChipColor(d, chipColorOverrides); return (
-                        <span className="cms-chip text-xs" style={{ backgroundColor: c.bg, color: c.text }}>
+                        <span className="cms-chip cms-chip-lg text-sm" style={{ backgroundColor: c.bg, color: c.text }}>
                           {formatChipLabel(d)}
                         </span>
                       ); })()}
                     </td>
-                    <td className="py-2 px-1 text-center font-mono text-sm text-muted-foreground w-px whitespace-nowrap tabular-nums">
+                    <td className="py-2 px-1 text-center font-mono text-xl text-muted-foreground w-px whitespace-nowrap tabular-nums">
                       {expected}
                     </td>
                     <td className="py-1 px-1">
@@ -314,13 +314,13 @@ export const CloseTableWizard = ({ open, onClose, tables, date, readOnly = false
                           const v = e.target.value === "" ? 0 : parseInt(e.target.value, 10);
                           setCount(d, isNaN(v) ? 0 : v);
                         }}
-                        className="no-spin w-full max-w-[160px] h-12 mx-auto block rounded text-xl font-mono font-semibold text-center border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary text-card-foreground disabled:opacity-100 disabled:cursor-default"
+                        className="no-spin w-full max-w-[180px] h-12 mx-auto block rounded text-xl font-mono font-semibold text-center border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary text-card-foreground disabled:opacity-100 disabled:cursor-default"
                         placeholder={String(expected)}
                       />
                     </td>
                     <td
                       className={cn(
-                        "py-2 px-1 text-right font-mono text-sm font-semibold w-px whitespace-nowrap tabular-nums",
+                        "py-2 px-1 text-right font-mono text-xl font-semibold w-px whitespace-nowrap tabular-nums",
                         diff > 0 && "text-success",
                         diff < 0 && "text-destructive",
                         diff === 0 && "text-muted-foreground"
