@@ -645,26 +645,26 @@ const IncidentRow = ({
 
   return (
     <tr className="border-t border-border hover:bg-muted/30">
-      <td className={`px-2 py-1.5 whitespace-nowrap ${stickyDate} border-r border-border`}>{i.incident_date}</td>
+      <td className={`px-3 py-2.5 whitespace-nowrap ${stickyDate} border-r border-border`}>{i.incident_date}</td>
       <td
-        className={`px-2 py-1.5 whitespace-nowrap ${stickyTime} border-r border-border`}
+        className={`px-3 py-2.5 whitespace-nowrap ${stickyTime} border-r border-border`}
         style={stickyTimeLeft}
       >
         {i.incident_time?.slice(0, 5)}
       </td>
-      <td className="px-2 py-1.5">{i.cctv_observer || "·"}</td>
-      <td className="px-2 py-1.5">{i.manager || "·"}</td>
-      <td className="px-2 py-1.5">{i.department || "·"}</td>
-      <td className="px-2 py-1.5">{i.table_name || "·"}</td>
-      <td className="px-2 py-1.5">{i.dealer_name || "·"}</td>
-      <td className="px-2 py-1.5">{i.inspector_name || "·"}</td>
-      <td className="px-2 py-1.5">{i.employees || "·"}</td>
-      <td className="px-2 py-1.5">
+      <td className="px-3 py-2.5">{i.cctv_observer || "·"}</td>
+      <td className="px-3 py-2.5">{i.manager || "·"}</td>
+      <td className="px-3 py-2.5">{i.department || "·"}</td>
+      <td className="px-3 py-2.5">{i.table_name || "·"}</td>
+      <td className="px-3 py-2.5">{i.dealer_name || "·"}</td>
+      <td className="px-3 py-2.5">{i.inspector_name || "·"}</td>
+      <td className="px-3 py-2.5">{i.employees || "·"}</td>
+      <td className="px-3 py-2.5">
         {i.violation_type ? (
-          <Badge variant="outline" className="text-[10px]">{i.violation_type}</Badge>
+          <Badge variant="outline" className="text-xs">{i.violation_type}</Badge>
         ) : "·"}
       </td>
-      <td className="px-2 py-1.5 whitespace-normal break-words">{i.incident}</td>
+      <td className="px-3 py-2.5 whitespace-normal break-words">{i.incident}</td>
 
       {/* Outcome — editable */}
       <td className="px-1 py-1 whitespace-normal break-words">
@@ -709,7 +709,7 @@ const IncidentRow = ({
         )}
       </td>
 
-      <td className="px-2 py-1.5 text-center">
+      <td className="px-3 py-2.5 text-center">
         {i.photo_url ? (
           <button
             type="button"
