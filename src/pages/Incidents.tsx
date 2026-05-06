@@ -550,3 +550,180 @@ const Incidents = () => {
 };
 
 export default Incidents;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Row renderer with inline edit for outcome / points / comments.
+// Other fields are read-only (DB trigger blocks any other change).
+// ─────────────────────────────────────────────────────────────────────────────
+interface IncidentRowProps {
+  incident: Incident;
+  canEdit: boolean;
+  onView: (url: string) => void;
+  stickyDate: string;
+  stickyTime: string;
+  stickyTimeLeft: React.CSSProperties;
+  cellInput: string;
+}
+
+const IncidentRow = ({
+  incident: i,
+  canEdit,
+  onView,
+  stickyDate,
+  stickyTime,
+  stickyTimeLeft,
+  cellInput,
+}: IncidentRowProps) => {
+  const updateMut = useUpdateIncidentFollowup();
+  const [editing, setEditing] = useState(false);
+  const [outcome, setOutcome] = useState(i.outcome || "");
+  const [points, setPoints] = useState(i.points || 0);
+  const [comments, setComments] = useState(i.comments || "");
+
+  const startEdit = () => {
+    setOutcome(i.outcome || "");
+    setPoints(i.points || 0);
+    setComments(i.comments || "");
+    setEditing(true);
+  };
+
+  const save = async () => {
+    try {
+      await updateMut.mutateAsync({
+        id: i.id,
+        patch: { outcome: outcome || null, points: Number(points) || 0, comments: comments || null },
+      });
+      toast.success("Updated");
+      setEditing(false);
+    } catch (e: any) {
+      toast.error(e.message || "Update failed");
+    }
+  };
+
+  return (
+    <tr className="border-t border-border hover:bg-muted/30">
+      <td className={`px-2 py-1.5 whitespace-nowrap ${stickyDate} border-r border-border`}>{i.incident_date}</td>
+      <td
+        className={`px-2 py-1.5 whitespace-nowrap ${stickyTime} border-r border-border`}
+        style={stickyTimeLeft}
+      >
+        {i.incident_time?.slice(0, 5)}
+      </td>
+      <td className="px-2 py-1.5">{i.cctv_observer || "·"}</td>
+      <td className="px-2 py-1.5">{i.manager || "·"}</td>
+      <td className="px-2 py-1.5">{i.department || "·"}</td>
+      <td className="px-2 py-1.5">{i.table_name || "·"}</td>
+      <td className="px-2 py-1.5">{i.dealer_name || "·"}</td>
+      <td className="px-2 py-1.5">{i.inspector_name || "·"}</td>
+      <td className="px-2 py-1.5">{i.employees || "·"}</td>
+      <td className="px-2 py-1.5">
+        {i.violation_type ? (
+          <Badge variant="outline" className="text-[10px]">{i.violation_type}</Badge>
+        ) : "·"}
+      </td>
+      <td className="px-2 py-1.5 whitespace-normal break-words">{i.incident}</td>
+
+      {/* Outcome — editable */}
+      <td className="px-1 py-1 whitespace-normal break-words">
+        {editing ? (
+          <Input
+            value={outcome}
+            onChange={(e) => setOutcome(e.target.value)}
+            placeholder="…"
+            className={cellInput}
+          />
+        ) : (
+          i.outcome || "·"
+        )}
+      </td>
+
+      {/* Points — editable */}
+      <td className="px-1 py-1 text-right font-semibold">
+        {editing ? (
+          <Input
+            type="number"
+            min={0}
+            value={points}
+            onChange={(e) => setPoints(Number(e.target.value) || 0)}
+            className={`${cellInput} text-right`}
+          />
+        ) : (
+          i.points || 0
+        )}
+      </td>
+
+      {/* Comments — editable */}
+      <td className="px-1 py-1 whitespace-normal break-words text-muted-foreground">
+        {editing ? (
+          <Input
+            value={comments}
+            onChange={(e) => setComments(e.target.value)}
+            placeholder="…"
+            className={cellInput}
+          />
+        ) : (
+          i.comments || "·"
+        )}
+      </td>
+
+      <td className="px-2 py-1.5 text-center">
+        {i.photo_url ? (
+          <button
+            type="button"
+            onClick={() => onView(i.photo_url!)}
+            className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-primary/10 hover:bg-primary/20 text-primary"
+            title="View photo"
+          >
+            <ImageIcon className="w-3.5 h-3.5" />
+          </button>
+        ) : (
+          <span className="text-muted-foreground">·</span>
+        )}
+      </td>
+
+      {canEdit && (
+        <td className="px-1 py-1">
+          <div className="flex items-center justify-center gap-1">
+            {editing ? (
+              <>
+                <Button
+                  size="sm"
+                  onClick={save}
+                  disabled={updateMut.isPending}
+                  className="h-7 w-7 p-0"
+                  title="Save"
+                >
+                  {updateMut.isPending ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Check className="w-3.5 h-3.5" />
+                  )}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setEditing(false)}
+                  className="h-7 w-7 p-0"
+                  title="Cancel"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </Button>
+              </>
+            ) : (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={startEdit}
+                className="h-7 px-2 text-[10px]"
+                title="Edit outcome / pts / comments"
+              >
+                Edit
+              </Button>
+            )}
+          </div>
+        </td>
+      )}
+    </tr>
+  );
+};
+
