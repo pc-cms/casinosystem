@@ -134,7 +134,7 @@ const TableSeatingDialog = ({
                     </p>
                     <p className="text-[10px] text-muted-foreground font-mono">
                       Avg {formatNumberSpaces(p.avgBet)} · since {formatTime(p.startedAt)}
-                      {p.dropR > 0 && ` · Drop R ${formatNumberSpaces(p.dropR)}`}
+                      {p.dropR > 0 && ` · Drop ${formatNumberSpaces(p.dropR)}`}
                     </p>
                   </div>
                   {editPlayerId === p.id ? (
