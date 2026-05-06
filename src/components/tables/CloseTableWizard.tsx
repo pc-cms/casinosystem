@@ -231,7 +231,7 @@ export const CloseTableWizard = ({ open, onClose, tables, date, readOnly = false
               {counted && (
                 <span
                   className={cn(
-                    "font-mono text-xs",
+                    "font-mono text-sm font-semibold",
                     Number(t.closing_result) >= 0 ? "text-success" : "text-destructive"
                   )}
                 >
@@ -249,8 +249,8 @@ export const CloseTableWizard = ({ open, onClose, tables, date, readOnly = false
         <div className="space-y-3">
           <div className="flex items-center justify-between border-b border-border pb-2">
             <div>
-              <h3 className="text-sm font-semibold text-card-foreground">{current.name}</h3>
-              <p className="text-[11px] text-muted-foreground">{current.game}</p>
+              <h3 className="text-lg font-semibold text-card-foreground">{current.name}</h3>
+              <p className="text-sm text-muted-foreground">{current.game}</p>
             </div>
             <div className="flex items-center gap-1">
               <Button
@@ -259,9 +259,9 @@ export const CloseTableWizard = ({ open, onClose, tables, date, readOnly = false
                 onClick={() => setCurrentIdx(i => Math.max(0, i - 1))}
                 disabled={currentIdx === 0}
               >
-                <ChevronLeft className="w-3.5 h-3.5" />
+                <ChevronLeft className="w-4 h-4" />
               </Button>
-              <span className="text-[10px] text-muted-foreground font-mono">
+              <span className="text-xs text-muted-foreground font-mono">
                 {currentIdx + 1} / {wizardTables.length}
               </span>
               <Button
@@ -270,19 +270,19 @@ export const CloseTableWizard = ({ open, onClose, tables, date, readOnly = false
                 onClick={() => setCurrentIdx(i => Math.min(wizardTables.length - 1, i + 1))}
                 disabled={currentIdx === wizardTables.length - 1}
               >
-                <ChevronRight className="w-3.5 h-3.5" />
+                <ChevronRight className="w-4 h-4" />
               </Button>
             </div>
           </div>
 
           {/* Inputs grid */}
-          <table className="w-full text-xs">
+          <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border">
-                <th className="text-left py-1.5 px-2 text-muted-foreground font-medium">Denom</th>
-                <th className="text-center py-1.5 px-2 text-muted-foreground font-medium">Float (Baseline)</th>
-                <th className="text-center py-1.5 px-2 text-muted-foreground font-medium">Actual Count</th>
-                <th className="text-right py-1.5 px-2 text-muted-foreground font-medium">Diff Value</th>
+                <th className="text-left py-2 px-2 text-muted-foreground font-medium">Denom</th>
+                <th className="text-center py-2 px-2 text-muted-foreground font-medium">Float (Baseline)</th>
+                <th className="text-center py-2 px-2 text-muted-foreground font-medium">Actual Count</th>
+                <th className="text-right py-2 px-2 text-muted-foreground font-medium">Diff Value</th>
               </tr>
             </thead>
             <tbody>
@@ -292,14 +292,14 @@ export const CloseTableWizard = ({ open, onClose, tables, date, readOnly = false
                 const diff = (actual - expected) * d;
                 return (
                   <tr key={d} className="border-b border-border/50 last:border-0">
-                    <td className="py-1.5 px-2">
+                    <td className="py-2 px-2">
                       {(() => { const c = resolveChipColor(d, chipColorOverrides); return (
-                        <span className="cms-chip text-[9px]" style={{ backgroundColor: c.bg, color: c.text }}>
+                        <span className="cms-chip text-xs" style={{ backgroundColor: c.bg, color: c.text }}>
                           {formatChipLabel(d)}
                         </span>
                       ); })()}
                     </td>
-                    <td className="py-1.5 px-2 text-center font-mono text-[11px] text-muted-foreground">
+                    <td className="py-2 px-2 text-center font-mono text-sm text-muted-foreground">
                       {expected}
                     </td>
                     <td className="py-1 px-1">
@@ -314,13 +314,13 @@ export const CloseTableWizard = ({ open, onClose, tables, date, readOnly = false
                           const v = e.target.value === "" ? 0 : parseInt(e.target.value, 10);
                           setCount(d, isNaN(v) ? 0 : v);
                         }}
-                        className="no-spin w-full max-w-[140px] h-11 mx-auto block rounded text-lg font-mono font-semibold text-center border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary text-card-foreground disabled:opacity-100 disabled:cursor-default"
+                        className="no-spin w-full max-w-[160px] h-12 mx-auto block rounded text-xl font-mono font-semibold text-center border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary text-card-foreground disabled:opacity-100 disabled:cursor-default"
                         placeholder={String(expected)}
                       />
                     </td>
                     <td
                       className={cn(
-                        "py-1.5 px-2 text-right font-mono text-[11px]",
+                        "py-2 px-2 text-right font-mono text-sm font-semibold",
                         diff > 0 && "text-success",
                         diff < 0 && "text-destructive",
                         diff === 0 && "text-muted-foreground"
@@ -336,11 +336,11 @@ export const CloseTableWizard = ({ open, onClose, tables, date, readOnly = false
           </table>
 
           {/* Live result */}
-          <div className="cms-panel p-3 flex items-center justify-between">
-            <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Result</span>
+          <div className="cms-panel p-4 flex items-center justify-between">
+            <span className="text-sm uppercase tracking-wider text-muted-foreground font-medium">Result</span>
             <span
               className={cn(
-                "font-mono text-lg font-bold",
+                "font-mono text-2xl font-bold",
                 liveResult >= 0 ? "text-success" : "text-destructive"
               )}
             >
