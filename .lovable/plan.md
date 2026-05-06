@@ -1,17 +1,25 @@
 ## Goal
-Когда ячейка в Breaklist находится близко к нижнему краю экрана, выпадающее меню (BR/TR/SRT/CLS/S + Assign to table) должно открываться **вверх**, а не вниз — чтобы не вызывать скролл страницы и не "растягивать окно".
+Когда открыта карточка игрока в Player Statistics, при прокрутке страницы должны "прилипать" одновременно: карточка игрока (PlayerPreviewHeader) + строка с названиями колонок (`thead`) + строка `Total`.
+
+Сейчас sticky только карточка, а заголовки таблицы и строка тоталов уезжают вверх вместе с контентом.
 
 ## Changes
 
-**File:** `src/components/pit/BreaklistGrid.tsx`
+### 1. `src/components/player/PlayerPreviewHeader.tsx`
+- Добавить `ref` на корневой `<div>` и `ResizeObserver`, который пишет высоту шапки в CSS-переменную `--ppheader-h` на `document.documentElement`.
+- При размонтировании / отсутствии `playerId` сбрасывать `--ppheader-h` в `0px`.
 
-1. Расширить state `activeCell` полем `dropUp: boolean`.
-2. В `handleCellClick` принимать `MouseEvent`, измерять `getBoundingClientRect()` ячейки и сравнивать `window.innerHeight - rect.bottom` с порогом ~240px (высота поповера с секцией Assign to table). Если места снизу недостаточно — `dropUp = true`.
-3. В `onClick` ячейки (строка 377) пробросить `e`: `onClick={(e) => isEditable && handleCellClick(dealer.id, slot, e)}`.
-4. В рендере поповера (строка 402) заменить статичный `top-8 left-0` на условный класс:
-   - `dropUp` → `bottom-8 left-0`
-   - иначе → `top-8 left-0`
+### 2. `src/pages/PlayerStatistics.tsx`
+- На `<thead>` строке заголовков (`<tr>` ~657) добавить класс `sticky` через inline `style={{ top: 'var(--ppheader-h, 0px)' }}` на каждом `<th>` (включая sticky-left ячейки `№` и `Name`).
+- На строке Total (`<tr>` ~696) — sticky `top: calc(var(--ppheader-h, 0px) + <thead row height>)`. Проще: использовать переменную `--ppheader-h` плюс конкретный offset (~38px) на каждой ячейке `<td>`.
+- Поскольку sticky на `<tr>` не работает, навешиваем `sticky` + `top: ...` + `z-20/30` на каждый `<th>`/`<td>` строки, не меняя структуру таблицы.
+- Контейнер `<div className="overflow-x-auto">` оставляем — sticky внутри overflow-x работает корректно для вертикального направления; убедиться, что внешние родители (PageShell) не имеют `overflow:hidden` по вертикали (если есть — z-индексы и top решают вопрос, sticky остаётся в пределах ближайшего scroll-контейнера, которым является window).
+
+### Implementation details
+- thead `<th>`: добавить `sticky` и `style={{ top: "var(--ppheader-h, 0px)" }}`, поднять `z-20`/`z-30` для угловых sticky-left ячеек.
+- Total `<td>`: добавить `sticky` и `style={{ top: "calc(var(--ppheader-h, 0px) + 34px)" }}` (34px = высота thead-строки `py-3` + текст), `z-10/20`.
+- Фон у Total уже `bg-primary/10`, у thead `bg-muted` — sticky-видимость сохранится.
 
 ## Notes
-- Порог 240px подобран под максимальную высоту поповера (5 ролей в ряд + до ~7 строк столов).
-- Логика чисто клиентская, без изменений данных/RPC. Версию `package.json` не бампим (UI-only).
+- Чисто UI, без бэкенда. Версию не бампим.
+- Та же связка работает и при закрытой карточке: `--ppheader-h = 0px`, и `top` сводится к 0 — поведение становится "обычным sticky thead".

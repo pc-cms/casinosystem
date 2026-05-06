@@ -663,7 +663,8 @@ const PlayerStatistics = () => {
                       const H = ({ k, align = "left", children, title, sticky }: { k: SortKey; align?: "left" | "right"; children: any; title?: string; sticky?: string }) => (
                         <th
                           title={title}
-                          className={`px-2 py-3 cursor-pointer select-none hover:text-foreground whitespace-nowrap font-semibold ${align === "right" ? "text-right" : "text-left"} ${sticky ? `${sticky} bg-muted z-20` : ""}`}
+                          style={{ top: "var(--ppheader-h, 0px)" }}
+                          className={`px-2 py-3 cursor-pointer select-none hover:text-foreground whitespace-nowrap font-semibold sticky bg-muted ${align === "right" ? "text-right" : "text-left"} ${sticky ? `${sticky} z-30` : "z-20"}`}
                           onClick={() => toggleSort(k)}
                         >
                           {children}<SortIcon k={k} />
@@ -671,7 +672,7 @@ const PlayerStatistics = () => {
                       );
                       return (
                         <>
-                          <th className="px-2 py-3 text-center sticky left-0 bg-muted z-20 w-10 font-semibold">№</th>
+                          <th style={{ top: "var(--ppheader-h, 0px)" }} className="px-2 py-3 text-center sticky left-0 bg-muted z-30 w-10 font-semibold">№</th>
                           <H k="name" sticky="sticky left-10">Name</H>
                           <H k="entry">Entry</H>
                           <H k="exit">Left</H>
@@ -694,28 +695,30 @@ const PlayerStatistics = () => {
                   </tr>
                   {filtered.length > 0 && (
                     <tr className="text-sm bg-primary/10 border-b-2 border-primary/30 font-mono">
-                      <td className="px-2 py-2 text-center text-muted-foreground sticky left-0 bg-primary/10 z-20 font-semibold">{totals.count}</td>
-                      <td className="px-2 py-2 text-left uppercase tracking-wider text-muted-foreground font-bold sticky left-10 bg-primary/10 z-20">
+                      <td style={{ top: "calc(var(--ppheader-h, 0px) + 38px)" }} className="px-2 py-2 text-center text-muted-foreground sticky left-0 bg-primary/10 z-30 font-semibold">{totals.count}</td>
+                      <td style={{ top: "calc(var(--ppheader-h, 0px) + 38px)" }} className="px-2 py-2 text-left uppercase tracking-wider text-muted-foreground font-bold sticky left-10 bg-primary/10 z-30">
                         Total
                       </td>
-                      <td className="px-1 py-2"></td>
-                      <td className="px-1 py-2"></td>
-                      <td className="px-1 py-2"></td>
+                      <td style={{ top: "calc(var(--ppheader-h, 0px) + 38px)" }} className="px-1 py-2 sticky bg-primary/10 z-20"></td>
+                      <td style={{ top: "calc(var(--ppheader-h, 0px) + 38px)" }} className="px-1 py-2 sticky bg-primary/10 z-20"></td>
+                      <td style={{ top: "calc(var(--ppheader-h, 0px) + 38px)" }} className="px-1 py-2 sticky bg-primary/10 z-20"></td>
                       {showFinancials && (() => {
                         const Money = ({ value, sign = false }: { value: number; sign?: boolean }) => {
                           if (!value) return <>·</>;
                           const prefix = sign && value > 0 ? "+" : "";
                           return <>{prefix}{formatCurrency(value)}</>;
                         };
+                        const stickyStyle = { top: "calc(var(--ppheader-h, 0px) + 38px)" } as const;
+                        const stickyCls = "sticky bg-primary/10 z-20";
                         return (
                           <>
-                            <td className="px-2 py-2"></td>
-                            <td className="px-2 py-2 text-right font-semibold whitespace-nowrap"><Money value={totals.dropR} /></td>
-                            <td className="px-2 py-2 text-right font-semibold whitespace-nowrap"><Money value={totals.inDrop} /></td>
-                            <td className="px-2 py-2 text-right font-semibold whitespace-nowrap"><Money value={totals.out} /></td>
-                            <td className="px-2 py-2 text-right text-success whitespace-nowrap"><Money value={totals.chipIn} /></td>
-                            <td className="px-2 py-2 text-right text-destructive whitespace-nowrap"><Money value={totals.chipOut} /></td>
-                            <td className={`px-2 py-2 text-right font-bold text-base whitespace-nowrap ${totals.result > 0 ? "cms-amount-positive" : totals.result < 0 ? "cms-amount-negative" : ""}`}>
+                            <td style={stickyStyle} className={`px-2 py-2 ${stickyCls}`}></td>
+                            <td style={stickyStyle} className={`px-2 py-2 text-right font-semibold whitespace-nowrap ${stickyCls}`}><Money value={totals.dropR} /></td>
+                            <td style={stickyStyle} className={`px-2 py-2 text-right font-semibold whitespace-nowrap ${stickyCls}`}><Money value={totals.inDrop} /></td>
+                            <td style={stickyStyle} className={`px-2 py-2 text-right font-semibold whitespace-nowrap ${stickyCls}`}><Money value={totals.out} /></td>
+                            <td style={stickyStyle} className={`px-2 py-2 text-right text-success whitespace-nowrap ${stickyCls}`}><Money value={totals.chipIn} /></td>
+                            <td style={stickyStyle} className={`px-2 py-2 text-right text-destructive whitespace-nowrap ${stickyCls}`}><Money value={totals.chipOut} /></td>
+                            <td style={stickyStyle} className={`px-2 py-2 text-right font-bold text-base whitespace-nowrap ${stickyCls} ${totals.result > 0 ? "cms-amount-positive" : totals.result < 0 ? "cms-amount-negative" : ""}`}>
                               <Money value={totals.result} sign />
                             </td>
                           </>
