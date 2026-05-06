@@ -34,6 +34,9 @@ const VIOLATION_TYPES = ["procedural", "financial", "disciplinary", "technical",
 // Standing managers — always selectable, independent of rota.
 const STANDING_MANAGERS = ["Peter", "Taras", "Daniyar"];
 
+// Standing CCTV observers — always selectable, independent of rota.
+const STANDING_CCTV = ["Andrew", "Alex", "Vladimir", "Vitalii"];
+
 const todayDate = () => new Date().toISOString().slice(0, 10);
 const nowTime = () => new Date().toTimeString().slice(0, 5);
 
@@ -302,11 +305,15 @@ const Incidents = () => {
                   </td>
                   <td className="px-1 py-1">
                     <Input
+                      list="incident-cctv"
                       value={form.cctv_observer || ""}
                       onChange={(e) => setF("cctv_observer", e.target.value)}
                       placeholder="…"
                       className={cellInput}
                     />
+                    <datalist id="incident-cctv">
+                      {STANDING_CCTV.map((n) => <option key={n} value={n} />)}
+                    </datalist>
                   </td>
                   <td className="px-1 py-1">
                     <Input
