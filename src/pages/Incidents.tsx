@@ -50,8 +50,8 @@ const Incidents = () => {
   const { roles } = useAuth();
   const canPost = roles.some(r => ["super_admin", "manager", "surveillance"].includes(r));
 
-  const [days, setDays] = useState(30);
-  const { data: incidents = [], isLoading } = useIncidents(days);
+  const [search, setSearch] = useState("");
+  const { data: incidents = [], isLoading } = useIncidents(null);
   const createMut = useCreateIncident();
 
   const [open, setOpen] = useState(false);
@@ -60,7 +60,38 @@ const Incidents = () => {
   const [viewPhoto, setViewPhoto] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const totalPts = useMemo(() => incidents.reduce((s, i) => s + (i.points || 0), 0), [incidents]);
+  // Rota for selected incident date — provides dealer/inspector/manager dropdowns.
+  const { data: rota = [] } = usePitRota(form.incident_date);
+  const { data: allDealers = [] } = useDealers();
+
+  const rotaNames = useMemo(() => {
+    const byCategory = { dealers: new Set<string>(), inspectors: new Set<string>(), pitBosses: new Set<string>() };
+    const dealersMap = new Map(allDealers.map((d: any) => [d.id, d]));
+    for (const r of rota as any[]) {
+      const d = dealersMap.get(r.dealer_id) as any;
+      if (!d) continue;
+      const name = d.name;
+      if (d.is_pit_boss) byCategory.pitBosses.add(name);
+      else if (d.category === "I") byCategory.inspectors.add(name);
+      else byCategory.dealers.add(name);
+    }
+    return {
+      dealers: [...byCategory.dealers].sort(),
+      inspectors: [...byCategory.inspectors].sort(),
+      pitBosses: [...byCategory.pitBosses].sort(),
+    };
+  }, [rota, allDealers]);
+
+  const filtered = useMemo(() => {
+    if (!search.trim()) return incidents;
+    const q = search.toLowerCase();
+    return incidents.filter(i =>
+      [i.dealer_name, i.inspector_name, i.manager, i.cctv_observer, i.violation_type, i.incident, i.outcome, i.comments, i.table_name, i.department, i.incident_date]
+        .some(v => (v || "").toLowerCase().includes(q))
+    );
+  }, [incidents, search]);
+
+  const totalPts = useMemo(() => filtered.reduce((s, i) => s + (i.points || 0), 0), [filtered]);
 
   const setF = <K extends keyof IncidentInput>(k: K, v: IncidentInput[K]) =>
     setForm(prev => ({ ...prev, [k]: v }));
