@@ -204,9 +204,9 @@ export const CloseTableWizard = ({ open, onClose, tables, date, readOnly = false
   const bodyNode = wizardTables.length === 0 ? (
     <p className="text-center text-sm text-muted-foreground py-8">No open tables to close</p>
   ) : (
-    <div className="grid grid-cols-[140px_1fr] sm:grid-cols-[180px_1fr] gap-3">
+    <div className="grid grid-cols-[200px_1fr] sm:grid-cols-[260px_1fr] gap-4">
       {/* LEFT — table list */}
-      <div className={cn("space-y-1 border-r border-border pr-3 overflow-y-auto", asPage ? "max-h-[calc(100vh-260px)]" : "max-h-[60vh]")}>
+      <div className={cn("space-y-1.5 border-r border-border pr-3 overflow-y-auto", asPage ? "max-h-[calc(100vh-260px)]" : "max-h-[70vh]")}>
         {wizardTables.map((t, i) => {
           const counted = isCounted(t);
           return (
@@ -214,24 +214,24 @@ export const CloseTableWizard = ({ open, onClose, tables, date, readOnly = false
               key={t.id}
               onClick={() => setCurrentIdx(i)}
               className={cn(
-                "w-full flex items-center justify-between gap-2 px-2 py-1.5 rounded-md text-xs transition-colors text-left",
+                "w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-md text-base transition-colors text-left",
                 i === currentIdx
-                  ? "bg-primary/10 text-primary font-medium border border-primary/30"
+                  ? "bg-primary/10 text-primary font-semibold border border-primary/30"
                   : "hover:bg-muted/40 text-card-foreground"
               )}
             >
-              <span className="flex items-center gap-1.5 truncate">
+              <span className="flex items-center gap-2 truncate">
                 {counted ? (
-                  <Check className="w-3.5 h-3.5 text-success shrink-0" />
+                  <Check className="w-5 h-5 text-success shrink-0" />
                 ) : (
-                  <div className="w-3.5 h-3.5 rounded-full border border-muted-foreground/40 shrink-0" />
+                  <div className="w-5 h-5 rounded-full border border-muted-foreground/40 shrink-0" />
                 )}
-                <span className="truncate">{t.name}</span>
+                <span className="truncate font-medium">{t.name}</span>
               </span>
               {counted && (
                 <span
                   className={cn(
-                    "font-mono text-[10px]",
+                    "font-mono text-xs",
                     Number(t.closing_result) >= 0 ? "text-success" : "text-destructive"
                   )}
                 >
