@@ -288,6 +288,45 @@ const Incidents = () => {
                 onChange={e => setF("comments", e.target.value)}
               />
             </div>
+            <div className="space-y-1 md:col-span-3">
+              <label className="text-xs text-muted-foreground">Photo</label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handlePhotoUpload}
+              />
+              {form.photo_url ? (
+                <div className="relative inline-block">
+                  <img
+                    src={form.photo_url}
+                    alt="Incident"
+                    className="h-32 w-auto rounded-md border border-border cursor-pointer"
+                    onClick={() => setViewPhoto(form.photo_url)}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setF("photo_url", null)}
+                    className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full w-6 h-6 flex items-center justify-center"
+                    title="Remove"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                  className="gap-2"
+                >
+                  {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
+                  {uploading ? "Uploading…" : "Attach photo"}
+                </Button>
+              )}
+            </div>
           </div>
 
           <ResponsiveDialogFooter>
@@ -298,6 +337,18 @@ const Incidents = () => {
           </ResponsiveDialogFooter>
         </div>
       </ResponsiveDialog>
+
+      <Dialog open={!!viewPhoto} onOpenChange={(o) => !o && setViewPhoto(null)}>
+        <DialogContent className="max-w-5xl p-0 bg-background border-border overflow-hidden">
+          {viewPhoto && (
+            <img
+              src={viewPhoto}
+              alt="Incident photo"
+              className="w-full h-auto max-h-[90vh] object-contain bg-muted"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </PageShell>
   );
 };
