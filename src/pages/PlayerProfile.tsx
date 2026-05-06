@@ -377,7 +377,7 @@ const PlayerProfile = () => {
               <Kpi label="Avg session" value={lifetime.avgSession ? fmtDuration(lifetime.avgSession) : "—"} />
               {showFinancials && (
                 <>
-                  <Kpi label="Drop R" value={fmtMoney(lifetime.drop)} />
+                  <Kpi label="Drop" value={fmtMoney(lifetime.drop)} />
                   <Kpi label="Cashout" value={fmtMoney(lifetime.cashout)} />
                   <Kpi
                     label="Result"
