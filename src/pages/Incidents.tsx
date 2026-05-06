@@ -69,26 +69,26 @@ const emptyForm = (): IncidentInput => ({
 });
 
 const cellInput =
-  "h-8 px-2 text-xs font-mono border-0 bg-transparent focus-visible:bg-background focus-visible:ring-1 rounded-sm w-full";
+  "h-10 px-2 text-sm font-mono border-0 bg-transparent focus-visible:bg-background focus-visible:ring-1 rounded-sm w-full";
 
-// Column widths — generous so inputs are readable.
+// Column widths — generous so inputs are readable. (≈ +25% vs original)
 const COLS = {
-  date: 130,
-  time: 90,
-  cctv: 120,
-  manager: 130,
-  dept: 110,
-  table: 110,
-  dealer: 130,
-  inspector: 130,
-  employee: 140,
-  type: 130,
-  incident: 260,
-  outcome: 200,
-  points: 70,
-  comments: 240,
-  photo: 70,
-  save: 80,
+  date: 165,
+  time: 115,
+  cctv: 150,
+  manager: 165,
+  dept: 140,
+  table: 140,
+  dealer: 165,
+  inspector: 165,
+  employee: 175,
+  type: 165,
+  incident: 325,
+  outcome: 250,
+  points: 90,
+  comments: 300,
+  photo: 90,
+  save: 100,
 };
 
 const Incidents = () => {
@@ -229,9 +229,11 @@ const Incidents = () => {
     }
   };
 
-  // Helpers for sticky-left columns.
-  const stickyDate = "sticky left-0 z-20 bg-background";
-  const stickyTime = "sticky z-20 bg-background";
+  // Helpers for sticky-left columns. Header uses muted band; body uses solid background.
+  const stickyDateHead = "sticky left-0 z-30 bg-muted";
+  const stickyTimeHead = "sticky z-30 bg-muted";
+  const stickyDate = "sticky left-0 z-30 bg-background";
+  const stickyTime = "sticky z-30 bg-background";
   const stickyTimeLeft = { left: COLS.date };
 
   return (
@@ -294,7 +296,7 @@ const Incidents = () => {
 
       <PageSection title="Journal" card={false}>
         <div className="rounded-md border border-border overflow-x-auto">
-          <table className="text-xs font-mono border-collapse" style={{ minWidth: "1800px" }}>
+          <table className="text-sm font-mono border-collapse" style={{ minWidth: "2250px" }}>
             <colgroup>
               <col style={{ width: COLS.date }} />
               <col style={{ width: COLS.time }} />
@@ -313,26 +315,26 @@ const Incidents = () => {
               <col style={{ width: COLS.photo }} />
               {canPost && <col style={{ width: COLS.save }} />}
             </colgroup>
-            <thead className="bg-muted/60 text-[10px] uppercase tracking-wide text-muted-foreground">
+            <thead className="bg-muted text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
-                <th className={`px-2 py-2 text-left ${stickyDate} border-r border-border`}>Date</th>
-                <th className={`px-2 py-2 text-left ${stickyTime} border-r border-border`} style={stickyTimeLeft}>
+                <th className={`px-3 py-2.5 text-left ${stickyDateHead} border-r border-border`}>Date</th>
+                <th className={`px-3 py-2.5 text-left ${stickyTimeHead} border-r border-border`} style={stickyTimeLeft}>
                   Time
                 </th>
-                <th className="px-2 py-2 text-left">CCTV</th>
-                <th className="px-2 py-2 text-left">Manager</th>
-                <th className="px-2 py-2 text-left">Dept</th>
-                <th className="px-2 py-2 text-left">Table</th>
-                <th className="px-2 py-2 text-left">Dealer</th>
-                <th className="px-2 py-2 text-left">Inspector</th>
-                <th className="px-2 py-2 text-left">Employee</th>
-                <th className="px-2 py-2 text-left">Type</th>
-                <th className="px-2 py-2 text-left">Incident *</th>
-                <th className="px-2 py-2 text-left">Outcome</th>
-                <th className="px-2 py-2 text-right">Pts</th>
-                <th className="px-2 py-2 text-left">Comments</th>
-                <th className="px-2 py-2 text-center">Photo</th>
-                {canPost && <th className="px-2 py-2 text-center">Save</th>}
+                <th className="px-3 py-2.5 text-left">CCTV</th>
+                <th className="px-3 py-2.5 text-left">Manager</th>
+                <th className="px-3 py-2.5 text-left">Dept</th>
+                <th className="px-3 py-2.5 text-left">Table</th>
+                <th className="px-3 py-2.5 text-left">Dealer</th>
+                <th className="px-3 py-2.5 text-left">Inspector</th>
+                <th className="px-3 py-2.5 text-left">Employee</th>
+                <th className="px-3 py-2.5 text-left">Type</th>
+                <th className="px-3 py-2.5 text-left">Incident *</th>
+                <th className="px-3 py-2.5 text-left">Outcome</th>
+                <th className="px-3 py-2.5 text-right">Pts</th>
+                <th className="px-3 py-2.5 text-left">Comments</th>
+                <th className="px-3 py-2.5 text-center">Photo</th>
+                {canPost && <th className="px-3 py-2.5 text-center">Save</th>}
               </tr>
             </thead>
             <tbody>
@@ -643,26 +645,26 @@ const IncidentRow = ({
 
   return (
     <tr className="border-t border-border hover:bg-muted/30">
-      <td className={`px-2 py-1.5 whitespace-nowrap ${stickyDate} border-r border-border`}>{i.incident_date}</td>
+      <td className={`px-3 py-2.5 whitespace-nowrap ${stickyDate} border-r border-border`}>{i.incident_date}</td>
       <td
-        className={`px-2 py-1.5 whitespace-nowrap ${stickyTime} border-r border-border`}
+        className={`px-3 py-2.5 whitespace-nowrap ${stickyTime} border-r border-border`}
         style={stickyTimeLeft}
       >
         {i.incident_time?.slice(0, 5)}
       </td>
-      <td className="px-2 py-1.5">{i.cctv_observer || "·"}</td>
-      <td className="px-2 py-1.5">{i.manager || "·"}</td>
-      <td className="px-2 py-1.5">{i.department || "·"}</td>
-      <td className="px-2 py-1.5">{i.table_name || "·"}</td>
-      <td className="px-2 py-1.5">{i.dealer_name || "·"}</td>
-      <td className="px-2 py-1.5">{i.inspector_name || "·"}</td>
-      <td className="px-2 py-1.5">{i.employees || "·"}</td>
-      <td className="px-2 py-1.5">
+      <td className="px-3 py-2.5">{i.cctv_observer || "·"}</td>
+      <td className="px-3 py-2.5">{i.manager || "·"}</td>
+      <td className="px-3 py-2.5">{i.department || "·"}</td>
+      <td className="px-3 py-2.5">{i.table_name || "·"}</td>
+      <td className="px-3 py-2.5">{i.dealer_name || "·"}</td>
+      <td className="px-3 py-2.5">{i.inspector_name || "·"}</td>
+      <td className="px-3 py-2.5">{i.employees || "·"}</td>
+      <td className="px-3 py-2.5">
         {i.violation_type ? (
-          <Badge variant="outline" className="text-[10px]">{i.violation_type}</Badge>
+          <Badge variant="outline" className="text-xs">{i.violation_type}</Badge>
         ) : "·"}
       </td>
-      <td className="px-2 py-1.5 whitespace-normal break-words">{i.incident}</td>
+      <td className="px-3 py-2.5 whitespace-normal break-words">{i.incident}</td>
 
       {/* Outcome — editable */}
       <td className="px-1 py-1 whitespace-normal break-words">
@@ -707,7 +709,7 @@ const IncidentRow = ({
         )}
       </td>
 
-      <td className="px-2 py-1.5 text-center">
+      <td className="px-3 py-2.5 text-center">
         {i.photo_url ? (
           <button
             type="button"
@@ -755,7 +757,7 @@ const IncidentRow = ({
                 size="sm"
                 variant="ghost"
                 onClick={startEdit}
-                className="h-7 px-2 text-[10px]"
+                className="h-9 px-3 text-xs"
                 title="Edit outcome / pts / comments"
               >
                 Edit
