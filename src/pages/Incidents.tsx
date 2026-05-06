@@ -5,7 +5,7 @@
  * Roles: super_admin, manager, surveillance can post; pit/finance read-only.
  */
 import { useMemo, useRef, useState } from "react";
-import { AlertTriangle, Camera, ImageIcon, Loader2, Plus, X } from "lucide-react";
+import { AlertTriangle, Camera, ImageIcon, Loader2, Plus, Search, X } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -17,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ResponsiveDialog, ResponsiveDialogFooter } from "@/components/ui/responsive-dialog";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useIncidents, useCreateIncident, type IncidentInput } from "@/hooks/use-incidents";
+import { usePitRota, useDealers } from "@/hooks/use-dealers";
 import { supabase } from "@/integrations/supabase/client";
 import { compressImage } from "@/lib/image-compress";
 import { toast } from "sonner";
