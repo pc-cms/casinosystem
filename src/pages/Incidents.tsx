@@ -2,6 +2,14 @@
  * Incidents — CCTV/Manager violation journal.
  * Inline row entry (no modal): draft row at the top of the table, save in place.
  * Roles: super_admin, manager, surveillance can post; pit/finance read-only.
+ *
+ * Columns:
+ *  - Date + Time are sticky to the left.
+ *  - Tables come from breaklist (open gaming tables).
+ *  - Dealer & Inspector share the same list (rota dealers + inspectors).
+ *  - Staff list (Employee) = floor + office + security + pit bosses (for non-game departments).
+ *  - Employee column is enabled only when department != "game".
+ *  - Min column widths so inputs are comfortable (~100px+); page scrolls horizontally.
  */
 import { useMemo, useRef, useState } from "react";
 import { AlertTriangle, Camera, Check, ImageIcon, Loader2, RotateCcw, Search, X } from "lucide-react";
@@ -14,6 +22,8 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useIncidents, useCreateIncident, type IncidentInput } from "@/hooks/use-incidents";
 import { usePitRota, useDealers } from "@/hooks/use-dealers";
+import { useStaffMembers, useStaffRotaRange } from "@/hooks/use-staff";
+import { useGamingTables } from "@/hooks/use-tables";
 import { supabase } from "@/integrations/supabase/client";
 import { compressImage } from "@/lib/image-compress";
 import { toast } from "sonner";
@@ -45,11 +55,32 @@ const emptyForm = (): IncidentInput => ({
   photo_url: null,
 });
 
-const cellInput = "h-7 px-1.5 text-xs font-mono border-0 bg-transparent focus-visible:bg-background focus-visible:ring-1 rounded-sm";
+const cellInput =
+  "h-8 px-2 text-xs font-mono border-0 bg-transparent focus-visible:bg-background focus-visible:ring-1 rounded-sm w-full";
+
+// Column widths — generous so inputs are readable.
+const COLS = {
+  date: 130,
+  time: 90,
+  cctv: 120,
+  manager: 130,
+  dept: 110,
+  table: 110,
+  dealer: 130,
+  inspector: 130,
+  employee: 140,
+  type: 130,
+  incident: 260,
+  outcome: 200,
+  points: 70,
+  comments: 240,
+  photo: 70,
+  save: 80,
+};
 
 const Incidents = () => {
   const { roles } = useAuth();
-  const canPost = roles.some(r => ["super_admin", "manager", "surveillance"].includes(r));
+  const canPost = roles.some((r) => ["super_admin", "manager", "surveillance"].includes(r));
 
   const [search, setSearch] = useState("");
   const { data: incidents = [], isLoading } = useIncidents(null);
@@ -62,38 +93,90 @@ const Incidents = () => {
 
   const { data: rota = [] } = usePitRota(form.incident_date);
   const { data: allDealers = [] } = useDealers();
+  const { data: gamingTables = [] } = useGamingTables();
+  const { data: staffMembers = [] } = useStaffMembers();
+  const { data: staffRota = [] } = useStaffRotaRange(form.incident_date, form.incident_date);
 
+  // Tables shown in breaklist = open gaming tables.
+  const tableOptions = useMemo(
+    () =>
+      (gamingTables as any[])
+        .filter((t) => t.status === "open" && !t.is_archived)
+        .map((t) => t.name)
+        .sort(),
+    [gamingTables],
+  );
+
+  // Pit rota → dealers / inspectors / pit bosses (managers).
   const rotaNames = useMemo(() => {
-    const byCategory = { dealers: new Set<string>(), inspectors: new Set<string>(), pitBosses: new Set<string>() };
+    const dealers = new Set<string>();
+    const inspectors = new Set<string>();
+    const pitBosses = new Set<string>();
     const dealersMap = new Map(allDealers.map((d: any) => [d.id, d]));
     for (const r of rota as any[]) {
       const d = dealersMap.get(r.dealer_id) as any;
       if (!d) continue;
       const name = d.name;
-      if (d.is_pit_boss) byCategory.pitBosses.add(name);
-      else if (d.category === "I") byCategory.inspectors.add(name);
-      else byCategory.dealers.add(name);
+      if (d.is_pit_boss) pitBosses.add(name);
+      else if (d.category === "I") inspectors.add(name);
+      else dealers.add(name);
     }
+    // Dealer & Inspector share the same list (per request).
+    const dealerInspector = [...new Set([...dealers, ...inspectors])].sort();
     return {
-      dealers: [...byCategory.dealers].sort(),
-      inspectors: [...byCategory.inspectors].sort(),
-      managers: [...new Set([...STANDING_MANAGERS, ...byCategory.pitBosses])].sort(),
+      dealerInspector,
+      managers: [...new Set([...STANDING_MANAGERS, ...pitBosses])].sort(),
+      pitBosses: [...pitBosses],
     };
   }, [rota, allDealers]);
+
+  // Full staff list for "Employee" column (non-game departments).
+  // Includes: scheduled staff for the date + all pit bosses.
+  const staffOptions = useMemo(() => {
+    const names = new Set<string>();
+    const staffMap = new Map(staffMembers.map((s: any) => [s.id, s]));
+    for (const r of staffRota as any[]) {
+      const s = staffMap.get(r.staff_id) as any;
+      if (s?.name) names.add(s.name);
+    }
+    // Add pit bosses too.
+    for (const pb of rotaNames.pitBosses) names.add(pb);
+    // Fallback: if rota empty, expose all active staff.
+    if (names.size === 0) {
+      for (const s of staffMembers as any[]) {
+        if (s.is_active !== false) names.add(s.name);
+      }
+    }
+    return [...names].sort();
+  }, [staffRota, staffMembers, rotaNames.pitBosses]);
 
   const filtered = useMemo(() => {
     if (!search.trim()) return incidents;
     const q = search.toLowerCase();
-    return incidents.filter(i =>
-      [i.dealer_name, i.inspector_name, i.manager, i.cctv_observer, i.violation_type, i.incident, i.outcome, i.comments, i.table_name, i.department, i.incident_date]
-        .some(v => (v || "").toLowerCase().includes(q))
+    return incidents.filter((i) =>
+      [
+        i.dealer_name,
+        i.inspector_name,
+        i.manager,
+        i.cctv_observer,
+        i.violation_type,
+        i.incident,
+        i.outcome,
+        i.comments,
+        i.table_name,
+        i.department,
+        i.employees,
+        i.incident_date,
+      ].some((v) => (v || "").toLowerCase().includes(q)),
     );
   }, [incidents, search]);
 
   const totalPts = useMemo(() => filtered.reduce((s, i) => s + (i.points || 0), 0), [filtered]);
 
   const setF = <K extends keyof IncidentInput>(k: K, v: IncidentInput[K]) =>
-    setForm(prev => ({ ...prev, [k]: v }));
+    setForm((prev) => ({ ...prev, [k]: v }));
+
+  const isGame = (form.department || "game") === "game";
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -131,6 +214,11 @@ const Incidents = () => {
     }
   };
 
+  // Helpers for sticky-left columns.
+  const stickyDate = "sticky left-0 z-20 bg-background";
+  const stickyTime = "sticky z-20 bg-background";
+  const stickyTimeLeft = { left: COLS.date };
+
   return (
     <PageShell>
       <PageHeader
@@ -143,7 +231,7 @@ const Incidents = () => {
           <Input
             placeholder="Search…"
             value={search}
-            onChange={e => setSearch(e.target.value)}
+            onChange={(e) => setSearch(e.target.value)}
             className="pl-8 w-56"
           />
         </div>
@@ -151,98 +239,195 @@ const Incidents = () => {
 
       <PageSection title="Journal" card={false}>
         <div className="rounded-md border border-border overflow-x-auto">
-          <table className="w-full text-xs font-mono">
-            <thead className="bg-muted/50 text-[10px] uppercase tracking-wide text-muted-foreground">
+          <table className="text-xs font-mono border-collapse" style={{ minWidth: "1800px" }}>
+            <colgroup>
+              <col style={{ width: COLS.date }} />
+              <col style={{ width: COLS.time }} />
+              <col style={{ width: COLS.cctv }} />
+              <col style={{ width: COLS.manager }} />
+              <col style={{ width: COLS.dept }} />
+              <col style={{ width: COLS.table }} />
+              <col style={{ width: COLS.dealer }} />
+              <col style={{ width: COLS.inspector }} />
+              <col style={{ width: COLS.employee }} />
+              <col style={{ width: COLS.type }} />
+              <col style={{ width: COLS.incident }} />
+              <col style={{ width: COLS.outcome }} />
+              <col style={{ width: COLS.points }} />
+              <col style={{ width: COLS.comments }} />
+              <col style={{ width: COLS.photo }} />
+              {canPost && <col style={{ width: COLS.save }} />}
+            </colgroup>
+            <thead className="bg-muted/60 text-[10px] uppercase tracking-wide text-muted-foreground">
               <tr>
-                <th className="px-2 py-2 text-left w-[110px]">Date</th>
-                <th className="px-2 py-2 text-left w-[70px]">Time</th>
-                <th className="px-2 py-2 text-left w-[110px]">CCTV</th>
-                <th className="px-2 py-2 text-left w-[110px]">Manager</th>
-                <th className="px-2 py-2 text-left w-[90px]">Dept</th>
-                <th className="px-2 py-2 text-left w-[80px]">Table</th>
-                <th className="px-2 py-2 text-left w-[110px]">Dealer</th>
-                <th className="px-2 py-2 text-left w-[110px]">Inspector</th>
-                <th className="px-2 py-2 text-left w-[110px]">Type</th>
+                <th className={`px-2 py-2 text-left ${stickyDate} border-r border-border`}>Date</th>
+                <th className={`px-2 py-2 text-left ${stickyTime} border-r border-border`} style={stickyTimeLeft}>
+                  Time
+                </th>
+                <th className="px-2 py-2 text-left">CCTV</th>
+                <th className="px-2 py-2 text-left">Manager</th>
+                <th className="px-2 py-2 text-left">Dept</th>
+                <th className="px-2 py-2 text-left">Table</th>
+                <th className="px-2 py-2 text-left">Dealer</th>
+                <th className="px-2 py-2 text-left">Inspector</th>
+                <th className="px-2 py-2 text-left">Employee</th>
+                <th className="px-2 py-2 text-left">Type</th>
                 <th className="px-2 py-2 text-left">Incident *</th>
                 <th className="px-2 py-2 text-left">Outcome</th>
-                <th className="px-2 py-2 text-right w-[50px]">Pts</th>
+                <th className="px-2 py-2 text-right">Pts</th>
                 <th className="px-2 py-2 text-left">Comments</th>
-                <th className="px-2 py-2 text-center w-[60px]">Photo</th>
-                {canPost && <th className="px-2 py-2 text-center w-[70px]">Save</th>}
+                <th className="px-2 py-2 text-center">Photo</th>
+                {canPost && <th className="px-2 py-2 text-center">Save</th>}
               </tr>
             </thead>
             <tbody>
               {/* Draft row — inline entry */}
               {canPost && (
                 <tr className="border-t border-border bg-primary/5">
-                  <td className="px-1 py-1">
-                    <Input type="date" value={form.incident_date} onChange={e => setF("incident_date", e.target.value)} className={cellInput} />
+                  <td className={`px-1 py-1 ${stickyDate} border-r border-border`}>
+                    <Input
+                      type="date"
+                      value={form.incident_date}
+                      onChange={(e) => setF("incident_date", e.target.value)}
+                      className={cellInput}
+                    />
+                  </td>
+                  <td className={`px-1 py-1 ${stickyTime} border-r border-border`} style={stickyTimeLeft}>
+                    <Input
+                      type="time"
+                      value={form.incident_time}
+                      onChange={(e) => setF("incident_time", e.target.value)}
+                      className={cellInput}
+                    />
                   </td>
                   <td className="px-1 py-1">
-                    <Input type="time" value={form.incident_time} onChange={e => setF("incident_time", e.target.value)} className={cellInput} />
+                    <Input
+                      value={form.cctv_observer || ""}
+                      onChange={(e) => setF("cctv_observer", e.target.value)}
+                      placeholder="…"
+                      className={cellInput}
+                    />
                   </td>
                   <td className="px-1 py-1">
-                    <Input value={form.cctv_observer || ""} onChange={e => setF("cctv_observer", e.target.value)} placeholder="…" className={cellInput} />
-                  </td>
-                  <td className="px-1 py-1">
-                    <Input list="incident-managers" value={form.manager || ""} onChange={e => setF("manager", e.target.value)} placeholder="…" className={cellInput} />
+                    <Input
+                      list="incident-managers"
+                      value={form.manager || ""}
+                      onChange={(e) => setF("manager", e.target.value)}
+                      placeholder="…"
+                      className={cellInput}
+                    />
                     <datalist id="incident-managers">
-                      {rotaNames.managers.map(n => <option key={n} value={n} />)}
+                      {rotaNames.managers.map((n) => <option key={n} value={n} />)}
                     </datalist>
                   </td>
                   <td className="px-1 py-1">
                     <select
                       value={form.department || ""}
-                      onChange={e => setF("department", e.target.value)}
-                      className={`${cellInput} w-full bg-transparent`}
+                      onChange={(e) => setF("department", e.target.value)}
+                      className={`${cellInput} bg-transparent`}
                     >
-                      {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
+                      {DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}
                     </select>
                   </td>
                   <td className="px-1 py-1">
-                    <Input value={form.table_name || ""} onChange={e => setF("table_name", e.target.value)} placeholder="…" className={cellInput} />
-                  </td>
-                  <td className="px-1 py-1">
-                    <Input list="incident-dealers" value={form.dealer_name || ""} onChange={e => setF("dealer_name", e.target.value)} placeholder="…" className={cellInput} />
-                    <datalist id="incident-dealers">
-                      {rotaNames.dealers.map(n => <option key={n} value={n} />)}
+                    <Input
+                      list="incident-tables"
+                      value={form.table_name || ""}
+                      onChange={(e) => setF("table_name", e.target.value)}
+                      placeholder={isGame ? "…" : "—"}
+                      className={cellInput}
+                      disabled={!isGame}
+                    />
+                    <datalist id="incident-tables">
+                      {tableOptions.map((n) => <option key={n} value={n} />)}
                     </datalist>
                   </td>
                   <td className="px-1 py-1">
-                    <Input list="incident-inspectors" value={form.inspector_name || ""} onChange={e => setF("inspector_name", e.target.value)} placeholder="…" className={cellInput} />
-                    <datalist id="incident-inspectors">
-                      {rotaNames.inspectors.map(n => <option key={n} value={n} />)}
+                    <Input
+                      list="incident-dealers"
+                      value={form.dealer_name || ""}
+                      onChange={(e) => setF("dealer_name", e.target.value)}
+                      placeholder={isGame ? "…" : "—"}
+                      className={cellInput}
+                      disabled={!isGame}
+                    />
+                    <datalist id="incident-dealers">
+                      {rotaNames.dealerInspector.map((n) => <option key={n} value={n} />)}
+                    </datalist>
+                  </td>
+                  <td className="px-1 py-1">
+                    <Input
+                      list="incident-dealers"
+                      value={form.inspector_name || ""}
+                      onChange={(e) => setF("inspector_name", e.target.value)}
+                      placeholder={isGame ? "…" : "—"}
+                      className={cellInput}
+                      disabled={!isGame}
+                    />
+                  </td>
+                  <td className="px-1 py-1">
+                    <Input
+                      list="incident-staff"
+                      value={form.employees || ""}
+                      onChange={(e) => setF("employees", e.target.value)}
+                      placeholder={isGame ? "—" : "…"}
+                      className={cellInput}
+                      disabled={isGame}
+                    />
+                    <datalist id="incident-staff">
+                      {staffOptions.map((n) => <option key={n} value={n} />)}
                     </datalist>
                   </td>
                   <td className="px-1 py-1">
                     <select
                       value={form.violation_type || ""}
-                      onChange={e => setF("violation_type", e.target.value)}
-                      className={`${cellInput} w-full bg-transparent`}
+                      onChange={(e) => setF("violation_type", e.target.value)}
+                      className={`${cellInput} bg-transparent`}
                     >
-                      {VIOLATION_TYPES.map(d => <option key={d} value={d}>{d}</option>)}
+                      {VIOLATION_TYPES.map((d) => <option key={d} value={d}>{d}</option>)}
                     </select>
                   </td>
                   <td className="px-1 py-1">
-                    <Input value={form.incident} onChange={e => setF("incident", e.target.value)} placeholder="describe…" className={cellInput} />
+                    <Input
+                      value={form.incident}
+                      onChange={(e) => setF("incident", e.target.value)}
+                      placeholder="describe…"
+                      className={cellInput}
+                    />
                   </td>
                   <td className="px-1 py-1">
-                    <Input value={form.outcome || ""} onChange={e => setF("outcome", e.target.value)} placeholder="…" className={cellInput} />
+                    <Input
+                      value={form.outcome || ""}
+                      onChange={(e) => setF("outcome", e.target.value)}
+                      placeholder="…"
+                      className={cellInput}
+                    />
                   </td>
                   <td className="px-1 py-1">
                     <Input
                       type="number"
                       min={0}
                       value={form.points || 0}
-                      onChange={e => setF("points", Number(e.target.value) || 0)}
+                      onChange={(e) => setF("points", Number(e.target.value) || 0)}
                       className={`${cellInput} text-right`}
                     />
                   </td>
                   <td className="px-1 py-1">
-                    <Input value={form.comments || ""} onChange={e => setF("comments", e.target.value)} placeholder="…" className={cellInput} />
+                    <Input
+                      value={form.comments || ""}
+                      onChange={(e) => setF("comments", e.target.value)}
+                      placeholder="…"
+                      className={cellInput}
+                    />
                   </td>
                   <td className="px-1 py-1 text-center">
-                    <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handlePhotoUpload}
+                    />
                     {form.photo_url ? (
                       <div className="relative inline-block">
                         <img
@@ -280,7 +465,11 @@ const Incidents = () => {
                         className="h-7 w-7 p-0"
                         title="Save"
                       >
-                        {createMut.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                        {createMut.isPending ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Check className="w-3.5 h-3.5" />
+                        )}
                       </Button>
                       <Button
                         size="sm"
@@ -297,31 +486,45 @@ const Incidents = () => {
               )}
 
               {isLoading ? (
-                <tr><td colSpan={canPost ? 15 : 14} className="text-center py-8 text-muted-foreground">Loading…</td></tr>
+                <tr>
+                  <td colSpan={canPost ? 16 : 15} className="text-center py-8 text-muted-foreground">
+                    Loading…
+                  </td>
+                </tr>
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={canPost ? 15 : 14} className="text-center py-8 text-muted-foreground">
-                  {incidents.length === 0 ? "No incidents yet." : "No matches for the search."}
-                </td></tr>
+                <tr>
+                  <td colSpan={canPost ? 16 : 15} className="text-center py-8 text-muted-foreground">
+                    {incidents.length === 0 ? "No incidents yet." : "No matches for the search."}
+                  </td>
+                </tr>
               ) : (
-                filtered.map(i => (
+                filtered.map((i) => (
                   <tr key={i.id} className="border-t border-border hover:bg-muted/30">
-                    <td className="px-2 py-1.5 whitespace-nowrap">{i.incident_date}</td>
-                    <td className="px-2 py-1.5 whitespace-nowrap">{i.incident_time?.slice(0, 5)}</td>
+                    <td className={`px-2 py-1.5 whitespace-nowrap ${stickyDate} border-r border-border`}>
+                      {i.incident_date}
+                    </td>
+                    <td
+                      className={`px-2 py-1.5 whitespace-nowrap ${stickyTime} border-r border-border`}
+                      style={stickyTimeLeft}
+                    >
+                      {i.incident_time?.slice(0, 5)}
+                    </td>
                     <td className="px-2 py-1.5">{i.cctv_observer || "·"}</td>
                     <td className="px-2 py-1.5">{i.manager || "·"}</td>
                     <td className="px-2 py-1.5">{i.department || "·"}</td>
                     <td className="px-2 py-1.5">{i.table_name || "·"}</td>
                     <td className="px-2 py-1.5">{i.dealer_name || "·"}</td>
                     <td className="px-2 py-1.5">{i.inspector_name || "·"}</td>
+                    <td className="px-2 py-1.5">{i.employees || "·"}</td>
                     <td className="px-2 py-1.5">
                       {i.violation_type ? (
                         <Badge variant="outline" className="text-[10px]">{i.violation_type}</Badge>
                       ) : "·"}
                     </td>
-                    <td className="px-2 py-1.5 max-w-[260px] whitespace-normal break-words">{i.incident}</td>
-                    <td className="px-2 py-1.5 max-w-[200px] whitespace-normal break-words">{i.outcome || "·"}</td>
+                    <td className="px-2 py-1.5 whitespace-normal break-words">{i.incident}</td>
+                    <td className="px-2 py-1.5 whitespace-normal break-words">{i.outcome || "·"}</td>
                     <td className="px-2 py-1.5 text-right font-semibold">{i.points || 0}</td>
-                    <td className="px-2 py-1.5 max-w-[260px] whitespace-normal break-words text-muted-foreground">
+                    <td className="px-2 py-1.5 whitespace-normal break-words text-muted-foreground">
                       {i.comments || "·"}
                     </td>
                     <td className="px-2 py-1.5 text-center">
