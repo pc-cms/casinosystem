@@ -653,8 +653,8 @@ const PlayerStatistics = () => {
           <div className="cms-panel rounded-lg" style={{ overflowX: "clip", overflowY: "visible" }}>
             <div style={{ overflowX: "clip", overflowY: "visible" }}>
               <table className="w-full text-xs">
-                <thead className="bg-muted border-b border-border">
-                  <tr className="text-xs uppercase tracking-wider text-muted-foreground">
+                <thead className="bg-zinc-900 border-b border-border">
+                  <tr className="text-sm uppercase tracking-wider text-white">
                     {(() => {
                       const SortIcon = ({ k }: { k: SortKey }) =>
                         sortKey !== k ? <ArrowUpDown className="w-3 h-3 inline ml-1 opacity-40" />
@@ -664,7 +664,7 @@ const PlayerStatistics = () => {
                         <th
                           title={title}
                           style={{ top: "var(--ppheader-h, 0px)" }}
-                          className={`px-2 py-3 cursor-pointer select-none hover:text-foreground whitespace-nowrap font-semibold sticky bg-muted ${align === "right" ? "text-right" : "text-left"} ${sticky ? `${sticky} z-30` : "z-20"}`}
+                          className={`px-2 py-3 cursor-pointer select-none hover:text-primary whitespace-nowrap font-bold sticky bg-zinc-900 text-white ${align === "right" ? "text-right" : "text-left"} ${sticky ? `${sticky} z-30` : "z-20"}`}
                           onClick={() => toggleSort(k)}
                         >
                           {children}<SortIcon k={k} />
@@ -672,7 +672,7 @@ const PlayerStatistics = () => {
                       );
                       return (
                         <>
-                          <th style={{ top: "var(--ppheader-h, 0px)" }} className="px-2 py-3 text-center sticky left-0 bg-muted z-30 w-10 font-semibold">№</th>
+                          <th style={{ top: "var(--ppheader-h, 0px)" }} className="px-2 py-3 text-center sticky left-0 bg-zinc-900 text-white z-30 w-10 font-bold">№</th>
                           <H k="name" sticky="sticky left-10">Name</H>
                           <H k="entry">Entry</H>
                           <H k="exit">Left</H>
@@ -694,31 +694,31 @@ const PlayerStatistics = () => {
                     
                   </tr>
                   {filtered.length > 0 && (
-                    <tr className="text-sm bg-muted border-b-2 border-primary/30 font-mono">
-                      <td style={{ top: "calc(var(--ppheader-h, 0px) + 38px)", boxShadow: "inset 0 -2px 0 0 hsl(45 90% 55% / 0.7)" }} className="px-2 py-2 text-center text-muted-foreground sticky left-0 bg-muted z-30 font-semibold">{totals.count}</td>
-                      <td style={{ top: "calc(var(--ppheader-h, 0px) + 38px)", boxShadow: "inset 0 -2px 0 0 hsl(45 90% 55% / 0.7)" }} className="px-2 py-2 text-left uppercase tracking-wider text-muted-foreground font-bold sticky left-10 bg-muted z-30">
+                    <tr className="text-sm bg-amber-200 dark:bg-amber-900/60 border-b-2 border-primary/40 font-mono text-amber-950 dark:text-amber-50">
+                      <td style={{ top: "calc(var(--ppheader-h, 0px) + 38px)", boxShadow: "inset 0 -2px 0 0 hsl(45 90% 55% / 0.9)" }} className="px-2 py-2 text-center sticky left-0 bg-amber-200 dark:bg-amber-900/60 text-amber-950 dark:text-amber-50 z-30 font-bold">{totals.count}</td>
+                      <td style={{ top: "calc(var(--ppheader-h, 0px) + 38px)", boxShadow: "inset 0 -2px 0 0 hsl(45 90% 55% / 0.9)" }} className="px-2 py-2 text-left uppercase tracking-wider font-bold sticky left-10 bg-amber-200 dark:bg-amber-900/60 text-amber-950 dark:text-amber-50 z-30">
                         Total
                       </td>
-                      <td style={{ top: "calc(var(--ppheader-h, 0px) + 38px)", boxShadow: "inset 0 -2px 0 0 hsl(45 90% 55% / 0.7)" }} className="px-1 py-2 sticky bg-muted z-20"></td>
-                      <td style={{ top: "calc(var(--ppheader-h, 0px) + 38px)", boxShadow: "inset 0 -2px 0 0 hsl(45 90% 55% / 0.7)" }} className="px-1 py-2 sticky bg-muted z-20"></td>
-                      <td style={{ top: "calc(var(--ppheader-h, 0px) + 38px)", boxShadow: "inset 0 -2px 0 0 hsl(45 90% 55% / 0.7)" }} className="px-1 py-2 sticky bg-muted z-20"></td>
+                      <td style={{ top: "calc(var(--ppheader-h, 0px) + 38px)", boxShadow: "inset 0 -2px 0 0 hsl(45 90% 55% / 0.9)" }} className="px-1 py-2 sticky bg-amber-200 dark:bg-amber-900/60 z-20"></td>
+                      <td style={{ top: "calc(var(--ppheader-h, 0px) + 38px)", boxShadow: "inset 0 -2px 0 0 hsl(45 90% 55% / 0.9)" }} className="px-1 py-2 sticky bg-amber-200 dark:bg-amber-900/60 z-20"></td>
+                      <td style={{ top: "calc(var(--ppheader-h, 0px) + 38px)", boxShadow: "inset 0 -2px 0 0 hsl(45 90% 55% / 0.9)" }} className="px-1 py-2 sticky bg-amber-200 dark:bg-amber-900/60 z-20"></td>
                       {showFinancials && (() => {
                         const Money = ({ value, sign = false }: { value: number; sign?: boolean }) => {
                           if (!value) return <>·</>;
                           const prefix = sign && value > 0 ? "+" : "";
                           return <>{prefix}{formatCurrency(value)}</>;
                         };
-                        const stickyStyle = { top: "calc(var(--ppheader-h, 0px) + 38px)", boxShadow: "inset 0 -2px 0 0 hsl(45 90% 55% / 0.7)" } as const;
-                        const stickyCls = "sticky bg-muted z-20";
+                        const stickyStyle = { top: "calc(var(--ppheader-h, 0px) + 38px)", boxShadow: "inset 0 -2px 0 0 hsl(45 90% 55% / 0.9)" } as const;
+                        const stickyCls = "sticky bg-amber-200 dark:bg-amber-900/60 z-20";
                         return (
                           <>
                             <td style={stickyStyle} className={`px-2 py-2 ${stickyCls}`}></td>
-                            <td style={stickyStyle} className={`px-2 py-2 text-right font-semibold whitespace-nowrap ${stickyCls}`}><Money value={totals.dropR} /></td>
-                            <td style={stickyStyle} className={`px-2 py-2 text-right font-semibold whitespace-nowrap ${stickyCls}`}><Money value={totals.inDrop} /></td>
-                            <td style={stickyStyle} className={`px-2 py-2 text-right font-semibold whitespace-nowrap ${stickyCls}`}><Money value={totals.out} /></td>
-                            <td style={stickyStyle} className={`px-2 py-2 text-right text-success whitespace-nowrap ${stickyCls}`}><Money value={totals.chipIn} /></td>
-                            <td style={stickyStyle} className={`px-2 py-2 text-right text-destructive whitespace-nowrap ${stickyCls}`}><Money value={totals.chipOut} /></td>
-                            <td style={stickyStyle} className={`px-2 py-2 text-right font-bold text-base whitespace-nowrap ${stickyCls} ${totals.result > 0 ? "cms-amount-positive" : totals.result < 0 ? "cms-amount-negative" : ""}`}>
+                            <td style={stickyStyle} className={`px-2 py-2 text-right font-bold whitespace-nowrap text-amber-950 dark:text-amber-50 ${stickyCls}`}><Money value={totals.dropR} /></td>
+                            <td style={stickyStyle} className={`px-2 py-2 text-right font-bold whitespace-nowrap text-amber-950 dark:text-amber-50 ${stickyCls}`}><Money value={totals.inDrop} /></td>
+                            <td style={stickyStyle} className={`px-2 py-2 text-right font-bold whitespace-nowrap text-amber-950 dark:text-amber-50 ${stickyCls}`}><Money value={totals.out} /></td>
+                            <td style={stickyStyle} className={`px-2 py-2 text-right font-bold whitespace-nowrap text-success ${stickyCls}`}><Money value={totals.chipIn} /></td>
+                            <td style={stickyStyle} className={`px-2 py-2 text-right font-bold whitespace-nowrap text-destructive ${stickyCls}`}><Money value={totals.chipOut} /></td>
+                            <td style={stickyStyle} className={`px-2 py-2 text-right font-bold text-base whitespace-nowrap ${stickyCls} ${totals.result > 0 ? "cms-amount-positive" : totals.result < 0 ? "cms-amount-negative" : "text-amber-950 dark:text-amber-50"}`}>
                               <Money value={totals.result} sign />
                             </td>
                           </>
