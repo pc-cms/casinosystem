@@ -305,11 +305,15 @@ const Incidents = () => {
                   </td>
                   <td className="px-1 py-1">
                     <Input
+                      list="incident-cctv"
                       value={form.cctv_observer || ""}
                       onChange={(e) => setF("cctv_observer", e.target.value)}
                       placeholder="…"
                       className={cellInput}
                     />
+                    <datalist id="incident-cctv">
+                      {STANDING_CCTV.map((n) => <option key={n} value={n} />)}
+                    </datalist>
                   </td>
                   <td className="px-1 py-1">
                     <Input
