@@ -616,7 +616,7 @@ const StaffRotaGrid = ({ month, groupKey, monthLabel, readOnly = false }: { mont
   const renderTableHeader = () => (
     <thead>
       <tr className="border-b border-border">
-        <th className="text-left text-xs font-medium text-muted-foreground uppercase px-1 py-2 sticky left-0 bg-card z-10 w-[170px]">
+        <th className="text-left text-xs font-medium text-muted-foreground uppercase px-1 py-2 sticky left-0 bg-card z-10 w-[220px]">
           Staff
         </th>
         {days.map(day => {
@@ -1013,7 +1013,7 @@ const StaffAttendanceGrid = ({ month, monthLabel, groupKey = "floor", readOnly =
         <table className="w-full border-collapse table-fixed">
         <thead>
           <tr className="border-b border-border">
-            <th className="text-left text-xs font-medium text-muted-foreground uppercase px-1 py-2 sticky left-0 bg-card z-10 w-[170px]">
+            <th className="text-left text-xs font-medium text-muted-foreground uppercase px-1 py-2 sticky left-0 bg-card z-10 w-[220px]">
               Staff
             </th>
             {days.map(day => {
