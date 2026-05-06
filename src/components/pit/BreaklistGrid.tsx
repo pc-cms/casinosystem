@@ -155,20 +155,23 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
   const isEditable = isToday && (!pastLock || isManager);
 
   // Inline role picker state
-  const [activeCell, setActiveCell] = useState<{ dealerId: string; timeSlot: string } | null>(null);
+  const [activeCell, setActiveCell] = useState<{ dealerId: string; timeSlot: string; dropUp: boolean } | null>(null);
 
   const getCellData = (dealerId: string, timeSlot: string) =>
     breaklist.find(b => b.dealer_id === dealerId && b.time_slot === timeSlot);
 
-  const handleCellClick = (dealerId: string, timeSlot: string) => {
+  const handleCellClick = (dealerId: string, timeSlot: string, e: React.MouseEvent<HTMLDivElement>) => {
     if (!isEditable) return;
     const cell = getCellData(dealerId, timeSlot);
     if (cell?.is_locked && !isManager) {
       toast.error("Locked — manager access required");
       return;
     }
-    // If manager, can edit locked cells directly (session-based access)
-    setActiveCell({ dealerId, timeSlot });
+    // Open dropdown upward when there is not enough space below
+    const rect = e.currentTarget.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const dropUp = spaceBelow < 240;
+    setActiveCell({ dealerId, timeSlot, dropUp });
   };
 
   const handleRoleSelect = (role: string, tableId?: string) => {

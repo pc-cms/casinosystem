@@ -1,21 +1,17 @@
-## Plan: единый стиль маленьких кнопок в нижней панели сайдбара
+## Goal
+Когда ячейка в Breaklist находится близко к нижнему краю экрана, выпадающее меню (BR/TR/SRT/CLS/S + Assign to table) должно открываться **вверх**, а не вниз — чтобы не вызывать скролл страницы и не "растягивать окно".
 
-**Файл:** `src/components/layout/AppSidebar.tsx`
+## Changes
 
-### Expanded sidebar (~612–697)
-Удалить большие кнопки `Manager Active` / `Manager` / `Hide sidebar` и отдельный бейдж `Manager ↑`. Заменить на:
+**File:** `src/components/pit/BreaklistGrid.tsx`
 
-- **Строка 1:** имя пользователя (clickable → Profile) + индикатор сети.
-- **Строка 2:** ряд равных иконок `flex-1 h-7`:
-  - `🛡 Manager Access` (только для не-nativeManager). Когда `managerOverride.active` — фон `bg-primary/20`, текст `text-primary`, бордер `border-primary/40` (золотой акцент). Клик: активировать/деактивировать.
-  - `☀/🌙 Theme`
-  - `▭ Density` (Rows2/Rows3)
-  - `⟳ Reload`
-  - `⎋ Logout`
-  - `‹‹ Collapse` (если `onToggle` есть)
+1. Расширить state `activeCell` полем `dropUp: boolean`.
+2. В `handleCellClick` принимать `MouseEvent`, измерять `getBoundingClientRect()` ячейки и сравнивать `window.innerHeight - rect.bottom` с порогом ~240px (высота поповера с секцией Assign to table). Если места снизу недостаточно — `dropUp = true`.
+3. В `onClick` ячейки (строка 377) пробросить `e`: `onClick={(e) => isEditable && handleCellClick(dealer.id, slot, e)}`.
+4. В рендере поповера (строка 402) заменить статичный `top-8 left-0` на условный класс:
+   - `dropUp` → `bottom-8 left-0`
+   - иначе → `top-8 left-0`
 
-### Collapsed sidebar (~485 после Profile)
-Добавить `Manager Access` иконку (`ShieldCheck`, `w-10 h-10`) сразу после Profile с тем же стилем подсветки primary при активном override. Tooltip справа.
-
-### Не трогаем
-- Верх сайдбара, навигацию, ManagerOverrideDialog, mobile.
+## Notes
+- Порог 240px подобран под максимальную высоту поповера (5 ролей в ряд + до ~7 строк столов).
+- Логика чисто клиентская, без изменений данных/RPC. Версию `package.json` не бампим (UI-only).
