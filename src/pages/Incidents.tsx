@@ -73,22 +73,22 @@ const cellInput =
 
 // Column widths — generous so inputs are readable. (≈ +25% vs original)
 const COLS = {
-  date: 130,
-  time: 95,
-  cctv: 150,
-  manager: 165,
-  dept: 140,
-  table: 140,
-  dealer: 165,
-  inspector: 165,
-  employee: 175,
-  type: 165,
-  incident: 325,
-  outcome: 250,
-  points: 90,
-  comments: 300,
-  photo: 90,
-  save: 100,
+  date: 110,
+  time: 78,
+  cctv: 110,
+  manager: 110,
+  dept: 90,
+  table: 70,
+  dealer: 120,
+  inspector: 120,
+  employee: 130,
+  type: 120,
+  incident: 320,
+  outcome: 230,
+  points: 64,
+  comments: 280,
+  photo: 70,
+  save: 80,
 };
 
 const Incidents = () => {
