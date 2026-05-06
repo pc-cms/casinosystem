@@ -161,8 +161,14 @@ const PlayerStatistics = () => {
       if (ct.direction === "in") cur.in += Number(ct.amount) || 0;
       else cur.out += Number(ct.amount) || 0;
     }
+    for (const a of chipAdjustments as any[]) {
+      let cur = m.get(a.player_id);
+      if (!cur) { cur = { in: 0, out: 0 }; m.set(a.player_id, cur); }
+      cur.in += Number(a.chip_in) || 0;
+      cur.out += Number(a.chip_out) || 0;
+    }
     return m;
-  }, [chipTransfers]);
+  }, [chipTransfers, chipAdjustments]);
 
   // Build per-player day rows
   const rows = useMemo(() => {
