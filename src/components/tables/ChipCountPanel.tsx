@@ -165,7 +165,9 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
           chipClass: "cms-chip-token cms-chip-token-lg",
           inputH: "h-16",
           inputText: "text-2xl",
-          firstColW: "120px",
+          firstColW: "240px",
+          firstColText: "text-2xl",
+          headerText: "text-sm",
           chipColW: "96px",
           resultColW: "200px",
           rowPadX: "px-2",
@@ -180,6 +182,8 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
           inputH: "h-9",
           inputText: "text-sm",
           firstColW: "64px",
+          firstColText: "text-sm",
+          headerText: "text-xs",
           chipColW: "60px",
           resultColW: "170px",
           rowPadX: "px-1",
@@ -193,6 +197,8 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
           inputH: "h-8",
           inputText: "text-xs",
           firstColW: "56px",
+          firstColText: "text-xs",
+          headerText: "text-xs",
           chipColW: "52px",
           resultColW: "140px",
           rowPadX: "px-1",
@@ -246,7 +252,7 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
             </colgroup>
             <thead>
               <tr className="border-b border-border">
-                <th className={`text-left ${t.headerPadY} px-2 text-muted-foreground font-medium sticky left-0 bg-card z-10 text-xs uppercase tracking-wider`}>
+                <th className={`text-left ${t.headerPadY} px-2 text-muted-foreground font-medium sticky left-0 bg-card z-10 ${t.headerText} uppercase tracking-wider`}>
                   Table
                 </th>
                 {visibleDenoms.map(d => {
@@ -273,7 +279,7 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
                 return (
                   <tr key={loc.key} className={`border-b border-border last:border-0 ${ri % 2 === 1 ? "bg-muted/10" : ""}`}>
                     <td
-                      className={`${t.rowPadY} px-2 font-semibold text-card-foreground sticky left-0 z-10 whitespace-nowrap ${full ? "text-sm" : "text-xs"} ${ri % 2 === 1 ? "bg-card/95" : "bg-card"}`}
+                      className={`${t.rowPadY} px-2 font-semibold text-card-foreground sticky left-0 z-10 whitespace-nowrap ${t.firstColText} ${ri % 2 === 1 ? "bg-card/95" : "bg-card"}`}
                     >
                       {loc.label}
                     </td>
