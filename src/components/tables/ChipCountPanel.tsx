@@ -263,7 +263,7 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
                 return (
                   <tr key={loc.key} className={`border-b border-border last:border-0 ${ri % 2 === 1 ? "bg-muted/10" : ""}`}>
                     <td
-                      className={`${t.rowPadY} px-2 font-semibold text-card-foreground sticky left-0 z-10 whitespace-nowrap ${t.firstColText} bg-card`}
+                      className={`${t.rowPadY} px-2 font-semibold text-card-foreground sticky left-0 z-10 whitespace-nowrap ${t.firstColText} ${ri % 2 === 1 ? "bg-card/95" : "bg-card"}`}
                     >
                       {loc.label}
                     </td>
@@ -316,7 +316,7 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
                 );
               })}
               <tr className="border-t-2 border-primary/30 bg-muted/30">
-                <td className={`py-2 px-2 ${t.totalText} font-bold uppercase text-card-foreground sticky left-0 bg-muted z-10`}>
+                <td className={`py-2 px-2 ${t.totalText} font-bold uppercase text-card-foreground sticky left-0 bg-muted/30 z-10`}>
                   Total
                 </td>
                 <td colSpan={visibleDenoms.length} />
