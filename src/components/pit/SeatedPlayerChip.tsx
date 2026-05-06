@@ -112,7 +112,7 @@ const SeatedPlayerChip = ({ player, draggable = false, compact = false, onClick,
             </p>
             {player.dropR > 0 && (
               <p className="font-mono text-[10px] text-muted-foreground">
-                Drop R: {formatNumberSpaces(player.dropR)}
+                Drop: {formatNumberSpaces(player.dropR)}
               </p>
             )}
           </div>

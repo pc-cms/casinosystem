@@ -526,7 +526,7 @@ const PlayerStatistics = () => {
             <td className="px-2 py-1.5 font-mono text-sm text-right whitespace-nowrap min-w-[90px]">
               <Money value={r.avgBet} />
             </td>
-            <td className="px-2 py-1.5 font-mono text-sm text-right whitespace-nowrap min-w-[120px]" title="Drop R — external cash only (NEP)">
+            <td className="px-2 py-1.5 font-mono text-sm text-right whitespace-nowrap min-w-[120px]" title="Drop — NEP-aware (external cash only)">
               <Money value={r.dropR} />
             </td>
             <td className="px-2 py-1.5 font-mono text-sm text-right whitespace-nowrap min-w-[110px]">
@@ -679,7 +679,7 @@ const PlayerStatistics = () => {
                           {showFinancials && (
                             <>
                               <H k="avgBet" align="right">Bet</H>
-                              <H k="dropR" align="right" title="Drop R — external cash only (NEP)">Drop</H>
+                              <H k="dropR" align="right" title="Drop — NEP-aware (external cash only)">Drop</H>
                               <H k="inDrop" align="right" title="Total cash in (all buy-ins)">Cash In</H>
                               <H k="out" align="right" title="Total cash out (all cashouts)">Cash Out</H>
                               <H k="chipIn" align="right" title="Chip adjustments in (+)">Chip In</H>

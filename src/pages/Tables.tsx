@@ -308,40 +308,23 @@ const Tables = () => {
 
   const snapshotIndex = useMemo(() => buildLatestTableSnapshot(snapshots as any), [snapshots]);
 
-  // NEP-split window for the current shift (or today). Drop R = External part of cash-in.
-  const splitWindow = useMemo(() => {
-    if (!effectiveDate) return { from: null as string | null, to: null as string | null };
-    return {
-      from: businessDayHourUTC(effectiveDate, 13), // 13:00 UTC = 16:00 EAT-ish; safe lower bound for shift start
-      to: businessDayHourUTC(effectiveDate, 13 + 24), // next-day 13:00 UTC, fully covers business day
-    };
-  }, [effectiveDate]);
-  const { data: splitMap } = useTablesDropSplit(splitWindow.from, splitWindow.to);
-
+  // Table DROP = simple sum of all Cash In on the table for the current business day (no NEP logic).
   const tableStats = useMemo(() => {
-    const stats: Record<string, { dropR: number; dropV: number; result: number }> = {};
+    const stats: Record<string, { drop: number; result: number }> = {};
     tables.forEach(t => {
-      const split = splitMap?.get(t.id);
-      // Fallback to raw sum until split RPC resolves (keeps UI usable on first paint).
-      const fallbackBuy = shiftTransactions
+      const drop = shiftTransactions
         .filter(tx => tx.table_id === t.id && (tx.type === "buy" || tx.type === "in"))
         .reduce((s, tx) => s + Number(tx.amount), 0);
-      const dropR = split ? split.dropR : fallbackBuy;
-      const recycled = split ? split.recycled : 0;
-      const trackerSum = trackerData
-        .filter(tr => tr.table_id === t.id)
-        .reduce((s, tr) => s + Number(tr.value), 0);
-      const dropV = trackerSum + recycled;
       const result = liveTableResult({
         tableId: t.id,
         closingResult: t.closing_result as any,
         snapshotIndex,
         baselineMap,
       });
-      stats[t.id] = { dropR, dropV, result };
+      stats[t.id] = { drop, result };
     });
     return stats;
-  }, [tables, shiftTransactions, trackerData, snapshotIndex, baselineMap, splitMap]);
+  }, [tables, shiftTransactions, snapshotIndex, baselineMap]);
 
   const handleOpenAll = () => {
     const ids = closedTables.map(t => t.id);
@@ -349,21 +332,19 @@ const Tables = () => {
   };
 
   const gameTypeTotals = useMemo(() => {
-    const totals: Record<string, { dropR: number; dropV: number; result: number; label: string }> = {};
+    const totals: Record<string, { drop: number; result: number; label: string }> = {};
     const gameLabels: Record<string, string> = { "American Roulette": "TOTAL ARs", "Poker": "TOTAL POKER", "Texas Holdem": "TOTAL POKER", "Omaha": "TOTAL POKER", "PLO": "TOTAL POKER", "Blackjack": "TOTAL BJ" };
     tables.forEach(t => {
       const label = gameLabels[t.game] || `Total ${t.game}`;
-      if (!totals[label]) totals[label] = { dropR: 0, dropV: 0, result: 0, label };
-      const r = tableStats[t.id] || { dropR: 0, dropV: 0, result: 0 };
-      totals[label].dropR += r.dropR;
-      totals[label].dropV += r.dropV;
+      if (!totals[label]) totals[label] = { drop: 0, result: 0, label };
+      const r = tableStats[t.id] || { drop: 0, result: 0 };
+      totals[label].drop += r.drop;
       totals[label].result += r.result;
     });
     return totals;
   }, [tables, tableStats]);
 
-  const totalDropR = Object.values(tableStats).reduce((s, r) => s + r.dropR, 0);
-  const totalDropV = Object.values(tableStats).reduce((s, r) => s + r.dropV, 0);
+  const totalDrop = Object.values(tableStats).reduce((s, r) => s + r.drop, 0);
   const totalResult = Object.values(tableStats).reduce((s, r) => s + r.result, 0);
 
   const pokerGames = ["Poker", "Texas Holdem", "Omaha", "PLO"];
@@ -388,7 +369,7 @@ const Tables = () => {
   };
 
   const renderTableCard = (table: typeof tables[0]) => {
-    const r = tableStats[table.id] || { dropR: 0, dropV: 0, result: 0 };
+    const r = tableStats[table.id] || { drop: 0, result: 0 };
     const isOpen = table.status === "open";
     const hasTableResult = table.closing_result !== null;
     const seated = seatedByTable[table.id] || [];
@@ -411,7 +392,7 @@ const Tables = () => {
           </div>
           <div className="text-right">
             <p className="text-[9px] uppercase text-muted-foreground tracking-wider leading-none">Drop</p>
-            <p className="font-mono text-lg font-bold text-card-foreground whitespace-nowrap mt-0.5">{formatCurrency(r.dropR)}</p>
+            <p className="font-mono text-lg font-bold text-card-foreground whitespace-nowrap mt-0.5">{formatCurrency(r.drop)}</p>
           </div>
           <div className="text-right">
             <p className="text-[9px] uppercase text-muted-foreground tracking-wider leading-none">Result</p>
