@@ -83,6 +83,7 @@ const Incidents = () => {
       dealers: [...byCategory.dealers].sort(),
       inspectors: [...byCategory.inspectors].sort(),
       pitBosses: [...byCategory.pitBosses].sort(),
+      managers: [...new Set([...STANDING_MANAGERS, ...byCategory.pitBosses])].sort(),
     };
   }, [rota, allDealers]);
 
