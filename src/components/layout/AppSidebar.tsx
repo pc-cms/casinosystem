@@ -484,6 +484,24 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
             </TooltipTrigger>
             <TooltipContent side="right">Profile</TooltipContent>
           </Tooltip>
+          {!nativeManager && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => managerOverride.active ? handleDeactivate() : setShowOverrideDialog(true)}
+                  className={cn(
+                    "w-10 h-10 flex items-center justify-center rounded-md transition-colors",
+                    managerOverride.active
+                      ? "bg-primary/20 text-primary border border-primary/40 hover:bg-primary/30"
+                      : "hover:bg-sidebar-accent text-sidebar-foreground"
+                  )}
+                >
+                  <ShieldCheck className="w-4 h-4" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="right">{managerOverride.active ? "Manager Active — click to deactivate" : "Manager Access"}</TooltipContent>
+            </Tooltip>
+          )}
           <Tooltip>
             <TooltipTrigger asChild>
               <button
