@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import PlayerPhotoLightbox from "@/components/player/PlayerPhotoLightbox";
 import { useNavigate } from "react-router-dom";
 import { X, ExternalLink, User, ArrowDownToLine, ArrowUpFromLine, Check } from "lucide-react";
@@ -94,6 +94,28 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
   const [note, setNote] = useState("");
   const createAdj = useCreatePlayerChipAdjustment();
   const [photoOpen, setPhotoOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  // Expose header height as CSS var so downstream sticky elements (table headers,
+  // totals row) can offset themselves and stay visible while scrolling.
+  useEffect(() => {
+    if (!playerId) {
+      document.documentElement.style.setProperty("--ppheader-h", "0px");
+      return;
+    }
+    const el = rootRef.current;
+    if (!el) return;
+    const update = () => {
+      document.documentElement.style.setProperty("--ppheader-h", `${el.offsetHeight}px`);
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => {
+      ro.disconnect();
+      document.documentElement.style.setProperty("--ppheader-h", "0px");
+    };
+  }, [playerId]);
 
   if (!playerId) return null;
 
@@ -118,6 +140,7 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
 
   return (
     <div
+      ref={rootRef}
       className={cn(
         "sticky top-0 z-30 -mx-4 mb-4 border-b border-border px-4 py-4 shadow-sm",
         tint,
