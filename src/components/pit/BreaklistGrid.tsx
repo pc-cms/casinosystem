@@ -345,7 +345,7 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
                         {CATEGORY_LABELS[dealer.category] || "?"}
                       </span>
                     </td>
-                    <td className={`px-3 py-1 text-xs font-medium text-card-foreground sticky left-[50px] z-10 ${idx % 2 === 1 ? "bg-card/95" : "bg-card"}`}>
+                    <td className={`px-3 py-1 text-xs font-medium text-card-foreground sticky left-[60px] z-10 ${idx % 2 === 1 ? "bg-card/95" : "bg-card"}`}>
                       <div className="flex items-center justify-between">
                         <span>{dealer.name}</span>
                         {lockedCount > 0 && (
