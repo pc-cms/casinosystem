@@ -149,6 +149,7 @@ const Incidents = () => {
                   <th className="px-2 py-2 text-left">Outcome</th>
                   <th className="px-2 py-2 text-right">Pts</th>
                   <th className="px-2 py-2 text-left">Comments</th>
+                  <th className="px-2 py-2 text-center">Photo</th>
                 </tr>
               </thead>
               <tbody>
@@ -172,6 +173,20 @@ const Incidents = () => {
                     <td className="px-2 py-1.5 text-right font-semibold">{i.points || 0}</td>
                     <td className="px-2 py-1.5 max-w-[260px] whitespace-normal break-words text-muted-foreground">
                       {i.comments || "·"}
+                    </td>
+                    <td className="px-2 py-1.5 text-center">
+                      {i.photo_url ? (
+                        <button
+                          type="button"
+                          onClick={() => setViewPhoto(i.photo_url)}
+                          className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-primary/10 hover:bg-primary/20 text-primary"
+                          title="View photo"
+                        >
+                          <ImageIcon className="w-3.5 h-3.5" />
+                        </button>
+                      ) : (
+                        <span className="text-muted-foreground">·</span>
+                      )}
                     </td>
                   </tr>
                 ))}
