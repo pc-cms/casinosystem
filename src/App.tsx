@@ -55,6 +55,7 @@ const Cashless = lazy(() => import("@/pages/Cashless"));
 const BusinessDays = lazy(() => import("@/pages/BusinessDays"));
 
 const Pitbook = lazy(() => import("@/pages/Pitbook"));
+const Incidents = lazy(() => import("@/pages/Incidents"));
 const CloseShiftPage = lazy(() => import("@/pages/cage/CloseShiftPage"));
 const RegisterPlayerPage = lazy(() => import("@/pages/cage/RegisterPlayerPage"));
 const EditOpeningChipsPage = lazy(() => import("@/pages/cage/EditOpeningChipsPage"));
@@ -135,6 +136,7 @@ const ROUTE_ROLES: Record<string, string[]> = {
   "/business-days": ["super_admin", "manager", "finance_manager"],
   
   "/pitbook": ["super_admin", "manager", "pit", "finance_manager", "surveillance"],
+  "/incidents": ["super_admin", "manager", "pit", "finance_manager", "surveillance"],
 };
 
 const RoleGuard = ({ path, children }: { path: string; children: React.ReactNode }) => {
@@ -235,6 +237,7 @@ const ProtectedRoutes = () => {
           
           <Route path="/reports/miss-chips" element={<Navigate to="/miss-chips" replace />} />
           <Route path="/pitbook" element={<RoleGuard path="/pitbook"><ErrorBoundary><Pitbook /></ErrorBoundary></RoleGuard>} />
+          <Route path="/incidents" element={<RoleGuard path="/incidents"><ErrorBoundary><Incidents /></ErrorBoundary></RoleGuard>} />
         </Route>
         <Route path="*" element={<Suspense fallback={<PageLoader />}><NotFound /></Suspense>} />
       </Routes>
