@@ -25,6 +25,10 @@ import { toast } from "sonner";
 const DEPARTMENTS = ["game", "cash", "reception", "floor", "bar", "security", "other"];
 const VIOLATION_TYPES = ["procedural", "financial", "disciplinary", "technical", "other"];
 
+// Standing managers — always selectable in the Manager dropdown,
+// independent of rota. Will be replaced with real user accounts later.
+const STANDING_MANAGERS = ["Peter", "Taras", "Daniyar"];
+
 const todayDate = () => new Date().toISOString().slice(0, 10);
 const nowTime = () => new Date().toTimeString().slice(0, 5);
 
@@ -79,6 +83,7 @@ const Incidents = () => {
       dealers: [...byCategory.dealers].sort(),
       inspectors: [...byCategory.inspectors].sort(),
       pitBosses: [...byCategory.pitBosses].sort(),
+      managers: [...new Set([...STANDING_MANAGERS, ...byCategory.pitBosses])].sort(),
     };
   }, [rota, allDealers]);
 
@@ -255,16 +260,16 @@ const Incidents = () => {
             </div>
             <div className="space-y-1">
               <label className="text-xs text-muted-foreground">
-                Manager {rotaNames.pitBosses.length > 0 && <span className="text-[10px]">· {rotaNames.pitBosses.length} on rota</span>}
+                Manager {rotaNames.managers.length > 0 && <span className="text-[10px]">· {rotaNames.managers.length} available</span>}
               </label>
               <Input
                 list="incident-managers"
                 value={form.manager || ""}
                 onChange={e => setF("manager", e.target.value)}
-                placeholder={rotaNames.pitBosses[0] || "—"}
+                placeholder={rotaNames.managers[0] || "—"}
               />
               <datalist id="incident-managers">
-                {rotaNames.pitBosses.map(n => <option key={n} value={n} />)}
+                {rotaNames.managers.map(n => <option key={n} value={n} />)}
               </datalist>
             </div>
             <div className="space-y-1">
