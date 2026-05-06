@@ -1,20 +1,16 @@
 /**
  * Incidents — CCTV/Manager violation journal.
- * Captures: date/time, observer, manager, department, table, dealer, inspector,
- * violation type, incident description, outcome, points, comments.
+ * Inline row entry (no modal): draft row at the top of the table, save in place.
  * Roles: super_admin, manager, surveillance can post; pit/finance read-only.
  */
 import { useMemo, useRef, useState } from "react";
-import { AlertTriangle, Camera, ImageIcon, Loader2, Plus, Search, X } from "lucide-react";
+import { AlertTriangle, Camera, Check, ImageIcon, Loader2, RotateCcw, Search, X } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ResponsiveDialog, ResponsiveDialogFooter } from "@/components/ui/responsive-dialog";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useIncidents, useCreateIncident, type IncidentInput } from "@/hooks/use-incidents";
 import { usePitRota, useDealers } from "@/hooks/use-dealers";
@@ -25,8 +21,7 @@ import { toast } from "sonner";
 const DEPARTMENTS = ["game", "cash", "reception", "floor", "bar", "security", "other"];
 const VIOLATION_TYPES = ["procedural", "financial", "disciplinary", "technical", "other"];
 
-// Standing managers — always selectable in the Manager dropdown,
-// independent of rota. Will be replaced with real user accounts later.
+// Standing managers — always selectable, independent of rota.
 const STANDING_MANAGERS = ["Peter", "Taras", "Daniyar"];
 
 const todayDate = () => new Date().toISOString().slice(0, 10);
@@ -50,6 +45,8 @@ const emptyForm = (): IncidentInput => ({
   photo_url: null,
 });
 
+const cellInput = "h-7 px-1.5 text-xs font-mono border-0 bg-transparent focus-visible:bg-background focus-visible:ring-1 rounded-sm";
+
 const Incidents = () => {
   const { roles } = useAuth();
   const canPost = roles.some(r => ["super_admin", "manager", "surveillance"].includes(r));
@@ -58,13 +55,11 @@ const Incidents = () => {
   const { data: incidents = [], isLoading } = useIncidents(null);
   const createMut = useCreateIncident();
 
-  const [open, setOpen] = useState(false);
   const [form, setForm] = useState<IncidentInput>(emptyForm());
   const [uploading, setUploading] = useState(false);
   const [viewPhoto, setViewPhoto] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Rota for selected incident date — provides dealer/inspector/manager dropdowns.
   const { data: rota = [] } = usePitRota(form.incident_date);
   const { data: allDealers = [] } = useDealers();
 
@@ -82,7 +77,6 @@ const Incidents = () => {
     return {
       dealers: [...byCategory.dealers].sort(),
       inspectors: [...byCategory.inspectors].sort(),
-      pitBosses: [...byCategory.pitBosses].sort(),
       managers: [...new Set([...STANDING_MANAGERS, ...byCategory.pitBosses])].sort(),
     };
   }, [rota, allDealers]);
@@ -131,7 +125,6 @@ const Incidents = () => {
     try {
       await createMut.mutateAsync(form);
       toast.success("Incident logged");
-      setOpen(false);
       setForm(emptyForm());
     } catch (e: any) {
       toast.error(e.message || "Failed to log");
@@ -154,43 +147,163 @@ const Incidents = () => {
             className="pl-8 w-56"
           />
         </div>
-        {canPost && (
-          <Button onClick={() => { setForm(emptyForm()); setOpen(true); }} className="gap-2">
-            <Plus className="w-4 h-4" /> New incident
-          </Button>
-        )}
       </PageHeader>
 
       <PageSection title="Journal" card={false}>
-        {isLoading ? (
-          <div className="text-center py-8 text-muted-foreground text-sm">Loading…</div>
-        ) : filtered.length === 0 ? (
-          <div className="rounded-md border border-border bg-card p-8 text-center text-muted-foreground text-sm">
-            {incidents.length === 0 ? "No incidents yet." : "No matches for the search."}
-          </div>
-        ) : (
-          <div className="rounded-md border border-border overflow-x-auto">
-            <table className="w-full text-xs font-mono">
-              <thead className="bg-muted/50 text-[10px] uppercase tracking-wide text-muted-foreground">
-                <tr>
-                  <th className="px-2 py-2 text-left">Date</th>
-                  <th className="px-2 py-2 text-left">Time</th>
-                  <th className="px-2 py-2 text-left">CCTV</th>
-                  <th className="px-2 py-2 text-left">Manager</th>
-                  <th className="px-2 py-2 text-left">Dept</th>
-                  <th className="px-2 py-2 text-left">Table</th>
-                  <th className="px-2 py-2 text-left">Dealer</th>
-                  <th className="px-2 py-2 text-left">Inspector</th>
-                  <th className="px-2 py-2 text-left">Type</th>
-                  <th className="px-2 py-2 text-left">Incident</th>
-                  <th className="px-2 py-2 text-left">Outcome</th>
-                  <th className="px-2 py-2 text-right">Pts</th>
-                  <th className="px-2 py-2 text-left">Comments</th>
-                  <th className="px-2 py-2 text-center">Photo</th>
+        <div className="rounded-md border border-border overflow-x-auto">
+          <table className="w-full text-xs font-mono">
+            <thead className="bg-muted/50 text-[10px] uppercase tracking-wide text-muted-foreground">
+              <tr>
+                <th className="px-2 py-2 text-left w-[110px]">Date</th>
+                <th className="px-2 py-2 text-left w-[70px]">Time</th>
+                <th className="px-2 py-2 text-left w-[110px]">CCTV</th>
+                <th className="px-2 py-2 text-left w-[110px]">Manager</th>
+                <th className="px-2 py-2 text-left w-[90px]">Dept</th>
+                <th className="px-2 py-2 text-left w-[80px]">Table</th>
+                <th className="px-2 py-2 text-left w-[110px]">Dealer</th>
+                <th className="px-2 py-2 text-left w-[110px]">Inspector</th>
+                <th className="px-2 py-2 text-left w-[110px]">Type</th>
+                <th className="px-2 py-2 text-left">Incident *</th>
+                <th className="px-2 py-2 text-left">Outcome</th>
+                <th className="px-2 py-2 text-right w-[50px]">Pts</th>
+                <th className="px-2 py-2 text-left">Comments</th>
+                <th className="px-2 py-2 text-center w-[60px]">Photo</th>
+                {canPost && <th className="px-2 py-2 text-center w-[70px]">Save</th>}
+              </tr>
+            </thead>
+            <tbody>
+              {/* Draft row — inline entry */}
+              {canPost && (
+                <tr className="border-t border-border bg-primary/5">
+                  <td className="px-1 py-1">
+                    <Input type="date" value={form.incident_date} onChange={e => setF("incident_date", e.target.value)} className={cellInput} />
+                  </td>
+                  <td className="px-1 py-1">
+                    <Input type="time" value={form.incident_time} onChange={e => setF("incident_time", e.target.value)} className={cellInput} />
+                  </td>
+                  <td className="px-1 py-1">
+                    <Input value={form.cctv_observer || ""} onChange={e => setF("cctv_observer", e.target.value)} placeholder="…" className={cellInput} />
+                  </td>
+                  <td className="px-1 py-1">
+                    <Input list="incident-managers" value={form.manager || ""} onChange={e => setF("manager", e.target.value)} placeholder="…" className={cellInput} />
+                    <datalist id="incident-managers">
+                      {rotaNames.managers.map(n => <option key={n} value={n} />)}
+                    </datalist>
+                  </td>
+                  <td className="px-1 py-1">
+                    <select
+                      value={form.department || ""}
+                      onChange={e => setF("department", e.target.value)}
+                      className={`${cellInput} w-full bg-transparent`}
+                    >
+                      {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
+                    </select>
+                  </td>
+                  <td className="px-1 py-1">
+                    <Input value={form.table_name || ""} onChange={e => setF("table_name", e.target.value)} placeholder="…" className={cellInput} />
+                  </td>
+                  <td className="px-1 py-1">
+                    <Input list="incident-dealers" value={form.dealer_name || ""} onChange={e => setF("dealer_name", e.target.value)} placeholder="…" className={cellInput} />
+                    <datalist id="incident-dealers">
+                      {rotaNames.dealers.map(n => <option key={n} value={n} />)}
+                    </datalist>
+                  </td>
+                  <td className="px-1 py-1">
+                    <Input list="incident-inspectors" value={form.inspector_name || ""} onChange={e => setF("inspector_name", e.target.value)} placeholder="…" className={cellInput} />
+                    <datalist id="incident-inspectors">
+                      {rotaNames.inspectors.map(n => <option key={n} value={n} />)}
+                    </datalist>
+                  </td>
+                  <td className="px-1 py-1">
+                    <select
+                      value={form.violation_type || ""}
+                      onChange={e => setF("violation_type", e.target.value)}
+                      className={`${cellInput} w-full bg-transparent`}
+                    >
+                      {VIOLATION_TYPES.map(d => <option key={d} value={d}>{d}</option>)}
+                    </select>
+                  </td>
+                  <td className="px-1 py-1">
+                    <Input value={form.incident} onChange={e => setF("incident", e.target.value)} placeholder="describe…" className={cellInput} />
+                  </td>
+                  <td className="px-1 py-1">
+                    <Input value={form.outcome || ""} onChange={e => setF("outcome", e.target.value)} placeholder="…" className={cellInput} />
+                  </td>
+                  <td className="px-1 py-1">
+                    <Input
+                      type="number"
+                      min={0}
+                      value={form.points || 0}
+                      onChange={e => setF("points", Number(e.target.value) || 0)}
+                      className={`${cellInput} text-right`}
+                    />
+                  </td>
+                  <td className="px-1 py-1">
+                    <Input value={form.comments || ""} onChange={e => setF("comments", e.target.value)} placeholder="…" className={cellInput} />
+                  </td>
+                  <td className="px-1 py-1 text-center">
+                    <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
+                    {form.photo_url ? (
+                      <div className="relative inline-block">
+                        <img
+                          src={form.photo_url}
+                          alt=""
+                          className="h-7 w-7 object-cover rounded cursor-pointer"
+                          onClick={() => setViewPhoto(form.photo_url)}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setF("photo_url", null)}
+                          className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full w-3.5 h-3.5 flex items-center justify-center"
+                        >
+                          <X className="w-2 h-2" />
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={uploading}
+                        className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-muted hover:bg-muted/70 text-muted-foreground"
+                        title="Attach photo"
+                      >
+                        {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Camera className="w-3.5 h-3.5" />}
+                      </button>
+                    )}
+                  </td>
+                  <td className="px-1 py-1">
+                    <div className="flex items-center justify-center gap-1">
+                      <Button
+                        size="sm"
+                        onClick={handleSubmit}
+                        disabled={createMut.isPending || !form.incident.trim()}
+                        className="h-7 w-7 p-0"
+                        title="Save"
+                      >
+                        {createMut.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setForm(emptyForm())}
+                        className="h-7 w-7 p-0"
+                        title="Reset"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {filtered.map(i => (
+              )}
+
+              {isLoading ? (
+                <tr><td colSpan={canPost ? 15 : 14} className="text-center py-8 text-muted-foreground">Loading…</td></tr>
+              ) : filtered.length === 0 ? (
+                <tr><td colSpan={canPost ? 15 : 14} className="text-center py-8 text-muted-foreground">
+                  {incidents.length === 0 ? "No incidents yet." : "No matches for the search."}
+                </td></tr>
+              ) : (
+                filtered.map(i => (
                   <tr key={i.id} className="border-t border-border hover:bg-muted/30">
                     <td className="px-2 py-1.5 whitespace-nowrap">{i.incident_date}</td>
                     <td className="px-2 py-1.5 whitespace-nowrap">{i.incident_time?.slice(0, 5)}</td>
@@ -225,185 +338,14 @@ const Incidents = () => {
                         <span className="text-muted-foreground">·</span>
                       )}
                     </td>
+                    {canPost && <td className="px-2 py-1.5"></td>}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </PageSection>
-
-      <ResponsiveDialog open={open} onOpenChange={setOpen} title="New incident" size="3xl">
-        <div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 py-2">
-            <div className="space-y-1">
-              <label className="text-xs text-muted-foreground">Date</label>
-              <Input type="date" value={form.incident_date} onChange={e => setF("incident_date", e.target.value)} />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs text-muted-foreground">Time</label>
-              <Input type="time" value={form.incident_time} onChange={e => setF("incident_time", e.target.value)} />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs text-muted-foreground">Points</label>
-              <Input
-                type="number"
-                min={0}
-                value={form.points}
-                onChange={e => setF("points", Number(e.target.value) || 0)}
-              />
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-xs text-muted-foreground">CCTV observer</label>
-              <Input value={form.cctv_observer || ""} onChange={e => setF("cctv_observer", e.target.value)} />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs text-muted-foreground">
-                Manager {rotaNames.managers.length > 0 && <span className="text-[10px]">· {rotaNames.managers.length} available</span>}
-              </label>
-              <Input
-                list="incident-managers"
-                value={form.manager || ""}
-                onChange={e => setF("manager", e.target.value)}
-                placeholder={rotaNames.managers[0] || "—"}
-              />
-              <datalist id="incident-managers">
-                {rotaNames.managers.map(n => <option key={n} value={n} />)}
-              </datalist>
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs text-muted-foreground">Department</label>
-              <Select value={form.department || ""} onValueChange={v => setF("department", v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {DEPARTMENTS.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-xs text-muted-foreground">Table</label>
-              <Input value={form.table_name || ""} onChange={e => setF("table_name", e.target.value)} />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs text-muted-foreground">
-                Dealer {rotaNames.dealers.length > 0 && <span className="text-[10px]">· {rotaNames.dealers.length} on rota</span>}
-              </label>
-              <Input
-                list="incident-dealers"
-                value={form.dealer_name || ""}
-                onChange={e => setF("dealer_name", e.target.value)}
-                placeholder={rotaNames.dealers[0] || "—"}
-              />
-              <datalist id="incident-dealers">
-                {rotaNames.dealers.map(n => <option key={n} value={n} />)}
-              </datalist>
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs text-muted-foreground">
-                Inspector {rotaNames.inspectors.length > 0 && <span className="text-[10px]">· {rotaNames.inspectors.length} on rota</span>}
-              </label>
-              <Input
-                list="incident-inspectors"
-                value={form.inspector_name || ""}
-                onChange={e => setF("inspector_name", e.target.value)}
-                placeholder={rotaNames.inspectors[0] || "—"}
-              />
-              <datalist id="incident-inspectors">
-                {rotaNames.inspectors.map(n => <option key={n} value={n} />)}
-              </datalist>
-            </div>
-
-            <div className="space-y-1 md:col-span-1">
-              <label className="text-xs text-muted-foreground">Violation type</label>
-              <Select value={form.violation_type || ""} onValueChange={v => setF("violation_type", v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {VIOLATION_TYPES.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1 md:col-span-2">
-              <label className="text-xs text-muted-foreground">Employees</label>
-              <Input value={form.employees || ""} onChange={e => setF("employees", e.target.value)} />
-            </div>
-
-            <div className="space-y-1 md:col-span-3">
-              <label className="text-xs text-muted-foreground">Incident *</label>
-              <Textarea
-                rows={2}
-                value={form.incident}
-                onChange={e => setF("incident", e.target.value)}
-                placeholder="Describe the violation"
-              />
-            </div>
-            <div className="space-y-1 md:col-span-3">
-              <label className="text-xs text-muted-foreground">Outcome</label>
-              <Textarea
-                rows={2}
-                value={form.outcome || ""}
-                onChange={e => setF("outcome", e.target.value)}
-                placeholder="What was done in response"
-              />
-            </div>
-            <div className="space-y-1 md:col-span-3">
-              <label className="text-xs text-muted-foreground">Comments</label>
-              <Textarea
-                rows={2}
-                value={form.comments || ""}
-                onChange={e => setF("comments", e.target.value)}
-              />
-            </div>
-            <div className="space-y-1 md:col-span-3">
-              <label className="text-xs text-muted-foreground">Photo</label>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handlePhotoUpload}
-              />
-              {form.photo_url ? (
-                <div className="relative inline-block">
-                  <img
-                    src={form.photo_url}
-                    alt="Incident"
-                    className="h-32 w-auto rounded-md border border-border cursor-pointer"
-                    onClick={() => setViewPhoto(form.photo_url)}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setF("photo_url", null)}
-                    className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full w-6 h-6 flex items-center justify-center"
-                    title="Remove"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </div>
-              ) : (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={uploading}
-                  className="gap-2"
-                >
-                  {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
-                  {uploading ? "Uploading…" : "Attach photo"}
-                </Button>
+                ))
               )}
-            </div>
-          </div>
-
-          <ResponsiveDialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button onClick={handleSubmit} disabled={createMut.isPending || !form.incident.trim()}>
-              Log incident
-            </Button>
-          </ResponsiveDialogFooter>
+            </tbody>
+          </table>
         </div>
-      </ResponsiveDialog>
+      </PageSection>
 
       <Dialog open={!!viewPhoto} onOpenChange={(o) => !o && setViewPhoto(null)}>
         <DialogContent className="max-w-5xl p-0 bg-background border-border overflow-hidden">
