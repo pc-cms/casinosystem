@@ -249,8 +249,8 @@ export const CloseTableWizard = ({ open, onClose, tables, date, readOnly = false
         <div className="space-y-3">
           <div className="flex items-center justify-between border-b border-border pb-2">
             <div>
-              <h3 className="text-sm font-semibold text-card-foreground">{current.name}</h3>
-              <p className="text-[11px] text-muted-foreground">{current.game}</p>
+              <h3 className="text-lg font-semibold text-card-foreground">{current.name}</h3>
+              <p className="text-sm text-muted-foreground">{current.game}</p>
             </div>
             <div className="flex items-center gap-1">
               <Button
@@ -259,9 +259,9 @@ export const CloseTableWizard = ({ open, onClose, tables, date, readOnly = false
                 onClick={() => setCurrentIdx(i => Math.max(0, i - 1))}
                 disabled={currentIdx === 0}
               >
-                <ChevronLeft className="w-3.5 h-3.5" />
+                <ChevronLeft className="w-4 h-4" />
               </Button>
-              <span className="text-[10px] text-muted-foreground font-mono">
+              <span className="text-xs text-muted-foreground font-mono">
                 {currentIdx + 1} / {wizardTables.length}
               </span>
               <Button
@@ -270,7 +270,7 @@ export const CloseTableWizard = ({ open, onClose, tables, date, readOnly = false
                 onClick={() => setCurrentIdx(i => Math.min(wizardTables.length - 1, i + 1))}
                 disabled={currentIdx === wizardTables.length - 1}
               >
-                <ChevronRight className="w-3.5 h-3.5" />
+                <ChevronRight className="w-4 h-4" />
               </Button>
             </div>
           </div>
