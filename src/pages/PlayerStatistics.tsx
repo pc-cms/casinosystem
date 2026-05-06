@@ -63,6 +63,23 @@ const PlayerStatistics = () => {
   const { data: tables = [] } = useGamingTables();
   const { data: transactions = [] } = useTransactions(effectiveDate);
   const { data: chipTransfers = [] } = useChipTransfers(effectiveDate);
+  const { data: chipAdjustments = [] } = useQuery({
+    queryKey: ["player_chip_adjustments", "by-date", casinoId, effectiveDate],
+    queryFn: async () => {
+      if (!casinoId) return [] as Array<{ player_id: string; chip_in: number; chip_out: number }>;
+      const { data, error } = await (supabase.from as any)("player_chip_adjustments")
+        .select("player_id, chip_in, chip_out")
+        .eq("casino_id", casinoId)
+        .gte("created_at", windowStartUTC)
+        .lt("created_at", windowEndUTC)
+        .limit(2000);
+      if (error) throw error;
+      return (data || []) as Array<{ player_id: string; chip_in: number; chip_out: number }>;
+    },
+    enabled: !!casinoId,
+    staleTime: 30_000,
+    refetchInterval: 30_000,
+  });
   const { data: playersDropSplit } = usePlayersDropSplit(windowStartUTC, windowEndUTC);
 
   const shiftDate = (delta: number) => {
