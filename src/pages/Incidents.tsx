@@ -42,6 +42,7 @@ const emptyForm = (): IncidentInput => ({
   outcome: "",
   points: 0,
   comments: "",
+  photo_url: null,
 });
 
 const Incidents = () => {
