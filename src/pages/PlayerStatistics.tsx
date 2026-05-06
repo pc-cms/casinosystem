@@ -694,14 +694,14 @@ const PlayerStatistics = () => {
                     
                   </tr>
                   {filtered.length > 0 && (
-                    <tr className="text-sm bg-[#F5D061] dark:bg-[#8B6F1F] border-b-2 border-primary/40 font-mono text-amber-950 dark:text-amber-50">
-                      <td style={{ top: "calc(var(--ppheader-h, 0px) + 38px)", boxShadow: "inset 0 -2px 0 0 hsl(45 90% 55% / 0.9)" }} className="px-2 py-2 text-center sticky left-0 bg-[#F5D061] dark:bg-[#8B6F1F] text-amber-950 dark:text-amber-50 z-30 font-bold">{totals.count}</td>
-                      <td style={{ top: "calc(var(--ppheader-h, 0px) + 38px)", boxShadow: "inset 0 -2px 0 0 hsl(45 90% 55% / 0.9)" }} className="px-2 py-2 text-left uppercase tracking-wider font-bold sticky left-10 bg-[#F5D061] dark:bg-[#8B6F1F] text-amber-950 dark:text-amber-50 z-30">
+                    <tr className="text-sm bg-[#F5D061] dark:bg-[#6B5A1A] border-b-2 border-primary/40 font-mono text-amber-950 dark:text-amber-50">
+                      <td style={{ top: "calc(var(--ppheader-h, 0px) + 38px)", boxShadow: "inset 0 -2px 0 0 hsl(45 90% 55% / 0.9)" }} className="px-2 py-2 text-center sticky left-0 bg-[#F5D061] dark:bg-[#6B5A1A] text-amber-950 dark:text-amber-50 z-30 font-bold">{totals.count}</td>
+                      <td style={{ top: "calc(var(--ppheader-h, 0px) + 38px)", boxShadow: "inset 0 -2px 0 0 hsl(45 90% 55% / 0.9)" }} className="px-2 py-2 text-left uppercase tracking-wider font-bold sticky left-10 bg-[#F5D061] dark:bg-[#6B5A1A] text-amber-950 dark:text-amber-50 z-30">
                         Total
                       </td>
-                      <td style={{ top: "calc(var(--ppheader-h, 0px) + 38px)", boxShadow: "inset 0 -2px 0 0 hsl(45 90% 55% / 0.9)" }} className="px-1 py-2 sticky bg-[#F5D061] dark:bg-[#8B6F1F] z-20"></td>
-                      <td style={{ top: "calc(var(--ppheader-h, 0px) + 38px)", boxShadow: "inset 0 -2px 0 0 hsl(45 90% 55% / 0.9)" }} className="px-1 py-2 sticky bg-[#F5D061] dark:bg-[#8B6F1F] z-20"></td>
-                      <td style={{ top: "calc(var(--ppheader-h, 0px) + 38px)", boxShadow: "inset 0 -2px 0 0 hsl(45 90% 55% / 0.9)" }} className="px-1 py-2 sticky bg-[#F5D061] dark:bg-[#8B6F1F] z-20"></td>
+                      <td style={{ top: "calc(var(--ppheader-h, 0px) + 38px)", boxShadow: "inset 0 -2px 0 0 hsl(45 90% 55% / 0.9)" }} className="px-1 py-2 sticky bg-[#F5D061] dark:bg-[#6B5A1A] z-20"></td>
+                      <td style={{ top: "calc(var(--ppheader-h, 0px) + 38px)", boxShadow: "inset 0 -2px 0 0 hsl(45 90% 55% / 0.9)" }} className="px-1 py-2 sticky bg-[#F5D061] dark:bg-[#6B5A1A] z-20"></td>
+                      <td style={{ top: "calc(var(--ppheader-h, 0px) + 38px)", boxShadow: "inset 0 -2px 0 0 hsl(45 90% 55% / 0.9)" }} className="px-1 py-2 sticky bg-[#F5D061] dark:bg-[#6B5A1A] z-20"></td>
                       {showFinancials && (() => {
                         const Money = ({ value, sign = false }: { value: number; sign?: boolean }) => {
                           if (!value) return <>·</>;
@@ -709,7 +709,7 @@ const PlayerStatistics = () => {
                           return <>{prefix}{formatCurrency(value)}</>;
                         };
                         const stickyStyle = { top: "calc(var(--ppheader-h, 0px) + 38px)", boxShadow: "inset 0 -2px 0 0 hsl(45 90% 55% / 0.9)" } as const;
-                        const stickyCls = "sticky bg-[#F5D061] dark:bg-[#8B6F1F] z-20";
+                        const stickyCls = "sticky bg-[#F5D061] dark:bg-[#6B5A1A] z-20";
                         return (
                           <>
                             <td style={stickyStyle} className={`px-2 py-2 ${stickyCls}`}></td>
