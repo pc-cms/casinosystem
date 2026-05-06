@@ -159,9 +159,9 @@ const Incidents = () => {
       <PageSection title="Journal" card={false}>
         {isLoading ? (
           <div className="text-center py-8 text-muted-foreground text-sm">Loading…</div>
-        ) : incidents.length === 0 ? (
+        ) : filtered.length === 0 ? (
           <div className="rounded-md border border-border bg-card p-8 text-center text-muted-foreground text-sm">
-            No incidents in the selected period.
+            {incidents.length === 0 ? "No incidents yet." : "No matches for the search."}
           </div>
         ) : (
           <div className="rounded-md border border-border overflow-x-auto">
@@ -185,7 +185,7 @@ const Incidents = () => {
                 </tr>
               </thead>
               <tbody>
-                {incidents.map(i => (
+                {filtered.map(i => (
                   <tr key={i.id} className="border-t border-border hover:bg-muted/30">
                     <td className="px-2 py-1.5 whitespace-nowrap">{i.incident_date}</td>
                     <td className="px-2 py-1.5 whitespace-nowrap">{i.incident_time?.slice(0, 5)}</td>
