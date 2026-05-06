@@ -4,8 +4,8 @@
  * violation type, incident description, outcome, points, comments.
  * Roles: super_admin, manager, surveillance can post; pit/finance read-only.
  */
-import { useMemo, useState } from "react";
-import { AlertTriangle, Plus } from "lucide-react";
+import { useMemo, useRef, useState } from "react";
+import { AlertTriangle, Camera, ImageIcon, Loader2, Plus, X } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -15,7 +15,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ResponsiveDialog, ResponsiveDialogFooter } from "@/components/ui/responsive-dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useIncidents, useCreateIncident, type IncidentInput } from "@/hooks/use-incidents";
+import { supabase } from "@/integrations/supabase/client";
+import { compressImage } from "@/lib/image-compress";
 import { toast } from "sonner";
 
 const DEPARTMENTS = ["game", "cash", "reception", "floor", "bar", "security", "other"];
@@ -39,6 +42,7 @@ const emptyForm = (): IncidentInput => ({
   outcome: "",
   points: 0,
   comments: "",
+  photo_url: null,
 });
 
 const Incidents = () => {
@@ -51,11 +55,36 @@ const Incidents = () => {
 
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<IncidentInput>(emptyForm());
+  const [uploading, setUploading] = useState(false);
+  const [viewPhoto, setViewPhoto] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const totalPts = useMemo(() => incidents.reduce((s, i) => s + (i.points || 0), 0), [incidents]);
 
   const setF = <K extends keyof IncidentInput>(k: K, v: IncidentInput[K]) =>
     setForm(prev => ({ ...prev, [k]: v }));
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const compressed = await compressImage(file);
+      const path = `${new Date().toISOString().slice(0, 10)}/${Date.now()}.jpg`;
+      const { error } = await supabase.storage
+        .from("incident-photos")
+        .upload(path, compressed.thumbnail, { contentType: "image/jpeg", upsert: false });
+      if (error) throw error;
+      const { data: { publicUrl } } = supabase.storage.from("incident-photos").getPublicUrl(path);
+      setF("photo_url", publicUrl);
+      toast.success("Photo attached");
+    } catch (err: any) {
+      toast.error(err.message || "Upload failed");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
 
   const handleSubmit = async () => {
     if (!form.incident.trim()) {
@@ -120,6 +149,7 @@ const Incidents = () => {
                   <th className="px-2 py-2 text-left">Outcome</th>
                   <th className="px-2 py-2 text-right">Pts</th>
                   <th className="px-2 py-2 text-left">Comments</th>
+                  <th className="px-2 py-2 text-center">Photo</th>
                 </tr>
               </thead>
               <tbody>
@@ -143,6 +173,20 @@ const Incidents = () => {
                     <td className="px-2 py-1.5 text-right font-semibold">{i.points || 0}</td>
                     <td className="px-2 py-1.5 max-w-[260px] whitespace-normal break-words text-muted-foreground">
                       {i.comments || "·"}
+                    </td>
+                    <td className="px-2 py-1.5 text-center">
+                      {i.photo_url ? (
+                        <button
+                          type="button"
+                          onClick={() => setViewPhoto(i.photo_url)}
+                          className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-primary/10 hover:bg-primary/20 text-primary"
+                          title="View photo"
+                        >
+                          <ImageIcon className="w-3.5 h-3.5" />
+                        </button>
+                      ) : (
+                        <span className="text-muted-foreground">·</span>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -244,6 +288,45 @@ const Incidents = () => {
                 onChange={e => setF("comments", e.target.value)}
               />
             </div>
+            <div className="space-y-1 md:col-span-3">
+              <label className="text-xs text-muted-foreground">Photo</label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handlePhotoUpload}
+              />
+              {form.photo_url ? (
+                <div className="relative inline-block">
+                  <img
+                    src={form.photo_url}
+                    alt="Incident"
+                    className="h-32 w-auto rounded-md border border-border cursor-pointer"
+                    onClick={() => setViewPhoto(form.photo_url)}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setF("photo_url", null)}
+                    className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full w-6 h-6 flex items-center justify-center"
+                    title="Remove"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                  className="gap-2"
+                >
+                  {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
+                  {uploading ? "Uploading…" : "Attach photo"}
+                </Button>
+              )}
+            </div>
           </div>
 
           <ResponsiveDialogFooter>
@@ -254,6 +337,18 @@ const Incidents = () => {
           </ResponsiveDialogFooter>
         </div>
       </ResponsiveDialog>
+
+      <Dialog open={!!viewPhoto} onOpenChange={(o) => !o && setViewPhoto(null)}>
+        <DialogContent className="max-w-5xl p-0 bg-background border-border overflow-hidden">
+          {viewPhoto && (
+            <img
+              src={viewPhoto}
+              alt="Incident photo"
+              className="w-full h-auto max-h-[90vh] object-contain bg-muted"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </PageShell>
   );
 };

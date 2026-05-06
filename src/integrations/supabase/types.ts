@@ -1890,6 +1890,7 @@ export type Database = {
           inspector_name: string | null
           manager: string | null
           outcome: string | null
+          photo_url: string | null
           points: number
           table_name: string | null
           violation_type: string | null
@@ -1910,6 +1911,7 @@ export type Database = {
           inspector_name?: string | null
           manager?: string | null
           outcome?: string | null
+          photo_url?: string | null
           points?: number
           table_name?: string | null
           violation_type?: string | null
@@ -1930,6 +1932,7 @@ export type Database = {
           inspector_name?: string | null
           manager?: string | null
           outcome?: string | null
+          photo_url?: string | null
           points?: number
           table_name?: string | null
           violation_type?: string | null
