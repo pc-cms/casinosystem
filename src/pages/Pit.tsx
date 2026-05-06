@@ -962,7 +962,7 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
               const displayVal = isHoursSick ? String(parsed.hours) : val;
               const cellTitle = isHoursSick ? `Sick — worked ${parsed.hours}h then went home` : undefined;
               return (
-                <td key={day} className={`px-0.5 py-0.5 text-center ${isToday ? "bg-primary/25" : isWeekend ? "bg-muted/15" : ""}`}>
+                <td key={day} className={`px-0.5 py-0.5 text-center border-l border-border/25 ${isToday ? "bg-primary/25" : isWeekend ? "bg-muted/15" : ""}`}>
                   <input
                     type="text"
                     defaultValue={displayVal}
