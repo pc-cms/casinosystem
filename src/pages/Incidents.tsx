@@ -4,8 +4,8 @@
  * violation type, incident description, outcome, points, comments.
  * Roles: super_admin, manager, surveillance can post; pit/finance read-only.
  */
-import { useMemo, useState } from "react";
-import { AlertTriangle, Plus } from "lucide-react";
+import { useMemo, useRef, useState } from "react";
+import { AlertTriangle, Camera, ImageIcon, Loader2, Plus, X } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -15,7 +15,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ResponsiveDialog, ResponsiveDialogFooter } from "@/components/ui/responsive-dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useIncidents, useCreateIncident, type IncidentInput } from "@/hooks/use-incidents";
+import { supabase } from "@/integrations/supabase/client";
+import { compressImage } from "@/lib/image-compress";
 import { toast } from "sonner";
 
 const DEPARTMENTS = ["game", "cash", "reception", "floor", "bar", "security", "other"];
