@@ -33,26 +33,27 @@ export type Incident = {
 
 export type IncidentInput = Omit<Incident, "id" | "casino_id" | "created_by" | "created_at">;
 
-export const useIncidents = (days = 30) => {
+export const useIncidents = (days: number | null = null) => {
   const { casinoId } = useAuth();
   const qc = useQueryClient();
 
-  const since = new Date();
-  since.setDate(since.getDate() - days);
-  const sinceDate = since.toISOString().slice(0, 10);
+  const sinceDate = days != null
+    ? (() => { const d = new Date(); d.setDate(d.getDate() - days); return d.toISOString().slice(0, 10); })()
+    : null;
 
   const query = useQuery({
     queryKey: ["incidents", casinoId, days],
     queryFn: async () => {
       if (!casinoId) return [] as Incident[];
-      const { data, error } = await supabase
+      let q = supabase
         .from("incidents")
         .select("*")
-        .eq("casino_id", casinoId)
-        .gte("incident_date", sinceDate)
+        .eq("casino_id", casinoId);
+      if (sinceDate) q = q.gte("incident_date", sinceDate);
+      const { data, error } = await q
         .order("incident_date", { ascending: false })
         .order("incident_time", { ascending: false })
-        .limit(1000);
+        .limit(2000);
       if (error) throw error;
       return (data || []) as Incident[];
     },

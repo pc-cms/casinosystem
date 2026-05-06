@@ -5,7 +5,7 @@
  * Roles: super_admin, manager, surveillance can post; pit/finance read-only.
  */
 import { useMemo, useRef, useState } from "react";
-import { AlertTriangle, Camera, ImageIcon, Loader2, Plus, X } from "lucide-react";
+import { AlertTriangle, Camera, ImageIcon, Loader2, Plus, Search, X } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -17,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ResponsiveDialog, ResponsiveDialogFooter } from "@/components/ui/responsive-dialog";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useIncidents, useCreateIncident, type IncidentInput } from "@/hooks/use-incidents";
+import { usePitRota, useDealers } from "@/hooks/use-dealers";
 import { supabase } from "@/integrations/supabase/client";
 import { compressImage } from "@/lib/image-compress";
 import { toast } from "sonner";
@@ -49,8 +50,8 @@ const Incidents = () => {
   const { roles } = useAuth();
   const canPost = roles.some(r => ["super_admin", "manager", "surveillance"].includes(r));
 
-  const [days, setDays] = useState(30);
-  const { data: incidents = [], isLoading } = useIncidents(days);
+  const [search, setSearch] = useState("");
+  const { data: incidents = [], isLoading } = useIncidents(null);
   const createMut = useCreateIncident();
 
   const [open, setOpen] = useState(false);
@@ -59,7 +60,38 @@ const Incidents = () => {
   const [viewPhoto, setViewPhoto] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const totalPts = useMemo(() => incidents.reduce((s, i) => s + (i.points || 0), 0), [incidents]);
+  // Rota for selected incident date — provides dealer/inspector/manager dropdowns.
+  const { data: rota = [] } = usePitRota(form.incident_date);
+  const { data: allDealers = [] } = useDealers();
+
+  const rotaNames = useMemo(() => {
+    const byCategory = { dealers: new Set<string>(), inspectors: new Set<string>(), pitBosses: new Set<string>() };
+    const dealersMap = new Map(allDealers.map((d: any) => [d.id, d]));
+    for (const r of rota as any[]) {
+      const d = dealersMap.get(r.dealer_id) as any;
+      if (!d) continue;
+      const name = d.name;
+      if (d.is_pit_boss) byCategory.pitBosses.add(name);
+      else if (d.category === "I") byCategory.inspectors.add(name);
+      else byCategory.dealers.add(name);
+    }
+    return {
+      dealers: [...byCategory.dealers].sort(),
+      inspectors: [...byCategory.inspectors].sort(),
+      pitBosses: [...byCategory.pitBosses].sort(),
+    };
+  }, [rota, allDealers]);
+
+  const filtered = useMemo(() => {
+    if (!search.trim()) return incidents;
+    const q = search.toLowerCase();
+    return incidents.filter(i =>
+      [i.dealer_name, i.inspector_name, i.manager, i.cctv_observer, i.violation_type, i.incident, i.outcome, i.comments, i.table_name, i.department, i.incident_date]
+        .some(v => (v || "").toLowerCase().includes(q))
+    );
+  }, [incidents, search]);
+
+  const totalPts = useMemo(() => filtered.reduce((s, i) => s + (i.points || 0), 0), [filtered]);
 
   const setF = <K extends keyof IncidentInput>(k: K, v: IncidentInput[K]) =>
     setForm(prev => ({ ...prev, [k]: v }));
@@ -106,17 +138,17 @@ const Incidents = () => {
       <PageHeader
         icon={AlertTriangle}
         title="Incidents"
-        subtitle={`Violation journal · Last ${days} days · ${incidents.length} entries · ${totalPts} pts`}
+        subtitle={`Violation journal · ${filtered.length} entries · ${totalPts} pts`}
       >
-        <Select value={String(days)} onValueChange={v => setDays(Number(v))}>
-          <SelectTrigger className="w-32 h-9"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="7">Last 7 days</SelectItem>
-            <SelectItem value="30">Last 30 days</SelectItem>
-            <SelectItem value="90">Last 90 days</SelectItem>
-            <SelectItem value="365">Last year</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="relative">
+          <Search className="w-4 h-4 absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+          <Input
+            placeholder="Search…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="pl-8 w-56"
+          />
+        </div>
         {canPost && (
           <Button onClick={() => { setForm(emptyForm()); setOpen(true); }} className="gap-2">
             <Plus className="w-4 h-4" /> New incident
@@ -127,9 +159,9 @@ const Incidents = () => {
       <PageSection title="Journal" card={false}>
         {isLoading ? (
           <div className="text-center py-8 text-muted-foreground text-sm">Loading…</div>
-        ) : incidents.length === 0 ? (
+        ) : filtered.length === 0 ? (
           <div className="rounded-md border border-border bg-card p-8 text-center text-muted-foreground text-sm">
-            No incidents in the selected period.
+            {incidents.length === 0 ? "No incidents yet." : "No matches for the search."}
           </div>
         ) : (
           <div className="rounded-md border border-border overflow-x-auto">
@@ -153,7 +185,7 @@ const Incidents = () => {
                 </tr>
               </thead>
               <tbody>
-                {incidents.map(i => (
+                {filtered.map(i => (
                   <tr key={i.id} className="border-t border-border hover:bg-muted/30">
                     <td className="px-2 py-1.5 whitespace-nowrap">{i.incident_date}</td>
                     <td className="px-2 py-1.5 whitespace-nowrap">{i.incident_time?.slice(0, 5)}</td>
@@ -222,8 +254,18 @@ const Incidents = () => {
               <Input value={form.cctv_observer || ""} onChange={e => setF("cctv_observer", e.target.value)} />
             </div>
             <div className="space-y-1">
-              <label className="text-xs text-muted-foreground">Manager</label>
-              <Input value={form.manager || ""} onChange={e => setF("manager", e.target.value)} />
+              <label className="text-xs text-muted-foreground">
+                Manager {rotaNames.pitBosses.length > 0 && <span className="text-[10px]">· {rotaNames.pitBosses.length} on rota</span>}
+              </label>
+              <Input
+                list="incident-managers"
+                value={form.manager || ""}
+                onChange={e => setF("manager", e.target.value)}
+                placeholder={rotaNames.pitBosses[0] || "—"}
+              />
+              <datalist id="incident-managers">
+                {rotaNames.pitBosses.map(n => <option key={n} value={n} />)}
+              </datalist>
             </div>
             <div className="space-y-1">
               <label className="text-xs text-muted-foreground">Department</label>
@@ -240,12 +282,32 @@ const Incidents = () => {
               <Input value={form.table_name || ""} onChange={e => setF("table_name", e.target.value)} />
             </div>
             <div className="space-y-1">
-              <label className="text-xs text-muted-foreground">Dealer</label>
-              <Input value={form.dealer_name || ""} onChange={e => setF("dealer_name", e.target.value)} />
+              <label className="text-xs text-muted-foreground">
+                Dealer {rotaNames.dealers.length > 0 && <span className="text-[10px]">· {rotaNames.dealers.length} on rota</span>}
+              </label>
+              <Input
+                list="incident-dealers"
+                value={form.dealer_name || ""}
+                onChange={e => setF("dealer_name", e.target.value)}
+                placeholder={rotaNames.dealers[0] || "—"}
+              />
+              <datalist id="incident-dealers">
+                {rotaNames.dealers.map(n => <option key={n} value={n} />)}
+              </datalist>
             </div>
             <div className="space-y-1">
-              <label className="text-xs text-muted-foreground">Inspector</label>
-              <Input value={form.inspector_name || ""} onChange={e => setF("inspector_name", e.target.value)} />
+              <label className="text-xs text-muted-foreground">
+                Inspector {rotaNames.inspectors.length > 0 && <span className="text-[10px]">· {rotaNames.inspectors.length} on rota</span>}
+              </label>
+              <Input
+                list="incident-inspectors"
+                value={form.inspector_name || ""}
+                onChange={e => setF("inspector_name", e.target.value)}
+                placeholder={rotaNames.inspectors[0] || "—"}
+              />
+              <datalist id="incident-inspectors">
+                {rotaNames.inspectors.map(n => <option key={n} value={n} />)}
+              </datalist>
             </div>
 
             <div className="space-y-1 md:col-span-1">
