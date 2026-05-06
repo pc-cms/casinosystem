@@ -254,8 +254,18 @@ const Incidents = () => {
               <Input value={form.cctv_observer || ""} onChange={e => setF("cctv_observer", e.target.value)} />
             </div>
             <div className="space-y-1">
-              <label className="text-xs text-muted-foreground">Manager</label>
-              <Input value={form.manager || ""} onChange={e => setF("manager", e.target.value)} />
+              <label className="text-xs text-muted-foreground">
+                Manager {rotaNames.pitBosses.length > 0 && <span className="text-[10px]">· {rotaNames.pitBosses.length} on rota</span>}
+              </label>
+              <Input
+                list="incident-managers"
+                value={form.manager || ""}
+                onChange={e => setF("manager", e.target.value)}
+                placeholder={rotaNames.pitBosses[0] || "—"}
+              />
+              <datalist id="incident-managers">
+                {rotaNames.pitBosses.map(n => <option key={n} value={n} />)}
+              </datalist>
             </div>
             <div className="space-y-1">
               <label className="text-xs text-muted-foreground">Department</label>
@@ -272,12 +282,32 @@ const Incidents = () => {
               <Input value={form.table_name || ""} onChange={e => setF("table_name", e.target.value)} />
             </div>
             <div className="space-y-1">
-              <label className="text-xs text-muted-foreground">Dealer</label>
-              <Input value={form.dealer_name || ""} onChange={e => setF("dealer_name", e.target.value)} />
+              <label className="text-xs text-muted-foreground">
+                Dealer {rotaNames.dealers.length > 0 && <span className="text-[10px]">· {rotaNames.dealers.length} on rota</span>}
+              </label>
+              <Input
+                list="incident-dealers"
+                value={form.dealer_name || ""}
+                onChange={e => setF("dealer_name", e.target.value)}
+                placeholder={rotaNames.dealers[0] || "—"}
+              />
+              <datalist id="incident-dealers">
+                {rotaNames.dealers.map(n => <option key={n} value={n} />)}
+              </datalist>
             </div>
             <div className="space-y-1">
-              <label className="text-xs text-muted-foreground">Inspector</label>
-              <Input value={form.inspector_name || ""} onChange={e => setF("inspector_name", e.target.value)} />
+              <label className="text-xs text-muted-foreground">
+                Inspector {rotaNames.inspectors.length > 0 && <span className="text-[10px]">· {rotaNames.inspectors.length} on rota</span>}
+              </label>
+              <Input
+                list="incident-inspectors"
+                value={form.inspector_name || ""}
+                onChange={e => setF("inspector_name", e.target.value)}
+                placeholder={rotaNames.inspectors[0] || "—"}
+              />
+              <datalist id="incident-inspectors">
+                {rotaNames.inspectors.map(n => <option key={n} value={n} />)}
+              </datalist>
             </div>
 
             <div className="space-y-1 md:col-span-1">
