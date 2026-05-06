@@ -30,13 +30,23 @@
 @layer base {
   :root {
     /* Density tokens — overridden by [data-density="..."] on <html>. */
-    --density-row: 2.25rem;
-    --density-input: 2.5rem;     /* h-10 */
-    --density-btn: 2.5rem;       /* h-10 */
+    --density-row: 2.5rem;
+    --density-input: 2.625rem;   /* slightly taller for comfort */
+    --density-btn: 2.625rem;
     --density-px: 1rem;
     --density-py: 0.5rem;
     --density-gap: 0.5rem;
-    --density-text: 0.875rem;    /* text-sm */
+    --density-text: 0.9375rem;   /* ~15px */
+  }
+  [data-density="comfort"] {
+    --density-row: 2.5rem;
+    --density-input: 2.625rem;
+    --density-btn: 2.625rem;
+    --density-px: 1rem;
+    --density-py: 0.5rem;
+    --density-gap: 0.5rem;
+    --density-text: 0.9375rem;
+    font-size: 15px;
   }
   [data-density="compact"] {
     --density-row: 1.75rem;
