@@ -55,11 +55,36 @@ const Incidents = () => {
 
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<IncidentInput>(emptyForm());
+  const [uploading, setUploading] = useState(false);
+  const [viewPhoto, setViewPhoto] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const totalPts = useMemo(() => incidents.reduce((s, i) => s + (i.points || 0), 0), [incidents]);
 
   const setF = <K extends keyof IncidentInput>(k: K, v: IncidentInput[K]) =>
     setForm(prev => ({ ...prev, [k]: v }));
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const compressed = await compressImage(file);
+      const path = `${new Date().toISOString().slice(0, 10)}/${Date.now()}.jpg`;
+      const { error } = await supabase.storage
+        .from("incident-photos")
+        .upload(path, compressed.thumbnail, { contentType: "image/jpeg", upsert: false });
+      if (error) throw error;
+      const { data: { publicUrl } } = supabase.storage.from("incident-photos").getPublicUrl(path);
+      setF("photo_url", publicUrl);
+      toast.success("Photo attached");
+    } catch (err: any) {
+      toast.error(err.message || "Upload failed");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
 
   const handleSubmit = async () => {
     if (!form.incident.trim()) {
