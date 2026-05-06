@@ -8,7 +8,7 @@ import {
   Building2, UserCheck, ClipboardPen, ShieldCheck, ShieldOff,
   Wallet, DoorOpen, ShieldAlert, Menu, Upload, FileText,
   ChevronsLeft, ChevronsRight, CreditCard, CalendarDays, ChevronDown, ChevronRight, Coins, Briefcase,
-  RefreshCw, MessageSquare, User as UserIcon,
+  RefreshCw, MessageSquare, AlertTriangle, User as UserIcon,
 } from "lucide-react";
 import { UserProfileDialog } from "@/components/UserProfileDialog";
 import { resetPWACache } from "@/lib/pwa-register";
