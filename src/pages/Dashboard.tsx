@@ -78,36 +78,26 @@ const Dashboard = () => {
     return totals;
   }, [trackerData]);
 
-  // NEP-aware Drop R / Recycled per table for the business day
-  const fromIso = useMemo(() => businessDayHourUTC(businessDate, 13), [businessDate]);
-  const toIso = useMemo(() => businessDayHourUTC(businessDate, 13 + 24), [businessDate]);
-  const { data: splitMap } = useTablesDropSplit(fromIso, toIso);
-
-  // Tables stats and game type totals — Chip Count overrides Tracker until next hourly TT entry
+  // Table DROP = simple sum of all Cash In on the table for the current business day (no NEP logic).
   const tableStats = useMemo(() => {
-    const stats: Record<string, { dropR: number; dropV: number; result: number }> = {};
+    const stats: Record<string, { drop: number; result: number }> = {};
     tables.forEach(t => {
-      const split = splitMap?.get(t.id);
-      const fallbackBuy = transactions
+      const drop = transactions
         .filter(tx => tx.table_id === t.id && (tx.type === "buy" || tx.type === "in"))
         .reduce((s, tx) => s + Number(tx.amount), 0);
-      const dropR = split ? split.dropR : fallbackBuy;
-      const recycled = split ? split.recycled : 0;
-      const trackerSum = tableTrackerTotals[t.id] || 0;
-      const dropV = trackerSum + recycled;
       const result = liveTableResult({
         tableId: t.id,
         closingResult: t.closing_result as any,
         snapshotIndex,
         baselineMap,
       });
-      stats[t.id] = { dropR, dropV, result };
+      stats[t.id] = { drop, result };
     });
     return stats;
-  }, [tables, transactions, tableTrackerTotals, trackerData, snapshotIndex, baselineMap, splitMap]);
+  }, [tables, transactions, snapshotIndex, baselineMap]);
 
   const gameTypeTotals = useMemo(() => {
-    const totals: Record<string, { dropR: number; dropV: number; result: number; label: string }> = {};
+    const totals: Record<string, { drop: number; result: number; label: string }> = {};
     const gameLabels: Record<string, string> = {
       "American Roulette": "TOTAL ARs",
       "Poker": "TOTAL POKER",
@@ -118,17 +108,15 @@ const Dashboard = () => {
     };
     tables.forEach(t => {
       const label = gameLabels[t.game] || `Total ${t.game}`;
-      if (!totals[label]) totals[label] = { dropR: 0, dropV: 0, result: 0, label };
-      const r = tableStats[t.id] || { dropR: 0, dropV: 0, result: 0 };
-      totals[label].dropR += r.dropR;
-      totals[label].dropV += r.dropV;
+      if (!totals[label]) totals[label] = { drop: 0, result: 0, label };
+      const r = tableStats[t.id] || { drop: 0, result: 0 };
+      totals[label].drop += r.drop;
       totals[label].result += r.result;
     });
     return totals;
   }, [tables, tableStats]);
 
-  const totalDropR = Object.values(tableStats).reduce((s, r) => s + r.dropR, 0);
-  const totalDropV = Object.values(tableStats).reduce((s, r) => s + r.dropV, 0);
+  const totalDrop = Object.values(tableStats).reduce((s, r) => s + r.drop, 0);
   const totalResult = Object.values(tableStats).reduce((s, r) => s + r.result, 0);
 
   // Floor Staff filters & sort
