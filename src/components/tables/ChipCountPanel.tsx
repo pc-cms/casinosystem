@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { Button } from "@/components/ui/button";
-import { Save, Maximize2, Minimize2, History } from "lucide-react";
+import { Save, Maximize2, Minimize2, History, Tablet } from "lucide-react";
 import { useChipSnapshots, useBatchChipSnapshot } from "@/hooks/use-chips";
 import { useChipBaseline, baselineToMap } from "@/hooks/use-table-lifecycle";
 import { useGamingTables, useSetTableTrackerValue } from "@/hooks/use-casino-data";
@@ -88,6 +88,7 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
 
   const [counts, setCounts] = useState<Record<string, Record<number, number>>>({});
   const [fullscreen, setFullscreen] = useState(false);
+  const [tabletMode, setTabletMode] = useState(false);
 
   // Initialize / refresh prefill when underlying data changes
   useEffect(() => {
