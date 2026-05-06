@@ -231,7 +231,7 @@ export const CloseTableWizard = ({ open, onClose, tables, date, readOnly = false
               {counted && (
                 <span
                   className={cn(
-                    "font-mono text-xs",
+                    "font-mono text-sm font-semibold",
                     Number(t.closing_result) >= 0 ? "text-success" : "text-destructive"
                   )}
                 >
