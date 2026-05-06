@@ -12,7 +12,7 @@
  *  - Min column widths so inputs are comfortable (~100px+); page scrolls horizontally.
  */
 import { useMemo, useRef, useState } from "react";
-import { AlertTriangle, Camera, Check, ImageIcon, Loader2, RotateCcw, Search, X } from "lucide-react";
+import { AlertTriangle, Camera, Check, ChevronLeft, ChevronRight, ImageIcon, Loader2, RotateCcw, Search, X } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
