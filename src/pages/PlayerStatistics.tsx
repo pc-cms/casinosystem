@@ -63,6 +63,23 @@ const PlayerStatistics = () => {
   const { data: tables = [] } = useGamingTables();
   const { data: transactions = [] } = useTransactions(effectiveDate);
   const { data: chipTransfers = [] } = useChipTransfers(effectiveDate);
+  const { data: chipAdjustments = [] } = useQuery({
+    queryKey: ["player_chip_adjustments", "by-date", casinoId, effectiveDate],
+    queryFn: async () => {
+      if (!casinoId) return [] as Array<{ player_id: string; chip_in: number; chip_out: number }>;
+      const { data, error } = await (supabase.from as any)("player_chip_adjustments")
+        .select("player_id, chip_in, chip_out")
+        .eq("casino_id", casinoId)
+        .gte("created_at", windowStartUTC)
+        .lt("created_at", windowEndUTC)
+        .limit(2000);
+      if (error) throw error;
+      return (data || []) as Array<{ player_id: string; chip_in: number; chip_out: number }>;
+    },
+    enabled: !!casinoId,
+    staleTime: 30_000,
+    refetchInterval: 30_000,
+  });
   const { data: playersDropSplit } = usePlayersDropSplit(windowStartUTC, windowEndUTC);
 
   const shiftDate = (delta: number) => {
@@ -144,8 +161,14 @@ const PlayerStatistics = () => {
       if (ct.direction === "in") cur.in += Number(ct.amount) || 0;
       else cur.out += Number(ct.amount) || 0;
     }
+    for (const a of chipAdjustments as any[]) {
+      let cur = m.get(a.player_id);
+      if (!cur) { cur = { in: 0, out: 0 }; m.set(a.player_id, cur); }
+      cur.in += Number(a.chip_in) || 0;
+      cur.out += Number(a.chip_out) || 0;
+    }
     return m;
-  }, [chipTransfers]);
+  }, [chipTransfers, chipAdjustments]);
 
   // Build per-player day rows
   const rows = useMemo(() => {
