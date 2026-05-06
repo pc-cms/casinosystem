@@ -69,26 +69,26 @@ const emptyForm = (): IncidentInput => ({
 });
 
 const cellInput =
-  "h-8 px-2 text-xs font-mono border-0 bg-transparent focus-visible:bg-background focus-visible:ring-1 rounded-sm w-full";
+  "h-10 px-2 text-sm font-mono border-0 bg-transparent focus-visible:bg-background focus-visible:ring-1 rounded-sm w-full";
 
-// Column widths — generous so inputs are readable.
+// Column widths — generous so inputs are readable. (≈ +25% vs original)
 const COLS = {
-  date: 130,
-  time: 90,
-  cctv: 120,
-  manager: 130,
-  dept: 110,
-  table: 110,
-  dealer: 130,
-  inspector: 130,
-  employee: 140,
-  type: 130,
-  incident: 260,
-  outcome: 200,
-  points: 70,
-  comments: 240,
-  photo: 70,
-  save: 80,
+  date: 165,
+  time: 115,
+  cctv: 150,
+  manager: 165,
+  dept: 140,
+  table: 140,
+  dealer: 165,
+  inspector: 165,
+  employee: 175,
+  type: 165,
+  incident: 325,
+  outcome: 250,
+  points: 90,
+  comments: 300,
+  photo: 90,
+  save: 100,
 };
 
 const Incidents = () => {
