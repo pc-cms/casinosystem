@@ -505,7 +505,7 @@ const Tables = () => {
           </Badge>
         )}
 
-        
+        <CloseBusinessDayButton />
       </PageHeader>
 
       <>
