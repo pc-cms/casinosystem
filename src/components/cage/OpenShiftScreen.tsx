@@ -38,8 +38,24 @@ const OpenShiftScreen = ({ tables }: { tables: Tables<"gaming_tables">[] }) => {
       setRatesPrefilled(true);
     }
   }, [lastShift, ratesPrefilled]);
+
+  // Carry over closing chips from the last closed shift so the cashier sees
+  // the chips actually counted at close instead of zeros.
+  const [closingPrefilled, setClosingPrefilled] = useState(false);
   const [closingChips, setClosingChips] = useState<Record<number, number>>({});
   const [openingChips, setOpeningChips] = useState<Record<number, number>>({});
+
+  useEffect(() => {
+    if (closingPrefilled) return;
+    const prevClosing = (lastShift as any)?.closing_count?.chips as Record<string, number> | undefined;
+    if (prevClosing && Object.keys(prevClosing).length > 0) {
+      const normalized: Record<number, number> = {};
+      Object.entries(prevClosing).forEach(([k, v]) => { normalized[Number(k)] = Number(v) || 0; });
+      setClosingChips(normalized);
+      setOpeningChips(normalized);
+      setClosingPrefilled(true);
+    }
+  }, [lastShift, closingPrefilled]);
   const [openingCash, setOpeningCash] = useState<Record<string, Record<number, number>>>(emptyCash);
   const [bankBalance, setBankBalance] = useState<Banks>(emptyBanks);
   const [mobileBalance, setMobileBalance] = useState<MobileProviders>(emptyMobile);

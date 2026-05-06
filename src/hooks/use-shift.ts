@@ -13,7 +13,7 @@ export const useLastClosedShift = () => {
       if (!casinoId) return null;
       const { data, error } = await supabase
         .from("shifts")
-        .select("exchange_rates, closed_at")
+        .select("exchange_rates, closing_count, closed_at")
         .eq("casino_id", casinoId)
         .eq("status", "closed")
         .order("closed_at", { ascending: false })
