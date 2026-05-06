@@ -436,7 +436,7 @@ export const CloseTableWizard = ({ open, onClose, tables, date, readOnly = false
   return (
     <>
       <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
-        <DialogContent className="max-w-5xl">
+        <DialogContent className="max-w-[98vw] sm:max-w-[95vw] w-[95vw] max-h-[95vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle asChild>{headerNode}</DialogTitle>
           </DialogHeader>
