@@ -653,8 +653,8 @@ const PlayerStatistics = () => {
           <div className="cms-panel rounded-lg" style={{ overflowX: "clip", overflowY: "visible" }}>
             <div style={{ overflowX: "clip", overflowY: "visible" }}>
               <table className="w-full text-xs">
-                <thead className="bg-muted border-b border-border">
-                  <tr className="text-xs uppercase tracking-wider text-muted-foreground">
+                <thead className="bg-zinc-900 border-b border-border">
+                  <tr className="text-sm uppercase tracking-wider text-white">
                     {(() => {
                       const SortIcon = ({ k }: { k: SortKey }) =>
                         sortKey !== k ? <ArrowUpDown className="w-3 h-3 inline ml-1 opacity-40" />
@@ -664,7 +664,7 @@ const PlayerStatistics = () => {
                         <th
                           title={title}
                           style={{ top: "var(--ppheader-h, 0px)" }}
-                          className={`px-2 py-3 cursor-pointer select-none hover:text-foreground whitespace-nowrap font-semibold sticky bg-muted ${align === "right" ? "text-right" : "text-left"} ${sticky ? `${sticky} z-30` : "z-20"}`}
+                          className={`px-2 py-3 cursor-pointer select-none hover:text-primary whitespace-nowrap font-bold sticky bg-zinc-900 text-white ${align === "right" ? "text-right" : "text-left"} ${sticky ? `${sticky} z-30` : "z-20"}`}
                           onClick={() => toggleSort(k)}
                         >
                           {children}<SortIcon k={k} />
@@ -672,7 +672,7 @@ const PlayerStatistics = () => {
                       );
                       return (
                         <>
-                          <th style={{ top: "var(--ppheader-h, 0px)" }} className="px-2 py-3 text-center sticky left-0 bg-muted z-30 w-10 font-semibold">№</th>
+                          <th style={{ top: "var(--ppheader-h, 0px)" }} className="px-2 py-3 text-center sticky left-0 bg-zinc-900 text-white z-30 w-10 font-bold">№</th>
                           <H k="name" sticky="sticky left-10">Name</H>
                           <H k="entry">Entry</H>
                           <H k="exit">Left</H>
