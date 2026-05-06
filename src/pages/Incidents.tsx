@@ -229,9 +229,11 @@ const Incidents = () => {
     }
   };
 
-  // Helpers for sticky-left columns.
-  const stickyDate = "sticky left-0 z-20 bg-background";
-  const stickyTime = "sticky z-20 bg-background";
+  // Helpers for sticky-left columns. Header uses muted band; body uses solid background.
+  const stickyDateHead = "sticky left-0 z-30 bg-muted";
+  const stickyTimeHead = "sticky z-30 bg-muted";
+  const stickyDate = "sticky left-0 z-30 bg-background";
+  const stickyTime = "sticky z-30 bg-background";
   const stickyTimeLeft = { left: COLS.date };
 
   return (
