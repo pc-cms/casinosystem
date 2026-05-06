@@ -134,11 +134,12 @@ const Incidents = () => {
       else if (d.category === "I") inspectors.add(name);
       else dealers.add(name);
     }
-    // Dealer & Inspector share the same list (per request). Pit Bosses excluded — they appear in department=pit as Employee.
+    // Dealer & Inspector share the same list. Pit Bosses are NOT managers —
+    // they appear only under Department=Pit as Employee.
     const dealerInspector = [...new Set([...dealers, ...inspectors])].sort();
     return {
       dealerInspector,
-      managers: [...new Set([...STANDING_MANAGERS, ...pitBosses])].sort(),
+      managers: [...STANDING_MANAGERS].sort(),
       pitBosses: [...pitBosses],
     };
   }, [rota, allDealers]);
