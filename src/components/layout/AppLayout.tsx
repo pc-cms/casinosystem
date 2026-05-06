@@ -14,7 +14,19 @@ const PageLoader = () => (
 );
 
 // Routes that need full-bleed width (no max-w container)
-const FULL_WIDTH_ROUTES = ["/table-results"];
+const FULL_WIDTH_ROUTES = [
+  "/table-results",
+  "/pit",
+  "/staff",
+  "/floor",
+  "/player-statistics",
+  "/incidents",
+  "/table-tracker",
+  "/tables/analytics",
+  "/business-days",
+  "/logs",
+  "/bank-checks",
+];
 
 const STORAGE_KEY = "cms.sidebar.collapsed";
 
@@ -51,7 +63,7 @@ export const AppLayout = () => {
               </Suspense>
             </div>
           ) : (
-            <div className="p-3 sm:p-6 max-w-7xl mx-auto animate-fade-in">
+            <div className="p-3 sm:p-6 max-w-[1600px] mx-auto animate-fade-in">
               <Suspense fallback={<PageLoader />}>
                 <Outlet />
               </Suspense>
