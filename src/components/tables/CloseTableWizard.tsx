@@ -302,7 +302,7 @@ export const CloseTableWizard = ({ open, onClose, tables, date, readOnly = false
                     <td className="py-1.5 px-2 text-center font-mono text-[11px] text-muted-foreground">
                       {expected}
                     </td>
-                    <td className="py-1.5 px-2">
+                    <td className="py-1 px-1">
                       <input
                         type="number"
                         min="0"
@@ -314,7 +314,7 @@ export const CloseTableWizard = ({ open, onClose, tables, date, readOnly = false
                           const v = e.target.value === "" ? 0 : parseInt(e.target.value, 10);
                           setCount(d, isNaN(v) ? 0 : v);
                         }}
-                        className="w-24 h-8 mx-auto block rounded text-[12px] font-mono text-center border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary text-card-foreground disabled:opacity-100 disabled:cursor-default"
+                        className="no-spin w-full max-w-[140px] h-11 mx-auto block rounded text-lg font-mono font-semibold text-center border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary text-card-foreground disabled:opacity-100 disabled:cursor-default"
                         placeholder={String(expected)}
                       />
                     </td>
