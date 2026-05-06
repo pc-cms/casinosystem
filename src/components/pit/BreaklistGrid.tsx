@@ -6,7 +6,8 @@ import { Lock, Unlock, LockKeyhole } from "lucide-react";
 import { toast } from "sonner";
 import { ALL_ROLES, ROLE_COLORS, TABLE_ROLES } from "@/lib/currency";
 import { getTableCellClasses } from "@/lib/table-colors";
-import { isBusinessToday, isAfterBreaklistLock, nowEAT } from "@/lib/business-day";
+import { isAfterBreaklistLock, nowEAT } from "@/lib/business-day";
+import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
 const CATEGORY_LABELS: Record<string, string> = {
   trainee: "T",
   dealer: "D",
