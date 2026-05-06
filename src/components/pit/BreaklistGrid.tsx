@@ -296,24 +296,24 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
                 </th>
                 <th
                   onClick={() => setSortBy("category")}
-                  className={`text-center text-[9px] font-medium uppercase px-1 py-2 min-w-[24px] sticky left-[26px] bg-card z-10 cursor-pointer hover:text-foreground select-none ${sortBy === "category" ? "text-foreground" : "text-muted-foreground"}`}
+                  className={`text-center text-[9px] font-medium uppercase px-1 py-2 min-w-[34px] whitespace-nowrap sticky left-[26px] bg-card z-10 cursor-pointer hover:text-foreground select-none ${sortBy === "category" ? "text-foreground" : "text-muted-foreground"}`}
                   title="Sort by Category"
                 >
-                  C {sortBy === "category" && "↓"}
+                  <span className="inline-flex items-center justify-center gap-0.5">C{sortBy === "category" && <span className="text-[8px]">↓</span>}</span>
                 </th>
                 <th
                   onClick={() => setSortBy("name")}
-                  className={`text-left text-xs font-medium uppercase px-3 py-2 sticky left-[50px] bg-card z-10 min-w-[120px] cursor-pointer hover:text-foreground select-none ${sortBy === "name" ? "text-foreground" : "text-muted-foreground"}`}
+                  className={`text-left text-xs font-medium uppercase px-3 py-2 sticky left-[60px] bg-card z-10 min-w-[120px] whitespace-nowrap cursor-pointer hover:text-foreground select-none ${sortBy === "name" ? "text-foreground" : "text-muted-foreground"}`}
                   title="Sort by Name"
                 >
-                  Name {sortBy === "name" && "↓"}
+                  Name {sortBy === "name" && <span className="text-[10px]">↓</span>}
                 </th>
                 <th
                   onClick={() => setSortBy("shift")}
-                  className={`text-center text-[9px] font-medium uppercase px-1 py-2 min-w-[32px] cursor-pointer hover:text-foreground select-none ${sortBy === "shift" ? "text-foreground" : "text-muted-foreground"}`}
+                  className={`text-center text-[9px] font-medium uppercase px-1 py-2 min-w-[34px] whitespace-nowrap cursor-pointer hover:text-foreground select-none ${sortBy === "shift" ? "text-foreground" : "text-muted-foreground"}`}
                   title="Sort by Shift"
                 >
-                  S {sortBy === "shift" && "↓"}
+                  <span className="inline-flex items-center justify-center gap-0.5">S{sortBy === "shift" && <span className="text-[8px]">↓</span>}</span>
                 </th>
                 {TIME_SLOTS.map(slot => {
                   const isActive = isToday && slot === currentSlot;
@@ -345,7 +345,7 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
                         {CATEGORY_LABELS[dealer.category] || "?"}
                       </span>
                     </td>
-                    <td className={`px-3 py-1 text-xs font-medium text-card-foreground sticky left-[50px] z-10 ${idx % 2 === 1 ? "bg-card/95" : "bg-card"}`}>
+                    <td className={`px-3 py-1 text-xs font-medium text-card-foreground sticky left-[60px] z-10 ${idx % 2 === 1 ? "bg-card/95" : "bg-card"}`}>
                       <div className="flex items-center justify-between">
                         <span>{dealer.name}</span>
                         {lockedCount > 0 && (
