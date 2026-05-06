@@ -582,7 +582,7 @@ const CloseTablesForm = ({ tables }: { tables: Tables<"gaming_tables">[] }) => {
           const actual = Number(closingChips[String(d)]) || 0;
           const expected = tableBaseline[d] || 0;
           return { denom: d, diff: actual - expected };
-        }).filter(r => r.diff !== 0);
+        }).filter(r => r.diff !== 0).sort((a, b) => b.denom - a.denom);
 
         return (
           <div key={table.id} className="cms-panel p-3">
