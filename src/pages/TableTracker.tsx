@@ -55,7 +55,10 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
   const { data: trackerData = [] } = useTableTracker(date);
   const setValue = useSetTableTrackerValue();
 
-  const openTables = tables.filter(t => t.status === "open");
+  // Include closed tables that still have tracker data for the selected date,
+  // so a stool closed mid-shift doesn't disappear from Numbers/Final view.
+  const tablesWithData = useMemo(() => new Set(trackerData.map(t => t.table_id)), [trackerData]);
+  const openTables = tables.filter(t => t.status === "open" || tablesWithData.has(t.id));
   const isToday = date === today;
   const currentSlot = useMemo(() => getCurrentSlot(), []);
   const readOnly = !isToday && !isManager;

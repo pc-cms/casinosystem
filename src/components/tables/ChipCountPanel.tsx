@@ -46,7 +46,17 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
   const batchSnapshot = useBatchChipSnapshot();
 
   const baselineMap = useMemo(() => baselineToMap(baseline), [baseline]);
-  const openTables = useMemo(() => tables.filter(t => t.status === "open"), [tables]);
+  // Include closed tables that already have a chip-count snapshot for the selected
+  // date — closing a table mid-shift must NOT hide its chip count from review/edit.
+  const tablesWithSnap = useMemo(() => {
+    const s = new Set<string>();
+    snapshots.forEach((sn: any) => { if (sn.location_type === "table" && sn.location_id) s.add(sn.location_id); });
+    return s;
+  }, [snapshots]);
+  const openTables = useMemo(
+    () => tables.filter(t => t.status === "open" || tablesWithSnap.has(t.id)),
+    [tables, tablesWithSnap]
+  );
 
   const countLocations = useMemo(() => {
     return openTables.map(t => ({
