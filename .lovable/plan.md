@@ -1,31 +1,32 @@
-## Plan
+## Plan: единый стиль маленьких кнопок (Manager Access + actions)
 
-**1. Global container 1280px → 1600px**
-`src/components/layout/AppLayout.tsx` line 54: `max-w-7xl` → `max-w-[1600px]`. Gives all pages +320px on FullHD/27".
+**Цель:** все нижние кнопки в одном стиле — маленькие иконки. `Manager Access` тоже становится иконкой `ShieldCheck`, выделена цветом `primary` (золотой) когда активна — короткий хинт через tooltip/title.
 
-**2. Full-width data-grid routes**
-Same file, expand `FULL_WIDTH_ROUTES`:
+### Expanded sidebar (`src/components/layout/AppSidebar.tsx` ~612–700)
+
+**Удалить** широкие кнопки `Manager Active` / `Manager` / `Hide sidebar` (full-width).
+
+**Заменить** на единый ряд из 6 равных иконок (`flex-1 h-7`) сразу под именем:
+
 ```
-/table-results, /pit, /staff, /floor, /player-statistics,
-/incidents, /table-tracker, /tables/analytics,
-/business-days, /logs, /bank-checks
+Row 1:  [ Имя пользователя ………………… ]  ●network
+Row 2:  [ 🛡 ] [ ☀ ] [ ▭ ] [ ⟳ ] [ ⎋ ] [ ‹‹ ]
+         M.Acc Theme Dens Reload Logout Collapse
 ```
-These render edge-to-edge (only `p-3 sm:p-4` padding).
 
-**3. Density toggle in sidebar bottom panel**
-`src/components/layout/AppSidebar.tsx`:
-- Expanded panel (~line 645): add icon button between theme toggle and refresh — `Rows3`/`Rows2` lucide icon, click toggles between Comfort and Compact via `useDensity().setMode()`.
-- Collapsed panel (~line 480): mirror the same button in the icon column with tooltip "Density".
+- `Manager Access`: иконка `ShieldCheck`, при `managerOverride.active` — `bg-primary/20 text-primary border border-primary/40` (золотой акцент). Не показывается для `nativeManager` (там и так Admin доступ). Клик: открыть dialog или deactivate.
+- `Hide sidebar` (`ChevronsLeft`) добавляется в этот же ряд только если `onToggle` есть — иначе ряд из 5.
 
-Full 4-mode selector (Auto/Comfort/Compact/Touch) stays in Profile dialog.
+Отдельный `Manager ↑` бейдж под рядом — **удалить** (цвет иконки уже всё показывает).
 
-**4. Slightly larger fonts in Comfort**
-`src/index.css`: in the `[data-density="comfort"]` block bump base font-size by ~1px (e.g. 14px → 15px) and slightly increase row/input height tokens. Compact and Touch unchanged.
+### Collapsed sidebar (~475–533)
 
-### Files
-- `src/components/layout/AppLayout.tsx`
-- `src/components/layout/AppSidebar.tsx`
-- `src/index.css`
+После Profile, добавить **Manager Access** иконку (`ShieldCheck`, `w-10 h-10`) с тем же стилем подсветки primary при активном override (для `!nativeManager`). Tooltip справа: `Manager Access` / `Manager Active — click to deactivate`.
 
-### Not touched
-- PageHeader, Profile dialog, sidebar width, Compact/Touch styles, individual pages.
+Порядок в collapsed: Profile → **Manager Access** → Theme → Density → Reload → Logout → divider → Expand. Все одинаковые `w-10 h-10` — уже единый стиль.
+
+### Файлы
+- `src/components/layout/AppSidebar.tsx` — только нижняя панель (expanded + collapsed).
+
+### Не трогаем
+- ManagerOverrideDialog, auth-context, mobile-режим, верхнюю часть сайдбара.
