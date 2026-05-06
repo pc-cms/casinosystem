@@ -774,9 +774,9 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
                   const isToday = isCurrentMonth && day === todayDay;
                   const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
                   return (
-                    <th key={day} className={`text-center px-0 py-1 ${isToday ? "bg-primary/40" : isWeekend ? "bg-muted/30" : ""}`}>
-                      <div className="text-[8px] text-muted-foreground leading-tight">{weekday}</div>
-                      <div className={`text-[10px] font-mono leading-tight ${isToday ? "text-primary font-bold" : "text-card-foreground"}`}>{day}</div>
+                    <th key={day} className={`text-center px-0 py-1 border-l border-border/25 ${isToday ? "bg-primary/40" : isWeekend ? "bg-muted/30" : ""}`}>
+                      <div className="text-[9px] text-muted-foreground leading-tight">{weekday}</div>
+                      <div className={`text-xs font-mono leading-tight ${isToday ? "text-primary font-bold" : "text-card-foreground"}`}>{day}</div>
                     </th>
                   );
                 })}
