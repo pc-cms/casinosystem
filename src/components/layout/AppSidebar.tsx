@@ -8,7 +8,7 @@ import {
   Building2, UserCheck, ClipboardPen, ShieldCheck, ShieldOff,
   Wallet, DoorOpen, ShieldAlert, Menu, Upload, FileText,
   ChevronsLeft, ChevronsRight, CreditCard, CalendarDays, ChevronDown, ChevronRight, Coins, Briefcase,
-  RefreshCw, MessageSquare, User as UserIcon,
+  RefreshCw, MessageSquare, AlertTriangle, User as UserIcon,
 } from "lucide-react";
 import { UserProfileDialog } from "@/components/UserProfileDialog";
 import { resetPWACache } from "@/lib/pwa-register";
@@ -57,6 +57,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: "__attendance__", icon: ClipboardPen, label: "Attendance", roles: ["super_admin", "manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
   { to: "__rota__", icon: CalendarDays, label: "Rota", roles: ["super_admin", "manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
   { to: "/pitbook", icon: MessageSquare, label: "Pitbook", roles: ["super_admin", "manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
+  { to: "/incidents", icon: AlertTriangle, label: "Incidents", roles: ["super_admin", "manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
 
   // CASHIER — Cage operations
   { to: "/cage", icon: Landmark, label: "Cage", roles: ["super_admin", "manager", "cashier", "finance_manager"], section: "CASHIER" },

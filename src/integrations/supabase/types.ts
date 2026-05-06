@@ -1873,6 +1873,77 @@ export type Database = {
           },
         ]
       }
+      incidents: {
+        Row: {
+          casino_id: string
+          cctv_observer: string | null
+          comments: string | null
+          created_at: string
+          created_by: string | null
+          dealer_name: string | null
+          department: string | null
+          employees: string | null
+          id: string
+          incident: string
+          incident_date: string
+          incident_time: string
+          inspector_name: string | null
+          manager: string | null
+          outcome: string | null
+          points: number
+          table_name: string | null
+          violation_type: string | null
+        }
+        Insert: {
+          casino_id: string
+          cctv_observer?: string | null
+          comments?: string | null
+          created_at?: string
+          created_by?: string | null
+          dealer_name?: string | null
+          department?: string | null
+          employees?: string | null
+          id?: string
+          incident: string
+          incident_date: string
+          incident_time: string
+          inspector_name?: string | null
+          manager?: string | null
+          outcome?: string | null
+          points?: number
+          table_name?: string | null
+          violation_type?: string | null
+        }
+        Update: {
+          casino_id?: string
+          cctv_observer?: string | null
+          comments?: string | null
+          created_at?: string
+          created_by?: string | null
+          dealer_name?: string | null
+          department?: string | null
+          employees?: string | null
+          id?: string
+          incident?: string
+          incident_date?: string
+          incident_time?: string
+          inspector_name?: string | null
+          manager?: string | null
+          outcome?: string | null
+          points?: number
+          table_name?: string | null
+          violation_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incidents_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inter_casino_transfers: {
         Row: {
           amount: number
