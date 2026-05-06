@@ -260,16 +260,16 @@ const Incidents = () => {
             </div>
             <div className="space-y-1">
               <label className="text-xs text-muted-foreground">
-                Manager {rotaNames.pitBosses.length > 0 && <span className="text-[10px]">· {rotaNames.pitBosses.length} on rota</span>}
+                Manager {rotaNames.managers.length > 0 && <span className="text-[10px]">· {rotaNames.managers.length} available</span>}
               </label>
               <Input
                 list="incident-managers"
                 value={form.manager || ""}
                 onChange={e => setF("manager", e.target.value)}
-                placeholder={rotaNames.pitBosses[0] || "—"}
+                placeholder={rotaNames.managers[0] || "—"}
               />
               <datalist id="incident-managers">
-                {rotaNames.pitBosses.map(n => <option key={n} value={n} />)}
+                {rotaNames.managers.map(n => <option key={n} value={n} />)}
               </datalist>
             </div>
             <div className="space-y-1">
