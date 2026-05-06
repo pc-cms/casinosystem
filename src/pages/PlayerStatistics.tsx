@@ -663,7 +663,8 @@ const PlayerStatistics = () => {
                       const H = ({ k, align = "left", children, title, sticky }: { k: SortKey; align?: "left" | "right"; children: any; title?: string; sticky?: string }) => (
                         <th
                           title={title}
-                          className={`px-2 py-3 cursor-pointer select-none hover:text-foreground whitespace-nowrap font-semibold ${align === "right" ? "text-right" : "text-left"} ${sticky ? `${sticky} bg-muted z-20` : ""}`}
+                          style={{ top: "var(--ppheader-h, 0px)" }}
+                          className={`px-2 py-3 cursor-pointer select-none hover:text-foreground whitespace-nowrap font-semibold sticky bg-muted ${align === "right" ? "text-right" : "text-left"} ${sticky ? `${sticky} z-30` : "z-20"}`}
                           onClick={() => toggleSort(k)}
                         >
                           {children}<SortIcon k={k} />
@@ -671,7 +672,7 @@ const PlayerStatistics = () => {
                       );
                       return (
                         <>
-                          <th className="px-2 py-3 text-center sticky left-0 bg-muted z-20 w-10 font-semibold">№</th>
+                          <th style={{ top: "var(--ppheader-h, 0px)" }} className="px-2 py-3 text-center sticky left-0 bg-muted z-30 w-10 font-semibold">№</th>
                           <H k="name" sticky="sticky left-10">Name</H>
                           <H k="entry">Entry</H>
                           <H k="exit">Left</H>
