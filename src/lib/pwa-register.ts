@@ -89,7 +89,12 @@ export async function setupPWA() {
       onNeedRefresh() {
         console.log("[PWA] New version available");
 
-        // Persistent toast with explicit "Update" action
+        // Dispatch global event so any UI can react
+        window.dispatchEvent(new CustomEvent("pwa:update-available", {
+          detail: { update: updateSW },
+        }));
+
+        // Also show a persistent toast as fallback
         const toastId = toast("Доступна новая версия", {
           description: "Нажмите «Обновить», чтобы загрузить последнюю версию.",
           duration: Infinity,
