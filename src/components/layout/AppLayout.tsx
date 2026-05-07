@@ -4,6 +4,7 @@ import { AppSidebar } from "./AppSidebar";
 import { useRealtimeSubscriptions } from "@/hooks/use-realtime";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { MobileHeader } from "./AppSidebar";
+import { PWAUpdateNotification } from "@/components/PWAUpdateNotification";
 
 import { cn } from "@/lib/utils";
 
@@ -53,6 +54,7 @@ export const AppLayout = () => {
         </div>
       )}
       <div className="flex-1 flex flex-col overflow-hidden relative">
+        <PWAUpdateNotification />
         {isMobile && <div className="no-print"><MobileHeader /></div>}
         
         <main className="flex-1 overflow-y-auto">
