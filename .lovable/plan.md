@@ -1,54 +1,44 @@
-# Incidents — three fixes
+# Унификация бизнес-дня на 11:00 EAT (Africa/Nairobi = Africa/Dar_es_Salaam, UTC+3)
 
-## 1. Edit must allow Time + Photo (add/replace/remove)
+## Принцип
+- **11:00 EAT** — единственный rollover бизнес-дня. До 11:00 текущего календарного дня EAT — это всё ещё предыдущий business_date.
+- **05:00 EAT** — это **чекаут казино / закрытие открытых сессий и визитов**, НЕ rollover бизнес-дня. Cron `auto_close_business_day` остаётся как есть в этой роли.
+- DB уже на 11:00 (`get_current_business_date` fallback `< 11`, cron `auto-close-business-day` в `:05` после 11:00). Расхождение только в клиентском коде — он на 13:00.
 
-**Current behavior.** `useUpdateIncidentFollowup` only patches `outcome / points / comments`. A DB trigger (`incidents_lock_immutable_fields` or similar) blocks any other column. Edit row UI shows only those three fields.
+## Файлы и изменения
 
-**Change.**
+### 1. `src/lib/business-day.ts`
+- Docstring: «13:00 EAT» → «11:00 EAT»; добавить пояснение, что 05:00 — это чекаут, не rollover.
+- `getBusinessDate(shiftEndHour = 13)` → `= 11`.
+- `isBusinessToday(date, shiftEndHour = 13)` → `= 11`.
 
-- DB migration: relax the immutability trigger to also allow `incident_time` and `photo_url` to change after insert. Date, dealer, manager, incident text, etc. stay locked.
-- `IncidentFollowupPatch` type: add `incident_time?: string` and `photo_url?: string | null`.
-- `IncidentRow` editor:
-  - Time → `<Input type="time">` bound to local state (default `i.incident_time.slice(0,5)`).
-  - Photo cell becomes interactive while `editing`:
-    - If photo present → thumbnail with X to remove (sets `photo_url = null`).
-    - If absent (or removed) → camera button that opens file picker, uploads to `incident-photos` bucket via existing `compressImage` + `supabase.storage` flow, and sets `photo_url = publicUrl`.
-  - Save sends all five fields (outcome, points, comments, incident_time, photo_url).
-- Auto-bump `package.json` patch version (DB trigger changed).
+### 2. `src/hooks/use-incidents.ts`
+- Docstring (строки 36–42): «13:00 → 13:00» → «11:00 → 11:00».
+- Комментарий (стр. 67) и фильтр (стр. 69–70): `13:00:00` → `11:00:00`.
 
-## 2. Tables dropdown empty during entry
+### 3. `src/hooks/use-transactions.ts`
+- Стр. 23 комментарий: «D 13:00 EAT → D+1 13:00 EAT» → «D 11:00 EAT → D+1 11:00 EAT».
+- Стр. 24: `businessDayHourUTC(date, 13)` и `13 + 24` → `11` и `11 + 24`.
 
-**Cause.** `tableOptions` filters `gamingTables` by `status === "open"`. Outside of open Pit hours every table is `closed`, so the datalist is empty and the user falls back to typing manually.
+### 4. `src/hooks/use-expenses.ts`
+- Стр. 22 комментарий и стр. 24: тот же swap `13` → `11`.
 
-**Change.** Show all non-archived gaming tables, sorted by name. Open status should not gate the autocomplete — incidents may legitimately be logged for any table.
+### 5. `src/hooks/use-business-day-filter.ts`
+- Стр. 36 комментарий: «13:00 EAT» → «11:00 EAT».
 
-```ts
-const tableOptions = useMemo(
-  () => (gamingTables as any[])
-    .filter(t => !t.is_archived)
-    .map(t => t.name)
-    .sort(),
-  [gamingTables],
-);
-```
+### 6. `package.json`
+- Bump patch: `1.0.111` → `1.0.112` (затрагивает фильтрацию данных; формальный bump, без миграции).
 
-## 3. Saved incidents ordered incorrectly
+### 7. `mem://index.md` (Core)
+- Заменить «Auto-close runs at 11:00 EAT if forgotten» — оставить как есть (уже корректно).
+- В строку про timezone добавить уточнение: «Business-day rollover at 11:00 EAT (single source of truth). 05:00 EAT is casino checkout / open-sessions cleanup, NOT a rollover.»
 
-**Cause.** Query orders by `incident_date desc, incident_time desc`. When two rows share both date and time (common — same minute, no seconds entered) Postgres breaks the tie unpredictably, so newly-saved rows can appear below older ones.
+### 8. `mem://features/business-day-logic` — обновить «05:00 AM rollover logic» → «11:00 EAT rollover; 05:00 EAT = checkout cron only».
 
-**Change.** Add `created_at desc` as a stable tiebreaker in `useIncidents`:
+## Что НЕ трогаем
+- DB-функции (`get_current_business_date`, `close_business_day`, `auto_close_business_day`, `auto-close-business-day` cron) — уже корректны.
+- `BreaklistGrid` `shift_end` (это конец смены казино, отдельная сущность).
+- Edge-case в `get_current_business_date` (`LEAST(last_closed+1, today_eat)`), 2-арг overload `close_business_day`, scope-check — оставляем на отдельный заход (вы их пока не одобрили).
 
-```ts
-.order("incident_date", { ascending: false })
-.order("incident_time", { ascending: false })
-.order("created_at",   { ascending: false })
-```
-
-This keeps chronological ordering by user-entered time, and within identical times the most recently saved row appears first.
-
-## Files touched
-
-- `supabase/migrations/<new>.sql` — relax incidents immutability trigger (allow `incident_time`, `photo_url`).
-- `src/hooks/use-incidents.ts` — extend `IncidentFollowupPatch`; add `created_at` sort.
-- `src/pages/Incidents.tsx` — drop `status === "open"` filter on tables; add Time + Photo editors to `IncidentRow`.
-- `package.json` — patch bump.
+## Отчёт после применения
+Дам короткий отчёт: какие файлы изменены, какие строки заменены, и подтверждение `rg "13:00\|getBusinessDate(1[023])"` без совпадений в `src/`.

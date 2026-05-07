@@ -1,8 +1,9 @@
 /**
  * Casino business day logic.
- * All time calculations use Africa/Dar_es_Salaam (EAT, UTC+3).
- * A shift runs across midnight and is manually closed. The fallback rollover
- * keeps the previous business date until 13:00 EAT.
+ * All time calculations use Africa/Dar_es_Salaam (EAT, UTC+3 — same as Africa/Nairobi).
+ * Business-day rollover is at 11:00 EAT (matches DB get_current_business_date and
+ * the auto-close cron). 05:00 EAT is casino checkout / open-sessions cleanup,
+ * NOT a business-day rollover.
  */
 
 /** Get current date/time as a Date object whose LOCAL fields (getHours/getMinutes/getDate)
