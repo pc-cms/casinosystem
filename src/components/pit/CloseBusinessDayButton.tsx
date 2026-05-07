@@ -8,6 +8,7 @@ import {
   useEffectiveBusinessDate,
   useLastBusinessDayClosure,
 } from "@/hooks/use-business-day-closure";
+import { useActiveShift } from "@/hooks/use-shift";
 import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
 
 /**
