@@ -177,6 +177,11 @@ const CloseShiftDialog = ({
   const handleCloseRequest = () => {
     if (!tablesAllClosed) return;
     if (!noteValid) return;
+    setShowManagerReview(true);
+  };
+
+  const handleProceedToPassword = () => {
+    setShowManagerReview(false);
     setShowManagerConfirm(true);
   };
 
