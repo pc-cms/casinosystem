@@ -47,6 +47,7 @@ const CloseShiftDialog = ({
   totalExpenses, externalCashMovement = 0, openingFloat, tables, onConfirm, loading,
 }: CloseShiftDialogProps) => {
   const [notes, setNotes] = useState("");
+  const [showManagerReview, setShowManagerReview] = useState(false);
   const [showManagerConfirm, setShowManagerConfirm] = useState(false);
   const batchSnapshot = useBatchChipSnapshot();
 
