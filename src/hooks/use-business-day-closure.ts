@@ -59,16 +59,22 @@ export function useCloseBusinessDay() {
       const { data, error } = await supabase.rpc("close_business_day", {
         _casino_id: casinoId,
         _method: "manual",
+        _force_close_cycles: false,
       });
       if (error) throw error;
-      return data as { status: string; business_date: string };
+      return data as { status: string; business_date: string; open?: any };
     },
     onSuccess: (res) => {
-      // Refresh everything — operational dashboards/tables/tracker/transactions
-      // are scoped to the current business day and must roll over immediately.
       qc.invalidateQueries();
       if (res?.status === "already_closed") {
         toast.info(`Day ${res.business_date} is already closed`);
+      } else if (res?.status === "has_open_cycles") {
+        const open = res.open || {};
+        const parts: string[] = [];
+        if (open.open_cage_shifts?.length) parts.push(`${open.open_cage_shifts.length} cage shift(s)`);
+        if (open.active_sessions?.length) parts.push(`${open.active_sessions.length} active player session(s)`);
+        if (open.open_visits?.length) parts.push(`${open.open_visits.length} open visit(s)`);
+        toast.error(`Cannot close day — open: ${parts.join(", ") || "unknown"}`);
       } else {
         toast.success(`Business day ${res.business_date} closed`);
       }

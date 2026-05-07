@@ -3523,6 +3523,7 @@ export type Database = {
         Returns: undefined
       }
       activity_logs_purge: { Args: { p_days?: number }; Returns: number }
+      apply_cage_shift_closing: { Args: { _shift_id: string }; Returns: Json }
       auto_close_business_day: { Args: never; Returns: Json }
       auto_close_forgotten_business_days: { Args: never; Returns: undefined }
       build_business_day_snapshot: {
@@ -3530,16 +3531,14 @@ export type Database = {
         Returns: Json
       }
       cleanup_old_data: { Args: never; Returns: Json }
-      close_business_day:
-        | { Args: { _casino_id: string; _method?: string }; Returns: Json }
-        | {
-            Args: {
-              _casino_id: string
-              _force_close_cycles?: boolean
-              _method?: string
-            }
-            Returns: Json
-          }
+      close_business_day: {
+        Args: {
+          _casino_id: string
+          _force_close_cycles?: boolean
+          _method?: string
+        }
+        Returns: Json
+      }
       close_open_sessions_5am: { Args: never; Returns: Json }
       compute_player_drop_split: {
         Args: { _from?: string; _player_id: string; _to?: string }
@@ -3684,10 +3683,6 @@ export type Database = {
       populate_table_daily_results_for_day: {
         Args: { _business_date: string; _casino_id: string; _user: string }
         Returns: number
-      }
-      rebaseline_chips_from_closing_snapshot: {
-        Args: { _business_date: string; _casino_id: string }
-        Returns: Json
       }
       refresh_chip_initial_baseline: {
         Args: { _casino_id: string }
