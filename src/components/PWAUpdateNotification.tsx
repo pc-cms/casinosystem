@@ -10,6 +10,8 @@ import { RefreshCw, Download, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+declare const __APP_VERSION__: string | undefined;
+
 type UpdateFn = (reload?: boolean) => Promise<void>;
 
 export const PWAUpdateNotification = () => {
