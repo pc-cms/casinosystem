@@ -47,6 +47,7 @@ const CloseShiftDialog = ({
   totalExpenses, externalCashMovement = 0, openingFloat, tables, onConfirm, loading,
 }: CloseShiftDialogProps) => {
   const [notes, setNotes] = useState("");
+  const [showManagerReview, setShowManagerReview] = useState(false);
   const [showManagerConfirm, setShowManagerConfirm] = useState(false);
   const batchSnapshot = useBatchChipSnapshot();
 
@@ -176,6 +177,11 @@ const CloseShiftDialog = ({
   const handleCloseRequest = () => {
     if (!tablesAllClosed) return;
     if (!noteValid) return;
+    setShowManagerReview(true);
+  };
+
+  const handleProceedToPassword = () => {
+    setShowManagerReview(false);
     setShowManagerConfirm(true);
   };
 
@@ -406,6 +412,80 @@ const CloseShiftDialog = ({
             >
               <ShieldAlert className="w-4 h-4" />
               {loading ? "Closing…" : "Close Shift (Manager Confirm)"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Manager Review (acceptance step) ─────────────────────────── */}
+      <Dialog open={showManagerReview} onOpenChange={v => { if (!v) setShowManagerReview(false); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ShieldAlert className="w-5 h-5 text-amber-600" />
+              Manager Review — Accept Cash Desk
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-xs text-muted-foreground">
+            Verify each section below matches the physical cash desk before
+            authorizing the shift close.
+          </p>
+
+          <div className="space-y-1 text-sm font-mono mt-2">
+            <div className="flex justify-between border-b border-border/40 py-1">
+              <span className="text-muted-foreground">Chips</span>
+              <span className="text-card-foreground">{formatNumberSpaces(closingChipsTzs)} TZS</span>
+            </div>
+            <div className="flex justify-between border-b border-border/40 py-1">
+              <span className="text-muted-foreground">Cash</span>
+              <span className="text-card-foreground">{formatNumberSpaces(closingCashOnlyTzs)} TZS</span>
+            </div>
+            <div className="flex justify-between border-b border-border/40 py-1">
+              <span className="text-muted-foreground">Mobile Money</span>
+              <span className="text-card-foreground">{formatNumberSpaces(closingMobileTzs)} TZS</span>
+            </div>
+            <div className="flex justify-between border-b border-border/40 py-1">
+              <span className="text-muted-foreground">Bank</span>
+              <span className="text-card-foreground">{formatNumberSpaces(closingBankTzs)} TZS</span>
+            </div>
+            <div className="flex justify-between border-b border-border/40 py-1">
+              <span className="text-muted-foreground">Result Table</span>
+              <span className={resultTable >= 0 ? "cms-amount-positive" : "cms-amount-negative"}>
+                {resultTable >= 0 ? "+" : ""}{formatNumberSpaces(resultTable)}
+              </span>
+            </div>
+            <div className="flex justify-between border-b border-border/40 py-1">
+              <span className="text-muted-foreground">Miss Total</span>
+              <span className={missTotal >= 0 ? "cms-amount-positive" : missTotal < 0 ? "cms-amount-negative" : "text-card-foreground"}>
+                {missTotal >= 0 ? "+" : ""}{formatNumberSpaces(missTotal)}
+              </span>
+            </div>
+            <div className="flex justify-between pt-2 mt-1 text-base font-bold">
+              <span className="text-card-foreground">Cash Desk Balance</span>
+              <span className={isBalanced ? "text-success" : balance > 0 ? "cms-amount-positive" : "cms-amount-negative"}>
+                {balance >= 0 ? "+" : ""}{formatNumberSpaces(balance)} TZS
+              </span>
+            </div>
+          </div>
+
+          {!isBalanced && (
+            <p className="mt-2 text-[11px] text-destructive flex items-center gap-1">
+              <AlertTriangle className="w-3 h-3" />
+              Not balanced — manager password required to accept the discrepancy.
+            </p>
+          )}
+
+          <DialogFooter className="mt-3">
+            <Button variant="outline" onClick={() => setShowManagerReview(false)}>
+              Back
+            </Button>
+            <Button
+              variant={isBalanced ? "default" : "destructive"}
+              onClick={handleProceedToPassword}
+              className="gap-1.5"
+            >
+              <ShieldAlert className="w-4 h-4" />
+              Accept &amp; Enter Manager Password
             </Button>
           </DialogFooter>
         </DialogContent>
