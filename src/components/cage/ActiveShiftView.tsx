@@ -229,7 +229,7 @@ const ActiveShiftView = ({ shift, players, tables }: {
           />
         </TabsContent>
         <TabsContent value="check" className="space-y-3">
-          <CashCheckForm expectedBalance={expectedTotal} shiftId={shift.id} exchangeRates={exchangeRates} cashChecks={cashChecks} />
+          <CashCheckForm expectedBalance={expectedTotal} shiftId={shift.id} exchangeRates={exchangeRates} cashChecks={cashChecks} businessDate={businessDate} />
           <TransactionsTable
             transactions={shiftTransactions}
             tableMap={tableMap}
@@ -462,12 +462,16 @@ const OutForm = ({ players, tables, shiftId, onSubmit, loading }: {
 };
 
 // =================== CASH CHECK ===================
-const CashCheckForm = ({ expectedBalance, shiftId, exchangeRates, cashChecks }: {
+const CashCheckForm = ({ expectedBalance, shiftId, exchangeRates, cashChecks, businessDate }: {
   expectedBalance: number;
   shiftId: string;
   exchangeRates: Record<string, number>;
   cashChecks: Tables<"cash_counts">[];
+  businessDate: string;
 }) => {
+  const { hasRole } = useAuth();
+  const canBrowseHistory = hasRole("manager") || hasRole("pit") || hasRole("surveillance") || hasRole("finance_manager") || hasRole("super_admin");
+
   const createCount = useCreateCashCount();
   const lastCheck = cashChecks[0];
   const lastDenoms = (lastCheck?.denominations || {}) as Record<string, unknown>;
@@ -477,7 +481,6 @@ const CashCheckForm = ({ expectedBalance, shiftId, exchangeRates, cashChecks }: 
   const [mobileBal, setMobileBal] = useState<MobileProviders>(() => (lastDenoms.mobile as MobileProviders) || emptyMobile());
   const seededId = useRef<string | null>(lastCheck?.id || null);
   useEffect(() => {
-    // Re-seed only when a NEW check arrives (and current form is back to empty after submit)
     if (lastCheck && lastCheck.id !== seededId.current) {
       seededId.current = lastCheck.id;
     }
@@ -486,8 +489,17 @@ const CashCheckForm = ({ expectedBalance, shiftId, exchangeRates, cashChecks }: 
   const totalTzs = useMemo(() => calcGrandTotal(chipCounts, cash, bankBal, mobileBal, exchangeRates), [chipCounts, cash, bankBal, mobileBal, exchangeRates]);
   const difference = totalTzs - expectedBalance;
   const [showDiff, setShowDiff] = useState(false);
-  // Hide Diff again as soon as the user edits any input after recording
   useEffect(() => { setShowDiff(false); }, [chipCounts, cash, bankBal, mobileBal]);
+
+  // History viewer
+  const [viewerCheck, setViewerCheck] = useState<Tables<"cash_counts"> | null>(null);
+  const [historyDate, setHistoryDate] = useState<string>(businessDate);
+  const browsingPast = canBrowseHistory && historyDate !== businessDate;
+  const { data: historicalChecks = [] } = useCashChecksByBusinessDate(
+    historyDate,
+    canBrowseHistory && browsingPast,
+  );
+  const displayedChecks = browsingPast ? historicalChecks : cashChecks;
 
   const handleRecord = () => {
     createCount.mutate({
@@ -527,27 +539,58 @@ const CashCheckForm = ({ expectedBalance, shiftId, exchangeRates, cashChecks }: 
         </Button>
       </div>
 
-      {cashChecks.length > 0 && (
-        <div className="cms-panel">
-          <div className="cms-header text-xs">Previous ({cashChecks.length})</div>
+      <div className="cms-panel">
+        <div className="cms-header text-xs flex items-center justify-between gap-2">
+          <span>Previous ({displayedChecks.length}){browsingPast ? " · history" : ""}</span>
+          {canBrowseHistory && (
+            <div className="flex items-center gap-1.5">
+              <Input
+                type="date"
+                value={historyDate}
+                max={businessDate}
+                onChange={e => setHistoryDate(e.target.value || businessDate)}
+                className="font-mono text-[10px] w-36"
+              />
+              {browsingPast && (
+                <Button variant="ghost" size="sm" className="h-6 text-[10px]" onClick={() => setHistoryDate(businessDate)}>
+                  Today
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
+        {displayedChecks.length === 0 ? (
+          <div className="px-3 py-4 text-center text-[11px] text-muted-foreground">No checks for this day</div>
+        ) : (
           <div className="divide-y divide-border">
-            {cashChecks.slice(0, 5).map(cc => {
+            {displayedChecks.slice(0, browsingPast ? 50 : 5).map(cc => {
               const t = ((cc.denominations || {}) as Record<string, any>).totals || {};
               const diff = Number(t.difference ?? 0);
               const balanced = !!t.balanced || diff === 0;
               return (
-                <div key={cc.id} className="px-3 py-1.5 flex items-center justify-between gap-3">
+                <button
+                  type="button"
+                  key={cc.id}
+                  onClick={() => setViewerCheck(cc)}
+                  className="w-full px-3 py-1.5 flex items-center justify-between gap-3 hover:bg-accent/30 transition-colors text-left"
+                >
                   <span className="text-[10px] text-muted-foreground font-mono">{new Date(cc.created_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}</span>
                   <span className="font-mono text-xs font-medium text-card-foreground flex-1 text-right">{formatCurrency(Number(cc.total))}</span>
                   <span className={`font-mono text-[10px] font-bold w-24 text-right ${balanced ? "text-success" : "text-destructive"}`}>
                     {balanced ? "Balanced" : `${diff >= 0 ? "+" : ""}${formatCurrency(diff)}`}
                   </span>
-                </div>
+                </button>
               );
             })}
           </div>
-        </div>
-      )}
+        )}
+      </div>
+
+      <CashCheckViewerDialog
+        open={!!viewerCheck}
+        onOpenChange={(o) => { if (!o) setViewerCheck(null); }}
+        check={viewerCheck}
+      />
     </div>
   );
 };
