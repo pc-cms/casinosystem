@@ -3650,6 +3650,10 @@ export type Database = {
         Args: { _business_date: string; _casino_id: string; _user: string }
         Returns: number
       }
+      rebaseline_chips_from_closing_snapshot: {
+        Args: { _business_date: string; _casino_id: string }
+        Returns: Json
+      }
       refresh_chip_initial_baseline: {
         Args: { _casino_id: string }
         Returns: undefined
