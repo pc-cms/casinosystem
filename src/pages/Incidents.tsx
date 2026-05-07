@@ -623,19 +623,53 @@ const IncidentRow = ({
   const [outcome, setOutcome] = useState(i.outcome || "");
   const [points, setPoints] = useState(i.points || 0);
   const [comments, setComments] = useState(i.comments || "");
+  const [incidentTime, setIncidentTime] = useState((i.incident_time || "").slice(0, 5));
+  const [photoUrl, setPhotoUrl] = useState<string | null>(i.photo_url);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const editFileRef = useRef<HTMLInputElement>(null);
 
   const startEdit = () => {
     setOutcome(i.outcome || "");
     setPoints(i.points || 0);
     setComments(i.comments || "");
+    setIncidentTime((i.incident_time || "").slice(0, 5));
+    setPhotoUrl(i.photo_url);
     setEditing(true);
+  };
+
+  const handleEditPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingPhoto(true);
+    try {
+      const compressed = await compressImage(file);
+      const path = `${new Date().toISOString().slice(0, 10)}/${Date.now()}.jpg`;
+      const { error } = await supabase.storage
+        .from("incident-photos")
+        .upload(path, compressed.thumbnail, { contentType: "image/jpeg", upsert: false });
+      if (error) throw error;
+      const { data: { publicUrl } } = supabase.storage.from("incident-photos").getPublicUrl(path);
+      setPhotoUrl(publicUrl);
+      toast.success("Photo replaced");
+    } catch (err: any) {
+      toast.error(err.message || "Upload failed");
+    } finally {
+      setUploadingPhoto(false);
+      if (editFileRef.current) editFileRef.current.value = "";
+    }
   };
 
   const save = async () => {
     try {
       await updateMut.mutateAsync({
         id: i.id,
-        patch: { outcome: outcome || null, points: Number(points) || 0, comments: comments || null },
+        patch: {
+          outcome: outcome || null,
+          points: Number(points) || 0,
+          comments: comments || null,
+          incident_time: incidentTime || i.incident_time,
+          photo_url: photoUrl,
+        },
       });
       toast.success("Updated");
       setEditing(false);
