@@ -682,10 +682,19 @@ const IncidentRow = ({
     <tr className="border-t border-border hover:bg-muted/30">
       <td className={`px-3 py-2.5 whitespace-nowrap ${stickyDate} border-r border-border`}>{i.incident_date}</td>
       <td
-        className={`px-3 py-2.5 whitespace-nowrap ${stickyTime} border-r border-border`}
+        className={`px-1 py-1 whitespace-nowrap ${stickyTime} border-r border-border`}
         style={stickyTimeLeft}
       >
-        {i.incident_time?.slice(0, 5)}
+        {editing ? (
+          <Input
+            type="time"
+            value={incidentTime}
+            onChange={(e) => setIncidentTime(e.target.value)}
+            className={cellInput}
+          />
+        ) : (
+          i.incident_time?.slice(0, 5)
+        )}
       </td>
       <td className="px-3 py-2.5">{i.cctv_observer || "·"}</td>
       <td className="px-3 py-2.5">{i.manager || "·"}</td>
@@ -744,8 +753,44 @@ const IncidentRow = ({
         )}
       </td>
 
-      <td className="px-3 py-2.5 text-center">
-        {i.photo_url ? (
+      <td className="px-1 py-1 text-center">
+        <input
+          ref={editFileRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleEditPhoto}
+        />
+        {editing ? (
+          photoUrl ? (
+            <div className="relative inline-block">
+              <img
+                src={photoUrl}
+                alt=""
+                className="h-7 w-7 object-cover rounded cursor-pointer"
+                onClick={() => onView(photoUrl)}
+              />
+              <button
+                type="button"
+                onClick={() => setPhotoUrl(null)}
+                className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full w-3.5 h-3.5 flex items-center justify-center"
+                title="Remove photo"
+              >
+                <X className="w-2 h-2" />
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => editFileRef.current?.click()}
+              disabled={uploadingPhoto}
+              className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-muted hover:bg-muted/70 text-muted-foreground"
+              title="Attach photo"
+            >
+              {uploadingPhoto ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Camera className="w-3.5 h-3.5" />}
+            </button>
+          )
+        ) : i.photo_url ? (
           <button
             type="button"
             onClick={() => onView(i.photo_url!)}
