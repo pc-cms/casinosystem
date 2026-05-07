@@ -4,6 +4,7 @@ import { AppSidebar } from "./AppSidebar";
 import { useRealtimeSubscriptions } from "@/hooks/use-realtime";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { MobileHeader } from "./AppSidebar";
+import { PWAUpdateNotification } from "@/components/PWAUpdateNotification";
 
 import { cn } from "@/lib/utils";
 
