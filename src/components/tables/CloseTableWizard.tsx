@@ -18,6 +18,7 @@ import { formatChipLabel, formatCurrency } from "@/lib/currency";
 import { useChipColors, resolveChipColor } from "@/hooks/use-chip-colors";
 import { useChipBaseline, useSetSingleTableResult, useReopenSingleTable, useCloseAllTables, baselineToMap } from "@/hooks/use-table-lifecycle";
 import { useChipSnapshots } from "@/hooks/use-chips";
+import { useSetTableTrackerValue } from "@/hooks/use-casino-data";
 import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -61,6 +62,7 @@ export const CloseTableWizard = ({ open, onClose, tables, date, readOnly = false
   const setSingleResult = useSetSingleTableResult();
   const reopenSingle = useReopenSingleTable();
   const closeAll = useCloseAllTables();
+  const setTrackerValue = useSetTableTrackerValue();
 
   // Reset cursor when wizard opens
   useEffect(() => {
@@ -147,6 +149,9 @@ export const CloseTableWizard = ({ open, onClose, tables, date, readOnly = false
       {
         onSuccess: () => {
           toast.success(`${current.name} saved`);
+          // Mirror result into Number Count tracker Final slot (05:00) so Tables Analytics
+          // and Final column always reflect the close-tables value.
+          setTrackerValue.mutate({ table_id: current.id, date, time_slot: "05:00", value: result });
           // Clear local edits for this table since it's now persisted
           setCounts(c => { const cp = { ...c }; delete cp[current.id]; return cp; });
           if (advance && currentIdx < wizardTables.length - 1) {
