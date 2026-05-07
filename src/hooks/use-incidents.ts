@@ -53,6 +53,7 @@ export const useIncidents = (days: number | null = null) => {
       const { data, error } = await q
         .order("incident_date", { ascending: false })
         .order("incident_time", { ascending: false })
+        .order("created_at", { ascending: false })
         .limit(2000);
       if (error) throw error;
       return (data || []) as Incident[];
@@ -95,12 +96,14 @@ export const useCreateIncident = () => {
   });
 };
 
-// Allowed follow-up edits: outcome / points / comments only.
+// Allowed follow-up edits: outcome / points / comments / incident_time / photo_url.
 // All other fields are locked by a DB trigger.
 export type IncidentFollowupPatch = {
   outcome?: string | null;
   points?: number;
   comments?: string | null;
+  incident_time?: string;
+  photo_url?: string | null;
 };
 
 export const useUpdateIncidentFollowup = () => {

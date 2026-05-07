@@ -110,11 +110,12 @@ const Incidents = () => {
   const { data: staffMembers = [] } = useStaffMembers();
   
 
-  // Tables shown in breaklist = open gaming tables.
+  // All non-archived gaming tables. We don't filter by status — incidents
+  // can be logged any time of day, including when tables are closed.
   const tableOptions = useMemo(
     () =>
       (gamingTables as any[])
-        .filter((t) => t.status === "open" && !t.is_archived)
+        .filter((t) => !t.is_archived)
         .map((t) => t.name)
         .sort(),
     [gamingTables],
