@@ -96,7 +96,8 @@ const Incidents = () => {
   const canPost = roles.some((r) => ["super_admin", "manager", "surveillance"].includes(r));
 
   const [search, setSearch] = useState("");
-  const { data: incidents = [], isLoading } = useIncidents(null);
+  // Business-day window 01:00 → 01:00 anchored on the selected date.
+  const { data: incidents = [], isLoading } = useIncidents(null, form.incident_date);
   const createMut = useCreateIncident();
 
   const [form, setForm] = useState<IncidentInput>(emptyForm());
