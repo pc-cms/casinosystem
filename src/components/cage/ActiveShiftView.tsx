@@ -481,6 +481,9 @@ const CashCheckForm = ({ expectedBalance, shiftId, exchangeRates, cashChecks }: 
 
   const totalTzs = useMemo(() => calcGrandTotal(chipCounts, cash, bankBal, mobileBal, exchangeRates), [chipCounts, cash, bankBal, mobileBal, exchangeRates]);
   const difference = totalTzs - expectedBalance;
+  const [showDiff, setShowDiff] = useState(false);
+  // Hide Diff again as soon as the user edits any input after recording
+  useEffect(() => { setShowDiff(false); }, [chipCounts, cash, bankBal, mobileBal]);
 
   const handleRecord = () => {
     createCount.mutate({
