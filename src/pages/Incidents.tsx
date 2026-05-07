@@ -571,6 +571,11 @@ const Incidents = () => {
                     stickyTime={stickyTime}
                     stickyTimeLeft={stickyTimeLeft}
                     cellInput={cellInput}
+                    tableOptions={tableOptions}
+                    dealerOptions={rotaNames.dealerInspector}
+                    managerOptions={rotaNames.managers}
+                    pitBosses={rotaNames.pitBosses}
+                    staffMembers={staffMembers as any[]}
                   />
                 ))
               )}
