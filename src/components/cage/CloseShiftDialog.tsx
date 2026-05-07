@@ -682,11 +682,19 @@ const CloseShiftDialog = ({
   );
 };
 
-const RowKV = ({
-  label, value, muted, amountClass,
-}: { label: string; value: string; muted?: boolean; amountClass?: string }) => (
+const BlockTotal = ({ label, value }: { label: string; value: number }) => (
+  <div className="text-center rounded-md border border-border bg-background/40 p-2">
+    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">{label}</p>
+    <p className="font-mono text-sm font-bold text-card-foreground mt-0.5">{formatNumberSpaces(value)}</p>
+    <p className="text-[9px] text-muted-foreground">TZS</p>
+  </div>
+);
+
+const FormulaRow = ({
+  label, value, amountClass,
+}: { label: string; value: string; amountClass?: string }) => (
   <div className="flex justify-between border-b border-border/30 py-1">
-    <span className={muted ? "text-muted-foreground/60" : "text-muted-foreground"}>{label}</span>
+    <span className="text-muted-foreground">{label}</span>
     <span className={amountClass ?? "text-card-foreground"}>{value}</span>
   </div>
 );
