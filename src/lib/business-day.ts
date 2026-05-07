@@ -25,7 +25,7 @@ function ymdEAT(d: Date = new Date()): string {
   return d.toLocaleDateString("en-CA", { timeZone: "Africa/Dar_es_Salaam" });
 }
 
-export function getBusinessDate(shiftEndHour = 13): string {
+export function getBusinessDate(shiftEndHour = 11): string {
   const now = new Date();
   // Hour in EAT regardless of browser timezone
   const eatHour = parseInt(
@@ -43,7 +43,7 @@ export function getBusinessDate(shiftEndHour = 13): string {
 /**
  * Check if a given date string matches the current business day.
  */
-export function isBusinessToday(date: string, shiftEndHour = 13): boolean {
+export function isBusinessToday(date: string, shiftEndHour = 11): boolean {
   return date === getBusinessDate(shiftEndHour);
 }
 
