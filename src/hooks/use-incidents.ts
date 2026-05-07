@@ -118,15 +118,8 @@ export const useCreateIncident = () => {
   });
 };
 
-// Allowed follow-up edits: outcome / points / comments / incident_time / photo_url.
-// All other fields are locked by a DB trigger.
-export type IncidentFollowupPatch = {
-  outcome?: string | null;
-  points?: number;
-  comments?: string | null;
-  incident_time?: string;
-  photo_url?: string | null;
-};
+// Full edit allowed; DB trigger writes audit trail of every changed field.
+export type IncidentFollowupPatch = Partial<Omit<Incident, "id" | "casino_id" | "created_by" | "created_at">>;
 
 export const useUpdateIncidentFollowup = () => {
   const { casinoId } = useAuth();
