@@ -24,8 +24,8 @@ const slotForChipCount = (now: Date): string | null => {
   if (m >= 50) targetH = (h + 1) % 24;
   else if (m <= 10) targetH = h;
   else return null;
-  // Allowed slots: 18..23 and 00..04 (05:00 handled by the Final-window branch above)
-  const allowed = (targetH >= 18 && targetH <= 23) || (targetH >= 0 && targetH <= 4);
+  // Allowed slots: 19..23 and 00..04 (05:00 handled by the Final-window branch above)
+  const allowed = (targetH >= 19 && targetH <= 23) || (targetH >= 0 && targetH <= 4);
   if (!allowed) return null;
   return `${String(targetH).padStart(2, "0")}:00`;
 };
