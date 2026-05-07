@@ -20,11 +20,11 @@ export const PWAUpdateNotification = () => {
   const [currentVersion, setCurrentVersion] = useState("");
 
   useEffect(() => {
-    // Try to read current runtime version
-    try {
-      const el = document.querySelector('meta[name="app-version"]') as HTMLMetaElement | null;
-      if (el?.content) setCurrentVersion(el.content);
-    } catch { /* ignore */ }
+    setCurrentVersion(
+      typeof __APP_VERSION__ !== "undefined" && __APP_VERSION__
+        ? __APP_VERSION__
+        : ""
+    );
   }, []);
 
   useEffect(() => {
