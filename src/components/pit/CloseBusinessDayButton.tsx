@@ -24,6 +24,7 @@ export function CloseBusinessDayButton() {
   const { roles } = useAuth();
   const { data: currentDate } = useEffectiveBusinessDate();
   const { data: lastClosure } = useLastBusinessDayClosure();
+  const { data: activeShift } = useActiveShift();
   const closeMut = useCloseBusinessDay();
   const [open, setOpen] = useState(false);
   const [askPassword, setAskPassword] = useState(false);
@@ -33,6 +34,8 @@ export function CloseBusinessDayButton() {
   );
 
   if (!canSee) return null;
+
+  const shiftBlocking = !!activeShift;
 
   const handleProceed = () => {
     setOpen(false);
@@ -50,7 +53,14 @@ export function CloseBusinessDayButton() {
 
   return (
     <>
-      <Button variant="outline" size="sm" onClick={() => setOpen(true)} className="gap-1.5">
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => setOpen(true)}
+        disabled={shiftBlocking}
+        title={shiftBlocking ? "Close the active cage shift first" : undefined}
+        className="gap-1.5"
+      >
         <Lock className="h-3.5 w-3.5" />
         Close Day
       </Button>
