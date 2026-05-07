@@ -20,8 +20,8 @@ export const useTransactions = (date?: string) => {
         .order("created_at", { ascending: false });
       
       if (date) {
-        // Business day window: D 13:00 EAT → D+1 13:00 EAT
-        query = query.gte("created_at", businessDayHourUTC(date, 13)).lt("created_at", businessDayHourUTC(date, 13 + 24));
+        // Business day window: D 11:00 EAT → D+1 11:00 EAT
+        query = query.gte("created_at", businessDayHourUTC(date, 11)).lt("created_at", businessDayHourUTC(date, 11 + 24));
       }
       
       const { data, error } = await query.limit(200);

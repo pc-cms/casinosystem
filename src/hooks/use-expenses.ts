@@ -19,9 +19,9 @@ export const useExpenses = (date?: string) => {
         .order("created_at", { ascending: false });
       
       if (date) {
-        // Business day window: D 13:00 EAT → D+1 13:00 EAT (matches transactions/chip transfers).
+        // Business day window: D 11:00 EAT → D+1 11:00 EAT (matches transactions/chip transfers).
         const { businessDayHourUTC } = await import("@/lib/business-day");
-        query = query.gte("created_at", businessDayHourUTC(date, 13)).lt("created_at", businessDayHourUTC(date, 13 + 24));
+        query = query.gte("created_at", businessDayHourUTC(date, 11)).lt("created_at", businessDayHourUTC(date, 11 + 24));
       } else {
         query = query.limit(200);
       }

@@ -33,7 +33,7 @@ export function useBusinessDayFilter() {
     isOperational && !isPrivileged && !managerOverride.active;
 
   // Prefer server-side effective business date (respects manual closures + 11am auto-close).
-  // Fall back to the 13:00 EAT rollover if RPC is unavailable / still loading.
+  // Fall back to the 11:00 EAT rollover if RPC is unavailable / still loading.
   const businessDate = restrictedToToday ? (serverDate || getBusinessDate()) : null;
 
   return {
