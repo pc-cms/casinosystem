@@ -33,7 +33,17 @@ export type Incident = {
 
 export type IncidentInput = Omit<Incident, "id" | "casino_id" | "created_by" | "created_at">;
 
-export const useIncidents = (days: number | null = null) => {
+/**
+ * Filter options:
+ *  - days: keep incidents within last N calendar days (legacy).
+ *  - businessDate: 01:00 → 01:00 window for the given calendar date.
+ *    Returns rows where (incident_date = D AND time >= 01:00)
+ *                    OR (incident_date = D+1 AND time < 01:00).
+ */
+export const useIncidents = (
+  days: number | null = null,
+  businessDate: string | null = null,
+) => {
   const { casinoId } = useAuth();
   const qc = useQueryClient();
 
@@ -41,15 +51,27 @@ export const useIncidents = (days: number | null = null) => {
     ? (() => { const d = new Date(); d.setDate(d.getDate() - days); return d.toISOString().slice(0, 10); })()
     : null;
 
+  const nextDate = businessDate
+    ? (() => { const d = new Date(businessDate + "T12:00:00Z"); d.setUTCDate(d.getUTCDate() + 1); return d.toISOString().slice(0, 10); })()
+    : null;
+
   const query = useQuery({
-    queryKey: ["incidents", casinoId, days],
+    queryKey: ["incidents", casinoId, days, businessDate],
     queryFn: async () => {
       if (!casinoId) return [] as Incident[];
       let q = supabase
         .from("incidents")
         .select("*")
         .eq("casino_id", casinoId);
-      if (sinceDate) q = q.gte("incident_date", sinceDate);
+      if (businessDate && nextDate) {
+        // Window: D 01:00 → D+1 01:00 (1h to 1h business day for incidents).
+        q = q.or(
+          `and(incident_date.eq.${businessDate},incident_time.gte.01:00:00),` +
+          `and(incident_date.eq.${nextDate},incident_time.lt.01:00:00)`,
+        );
+      } else if (sinceDate) {
+        q = q.gte("incident_date", sinceDate);
+      }
       const { data, error } = await q
         .order("incident_date", { ascending: false })
         .order("incident_time", { ascending: false })
@@ -96,15 +118,8 @@ export const useCreateIncident = () => {
   });
 };
 
-// Allowed follow-up edits: outcome / points / comments / incident_time / photo_url.
-// All other fields are locked by a DB trigger.
-export type IncidentFollowupPatch = {
-  outcome?: string | null;
-  points?: number;
-  comments?: string | null;
-  incident_time?: string;
-  photo_url?: string | null;
-};
+// Full edit allowed; DB trigger writes audit trail of every changed field.
+export type IncidentFollowupPatch = Partial<Omit<Incident, "id" | "casino_id" | "created_by" | "created_at">>;
 
 export const useUpdateIncidentFollowup = () => {
   const { casinoId } = useAuth();
