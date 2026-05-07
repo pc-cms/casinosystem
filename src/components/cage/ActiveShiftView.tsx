@@ -502,7 +502,7 @@ const CashCheckForm = ({ expectedBalance, shiftId, exchangeRates, cashChecks }: 
         },
       },
       total: totalTzs,
-    });
+    }, { onSuccess: () => setShowDiff(true) });
   };
 
   return (
