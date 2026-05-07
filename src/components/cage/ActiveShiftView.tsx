@@ -28,6 +28,10 @@ import ActivePlayersList from "@/components/cage/ActivePlayersList";
 import ChipDenomInput from "@/components/ChipDenomInput";
 import CashDenomInput, { cashSum } from "@/components/cage/CashDenomInput";
 import CashCountGrid from "@/components/cage/CashCountGrid";
+import CashCheckViewerDialog from "@/components/cage/CashCheckViewerDialog";
+import { useCashChecksByBusinessDate } from "@/hooks/use-cash-checks-by-date";
+import { useAuth } from "@/lib/auth-context";
+import { Input } from "@/components/ui/input";
 
 import {
   MOBILE_PROVIDERS, emptyMobile, emptyBanks, mobileTotal, bankTotalTzs,
