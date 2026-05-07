@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertTriangle, CheckCircle2, ShieldAlert, Lock, ArrowLeft } from "lucide-react";
@@ -52,15 +52,38 @@ const CloseShiftDialog = ({
   open, onClose, shift, expectedBalance, cashResult, totalBuyIns, totalCashouts,
   totalExpenses, externalCashMovement = 0, openingFloat, tables, onConfirm, loading,
 }: CloseShiftDialogProps) => {
-  const [step, setStep] = useState<"entry" | "review">("entry");
-  const [notes, setNotes] = useState("");
+  // sessionStorage persistence — survives page refresh while shift is being closed.
+  const storageKey = `cms.close-shift.${shift?.id || "none"}`;
+  const persisted = useMemo(() => {
+    try {
+      const raw = sessionStorage.getItem(storageKey);
+      return raw ? JSON.parse(raw) as {
+        step?: "entry" | "review"; notes?: string;
+        chipCounts?: Record<number, number>;
+        cashCounts?: Record<string, Record<number, number>>;
+        bankBal?: Banks; mobileBal?: MobileProviders;
+      } : null;
+    } catch { return null; }
+  }, [storageKey]);
+
+  const [step, setStep] = useState<"entry" | "review">(persisted?.step || "entry");
+  const [notes, setNotes] = useState(persisted?.notes || "");
   const [showManagerConfirm, setShowManagerConfirm] = useState(false);
   const batchSnapshot = useBatchChipSnapshot();
 
-  const [chipCounts, setChipCounts] = useState<Record<number, number>>({});
-  const [cashCounts, setCashCounts] = useState<Record<string, Record<number, number>>>(emptyCash);
-  const [bankBal, setBankBal] = useState<Banks>(emptyBanks);
-  const [mobileBal, setMobileBal] = useState<MobileProviders>(emptyMobile);
+  const [chipCounts, setChipCounts] = useState<Record<number, number>>(persisted?.chipCounts || {});
+  const [cashCounts, setCashCounts] = useState<Record<string, Record<number, number>>>(persisted?.cashCounts || emptyCash);
+  const [bankBal, setBankBal] = useState<Banks>(persisted?.bankBal || emptyBanks);
+  const [mobileBal, setMobileBal] = useState<MobileProviders>(persisted?.mobileBal || emptyMobile);
+
+  // Persist on every change.
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(storageKey, JSON.stringify({
+        step, notes, chipCounts, cashCounts, bankBal, mobileBal,
+      }));
+    } catch { /* quota — ignore */ }
+  }, [storageKey, step, notes, chipCounts, cashCounts, bankBal, mobileBal]);
 
   // ── Opening (carried from previous closing) ───────────────────────────────
   const openingChips = useMemo(() => {
@@ -137,6 +160,8 @@ const CloseShiftDialog = ({
       }));
       batchSnapshot.mutate({ date: businessDate, counts: snapRows });
     }
+
+    try { sessionStorage.removeItem(storageKey); } catch { /* ignore */ }
 
     onConfirm({
       closingCount: {
