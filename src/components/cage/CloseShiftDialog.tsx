@@ -304,7 +304,6 @@ const CloseShiftDialog = ({
             miss_total: missTotal,
             cash_desk_balance: balance,
           }}
-          requirePasswordAlways
         />
       </>
     );
