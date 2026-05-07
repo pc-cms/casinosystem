@@ -1956,6 +1956,41 @@ export type Database = {
           },
         ]
       }
+      incidents_audit: {
+        Row: {
+          casino_id: string
+          changes: Json
+          edited_at: string
+          edited_by: string | null
+          id: string
+          incident_id: string
+        }
+        Insert: {
+          casino_id: string
+          changes: Json
+          edited_at?: string
+          edited_by?: string | null
+          id?: string
+          incident_id: string
+        }
+        Update: {
+          casino_id?: string
+          changes?: Json
+          edited_at?: string
+          edited_by?: string | null
+          id?: string
+          incident_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incidents_audit_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "incidents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inter_casino_transfers: {
         Row: {
           amount: number
