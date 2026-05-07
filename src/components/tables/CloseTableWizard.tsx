@@ -18,6 +18,7 @@ import { formatChipLabel, formatCurrency } from "@/lib/currency";
 import { useChipColors, resolveChipColor } from "@/hooks/use-chip-colors";
 import { useChipBaseline, useSetSingleTableResult, useReopenSingleTable, useCloseAllTables, baselineToMap } from "@/hooks/use-table-lifecycle";
 import { useChipSnapshots } from "@/hooks/use-chips";
+import { useSetTableTrackerValue } from "@/hooks/use-casino-data";
 import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
