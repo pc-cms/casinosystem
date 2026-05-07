@@ -613,6 +613,11 @@ interface IncidentRowProps {
   stickyTime: string;
   stickyTimeLeft: React.CSSProperties;
   cellInput: string;
+  tableOptions: string[];
+  dealerOptions: string[];
+  managerOptions: string[];
+  pitBosses: string[];
+  staffMembers: any[];
 }
 
 const IncidentRow = ({
@@ -623,25 +628,54 @@ const IncidentRow = ({
   stickyTime,
   stickyTimeLeft,
   cellInput,
+  tableOptions,
+  dealerOptions,
+  managerOptions,
+  pitBosses,
+  staffMembers,
 }: IncidentRowProps) => {
   const updateMut = useUpdateIncidentFollowup();
   const [editing, setEditing] = useState(false);
-  const [outcome, setOutcome] = useState(i.outcome || "");
-  const [points, setPoints] = useState(i.points || 0);
-  const [comments, setComments] = useState(i.comments || "");
-  const [incidentTime, setIncidentTime] = useState((i.incident_time || "").slice(0, 5));
-  const [photoUrl, setPhotoUrl] = useState<string | null>(i.photo_url);
+  const [draft, setDraft] = useState<any>({});
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const editFileRef = useRef<HTMLInputElement>(null);
 
   const startEdit = () => {
-    setOutcome(i.outcome || "");
-    setPoints(i.points || 0);
-    setComments(i.comments || "");
-    setIncidentTime((i.incident_time || "").slice(0, 5));
-    setPhotoUrl(i.photo_url);
+    setDraft({
+      incident_date: i.incident_date,
+      incident_time: (i.incident_time || "").slice(0, 5),
+      cctv_observer: i.cctv_observer || "",
+      manager: i.manager || "",
+      department: i.department || "game",
+      employees: i.employees || "",
+      table_name: i.table_name || "",
+      dealer_name: i.dealer_name || "",
+      inspector_name: i.inspector_name || "",
+      violation_type: i.violation_type || "procedural",
+      incident: i.incident || "",
+      outcome: i.outcome || "",
+      points: i.points || 0,
+      comments: i.comments || "",
+      photo_url: i.photo_url,
+    });
     setEditing(true);
   };
+
+  const setD = (k: string, v: any) => setDraft((p: any) => ({ ...p, [k]: v }));
+  const isGameDraft = (draft.department || "game") === "game";
+
+  const staffOptions = useMemo(() => {
+    const dept = draft.department || "";
+    if (dept === "game" || !dept) return [];
+    if (dept === "pit") return [...pitBosses].sort();
+    const allowed = new Set(DEPT_STAFF_FILTER[dept] || []);
+    if (allowed.size === 0) return [];
+    return [...new Set(
+      (staffMembers as any[])
+        .filter((s) => s.is_active !== false && allowed.has(s.department))
+        .map((s) => s.name)
+    )].sort();
+  }, [draft.department, staffMembers, pitBosses]);
 
   const handleEditPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -655,7 +689,7 @@ const IncidentRow = ({
         .upload(path, compressed.thumbnail, { contentType: "image/jpeg", upsert: false });
       if (error) throw error;
       const { data: { publicUrl } } = supabase.storage.from("incident-photos").getPublicUrl(path);
-      setPhotoUrl(publicUrl);
+      setD("photo_url", publicUrl);
       toast.success("Photo replaced");
     } catch (err: any) {
       toast.error(err.message || "Upload failed");
@@ -666,143 +700,148 @@ const IncidentRow = ({
   };
 
   const save = async () => {
+    if (!String(draft.incident || "").trim()) {
+      toast.error("Incident description is required");
+      return;
+    }
     try {
       await updateMut.mutateAsync({
         id: i.id,
         patch: {
-          outcome: outcome || null,
-          points: Number(points) || 0,
-          comments: comments || null,
-          incident_time: incidentTime || i.incident_time,
-          photo_url: photoUrl,
+          incident_date: draft.incident_date,
+          incident_time: draft.incident_time || i.incident_time,
+          cctv_observer: draft.cctv_observer || null,
+          manager: draft.manager || null,
+          department: draft.department || null,
+          employees: draft.employees || null,
+          table_name: draft.table_name || null,
+          dealer_name: draft.dealer_name || null,
+          inspector_name: draft.inspector_name || null,
+          violation_type: draft.violation_type || null,
+          incident: draft.incident,
+          outcome: draft.outcome || null,
+          points: Number(draft.points) || 0,
+          comments: draft.comments || null,
+          photo_url: draft.photo_url,
         },
       });
-      toast.success("Updated");
+      toast.success("Updated · audit logged");
       setEditing(false);
     } catch (e: any) {
       toast.error(e.message || "Update failed");
     }
   };
 
+  const ro = (v: any) => v || "·";
+
   return (
     <tr className="border-t border-border hover:bg-muted/30">
-      <td className={`px-3 py-2.5 whitespace-nowrap ${stickyDate} border-r border-border`}>{i.incident_date}</td>
-      <td
-        className={`px-1 py-1 whitespace-nowrap ${stickyTime} border-r border-border`}
-        style={stickyTimeLeft}
-      >
+      <td className={`px-1 py-1 whitespace-nowrap ${stickyDate} border-r border-border`}>
         {editing ? (
-          <Input
-            type="time"
-            value={incidentTime}
-            onChange={(e) => setIncidentTime(e.target.value)}
-            className={cellInput}
-          />
-        ) : (
-          i.incident_time?.slice(0, 5)
-        )}
+          <Input type="date" value={draft.incident_date} onChange={(e) => setD("incident_date", e.target.value)} className={cellInput} />
+        ) : i.incident_date}
       </td>
-      <td className="px-3 py-2.5">{i.cctv_observer || "·"}</td>
-      <td className="px-3 py-2.5">{i.manager || "·"}</td>
-      <td className="px-3 py-2.5">{i.department || "·"}</td>
-      <td className="px-3 py-2.5">{i.table_name || "·"}</td>
-      <td className="px-3 py-2.5">{i.dealer_name || "·"}</td>
-      <td className="px-3 py-2.5">{i.inspector_name || "·"}</td>
-      <td className="px-3 py-2.5">{i.employees || "·"}</td>
-      <td className="px-3 py-2.5">
-        {i.violation_type ? (
-          <Badge variant="outline" className="text-xs">{i.violation_type}</Badge>
-        ) : "·"}
+      <td className={`px-1 py-1 whitespace-nowrap ${stickyTime} border-r border-border`} style={stickyTimeLeft}>
+        {editing ? (
+          <Input type="time" value={draft.incident_time} onChange={(e) => setD("incident_time", e.target.value)} className={cellInput} />
+        ) : i.incident_time?.slice(0, 5)}
       </td>
-      <td className="px-3 py-2.5 whitespace-normal break-words">{i.incident}</td>
-
-      {/* Outcome — editable */}
+      <td className="px-1 py-1">
+        {editing ? (
+          <>
+            <Input list={`row-cctv-${i.id}`} value={draft.cctv_observer} onChange={(e) => setD("cctv_observer", e.target.value)} className={cellInput} />
+            <datalist id={`row-cctv-${i.id}`}>{STANDING_CCTV.map((n) => <option key={n} value={n} />)}</datalist>
+          </>
+        ) : ro(i.cctv_observer)}
+      </td>
+      <td className="px-1 py-1">
+        {editing ? (
+          <>
+            <Input list={`row-mgr-${i.id}`} value={draft.manager} onChange={(e) => setD("manager", e.target.value)} className={cellInput} />
+            <datalist id={`row-mgr-${i.id}`}>{managerOptions.map((n) => <option key={n} value={n} />)}</datalist>
+          </>
+        ) : ro(i.manager)}
+      </td>
+      <td className="px-1 py-1">
+        {editing ? (
+          <select value={draft.department || ""} onChange={(e) => setD("department", e.target.value)} className={`${cellInput} bg-transparent`}>
+            {DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}
+          </select>
+        ) : ro(i.department)}
+      </td>
+      <td className="px-1 py-1">
+        {editing ? (
+          <>
+            <Input list={`row-tab-${i.id}`} value={draft.table_name} onChange={(e) => setD("table_name", e.target.value)} className={cellInput} disabled={!isGameDraft} />
+            <datalist id={`row-tab-${i.id}`}>{tableOptions.map((n) => <option key={n} value={n} />)}</datalist>
+          </>
+        ) : ro(i.table_name)}
+      </td>
+      <td className="px-1 py-1">
+        {editing ? (
+          <>
+            <Input list={`row-dl-${i.id}`} value={draft.dealer_name} onChange={(e) => setD("dealer_name", e.target.value)} className={cellInput} disabled={!isGameDraft} />
+            <datalist id={`row-dl-${i.id}`}>{dealerOptions.map((n) => <option key={n} value={n} />)}</datalist>
+          </>
+        ) : ro(i.dealer_name)}
+      </td>
+      <td className="px-1 py-1">
+        {editing ? (
+          <Input list={`row-dl-${i.id}`} value={draft.inspector_name} onChange={(e) => setD("inspector_name", e.target.value)} className={cellInput} disabled={!isGameDraft} />
+        ) : ro(i.inspector_name)}
+      </td>
+      <td className="px-1 py-1">
+        {editing ? (
+          <>
+            <Input list={`row-st-${i.id}`} value={draft.employees} onChange={(e) => setD("employees", e.target.value)} className={cellInput} disabled={isGameDraft} />
+            <datalist id={`row-st-${i.id}`}>{staffOptions.map((n) => <option key={n} value={n} />)}</datalist>
+          </>
+        ) : ro(i.employees)}
+      </td>
+      <td className="px-1 py-1">
+        {editing ? (
+          <select value={draft.violation_type || ""} onChange={(e) => setD("violation_type", e.target.value)} className={`${cellInput} bg-transparent`}>
+            {VIOLATION_TYPES.map((d) => <option key={d} value={d}>{d}</option>)}
+          </select>
+        ) : i.violation_type ? <Badge variant="outline" className="text-xs">{i.violation_type}</Badge> : "·"}
+      </td>
       <td className="px-1 py-1 whitespace-normal break-words">
         {editing ? (
-          <Input
-            value={outcome}
-            onChange={(e) => setOutcome(e.target.value)}
-            placeholder="…"
-            className={cellInput}
-          />
-        ) : (
-          i.outcome || "·"
-        )}
+          <Input value={draft.incident} onChange={(e) => setD("incident", e.target.value)} className={cellInput} />
+        ) : i.incident}
       </td>
-
-      {/* Points — editable */}
+      <td className="px-1 py-1 whitespace-normal break-words">
+        {editing ? (
+          <Input value={draft.outcome} onChange={(e) => setD("outcome", e.target.value)} className={cellInput} />
+        ) : ro(i.outcome)}
+      </td>
       <td className="px-1 py-1 text-right font-semibold">
         {editing ? (
-          <Input
-            type="number"
-            min={0}
-            value={points}
-            onChange={(e) => setPoints(Number(e.target.value) || 0)}
-            className={`${cellInput} text-right`}
-          />
-        ) : (
-          i.points || 0
-        )}
+          <Input type="number" min={0} value={draft.points} onChange={(e) => setD("points", Number(e.target.value) || 0)} className={`${cellInput} text-right`} />
+        ) : (i.points || 0)}
       </td>
-
-      {/* Comments — editable */}
       <td className="px-1 py-1 whitespace-normal break-words text-muted-foreground">
         {editing ? (
-          <Input
-            value={comments}
-            onChange={(e) => setComments(e.target.value)}
-            placeholder="…"
-            className={cellInput}
-          />
-        ) : (
-          i.comments || "·"
-        )}
+          <Input value={draft.comments} onChange={(e) => setD("comments", e.target.value)} className={cellInput} />
+        ) : ro(i.comments)}
       </td>
-
       <td className="px-1 py-1 text-center">
-        <input
-          ref={editFileRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={handleEditPhoto}
-        />
+        <input ref={editFileRef} type="file" accept="image/*" className="hidden" onChange={handleEditPhoto} />
         {editing ? (
-          photoUrl ? (
+          draft.photo_url ? (
             <div className="relative inline-block">
-              <img
-                src={photoUrl}
-                alt=""
-                className="h-7 w-7 object-cover rounded cursor-pointer"
-                onClick={() => onView(photoUrl)}
-              />
-              <button
-                type="button"
-                onClick={() => setPhotoUrl(null)}
-                className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full w-3.5 h-3.5 flex items-center justify-center"
-                title="Remove photo"
-              >
+              <img src={draft.photo_url} alt="" className="h-7 w-7 object-cover rounded cursor-pointer" onClick={() => onView(draft.photo_url)} />
+              <button type="button" onClick={() => setD("photo_url", null)} className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full w-3.5 h-3.5 flex items-center justify-center" title="Remove photo">
                 <X className="w-2 h-2" />
               </button>
             </div>
           ) : (
-            <button
-              type="button"
-              onClick={() => editFileRef.current?.click()}
-              disabled={uploadingPhoto}
-              className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-muted hover:bg-muted/70 text-muted-foreground"
-              title="Attach photo"
-            >
+            <button type="button" onClick={() => editFileRef.current?.click()} disabled={uploadingPhoto} className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-muted hover:bg-muted/70 text-muted-foreground" title="Attach photo">
               {uploadingPhoto ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Camera className="w-3.5 h-3.5" />}
             </button>
           )
         ) : i.photo_url ? (
-          <button
-            type="button"
-            onClick={() => onView(i.photo_url!)}
-            className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-primary/10 hover:bg-primary/20 text-primary"
-            title="View photo"
-          >
+          <button type="button" onClick={() => onView(i.photo_url!)} className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-primary/10 hover:bg-primary/20 text-primary" title="View photo">
             <ImageIcon className="w-3.5 h-3.5" />
           </button>
         ) : (
@@ -815,37 +854,15 @@ const IncidentRow = ({
           <div className="flex items-center justify-center gap-1">
             {editing ? (
               <>
-                <Button
-                  size="sm"
-                  onClick={save}
-                  disabled={updateMut.isPending}
-                  className="h-7 w-7 p-0"
-                  title="Save"
-                >
-                  {updateMut.isPending ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
-                    <Check className="w-3.5 h-3.5" />
-                  )}
+                <Button size="sm" onClick={save} disabled={updateMut.isPending} className="h-7 w-7 p-0" title="Save">
+                  {updateMut.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
                 </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => setEditing(false)}
-                  className="h-7 w-7 p-0"
-                  title="Cancel"
-                >
+                <Button size="sm" variant="ghost" onClick={() => setEditing(false)} className="h-7 w-7 p-0" title="Cancel">
                   <X className="w-3.5 h-3.5" />
                 </Button>
               </>
             ) : (
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={startEdit}
-                className="h-9 px-3 text-xs"
-                title="Edit outcome / pts / comments"
-              >
+              <Button size="sm" variant="ghost" onClick={startEdit} className="h-9 px-3 text-xs" title="Edit (audit-logged)">
                 Edit
               </Button>
             )}
