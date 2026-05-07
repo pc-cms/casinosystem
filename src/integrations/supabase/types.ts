@@ -3650,6 +3650,10 @@ export type Database = {
         Args: { _business_date: string; _casino_id: string; _user: string }
         Returns: number
       }
+      refresh_chip_initial_baseline: {
+        Args: { _casino_id: string }
+        Returns: undefined
+      }
       rotate_local_server_secret: {
         Args: { _server_id: string }
         Returns: string
