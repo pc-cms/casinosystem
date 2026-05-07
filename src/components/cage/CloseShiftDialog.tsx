@@ -161,6 +161,8 @@ const CloseShiftDialog = ({
       batchSnapshot.mutate({ date: businessDate, counts: snapRows });
     }
 
+    try { sessionStorage.removeItem(storageKey); } catch { /* ignore */ }
+
     onConfirm({
       closingCount: {
         chips: chipCounts,
