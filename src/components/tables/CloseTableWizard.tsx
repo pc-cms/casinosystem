@@ -149,6 +149,9 @@ export const CloseTableWizard = ({ open, onClose, tables, date, readOnly = false
       {
         onSuccess: () => {
           toast.success(`${current.name} saved`);
+          // Mirror result into Number Count tracker Final slot (05:00) so Tables Analytics
+          // and Final column always reflect the close-tables value.
+          setTrackerValue.mutate({ table_id: current.id, date, time_slot: "05:00", value: result });
           // Clear local edits for this table since it's now persisted
           setCounts(c => { const cp = { ...c }; delete cp[current.id]; return cp; });
           if (advance && currentIdx < wizardTables.length - 1) {
