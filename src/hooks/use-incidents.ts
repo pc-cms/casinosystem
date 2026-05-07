@@ -64,10 +64,10 @@ export const useIncidents = (
         .select("*")
         .eq("casino_id", casinoId);
       if (businessDate && nextDate) {
-        // Window: D 01:00 → D+1 01:00 (1h to 1h business day for incidents).
+        // Window: D 13:00 → D+1 13:00 (13h to 13h business day for incidents).
         q = q.or(
-          `and(incident_date.eq.${businessDate},incident_time.gte.01:00:00),` +
-          `and(incident_date.eq.${nextDate},incident_time.lt.01:00:00)`,
+          `and(incident_date.eq.${businessDate},incident_time.gte.13:00:00),` +
+          `and(incident_date.eq.${nextDate},incident_time.lt.13:00:00)`,
         );
       } else if (sinceDate) {
         q = q.gte("incident_date", sinceDate);
