@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertTriangle, CheckCircle2, ShieldAlert, Lock, ArrowLeft } from "lucide-react";
-import { CHIP_DENOMS, formatCurrency, formatChipLabel, formatNumberSpaces, CURRENCIES } from "@/lib/currency";
+import { CHIP_DENOMS, formatCurrency, formatChipLabel, formatNumberSpaces, formatCashDenomLabel, CURRENCIES, CASH_DENOMS, CURRENCY_SYMBOLS } from "@/lib/currency";
 import { cashSum } from "@/components/cage/CashDenomInput";
 import CashCountGrid from "@/components/cage/CashCountGrid";
 import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
@@ -199,9 +199,17 @@ const CloseShiftDialog = ({
     });
   };
 
-  // Per-currency cash totals for the review (skip currencies with zero)
-  const cashByCurrency = useMemo(
-    () => CURRENCIES.map(c => ({ cur: c, total: cashSum(cashCounts[c] || {}) })).filter(x => x.total > 0),
+  // ── Per-denomination breakdowns for the manager review ───────────────────
+  const chipsNonZero = useMemo(
+    () => CHIP_DENOMS.filter(d => (chipCounts[d] || 0) > 0 || (openingChips[d] || 0) > 0),
+    [chipCounts, openingChips],
+  );
+  const cashByCurrencyDenoms = useMemo(
+    () => CURRENCIES.map(cur => {
+      const denoms = (CASH_DENOMS[cur] || []).filter(d => (cashCounts[cur]?.[d] || 0) > 0);
+      const total = cashSum(cashCounts[cur] || {});
+      return { cur, denoms, total };
+    }).filter(x => x.total > 0),
     [cashCounts],
   );
   const mobileByProvider = useMemo(
@@ -209,11 +217,11 @@ const CloseShiftDialog = ({
     [mobileBal],
   );
   const banksNonZero = useMemo(() => {
-    const out: Array<{ k: string; v: number }> = [];
-    if ((bankBal.tzs || 0) > 0) out.push({ k: "Bank TZS", v: bankBal.tzs });
-    if ((bankBal.usd || 0) > 0) out.push({ k: "Bank USD", v: bankBal.usd });
+    const out: Array<{ k: string; v: number; tzs: number }> = [];
+    if ((bankBal.tzs || 0) > 0) out.push({ k: "TZS", v: bankBal.tzs, tzs: bankBal.tzs });
+    if ((bankBal.usd || 0) > 0) out.push({ k: "USD", v: bankBal.usd, tzs: (bankBal.usd || 0) * (rates["USD"] || 0) });
     return out;
-  }, [bankBal]);
+  }, [bankBal, rates]);
 
   if (!open) return null;
 
@@ -222,69 +230,202 @@ const CloseShiftDialog = ({
     return (
       <>
         <div className="space-y-4">
-          <section className="cms-panel p-3">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-[10px] uppercase text-muted-foreground tracking-wider font-medium">
-                Manager Review — verify against the physical cash desk
-              </p>
-              <span className="text-[10px] text-muted-foreground">Shift entered by cashier · awaiting manager</span>
+          <section className="cms-panel p-5">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="text-xs uppercase text-muted-foreground tracking-wider font-semibold">
+                  Manager Review — verify against the physical cash desk
+                </p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">Shift entered by cashier · awaiting manager confirmation</p>
+              </div>
+              <span className="cms-chip text-[10px] bg-muted text-foreground">Read-only</span>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Left: liquidity breakdown */}
-              <div className="space-y-1 text-xs font-mono">
-                <RowKV label="Chips" value={`${formatNumberSpaces(closingChipsTzs)} TZS`} />
-                {cashByCurrency.length === 0
-                  ? <RowKV label="Cash" value="·" muted />
-                  : cashByCurrency.map(r => (
-                      <RowKV key={r.cur} label={`Cash · ${r.cur}`} value={formatNumberSpaces(r.total)} />
-                    ))}
-                {mobileByProvider.map(r => (
-                  <RowKV key={r.p} label={`Mobile · ${r.p}`} value={`${formatNumberSpaces(r.v)} TZS`} />
-                ))}
-                {banksNonZero.map(r => (
-                  <RowKV key={r.k} label={r.k} value={formatNumberSpaces(r.v)} />
-                ))}
-                <div className="flex justify-between pt-2 mt-1 border-t border-border text-sm font-bold">
-                  <span className="text-card-foreground">Cash Desk Total</span>
-                  <span className="text-card-foreground">{formatNumberSpaces(totalTzs)} TZS</span>
+            {/* CHIPS per denomination */}
+            <div className="mb-5">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground font-semibold">Chips · per denomination</p>
+                <span className="font-mono text-base font-bold text-card-foreground">{formatNumberSpaces(closingChipsTzs)} TZS</span>
+              </div>
+              {chipsNonZero.length === 0 ? (
+                <p className="text-sm text-muted-foreground italic">No chips counted.</p>
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-1 font-mono text-sm">
+                  {chipsNonZero.map(d => {
+                    const qty = chipCounts[d] || 0;
+                    const op = openingChips[d] || 0;
+                    const miss = qty - op;
+                    const val = qty * d;
+                    return (
+                      <div key={d} className="flex items-center justify-between border-b border-border/40 py-1.5">
+                        <span className="cms-chip text-[10px] bg-muted text-foreground w-14 justify-center shrink-0">{formatChipLabel(d)}</span>
+                        <div className="text-right">
+                          <div className="text-card-foreground font-semibold">× {qty}</div>
+                          <div className="text-[10px] text-muted-foreground">
+                            {formatNumberSpaces(val)}
+                            {miss !== 0 && (
+                              <span className={cn("ml-1.5", miss > 0 ? "cms-amount-positive" : "cms-amount-negative")}>
+                                ({miss > 0 ? "+" : ""}{miss})
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
+              )}
+            </div>
+
+            {/* CASH per currency, per denomination */}
+            <div className="mb-5">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground font-semibold">Cash · per currency &amp; denomination</p>
+                <span className="font-mono text-base font-bold text-card-foreground">{formatNumberSpaces(closingCashOnlyTzs)} TZS</span>
+              </div>
+              {cashByCurrencyDenoms.length === 0 ? (
+                <p className="text-sm text-muted-foreground italic">No cash counted.</p>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {cashByCurrencyDenoms.map(({ cur, denoms, total }) => (
+                    <div key={cur} className="rounded-lg border border-border bg-background/40 p-3">
+                      <div className="flex items-center justify-between mb-1.5 pb-1.5 border-b border-border">
+                        <span className="cms-chip text-[10px] bg-primary/10 text-primary font-semibold">{cur}</span>
+                        <span className="font-mono text-sm font-bold text-card-foreground">
+                          {CURRENCY_SYMBOLS[cur] || cur} {formatNumberSpaces(total)}
+                        </span>
+                      </div>
+                      <div className="space-y-0.5 font-mono text-xs">
+                        {denoms.map(d => {
+                          const qty = cashCounts[cur]?.[d] || 0;
+                          return (
+                            <div key={d} className="flex items-center justify-between">
+                              <span className="text-muted-foreground">{formatCashDenomLabel(d, cur)}</span>
+                              <span className="text-card-foreground">
+                                × {qty} <span className="text-muted-foreground">= {formatNumberSpaces(qty * d)}</span>
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      {cur !== "TZS" && (
+                        <div className="mt-1.5 pt-1.5 border-t border-border/50 flex justify-between text-[10px] text-muted-foreground font-mono">
+                          <span>≈ TZS</span>
+                          <span>{formatNumberSpaces(total * (rates[cur] || 0))}</span>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* MOBILE + BANKS */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-5">
+              <div className="rounded-lg border border-border bg-background/40 p-3">
+                <div className="flex items-center justify-between mb-2 pb-1.5 border-b border-border">
+                  <p className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Mobile Money</p>
+                  <span className="font-mono text-sm font-bold text-card-foreground">{formatNumberSpaces(closingMobileTzs)} TZS</span>
+                </div>
+                {mobileByProvider.length === 0 ? (
+                  <p className="text-xs text-muted-foreground italic">No mobile money.</p>
+                ) : (
+                  <div className="space-y-0.5 font-mono text-xs">
+                    {mobileByProvider.map(({ p, v }) => (
+                      <div key={p} className="flex items-center justify-between">
+                        <span className="text-muted-foreground">{p}</span>
+                        <span className="text-card-foreground">{formatNumberSpaces(v)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
-              {/* Right: balance formula recap */}
-              <div className="space-y-1 text-xs font-mono">
-                <RowKV label="Opening (Chips + Cash)" value={`−${formatNumberSpaces(openingTotal)}`} />
-                <RowKV label="Result Table" value={`${resultTable >= 0 ? "+" : ""}${formatNumberSpaces(resultTable)}`} amountClass={resultTable >= 0 ? "cms-amount-positive" : "cms-amount-negative"} />
-                <RowKV label="Miss Total" value={`${missTotal >= 0 ? "+" : ""}${formatNumberSpaces(missTotal)}`} amountClass={missTotal === 0 ? undefined : missTotal > 0 ? "cms-amount-positive" : "cms-amount-negative"} />
-                <RowKV label="Expenses (cash)" value={`+${formatNumberSpaces(totalExpenses || 0)}`} />
-                <RowKV label="External Cash Movement" value={`−${formatNumberSpaces(externalCashMovement)}`} />
-                <div className={cn(
-                  "flex justify-between pt-2 mt-1 border-t-2 text-sm font-bold",
-                  isBalanced ? "border-success/60" : "border-destructive/60",
-                )}>
-                  <span className="text-card-foreground inline-flex items-center gap-1.5">
-                    {isBalanced
-                      ? <CheckCircle2 className="w-4 h-4 text-success" />
-                      : <AlertTriangle className="w-4 h-4 text-destructive" />}
-                    Cash Desk Balance
-                  </span>
-                  <span className={isBalanced ? "text-success" : balance > 0 ? "cms-amount-positive" : "cms-amount-negative"}>
-                    {balance >= 0 ? "+" : ""}{formatNumberSpaces(balance)} TZS
-                  </span>
+              <div className="rounded-lg border border-border bg-background/40 p-3">
+                <div className="flex items-center justify-between mb-2 pb-1.5 border-b border-border">
+                  <p className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Banks</p>
+                  <span className="font-mono text-sm font-bold text-card-foreground">{formatNumberSpaces(closingBankTzs)} TZS</span>
                 </div>
-                {!isBalanced && (
-                  <p className="text-[11px] text-destructive flex items-center gap-1 pt-1">
-                    <AlertTriangle className="w-3 h-3" />
-                    Discrepancy — manager password required to accept.
-                  </p>
+                {banksNonZero.length === 0 ? (
+                  <p className="text-xs text-muted-foreground italic">No bank balances.</p>
+                ) : (
+                  <div className="space-y-0.5 font-mono text-xs">
+                    {banksNonZero.map(b => (
+                      <div key={b.k} className="flex items-center justify-between">
+                        <span className="text-muted-foreground">{b.k}</span>
+                        <span className="text-card-foreground">
+                          {formatNumberSpaces(b.v)}
+                          {b.k !== "TZS" && <span className="text-muted-foreground/60"> ≈ {formatNumberSpaces(b.tzs)} TZS</span>}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
             </div>
 
+            {/* TOTAL — large block summary */}
+            <div className="rounded-lg border-2 border-border bg-muted/30 p-4 mb-5">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+                <BlockTotal label="Chips" value={closingChipsTzs} />
+                <BlockTotal label="Cash" value={closingCashOnlyTzs} />
+                <BlockTotal label="Mobile" value={closingMobileTzs} />
+                <BlockTotal label="Bank" value={closingBankTzs} />
+              </div>
+              <div className="flex items-center justify-between pt-3 border-t-2 border-border">
+                <span className="text-sm uppercase tracking-wider text-muted-foreground font-semibold">Cash Desk Total</span>
+                <span className="font-mono text-2xl font-bold text-card-foreground">
+                  {formatNumberSpaces(totalTzs)} <span className="text-base text-muted-foreground">TZS</span>
+                </span>
+              </div>
+            </div>
+
+            {/* BALANCE FORMULA — large with expenses */}
+            <div className={cn(
+              "rounded-lg border-2 p-4",
+              isBalanced ? "border-success/60 bg-success/5" : "border-destructive/60 bg-destructive/5",
+            )}>
+              <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground font-semibold mb-3">Balance Formula</p>
+              <div className="space-y-1.5 font-mono text-sm">
+                <FormulaRow label="Closing (Chips + Cash + Mobile + Bank)" value={`+${formatNumberSpaces(totalTzs)}`} />
+                <FormulaRow label="− Opening (Chips + Cash)" value={`−${formatNumberSpaces(openingTotal)}`} />
+                <FormulaRow
+                  label="− Result Table"
+                  value={`${resultTable >= 0 ? "−" : "+"}${formatNumberSpaces(Math.abs(resultTable))}`}
+                  amountClass={resultTable >= 0 ? undefined : "cms-amount-positive"}
+                />
+                <FormulaRow
+                  label="− External Cash Movement"
+                  value={`${externalCashMovement >= 0 ? "−" : "+"}${formatNumberSpaces(Math.abs(externalCashMovement))}`}
+                />
+                <FormulaRow label="+ Expenses (paid from cash)" value={`+${formatNumberSpaces(totalExpenses || 0)}`} />
+                <div className={cn(
+                  "flex justify-between pt-3 mt-2 border-t-2 text-lg font-bold",
+                  isBalanced ? "border-success/60" : "border-destructive/60",
+                )}>
+                  <span className="text-card-foreground inline-flex items-center gap-2">
+                    {isBalanced
+                      ? <CheckCircle2 className="w-5 h-5 text-success" />
+                      : <AlertTriangle className="w-5 h-5 text-destructive" />}
+                    = Cash Desk Balance
+                  </span>
+                  <span className={isBalanced ? "text-success" : balance > 0 ? "cms-amount-positive" : "cms-amount-negative"}>
+                    {balance >= 0 ? "+" : ""}{formatNumberSpaces(balance)} <span className="text-sm text-muted-foreground">TZS</span>
+                  </span>
+                </div>
+              </div>
+              {!isBalanced && (
+                <p className="text-xs text-destructive flex items-center gap-1.5 pt-2 mt-2">
+                  <AlertTriangle className="w-3.5 h-3.5" />
+                  Discrepancy — manager password required to accept.
+                </p>
+              )}
+            </div>
+
             {notes && (
-              <div className="mt-3 pt-3 border-t border-border">
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Cashier Notes</p>
-                <p className="text-xs whitespace-pre-wrap text-card-foreground">{notes}</p>
+              <div className="mt-4 pt-3 border-t border-border">
+                <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1 font-semibold">Cashier Notes</p>
+                <p className="text-sm whitespace-pre-wrap text-card-foreground">{notes}</p>
               </div>
             )}
           </section>
@@ -541,11 +682,19 @@ const CloseShiftDialog = ({
   );
 };
 
-const RowKV = ({
-  label, value, muted, amountClass,
-}: { label: string; value: string; muted?: boolean; amountClass?: string }) => (
+const BlockTotal = ({ label, value }: { label: string; value: number }) => (
+  <div className="text-center rounded-md border border-border bg-background/40 p-2">
+    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">{label}</p>
+    <p className="font-mono text-sm font-bold text-card-foreground mt-0.5">{formatNumberSpaces(value)}</p>
+    <p className="text-[9px] text-muted-foreground">TZS</p>
+  </div>
+);
+
+const FormulaRow = ({
+  label, value, amountClass,
+}: { label: string; value: string; amountClass?: string }) => (
   <div className="flex justify-between border-b border-border/30 py-1">
-    <span className={muted ? "text-muted-foreground/60" : "text-muted-foreground"}>{label}</span>
+    <span className="text-muted-foreground">{label}</span>
     <span className={amountClass ?? "text-card-foreground"}>{value}</span>
   </div>
 );
