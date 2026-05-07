@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useActiveShift, useCloseShift } from "@/hooks/use-shift";
 import { useTransactions, useExpenses, useGamingTables } from "@/hooks/use-casino-data";
@@ -11,10 +11,9 @@ import { Square } from "lucide-react";
 import CloseShiftDialog from "@/components/cage/CloseShiftDialog";
 
 /**
- * Close Shift — full route. Replaces the in-Cage modal toggle.
- * Reuses the existing CloseShiftDialog body (stays a Dialog visually for M1
- * to avoid duplicating 400+ lines of balance logic), but lifecycle is now
- * URL-driven: navigate away on cancel/close → no leftover state ever.
+ * Close Shift route. Two-step in-page flow lives inside CloseShiftDialog
+ * (entry → manager review → manager password). No modal: it renders inline
+ * so cancel/back are real navigation, not a dialog dismissal.
  */
 const CloseShiftPage = () => {
   const nav = useNavigate();
@@ -26,9 +25,6 @@ const CloseShiftPage = () => {
   const { data: expenses = [] } = useExpenses(businessDate);
   const { data: cageTransfers = [] } = useCageTransfers(shift?.id);
   const closeShift = useCloseShift();
-
-  // Always open while on this route
-  const [open, setOpen] = useState(true);
 
   useEffect(() => {
     if (!isLoading && !shift) nav("/cage", { replace: true });
@@ -69,10 +65,14 @@ const CloseShiftPage = () => {
 
   return (
     <PageShell>
-      <PageHeader icon={Square} title="Close Shift" subtitle="Final shift reconciliation" />
+      <PageHeader
+        icon={Square}
+        title="Close Shift"
+        subtitle="Cashier enters the closing cash desk · Manager confirms with password"
+      />
       <CloseShiftDialog
-        open={open}
-        onClose={() => { setOpen(false); nav("/cage"); }}
+        open={true}
+        onClose={() => nav("/cage")}
         shift={shift}
         expectedBalance={data.expectedCash}
         cashResult={data.cashResult}
