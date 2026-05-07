@@ -515,7 +515,7 @@ const CashCheckForm = ({ expectedBalance, shiftId, exchangeRates, cashChecks }: 
         <div className="grid grid-cols-3 gap-2 pt-3 mt-3 border-t border-border">
           <div className="text-center"><p className="text-[9px] uppercase text-muted-foreground">Expected</p><p className="font-mono text-xs font-bold text-card-foreground">{formatCurrency(expectedBalance)}</p></div>
           <div className="text-center"><p className="text-[9px] uppercase text-muted-foreground">Counted</p><p className="font-mono text-xs font-bold text-card-foreground">{formatCurrency(totalTzs)}</p></div>
-          <div className="text-center"><p className="text-[9px] uppercase text-muted-foreground">Diff</p><p className={`font-mono text-xs font-bold ${difference === 0 ? "text-success" : "text-destructive"}`}>{difference >= 0 ? "+" : ""}{formatCurrency(difference)}</p></div>
+          <div className="text-center"><p className="text-[9px] uppercase text-muted-foreground">Diff</p><p className={`font-mono text-xs font-bold ${!showDiff ? "text-muted-foreground" : difference === 0 ? "text-success" : "text-destructive"}`}>{showDiff ? `${difference >= 0 ? "+" : ""}${formatCurrency(difference)}` : "·"}</p></div>
         </div>
 
         <Button variant="outline" onClick={handleRecord} disabled={createCount.isPending} className="w-full mt-3">
