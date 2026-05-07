@@ -36,9 +36,9 @@ export type IncidentInput = Omit<Incident, "id" | "casino_id" | "created_by" | "
 /**
  * Filter options:
  *  - days: keep incidents within last N calendar days (legacy).
- *  - businessDate: 01:00 → 01:00 window for the given calendar date.
- *    Returns rows where (incident_date = D AND time >= 01:00)
- *                    OR (incident_date = D+1 AND time < 01:00).
+ *  - businessDate: 13:00 → 13:00 window for the given calendar date.
+ *    Returns rows where (incident_date = D AND time >= 13:00)
+ *                    OR (incident_date = D+1 AND time < 13:00).
  */
 export const useIncidents = (
   days: number | null = null,
@@ -64,10 +64,10 @@ export const useIncidents = (
         .select("*")
         .eq("casino_id", casinoId);
       if (businessDate && nextDate) {
-        // Window: D 01:00 → D+1 01:00 (1h to 1h business day for incidents).
+        // Window: D 13:00 → D+1 13:00 (13h to 13h business day for incidents).
         q = q.or(
-          `and(incident_date.eq.${businessDate},incident_time.gte.01:00:00),` +
-          `and(incident_date.eq.${nextDate},incident_time.lt.01:00:00)`,
+          `and(incident_date.eq.${businessDate},incident_time.gte.13:00:00),` +
+          `and(incident_date.eq.${nextDate},incident_time.lt.13:00:00)`,
         );
       } else if (sinceDate) {
         q = q.gte("incident_date", sinceDate);
