@@ -62,6 +62,7 @@ export const CloseTableWizard = ({ open, onClose, tables, date, readOnly = false
   const setSingleResult = useSetSingleTableResult();
   const reopenSingle = useReopenSingleTable();
   const closeAll = useCloseAllTables();
+  const setTrackerValue = useSetTableTrackerValue();
 
   // Reset cursor when wizard opens
   useEffect(() => {
