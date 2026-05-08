@@ -59,6 +59,7 @@ const Incidents = lazy(() => import("@/pages/Incidents"));
 const CloseShiftPage = lazy(() => import("@/pages/cage/CloseShiftPage"));
 const RegisterPlayerPage = lazy(() => import("@/pages/cage/RegisterPlayerPage"));
 const EditOpeningChipsPage = lazy(() => import("@/pages/cage/EditOpeningChipsPage"));
+const CageClosingsPage = lazy(() => import("@/pages/cage/CageClosingsPage"));
 const CloseTablesPage = lazy(() => import("@/pages/tables/CloseTablesPage"));
 
 const UserNewPage = lazy(() => import("@/pages/admin/UserNewPage"));
@@ -106,6 +107,7 @@ const ROUTE_ROLES: Record<string, string[]> = {
   "/blacklist": ["super_admin", "manager", "reception", "finance_manager", "surveillance"],
   "/reception": ["super_admin", "manager", "reception", "cashier", "finance_manager"],
   "/cage": ["super_admin", "manager", "cashier", "finance_manager", "surveillance"],
+  "/cage/closings": ["super_admin", "manager", "finance_manager"],
   "/tables": ["super_admin", "manager", "cashier", "pit", "finance_manager", "surveillance"],
   "/active-players": ["super_admin", "manager", "pit", "finance_manager", "surveillance"],
   "/player-statistics": ["super_admin", "manager", "pit", "finance_manager", "surveillance"],
@@ -195,6 +197,7 @@ const ProtectedRoutes = () => {
           
           <Route path="/cage" element={<RoleGuard path="/cage"><ErrorBoundary><Cage /></ErrorBoundary></RoleGuard>} />
           <Route path="/cage/close-shift" element={<RoleGuard path="/cage"><ErrorBoundary><CloseShiftPage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/cage/closings" element={<RoleGuard path="/cage/closings"><ErrorBoundary><CageClosingsPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/cage/shift/:id/edit-opening" element={<RoleGuard path="/cage"><ErrorBoundary><EditOpeningChipsPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/players/register" element={<RoleGuard path="/cage"><ErrorBoundary><RegisterPlayerPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/reception" element={<RoleGuard path="/reception"><Reception /></RoleGuard>} />

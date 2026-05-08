@@ -3688,6 +3688,10 @@ export type Database = {
         Args: { _casino_id: string }
         Returns: undefined
       }
+      reopen_shift: {
+        Args: { _reason?: string; _shift_id: string }
+        Returns: Json
+      }
       rotate_local_server_secret: {
         Args: { _server_id: string }
         Returns: string
