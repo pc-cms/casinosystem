@@ -21,11 +21,11 @@ import { toast } from "sonner";
 
 const CageClosingsPage = () => {
   const nav = useNavigate();
-  const { casinoId, role } = useAuth();
+  const { casinoId, roles } = useAuth();
   const qc = useQueryClient();
   const [pendingShift, setPendingShift] = useState<any | null>(null);
 
-  const isManager = role === "manager" || role === "super_admin" || role === "finance_manager";
+  const isManager = roles.includes("manager") || roles.includes("super_admin") || roles.includes("finance_manager");
 
   const { data: shifts = [], isLoading } = useQuery({
     queryKey: ["closed-shifts", casinoId],
