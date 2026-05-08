@@ -107,6 +107,7 @@ const ROUTE_ROLES: Record<string, string[]> = {
   "/blacklist": ["super_admin", "manager", "reception", "finance_manager", "surveillance"],
   "/reception": ["super_admin", "manager", "reception", "cashier", "finance_manager"],
   "/cage": ["super_admin", "manager", "cashier", "finance_manager", "surveillance"],
+  "/cage/closings": ["super_admin", "manager", "finance_manager"],
   "/tables": ["super_admin", "manager", "cashier", "pit", "finance_manager", "surveillance"],
   "/active-players": ["super_admin", "manager", "pit", "finance_manager", "surveillance"],
   "/player-statistics": ["super_admin", "manager", "pit", "finance_manager", "surveillance"],
