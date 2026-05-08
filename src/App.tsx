@@ -59,6 +59,7 @@ const Incidents = lazy(() => import("@/pages/Incidents"));
 const CloseShiftPage = lazy(() => import("@/pages/cage/CloseShiftPage"));
 const RegisterPlayerPage = lazy(() => import("@/pages/cage/RegisterPlayerPage"));
 const EditOpeningChipsPage = lazy(() => import("@/pages/cage/EditOpeningChipsPage"));
+const CageClosingsPage = lazy(() => import("@/pages/cage/CageClosingsPage"));
 const CloseTablesPage = lazy(() => import("@/pages/tables/CloseTablesPage"));
 
 const UserNewPage = lazy(() => import("@/pages/admin/UserNewPage"));
