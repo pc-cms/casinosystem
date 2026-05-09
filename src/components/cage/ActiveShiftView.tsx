@@ -283,13 +283,14 @@ const TwoColumnLayout = ({
 );
 
 // =================== IN FORM (was Buy-In) ===================
-const InForm = ({ players, tables, exchangeRates, shiftId, onSubmit, loading }: {
+const InForm = ({ players, tables, exchangeRates, shiftId, onSubmit, loading, shiftTransactions = [] }: {
   players: Tables<"players">[];
   tables: Tables<"gaming_tables">[];
   exchangeRates: Record<string, number>;
   shiftId: string;
   onSubmit: (data: Record<string, unknown>, opts?: Record<string, unknown>) => void;
   loading: boolean;
+  shiftTransactions?: Tables<"transactions">[];
 }) => {
   const [playerId, setPlayerId] = useState("");
   const [tableId, setTableId] = useState("");
