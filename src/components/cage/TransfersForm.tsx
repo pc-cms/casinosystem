@@ -220,13 +220,13 @@ const TransfersForm = ({ shiftId, tables }: Props) => {
 
       {/* RIGHT — list */}
       <div className="cms-panel">
-        <div className="cms-header">Transfers ({transfers.length})</div>
-        <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
+        <div className="cms-header text-sm font-bold">Transfers ({transfers.length})</div>
+        <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
           <table className="w-full">
             <thead className="sticky top-0 bg-card z-10">
               <tr className="border-b border-border">
                 {["Type", "Table", "Amount", "Note", "Time"].map(h => (
-                  <th key={h} className={`text-xs font-medium text-muted-foreground uppercase px-3 py-1.5 ${h === "Amount" || h === "Time" ? "text-right" : "text-left"}`}>{h}</th>
+                  <th key={h} className={`text-xs font-bold text-foreground uppercase px-3 py-2 ${h === "Amount" || h === "Time" ? "text-right" : "text-left"}`}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -235,22 +235,24 @@ const TransfersForm = ({ shiftId, tables }: Props) => {
                 <tr><td colSpan={5} className="text-center text-muted-foreground text-sm py-6">No transfers yet</td></tr>
               ) : transfers.map(tr => {
                 const t = tr.transfer_type as CageTransferType;
-                const positive = t === "add_float" || t === "credit";
+                const opt = TYPE_MAP.get(t);
+                const positive = opt?.direction === "in";
+                const tone = opt?.tone;
                 return (
-                  <tr key={tr.id} className="border-b border-border last:border-0">
-                    <td className="px-3 py-1.5">
-                      <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${positive ? "bg-primary/10 text-primary" : "bg-accent/10 text-accent"}`}>
+                  <tr key={tr.id} className={`border-b border-border last:border-0 ${positive ? "bg-emerald-500/5" : "bg-red-500/5"}`}>
+                    <td className="px-3 py-2">
+                      <span className={`text-xs font-bold font-mono px-2 py-0.5 rounded border ${tone?.bg || "bg-muted"} ${tone?.text || "text-foreground"} ${tone?.border || "border-border"}`}>
                         {cageTransferLabel(t)}
                       </span>
                     </td>
-                    <td className="px-3 py-1.5 text-xs text-muted-foreground font-mono">
+                    <td className="px-3 py-2 text-sm text-foreground font-mono">
                       {tr.table_id ? tableMap.get(tr.table_id)?.name || "—" : "—"}
                     </td>
-                    <td className={`px-3 py-1.5 text-right font-mono text-xs font-medium ${positive ? "cms-amount-positive" : "cms-amount-negative"}`}>
+                    <td className={`px-3 py-2 text-right font-mono text-sm font-bold ${positive ? "cms-amount-positive" : "cms-amount-negative"}`}>
                       {positive ? "+" : "−"}{formatNumberSpaces(Number(tr.amount))}
                     </td>
-                    <td className="px-3 py-1.5 text-xs text-muted-foreground truncate max-w-[160px]">{tr.note || "—"}</td>
-                    <td className="px-3 py-1.5 text-right font-mono text-[10px] text-muted-foreground">
+                    <td className="px-3 py-2 text-xs text-muted-foreground truncate max-w-[160px]">{tr.note || "—"}</td>
+                    <td className="px-3 py-2 text-right font-mono text-xs text-muted-foreground">
                       {new Date(tr.created_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
                     </td>
                   </tr>
