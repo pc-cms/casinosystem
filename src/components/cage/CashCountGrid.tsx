@@ -63,12 +63,12 @@ const CashCountGrid = ({
           <p className={titleCls}>Mobile Money</p>
           <div className="space-y-1">
             {MOBILE_PROVIDERS.map(provider => (
-              <div key={provider} className={lgRow}>
-                <span className={lgChip}>{provider}</span>
+              <div key={provider} className={mdRow}>
+                <span className={mdChip}>{provider}</span>
                 <NumberInput
                   value={mobile[provider] || ""}
                   onChange={v => onMobileChange({ ...mobile, [provider]: Number(v) || 0 })}
-                  className={lgInput}
+                  className={mdInput}
                   placeholder="0"
                 />
               </div>
@@ -83,13 +83,13 @@ const CashCountGrid = ({
         <section className={sectionCls}>
           <p className={titleCls}>Banks</p>
           <div className="space-y-1">
-            <div className={lgRow}>
-              <span className={lgChip}>TZS</span>
-              <NumberInput value={banks.tzs || ""} onChange={v => onBanksChange({ ...banks, tzs: Number(v) || 0 })} className={lgInput} placeholder="0" />
+            <div className={mdRow}>
+              <span className={mdChip}>TZS</span>
+              <NumberInput value={banks.tzs || ""} onChange={v => onBanksChange({ ...banks, tzs: Number(v) || 0 })} className={mdInput} placeholder="0" />
             </div>
-            <div className={lgRow}>
-              <span className={lgChip}>USD</span>
-              <NumberInput value={banks.usd || ""} onChange={v => onBanksChange({ ...banks, usd: Number(v) || 0 })} className={lgInput} placeholder="0" />
+            <div className={mdRow}>
+              <span className={mdChip}>USD</span>
+              <NumberInput value={banks.usd || ""} onChange={v => onBanksChange({ ...banks, usd: Number(v) || 0 })} className={mdInput} placeholder="0" />
             </div>
           </div>
           <div className="pt-2 mt-2 border-t border-border space-y-1">
