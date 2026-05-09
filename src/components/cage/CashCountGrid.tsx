@@ -76,7 +76,7 @@ const CashCountGrid = ({
           </div>
           <div className="flex items-center justify-between gap-2 pt-2 mt-2 border-t border-border">
             <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Total</span>
-            <span className="font-mono text-lg font-bold text-card-foreground whitespace-nowrap">TZS {formatNumberSpaces(mobTotal)}</span>
+            <span className="font-mono text-sm font-bold text-card-foreground whitespace-nowrap">TZS {formatNumberSpaces(mobTotal)}</span>
           </div>
         </section>
 
@@ -99,7 +99,7 @@ const CashCountGrid = ({
             </div>
             <div className="flex items-center justify-between gap-2">
               <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Total</span>
-              <span className="font-mono text-lg font-bold text-card-foreground whitespace-nowrap">TZS {formatNumberSpaces(banksTzsTotal)}</span>
+              <span className="font-mono text-sm font-bold text-card-foreground whitespace-nowrap">TZS {formatNumberSpaces(banksTzsTotal)}</span>
             </div>
           </div>
         </section>
