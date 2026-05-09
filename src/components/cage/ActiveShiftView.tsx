@@ -226,7 +226,7 @@ const ActiveShiftView = ({ shift, players, tables }: {
         </TabsList>
 
         <TabsContent value="in" className="space-y-3">
-          <InForm players={activePlayers} tables={openTables} exchangeRates={exchangeRates} shiftId={shift.id} onSubmit={createTx.mutate} loading={createTx.isPending} />
+          <InForm players={activePlayers} tables={openTables} exchangeRates={exchangeRates} shiftId={shift.id} onSubmit={createTx.mutate} loading={createTx.isPending} shiftTransactions={shiftTransactions} />
           <TransactionsTable
             transactions={shiftTransactions.filter(t => isInTx(t.type))}
             tableMap={tableMap}
@@ -234,7 +234,7 @@ const ActiveShiftView = ({ shift, players, tables }: {
           />
         </TabsContent>
         <TabsContent value="out" className="space-y-3">
-          <OutForm players={activePlayers} tables={openTables} shiftId={shift.id} onSubmit={createTx.mutate} loading={createTx.isPending} />
+          <OutForm players={activePlayers} tables={openTables} shiftId={shift.id} onSubmit={createTx.mutate} loading={createTx.isPending} shiftTransactions={shiftTransactions} />
           <TransactionsTable
             transactions={shiftTransactions.filter(t => isOutTx(t.type))}
             tableMap={tableMap}
