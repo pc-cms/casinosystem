@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DateNavigator } from "@/components/ui/date-navigator";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChevronLeft, ChevronRight, UserPlus, ArrowUpDown, ZoomIn, ZoomOut, Printer, Trash2, Users as UsersIcon, Lock } from "lucide-react";
