@@ -26,10 +26,10 @@ const CashCountGrid = ({
   const mobTotal = mobileTotal(mobile);
   const banksTzsTotal = (banks.tzs || 0) + (banks.usd || 0) * (rates?.["USD"] || 0);
 
-  // Row classes mirroring CashDenomInput size="lg" so Mobile/Banks rows align
-  const lgRow = "flex items-center gap-3";
-  const lgChip = "cms-chip text-xs bg-muted text-foreground h-10 w-20 shrink-0 justify-center";
-  const lgInput = "no-spin font-mono text-base h-10 w-32 flex-1 min-w-0 rounded border border-border bg-background px-2 text-right text-foreground focus:outline-none focus:ring-1 focus:ring-primary";
+  // Compact rows for Mobile/Banks so col 2 height matches col 3 & 4
+  const mdRow = "flex items-center gap-2";
+  const mdChip = "cms-chip text-[10px] bg-muted text-foreground h-7 w-16 shrink-0 justify-center";
+  const mdInput = "no-spin font-mono text-sm h-8 w-24 flex-1 min-w-0 rounded border border-border bg-background px-2 text-right text-foreground focus:outline-none focus:ring-1 focus:ring-primary";
 
   const sectionCls = "rounded-xl border border-border bg-background/40 p-3 flex flex-col";
   const titleCls = "text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.22em] mb-2";
