@@ -108,13 +108,13 @@ const TransfersForm = ({ shiftId, tables }: Props) => {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[minmax(380px,460px)_1fr] gap-3 items-stretch">
+    <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-3 items-stretch">
       {/* LEFT — form */}
-      <div className="cms-panel p-4 space-y-3">
+      <div className="cms-panel p-4 space-y-4">
         {/* Type selector */}
         <div>
-          <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">1. Transfer Type</label>
-          <div className="grid grid-cols-2 gap-1.5">
+          <label className="text-xs font-bold text-foreground uppercase tracking-wider mb-2 block">1. Transfer Type</label>
+          <div className="grid grid-cols-2 gap-2">
             {TYPE_OPTIONS.map(opt => {
               const Icon = opt.icon;
               const active = type === opt.value;
@@ -123,13 +123,17 @@ const TransfersForm = ({ shiftId, tables }: Props) => {
                   key={opt.value}
                   type="button"
                   onClick={() => handleTypeChange(opt.value)}
-                  className={`text-left rounded border px-2.5 py-2 transition-colors ${active ? "border-primary bg-primary/10" : "border-border bg-muted/30 hover:bg-muted"}`}
+                  className={`text-left rounded-md border px-3 py-2.5 transition-colors ${
+                    active
+                      ? `${opt.tone.activeBorder} ${opt.tone.activeBg}`
+                      : `${opt.tone.border} ${opt.tone.bg} hover:brightness-125`
+                  }`}
                 >
-                  <div className="flex items-center gap-1.5">
-                    <Icon className="w-3.5 h-3.5" />
-                    <span className="text-xs font-semibold text-card-foreground">{opt.label}</span>
+                  <div className="flex items-center gap-2">
+                    <Icon className={`w-4 h-4 ${opt.tone.text}`} />
+                    <span className={`text-sm font-bold ${opt.tone.text}`}>{opt.label}</span>
                   </div>
-                  <p className="text-[10px] text-muted-foreground mt-0.5 leading-tight">{opt.description}</p>
+                  <p className="text-xs text-muted-foreground mt-1 leading-tight">{opt.description}</p>
                 </button>
               );
             })}
