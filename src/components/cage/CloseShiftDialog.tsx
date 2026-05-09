@@ -487,15 +487,15 @@ const CloseShiftDialog = ({
 
       {/* Tables */}
       <section className="cms-panel p-3">
-        <p className="text-[10px] uppercase text-muted-foreground tracking-wider font-medium mb-2">Tables Result</p>
+        <p className="text-xs uppercase text-foreground tracking-wider font-bold mb-2">Tables Result</p>
         <div className="overflow-x-auto">
-          <table className="w-full text-xs font-mono">
+          <table className="w-full text-sm font-mono">
             <thead className="border-b border-border">
               <tr>
-                <th className="text-left px-2 py-1 text-muted-foreground font-medium">Table</th>
-                <th className="text-left px-2 py-1 text-muted-foreground font-medium">Game</th>
-                <th className="text-left px-2 py-1 text-muted-foreground font-medium">Status</th>
-                <th className="text-right px-2 py-1 text-muted-foreground font-medium">Result</th>
+                <th className="text-left px-2 py-1.5 text-foreground font-semibold">Table</th>
+                <th className="text-left px-2 py-1.5 text-foreground font-semibold">Game</th>
+                <th className="text-left px-2 py-1.5 text-foreground font-semibold">Status</th>
+                <th className="text-right px-2 py-1.5 text-foreground font-semibold">Result</th>
               </tr>
             </thead>
             <tbody>
