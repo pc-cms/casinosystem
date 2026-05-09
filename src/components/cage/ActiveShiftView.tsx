@@ -226,7 +226,7 @@ const ActiveShiftView = ({ shift, players, tables }: {
         </TabsList>
 
         <TabsContent value="in" className="space-y-3">
-          <InForm players={activePlayers} tables={openTables} exchangeRates={exchangeRates} shiftId={shift.id} onSubmit={createTx.mutate} loading={createTx.isPending} />
+          <InForm players={activePlayers} tables={openTables} exchangeRates={exchangeRates} shiftId={shift.id} onSubmit={createTx.mutate} loading={createTx.isPending} shiftTransactions={shiftTransactions} />
           <TransactionsTable
             transactions={shiftTransactions.filter(t => isInTx(t.type))}
             tableMap={tableMap}
@@ -234,7 +234,7 @@ const ActiveShiftView = ({ shift, players, tables }: {
           />
         </TabsContent>
         <TabsContent value="out" className="space-y-3">
-          <OutForm players={activePlayers} tables={openTables} shiftId={shift.id} onSubmit={createTx.mutate} loading={createTx.isPending} />
+          <OutForm players={activePlayers} tables={openTables} shiftId={shift.id} onSubmit={createTx.mutate} loading={createTx.isPending} shiftTransactions={shiftTransactions} />
           <TransactionsTable
             transactions={shiftTransactions.filter(t => isOutTx(t.type))}
             tableMap={tableMap}
@@ -283,13 +283,14 @@ const TwoColumnLayout = ({
 );
 
 // =================== IN FORM (was Buy-In) ===================
-const InForm = ({ players, tables, exchangeRates, shiftId, onSubmit, loading }: {
+const InForm = ({ players, tables, exchangeRates, shiftId, onSubmit, loading, shiftTransactions = [] }: {
   players: Tables<"players">[];
   tables: Tables<"gaming_tables">[];
   exchangeRates: Record<string, number>;
   shiftId: string;
   onSubmit: (data: Record<string, unknown>, opts?: Record<string, unknown>) => void;
   loading: boolean;
+  shiftTransactions?: Tables<"transactions">[];
 }) => {
   const [playerId, setPlayerId] = useState("");
   const [tableId, setTableId] = useState("");
@@ -413,7 +414,7 @@ const InForm = ({ players, tables, exchangeRates, shiftId, onSubmit, loading }: 
       form={form}
       rightPanel={
         selectedPlayer
-          ? <PlayerInfoCard player={selectedPlayer} tables={tables} />
+          ? <PlayerInfoCard player={selectedPlayer} tables={tables} shiftTransactions={shiftTransactions} />
           : <ActivePlayersList players={players} tables={tables} onSelect={setPlayerId} />
       }
     />
@@ -421,12 +422,13 @@ const InForm = ({ players, tables, exchangeRates, shiftId, onSubmit, loading }: 
 };
 
 // =================== OUT FORM (was Cashout) ===================
-const OutForm = ({ players, tables, shiftId, onSubmit, loading }: {
+const OutForm = ({ players, tables, shiftId, onSubmit, loading, shiftTransactions = [] }: {
   players: Tables<"players">[];
   tables: Tables<"gaming_tables">[];
   shiftId: string;
   onSubmit: (data: Record<string, unknown>, opts?: Record<string, unknown>) => void;
   loading: boolean;
+  shiftTransactions?: Tables<"transactions">[];
 }) => {
   const [playerId, setPlayerId] = useState("");
   const [chips, setChips] = useState<Record<number, number>>({});
@@ -467,7 +469,7 @@ const OutForm = ({ players, tables, shiftId, onSubmit, loading }: {
       form={form}
       rightPanel={
         selectedPlayer
-          ? <PlayerInfoCard player={selectedPlayer} tables={tables} />
+          ? <PlayerInfoCard player={selectedPlayer} tables={tables} shiftTransactions={shiftTransactions} />
           : <ActivePlayersList players={players} tables={tables} onSelect={setPlayerId} />
       }
     />
