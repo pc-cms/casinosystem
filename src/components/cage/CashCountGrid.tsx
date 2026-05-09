@@ -35,7 +35,7 @@ const CashCountGrid = ({
   const mdInput = "no-spin font-mono text-sm h-8 w-24 flex-1 min-w-0 rounded border border-border bg-background px-2 text-right text-foreground focus:outline-none focus:ring-1 focus:ring-primary";
 
   const sectionCls = "rounded-xl border border-border bg-background/40 p-3 flex flex-col";
-  const titleCls = "text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.22em] mb-2";
+  const titleCls = "text-xs font-bold text-foreground uppercase tracking-[0.22em] mb-2";
   const stackCls = "flex flex-col gap-3 h-full";
 
   return (
