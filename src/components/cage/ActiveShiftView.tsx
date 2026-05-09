@@ -198,16 +198,28 @@ const ActiveShiftView = ({ shift, players, tables }: {
 
       <Tabs defaultValue="in" className="space-y-3">
         <TabsList className="w-full grid grid-cols-4 h-11">
-          <TabsTrigger value="in" className="gap-1.5 text-sm font-semibold">
+          <TabsTrigger
+            value="in"
+            className="gap-1.5 text-sm font-semibold data-[state=active]:bg-emerald-500/15 data-[state=active]:text-emerald-400 data-[state=active]:border data-[state=active]:border-emerald-500/40"
+          >
             <ArrowDownToLine className="w-4 h-4" /> IN
           </TabsTrigger>
-          <TabsTrigger value="out" className="gap-1.5 text-sm font-semibold">
+          <TabsTrigger
+            value="out"
+            className="gap-1.5 text-sm font-semibold data-[state=active]:bg-red-500/15 data-[state=active]:text-red-400 data-[state=active]:border data-[state=active]:border-red-500/40"
+          >
             <ArrowUpFromLine className="w-4 h-4" /> OUT
           </TabsTrigger>
-          <TabsTrigger value="check" className="gap-1.5 text-sm font-semibold">
+          <TabsTrigger
+            value="check"
+            className="gap-1.5 text-sm font-semibold data-[state=active]:bg-amber-500/15 data-[state=active]:text-amber-400 data-[state=active]:border data-[state=active]:border-amber-500/40"
+          >
             <Calculator className="w-4 h-4" /> Check
           </TabsTrigger>
-          <TabsTrigger value="transfers" className="gap-1.5 text-sm font-semibold">
+          <TabsTrigger
+            value="transfers"
+            className="gap-1.5 text-sm font-semibold data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:border data-[state=active]:border-primary/40"
+          >
             <ArrowLeftRight className="w-4 h-4" /> Transfers
           </TabsTrigger>
         </TabsList>
