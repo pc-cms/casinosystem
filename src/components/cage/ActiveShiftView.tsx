@@ -439,7 +439,7 @@ const OutForm = ({ players, tables, shiftId, onSubmit, loading }: {
           values={chips}
           onChange={setChips}
           columns={2}
-          size="md"
+          size="lg"
           onSubmit={handleSubmit}
         />
       </div>
