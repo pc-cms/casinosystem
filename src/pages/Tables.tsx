@@ -463,12 +463,7 @@ const Tables = () => {
             Business day · {businessDay}
           </div>
         ) : (
-          <Input
-            type="date"
-            value={date}
-            onChange={e => setDate(e.target.value)}
-            className="w-44 font-mono h-9"
-          />
+          <DateNavigator value={date} onChange={setDate} />
         )}
 
         {closedTables.length > 0 && (
