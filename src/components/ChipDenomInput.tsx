@@ -80,7 +80,7 @@ const ChipDenomInput = ({
           const chipValue = val * d;
           const color = resolveChipColor(d, colorOverrides);
           return (
-            <div key={d} className="flex items-center gap-1.5">
+            <div key={d} className={`flex items-center ${tokens.gap}`}>
               <button
                 type="button"
                 onClick={() => handleChipClick(d)}
