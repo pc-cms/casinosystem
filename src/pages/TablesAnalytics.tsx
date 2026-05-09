@@ -184,12 +184,10 @@ const TablesAnalytics = () => {
             Today only
           </div>
         ) : (
-          <Input
-            type="date"
+          <DateNavigator
             value={date}
-            max={today}
-            onChange={e => setDate(e.target.value || today)}
-            className="w-44 font-mono h-9"
+            onChange={(iso) => setDate(iso || today)}
+            maxDate={new Date(today + "T00:00:00")}
           />
         )}
       </PageHeader>
