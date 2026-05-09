@@ -384,7 +384,7 @@ const InForm = ({ players, tables, exchangeRates, shiftId, onSubmit, loading }: 
           values={chips}
           onChange={handleChipsChange}
           columns={2}
-          size="md"
+          size="lg"
           onSubmit={handleSubmit}
         />
       </div>
