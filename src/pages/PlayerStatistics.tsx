@@ -21,6 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { DateNavigator } from "@/components/ui/date-navigator";
 import { getTableCellClasses } from "@/lib/table-colors";
 import CategoryBadge, { type PlayerCategory } from "@/components/player/CategoryBadge";
 import CategoryFilter from "@/components/player/CategoryFilter";
@@ -559,20 +560,15 @@ const PlayerStatistics = () => {
 
   const dateControl = canBrowseHistory ? (
     <div className="flex items-center gap-1.5">
-      <Button variant="ghost" size="icon-sm" onClick={() => shiftDate(-1)} disabled={date <= minDate}>
-        <ChevronLeft className="w-4 h-4" />
-      </Button>
-      <Input
-        type="date"
+      <DateNavigator
         value={date}
-        min={minDate}
-        max={today}
-        onChange={e => e.target.value && setDate(e.target.value)}
-        className="w-44 font-mono h-9"
+        onChange={(iso) => {
+          if (iso < minDate || iso > today) return;
+          setDate(iso);
+        }}
+        minDate={new Date(minDate + "T00:00:00")}
+        maxDate={new Date(today + "T00:00:00")}
       />
-      <Button variant="ghost" size="icon-sm" onClick={() => shiftDate(1)} disabled={date >= today}>
-        <ChevronRight className="w-4 h-4" />
-      </Button>
       {date !== today && (
         <Button variant="outline" size="sm" className="h-7 text-[10px]" onClick={() => setDate(today)}>
           Today

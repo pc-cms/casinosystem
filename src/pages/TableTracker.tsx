@@ -3,6 +3,7 @@ import { getBusinessDate, nowEAT } from "@/lib/business-day";
 import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
 import { useGamingTables, useTableTracker, useSetTableTrackerValue } from "@/hooks/use-casino-data";
 import { Input } from "@/components/ui/input";
+import { DateNavigator } from "@/components/ui/date-navigator";
 import { formatCurrency, formatInputWithSpaces } from "@/lib/currency";
 
 // Sign-aware variants for tracker (negative table results are valid)
@@ -142,12 +143,10 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
             </Button>
           </div>
           {isManager ? (
-            <Input
-              type="date"
+            <DateNavigator
               value={date}
-              max={today}
-              onChange={(e) => setDate(e.target.value || today)}
-              className="w-44 font-mono h-9"
+              onChange={(iso) => setDate(iso || today)}
+              maxDate={new Date(today + "T00:00:00")}
             />
           ) : date !== today ? (
             <button

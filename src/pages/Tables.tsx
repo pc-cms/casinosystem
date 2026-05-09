@@ -10,6 +10,7 @@ import { getBusinessDate, businessDayHourUTC } from "@/lib/business-day";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DateNavigator } from "@/components/ui/date-navigator";
 import { formatCurrency, formatNumberSpaces } from "@/lib/currency";
 import { Play, Lock, LayoutGrid } from "lucide-react";
 import { PageShell } from "@/components/layout/PageShell";
@@ -463,12 +464,7 @@ const Tables = () => {
             Business day · {businessDay}
           </div>
         ) : (
-          <Input
-            type="date"
-            value={date}
-            onChange={e => setDate(e.target.value)}
-            className="w-44 font-mono h-9"
-          />
+          <DateNavigator value={date} onChange={setDate} />
         )}
 
         {closedTables.length > 0 && (

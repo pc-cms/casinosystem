@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DateNavigator } from "@/components/ui/date-navigator";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChevronLeft, ChevronRight, UserPlus, ArrowUpDown, ZoomIn, ZoomOut, Printer, Trash2, Users as UsersIcon, Lock } from "lucide-react";
@@ -126,12 +127,10 @@ const Pit = () => {
     </div>
   ) : showDatePicker ? (
     isManager ? (
-      <Input
-        type="date"
+      <DateNavigator
         value={date}
-        max={businessToday}
-        onChange={e => setDate(e.target.value || businessToday)}
-        className="w-44 font-mono h-9"
+        onChange={(iso) => setDate(iso || businessToday)}
+        maxDate={new Date(businessToday + "T00:00:00")}
       />
     ) : (
       <div className="flex items-center gap-2">

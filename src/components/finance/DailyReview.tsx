@@ -12,7 +12,8 @@ import { useCasinoInfo } from "@/hooks/use-table-lifecycle";
 import { useAuth } from "@/lib/auth-context";
 import { MoneyBreakdown } from "@/components/finance/daily-review/MoneyBreakdown";
 import { formatNumberSpaces, formatInputWithSpaces, parseSpacedNumber } from "@/lib/currency";
-import { Check, ChevronLeft, ChevronRight, CalendarDays, AlertTriangle, ArrowDownToLine } from "lucide-react";
+import { Check, AlertTriangle, ArrowDownToLine } from "lucide-react";
+import { DateNavigator } from "@/components/ui/date-navigator";
 import { format, subDays, addDays } from "date-fns";
 import { fmtDate } from "@/lib/format-date";
 import { toast } from "sonner";
@@ -171,17 +172,7 @@ export const DailyReview = () => {
     <div className="space-y-4 mt-4">
       {/* Date navigator */}
       <div className="flex items-center gap-2">
-        <Button variant="outline" size="icon" onClick={prevDay}><ChevronLeft className="w-4 h-4" /></Button>
-        <div className="flex items-center gap-2 px-3 py-2 rounded-md border border-border bg-muted/50">
-          <CalendarDays className="w-4 h-4 text-muted-foreground" />
-          <Input
-            type="date"
-            value={selectedDate}
-            onChange={e => handleDateChange(e.target.value)}
-            className="border-0 bg-transparent p-0 h-auto text-sm font-mono w-32"
-          />
-        </div>
-        <Button variant="outline" size="icon" onClick={nextDay}><ChevronRight className="w-4 h-4" /></Button>
+        <DateNavigator value={selectedDate} onChange={handleDateChange} />
         {existing?.confirmed && <Badge className="bg-success/10 text-success border-success/30">Confirmed</Badge>}
       </div>
 
