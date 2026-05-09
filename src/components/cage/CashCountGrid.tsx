@@ -11,6 +11,7 @@ const CashCountGrid = ({
   mobile, onMobileChange,
   chipPlaceholder,
   rates,
+  hideChips = false,
 }: {
   chips: Record<number, number>;
   onChipsChange: (v: Record<number, number>) => void;
@@ -22,6 +23,8 @@ const CashCountGrid = ({
   onMobileChange: (v: MobileProviders) => void;
   chipPlaceholder?: Record<number, number>;
   rates?: Record<string, number>;
+  /** Hide the TZS Chips column when chips are entered elsewhere (e.g. Close Shift). */
+  hideChips?: boolean;
 }) => {
   const mobTotal = mobileTotal(mobile);
   const banksTzsTotal = (banks.tzs || 0) + (banks.usd || 0) * (rates?.["USD"] || 0);
