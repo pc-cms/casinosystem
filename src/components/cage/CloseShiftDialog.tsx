@@ -487,15 +487,15 @@ const CloseShiftDialog = ({
 
       {/* Tables */}
       <section className="cms-panel p-3">
-        <p className="text-[10px] uppercase text-muted-foreground tracking-wider font-medium mb-2">Tables Result</p>
+        <p className="text-xs uppercase text-foreground tracking-wider font-bold mb-2">Tables Result</p>
         <div className="overflow-x-auto">
-          <table className="w-full text-xs font-mono">
+          <table className="w-full text-sm font-mono">
             <thead className="border-b border-border">
               <tr>
-                <th className="text-left px-2 py-1 text-muted-foreground font-medium">Table</th>
-                <th className="text-left px-2 py-1 text-muted-foreground font-medium">Game</th>
-                <th className="text-left px-2 py-1 text-muted-foreground font-medium">Status</th>
-                <th className="text-right px-2 py-1 text-muted-foreground font-medium">Result</th>
+                <th className="text-left px-2 py-1.5 text-foreground font-semibold">Table</th>
+                <th className="text-left px-2 py-1.5 text-foreground font-semibold">Game</th>
+                <th className="text-left px-2 py-1.5 text-foreground font-semibold">Status</th>
+                <th className="text-right px-2 py-1.5 text-foreground font-semibold">Result</th>
               </tr>
             </thead>
             <tbody>
@@ -504,17 +504,17 @@ const CloseShiftDialog = ({
                 const r = Number(t.closing_result || 0);
                 return (
                   <tr key={t.id} className="border-b border-border/40">
-                    <td className="px-2 py-1 text-card-foreground">{t.name}</td>
-                    <td className="px-2 py-1 text-muted-foreground">{t.game}</td>
-                    <td className="px-2 py-1">
+                    <td className="px-2 py-1.5 text-foreground font-semibold">{t.name}</td>
+                    <td className="px-2 py-1.5 text-foreground">{t.game}</td>
+                    <td className="px-2 py-1.5">
                       {isOpen
-                        ? <span className="text-destructive">OPEN</span>
-                        : <span className="text-success inline-flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> CLOSED</span>}
+                        ? <span className="text-destructive font-semibold">OPEN</span>
+                        : <span className="text-success inline-flex items-center gap-1 font-semibold"><CheckCircle2 className="w-3.5 h-3.5" /> CLOSED</span>}
                     </td>
                     <td className={cn(
-                      "px-2 py-1 text-right",
-                      isOpen ? "text-muted-foreground" :
-                        r > 0 ? "cms-amount-positive" : r < 0 ? "cms-amount-negative" : "text-muted-foreground",
+                      "px-2 py-1.5 text-right font-semibold",
+                      isOpen ? "text-foreground" :
+                        r > 0 ? "cms-amount-positive" : r < 0 ? "cms-amount-negative" : "text-foreground",
                     )}>
                       {isOpen ? "·" : `${r >= 0 ? "+" : ""}${formatNumberSpaces(r)}`}
                     </td>
@@ -527,10 +527,10 @@ const CloseShiftDialog = ({
             </tbody>
             <tfoot className="border-t border-border">
               <tr>
-                <td colSpan={3} className="px-2 py-1.5 font-semibold text-card-foreground">Total Result Table</td>
+                <td colSpan={3} className="px-2 py-2 font-bold text-foreground text-sm">Total Result Table</td>
                 <td className={cn(
-                  "px-2 py-1.5 text-right font-bold",
-                  resultTable > 0 ? "cms-amount-positive" : resultTable < 0 ? "cms-amount-negative" : "text-card-foreground",
+                  "px-2 py-2 text-right font-bold text-sm",
+                  resultTable > 0 ? "cms-amount-positive" : resultTable < 0 ? "cms-amount-negative" : "text-foreground",
                 )}>
                   {resultTable >= 0 ? "+" : ""}{formatNumberSpaces(resultTable)}
                 </td>
@@ -542,18 +542,18 @@ const CloseShiftDialog = ({
 
       {/* Chips per denom */}
       <section className="cms-panel p-3">
-        <p className="text-[10px] uppercase text-muted-foreground tracking-wider font-medium mb-2">
+        <p className="text-xs uppercase text-foreground tracking-wider font-bold mb-2">
           Cash Desk · Chips (per denomination)
         </p>
         <div className="overflow-x-auto">
-          <table className="w-full text-xs font-mono">
+          <table className="w-full text-sm font-mono">
             <thead className="border-b border-border">
               <tr>
-                <th className="text-left px-2 py-1 text-muted-foreground font-medium">Denom</th>
-                <th className="text-right px-2 py-1 text-muted-foreground font-medium">Open (qty)</th>
-                <th className="text-right px-2 py-1 text-muted-foreground font-medium">Close (qty)</th>
-                <th className="text-right px-2 py-1 text-muted-foreground font-medium">Miss (qty)</th>
-                <th className="text-right px-2 py-1 text-muted-foreground font-medium">Miss (TZS)</th>
+                <th className="text-left px-2 py-1.5 text-foreground font-semibold">Denom</th>
+                <th className="text-right px-2 py-1.5 text-foreground font-semibold">Open (qty)</th>
+                <th className="text-right px-2 py-1.5 text-foreground font-semibold">Close (qty)</th>
+                <th className="text-right px-2 py-1.5 text-foreground font-semibold">Miss (qty)</th>
+                <th className="text-right px-2 py-1.5 text-foreground font-semibold">Miss (TZS)</th>
               </tr>
             </thead>
             <tbody>
@@ -562,24 +562,24 @@ const CloseShiftDialog = ({
                 const cl = chipCounts[d] || 0;
                 const mq = missPerDenom[d] || 0;
                 const mv = mq * d;
-                const colorCls = mq > 0 ? "cms-amount-positive" : mq < 0 ? "cms-amount-negative" : "text-muted-foreground";
+                const colorCls = mq > 0 ? "cms-amount-positive" : mq < 0 ? "cms-amount-negative" : "text-foreground";
                 return (
                   <tr key={d} className="border-b border-border/30">
-                    <td className="px-2 py-1 text-card-foreground">{formatChipLabel(d)}</td>
-                    <td className="px-2 py-1 text-right text-muted-foreground">{op || "·"}</td>
-                    <td className="px-2 py-1 text-right">
+                    <td className="px-2 py-1.5 text-foreground font-semibold">{formatChipLabel(d)}</td>
+                    <td className="px-2 py-1.5 text-right text-foreground">{op || "·"}</td>
+                    <td className="px-2 py-1.5 text-right">
                       <input
                         type="number"
                         value={cl || ""}
                         onChange={e => setChipCounts(c => ({ ...c, [d]: Number(e.target.value) || 0 }))}
                         placeholder={op ? String(op) : "0"}
-                        className="no-spin h-6 w-20 font-mono text-xs text-right px-1.5 bg-background border border-border rounded"
+                        className="no-spin h-8 w-24 font-mono text-sm text-right px-2 bg-background border border-border rounded text-foreground"
                       />
                     </td>
-                    <td className={cn("px-2 py-1 text-right font-semibold", colorCls)}>
+                    <td className={cn("px-2 py-1.5 text-right font-bold", colorCls)}>
                       {mq === 0 ? "·" : `${mq > 0 ? "+" : ""}${mq}`}
                     </td>
-                    <td className={cn("px-2 py-1 text-right", colorCls)}>
+                    <td className={cn("px-2 py-1.5 text-right font-semibold", colorCls)}>
                       {mv === 0 ? "·" : `${mv > 0 ? "+" : ""}${formatNumberSpaces(mv)}`}
                     </td>
                   </tr>
@@ -588,10 +588,10 @@ const CloseShiftDialog = ({
             </tbody>
             <tfoot className="border-t border-border">
               <tr>
-                <td className="px-2 py-1.5 font-semibold text-card-foreground" colSpan={4}>MISS TOTAL</td>
+                <td className="px-2 py-2 font-bold text-foreground text-sm" colSpan={4}>MISS TOTAL</td>
                 <td className={cn(
-                  "px-2 py-1.5 text-right font-bold",
-                  missTotal > 0 ? "cms-amount-positive" : missTotal < 0 ? "cms-amount-negative" : "text-card-foreground",
+                  "px-2 py-2 text-right font-bold text-sm",
+                  missTotal > 0 ? "cms-amount-positive" : missTotal < 0 ? "cms-amount-negative" : "text-foreground",
                 )}>
                   {missTotal >= 0 ? "+" : ""}{formatNumberSpaces(missTotal)}
                 </td>
