@@ -57,12 +57,12 @@ export const formatChipLabel = (value: number): string => {
   return String(value);
 };
 
-// Format a cash denomination label. TZS still uses K/M (chip-style); other
-// currencies show the full number with space-separated thousands (e.g. "$1 000").
+// Format a cash denomination label. TZS uses K/M (chip-style); other
+// currencies show the bare number with space-separated thousands (e.g. "1 000").
+// Currency symbol is NOT included — the section total below shows the currency.
 export const formatCashDenomLabel = (denom: number, currency: string): string => {
   if (currency === "TZS") return formatChipLabel(denom);
-  const sym = CURRENCY_SYMBOLS[currency] || "";
-  return `${sym}${formatNumberSpaces(denom)}`;
+  return formatNumberSpaces(denom);
 };
 
 // Format number with space-separated thousands (global rule: no commas or dots)
