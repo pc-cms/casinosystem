@@ -542,18 +542,18 @@ const CloseShiftDialog = ({
 
       {/* Chips per denom */}
       <section className="cms-panel p-3">
-        <p className="text-[10px] uppercase text-muted-foreground tracking-wider font-medium mb-2">
+        <p className="text-xs uppercase text-foreground tracking-wider font-bold mb-2">
           Cash Desk · Chips (per denomination)
         </p>
         <div className="overflow-x-auto">
-          <table className="w-full text-xs font-mono">
+          <table className="w-full text-sm font-mono">
             <thead className="border-b border-border">
               <tr>
-                <th className="text-left px-2 py-1 text-muted-foreground font-medium">Denom</th>
-                <th className="text-right px-2 py-1 text-muted-foreground font-medium">Open (qty)</th>
-                <th className="text-right px-2 py-1 text-muted-foreground font-medium">Close (qty)</th>
-                <th className="text-right px-2 py-1 text-muted-foreground font-medium">Miss (qty)</th>
-                <th className="text-right px-2 py-1 text-muted-foreground font-medium">Miss (TZS)</th>
+                <th className="text-left px-2 py-1.5 text-foreground font-semibold">Denom</th>
+                <th className="text-right px-2 py-1.5 text-foreground font-semibold">Open (qty)</th>
+                <th className="text-right px-2 py-1.5 text-foreground font-semibold">Close (qty)</th>
+                <th className="text-right px-2 py-1.5 text-foreground font-semibold">Miss (qty)</th>
+                <th className="text-right px-2 py-1.5 text-foreground font-semibold">Miss (TZS)</th>
               </tr>
             </thead>
             <tbody>
