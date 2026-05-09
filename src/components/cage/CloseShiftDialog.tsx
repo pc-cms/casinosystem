@@ -671,8 +671,8 @@ const CloseShiftDialog = ({
         <Button variant="outline" onClick={onClose}>Cancel</Button>
         <Button
           variant={isBalanced ? "default" : "destructive"}
-          onClick={() => { if (tablesAllClosed && noteValid) setStep("review"); }}
-          disabled={loading || !tablesAllClosed || !noteValid}
+          onClick={() => { if (tablesAllClosed) setStep("review"); }}
+          disabled={loading || !tablesAllClosed}
           className="gap-1.5"
         >
           <ShieldAlert className="w-4 h-4" />
