@@ -527,10 +527,10 @@ const CloseShiftDialog = ({
             </tbody>
             <tfoot className="border-t border-border">
               <tr>
-                <td colSpan={3} className="px-2 py-1.5 font-semibold text-card-foreground">Total Result Table</td>
+                <td colSpan={3} className="px-2 py-2 font-bold text-foreground text-sm">Total Result Table</td>
                 <td className={cn(
-                  "px-2 py-1.5 text-right font-bold",
-                  resultTable > 0 ? "cms-amount-positive" : resultTable < 0 ? "cms-amount-negative" : "text-card-foreground",
+                  "px-2 py-2 text-right font-bold text-sm",
+                  resultTable > 0 ? "cms-amount-positive" : resultTable < 0 ? "cms-amount-negative" : "text-foreground",
                 )}>
                   {resultTable >= 0 ? "+" : ""}{formatNumberSpaces(resultTable)}
                 </td>
