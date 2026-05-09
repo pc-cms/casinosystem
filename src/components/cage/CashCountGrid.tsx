@@ -26,18 +26,19 @@ const CashCountGrid = ({
   const mobTotal = mobileTotal(mobile);
   const banksTzsTotal = (banks.tzs || 0) + (banks.usd || 0) * (rates?.["USD"] || 0);
 
-  // Large rows for Mobile / Banks — match CashDenomInput size="lg"
-  const lgRow = "flex items-center justify-between gap-2";
+  // Row classes mirroring CashDenomInput size="lg" so Mobile/Banks rows align
+  const lgRow = "flex items-center gap-3";
   const lgChip = "cms-chip text-xs bg-muted text-foreground h-10 w-20 shrink-0 justify-center";
-  const lgInput = "no-spin font-mono text-base h-11 w-28 rounded border border-border bg-background px-2 text-right text-foreground focus:outline-none focus:ring-1 focus:ring-primary";
+  const lgInput = "no-spin font-mono text-base h-10 w-32 flex-1 min-w-0 rounded border border-border bg-background px-2 text-right text-foreground focus:outline-none focus:ring-1 focus:ring-primary";
 
-  const sectionCls = "rounded-xl border border-border bg-background/40 p-3 flex flex-col h-full";
+  const sectionCls = "rounded-xl border border-border bg-background/40 p-3 flex flex-col";
   const titleCls = "text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.22em] mb-2";
+  const stackCls = "flex flex-col gap-3 h-full";
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 grid-flow-row-dense auto-rows-fr items-stretch">
-      {/* Row 1 */}
-      <section className={sectionCls}>
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 items-stretch">
+      {/* Col 1 — TZS Chips, full height */}
+      <section className={`${sectionCls} h-full`}>
         <p className={titleCls}>TZS Chips</p>
         <div className="flex-1">
           <ChipDenomInput
@@ -45,82 +46,88 @@ const CashCountGrid = ({
             onChange={onChipsChange}
             showValue={false}
             placeholder={chipPlaceholder}
-            columns={2}
-            size="md"
+            columns={1}
+            size="lg"
           />
         </div>
       </section>
 
-      <section className={sectionCls}>
-        <p className={titleCls}>USD Cash</p>
-        <CashDenomInput values={cash["USD"] || {}} onChange={v => onCashChange("USD", v)} denoms={CASH_DENOMS["USD"] || []} currency="USD" size="lg" />
-      </section>
+      {/* Col 2 — TZS Cash + Mobile + Banks */}
+      <div className={stackCls}>
+        <section className={sectionCls}>
+          <p className={titleCls}>TZS Cash</p>
+          <CashDenomInput values={cash["TZS"] || {}} onChange={v => onCashChange("TZS", v)} denoms={CASH_DENOMS["TZS"] || []} currency="TZS" size="lg" />
+        </section>
 
-      <section className={sectionCls}>
-        <p className={titleCls}>EUR Cash</p>
-        <CashDenomInput values={cash["EUR"] || {}} onChange={v => onCashChange("EUR", v)} denoms={CASH_DENOMS["EUR"] || []} currency="EUR" size="lg" />
-      </section>
-
-      <section className={sectionCls}>
-        <p className={titleCls}>GBP Cash</p>
-        <CashDenomInput values={cash["GBP"] || {}} onChange={v => onCashChange("GBP", v)} denoms={CASH_DENOMS["GBP"] || []} currency="GBP" size="lg" />
-      </section>
-
-      {/* Row 2 */}
-      <section className={sectionCls}>
-        <p className={titleCls}>TZS Cash</p>
-        <CashDenomInput values={cash["TZS"] || {}} onChange={v => onCashChange("TZS", v)} denoms={CASH_DENOMS["TZS"] || []} currency="TZS" size="lg" />
-      </section>
-
-      <section className={sectionCls}>
-        <p className={titleCls}>Mobile Money</p>
-        <div className="flex-1 space-y-1.5">
-          {MOBILE_PROVIDERS.map(provider => (
-            <div key={provider} className={lgRow}>
-              <span className={lgChip}>{provider}</span>
-              <NumberInput
-                value={mobile[provider] || ""}
-                onChange={v => onMobileChange({ ...mobile, [provider]: Number(v) || 0 })}
-                className={lgInput}
-                placeholder="0"
-              />
-            </div>
-          ))}
-        </div>
-        <div className="flex items-center justify-between gap-2 pt-2 mt-2 border-t border-border">
-          <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Total</span>
-          <span className="font-mono text-lg font-bold text-card-foreground whitespace-nowrap">TZS {formatNumberSpaces(mobTotal)}</span>
-        </div>
-      </section>
-
-      <section className={sectionCls}>
-        <p className={titleCls}>Banks</p>
-        <div className="flex-1 space-y-1.5">
-          <div className={lgRow}>
-            <span className={lgChip}>TZS</span>
-            <NumberInput value={banks.tzs || ""} onChange={v => onBanksChange({ ...banks, tzs: Number(v) || 0 })} className={lgInput} placeholder="0" />
+        <section className={sectionCls}>
+          <p className={titleCls}>Mobile Money</p>
+          <div className="space-y-1">
+            {MOBILE_PROVIDERS.map(provider => (
+              <div key={provider} className={lgRow}>
+                <span className={lgChip}>{provider}</span>
+                <NumberInput
+                  value={mobile[provider] || ""}
+                  onChange={v => onMobileChange({ ...mobile, [provider]: Number(v) || 0 })}
+                  className={lgInput}
+                  placeholder="0"
+                />
+              </div>
+            ))}
           </div>
-          <div className={lgRow}>
-            <span className={lgChip}>USD</span>
-            <NumberInput value={banks.usd || ""} onChange={v => onBanksChange({ ...banks, usd: Number(v) || 0 })} className={lgInput} placeholder="0" />
-          </div>
-        </div>
-        <div className="pt-2 mt-2 border-t border-border space-y-1">
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">USD in TZS</span>
-            <span className="font-mono text-xs text-muted-foreground whitespace-nowrap">TZS {formatNumberSpaces((banks.usd || 0) * (rates?.["USD"] || 0))}</span>
-          </div>
-          <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center justify-between gap-2 pt-2 mt-2 border-t border-border">
             <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Total</span>
-            <span className="font-mono text-lg font-bold text-card-foreground whitespace-nowrap">TZS {formatNumberSpaces(banksTzsTotal)}</span>
+            <span className="font-mono text-lg font-bold text-card-foreground whitespace-nowrap">TZS {formatNumberSpaces(mobTotal)}</span>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <section className={sectionCls}>
-        <p className={titleCls}>KES Cash</p>
-        <CashDenomInput values={cash["KES"] || {}} onChange={v => onCashChange("KES", v)} denoms={CASH_DENOMS["KES"] || []} currency="KES" size="lg" />
-      </section>
+        <section className={sectionCls}>
+          <p className={titleCls}>Banks</p>
+          <div className="space-y-1">
+            <div className={lgRow}>
+              <span className={lgChip}>TZS</span>
+              <NumberInput value={banks.tzs || ""} onChange={v => onBanksChange({ ...banks, tzs: Number(v) || 0 })} className={lgInput} placeholder="0" />
+            </div>
+            <div className={lgRow}>
+              <span className={lgChip}>USD</span>
+              <NumberInput value={banks.usd || ""} onChange={v => onBanksChange({ ...banks, usd: Number(v) || 0 })} className={lgInput} placeholder="0" />
+            </div>
+          </div>
+          <div className="pt-2 mt-2 border-t border-border space-y-1">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">USD in TZS</span>
+              <span className="font-mono text-xs text-muted-foreground whitespace-nowrap">TZS {formatNumberSpaces((banks.usd || 0) * (rates?.["USD"] || 0))}</span>
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Total</span>
+              <span className="font-mono text-lg font-bold text-card-foreground whitespace-nowrap">TZS {formatNumberSpaces(banksTzsTotal)}</span>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      {/* Col 3 — USD + KES */}
+      <div className={stackCls}>
+        <section className={sectionCls}>
+          <p className={titleCls}>USD Cash</p>
+          <CashDenomInput values={cash["USD"] || {}} onChange={v => onCashChange("USD", v)} denoms={CASH_DENOMS["USD"] || []} currency="USD" size="lg" />
+        </section>
+        <section className={sectionCls}>
+          <p className={titleCls}>KES Cash</p>
+          <CashDenomInput values={cash["KES"] || {}} onChange={v => onCashChange("KES", v)} denoms={CASH_DENOMS["KES"] || []} currency="KES" size="lg" />
+        </section>
+      </div>
+
+      {/* Col 4 — EUR + GBP */}
+      <div className={stackCls}>
+        <section className={sectionCls}>
+          <p className={titleCls}>EUR Cash</p>
+          <CashDenomInput values={cash["EUR"] || {}} onChange={v => onCashChange("EUR", v)} denoms={CASH_DENOMS["EUR"] || []} currency="EUR" size="lg" />
+        </section>
+        <section className={sectionCls}>
+          <p className={titleCls}>GBP Cash</p>
+          <CashDenomInput values={cash["GBP"] || {}} onChange={v => onCashChange("GBP", v)} denoms={CASH_DENOMS["GBP"] || []} currency="GBP" size="lg" />
+        </section>
+      </div>
     </div>
   );
 };
