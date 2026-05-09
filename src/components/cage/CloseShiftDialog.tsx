@@ -562,24 +562,24 @@ const CloseShiftDialog = ({
                 const cl = chipCounts[d] || 0;
                 const mq = missPerDenom[d] || 0;
                 const mv = mq * d;
-                const colorCls = mq > 0 ? "cms-amount-positive" : mq < 0 ? "cms-amount-negative" : "text-muted-foreground";
+                const colorCls = mq > 0 ? "cms-amount-positive" : mq < 0 ? "cms-amount-negative" : "text-foreground";
                 return (
                   <tr key={d} className="border-b border-border/30">
-                    <td className="px-2 py-1 text-card-foreground">{formatChipLabel(d)}</td>
-                    <td className="px-2 py-1 text-right text-muted-foreground">{op || "·"}</td>
-                    <td className="px-2 py-1 text-right">
+                    <td className="px-2 py-1.5 text-foreground font-semibold">{formatChipLabel(d)}</td>
+                    <td className="px-2 py-1.5 text-right text-foreground">{op || "·"}</td>
+                    <td className="px-2 py-1.5 text-right">
                       <input
                         type="number"
                         value={cl || ""}
                         onChange={e => setChipCounts(c => ({ ...c, [d]: Number(e.target.value) || 0 }))}
                         placeholder={op ? String(op) : "0"}
-                        className="no-spin h-6 w-20 font-mono text-xs text-right px-1.5 bg-background border border-border rounded"
+                        className="no-spin h-8 w-24 font-mono text-sm text-right px-2 bg-background border border-border rounded text-foreground"
                       />
                     </td>
-                    <td className={cn("px-2 py-1 text-right font-semibold", colorCls)}>
+                    <td className={cn("px-2 py-1.5 text-right font-bold", colorCls)}>
                       {mq === 0 ? "·" : `${mq > 0 ? "+" : ""}${mq}`}
                     </td>
-                    <td className={cn("px-2 py-1 text-right", colorCls)}>
+                    <td className={cn("px-2 py-1.5 text-right font-semibold", colorCls)}>
                       {mv === 0 ? "·" : `${mv > 0 ? "+" : ""}${formatNumberSpaces(mv)}`}
                     </td>
                   </tr>
@@ -588,10 +588,10 @@ const CloseShiftDialog = ({
             </tbody>
             <tfoot className="border-t border-border">
               <tr>
-                <td className="px-2 py-1.5 font-semibold text-card-foreground" colSpan={4}>MISS TOTAL</td>
+                <td className="px-2 py-2 font-bold text-foreground text-sm" colSpan={4}>MISS TOTAL</td>
                 <td className={cn(
-                  "px-2 py-1.5 text-right font-bold",
-                  missTotal > 0 ? "cms-amount-positive" : missTotal < 0 ? "cms-amount-negative" : "text-card-foreground",
+                  "px-2 py-2 text-right font-bold text-sm",
+                  missTotal > 0 ? "cms-amount-positive" : missTotal < 0 ? "cms-amount-negative" : "text-foreground",
                 )}>
                   {missTotal >= 0 ? "+" : ""}{formatNumberSpaces(missTotal)}
                 </td>
