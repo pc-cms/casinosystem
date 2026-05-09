@@ -6,19 +6,24 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
-import { User } from "lucide-react";
+import { ArrowDownToLine, ArrowUpFromLine, User } from "lucide-react";
 import CategoryBadge, { type PlayerCategory } from "@/components/player/CategoryBadge";
 import { LazyImage } from "@/components/LazyImage";
 import type { Tables } from "@/integrations/supabase/types";
 import { getBusinessDate, businessDayHourUTC } from "@/lib/business-day";
 import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
+import { formatCurrency } from "@/lib/currency";
 
 interface Props {
   player: Tables<"players"> | null;
   tables: Tables<"gaming_tables">[];
+  /** Current-shift transactions, used to show this player's IN/OUT history inline. */
+  shiftTransactions?: Tables<"transactions">[];
 }
 
-const PlayerInfoCard = ({ player, tables }: Props) => {
+const isInTx = (t: string) => t === "buy" || t === "in";
+
+const PlayerInfoCard = ({ player, tables, shiftTransactions = [] }: Props) => {
   const { casinoId } = useAuth();
   const { data: serverBusinessDate } = useEffectiveBusinessDate();
   const today = serverBusinessDate || getBusinessDate();
