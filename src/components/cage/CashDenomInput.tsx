@@ -7,9 +7,9 @@ const cashSum = (cash: Record<number, number>) =>
 type Size = "sm" | "md" | "lg";
 
 const SIZES: Record<Size, { row: string; chip: string; input: string; total: string; gap: string }> = {
-  sm: { row: "gap-1.5", chip: "text-[9px] h-6 w-14", input: "text-xs h-7 w-24", total: "text-xs", gap: "space-y-0.5" },
-  md: { row: "gap-2",   chip: "text-[10px] h-7 w-16", input: "text-sm h-9 w-24", total: "text-base", gap: "space-y-1" },
-  lg: { row: "gap-2",   chip: "text-xs h-10 w-20",   input: "text-base h-12 w-28", total: "text-lg", gap: "space-y-1.5" },
+  sm: { row: "gap-1.5", chip: "text-[9px] h-6 w-14",  input: "text-xs h-7 w-24",   total: "text-xs",  gap: "space-y-0.5" },
+  md: { row: "gap-2",   chip: "text-[10px] h-7 w-16", input: "text-sm h-9 w-24",   total: "text-base", gap: "space-y-1" },
+  lg: { row: "gap-2",   chip: "text-xs h-10 w-20",    input: "text-base h-11 w-28", total: "text-lg",  gap: "space-y-1.5" },
 };
 
 const CashDenomInput = ({ values, onChange, denoms, currency, onSubmit, size = "md" }: {
@@ -25,8 +25,8 @@ const CashDenomInput = ({ values, onChange, denoms, currency, onSubmit, size = "
   const t = SIZES[size];
 
   return (
-    <div>
-      <div className={t.gap}>
+    <div className="flex flex-col h-full">
+      <div className={`${t.gap} flex-1`}>
       {denoms.map((d, idx) => (
         <div key={d} className={`flex items-center justify-between ${t.row}`}>
           <span className={`cms-chip bg-muted text-foreground shrink-0 justify-center ${t.chip}`}>
