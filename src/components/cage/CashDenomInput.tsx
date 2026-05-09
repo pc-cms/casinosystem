@@ -9,7 +9,7 @@ type Size = "sm" | "md" | "lg";
 const SIZES: Record<Size, { row: string; chip: string; input: string; total: string; gap: string }> = {
   sm: { row: "gap-1.5", chip: "text-[9px] h-6 w-14",  input: "text-xs h-7 w-24",   total: "text-xs",  gap: "space-y-0.5" },
   md: { row: "gap-2",   chip: "text-[10px] h-7 w-16", input: "text-sm h-9 w-24",   total: "text-base", gap: "space-y-1" },
-  lg: { row: "gap-2",   chip: "text-xs h-10 w-20",    input: "text-base h-11 w-28", total: "text-lg",  gap: "space-y-1.5" },
+  lg: { row: "gap-3",   chip: "text-xs h-10 w-20",    input: "text-base h-10 w-32", total: "text-lg",  gap: "space-y-1" },
 };
 
 const CashDenomInput = ({ values, onChange, denoms, currency, onSubmit, size = "md" }: {
