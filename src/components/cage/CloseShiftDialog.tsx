@@ -504,17 +504,17 @@ const CloseShiftDialog = ({
                 const r = Number(t.closing_result || 0);
                 return (
                   <tr key={t.id} className="border-b border-border/40">
-                    <td className="px-2 py-1 text-card-foreground">{t.name}</td>
-                    <td className="px-2 py-1 text-muted-foreground">{t.game}</td>
-                    <td className="px-2 py-1">
+                    <td className="px-2 py-1.5 text-foreground font-semibold">{t.name}</td>
+                    <td className="px-2 py-1.5 text-foreground">{t.game}</td>
+                    <td className="px-2 py-1.5">
                       {isOpen
-                        ? <span className="text-destructive">OPEN</span>
-                        : <span className="text-success inline-flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> CLOSED</span>}
+                        ? <span className="text-destructive font-semibold">OPEN</span>
+                        : <span className="text-success inline-flex items-center gap-1 font-semibold"><CheckCircle2 className="w-3.5 h-3.5" /> CLOSED</span>}
                     </td>
                     <td className={cn(
-                      "px-2 py-1 text-right",
-                      isOpen ? "text-muted-foreground" :
-                        r > 0 ? "cms-amount-positive" : r < 0 ? "cms-amount-negative" : "text-muted-foreground",
+                      "px-2 py-1.5 text-right font-semibold",
+                      isOpen ? "text-foreground" :
+                        r > 0 ? "cms-amount-positive" : r < 0 ? "cms-amount-negative" : "text-foreground",
                     )}>
                       {isOpen ? "·" : `${r >= 0 ? "+" : ""}${formatNumberSpaces(r)}`}
                     </td>
