@@ -263,7 +263,7 @@ const TwoColumnLayout = ({
   form: React.ReactNode;
   rightPanel: React.ReactNode;
 }) => (
-  <div className="grid grid-cols-1 lg:grid-cols-[minmax(380px,420px)_1fr] gap-3 items-stretch">
+  <div className="grid grid-cols-1 lg:grid-cols-[minmax(520px,1fr)_minmax(280px,340px)] gap-3 items-stretch">
     <div className="cms-panel p-4">{form}</div>
     <div className="min-h-[400px]">{rightPanel}</div>
   </div>
