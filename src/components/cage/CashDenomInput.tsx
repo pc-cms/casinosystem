@@ -16,16 +16,16 @@ const CashDenomInput = ({ values, onChange, denoms, currency, onSubmit }: {
 
   return (
     <div>
-      <div className="space-y-0">
+      <div className="space-y-1">
       {denoms.map((d, idx) => (
-        <div key={d} className="grid grid-cols-[3.5rem_minmax(0,1fr)] items-center gap-1.5">
-          <span className="cms-chip text-[8px] bg-muted text-foreground h-5 w-14 shrink-0 justify-center">
+        <div key={d} className="flex items-center justify-between gap-2">
+          <span className="cms-chip text-[10px] bg-muted text-foreground h-7 w-16 shrink-0 justify-center">
             {formatCashDenomLabel(d, currency)}
           </span>
           <input
             ref={el => { refs.current[d] = el; }}
             type="number"
-            className="no-spin font-mono text-xs h-5 w-full min-w-0 rounded border border-border bg-background px-1.5 text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            className="no-spin font-mono text-sm h-9 w-24 rounded border border-border bg-background px-2 text-right text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
             value={values[d] || ""}
             onChange={e => onChange({ ...values, [d]: Number(e.target.value) || 0 })}
             onKeyDown={e => {
@@ -42,9 +42,9 @@ const CashDenomInput = ({ values, onChange, denoms, currency, onSubmit }: {
         </div>
       ))}
       </div>
-      <div className="flex items-center justify-between gap-2 pt-1 mt-1 border-t border-border">
-        <span className="text-[10px] font-medium text-muted-foreground">Total</span>
-        <span className="font-mono text-xs font-bold text-card-foreground">
+      <div className="flex items-center justify-between gap-2 pt-2 mt-2 border-t border-border">
+        <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Total</span>
+        <span className="font-mono text-base font-bold text-card-foreground whitespace-nowrap">
           {currency === "TZS" ? `TZS ${formatNumberSpaces(total)}` : `${CURRENCY_SYMBOLS[currency] || currency}${formatNumberSpaces(total)}`}
         </span>
       </div>

@@ -1,81 +1,75 @@
-
-# Close Shift → Close Business Day: full two-stage flow
-
 ## Goal
 
-Cashier and Manager work the cage close in two distinct screens. Manager password is **always** required (regardless of Manager Access toggle). Only after the shift is closed by the manager does the **Close Business Day** button become active and perform the full DB rebaseline.
+Сделать Cash Check (`CashCountGrid`) с крупными, удобно-читаемыми полями ввода (как в Chip Count), но ужать ширину инпутов под реальный максимум значения, чтобы вся сетка + кнопка действия помещалась на одном экране без вертикальной прокрутки на десктопе ≥1280px.
 
-## Current state (verified)
+## Размеры
 
-- `CloseShiftDialog` already has a 2-step internal flow (entry → manager review → password), but it lives inside one route as nested dialogs.
-- `useCloseShift` calls `compute_shift_close` then `UPDATE shifts SET status='closed'` — manager password is requested by the dialog UI, not enforced server-side beyond what `ManagerOverrideDialog` does.
-- `CloseBusinessDayButton` is already disabled while `useActiveShift` returns a row — good. It calls 2-arg `close_business_day` which **does not rebaseline chips**. This is the bug.
-- `rebaseline_chips_from_closing_snapshot` exists but is buggy (touches `chip_baseline`, runs from wrong place) and unused by the UI.
+Реальные диапазоны:
+- Кол-во фишек: до ~999 → 3 цифры
+- Кол-во купюр: до 9 999 → 4 цифры
+- Mobile / Banks (raw сумма): до 999 999 999 → 13 символов с пробелами
+- Тоталы секций: до 999 999 999 TZS → ~17 символов
 
-## What to build
+Текущая высота строк h-5 / шрифт text-xs (~10px). Цель — h-9 (~36px) и шрифт text-sm (14px) для инпутов и text-base (16px) для тоталов: визуально ~2× крупнее, как в Chip Count `size="md"`.
 
-### 1. UI: split Close Shift into two routes
+Новые ширины инпутов (fixed, моноширинный):
+- Chip count: `w-20`
+- Cash denom (купюры): `w-24`
+- Mobile / Bank raw amount: `w-40`
 
-- **Route A — `/cage/close-shift` (Cashier entry).** Existing `CloseShiftPage`, but render only the **entry blocks** (Tables result, Chips per denom, Cash + Mobile + Bank, Notes, Balance preview).
-  - Footer: `Cancel` (→ `/cage`) and `Continue to Manager Review` (→ `/cage/close-shift/review`).
-  - Pass entered state via `sessionStorage` keyed by `shift.id` (survives reload, cleared on success/cancel).
-- **Route B — `/cage/close-shift/review` (Manager review).** New page.
-  - Read state from sessionStorage; if missing, redirect back to A.
-  - Show the manager-review summary: per-currency totals (hide rows where total = 0), Chips, Mobile, Bank, Result Table, Miss Total, Expenses, Opening, Cash Desk Balance with surplus/shortage badge.
-  - Two buttons: `Back to Edit` (returns to A, state preserved) and `Confirm & Enter Manager Password` (always, even if Manager Access is on).
-  - On password verified → call `useCloseShift.mutateAsync(...)`, clear sessionStorage, navigate to `/cage`.
-- Replace the existing in-page nested-dialog flow inside `CloseShiftDialog` with the two routes. Keep `CloseShiftDialog`'s helpers/calculations but extract the rendering into two page components.
-- Remove the `Manager Access` shortcut for skipping the password — always use `ManagerOverrideDialog` for the final confirm.
+## Новая раскладка (с учётом «TZS выше, USD Cash ниже»)
 
-### 2. Hide empty currencies in review
+4 колонки на xl, 3 на lg, 1 на md и ниже:
 
-In Route B, iterate `CURRENCIES` and only render the currency row if `cashSum(cashCounts[c]) > 0`. Same for `bank` and `mobile` providers (skip zeroes). Chips/Result Table/Miss are always shown.
+```
+xl: 4 cols
+┌──────────────┬──────────────┬──────────────┬──────────────┐
+│ TZS Chips    │ TZS Cash     │ EUR Cash     │ KES Cash     │
+│ (2 sub-cols) │              │              │              │
+│              ├──────────────┼──────────────┼──────────────┤
+│              │ USD Cash     │ GBP Cash     │ Mobile Money │
+│              │              │              │              │
+│              │              │              │ Banks        │
+└──────────────┴──────────────┴──────────────┴──────────────┘
+```
 
-### 3. Cancel & re-edit
+Ключевое: в средней колонке **TZS Cash сверху, USD Cash под ним** (раньше было наоборот). Это совпадает с приоритетом локальной валюты.
 
-Both routes have `Cancel`. From A: clears sessionStorage and goes to `/cage`. From B: `Back to Edit` keeps state and returns to A so cashier can fix figures.
+- Колонка 1: TZS Chips на всю высоту (`ChipDenomInput` с `columns={2}`, `size="md"`).
+- Колонка 2: TZS Cash → USD Cash.
+- Колонка 3: EUR Cash → GBP Cash.
+- Колонка 4: KES Cash → Mobile Money → Banks.
 
-### 4. Close Business Day activation
+На lg (1024–1280): 3 колонки с тем же порядком вертикали (TZS выше USD).
+На <md: 1 колонка, порядок — TZS Chips, TZS Cash, USD, EUR, GBP, KES, Mobile, Banks.
 
-`CloseBusinessDayButton` already disables while `activeShift` exists. Keep that. After manager closes the shift (`shifts.status='closed'`), `useActiveShift` invalidates → button enables automatically. Tooltip text already explains the gate.
+## Изменения в коде
 
-### 5. DB: real rebaseline at shift close (not at day close)
+1. **`src/components/cage/CashDenomInput.tsx`**
+   - `h-5` → `h-9`, `text-xs` → `text-sm`
+   - Инпут: `w-full` → фикс `w-24`, выровнять по правому краю карточки
+   - Чип-лейбл: `h-5` → `h-7`, `text-[8px]` → `text-[10px]`
+   - Тотал: `text-xs` → `text-base`
+   - Между строками `gap-y-1`
 
-- **Drop** `rebaseline_chips_from_closing_snapshot` and any call sites inside the buggy 3-arg `close_business_day`.
-- **Create** `apply_cage_shift_closing(_shift_id uuid)`:
-  - Reads `shifts.closing_count->'chips'` (qty per denom).
-  - Updates `chip_baseline` rows for the cashier location (`location_type='cashier' AND location_id IS NULL`) per denom — this is the cashier's float, which legitimately rolls over.
-  - **Never touches** per-table `chip_baseline` rows.
-  - Recalculates `chip_initial_baseline` per denom = sum across all locations (cashier + tables), so next-day Initial Baseline reflects the new cashier float.
-- **Trigger** `AFTER UPDATE OF status ON shifts WHEN OLD.status<>'closed' AND NEW.status='closed'` → `apply_cage_shift_closing(NEW.id)`. Fires exactly once at manager confirmation.
-- **Recreate clean 3-arg `close_business_day(_casino_id, _method, _force_close_cycles)`**: roles → `list_open_cycles_for_day` → `system_locks` → `finalize_open_cycles_for_close` → `build_business_day_snapshot` → INSERT closure → `populate_table_daily_results_for_day`. **No chip rebaseline here** (already done at shift close).
-- **Drop** old 2-arg `close_business_day`.
-- Fix `D` (LEAST in `get_current_business_date`) and `F` (scope-check `_casino_id`) in the same migration.
+2. **`src/components/cage/CashCountGrid.tsx`**
+   - Сетка: `xl:grid-cols-3` → `lg:grid-cols-3 xl:grid-cols-4`
+   - Перекомпоновать секции по схеме выше (TZS Cash перед USD Cash).
+   - Передать `size="md"` и `columns={2}` в `ChipDenomInput` для TZS Chips.
+   - Карточки: `p-4` → `p-3`, `space-y-3` → `space-y-2`.
+   - Mobile / Banks строки: высота h-9, шрифт text-sm, инпут фикс `w-40`.
 
-### 6. Hook update
+3. **`src/components/ChipDenomInput.tsx`** — без изменений, `size="md"` + `columns={2}` уже поддерживаются.
 
-`useCloseBusinessDay` → call 3-arg with `_force_close_cycles: false`; on `has_open_cycles` response surface a toast listing them.
+4. **Кнопка submit** живёт в родителе (`ActiveShiftView` / `OpenShiftScreen`). После уплотнения проверим, что она помещается без скролла на 1366×768 и 1920×1080.
 
-### 7. Version bump
+## Проверка
 
-`package.json` 1.0.112 → 1.0.113.
+- Скриншот 1920×1080 и 1366×768: грид + кнопка без вертикального скролла.
+- Тоталы `TZS 999 999 999` не обрезаются.
+- 4-значные номиналы вводятся комфортно.
 
-## Files
+## Out of scope
 
-| File | Change |
-|---|---|
-| `src/pages/cage/CloseShiftPage.tsx` | Becomes Route A (entry only); persist state to sessionStorage. |
-| `src/pages/cage/CloseShiftReviewPage.tsx` | NEW — Route B (manager review + password). |
-| `src/components/cage/CloseShiftDialog.tsx` | Split: extract entry & review JSX into the two pages; delete file or keep as shared subcomponents. |
-| `src/App.tsx` | Add `/cage/close-shift/review` route. |
-| `src/hooks/use-shift.ts` | Unchanged signature; still used by Route B. |
-| `src/hooks/use-business-day-closure.ts` | Pass `_force_close_cycles: false`; surface `has_open_cycles`. |
-| `src/components/pit/CloseBusinessDayButton.tsx` | No structural change (already gated by `activeShift`). |
-| `supabase/migrations/*` | Drop `rebaseline_chips_from_closing_snapshot` + old 2-arg `close_business_day`; create `apply_cage_shift_closing` + trigger + clean 3-arg `close_business_day`; fix `get_current_business_date` LEAST and `_casino_id` scope. |
-| `package.json` | 1.0.113. |
-
-## Confirmations needed before I start
-
-1. Route B should be a **real page** (not a modal), correct? Easier to "cancel and go back" cleanly.
-2. After cashier clicks `Continue to Manager Review`, the cashier's data is still **editable** if manager presses `Back to Edit` — confirm OK. (Nothing is written to DB until manager password succeeds.)
-3. Manager password is **always** required, even if Manager Access toggle is active — confirm.
+- Логика подсчёта, RPC, валидация — не трогаем.
+- Mobile (≤md) — 1 колонка со скроллом, как сейчас.
