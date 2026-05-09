@@ -28,14 +28,14 @@ const CashDenomInput = ({ values, onChange, denoms, currency, onSubmit, size = "
     <div className="flex flex-col h-full">
       <div className={`${t.gap} flex-1`}>
       {denoms.map((d, idx) => (
-        <div key={d} className={`flex items-center justify-between ${t.row}`}>
+        <div key={d} className={`flex items-center ${t.row}`}>
           <span className={`cms-chip bg-muted text-foreground shrink-0 justify-center ${t.chip}`}>
             {formatCashDenomLabel(d, currency)}
           </span>
           <input
             ref={el => { refs.current[d] = el; }}
             type="number"
-            className={`no-spin font-mono rounded border border-border bg-background px-2 text-right text-foreground focus:outline-none focus:ring-1 focus:ring-primary ${t.input}`}
+            className={`no-spin font-mono rounded border border-border bg-background px-2 text-right text-foreground focus:outline-none focus:ring-1 focus:ring-primary flex-1 min-w-0 ${t.input}`}
             value={values[d] || ""}
             onChange={e => onChange({ ...values, [d]: Number(e.target.value) || 0 })}
             onKeyDown={e => {
