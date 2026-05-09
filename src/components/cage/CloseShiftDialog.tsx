@@ -617,6 +617,7 @@ const CloseShiftDialog = ({
           onMobileChange={setMobileBal}
           chipPlaceholder={openingChips}
           rates={rates}
+          hideChips
         />
         <div className="grid grid-cols-4 gap-2 pt-3 mt-2 border-t border-border">
           <div className="text-center"><p className="text-[9px] uppercase text-muted-foreground">Chips</p><p className="font-mono text-xs font-bold text-card-foreground">{formatCurrency(closingChipsTzs)}</p></div>
