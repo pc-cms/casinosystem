@@ -143,11 +143,11 @@ const TransfersForm = ({ shiftId, tables }: Props) => {
         {/* Cash flow form */}
         {!isChipFlow && (
           <div>
-            <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1 block">2. Amount (TZS)</label>
+            <label className="text-xs font-bold text-foreground uppercase tracking-wider mb-1.5 block">2. Amount (TZS)</label>
             <NumberInput
               value={amount}
               onChange={setAmount}
-              className="text-lg h-11"
+              className="text-xl h-12"
               placeholder="0"
               onKeyDown={e => e.key === "Enter" && handleSubmit()}
             />
@@ -158,17 +158,17 @@ const TransfersForm = ({ shiftId, tables }: Props) => {
         {isChipFlow && (
           <>
             <div>
-              <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1 block">2. Table</label>
+              <label className="text-xs font-bold text-foreground uppercase tracking-wider mb-1.5 block">2. Table</label>
               {tables.length === 0 ? (
-                <p className="text-xs text-muted-foreground italic">No open tables</p>
+                <p className="text-sm text-muted-foreground italic">No open tables</p>
               ) : (
-                <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1">
+                <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
                   {tables.map(t => (
                     <button
                       key={t.id}
                       type="button"
                       onClick={() => setTableId(t.id)}
-                      className={`px-2.5 py-1 rounded text-xs font-mono shrink-0 transition-colors ${tableId === t.id ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-primary/20"}`}
+                      className={`px-3 py-1.5 rounded text-sm font-mono shrink-0 transition-colors ${tableId === t.id ? "bg-primary text-primary-foreground" : "bg-muted text-foreground hover:bg-primary/20"}`}
                     >
                       {t.name}
                     </button>
@@ -178,14 +178,14 @@ const TransfersForm = ({ shiftId, tables }: Props) => {
             </div>
 
             <div>
-              <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">
+              <label className="text-xs font-bold text-foreground uppercase tracking-wider mb-2 block">
                 3. Chips {type === "fill" ? "to Send" : "to Receive"}
               </label>
               <ChipDenomInput
                 values={chips}
                 onChange={setChips}
                 columns={2}
-                size="md"
+                size="lg"
                 onSubmit={handleSubmit}
               />
             </div>
@@ -194,27 +194,27 @@ const TransfersForm = ({ shiftId, tables }: Props) => {
 
         {/* Note */}
         <div>
-          <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1 block">Note (optional)</label>
+          <label className="text-xs font-bold text-foreground uppercase tracking-wider mb-1.5 block">Note (optional)</label>
           <Textarea
             value={note}
             onChange={e => setNote(e.target.value)}
             rows={2}
             placeholder="Reason / context…"
-            className="text-xs resize-none"
+            className="text-sm resize-none"
           />
         </div>
 
         <Button
           onClick={handleSubmit}
           disabled={finalAmount <= 0 || (isChipFlow && !tableId) || create.isPending}
-          className="w-full gap-1.5 h-11"
+          className={`w-full gap-1.5 h-12 text-base font-bold ${cfg.tone.activeBg} ${cfg.tone.text} ${cfg.tone.activeBorder} border hover:brightness-110`}
         >
           <ArrowLeftRight className="w-4 h-4" />
           {create.isPending ? "Recording…" : cfg.label} {finalAmount > 0 && `· ${formatCurrency(finalAmount)}`}
         </Button>
 
         {cfg.needsOverride && (
-          <p className="text-[10px] text-warning text-center">Manager Override required for {cfg.label}</p>
+          <p className="text-xs text-warning text-center font-semibold">Manager Override required for {cfg.label}</p>
         )}
       </div>
 
