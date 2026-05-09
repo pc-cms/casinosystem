@@ -3,6 +3,7 @@ import { getBusinessDate, nowEAT } from "@/lib/business-day";
 import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
 import { useGamingTables, useTableTracker, useSetTableTrackerValue } from "@/hooks/use-casino-data";
 import { Input } from "@/components/ui/input";
+import { DateNavigator } from "@/components/ui/date-navigator";
 import { formatCurrency, formatInputWithSpaces } from "@/lib/currency";
 
 // Sign-aware variants for tracker (negative table results are valid)
