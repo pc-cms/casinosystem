@@ -17,14 +17,33 @@ type Props = {
   tables: Tables<"gaming_tables">[];
 };
 
-const TYPE_OPTIONS: Array<{ value: CageTransferType; label: string; icon: typeof Banknote; description: string; needsOverride: boolean }> = [
-  { value: "add_float", label: "Add Float", icon: Banknote, description: "Cash IN from manager safe", needsOverride: false },
-  { value: "collection", label: "Collection", icon: HandCoins, description: "Cash OUT to manager safe", needsOverride: true },
-  { value: "fill", label: "Fill (to Table)", icon: ArrowUpRight, description: "Chips OUT to table", needsOverride: false },
-  { value: "credit", label: "Credit (from Table)", icon: ArrowDownLeft, description: "Chips IN from table", needsOverride: false },
-  { value: "slots_out", label: "Slots Cage Out", icon: Dice5, description: "Cash OUT to slots cashier", needsOverride: false },
-  { value: "slots_in", label: "Slots Cage In", icon: Coins, description: "Cash IN from slots cashier", needsOverride: false },
+type Direction = "in" | "out";
+
+const TYPE_OPTIONS: Array<{
+  value: CageTransferType;
+  label: string;
+  icon: typeof Banknote;
+  description: string;
+  needsOverride: boolean;
+  direction: Direction;
+  /** Tailwind utility classes for the colored chip & active border. */
+  tone: { bg: string; text: string; border: string; activeBg: string; activeBorder: string };
+}> = [
+  { value: "add_float", label: "Add Float", icon: Banknote, description: "Cash IN from manager safe", needsOverride: false, direction: "in",
+    tone: { bg: "bg-emerald-500/10", text: "text-emerald-400", border: "border-emerald-500/30", activeBg: "bg-emerald-500/15", activeBorder: "border-emerald-500/50" } },
+  { value: "collection", label: "Collection", icon: HandCoins, description: "Cash OUT to manager safe", needsOverride: true, direction: "out",
+    tone: { bg: "bg-red-500/10", text: "text-red-400", border: "border-red-500/30", activeBg: "bg-red-500/15", activeBorder: "border-red-500/50" } },
+  { value: "fill", label: "Fill (to Table)", icon: ArrowUpRight, description: "Chips OUT to table", needsOverride: false, direction: "out",
+    tone: { bg: "bg-amber-500/10", text: "text-amber-400", border: "border-amber-500/30", activeBg: "bg-amber-500/15", activeBorder: "border-amber-500/50" } },
+  { value: "credit", label: "Credit (from Table)", icon: ArrowDownLeft, description: "Chips IN from table", needsOverride: false, direction: "in",
+    tone: { bg: "bg-sky-500/10", text: "text-sky-400", border: "border-sky-500/30", activeBg: "bg-sky-500/15", activeBorder: "border-sky-500/50" } },
+  { value: "slots_out", label: "Slots Cage Out", icon: Dice5, description: "Cash OUT to slots cashier", needsOverride: false, direction: "out",
+    tone: { bg: "bg-orange-500/10", text: "text-orange-400", border: "border-orange-500/30", activeBg: "bg-orange-500/15", activeBorder: "border-orange-500/50" } },
+  { value: "slots_in", label: "Slots Cage In", icon: Coins, description: "Cash IN from slots cashier", needsOverride: false, direction: "in",
+    tone: { bg: "bg-teal-500/10", text: "text-teal-400", border: "border-teal-500/30", activeBg: "bg-teal-500/15", activeBorder: "border-teal-500/50" } },
 ];
+
+const TYPE_MAP = new Map(TYPE_OPTIONS.map(o => [o.value, o]));
 
 const TransfersForm = ({ shiftId, tables }: Props) => {
   const { user } = useAuth();
