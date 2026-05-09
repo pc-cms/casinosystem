@@ -469,7 +469,7 @@ const OutForm = ({ players, tables, shiftId, onSubmit, loading, shiftTransaction
       form={form}
       rightPanel={
         selectedPlayer
-          ? <PlayerInfoCard player={selectedPlayer} tables={tables} />
+          ? <PlayerInfoCard player={selectedPlayer} tables={tables} shiftTransactions={shiftTransactions} />
           : <ActivePlayersList players={players} tables={tables} onSelect={setPlayerId} />
       }
     />
