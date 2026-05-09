@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Input } from "@/components/ui/input";
+import { DateNavigator } from "@/components/ui/date-navigator";
 import { LineChart as LineChartIcon, Lock } from "lucide-react";
 import { getBusinessDate } from "@/lib/business-day";
 import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
