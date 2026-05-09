@@ -617,6 +617,7 @@ const CloseShiftDialog = ({
           onMobileChange={setMobileBal}
           chipPlaceholder={openingChips}
           rates={rates}
+          hideChips
         />
         <div className="grid grid-cols-4 gap-2 pt-3 mt-2 border-t border-border">
           <div className="text-center"><p className="text-[9px] uppercase text-muted-foreground">Chips</p><p className="font-mono text-xs font-bold text-card-foreground">{formatCurrency(closingChipsTzs)}</p></div>
@@ -670,8 +671,8 @@ const CloseShiftDialog = ({
         <Button variant="outline" onClick={onClose}>Cancel</Button>
         <Button
           variant={isBalanced ? "default" : "destructive"}
-          onClick={() => { if (tablesAllClosed && noteValid) setStep("review"); }}
-          disabled={loading || !tablesAllClosed || !noteValid}
+          onClick={() => { if (tablesAllClosed) setStep("review"); }}
+          disabled={loading || !tablesAllClosed}
           className="gap-1.5"
         >
           <ShieldAlert className="w-4 h-4" />

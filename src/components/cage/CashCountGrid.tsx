@@ -11,6 +11,7 @@ const CashCountGrid = ({
   mobile, onMobileChange,
   chipPlaceholder,
   rates,
+  hideChips = false,
 }: {
   chips: Record<number, number>;
   onChipsChange: (v: Record<number, number>) => void;
@@ -22,6 +23,8 @@ const CashCountGrid = ({
   onMobileChange: (v: MobileProviders) => void;
   chipPlaceholder?: Record<number, number>;
   rates?: Record<string, number>;
+  /** Hide the TZS Chips column when chips are entered elsewhere (e.g. Close Shift). */
+  hideChips?: boolean;
 }) => {
   const mobTotal = mobileTotal(mobile);
   const banksTzsTotal = (banks.tzs || 0) + (banks.usd || 0) * (rates?.["USD"] || 0);
@@ -36,22 +39,23 @@ const CashCountGrid = ({
   const stackCls = "flex flex-col gap-3 h-full";
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 items-stretch">
-      {/* Col 1 — TZS Chips, full height */}
-      <section className={`${sectionCls} h-full`}>
-        <p className={titleCls}>TZS Chips</p>
-        <div className="flex-1">
-          <ChipDenomInput
-            values={chips}
-            onChange={onChipsChange}
-            showValue={false}
-            placeholder={chipPlaceholder}
-            columns={1}
-            size="lg"
-          />
-        </div>
-      </section>
-
+    <div className={`grid grid-cols-1 md:grid-cols-2 gap-3 items-stretch ${hideChips ? "lg:grid-cols-3" : "lg:grid-cols-4"}`}>
+      {!hideChips && (
+        /* Col 1 — TZS Chips, full height */
+        <section className={`${sectionCls} h-full`}>
+          <p className={titleCls}>TZS Chips</p>
+          <div className="flex-1">
+            <ChipDenomInput
+              values={chips}
+              onChange={onChipsChange}
+              showValue={false}
+              placeholder={chipPlaceholder}
+              columns={1}
+              size="lg"
+            />
+          </div>
+        </section>
+      )}
       {/* Col 2 — TZS Cash + Mobile + Banks */}
       <div className={stackCls}>
         <section className={sectionCls}>
