@@ -414,7 +414,7 @@ const InForm = ({ players, tables, exchangeRates, shiftId, onSubmit, loading, sh
       form={form}
       rightPanel={
         selectedPlayer
-          ? <PlayerInfoCard player={selectedPlayer} tables={tables} />
+          ? <PlayerInfoCard player={selectedPlayer} tables={tables} shiftTransactions={shiftTransactions} />
           : <ActivePlayersList players={players} tables={tables} onSelect={setPlayerId} />
       }
     />
