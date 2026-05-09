@@ -422,12 +422,13 @@ const InForm = ({ players, tables, exchangeRates, shiftId, onSubmit, loading, sh
 };
 
 // =================== OUT FORM (was Cashout) ===================
-const OutForm = ({ players, tables, shiftId, onSubmit, loading }: {
+const OutForm = ({ players, tables, shiftId, onSubmit, loading, shiftTransactions = [] }: {
   players: Tables<"players">[];
   tables: Tables<"gaming_tables">[];
   shiftId: string;
   onSubmit: (data: Record<string, unknown>, opts?: Record<string, unknown>) => void;
   loading: boolean;
+  shiftTransactions?: Tables<"transactions">[];
 }) => {
   const [playerId, setPlayerId] = useState("");
   const [chips, setChips] = useState<Record<number, number>>({});
