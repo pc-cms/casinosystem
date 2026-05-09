@@ -556,12 +556,11 @@ const CashCheckForm = ({ expectedBalance, shiftId, exchangeRates, cashChecks, bu
           <span>Previous ({displayedChecks.length}){browsingPast ? " · history" : ""}</span>
           {canBrowseHistory && (
             <div className="flex items-center gap-1.5">
-              <Input
-                type="date"
+              <DateNavigator
                 value={historyDate}
-                max={businessDate}
-                onChange={e => setHistoryDate(e.target.value || businessDate)}
-                className="font-mono text-[10px] w-36"
+                onChange={(iso) => setHistoryDate(iso || businessDate)}
+                maxDate={new Date(businessDate + "T00:00:00")}
+                size="sm"
               />
               {browsingPast && (
                 <Button variant="ghost" size="sm" className="h-6 text-[10px]" onClick={() => setHistoryDate(businessDate)}>
