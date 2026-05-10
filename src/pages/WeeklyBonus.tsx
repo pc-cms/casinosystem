@@ -447,7 +447,7 @@ export default function WeeklyBonus() {
                 );
               })}
               {calculated && rows.length > 0 && (
-                <tr className="bg-muted/40 font-semibold border-t-2 border-border">
+                <tr className="bg-muted/40 font-semibold border-t-2 border-border no-print">
                   <td colSpan={10} className="text-right py-2 px-2 text-xs uppercase tracking-wider">
                     Totals
                   </td>
