@@ -47,7 +47,10 @@ const CloseShiftPage = () => {
     const of = shift.opening_float as Record<string, unknown> | null;
     const totals = of?.totals as Record<string, number> | undefined;
     const openingFloat = totals?.total_tzs || 0;
-    const expectedCash = openingFloat + totalIns + addFloat + slotsIn - totalOuts - collection - slotsOut - totalExpenses;
+    // Expected CASH only — exclude opening chips. Chip variance is shown as Miss Chips.
+    const openingChipsTzs = Number(totals?.chips_tzs || 0);
+    const openingCash = Math.max(openingFloat - openingChipsTzs, 0);
+    const expectedCash = openingCash + totalIns + addFloat + slotsIn - totalOuts - collection - slotsOut - totalExpenses;
     const cashResult = totalIns - totalOuts;
     return {
       expectedCash, cashResult, totalIns, totalOuts, totalExpenses,
