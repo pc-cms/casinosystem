@@ -705,4 +705,22 @@ const FormulaRow = ({
   </div>
 );
 
+const KpiTile = ({
+  label, value, tone, compact,
+}: { label: string; value: number; tone: "pos" | "neg" | "ok"; compact?: boolean }) => {
+  const toneCls =
+    tone === "ok" ? "text-success"
+    : tone === "pos" ? "cms-amount-positive"
+    : "cms-amount-negative";
+  return (
+    <div className="text-center rounded-md border border-border bg-background/60 p-2">
+      <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">{label}</p>
+      <p className={cn("font-mono font-bold mt-0.5", compact ? "text-sm" : "text-lg", toneCls)}>
+        {value >= 0 ? "+" : ""}{formatNumberSpaces(value)}
+      </p>
+      <p className="text-[9px] text-muted-foreground">TZS</p>
+    </div>
+  );
+};
+
 export default CloseShiftDialog;
