@@ -115,7 +115,7 @@ const DATE_COLUMN: Record<string, string> = {
   wallet_transactions: "created_at",
   chip_emissions: "created_at",
   chip_snapshots: "created_at",
-  miss_chips: "business_date",
+  // miss_chips removed
   table_tracker: "business_date",
   table_daily_results: "business_date",
   business_day_closures: "business_date",
