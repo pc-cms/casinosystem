@@ -162,9 +162,9 @@ const ShiftReport = ({ from, to }: { from: string; to: string }) => {
                 <td className="px-3 py-2 text-right font-mono text-xs text-card-foreground">{formatCurrency(s.cashoutTotal)}</td>
                 <td className="px-3 py-2 text-right font-mono text-xs text-warning">{formatCurrency(s.expTotal)}</td>
                 <td className="px-3 py-2 text-right font-mono text-xs text-card-foreground">{formatCurrency(s.expected)}</td>
-                <td className="px-3 py-2 text-right font-mono text-xs text-card-foreground">{s.closingActual ? formatCurrency(s.closingActual) : "—"}</td>
-                <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${s.diff === 0 ? "text-success" : "text-destructive"}`}>
-                  {s.closingActual ? `${s.diff >= 0 ? "+" : ""}${formatCurrency(s.diff)}` : "—"}
+                <td className="px-3 py-2 text-right font-mono text-xs text-card-foreground">{s.closingActual != null ? formatCurrency(s.closingActual) : "—"}</td>
+                <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${s.closingActual == null ? "text-muted-foreground" : s.diff === 0 ? "text-success" : "text-destructive"}`}>
+                  {s.closingActual != null ? `${s.diff >= 0 ? "+" : ""}${formatCurrency(s.diff)}` : "—"}
                 </td>
                 <td className="px-3 py-2 text-right font-mono text-xs text-muted-foreground">{s.txCount}</td>
               </tr>
