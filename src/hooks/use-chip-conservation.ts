@@ -151,64 +151,6 @@ export const useCreateChipEmission = () => {
   });
 };
 
-// ============ MISS CHIPS BY SHIFT (Monthly Report) ============
-export interface MissChipsByShiftRow {
-  shift_id: string | null;
-  business_date: string;
-  closed_at: string | null;
-  denoms: Record<number, number>; // denomination -> quantity
-  total_value_tzs: number;
-}
+// useMissChipsByShift — REMOVED. The Miss Chips report now reads
+// `shifts.closing_count.chip_miss_by_denom` / `chip_miss_total` directly.
 
-export const useMissChipsByShift = (params: { fromDate: string; toDate: string }) => {
-  const { casinoId } = useAuth();
-  return useQuery({
-    queryKey: ["miss-chips-by-shift", casinoId, params.fromDate, params.toDate],
-    queryFn: async (): Promise<MissChipsByShiftRow[]> => {
-      if (!casinoId) return [];
-      const { data, error } = await supabase
-        .from("miss_chips" as any)
-        .select("shift_id, business_date, denomination, quantity, total_value_tzs")
-        .eq("casino_id", casinoId)
-        .gte("business_date", params.fromDate)
-        .lte("business_date", params.toDate);
-      if (error) throw error;
-
-      const shiftIds = Array.from(
-        new Set((data || []).map((r: any) => r.shift_id).filter(Boolean) as string[])
-      );
-      let closedMap = new Map<string, string>();
-      if (shiftIds.length) {
-        const { data: shifts } = await supabase
-          .from("shifts")
-          .select("id, closed_at")
-          .in("id", shiftIds);
-        (shifts || []).forEach((s: any) => closedMap.set(s.id, s.closed_at));
-      }
-
-      const grouped = new Map<string, MissChipsByShiftRow>();
-      (data || []).forEach((r: any) => {
-        const key = r.shift_id ?? `nodate-${r.business_date}`;
-        if (!grouped.has(key)) {
-          grouped.set(key, {
-            shift_id: r.shift_id,
-            business_date: r.business_date,
-            closed_at: r.shift_id ? closedMap.get(r.shift_id) ?? null : null,
-            denoms: {},
-            total_value_tzs: 0,
-          });
-        }
-        const row = grouped.get(key)!;
-        row.denoms[Number(r.denomination)] =
-          (row.denoms[Number(r.denomination)] ?? 0) + Number(r.quantity);
-        row.total_value_tzs += Number(r.total_value_tzs);
-      });
-
-      return Array.from(grouped.values()).sort((a, b) => {
-        if (a.business_date !== b.business_date) return b.business_date.localeCompare(a.business_date);
-        return (b.closed_at ?? "").localeCompare(a.closed_at ?? "");
-      });
-    },
-    enabled: !!casinoId,
-  });
-};
