@@ -57,7 +57,7 @@ const normalizeAttInput = (raw: string): string => {
 };
 
 const fmtMoney = (n: number) =>
-  new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(Math.round(n));
+  new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(Math.round(n)).replace(/,/g, " ");
 
 const breakdown = (amt: number): Record<number, number> => {
   const out: Record<number, number> = {};
@@ -231,10 +231,10 @@ export default function WeeklyBonus() {
           <div className="flex flex-col gap-1">
             <label className="text-xs uppercase tracking-wider opacity-80">Bonus Pool (TZS)</label>
             <Input
-              type="number" inputMode="numeric"
-              className="w-44 font-mono text-foreground bg-background"
-              value={poolInput}
-              onChange={(e) => { setPoolInput(e.target.value); setCalculated(false); }}
+              type="text" inputMode="numeric"
+              className="w-44 font-mono font-bold text-lg text-foreground bg-background"
+              value={poolInput ? fmtMoney(parseInt(poolInput.replace(/\D/g, ""), 10) || 0) : ""}
+              onChange={(e) => { setPoolInput(e.target.value.replace(/\D/g, "")); setCalculated(false); }}
               placeholder="0" disabled={locked}
             />
           </div>
