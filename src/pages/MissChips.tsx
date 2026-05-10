@@ -113,7 +113,7 @@ const MissChips = () => {
 
   const cellClass = (v: number) =>
     cn(
-      "text-right px-2 py-1 whitespace-nowrap",
+      "px-2 py-1 whitespace-nowrap text-center",
       v > 0 ? "text-success" : v < 0 ? "text-danger" : "text-muted-foreground"
     );
 
