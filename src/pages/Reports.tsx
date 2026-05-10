@@ -95,11 +95,21 @@ const ShiftReport = ({ from, to }: { from: string; to: string }) => {
       const buyTotal = sTx.filter(t => (t.type === "buy" || t.type === "in")).reduce((sum, t) => sum + Number(t.amount), 0);
       const cashoutTotal = sTx.filter(t => (t.type === "cashout" || t.type === "out")).reduce((sum, t) => sum + Number(t.amount), 0);
       const expTotal = sExp.reduce((sum: number, e: any) => sum + Number(e.amount), 0);
-      const openingFloat = (s.opening_float as any)?.totals?.total_tzs || 0;
-      const closingActual = (s.closing_cash as any)?.actual || 0;
-      const expected = openingFloat + buyTotal - cashoutTotal - expTotal;
-      const diff = closingActual ? closingActual - expected : 0;
-      return { ...s, buyTotal, cashoutTotal, expTotal, openingFloat, expected, closingActual, diff, txCount: sTx.length };
+
+      const openTotals = (s.opening_float as any)?.totals || {};
+      const closeTotals = (s.closing_count as any)?.totals || {};
+      const openingCashOnly = Math.max(Number(openTotals.total_tzs || 0) - Number(openTotals.chips_tzs || 0), 0);
+      const hasClosing = s.status === "closed" && (s.closing_count != null);
+      const closingCashOnly = hasClosing
+        ? Number(closeTotals.total_tzs || 0) - Number(closeTotals.chips_tzs || 0)
+        : null;
+
+      // Expected = Money Result (Buy-In − Cashout)
+      const expected = buyTotal - cashoutTotal;
+      // Actual = Cash Result — net change in cash + bank + mobile (no chips)
+      const closingActual = closingCashOnly != null ? closingCashOnly - openingCashOnly : null;
+      const diff = closingActual != null ? closingActual - expected : 0;
+      return { ...s, buyTotal, cashoutTotal, expTotal, openingFloat: openingCashOnly, expected, closingActual, diff, txCount: sTx.length };
     });
   }, [filtered, transactions, expenses]);
 
