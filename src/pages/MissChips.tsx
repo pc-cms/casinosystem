@@ -9,9 +9,10 @@ import { format, startOfMonth, endOfMonth, subMonths, addMonths } from "date-fns
 import { Coins, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { fmtDateOnly } from "@/lib/format-date";
 
-// Denominations sorted ascending (smallest → largest), as requested.
-const DENOMS_ASC = [...CHIP_DENOMS].sort((a, b) => a - b);
+// Denominations sorted descending (largest → smallest), per project rule.
+const DENOMS_DESC = [...CHIP_DENOMS].sort((a, b) => b - a);
 
 interface ShiftMissRow {
   business_date: string; // EAT date derived from opened_at
@@ -97,7 +98,7 @@ const MissChips = () => {
     const by: Record<number, number> = {};
     let total = 0;
     dailyRows.forEach((r) => {
-      DENOMS_ASC.forEach((d) => {
+      DENOMS_DESC.forEach((d) => {
         if (r.by_denom[d]) by[d] = (by[d] || 0) + r.by_denom[d];
       });
       total += r.total_tzs;
@@ -168,7 +169,7 @@ const MissChips = () => {
             <thead className="bg-muted/40 border-b sticky top-0">
               <tr>
                 <th className="text-left px-3 py-2 whitespace-nowrap border-r">Date</th>
-                {DENOMS_ASC.map((d) => (
+                {DENOMS_DESC.map((d) => (
                   <th key={d} className="text-right px-2 py-2 whitespace-nowrap border-r">
                     {formatChipLabel(d)}
                   </th>
@@ -179,22 +180,22 @@ const MissChips = () => {
             <tbody>
               {isLoading && (
                 <tr>
-                  <td colSpan={DENOMS_ASC.length + 2} className="text-center py-6 text-muted-foreground">
+                  <td colSpan={DENOMS_DESC.length + 2} className="text-center py-6 text-muted-foreground">
                     Loading…
                   </td>
                 </tr>
               )}
               {!isLoading && dailyRows.length === 0 && (
                 <tr>
-                  <td colSpan={DENOMS_ASC.length + 2} className="text-center py-6 text-muted-foreground">
+                  <td colSpan={DENOMS_DESC.length + 2} className="text-center py-6 text-muted-foreground">
                     No closed shifts with miss chips in this month
                   </td>
                 </tr>
               )}
               {dailyRows.map((r) => (
                 <tr key={r.business_date} className="border-b border-border/40 hover:bg-muted/20">
-                  <td className="px-3 py-1.5 whitespace-nowrap border-r">{r.business_date}</td>
-                  {DENOMS_ASC.map((d) => {
+                  <td className="px-3 py-1.5 whitespace-nowrap border-r">{fmtDateOnly(r.business_date)}</td>
+                  {DENOMS_DESC.map((d) => {
                     const v = r.by_denom[d] ?? 0;
                     return (
                       <td key={d} className={cn(cellClass(v), "border-r")}>
@@ -212,7 +213,7 @@ const MissChips = () => {
               <tfoot className="border-t-2 border-border bg-muted/40">
                 <tr>
                   <td className="px-3 py-2 font-semibold border-r">MONTH SUM</td>
-                  {DENOMS_ASC.map((d) => {
+                  {DENOMS_DESC.map((d) => {
                     const v = monthSum.by[d] ?? 0;
                     return (
                       <td key={d} className={cn(cellClass(v), "font-semibold border-r")}>
