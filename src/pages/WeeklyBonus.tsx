@@ -97,6 +97,9 @@ export default function WeeklyBonus() {
 
   useEffect(() => { setAttDraft({}); }, [weekStart]);
 
+  // Cashier's editable bill counts for payout preparation. Resets on recompute.
+  const [payoutOverride, setPayoutOverride] = useState<Record<number, number> | null>(null);
+
   const days = useMemo(() => Array.from({ length: 7 }, (_, i) => addDaysIso(weekStart, i)), [weekStart]);
 
   const rows = useMemo(() => {
