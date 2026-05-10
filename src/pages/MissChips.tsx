@@ -114,7 +114,7 @@ const MissChips = () => {
   const cellClass = (v: number) =>
     cn(
       "text-right px-2 py-1 whitespace-nowrap",
-      v > 0 ? "text-cms-amount-positive" : v < 0 ? "text-cms-amount-negative" : "text-muted-foreground"
+      v > 0 ? "text-success" : v < 0 ? "text-danger" : "text-muted-foreground"
     );
 
   return (
@@ -153,9 +153,9 @@ const MissChips = () => {
           className={cn(
             "text-base font-mono font-semibold whitespace-nowrap",
             monthSum.total > 0
-              ? "text-cms-amount-positive"
+              ? "text-success"
               : monthSum.total < 0
-              ? "text-cms-amount-negative"
+              ? "text-danger"
               : "text-muted-foreground"
           )}
         >
