@@ -102,8 +102,8 @@ export const useCloseShift = () => {
       if (!casinoId || !user) throw new Error("Not authenticated");
 
       // 1. Authoritative recomputation server-side. The DB function reads
-      //    transactions/expenses/miss_chips for the shift and returns the
-      //    canonical totals. UI-supplied numbers are never trusted.
+      //    transactions/expenses + shifts.closing_count.chip_miss_total for
+      //    the shift and returns canonical totals. UI numbers are never trusted.
       const { data: rpcData, error: rpcError } = await (supabase as any)
         .rpc("compute_shift_close", { p_shift_id: input.shift_id });
       if (rpcError) throw rpcError;
