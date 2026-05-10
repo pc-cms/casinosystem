@@ -310,7 +310,7 @@ export default function WeeklyBonus() {
                 <th className="h-9 w-48 min-w-[192px] text-right px-2 font-semibold">Bonus TZS</th>
                 <th className="h-9 w-32 text-center font-semibold wb-sign-cell">SIGN</th>
                 {DENOMS.map((d) => (
-                  <th key={d} className="h-9 w-12 text-center font-semibold no-print">{d / 1000}k</th>
+                  <th key={d} className="h-9 w-12 text-center font-semibold">{d / 1000}k</th>
                 ))}
               </tr>
             </thead>
