@@ -370,7 +370,7 @@ export default function WeeklyBonus() {
                     </td>
                     <td className="px-1 py-1 text-center no-print">
                       <Input
-                        type="number"
+                        type="text" inputMode="numeric"
                         className="w-14 h-7 text-center font-mono mx-auto px-1 text-xs"
                         value={r.extra}
                         disabled={locked}
@@ -388,7 +388,7 @@ export default function WeeklyBonus() {
                     </td>
                     <td className="px-1 py-1 text-center no-print">
                       <Input
-                        type="number"
+                        type="text" inputMode="numeric"
                         className="w-14 h-7 text-center font-mono mx-auto px-1 text-xs"
                         value={r.bonusPts || ""}
                         placeholder="0"
