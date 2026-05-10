@@ -83,7 +83,7 @@ const TABLES: Array<{ name: string; scope: "single" | "full" | "global"; sinceDa
   { name: "wallet_transactions", scope: "full", sinceDays: 90 },
   { name: "chip_emissions", scope: "full", sinceDays: 90 },
   { name: "chip_snapshots", scope: "full", sinceDays: 90 },
-  { name: "miss_chips", scope: "full", sinceDays: 90 },
+  // miss_chips: REMOVED (table dropped)
   { name: "table_tracker", scope: "full", sinceDays: 90 },
   { name: "table_daily_results", scope: "full", sinceDays: 90 },
   { name: "business_day_closures", scope: "full", sinceDays: 90 },
