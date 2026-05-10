@@ -242,6 +242,21 @@ export default function WeeklyBonus() {
               <div className="text-[10px] uppercase text-muted-foreground">Distributed</div>
               <div className="font-semibold">{poolAmount > 0 ? fmtMoney(totalDistributed) : "—"}</div>
             </div>
+            <div>
+              <div className="text-[10px] uppercase text-muted-foreground">Bonus Balance</div>
+              <div
+                className={cn(
+                  "font-semibold",
+                  poolAmount > 0 && totalDistributed - poolAmount > 0 && "cms-amount-negative",
+                  poolAmount > 0 && totalDistributed - poolAmount < 0 && "cms-amount-positive",
+                )}
+                title="Pool − Distributed (positive = leftover, negative = overspend due to rounding)"
+              >
+                {poolAmount > 0
+                  ? `${totalDistributed - poolAmount > 0 ? "+" : ""}${fmtMoney(totalDistributed - poolAmount)}`
+                  : "—"}
+              </div>
+            </div>
           </div>
         </div>
 
