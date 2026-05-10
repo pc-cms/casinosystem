@@ -3282,6 +3282,101 @@ export type Database = {
           },
         ]
       }
+      weekly_bonus_entries: {
+        Row: {
+          bonus_points: number
+          casino_id: string
+          created_at: string
+          dealer_id: string
+          extra_override: number | null
+          id: string
+          updated_at: string
+          week_start: string
+        }
+        Insert: {
+          bonus_points?: number
+          casino_id: string
+          created_at?: string
+          dealer_id: string
+          extra_override?: number | null
+          id?: string
+          updated_at?: string
+          week_start: string
+        }
+        Update: {
+          bonus_points?: number
+          casino_id?: string
+          created_at?: string
+          dealer_id?: string
+          extra_override?: number | null
+          id?: string
+          updated_at?: string
+          week_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "weekly_bonus_entries_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "weekly_bonus_entries_dealer_id_fkey"
+            columns: ["dealer_id"]
+            isOneToOne: false
+            referencedRelation: "dealers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      weekly_bonus_pools: {
+        Row: {
+          calculated_at: string | null
+          calculated_by: string | null
+          casino_id: string
+          created_at: string
+          currency: string
+          id: string
+          is_calculated: boolean
+          pool_amount: number
+          updated_at: string
+          week_start: string
+        }
+        Insert: {
+          calculated_at?: string | null
+          calculated_by?: string | null
+          casino_id: string
+          created_at?: string
+          currency?: string
+          id?: string
+          is_calculated?: boolean
+          pool_amount?: number
+          updated_at?: string
+          week_start: string
+        }
+        Update: {
+          calculated_at?: string | null
+          calculated_by?: string | null
+          casino_id?: string
+          created_at?: string
+          currency?: string
+          id?: string
+          is_calculated?: boolean
+          pool_amount?: number
+          updated_at?: string
+          week_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "weekly_bonus_pools_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       chip_conservation_status: {
