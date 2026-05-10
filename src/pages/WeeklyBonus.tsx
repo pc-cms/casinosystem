@@ -270,9 +270,9 @@ export default function WeeklyBonus() {
               <div className="text-[11px] uppercase opacity-90">Bonus Balance</div>
               <div
                 className={cn(
-                  "text-2xl font-bold leading-tight",
-                  poolAmount > 0 && balance > 0 && "text-red-200",
-                  poolAmount > 0 && balance < 0 && "text-emerald-200",
+                  "inline-block text-2xl font-bold leading-tight px-2 rounded",
+                  poolAmount > 0 && balance > 0 && "bg-emerald-500 text-white",
+                  poolAmount > 0 && balance < 0 && "bg-red-500 text-white",
                 )}
                 title="Distributed − Pool. Positive = need extra bills, negative = leftover"
               >
