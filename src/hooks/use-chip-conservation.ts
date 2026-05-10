@@ -91,40 +91,10 @@ export const useInitializeChipBaseline = () => {
   });
 };
 
-// ============ MISS CHIPS ARCHIVE ============
-export interface MissChipRow {
-  id: string;
-  casino_id: string;
-  shift_id: string | null;
-  business_date: string;
-  denomination: number;
-  quantity: number;
-  total_value_tzs: number;
-  created_at: string;
-}
+// MISS CHIPS ARCHIVE — REMOVED.
+// Miss is now read directly from `shifts.closing_count.chip_miss_total` in the
+// /reports/miss-chips page. The legacy `miss_chips` table has been dropped.
 
-export const useMissChipsArchive = (params?: { fromDate?: string; toDate?: string }) => {
-  const { casinoId } = useAuth();
-  return useQuery({
-    queryKey: ["miss-chips", casinoId, params?.fromDate, params?.toDate],
-    queryFn: async (): Promise<MissChipRow[]> => {
-      if (!casinoId) return [];
-      let q = supabase
-        .from("miss_chips" as any)
-        .select("*")
-        .eq("casino_id", casinoId)
-        .order("business_date", { ascending: false });
-      if (params?.fromDate) q = q.gte("business_date", params.fromDate);
-      if (params?.toDate) q = q.lte("business_date", params.toDate);
-      const { data, error } = await q;
-      if (error) throw error;
-      return ((data || []) as unknown) as MissChipRow[];
-    },
-    enabled: !!casinoId,
-  });
-};
-
-// ============ CHIP EMISSIONS ============
 export interface ChipEmissionRow {
   id: string;
   casino_id: string;
