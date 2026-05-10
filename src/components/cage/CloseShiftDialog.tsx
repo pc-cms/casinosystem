@@ -124,23 +124,19 @@ const CloseShiftDialog = ({
   const closingCashTotalTzs = closingCashOnlyTzs + closingMobileTzs + closingBankTzs;
   const totalTzs = closingChipsTzs + closingCashTotalTzs;
 
+  // Cash-only reconciliation. Chips are tracked separately as Miss and do NOT
+  // enter the balance equation — Expected Cash already excludes opening chips.
   const balance = useMemo(
-    () => cashDeskBalance({
-      resultTable,
-      openingChips: openingChipsTzs,
-      openingCash: openingCashTzs,
-      closingChips: closingChipsTzs,
-      closingCash: closingCashTotalTzs,
-      externalCashMovement,
-      expenses: totalExpenses || 0,
-    }),
-    [resultTable, openingChipsTzs, openingCashTzs, closingChipsTzs, closingCashTotalTzs, externalCashMovement, totalExpenses],
+    () => closingCashTotalTzs - expectedBalance,
+    [closingCashTotalTzs, expectedBalance],
   );
   const isBalanced = balance === 0;
   const requiresNote = !isBalanced;
   const noteValid = !requiresNote || notes.trim().length > 0;
 
-  const diff = totalTzs - expectedBalance;
+  const diff = closingCashTotalTzs - expectedBalance;
+  // Money Result — net cash from player transactions (buy/in − cashout).
+  const moneyResult = cashResult;
   // Shift Result is now the Tables Result (real chip-based P&L of the shift).
   // Old formula (cash_result + miss) was a drop+miss aggregate, not the actual win.
   const shiftResult = resultTable;
@@ -382,25 +378,17 @@ const CloseShiftDialog = ({
               </div>
             </div>
 
-            {/* BALANCE FORMULA — large with expenses */}
+            {/* BALANCE FORMULA — cash-only reconciliation */}
             <div className={cn(
               "rounded-lg border-2 p-4",
               isBalanced ? "border-success/60 bg-success/5" : "border-destructive/60 bg-destructive/5",
             )}>
-              <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground font-semibold mb-3">Balance Formula</p>
+              <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground font-semibold mb-3">
+                Cash Desk Balance — cash only (chips tracked as Miss)
+              </p>
               <div className="space-y-1.5 font-mono text-sm">
-                <FormulaRow label="Closing (Chips + Cash + Mobile + Bank)" value={`+${formatNumberSpaces(totalTzs)}`} />
-                <FormulaRow label="− Opening (Chips + Cash)" value={`−${formatNumberSpaces(openingTotal)}`} />
-                <FormulaRow
-                  label="− Result Table"
-                  value={`${resultTable >= 0 ? "−" : "+"}${formatNumberSpaces(Math.abs(resultTable))}`}
-                  amountClass={resultTable >= 0 ? undefined : "cms-amount-positive"}
-                />
-                <FormulaRow
-                  label="− External Cash Movement"
-                  value={`${externalCashMovement >= 0 ? "−" : "+"}${formatNumberSpaces(Math.abs(externalCashMovement))}`}
-                />
-                <FormulaRow label="+ Expenses (paid from cash)" value={`+${formatNumberSpaces(totalExpenses || 0)}`} />
+                <FormulaRow label="Closing Cash (Cash + Mobile + Bank)" value={`+${formatNumberSpaces(closingCashTotalTzs)}`} />
+                <FormulaRow label="− Expected Cash" value={`−${formatNumberSpaces(expectedBalance)}`} />
                 <div className={cn(
                   "flex justify-between pt-3 mt-2 border-t-2 text-lg font-bold",
                   isBalanced ? "border-success/60" : "border-destructive/60",
@@ -422,6 +410,19 @@ const CloseShiftDialog = ({
                   Discrepancy — manager password required to accept.
                 </p>
               )}
+            </div>
+
+            {/* THREE KEY RESULTS */}
+            <div className="rounded-lg border-2 border-primary/40 bg-primary/5 p-4 mt-4">
+              <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground font-semibold mb-3">Shift Results</p>
+              <div className="grid grid-cols-3 gap-3">
+                <KpiTile label="Tables Result" value={resultTable} tone={resultTable >= 0 ? "pos" : "neg"} />
+                <KpiTile label="Cash Desk Balance" value={balance} tone={isBalanced ? "ok" : balance > 0 ? "pos" : "neg"} />
+                <KpiTile label="Money Result" value={moneyResult} tone={moneyResult >= 0 ? "pos" : "neg"} />
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-2 italic">
+                Money Result = Buy/In − Cashout. Tables Result = sum of table P&L. Balance must be zero.
+              </p>
             </div>
 
             {notes && (
@@ -629,29 +630,31 @@ const CloseShiftDialog = ({
         </div>
       </section>
 
-      {/* Balance preview */}
+      {/* Balance preview — cash only */}
       <section className={cn(
         "cms-panel p-4 border-2",
         isBalanced ? "border-success/50" : "border-destructive/50",
       )}>
         <div className="flex items-center justify-between mb-3">
-          <p className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground">Cash Desk Balance</p>
+          <p className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground">Cash Desk Balance — cash only</p>
           {isBalanced
             ? <span className="inline-flex items-center gap-1 text-xs font-semibold text-success"><CheckCircle2 className="w-4 h-4" /> Balanced</span>
             : <span className="inline-flex items-center gap-1 text-xs font-semibold text-destructive"><AlertTriangle className="w-4 h-4" /> {balance > 0 ? "Surplus" : "Shortage"}</span>}
         </div>
         <div className="space-y-1 text-sm font-mono">
-          <div className="flex justify-between"><span className="text-muted-foreground">  Closing (Chips + Cash + Mobile + Bank)</span><span className="text-card-foreground">+{formatNumberSpaces(totalTzs)}</span></div>
-          <div className="flex justify-between"><span className="text-muted-foreground">− Opening (Chips + Cash)</span><span className="text-card-foreground">−{formatNumberSpaces(openingTotal)}</span></div>
-          <div className="flex justify-between pt-2"><span className="text-muted-foreground">− Result Table</span><span className="text-card-foreground">−{formatNumberSpaces(resultTable)}</span></div>
-          <div className="flex justify-between"><span className="text-muted-foreground">− External Cash Movement</span><span className="text-card-foreground">−{formatNumberSpaces(externalCashMovement)}</span></div>
-          <div className="flex justify-between"><span className="text-muted-foreground">+ Expenses (paid from cash)</span><span className="text-card-foreground">+{formatNumberSpaces(totalExpenses || 0)}</span></div>
+          <div className="flex justify-between"><span className="text-muted-foreground">  Closing Cash (Cash + Mobile + Bank)</span><span className="text-card-foreground">+{formatNumberSpaces(closingCashTotalTzs)}</span></div>
+          <div className="flex justify-between"><span className="text-muted-foreground">− Expected Cash</span><span className="text-card-foreground">−{formatNumberSpaces(expectedBalance)}</span></div>
           <div className="flex justify-between border-t border-border pt-2 mt-2 text-base font-bold">
             <span className="text-card-foreground">= Cash Desk Balance</span>
             <span className={isBalanced ? "text-success" : balance > 0 ? "cms-amount-positive" : "cms-amount-negative"}>
               {balance >= 0 ? "+" : ""}{formatNumberSpaces(balance)} TZS
             </span>
           </div>
+        </div>
+        <div className="grid grid-cols-3 gap-2 pt-3 mt-3 border-t border-border">
+          <KpiTile label="Tables Result" value={resultTable} tone={resultTable >= 0 ? "pos" : "neg"} compact />
+          <KpiTile label="Cash Desk Balance" value={balance} tone={isBalanced ? "ok" : balance > 0 ? "pos" : "neg"} compact />
+          <KpiTile label="Money Result" value={moneyResult} tone={moneyResult >= 0 ? "pos" : "neg"} compact />
         </div>
       </section>
 
@@ -701,5 +704,23 @@ const FormulaRow = ({
     <span className={amountClass ?? "text-card-foreground"}>{value}</span>
   </div>
 );
+
+const KpiTile = ({
+  label, value, tone, compact,
+}: { label: string; value: number; tone: "pos" | "neg" | "ok"; compact?: boolean }) => {
+  const toneCls =
+    tone === "ok" ? "text-success"
+    : tone === "pos" ? "cms-amount-positive"
+    : "cms-amount-negative";
+  return (
+    <div className="text-center rounded-md border border-border bg-background/60 p-2">
+      <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">{label}</p>
+      <p className={cn("font-mono font-bold mt-0.5", compact ? "text-sm" : "text-lg", toneCls)}>
+        {value >= 0 ? "+" : ""}{formatNumberSpaces(value)}
+      </p>
+      <p className="text-[9px] text-muted-foreground">TZS</p>
+    </div>
+  );
+};
 
 export default CloseShiftDialog;
