@@ -8,7 +8,7 @@ export type ChipConservationMode = "strict" | "observation";
 /**
  * Strict mode: для нового казино — жёсткий инвариант.
  * Observation mode: для внедрения в работающее казино —
- *   аномалии не блокируются, но фиксируются в miss_chips и видны в ежемесячном отчёте.
+ *   аномалии не блокируются, фиксируются только в shifts.closing_count.chip_miss_total.
  */
 export const useChipConservationMode = () => {
   const { casinoId } = useAuth();
