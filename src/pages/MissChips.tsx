@@ -1,306 +1,234 @@
 import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useMissChipsArchive, useMissChipsByShift } from "@/hooks/use-chip-conservation";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth-context";
 import { formatChipLabel, formatNumberSpaces, CHIP_DENOMS } from "@/lib/currency";
-import {
-  format,
-  startOfMonth,
-  endOfMonth,
-  subMonths,
-  addMonths,
-  startOfYear,
-  endOfYear,
-  subYears,
-  addYears,
-} from "date-fns";
+import { format, startOfMonth, endOfMonth, subMonths, addMonths } from "date-fns";
 import { Coins, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/layout/PageHeader";
 
-const fmtDate = (d: Date) => format(d, "yyyy-MM-dd");
-const fmtTime = (iso: string | null) => (iso ? format(new Date(iso), "HH:mm") : "—");
+// Denominations sorted ascending (smallest → largest), as requested.
+const DENOMS_ASC = [...CHIP_DENOMS].sort((a, b) => a - b);
 
-type ViewMode = "per-shift" | "by-month";
+interface ShiftMissRow {
+  business_date: string; // EAT date derived from opened_at
+  opened_at: string;
+  closed_at: string | null;
+  by_denom: Record<number, number>;
+  total_tzs: number;
+}
+
+// EAT business date = (opened_at - 5h)::date, where business day rolls at 05:00 EAT.
+const eatBusinessDate = (iso: string): string => {
+  const t = new Date(iso).getTime() - 3 * 3600 * 1000 - 5 * 3600 * 1000;
+  return new Date(t).toISOString().slice(0, 10);
+};
 
 const MissChips = () => {
+  const { casinoId } = useAuth();
   const today = new Date();
   const [monthAnchor, setMonthAnchor] = useState<Date>(startOfMonth(today));
-  const [yearAnchor, setYearAnchor] = useState<Date>(startOfYear(today));
-  const [view, setView] = useState<ViewMode>("per-shift");
 
-  // Period depends on view: month for per-shift, year for by-month
-  const { fromDate, toDate, periodLabel } =
-    view === "per-shift"
-      ? {
-          fromDate: fmtDate(startOfMonth(monthAnchor)),
-          toDate: fmtDate(endOfMonth(monthAnchor)),
-          periodLabel: format(monthAnchor, "MMMM yyyy"),
-        }
-      : {
-          fromDate: fmtDate(startOfYear(yearAnchor)),
-          toDate: fmtDate(endOfYear(yearAnchor)),
-          periodLabel: format(yearAnchor, "yyyy"),
+  const monthLabel = format(monthAnchor, "MMMM yyyy");
+  const fromIso = `${format(startOfMonth(monthAnchor), "yyyy-MM-dd")}T02:00:00Z`;
+  // include shifts opened up to next month's 02:00 UTC of day 1+1
+  const nextStart = startOfMonth(addMonths(monthAnchor, 1));
+  const toIso = `${format(nextStart, "yyyy-MM-dd")}T02:00:00Z`;
+
+  const { data: rows = [], isLoading } = useQuery({
+    queryKey: ["miss-chips-daily", casinoId, fromIso, toIso],
+    queryFn: async (): Promise<ShiftMissRow[]> => {
+      if (!casinoId) return [];
+      const { data, error } = await supabase
+        .from("shifts")
+        .select("opened_at, closed_at, closing_count")
+        .eq("casino_id", casinoId)
+        .eq("status", "closed")
+        .gte("opened_at", fromIso)
+        .lt("opened_at", toIso)
+        .order("opened_at", { ascending: false });
+      if (error) throw error;
+      return (data || []).map((s: any) => {
+        const cc = s.closing_count || {};
+        const by = (cc.chip_miss_by_denom || {}) as Record<string, number>;
+        const byDenom: Record<number, number> = {};
+        Object.entries(by).forEach(([d, q]) => {
+          const dn = Number(d);
+          const qn = Number(q);
+          if (dn) byDenom[dn] = (byDenom[dn] || 0) + qn;
+        });
+        return {
+          business_date: eatBusinessDate(s.opened_at),
+          opened_at: s.opened_at,
+          closed_at: s.closed_at,
+          by_denom: byDenom,
+          total_tzs: Number(cc.chip_miss_total ?? 0),
         };
+      });
+    },
+    enabled: !!casinoId,
+  });
 
-  const { data: shiftRows = [], isLoading: shiftsLoading } = useMissChipsByShift({ fromDate, toDate });
-  const { data: rawRows = [], isLoading: rawLoading } = useMissChipsArchive({ fromDate, toDate });
-
-  // CASH (Cage) PERSPECTIVE:
-  // +N chips miss = chips went OUT to players, cash STAYED in cage → +TZS → green
-  // -N chips miss = chips RETURNED to cage (emission cancelled), cash LEFT cage → -TZS → red
-  const periodTotal = useMemo(() => {
-    return view === "per-shift"
-      ? shiftRows.reduce((s, r) => s + r.total_value_tzs, 0)
-      : rawRows.reduce((s, r) => s + Number(r.total_value_tzs), 0);
-  }, [view, shiftRows, rawRows]);
-
-  const byMonth = useMemo(() => {
-    const map = new Map<string, Map<number, number>>();
-    rawRows.forEach((r) => {
-      const key = r.business_date.slice(0, 7);
-      if (!map.has(key)) map.set(key, new Map());
-      const dm = map.get(key)!;
-      dm.set(r.denomination, (dm.get(r.denomination) ?? 0) + Number(r.quantity));
+  // Aggregate per business_date (multiple shifts on same day → summed)
+  const dailyRows = useMemo(() => {
+    const m = new Map<string, ShiftMissRow>();
+    rows.forEach((r) => {
+      const ex = m.get(r.business_date);
+      if (!ex) {
+        m.set(r.business_date, {
+          ...r,
+          by_denom: { ...r.by_denom },
+        });
+      } else {
+        Object.entries(r.by_denom).forEach(([d, q]) => {
+          const dn = Number(d);
+          ex.by_denom[dn] = (ex.by_denom[dn] || 0) + q;
+        });
+        ex.total_tzs += r.total_tzs;
+      }
     });
-    return Array.from(map.entries()).sort((a, b) => b[0].localeCompare(a[0]));
-  }, [rawRows]);
+    return Array.from(m.values()).sort((a, b) => b.business_date.localeCompare(a.business_date));
+  }, [rows]);
 
-  // Unified period nav handlers
-  const goPrev = () => {
-    if (view === "per-shift") setMonthAnchor((d) => startOfMonth(subMonths(d, 1)));
-    else setYearAnchor((d) => startOfYear(subYears(d, 1)));
-  };
-  const goNext = () => {
-    if (view === "per-shift") setMonthAnchor((d) => startOfMonth(addMonths(d, 1)));
-    else setYearAnchor((d) => startOfYear(addYears(d, 1)));
-  };
-  const goCurrent = () => {
-    if (view === "per-shift") setMonthAnchor(startOfMonth(today));
-    else setYearAnchor(startOfYear(today));
-  };
-  const nextDisabled =
-    view === "per-shift"
-      ? monthAnchor >= startOfMonth(today)
-      : yearAnchor >= startOfYear(today);
+  const monthSum = useMemo(() => {
+    const by: Record<number, number> = {};
+    let total = 0;
+    dailyRows.forEach((r) => {
+      DENOMS_ASC.forEach((d) => {
+        if (r.by_denom[d]) by[d] = (by[d] || 0) + r.by_denom[d];
+      });
+      total += r.total_tzs;
+    });
+    return { by, total };
+  }, [dailyRows]);
+
+  const goPrev = () => setMonthAnchor((d) => startOfMonth(subMonths(d, 1)));
+  const goNext = () => setMonthAnchor((d) => startOfMonth(addMonths(d, 1)));
+  const goCurrent = () => setMonthAnchor(startOfMonth(today));
+  const nextDisabled = monthAnchor >= startOfMonth(today);
+
+  const cellClass = (v: number) =>
+    cn(
+      "text-right px-2 py-1 whitespace-nowrap",
+      v > 0 ? "text-cms-amount-positive" : v < 0 ? "text-cms-amount-negative" : "text-muted-foreground"
+    );
 
   return (
-    <div className="container mx-auto p-4 space-y-3 max-w-[1400px]">
+    <div className="container mx-auto p-4 space-y-3 max-w-[1600px]">
       <PageHeader
         icon={Coins}
         title="Miss Chips"
-        subtitle={`Total ${formatNumberSpaces(periodTotal)} TZS · ${periodLabel}`}
+        subtitle={`Daily cage chip count delta · ${monthLabel}`}
         date
         centerSlot={
-          <div className="flex items-center gap-2 flex-wrap justify-center">
-            {/* Period nav */}
-            <div className="flex items-center gap-1">
-              <Button variant="outline" size="icon" className="h-8 w-8" onClick={goPrev}>
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className={cn("h-8 font-mono", view === "per-shift" ? "min-w-[140px]" : "min-w-[80px]")}
-                onClick={goCurrent}
-              >
-                {periodLabel}
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-8 w-8"
-                onClick={goNext}
-                disabled={nextDisabled}
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-            {/* View switcher */}
-            <div className="flex items-center gap-1 ml-2">
-              <Button variant={view === "per-shift" ? "default" : "outline"} size="sm" className="h-8" onClick={() => setView("per-shift")}>
-                Per Shift
-              </Button>
-              <Button variant={view === "by-month" ? "default" : "outline"} size="sm" className="h-8" onClick={() => setView("by-month")}>
-                By Month
-              </Button>
-            </div>
+          <div className="flex items-center gap-1">
+            <Button variant="outline" size="icon" className="h-8 w-8" onClick={goPrev}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 font-mono min-w-[140px]"
+              onClick={goCurrent}
+            >
+              {monthLabel}
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              onClick={goNext}
+              disabled={nextDisabled}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
           </div>
         }
       >
         <span
           className={cn(
             "text-base font-mono font-semibold whitespace-nowrap",
-            periodTotal > 0 ? "text-cms-amount-positive" : periodTotal < 0 ? "text-cms-amount-negative" : "text-muted-foreground"
+            monthSum.total > 0
+              ? "text-cms-amount-positive"
+              : monthSum.total < 0
+              ? "text-cms-amount-negative"
+              : "text-muted-foreground"
           )}
         >
-          {formatNumberSpaces(periodTotal)} TZS
+          {formatNumberSpaces(monthSum.total)} TZS
         </span>
       </PageHeader>
 
-      {view === "per-shift" && (
-        <Card>
-          <CardContent className="p-0 overflow-x-auto">
-            <table className="w-full text-xs font-mono">
-              <thead className="bg-muted/40 border-b sticky top-0">
-                <tr>
-                  <th className="text-left px-3 py-2 whitespace-nowrap">Date</th>
-                  <th className="text-left px-3 py-2 whitespace-nowrap">Closed</th>
-                  {CHIP_DENOMS.map((d) => (
-                    <th key={d} className="text-right px-3 py-2 whitespace-nowrap">
-                      {formatChipLabel(d)}
-                    </th>
-                  ))}
-                  <th className="text-right px-3 py-2 whitespace-nowrap bg-muted/60">Total TZS</th>
-                </tr>
-              </thead>
-              <tbody>
-                {shiftsLoading && (
-                  <tr>
-                    <td colSpan={CHIP_DENOMS.length + 3} className="text-center py-6 text-muted-foreground">
-                      Loading…
-                    </td>
-                  </tr>
-                )}
-                {!shiftsLoading && shiftRows.length === 0 && (
-                  <tr>
-                    <td colSpan={CHIP_DENOMS.length + 3} className="text-center py-6 text-muted-foreground">
-                      No closed shifts with miss chips in this period
-                    </td>
-                  </tr>
-                )}
-                {shiftRows.map((r, idx) => (
-                  <tr
-                    key={`${r.shift_id ?? "nx"}-${idx}`}
-                    className="border-b border-border/40 hover:bg-muted/20"
-                  >
-                    <td className="px-3 py-1.5 whitespace-nowrap">{r.business_date}</td>
-                    <td className="px-3 py-1.5 text-muted-foreground whitespace-nowrap">
-                      {fmtTime(r.closed_at)}
-                    </td>
-                    {CHIP_DENOMS.map((d) => {
-                      const v = r.denoms[d] ?? 0;
-                      // Cage perspective: +chips → cash stays (green); -chips → cash leaves (red)
-                      return (
-                        <td
-                          key={d}
-                          className={cn(
-                            "text-right px-3 py-1.5",
-                            v > 0
-                              ? "text-cms-amount-positive"
-                              : v < 0
-                              ? "text-cms-amount-negative"
-                              : "text-muted-foreground"
-                          )}
-                        >
-                          {v === 0 ? "·" : formatNumberSpaces(v)}
-                        </td>
-                      );
-                    })}
-                    <td
-                      className={cn(
-                        "text-right px-3 py-1.5 font-semibold bg-muted/30",
-                        r.total_value_tzs > 0 ? "text-cms-amount-positive" : r.total_value_tzs < 0 ? "text-cms-amount-negative" : "text-muted-foreground"
-                      )}
-                    >
-                      {formatNumberSpaces(r.total_value_tzs)}
-                    </td>
-                  </tr>
+      <Card>
+        <CardContent className="p-0 overflow-x-auto">
+          <table className="w-full text-xs font-mono border-collapse">
+            <thead className="bg-muted/40 border-b sticky top-0">
+              <tr>
+                <th className="text-left px-3 py-2 whitespace-nowrap border-r">Date</th>
+                {DENOMS_ASC.map((d) => (
+                  <th key={d} className="text-right px-2 py-2 whitespace-nowrap border-r">
+                    {formatChipLabel(d)}
+                  </th>
                 ))}
-              </tbody>
-              {shiftRows.length > 0 && (
-                <tfoot className="border-t-2 border-border bg-muted/40">
-                  <tr>
-                    <td colSpan={2} className="px-3 py-2 font-semibold">
-                      Total
-                    </td>
-                    {CHIP_DENOMS.map((d) => (
-                      <td key={d} className="px-3 py-2" />
-                    ))}
-                    <td
-                      className={cn(
-                        "text-right px-3 py-2 font-semibold text-base",
-                        periodTotal > 0 ? "text-cms-amount-positive" : periodTotal < 0 ? "text-cms-amount-negative" : "text-muted-foreground"
-                      )}
-                    >
-                      {formatNumberSpaces(periodTotal)} TZS
-                    </td>
-                  </tr>
-                </tfoot>
-              )}
-            </table>
-          </CardContent>
-        </Card>
-      )}
-
-      {view === "by-month" && (
-        <Card>
-          <CardContent className="p-0 overflow-x-auto">
-            <table className="w-full text-xs font-mono">
-              <thead className="bg-muted/40 border-b">
+                <th className="text-right px-3 py-2 whitespace-nowrap bg-muted/60">Total TZS</th>
+              </tr>
+            </thead>
+            <tbody>
+              {isLoading && (
                 <tr>
-                  <th className="text-left px-3 py-2">Month</th>
-                  {CHIP_DENOMS.map((d) => (
-                    <th key={d} className="text-right px-3 py-2">
-                      {formatChipLabel(d)}
-                    </th>
-                  ))}
-                  <th className="text-right px-3 py-2">Net (TZS)</th>
+                  <td colSpan={DENOMS_ASC.length + 2} className="text-center py-6 text-muted-foreground">
+                    Loading…
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {rawLoading && (
-                  <tr>
-                    <td colSpan={CHIP_DENOMS.length + 2} className="text-center py-4 text-muted-foreground">
-                      Loading…
-                    </td>
-                  </tr>
-                )}
-                {!rawLoading && byMonth.length === 0 && (
-                  <tr>
-                    <td colSpan={CHIP_DENOMS.length + 2} className="text-center py-4 text-muted-foreground">
-                      No data in this period
-                    </td>
-                  </tr>
-                )}
-                {byMonth.map(([month, denomMap]) => {
-                  // Cage cash impact: sum of denomination * quantity
-                  const netCash = Array.from(denomMap.entries()).reduce((s, [d, q]) => s + d * q, 0);
-                  return (
-                    <tr key={month} className="border-b border-border/40">
-                      <td className="px-3 py-1.5">{month}</td>
-                      {CHIP_DENOMS.map((d) => {
-                        const v = denomMap.get(d) ?? 0;
-                        return (
-                          <td
-                            key={d}
-                            className={`text-right px-3 py-1.5 ${
-                              v > 0
-                                ? "text-cms-amount-positive"
-                                : v < 0
-                                ? "text-cms-amount-negative"
-                                : "text-muted-foreground"
-                            }`}
-                          >
-                            {v === 0 ? "·" : formatNumberSpaces(v)}
-                          </td>
-                        );
-                      })}
-                      <td
-                        className={`text-right px-3 py-1.5 font-semibold ${
-                          netCash > 0 ? "text-cms-amount-positive" : netCash < 0 ? "text-cms-amount-negative" : "text-muted-foreground"
-                        }`}
-                      >
-                        {formatNumberSpaces(netCash)}
+              )}
+              {!isLoading && dailyRows.length === 0 && (
+                <tr>
+                  <td colSpan={DENOMS_ASC.length + 2} className="text-center py-6 text-muted-foreground">
+                    No closed shifts with miss chips in this month
+                  </td>
+                </tr>
+              )}
+              {dailyRows.map((r) => (
+                <tr key={r.business_date} className="border-b border-border/40 hover:bg-muted/20">
+                  <td className="px-3 py-1.5 whitespace-nowrap border-r">{r.business_date}</td>
+                  {DENOMS_ASC.map((d) => {
+                    const v = r.by_denom[d] ?? 0;
+                    return (
+                      <td key={d} className={cn(cellClass(v), "border-r")}>
+                        {v === 0 ? "·" : (v > 0 ? `+${formatNumberSpaces(v)}` : formatNumberSpaces(v))}
                       </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </CardContent>
-        </Card>
-      )}
+                    );
+                  })}
+                  <td className={cn(cellClass(r.total_tzs), "font-semibold bg-muted/30")}>
+                    {formatNumberSpaces(r.total_tzs)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+            {dailyRows.length > 0 && (
+              <tfoot className="border-t-2 border-border bg-muted/40">
+                <tr>
+                  <td className="px-3 py-2 font-semibold border-r">MONTH SUM</td>
+                  {DENOMS_ASC.map((d) => {
+                    const v = monthSum.by[d] ?? 0;
+                    return (
+                      <td key={d} className={cn(cellClass(v), "font-semibold border-r")}>
+                        {v === 0 ? "·" : (v > 0 ? `+${formatNumberSpaces(v)}` : formatNumberSpaces(v))}
+                      </td>
+                    );
+                  })}
+                  <td className={cn(cellClass(monthSum.total), "font-bold text-base")}>
+                    {formatNumberSpaces(monthSum.total)} TZS
+                  </td>
+                </tr>
+              </tfoot>
+            )}
+          </table>
+        </CardContent>
+      </Card>
     </div>
   );
 };

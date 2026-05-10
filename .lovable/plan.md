@@ -1,72 +1,86 @@
-# Перекомпоновка Cash Count Grid
+## Правило (закон проекта)
 
-## Что не так сейчас
+**Miss Chips = только `closing_count.chip_miss_total`** — физическая разница пересчёта фишек кассы при закрытии смены (counted − opening). Это единственное определение Miss во всей системе. Никаких "floor miss", "conservation miss", "settlement".
 
-- 4×2 сетка → у TZS Cash (4 строки) и KES (5) остаётся пустота под total, рядом EUR (7) — «лесенка».
-- Chips (11 строк) визуально «душные», т.к. идут в 2 колонки → фишки получаются мелкими и зажатыми.
-- Большие отступы между бейджем номинала и инпутом из-за `justify-between` при широкой колонке.
+**Shift Result = Cash Result + Miss Chips.**
 
-## Целевой layout (4 колонки × ~11 строк)
+---
 
+## План реализации
+
+### 1. Снос неправильной таблицы и триггера
+- `DROP TRIGGER IF EXISTS finalize_floor_to_miss_chips ON shifts;`
+- `DROP FUNCTION IF EXISTS finalize_floor_to_miss_chips() CASCADE;`
+- `DROP TABLE IF EXISTS public.miss_chips CASCADE;`
+- Удалить хук `src/hooks/use-chip-conservation.ts` (или функции `useMissChipsByShift` / `useMissChipsArchive` из него) — они читают сносимую таблицу.
+
+### 2. Серверный расчёт `compute_shift_close` (RPC)
+- Перестать суммировать таблицу `miss_chips` (её больше нет).
+- `miss_total = (shifts.closing_count->>'chip_miss_total')::numeric`.
+- `shift_result = cash_result + miss_total`.
+- Поле `shifts.miss_total` при закрытии писать тем же значением.
+
+### 3. UI закрытия смены
+- В `CloseShiftDialog` использовать только `missTotal` из физического пересчёта кассы. Логика уже корректная — оставить, убрать любые упоминания "floor miss".
+
+### 4. Список закрытых смен (`Cage Closings`)
+- Колонка `Miss` показывает `shifts.miss_total` (после фикса будет правильный).
+- Backfill: для всех `shifts WHERE status='closed'`:
+  `miss_total = (closing_count->>'chip_miss_total')::numeric`,
+  `shift_result = cash_result + miss_total`.
+
+### 5. Новая таблица "Daily Miss Chips" (Excel-like) — заменяет `/reports/miss-chips`
+Источник данных: только `shifts.closing_count`.
+
+```text
+| Date       | 1 000 | 5 000 | 25 000 | 100 000 | 500 000 | 1 000 000 | ... | TOTAL TZS  |
+|------------|-------|-------|--------|---------|---------|-----------|-----|------------|
+| 2026-05-09 |   +5  |   -2  |    0   |   +1    |    0    |    +1     | ... |   967 000  |
+| 2026-05-08 |   -3  |    0  |   +4   |    0    |   +2    |     0     | ... | 1 245 000  |
+| ...        |       |       |        |         |         |           |     |            |
+| MONTH SUM  |  +12  |   -1  |   +18  |   +5    |   +9    |    +3     | ... | 9 870 000  |
 ```
-┌──────────────┬──────────────┬──────────────┬──────────────┐
-│  TZS CHIPS   │  TZS CASH    │  USD CASH    │  EUR CASH    │
-│   1 col      │   (4 rows)   │   (6 rows)   │   (7 rows)   │
-│   11 rows    ├──────────────┼──────────────┼──────────────┤
-│   (большие   │  MOBILE      │  KES CASH    │  GBP CASH    │
-│   фишки)     │   (3 rows)   │   (5 rows)   │   (4 rows)   │
-│              ├──────────────┤              │              │
-│              │  BANKS       │              │              │
-│              │   (2 rows)   │              │              │
-│              ├──────────────┴──────────────┴──────────────┤
-│              │  итоги выровнены по нижнему краю           │
-└──────────────┴────────────────────────────────────────────┘
+
+- Строка = одна закрытая смена (одна дата).
+- Колонки = все номиналы фишек (`CHIP_DENOMS` из `src/lib/currency.ts`), от меньшего к большему.
+- Ячейка = разница штук фишек по этому номиналу (`closing_count.chip_miss_by_denom[denom]`).
+- Последняя колонка `TOTAL TZS` = `closing_count.chip_miss_total`.
+- Внизу — строка `MONTH SUM` (сумма по месяцу для каждого номинала + общий total).
+- Шапка с переключателем месяца (← May 2026 →).
+- Стиль: monospace, плотная сетка; `+` зелёный, `-` красный, `0` мутед (`·`).
+- Никаких "Per Shift / By Month" переключателей — одна простая таблица.
+- Полностью переписать `src/pages/MissChips.tsx` на этот источник.
+
+### 6. Память проекта
+- Обновить `mem://features/shift-management-and-closing` с новым правилом Miss.
+- Обновить `mem://features/chip-conservation-law`: убрать упоминания "Floor finalized to Miss on shift close" — этого больше нет.
+- Обновить `mem://features/miss-chips-monthly-report`: новая структура (Date × Denoms × Total), источник = `shifts.closing_count`.
+
+### 7. Версия
+- Patch-bump `package.json` (миграция + изменения RPC).
+
+---
+
+## Технические детали
+
+**Файлы:**
+- `supabase/migrations/<new>.sql` — DROP таблицы и триггера + новая `compute_shift_close` + backfill `shifts.miss_total` / `shift_result`.
+- `src/pages/MissChips.tsx` — полностью новая Excel-таблица.
+- `src/hooks/use-chip-conservation.ts` — удалить функции, читающие `miss_chips` (`useMissChipsByShift`, `useMissChipsArchive`); проверить, нет ли других потребителей.
+- `package.json` — patch bump.
+
+**Что НЕ трогаем:**
+- `CloseShiftDialog` — расчёт `missTotal` уже правильный.
+- Таблицу `chip_emissions` и историю физического оборота фишек — не относится к Miss.
+
+**Запрос для новой таблицы:**
+```sql
+SELECT business_date,
+       closing_count->'chip_miss_by_denom' AS by_denom,
+       (closing_count->>'chip_miss_total')::numeric AS total_tzs
+FROM shifts
+WHERE casino_id = :casino
+  AND status = 'closed'
+  AND business_date BETWEEN :from AND :to
+ORDER BY business_date DESC;
 ```
-
-Подсчёт строк ввода в каждой колонке:
-- Col1 Chips: **11**
-- Col2 TZS+Mobile+Banks: 4+3+2 = **9** (+ 2 разделителя ≈ 11 визуально)
-- Col3 USD+KES: 6+5 = **11**
-- Col4 EUR+GBP: 7+4 = **11**
-
-Все 4 колонки получаются одной высоты без «ступенек».
-
-## Визуальные правки
-
-**Чипы (ChipDenomInput, size="lg")**
-- Колонка одна → можно увеличить токен фишки: `cms-chip-token-lg` (текущий) + ещё крупнее круг (`h-12 w-12`, шрифт `text-base`).
-- Уменьшить промежуток между фишкой и инпутом: заменить `justify-between` → `gap-2` с `flex items-center` без растягивания (инпут `flex-1 max-w-[8rem]`).
-- Высоту строки уменьшить: `h-9` инпут, `space-y-1` между строками — чтобы 11 строк уместились по высоте Cash-блоков (которые ≈ 9-11 × 44px).
-
-**CashDenomInput (size="lg")**
-- Сейчас `h-11` инпут + `space-y-1.5` → ряд ≈ 50px. Уменьшить до `h-10` + `space-y-1` (ряд ≈ 44px) — компактнее, но крупнее sm/md.
-- Убрать лишнее пространство между бейджем и инпутом: контейнер `gap-3` вместо `justify-between`, бейдж `w-20 shrink-0`, инпут `flex-1` (или фикс. `w-32`).
-- Ширина инпута достаточна для 9 999 999 (7 цифр + пробелы) — `w-32` хватит.
-
-**Mobile / Banks (внутри CashCountGrid)**
-- Те же row-классы что и в CashDenomInput (`h-10`, `gap-3`), чтобы строки выглядели одинаково с Cash-секциями.
-- Убрать `justify-between`; бейдж `w-20`, инпут `flex-1`.
-
-**Группировка колонок 2-4**
-- В сетке `grid-cols-4`, колонка 1 — `row-span-3` для chips.
-- Колонки 2-4 разбиваются на стопки секций (каждая со своим бордером и total), разделённые `gap-3`.
-- Контейнеры используют `flex flex-col` без `auto-rows-fr` — пусть высота определяется содержимым; затем выравнивание через `min-h` колонки = высота Chips-секции.
-
-## Total-блоки
-
-- Total секции — мелкая полоска в подвале (`text-sm font-bold`, `pt-1.5 mt-1.5`), чтобы не отъедать строку.
-- Грандтотал (Total Real Money) уже снаружи — без изменений.
-
-## Технические детали (для реализации позже)
-
-Файлы:
-- `src/components/cage/CashCountGrid.tsx` — новая раскладка `grid-cols-4`, `Chips` с `row-span-3` и `size="lg"`, остальные колонки — `flex flex-col gap-3` с двумя/тремя секциями.
-- `src/components/cage/CashDenomInput.tsx` — обновить `SIZES.lg`: `row: "gap-3"`, `chip: "h-10 w-20 text-xs"`, `input: "h-10 w-32 text-base"`, `gap: "space-y-1"`. Заменить `justify-between` → `flex items-center gap-3` с `flex-1` на инпуте.
-- `src/components/ChipDenomInput.tsx` — добавить более крупный токен для `size="lg"` в одну колонку (CSS via existing `cms-chip-token-lg`), уменьшить высоту строки и зазор chip↔input аналогично.
-
-Никакой бизнес-логики не трогаем — только classNames и структура grid.
-
-## Альтернативы (если вариант не нравится)
-
-- **Б.** Чипы в 2 колонки слева (как сейчас), но строки ≈ 11; справа 3 колонки по 2 секции — даёт больше воздуха для фишек, но колонка чипов уже.
-- **В.** Чипы сверху на всю ширину (1 ряд × 11 ячеек крупными токенами), снизу 4 колонки валют — кассиру удобно видеть фишки крупно, но «лента» из 11 номиналов длинная.

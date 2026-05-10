@@ -380,13 +380,38 @@ export const CashPanel = ({ rows, businessDate, casinoId }: PanelProps) => {
   // rows = snapshot.cash_counts (denominations per currency / wallet)
   // Plus: miss chips for the business_date, expenses subtotal (from snapshot via prop drilling),
   //       and other wallet balances (current — best-effort).
+  // Miss chips for the day = aggregated cage chip count delta (closing_count.chip_miss_by_denom)
+  // across all closed shifts whose business day matches `businessDate`.
+  // Business day = EAT date of opened_at, rolls at 05:00 EAT (= 02:00 UTC).
   const { data: missChips = [] } = useQuery({
     queryKey: ["bd-miss-chips", casinoId, businessDate],
     queryFn: async () => {
+      // Window: [businessDate 02:00 UTC, businessDate+1 02:00 UTC)
+      const from = `${businessDate}T02:00:00Z`;
+      const next = new Date(`${businessDate}T00:00:00Z`);
+      next.setUTCDate(next.getUTCDate() + 1);
+      const to = `${next.toISOString().slice(0, 10)}T02:00:00Z`;
       const { data } = await supabase
-        .from("miss_chips").select("denomination,quantity,total_value_tzs")
-        .eq("casino_id", casinoId).eq("business_date", businessDate);
-      return data || [];
+        .from("shifts")
+        .select("closing_count")
+        .eq("casino_id", casinoId)
+        .eq("status", "closed")
+        .gte("opened_at", from)
+        .lt("opened_at", to);
+      const agg = new Map<number, number>();
+      (data || []).forEach((s: any) => {
+        const byDenom = (s.closing_count?.chip_miss_by_denom || {}) as Record<string, number>;
+        Object.entries(byDenom).forEach(([d, q]) => {
+          const dn = Number(d), qn = Number(q);
+          if (!dn || !qn) return;
+          agg.set(dn, (agg.get(dn) || 0) + qn);
+        });
+      });
+      return Array.from(agg.entries()).map(([denomination, quantity]) => ({
+        denomination,
+        quantity,
+        total_value_tzs: denomination * quantity,
+      }));
     },
     enabled: !!casinoId && !!businessDate,
   });
