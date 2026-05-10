@@ -262,9 +262,7 @@ export default function WeeklyBonus() {
             <label className="text-xs uppercase tracking-wider opacity-80">
               Bonus Pool (TZS)
               {suggestedPool > 0 && (
-                <span className="ml-2 normal-case opacity-70">
-                  · 1% of week result: {fmtMoney(suggestedPool)}
-                </span>
+                <span className="ml-2 normal-case opacity-70 font-mono">{fmtMoney(suggestedPool)}</span>
               )}
             </label>
             <Input
