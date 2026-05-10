@@ -90,10 +90,7 @@ const ShiftReport = ({ from, to }: { from: string; to: string }) => {
 
   const shiftData = useMemo(() => {
     return filtered.map(s => {
-      const sTx = transactions.filter(t => t.shift_id === s.id);
       const sExp = expenses.filter((e: any) => e.shift_id === s.id && e.approved);
-      const buyTotal = sTx.filter(t => (t.type === "buy" || t.type === "in")).reduce((sum, t) => sum + Number(t.amount), 0);
-      const cashoutTotal = sTx.filter(t => (t.type === "cashout" || t.type === "out")).reduce((sum, t) => sum + Number(t.amount), 0);
       const expTotal = sExp.reduce((sum: number, e: any) => sum + Number(e.amount), 0);
 
       const openTotals = (s.opening_float as any)?.totals || {};
@@ -103,33 +100,43 @@ const ShiftReport = ({ from, to }: { from: string; to: string }) => {
       const closingCashOnly = hasClosing
         ? Number(closeTotals.total_tzs || 0) - Number(closeTotals.chips_tzs || 0)
         : null;
+      const cashChange = closingCashOnly != null ? closingCashOnly - openingCashOnly : null;
 
-      // Expected = Money Result (Buy-In − Cashout)
-      const expected = buyTotal - cashoutTotal;
-      // Actual = Cash Result — net change in cash + bank + mobile (no chips)
-      const closingActual = closingCashOnly != null ? closingCashOnly - openingCashOnly : null;
-      const diff = closingActual != null ? closingActual - expected : 0;
-      return { ...s, buyTotal, cashoutTotal, expTotal, openingFloat: openingCashOnly, expected, closingActual, diff, txCount: sTx.length };
+      const tablesResult = Number((s as any).shift_result || 0);
+      const slotsResult = 0;
+      const result = tablesResult + slotsResult;
+      const missTotal = Number((s as any).miss_total || 0);
+      // Total Cash = Result − Miss − Expenses (cash actually expected to enter the desk)
+      const totalCash = result - missTotal - expTotal;
+      // Balance = real cash change − expected cash change. 0 = perfect.
+      const balance = cashChange != null ? cashChange - totalCash : null;
+
+      return { ...s, expTotal, tablesResult, slotsResult, result, missTotal, totalCash, balance };
     });
-  }, [filtered, transactions, expenses]);
+  }, [filtered, expenses]);
 
   const totals = useMemo(() => ({
-    buy: shiftData.reduce((s, d) => s + d.buyTotal, 0),
-    cashout: shiftData.reduce((s, d) => s + d.cashoutTotal, 0),
+    tables: shiftData.reduce((s, d) => s + d.tablesResult, 0),
+    slots: shiftData.reduce((s, d) => s + d.slotsResult, 0),
+    result: shiftData.reduce((s, d) => s + d.result, 0),
     expenses: shiftData.reduce((s, d) => s + d.expTotal, 0),
-    txns: shiftData.reduce((s, d) => s + d.txCount, 0),
+    miss: shiftData.reduce((s, d) => s + d.missTotal, 0),
+    totalCash: shiftData.reduce((s, d) => s + d.totalCash, 0),
   }), [shiftData]);
+
+  const signCls = (n: number) => n > 0 ? "cms-amount-positive" : n < 0 ? "cms-amount-negative" : "text-card-foreground";
 
   return (
     <div className="space-y-3">
       {/* Summary cards */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-2">
         {[
           { label: "Shifts", value: String(shiftData.length), cls: "text-card-foreground" },
-          { label: "Total Buy-Ins", value: formatCurrency(totals.buy), cls: "cms-amount-negative" },
-          { label: "Total Cashouts", value: formatCurrency(totals.cashout), cls: "cms-amount-positive" },
-          { label: "Total Expenses", value: formatCurrency(totals.expenses), cls: "text-warning" },
-          { label: "Result", value: formatCurrency(totals.cashout - totals.buy), cls: totals.cashout - totals.buy >= 0 ? "cms-amount-positive" : "cms-amount-negative" },
+          { label: "Tables", value: formatCurrency(totals.tables), cls: signCls(totals.tables) },
+          { label: "Slots", value: formatCurrency(totals.slots), cls: signCls(totals.slots) },
+          { label: "Result", value: formatCurrency(totals.result), cls: signCls(totals.result) },
+          { label: "Miss Chips", value: formatCurrency(totals.miss), cls: "text-warning" },
+          { label: "Total Cash", value: formatCurrency(totals.totalCash), cls: signCls(totals.totalCash) },
         ].map(c => (
           <div key={c.label} className="cms-panel p-2">
             <p className="uppercase text-muted-foreground tracking-wider text-lg">{c.label}</p>
@@ -142,7 +149,7 @@ const ShiftReport = ({ from, to }: { from: string; to: string }) => {
         <table className="w-full">
           <thead>
             <tr className="border-b border-border">
-              {["Date", "Status", "Buy-Ins", "Cashouts", "Expenses", "Expected", "Actual", "Diff", "Txns"].map(h => (
+              {["Date", "Status", "Tables", "Slots", "Result", "Expenses", "Miss Chips", "Total Cash", "Balance"].map(h => (
                 <th key={h} className={`text-xs font-medium text-muted-foreground uppercase px-3 py-2 ${["Date", "Status"].includes(h) ? "text-left" : "text-right"}`}>{h}</th>
               ))}
             </tr>
@@ -158,15 +165,15 @@ const ShiftReport = ({ from, to }: { from: string; to: string }) => {
                     {s.status}
                   </span>
                 </td>
-                <td className="px-3 py-2 text-right font-mono text-xs text-card-foreground">{formatCurrency(s.buyTotal)}</td>
-                <td className="px-3 py-2 text-right font-mono text-xs text-card-foreground">{formatCurrency(s.cashoutTotal)}</td>
+                <td className={`px-3 py-2 text-right font-mono text-xs ${signCls(s.tablesResult)}`}>{formatCurrency(s.tablesResult)}</td>
+                <td className="px-3 py-2 text-right font-mono text-xs text-muted-foreground">{formatCurrency(s.slotsResult)}</td>
+                <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${signCls(s.result)}`}>{formatCurrency(s.result)}</td>
                 <td className="px-3 py-2 text-right font-mono text-xs text-warning">{formatCurrency(s.expTotal)}</td>
-                <td className="px-3 py-2 text-right font-mono text-xs text-card-foreground">{formatCurrency(s.expected)}</td>
-                <td className="px-3 py-2 text-right font-mono text-xs text-card-foreground">{s.closingActual != null ? formatCurrency(s.closingActual) : "—"}</td>
-                <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${s.closingActual == null ? "text-muted-foreground" : s.diff === 0 ? "text-success" : "text-destructive"}`}>
-                  {s.closingActual != null ? `${s.diff >= 0 ? "+" : ""}${formatCurrency(s.diff)}` : "—"}
+                <td className="px-3 py-2 text-right font-mono text-xs text-warning">{formatCurrency(s.missTotal)}</td>
+                <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${signCls(s.totalCash)}`}>{formatCurrency(s.totalCash)}</td>
+                <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${s.balance == null ? "text-muted-foreground" : s.balance === 0 ? "text-success" : "text-destructive"}`}>
+                  {s.balance != null ? `${s.balance >= 0 ? "+" : ""}${formatCurrency(s.balance)}` : "—"}
                 </td>
-                <td className="px-3 py-2 text-right font-mono text-xs text-muted-foreground">{s.txCount}</td>
               </tr>
             ))}
           </tbody>
