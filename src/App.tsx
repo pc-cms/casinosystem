@@ -64,6 +64,7 @@ const CloseTablesPage = lazy(() => import("@/pages/tables/CloseTablesPage"));
 
 const UserNewPage = lazy(() => import("@/pages/admin/UserNewPage"));
 const UserEditPage = lazy(() => import("@/pages/admin/UserEditPage"));
+const WeeklyBonus = lazy(() => import("@/pages/WeeklyBonus"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 
 const queryClient = new QueryClient({
