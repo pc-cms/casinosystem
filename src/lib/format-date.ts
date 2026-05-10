@@ -26,16 +26,24 @@ const parts = (input: string | Date) => {
   return { date, time };
 };
 
-/** "2025.11.30" */
+/** "30/11/2025" — DD/MM/YYYY (project-wide standard) */
 export const fmtDate = (input: string | Date): string => {
   const { date } = parts(input);
-  return date.replace(/-/g, ".");
+  const [y, m, d] = date.split("-");
+  return `${d}/${m}/${y}`;
 };
 
-/** "2025.11.30 20:15" */
+/** "30/11/2025 20:15" */
 export const fmtDateTime = (input: string | Date): string => {
-  const { date, time } = parts(input);
-  return `${date.replace(/-/g, ".")} ${time}`;
+  const { time } = parts(input);
+  return `${fmtDate(input)} ${time}`;
+};
+
+/** "30/11/2025" from a plain ISO date string ("YYYY-MM-DD") without TZ shift. */
+export const fmtDateOnly = (ymd: string): string => {
+  if (!ymd || ymd.length < 10) return ymd;
+  const [y, m, d] = ymd.slice(0, 10).split("-");
+  return `${d}/${m}/${y}`;
 };
 
 /** "20:15" — EAT */
