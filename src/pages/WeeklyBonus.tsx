@@ -190,20 +190,16 @@ export default function WeeklyBonus() {
 
   return (
     <PageShell>
-      {/* Print sizing: fit one A4 landscape page */}
+      {/* Print sizing: fit one A4 landscape page. Uses global .print-target + .no-print system from index.css */}
       <style>{`
         @media print {
-          @page { size: A4 landscape; margin: 6mm; }
-          html, body { background: white !important; }
-          .wb-print-root { font-size: 8px !important; }
-          .wb-print-root table { font-size: 7.5px !important; }
-          .wb-print-root th, .wb-print-root td { padding: 1px 2px !important; }
-          .wb-print-root .wb-cell { height: 14px !important; }
-          .wb-no-print { display: none !important; }
-          .wb-print-only { display: table-cell !important; }
-          .wb-sign-cell { min-width: 120px; }
+          .wb-print-target { font-size: 8px !important; }
+          .wb-print-target table { font-size: 7.5pt !important; table-layout: fixed; }
+          .wb-print-target th, .wb-print-target td { padding: 1px 2px !important; border: 0.5px solid #999 !important; }
+          .wb-print-target .wb-cell { height: 14px !important; padding: 0 !important; }
+          .wb-print-target input { font-size: 7.5pt !important; height: 14px !important; }
+          .wb-sign-cell { min-width: 120px; border-bottom: 0.5px solid #000 !important; }
         }
-        .wb-print-only { display: none; }
       `}</style>
 
       <PageHeader
