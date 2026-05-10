@@ -28,7 +28,7 @@ const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const ALLOWED_TABLES = new Set([
   "transactions","shifts","cage_transfers","expenses",
   "wallet_transactions","chip_emissions","chip_baseline","chip_inventory",
-  "chip_initial_baseline","chip_snapshots","miss_chips",
+  "chip_initial_baseline","chip_snapshots",
   "casino_visits","players","player_cards","player_tags","player_notes",
   "breaklist","rota","employee_attendance",
   "activity_logs","daily_review","budget_items","budget_periods",
