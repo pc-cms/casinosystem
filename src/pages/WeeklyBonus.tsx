@@ -431,9 +431,15 @@ export default function WeeklyBonus() {
               })}
               {calculated && rows.length > 0 && (
                 <tr className="bg-muted/40 font-semibold border-t-2 border-border">
-                  <td colSpan={COLS_BEFORE_BONUS_TZS} className="text-right py-2 px-2 text-xs uppercase tracking-wider">
+                  <td colSpan={10} className="text-right py-2 px-2 text-xs uppercase tracking-wider">
                     Totals
                   </td>
+                  <td className="px-2 py-2 text-center font-mono font-bold text-primary text-sm">
+                    {rows.reduce((s, r) => s + r.hours, 0)}
+                  </td>
+                  <td className="no-print" />
+                  <td className="no-print" />
+                  <td className="no-print" />
                   <td className="px-2 py-2 text-right font-mono text-sm">{fmtMoney(totalDistributed)}</td>
                   <td className="wb-sign-cell" />
                   {DENOMS.map((d) => (
