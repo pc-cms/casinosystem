@@ -347,7 +347,7 @@ export default function WeeklyBonus() {
                       </DTRow>
                     );
                   })}
-                </>
+                </Fragment>
               );
             })}
           </DTBody>
