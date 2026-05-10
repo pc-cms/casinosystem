@@ -10,8 +10,8 @@ import { Coins, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/layout/PageHeader";
 
-// Denominations sorted ascending (smallest → largest), as requested.
-const DENOMS_ASC = [...CHIP_DENOMS].sort((a, b) => a - b);
+// Denominations sorted descending (largest → smallest), per project rule.
+const DENOMS_DESC = [...CHIP_DENOMS].sort((a, b) => b - a);
 
 interface ShiftMissRow {
   business_date: string; // EAT date derived from opened_at
