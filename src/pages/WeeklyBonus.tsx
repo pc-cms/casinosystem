@@ -161,6 +161,15 @@ export default function WeeklyBonus() {
     return t;
   }, [rows, calculated, valuePerPoint]);
 
+  // Reset cashier's bill overrides whenever the auto-suggested totals change.
+  useEffect(() => {
+    setPayoutOverride({ ...denomTotals });
+  }, [denomTotals[10000], denomTotals[5000], denomTotals[2000], denomTotals[1000]]);
+
+  const payoutCounts = payoutOverride ?? denomTotals;
+  const preparedTotal = DENOMS.reduce((s, d) => s + (payoutCounts[d] || 0) * d, 0);
+  const payoutDiff = preparedTotal - totalDistributed;
+
   const navWeek = (offset: number) => setWeekStart((w) => addDaysIso(w, offset * 7));
 
   const handleCalculate = () => {
