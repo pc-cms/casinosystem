@@ -73,6 +73,39 @@ export const useOpenShift = () => {
         throw error;
       }
       await logAction(casinoId, "system", "SHIFT_OPENED", { shift_id: data.id });
+
+      // Seed an "opening" cash check so the cashier (and history) sees the
+      // exact float the shift opened with — same shape as a manual check.
+      const f = input.opening_float || {};
+      const totals = (f.totals || {}) as Record<string, any>;
+      const openingTotal = Number(totals.total_tzs) || 0;
+      try {
+        await supabase.from("cash_counts").insert({
+          casino_id: casinoId,
+          shift_id: data.id,
+          count_type: "check" as any,
+          currency: "ALL",
+          denominations: {
+            chips: f.chips || {},
+            cash: f.cash || {},
+            bank: f.bank || {},
+            mobile: f.mobile || {},
+            totals: {
+              ...totals,
+              expected: openingTotal,
+              counted: openingTotal,
+              difference: 0,
+              balanced: true,
+              is_opening: true,
+            },
+          },
+          total: openingTotal,
+          counted_by: user.id,
+        } as any);
+      } catch (e) {
+        console.error("Failed to seed opening cash check", e);
+      }
+
       return data;
     },
     onSuccess: () => {
