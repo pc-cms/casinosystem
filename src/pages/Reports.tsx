@@ -27,10 +27,19 @@ const useShifts = () => {
   });
 };
 
+const toIsoDate = (d: Date) => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+};
+
 const Reports = () => {
-  const today = new Date().toISOString().split("T")[0];
-  const monthAgo = new Date(Date.now() - 30 * 86400000).toISOString().split("T")[0];
-  const [from, setFrom] = useState(monthAgo);
+  const now = new Date();
+  // Default: current month — from 1st of month to today.
+  const monthStart = toIsoDate(new Date(now.getFullYear(), now.getMonth(), 1));
+  const today = toIsoDate(now);
+  const [from, setFrom] = useState(monthStart);
   const [to, setTo] = useState(today);
 
   return (
