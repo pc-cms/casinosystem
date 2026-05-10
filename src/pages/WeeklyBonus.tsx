@@ -259,13 +259,21 @@ export default function WeeklyBonus() {
         <div className="wb-print-root">
         <div className="flex flex-wrap items-end gap-3 mb-3 p-3 rounded-md border border-border bg-primary text-primary-foreground print:hidden">
           <div className="flex flex-col gap-1">
-            <label className="text-xs uppercase tracking-wider opacity-80">Bonus Pool (TZS)</label>
+            <label className="text-xs uppercase tracking-wider opacity-80">
+              Bonus Pool (TZS)
+              {suggestedPool > 0 && (
+                <span className="ml-2 normal-case opacity-70">
+                  · 1% of week result: {fmtMoney(suggestedPool)}
+                </span>
+              )}
+            </label>
             <Input
               type="text" inputMode="numeric"
-              className="w-44 font-mono font-bold text-lg text-foreground bg-background"
+              className="w-44 font-mono font-bold text-lg text-foreground bg-background placeholder:text-muted-foreground/60 placeholder:font-normal"
               value={poolInput ? fmtMoney(parseInt(poolInput.replace(/\D/g, ""), 10) || 0) : ""}
               onChange={(e) => { setPoolInput(e.target.value.replace(/\D/g, "")); setCalculated(false); }}
-              placeholder="0" disabled={locked}
+              placeholder={suggestedPool > 0 ? fmtMoney(suggestedPool) : "0"}
+              disabled={locked}
             />
           </div>
           <Button onClick={handleCalculate} disabled={locked} variant="secondary" className="gap-2">
