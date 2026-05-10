@@ -69,7 +69,7 @@ export type SafeChipEmissionInsert = Omit<
   ServerManaged
 >;
 
-/** miss_chips: immutable; populated only by finalize_floor_to_miss_chips trigger. */
+/** miss_chips: REMOVED — table dropped. Miss is now stored in shifts.closing_count.chip_miss_total. */
 export type SafeMissChipInsert = never;
 
 /** activity_logs: write via DB trigger or logAction helper only. */
