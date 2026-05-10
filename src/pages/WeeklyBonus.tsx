@@ -278,7 +278,7 @@ export default function WeeklyBonus() {
           </div>
         </div>
 
-        <div className="w-full overflow-x-auto rounded-md border border-border">
+        <div className="w-full overflow-x-auto rounded-md border border-border print-target wb-print-target">
           <table className="w-full text-xs border-collapse">
             <thead className="bg-primary text-primary-foreground">
               <tr>
@@ -292,13 +292,13 @@ export default function WeeklyBonus() {
                   </th>
                 ))}
                 <th className="h-9 w-14 text-center font-semibold">Hours</th>
-                <th className="h-9 w-16 text-center font-semibold wb-no-print">Extra</th>
-                <th className="h-9 w-16 text-center font-semibold wb-no-print">Bonus</th>
-                <th className="h-9 w-14 text-center font-semibold wb-no-print">Pts</th>
+                <th className="h-9 w-16 text-center font-semibold no-print">Extra</th>
+                <th className="h-9 w-16 text-center font-semibold no-print">Bonus</th>
+                <th className="h-9 w-14 text-center font-semibold no-print">Pts</th>
                 <th className="h-9 w-48 min-w-[192px] text-right px-2 font-semibold">Bonus TZS</th>
                 <th className="h-9 w-32 text-center font-semibold wb-sign-cell">SIGN</th>
                 {DENOMS.map((d) => (
-                  <th key={d} className="h-9 w-12 text-center font-semibold wb-no-print">{d / 1000}k</th>
+                  <th key={d} className="h-9 w-12 text-center font-semibold no-print">{d / 1000}k</th>
                 ))}
               </tr>
             </thead>
@@ -369,7 +369,7 @@ export default function WeeklyBonus() {
                     <td className="px-2 py-1 text-center font-mono font-bold text-primary text-[11px]">
                       {r.hours || ""}
                     </td>
-                    <td className="px-1 py-1 text-center wb-no-print">
+                    <td className="px-1 py-1 text-center no-print">
                       <Input
                         type="number"
                         className="w-14 h-7 text-center font-mono mx-auto px-1 text-xs"
@@ -387,7 +387,7 @@ export default function WeeklyBonus() {
                         }}
                       />
                     </td>
-                    <td className="px-1 py-1 text-center wb-no-print">
+                    <td className="px-1 py-1 text-center no-print">
                       <Input
                         type="number"
                         className="w-14 h-7 text-center font-mono mx-auto px-1 text-xs"
@@ -406,7 +406,7 @@ export default function WeeklyBonus() {
                         }}
                       />
                     </td>
-                    <td className="px-2 py-1 text-center font-mono font-bold text-[11px] wb-no-print">
+                    <td className="px-2 py-1 text-center font-mono font-bold text-[11px] no-print">
                       {r.points || ""}
                     </td>
                     <td className="px-2 py-1 text-right font-mono font-semibold text-sm">
@@ -420,7 +420,7 @@ export default function WeeklyBonus() {
                       </span>
                     </td>
                     {DENOMS.map((d) => (
-                      <td key={d} className="px-1 py-1 text-center font-mono text-[11px] wb-no-print">
+                      <td key={d} className="px-1 py-1 text-center font-mono text-[11px] no-print">
                         {bd && bd[d] ? bd[d] : <span className="text-muted-foreground/30">·</span>}
                       </td>
                     ))}
@@ -435,7 +435,7 @@ export default function WeeklyBonus() {
                   <td className="px-2 py-2 text-right font-mono text-sm">{fmtMoney(totalDistributed)}</td>
                   <td className="wb-sign-cell" />
                   {DENOMS.map((d) => (
-                    <td key={d} className="px-1 py-2 text-center font-mono wb-no-print">
+                    <td key={d} className="px-1 py-2 text-center font-mono no-print">
                       {denomTotals[d] || <span className="text-muted-foreground/30">·</span>}
                     </td>
                   ))}
