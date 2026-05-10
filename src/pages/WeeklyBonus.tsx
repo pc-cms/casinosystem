@@ -270,9 +270,9 @@ export default function WeeklyBonus() {
               <div className="text-[11px] uppercase opacity-90">Bonus Balance</div>
               <div
                 className={cn(
-                  "text-2xl font-bold leading-tight",
-                  poolAmount > 0 && balance > 0 && "text-red-200",
-                  poolAmount > 0 && balance < 0 && "text-emerald-200",
+                  "inline-block text-2xl font-bold leading-tight px-2 rounded",
+                  poolAmount > 0 && balance > 0 && "bg-emerald-500 text-white",
+                  poolAmount > 0 && balance < 0 && "bg-red-500 text-white",
                 )}
                 title="Distributed − Pool. Positive = need extra bills, negative = leftover"
               >
@@ -349,7 +349,7 @@ export default function WeeklyBonus() {
                               : "bg-transparent text-card-foreground font-bold"
                             : isScheduled && isEmpty
                               ? cn(UNIFIED_SHIFT_TINTS[c.shift] || "bg-muted/30 text-muted-foreground", c.shift === "E" && "ring-2 ring-purple-500/70 dark:ring-purple-400/70 ring-inset")
-                              : "text-muted-foreground/30";
+                              : "bg-slate-800 dark:bg-slate-900 text-white/70";
                       return (
                         <td key={i} className="px-0.5 py-0.5 text-center border-l border-border/25">
                           <input
@@ -362,7 +362,7 @@ export default function WeeklyBonus() {
                             className={cn(
                               "wb-cell w-full h-8 rounded text-xs font-mono font-semibold text-center transition-colors outline-none border-0 focus:ring-2 focus:ring-primary",
                               cellCls,
-                              !c.att && "placeholder:text-muted-foreground/40",
+                              !c.att && "placeholder:text-white/80",
                             )}
                             placeholder={isScheduled ? c.shift : "·"}
                             maxLength={3}
