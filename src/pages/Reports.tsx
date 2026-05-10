@@ -27,10 +27,19 @@ const useShifts = () => {
   });
 };
 
+const toIsoDate = (d: Date) => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+};
+
 const Reports = () => {
-  const today = new Date().toISOString().split("T")[0];
-  const monthAgo = new Date(Date.now() - 30 * 86400000).toISOString().split("T")[0];
-  const [from, setFrom] = useState(monthAgo);
+  const now = new Date();
+  // Default: current month — from 1st of month to today.
+  const monthStart = toIsoDate(new Date(now.getFullYear(), now.getMonth(), 1));
+  const today = toIsoDate(now);
+  const [from, setFrom] = useState(monthStart);
   const [to, setTo] = useState(today);
 
   return (
@@ -86,11 +95,21 @@ const ShiftReport = ({ from, to }: { from: string; to: string }) => {
       const buyTotal = sTx.filter(t => (t.type === "buy" || t.type === "in")).reduce((sum, t) => sum + Number(t.amount), 0);
       const cashoutTotal = sTx.filter(t => (t.type === "cashout" || t.type === "out")).reduce((sum, t) => sum + Number(t.amount), 0);
       const expTotal = sExp.reduce((sum: number, e: any) => sum + Number(e.amount), 0);
-      const openingFloat = (s.opening_float as any)?.totals?.total_tzs || 0;
-      const closingActual = (s.closing_cash as any)?.actual || 0;
-      const expected = openingFloat + buyTotal - cashoutTotal - expTotal;
-      const diff = closingActual ? closingActual - expected : 0;
-      return { ...s, buyTotal, cashoutTotal, expTotal, openingFloat, expected, closingActual, diff, txCount: sTx.length };
+
+      const openTotals = (s.opening_float as any)?.totals || {};
+      const closeTotals = (s.closing_count as any)?.totals || {};
+      const openingCashOnly = Math.max(Number(openTotals.total_tzs || 0) - Number(openTotals.chips_tzs || 0), 0);
+      const hasClosing = s.status === "closed" && (s.closing_count != null);
+      const closingCashOnly = hasClosing
+        ? Number(closeTotals.total_tzs || 0) - Number(closeTotals.chips_tzs || 0)
+        : null;
+
+      // Expected = Money Result (Buy-In − Cashout)
+      const expected = buyTotal - cashoutTotal;
+      // Actual = Cash Result — net change in cash + bank + mobile (no chips)
+      const closingActual = closingCashOnly != null ? closingCashOnly - openingCashOnly : null;
+      const diff = closingActual != null ? closingActual - expected : 0;
+      return { ...s, buyTotal, cashoutTotal, expTotal, openingFloat: openingCashOnly, expected, closingActual, diff, txCount: sTx.length };
     });
   }, [filtered, transactions, expenses]);
 
@@ -143,9 +162,9 @@ const ShiftReport = ({ from, to }: { from: string; to: string }) => {
                 <td className="px-3 py-2 text-right font-mono text-xs text-card-foreground">{formatCurrency(s.cashoutTotal)}</td>
                 <td className="px-3 py-2 text-right font-mono text-xs text-warning">{formatCurrency(s.expTotal)}</td>
                 <td className="px-3 py-2 text-right font-mono text-xs text-card-foreground">{formatCurrency(s.expected)}</td>
-                <td className="px-3 py-2 text-right font-mono text-xs text-card-foreground">{s.closingActual ? formatCurrency(s.closingActual) : "—"}</td>
-                <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${s.diff === 0 ? "text-success" : "text-destructive"}`}>
-                  {s.closingActual ? `${s.diff >= 0 ? "+" : ""}${formatCurrency(s.diff)}` : "—"}
+                <td className="px-3 py-2 text-right font-mono text-xs text-card-foreground">{s.closingActual != null ? formatCurrency(s.closingActual) : "—"}</td>
+                <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${s.closingActual == null ? "text-muted-foreground" : s.diff === 0 ? "text-success" : "text-destructive"}`}>
+                  {s.closingActual != null ? `${s.diff >= 0 ? "+" : ""}${formatCurrency(s.diff)}` : "—"}
                 </td>
                 <td className="px-3 py-2 text-right font-mono text-xs text-muted-foreground">{s.txCount}</td>
               </tr>
