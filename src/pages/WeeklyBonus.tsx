@@ -344,8 +344,8 @@ export default function WeeklyBonus() {
                               ? "bg-transparent text-card-foreground font-bold ring-2 ring-purple-500/70 dark:ring-purple-400/70 ring-inset"
                               : "bg-transparent text-card-foreground font-bold"
                             : isScheduled && isEmpty
-                              ? cn(UNIFIED_SHIFT_TINTS[c.shift] || "bg-muted/30 text-muted-foreground", c.shift === "E" && "ring-2 ring-purple-500/70 dark:ring-purple-400/70 ring-inset")
-                              : "bg-slate-800 dark:bg-slate-900 text-white/70";
+                              ? cn(UNIFIED_SHIFT_TINTS[c.shift] || "bg-muted/30 text-muted-foreground", "placeholder:text-current placeholder:opacity-60", c.shift === "E" && "ring-2 ring-purple-500/70 dark:ring-purple-400/70 ring-inset")
+                              : "bg-slate-700/90 dark:bg-slate-900 text-slate-300 placeholder:text-slate-400/60";
                       return (
                         <td key={i} className="px-0.5 py-0.5 text-center border-l border-border/25">
                           <input
@@ -358,7 +358,6 @@ export default function WeeklyBonus() {
                             className={cn(
                               "wb-cell w-full h-8 rounded text-xs font-mono font-semibold text-center transition-colors outline-none border-0 focus:ring-2 focus:ring-primary",
                               cellCls,
-                              !c.att && "placeholder:text-white/80",
                             )}
                             placeholder={isScheduled ? c.shift : "·"}
                             maxLength={3}
