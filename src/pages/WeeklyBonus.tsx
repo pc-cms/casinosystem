@@ -4,9 +4,6 @@ import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  DataTable, DTHead, DTBody, DTRow, DTHeader, DTCell,
-} from "@/components/ui/data-table";
 import { useDealers, useDealerAttendanceRange, usePitRotaRange } from "@/hooks/use-dealers";
 import {
   useWeeklyBonusEntries, useWeeklyBonusPool,
@@ -14,50 +11,48 @@ import {
   getWeekStartSunday, addDaysIso,
 } from "@/hooks/use-weekly-bonus";
 import { fmtDateOnly } from "@/lib/format-date";
+import { UNIFIED_ATT_COLORS, UNIFIED_SHIFT_TINTS } from "@/lib/shift-colors";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-const CATEGORY_LABELS: Record<string, string> = {
+// Mirror Attendance category badge palette (Pit.tsx).
+const CATEGORY_LETTER: Record<string, string> = {
   trainee: "T",
   dealer: "D",
   inspector: "I",
   expert: "E",
   pit_boss: "PB",
 };
+const CATEGORY_COLORS: Record<string, string> = {
+  trainee: "text-cyan-700 bg-cyan-100 dark:text-cyan-400 dark:bg-cyan-500/20",
+  dealer: "text-blue-700 bg-blue-100 dark:text-blue-400 dark:bg-blue-500/20",
+  inspector: "text-amber-700 bg-amber-100 dark:text-amber-400 dark:bg-amber-500/20",
+  expert: "text-emerald-700 bg-emerald-100 dark:text-emerald-400 dark:bg-emerald-500/20",
+  pit_boss: "text-purple-700 bg-purple-100 dark:text-purple-400 dark:bg-purple-500/20",
+};
 const CATEGORY_ORDER: Record<string, number> = {
   trainee: 0, dealer: 1, inspector: 2, expert: 3, pit_boss: 4,
 };
 
-// Border color per shift type (frames the cell instead of fill).
-const SHIFT_BORDER: Record<string, string> = {
-  D: "border-amber-400 dark:border-amber-400",
-  M: "border-teal-500 dark:border-teal-400",
-  N: "border-blue-600 dark:border-blue-400",
-  G: "border-indigo-500 dark:border-indigo-400",
-  L: "border-emerald-500 dark:border-emerald-400",
-  E: "border-purple-500 dark:border-purple-400",
-};
-
 const DENOMS = [10000, 5000, 2000, 1000];
 
-const parseHours = (val: string | null | undefined): { hours: number; absent: boolean; sick: boolean } => {
-  if (!val) return { hours: 0, absent: false, sick: false };
-  if (val === "A") return { hours: 0, absent: true, sick: false };
-  if (val === "S") return { hours: 0, absent: false, sick: true };
+const parseValue = (val: string | null | undefined) => {
+  if (!val) return { kind: "empty" as const, hours: 0 };
+  if (val === "A") return { kind: "absent" as const, hours: 0 };
+  if (val === "S") return { kind: "sick" as const, hours: 0 };
   const m = /^(\d+)(S?)$/.exec(val);
   if (m) {
     const n = parseInt(m[1], 10);
-    if (!isNaN(n)) return { hours: n, absent: false, sick: !!m[2] };
+    if (!isNaN(n)) return { kind: m[2] ? "hours-sick" as const : "hours" as const, hours: n };
   }
-  return { hours: 0, absent: false, sick: false };
+  return { kind: "empty" as const, hours: 0 };
 };
 
 const fmtMoney = (n: number) =>
   new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(Math.round(n));
 
-// Greedy breakdown for amounts that are multiples of 1000.
 const breakdown = (amt: number): Record<number, number> => {
   const out: Record<number, number> = {};
   let rem = Math.max(0, Math.round(amt));
@@ -108,9 +103,9 @@ export default function WeeklyBonus() {
       const cells = days.map((day) => {
         const att = attMap.get(`${d.id}|${day}`) ?? "";
         const shift = rotaMap.get(`${d.id}|${day}`) ?? "";
-        const p = parseHours(att);
-        if (p.absent) hasAbsent = true;
-        hours += p.hours;
+        const p = parseValue(att);
+        if (p.kind === "absent") hasAbsent = true;
+        if (p.kind === "hours" || p.kind === "hours-sick") hours += p.hours;
         if (shift === "E") extraComputed += 1;
         return { att, shift, parsed: p };
       });
@@ -132,17 +127,13 @@ export default function WeeklyBonus() {
   const totalPoints = rows.reduce((s, r) => s + r.points, 0);
   const poolAmount = calculated ? (parseInt(poolInput.replace(/\s/g, ""), 10) || 0) : 0;
   const valuePerPoint = totalPoints > 0 && poolAmount > 0 ? poolAmount / totalPoints : 0;
-
-  // Round each individual bonus to nearest 1000.
-  const roundedBonus = (pts: number) =>
-    Math.round((pts * valuePerPoint) / 1000) * 1000;
-
+  const roundedBonus = (pts: number) => Math.round((pts * valuePerPoint) / 1000) * 1000;
   const totalDistributed = rows.reduce(
     (s, r) => s + (calculated && !r.hasAbsent ? roundedBonus(r.points) : 0),
     0,
   );
+  const balance = totalDistributed - poolAmount;
 
-  // Column totals per denomination
   const denomTotals: Record<number, number> = useMemo(() => {
     const t: Record<number, number> = { 10000: 0, 5000: 0, 2000: 0, 1000: 0 };
     if (!calculated) return t;
@@ -158,25 +149,24 @@ export default function WeeklyBonus() {
 
   const handleCalculate = () => {
     const amt = parseInt(poolInput.replace(/\s/g, ""), 10);
-    if (isNaN(amt) || amt <= 0) {
-      toast.error("Enter a valid bonus amount");
-      return;
-    }
+    if (isNaN(amt) || amt <= 0) { toast.error("Enter a valid bonus amount"); return; }
     setCalculated(true);
     toast.success("Bonus recalculated");
   };
 
   const handleLock = async () => {
     const amt = parseInt(poolInput.replace(/\s/g, ""), 10);
-    if (isNaN(amt) || amt <= 0) {
-      toast.error("Enter a valid bonus amount");
-      return;
-    }
+    if (isNaN(amt) || amt <= 0) { toast.error("Enter a valid bonus amount"); return; }
     await upsertPool.mutateAsync({ week_start: weekStart, pool_amount: amt, calculate: !locked });
     toast.success(locked ? "Bonus unlocked" : "Bonus locked");
   };
 
   const isThisWeek = weekStart === getWeekStartSunday(new Date());
+
+  // Total columns (kept stable so colSpan never shifts):
+  // # | Cat | Name | 7 days | Hours | Extra | Bonus | Pts | Bonus TZS | Status | 4 denoms = 19
+  const TOTAL_COLS = 1 + 1 + 1 + 7 + 1 + 1 + 1 + 1 + 1 + 1 + DENOMS.length;
+  const COLS_BEFORE_BONUS_TZS = 1 + 1 + 1 + 7 + 1 + 1 + 1 + 1; // 13
 
   return (
     <PageShell>
@@ -204,13 +194,11 @@ export default function WeeklyBonus() {
           <div className="flex flex-col gap-1">
             <label className="text-xs uppercase tracking-wider text-muted-foreground">Bonus Pool (TZS)</label>
             <Input
-              type="number"
-              inputMode="numeric"
+              type="number" inputMode="numeric"
               className="w-44 font-mono"
               value={poolInput}
               onChange={(e) => { setPoolInput(e.target.value); setCalculated(false); }}
-              placeholder="0"
-              disabled={locked}
+              placeholder="0" disabled={locked}
             />
           </div>
           <Button onClick={handleCalculate} disabled={locked} className="gap-2">
@@ -221,8 +209,7 @@ export default function WeeklyBonus() {
           </Button>
           <Button
             variant={locked ? "destructive" : "default"}
-            onClick={handleLock}
-            className="gap-2"
+            onClick={handleLock} className="gap-2"
             disabled={upsertPool.isPending}
           >
             {locked ? <Unlock className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
@@ -247,172 +234,179 @@ export default function WeeklyBonus() {
               <div
                 className={cn(
                   "font-semibold",
-                  poolAmount > 0 && totalDistributed - poolAmount > 0 && "cms-amount-negative",
-                  poolAmount > 0 && totalDistributed - poolAmount < 0 && "cms-amount-positive",
+                  poolAmount > 0 && balance > 0 && "cms-amount-negative",
+                  poolAmount > 0 && balance < 0 && "cms-amount-positive",
                 )}
-                title="Pool − Distributed (positive = leftover, negative = overspend due to rounding)"
+                title="Distributed − Pool. Positive = need extra bills, negative = leftover"
               >
-                {poolAmount > 0
-                  ? `${totalDistributed - poolAmount > 0 ? "+" : ""}${fmtMoney(totalDistributed - poolAmount)}`
-                  : "—"}
+                {poolAmount > 0 ? `${balance > 0 ? "+" : ""}${fmtMoney(balance)}` : "—"}
               </div>
             </div>
           </div>
         </div>
 
-        <DataTable className="text-xs">
-          <DTHead>
-            <DTRow className="bg-primary text-primary-foreground hover:bg-primary [&_th]:text-primary-foreground [&_th]:font-semibold">
-              <DTHeader className="w-8 text-center">#</DTHeader>
-              <DTHeader className="min-w-[260px]">Name</DTHeader>
-              <DTHeader align="center" className="w-12">Cat</DTHeader>
-              {DAYS.map((d, i) => (
-                <DTHeader key={d} align="center" className="px-1 w-12">
-                  <div className="text-[10px] leading-tight">{d}</div>
-                  <div className="text-[9px] font-normal opacity-80">{fmtDateOnly(days[i]).slice(0, 5)}</div>
-                </DTHeader>
-              ))}
-              <DTHeader align="center" className="w-14">Hours</DTHeader>
-              <DTHeader align="center" className="w-16">Extra</DTHeader>
-              <DTHeader align="center" className="w-16">Bonus</DTHeader>
-              <DTHeader align="center" className="w-14">Pts</DTHeader>
-              <DTHeader align="right" className="w-24">Bonus TZS</DTHeader>
-              <DTHeader align="center" className="w-16">Status</DTHeader>
-              {DENOMS.map((d) => (
-                <DTHeader key={d} align="center" className="w-12">
-                  {d / 1000}k
-                </DTHeader>
-              ))}
-            </DTRow>
-          </DTHead>
-          <DTBody>
-            {rows.length === 0 && (
-              <DTRow>
-                <DTCell colSpan={18} className="text-center text-muted-foreground py-6">
-                  No staff found
-                </DTCell>
-              </DTRow>
-            )}
-            {rows.map((r, idx) => {
-              const bonus = calculated && !r.hasAbsent ? roundedBonus(r.points) : 0;
-              const bd = bonus > 0 ? breakdown(bonus) : null;
-              return (
-                <DTRow key={r.dealer.id} className={cn(r.hasAbsent && "opacity-60")}>
-                  <DTCell align="center" className="text-muted-foreground font-mono text-[11px] py-1">{idx + 1}</DTCell>
-                  <DTCell className="font-medium py-1 whitespace-nowrap min-w-[260px]">
-                    {r.dealer.name}
-                  </DTCell>
-                  <DTCell align="center" className="font-mono text-[10px] font-semibold py-1 text-muted-foreground">
-                    {CATEGORY_LABELS[r.cat] ?? r.cat}
-                  </DTCell>
-                  {r.cells.map((c, i) => {
-                    const border = c.shift ? SHIFT_BORDER[c.shift] : "border-transparent";
-                    const display = c.parsed.absent
-                      ? "A"
-                      : c.parsed.sick && c.parsed.hours === 0
-                        ? "S"
-                        : c.parsed.hours > 0
-                          ? `${c.parsed.hours}${c.parsed.sick ? "S" : ""}`
-                          : "";
-                    const textCls = c.parsed.absent
-                      ? "text-destructive font-bold"
-                      : c.parsed.sick
-                        ? "text-orange-600 dark:text-orange-300 font-semibold"
-                        : "";
-                    return (
-                      <DTCell
-                        key={i}
-                        align="center"
-                        className={cn(
-                          "px-1 py-0.5 font-mono text-[11px] leading-none border-2",
-                          border,
-                          textCls,
-                        )}
-                      >
-                        {display || <span className="text-muted-foreground/40">·</span>}
-                      </DTCell>
-                    );
-                  })}
-                  <DTCell align="center" numeric className="py-1">{r.hours}</DTCell>
-                  <DTCell align="center" className="py-1">
-                    <Input
-                      type="number"
-                      className="w-14 h-7 text-center font-mono mx-auto px-1 text-xs"
-                      value={r.extra}
-                      disabled={locked}
-                      onChange={(e) => {
-                        const v = parseInt(e.target.value, 10);
-                        setCalculated(false);
-                        upsertEntry.mutate({
-                          dealer_id: r.dealer.id,
-                          week_start: weekStart,
-                          extra_override: isNaN(v) ? 0 : v,
-                          bonus_points: r.bonusPts,
-                        });
-                      }}
-                    />
-                  </DTCell>
-                  <DTCell align="center" className="py-1">
-                    <Input
-                      type="number"
-                      className="w-14 h-7 text-center font-mono mx-auto px-1 text-xs"
-                      value={r.bonusPts || ""}
-                      placeholder="0"
-                      disabled={locked}
-                      onChange={(e) => {
-                        const v = parseInt(e.target.value, 10);
-                        setCalculated(false);
-                        upsertEntry.mutate({
-                          dealer_id: r.dealer.id,
-                          week_start: weekStart,
-                          extra_override: r.extra,
-                          bonus_points: isNaN(v) ? 0 : v,
-                        });
-                      }}
-                    />
-                  </DTCell>
-                  <DTCell align="center" numeric className="font-semibold py-1">{r.points}</DTCell>
-                  <DTCell align="right" numeric className="font-semibold py-1">
-                    {bonus > 0
-                      ? fmtMoney(bonus)
-                      : <span className="text-muted-foreground">—</span>}
-                  </DTCell>
-                  <DTCell align="center" className="text-[10px] py-1">
-                    {r.hasAbsent ? (
-                      <span className="text-destructive font-semibold">Excluded</span>
-                    ) : (
-                      <span className="text-muted-foreground">Eligible</span>
-                    )}
-                  </DTCell>
-                  {DENOMS.map((d) => (
-                    <DTCell
-                      key={d}
-                      align="center"
-                      numeric
-                      className={cn("py-1 font-mono text-[11px]", !bd && "text-muted-foreground/40")}
-                    >
-                      {bd ? (bd[d] || <span className="text-muted-foreground/30">·</span>) : "·"}
-                    </DTCell>
-                  ))}
-                </DTRow>
-              );
-            })}
-            {calculated && rows.length > 0 && (
-              <DTRow className="bg-muted/40 font-semibold">
-                <DTCell colSpan={11 + 7} className="text-right py-2 text-xs uppercase tracking-wider">
-                  Totals
-                </DTCell>
-                <DTCell align="right" numeric className="py-2">{fmtMoney(totalDistributed)}</DTCell>
-                <DTCell />
-                {DENOMS.map((d) => (
-                  <DTCell key={d} align="center" numeric className="py-2 font-mono">
-                    {denomTotals[d] || <span className="text-muted-foreground/30">·</span>}
-                  </DTCell>
+        <div className="w-full overflow-x-auto rounded-md border border-border">
+          <table className="w-full text-xs border-collapse">
+            <thead className="bg-primary text-primary-foreground">
+              <tr>
+                <th className="h-9 w-8 text-center font-semibold">#</th>
+                <th className="h-9 w-10 text-center font-semibold">Cat</th>
+                <th className="h-9 px-3 text-left font-semibold min-w-[260px]">Name</th>
+                {DAYS.map((d, i) => (
+                  <th key={d} className="h-9 px-1 w-12 text-center font-semibold">
+                    <div className="text-[10px] leading-tight">{d}</div>
+                    <div className="text-[9px] font-normal opacity-80">{fmtDateOnly(days[i]).slice(0, 5)}</div>
+                  </th>
                 ))}
-              </DTRow>
-            )}
-          </DTBody>
-        </DataTable>
+                <th className="h-9 w-14 text-center font-semibold">Hours</th>
+                <th className="h-9 w-16 text-center font-semibold">Extra</th>
+                <th className="h-9 w-16 text-center font-semibold">Bonus</th>
+                <th className="h-9 w-14 text-center font-semibold">Pts</th>
+                <th className="h-9 w-24 text-right px-2 font-semibold">Bonus TZS</th>
+                <th className="h-9 w-16 text-center font-semibold">Status</th>
+                {DENOMS.map((d) => (
+                  <th key={d} className="h-9 w-12 text-center font-semibold">{d / 1000}k</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.length === 0 && (
+                <tr>
+                  <td colSpan={TOTAL_COLS} className="text-center text-muted-foreground py-6">
+                    No staff found
+                  </td>
+                </tr>
+              )}
+              {rows.map((r, idx) => {
+                const bonus = calculated && !r.hasAbsent ? roundedBonus(r.points) : 0;
+                const bd = bonus > 0 ? breakdown(bonus) : null;
+                const zebra = idx % 2 === 0 ? "" : "bg-muted/10";
+                return (
+                  <tr key={r.dealer.id} className={cn("border-b border-border last:border-0", zebra, r.hasAbsent && "opacity-60")}>
+                    <td className="px-1 py-1 text-center text-muted-foreground font-mono text-[11px]">{idx + 1}</td>
+                    <td className="px-1 py-1 text-center">
+                      <span className={cn(
+                        "inline-flex items-center justify-center w-5 h-5 rounded text-[9px] font-mono font-bold",
+                        CATEGORY_COLORS[r.cat] || "text-muted-foreground bg-muted/20",
+                      )}>
+                        {CATEGORY_LETTER[r.cat] || "?"}
+                      </span>
+                    </td>
+                    <td className="px-3 py-1 text-[13px] font-medium whitespace-nowrap">
+                      {r.dealer.name}
+                    </td>
+                    {r.cells.map((c, i) => {
+                      const p = c.parsed;
+                      const isStatus = p.kind === "absent" || p.kind === "sick";
+                      const isHours = p.kind === "hours";
+                      const isHoursSick = p.kind === "hours-sick";
+                      const isScheduled = !!c.shift;
+                      const isEmpty = p.kind === "empty";
+                      const display = isStatus
+                        ? c.att
+                        : isHours || isHoursSick
+                          ? String(p.hours)
+                          : isScheduled
+                            ? c.shift
+                            : "";
+                      const cellCls = isStatus
+                        ? cn(UNIFIED_ATT_COLORS[c.att], "ring-2 ring-red-500/80 dark:ring-red-400/80 ring-inset")
+                        : isHoursSick
+                          ? "bg-transparent text-card-foreground font-bold ring-2 ring-red-500/80 dark:ring-red-400/80 ring-inset"
+                          : isHours
+                            ? c.shift === "E"
+                              ? "bg-transparent text-card-foreground font-bold ring-2 ring-purple-500/70 dark:ring-purple-400/70 ring-inset"
+                              : "bg-transparent text-card-foreground font-bold"
+                            : isScheduled && isEmpty
+                              ? cn(UNIFIED_SHIFT_TINTS[c.shift] || "bg-muted/30 text-muted-foreground", c.shift === "E" && "ring-2 ring-purple-500/70 dark:ring-purple-400/70 ring-inset")
+                              : "text-muted-foreground/30";
+                      return (
+                        <td key={i} className="px-0.5 py-0.5 text-center border-l border-border/25">
+                          <div className={cn(
+                            "w-full h-8 rounded text-xs font-mono font-semibold flex items-center justify-center transition-colors",
+                            cellCls,
+                          )}>
+                            {display || "·"}
+                          </div>
+                        </td>
+                      );
+                    })}
+                    <td className="px-2 py-1 text-center font-mono font-bold text-primary text-[11px]">
+                      {r.hours || ""}
+                    </td>
+                    <td className="px-1 py-1 text-center">
+                      <Input
+                        type="number"
+                        className="w-14 h-7 text-center font-mono mx-auto px-1 text-xs"
+                        value={r.extra}
+                        disabled={locked}
+                        onChange={(e) => {
+                          const v = parseInt(e.target.value, 10);
+                          setCalculated(false);
+                          upsertEntry.mutate({
+                            dealer_id: r.dealer.id,
+                            week_start: weekStart,
+                            extra_override: isNaN(v) ? 0 : v,
+                            bonus_points: r.bonusPts,
+                          });
+                        }}
+                      />
+                    </td>
+                    <td className="px-1 py-1 text-center">
+                      <Input
+                        type="number"
+                        className="w-14 h-7 text-center font-mono mx-auto px-1 text-xs"
+                        value={r.bonusPts || ""}
+                        placeholder="0"
+                        disabled={locked}
+                        onChange={(e) => {
+                          const v = parseInt(e.target.value, 10);
+                          setCalculated(false);
+                          upsertEntry.mutate({
+                            dealer_id: r.dealer.id,
+                            week_start: weekStart,
+                            extra_override: r.extra,
+                            bonus_points: isNaN(v) ? 0 : v,
+                          });
+                        }}
+                      />
+                    </td>
+                    <td className="px-2 py-1 text-center font-mono font-bold text-[11px]">
+                      {r.points || ""}
+                    </td>
+                    <td className="px-2 py-1 text-right font-mono font-semibold text-[11px]">
+                      {bonus > 0 ? fmtMoney(bonus) : <span className="text-muted-foreground">—</span>}
+                    </td>
+                    <td className="px-2 py-1 text-center text-[10px]">
+                      {r.hasAbsent
+                        ? <span className="text-destructive font-semibold">Excluded</span>
+                        : <span className="text-muted-foreground">Eligible</span>}
+                    </td>
+                    {DENOMS.map((d) => (
+                      <td key={d} className="px-1 py-1 text-center font-mono text-[11px]">
+                        {bd && bd[d] ? bd[d] : <span className="text-muted-foreground/30">·</span>}
+                      </td>
+                    ))}
+                  </tr>
+                );
+              })}
+              {calculated && rows.length > 0 && (
+                <tr className="bg-muted/40 font-semibold border-t-2 border-border">
+                  <td colSpan={COLS_BEFORE_BONUS_TZS} className="text-right py-2 px-2 text-xs uppercase tracking-wider">
+                    Totals
+                  </td>
+                  <td className="px-2 py-2 text-right font-mono">{fmtMoney(totalDistributed)}</td>
+                  <td />
+                  {DENOMS.map((d) => (
+                    <td key={d} className="px-1 py-2 text-center font-mono">
+                      {denomTotals[d] || <span className="text-muted-foreground/30">·</span>}
+                    </td>
+                  ))}
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
 
         {!calculated && (
           <p className="mt-3 text-xs text-muted-foreground print:hidden">
