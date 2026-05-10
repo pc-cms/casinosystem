@@ -262,7 +262,7 @@ export default function WeeklyBonus() {
             {grouped.map(({ cat, rows }) => {
               let idx = 0;
               return (
-                <>
+                <Fragment key={cat}>
                   <DTRow key={`hdr-${cat}`} className={cn("hover:bg-transparent", CATEGORY_BAR[cat])}>
                     <DTCell colSpan={15} className="py-1 px-2 text-[11px] font-bold uppercase tracking-wider">
                       {CATEGORY_LABELS[cat] ?? cat} <span className="opacity-60 font-normal">· {rows.length}</span>
