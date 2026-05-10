@@ -79,6 +79,14 @@ export default function WeeklyBonus() {
   const { data: attendance = [] } = useDealerAttendanceRange(weekStart, weekEnd);
   const { data: entries = [] } = useWeeklyBonusEntries(weekStart);
   const { data: pool } = useWeeklyBonusPool(weekStart);
+  const { data: weekResults = [] } = useDailyResults(weekStart, weekEnd);
+
+  // 1% of weekly tables result, rounded to nearest 1 000 TZS — used as placeholder hint.
+  const suggestedPool = useMemo(() => {
+    const total = (weekResults as any[]).reduce((s, r) => s + Number(r.result || 0), 0);
+    const onePct = total * 0.01;
+    return onePct > 0 ? Math.round(onePct / 1000) * 1000 : 0;
+  }, [weekResults]);
 
   const upsertEntry = useUpsertBonusEntry();
   const upsertPool = useUpsertBonusPool();
