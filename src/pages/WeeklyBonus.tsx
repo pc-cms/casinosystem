@@ -356,12 +356,15 @@ export default function WeeklyBonus() {
                             onBlur={(e) => commitAtt(r.dealer.id, c.day, e.target.value, c.att)}
                             onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
                             className={cn(
-                              "wb-cell w-full h-8 rounded text-xs font-mono font-semibold text-center transition-colors outline-none border-0 focus:ring-2 focus:ring-primary",
+                              "wb-cell w-full h-8 rounded text-xs font-mono font-semibold text-center transition-colors outline-none border-0 focus:ring-2 focus:ring-primary print:hidden",
                               cellCls,
                             )}
                             placeholder={isScheduled ? c.shift : "·"}
                             maxLength={3}
                           />
+                          <span className="hidden print:inline font-mono font-semibold text-[7.5pt]">
+                            {c.att || (isScheduled ? c.shift : "")}
+                          </span>
                         </td>
                       );
                     })}
@@ -428,9 +431,15 @@ export default function WeeklyBonus() {
               })}
               {calculated && rows.length > 0 && (
                 <tr className="bg-muted/40 font-semibold border-t-2 border-border">
-                  <td colSpan={COLS_BEFORE_BONUS_TZS} className="text-right py-2 px-2 text-xs uppercase tracking-wider">
+                  <td colSpan={10} className="text-right py-2 px-2 text-xs uppercase tracking-wider">
                     Totals
                   </td>
+                  <td className="px-2 py-2 text-center font-mono font-bold text-primary text-sm">
+                    {rows.reduce((s, r) => s + r.hours, 0)}
+                  </td>
+                  <td className="no-print" />
+                  <td className="no-print" />
+                  <td className="no-print" />
                   <td className="px-2 py-2 text-right font-mono text-sm">{fmtMoney(totalDistributed)}</td>
                   <td className="wb-sign-cell" />
                   {DENOMS.map((d) => (
