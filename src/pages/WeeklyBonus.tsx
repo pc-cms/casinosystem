@@ -4,7 +4,9 @@ import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useDealers, useDealerAttendanceRange, usePitRotaRange } from "@/hooks/use-dealers";
+import {
+  useDealers, useDealerAttendanceRange, usePitRotaRange, useSetDealerAttendance,
+} from "@/hooks/use-dealers";
 import {
   useWeeklyBonusEntries, useWeeklyBonusPool,
   useUpsertBonusEntry, useUpsertBonusPool,
@@ -17,13 +19,8 @@ import { toast } from "sonner";
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-// Mirror Attendance category badge palette (Pit.tsx).
 const CATEGORY_LETTER: Record<string, string> = {
-  trainee: "T",
-  dealer: "D",
-  inspector: "I",
-  expert: "E",
-  pit_boss: "PB",
+  trainee: "T", dealer: "D", inspector: "I", expert: "E", pit_boss: "PB",
 };
 const CATEGORY_COLORS: Record<string, string> = {
   trainee: "text-cyan-700 bg-cyan-100 dark:text-cyan-400 dark:bg-cyan-500/20",
@@ -48,6 +45,15 @@ const parseValue = (val: string | null | undefined) => {
     if (!isNaN(n)) return { kind: m[2] ? "hours-sick" as const : "hours" as const, hours: n };
   }
   return { kind: "empty" as const, hours: 0 };
+};
+
+const normalizeAttInput = (raw: string): string => {
+  const v = raw.trim().toUpperCase();
+  if (!v) return "";
+  if (v === "A" || v === "S") return v;
+  const m = /^(\d{1,2})(S?)$/.exec(v);
+  if (m) return `${parseInt(m[1], 10)}${m[2]}`;
+  return v;
 };
 
 const fmtMoney = (n: number) =>
@@ -75,15 +81,21 @@ export default function WeeklyBonus() {
 
   const upsertEntry = useUpsertBonusEntry();
   const upsertPool = useUpsertBonusPool();
+  const setAtt = useSetDealerAttendance();
 
   const [poolInput, setPoolInput] = useState<string>("");
   const [calculated, setCalculated] = useState<boolean>(false);
   const locked = !!pool?.is_calculated;
 
+  // Local edit buffer for attendance cells (keyed by `${dealerId}|${date}`).
+  const [attDraft, setAttDraft] = useState<Record<string, string>>({});
+
   useEffect(() => {
     setPoolInput(pool?.pool_amount ? String(pool.pool_amount) : "");
     setCalculated(!!pool?.is_calculated);
   }, [pool?.pool_amount, pool?.is_calculated, weekStart]);
+
+  useEffect(() => { setAttDraft({}); }, [weekStart]);
 
   const days = useMemo(() => Array.from({ length: 7 }, (_, i) => addDaysIso(weekStart, i)), [weekStart]);
 
@@ -101,13 +113,14 @@ export default function WeeklyBonus() {
       let extraComputed = 0;
       let hasAbsent = false;
       const cells = days.map((day) => {
-        const att = attMap.get(`${d.id}|${day}`) ?? "";
-        const shift = rotaMap.get(`${d.id}|${day}`) ?? "";
+        const key = `${d.id}|${day}`;
+        const att = (attDraft[key] ?? attMap.get(key)) ?? "";
+        const shift = rotaMap.get(key) ?? "";
         const p = parseValue(att);
         if (p.kind === "absent") hasAbsent = true;
         if (p.kind === "hours" || p.kind === "hours-sick") hours += p.hours;
         if (shift === "E") extraComputed += 1;
-        return { att, shift, parsed: p };
+        return { att, shift, parsed: p, key, day };
       });
       const entry = entryMap.get(d.id);
       const extra = entry?.extra_override ?? extraComputed;
@@ -122,7 +135,7 @@ export default function WeeklyBonus() {
       if (c !== 0) return c;
       return a.dealer.name.localeCompare(b.dealer.name);
     });
-  }, [dealers, attendance, rota, entries, days]);
+  }, [dealers, attendance, rota, entries, days, attDraft]);
 
   const totalPoints = rows.reduce((s, r) => s + r.points, 0);
   const poolAmount = calculated ? (parseInt(poolInput.replace(/\s/g, ""), 10) || 0) : 0;
@@ -161,15 +174,38 @@ export default function WeeklyBonus() {
     toast.success(locked ? "Bonus unlocked" : "Bonus locked");
   };
 
+  const commitAtt = (dealerId: string, date: string, raw: string, original: string) => {
+    const norm = normalizeAttInput(raw);
+    if (norm === (original || "")) return;
+    setAtt.mutate({ dealer_id: dealerId, date, value: norm });
+    setCalculated(false);
+  };
+
   const isThisWeek = weekStart === getWeekStartSunday(new Date());
 
-  // Total columns (kept stable so colSpan never shifts):
-  // # | Cat | Name | 7 days | Hours | Extra | Bonus | Pts | Bonus TZS | Status | 4 denoms = 19
+  // Columns:
+  // # | Cat | Name | 7 days | Hours | Extra | Bonus | Pts | Bonus TZS | SIGN | 4 denoms = 19
   const TOTAL_COLS = 1 + 1 + 1 + 7 + 1 + 1 + 1 + 1 + 1 + 1 + DENOMS.length;
   const COLS_BEFORE_BONUS_TZS = 1 + 1 + 1 + 7 + 1 + 1 + 1 + 1; // 13
 
   return (
     <PageShell>
+      {/* Print sizing: fit one A4 landscape page */}
+      <style>{`
+        @media print {
+          @page { size: A4 landscape; margin: 6mm; }
+          html, body { background: white !important; }
+          .wb-print-root { font-size: 8px !important; }
+          .wb-print-root table { font-size: 7.5px !important; }
+          .wb-print-root th, .wb-print-root td { padding: 1px 2px !important; }
+          .wb-print-root .wb-cell { height: 14px !important; }
+          .wb-no-print { display: none !important; }
+          .wb-print-only { display: table-cell !important; }
+          .wb-sign-cell { min-width: 120px; }
+        }
+        .wb-print-only { display: none; }
+      `}</style>
+
       <PageHeader
         icon={Gift}
         title="Weekly Bonus"
@@ -190,25 +226,26 @@ export default function WeeklyBonus() {
       </PageHeader>
 
       <PageSection>
-        <div className="flex flex-wrap items-end gap-3 mb-3 p-3 rounded-md border border-border bg-muted/20 print:hidden">
+        <div className="wb-print-root">
+        <div className="flex flex-wrap items-end gap-3 mb-3 p-3 rounded-md border border-border bg-primary text-primary-foreground print:hidden">
           <div className="flex flex-col gap-1">
-            <label className="text-xs uppercase tracking-wider text-muted-foreground">Bonus Pool (TZS)</label>
+            <label className="text-xs uppercase tracking-wider opacity-80">Bonus Pool (TZS)</label>
             <Input
               type="number" inputMode="numeric"
-              className="w-44 font-mono"
+              className="w-44 font-mono text-foreground bg-background"
               value={poolInput}
               onChange={(e) => { setPoolInput(e.target.value); setCalculated(false); }}
               placeholder="0" disabled={locked}
             />
           </div>
-          <Button onClick={handleCalculate} disabled={locked} className="gap-2">
+          <Button onClick={handleCalculate} disabled={locked} variant="secondary" className="gap-2">
             <Calculator className="w-4 h-4" /> Calculate
           </Button>
-          <Button variant="outline" onClick={() => window.print()} className="gap-2">
+          <Button variant="secondary" onClick={() => window.print()} className="gap-2">
             <Printer className="w-4 h-4" /> Print
           </Button>
           <Button
-            variant={locked ? "destructive" : "default"}
+            variant={locked ? "destructive" : "secondary"}
             onClick={handleLock} className="gap-2"
             disabled={upsertPool.isPending}
           >
@@ -216,26 +253,26 @@ export default function WeeklyBonus() {
             {locked ? "Unlock" : "Lock"}
           </Button>
 
-          <div className="ml-auto flex items-center gap-6 text-sm font-mono">
+          <div className="ml-auto flex items-center gap-8 font-mono text-white">
             <div>
-              <div className="text-[10px] uppercase text-muted-foreground">Total Points</div>
-              <div className="font-semibold">{totalPoints}</div>
+              <div className="text-[11px] uppercase opacity-90">Total Points</div>
+              <div className="text-2xl font-bold leading-tight">{totalPoints}</div>
             </div>
             <div>
-              <div className="text-[10px] uppercase text-muted-foreground">Per Point</div>
-              <div className="font-semibold">{valuePerPoint > 0 ? fmtMoney(valuePerPoint) : "—"}</div>
+              <div className="text-[11px] uppercase opacity-90">Per Point</div>
+              <div className="text-2xl font-bold leading-tight">{valuePerPoint > 0 ? fmtMoney(valuePerPoint) : "—"}</div>
             </div>
             <div>
-              <div className="text-[10px] uppercase text-muted-foreground">Distributed</div>
-              <div className="font-semibold">{poolAmount > 0 ? fmtMoney(totalDistributed) : "—"}</div>
+              <div className="text-[11px] uppercase opacity-90">Distributed</div>
+              <div className="text-2xl font-bold leading-tight">{poolAmount > 0 ? fmtMoney(totalDistributed) : "—"}</div>
             </div>
             <div>
-              <div className="text-[10px] uppercase text-muted-foreground">Bonus Balance</div>
+              <div className="text-[11px] uppercase opacity-90">Bonus Balance</div>
               <div
                 className={cn(
-                  "font-semibold",
-                  poolAmount > 0 && balance > 0 && "cms-amount-negative",
-                  poolAmount > 0 && balance < 0 && "cms-amount-positive",
+                  "text-2xl font-bold leading-tight",
+                  poolAmount > 0 && balance > 0 && "text-red-200",
+                  poolAmount > 0 && balance < 0 && "text-emerald-200",
                 )}
                 title="Distributed − Pool. Positive = need extra bills, negative = leftover"
               >
@@ -251,7 +288,7 @@ export default function WeeklyBonus() {
               <tr>
                 <th className="h-9 w-8 text-center font-semibold">#</th>
                 <th className="h-9 w-10 text-center font-semibold">Cat</th>
-                <th className="h-9 px-3 text-left font-semibold min-w-[260px]">Name</th>
+                <th className="h-9 px-2 text-left font-semibold w-[156px] min-w-[156px] max-w-[156px]">Name</th>
                 {DAYS.map((d, i) => (
                   <th key={d} className="h-9 px-1 w-12 text-center font-semibold">
                     <div className="text-[10px] leading-tight">{d}</div>
@@ -259,13 +296,13 @@ export default function WeeklyBonus() {
                   </th>
                 ))}
                 <th className="h-9 w-14 text-center font-semibold">Hours</th>
-                <th className="h-9 w-16 text-center font-semibold">Extra</th>
-                <th className="h-9 w-16 text-center font-semibold">Bonus</th>
-                <th className="h-9 w-14 text-center font-semibold">Pts</th>
-                <th className="h-9 w-24 text-right px-2 font-semibold">Bonus TZS</th>
-                <th className="h-9 w-16 text-center font-semibold">Status</th>
+                <th className="h-9 w-16 text-center font-semibold wb-no-print">Extra</th>
+                <th className="h-9 w-16 text-center font-semibold wb-no-print">Bonus</th>
+                <th className="h-9 w-14 text-center font-semibold wb-no-print">Pts</th>
+                <th className="h-9 w-48 min-w-[192px] text-right px-2 font-semibold">Bonus TZS</th>
+                <th className="h-9 w-32 text-center font-semibold wb-sign-cell">SIGN</th>
                 {DENOMS.map((d) => (
-                  <th key={d} className="h-9 w-12 text-center font-semibold">{d / 1000}k</th>
+                  <th key={d} className="h-9 w-12 text-center font-semibold wb-no-print">{d / 1000}k</th>
                 ))}
               </tr>
             </thead>
@@ -292,7 +329,7 @@ export default function WeeklyBonus() {
                         {CATEGORY_LETTER[r.cat] || "?"}
                       </span>
                     </td>
-                    <td className="px-3 py-1 text-[13px] font-medium whitespace-nowrap">
+                    <td className="px-2 py-1 text-[12px] font-medium truncate max-w-[156px]" title={r.dealer.name}>
                       {r.dealer.name}
                     </td>
                     {r.cells.map((c, i) => {
@@ -302,13 +339,6 @@ export default function WeeklyBonus() {
                       const isHoursSick = p.kind === "hours-sick";
                       const isScheduled = !!c.shift;
                       const isEmpty = p.kind === "empty";
-                      const display = isStatus
-                        ? c.att
-                        : isHours || isHoursSick
-                          ? String(p.hours)
-                          : isScheduled
-                            ? c.shift
-                            : "";
                       const cellCls = isStatus
                         ? cn(UNIFIED_ATT_COLORS[c.att], "ring-2 ring-red-500/80 dark:ring-red-400/80 ring-inset")
                         : isHoursSick
@@ -322,19 +352,28 @@ export default function WeeklyBonus() {
                               : "text-muted-foreground/30";
                       return (
                         <td key={i} className="px-0.5 py-0.5 text-center border-l border-border/25">
-                          <div className={cn(
-                            "w-full h-8 rounded text-xs font-mono font-semibold flex items-center justify-center transition-colors",
-                            cellCls,
-                          )}>
-                            {display || "·"}
-                          </div>
+                          <input
+                            type="text"
+                            disabled={locked}
+                            defaultValue={c.att}
+                            key={`${c.key}-${c.att}`}
+                            onBlur={(e) => commitAtt(r.dealer.id, c.day, e.target.value, c.att)}
+                            onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+                            className={cn(
+                              "wb-cell w-full h-8 rounded text-xs font-mono font-semibold text-center transition-colors outline-none border-0 focus:ring-2 focus:ring-primary",
+                              cellCls,
+                              !c.att && "placeholder:text-muted-foreground/40",
+                            )}
+                            placeholder={isScheduled ? c.shift : "·"}
+                            maxLength={3}
+                          />
                         </td>
                       );
                     })}
                     <td className="px-2 py-1 text-center font-mono font-bold text-primary text-[11px]">
                       {r.hours || ""}
                     </td>
-                    <td className="px-1 py-1 text-center">
+                    <td className="px-1 py-1 text-center wb-no-print">
                       <Input
                         type="number"
                         className="w-14 h-7 text-center font-mono mx-auto px-1 text-xs"
@@ -352,7 +391,7 @@ export default function WeeklyBonus() {
                         }}
                       />
                     </td>
-                    <td className="px-1 py-1 text-center">
+                    <td className="px-1 py-1 text-center wb-no-print">
                       <Input
                         type="number"
                         className="w-14 h-7 text-center font-mono mx-auto px-1 text-xs"
@@ -371,19 +410,21 @@ export default function WeeklyBonus() {
                         }}
                       />
                     </td>
-                    <td className="px-2 py-1 text-center font-mono font-bold text-[11px]">
+                    <td className="px-2 py-1 text-center font-mono font-bold text-[11px] wb-no-print">
                       {r.points || ""}
                     </td>
-                    <td className="px-2 py-1 text-right font-mono font-semibold text-[11px]">
+                    <td className="px-2 py-1 text-right font-mono font-semibold text-sm">
                       {bonus > 0 ? fmtMoney(bonus) : <span className="text-muted-foreground">—</span>}
                     </td>
-                    <td className="px-2 py-1 text-center text-[10px]">
-                      {r.hasAbsent
-                        ? <span className="text-destructive font-semibold">Excluded</span>
-                        : <span className="text-muted-foreground">Eligible</span>}
+                    <td className="px-2 py-1 text-center text-[10px] wb-sign-cell border-b border-foreground/40 print:border-foreground">
+                      <span className="print:hidden">
+                        {r.hasAbsent
+                          ? <span className="text-destructive font-semibold">Excluded</span>
+                          : <span className="text-muted-foreground">—</span>}
+                      </span>
                     </td>
                     {DENOMS.map((d) => (
-                      <td key={d} className="px-1 py-1 text-center font-mono text-[11px]">
+                      <td key={d} className="px-1 py-1 text-center font-mono text-[11px] wb-no-print">
                         {bd && bd[d] ? bd[d] : <span className="text-muted-foreground/30">·</span>}
                       </td>
                     ))}
@@ -395,10 +436,10 @@ export default function WeeklyBonus() {
                   <td colSpan={COLS_BEFORE_BONUS_TZS} className="text-right py-2 px-2 text-xs uppercase tracking-wider">
                     Totals
                   </td>
-                  <td className="px-2 py-2 text-right font-mono">{fmtMoney(totalDistributed)}</td>
-                  <td />
+                  <td className="px-2 py-2 text-right font-mono text-sm">{fmtMoney(totalDistributed)}</td>
+                  <td className="wb-sign-cell" />
                   {DENOMS.map((d) => (
-                    <td key={d} className="px-1 py-2 text-center font-mono">
+                    <td key={d} className="px-1 py-2 text-center font-mono wb-no-print">
                       {denomTotals[d] || <span className="text-muted-foreground/30">·</span>}
                     </td>
                   ))}
@@ -413,6 +454,7 @@ export default function WeeklyBonus() {
             Enter the total bonus amount and press <strong>Calculate</strong>. Bonuses round to the nearest 1,000 TZS. Then <strong>Lock</strong> to save.
           </p>
         )}
+        </div>
       </PageSection>
     </PageShell>
   );
