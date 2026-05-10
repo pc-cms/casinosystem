@@ -193,7 +193,7 @@ const MissChips = () => {
               )}
               {dailyRows.map((r) => (
                 <tr key={r.business_date} className="border-b border-border/40 hover:bg-muted/20">
-                  <td className="px-3 py-1.5 whitespace-nowrap border-r">{r.business_date}</td>
+                  <td className="px-3 py-1.5 whitespace-nowrap border-r">{fmtDateOnly(r.business_date)}</td>
                   {DENOMS_DESC.map((d) => {
                     const v = r.by_denom[d] ?? 0;
                     return (
