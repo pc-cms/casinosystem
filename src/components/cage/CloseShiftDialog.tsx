@@ -141,7 +141,9 @@ const CloseShiftDialog = ({
   const noteValid = !requiresNote || notes.trim().length > 0;
 
   const diff = totalTzs - expectedBalance;
-  const shiftResult = (cashResult || 0) + missTotal;
+  // Shift Result is now the Tables Result (real chip-based P&L of the shift).
+  // Old formula (cash_result + miss) was a drop+miss aggregate, not the actual win.
+  const shiftResult = resultTable;
 
   const { data: serverBusinessDate } = useEffectiveBusinessDate();
   const businessDate = serverBusinessDate || getBusinessDate();
