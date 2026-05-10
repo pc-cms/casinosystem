@@ -170,7 +170,7 @@ const MissChips = () => {
               <tr>
                 <th className="text-left px-3 py-2 whitespace-nowrap border-r">Date</th>
                 {DENOMS_DESC.map((d) => (
-                  <th key={d} className="text-right px-2 py-2 whitespace-nowrap border-r">
+                  <th key={d} className="px-2 py-2 whitespace-nowrap border-r text-center">
                     {formatChipLabel(d)}
                   </th>
                 ))}
