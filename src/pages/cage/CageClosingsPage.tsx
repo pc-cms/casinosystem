@@ -85,8 +85,8 @@ const CageClosingsPage = () => {
           <table className="w-full text-xs">
             <thead className="sticky top-0 bg-card z-10">
               <tr className="border-b border-border">
-                {["Opened", "Closed", "Cash Result", "Miss", "Shift Result", "Notes", ""].map(h => (
-                  <th key={h} className={`px-3 py-2 font-medium text-muted-foreground uppercase ${["Cash Result","Miss","Shift Result"].includes(h) ? "text-right" : "text-left"}`}>{h}</th>
+                {["Opened", "Closed", "Cash Result", "Miss", "Tables Result", "Notes", ""].map(h => (
+                  <th key={h} className={`px-3 py-2 font-medium text-muted-foreground uppercase ${["Cash Result","Miss","Tables Result"].includes(h) ? "text-right" : "text-left"}`}>{h}</th>
                 ))}
               </tr>
             </thead>
