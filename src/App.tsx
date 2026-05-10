@@ -64,6 +64,7 @@ const CloseTablesPage = lazy(() => import("@/pages/tables/CloseTablesPage"));
 
 const UserNewPage = lazy(() => import("@/pages/admin/UserNewPage"));
 const UserEditPage = lazy(() => import("@/pages/admin/UserEditPage"));
+const WeeklyBonus = lazy(() => import("@/pages/WeeklyBonus"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -136,6 +137,7 @@ const ROUTE_ROLES: Record<string, string[]> = {
   "/bank-checks": ["super_admin", "manager", "finance_manager"],
   "/miss-chips": ["super_admin", "manager", "finance_manager"],
   "/business-days": ["super_admin", "manager", "finance_manager"],
+  "/weekly-bonus": ["super_admin", "manager", "finance_manager"],
   
   "/pitbook": ["super_admin", "manager", "pit", "finance_manager", "surveillance"],
   "/incidents": ["super_admin", "manager", "pit", "finance_manager", "surveillance"],
@@ -237,6 +239,7 @@ const ProtectedRoutes = () => {
           <Route path="/bank-checks" element={<RoleGuard path="/bank-checks"><BankChecks /></RoleGuard>} />
           <Route path="/miss-chips" element={<RoleGuard path="/miss-chips"><MissChips /></RoleGuard>} />
           <Route path="/business-days" element={<RoleGuard path="/business-days"><BusinessDays /></RoleGuard>} />
+          <Route path="/weekly-bonus" element={<RoleGuard path="/weekly-bonus"><ErrorBoundary><WeeklyBonus /></ErrorBoundary></RoleGuard>} />
           
           <Route path="/reports/miss-chips" element={<Navigate to="/miss-chips" replace />} />
           <Route path="/pitbook" element={<RoleGuard path="/pitbook"><ErrorBoundary><Pitbook /></ErrorBoundary></RoleGuard>} />

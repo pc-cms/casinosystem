@@ -8,7 +8,7 @@ import {
   Building2, UserCheck, ClipboardPen, ShieldCheck, ShieldOff,
   Wallet, DoorOpen, ShieldAlert, Menu, Upload, FileText,
   ChevronsLeft, ChevronsRight, CreditCard, CalendarDays, ChevronDown, ChevronRight, Coins, Briefcase,
-  RefreshCw, MessageSquare, AlertTriangle, User as UserIcon, Rows3, Rows2,
+  RefreshCw, MessageSquare, AlertTriangle, User as UserIcon, Rows3, Rows2, Gift,
 } from "lucide-react";
 import { UserProfileDialog } from "@/components/UserProfileDialog";
 import { resetPWACache } from "@/lib/pwa-register";
@@ -57,6 +57,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/tables/analytics", icon: Target, label: "Table Analytics", roles: ["super_admin", "manager", "finance_manager", "pit", "surveillance"], section: "PIT" },
   { to: "__attendance__", icon: ClipboardPen, label: "Attendance", roles: ["super_admin", "manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
   { to: "__rota__", icon: CalendarDays, label: "Rota", roles: ["super_admin", "manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
+  { to: "/weekly-bonus", icon: Gift, label: "Weekly Bonus", roles: ["super_admin", "manager", "finance_manager"], section: "PIT" },
   { to: "/pitbook", icon: MessageSquare, label: "Pitbook", roles: ["super_admin", "manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
   { to: "/incidents", icon: AlertTriangle, label: "Incidents", roles: ["super_admin", "manager", "finance_manager", "surveillance"], section: "PIT" },
 
