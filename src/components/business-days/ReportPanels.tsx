@@ -380,13 +380,31 @@ export const CashPanel = ({ rows, businessDate, casinoId }: PanelProps) => {
   // rows = snapshot.cash_counts (denominations per currency / wallet)
   // Plus: miss chips for the business_date, expenses subtotal (from snapshot via prop drilling),
   //       and other wallet balances (current — best-effort).
+  // Miss chips for the day = aggregated cage chip count delta (closing_count.chip_miss_by_denom)
+  // across all closed shifts for that business_date. Single source of truth.
   const { data: missChips = [] } = useQuery({
     queryKey: ["bd-miss-chips", casinoId, businessDate],
     queryFn: async () => {
       const { data } = await supabase
-        .from("miss_chips").select("denomination,quantity,total_value_tzs")
-        .eq("casino_id", casinoId).eq("business_date", businessDate);
-      return data || [];
+        .from("shifts")
+        .select("closing_count")
+        .eq("casino_id", casinoId)
+        .eq("business_date", businessDate)
+        .eq("status", "closed");
+      const agg = new Map<number, number>();
+      (data || []).forEach((s: any) => {
+        const byDenom = (s.closing_count?.chip_miss_by_denom || {}) as Record<string, number>;
+        Object.entries(byDenom).forEach(([d, q]) => {
+          const dn = Number(d), qn = Number(q);
+          if (!dn || !qn) return;
+          agg.set(dn, (agg.get(dn) || 0) + qn);
+        });
+      });
+      return Array.from(agg.entries()).map(([denomination, quantity]) => ({
+        denomination,
+        quantity,
+        total_value_tzs: denomination * quantity,
+      }));
     },
     enabled: !!casinoId && !!businessDate,
   });
