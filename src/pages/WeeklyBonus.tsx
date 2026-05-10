@@ -304,6 +304,9 @@ export default function WeeklyBonus() {
         </div>
 
         <div className="w-full overflow-x-auto rounded-md border border-border print-target wb-print-target">
+          <div className="hidden print:block text-center font-bold text-[11pt] mb-1">
+            Weekly Bonus — {fmtDateOnly(weekStart)} – {fmtDateOnly(weekEnd)}
+          </div>
           <table className="w-full text-xs border-collapse">
             <thead className="bg-primary text-primary-foreground">
               <tr>
