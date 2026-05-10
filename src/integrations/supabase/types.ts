@@ -2104,54 +2104,6 @@ export type Database = {
           },
         ]
       }
-      miss_chips: {
-        Row: {
-          business_date: string
-          casino_id: string
-          created_at: string
-          denomination: number
-          id: string
-          quantity: number
-          shift_id: string | null
-          total_value_tzs: number
-        }
-        Insert: {
-          business_date: string
-          casino_id: string
-          created_at?: string
-          denomination: number
-          id?: string
-          quantity: number
-          shift_id?: string | null
-          total_value_tzs: number
-        }
-        Update: {
-          business_date?: string
-          casino_id?: string
-          created_at?: string
-          denomination?: number
-          id?: string
-          quantity?: number
-          shift_id?: string | null
-          total_value_tzs?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "miss_chips_casino_id_fkey"
-            columns: ["casino_id"]
-            isOneToOne: false
-            referencedRelation: "casinos"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "miss_chips_shift_id_fkey"
-            columns: ["shift_id"]
-            isOneToOne: false
-            referencedRelation: "shifts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       pit_rota: {
         Row: {
           casino_id: string
