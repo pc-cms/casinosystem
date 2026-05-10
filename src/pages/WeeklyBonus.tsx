@@ -205,12 +205,17 @@ export default function WeeklyBonus() {
       {/* Print sizing: fit one A4 landscape page. Uses global .print-target + .no-print system from index.css */}
       <style>{`
         @media print {
-          .wb-print-target { font-size: 8px !important; }
+          @page { size: A4 landscape; margin: 6mm; }
+          html, body { margin: 0 !important; padding: 0 !important; }
+          .wb-print-target { font-size: 8px !important; margin: 0 !important; }
           .wb-print-target table { font-size: 7.5pt !important; table-layout: fixed; }
           .wb-print-target th, .wb-print-target td { padding: 1px 2px !important; border: 0.5px solid #999 !important; }
           .wb-print-target .wb-cell { height: 14px !important; padding: 0 !important; }
           .wb-print-target input { font-size: 7.5pt !important; height: 14px !important; }
           .wb-sign-cell { min-width: 120px; border-bottom: 0.5px solid #000 !important; }
+          /* Collapse top spacing from PageShell/PageHeader on print */
+          header, [data-page-header] { display: none !important; }
+          main, [data-page-shell], section, [data-page-section] { padding: 0 !important; margin: 0 !important; }
         }
       `}</style>
 
