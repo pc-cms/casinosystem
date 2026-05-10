@@ -356,12 +356,15 @@ export default function WeeklyBonus() {
                             onBlur={(e) => commitAtt(r.dealer.id, c.day, e.target.value, c.att)}
                             onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
                             className={cn(
-                              "wb-cell w-full h-8 rounded text-xs font-mono font-semibold text-center transition-colors outline-none border-0 focus:ring-2 focus:ring-primary",
+                              "wb-cell w-full h-8 rounded text-xs font-mono font-semibold text-center transition-colors outline-none border-0 focus:ring-2 focus:ring-primary print:hidden",
                               cellCls,
                             )}
                             placeholder={isScheduled ? c.shift : "·"}
                             maxLength={3}
                           />
+                          <span className="hidden print:inline font-mono font-semibold text-[7.5pt]">
+                            {c.att || (isScheduled ? c.shift : "")}
+                          </span>
                         </td>
                       );
                     })}
