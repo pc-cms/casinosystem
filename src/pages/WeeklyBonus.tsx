@@ -97,6 +97,9 @@ export default function WeeklyBonus() {
 
   useEffect(() => { setAttDraft({}); }, [weekStart]);
 
+  // Cashier's editable bill counts for payout preparation. Resets on recompute.
+  const [payoutOverride, setPayoutOverride] = useState<Record<number, number> | null>(null);
+
   const days = useMemo(() => Array.from({ length: 7 }, (_, i) => addDaysIso(weekStart, i)), [weekStart]);
 
   const rows = useMemo(() => {
@@ -157,6 +160,15 @@ export default function WeeklyBonus() {
     });
     return t;
   }, [rows, calculated, valuePerPoint]);
+
+  // Reset cashier's bill overrides whenever the auto-suggested totals change.
+  useEffect(() => {
+    setPayoutOverride({ ...denomTotals });
+  }, [denomTotals[10000], denomTotals[5000], denomTotals[2000], denomTotals[1000]]);
+
+  const payoutCounts = payoutOverride ?? denomTotals;
+  const preparedTotal = DENOMS.reduce((s, d) => s + (payoutCounts[d] || 0) * d, 0);
+  const payoutDiff = preparedTotal - totalDistributed;
 
   const navWeek = (offset: number) => setWeekStart((w) => addDaysIso(w, offset * 7));
 
@@ -298,7 +310,7 @@ export default function WeeklyBonus() {
                 <th className="h-9 w-48 min-w-[192px] text-right px-2 font-semibold">Bonus TZS</th>
                 <th className="h-9 w-32 text-center font-semibold wb-sign-cell">SIGN</th>
                 {DENOMS.map((d) => (
-                  <th key={d} className="h-9 w-12 text-center font-semibold no-print">{d / 1000}k</th>
+                  <th key={d} className="h-9 w-12 text-center font-semibold">{d / 1000}k</th>
                 ))}
               </tr>
             </thead>
@@ -440,11 +452,37 @@ export default function WeeklyBonus() {
                   <td className="no-print" />
                   <td className="no-print" />
                   <td className="no-print" />
-                  <td className="px-2 py-2 text-right font-mono text-sm">{fmtMoney(totalDistributed)}</td>
+                  <td className="px-2 py-2 text-right font-mono text-sm">
+                    <div>{fmtMoney(totalDistributed)}</div>
+                    <div className="text-[10px] font-normal text-muted-foreground mt-0.5">
+                      Prep: <span className="font-mono">{fmtMoney(preparedTotal)}</span>
+                    </div>
+                    <div
+                      className={cn(
+                        "text-[10px] font-bold mt-0.5",
+                        payoutDiff === 0 && "text-emerald-600 dark:text-emerald-400",
+                        payoutDiff > 0 && "text-amber-600 dark:text-amber-400",
+                        payoutDiff < 0 && "text-red-600 dark:text-red-400",
+                      )}
+                    >
+                      Diff: {payoutDiff === 0 ? "0 ✓" : `${payoutDiff > 0 ? "+" : ""}${fmtMoney(payoutDiff)}`}
+                    </div>
+                  </td>
                   <td className="wb-sign-cell" />
                   {DENOMS.map((d) => (
-                    <td key={d} className="px-1 py-2 text-center font-mono no-print">
-                      {denomTotals[d] || <span className="text-muted-foreground/30">·</span>}
+                    <td key={d} className="px-1 py-2 text-center">
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        disabled={locked}
+                        value={payoutCounts[d] || ""}
+                        placeholder="0"
+                        onChange={(e) => {
+                          const v = parseInt(e.target.value.replace(/\D/g, ""), 10);
+                          setPayoutOverride({ ...payoutCounts, [d]: isNaN(v) ? 0 : v });
+                        }}
+                        className="w-12 h-7 rounded border border-border bg-background text-center font-mono font-bold text-xs px-1 focus:outline-none focus:ring-1 focus:ring-primary print:border-0 print:bg-transparent print:h-auto print:w-auto"
+                      />
                     </td>
                   ))}
                 </tr>
