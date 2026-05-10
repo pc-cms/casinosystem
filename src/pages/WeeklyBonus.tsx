@@ -57,7 +57,7 @@ const normalizeAttInput = (raw: string): string => {
 };
 
 const fmtMoney = (n: number) =>
-  new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(Math.round(n));
+  new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(Math.round(n)).replace(/,/g, " ");
 
 const breakdown = (amt: number): Record<number, number> => {
   const out: Record<number, number> = {};
