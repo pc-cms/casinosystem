@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Gift, ChevronLeft, ChevronRight, Printer, Lock, Unlock, Calculator } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -14,55 +14,58 @@ import {
   getWeekStartSunday, addDaysIso,
 } from "@/hooks/use-weekly-bonus";
 import { fmtDateOnly } from "@/lib/format-date";
-import { UNIFIED_SHIFT_COLORS, UNIFIED_ATT_COLORS, UNIFIED_SHIFT_TINTS } from "@/lib/shift-colors";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 const CATEGORY_LABELS: Record<string, string> = {
-  trainee: "Trainee",
-  dealer: "Dealer",
-  inspector: "Inspector",
-  expert: "Expert",
-  pit_boss: "Pit Boss",
+  trainee: "T",
+  dealer: "D",
+  inspector: "I",
+  expert: "E",
+  pit_boss: "PB",
 };
 const CATEGORY_ORDER: Record<string, number> = {
   trainee: 0, dealer: 1, inspector: 2, expert: 3, pit_boss: 4,
 };
-const CATEGORY_BAR: Record<string, string> = {
-  trainee: "bg-orange-500/15 text-orange-900 dark:text-orange-200",
-  dealer: "bg-blue-500/15 text-blue-900 dark:text-blue-200",
-  inspector: "bg-violet-500/15 text-violet-900 dark:text-violet-200",
-  expert: "bg-emerald-500/15 text-emerald-900 dark:text-emerald-200",
-  pit_boss: "bg-rose-500/15 text-rose-900 dark:text-rose-200",
+
+// Border color per shift type (frames the cell instead of fill).
+const SHIFT_BORDER: Record<string, string> = {
+  D: "border-amber-400 dark:border-amber-400",
+  M: "border-teal-500 dark:border-teal-400",
+  N: "border-blue-600 dark:border-blue-400",
+  G: "border-indigo-500 dark:border-indigo-400",
+  L: "border-emerald-500 dark:border-emerald-400",
+  E: "border-purple-500 dark:border-purple-400",
 };
 
-const parseValue = (val: string | null | undefined) => {
-  if (!val) return { kind: "empty" as const, hours: 0 };
-  if (val === "A") return { kind: "absent" as const, hours: 0 };
-  if (val === "S") return { kind: "sick" as const, hours: 0 };
+const DENOMS = [10000, 5000, 2000, 1000];
+
+const parseHours = (val: string | null | undefined): { hours: number; absent: boolean; sick: boolean } => {
+  if (!val) return { hours: 0, absent: false, sick: false };
+  if (val === "A") return { hours: 0, absent: true, sick: false };
+  if (val === "S") return { hours: 0, absent: false, sick: true };
   const m = /^(\d+)(S?)$/.exec(val);
   if (m) {
     const n = parseInt(m[1], 10);
-    if (!isNaN(n)) return { kind: m[2] ? "hours-sick" as const : "hours" as const, hours: n };
+    if (!isNaN(n)) return { hours: n, absent: false, sick: !!m[2] };
   }
-  return { kind: "empty" as const, hours: 0 };
+  return { hours: 0, absent: false, sick: false };
 };
 
 const fmtMoney = (n: number) =>
   new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(Math.round(n));
 
-// Decide background color for a single day cell from attendance + shift.
-const cellColor = (att: string, shift: string): string => {
-  if (att === "A" || att === "S") return UNIFIED_ATT_COLORS[att] ?? "";
-  // Has hours → use shift color (full) when shift known, otherwise neutral.
-  if (att && /^\d+S?$/.test(att)) {
-    return UNIFIED_SHIFT_COLORS[shift] ?? "bg-muted/40";
+// Greedy breakdown for amounts that are multiples of 1000.
+const breakdown = (amt: number): Record<number, number> => {
+  const out: Record<number, number> = {};
+  let rem = Math.max(0, Math.round(amt));
+  for (const d of DENOMS) {
+    out[d] = Math.floor(rem / d);
+    rem -= out[d] * d;
   }
-  // No attendance recorded — show scheduled shift as a tint.
-  if (shift) return UNIFIED_SHIFT_TINTS[shift] ?? UNIFIED_SHIFT_COLORS[shift] ?? "";
-  return "";
+  return out;
 };
 
 export default function WeeklyBonus() {
@@ -89,8 +92,7 @@ export default function WeeklyBonus() {
 
   const days = useMemo(() => Array.from({ length: 7 }, (_, i) => addDaysIso(weekStart, i)), [weekStart]);
 
-  // Build & group rows by category
-  const grouped = useMemo(() => {
+  const rows = useMemo(() => {
     const activeDealers = (dealers as any[]).filter((d) => d.is_active !== false);
     const attMap = new Map<string, string>();
     attendance.forEach((a: any) => attMap.set(`${a.dealer_id}|${a.date}`, a.value));
@@ -99,47 +101,58 @@ export default function WeeklyBonus() {
     const entryMap = new Map<string, { extra_override: number | null; bonus_points: number }>();
     entries.forEach((e: any) => entryMap.set(e.dealer_id, { extra_override: e.extra_override, bonus_points: e.bonus_points }));
 
-    const rows = activeDealers.map((d) => {
+    const out = activeDealers.map((d) => {
       let hours = 0;
       let extraComputed = 0;
       let hasAbsent = false;
       const cells = days.map((day) => {
         const att = attMap.get(`${d.id}|${day}`) ?? "";
         const shift = rotaMap.get(`${d.id}|${day}`) ?? "";
-        const p = parseValue(att);
-        if (p.kind === "absent") hasAbsent = true;
-        if (p.kind === "hours" || p.kind === "hours-sick") hours += p.hours;
+        const p = parseHours(att);
+        if (p.absent) hasAbsent = true;
+        hours += p.hours;
         if (shift === "E") extraComputed += 1;
-        return { att, shift };
+        return { att, shift, parsed: p };
       });
       const entry = entryMap.get(d.id);
       const extra = entry?.extra_override ?? extraComputed;
       const bonusPts = entry?.bonus_points ?? 0;
       const points = hasAbsent ? 0 : (hours + extra + bonusPts);
-      return { dealer: d, cells, hours, extraComputed, extra, bonusPts, hasAbsent, points };
+      const cat = d.is_pit_boss ? "pit_boss" : (d.category || "dealer");
+      return { dealer: d, cells, hours, extraComputed, extra, bonusPts, hasAbsent, points, cat };
     });
 
-    // group
-    const map = new Map<string, typeof rows>();
-    rows.forEach((r) => {
-      const cat = r.dealer.is_pit_boss ? "pit_boss" : (r.dealer.category || "dealer");
-      if (!map.has(cat)) map.set(cat, []);
-      map.get(cat)!.push(r);
+    return out.sort((a, b) => {
+      const c = (CATEGORY_ORDER[a.cat] ?? 99) - (CATEGORY_ORDER[b.cat] ?? 99);
+      if (c !== 0) return c;
+      return a.dealer.name.localeCompare(b.dealer.name);
     });
-    const sortedCats = Array.from(map.keys()).sort(
-      (a, b) => (CATEGORY_ORDER[a] ?? 99) - (CATEGORY_ORDER[b] ?? 99),
-    );
-    return sortedCats.map((cat) => ({
-      cat,
-      rows: map.get(cat)!.sort((a, b) => a.dealer.name.localeCompare(b.dealer.name)),
-    }));
   }, [dealers, attendance, rota, entries, days]);
 
-  const allRows = useMemo(() => grouped.flatMap((g) => g.rows), [grouped]);
-  const totalPoints = allRows.reduce((s, r) => s + r.points, 0);
+  const totalPoints = rows.reduce((s, r) => s + r.points, 0);
   const poolAmount = calculated ? (parseInt(poolInput.replace(/\s/g, ""), 10) || 0) : 0;
   const valuePerPoint = totalPoints > 0 && poolAmount > 0 ? poolAmount / totalPoints : 0;
-  const totalDistributed = allRows.reduce((s, r) => s + Math.round(r.points * valuePerPoint), 0);
+
+  // Round each individual bonus to nearest 1000.
+  const roundedBonus = (pts: number) =>
+    Math.round((pts * valuePerPoint) / 1000) * 1000;
+
+  const totalDistributed = rows.reduce(
+    (s, r) => s + (calculated && !r.hasAbsent ? roundedBonus(r.points) : 0),
+    0,
+  );
+
+  // Column totals per denomination
+  const denomTotals: Record<number, number> = useMemo(() => {
+    const t: Record<number, number> = { 10000: 0, 5000: 0, 2000: 0, 1000: 0 };
+    if (!calculated) return t;
+    rows.forEach((r) => {
+      if (r.hasAbsent) return;
+      const b = breakdown(roundedBonus(r.points));
+      for (const d of DENOMS) t[d] += b[d];
+    });
+    return t;
+  }, [rows, calculated, valuePerPoint]);
 
   const navWeek = (offset: number) => setWeekStart((w) => addDaysIso(w, offset * 7));
 
@@ -236,7 +249,8 @@ export default function WeeklyBonus() {
           <DTHead>
             <DTRow className="bg-primary text-primary-foreground hover:bg-primary [&_th]:text-primary-foreground [&_th]:font-semibold">
               <DTHeader className="w-8 text-center">#</DTHeader>
-              <DTHeader>Name</DTHeader>
+              <DTHeader className="min-w-[260px]">Name</DTHeader>
+              <DTHeader align="center" className="w-12">Cat</DTHeader>
               {DAYS.map((d, i) => (
                 <DTHeader key={d} align="center" className="px-1 w-12">
                   <div className="text-[10px] leading-tight">{d}</div>
@@ -249,113 +263,145 @@ export default function WeeklyBonus() {
               <DTHeader align="center" className="w-14">Pts</DTHeader>
               <DTHeader align="right" className="w-24">Bonus TZS</DTHeader>
               <DTHeader align="center" className="w-16">Status</DTHeader>
+              {DENOMS.map((d) => (
+                <DTHeader key={d} align="center" className="w-12">
+                  {d / 1000}k
+                </DTHeader>
+              ))}
             </DTRow>
           </DTHead>
           <DTBody>
-            {grouped.length === 0 && (
+            {rows.length === 0 && (
               <DTRow>
-                <DTCell colSpan={15} className="text-center text-muted-foreground py-6">
+                <DTCell colSpan={18} className="text-center text-muted-foreground py-6">
                   No staff found
                 </DTCell>
               </DTRow>
             )}
-            {grouped.map(({ cat, rows }) => {
-              let idx = 0;
+            {rows.map((r, idx) => {
+              const bonus = calculated && !r.hasAbsent ? roundedBonus(r.points) : 0;
+              const bd = bonus > 0 ? breakdown(bonus) : null;
               return (
-                <Fragment key={cat}>
-                  <DTRow key={`hdr-${cat}`} className={cn("hover:bg-transparent", CATEGORY_BAR[cat])}>
-                    <DTCell colSpan={15} className="py-1 px-2 text-[11px] font-bold uppercase tracking-wider">
-                      {CATEGORY_LABELS[cat] ?? cat} <span className="opacity-60 font-normal">· {rows.length}</span>
-                    </DTCell>
-                  </DTRow>
-                  {rows.map((r) => {
-                    idx += 1;
-                    const bonus = calculated && !r.hasAbsent ? Math.round(r.points * valuePerPoint) : 0;
+                <DTRow key={r.dealer.id} className={cn(r.hasAbsent && "opacity-60")}>
+                  <DTCell align="center" className="text-muted-foreground font-mono text-[11px] py-1">{idx + 1}</DTCell>
+                  <DTCell className="font-medium py-1 whitespace-nowrap min-w-[260px]">
+                    {r.dealer.name}
+                  </DTCell>
+                  <DTCell align="center" className="font-mono text-[10px] font-semibold py-1 text-muted-foreground">
+                    {CATEGORY_LABELS[r.cat] ?? r.cat}
+                  </DTCell>
+                  {r.cells.map((c, i) => {
+                    const border = c.shift ? SHIFT_BORDER[c.shift] : "border-transparent";
+                    const display = c.parsed.absent
+                      ? "A"
+                      : c.parsed.sick && c.parsed.hours === 0
+                        ? "S"
+                        : c.parsed.hours > 0
+                          ? `${c.parsed.hours}${c.parsed.sick ? "S" : ""}`
+                          : "";
+                    const textCls = c.parsed.absent
+                      ? "text-destructive font-bold"
+                      : c.parsed.sick
+                        ? "text-orange-600 dark:text-orange-300 font-semibold"
+                        : "";
                     return (
-                      <DTRow key={r.dealer.id} className={cn(r.hasAbsent && "opacity-60")}>
-                        <DTCell align="center" className="text-muted-foreground font-mono text-[11px] py-1">{idx}</DTCell>
-                        <DTCell className="font-medium py-1 whitespace-nowrap">
-                          {r.dealer.name}
-                          {r.dealer.is_pit_boss && <span className="ml-1 text-[10px] text-muted-foreground">(PB)</span>}
-                        </DTCell>
-                        {r.cells.map((c, i) => {
-                          const display = c.att || c.shift || "";
-                          return (
-                            <DTCell
-                              key={i}
-                              align="center"
-                              className={cn(
-                                "px-1 py-0.5 font-mono text-[11px] leading-none border-l border-border/40",
-                                cellColor(c.att, c.shift),
-                              )}
-                            >
-                              {display || <span className="text-muted-foreground">·</span>}
-                            </DTCell>
-                          );
-                        })}
-                        <DTCell align="center" numeric className="py-1">{r.hours}</DTCell>
-                        <DTCell align="center" className="py-1">
-                          <Input
-                            type="number"
-                            className="w-14 h-7 text-center font-mono mx-auto px-1 text-xs"
-                            value={r.extra}
-                            disabled={locked}
-                            onChange={(e) => {
-                              const v = parseInt(e.target.value, 10);
-                              setCalculated(false);
-                              upsertEntry.mutate({
-                                dealer_id: r.dealer.id,
-                                week_start: weekStart,
-                                extra_override: isNaN(v) ? 0 : v,
-                                bonus_points: r.bonusPts,
-                              });
-                            }}
-                          />
-                        </DTCell>
-                        <DTCell align="center" className="py-1">
-                          <Input
-                            type="number"
-                            className="w-14 h-7 text-center font-mono mx-auto px-1 text-xs"
-                            value={r.bonusPts || ""}
-                            placeholder="0"
-                            disabled={locked}
-                            onChange={(e) => {
-                              const v = parseInt(e.target.value, 10);
-                              setCalculated(false);
-                              upsertEntry.mutate({
-                                dealer_id: r.dealer.id,
-                                week_start: weekStart,
-                                extra_override: r.extra,
-                                bonus_points: isNaN(v) ? 0 : v,
-                              });
-                            }}
-                          />
-                        </DTCell>
-                        <DTCell align="center" numeric className="font-semibold py-1">{r.points}</DTCell>
-                        <DTCell align="right" numeric className="font-semibold py-1">
-                          {calculated && !r.hasAbsent
-                            ? fmtMoney(bonus)
-                            : <span className="text-muted-foreground">—</span>}
-                        </DTCell>
-                        <DTCell align="center" className="text-[10px] py-1">
-                          {r.hasAbsent ? (
-                            <span className="text-destructive font-semibold">Excluded</span>
-                          ) : (
-                            <span className="text-muted-foreground">Eligible</span>
-                          )}
-                        </DTCell>
-                      </DTRow>
+                      <DTCell
+                        key={i}
+                        align="center"
+                        className={cn(
+                          "px-1 py-0.5 font-mono text-[11px] leading-none border-2",
+                          border,
+                          textCls,
+                        )}
+                      >
+                        {display || <span className="text-muted-foreground/40">·</span>}
+                      </DTCell>
                     );
                   })}
-                </Fragment>
+                  <DTCell align="center" numeric className="py-1">{r.hours}</DTCell>
+                  <DTCell align="center" className="py-1">
+                    <Input
+                      type="number"
+                      className="w-14 h-7 text-center font-mono mx-auto px-1 text-xs"
+                      value={r.extra}
+                      disabled={locked}
+                      onChange={(e) => {
+                        const v = parseInt(e.target.value, 10);
+                        setCalculated(false);
+                        upsertEntry.mutate({
+                          dealer_id: r.dealer.id,
+                          week_start: weekStart,
+                          extra_override: isNaN(v) ? 0 : v,
+                          bonus_points: r.bonusPts,
+                        });
+                      }}
+                    />
+                  </DTCell>
+                  <DTCell align="center" className="py-1">
+                    <Input
+                      type="number"
+                      className="w-14 h-7 text-center font-mono mx-auto px-1 text-xs"
+                      value={r.bonusPts || ""}
+                      placeholder="0"
+                      disabled={locked}
+                      onChange={(e) => {
+                        const v = parseInt(e.target.value, 10);
+                        setCalculated(false);
+                        upsertEntry.mutate({
+                          dealer_id: r.dealer.id,
+                          week_start: weekStart,
+                          extra_override: r.extra,
+                          bonus_points: isNaN(v) ? 0 : v,
+                        });
+                      }}
+                    />
+                  </DTCell>
+                  <DTCell align="center" numeric className="font-semibold py-1">{r.points}</DTCell>
+                  <DTCell align="right" numeric className="font-semibold py-1">
+                    {bonus > 0
+                      ? fmtMoney(bonus)
+                      : <span className="text-muted-foreground">—</span>}
+                  </DTCell>
+                  <DTCell align="center" className="text-[10px] py-1">
+                    {r.hasAbsent ? (
+                      <span className="text-destructive font-semibold">Excluded</span>
+                    ) : (
+                      <span className="text-muted-foreground">Eligible</span>
+                    )}
+                  </DTCell>
+                  {DENOMS.map((d) => (
+                    <DTCell
+                      key={d}
+                      align="center"
+                      numeric
+                      className={cn("py-1 font-mono text-[11px]", !bd && "text-muted-foreground/40")}
+                    >
+                      {bd ? (bd[d] || <span className="text-muted-foreground/30">·</span>) : "·"}
+                    </DTCell>
+                  ))}
+                </DTRow>
               );
             })}
+            {calculated && rows.length > 0 && (
+              <DTRow className="bg-muted/40 font-semibold">
+                <DTCell colSpan={11 + 7} className="text-right py-2 text-xs uppercase tracking-wider">
+                  Totals
+                </DTCell>
+                <DTCell align="right" numeric className="py-2">{fmtMoney(totalDistributed)}</DTCell>
+                <DTCell />
+                {DENOMS.map((d) => (
+                  <DTCell key={d} align="center" numeric className="py-2 font-mono">
+                    {denomTotals[d] || <span className="text-muted-foreground/30">·</span>}
+                  </DTCell>
+                ))}
+              </DTRow>
+            )}
           </DTBody>
         </DataTable>
 
         {!calculated && (
           <p className="mt-3 text-xs text-muted-foreground print:hidden">
-            Enter the total bonus amount and press <strong>Calculate</strong>. Then <strong>Lock</strong> to save the distribution.
+            Enter the total bonus amount and press <strong>Calculate</strong>. Bonuses round to the nearest 1,000 TZS. Then <strong>Lock</strong> to save.
           </p>
         )}
       </PageSection>
