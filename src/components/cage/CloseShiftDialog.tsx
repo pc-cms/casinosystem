@@ -378,25 +378,17 @@ const CloseShiftDialog = ({
               </div>
             </div>
 
-            {/* BALANCE FORMULA — large with expenses */}
+            {/* BALANCE FORMULA — cash-only reconciliation */}
             <div className={cn(
               "rounded-lg border-2 p-4",
               isBalanced ? "border-success/60 bg-success/5" : "border-destructive/60 bg-destructive/5",
             )}>
-              <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground font-semibold mb-3">Balance Formula</p>
+              <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground font-semibold mb-3">
+                Cash Desk Balance — cash only (chips tracked as Miss)
+              </p>
               <div className="space-y-1.5 font-mono text-sm">
-                <FormulaRow label="Closing (Chips + Cash + Mobile + Bank)" value={`+${formatNumberSpaces(totalTzs)}`} />
-                <FormulaRow label="− Opening (Chips + Cash)" value={`−${formatNumberSpaces(openingTotal)}`} />
-                <FormulaRow
-                  label="− Result Table"
-                  value={`${resultTable >= 0 ? "−" : "+"}${formatNumberSpaces(Math.abs(resultTable))}`}
-                  amountClass={resultTable >= 0 ? undefined : "cms-amount-positive"}
-                />
-                <FormulaRow
-                  label="− External Cash Movement"
-                  value={`${externalCashMovement >= 0 ? "−" : "+"}${formatNumberSpaces(Math.abs(externalCashMovement))}`}
-                />
-                <FormulaRow label="+ Expenses (paid from cash)" value={`+${formatNumberSpaces(totalExpenses || 0)}`} />
+                <FormulaRow label="Closing Cash (Cash + Mobile + Bank)" value={`+${formatNumberSpaces(closingCashTotalTzs)}`} />
+                <FormulaRow label="− Expected Cash" value={`−${formatNumberSpaces(expectedBalance)}`} />
                 <div className={cn(
                   "flex justify-between pt-3 mt-2 border-t-2 text-lg font-bold",
                   isBalanced ? "border-success/60" : "border-destructive/60",
@@ -418,6 +410,19 @@ const CloseShiftDialog = ({
                   Discrepancy — manager password required to accept.
                 </p>
               )}
+            </div>
+
+            {/* THREE KEY RESULTS */}
+            <div className="rounded-lg border-2 border-primary/40 bg-primary/5 p-4 mt-4">
+              <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground font-semibold mb-3">Shift Results</p>
+              <div className="grid grid-cols-3 gap-3">
+                <KpiTile label="Tables Result" value={resultTable} tone={resultTable >= 0 ? "pos" : "neg"} />
+                <KpiTile label="Cash Desk Balance" value={balance} tone={isBalanced ? "ok" : balance > 0 ? "pos" : "neg"} />
+                <KpiTile label="Money Result" value={moneyResult} tone={moneyResult >= 0 ? "pos" : "neg"} />
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-2 italic">
+                Money Result = Buy/In − Cashout. Tables Result = sum of table P&L. Balance must be zero.
+              </p>
             </div>
 
             {notes && (
