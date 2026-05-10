@@ -630,29 +630,31 @@ const CloseShiftDialog = ({
         </div>
       </section>
 
-      {/* Balance preview */}
+      {/* Balance preview — cash only */}
       <section className={cn(
         "cms-panel p-4 border-2",
         isBalanced ? "border-success/50" : "border-destructive/50",
       )}>
         <div className="flex items-center justify-between mb-3">
-          <p className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground">Cash Desk Balance</p>
+          <p className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground">Cash Desk Balance — cash only</p>
           {isBalanced
             ? <span className="inline-flex items-center gap-1 text-xs font-semibold text-success"><CheckCircle2 className="w-4 h-4" /> Balanced</span>
             : <span className="inline-flex items-center gap-1 text-xs font-semibold text-destructive"><AlertTriangle className="w-4 h-4" /> {balance > 0 ? "Surplus" : "Shortage"}</span>}
         </div>
         <div className="space-y-1 text-sm font-mono">
-          <div className="flex justify-between"><span className="text-muted-foreground">  Closing (Chips + Cash + Mobile + Bank)</span><span className="text-card-foreground">+{formatNumberSpaces(totalTzs)}</span></div>
-          <div className="flex justify-between"><span className="text-muted-foreground">− Opening (Chips + Cash)</span><span className="text-card-foreground">−{formatNumberSpaces(openingTotal)}</span></div>
-          <div className="flex justify-between pt-2"><span className="text-muted-foreground">− Result Table</span><span className="text-card-foreground">−{formatNumberSpaces(resultTable)}</span></div>
-          <div className="flex justify-between"><span className="text-muted-foreground">− External Cash Movement</span><span className="text-card-foreground">−{formatNumberSpaces(externalCashMovement)}</span></div>
-          <div className="flex justify-between"><span className="text-muted-foreground">+ Expenses (paid from cash)</span><span className="text-card-foreground">+{formatNumberSpaces(totalExpenses || 0)}</span></div>
+          <div className="flex justify-between"><span className="text-muted-foreground">  Closing Cash (Cash + Mobile + Bank)</span><span className="text-card-foreground">+{formatNumberSpaces(closingCashTotalTzs)}</span></div>
+          <div className="flex justify-between"><span className="text-muted-foreground">− Expected Cash</span><span className="text-card-foreground">−{formatNumberSpaces(expectedBalance)}</span></div>
           <div className="flex justify-between border-t border-border pt-2 mt-2 text-base font-bold">
             <span className="text-card-foreground">= Cash Desk Balance</span>
             <span className={isBalanced ? "text-success" : balance > 0 ? "cms-amount-positive" : "cms-amount-negative"}>
               {balance >= 0 ? "+" : ""}{formatNumberSpaces(balance)} TZS
             </span>
           </div>
+        </div>
+        <div className="grid grid-cols-3 gap-2 pt-3 mt-3 border-t border-border">
+          <KpiTile label="Tables Result" value={resultTable} tone={resultTable >= 0 ? "pos" : "neg"} compact />
+          <KpiTile label="Cash Desk Balance" value={balance} tone={isBalanced ? "ok" : balance > 0 ? "pos" : "neg"} compact />
+          <KpiTile label="Money Result" value={moneyResult} tone={moneyResult >= 0 ? "pos" : "neg"} compact />
         </div>
       </section>
 
