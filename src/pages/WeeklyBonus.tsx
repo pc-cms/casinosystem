@@ -12,6 +12,7 @@ import {
   useUpsertBonusEntry, useUpsertBonusPool,
   getWeekStartSunday, addDaysIso,
 } from "@/hooks/use-weekly-bonus";
+import { useDailyResults } from "@/hooks/use-import-reports";
 import { fmtDateOnly } from "@/lib/format-date";
 import { UNIFIED_ATT_COLORS, UNIFIED_SHIFT_TINTS } from "@/lib/shift-colors";
 import { cn } from "@/lib/utils";
@@ -78,6 +79,14 @@ export default function WeeklyBonus() {
   const { data: attendance = [] } = useDealerAttendanceRange(weekStart, weekEnd);
   const { data: entries = [] } = useWeeklyBonusEntries(weekStart);
   const { data: pool } = useWeeklyBonusPool(weekStart);
+  const { data: weekResults = [] } = useDailyResults(weekStart, weekEnd);
+
+  // 1% of weekly tables result, rounded to nearest 1 000 TZS — used as placeholder hint.
+  const suggestedPool = useMemo(() => {
+    const total = (weekResults as any[]).reduce((s, r) => s + Number(r.result || 0), 0);
+    const onePct = total * 0.01;
+    return onePct > 0 ? Math.round(onePct / 1000) * 1000 : 0;
+  }, [weekResults]);
 
   const upsertEntry = useUpsertBonusEntry();
   const upsertPool = useUpsertBonusPool();
@@ -250,13 +259,21 @@ export default function WeeklyBonus() {
         <div className="wb-print-root">
         <div className="flex flex-wrap items-end gap-3 mb-3 p-3 rounded-md border border-border bg-primary text-primary-foreground print:hidden">
           <div className="flex flex-col gap-1">
-            <label className="text-xs uppercase tracking-wider opacity-80">Bonus Pool (TZS)</label>
+            <label className="text-xs uppercase tracking-wider opacity-80">
+              Bonus Pool (TZS)
+              {suggestedPool > 0 && (
+                <span className="ml-2 normal-case opacity-70">
+                  · 1% of week result: {fmtMoney(suggestedPool)}
+                </span>
+              )}
+            </label>
             <Input
               type="text" inputMode="numeric"
-              className="w-44 font-mono font-bold text-lg text-foreground bg-background"
+              className="w-44 font-mono font-bold text-lg text-foreground bg-background placeholder:text-muted-foreground/60 placeholder:font-normal"
               value={poolInput ? fmtMoney(parseInt(poolInput.replace(/\D/g, ""), 10) || 0) : ""}
               onChange={(e) => { setPoolInput(e.target.value.replace(/\D/g, "")); setCalculated(false); }}
-              placeholder="0" disabled={locked}
+              placeholder={suggestedPool > 0 ? fmtMoney(suggestedPool) : "0"}
+              disabled={locked}
             />
           </div>
           <Button onClick={handleCalculate} disabled={locked} variant="secondary" className="gap-2">
