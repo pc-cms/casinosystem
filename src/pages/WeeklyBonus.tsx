@@ -452,11 +452,37 @@ export default function WeeklyBonus() {
                   <td className="no-print" />
                   <td className="no-print" />
                   <td className="no-print" />
-                  <td className="px-2 py-2 text-right font-mono text-sm">{fmtMoney(totalDistributed)}</td>
+                  <td className="px-2 py-2 text-right font-mono text-sm">
+                    <div>{fmtMoney(totalDistributed)}</div>
+                    <div className="text-[10px] font-normal text-muted-foreground mt-0.5">
+                      Prep: <span className="font-mono">{fmtMoney(preparedTotal)}</span>
+                    </div>
+                    <div
+                      className={cn(
+                        "text-[10px] font-bold mt-0.5",
+                        payoutDiff === 0 && "text-emerald-600 dark:text-emerald-400",
+                        payoutDiff > 0 && "text-amber-600 dark:text-amber-400",
+                        payoutDiff < 0 && "text-red-600 dark:text-red-400",
+                      )}
+                    >
+                      Diff: {payoutDiff === 0 ? "0 ✓" : `${payoutDiff > 0 ? "+" : ""}${fmtMoney(payoutDiff)}`}
+                    </div>
+                  </td>
                   <td className="wb-sign-cell" />
                   {DENOMS.map((d) => (
-                    <td key={d} className="px-1 py-2 text-center font-mono no-print">
-                      {denomTotals[d] || <span className="text-muted-foreground/30">·</span>}
+                    <td key={d} className="px-1 py-2 text-center">
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        disabled={locked}
+                        value={payoutCounts[d] || ""}
+                        placeholder="0"
+                        onChange={(e) => {
+                          const v = parseInt(e.target.value.replace(/\D/g, ""), 10);
+                          setPayoutOverride({ ...payoutCounts, [d]: isNaN(v) ? 0 : v });
+                        }}
+                        className="w-12 h-7 rounded border border-border bg-background text-center font-mono font-bold text-xs px-1 focus:outline-none focus:ring-1 focus:ring-primary print:border-0 print:bg-transparent print:h-auto print:w-auto"
+                      />
                     </td>
                   ))}
                 </tr>
