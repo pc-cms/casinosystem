@@ -9,6 +9,7 @@ import { format, startOfMonth, endOfMonth, subMonths, addMonths } from "date-fns
 import { Coins, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { fmtDateOnly } from "@/lib/format-date";
 
 // Denominations sorted descending (largest → smallest), per project rule.
 const DENOMS_DESC = [...CHIP_DENOMS].sort((a, b) => b - a);
