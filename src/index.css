@@ -351,8 +351,20 @@
     margin: 0 !important;
     display: block !important;
   }
+  /* Each cash desk report = its own A4 portrait page */
+  @page cashdesk {
+    size: A4 portrait;
+    margin: 8mm;
+  }
+  #shift-print-area {
+    page: cashdesk;
+    page-break-after: always;
+    break-after: page;
+  }
   #chip-print-area {
+    page: cashdesk;
     page-break-before: always;
+    break-before: page;
   }
 
   /* Print header shown at the top of each page/section */
