@@ -224,13 +224,14 @@ const CloseShiftDialog = ({
         },
       },
       closingCash: {
-        expected: expectedBalance,
+        expected: cashDeskResult,
         actual: totalTzs,
         difference: balance,
         cash_delta: cashDelta,
-        // CASH RESULT = net real money earned during the shift
-        // (closing cash − opening cash float). Excludes chips and the
-        // starting float so it reflects the shift's actual cash gain.
+        cash_desk_result: cashDeskResult,
+        // CASH RESULT = ΔCash (closing − opening cash). Excludes chips,
+        // and now also excludes float/collection (they are explicit terms
+        // in the Cash Desk Result).
         cash_result: cashDelta,
         shift_result: shiftResult,
         result_table: resultTable,
