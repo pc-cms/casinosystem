@@ -124,21 +124,26 @@ const CloseShiftDialog = ({
   const closingCashTotalTzs = closingCashOnlyTzs + closingMobileTzs + closingBankTzs;
   const totalTzs = closingChipsTzs + closingCashTotalTzs;
 
-  // Cash-only reconciliation. Chips are tracked separately as Miss and do NOT
-  // enter the balance equation — Expected Cash already excludes opening chips.
+  // Shift Balance — pure asset accounting:
+  //   Tables Result = ΔCash + ΔChips + Expenses
+  //   ⇒ Balance = Tables Result − CashDelta − MissChips − Expenses  (must be 0)
+  // CashDelta = counted closing money (cash + mobile + bank, TZS) − opening cash.
+  // MissChips is signed (negative = chips lost). Expenses are physically out of the till.
+  const cashDelta = useMemo(
+    () => closingCashTotalTzs - openingCashTzs,
+    [closingCashTotalTzs, openingCashTzs],
+  );
   const balance = useMemo(
-    () => closingCashTotalTzs - expectedBalance,
-    [closingCashTotalTzs, expectedBalance],
+    () => resultTable - cashDelta - missTotal - totalExpenses,
+    [resultTable, cashDelta, missTotal, totalExpenses],
   );
   const isBalanced = balance === 0;
   const requiresNote = !isBalanced;
   const noteValid = !requiresNote || notes.trim().length > 0;
 
-  const diff = closingCashTotalTzs - expectedBalance;
   // Money Result — net cash from player transactions (buy/in − cashout).
   const moneyResult = cashResult;
-  // Shift Result is now the Tables Result (real chip-based P&L of the shift).
-  // Old formula (cash_result + miss) was a drop+miss aggregate, not the actual win.
+  // Shift Result = Tables Result (real chip-based P&L of the shift).
   const shiftResult = resultTable;
 
   const { data: serverBusinessDate } = useEffectiveBusinessDate();
