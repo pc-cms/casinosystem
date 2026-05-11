@@ -47,6 +47,10 @@ const ShiftClosingReport = ({
   const [casinoName, setCasinoName] = useState("Casino");
   const [baselines, setBaselines] = useState<Record<string, number>>({}); // tableId -> TZS value
   const [fillCredits, setFillCredits] = useState<Record<string, { fill: number; credit: number }>>({});
+  /** IN per table = sum of all Cash Desk IN transactions (type 'buy' or 'in')
+   *  for this shift, grouped by table_id. This is the cashier-recorded money
+   *  taken from players at each table during the shift. */
+  const [inByTable, setInByTable] = useState<Record<string, number>>({});
   /** Imported daily results (legacy import path) — when present, take precedence
    *  over live gaming_tables.closing_chips so reports reprinted later still show
    *  the actual end-of-day numbers entered by the manager. */
@@ -58,7 +62,7 @@ const ShiftClosingReport = ({
     let cancelled = false;
     (async () => {
       if (!casinoId || !shift) return;
-      const [{ data: c }, { data: bl }, { data: tr }, { data: tdr }] = await Promise.all([
+      const [{ data: c }, { data: bl }, { data: tr }, { data: tdr }, { data: tx }] = await Promise.all([
         supabase.from("casinos").select("name").eq("id", casinoId).maybeSingle(),
         supabase.from("chip_baseline").select("location_id, denomination, expected_quantity")
           .eq("casino_id", casinoId).eq("location_type", "table"),
@@ -69,6 +73,8 @@ const ShiftClosingReport = ({
               .select("table_id, open, fill, credit, close, drop_amount, result")
               .eq("casino_id", casinoId).eq("date", businessDate)
           : Promise.resolve({ data: [] as any[] } as any),
+        supabase.from("transactions").select("table_id, type, amount")
+          .eq("shift_id", shift.id).in("type", ["buy", "in"]),
       ]);
       if (cancelled) return;
       if (c?.name) setCasinoName(c.name);
@@ -86,6 +92,12 @@ const ShiftClosingReport = ({
         else if (r.transfer_type === "credit") fc[r.table_id].credit += Number(r.amount);
       });
       setFillCredits(fc);
+      const inMap: Record<string, number> = {};
+      (tx || []).forEach((r: any) => {
+        if (!r.table_id) return;
+        inMap[r.table_id] = (inMap[r.table_id] || 0) + Number(r.amount || 0);
+      });
+      setInByTable(inMap);
       const dr: Record<string, any> = {};
       (tdr || []).forEach((r: any) => {
         dr[r.table_id] = {
@@ -110,15 +122,17 @@ const ShiftClosingReport = ({
 
   /** Per-table values — prefer `table_daily_results` (imported/confirmed
    *  end-of-day numbers) when present, otherwise compute live from baseline
-   *  + cage transfers + current closing_chips. */
+   *  + cage transfers + current closing_chips. IN comes from cash desk
+   *  transactions (buy/in) regardless of source for daily results. */
   const rowFor = (t: Tables<"gaming_tables">) => {
+    const inVal = inByTable[t.id] || 0;
     const dr = dailyResults[t.id];
-    if (dr) return { op: dr.open, fl: dr.fill, cr: dr.credit, cl: dr.close, inVal: dr.fill, res: dr.result };
+    if (dr) return { op: dr.open, fl: dr.fill, cr: dr.credit, cl: dr.close, inVal, res: dr.result };
     const op = baselines[t.id] || 0;
     const fl = fillCredits[t.id]?.fill || 0;
     const cr = fillCredits[t.id]?.credit || 0;
     const cl = sumChipsObj(t.closing_chips as any);
-    return { op, fl, cr, cl, inVal: fl, res: cl - op };
+    return { op, fl, cr, cl, inVal, res: cl - op };
   };
 
   const totals = useMemo(() => {
@@ -128,7 +142,7 @@ const ShiftClosingReport = ({
       open += op; fill += fl; credit += cr; close += cl; inSum += inVal; result += res;
     });
     return { open, fill, credit, close, in: inSum, result };
-  }, [reportTables, baselines, fillCredits, dailyResults]);
+  }, [reportTables, baselines, fillCredits, dailyResults, inByTable]);
 
   // Cash flow opener (per currency cash + mobile from opening_float)
   const openerCash = (openingFloat?.cash || {}) as Record<string, Record<string | number, number>>;
