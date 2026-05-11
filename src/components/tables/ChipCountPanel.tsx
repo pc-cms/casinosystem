@@ -11,23 +11,31 @@ import { nowEAT } from "@/lib/business-day";
 import { chipSnapshotResult } from "@/lib/table-live-result";
 
 /** Compute the Number-Count tracker slot for a Chip Count taken at the given EAT time.
- *  - 04:50–08:00 → always slot 05:00 (Final). Any later count in this window
- *    overwrites the Final value (snapshots are still saved).
- *  - HH:50–HH+1:10 → slot HH+1:00 (within 18:00..04:00 live-game window).
+ *  Returns the target slot plus an `onlyIfEmpty` flag — when true, the caller must
+ *  skip writing if the slot already has a value (the on-time check wins).
+ *
+ *  - 04:50–07:59 → slot 05:00 (Final). Always writes (closing override).
+ *  - m ≥ 50      → slot HH+1:00 (early on-time). Always writes.
+ *  - m ≤ 10      → slot HH:00   (late on-time).  Always writes.
+ *  - m 11–49     → slot HH:00   (FALLBACK).      Writes ONLY if slot is empty
+ *                                                (first late check fills the missed slot).
  *  Otherwise null (no auto-write). */
-const slotForChipCount = (now: Date): string | null => {
+const slotForChipCount = (now: Date): { slot: string; onlyIfEmpty: boolean } | null => {
   const h = now.getHours();
   const m = now.getMinutes();
   // Final-count override: anything from 04:50 up to (but not including) 08:00 → Final 05:00
-  if ((h === 4 && m >= 50) || h === 5 || h === 6 || h === 7) return "05:00";
+  if ((h === 4 && m >= 50) || h === 5 || h === 6 || h === 7) {
+    return { slot: "05:00", onlyIfEmpty: false };
+  }
   let targetH: number;
+  let onlyIfEmpty = false;
   if (m >= 50) targetH = (h + 1) % 24;
   else if (m <= 10) targetH = h;
-  else return null;
+  else { targetH = h; onlyIfEmpty = true; } // m 11–49 fallback
   // Allowed slots: 19..23 and 00..04 (05:00 handled by the Final-window branch above)
   const allowed = (targetH >= 19 && targetH <= 23) || (targetH >= 0 && targetH <= 4);
   if (!allowed) return null;
-  return `${String(targetH).padStart(2, "0")}:00`;
+  return { slot: `${String(targetH).padStart(2, "0")}:00`, onlyIfEmpty };
 };
 
 interface ChipCountPanelProps {
