@@ -15,6 +15,8 @@ import { useAuth } from "@/lib/auth-context";
 import { CHIP_DENOMS, CURRENCIES, formatNumberSpaces, CASH_DENOMS } from "@/lib/currency";
 import { fmtDate } from "@/lib/format-date";
 import { buildLatestTableSnapshot, chipSnapshotResult, type BaselineMap } from "@/lib/table-live-result";
+// Authoritative Result is computed server-side via compute_shift_table_results RPC.
+// Snapshot index is still loaded for backward-compatible fallback only.
 import type { Tables } from "@/integrations/supabase/types";
 
 interface Props {
@@ -58,6 +60,9 @@ const ShiftClosingReport = ({
   const [dailyResults, setDailyResults] = useState<Record<string, {
     open: number; fill: number; credit: number; close: number; drop: number; result: number;
   }>>({});
+  /** Authoritative per-table Result computed by DB RPC
+   *  `compute_shift_table_results` — formula (Σ(actual−baseline)·denom) − Fill + Credit. */
+  const [serverResults, setServerResults] = useState<Record<string, number>>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -123,6 +128,13 @@ const ShiftClosingReport = ({
         };
       });
       setDailyResults(dr);
+
+      // Authoritative Result from server-side RPC.
+      const { data: srv } = await (supabase as any).rpc("compute_shift_table_results", { p_shift_id: shift.id });
+      if (cancelled) return;
+      const sr: Record<string, number> = {};
+      (srv || []).forEach((r: any) => { if (r?.table_id) sr[r.table_id] = Number(r.result || 0); });
+      setServerResults(sr);
     })();
     return () => { cancelled = true; };
   }, [casinoId, shift?.id, businessDate]);
@@ -133,18 +145,13 @@ const ShiftClosingReport = ({
     [tables],
   );
 
-  /** Result is ALWAYS sourced from Pit's latest Chip Count snapshot vs the
-   *  chip_baseline (per the Live Table Result Resolution rule). Open/Fill/
-   *  Credit/Close columns still come from imports / cage transfers / live
-   *  closing_chips for visibility, but they no longer drive Result. */
+  /** Result is computed by DB RPC `compute_shift_table_results`
+   *  (formula: (Σ(actual−baseline)·denom) − Fill + Credit). UI only displays it.
+   *  Open/Fill/Credit/Close/IN columns remain informational. */
   const rowFor = (t: Tables<"gaming_tables">) => {
     const inVal = inByTable[t.id] || 0;
     const dr = dailyResults[t.id];
-    const snap = snapshotIndex[t.id];
-    const baseline = baselineByDenom[t.id] || {};
-    const res = snap && snap.latestTime
-      ? chipSnapshotResult(snap.perDenom, baseline)
-      : (dr ? dr.result : 0);
+    const res = serverResults[t.id] ?? (dr ? dr.result : 0);
     if (dr) return { op: dr.open, fl: dr.fill, cr: dr.credit, cl: dr.close, inVal, res };
     const op = baselines[t.id] || 0;
     const fl = fillCredits[t.id]?.fill || 0;
@@ -160,7 +167,7 @@ const ShiftClosingReport = ({
       open += op; fill += fl; credit += cr; close += cl; inSum += inVal; result += res;
     });
     return { open, fill, credit, close, in: inSum, result };
-  }, [reportTables, baselines, baselineByDenom, snapshotIndex, fillCredits, dailyResults, inByTable]);
+  }, [reportTables, baselines, fillCredits, dailyResults, inByTable, serverResults]);
 
   // Cash flow opener (per currency cash + mobile from opening_float)
   const openerCash = (openingFloat?.cash || {}) as Record<string, Record<string | number, number>>;
