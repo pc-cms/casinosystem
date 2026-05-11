@@ -101,18 +101,14 @@ const ChipMovementReport = ({
       </div>
 
       {/* Closing row: Float Credit | Miss | Close */}
-      <p className="font-semibold border-b border-black mt-5 mb-2">Chips Closing Report</p>
-      <div className="grid grid-cols-3 gap-4 mb-4">
+      <p className="font-semibold border-b border-black mt-3 mb-2">Chips Closing Report</p>
+      <div className="grid grid-cols-3 gap-4">
         <DenomTable title="Cash Desk Float Credit" data={creditByDenom} total={totals.credit} />
         <DenomTable title="Miss Chips" data={missPerDenom} total={totals.miss} signed />
         <DenomTable title="Cash Desk Chips Close" data={closingChips} total={totals.close} />
       </div>
-
-      {/* Signatures */}
-      <div className="grid grid-cols-2 gap-8 mt-8">
-        <SignatureBlock label="Closing Shift Cashier" name={cashierName} />
-        <SignatureBlock label="Closing Shift Manager" name={managerName} />
-      </div>
+      {/* Signatures intentionally omitted — they already appear on page 1
+          (ShiftClosingReport). Repeating them here pushes content to page 3. */}
     </div>
   );
 };

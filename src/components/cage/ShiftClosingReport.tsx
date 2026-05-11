@@ -132,7 +132,10 @@ const ShiftClosingReport = ({
     const fl = fillCredits[t.id]?.fill || 0;
     const cr = fillCredits[t.id]?.credit || 0;
     const cl = sumChipsObj(t.closing_chips as any);
-    return { op, fl, cr, cl, inVal, res: cl - op };
+    // Standard table result: Close + Credit − Open − Fill.
+    // Fill adds chips to the table (expected close grows), Credit removes chips
+    // (expected close shrinks). IN (cash buys) does not enter chip result.
+    return { op, fl, cr, cl, inVal, res: cl + cr - op - fl };
   };
 
   const totals = useMemo(() => {
