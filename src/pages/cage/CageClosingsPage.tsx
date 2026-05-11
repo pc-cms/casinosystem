@@ -147,9 +147,21 @@ const CageClosingsPage = () => {
                 const rawCash = Number(s.cash_result || 0);
                 const cash = Number.isFinite(cashDeltaSnap) ? cashDeltaSnap : rawCash;
                 const miss = Number(s.miss_total || 0);
-                const result = Number(s.shift_result || 0);
-                // Strip auto-appended technical breadcrumbs from manager notes
-                // (legacy " | TABLES: … | MISS: … | BALANCE: … | mgr:…" trail).
+                // Tables Result is the canonical chip-based shift P&L
+                // (Σ per-table latest snapshot vs baseline − Fill + Credit),
+                // persisted in shifts.tables_result by DB trigger.
+                // Fallback chain for legacy rows: closing_count.result_table → shift_result.
+                const ccObj = (s.closing_count || {}) as any;
+                const fallbackTbl = Number(ccObj.result_table);
+                const tablesResult =
+                  s.tables_result != null ? Number(s.tables_result) :
+                  Number.isFinite(fallbackTbl) ? fallbackTbl :
+                  Number(s.shift_result || 0);
+                // Balance check: any non-zero residual after the day's
+                // money/chip flows is a discrepancy worth a glance.
+                // (Expenses are not on the row → not subtracted here; this is
+                // the cash-desk balance only, same family as Shift Balance.)
+                const balance = tablesResult - cash - miss;
                 const cleanNotes = String(s.notes || "")
                   .split(/\s*\|\s*(?:TABLES|CASH|MISS|BALANCE|RESULT|DIFF|mgr)\b/i)[0]
                   .trim();
@@ -170,8 +182,14 @@ const CageClosingsPage = () => {
                       {formatNumberSpaces(cash)}
                     </td>
                     <td className="px-3 py-2 text-right font-mono text-muted-foreground">{formatNumberSpaces(miss)}</td>
-                    <td className={`px-3 py-2 text-right font-mono font-semibold ${result >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
-                      {formatNumberSpaces(result)}
+                    <td className={`px-3 py-2 text-right font-mono font-semibold ${tablesResult >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
+                      {formatNumberSpaces(tablesResult)}
+                    </td>
+                    <td
+                      className={`px-3 py-2 text-right font-mono ${balance === 0 ? "text-muted-foreground" : "cms-amount-negative font-semibold"}`}
+                      title="Tables Result − Cash Result − Miss"
+                    >
+                      {balance === 0 ? "0" : `${balance > 0 ? "+" : ""}${formatNumberSpaces(balance)}`}
                     </td>
                     <td className="px-3 py-2 text-muted-foreground truncate max-w-[280px]">{cleanNotes || "—"}</td>
                     <td className="px-3 py-2 text-right">
