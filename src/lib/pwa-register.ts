@@ -77,11 +77,26 @@ export async function setupPWA() {
     const updateSW = registerSW({
       immediate: true,
       onRegisteredSW(_swUrl, registration) {
-        if (registration) {
-          setInterval(() => {
+        if (!registration) return;
+
+        // 1) Check immediately on app open (don't wait for the 30-min timer).
+        registration.update().catch(() => {});
+
+        // 2) Periodic background polling.
+        setInterval(() => {
+          registration.update().catch(() => {});
+        }, UPDATE_CHECK_INTERVAL_MS);
+
+        // 3) Check whenever the tab becomes visible / regains focus —
+        //    covers PWAs resumed from background after hours/days.
+        const checkNow = () => {
+          if (document.visibilityState === "visible") {
             registration.update().catch(() => {});
-          }, UPDATE_CHECK_INTERVAL_MS);
-        }
+          }
+        };
+        document.addEventListener("visibilitychange", checkNow);
+        window.addEventListener("focus", checkNow);
+        window.addEventListener("online", checkNow);
       },
       onOfflineReady() {
         console.log("[PWA] App ready for offline use");
@@ -121,6 +136,16 @@ export async function setupPWA() {
           setTimeout(tryAutoReload, 30 * 1000);
         };
         setTimeout(tryAutoReload, IDLE_AUTO_RELOAD_MS);
+
+        // Hard force-reload 10 minutes after the new version was detected,
+        // regardless of idle state or open dialogs. Ensures every active PWA
+        // picks up critical updates without waiting for the user.
+        const FORCE_RELOAD_MS = 10 * 60 * 1000;
+        setTimeout(() => {
+          toast.dismiss(toastId);
+          console.log("[PWA] Force-reloading to apply update");
+          updateSW(true);
+        }, FORCE_RELOAD_MS);
       },
     });
   } catch (e) {
