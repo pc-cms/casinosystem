@@ -349,10 +349,6 @@
     margin: 0 !important;
     display: block !important;
   }
-  @page :first {
-    size: A4 portrait;
-    margin: 5mm;
-  }
 
   /* Print header shown at the top of each page/section */
   .print-header {
