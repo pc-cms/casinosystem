@@ -83,6 +83,8 @@ const CloseShiftPage = () => {
         totalCashouts={data.totalOuts}
         totalExpenses={data.totalExpenses}
         externalCashMovement={data.external}
+        floatAdded={cageTransfers.filter(t => t.shift_id === shift.id && t.transfer_type === "add_float").reduce((s, t) => s + Number(t.amount), 0)}
+        collectionTotal={cageTransfers.filter(t => t.shift_id === shift.id && t.transfer_type === "collection").reduce((s, t) => s + Number(t.amount), 0)}
         openingFloat={data.openingFloat}
         tables={tables}
         loading={closeShift.isPending}
