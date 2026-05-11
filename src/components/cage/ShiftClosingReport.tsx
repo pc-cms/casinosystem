@@ -86,18 +86,20 @@ const ShiftClosingReport = ({
   );
 
   const totals = useMemo(() => {
-    let open = 0, fill = 0, credit = 0, close = 0, drop = 0, gt = 0;
+    let open = 0, fill = 0, credit = 0, close = 0, inSum = 0, result = 0;
     reportTables.forEach(t => {
       const op = baselines[t.id] || 0;
       const fl = fillCredits[t.id]?.fill || 0;
       const cr = fillCredits[t.id]?.credit || 0;
       const cl = sumChipsObj(t.closing_chips as any);
-      const dp = drops[t.id] || 0;
-      const grand = Number(t.closing_result || 0);
-      open += op; fill += fl; credit += cr; close += cl; drop += dp; gt += grand;
+      // IN = same as Fill (cage_transfers fill = Cash IN at Cash Desk for this table)
+      const inVal = fl;
+      // Result = Close − Open (final chip count minus baseline)
+      const res = cl - op;
+      open += op; fill += fl; credit += cr; close += cl; inSum += inVal; result += res;
     });
-    return { open, fill, credit, close, drop, gt };
-  }, [reportTables, baselines, fillCredits, drops]);
+    return { open, fill, credit, close, in: inSum, result };
+  }, [reportTables, baselines, fillCredits]);
 
   // Cash flow opener (per currency cash + mobile from opening_float)
   const openerCash = (openingFloat?.cash || {}) as Record<string, Record<string | number, number>>;
