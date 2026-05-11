@@ -59,7 +59,9 @@ const ShiftClosingReport = ({
    *  for Open/Fill/Credit/Close columns; Result still comes from snapshot. */
   const [dailyResults, setDailyResults] = useState<Record<string, {
     open: number; fill: number; credit: number; close: number; drop: number; result: number;
-  }>>({});
+  /** Authoritative per-table Result computed by DB RPC
+   *  `compute_shift_table_results` — formula (Σ(actual−baseline)·denom) − Fill + Credit. */
+  const [serverResults, setServerResults] = useState<Record<string, number>>({});
 
   useEffect(() => {
     let cancelled = false;
