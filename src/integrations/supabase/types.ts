@@ -2577,6 +2577,7 @@ export type Database = {
           opening_float: Json | null
           shift_result: number | null
           status: string
+          tables_result: number | null
         }
         Insert: {
           cash_result?: number | null
@@ -2595,6 +2596,7 @@ export type Database = {
           opening_float?: Json | null
           shift_result?: number | null
           status?: string
+          tables_result?: number | null
         }
         Update: {
           cash_result?: number | null
@@ -2613,6 +2615,7 @@ export type Database = {
           opening_float?: Json | null
           shift_result?: number | null
           status?: string
+          tables_result?: number | null
         }
         Relationships: [
           {
@@ -3610,6 +3613,10 @@ export type Database = {
           table_id: string
         }[]
       }
+      compute_shift_tables_result_total: {
+        Args: { p_shift_id: string }
+        Returns: number
+      }
       compute_tables_drop_split: {
         Args: { _casino_id: string; _from: string; _to: string }
         Returns: {
@@ -3736,6 +3743,10 @@ export type Database = {
       }
       populate_table_daily_results_for_day: {
         Args: { _business_date: string; _casino_id: string; _user: string }
+        Returns: number
+      }
+      recalc_shift_tables_result: {
+        Args: { p_shift_id: string }
         Returns: number
       }
       refresh_chip_initial_baseline: {
