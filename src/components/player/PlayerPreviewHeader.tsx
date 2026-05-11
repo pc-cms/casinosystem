@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { X, ExternalLink, User, ArrowDownToLine, ArrowUpFromLine, Check } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { usePlayer, usePlayerVisits } from "@/hooks/use-player-profile";
+import { usePlayer, usePlayerVisits, usePlayerNotes } from "@/hooks/use-player-profile";
 import { useSelectedPlayer } from "@/hooks/use-selected-player";
 import CategoryBadge from "@/components/player/CategoryBadge";
 import FlagBadges from "@/components/player/FlagBadges";
