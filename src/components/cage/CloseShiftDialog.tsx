@@ -12,9 +12,10 @@ import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
 import {
   emptyMobile, emptyBanks, chipSum, emptyCash, MOBILE_PROVIDERS,
   calcCashTotalTzs, bankTotalTzs, mobileTotal,
-  computeMissByDenom, missTotalValue, cashDeskBalance,
+  computeMissByDenom, missTotalValue,
   type MobileProviders, type Banks,
 } from "@/components/cage/CageHelpers";
+import { computeShiftBalance } from "@/lib/cage-balance";
 import { useBatchChipSnapshot } from "@/hooks/use-chips";
 import { useShiftTablesResultTotal } from "@/hooks/use-shift-tables-result";
 import { getBusinessDate } from "@/lib/business-day";
