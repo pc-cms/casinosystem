@@ -6,6 +6,7 @@ import { useCashless } from "@/hooks/use-cashless";
 import { useChipSnapshots } from "@/hooks/use-chips";
 import { useChipBaseline, baselineToMap } from "@/hooks/use-table-lifecycle";
 import { liveTableResult, buildLatestTableSnapshot } from "@/lib/table-live-result";
+import { useShiftTableAdjustments } from "@/hooks/use-shift-table-adjustments";
 import { useAuth } from "@/lib/auth-context";
 import { Link } from "react-router-dom";
 import { formatCurrency } from "@/lib/currency";
@@ -68,6 +69,7 @@ const Dashboard = () => {
 
   const baselineMap = useMemo(() => baselineToMap(baseline), [baseline]);
   const snapshotIndex = useMemo(() => buildLatestTableSnapshot(snapshots as any), [snapshots]);
+  const { adjustmentMap } = useShiftTableAdjustments();
 
   // Per-table tracker totals (raw drop indicator)
   const tableTrackerTotals = useMemo(() => {
@@ -90,11 +92,12 @@ const Dashboard = () => {
         closingResult: t.closing_result as any,
         snapshotIndex,
         baselineMap,
+        adjustmentMap,
       });
       stats[t.id] = { drop, result };
     });
     return stats;
-  }, [tables, transactions, snapshotIndex, baselineMap]);
+  }, [tables, transactions, snapshotIndex, baselineMap, adjustmentMap]);
 
   const gameTypeTotals = useMemo(() => {
     const totals: Record<string, { drop: number; result: number; label: string }> = {};
