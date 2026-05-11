@@ -128,6 +128,13 @@ const ShiftClosingReport = ({
         };
       });
       setDailyResults(dr);
+
+      // Authoritative Result from server-side RPC.
+      const { data: srv } = await (supabase as any).rpc("compute_shift_table_results", { p_shift_id: shift.id });
+      if (cancelled) return;
+      const sr: Record<string, number> = {};
+      (srv || []).forEach((r: any) => { if (r?.table_id) sr[r.table_id] = Number(r.result || 0); });
+      setServerResults(sr);
     })();
     return () => { cancelled = true; };
   }, [casinoId, shift?.id, businessDate]);
