@@ -30,6 +30,8 @@ interface CloseShiftDialogProps {
   totalCashouts: number;
   totalExpenses: number;
   externalCashMovement?: number;
+  floatAdded?: number;
+  collectionTotal?: number;
   openingFloat: number;
   tables: Tables<"gaming_tables">[];
   onConfirm: (data: {
@@ -52,7 +54,8 @@ interface CloseShiftDialogProps {
  */
 const CloseShiftDialog = ({
   open, onClose, shift, expectedBalance, cashResult, totalBuyIns, totalCashouts,
-  totalExpenses, externalCashMovement = 0, openingFloat, tables, onConfirm, loading,
+  totalExpenses, externalCashMovement = 0, floatAdded = 0, collectionTotal = 0,
+  openingFloat, tables, onConfirm, loading,
 }: CloseShiftDialogProps) => {
   // sessionStorage persistence — survives page refresh while shift is being closed.
   const storageKey = `cms.close-shift.${shift?.id || "none"}`;
@@ -131,9 +134,12 @@ const CloseShiftDialog = ({
   //   ⇒ Balance = Tables Result − CashDelta − MissChips − Expenses  (must be 0)
   // CashDelta = counted closing money (cash + mobile + bank, TZS) − opening cash.
   // MissChips is signed (negative = chips lost). Expenses are physically out of the till.
+  // Cash Result deduction = (Cash Opening − Float Added + Collection)
+  // → cash_result = closing cash − (opening cash − float added + collection)
+  //               = closing cash − opening cash + float added − collection
   const cashDelta = useMemo(
-    () => closingCashTotalTzs - openingCashTzs,
-    [closingCashTotalTzs, openingCashTzs],
+    () => closingCashTotalTzs - (openingCashTzs - floatAdded + collectionTotal),
+    [closingCashTotalTzs, openingCashTzs, floatAdded, collectionTotal],
   );
   const balance = useMemo(
     () => resultTable - cashDelta - missTotal - totalExpenses,
