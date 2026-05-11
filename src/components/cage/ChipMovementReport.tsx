@@ -101,18 +101,14 @@ const ChipMovementReport = ({
       </div>
 
       {/* Closing row: Float Credit | Miss | Close */}
-      <p className="font-semibold border-b border-black mt-5 mb-2">Chips Closing Report</p>
-      <div className="grid grid-cols-3 gap-4 mb-4">
+      <p className="font-semibold border-b border-black mt-3 mb-2">Chips Closing Report</p>
+      <div className="grid grid-cols-3 gap-4">
         <DenomTable title="Cash Desk Float Credit" data={creditByDenom} total={totals.credit} />
         <DenomTable title="Miss Chips" data={missPerDenom} total={totals.miss} signed />
         <DenomTable title="Cash Desk Chips Close" data={closingChips} total={totals.close} />
       </div>
-
-      {/* Signatures */}
-      <div className="grid grid-cols-2 gap-8 mt-8">
-        <SignatureBlock label="Closing Shift Cashier" name={cashierName} />
-        <SignatureBlock label="Closing Shift Manager" name={managerName} />
-      </div>
+      {/* Signatures intentionally omitted — they already appear on page 1
+          (ShiftClosingReport). Repeating them here pushes content to page 3. */}
     </div>
   );
 };
@@ -168,25 +164,5 @@ const DenomTable = ({ title, data, total, signed }: {
     </div>
   );
 };
-
-const CommentsBox = ({ label }: { label: string }) => (
-  <div className="mt-2">
-    <p className="font-semibold text-[10px] mb-0.5">{label}:</p>
-    <div className="border border-black h-12 w-full" />
-  </div>
-);
-
-const SignatureBlock = ({ label, name }: { label: string; name?: string }) => (
-  <div>
-    <div className="flex items-end gap-3">
-      <span className="font-semibold whitespace-nowrap">{label}:</span>
-      <span className="flex-1 border-b border-black pb-0.5 font-semibold uppercase">{name || ""}</span>
-    </div>
-    <div className="flex items-end gap-3 mt-5">
-      <span className="font-semibold whitespace-nowrap">Signature:</span>
-      <span className="flex-1 border-b border-black h-5" />
-    </div>
-  </div>
-);
 
 export default ChipMovementReport;
