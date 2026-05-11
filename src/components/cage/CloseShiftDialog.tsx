@@ -193,13 +193,15 @@ const CloseShiftDialog = ({
         actual: totalTzs,
         difference: balance,
         cash_delta: cashDelta,
-        cash_result: cashResult - totalExpenses - missTotal,
+        // CASH RESULT = real money counted by the cashier at closing
+        // (cash + mobile + bank, excluding chips). The "final check".
+        cash_result: closingCashTotalTzs,
         shift_result: shiftResult,
         result_table: resultTable,
         cash_desk_balance: balance,
       },
       notes: notes.trim(),
-      cashResult: cashResult - totalExpenses - missTotal,
+      cashResult: closingCashTotalTzs,
       missTotal,
       shiftResult,
     });
