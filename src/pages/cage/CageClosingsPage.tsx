@@ -125,16 +125,16 @@ const CageClosingsPage = () => {
           <table className="w-full text-xs">
             <thead className="sticky top-0 bg-card z-10">
               <tr className="border-b border-border">
-                {["Opened", "Closed", "Cash Result", "Miss", "Tables Result", "Notes", ""].map(h => (
-                  <th key={h} className={`px-3 py-2 font-medium text-muted-foreground uppercase ${["Cash Result","Miss","Tables Result"].includes(h) ? "text-right" : "text-left"}`}>{h}</th>
+                {["Opened", "Closed", "Cash Result", "Miss", "Tables Result", "Balance", "Notes", ""].map(h => (
+                  <th key={h} className={`px-3 py-2 font-medium text-muted-foreground uppercase ${["Cash Result","Miss","Tables Result","Balance"].includes(h) ? "text-right" : "text-left"}`}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
-                <tr><td colSpan={7} className="text-center text-muted-foreground py-6">Loading…</td></tr>
+                <tr><td colSpan={8} className="text-center text-muted-foreground py-6">Loading…</td></tr>
               ) : shifts.length === 0 ? (
-                <tr><td colSpan={7} className="text-center text-muted-foreground py-6">No closed shifts</td></tr>
+                <tr><td colSpan={8} className="text-center text-muted-foreground py-6">No closed shifts</td></tr>
               ) : shifts.map((s: any) => {
                 const closedDate = s.closed_at ? new Date(s.closed_at) : null;
                 // Cash Result is already computed by the canonical formula
