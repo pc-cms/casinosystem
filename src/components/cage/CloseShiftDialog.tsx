@@ -110,10 +110,26 @@ const CloseShiftDialog = ({
     [tables],
   );
   const tablesAllClosed = openTables.length === 0;
-  const resultTable = useMemo(
+  // Tables Result is the CANONICAL chip-based shift P&L:
+  //   Σ per table ((latest snapshot.actual − baseline.expected) × denom)
+  //   − Fill + Credit
+  // Computed by DB RPC `compute_shift_table_results`. We prefer it over
+  // summing `gaming_tables.closing_result` (Pit's wizard input), which is
+  // a different value that drifts from the chip-based source of truth.
+  // Fallback: if the RPC has no rows yet (e.g., no chip baseline / no
+  // snapshots on this date), fall back to the closed-table sum so today's
+  // close cannot be jammed by missing setup.
+  const { data: rpcTablesResult } = useShiftTablesResultTotal(shift?.id);
+  const fallbackTablesResult = useMemo(
     () => closedTables.reduce((s, t) => s + Number(t.closing_result || 0), 0),
     [closedTables],
   );
+  const resultTable = useMemo(() => {
+    if (rpcTablesResult !== undefined && rpcTablesResult !== null) {
+      return Number(rpcTablesResult);
+    }
+    return fallbackTablesResult;
+  }, [rpcTablesResult, fallbackTablesResult]);
 
   // ── Closing chips: per-denom miss ─────────────────────────────────────────
   const missPerDenom = useMemo(
