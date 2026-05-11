@@ -100,8 +100,6 @@ const ChipMovementReport = ({
         <DenomTable title="Cash Desk Float Fill" data={fillByDenom} total={totals.fill} />
       </div>
 
-      <CommentsBox label="Comments" />
-
       {/* Closing row: Float Credit | Miss | Close */}
       <p className="font-semibold border-b border-black mt-5 mb-2">Chips Closing Report</p>
       <div className="grid grid-cols-3 gap-4 mb-4">
@@ -109,8 +107,6 @@ const ChipMovementReport = ({
         <DenomTable title="Miss Chips" data={missPerDenom} total={totals.miss} signed />
         <DenomTable title="Cash Desk Chips Close" data={closingChips} total={totals.close} />
       </div>
-
-      <CommentsBox label="Comments" />
 
       {/* Signatures */}
       <div className="grid grid-cols-2 gap-8 mt-8">
