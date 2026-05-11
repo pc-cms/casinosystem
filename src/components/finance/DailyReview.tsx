@@ -79,7 +79,7 @@ export const DailyReview = () => {
     try {
       await upsert.mutateAsync({
         date: selectedDate,
-        tables_result: cashResult,
+        tables_result: tablesResult,
         slots_result: slotsValue,
         total_expenses: cageExpenses,
         confirmed: true,
@@ -165,7 +165,7 @@ export const DailyReview = () => {
   const handleSave = () => {
     upsert.mutate({
       date: selectedDate,
-      tables_result: cashResult,
+      tables_result: tablesResult,
       slots_result: slotsValue,
       total_expenses: cageExpenses,
       confirmed: false,
