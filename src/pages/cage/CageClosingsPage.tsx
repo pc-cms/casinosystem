@@ -35,7 +35,7 @@ const CageClosingsPage = () => {
       if (!casinoId) return [];
       const { data, error } = await supabase
         .from("shifts")
-        .select("id, opened_at, closed_at, cash_result, miss_total, shift_result, notes, opened_by, closed_by")
+        .select("id, opened_at, closed_at, cash_result, miss_total, shift_result, notes, opened_by, closed_by, opening_float, closing_cash")
         .eq("casino_id", casinoId)
         .eq("status", "closed")
         .order("closed_at", { ascending: false })
