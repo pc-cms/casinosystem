@@ -124,17 +124,27 @@ const CageClosingsPage = () => {
                     </td>
                     <td className="px-3 py-2 text-muted-foreground truncate max-w-[280px]">{s.notes || "—"}</td>
                     <td className="px-3 py-2 text-right">
-                      {isManager && (
+                      <div className="flex justify-end gap-1.5">
                         <Button
                           size="sm"
                           variant="outline"
                           className="gap-1 h-7 text-[11px]"
-                          onClick={() => setPendingShift(s)}
-                          disabled={reopen.isPending}
+                          onClick={() => setReprintShiftId(s.id)}
                         >
-                          <RotateCcw className="w-3 h-3" /> Reopen
+                          <Printer className="w-3 h-3" /> Print
                         </Button>
-                      )}
+                        {isManager && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="gap-1 h-7 text-[11px]"
+                            onClick={() => setPendingShift(s)}
+                            disabled={reopen.isPending}
+                          >
+                            <RotateCcw className="w-3 h-3" /> Reopen
+                          </Button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );
