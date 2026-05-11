@@ -190,12 +190,7 @@ const ShiftClosingReport = ({
         </thead>
         <tbody>
           {reportTables.map(t => {
-            const op = baselines[t.id] || 0;
-            const fl = fillCredits[t.id]?.fill || 0;
-            const cr = fillCredits[t.id]?.credit || 0;
-            const cl = sumChipsObj(t.closing_chips as any);
-            const inVal = fl;
-            const res = cl - op;
+            const { op, fl, cr, cl, inVal, res } = rowFor(t);
             return (
               <tr key={t.id}>
                 <td className="border border-black px-2 py-1 font-semibold">{t.name}</td>
