@@ -425,11 +425,11 @@ const CloseShiftDialog = ({
               <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground font-semibold mb-3">Shift Results</p>
               <div className="grid grid-cols-3 gap-3">
                 <KpiTile label="Tables Result" value={resultTable} tone={resultTable >= 0 ? "pos" : "neg"} />
-                <KpiTile label="Cash Desk Balance" value={balance} tone={isBalanced ? "ok" : balance > 0 ? "pos" : "neg"} />
+                <KpiTile label="Shift Balance" value={balance} tone={isBalanced ? "ok" : balance > 0 ? "pos" : "neg"} />
                 <KpiTile label="Money Result" value={moneyResult} tone={moneyResult >= 0 ? "pos" : "neg"} />
               </div>
               <p className="text-[10px] text-muted-foreground mt-2 italic">
-                Money Result = Buy/In − Cashout. Tables Result = sum of table P&L. Balance must be zero.
+                Shift Balance = Tables Result − Counted Money Δ − Miss Chips − Expenses. Must be zero.
               </p>
             </div>
 
