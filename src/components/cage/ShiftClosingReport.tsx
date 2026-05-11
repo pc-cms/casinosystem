@@ -47,20 +47,17 @@ const ShiftClosingReport = ({
   const [casinoName, setCasinoName] = useState("Casino");
   const [baselines, setBaselines] = useState<Record<string, number>>({}); // tableId -> TZS value
   const [fillCredits, setFillCredits] = useState<Record<string, { fill: number; credit: number }>>({});
-  const [drops, setDrops] = useState<Record<string, number>>({});
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       if (!casinoId || !shift) return;
-      const [{ data: c }, { data: bl }, { data: tr }, { data: tt }] = await Promise.all([
+      const [{ data: c }, { data: bl }, { data: tr }] = await Promise.all([
         supabase.from("casinos").select("name").eq("id", casinoId).maybeSingle(),
         supabase.from("chip_baseline").select("location_id, denomination, expected_quantity")
           .eq("casino_id", casinoId).eq("location_type", "table"),
         supabase.from("cage_transfers").select("table_id, transfer_type, amount")
           .eq("shift_id", shift.id).in("transfer_type", ["fill", "credit"]),
-        supabase.from("table_tracker").select("table_id, value")
-          .eq("casino_id", casinoId).eq("date", businessDate),
       ]);
       if (cancelled) return;
       if (c?.name) setCasinoName(c.name);
@@ -78,9 +75,6 @@ const ShiftClosingReport = ({
         else if (r.transfer_type === "credit") fc[r.table_id].credit += Number(r.amount);
       });
       setFillCredits(fc);
-      const dr: Record<string, number> = {};
-      (tt || []).forEach((r: any) => { dr[r.table_id] = (dr[r.table_id] || 0) + Number(r.value); });
-      setDrops(dr);
     })();
     return () => { cancelled = true; };
   }, [casinoId, shift?.id, businessDate]);
@@ -92,18 +86,20 @@ const ShiftClosingReport = ({
   );
 
   const totals = useMemo(() => {
-    let open = 0, fill = 0, credit = 0, close = 0, drop = 0, gt = 0;
+    let open = 0, fill = 0, credit = 0, close = 0, inSum = 0, result = 0;
     reportTables.forEach(t => {
       const op = baselines[t.id] || 0;
       const fl = fillCredits[t.id]?.fill || 0;
       const cr = fillCredits[t.id]?.credit || 0;
       const cl = sumChipsObj(t.closing_chips as any);
-      const dp = drops[t.id] || 0;
-      const grand = Number(t.closing_result || 0);
-      open += op; fill += fl; credit += cr; close += cl; drop += dp; gt += grand;
+      // IN = same as Fill (cage_transfers fill = Cash IN at Cash Desk for this table)
+      const inVal = fl;
+      // Result = Close − Open (final chip count minus baseline)
+      const res = cl - op;
+      open += op; fill += fl; credit += cr; close += cl; inSum += inVal; result += res;
     });
-    return { open, fill, credit, close, drop, gt };
-  }, [reportTables, baselines, fillCredits, drops]);
+    return { open, fill, credit, close, in: inSum, result };
+  }, [reportTables, baselines, fillCredits]);
 
   // Cash flow opener (per currency cash + mobile from opening_float)
   const openerCash = (openingFloat?.cash || {}) as Record<string, Record<string | number, number>>;
@@ -158,7 +154,7 @@ const ShiftClosingReport = ({
       <table className="w-full border-collapse mb-3 text-[11px]">
         <thead>
           <tr className="bg-gray-100">
-            {["Table", "Open", "Fill", "Credit", "Close", "Drop", "Grand Total"].map(h => (
+            {["Table", "Open", "Fill", "Credit", "Close", "IN", "Result"].map(h => (
               <th key={h} className="border border-black px-2 py-1 text-left font-semibold">{h}</th>
             ))}
           </tr>
@@ -169,8 +165,8 @@ const ShiftClosingReport = ({
             const fl = fillCredits[t.id]?.fill || 0;
             const cr = fillCredits[t.id]?.credit || 0;
             const cl = sumChipsObj(t.closing_chips as any);
-            const dp = drops[t.id] || 0;
-            const grand = Number(t.closing_result || 0);
+            const inVal = fl;
+            const res = cl - op;
             return (
               <tr key={t.id}>
                 <td className="border border-black px-2 py-1 font-semibold">{t.name}</td>
@@ -178,9 +174,9 @@ const ShiftClosingReport = ({
                 <td className="border border-black px-2 py-1 text-right tabular-nums">{num(fl)}</td>
                 <td className="border border-black px-2 py-1 text-right tabular-nums">{num(cr)}</td>
                 <td className="border border-black px-2 py-1 text-right tabular-nums">{num(cl)}</td>
-                <td className="border border-black px-2 py-1 text-right tabular-nums">{num(dp)}</td>
+                <td className="border border-black px-2 py-1 text-right tabular-nums">{num(inVal)}</td>
                 <td className="border border-black px-2 py-1 text-right tabular-nums font-semibold">
-                  {grand === 0 ? "0" : (grand > 0 ? numAlways(grand) : `-${numAlways(Math.abs(grand))}`)}
+                  {res === 0 ? "0" : (res > 0 ? numAlways(res) : `-${numAlways(Math.abs(res))}`)}
                 </td>
               </tr>
             );
@@ -192,9 +188,9 @@ const ShiftClosingReport = ({
             <td className="border border-black px-2 py-1 text-right tabular-nums">{numAlways(totals.fill)}</td>
             <td className="border border-black px-2 py-1 text-right tabular-nums">{numAlways(totals.credit)}</td>
             <td className="border border-black px-2 py-1 text-right tabular-nums">{numAlways(totals.close)}</td>
-            <td className="border border-black px-2 py-1 text-right tabular-nums">{numAlways(totals.drop)}</td>
+            <td className="border border-black px-2 py-1 text-right tabular-nums">{numAlways(totals.in)}</td>
             <td className="border border-black px-2 py-1 text-right tabular-nums">
-              {totals.gt >= 0 ? numAlways(totals.gt) : `-${numAlways(Math.abs(totals.gt))}`}
+              {totals.result >= 0 ? numAlways(totals.result) : `-${numAlways(Math.abs(totals.result))}`}
             </td>
           </tr>
         </tbody>
@@ -229,7 +225,7 @@ const ShiftClosingReport = ({
 
         {/* Summary panel */}
         <div className="space-y-1">
-          <SummaryRow label="Tables Result" value={totals.gt} bold />
+          <SummaryRow label="Tables Result" value={totals.result} bold />
           <SummaryRow label="Cash Flow FILL" value={totals.fill} />
           <SummaryRow label="Cash Flow CREDIT" value={totals.credit} />
           <SummaryRow label="Cash Desk Chips FILL" value={0} />

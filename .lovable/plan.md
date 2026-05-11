@@ -1,38 +1,58 @@
-## Что меняем
 
-Файл: `src/pages/WeeklyBonus.tsx`. Только UI, без БД.
+# Fix Shift Closing Reports
 
-## Логика
+## Goal
 
-Касиру нужно подготовить физические купюры для выплаты бонуса. Иногда какого-то номинала нет (например, нет 2 000) — он перекладывает в другие (добавит 1 000). Должно быть видно, хватает ли подготовленных купюр на общую сумму выплаты.
+Correct field semantics in **Consolidating Cash Desk Report** (page 1), guarantee both reports print as 2 distinct A4 pages, and apply the same fixes in `ReprintShiftDialog`.
 
-## Изменения в существующей строке Totals (внизу таблицы)
+## Page 1 — Consolidating Cash Desk Report
 
-Сейчас в строке `Totals` колонки 10K / 5K / 2K / 1K показывают подсчитанные количества как текст и помечены `no-print`. Делаем:
+Rename and recompute the per-table grid columns to match real semantics:
 
-1. **Колонки купюр становятся редактируемыми** — вместо текста ставим маленький `<Input type="text" inputMode="numeric">` с количеством. Префилл = `denomTotals[d]` (текущий авто-подсчёт). Хранение в локальном state `payoutOverride: Record<number, number>`.
-2. **Авто-сброс**: при изменении `denomTotals` (новая Calculate / правки бонусов) — пересоздаём `payoutOverride` из `denomTotals`. Ручные правки касира действительны до следующего пересчёта.
-3. **Колонка `Bonus TZS` в строке Totals** — ниже текущей цифры (`fmtMoney(totalDistributed)`) добавляем второй ряд:
-   - **Prepared** = Σ(count × denom) — сумма подготовленных касиром купюр.
-   - **Diff** = Prepared − Distributed.
-     - `0` → зелёный «✓»
-     - `> 0` → янтарный «+X» (лишние купюры)
-     - `< 0` → красный «−X» (не хватает, добавь ещё)
-4. **Снимаем `no-print`** с колонок купюр в строке Totals — на печать должны выводиться итоговые количества + Prepared + Diff (касиру нужен бумажный лист подготовки). В обычных строках (per-dealer) колонки купюр остаются `no-print` как сейчас.
-5. **Lock**: при `locked` инпуты — `disabled` (как везде на этой странице).
+| Column | Source | Notes |
+|---|---|---|
+| **Table** | `gaming_tables.name` | unchanged |
+| **Open** | sum of `chip_baseline` for that table (TZS value) | unchanged — already correct |
+| **Fill** | `cage_transfers.amount` where `transfer_type='fill'` AND `table_id=t.id` | Chips IN to cash desk from this table |
+| **Credit** | `cage_transfers.amount` where `transfer_type='credit'` AND `table_id=t.id` | Chips OUT from cash desk to this table |
+| **Close** | sum of `gaming_tables.closing_chips` JSONB (final chip count before reset) | unchanged |
+| **IN** *(renamed from Drop)* | sum of `cage_transfers.amount` where `transfer_type='fill'` AND `table_id=t.id` | All Cash IN at Cash Desk for this table during the shift. **Stop using `table_tracker`.** Header text: `IN`. |
+| **Result** | `Close − Open` (i.e. `sum(closing_chips) − baseline`) | **Stop using `gaming_tables.closing_result`.** Recompute purely from Close − Baseline per row. Color: positive normal, negative shown with leading `-`. |
 
-## Как это выглядит
+Total row recomputed accordingly (sum each column).
 
-```text
-                       … │ Bonus TZS         │ SIGN │ 10K │ 5K  │ 2K │ 1K │
-─────────────────────────┼───────────────────┼──────┼─────┼─────┼────┼────┤
-Totals (Hours: 412)      │ 12 450 000        │      │[800]│[600]│[200]│[1050]│
-                         │ Prepared 12 450 000│      │     │     │    │    │
-                         │ Diff       0    ✓ │      │     │     │    │    │
-```
+Note: `Fill` and `IN` will be identical numbers (both come from the same `cage_transfers fill` rows). That's intentional — the legacy form keeps both columns.
 
-## Вне scope
+Remove the `table_tracker` query in `ShiftClosingReport.tsx` (no longer needed for the IN column).
 
-- Не сохраняем `payoutOverride` в БД (это рабочий инструмент перед выплатой).
-- Не трогаем per-dealer строки, KPI-строку шапки и формат печати остального листа.
-- Без новых валют — только TZS, текущий `DENOMS = [10000, 5000, 2000, 1000]`.
+## Page 2 — Chips Movement Report
+
+No semantic changes. Already correct.
+
+## Print: 2 separate A4 pages
+
+Currently both reports render in the same dialog tree, with Chip report using `print:break-before-page`. Strengthen the split so each is exactly one A4 page:
+
+1. In `src/index.css` `@media print`:
+   - `#shift-print-area { page: A4; page-break-after: always; break-after: page; }`
+   - `#chip-print-area { page: A4; page-break-before: always; break-before: page; }`
+   - Add `@page { size: A4 portrait; margin: 10mm; }`
+   - Both areas: `width: 100%; max-height: 277mm; overflow: hidden;` to prevent overflow into a 3rd page.
+2. Tighten Page 1 vertical density (text-[10px] for table rows, smaller paddings) to fit comfortably on one A4 portrait page given the table list size.
+3. Verify no stray margins on the parent `print:block` container leak between pages.
+
+## Reprint dialog
+
+Apply identical changes in `src/components/cage/ReprintShiftDialog.tsx` so reprinted closed shifts use the same corrected layout (it already imports `ShiftClosingReport` and `ChipMovementReport`, so changes propagate automatically — only verify the wrapper enforces the same page-break CSS).
+
+## Files to edit
+
+- `src/components/cage/ShiftClosingReport.tsx` — rename `Drop`→`IN`, switch IN to `cage_transfers fill`, recompute Result as `Close − Open`, drop `table_tracker` fetch.
+- `src/index.css` — strengthen `@page` and per-area page-break rules.
+- `src/components/cage/ReprintShiftDialog.tsx` — confirm wrapper CSS classes match and that no extra margins break pagination.
+
+## Out of scope
+
+- No DB changes, no backend changes (no version bump).
+- No changes to Chips Movement Report content.
+- No changes to Cash Flow Opener/Closer or summary panel logic.
