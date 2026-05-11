@@ -322,6 +322,8 @@
 
   .print-target,
   .print-target *,
+  .cms-print-root,
+  .cms-print-root *,
   #shift-print-area,
   #shift-print-area *,
   #chip-print-area,
@@ -340,7 +342,21 @@
     padding: 0 !important;
   }
 
-  /* Cash Desk Closing Report — full page */
+  /* Cash Desk Closing Report — full page.
+   * `.cms-print-root` is appended directly to <body> via PrintPortal so it
+   * escapes the Radix Dialog `transform` containing block. Anchored at the
+   * top-left of the page so the first printable page is never blank. */
+  .cms-print-root {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    background: white !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    display: block !important;
+  }
   #shift-print-area,
   #chip-print-area {
     position: relative !important;
