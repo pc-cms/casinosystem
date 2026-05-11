@@ -134,9 +134,12 @@ const CloseShiftDialog = ({
   //   ⇒ Balance = Tables Result − CashDelta − MissChips − Expenses  (must be 0)
   // CashDelta = counted closing money (cash + mobile + bank, TZS) − opening cash.
   // MissChips is signed (negative = chips lost). Expenses are physically out of the till.
+  // Cash Result deduction = (Cash Opening − Float Added + Collection)
+  // → cash_result = closing cash − (opening cash − float added + collection)
+  //               = closing cash − opening cash + float added − collection
   const cashDelta = useMemo(
-    () => closingCashTotalTzs - openingCashTzs,
-    [closingCashTotalTzs, openingCashTzs],
+    () => closingCashTotalTzs - (openingCashTzs - floatAdded + collectionTotal),
+    [closingCashTotalTzs, openingCashTzs, floatAdded, collectionTotal],
   );
   const balance = useMemo(
     () => resultTable - cashDelta - missTotal - totalExpenses,
