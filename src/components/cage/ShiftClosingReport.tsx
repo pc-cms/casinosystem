@@ -167,7 +167,7 @@ const ShiftClosingReport = ({
       open += op; fill += fl; credit += cr; close += cl; inSum += inVal; result += res;
     });
     return { open, fill, credit, close, in: inSum, result };
-  }, [reportTables, baselines, baselineByDenom, snapshotIndex, fillCredits, dailyResults, inByTable]);
+  }, [reportTables, baselines, fillCredits, dailyResults, inByTable, serverResults]);
 
   // Cash flow opener (per currency cash + mobile from opening_float)
   const openerCash = (openingFloat?.cash || {}) as Record<string, Record<string | number, number>>;
