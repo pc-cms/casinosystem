@@ -14,8 +14,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { CHIP_DENOMS, CURRENCIES, formatNumberSpaces, CASH_DENOMS } from "@/lib/currency";
 import { fmtDate } from "@/lib/format-date";
-// Result is computed server-side via compute_shift_table_results RPC.
-// UI no longer applies the Fill/Credit formula locally.
+import { buildLatestTableSnapshot, chipSnapshotResult, type BaselineMap } from "@/lib/table-live-result";
+// Authoritative Result is computed server-side via compute_shift_table_results RPC.
+// Snapshot index is still loaded for backward-compatible fallback only.
 import type { Tables } from "@/integrations/supabase/types";
 
 interface Props {
