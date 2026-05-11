@@ -108,9 +108,10 @@ const ReprintShiftDialog = ({ open, onClose, shiftId, casinoId }: Props) => {
           <div className="text-center text-muted-foreground py-10 text-sm">Loading…</div>
         ) : (
           <>
-            {/* Visible preview (zoomed out a bit so it fits) + print target */}
-            <div className="border border-border rounded-md overflow-hidden bg-white text-black print:border-0 print:rounded-none">
-              <div className="origin-top-left scale-[0.85] print:scale-100 print:transform-none w-[117%] print:w-auto">
+            {/* On-screen preview only — print is handled by PrintPortal below
+                so the printed output escapes the dialog's transform/clip. */}
+            <div className="border border-border rounded-md overflow-hidden bg-white text-black print:hidden">
+              <div className="origin-top-left scale-[0.85] w-[117%]">
                 <ShiftClosingReport
                   shift={shift}
                   tables={tables}
@@ -132,6 +133,30 @@ const ReprintShiftDialog = ({ open, onClose, shiftId, casinoId }: Props) => {
                 />
               </div>
             </div>
+
+            <PrintPortal>
+              <div className="hidden print:block">
+                <ShiftClosingReport
+                  shift={shift}
+                  tables={tables}
+                  closingCount={closingCount}
+                  openingFloat={shift.opening_float as any}
+                  exchangeRates={rates}
+                  totalExpenses={data?.totalExpenses || 0}
+                  missTotal={missTotal}
+                  resultTable={resultTable}
+                  balance={balance}
+                  businessDate={businessDate}
+                />
+                <ChipMovementReport
+                  shift={shift}
+                  openingChips={openingChips}
+                  closingChips={chipCounts}
+                  missPerDenom={missPerDenom}
+                  businessDate={businessDate}
+                />
+              </div>
+            </PrintPortal>
 
             <DialogFooter className="print:hidden">
               <Button variant="outline" onClick={onClose} className="gap-1.5">
