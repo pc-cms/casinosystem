@@ -1,69 +1,75 @@
-# Canonical Cash Desk Formula Integration
+## Задача
 
-## Formula (single source of truth)
+Сейчас Chip Count panel и автозапись в Number Count tracker показывают «сырой» результат `(actual − baseline) × denom`. Если за смену были Fill (кассир дал фишки столу) или Credit (кассир забрал фишки со стола) — цифра завышена/занижена ровно на их сумму. Финальный shift P&L при закрытии всё равно пересчитывается RPC корректно (`SnapResult − Fill + Credit`), но **во время смены** пит и менеджер видят неверные результаты, и неверные значения улетают в Number Count tracker.
+
+Исправляем: везде во время смены показываем **adjusted** результат:
 
 ```
-Cash Desk Result = (ClosingCash − OpeningCash)
-                 + Expenses
-                 + Collection
-                 − AddFloat
-                 + SlotsOut
-                 − SlotsIn
-                 + Miss                       (signed: counted − opening)
-
-Shift Balance    = Cash Desk Result − TableResult        (must = 0)
+DisplayedResult = (actual − baseline) × denom − ΣFill + ΣCredit
 ```
 
-Verified on May 5, 6, 7, 8, 9, 10 — all closed shifts with complete data converge to **0**. Historical gaps (02/05, 04/05) remain as-is — they're missing closing cash, not formula bugs.
+Fill/Credit берём из `cage_transfers` за **активную смену** на каждый стол.
 
 ---
 
-## 1. Database (migration)
+## Что меняется
 
-**New RPC `compute_shift_balance(_shift_id uuid)`** — returns JSONB with all 9 components plus `cash_desk_result` and `shift_balance`. Pulls:
-- `opening_cash` / `closing_cash` from `shifts.opening_float.totals` (totals.total_tzs − totals.chips_tzs)
-- `expenses` — sum of `expenses` rows for shift
-- `add_float`, `collection`, `slots_in`, `slots_out` — sum of `cage_transfers` by `transfer_type`
-- `miss` — `shifts.miss_total` (signed)
-- `tables_result` — `shifts.tables_result`
+### 1. Источник Fill/Credit — новый хук
+Новый `src/hooks/use-shift-table-adjustments.ts`:
+- Вход: `shiftId` (активная смена для текущего бизнес-дня).
+- Запрос: `cage_transfers` где `shift_id = :shiftId` и `transfer_type IN ('fill','credit')`.
+- Возвращает map `{ [tableId]: { fill: number, credit: number, adjustment: number } }` где `adjustment = credit − fill` (готов к прибавлению к raw SnapResult).
+- Использует `useActiveShift()` чтобы взять текущую открытую смену.
 
-**New columns on `shifts`:**
-- `cash_desk_result bigint` — canonical cash side
-- `balance bigint` — `cash_desk_result − tables_result`
+### 2. ChipCountPanel (`src/components/tables/ChipCountPanel.tsx`)
+- Подключить новый хук.
+- В `rowResults` менять формулу:
+  ```
+  total = rawSnapDelta + adjustments[loc.id].adjustment
+  ```
+- `grandTotal` пересчитается автоматически (сумма adjusted строк).
+- В блоке Snapshot history — тоже применить adjustment (история показывает adjusted, чтобы пит понимал, что видел в моменте).
+- При `handleSave` → `setTrackerValue.mutate({ value: rowResults[ri].total })` — пишем уже **adjusted** значение в Number Count.
 
-**Trigger `shifts_recompute_balance`** — `BEFORE UPDATE` on `shifts`: when `status` changes to `closed` OR any of the inputs change, recomputes both columns from RPC.
+### 3. Live Table Result (`src/lib/table-live-result.ts`)
+- Расширить `LiveResultArgs`: добавить опциональный `adjustmentMap?: Record<string, number>` (tableId → credit − fill).
+- В `liveTableResult`: если `closingResult` нет, к chipSnapshotResult прибавить adjustment.
+- Все вызывающие (`Tables.tsx`, `TablesAnalytics.tsx`, дашборды) — пробросить adjustments из нового хука. Места найти `rg "liveTableResult\("`.
 
-**Backfill** — one-time `UPDATE` on all closed shifts to populate new columns.
+### 4. Number Count tracker (`src/pages/TableTracker.tsx`)
+Вьюшка только показывает значения из БД — она ничего не пересчитывает. Поскольку с шага 2 в `table_tracker` уже пишутся adjusted значения, исторические слоты после первого Chip Count в новой логике будут корректные. Старые записи трогать не надо (immutable data, см. Core Principles).
 
-**`cage_transfers.transfer_type` enum** — already declared in TS as `collection`; verify the DB CHECK/enum allows it. Add it if missing.
+### 5. Подсказка для пита
+В заголовке Chip Count panel под "Rows: tables · Columns: denominations" показать мелкую строку:
+```
+Result includes Fill/Credit adjustments for current shift
+```
+Чтобы пит понимал, что цифра — это уже реальный P&L стола, а не разница фишек.
 
-## 2. Frontend
+---
 
-**New `src/lib/cage-balance.ts`** — pure-TS port of the same formula for live preview during Close Shift. Single export `computeShiftBalance(inputs) → { cashDeskResult, shiftBalance, components }`.
+## Что НЕ меняется
 
-**`src/components/cage/CageHelpers.ts`** — replace `cashDeskBalance()` (currently uses old `(closing − opening) − resultTable − external + expenses` model) with thin wrapper around `cage-balance.ts`. Remove "openingChips inside closing" assumption — Miss is now its own term.
+- **DB RPC `compute_shift_table_results`** — там формула уже правильная (`SnapResult − Fill + Credit`). Это источник истины для `shifts.tables_result` при закрытии смены. Никакой миграции не нужно.
+- **`shifts.tables_result`** и закрытие смены — без изменений.
+- **`chip_snapshots`** — продолжаем хранить только actual/expected фишек (физика). Корректировка применяется только на отображении.
+- **Прошлые snapshots и table_tracker записи** — не пересчитываем (immutable).
 
-**`src/pages/cage/CloseShiftPage.tsx`** — pass all 9 components to dialog instead of pre-aggregated `expectedCash`.
+---
 
-**`src/components/cage/CloseShiftDialog.tsx`** — Step 2 review card shows:
-- Cash Desk Result (computed live)
-- Shift Balance (red if `≠ 0`, doesn't block submit)
-- Collapsible 9-line breakdown (ΔCash, Expenses, Collection, AddFloat, SlotsOut, SlotsIn, Miss, TableResult, Balance)
+## Технические детали
 
-**`src/pages/cage/CageClosingsPage.tsx`** — read `shifts.cash_desk_result` and `shifts.balance` directly. Remove inline math. Tooltip on Balance shows the 9-component breakdown via the same RPC.
+**Файлы:**
+- `+ src/hooks/use-shift-table-adjustments.ts` (новый)
+- `~ src/components/tables/ChipCountPanel.tsx` (формула + history + tracker write)
+- `~ src/lib/table-live-result.ts` (опциональный adjustmentMap)
+- `~ src/pages/Tables.tsx`, `~ src/pages/TablesAnalytics.tsx`, и любые другие потребители `liveTableResult` — пробросить adjustments
 
-**`src/components/cage/TransfersForm.tsx`** + **`use-cage-transfers.ts`** — `collection` already wired in TS; just confirm DB accepts it after migration.
+**Поведение при оффлайне:** хук `useCageTransfers` уже использует react-query c кэшем, при оффлайне покажет последние известные значения. Это согласуется с binary online/offline моделью.
 
-## 3. Out of scope (untouched)
-- `tables_result` chip math — already canonical
-- `miss_total` calculation — already correct (signed)
-- Inter-casino transfers, slots cage in/out semantics
-- Business-day close, Reports, Daily Review
+**Знак adjustment:**
+- `transfer_type='fill'` → `direction='chip_to_table'` → стол получил фишки → вычитаем `amount`.
+- `transfer_type='credit'` → `direction='chip_from_table'` → стол отдал фишки → прибавляем `amount`.
+- Формула: `adjustment = Σ(credit.amount) − Σ(fill.amount)`, итог: `displayed = rawDelta + adjustment`.
 
-## 4. Verification after deploy
-- Open Cage Closings — every closed May shift shows `Balance = 0` for fully-entered days, non-zero with red badge for data gaps (02/05, 04/05).
-- Open Close Shift on the live shift — Step 2 shows live Cash Desk Result + Balance updating as cashier counts.
-- Insert a Collection cage transfer — verify it deducts from Cash Desk Result.
-
-## 5. Auto version bump
-Patch-bump `package.json` (backend change: migration + trigger + RPC).
+**Backend изменений нет** → версию package.json бампать не нужно (правило Core применяется только к backend изменениям).
