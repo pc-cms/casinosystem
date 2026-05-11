@@ -147,7 +147,19 @@ export const useCloseShift = () => {
         expected_cash?: number;
       };
 
-      // 2. Persist the closing snapshot using server-truth values.
+      // 2. CASH RESULT = real money counted by the cashier at closing
+      //    (cash + mobile + bank, excluding chips). Comes from the cashier's
+      //    final count, not from a formula. Falls back to RPC value if the
+      //    closing count totals are missing for any reason.
+      const cc = (input.closing_count as any)?.totals || {};
+      const countedTotal = Number(cc.total_tzs || 0);
+      const countedChips = Number(cc.chips_tzs || 0);
+      const countedCash = Math.max(countedTotal - countedChips, 0);
+      const cashResultFinal = countedTotal > 0
+        ? countedCash
+        : Number(totals.cash_result ?? input.cash_result ?? 0);
+
+      // 3. Persist the closing snapshot using server-truth values.
       const { error } = await supabase
         .from("shifts")
         .update({
@@ -157,13 +169,12 @@ export const useCloseShift = () => {
           closing_count: input.closing_count,
           closing_cash: {
             ...input.closing_cash,
-            // Overwrite with authoritative numbers in case the UI drifted.
-            cash_result: Number(totals.cash_result ?? input.cash_result ?? 0),
+            cash_result: cashResultFinal,
             shift_result: Number(totals.shift_result ?? input.shift_result ?? 0),
             expected_authoritative: Number(totals.expected_cash ?? 0),
           },
           notes: input.notes,
-          cash_result: Number(totals.cash_result ?? input.cash_result ?? 0),
+          cash_result: cashResultFinal,
           miss_total: Number(totals.miss_total ?? input.miss_total ?? 0),
           shift_result: Number(totals.shift_result ?? input.shift_result ?? 0),
         } as any)
