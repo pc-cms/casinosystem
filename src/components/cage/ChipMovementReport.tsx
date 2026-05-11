@@ -172,17 +172,4 @@ const CommentsBox = ({ label }: { label: string }) => (
   </div>
 );
 
-const SignatureBlock = ({ label, name }: { label: string; name?: string }) => (
-  <div>
-    <div className="flex items-end gap-3">
-      <span className="font-semibold whitespace-nowrap">{label}:</span>
-      <span className="flex-1 border-b border-black pb-0.5 font-semibold uppercase">{name || ""}</span>
-    </div>
-    <div className="flex items-end gap-3 mt-5">
-      <span className="font-semibold whitespace-nowrap">Signature:</span>
-      <span className="flex-1 border-b border-black h-5" />
-    </div>
-  </div>
-);
-
 export default ChipMovementReport;
