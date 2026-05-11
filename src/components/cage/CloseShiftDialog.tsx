@@ -27,15 +27,16 @@ interface CloseShiftDialogProps {
   open: boolean;
   onClose: () => void;
   shift: Tables<"shifts">;
-  expectedBalance: number;
   cashResult: number;
   totalBuyIns: number;
   totalCashouts: number;
   totalExpenses: number;
-  externalCashMovement?: number;
   floatAdded?: number;
   collectionTotal?: number;
+  slotsIn?: number;
+  slotsOut?: number;
   openingFloat: number;
+  openingCash: number;
   tables: Tables<"gaming_tables">[];
   onConfirm: (data: {
     closingCount: Record<string, unknown>;
@@ -56,9 +57,9 @@ interface CloseShiftDialogProps {
  *      with all entered data preserved.
  */
 const CloseShiftDialog = ({
-  open, onClose, shift, expectedBalance, cashResult, totalBuyIns, totalCashouts,
-  totalExpenses, externalCashMovement = 0, floatAdded = 0, collectionTotal = 0,
-  openingFloat, tables, onConfirm, loading,
+  open, onClose, shift, cashResult, totalBuyIns, totalCashouts,
+  totalExpenses, floatAdded = 0, collectionTotal = 0, slotsIn = 0, slotsOut = 0,
+  openingFloat, openingCash: openingCashProp, tables, onConfirm, loading,
 }: CloseShiftDialogProps) => {
   // sessionStorage persistence — survives page refresh while shift is being closed.
   const storageKey = `cms.close-shift.${shift?.id || "none"}`;
