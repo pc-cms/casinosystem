@@ -42,18 +42,25 @@ export const DailyReview = () => {
   const { data: cageExpenses = 0 } = useCageExpensesForDate(selectedDate);
   const { data: shiftClosing } = useShiftClosingForDate(selectedDate);
   const { data: casinoInfo } = useCasinoInfo();
+  // Canonical chip-based shift P&L for the date — Σ shifts.tables_result.
+  // (Was previously confused with cash result, which corrupted Finance KPIs.)
+  const { data: tablesResultDate = 0 } = useTablesResultForDate(selectedDate);
   const upsert = useUpsertDailySummary();
   const createTx = useCreateWalletTransaction();
 
   const existing = summaries.find(s => s.date === selectedDate);
 
-  // Cash result from cage shift (buy-ins − cashouts)
+  // Cash result from cage shift (closing cash − opening cash, adjusted for float/collection).
+  // Analytical only here — NOT written into daily_summaries.tables_result anymore.
   const cashResult = Number((shiftClosing?.closing_cash as any)?.cash_result) || 0;
   const hasShiftData = !!shiftClosing;
   const rates = (shiftClosing?.exchange_rates || {}) as Record<string, number>;
 
   const slotsValue = existing?.confirmed ? existing.slots_result : parseSpacedNumber(slotsInput);
-  const totalResult = cashResult + slotsValue;
+  // Day's tables result: prefer just-loaded canonical RPC sum; on confirmed
+  // days fall back to the persisted summary (matches what was saved).
+  const tablesResult = existing?.confirmed ? Number(existing.tables_result || 0) : Number(tablesResultDate || 0);
+  const totalResult = tablesResult + slotsValue;
   const netResult = totalResult - cageExpenses;
 
   // Float equalization
