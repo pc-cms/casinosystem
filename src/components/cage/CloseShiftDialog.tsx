@@ -475,33 +475,37 @@ const CloseShiftDialog = ({
             </div>
           </div>
 
-          {/* Print-only: hidden on screen, visible when window.print() runs */}
-          <div className="hidden print:block">
-            <ShiftClosingReport
-              shift={shift}
-              tables={tables}
-              closingCount={{
-                chips: chipCounts,
-                cash: cashCounts,
-                mobile: mobileBal,
-                bank: bankBal,
-              }}
-              openingFloat={shift.opening_float as any}
-              exchangeRates={rates}
-              totalExpenses={totalExpenses}
-              missTotal={missTotal}
-              resultTable={resultTable}
-              balance={balance}
-              businessDate={businessDate}
-            />
-            <ChipMovementReport
-              shift={shift}
-              openingChips={openingChips}
-              closingChips={chipCounts}
-              missPerDenom={missPerDenom}
-              businessDate={businessDate}
-            />
-          </div>
+          {/* Print-only: portaled to body so it escapes the dialog's
+              transform containing block (otherwise the first printed page
+              comes up blank and the second page is clipped). */}
+          <PrintPortal>
+            <div className="hidden print:block">
+              <ShiftClosingReport
+                shift={shift}
+                tables={tables}
+                closingCount={{
+                  chips: chipCounts,
+                  cash: cashCounts,
+                  mobile: mobileBal,
+                  bank: bankBal,
+                }}
+                openingFloat={shift.opening_float as any}
+                exchangeRates={rates}
+                totalExpenses={totalExpenses}
+                missTotal={missTotal}
+                resultTable={resultTable}
+                balance={balance}
+                businessDate={businessDate}
+              />
+              <ChipMovementReport
+                shift={shift}
+                openingChips={openingChips}
+                closingChips={chipCounts}
+                missPerDenom={missPerDenom}
+                businessDate={businessDate}
+              />
+            </div>
+          </PrintPortal>
         </div>
 
         <ManagerOverrideDialog
