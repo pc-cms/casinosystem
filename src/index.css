@@ -323,7 +323,9 @@
   .print-target,
   .print-target *,
   #shift-print-area,
-  #shift-print-area * {
+  #shift-print-area *,
+  #chip-print-area,
+  #chip-print-area * {
     visibility: visible !important;
     color-scheme: light !important;
     color: #000 !important;
@@ -338,16 +340,19 @@
     padding: 0 !important;
   }
 
-  /* Cash Desk Closing Report — A4 portrait, full page */
-  #shift-print-area {
-    position: absolute !important;
+  /* Cash Desk Closing Report — full page */
+  #shift-print-area,
+  #chip-print-area {
+    position: relative !important;
     left: 0 !important;
-    top: 0 !important;
     width: 100% !important;
     background: white !important;
     padding: 8mm !important;
     margin: 0 !important;
     display: block !important;
+  }
+  #chip-print-area {
+    page-break-before: always;
   }
 
   /* Print header shown at the top of each page/section */

@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertTriangle, CheckCircle2, ShieldAlert, Lock, ArrowLeft, Printer } from "lucide-react";
 import ShiftClosingReport from "@/components/cage/ShiftClosingReport";
+import ChipMovementReport from "@/components/cage/ChipMovementReport";
 import { CHIP_DENOMS, formatCurrency, formatChipLabel, formatNumberSpaces, formatCashDenomLabel, CURRENCIES, CASH_DENOMS, CURRENCY_SYMBOLS } from "@/lib/currency";
 import { cashSum } from "@/components/cage/CashDenomInput";
 import CashCountGrid from "@/components/cage/CashCountGrid";
@@ -482,6 +483,13 @@ const CloseShiftDialog = ({
               missTotal={missTotal}
               resultTable={resultTable}
               balance={balance}
+              businessDate={businessDate}
+            />
+            <ChipMovementReport
+              shift={shift}
+              openingChips={openingChips}
+              closingChips={chipCounts}
+              missPerDenom={missPerDenom}
               businessDate={businessDate}
             />
           </div>
