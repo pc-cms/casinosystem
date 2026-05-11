@@ -3603,6 +3603,13 @@ export type Database = {
         }[]
       }
       compute_shift_close: { Args: { p_shift_id: string }; Returns: Json }
+      compute_shift_table_results: {
+        Args: { p_shift_id: string }
+        Returns: {
+          result: number
+          table_id: string
+        }[]
+      }
       compute_tables_drop_split: {
         Args: { _casino_id: string; _from: string; _to: string }
         Returns: {
