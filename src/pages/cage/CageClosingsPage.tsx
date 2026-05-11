@@ -4,16 +4,16 @@
  * existing Close Shift wizard can be re-used to enter the corrected closing
  * counts. Manager password is required (audited via system_logs).
  */
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { addMonths, format, startOfMonth, subMonths } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Landmark, RotateCcw, AlertTriangle, Printer } from "lucide-react";
+import { Landmark, RotateCcw, AlertTriangle, Printer, ChevronLeft, ChevronRight } from "lucide-react";
 import { formatNumberSpaces } from "@/lib/currency";
 import { fmtDate } from "@/lib/format-date";
 import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
@@ -27,10 +27,21 @@ const CageClosingsPage = () => {
   const [pendingShift, setPendingShift] = useState<any | null>(null);
   const [reprintShiftId, setReprintShiftId] = useState<string | null>(null);
 
+  // Month picker — same unified pattern as Miss Chips / Bank Checks.
+  const today = useMemo(() => new Date(), []);
+  const [monthAnchor, setMonthAnchor] = useState<Date>(startOfMonth(today));
+  const monthLabel = format(monthAnchor, "MMMM yyyy");
+  const monthStart = startOfMonth(monthAnchor);
+  const monthEnd = startOfMonth(addMonths(monthAnchor, 1));
+  const goPrev = () => setMonthAnchor((d) => startOfMonth(subMonths(d, 1)));
+  const goNext = () => setMonthAnchor((d) => startOfMonth(addMonths(d, 1)));
+  const goCurrent = () => setMonthAnchor(startOfMonth(today));
+  const nextDisabled = monthAnchor >= startOfMonth(today);
+
   const isManager = roles.includes("manager") || roles.includes("super_admin") || roles.includes("finance_manager");
 
   const { data: shifts = [], isLoading } = useQuery({
-    queryKey: ["closed-shifts", casinoId],
+    queryKey: ["closed-shifts", casinoId, monthStart.toISOString()],
     queryFn: async () => {
       if (!casinoId) return [];
       const { data, error } = await supabase
@@ -38,8 +49,10 @@ const CageClosingsPage = () => {
         .select("id, opened_at, closed_at, cash_result, miss_total, shift_result, notes, opened_by, closed_by, opening_float, closing_cash")
         .eq("casino_id", casinoId)
         .eq("status", "closed")
+        .gte("closed_at", monthStart.toISOString())
+        .lt("closed_at", monthEnd.toISOString())
         .order("closed_at", { ascending: false })
-        .limit(60);
+        .limit(200);
       if (error) throw error;
       return data || [];
     },
@@ -69,7 +82,32 @@ const CageClosingsPage = () => {
       <PageHeader
         icon={Landmark}
         title="Cage Closings"
-        subtitle="Manager-only · Reopen a closed shift to correct the closing count"
+        subtitle={`Manager-only · Reopen a closed shift to correct the closing count · ${monthLabel}`}
+        date
+        centerSlot={
+          <div className="flex items-center gap-1">
+            <Button variant="outline" size="icon" className="h-8 w-8" onClick={goPrev}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 font-mono min-w-[140px]"
+              onClick={goCurrent}
+            >
+              {monthLabel}
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              onClick={goNext}
+              disabled={nextDisabled}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        }
       >
         <Button variant="outline" size="sm" onClick={() => nav("/cage")}>Back to Cage</Button>
       </PageHeader>
@@ -82,7 +120,7 @@ const CageClosingsPage = () => {
       )}
 
       <div className="cms-panel">
-        <div className="cms-header">Recent Closed Shifts ({shifts.length})</div>
+        <div className="cms-header">Closed Shifts · {monthLabel} ({shifts.length})</div>
         <div className="overflow-x-auto max-h-[70vh] overflow-y-auto">
           <table className="w-full text-xs">
             <thead className="sticky top-0 bg-card z-10">
