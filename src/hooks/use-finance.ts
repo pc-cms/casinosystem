@@ -292,15 +292,20 @@ export function useTablesResultForDate(date: string) {
       const nextDay = new Date(date);
       nextDay.setDate(nextDay.getDate() + 1);
       const nextDayStr = nextDay.toISOString().slice(0, 10);
+      // Canonical chip-based P&L: shifts.tables_result (computed by DB
+      // trigger from compute_shift_table_results). Fallback to legacy
+      // shift_result for old rows that may not yet have tables_result set.
       const { data, error } = await supabase
         .from("shifts")
-        .select("shift_result")
+        .select("tables_result, shift_result")
         .eq("casino_id", casinoId)
         .gte("opened_at", `${date}T00:00:00`)
-        .lt("opened_at", `${nextDayStr}T00:00:00`)
-        .not("shift_result", "is", null);
+        .lt("opened_at", `${nextDayStr}T00:00:00`);
       if (error) throw error;
-      return (data || []).reduce((sum, s) => sum + (Number(s.shift_result) || 0), 0);
+      return (data || []).reduce((sum, s: any) => {
+        const v = s.tables_result ?? s.shift_result ?? 0;
+        return sum + Number(v);
+      }, 0);
     },
     enabled: !!casinoId && !!date,
   });
