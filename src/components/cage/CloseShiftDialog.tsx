@@ -16,6 +16,7 @@ import {
   type MobileProviders, type Banks,
 } from "@/components/cage/CageHelpers";
 import { useBatchChipSnapshot } from "@/hooks/use-chips";
+import { useShiftTablesResultTotal } from "@/hooks/use-shift-tables-result";
 import { getBusinessDate } from "@/lib/business-day";
 import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
 import { cn } from "@/lib/utils";
@@ -109,10 +110,26 @@ const CloseShiftDialog = ({
     [tables],
   );
   const tablesAllClosed = openTables.length === 0;
-  const resultTable = useMemo(
+  // Tables Result is the CANONICAL chip-based shift P&L:
+  //   Σ per table ((latest snapshot.actual − baseline.expected) × denom)
+  //   − Fill + Credit
+  // Computed by DB RPC `compute_shift_table_results`. We prefer it over
+  // summing `gaming_tables.closing_result` (Pit's wizard input), which is
+  // a different value that drifts from the chip-based source of truth.
+  // Fallback: if the RPC has no rows yet (e.g., no chip baseline / no
+  // snapshots on this date), fall back to the closed-table sum so today's
+  // close cannot be jammed by missing setup.
+  const { data: rpcTablesResult } = useShiftTablesResultTotal(shift?.id);
+  const fallbackTablesResult = useMemo(
     () => closedTables.reduce((s, t) => s + Number(t.closing_result || 0), 0),
     [closedTables],
   );
+  const resultTable = useMemo(() => {
+    if (rpcTablesResult !== undefined && rpcTablesResult !== null) {
+      return Number(rpcTablesResult);
+    }
+    return fallbackTablesResult;
+  }, [rpcTablesResult, fallbackTablesResult]);
 
   // ── Closing chips: per-denom miss ─────────────────────────────────────────
   const missPerDenom = useMemo(
@@ -444,6 +461,41 @@ const CloseShiftDialog = ({
                 Shift Balance = Tables Result − Counted Money Δ − Miss Chips − Expenses. Must be zero.
               </p>
             </div>
+
+            {/* IN/OUT AUDIT — analytical only, no financial impact.
+                Compares logged Σ(IN) − Σ(OUT) (player buy/sell transactions)
+                against the physical cash delta. A non-zero diff usually
+                means the cashier processed a buy/sell pair without
+                logging the transaction (cash↔chips swap is value-neutral,
+                so the cage still balances; only player tracker is incomplete).
+                Manual-entry philosophy: warn, never auto-correct. */}
+            {(() => {
+              const inOutNet = totalBuyIns - totalCashouts;
+              const inOutDiff = inOutNet - cashDelta;
+              const ok = inOutDiff === 0;
+              return (
+                <div className={cn(
+                  "rounded-lg border p-3 mt-4 text-xs",
+                  ok ? "border-border bg-muted/30" : "border-amber-500/40 bg-amber-500/5",
+                )}>
+                  <div className="flex items-center justify-between gap-3 font-mono">
+                    <span className="uppercase tracking-wider text-muted-foreground font-semibold">IN/OUT Audit</span>
+                    <div className="flex items-center gap-4">
+                      <span><span className="text-muted-foreground">Σ IN−OUT</span> {formatNumberSpaces(inOutNet)}</span>
+                      <span><span className="text-muted-foreground">Cash Δ</span> {formatNumberSpaces(cashDelta)}</span>
+                      <span className={ok ? "text-muted-foreground" : "text-amber-600 dark:text-amber-400 font-semibold"}>
+                        Diff {inOutDiff >= 0 ? "+" : ""}{formatNumberSpaces(inOutDiff)}
+                      </span>
+                    </div>
+                  </div>
+                  {!ok && (
+                    <p className="text-[11px] text-amber-700 dark:text-amber-400 mt-1.5">
+                      Likely missing IN/OUT entries — does not affect Cash Result, but player tracker is incomplete for this shift.
+                    </p>
+                  )}
+                </div>
+              );
+            })()}
 
             {notes && (
               <div className="mt-4 pt-3 border-t border-border">

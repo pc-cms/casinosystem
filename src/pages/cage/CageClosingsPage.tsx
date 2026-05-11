@@ -46,7 +46,7 @@ const CageClosingsPage = () => {
       if (!casinoId) return [];
       const { data, error } = await supabase
         .from("shifts")
-        .select("id, opened_at, closed_at, cash_result, miss_total, shift_result, notes, opened_by, closed_by, opening_float, closing_cash")
+        .select("id, opened_at, closed_at, cash_result, miss_total, shift_result, tables_result, notes, opened_by, closed_by, opening_float, closing_cash, closing_count")
         .eq("casino_id", casinoId)
         .eq("status", "closed")
         .gte("closed_at", monthStart.toISOString())
@@ -125,16 +125,16 @@ const CageClosingsPage = () => {
           <table className="w-full text-xs">
             <thead className="sticky top-0 bg-card z-10">
               <tr className="border-b border-border">
-                {["Opened", "Closed", "Cash Result", "Miss", "Tables Result", "Notes", ""].map(h => (
-                  <th key={h} className={`px-3 py-2 font-medium text-muted-foreground uppercase ${["Cash Result","Miss","Tables Result"].includes(h) ? "text-right" : "text-left"}`}>{h}</th>
+                {["Opened", "Closed", "Cash Result", "Miss", "Tables Result", "Balance", "Notes", ""].map(h => (
+                  <th key={h} className={`px-3 py-2 font-medium text-muted-foreground uppercase ${["Cash Result","Miss","Tables Result","Balance"].includes(h) ? "text-right" : "text-left"}`}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
-                <tr><td colSpan={7} className="text-center text-muted-foreground py-6">Loading…</td></tr>
+                <tr><td colSpan={8} className="text-center text-muted-foreground py-6">Loading…</td></tr>
               ) : shifts.length === 0 ? (
-                <tr><td colSpan={7} className="text-center text-muted-foreground py-6">No closed shifts</td></tr>
+                <tr><td colSpan={8} className="text-center text-muted-foreground py-6">No closed shifts</td></tr>
               ) : shifts.map((s: any) => {
                 const closedDate = s.closed_at ? new Date(s.closed_at) : null;
                 // Cash Result is already computed by the canonical formula
@@ -147,9 +147,21 @@ const CageClosingsPage = () => {
                 const rawCash = Number(s.cash_result || 0);
                 const cash = Number.isFinite(cashDeltaSnap) ? cashDeltaSnap : rawCash;
                 const miss = Number(s.miss_total || 0);
-                const result = Number(s.shift_result || 0);
-                // Strip auto-appended technical breadcrumbs from manager notes
-                // (legacy " | TABLES: … | MISS: … | BALANCE: … | mgr:…" trail).
+                // Tables Result is the canonical chip-based shift P&L
+                // (Σ per-table latest snapshot vs baseline − Fill + Credit),
+                // persisted in shifts.tables_result by DB trigger.
+                // Fallback chain for legacy rows: closing_count.result_table → shift_result.
+                const ccObj = (s.closing_count || {}) as any;
+                const fallbackTbl = Number(ccObj.result_table);
+                const tablesResult =
+                  s.tables_result != null ? Number(s.tables_result) :
+                  Number.isFinite(fallbackTbl) ? fallbackTbl :
+                  Number(s.shift_result || 0);
+                // Balance check: any non-zero residual after the day's
+                // money/chip flows is a discrepancy worth a glance.
+                // (Expenses are not on the row → not subtracted here; this is
+                // the cash-desk balance only, same family as Shift Balance.)
+                const balance = tablesResult - cash - miss;
                 const cleanNotes = String(s.notes || "")
                   .split(/\s*\|\s*(?:TABLES|CASH|MISS|BALANCE|RESULT|DIFF|mgr)\b/i)[0]
                   .trim();
@@ -170,8 +182,14 @@ const CageClosingsPage = () => {
                       {formatNumberSpaces(cash)}
                     </td>
                     <td className="px-3 py-2 text-right font-mono text-muted-foreground">{formatNumberSpaces(miss)}</td>
-                    <td className={`px-3 py-2 text-right font-mono font-semibold ${result >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
-                      {formatNumberSpaces(result)}
+                    <td className={`px-3 py-2 text-right font-mono font-semibold ${tablesResult >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
+                      {formatNumberSpaces(tablesResult)}
+                    </td>
+                    <td
+                      className={`px-3 py-2 text-right font-mono ${balance === 0 ? "text-muted-foreground" : "cms-amount-negative font-semibold"}`}
+                      title="Tables Result − Cash Result − Miss"
+                    >
+                      {balance === 0 ? "0" : `${balance > 0 ? "+" : ""}${formatNumberSpaces(balance)}`}
                     </td>
                     <td className="px-3 py-2 text-muted-foreground truncate max-w-[280px]">{cleanNotes || "—"}</td>
                     <td className="px-3 py-2 text-right">

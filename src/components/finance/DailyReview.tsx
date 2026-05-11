@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   useDailySummaries, useUpsertDailySummary,
   useCageExpensesForDate, useCreateWalletTransaction, useShiftClosingForDate,
+  useTablesResultForDate,
 } from "@/hooks/use-finance";
 import { useCasinoInfo } from "@/hooks/use-table-lifecycle";
 import { useAuth } from "@/lib/auth-context";
@@ -41,18 +42,25 @@ export const DailyReview = () => {
   const { data: cageExpenses = 0 } = useCageExpensesForDate(selectedDate);
   const { data: shiftClosing } = useShiftClosingForDate(selectedDate);
   const { data: casinoInfo } = useCasinoInfo();
+  // Canonical chip-based shift P&L for the date — Σ shifts.tables_result.
+  // (Was previously confused with cash result, which corrupted Finance KPIs.)
+  const { data: tablesResultDate = 0 } = useTablesResultForDate(selectedDate);
   const upsert = useUpsertDailySummary();
   const createTx = useCreateWalletTransaction();
 
   const existing = summaries.find(s => s.date === selectedDate);
 
-  // Cash result from cage shift (buy-ins − cashouts)
+  // Cash result from cage shift (closing cash − opening cash, adjusted for float/collection).
+  // Analytical only here — NOT written into daily_summaries.tables_result anymore.
   const cashResult = Number((shiftClosing?.closing_cash as any)?.cash_result) || 0;
   const hasShiftData = !!shiftClosing;
   const rates = (shiftClosing?.exchange_rates || {}) as Record<string, number>;
 
   const slotsValue = existing?.confirmed ? existing.slots_result : parseSpacedNumber(slotsInput);
-  const totalResult = cashResult + slotsValue;
+  // Day's tables result: prefer just-loaded canonical RPC sum; on confirmed
+  // days fall back to the persisted summary (matches what was saved).
+  const tablesResult = existing?.confirmed ? Number(existing.tables_result || 0) : Number(tablesResultDate || 0);
+  const totalResult = tablesResult + slotsValue;
   const netResult = totalResult - cageExpenses;
 
   // Float equalization
@@ -71,7 +79,7 @@ export const DailyReview = () => {
     try {
       await upsert.mutateAsync({
         date: selectedDate,
-        tables_result: cashResult,
+        tables_result: tablesResult,
         slots_result: slotsValue,
         total_expenses: cageExpenses,
         confirmed: true,
@@ -157,7 +165,7 @@ export const DailyReview = () => {
   const handleSave = () => {
     upsert.mutate({
       date: selectedDate,
-      tables_result: cashResult,
+      tables_result: tablesResult,
       slots_result: slotsValue,
       total_expenses: cageExpenses,
       confirmed: false,
@@ -190,13 +198,20 @@ export const DailyReview = () => {
           <CardTitle className="text-sm font-medium">Day Results — {fmtDate(selectedDate)}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="p-3 rounded-lg bg-muted/50 border border-border">
-              <p className="text-xs text-muted-foreground mb-1">Cash Result (from Cage)</p>
+              <p className="text-xs text-muted-foreground mb-1">Tables Result (chips)</p>
+              <p className={`text-lg font-bold font-mono ${tablesResult >= 0 ? "text-foreground" : "text-destructive"}`}>
+                {formatNumberSpaces(tablesResult)}
+              </p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Σ snapshots vs baseline</p>
+            </div>
+            <div className="p-3 rounded-lg bg-muted/50 border border-border">
+              <p className="text-xs text-muted-foreground mb-1">Cash Result (info)</p>
               <p className={`text-lg font-bold font-mono ${cashResult >= 0 ? "text-foreground" : "text-destructive"}`}>
                 {formatNumberSpaces(cashResult)}
               </p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">Buy-ins − Cashouts</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Counted − opening cash</p>
             </div>
             <div className="p-3 rounded-lg bg-muted/50 border border-border">
               <p className="text-xs text-muted-foreground mb-1">Slots Result (manual)</p>
@@ -216,6 +231,7 @@ export const DailyReview = () => {
               <p className={`text-lg font-bold font-mono ${totalResult >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
                 {totalResult >= 0 ? "+" : ""}{formatNumberSpaces(totalResult)}
               </p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Tables + Slots</p>
             </div>
           </div>
 
