@@ -46,7 +46,7 @@ const CageClosingsPage = () => {
       if (!casinoId) return [];
       const { data, error } = await supabase
         .from("shifts")
-        .select("id, opened_at, closed_at, cash_result, miss_total, shift_result, notes, opened_by, closed_by, opening_float, closing_cash")
+        .select("id, opened_at, closed_at, cash_result, miss_total, shift_result, tables_result, notes, opened_by, closed_by, opening_float, closing_cash, closing_count")
         .eq("casino_id", casinoId)
         .eq("status", "closed")
         .gte("closed_at", monthStart.toISOString())
