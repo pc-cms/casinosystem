@@ -2561,6 +2561,8 @@ export type Database = {
       }
       shifts: {
         Row: {
+          balance: number | null
+          cash_desk_result: number | null
           cash_result: number | null
           casino_id: string
           closed_at: string | null
@@ -2580,6 +2582,8 @@ export type Database = {
           tables_result: number | null
         }
         Insert: {
+          balance?: number | null
+          cash_desk_result?: number | null
           cash_result?: number | null
           casino_id: string
           closed_at?: string | null
@@ -2599,6 +2603,8 @@ export type Database = {
           tables_result?: number | null
         }
         Update: {
+          balance?: number | null
+          cash_desk_result?: number | null
           cash_result?: number | null
           casino_id?: string
           closed_at?: string | null
@@ -3605,6 +3611,7 @@ export type Database = {
           player_id: string
         }[]
       }
+      compute_shift_balance: { Args: { _shift_id: string }; Returns: Json }
       compute_shift_close: { Args: { p_shift_id: string }; Returns: Json }
       compute_shift_table_results: {
         Args: { p_shift_id: string }
