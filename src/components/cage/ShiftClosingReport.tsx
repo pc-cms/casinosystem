@@ -225,7 +225,7 @@ const ShiftClosingReport = ({
 
         {/* Summary panel */}
         <div className="space-y-1">
-          <SummaryRow label="Tables Result" value={totals.gt} bold />
+          <SummaryRow label="Tables Result" value={totals.result} bold />
           <SummaryRow label="Cash Flow FILL" value={totals.fill} />
           <SummaryRow label="Cash Flow CREDIT" value={totals.credit} />
           <SummaryRow label="Cash Desk Chips FILL" value={0} />
