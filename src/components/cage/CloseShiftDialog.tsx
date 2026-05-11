@@ -54,7 +54,8 @@ interface CloseShiftDialogProps {
  */
 const CloseShiftDialog = ({
   open, onClose, shift, expectedBalance, cashResult, totalBuyIns, totalCashouts,
-  totalExpenses, externalCashMovement = 0, openingFloat, tables, onConfirm, loading,
+  totalExpenses, externalCashMovement = 0, floatAdded = 0, collectionTotal = 0,
+  openingFloat, tables, onConfirm, loading,
 }: CloseShiftDialogProps) => {
   // sessionStorage persistence — survives page refresh while shift is being closed.
   const storageKey = `cms.close-shift.${shift?.id || "none"}`;
