@@ -165,11 +165,4 @@ const DenomTable = ({ title, data, total, signed }: {
   );
 };
 
-const CommentsBox = ({ label }: { label: string }) => (
-  <div className="mt-2">
-    <p className="font-semibold text-[10px] mb-0.5">{label}:</p>
-    <div className="border border-black h-12 w-full" />
-  </div>
-);
-
 export default ChipMovementReport;
