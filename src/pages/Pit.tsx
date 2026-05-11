@@ -877,7 +877,8 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
     if (!closedDates || closedDates.size === 0) return;
 
     const todayBd = effectiveBusinessDate || getBusinessDate();
-    for (const d of activeDealers) {
+    const allActive = [...activeDealers, ...pitBosses];
+    for (const d of allActive) {
       for (let day = 1; day <= daysInMonth; day++) {
         const dateStr = `${month}-${String(day).padStart(2, "0")}`;
         // HARD GUARD: never auto-fill the current open business day,
@@ -893,8 +894,11 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
         const current = getValue(d.id, day);
         if (current !== "") continue;
 
+        // Pit Bosses on Morning shift work 11 hours; everyone else defaults to 9.
+        const fillValue = ((d as any).is_pit_boss && rotaShift === "M") ? "11" : "9";
+
         autoFilledRef.current.add(key);
-        setAttendanceRaw.mutate({ dealer_id: d.id, date: dateStr, value: "9" });
+        setAttendanceRaw.mutate({ dealer_id: d.id, date: dateStr, value: fillValue });
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
