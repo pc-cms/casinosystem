@@ -77,11 +77,26 @@ export async function setupPWA() {
     const updateSW = registerSW({
       immediate: true,
       onRegisteredSW(_swUrl, registration) {
-        if (registration) {
-          setInterval(() => {
+        if (!registration) return;
+
+        // 1) Check immediately on app open (don't wait for the 30-min timer).
+        registration.update().catch(() => {});
+
+        // 2) Periodic background polling.
+        setInterval(() => {
+          registration.update().catch(() => {});
+        }, UPDATE_CHECK_INTERVAL_MS);
+
+        // 3) Check whenever the tab becomes visible / regains focus —
+        //    covers PWAs resumed from background after hours/days.
+        const checkNow = () => {
+          if (document.visibilityState === "visible") {
             registration.update().catch(() => {});
-          }, UPDATE_CHECK_INTERVAL_MS);
-        }
+          }
+        };
+        document.addEventListener("visibilitychange", checkNow);
+        window.addEventListener("focus", checkNow);
+        window.addEventListener("online", checkNow);
       },
       onOfflineReady() {
         console.log("[PWA] App ready for offline use");
