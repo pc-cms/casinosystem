@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   useDailySummaries, useUpsertDailySummary,
   useCageExpensesForDate, useCreateWalletTransaction, useShiftClosingForDate,
+  useTablesResultForDate,
 } from "@/hooks/use-finance";
 import { useCasinoInfo } from "@/hooks/use-table-lifecycle";
 import { useAuth } from "@/lib/auth-context";
