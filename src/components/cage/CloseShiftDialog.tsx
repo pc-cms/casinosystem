@@ -425,19 +425,27 @@ const CloseShiftDialog = ({
               </div>
             </div>
 
-            {/* SHIFT BALANCE FORMULA — full asset accounting */}
+            {/* CASH DESK FORMULA — canonical 9-component breakdown */}
             <div className={cn(
               "rounded-lg border-2 p-4",
               isBalanced ? "border-success/60 bg-success/5" : "border-destructive/60 bg-destructive/5",
             )}>
               <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground font-semibold mb-3">
-                Shift Balance — Tables Result vs counted money & chips
+                Cash Desk Result vs Tables Result
               </p>
               <div className="space-y-1.5 font-mono text-sm">
-                <FormulaRow label="Tables Result" value={`${resultTable >= 0 ? "+" : ""}${formatNumberSpaces(resultTable)}`} />
-                <FormulaRow label="− Counted Money Δ (Cash + Mobile + Bank − Opening Cash)" value={`−${formatNumberSpaces(cashDelta)}`} />
-                <FormulaRow label="− Miss Chips" value={`−(${missTotal >= 0 ? "+" : ""}${formatNumberSpaces(missTotal)}) = ${(-missTotal) >= 0 ? "+" : ""}${formatNumberSpaces(-missTotal)}`} />
-                <FormulaRow label="− Expenses" value={`−${formatNumberSpaces(totalExpenses)}`} />
+                <FormulaRow label="ΔCash (Closing − Opening)" value={`${cashDelta >= 0 ? "+" : ""}${formatNumberSpaces(cashDelta)}`} />
+                <FormulaRow label="+ Expenses" value={`+${formatNumberSpaces(totalExpenses)}`} />
+                <FormulaRow label="+ Collection" value={`+${formatNumberSpaces(collectionTotal)}`} />
+                <FormulaRow label="− Add Float" value={`−${formatNumberSpaces(floatAdded)}`} />
+                <FormulaRow label="+ Slots Cage Out" value={`+${formatNumberSpaces(slotsOut)}`} />
+                <FormulaRow label="− Slots Cage In" value={`−${formatNumberSpaces(slotsIn)}`} />
+                <FormulaRow label="+ Miss Chips (signed)" value={`${missTotal >= 0 ? "+" : ""}${formatNumberSpaces(missTotal)}`} />
+                <div className="flex justify-between pt-2 mt-1 border-t border-border text-base font-bold">
+                  <span className="text-card-foreground">= Cash Desk Result</span>
+                  <span className="text-card-foreground">{cashDeskResult >= 0 ? "+" : ""}{formatNumberSpaces(cashDeskResult)}</span>
+                </div>
+                <FormulaRow label="− Tables Result" value={`−(${resultTable >= 0 ? "+" : ""}${formatNumberSpaces(resultTable)})`} />
                 <div className={cn(
                   "flex justify-between pt-3 mt-2 border-t-2 text-lg font-bold",
                   isBalanced ? "border-success/60" : "border-destructive/60",
@@ -467,10 +475,11 @@ const CloseShiftDialog = ({
               <div className="grid grid-cols-3 gap-3">
                 <KpiTile label="Tables Result" value={resultTable} tone={resultTable >= 0 ? "pos" : "neg"} />
                 <KpiTile label="Shift Balance" value={balance} tone={isBalanced ? "ok" : balance > 0 ? "pos" : "neg"} />
-                <KpiTile label="Money Result" value={moneyResult} tone={moneyResult >= 0 ? "pos" : "neg"} />
+                <KpiTile label="Cash Desk Result" value={cashDeskResult} tone={cashDeskResult >= 0 ? "pos" : "neg"} />
               </div>
               <p className="text-[10px] text-muted-foreground mt-2 italic">
-                Shift Balance = Tables Result − Counted Money Δ − Miss Chips − Expenses. Must be zero.
+                Cash Desk Result = ΔCash + Expenses + Collection − AddFloat + SlotsOut − SlotsIn + Miss.
+                Shift Balance = Cash Desk Result − Tables Result. Must be zero.
               </p>
             </div>
 
