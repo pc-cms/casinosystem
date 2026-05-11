@@ -47,17 +47,28 @@ const ShiftClosingReport = ({
   const [casinoName, setCasinoName] = useState("Casino");
   const [baselines, setBaselines] = useState<Record<string, number>>({}); // tableId -> TZS value
   const [fillCredits, setFillCredits] = useState<Record<string, { fill: number; credit: number }>>({});
+  /** Imported daily results (legacy import path) — when present, take precedence
+   *  over live gaming_tables.closing_chips so reports reprinted later still show
+   *  the actual end-of-day numbers entered by the manager. */
+  const [dailyResults, setDailyResults] = useState<Record<string, {
+    open: number; fill: number; credit: number; close: number; drop: number; result: number;
+  }>>({});
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       if (!casinoId || !shift) return;
-      const [{ data: c }, { data: bl }, { data: tr }] = await Promise.all([
+      const [{ data: c }, { data: bl }, { data: tr }, { data: tdr }] = await Promise.all([
         supabase.from("casinos").select("name").eq("id", casinoId).maybeSingle(),
         supabase.from("chip_baseline").select("location_id, denomination, expected_quantity")
           .eq("casino_id", casinoId).eq("location_type", "table"),
         supabase.from("cage_transfers").select("table_id, transfer_type, amount")
           .eq("shift_id", shift.id).in("transfer_type", ["fill", "credit"]),
+        businessDate
+          ? supabase.from("table_daily_results")
+              .select("table_id, open, fill, credit, close, drop_amount, result")
+              .eq("casino_id", casinoId).eq("date", businessDate)
+          : Promise.resolve({ data: [] as any[] } as any),
       ]);
       if (cancelled) return;
       if (c?.name) setCasinoName(c.name);
@@ -75,6 +86,18 @@ const ShiftClosingReport = ({
         else if (r.transfer_type === "credit") fc[r.table_id].credit += Number(r.amount);
       });
       setFillCredits(fc);
+      const dr: Record<string, any> = {};
+      (tdr || []).forEach((r: any) => {
+        dr[r.table_id] = {
+          open: Number(r.open || 0),
+          fill: Number(r.fill || 0),
+          credit: Number(r.credit || 0),
+          close: Number(r.close || 0),
+          drop: Number(r.drop_amount || 0),
+          result: Number(r.result || 0),
+        };
+      });
+      setDailyResults(dr);
     })();
     return () => { cancelled = true; };
   }, [casinoId, shift?.id, businessDate]);
