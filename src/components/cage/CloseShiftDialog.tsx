@@ -12,9 +12,10 @@ import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
 import {
   emptyMobile, emptyBanks, chipSum, emptyCash, MOBILE_PROVIDERS,
   calcCashTotalTzs, bankTotalTzs, mobileTotal,
-  computeMissByDenom, missTotalValue, cashDeskBalance,
+  computeMissByDenom, missTotalValue,
   type MobileProviders, type Banks,
 } from "@/components/cage/CageHelpers";
+import { computeShiftBalance } from "@/lib/cage-balance";
 import { useBatchChipSnapshot } from "@/hooks/use-chips";
 import { useShiftTablesResultTotal } from "@/hooks/use-shift-tables-result";
 import { getBusinessDate } from "@/lib/business-day";
@@ -26,15 +27,16 @@ interface CloseShiftDialogProps {
   open: boolean;
   onClose: () => void;
   shift: Tables<"shifts">;
-  expectedBalance: number;
   cashResult: number;
   totalBuyIns: number;
   totalCashouts: number;
   totalExpenses: number;
-  externalCashMovement?: number;
   floatAdded?: number;
   collectionTotal?: number;
+  slotsIn?: number;
+  slotsOut?: number;
   openingFloat: number;
+  openingCash: number;
   tables: Tables<"gaming_tables">[];
   onConfirm: (data: {
     closingCount: Record<string, unknown>;
@@ -55,9 +57,9 @@ interface CloseShiftDialogProps {
  *      with all entered data preserved.
  */
 const CloseShiftDialog = ({
-  open, onClose, shift, expectedBalance, cashResult, totalBuyIns, totalCashouts,
-  totalExpenses, externalCashMovement = 0, floatAdded = 0, collectionTotal = 0,
-  openingFloat, tables, onConfirm, loading,
+  open, onClose, shift, cashResult, totalBuyIns, totalCashouts,
+  totalExpenses, floatAdded = 0, collectionTotal = 0, slotsIn = 0, slotsOut = 0,
+  openingFloat, openingCash: openingCashProp, tables, onConfirm, loading,
 }: CloseShiftDialogProps) => {
   // sessionStorage persistence — survives page refresh while shift is being closed.
   const storageKey = `cms.close-shift.${shift?.id || "none"}`;
@@ -147,21 +149,30 @@ const CloseShiftDialog = ({
   const closingCashTotalTzs = closingCashOnlyTzs + closingMobileTzs + closingBankTzs;
   const totalTzs = closingChipsTzs + closingCashTotalTzs;
 
-  // Shift Balance — pure asset accounting:
-  //   Tables Result = ΔCash + ΔChips + Expenses
-  //   ⇒ Balance = Tables Result − CashDelta − MissChips − Expenses  (must be 0)
-  // CashDelta = counted closing money (cash + mobile + bank, TZS) − opening cash.
-  // MissChips is signed (negative = chips lost). Expenses are physically out of the till.
-  // Cash Result deduction = (Cash Opening − Float Added + Collection)
-  // → cash_result = closing cash − (opening cash − float added + collection)
-  //               = closing cash − opening cash + float added − collection
+  // Canonical Cash Desk formula (mirrors DB RPC `compute_shift_balance`):
+  //   Cash Desk Result = ΔCash + Expenses + Collection − AddFloat
+  //                    + SlotsOut − SlotsIn + Miss
+  //   Shift Balance    = Cash Desk Result − Tables Result      (= 0 ideal)
+  // ΔCash = closing money (cash + mobile + bank, TZS) − opening cash.
+  const openingCashEffective = openingCashProp || openingCashTzs;
   const cashDelta = useMemo(
-    () => closingCashTotalTzs - (openingCashTzs - floatAdded + collectionTotal),
-    [closingCashTotalTzs, openingCashTzs, floatAdded, collectionTotal],
+    () => closingCashTotalTzs - openingCashEffective,
+    [closingCashTotalTzs, openingCashEffective],
   );
-  const balance = useMemo(
-    () => resultTable - cashDelta - missTotal - totalExpenses,
-    [resultTable, cashDelta, missTotal, totalExpenses],
+  const { cashDeskResult, shiftBalance: balance } = useMemo(
+    () => computeShiftBalance({
+      openingCash: openingCashEffective,
+      closingCash: closingCashTotalTzs,
+      expenses: totalExpenses,
+      collection: collectionTotal,
+      addFloat: floatAdded,
+      slotsIn,
+      slotsOut,
+      miss: missTotal,
+      tablesResult: resultTable,
+    }),
+    [openingCashEffective, closingCashTotalTzs, totalExpenses, collectionTotal,
+     floatAdded, slotsIn, slotsOut, missTotal, resultTable],
   );
   const isBalanced = balance === 0;
   const requiresNote = !isBalanced;
@@ -213,13 +224,14 @@ const CloseShiftDialog = ({
         },
       },
       closingCash: {
-        expected: expectedBalance,
+        expected: cashDeskResult,
         actual: totalTzs,
         difference: balance,
         cash_delta: cashDelta,
-        // CASH RESULT = net real money earned during the shift
-        // (closing cash − opening cash float). Excludes chips and the
-        // starting float so it reflects the shift's actual cash gain.
+        cash_desk_result: cashDeskResult,
+        // CASH RESULT = ΔCash (closing − opening cash). Excludes chips,
+        // and now also excludes float/collection (they are explicit terms
+        // in the Cash Desk Result).
         cash_result: cashDelta,
         shift_result: shiftResult,
         result_table: resultTable,
@@ -413,19 +425,27 @@ const CloseShiftDialog = ({
               </div>
             </div>
 
-            {/* SHIFT BALANCE FORMULA — full asset accounting */}
+            {/* CASH DESK FORMULA — canonical 9-component breakdown */}
             <div className={cn(
               "rounded-lg border-2 p-4",
               isBalanced ? "border-success/60 bg-success/5" : "border-destructive/60 bg-destructive/5",
             )}>
               <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground font-semibold mb-3">
-                Shift Balance — Tables Result vs counted money & chips
+                Cash Desk Result vs Tables Result
               </p>
               <div className="space-y-1.5 font-mono text-sm">
-                <FormulaRow label="Tables Result" value={`${resultTable >= 0 ? "+" : ""}${formatNumberSpaces(resultTable)}`} />
-                <FormulaRow label="− Counted Money Δ (Cash + Mobile + Bank − Opening Cash)" value={`−${formatNumberSpaces(cashDelta)}`} />
-                <FormulaRow label="− Miss Chips" value={`−(${missTotal >= 0 ? "+" : ""}${formatNumberSpaces(missTotal)}) = ${(-missTotal) >= 0 ? "+" : ""}${formatNumberSpaces(-missTotal)}`} />
-                <FormulaRow label="− Expenses" value={`−${formatNumberSpaces(totalExpenses)}`} />
+                <FormulaRow label="ΔCash (Closing − Opening)" value={`${cashDelta >= 0 ? "+" : ""}${formatNumberSpaces(cashDelta)}`} />
+                <FormulaRow label="+ Expenses" value={`+${formatNumberSpaces(totalExpenses)}`} />
+                <FormulaRow label="+ Collection" value={`+${formatNumberSpaces(collectionTotal)}`} />
+                <FormulaRow label="− Add Float" value={`−${formatNumberSpaces(floatAdded)}`} />
+                <FormulaRow label="+ Slots Cage Out" value={`+${formatNumberSpaces(slotsOut)}`} />
+                <FormulaRow label="− Slots Cage In" value={`−${formatNumberSpaces(slotsIn)}`} />
+                <FormulaRow label="+ Miss Chips (signed)" value={`${missTotal >= 0 ? "+" : ""}${formatNumberSpaces(missTotal)}`} />
+                <div className="flex justify-between pt-2 mt-1 border-t border-border text-base font-bold">
+                  <span className="text-card-foreground">= Cash Desk Result</span>
+                  <span className="text-card-foreground">{cashDeskResult >= 0 ? "+" : ""}{formatNumberSpaces(cashDeskResult)}</span>
+                </div>
+                <FormulaRow label="− Tables Result" value={`−(${resultTable >= 0 ? "+" : ""}${formatNumberSpaces(resultTable)})`} />
                 <div className={cn(
                   "flex justify-between pt-3 mt-2 border-t-2 text-lg font-bold",
                   isBalanced ? "border-success/60" : "border-destructive/60",
@@ -455,10 +475,11 @@ const CloseShiftDialog = ({
               <div className="grid grid-cols-3 gap-3">
                 <KpiTile label="Tables Result" value={resultTable} tone={resultTable >= 0 ? "pos" : "neg"} />
                 <KpiTile label="Shift Balance" value={balance} tone={isBalanced ? "ok" : balance > 0 ? "pos" : "neg"} />
-                <KpiTile label="Money Result" value={moneyResult} tone={moneyResult >= 0 ? "pos" : "neg"} />
+                <KpiTile label="Cash Desk Result" value={cashDeskResult} tone={cashDeskResult >= 0 ? "pos" : "neg"} />
               </div>
               <p className="text-[10px] text-muted-foreground mt-2 italic">
-                Shift Balance = Tables Result − Counted Money Δ − Miss Chips − Expenses. Must be zero.
+                Cash Desk Result = ΔCash + Expenses + Collection − AddFloat + SlotsOut − SlotsIn + Miss.
+                Shift Balance = Cash Desk Result − Tables Result. Must be zero.
               </p>
             </div>
 

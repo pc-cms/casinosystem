@@ -50,29 +50,6 @@ export const computeMissByDenom = (
 export const missTotalValue = (missByDenom: Record<number, number>): number =>
   Object.entries(missByDenom).reduce((s, [d, q]) => s + Number(d) * (q || 0), 0);
 
-// Cash Desk Balance — total-value reconciliation.
-//
-// Closing already includes physical chips and cash. Chip miss is therefore not
-// a separate movement in this formula; it is already inside Closing. Expected
-// total movement is only table result plus external cash movement minus expenses.
-export const cashDeskBalance = ({
-  resultTable,
-  openingChips,
-  openingCash,
-  closingChips,
-  closingCash,
-  externalCashMovement = 0,
-  expenses = 0,
-}: {
-  resultTable: number;
-  openingChips: number;
-  openingCash: number;
-  closingChips: number;
-  closingCash: number;
-  externalCashMovement?: number;
-  expenses?: number;
-}): number =>
-  ((closingChips + closingCash) - (openingChips + openingCash))
-  - resultTable
-  - externalCashMovement
-  + expenses;
+// Cash Desk balance is now computed via the canonical formula in
+// `@/lib/cage-balance` (mirrors DB RPC `compute_shift_balance`).
+export { computeShiftBalance } from "@/lib/cage-balance";

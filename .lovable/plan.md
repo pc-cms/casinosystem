@@ -1,71 +1,69 @@
-# Канонический tables_result + аудит IN/OUT
+# Canonical Cash Desk Formula Integration
 
-## Цель
-Сделать `tables_result` единственным источником P&L смены по фишкам:
-`Σ по столам ((последний_snapshot.actual − baseline.expected) × номинал) − Fill + Credit`.
-Прокинуть его через Cage Closings, Close Shift UI, Daily Review, Finance Dashboard, Summary Dashboard. Перестать перезаписывать `tables_result` кэшем. Добавить аналитический индикатор IN/OUT (НЕ финансовое исправление, см. ниже).
+## Formula (single source of truth)
 
-## Что произойдёт с сегодняшней открытой сменой
-**Для кассира посреди смены ничего не ломается.** Изменения применяются в момент закрытия и при чтении:
-- `CloseShiftDialog` Шаг 1 (кассир считает кэш/фишки) — ввод не меняется.
-- Шаг 2 (Manager Review) — панель «Three Key Results» покажет 4 KPI (Cash Result, Miss, Tables Result, Balance), считая через `compute_shift_table_results` вместо суммы `gaming_tables.closing_result`. Это **смена расчёта на тех же данных в БД** — никакого нового обязательного ввода.
-- Поля на `shifts` после закрытия: `cash_result`, `miss_total`, **новое** `tables_result`, плюс устаревший `shift_result` остаётся как алиас = `tables_result` для старых читателей.
-- Daily Review за сегодня: открывается только после закрытия → читает новый `tables_result`. Старые дни — backfill.
-- Finance Dashboard / Summary: перерисуется из нового поля, схема не ломается.
+```
+Cash Desk Result = (ClosingCash − OpeningCash)
+                 + Expenses
+                 + Collection
+                 − AddFloat
+                 + SlotsOut
+                 − SlotsIn
+                 + Miss                       (signed: counted − opening)
 
-Сегодня риск только в `CloseShiftDialog` (панель сводки) и в RPC закрытия. Если на сегодня нет `chip_baseline` — **предупреждаем**, но **не блокируем**: Tables Result упадёт на fallback = сумма `closing_result` закрытых столов. Закрытие сегодня не застрянет.
+Shift Balance    = Cash Desk Result − TableResult        (must = 0)
+```
 
-## IN/OUT — разбор твоего второго вопроса
-Из чтения `ActiveShiftView.tsx`:
-- IN = кассир берёт деньги у игрока, отдаёт фишки. OUT = наоборот.
-- Общая VALUE кассы (фишки + кэш) **инвариантна** относительно IN/OUT — это чистый обмен.
-- В активной смене UI показывает аналитический `cashResult = Σ IN − Σ OUT` (из `transactions`).
-- Реальный `shifts.cash_result` после закрытия = `closing_cash_total − (opening_cash − float_added + collection)` — выводится из физического пересчёта кэша, **не** из лога транзакций.
+Verified on May 5, 6, 7, 8, 9, 10 — all closed shifts with complete data converge to **0**. Historical gaps (02/05, 04/05) remain as-is — they're missing closing cash, not formula bugs.
 
-**Вывод:** незаписанная пара IN/OUT (игрок дал 100к кэша, получил 100к фишек, транзакции нет) — **финансово нейтральна**. Кэш сходится, miss сходится, `cash_result` верный, `tables_result` верный. Финансово ничего не сломано.
+---
 
-Что теряется: персональный трекер игрока, атрибуция drop, NEP split и live-показатель `Σ IN − Σ OUT` в активной смене. Это **аналитика, не финансы**.
+## 1. Database (migration)
 
-**План по IN/OUT:** добавить пассивную полоску **«IN/OUT Audit»** в Manager Review со значениями:
-- `Σ IN − Σ OUT` (из лога транзакций)
-- `cash_delta` (физический)
-- разница (подсветка если ≠ 0) с подсказкой: *«Похоже, не записаны IN/OUT. На cash result не влияет, но трекер игроков неполный»*
+**New RPC `compute_shift_balance(_shift_id uuid)`** — returns JSONB with all 9 components plus `cash_desk_result` and `shift_balance`. Pulls:
+- `opening_cash` / `closing_cash` from `shifts.opening_float.totals` (totals.total_tzs − totals.chips_tzs)
+- `expenses` — sum of `expenses` rows for shift
+- `add_float`, `collection`, `slots_in`, `slots_out` — sum of `cage_transfers` by `transfer_type`
+- `miss` — `shifts.miss_total` (signed)
+- `tables_result` — `shifts.tables_result`
 
-Без блокировок, без авто-коррекции — manual-entry philosophy сохраняется (mem://project/core-principles).
+**New columns on `shifts`:**
+- `cash_desk_result bigint` — canonical cash side
+- `balance bigint` — `cash_desk_result − tables_result`
 
-## Реализация
+**Trigger `shifts_recompute_balance`** — `BEFORE UPDATE` on `shifts`: when `status` changes to `closed` OR any of the inputs change, recomputes both columns from RPC.
 
-### 1. Миграция
-- `ALTER TABLE shifts ADD COLUMN tables_result bigint`.
-- Переписать RPC `compute_shift_close(shift_id)`: пишет `cash_result`, `miss_total`, `tables_result` (= `SUM(compute_shift_table_results(shift_id).result)`), и `shift_result := tables_result` (алиас).
-- Триггер на UPDATE `closing_count` → пересчёт.
-- Backfill всех закрытых смен (минимум 90 дней) — пересчитать и перезаписать `tables_result`; обнулить аномальные `miss_total` там, где `chip_baseline` был пуст (с записью в audit log).
-- Backfill `daily_summaries.tables_result = SUM(shifts.tables_result)` по `date+casino`, пересчитать `total_result`.
+**Backfill** — one-time `UPDATE` on all closed shifts to populate new columns.
 
-### 2. Чтение на фронте
-- `useTablesResultForDate` → читает `tables_result` (а не `shift_result`).
-- `CageClosingsPage`: колонка «Tables Result» из `s.tables_result` (fallback `closing_count.result_table` → `shift_result`). Добавить колонку «Balance» = `tables_result − cash_result − miss_total − expenses`.
-- `ReprintShiftDialog` / `ShiftClosingReport`: `tables_result` для итога; RPC только для разбивки по столам.
-- `FinanceDashboard`, `SummaryDashboard`: код не трогаем (читают через `daily_summaries`/`useTablesResultForDate`, теперь данные верные).
+**`cage_transfers.transfer_type` enum** — already declared in TS as `collection`; verify the DB CHECK/enum allows it. Add it if missing.
 
-### 3. Запись на фронте — баги
-- `CloseShiftDialog` строки 112–115, 154–156, 187, 207–208: убрать `closedTables.reduce(...closing_result)`, использовать новый хук `useShiftTablesResultLive(shift.id)` через RPC `compute_shift_table_results`. Сохранять `tables_result` в payload; `shift_result` оставить для совместимости (тоже = это значение).
-- `DailyReview` строки 50, 74, 160: перестать писать `cashResult` в `tables_result`. Новое: `tables_result = useTablesResultForDate(date)`. Cash Result отдельной строкой в MoneyBreakdown.
+## 2. Frontend
 
-### 4. Полоска IN/OUT Audit
-- Маленький `<InOutAuditStrip>` в Шаге 2 `CloseShiftDialog`. Берёт `Σ IN`, `Σ OUT` через `useTransactions(shift.id)`, сравнивает с `cash_delta`. Только отображение, без сохранения.
+**New `src/lib/cage-balance.ts`** — pure-TS port of the same formula for live preview during Close Shift. Single export `computeShiftBalance(inputs) → { cashDeskResult, shiftBalance, components }`.
 
-### 5. Memory + версия
-- Bump патч-версии в `package.json` (бэкенд-изменение).
-- Обновить mem: `financial-and-chip-reconciliation`, `shift-management-and-closing`. Добавить строку в Core: *«Источник P&L смены = `shifts.tables_result` (фишки, последний snapshot vs baseline). `shift_result` — устаревший алиас.»*
+**`src/components/cage/CageHelpers.ts`** — replace `cashDeskBalance()` (currently uses old `(closing − opening) − resultTable − external + expenses` model) with thin wrapper around `cage-balance.ts`. Remove "openingChips inside closing" assumption — Miss is now its own term.
 
-### 6. QA
-- SQL: для всех закрытых смен за 60 дней проверить `shifts.tables_result = SUM(compute_shift_table_results)`.
-- SQL: `daily_summaries.tables_result = SUM(shifts.tables_result)` по дате.
-- Руками: открыть сегодняшний CloseShiftDialog → значения совпадают с математикой Pit Chip Count.
+**`src/pages/cage/CloseShiftPage.tsx`** — pass all 9 components to dialog instead of pre-aggregated `expectedCash`.
 
-## Вне плана
-- Шаг 1 кассирского пересчёта не трогаем.
-- `gaming_tables.closing_result` не трогаем (используется в CloseTableWizard).
-- Раскладку Finance/Summary не меняем — только корректные числа.
-- Чип-трансферы, expenses, кошельки — без изменений.
+**`src/components/cage/CloseShiftDialog.tsx`** — Step 2 review card shows:
+- Cash Desk Result (computed live)
+- Shift Balance (red if `≠ 0`, doesn't block submit)
+- Collapsible 9-line breakdown (ΔCash, Expenses, Collection, AddFloat, SlotsOut, SlotsIn, Miss, TableResult, Balance)
+
+**`src/pages/cage/CageClosingsPage.tsx`** — read `shifts.cash_desk_result` and `shifts.balance` directly. Remove inline math. Tooltip on Balance shows the 9-component breakdown via the same RPC.
+
+**`src/components/cage/TransfersForm.tsx`** + **`use-cage-transfers.ts`** — `collection` already wired in TS; just confirm DB accepts it after migration.
+
+## 3. Out of scope (untouched)
+- `tables_result` chip math — already canonical
+- `miss_total` calculation — already correct (signed)
+- Inter-casino transfers, slots cage in/out semantics
+- Business-day close, Reports, Daily Review
+
+## 4. Verification after deploy
+- Open Cage Closings — every closed May shift shows `Balance = 0` for fully-entered days, non-zero with red badge for data gaps (02/05, 04/05).
+- Open Close Shift on the live shift — Step 2 shows live Cash Desk Result + Balance updating as cashier counts.
+- Insert a Collection cage transfer — verify it deducts from Cash Desk Result.
+
+## 5. Auto version bump
+Patch-bump `package.json` (backend change: migration + trigger + RPC).

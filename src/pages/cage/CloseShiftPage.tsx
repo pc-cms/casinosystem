@@ -40,21 +40,22 @@ const CloseShiftPage = () => {
     const totalIns = sTx.filter(t => isInTx(t.type)).reduce((s, t) => s + Number(t.amount), 0);
     const totalOuts = sTx.filter(t => isOutTx(t.type)).reduce((s, t) => s + Number(t.amount), 0);
     const totalExpenses = sEx.reduce((s, e) => s + Number(e.amount), 0);
-    const addFloat = cageTransfers.filter(t => t.transfer_type === "add_float").reduce((s, t) => s + Number(t.amount), 0);
-    const collection = cageTransfers.filter(t => t.transfer_type === "collection").reduce((s, t) => s + Number(t.amount), 0);
-    const slotsOut = cageTransfers.filter(t => t.transfer_type === "slots_out").reduce((s, t) => s + Number(t.amount), 0);
-    const slotsIn = cageTransfers.filter(t => t.transfer_type === "slots_in").reduce((s, t) => s + Number(t.amount), 0);
+    const sumTransfers = (type: string) =>
+      cageTransfers.filter(t => t.transfer_type === type).reduce((s, t) => s + Number(t.amount), 0);
+    const addFloat = sumTransfers("add_float");
+    const collection = sumTransfers("collection");
+    const slotsOut = sumTransfers("slots_out");
+    const slotsIn = sumTransfers("slots_in");
     const of = shift.opening_float as Record<string, unknown> | null;
     const totals = of?.totals as Record<string, number> | undefined;
     const openingFloat = totals?.total_tzs || 0;
-    // Expected CASH only — exclude opening chips. Chip variance is shown as Miss Chips.
     const openingChipsTzs = Number(totals?.chips_tzs || 0);
     const openingCash = Math.max(openingFloat - openingChipsTzs, 0);
-    const expectedCash = openingCash + totalIns + addFloat + slotsIn - totalOuts - collection - slotsOut - totalExpenses;
     const cashResult = totalIns - totalOuts;
     return {
-      expectedCash, cashResult, totalIns, totalOuts, totalExpenses,
-      external: addFloat + slotsIn - collection - slotsOut, openingFloat,
+      cashResult, totalIns, totalOuts, totalExpenses,
+      addFloat, collection, slotsOut, slotsIn,
+      openingFloat, openingCash,
     };
   }, [shift, transactions, expenses, cageTransfers]);
 
@@ -77,15 +78,16 @@ const CloseShiftPage = () => {
         open={true}
         onClose={() => nav("/cage")}
         shift={shift}
-        expectedBalance={data.expectedCash}
         cashResult={data.cashResult}
         totalBuyIns={data.totalIns}
         totalCashouts={data.totalOuts}
         totalExpenses={data.totalExpenses}
-        externalCashMovement={data.external}
-        floatAdded={cageTransfers.filter(t => t.shift_id === shift.id && t.transfer_type === "add_float").reduce((s, t) => s + Number(t.amount), 0)}
-        collectionTotal={cageTransfers.filter(t => t.shift_id === shift.id && t.transfer_type === "collection").reduce((s, t) => s + Number(t.amount), 0)}
+        floatAdded={data.addFloat}
+        collectionTotal={data.collection}
+        slotsIn={data.slotsIn}
+        slotsOut={data.slotsOut}
         openingFloat={data.openingFloat}
+        openingCash={data.openingCash}
         tables={tables}
         loading={closeShift.isPending}
         onConfirm={(d) => {
