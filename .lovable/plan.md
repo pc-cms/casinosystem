@@ -1,73 +1,71 @@
+# Канонический tables_result + аудит IN/OUT
+
 ## Цель
+Сделать `tables_result` единственным источником P&L смены по фишкам:
+`Σ по столам ((последний_snapshot.actual − baseline.expected) × номинал) − Fill + Credit`.
+Прокинуть его через Cage Closings, Close Shift UI, Daily Review, Finance Dashboard, Summary Dashboard. Перестать перезаписывать `tables_result` кэшем. Добавить аналитический индикатор IN/OUT (НЕ финансовое исправление, см. ниже).
 
-Расширить правило записи Chip Count → Table Check (Numbers) одним мягким fallback-ом для случаев, когда не успели снять чек в окне `:50–:10`. Закрытие столов до 05:00 — отдельный сценарий и уже реализовано.
+## Что произойдёт с сегодняшней открытой сменой
+**Для кассира посреди смены ничего не ломается.** Изменения применяются в момент закрытия и при чтении:
+- `CloseShiftDialog` Шаг 1 (кассир считает кэш/фишки) — ввод не меняется.
+- Шаг 2 (Manager Review) — панель «Three Key Results» покажет 4 KPI (Cash Result, Miss, Tables Result, Balance), считая через `compute_shift_table_results` вместо суммы `gaming_tables.closing_result`. Это **смена расчёта на тех же данных в БД** — никакого нового обязательного ввода.
+- Поля на `shifts` после закрытия: `cash_result`, `miss_total`, **новое** `tables_result`, плюс устаревший `shift_result` остаётся как алиас = `tables_result` для старых читателей.
+- Daily Review за сегодня: открывается только после закрытия → читает новый `tables_result`. Старые дни — backfill.
+- Finance Dashboard / Summary: перерисуется из нового поля, схема не ломается.
 
-## Где это живёт
+Сегодня риск только в `CloseShiftDialog` (панель сводки) и в RPC закрытия. Если на сегодня нет `chip_baseline` — **предупреждаем**, но **не блокируем**: Tables Result упадёт на fallback = сумма `closing_result` закрытых столов. Закрытие сегодня не застрянет.
 
-`src/components/tables/ChipCountPanel.tsx`, функция `slotForChipCount(now)` (строки 13–31). Вызывается в `handleSave` (строка 148) и пишет результат в `table_tracker` через `useSetTableTrackerValue` для каждой строки-стола.
+## IN/OUT — разбор твоего второго вопроса
+Из чтения `ActiveShiftView.tsx`:
+- IN = кассир берёт деньги у игрока, отдаёт фишки. OUT = наоборот.
+- Общая VALUE кассы (фишки + кэш) **инвариантна** относительно IN/OUT — это чистый обмен.
+- В активной смене UI показывает аналитический `cashResult = Σ IN − Σ OUT` (из `transactions`).
+- Реальный `shifts.cash_result` после закрытия = `closing_cash_total − (opening_cash − float_added + collection)` — выводится из физического пересчёта кэша, **не** из лога транзакций.
 
-## Текущее поведение
+**Вывод:** незаписанная пара IN/OUT (игрок дал 100к кэша, получил 100к фишек, транзакции нет) — **финансово нейтральна**. Кэш сходится, miss сходится, `cash_result` верный, `tables_result` верный. Финансово ничего не сломано.
 
-- `04:50–07:59` → слот `05:00` (FINAL)
-- `m ≥ 50` → следующий час `HH+1:00`
-- `m ≤ 10` → текущий час `HH:00`
-- `m 11–49` → `null` (ничего не пишется) ← теряются опоздавшие чеки
+Что теряется: персональный трекер игрока, атрибуция drop, NEP split и live-показатель `Σ IN − Σ OUT` в активной смене. Это **аналитика, не финансы**.
 
-Допустимые слоты: `19:00–23:00`, `00:00–04:00` плюс `05:00` (FINAL).
+**План по IN/OUT:** добавить пассивную полоску **«IN/OUT Audit»** в Manager Review со значениями:
+- `Σ IN − Σ OUT` (из лога транзакций)
+- `cash_delta` (физический)
+- разница (подсветка если ≠ 0) с подсказкой: *«Похоже, не записаны IN/OUT. На cash result не влияет, но трекер игроков неполный»*
 
-## Новое правило (точные требования пользователя)
-
-1. Если чек снят в `:11–:49` для часа `HH`, и для слота `HH:00` ещё **нет значения** в `table_tracker` за текущую бизнес-дату — записать в `HH:00`.
-2. Если значение в `HH:00` уже есть (значит чек прошёл вовремя в окне `:50–:10`) — **не перезаписывать**. Записывается только **первый** опоздавший чек.
-3. Окно `:50–:10` работает как раньше: всегда пишет/перезаписывает свой целевой слот (`HH+1:00` или `HH:00` соответственно). Это исходный «штатный» путь, у него приоритет.
-4. FINAL-окно (`04:50–07:59 → 05:00`) не меняется.
-5. Слот должен попадать в разрешённые часы `19..04`. Иначе — `null`.
-
-### Таблица сопоставления
-
-```text
-04:50–07:59          → 05:00 (FINAL, всегда пишет)
-m ≥ 50               → HH+1:00 (всегда пишет)
-m ≤ 10               → HH:00   (всегда пишет)
-m 11–49              → HH:00   (NEW; пишет ТОЛЬКО если слот пуст)
-вне 19..04           → null
-```
-
-### Примеры
-
-- 21:00 → `21:00` (штатный, перезаписывает)
-- 21:08 → `21:00` (штатный, перезаписывает)
-- 21:30, слот пустой → `21:00` (NEW, пишет)
-- 21:30, слот уже заполнен (был чек в 21:05) → ничего (NEW, защита от затирания)
-- 21:55 → `22:00` (штатный)
-- 18:30 → `null`
-- 04:30, слот пустой → `04:00` (NEW)
-
-## Закрытие столов до 05:00 / FINAL
-
-Уже реализовано в `src/components/tables/CloseTableWizard.tsx` (строки 152–154): при закрытии каждого стола его `closing_result` зеркалится в `table_tracker` слот `05:00` (FINAL) через тот же `useSetTableTrackerValue`. Никаких изменений не требуется. Если хочется аналогично защитить от перезаписи (не затирать FINAL, если он уже заполнен раньше) — это отдельное решение, по умолчанию оставляем текущее поведение «закрытие стола перебивает FINAL», т.к. это финальный авторитетный результат стола.
+Без блокировок, без авто-коррекции — manual-entry philosophy сохраняется (mem://project/core-principles).
 
 ## Реализация
 
-1. В `ChipCountPanel.tsx`:
-   - Изменить `slotForChipCount`: для `m 11–49` возвращать `{ slot: "HH:00", onlyIfEmpty: true }`. Для остальных веток — `{ slot, onlyIfEmpty: false }`.
-   - В `handleSave` перед `setTrackerValue.mutate(...)` для каждого стола: если `onlyIfEmpty`, проверить наличие записи в `table_tracker` за текущую дату/слот/стол. Если запись уже есть — пропустить mutate для этого стола.
-   - Источник проверки: использовать уже подгруженные данные tracker через хук `useTableTracker(date)` (он есть в `use-casino-data`, используется в `TableTracker.tsx`). Подтянуть его в `ChipCountPanel`, отфильтровать по `(table_id, time_slot)`.
+### 1. Миграция
+- `ALTER TABLE shifts ADD COLUMN tables_result bigint`.
+- Переписать RPC `compute_shift_close(shift_id)`: пишет `cash_result`, `miss_total`, `tables_result` (= `SUM(compute_shift_table_results(shift_id).result)`), и `shift_result := tables_result` (алиас).
+- Триггер на UPDATE `closing_count` → пересчёт.
+- Backfill всех закрытых смен (минимум 90 дней) — пересчитать и перезаписать `tables_result`; обнулить аномальные `miss_total` там, где `chip_baseline` был пуст (с записью в audit log).
+- Backfill `daily_summaries.tables_result = SUM(shifts.tables_result)` по `date+casino`, пересчитать `total_result`.
 
-2. Никаких миграций БД, RPC или триггеров. Это чисто UI-правка.
+### 2. Чтение на фронте
+- `useTablesResultForDate` → читает `tables_result` (а не `shift_result`).
+- `CageClosingsPage`: колонка «Tables Result» из `s.tables_result` (fallback `closing_count.result_table` → `shift_result`). Добавить колонку «Balance» = `tables_result − cash_result − miss_total − expenses`.
+- `ReprintShiftDialog` / `ShiftClosingReport`: `tables_result` для итога; RPC только для разбивки по столам.
+- `FinanceDashboard`, `SummaryDashboard`: код не трогаем (читают через `daily_summaries`/`useTablesResultForDate`, теперь данные верные).
 
-3. `package.json` — версию не бампим (косметика UI, по Core-правилу).
+### 3. Запись на фронте — баги
+- `CloseShiftDialog` строки 112–115, 154–156, 187, 207–208: убрать `closedTables.reduce(...closing_result)`, использовать новый хук `useShiftTablesResultLive(shift.id)` через RPC `compute_shift_table_results`. Сохранять `tables_result` в payload; `shift_result` оставить для совместимости (тоже = это значение).
+- `DailyReview` строки 50, 74, 160: перестать писать `cashResult` в `tables_result`. Новое: `tables_result = useTablesResultForDate(date)`. Cash Result отдельной строкой в MoneyBreakdown.
 
-## Память
+### 4. Полоска IN/OUT Audit
+- Маленький `<InOutAuditStrip>` в Шаге 2 `CloseShiftDialog`. Берёт `Σ IN`, `Σ OUT` через `useTransactions(shift.id)`, сравнивает с `cash_delta`. Только отображение, без сохранения.
 
-Обновить `mem://features/chip-count-tracker-bridge`:
-- Штатное окно `:50–:10` (всегда пишет в свой слот).
-- Fallback `:11–:49` → `HH:00` пишет **только если слот пуст** (первый опоздавший чек).
-- FINAL-окно `04:50–07:59` → `05:00`.
-- Закрытие стола → `05:00` (через `CloseTableWizard`).
+### 5. Memory + версия
+- Bump патч-версии в `package.json` (бэкенд-изменение).
+- Обновить mem: `financial-and-chip-reconciliation`, `shift-management-and-closing`. Добавить строку в Core: *«Источник P&L смены = `shifts.tables_result` (фишки, последний snapshot vs baseline). `shift_result` — устаревший алиас.»*
 
-## Вне области
+### 6. QA
+- SQL: для всех закрытых смен за 60 дней проверить `shifts.tables_result = SUM(compute_shift_table_results)`.
+- SQL: `daily_summaries.tables_result = SUM(shifts.tables_result)` по дате.
+- Руками: открыть сегодняшний CloseShiftDialog → значения совпадают с математикой Pit Chip Count.
 
-- Не меняем разрешённые часы (`19..04` + FINAL).
-- Не меняем расчёт Result / `compute_shift_table_results`.
-- Не меняем UI таблицы Tracker и ручное редактирование.
+## Вне плана
+- Шаг 1 кассирского пересчёта не трогаем.
+- `gaming_tables.closing_result` не трогаем (используется в CloseTableWizard).
+- Раскладку Finance/Summary не меняем — только корректные числа.
+- Чип-трансферы, expenses, кошельки — без изменений.
