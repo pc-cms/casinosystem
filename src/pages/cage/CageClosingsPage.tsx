@@ -13,10 +13,11 @@ import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Landmark, RotateCcw, AlertTriangle } from "lucide-react";
+import { Landmark, RotateCcw, AlertTriangle, Printer } from "lucide-react";
 import { formatNumberSpaces } from "@/lib/currency";
 import { fmtDate } from "@/lib/format-date";
 import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
+import ReprintShiftDialog from "@/components/cage/ReprintShiftDialog";
 import { toast } from "sonner";
 
 const CageClosingsPage = () => {
@@ -24,6 +25,7 @@ const CageClosingsPage = () => {
   const { casinoId, roles } = useAuth();
   const qc = useQueryClient();
   const [pendingShift, setPendingShift] = useState<any | null>(null);
+  const [reprintShiftId, setReprintShiftId] = useState<string | null>(null);
 
   const isManager = roles.includes("manager") || roles.includes("super_admin") || roles.includes("finance_manager");
 
