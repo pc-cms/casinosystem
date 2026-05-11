@@ -193,15 +193,16 @@ const CloseShiftDialog = ({
         actual: totalTzs,
         difference: balance,
         cash_delta: cashDelta,
-        // CASH RESULT = real money counted by the cashier at closing
-        // (cash + mobile + bank, excluding chips). The "final check".
-        cash_result: closingCashTotalTzs,
+        // CASH RESULT = net real money earned during the shift
+        // (closing cash − opening cash float). Excludes chips and the
+        // starting float so it reflects the shift's actual cash gain.
+        cash_result: cashDelta,
         shift_result: shiftResult,
         result_table: resultTable,
         cash_desk_balance: balance,
       },
       notes: notes.trim(),
-      cashResult: closingCashTotalTzs,
+      cashResult: cashDelta,
       missTotal,
       shiftResult,
     });

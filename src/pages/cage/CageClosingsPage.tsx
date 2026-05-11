@@ -35,7 +35,7 @@ const CageClosingsPage = () => {
       if (!casinoId) return [];
       const { data, error } = await supabase
         .from("shifts")
-        .select("id, opened_at, closed_at, cash_result, miss_total, shift_result, notes, opened_by, closed_by")
+        .select("id, opened_at, closed_at, cash_result, miss_total, shift_result, notes, opened_by, closed_by, opening_float, closing_cash")
         .eq("casino_id", casinoId)
         .eq("status", "closed")
         .order("closed_at", { ascending: false })
@@ -99,9 +99,28 @@ const CageClosingsPage = () => {
                 <tr><td colSpan={7} className="text-center text-muted-foreground py-6">No closed shifts</td></tr>
               ) : shifts.map((s: any) => {
                 const closedDate = s.closed_at ? new Date(s.closed_at) : null;
-                const cash = Number(s.cash_result || 0);
+                // Cash Result excludes the opening cash float — show only the
+                // net cash earned during the shift. Prefer the snapshot
+                // cash_delta if present; otherwise back-compute from totals.
+                const of = (s.opening_float || {}) as any;
+                const ofTotals = (of.totals || {}) as any;
+                const openingCash = Math.max(
+                  Number(ofTotals.total_tzs || 0) - Number(ofTotals.chips_tzs || 0),
+                  0,
+                );
+                const cc = (s.closing_cash || {}) as any;
+                const cashDeltaSnap = Number(cc.cash_delta);
+                const rawCash = Number(s.cash_result || 0);
+                const cash = Number.isFinite(cashDeltaSnap)
+                  ? cashDeltaSnap
+                  : (openingCash > 0 ? rawCash - openingCash : rawCash);
                 const miss = Number(s.miss_total || 0);
                 const result = Number(s.shift_result || 0);
+                // Strip auto-appended technical breadcrumbs from manager notes
+                // (legacy " | TABLES: … | MISS: … | BALANCE: … | mgr:…" trail).
+                const cleanNotes = String(s.notes || "")
+                  .split(/\s*\|\s*(?:TABLES|CASH|MISS|BALANCE|RESULT|DIFF|mgr)\b/i)[0]
+                  .trim();
                 return (
                   <tr key={s.id} className="border-b border-border last:border-0 hover:bg-muted/40">
                     <td className="px-3 py-2 font-mono text-[11px] text-muted-foreground">
@@ -122,7 +141,7 @@ const CageClosingsPage = () => {
                     <td className={`px-3 py-2 text-right font-mono font-semibold ${result >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
                       {formatNumberSpaces(result)}
                     </td>
-                    <td className="px-3 py-2 text-muted-foreground truncate max-w-[280px]">{s.notes || "—"}</td>
+                    <td className="px-3 py-2 text-muted-foreground truncate max-w-[280px]">{cleanNotes || "—"}</td>
                     <td className="px-3 py-2 text-right">
                       <div className="flex justify-end gap-1.5">
                         <Button

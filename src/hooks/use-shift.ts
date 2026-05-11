@@ -147,17 +147,20 @@ export const useCloseShift = () => {
         expected_cash?: number;
       };
 
-      // 2. CASH RESULT = real money counted by the cashier at closing
-      //    (cash + mobile + bank, excluding chips). Comes from the cashier's
-      //    final count, not from a formula. Falls back to RPC value if the
-      //    closing count totals are missing for any reason.
+      // 2. CASH RESULT = NET cash earned during the shift (closing cash −
+      //    opening cash float), excluding chips. Reflects only the money the
+      //    shift actually generated, not the starting float.
       const cc = (input.closing_count as any)?.totals || {};
+      const of = (input.closing_cash as any) || {};
       const countedTotal = Number(cc.total_tzs || 0);
       const countedChips = Number(cc.chips_tzs || 0);
-      const countedCash = Math.max(countedTotal - countedChips, 0);
-      const cashResultFinal = countedTotal > 0
-        ? countedCash
-        : Number(totals.cash_result ?? input.cash_result ?? 0);
+      const countedCash = countedTotal - countedChips;
+      const cashDeltaFromUI = Number(of.cash_delta);
+      const cashResultFinal = Number.isFinite(cashDeltaFromUI)
+        ? cashDeltaFromUI
+        : (countedTotal > 0
+            ? countedCash
+            : Number(totals.cash_result ?? input.cash_result ?? 0));
 
       // 3. Persist the closing snapshot using server-truth values.
       const { error } = await supabase
