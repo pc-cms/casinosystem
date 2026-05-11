@@ -9,6 +9,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useChipColors, resolveChipColor } from "@/hooks/use-chip-colors";
 import { nowEAT } from "@/lib/business-day";
 import { chipSnapshotResult } from "@/lib/table-live-result";
+import { useShiftTableAdjustments } from "@/hooks/use-shift-table-adjustments";
 
 /** Compute the Number-Count tracker slot for a Chip Count taken at the given EAT time.
  *  Returns the target slot plus an `onlyIfEmpty` flag — when true, the caller must
@@ -116,20 +117,24 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
     [countLocations]
   );
 
+  // Live Fill/Credit adjustments for the active shift (per table).
+  // displayed = (actual − baseline) × denom + (Σcredit − Σfill)
+  const { adjustmentFor } = useShiftTableAdjustments();
+
   const rowResults = useMemo(() => {
     return countLocations.map(loc => {
       const locCounts = counts[loc.key] || {};
       const tableBaseline = baselineMap[loc.id] || {};
-      let total = 0;
+      let raw = 0;
       visibleDenoms.forEach(d => {
         if (!loc.denoms.includes(d)) return;
         const expected = tableBaseline[d] || 0;
         const actual = locCounts[d] ?? expected;
-        total += (actual - expected) * d;
+        raw += (actual - expected) * d;
       });
-      return { key: loc.key, total };
+      return { key: loc.key, total: raw + adjustmentFor(loc.id) };
     });
-  }, [countLocations, counts, baselineMap, visibleDenoms]);
+  }, [countLocations, counts, baselineMap, visibleDenoms, adjustmentFor]);
 
   const grandTotal = rowResults.reduce((s, r) => s + r.total, 0);
 
@@ -215,7 +220,7 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
         <div className="flex items-center justify-between px-3 py-2 border-b border-border shrink-0">
           <div>
             <h3 className="text-sm font-semibold text-card-foreground">Chip Count</h3>
-            <p className="text-[10px] text-muted-foreground">Rows: tables · Columns: denominations</p>
+            <p className="text-[10px] text-muted-foreground">Rows: tables · Columns: denominations · Result includes Fill/Credit for current shift</p>
           </div>
           <div className="flex items-center gap-2">
             <Button

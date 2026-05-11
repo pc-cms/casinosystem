@@ -19,6 +19,7 @@ import { CloseBusinessDayButton } from "@/components/pit/CloseBusinessDayButton"
 
 
 import { liveTableResult, buildLatestTableSnapshot } from "@/lib/table-live-result";
+import { useShiftTableAdjustments } from "@/hooks/use-shift-table-adjustments";
 import TableSeatingDialog from "@/components/pit/TableSeatingDialog";
 import type { FloorTable } from "@/components/pit/FloorTableCard";
 import type { SeatedPlayer } from "@/components/pit/SeatedPlayerChip";
@@ -308,6 +309,7 @@ const Tables = () => {
   }, [transactions, shift]);
 
   const snapshotIndex = useMemo(() => buildLatestTableSnapshot(snapshots as any), [snapshots]);
+  const { adjustmentMap } = useShiftTableAdjustments(shift?.id ?? null);
 
   // Table DROP = simple sum of all Cash In on the table for the current business day (no NEP logic).
   const tableStats = useMemo(() => {
@@ -321,11 +323,12 @@ const Tables = () => {
         closingResult: t.closing_result as any,
         snapshotIndex,
         baselineMap,
+        adjustmentMap,
       });
       stats[t.id] = { drop, result };
     });
     return stats;
-  }, [tables, shiftTransactions, snapshotIndex, baselineMap]);
+  }, [tables, shiftTransactions, snapshotIndex, baselineMap, adjustmentMap]);
 
   const handleOpenAll = () => {
     const ids = closedTables.map(t => t.id);

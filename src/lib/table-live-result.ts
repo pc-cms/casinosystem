@@ -71,6 +71,14 @@ export interface LiveResultArgs {
   closingResult: number | null | undefined;
   snapshotIndex: ReturnType<typeof buildLatestTableSnapshot>;
   baselineMap: BaselineMap;
+  /**
+   * Optional per-table Fill/Credit adjustment for the active shift
+   * (`Σcredit − Σfill`). Added to the raw snapshot delta so the displayed
+   * result matches the final shift P&L formula `SnapResult − Fill + Credit`.
+   * Closed tables (with `closingResult`) are NOT adjusted — closing flow
+   * already accounts for transfers.
+   */
+  adjustmentMap?: Record<string, number>;
 }
 
 /**
@@ -82,11 +90,13 @@ export const liveTableResult = ({
   closingResult,
   snapshotIndex,
   baselineMap,
+  adjustmentMap,
 }: LiveResultArgs): number => {
   if (closingResult !== null && closingResult !== undefined) return Number(closingResult);
   const snap = snapshotIndex[tableId];
   if (!snap || !snap.latestTime) return 0;
-  return chipSnapshotResult(snap.perDenom, baselineMap[tableId] || {});
+  const raw = chipSnapshotResult(snap.perDenom, baselineMap[tableId] || {});
+  return raw + (adjustmentMap?.[tableId] ?? 0);
 };
 
 // Legacy helpers kept for Drop V / tracker totals consumers.
