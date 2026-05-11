@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { X, ExternalLink, User, ArrowDownToLine, ArrowUpFromLine, Check } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { usePlayer, usePlayerVisits } from "@/hooks/use-player-profile";
+import { usePlayer, usePlayerVisits, usePlayerNotes } from "@/hooks/use-player-profile";
 import { useSelectedPlayer } from "@/hooks/use-selected-player";
 import CategoryBadge from "@/components/player/CategoryBadge";
 import FlagBadges from "@/components/player/FlagBadges";
@@ -122,6 +122,10 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
   const handleClose = () => { onClose ? onClose() : ctx.clear(); };
 
   const isBlacklisted = player?.status === "blacklist";
+  const { data: notes = [] } = usePlayerNotes(playerId || undefined, isBlacklisted);
+  const blacklistReason = isBlacklisted
+    ? (notes.find((n: any) => n.note_type === "blacklist")?.content || "").replace(/^Added to blacklist\.\s*Reason:\s*/i, "")
+    : "";
   const tags = ((player as any)?.player_tags || []).map((t: any) => t.tag);
   const visitsCount = visits.length;
   const result = monthStats?.result ?? 0;
@@ -202,6 +206,11 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
               {isBlacklisted && (
                 <span className="text-xs uppercase tracking-wider px-2 py-0.5 rounded bg-destructive/10 text-destructive border border-destructive/30">
                   Blacklist
+                </span>
+              )}
+              {isBlacklisted && blacklistReason && (
+                <span className="text-xs text-destructive truncate max-w-[520px]" title={blacklistReason}>
+                  — {blacklistReason}
                 </span>
               )}
             </div>
