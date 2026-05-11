@@ -63,7 +63,7 @@ const ShiftClosingReport = ({
     let cancelled = false;
     (async () => {
       if (!casinoId || !shift) return;
-      const [{ data: c }, { data: bl }, { data: tr }, { data: tdr }, { data: tx }] = await Promise.all([
+      const [{ data: c }, { data: bl }, { data: tr }, { data: tdr }, { data: tx }, { data: snaps }] = await Promise.all([
         supabase.from("casinos").select("name").eq("id", casinoId).maybeSingle(),
         supabase.from("chip_baseline").select("location_id, denomination, expected_quantity")
           .eq("casino_id", casinoId).eq("location_type", "table"),
@@ -76,15 +76,27 @@ const ShiftClosingReport = ({
           : Promise.resolve({ data: [] as any[] } as any),
         supabase.from("transactions").select("table_id, type, amount")
           .eq("shift_id", shift.id).in("type", ["buy", "in"]),
+        // Pit's Chip Count snapshots for this shift's business day. Result =
+        // (latest snapshot.actual − chip_baseline.expected) × denom per table.
+        businessDate
+          ? supabase.from("chip_snapshots")
+              .select("location_type, location_id, denomination, expected_quantity, actual_quantity, created_at")
+              .eq("casino_id", casinoId).eq("date", businessDate).eq("location_type", "table")
+          : Promise.resolve({ data: [] as any[] } as any),
       ]);
       if (cancelled) return;
       if (c?.name) setCasinoName(c.name);
       const blMap: Record<string, number> = {};
+      const blByDenom: BaselineMap = {};
       (bl || []).forEach((r: any) => {
         if (!r.location_id) return;
         blMap[r.location_id] = (blMap[r.location_id] || 0) + Number(r.denomination) * Number(r.expected_quantity);
+        blByDenom[r.location_id] = blByDenom[r.location_id] || {};
+        blByDenom[r.location_id][Number(r.denomination)] = Number(r.expected_quantity);
       });
       setBaselines(blMap);
+      setBaselineByDenom(blByDenom);
+      setSnapshotIndex(buildLatestTableSnapshot((snaps || []) as any));
       const fc: Record<string, { fill: number; credit: number }> = {};
       (tr || []).forEach((r: any) => {
         if (!r.table_id) return;
@@ -121,22 +133,24 @@ const ShiftClosingReport = ({
     [tables],
   );
 
-  /** Per-table values — prefer `table_daily_results` (imported/confirmed
-   *  end-of-day numbers) when present, otherwise compute live from baseline
-   *  + cage transfers + current closing_chips. IN comes from cash desk
-   *  transactions (buy/in) regardless of source for daily results. */
+  /** Result is ALWAYS sourced from Pit's latest Chip Count snapshot vs the
+   *  chip_baseline (per the Live Table Result Resolution rule). Open/Fill/
+   *  Credit/Close columns still come from imports / cage transfers / live
+   *  closing_chips for visibility, but they no longer drive Result. */
   const rowFor = (t: Tables<"gaming_tables">) => {
     const inVal = inByTable[t.id] || 0;
     const dr = dailyResults[t.id];
-    if (dr) return { op: dr.open, fl: dr.fill, cr: dr.credit, cl: dr.close, inVal, res: dr.result };
+    const snap = snapshotIndex[t.id];
+    const baseline = baselineByDenom[t.id] || {};
+    const res = snap && snap.latestTime
+      ? chipSnapshotResult(snap.perDenom, baseline)
+      : (dr ? dr.result : 0);
+    if (dr) return { op: dr.open, fl: dr.fill, cr: dr.credit, cl: dr.close, inVal, res };
     const op = baselines[t.id] || 0;
     const fl = fillCredits[t.id]?.fill || 0;
     const cr = fillCredits[t.id]?.credit || 0;
     const cl = sumChipsObj(t.closing_chips as any);
-    // Standard table result: Close + Credit − Open − Fill.
-    // Fill adds chips to the table (expected close grows), Credit removes chips
-    // (expected close shrinks). IN (cash buys) does not enter chip result.
-    return { op, fl, cr, cl, inVal, res: cl + cr - op - fl };
+    return { op, fl, cr, cl, inVal, res };
   };
 
   const totals = useMemo(() => {
@@ -146,7 +160,7 @@ const ShiftClosingReport = ({
       open += op; fill += fl; credit += cr; close += cl; inSum += inVal; result += res;
     });
     return { open, fill, credit, close, in: inSum, result };
-  }, [reportTables, baselines, fillCredits, dailyResults, inByTable]);
+  }, [reportTables, baselines, baselineByDenom, snapshotIndex, fillCredits, dailyResults, inByTable]);
 
   // Cash flow opener (per currency cash + mobile from opening_float)
   const openerCash = (openingFloat?.cash || {}) as Record<string, Record<string | number, number>>;
