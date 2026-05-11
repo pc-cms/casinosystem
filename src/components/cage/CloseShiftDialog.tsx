@@ -30,6 +30,8 @@ interface CloseShiftDialogProps {
   totalCashouts: number;
   totalExpenses: number;
   externalCashMovement?: number;
+  floatAdded?: number;
+  collectionTotal?: number;
   openingFloat: number;
   tables: Tables<"gaming_tables">[];
   onConfirm: (data: {
