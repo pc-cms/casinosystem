@@ -16,6 +16,7 @@ import {
   type MobileProviders, type Banks,
 } from "@/components/cage/CageHelpers";
 import { useBatchChipSnapshot } from "@/hooks/use-chips";
+import { useShiftTablesResultTotal } from "@/hooks/use-shift-tables-result";
 import { getBusinessDate } from "@/lib/business-day";
 import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
 import { cn } from "@/lib/utils";
