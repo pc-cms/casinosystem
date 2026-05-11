@@ -108,21 +108,27 @@ const ShiftClosingReport = ({
     [tables],
   );
 
+  /** Per-table values — prefer `table_daily_results` (imported/confirmed
+   *  end-of-day numbers) when present, otherwise compute live from baseline
+   *  + cage transfers + current closing_chips. */
+  const rowFor = (t: Tables<"gaming_tables">) => {
+    const dr = dailyResults[t.id];
+    if (dr) return { op: dr.open, fl: dr.fill, cr: dr.credit, cl: dr.close, inVal: dr.fill, res: dr.result };
+    const op = baselines[t.id] || 0;
+    const fl = fillCredits[t.id]?.fill || 0;
+    const cr = fillCredits[t.id]?.credit || 0;
+    const cl = sumChipsObj(t.closing_chips as any);
+    return { op, fl, cr, cl, inVal: fl, res: cl - op };
+  };
+
   const totals = useMemo(() => {
     let open = 0, fill = 0, credit = 0, close = 0, inSum = 0, result = 0;
     reportTables.forEach(t => {
-      const op = baselines[t.id] || 0;
-      const fl = fillCredits[t.id]?.fill || 0;
-      const cr = fillCredits[t.id]?.credit || 0;
-      const cl = sumChipsObj(t.closing_chips as any);
-      // IN = same as Fill (cage_transfers fill = Cash IN at Cash Desk for this table)
-      const inVal = fl;
-      // Result = Close − Open (final chip count minus baseline)
-      const res = cl - op;
+      const { op, fl, cr, cl, inVal, res } = rowFor(t);
       open += op; fill += fl; credit += cr; close += cl; inSum += inVal; result += res;
     });
     return { open, fill, credit, close, in: inSum, result };
-  }, [reportTables, baselines, fillCredits]);
+  }, [reportTables, baselines, fillCredits, dailyResults]);
 
   // Cash flow opener (per currency cash + mobile from opening_float)
   const openerCash = (openingFloat?.cash || {}) as Record<string, Record<string | number, number>>;
