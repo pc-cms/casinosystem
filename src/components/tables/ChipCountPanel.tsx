@@ -134,6 +134,7 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
   const grandTotal = rowResults.reduce((s, r) => s + r.total, 0);
 
   const setTrackerValue = useSetTableTrackerValue();
+  const { data: trackerRows = [] } = useTableTracker(date);
 
   const handleSave = () => {
     const rows: Array<{
@@ -151,11 +152,20 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
     });
     batchSnapshot.mutate({ date, counts: rows });
 
-    // Auto-write per-table row result into Number Count tracker for the rounded slot
-    // (HH:50–HH+1:10 → slot HH+1:00 / HH:00).
-    const slot = slotForChipCount(nowEAT());
-    if (slot) {
+    // Auto-write per-table row result into Number Count tracker for the rounded slot.
+    // On-time (:50–:10) always writes; fallback (:11–:49) writes only if slot is empty.
+    const target = slotForChipCount(nowEAT());
+    if (target) {
+      const { slot, onlyIfEmpty } = target;
       countLocations.forEach((loc, ri) => {
+        if (onlyIfEmpty) {
+          const existing = trackerRows.find(
+            (t: any) => t.table_id === loc.id && t.time_slot === slot,
+          );
+          if (existing && existing.value !== null && existing.value !== undefined && String(existing.value) !== "") {
+            return; // slot already has an on-time value — don't overwrite
+          }
+        }
         const total = rowResults[ri]?.total ?? 0;
         setTrackerValue.mutate({ table_id: loc.id, date, time_slot: slot, value: total });
       });
