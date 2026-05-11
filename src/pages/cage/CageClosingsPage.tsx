@@ -137,21 +137,15 @@ const CageClosingsPage = () => {
                 <tr><td colSpan={7} className="text-center text-muted-foreground py-6">No closed shifts</td></tr>
               ) : shifts.map((s: any) => {
                 const closedDate = s.closed_at ? new Date(s.closed_at) : null;
-                // Cash Result excludes the opening cash float — show only the
-                // net cash earned during the shift. Prefer the snapshot
-                // cash_delta if present; otherwise back-compute from totals.
-                const of = (s.opening_float || {}) as any;
-                const ofTotals = (of.totals || {}) as any;
-                const openingCash = Math.max(
-                  Number(ofTotals.total_tzs || 0) - Number(ofTotals.chips_tzs || 0),
-                  0,
-                );
+                // Cash Result is already computed by the canonical formula
+                // (Closing Cash − (Opening Cash − Float Added + Collection))
+                // and persisted in shifts.cash_result by the migration / RPC.
+                // Prefer the closing snapshot cash_delta when present; never
+                // re-subtract opening cash here — that double-counted the 9M.
                 const cc = (s.closing_cash || {}) as any;
                 const cashDeltaSnap = Number(cc.cash_delta);
                 const rawCash = Number(s.cash_result || 0);
-                const cash = Number.isFinite(cashDeltaSnap)
-                  ? cashDeltaSnap
-                  : (openingCash > 0 ? rawCash - openingCash : rawCash);
+                const cash = Number.isFinite(cashDeltaSnap) ? cashDeltaSnap : rawCash;
                 const miss = Number(s.miss_total || 0);
                 const result = Number(s.shift_result || 0);
                 // Strip auto-appended technical breadcrumbs from manager notes
