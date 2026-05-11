@@ -137,31 +137,26 @@ const CageClosingsPage = () => {
                 <tr><td colSpan={8} className="text-center text-muted-foreground py-6">No closed shifts</td></tr>
               ) : shifts.map((s: any) => {
                 const closedDate = s.closed_at ? new Date(s.closed_at) : null;
-                // Cash Result is already computed by the canonical formula
-                // (Closing Cash − (Opening Cash − Float Added + Collection))
-                // and persisted in shifts.cash_result by the migration / RPC.
-                // Prefer the closing snapshot cash_delta when present; never
-                // re-subtract opening cash here — that double-counted the 9M.
+                // Canonical values from the new DB trigger
+                // (`compute_shift_balance` mirror). Fallback to legacy
+                // inline math only if columns are NULL on very old rows.
                 const cc = (s.closing_cash || {}) as any;
                 const cashDeltaSnap = Number(cc.cash_delta);
                 const rawCash = Number(s.cash_result || 0);
                 const cash = Number.isFinite(cashDeltaSnap) ? cashDeltaSnap : rawCash;
                 const miss = Number(s.miss_total || 0);
-                // Tables Result is the canonical chip-based shift P&L
-                // (Σ per-table latest snapshot vs baseline − Fill + Credit),
-                // persisted in shifts.tables_result by DB trigger.
-                // Fallback chain for legacy rows: closing_count.result_table → shift_result.
                 const ccObj = (s.closing_count || {}) as any;
                 const fallbackTbl = Number(ccObj.result_table);
                 const tablesResult =
                   s.tables_result != null ? Number(s.tables_result) :
                   Number.isFinite(fallbackTbl) ? fallbackTbl :
                   Number(s.shift_result || 0);
-                // Balance check: any non-zero residual after the day's
-                // money/chip flows is a discrepancy worth a glance.
-                // (Expenses are not on the row → not subtracted here; this is
-                // the cash-desk balance only, same family as Shift Balance.)
-                const balance = tablesResult - cash - miss;
+                const cashDeskResult = s.cash_desk_result != null
+                  ? Number(s.cash_desk_result)
+                  : null;
+                const balance = s.balance != null
+                  ? Number(s.balance)
+                  : (cashDeskResult != null ? cashDeskResult - tablesResult : tablesResult - cash - miss);
                 const cleanNotes = String(s.notes || "")
                   .split(/\s*\|\s*(?:TABLES|CASH|MISS|BALANCE|RESULT|DIFF|mgr)\b/i)[0]
                   .trim();
@@ -187,7 +182,7 @@ const CageClosingsPage = () => {
                     </td>
                     <td
                       className={`px-3 py-2 text-right font-mono ${balance === 0 ? "text-muted-foreground" : "cms-amount-negative font-semibold"}`}
-                      title="Tables Result − Cash Result − Miss"
+                      title="Cash Desk Result − Tables Result. Cash Desk Result = ΔCash + Expenses + Collection − AddFloat + SlotsOut − SlotsIn + Miss"
                     >
                       {balance === 0 ? "0" : `${balance > 0 ? "+" : ""}${formatNumberSpaces(balance)}`}
                     </td>
