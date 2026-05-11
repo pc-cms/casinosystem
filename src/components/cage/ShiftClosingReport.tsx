@@ -154,7 +154,7 @@ const ShiftClosingReport = ({
       <table className="w-full border-collapse mb-3 text-[11px]">
         <thead>
           <tr className="bg-gray-100">
-            {["Table", "Open", "Fill", "Credit", "Close", "Drop", "Grand Total"].map(h => (
+            {["Table", "Open", "Fill", "Credit", "Close", "IN", "Result"].map(h => (
               <th key={h} className="border border-black px-2 py-1 text-left font-semibold">{h}</th>
             ))}
           </tr>
@@ -165,8 +165,8 @@ const ShiftClosingReport = ({
             const fl = fillCredits[t.id]?.fill || 0;
             const cr = fillCredits[t.id]?.credit || 0;
             const cl = sumChipsObj(t.closing_chips as any);
-            const dp = drops[t.id] || 0;
-            const grand = Number(t.closing_result || 0);
+            const inVal = fl;
+            const res = cl - op;
             return (
               <tr key={t.id}>
                 <td className="border border-black px-2 py-1 font-semibold">{t.name}</td>
@@ -174,9 +174,9 @@ const ShiftClosingReport = ({
                 <td className="border border-black px-2 py-1 text-right tabular-nums">{num(fl)}</td>
                 <td className="border border-black px-2 py-1 text-right tabular-nums">{num(cr)}</td>
                 <td className="border border-black px-2 py-1 text-right tabular-nums">{num(cl)}</td>
-                <td className="border border-black px-2 py-1 text-right tabular-nums">{num(dp)}</td>
+                <td className="border border-black px-2 py-1 text-right tabular-nums">{num(inVal)}</td>
                 <td className="border border-black px-2 py-1 text-right tabular-nums font-semibold">
-                  {grand === 0 ? "0" : (grand > 0 ? numAlways(grand) : `-${numAlways(Math.abs(grand))}`)}
+                  {res === 0 ? "0" : (res > 0 ? numAlways(res) : `-${numAlways(Math.abs(res))}`)}
                 </td>
               </tr>
             );
@@ -188,9 +188,9 @@ const ShiftClosingReport = ({
             <td className="border border-black px-2 py-1 text-right tabular-nums">{numAlways(totals.fill)}</td>
             <td className="border border-black px-2 py-1 text-right tabular-nums">{numAlways(totals.credit)}</td>
             <td className="border border-black px-2 py-1 text-right tabular-nums">{numAlways(totals.close)}</td>
-            <td className="border border-black px-2 py-1 text-right tabular-nums">{numAlways(totals.drop)}</td>
+            <td className="border border-black px-2 py-1 text-right tabular-nums">{numAlways(totals.in)}</td>
             <td className="border border-black px-2 py-1 text-right tabular-nums">
-              {totals.gt >= 0 ? numAlways(totals.gt) : `-${numAlways(Math.abs(totals.gt))}`}
+              {totals.result >= 0 ? numAlways(totals.result) : `-${numAlways(Math.abs(totals.result))}`}
             </td>
           </tr>
         </tbody>
