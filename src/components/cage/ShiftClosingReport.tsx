@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { CHIP_DENOMS, CURRENCIES, formatNumberSpaces, CASH_DENOMS } from "@/lib/currency";
 import { fmtDate } from "@/lib/format-date";
+import { buildLatestTableSnapshot, chipSnapshotResult, type BaselineMap } from "@/lib/table-live-result";
 import type { Tables } from "@/integrations/supabase/types";
 
 interface Props {
@@ -46,14 +47,14 @@ const ShiftClosingReport = ({
   const { casinoId } = useAuth();
   const [casinoName, setCasinoName] = useState("Casino");
   const [baselines, setBaselines] = useState<Record<string, number>>({}); // tableId -> TZS value
+  const [baselineByDenom, setBaselineByDenom] = useState<BaselineMap>({}); // tableId -> denom -> qty (Pit baseline)
+  const [snapshotIndex, setSnapshotIndex] = useState<ReturnType<typeof buildLatestTableSnapshot>>({});
   const [fillCredits, setFillCredits] = useState<Record<string, { fill: number; credit: number }>>({});
   /** IN per table = sum of all Cash Desk IN transactions (type 'buy' or 'in')
-   *  for this shift, grouped by table_id. This is the cashier-recorded money
-   *  taken from players at each table during the shift. */
+   *  for this shift, grouped by table_id. */
   const [inByTable, setInByTable] = useState<Record<string, number>>({});
   /** Imported daily results (legacy import path) — when present, take precedence
-   *  over live gaming_tables.closing_chips so reports reprinted later still show
-   *  the actual end-of-day numbers entered by the manager. */
+   *  for Open/Fill/Credit/Close columns; Result still comes from snapshot. */
   const [dailyResults, setDailyResults] = useState<Record<string, {
     open: number; fill: number; credit: number; close: number; drop: number; result: number;
   }>>({});
