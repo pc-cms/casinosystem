@@ -145,18 +145,13 @@ const ShiftClosingReport = ({
     [tables],
   );
 
-  /** Result is ALWAYS sourced from Pit's latest Chip Count snapshot vs the
-   *  chip_baseline (per the Live Table Result Resolution rule). Open/Fill/
-   *  Credit/Close columns still come from imports / cage transfers / live
-   *  closing_chips for visibility, but they no longer drive Result. */
+  /** Result is computed by DB RPC `compute_shift_table_results`
+   *  (formula: (Σ(actual−baseline)·denom) − Fill + Credit). UI only displays it.
+   *  Open/Fill/Credit/Close/IN columns remain informational. */
   const rowFor = (t: Tables<"gaming_tables">) => {
     const inVal = inByTable[t.id] || 0;
     const dr = dailyResults[t.id];
-    const snap = snapshotIndex[t.id];
-    const baseline = baselineByDenom[t.id] || {};
-    const res = snap && snap.latestTime
-      ? chipSnapshotResult(snap.perDenom, baseline)
-      : (dr ? dr.result : 0);
+    const res = serverResults[t.id] ?? (dr ? dr.result : 0);
     if (dr) return { op: dr.open, fl: dr.fill, cr: dr.credit, cl: dr.close, inVal, res };
     const op = baselines[t.id] || 0;
     const fl = fillCredits[t.id]?.fill || 0;
