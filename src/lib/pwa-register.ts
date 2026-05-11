@@ -136,6 +136,16 @@ export async function setupPWA() {
           setTimeout(tryAutoReload, 30 * 1000);
         };
         setTimeout(tryAutoReload, IDLE_AUTO_RELOAD_MS);
+
+        // Hard force-reload 10 minutes after the new version was detected,
+        // regardless of idle state or open dialogs. Ensures every active PWA
+        // picks up critical updates without waiting for the user.
+        const FORCE_RELOAD_MS = 10 * 60 * 1000;
+        setTimeout(() => {
+          toast.dismiss(toastId);
+          console.log("[PWA] Force-reloading to apply update");
+          updateSW(true);
+        }, FORCE_RELOAD_MS);
       },
     });
   } catch (e) {
