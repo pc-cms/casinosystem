@@ -47,20 +47,17 @@ const ShiftClosingReport = ({
   const [casinoName, setCasinoName] = useState("Casino");
   const [baselines, setBaselines] = useState<Record<string, number>>({}); // tableId -> TZS value
   const [fillCredits, setFillCredits] = useState<Record<string, { fill: number; credit: number }>>({});
-  const [drops, setDrops] = useState<Record<string, number>>({});
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       if (!casinoId || !shift) return;
-      const [{ data: c }, { data: bl }, { data: tr }, { data: tt }] = await Promise.all([
+      const [{ data: c }, { data: bl }, { data: tr }] = await Promise.all([
         supabase.from("casinos").select("name").eq("id", casinoId).maybeSingle(),
         supabase.from("chip_baseline").select("location_id, denomination, expected_quantity")
           .eq("casino_id", casinoId).eq("location_type", "table"),
         supabase.from("cage_transfers").select("table_id, transfer_type, amount")
           .eq("shift_id", shift.id).in("transfer_type", ["fill", "credit"]),
-        supabase.from("table_tracker").select("table_id, value")
-          .eq("casino_id", casinoId).eq("date", businessDate),
       ]);
       if (cancelled) return;
       if (c?.name) setCasinoName(c.name);
@@ -78,9 +75,6 @@ const ShiftClosingReport = ({
         else if (r.transfer_type === "credit") fc[r.table_id].credit += Number(r.amount);
       });
       setFillCredits(fc);
-      const dr: Record<string, number> = {};
-      (tt || []).forEach((r: any) => { dr[r.table_id] = (dr[r.table_id] || 0) + Number(r.value); });
-      setDrops(dr);
     })();
     return () => { cancelled = true; };
   }, [casinoId, shift?.id, businessDate]);
