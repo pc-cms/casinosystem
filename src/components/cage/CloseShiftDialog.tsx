@@ -1,7 +1,8 @@
 import { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { AlertTriangle, CheckCircle2, ShieldAlert, Lock, ArrowLeft } from "lucide-react";
+import { AlertTriangle, CheckCircle2, ShieldAlert, Lock, ArrowLeft, Printer } from "lucide-react";
+import ShiftClosingReport from "@/components/cage/ShiftClosingReport";
 import { CHIP_DENOMS, formatCurrency, formatChipLabel, formatNumberSpaces, formatCashDenomLabel, CURRENCIES, CASH_DENOMS, CURRENCY_SYMBOLS } from "@/lib/currency";
 import { cashSum } from "@/components/cage/CashDenomInput";
 import CashCountGrid from "@/components/cage/CashCountGrid";
@@ -446,6 +447,9 @@ const CloseShiftDialog = ({
               <ArrowLeft className="w-4 h-4" /> Back to Edit
             </Button>
             <div className="flex items-center gap-2">
+              <Button variant="outline" onClick={() => window.print()} disabled={loading} className="gap-1.5">
+                <Printer className="w-4 h-4" /> Print Report
+              </Button>
               <Button variant="ghost" onClick={onClose} disabled={loading}>
                 Cancel
               </Button>
@@ -459,6 +463,27 @@ const CloseShiftDialog = ({
                 {loading ? "Closing…" : "Confirm & Enter Manager Password"}
               </Button>
             </div>
+          </div>
+
+          {/* Print-only: hidden on screen, visible when window.print() runs */}
+          <div className="hidden print:block">
+            <ShiftClosingReport
+              shift={shift}
+              tables={tables}
+              closingCount={{
+                chips: chipCounts,
+                cash: cashCounts,
+                mobile: mobileBal,
+                bank: bankBal,
+              }}
+              openingFloat={shift.opening_float as any}
+              exchangeRates={rates}
+              totalExpenses={totalExpenses}
+              missTotal={missTotal}
+              resultTable={resultTable}
+              balance={balance}
+              businessDate={businessDate}
+            />
           </div>
         </div>
 
