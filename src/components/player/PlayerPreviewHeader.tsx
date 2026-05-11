@@ -208,6 +208,11 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
                   Blacklist
                 </span>
               )}
+              {isBlacklisted && blacklistReason && (
+                <span className="text-xs text-destructive truncate max-w-[520px]" title={blacklistReason}>
+                  — {blacklistReason}
+                </span>
+              )}
             </div>
 
             {/* Row 2 — Cash In (m) / Result (m) */}
