@@ -384,11 +384,6 @@ const CloseShiftDialog = ({
               </div>
             </div>
 
-            {/* BALANCE FORMULA — cash-only reconciliation */}
-            <div className={cn(
-              "rounded-lg border-2 p-4",
-              isBalanced ? "border-success/60 bg-success/5" : "border-destructive/60 bg-destructive/5",
-            )}>
             {/* SHIFT BALANCE FORMULA — full asset accounting */}
             <div className={cn(
               "rounded-lg border-2 p-4",
