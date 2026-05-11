@@ -169,6 +169,15 @@ const CageClosingsPage = () => {
           }}
         />
       )}
+
+      {reprintShiftId && casinoId && (
+        <ReprintShiftDialog
+          open={true}
+          onClose={() => setReprintShiftId(null)}
+          shiftId={reprintShiftId}
+          casinoId={casinoId}
+        />
+      )}
     </PageShell>
   );
 };
