@@ -27,10 +27,21 @@ const CageClosingsPage = () => {
   const [pendingShift, setPendingShift] = useState<any | null>(null);
   const [reprintShiftId, setReprintShiftId] = useState<string | null>(null);
 
+  // Month picker — same unified pattern as Miss Chips / Bank Checks.
+  const today = useMemo(() => new Date(), []);
+  const [monthAnchor, setMonthAnchor] = useState<Date>(startOfMonth(today));
+  const monthLabel = format(monthAnchor, "MMMM yyyy");
+  const monthStart = startOfMonth(monthAnchor);
+  const monthEnd = startOfMonth(addMonths(monthAnchor, 1));
+  const goPrev = () => setMonthAnchor((d) => startOfMonth(subMonths(d, 1)));
+  const goNext = () => setMonthAnchor((d) => startOfMonth(addMonths(d, 1)));
+  const goCurrent = () => setMonthAnchor(startOfMonth(today));
+  const nextDisabled = monthAnchor >= startOfMonth(today);
+
   const isManager = roles.includes("manager") || roles.includes("super_admin") || roles.includes("finance_manager");
 
   const { data: shifts = [], isLoading } = useQuery({
-    queryKey: ["closed-shifts", casinoId],
+    queryKey: ["closed-shifts", casinoId, monthStart.toISOString()],
     queryFn: async () => {
       if (!casinoId) return [];
       const { data, error } = await supabase
@@ -38,8 +49,10 @@ const CageClosingsPage = () => {
         .select("id, opened_at, closed_at, cash_result, miss_total, shift_result, notes, opened_by, closed_by, opening_float, closing_cash")
         .eq("casino_id", casinoId)
         .eq("status", "closed")
+        .gte("closed_at", monthStart.toISOString())
+        .lt("closed_at", monthEnd.toISOString())
         .order("closed_at", { ascending: false })
-        .limit(60);
+        .limit(200);
       if (error) throw error;
       return data || [];
     },
