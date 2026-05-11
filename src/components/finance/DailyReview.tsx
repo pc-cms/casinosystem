@@ -198,13 +198,20 @@ export const DailyReview = () => {
           <CardTitle className="text-sm font-medium">Day Results — {fmtDate(selectedDate)}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="p-3 rounded-lg bg-muted/50 border border-border">
-              <p className="text-xs text-muted-foreground mb-1">Cash Result (from Cage)</p>
+              <p className="text-xs text-muted-foreground mb-1">Tables Result (chips)</p>
+              <p className={`text-lg font-bold font-mono ${tablesResult >= 0 ? "text-foreground" : "text-destructive"}`}>
+                {formatNumberSpaces(tablesResult)}
+              </p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Σ snapshots vs baseline</p>
+            </div>
+            <div className="p-3 rounded-lg bg-muted/50 border border-border">
+              <p className="text-xs text-muted-foreground mb-1">Cash Result (info)</p>
               <p className={`text-lg font-bold font-mono ${cashResult >= 0 ? "text-foreground" : "text-destructive"}`}>
                 {formatNumberSpaces(cashResult)}
               </p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">Buy-ins − Cashouts</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Counted − opening cash</p>
             </div>
             <div className="p-3 rounded-lg bg-muted/50 border border-border">
               <p className="text-xs text-muted-foreground mb-1">Slots Result (manual)</p>
@@ -224,6 +231,7 @@ export const DailyReview = () => {
               <p className={`text-lg font-bold font-mono ${totalResult >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
                 {totalResult >= 0 ? "+" : ""}{formatNumberSpaces(totalResult)}
               </p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Tables + Slots</p>
             </div>
           </div>
 
