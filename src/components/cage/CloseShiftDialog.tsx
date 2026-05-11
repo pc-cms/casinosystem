@@ -149,21 +149,30 @@ const CloseShiftDialog = ({
   const closingCashTotalTzs = closingCashOnlyTzs + closingMobileTzs + closingBankTzs;
   const totalTzs = closingChipsTzs + closingCashTotalTzs;
 
-  // Shift Balance — pure asset accounting:
-  //   Tables Result = ΔCash + ΔChips + Expenses
-  //   ⇒ Balance = Tables Result − CashDelta − MissChips − Expenses  (must be 0)
-  // CashDelta = counted closing money (cash + mobile + bank, TZS) − opening cash.
-  // MissChips is signed (negative = chips lost). Expenses are physically out of the till.
-  // Cash Result deduction = (Cash Opening − Float Added + Collection)
-  // → cash_result = closing cash − (opening cash − float added + collection)
-  //               = closing cash − opening cash + float added − collection
+  // Canonical Cash Desk formula (mirrors DB RPC `compute_shift_balance`):
+  //   Cash Desk Result = ΔCash + Expenses + Collection − AddFloat
+  //                    + SlotsOut − SlotsIn + Miss
+  //   Shift Balance    = Cash Desk Result − Tables Result      (= 0 ideal)
+  // ΔCash = closing money (cash + mobile + bank, TZS) − opening cash.
+  const openingCashEffective = openingCashProp || openingCashTzs;
   const cashDelta = useMemo(
-    () => closingCashTotalTzs - (openingCashTzs - floatAdded + collectionTotal),
-    [closingCashTotalTzs, openingCashTzs, floatAdded, collectionTotal],
+    () => closingCashTotalTzs - openingCashEffective,
+    [closingCashTotalTzs, openingCashEffective],
   );
-  const balance = useMemo(
-    () => resultTable - cashDelta - missTotal - totalExpenses,
-    [resultTable, cashDelta, missTotal, totalExpenses],
+  const { cashDeskResult, shiftBalance: balance } = useMemo(
+    () => computeShiftBalance({
+      openingCash: openingCashEffective,
+      closingCash: closingCashTotalTzs,
+      expenses: totalExpenses,
+      collection: collectionTotal,
+      addFloat: floatAdded,
+      slotsIn,
+      slotsOut,
+      miss: missTotal,
+      tablesResult: resultTable,
+    }),
+    [openingCashEffective, closingCashTotalTzs, totalExpenses, collectionTotal,
+     floatAdded, slotsIn, slotsOut, missTotal, resultTable],
   );
   const isBalanced = balance === 0;
   const requiresNote = !isBalanced;
