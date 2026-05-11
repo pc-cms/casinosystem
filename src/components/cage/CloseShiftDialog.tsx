@@ -389,12 +389,19 @@ const CloseShiftDialog = ({
               "rounded-lg border-2 p-4",
               isBalanced ? "border-success/60 bg-success/5" : "border-destructive/60 bg-destructive/5",
             )}>
+            {/* SHIFT BALANCE FORMULA — full asset accounting */}
+            <div className={cn(
+              "rounded-lg border-2 p-4",
+              isBalanced ? "border-success/60 bg-success/5" : "border-destructive/60 bg-destructive/5",
+            )}>
               <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground font-semibold mb-3">
-                Cash Desk Balance — cash only (chips tracked as Miss)
+                Shift Balance — Tables Result vs counted money & chips
               </p>
               <div className="space-y-1.5 font-mono text-sm">
-                <FormulaRow label="Closing Cash (Cash + Mobile + Bank)" value={`+${formatNumberSpaces(closingCashTotalTzs)}`} />
-                <FormulaRow label="− Expected Cash" value={`−${formatNumberSpaces(expectedBalance)}`} />
+                <FormulaRow label="Tables Result" value={`${resultTable >= 0 ? "+" : ""}${formatNumberSpaces(resultTable)}`} />
+                <FormulaRow label="− Counted Money Δ (Cash + Mobile + Bank − Opening Cash)" value={`−${formatNumberSpaces(cashDelta)}`} />
+                <FormulaRow label="− Miss Chips" value={`−(${missTotal >= 0 ? "+" : ""}${formatNumberSpaces(missTotal)}) = ${(-missTotal) >= 0 ? "+" : ""}${formatNumberSpaces(-missTotal)}`} />
+                <FormulaRow label="− Expenses" value={`−${formatNumberSpaces(totalExpenses)}`} />
                 <div className={cn(
                   "flex justify-between pt-3 mt-2 border-t-2 text-lg font-bold",
                   isBalanced ? "border-success/60" : "border-destructive/60",
@@ -403,7 +410,7 @@ const CloseShiftDialog = ({
                     {isBalanced
                       ? <CheckCircle2 className="w-5 h-5 text-success" />
                       : <AlertTriangle className="w-5 h-5 text-destructive" />}
-                    = Cash Desk Balance
+                    = Shift Balance
                   </span>
                   <span className={isBalanced ? "text-success" : balance > 0 ? "cms-amount-positive" : "cms-amount-negative"}>
                     {balance >= 0 ? "+" : ""}{formatNumberSpaces(balance)} <span className="text-sm text-muted-foreground">TZS</span>
