@@ -189,7 +189,8 @@ const CloseShiftDialog = ({
       closingCash: {
         expected: expectedBalance,
         actual: totalTzs,
-        difference: diff,
+        difference: balance,
+        cash_delta: cashDelta,
         cash_result: cashResult,
         shift_result: shiftResult,
         result_table: resultTable,
