@@ -1,0 +1,1 @@
+DELETE FROM public.shifts WHERE id = '98bd3bb6-4194-43a8-bf0b-d966eafcfb7f';
