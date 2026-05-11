@@ -1,58 +1,73 @@
+## Цель
 
-# Fix Shift Closing Reports
+Расширить правило записи Chip Count → Table Check (Numbers) одним мягким fallback-ом для случаев, когда не успели снять чек в окне `:50–:10`. Закрытие столов до 05:00 — отдельный сценарий и уже реализовано.
 
-## Goal
+## Где это живёт
 
-Correct field semantics in **Consolidating Cash Desk Report** (page 1), guarantee both reports print as 2 distinct A4 pages, and apply the same fixes in `ReprintShiftDialog`.
+`src/components/tables/ChipCountPanel.tsx`, функция `slotForChipCount(now)` (строки 13–31). Вызывается в `handleSave` (строка 148) и пишет результат в `table_tracker` через `useSetTableTrackerValue` для каждой строки-стола.
 
-## Page 1 — Consolidating Cash Desk Report
+## Текущее поведение
 
-Rename and recompute the per-table grid columns to match real semantics:
+- `04:50–07:59` → слот `05:00` (FINAL)
+- `m ≥ 50` → следующий час `HH+1:00`
+- `m ≤ 10` → текущий час `HH:00`
+- `m 11–49` → `null` (ничего не пишется) ← теряются опоздавшие чеки
 
-| Column | Source | Notes |
-|---|---|---|
-| **Table** | `gaming_tables.name` | unchanged |
-| **Open** | sum of `chip_baseline` for that table (TZS value) | unchanged — already correct |
-| **Fill** | `cage_transfers.amount` where `transfer_type='fill'` AND `table_id=t.id` | Chips IN to cash desk from this table |
-| **Credit** | `cage_transfers.amount` where `transfer_type='credit'` AND `table_id=t.id` | Chips OUT from cash desk to this table |
-| **Close** | sum of `gaming_tables.closing_chips` JSONB (final chip count before reset) | unchanged |
-| **IN** *(renamed from Drop)* | sum of `cage_transfers.amount` where `transfer_type='fill'` AND `table_id=t.id` | All Cash IN at Cash Desk for this table during the shift. **Stop using `table_tracker`.** Header text: `IN`. |
-| **Result** | `Close − Open` (i.e. `sum(closing_chips) − baseline`) | **Stop using `gaming_tables.closing_result`.** Recompute purely from Close − Baseline per row. Color: positive normal, negative shown with leading `-`. |
+Допустимые слоты: `19:00–23:00`, `00:00–04:00` плюс `05:00` (FINAL).
 
-Total row recomputed accordingly (sum each column).
+## Новое правило (точные требования пользователя)
 
-Note: `Fill` and `IN` will be identical numbers (both come from the same `cage_transfers fill` rows). That's intentional — the legacy form keeps both columns.
+1. Если чек снят в `:11–:49` для часа `HH`, и для слота `HH:00` ещё **нет значения** в `table_tracker` за текущую бизнес-дату — записать в `HH:00`.
+2. Если значение в `HH:00` уже есть (значит чек прошёл вовремя в окне `:50–:10`) — **не перезаписывать**. Записывается только **первый** опоздавший чек.
+3. Окно `:50–:10` работает как раньше: всегда пишет/перезаписывает свой целевой слот (`HH+1:00` или `HH:00` соответственно). Это исходный «штатный» путь, у него приоритет.
+4. FINAL-окно (`04:50–07:59 → 05:00`) не меняется.
+5. Слот должен попадать в разрешённые часы `19..04`. Иначе — `null`.
 
-Remove the `table_tracker` query in `ShiftClosingReport.tsx` (no longer needed for the IN column).
+### Таблица сопоставления
 
-## Page 2 — Chips Movement Report
+```text
+04:50–07:59          → 05:00 (FINAL, всегда пишет)
+m ≥ 50               → HH+1:00 (всегда пишет)
+m ≤ 10               → HH:00   (всегда пишет)
+m 11–49              → HH:00   (NEW; пишет ТОЛЬКО если слот пуст)
+вне 19..04           → null
+```
 
-No semantic changes. Already correct.
+### Примеры
 
-## Print: 2 separate A4 pages
+- 21:00 → `21:00` (штатный, перезаписывает)
+- 21:08 → `21:00` (штатный, перезаписывает)
+- 21:30, слот пустой → `21:00` (NEW, пишет)
+- 21:30, слот уже заполнен (был чек в 21:05) → ничего (NEW, защита от затирания)
+- 21:55 → `22:00` (штатный)
+- 18:30 → `null`
+- 04:30, слот пустой → `04:00` (NEW)
 
-Currently both reports render in the same dialog tree, with Chip report using `print:break-before-page`. Strengthen the split so each is exactly one A4 page:
+## Закрытие столов до 05:00 / FINAL
 
-1. In `src/index.css` `@media print`:
-   - `#shift-print-area { page: A4; page-break-after: always; break-after: page; }`
-   - `#chip-print-area { page: A4; page-break-before: always; break-before: page; }`
-   - Add `@page { size: A4 portrait; margin: 10mm; }`
-   - Both areas: `width: 100%; max-height: 277mm; overflow: hidden;` to prevent overflow into a 3rd page.
-2. Tighten Page 1 vertical density (text-[10px] for table rows, smaller paddings) to fit comfortably on one A4 portrait page given the table list size.
-3. Verify no stray margins on the parent `print:block` container leak between pages.
+Уже реализовано в `src/components/tables/CloseTableWizard.tsx` (строки 152–154): при закрытии каждого стола его `closing_result` зеркалится в `table_tracker` слот `05:00` (FINAL) через тот же `useSetTableTrackerValue`. Никаких изменений не требуется. Если хочется аналогично защитить от перезаписи (не затирать FINAL, если он уже заполнен раньше) — это отдельное решение, по умолчанию оставляем текущее поведение «закрытие стола перебивает FINAL», т.к. это финальный авторитетный результат стола.
 
-## Reprint dialog
+## Реализация
 
-Apply identical changes in `src/components/cage/ReprintShiftDialog.tsx` so reprinted closed shifts use the same corrected layout (it already imports `ShiftClosingReport` and `ChipMovementReport`, so changes propagate automatically — only verify the wrapper enforces the same page-break CSS).
+1. В `ChipCountPanel.tsx`:
+   - Изменить `slotForChipCount`: для `m 11–49` возвращать `{ slot: "HH:00", onlyIfEmpty: true }`. Для остальных веток — `{ slot, onlyIfEmpty: false }`.
+   - В `handleSave` перед `setTrackerValue.mutate(...)` для каждого стола: если `onlyIfEmpty`, проверить наличие записи в `table_tracker` за текущую дату/слот/стол. Если запись уже есть — пропустить mutate для этого стола.
+   - Источник проверки: использовать уже подгруженные данные tracker через хук `useTableTracker(date)` (он есть в `use-casino-data`, используется в `TableTracker.tsx`). Подтянуть его в `ChipCountPanel`, отфильтровать по `(table_id, time_slot)`.
 
-## Files to edit
+2. Никаких миграций БД, RPC или триггеров. Это чисто UI-правка.
 
-- `src/components/cage/ShiftClosingReport.tsx` — rename `Drop`→`IN`, switch IN to `cage_transfers fill`, recompute Result as `Close − Open`, drop `table_tracker` fetch.
-- `src/index.css` — strengthen `@page` and per-area page-break rules.
-- `src/components/cage/ReprintShiftDialog.tsx` — confirm wrapper CSS classes match and that no extra margins break pagination.
+3. `package.json` — версию не бампим (косметика UI, по Core-правилу).
 
-## Out of scope
+## Память
 
-- No DB changes, no backend changes (no version bump).
-- No changes to Chips Movement Report content.
-- No changes to Cash Flow Opener/Closer or summary panel logic.
+Обновить `mem://features/chip-count-tracker-bridge`:
+- Штатное окно `:50–:10` (всегда пишет в свой слот).
+- Fallback `:11–:49` → `HH:00` пишет **только если слот пуст** (первый опоздавший чек).
+- FINAL-окно `04:50–07:59` → `05:00`.
+- Закрытие стола → `05:00` (через `CloseTableWizard`).
+
+## Вне области
+
+- Не меняем разрешённые часы (`19..04` + FINAL).
+- Не меняем расчёт Result / `compute_shift_table_results`.
+- Не меняем UI таблицы Tracker и ручное редактирование.

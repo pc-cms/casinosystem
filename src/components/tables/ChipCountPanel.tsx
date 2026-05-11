@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Save, Maximize2, Minimize2, History, Tablet } from "lucide-react";
 import { useChipSnapshots, useBatchChipSnapshot } from "@/hooks/use-chips";
 import { useChipBaseline, baselineToMap } from "@/hooks/use-table-lifecycle";
-import { useGamingTables, useSetTableTrackerValue } from "@/hooks/use-casino-data";
+import { useGamingTables, useSetTableTrackerValue, useTableTracker } from "@/hooks/use-casino-data";
 import { CHIP_DENOMS, formatChipLabel, formatCurrency } from "@/lib/currency";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useChipColors, resolveChipColor } from "@/hooks/use-chip-colors";
@@ -11,23 +11,31 @@ import { nowEAT } from "@/lib/business-day";
 import { chipSnapshotResult } from "@/lib/table-live-result";
 
 /** Compute the Number-Count tracker slot for a Chip Count taken at the given EAT time.
- *  - 04:50–08:00 → always slot 05:00 (Final). Any later count in this window
- *    overwrites the Final value (snapshots are still saved).
- *  - HH:50–HH+1:10 → slot HH+1:00 (within 18:00..04:00 live-game window).
+ *  Returns the target slot plus an `onlyIfEmpty` flag — when true, the caller must
+ *  skip writing if the slot already has a value (the on-time check wins).
+ *
+ *  - 04:50–07:59 → slot 05:00 (Final). Always writes (closing override).
+ *  - m ≥ 50      → slot HH+1:00 (early on-time). Always writes.
+ *  - m ≤ 10      → slot HH:00   (late on-time).  Always writes.
+ *  - m 11–49     → slot HH:00   (FALLBACK).      Writes ONLY if slot is empty
+ *                                                (first late check fills the missed slot).
  *  Otherwise null (no auto-write). */
-const slotForChipCount = (now: Date): string | null => {
+const slotForChipCount = (now: Date): { slot: string; onlyIfEmpty: boolean } | null => {
   const h = now.getHours();
   const m = now.getMinutes();
   // Final-count override: anything from 04:50 up to (but not including) 08:00 → Final 05:00
-  if ((h === 4 && m >= 50) || h === 5 || h === 6 || h === 7) return "05:00";
+  if ((h === 4 && m >= 50) || h === 5 || h === 6 || h === 7) {
+    return { slot: "05:00", onlyIfEmpty: false };
+  }
   let targetH: number;
+  let onlyIfEmpty = false;
   if (m >= 50) targetH = (h + 1) % 24;
   else if (m <= 10) targetH = h;
-  else return null;
+  else { targetH = h; onlyIfEmpty = true; } // m 11–49 fallback
   // Allowed slots: 19..23 and 00..04 (05:00 handled by the Final-window branch above)
   const allowed = (targetH >= 19 && targetH <= 23) || (targetH >= 0 && targetH <= 4);
   if (!allowed) return null;
-  return `${String(targetH).padStart(2, "0")}:00`;
+  return { slot: `${String(targetH).padStart(2, "0")}:00`, onlyIfEmpty };
 };
 
 interface ChipCountPanelProps {
@@ -126,6 +134,7 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
   const grandTotal = rowResults.reduce((s, r) => s + r.total, 0);
 
   const setTrackerValue = useSetTableTrackerValue();
+  const { data: trackerRows = [] } = useTableTracker(date);
 
   const handleSave = () => {
     const rows: Array<{
@@ -143,11 +152,20 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
     });
     batchSnapshot.mutate({ date, counts: rows });
 
-    // Auto-write per-table row result into Number Count tracker for the rounded slot
-    // (HH:50–HH+1:10 → slot HH+1:00 / HH:00).
-    const slot = slotForChipCount(nowEAT());
-    if (slot) {
+    // Auto-write per-table row result into Number Count tracker for the rounded slot.
+    // On-time (:50–:10) always writes; fallback (:11–:49) writes only if slot is empty.
+    const target = slotForChipCount(nowEAT());
+    if (target) {
+      const { slot, onlyIfEmpty } = target;
       countLocations.forEach((loc, ri) => {
+        if (onlyIfEmpty) {
+          const existing = trackerRows.find(
+            (t: any) => t.table_id === loc.id && t.time_slot === slot,
+          );
+          if (existing && existing.value !== null && existing.value !== undefined && String(existing.value) !== "") {
+            return; // slot already has an on-time value — don't overwrite
+          }
+        }
         const total = rowResults[ri]?.total ?? 0;
         setTrackerValue.mutate({ table_id: loc.id, date, time_slot: slot, value: total });
       });
