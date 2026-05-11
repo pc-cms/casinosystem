@@ -4,16 +4,16 @@
  * existing Close Shift wizard can be re-used to enter the corrected closing
  * counts. Manager password is required (audited via system_logs).
  */
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { addMonths, format, startOfMonth, subMonths } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Landmark, RotateCcw, AlertTriangle, Printer } from "lucide-react";
+import { Landmark, RotateCcw, AlertTriangle, Printer, ChevronLeft, ChevronRight } from "lucide-react";
 import { formatNumberSpaces } from "@/lib/currency";
 import { fmtDate } from "@/lib/format-date";
 import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
