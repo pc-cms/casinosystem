@@ -88,6 +88,8 @@ const NAV_ITEMS: NavItem[] = [
   // HR — Personnel admin (Employee tab visible)
   { to: "/pit", icon: Gamepad2, label: "Live Game", roles: ["super_admin", "manager", "hr"], section: "HR" },
   { to: "/staff", icon: Building2, label: "Floor Staff", roles: ["super_admin", "manager", "hr"], section: "HR" },
+  { to: "/staff/master", icon: UserCheck, label: "Staff Master", roles: ["super_admin", "hr", "finance_manager"], section: "HR" },
+  { to: "/payroll", icon: Wallet, label: "Payroll", roles: ["super_admin", "hr", "finance_manager"], section: "HR" },
 
   // ANALYTICS — shared
   { to: "/groups", icon: UsersRound, label: "Groups", roles: ["super_admin", "manager", "finance_manager"], section: "ANALYTICS" },
