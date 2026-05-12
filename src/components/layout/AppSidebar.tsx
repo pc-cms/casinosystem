@@ -554,6 +554,14 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
+              <div className="w-10 flex items-center justify-center">
+                <InstallPWAButton iconOnly className="w-10 h-10" />
+              </div>
+            </TooltipTrigger>
+            <TooltipContent side="right">Install App</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
               <LogoutButton
                 className="w-10 h-10 flex items-center justify-center rounded-md hover:bg-sidebar-accent transition-colors text-sidebar-foreground"
               >
