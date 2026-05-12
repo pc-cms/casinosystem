@@ -45,16 +45,16 @@ export const useMyEffectivePerms = () => {
 };
 
 /**
- * Backwards-compatible: returns a Set of allowed module keys (view=true) or
- * null when the user has no effective rows (treat as unrestricted fallback).
+ * Returns a Set of allowed module keys (view=true) for the current user.
+ * `undefined` while loading; empty Set if the matrix has no rows for this role.
+ * The matrix is the single source of truth — there is no implicit role
+ * whitelist that grants access without an explicit row.
  */
 export const useMyModulePermissions = () => {
   const { data, ...rest } = useMyEffectivePerms();
-  const allowed: Set<string> | null = !data
-    ? null
-    : data.length === 0
-      ? null
-      : new Set(data.filter(r => r.can_view).map(r => r.module_key));
+  const allowed: Set<string> | undefined = data === undefined
+    ? undefined
+    : new Set(data.filter(r => r.can_view).map(r => r.module_key));
   return { ...rest, data: allowed };
 };
 
