@@ -9,7 +9,7 @@
  */
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Landmark, ArrowDownToLine, CreditCard, ArrowLeftRight, Coins } from "lucide-react";
+import { Landmark, ArrowDownToLine, CreditCard, ArrowLeftRight, Coins, Calculator } from "lucide-react";
 import { DateNavigator } from "@/components/ui/date-navigator";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
@@ -17,7 +17,6 @@ import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/currency";
 import { useCashless } from "@/hooks/use-cashless";
@@ -25,6 +24,9 @@ import { useChipTransfers } from "@/hooks/use-chip-transfers";
 import { usePlayers, useGamingTables } from "@/hooks/use-casino-data";
 import { getBusinessDate, businessDayHourUTC } from "@/lib/business-day";
 import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
+import { useCashChecksByBusinessDate } from "@/hooks/use-cash-checks-by-date";
+import CashCheckViewerDialog from "@/components/cage/CashCheckViewerDialog";
+import type { Tables } from "@/integrations/supabase/types";
 
 const MAX_DAYS_BACK = 90;
 
