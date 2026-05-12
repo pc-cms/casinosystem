@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Shield, Coins, Clock, Building2, Server, Link2, Unlink, Globe, Palette, Settings, RefreshCw, Rocket, KeyRound, Activity, LayoutGrid } from "lucide-react";
+import { Plus, Shield, Coins, Clock, Building2, Server, Link2, Unlink, Globe, Palette, Settings, RefreshCw, Rocket, KeyRound, Activity, LayoutGrid, ShieldCheck } from "lucide-react";
+import { RoleDefaultsEditor } from "@/components/admin/RoleDefaultsEditor";
 import { ServerPushUpdateDialog } from "@/components/admin/ServerPushUpdateDialog";
 import { NetworkHealthPanel } from "@/components/admin/NetworkHealthPanel";
 import { useRotateServerSecret } from "@/hooks/use-network-admin";
@@ -124,6 +125,11 @@ const Admin = () => {
           <TabsTrigger value="users" className="gap-1.5">
             <Shield className="w-3.5 h-3.5" /> Users & Roles
           </TabsTrigger>
+          {isSuperAdmin && (
+            <TabsTrigger value="role-defaults" className="gap-1.5">
+              <ShieldCheck className="w-3.5 h-3.5" /> Role Defaults
+            </TabsTrigger>
+          )}
           <TabsTrigger value="schedule" className="gap-1.5">
             <Clock className="w-3.5 h-3.5" /> Working Hours
           </TabsTrigger>
@@ -153,6 +159,7 @@ const Admin = () => {
         )}
 
         <TabsContent value="users"><UsersTab /></TabsContent>
+        {isSuperAdmin && <TabsContent value="role-defaults"><RoleDefaultsEditor /></TabsContent>}
         <TabsContent value="schedule"><ScheduleSettings /></TabsContent>
         <TabsContent value="tables"><TableManagement /></TabsContent>
         <TabsContent value="float">

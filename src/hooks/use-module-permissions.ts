@@ -124,6 +124,72 @@ export const useUserModuleOverrides = (userId: string | null) => {
   });
 };
 
+/** Admin: read role baseline rows from `role_module_defaults`. */
+export interface RoleDefaultRow {
+  module_key: string;
+  can_view: boolean;
+  can_write: boolean;
+  day_horizon: DayHorizon;
+}
+
+export const useRoleModuleDefaults = (role: string | null) => {
+  return useQuery({
+    queryKey: ["role-module-defaults", role],
+    queryFn: async (): Promise<RoleDefaultRow[]> => {
+      if (!role) return [];
+      const { data, error } = await supabase
+        .from("role_module_defaults")
+        .select("module_key, can_view, can_write, day_horizon")
+        .eq("role", role as any);
+      if (error) throw error;
+      return (data ?? []) as RoleDefaultRow[];
+    },
+    enabled: !!role,
+    staleTime: 60_000,
+  });
+};
+
+/**
+ * Admin: upsert one role-default row. Super-admin only (RLS enforced).
+ * Pass `null` to delete (revert to global default = no access).
+ */
+export const useSetRoleModuleDefault = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      role: string;
+      module_key: string;
+      can_view: boolean;
+      can_write: boolean;
+      day_horizon: DayHorizon;
+    } | { role: string; module_key: string; remove: true }) => {
+      if ("remove" in input) {
+        const { error } = await supabase
+          .from("role_module_defaults")
+          .delete()
+          .eq("role", input.role as any)
+          .eq("module_key", input.module_key);
+        if (error) throw error;
+        return;
+      }
+      const { error } = await supabase.from("role_module_defaults").upsert({
+        role: input.role as any,
+        module_key: input.module_key,
+        can_view: input.can_view,
+        can_write: input.can_write,
+        day_horizon: input.day_horizon,
+      } as any, { onConflict: "role,module_key" });
+      if (error) throw error;
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ["role-module-defaults", vars.role] });
+      qc.invalidateQueries({ queryKey: ["my-effective-perms"] });
+      qc.invalidateQueries({ queryKey: ["user-effective-perms"] });
+    },
+    onError: (e: Error) => toast.error(`Failed: ${e.message}`),
+  });
+};
+
 /**
  * Admin: write per-user overrides. Pass an array of rows; any row omitted is
  * deleted (= inherit role default). To revert everything, pass [].
