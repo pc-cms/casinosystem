@@ -6,6 +6,8 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { usePlayer, usePlayerVisits, usePlayerNotes } from "@/hooks/use-player-profile";
 import { useSelectedPlayer } from "@/hooks/use-selected-player";
+import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
+import { businessDayHourUTC } from "@/lib/business-day";
 import CategoryBadge from "@/components/player/CategoryBadge";
 import FlagBadges from "@/components/player/FlagBadges";
 import { Button } from "@/components/ui/button";
@@ -22,19 +24,21 @@ interface Props {
   className?: string;
 }
 
-/** This-month CASH IN (drop) and RESULT for one player. Player-format: result = (cashout) − (drop). */
-const useThisMonthPlayerStats = (playerId: string | undefined | null) => {
+/** Today's (current business day) CASH IN (drop) and RESULT for one player.
+ *  Player-format: result = (cashout) − (drop). */
+const useTodayPlayerStats = (playerId: string | undefined | null, businessDate: string | undefined) => {
   return useQuery({
-    queryKey: ["player-month-stats", playerId, new Date().toISOString().slice(0, 7)],
+    queryKey: ["player-day-stats", playerId, businessDate],
     queryFn: async () => {
-      if (!playerId) return { cashIn: 0, result: 0 };
-      const now = new Date();
-      const start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+      if (!playerId || !businessDate) return { cashIn: 0, result: 0 };
+      const start = businessDayHourUTC(businessDate, 13);
+      const end = businessDayHourUTC(businessDate, 13 + 24);
       const { data, error } = await supabase
         .from("transactions")
         .select("type, amount")
         .eq("player_id", playerId)
         .gte("created_at", start)
+        .lt("created_at", end)
         .in("type", ["buy", "in", "cashout", "out"]);
       if (error) throw error;
       let cashIn = 0, cashOut = 0;
@@ -45,7 +49,7 @@ const useThisMonthPlayerStats = (playerId: string | undefined | null) => {
       }
       return { cashIn, result: cashOut - cashIn };
     },
-    enabled: !!playerId,
+    enabled: !!playerId && !!businessDate,
     staleTime: 30_000,
   });
 };
