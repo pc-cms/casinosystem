@@ -29,6 +29,18 @@ const Expenses = lazy(() => import("@/pages/Expenses"));
 const Logs = lazy(() => import("@/pages/Logs"));
 
 const Pit = lazy(() => import("@/pages/Pit"));
+const PitFlat = () => null; // referenced below as named imports
+const BreaklistPage = lazy(() => import("@/pages/flat/PitFlat").then(m => ({ default: m.BreaklistPage })));
+const PitRotaPage = lazy(() => import("@/pages/flat/PitFlat").then(m => ({ default: m.PitRotaPage })));
+const PitAttendancePage = lazy(() => import("@/pages/flat/PitFlat").then(m => ({ default: m.PitAttendancePage })));
+const DealersPage = lazy(() => import("@/pages/flat/PitFlat").then(m => ({ default: m.DealersPage })));
+const StaffEmployeesPage = lazy(() => import("@/pages/flat/StaffFlat").then(m => ({ default: m.StaffEmployeesPage })));
+const RotaFloorPage = lazy(() => import("@/pages/flat/StaffFlat").then(m => ({ default: m.RotaFloorPage })));
+const RotaSecurityPage = lazy(() => import("@/pages/flat/StaffFlat").then(m => ({ default: m.RotaSecurityPage })));
+const RotaOfficePage = lazy(() => import("@/pages/flat/StaffFlat").then(m => ({ default: m.RotaOfficePage })));
+const AttendanceFloorPage = lazy(() => import("@/pages/flat/StaffFlat").then(m => ({ default: m.AttendanceFloorPage })));
+const AttendanceSecurityPage = lazy(() => import("@/pages/flat/StaffFlat").then(m => ({ default: m.AttendanceSecurityPage })));
+const AttendanceOfficePage = lazy(() => import("@/pages/flat/StaffFlat").then(m => ({ default: m.AttendanceOfficePage })));
 const Groups = lazy(() => import("@/pages/Groups"));
 const Reports = lazy(() => import("@/pages/Reports"));
 const Admin = lazy(() => import("@/pages/Admin"));
