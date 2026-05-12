@@ -29,7 +29,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { cn } from "@/lib/utils";
 import arushaLogo from "@/assets/arusha-logo.png";
 
-type AppRole = "cashier" | "pit" | "manager" | "reception" | "finance_manager" | "surveillance" | "super_admin" | "hr";
+type AppRole = "cashier" | "pit" | "manager" | "floor_manager" | "reception" | "finance_manager" | "surveillance" | "super_admin" | "hr";
 
 // Section labels for the hybrid grouping (roles + shared ANALYTICS)
 type Section = "OVERVIEW" | "PIT" | "CASHIER" | "RECEPTION" | "FINANCE" | "HR" | "ANALYTICS" | "SYSTEM";
