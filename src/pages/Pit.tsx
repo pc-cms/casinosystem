@@ -681,20 +681,31 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
               const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
               return (
                 <td key={day} className={`px-0.5 py-0.5 text-center border-l border-border/25 ${isToday ? "bg-primary/25" : isWeekend ? "bg-muted/15" : ""}`}>
-                  <button
-                    onClick={(e) => handleClick(e, dealer.id, day)}
-                    onContextMenu={(e) => handleContextMenu(e, dealer.id, day)}
+                  <CellPicker
+                    value={display?.shift ?? null}
+                    display={display?.shift || "·"}
+                    title={display ? `${display.shift}${display.isAuto ? " (auto)" : ""}` : "Pick shift"}
+                    rows={[{
+                      options: ROTA_SHIFTS.map(s => ({
+                        value: s,
+                        label: s,
+                        title: SHIFT_LABELS[s],
+                        className: SHIFT_COLORS[s],
+                      })),
+                    }]}
+                    onSelect={(v) => {
+                      const dateStr = `${month}-${String(day).padStart(2, "0")}`;
+                      if (v === null) deleteRota.mutate({ dealer_id: dealer.id, date: dateStr });
+                      else setRota.mutate({ dealer_id: dealer.id, date: dateStr, shift: v as typeof ROTA_SHIFTS[number] });
+                    }}
                     onKeyDown={e => handleKeyDown(e, dealer.id, day)}
-                    onPaste={e => handlePaste(e, dealer.id, day)}
-                    title={display ? "Click — next shift • Shift/Alt+Click or Right-click — clear • Delete — clear" : "Click to assign Middle"}
-                    className={`w-full h-8 rounded text-xs font-mono font-semibold transition-colors focus:outline-none focus:ring-1 focus:ring-primary ${
+                    onPaste={e => handlePaste(e as any, dealer.id, day)}
+                    cellClassName={`w-full h-8 rounded text-xs font-mono font-semibold transition-colors focus:outline-none focus:ring-1 focus:ring-primary ${
                       display
                         ? `${SHIFT_COLORS[display.shift] || "bg-muted text-muted-foreground"} ${display.isAuto ? "border border-dashed border-emerald-500/50" : ""}`
                         : "bg-transparent hover:bg-muted/50 text-muted-foreground/40 hover:text-muted-foreground"
                     }`}
-                  >
-                    {display?.shift || "·"}
-                  </button>
+                  />
                 </td>
               );
             })}
