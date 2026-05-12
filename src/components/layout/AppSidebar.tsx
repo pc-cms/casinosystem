@@ -430,16 +430,15 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
               const targetTo = subs ? subs[0].to : item.to;
               const { base: itemBase, tab: itemTab } = parseItemTo(targetTo);
               const isTabAware = itemTab !== null;
-              const isPlainPitActive = item.to === "/pit" && location.pathname === "/pit" && currentTab !== "breaklist";
               const isActive = subs
-                ? subs.some(s => location.pathname === s.matchPath && currentTab === s.matchTab)
+                ? subs.some(s => s.matchTab
+                    ? (location.pathname === s.matchPath && currentTab === s.matchTab)
+                    : location.pathname === s.matchPath)
                 : isTabAware
                   ? location.pathname === itemBase && currentTab === itemTab
-                  : item.to === "/pit"
-                    ? isPlainPitActive
-                    : item.to === "/"
-                      ? location.pathname === "/"
-                      : location.pathname.startsWith(itemBase);
+                  : item.to === "/"
+                    ? location.pathname === "/"
+                    : location.pathname.startsWith(itemBase);
               return (
                 <Tooltip key={item.to}>
                   <TooltipTrigger asChild>
