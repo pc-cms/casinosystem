@@ -71,6 +71,7 @@ const PayrollPeriodPage = () => {
           <TabsTrigger value="entries">Employee Payroll</TabsTrigger>
           <TabsTrigger value="taxes">Taxes</TabsTrigger>
           <TabsTrigger value="slips">Salary Slips</TabsTrigger>
+          <TabsTrigger value="audit">Audit Log</TabsTrigger>
         </TabsList>
 
         <TabsContent value="entries">
@@ -78,7 +79,7 @@ const PayrollPeriodPage = () => {
             {isLoading ? (
               <div className="text-sm text-muted-foreground p-4">Loading…</div>
             ) : (
-              <EntriesGrid entries={entries} canEdit={canEdit} />
+              <EntriesGrid entries={entries} canEdit={canEdit} period={period} />
             )}
           </PageSection>
         </TabsContent>
@@ -88,7 +89,11 @@ const PayrollPeriodPage = () => {
         </TabsContent>
 
         <TabsContent value="slips">
-          <SlipsPanel entries={entries} periodLabel={periodLabel} />
+          <SlipsPanel entries={entries} period={period} periodLabel={periodLabel} />
+        </TabsContent>
+
+        <TabsContent value="audit">
+          <AuditPanel periodId={period.id} />
         </TabsContent>
       </Tabs>
 
