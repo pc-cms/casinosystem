@@ -3,11 +3,13 @@ import { useOpenShift, useLastClosedShift } from "@/hooks/use-shift";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { NumberInput } from "@/components/ui/number-input";
-import { Play, Settings2, ChevronRight, ChevronLeft, Landmark, Pencil } from "lucide-react";
+import { Play, Settings2, ChevronRight, ChevronLeft, Landmark, Pencil, ShieldAlert } from "lucide-react";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
+import OpeningDeltaConfirmDialog from "@/components/cage/OpeningDeltaConfirmDialog";
+import { logAction } from "@/lib/logging";
 import {
   CHIP_DENOMS, formatCurrency, formatNumberSpaces, CURRENCIES, FOREIGN_CURRENCIES,
   DEFAULT_EXCHANGE_RATES, CASH_DENOMS,
@@ -24,7 +26,7 @@ import type { Tables } from "@/integrations/supabase/types";
 
 const OpenShiftScreen = ({ tables }: { tables: Tables<"gaming_tables">[] }) => {
   const openShift = useOpenShift();
-  const { managerOverride, activateManagerOverride, displayName } = useAuth();
+  const { managerOverride, activateManagerOverride, displayName, casinoId } = useAuth();
   const [step, setStep] = useState<1 | 2>(1);
   const { data: lastShift } = useLastClosedShift();
   const [rates, setRates] = useState<Record<string, number>>({ ...DEFAULT_EXCHANGE_RATES });
@@ -78,7 +80,25 @@ const OpenShiftScreen = ({ tables }: { tables: Tables<"gaming_tables">[] }) => {
   const bankTotal = useMemo(() => bankTotalTzs(bankBalance, rates), [bankBalance, rates]);
   const openingTotal = openingChipTotal + cashTotalTzs + mobTotal + bankTotal;
 
-  const handleOpen = () => {
+  // Per-denom diff between opening (entered) and closing (expected baseline).
+  // Only meaningful once we've prefilled from the previous closed shift —
+  // a fresh casino with no prior shift has no baseline to compare against.
+  const chipDiff = useMemo(() => {
+    if (!closingPrefilled) return [] as { denom: number; expected: number; entered: number; delta: number }[];
+    const out: { denom: number; expected: number; entered: number; delta: number }[] = [];
+    CHIP_DENOMS.forEach(d => {
+      const expected = Number(closingChips[d] || 0);
+      const entered = Number(openingChips[d] || 0);
+      if (expected !== entered) out.push({ denom: d, expected, entered, delta: entered - expected });
+    });
+    return out;
+  }, [closingChips, openingChips, closingPrefilled]);
+  const hasChipDelta = chipDiff.length > 0;
+  const chipDeltaTzs = openingChipTotal - closingChipTotal;
+
+  const [showDeltaConfirm, setShowDeltaConfirm] = useState(false);
+
+  const submitOpen = (override?: { managerId: string; reason: string }) => {
     openShift.mutate({
       exchange_rates: rates,
       opening_float: {
@@ -87,6 +107,21 @@ const OpenShiftScreen = ({ tables }: { tables: Tables<"gaming_tables">[] }) => {
         cash: openingCash,
         bank: bankBalance,
         mobile: mobileBalance,
+        ...(override
+          ? {
+              chip_delta_override: {
+                manager_id: override.managerId,
+                reason: override.reason,
+                expected_chips: closingChips,
+                entered_chips: openingChips,
+                diff: chipDiff,
+                expected_tzs: closingChipTotal,
+                entered_tzs: openingChipTotal,
+                delta_tzs: chipDeltaTzs,
+                approved_at: new Date().toISOString(),
+              },
+            }
+          : {}),
         totals: {
           closing_chips_tzs: closingChipTotal,
           chips_tzs: openingChipTotal,
@@ -96,7 +131,29 @@ const OpenShiftScreen = ({ tables }: { tables: Tables<"gaming_tables">[] }) => {
           total_tzs: openingTotal,
         },
       },
+    }, {
+      onSuccess: async (shift: any) => {
+        if (override && casinoId) {
+          await logAction(casinoId, "edit", "OPEN_SHIFT_CHIP_DELTA_OVERRIDE", {
+            shift_id: shift?.id,
+            manager_id: override.managerId,
+            reason: override.reason,
+            expected_chips: closingChips,
+            entered_chips: openingChips,
+            diff: chipDiff,
+            delta_tzs: chipDeltaTzs,
+          });
+        }
+      },
     });
+  };
+
+  const handleOpen = () => {
+    if (hasChipDelta) {
+      setShowDeltaConfirm(true);
+      return;
+    }
+    submitOpen();
   };
 
   return (
@@ -165,6 +222,23 @@ const OpenShiftScreen = ({ tables }: { tables: Tables<"gaming_tables">[] }) => {
               <ChipDenomInput values={openingChips} onChange={setOpeningChips} showValue={false} />
             </LockableSection>
           </div>
+
+          {hasChipDelta && (
+            <div className="rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 flex items-start gap-2">
+              <ShieldAlert className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <p className="text-[11px] font-semibold text-destructive uppercase tracking-wider">
+                  Opening chips do not match the previous closing
+                </p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  Δ <span className={`font-mono font-bold ${chipDeltaTzs > 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
+                    {chipDeltaTzs > 0 ? "+" : ""}{formatNumberSpaces(chipDeltaTzs)}
+                  </span> TZS · {chipDiff.length} denomination{chipDiff.length === 1 ? "" : "s"} differ.
+                  Manager override and reason will be required to open the shift.
+                </p>
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
             <LockableSection title="TZS Cash" locked={locks.tzsCash} onToggleLock={() => toggleLock("tzsCash")}>
@@ -296,6 +370,17 @@ const OpenShiftScreen = ({ tables }: { tables: Tables<"gaming_tables">[] }) => {
         description="Manager access required to edit chips from closing during shift opening. Only chips are unlocked."
         actionType="OPEN_SHIFT_CHIPS_EDIT_UNLOCKED"
         actionDetails={{ activated_by: displayName }}
+      />
+      <OpeningDeltaConfirmDialog
+        open={showDeltaConfirm}
+        onClose={() => setShowDeltaConfirm(false)}
+        diff={chipDiff}
+        expectedTotal={closingChipTotal}
+        enteredTotal={openingChipTotal}
+        onConfirm={(override) => {
+          setShowDeltaConfirm(false);
+          submitOpen(override);
+        }}
       />
     </PageShell>
   );
