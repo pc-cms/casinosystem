@@ -303,7 +303,7 @@ const BankExportButton = ({ entries, period }: any) => {
             </label>
             <label className="block text-sm">
               <input type="radio" name="bf" checked={fmtSel === "crdb"} onChange={() => setFmtSel("crdb")} className="mr-2" />
-              CRDB (placeholder — exact format to be supplied)
+              CRDB (CRDB_SALARY_&lt;MONTH&gt;_&lt;YEAR&gt;.csv)
             </label>
           </div>
           <DialogFooter>
