@@ -14,6 +14,7 @@ export type ModuleKey =
   | "pit_breaklist"
   | "pit_attendance"
   | "pit_active_players"
+  | "pit_dealers"
   | "cage"
   | "cage_view"
   | "tables"
@@ -44,6 +45,9 @@ export type ModuleKey =
   | "pitbook"
   | "groups"
   | "staff"
+  | "staff_employees"
+  | "staff_rota"
+  | "staff_attendance"
   | "staff_master"
   | "payroll"
   | "logs"
@@ -59,10 +63,11 @@ export interface ModuleDef {
 
 export const MODULES: ModuleDef[] = [
   { key: "dashboard", label: "Dashboard", group: "Operations" },
-  { key: "pit_rota", label: "Rota", group: "Operations" },
+  { key: "pit_rota", label: "Live Rota", group: "Operations" },
   { key: "pit_breaklist", label: "Breaklist", group: "Operations" },
-  { key: "pit_attendance", label: "Attendance", group: "Operations" },
+  { key: "pit_attendance", label: "Live Attendance", group: "Operations" },
   { key: "pit_active_players", label: "Player Statistics", group: "Operations" },
+  { key: "pit_dealers", label: "Live Game Dealers", group: "Operations" },
   { key: "cage", label: "Cage (Cashier)", group: "Operations" },
   { key: "cage_view", label: "Cage View (Read-only)", group: "Operations" },
   { key: "tables", label: "Tables", group: "Operations" },
@@ -94,7 +99,10 @@ export const MODULES: ModuleDef[] = [
   { key: "miss_chips", label: "Miss Chips Report", group: "Reports" },
   { key: "import_reports", label: "Import Reports", group: "Reports" },
   { key: "logs", label: "Activity Logs", group: "Reports" },
-  { key: "staff", label: "Staff", group: "System" },
+  { key: "staff", label: "Staff (legacy)", group: "System" },
+  { key: "staff_employees", label: "Floor Staff Employees", group: "System" },
+  { key: "staff_rota", label: "Floor Staff Rota", group: "System" },
+  { key: "staff_attendance", label: "Floor Staff Attendance", group: "System" },
   { key: "staff_master", label: "Staff Master (HR)", group: "System" },
   { key: "payroll", label: "Payroll", group: "Finance" },
   { key: "cctv", label: "CCTV", group: "System" },

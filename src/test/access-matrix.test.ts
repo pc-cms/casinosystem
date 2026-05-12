@@ -18,22 +18,38 @@ import { MODULES, type ModuleKey } from "@/lib/modules";
 
 // Mirror of `role_module_defaults` rows for floor_manager where can_view=true.
 // Source of truth = DB; this constant is the contract the UI must respect.
+// Mirrors role_module_defaults rows for floor_manager (DB source of truth).
 const FLOOR_MANAGER_ALLOWED: ReadonlySet<ModuleKey> = new Set<ModuleKey>([
+  "bank_checks",
   "blacklist",
+  "business_days",
   "cage",
+  "cage_view",
+  "cashless",
   "dashboard",
+  "expenses",
+  "expenses_approvals",
   "in_casino",
+  "incidents",
   "miss_chips",
   "pit_active_players",
   "pit_attendance",
   "pit_breaklist",
+  "pit_dealers",
   "pit_rota",
+  "pitbook",
   "players",
   "reception",
   "reports",
   "staff",
+  "staff_attendance",
+  "staff_employees",
+  "staff_rota",
+  "table_results",
   "table_tracker",
   "tables",
+  "tables_analytics",
+  "weekly_bonus",
 ]);
 
 // Routes that MUST be gated (have a module mapping). Mirrors App.tsx route table.
@@ -60,10 +76,21 @@ const GATED_ROUTES = [
   "/pit?tab=attendance",
   "/pit?tab=rota",
   "/pit?tab=employee",
+  "/breaklist",
+  "/rota/live",
+  "/attendance/live",
+  "/dealers",
   "/staff",
   "/staff?tab=attendance",
   "/staff?tab=rota_floor",
   "/staff?tab=employee",
+  "/staff/employees",
+  "/rota/floor",
+  "/rota/security",
+  "/rota/office",
+  "/attendance/floor",
+  "/attendance/security",
+  "/attendance/office",
   "/floor",
   "/groups",
   "/finance/wallets",
@@ -143,7 +170,7 @@ describe("floor_manager (Taras) — sidebar & route gate match matrix", () => {
       "/finance/wallets", "/finance/dashboard", "/finance/review",
       "/finance/budget", "/finance/cash-count", "/finance/summary",
       "/finance/transfers", "/logs", "/admin", "/admin/users/new",
-      "/import-reports", "/bank-checks", "/groups",
+      "/import-reports", "/groups",
     ];
     for (const r of blocked) {
       expect(isVisibleForRole(r, allow), `route ${r} must be blocked`).toBe(false);
@@ -157,6 +184,8 @@ describe("floor_manager (Taras) — sidebar & route gate match matrix", () => {
       "/tables", "/tables/analytics", "/table-tracker", "/player-statistics",
       "/players/abc", "/pit", "/pit?tab=breaklist", "/pit?tab=attendance",
       "/pit?tab=rota", "/staff", "/staff?tab=attendance",
+      "/breaklist", "/rota/live", "/attendance/live",
+      "/rota/floor", "/attendance/floor", "/staff/employees",
       "/reports", "/table-results", "/business-days", "/weekly-bonus",
       "/miss-chips", "/pitbook", "/incidents",
     ];

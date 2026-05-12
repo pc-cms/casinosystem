@@ -50,7 +50,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/cage/view", icon: Landmark, label: "Cage", roles: ["surveillance"], section: "CASHIER" },
 
   // PIT — Break List, Live Tables, trackers, Attendance (parent), Rota (parent). Surveillance: read-only access to all.
-  { to: "/pit?tab=breaklist", icon: ListChecks, label: "Break List", roles: ["super_admin", "manager", "floor_manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
+  { to: "/breaklist", icon: ListChecks, label: "Break List", roles: ["super_admin", "manager", "floor_manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
   { to: "/tables", icon: Table2, label: "Live Tables", roles: ["super_admin", "manager", "floor_manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
   { to: "/player-statistics", icon: Users, label: "Player Statistics", roles: ["super_admin", "manager", "floor_manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
   { to: "/table-tracker", icon: Target, label: "Table Check", roles: ["super_admin", "manager", "floor_manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
@@ -87,8 +87,8 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/finance/wallets", icon: Wallet, label: "Wallets", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
 
   // HR — Personnel admin (Employee tab visible)
-  { to: "/pit", icon: Gamepad2, label: "Live Game", roles: ["super_admin", "manager", "hr"], section: "HR" },
-  { to: "/staff", icon: Building2, label: "Floor Staff", roles: ["super_admin", "manager", "hr"], section: "HR" },
+  { to: "/dealers", icon: Gamepad2, label: "Live Game", roles: ["super_admin", "manager", "hr"], section: "HR" },
+  { to: "/staff/employees", icon: Building2, label: "Floor Staff", roles: ["super_admin", "manager", "hr"], section: "HR" },
   { to: "/staff/master", icon: UserCheck, label: "Staff Master", roles: ["super_admin", "hr", "finance_manager"], section: "HR" },
   { to: "/payroll", icon: Wallet, label: "Payroll", roles: ["super_admin", "hr", "finance_manager"], section: "HR" },
 
@@ -135,22 +135,23 @@ const STAFF_SUBITEMS_HR = [
   { tab: "rota_floor", icon: CalendarDays, label: "Floor Rota" },
 ];
 
-// Virtual parent groupings: Attendance / Rota each expand to Live + Floor + Security + Office
-type VirtualSub = { to: string; icon: typeof ListChecks; label: string; matchPath: string; matchTab: string; matchGroup?: string };
+// Virtual parent groupings: Attendance / Rota each expand to Live + Floor + Security + Office.
+// Phase 2: each sub-item is a flat URL so the access matrix gates by ModuleKey.
+type VirtualSub = { to: string; icon: typeof ListChecks; label: string; matchPath: string; matchTab?: string; matchGroup?: string };
 const ATTENDANCE_SUBITEMS: VirtualSub[] = [
-  { to: "/pit?tab=attendance", icon: Gamepad2, label: "Live", matchPath: "/pit", matchTab: "attendance" },
-  { to: "/staff?tab=attendance&group=floor", icon: Building2, label: "Floor", matchPath: "/staff", matchTab: "attendance", matchGroup: "floor" },
-  { to: "/staff?tab=attendance&group=security", icon: Shield, label: "Security", matchPath: "/staff", matchTab: "attendance", matchGroup: "security" },
-  { to: "/staff?tab=attendance&group=office", icon: Briefcase, label: "Office", matchPath: "/staff", matchTab: "attendance", matchGroup: "office" },
+  { to: "/attendance/live", icon: Gamepad2, label: "Live", matchPath: "/attendance/live" },
+  { to: "/attendance/floor", icon: Building2, label: "Floor", matchPath: "/attendance/floor" },
+  { to: "/attendance/security", icon: Shield, label: "Security", matchPath: "/attendance/security" },
+  { to: "/attendance/office", icon: Briefcase, label: "Office", matchPath: "/attendance/office" },
 ];
 const ROTA_SUBITEMS: VirtualSub[] = [
-  { to: "/pit?tab=rota", icon: Gamepad2, label: "Live", matchPath: "/pit", matchTab: "rota" },
-  { to: "/staff?tab=rota_floor", icon: Building2, label: "Floor", matchPath: "/staff", matchTab: "rota_floor" },
-  { to: "/staff?tab=rota_security", icon: Shield, label: "Security", matchPath: "/staff", matchTab: "rota_security" },
-  { to: "/staff?tab=rota_office", icon: Briefcase, label: "Office", matchPath: "/staff", matchTab: "rota_office" },
+  { to: "/rota/live", icon: Gamepad2, label: "Live", matchPath: "/rota/live" },
+  { to: "/rota/floor", icon: Building2, label: "Floor", matchPath: "/rota/floor" },
+  { to: "/rota/security", icon: Shield, label: "Security", matchPath: "/rota/security" },
+  { to: "/rota/office", icon: Briefcase, label: "Office", matchPath: "/rota/office" },
 ];
 
-const BREAKLIST_PATH = "/pit?tab=breaklist";
+const BREAKLIST_PATH = "/breaklist";
 
 // Helper: parse "/path?tab=foo" into { base, tab }
 const parseItemTo = (to: string) => {
@@ -237,8 +238,11 @@ const SidebarSections = ({
     subs: VirtualSub[],
   ) => {
     const groupKey = `__virtual:${key}`;
-    const matchSub = (s: VirtualSub) =>
-      location.pathname === s.matchPath && currentTab === s.matchTab && (!s.matchGroup || currentGroup === s.matchGroup);
+    const matchSub = (s: VirtualSub) => {
+      // Phase 2: flat-URL subs (no matchTab) match by pathname only.
+      if (!s.matchTab) return location.pathname === s.matchPath;
+      return location.pathname === s.matchPath && currentTab === s.matchTab && (!s.matchGroup || currentGroup === s.matchGroup);
+    };
     const isGroupActive = subs.some(matchSub);
     const isOpen = open[groupKey] ?? isGroupActive;
     return (
@@ -290,7 +294,7 @@ const SidebarSections = ({
       <div key={`${sectionCtx}:${item.to}`}>
         <NavLink
           to={item.to}
-          end={item.to === "/" || item.to === "/pit" || item.to === "/staff" || item.to === "/tables" || isTabAware}
+          end={item.to === "/" || item.to === "/tables" || isTabAware}
           onClick={onNavigate}
           className={({ isActive }) => {
             const active = isTabAware ? isTabAwareActive : isActive;
@@ -426,16 +430,15 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
               const targetTo = subs ? subs[0].to : item.to;
               const { base: itemBase, tab: itemTab } = parseItemTo(targetTo);
               const isTabAware = itemTab !== null;
-              const isPlainPitActive = item.to === "/pit" && location.pathname === "/pit" && currentTab !== "breaklist";
               const isActive = subs
-                ? subs.some(s => location.pathname === s.matchPath && currentTab === s.matchTab)
+                ? subs.some(s => s.matchTab
+                    ? (location.pathname === s.matchPath && currentTab === s.matchTab)
+                    : location.pathname === s.matchPath)
                 : isTabAware
                   ? location.pathname === itemBase && currentTab === itemTab
-                  : item.to === "/pit"
-                    ? isPlainPitActive
-                    : item.to === "/"
-                      ? location.pathname === "/"
-                      : location.pathname.startsWith(itemBase);
+                  : item.to === "/"
+                    ? location.pathname === "/"
+                    : location.pathname.startsWith(itemBase);
               return (
                 <Tooltip key={item.to}>
                   <TooltipTrigger asChild>

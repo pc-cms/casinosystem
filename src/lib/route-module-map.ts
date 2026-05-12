@@ -25,22 +25,33 @@ export const moduleKeyForRoute = (to: string, label?: string): ModuleKey | null 
   // ============= OVERVIEW =============
   if (base === "/") return "dashboard";
 
-  // ============= PIT =============
+  // ============= PIT — flat URLs (Phase 2) =============
+  if (base === "/breaklist") return "pit_breaklist";
+  if (base === "/rota/live") return "pit_rota";
+  if (base === "/attendance/live") return "pit_attendance";
+  if (base === "/dealers") return "pit_dealers";
+
+  // Legacy /pit?tab=… (kept for redirects + bookmarks)
   if (base === "/pit") {
     if (tab === "breaklist") return "pit_breaklist";
     if (tab === "attendance") return "pit_attendance";
-    if (tab === "employee") return "staff";
+    if (tab === "employee") return "pit_dealers";
     if (tab === "rota") return "pit_rota";
-    return "pit_rota"; // default Pit landing
+    return "pit_rota";
   }
 
-  // ============= STAFF / FLOOR =============
+  // ============= STAFF / FLOOR — flat URLs =============
+  if (base === "/staff/employees") return "staff_employees";
+  if (base === "/rota/floor" || base === "/rota/security" || base === "/rota/office") return "staff_rota";
+  if (base === "/attendance/floor" || base === "/attendance/security" || base === "/attendance/office") return "staff_attendance";
   if (base === "/staff/master") return "staff_master";
+
+  // Legacy /staff?tab=… (redirects)
   if (base === "/staff" || base === "/floor") {
-    if (tab === "attendance") return "pit_attendance";
-    if (tab === "employee") return "staff";
-    // rota_floor / rota_security / rota_office and default
-    return "staff";
+    if (tab === "attendance") return "staff_attendance";
+    if (tab === "employee") return "staff_employees";
+    if (tab && tab.startsWith("rota_")) return "staff_rota";
+    return "staff_employees";
   }
 
   // ============= PAYROLL =============

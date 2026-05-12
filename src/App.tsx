@@ -29,6 +29,18 @@ const Expenses = lazy(() => import("@/pages/Expenses"));
 const Logs = lazy(() => import("@/pages/Logs"));
 
 const Pit = lazy(() => import("@/pages/Pit"));
+const PitFlat = () => null; // referenced below as named imports
+const BreaklistPage = lazy(() => import("@/pages/flat/PitFlat").then(m => ({ default: m.BreaklistPage })));
+const PitRotaPage = lazy(() => import("@/pages/flat/PitFlat").then(m => ({ default: m.PitRotaPage })));
+const PitAttendancePage = lazy(() => import("@/pages/flat/PitFlat").then(m => ({ default: m.PitAttendancePage })));
+const DealersPage = lazy(() => import("@/pages/flat/PitFlat").then(m => ({ default: m.DealersPage })));
+const StaffEmployeesPage = lazy(() => import("@/pages/flat/StaffFlat").then(m => ({ default: m.StaffEmployeesPage })));
+const RotaFloorPage = lazy(() => import("@/pages/flat/StaffFlat").then(m => ({ default: m.RotaFloorPage })));
+const RotaSecurityPage = lazy(() => import("@/pages/flat/StaffFlat").then(m => ({ default: m.RotaSecurityPage })));
+const RotaOfficePage = lazy(() => import("@/pages/flat/StaffFlat").then(m => ({ default: m.RotaOfficePage })));
+const AttendanceFloorPage = lazy(() => import("@/pages/flat/StaffFlat").then(m => ({ default: m.AttendanceFloorPage })));
+const AttendanceSecurityPage = lazy(() => import("@/pages/flat/StaffFlat").then(m => ({ default: m.AttendanceSecurityPage })));
+const AttendanceOfficePage = lazy(() => import("@/pages/flat/StaffFlat").then(m => ({ default: m.AttendanceOfficePage })));
 const Groups = lazy(() => import("@/pages/Groups"));
 const Reports = lazy(() => import("@/pages/Reports"));
 const Admin = lazy(() => import("@/pages/Admin"));
@@ -110,6 +122,30 @@ const FullScreenLoader = ({ label = "Loading CMS..." }: { label?: string }) => (
 import { moduleKeyForRoute as resolveRouteModule } from "@/lib/route-module-map";
 import { useMyModulePermissions } from "@/hooks/use-module-permissions";
 
+// Legacy /pit?tab=… → flat /breaklist|/rota/live|/attendance/live|/dealers
+const LegacyPitRedirect = () => {
+  const tab = new URLSearchParams(window.location.search).get("tab");
+  const target =
+    tab === "rota" ? "/rota/live" :
+    tab === "attendance" ? "/attendance/live" :
+    tab === "employee" ? "/dealers" :
+    "/breaklist";
+  return <Navigate to={target} replace />;
+};
+
+// Legacy /staff?tab=… or /floor?tab=… → flat /staff/employees|/rota/*|/attendance/*
+const LegacyStaffRedirect = () => {
+  const sp = new URLSearchParams(window.location.search);
+  const tab = sp.get("tab");
+  const group = sp.get("group") || "floor";
+  let target = "/staff/employees";
+  if (tab === "attendance") target = `/attendance/${group}`;
+  else if (tab === "rota_floor") target = "/rota/floor";
+  else if (tab === "rota_security") target = "/rota/security";
+  else if (tab === "rota_office") target = "/rota/office";
+  return <Navigate to={target} replace />;
+};
+
 const RoleGuard = ({ path, children }: { path: string; children: React.ReactNode }) => {
   const { roles } = useAuth();
   const { data: allowedModules, isLoading } = useMyModulePermissions();
@@ -137,7 +173,7 @@ const getDefaultRoute = (roles: string[]) => {
     return "/";
   }
   if (roles.includes("hr") && !roles.some(r => ["manager", "pit", "cashier", "reception", "finance_manager", "surveillance", "super_admin"].includes(r))) {
-    return "/staff";
+    return "/staff/employees";
   }
   if (roles.includes("reception") && !roles.some(r => ["manager", "pit", "cashier", "finance_manager", "surveillance", "super_admin", "hr"].includes(r))) {
     return "/reception";
@@ -194,9 +230,25 @@ const ProtectedRoutes = () => {
           <Route path="/tables/analytics" element={<RoleGuard path="/tables/analytics"><TablesAnalytics /></RoleGuard>} />
           <Route path="/expenses" element={<RoleGuard path="/expenses"><Expenses /></RoleGuard>} />
           <Route path="/cashless" element={<RoleGuard path="/cashless"><Cashless /></RoleGuard>} />
-          <Route path="/pit" element={<RoleGuard path="/pit"><ErrorBoundary><Pit /></ErrorBoundary></RoleGuard>} />
-          <Route path="/staff" element={<RoleGuard path="/floor"><Staff /></RoleGuard>} />
-          <Route path="/floor" element={<RoleGuard path="/floor"><Staff /></RoleGuard>} />
+          {/* Phase 2 flat URLs — Pit (Live Game) */}
+          <Route path="/breaklist" element={<RoleGuard path="/breaklist"><ErrorBoundary><BreaklistPage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/rota/live" element={<RoleGuard path="/rota/live"><ErrorBoundary><PitRotaPage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/attendance/live" element={<RoleGuard path="/attendance/live"><ErrorBoundary><PitAttendancePage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/dealers" element={<RoleGuard path="/dealers"><ErrorBoundary><DealersPage /></ErrorBoundary></RoleGuard>} />
+
+          {/* Phase 2 flat URLs — Floor Staff */}
+          <Route path="/staff/employees" element={<RoleGuard path="/staff/employees"><ErrorBoundary><StaffEmployeesPage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/rota/floor" element={<RoleGuard path="/rota/floor"><ErrorBoundary><RotaFloorPage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/rota/security" element={<RoleGuard path="/rota/security"><ErrorBoundary><RotaSecurityPage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/rota/office" element={<RoleGuard path="/rota/office"><ErrorBoundary><RotaOfficePage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/attendance/floor" element={<RoleGuard path="/attendance/floor"><ErrorBoundary><AttendanceFloorPage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/attendance/security" element={<RoleGuard path="/attendance/security"><ErrorBoundary><AttendanceSecurityPage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/attendance/office" element={<RoleGuard path="/attendance/office"><ErrorBoundary><AttendanceOfficePage /></ErrorBoundary></RoleGuard>} />
+
+          {/* Legacy → flat-URL redirects (keep bookmarks alive) */}
+          <Route path="/pit" element={<LegacyPitRedirect />} />
+          <Route path="/staff" element={<LegacyStaffRedirect />} />
+          <Route path="/floor" element={<LegacyStaffRedirect />} />
           <Route path="/groups" element={<RoleGuard path="/groups"><Groups /></RoleGuard>} />
           <Route path="/finance" element={<Navigate to="/finance/wallets" replace />} />
           <Route path="/finance/wallets" element={<RoleGuard path="/finance/wallets"><ErrorBoundary><FinanceWalletsPage /></ErrorBoundary></RoleGuard>} />
