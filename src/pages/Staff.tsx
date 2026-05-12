@@ -24,6 +24,7 @@ const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "Ju
 
 import { UNIFIED_ATT_COLORS, UNIFIED_SHIFT_TINTS } from "@/lib/shift-colors";
 import { useClosedBusinessDates, useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
+import { CellPicker } from "@/components/grids/CellPicker";
 const ATT_COLORS = UNIFIED_ATT_COLORS;
 
 const DEPT_BADGE_COLORS: Record<string, string> = {
@@ -736,9 +737,18 @@ const StaffRotaGrid = ({ month, groupKey, monthLabel, readOnly = false }: { mont
                   isCurrentMonth={isCurrentMonth}
                   todayDay={todayDay}
                   getDisplayShift={getDisplayShift}
-                  handleClick={handleClick}
+                  groupShifts={groupShifts as readonly string[]}
+                  shiftLabels={group.shiftLabels as Record<string, string>}
                   handleKeyDown={handleKeyDown}
                   handlePaste={handlePaste}
+                  onSet={(staffId, day, shift) => {
+                    const ds = `${month}-${String(day).padStart(2, "0")}`;
+                    setRota.mutate({ staff_id: staffId, date: ds, shift });
+                  }}
+                  onClear={(staffId, day) => {
+                    const ds = `${month}-${String(day).padStart(2, "0")}`;
+                    deleteRota.mutate({ staff_id: staffId, date: ds });
+                  }}
                   getStats={getStats}
                   summaryShifts={summaryShifts}
                 />
@@ -784,7 +794,7 @@ const StaffRotaGrid = ({ month, groupKey, monthLabel, readOnly = false }: { mont
 };
 const DepartmentBlock = ({
   dept, members, days, month, y, m, isCurrentMonth, todayDay,
-  getDisplayShift, handleClick, handleKeyDown, handlePaste, getStats, summaryShifts,
+  getDisplayShift, groupShifts, shiftLabels, handleKeyDown, handlePaste, onSet, onClear, getStats, summaryShifts,
 }: {
   dept: string;
   members: any[];
@@ -795,9 +805,12 @@ const DepartmentBlock = ({
   isCurrentMonth: boolean;
   todayDay: number;
   getDisplayShift: (id: string, day: number) => { shift: string; isAuto: boolean } | null;
-  handleClick: (id: string, day: number) => void;
+  groupShifts: readonly string[];
+  shiftLabels: Record<string, string>;
   handleKeyDown: (e: React.KeyboardEvent, id: string, day: number) => void;
   handlePaste: (e: React.ClipboardEvent, id: string, day: number) => void;
+  onSet: (id: string, day: number, shift: string) => void;
+  onClear: (id: string, day: number) => void;
   getStats: (id: string) => Record<string, number>;
   summaryShifts: string[];
 }) => (
@@ -825,18 +838,25 @@ const DepartmentBlock = ({
             const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
             return (
               <td key={day} className={`px-0.5 py-0.5 text-center border-l border-border/25 ${isToday ? "bg-primary/25" : isWeekend ? "bg-muted/15" : ""}`}>
-                <button
-                  onClick={() => handleClick(staff.id, day)}
+                <CellPicker
+                  value={display?.shift ?? null}
+                  display={display?.shift || "·"}
+                  rows={[{
+                    options: groupShifts.map(s => ({
+                      value: s, label: s,
+                      title: shiftLabels[s],
+                      className: STAFF_SHIFT_COLORS[s],
+                    })),
+                  }]}
+                  onSelect={(v) => v === null ? onClear(staff.id, day) : onSet(staff.id, day, v)}
                   onKeyDown={e => handleKeyDown(e, staff.id, day)}
-                  onPaste={e => handlePaste(e, staff.id, day)}
-                  className={`w-full h-8 rounded text-xs font-mono font-semibold transition-colors focus:outline-none focus:ring-1 focus:ring-primary ${
+                  onPaste={e => handlePaste(e as any, staff.id, day)}
+                  cellClassName={`w-full h-8 rounded text-xs font-mono font-semibold transition-colors focus:outline-none focus:ring-1 focus:ring-primary ${
                     display
                       ? `${STAFF_SHIFT_COLORS[display.shift] || "bg-muted text-muted-foreground"} ${display.isAuto ? "border border-dashed border-amber-500/50" : ""}`
                       : "bg-transparent hover:bg-muted/50 text-muted-foreground/40 hover:text-muted-foreground"
                   }`}
-                >
-                  {display?.shift || "·"}
-                </button>
+                />
               </td>
             );
           })}
@@ -1123,53 +1143,35 @@ const AttendanceDepartmentBlock = ({
             const isEmpty = val === "";
             return (
               <td key={day} className={`px-0.5 py-0.5 text-center border-l border-border/25 ${isToday ? "bg-primary/25" : isWeekend ? "bg-muted/15" : ""}`}>
-                <input
-                  type="text"
-                  defaultValue={val}
-                  key={`${staff.id}-${month}-${day}-${val}`}
-                  onBlur={e => handleSave(staff.id, day, e.target.value)}
+                <CellPicker
+                  value={val || null}
+                  display={val || (isScheduled && isEmpty ? rotaShift! : "·")}
+                  rows={[
+                    { options: [
+                      { value: "A", label: "A", title: "Absent", className: ATT_COLORS["A"] },
+                      { value: "S", label: "S", title: "Sick", className: ATT_COLORS["S"] },
+                    ]},
+                    { label: "Hours", options: Array.from({ length: 12 }, (_, i) => i + 1).map(n => ({
+                      value: String(n), label: String(n),
+                      className: "bg-card-foreground/5 text-card-foreground",
+                    }))},
+                  ]}
+                  onSelect={(v) => handleSave(staff.id, day, v ?? "")}
                   onKeyDown={e => {
-                    const input = e.target as HTMLInputElement;
-                    if (e.key === "Enter") { input.blur(); return; }
-                    const key = e.key.toUpperCase();
-                    if (key === "A" || key === "S") {
-                      e.preventDefault();
-                      input.value = key;
-                      handleSave(staff.id, day, key);
-                      const nextInput = input.closest("td")?.nextElementSibling?.querySelector("input") as HTMLInputElement;
-                      nextInput?.focus();
-                    } else if (key === "ARROWRIGHT") {
-                      e.preventDefault();
-                      const next = input.closest("td")?.nextElementSibling?.querySelector("input") as HTMLInputElement;
-                      next?.focus();
-                    } else if (key === "ARROWLEFT") {
-                      e.preventDefault();
-                      const prev = input.closest("td")?.previousElementSibling?.querySelector("input") as HTMLInputElement;
-                      prev?.focus();
-                    } else if (key === "ARROWDOWN") {
-                      e.preventDefault();
-                      const td = input.closest("td");
-                      const idx2 = td ? Array.from(td.parentElement!.children).indexOf(td) : -1;
-                      const nextRow = td?.closest("tr")?.nextElementSibling;
-                      (nextRow?.children[idx2]?.querySelector("input") as HTMLInputElement)?.focus();
-                    } else if (key === "ARROWUP") {
-                      e.preventDefault();
-                      const td = input.closest("td");
-                      const idx2 = td ? Array.from(td.parentElement!.children).indexOf(td) : -1;
-                      const prevRow = td?.closest("tr")?.previousElementSibling;
-                      (prevRow?.children[idx2]?.querySelector("input") as HTMLInputElement)?.focus();
-                    }
+                    const k = e.key.toUpperCase();
+                    if (k === "A" || k === "S") { e.preventDefault(); handleSave(staff.id, day, k); return; }
+                    if (/^[0-9]$/.test(k)) { e.preventDefault(); handleSave(staff.id, day, k); return; }
+                    if (k === "BACKSPACE" || k === "DELETE") { e.preventDefault(); handleSave(staff.id, day, ""); return; }
                   }}
-                  className={`w-full h-8 rounded text-xs font-mono font-semibold text-center border-0 focus:outline-none focus:ring-1 focus:ring-primary transition-colors ${
+                  cellClassName={`w-full h-8 rounded text-xs font-mono font-semibold text-center focus:outline-none focus:ring-1 focus:ring-primary transition-colors ${
                     isStatus
                       ? ATT_COLORS[val]
                       : isHours
                         ? "bg-transparent text-card-foreground font-bold"
                         : isScheduled && isEmpty
-                          ? `${UNIFIED_SHIFT_TINTS[rotaShift!] || "bg-muted/30 text-muted-foreground"} placeholder:text-current`
-                          : "bg-transparent text-transparent hover:text-muted-foreground"
+                          ? `${UNIFIED_SHIFT_TINTS[rotaShift!] || "bg-muted/30 text-muted-foreground"}`
+                          : "bg-transparent text-muted-foreground/40 hover:text-muted-foreground"
                   }`}
-                  placeholder={isScheduled && isEmpty ? rotaShift! : "·"}
                 />
               </td>
             );

@@ -20,6 +20,7 @@ import { UNIFIED_SHIFT_COLORS, UNIFIED_ATT_COLORS, UNIFIED_SHIFT_TINTS } from "@
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { PitShell } from "@/components/pit/PitShell";
+import { CellPicker, type CellPickerRow } from "@/components/grids/CellPicker";
 
 
 const ROTA_SHIFTS = ["M", "N", "L", "E", "O"] as const;
@@ -680,20 +681,31 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
               const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
               return (
                 <td key={day} className={`px-0.5 py-0.5 text-center border-l border-border/25 ${isToday ? "bg-primary/25" : isWeekend ? "bg-muted/15" : ""}`}>
-                  <button
-                    onClick={(e) => handleClick(e, dealer.id, day)}
-                    onContextMenu={(e) => handleContextMenu(e, dealer.id, day)}
+                  <CellPicker
+                    value={display?.shift ?? null}
+                    display={display?.shift || "·"}
+                    title={display ? `${display.shift}${display.isAuto ? " (auto)" : ""}` : "Pick shift"}
+                    rows={[{
+                      options: ROTA_SHIFTS.map(s => ({
+                        value: s,
+                        label: s,
+                        title: SHIFT_LABELS[s],
+                        className: SHIFT_COLORS[s],
+                      })),
+                    }]}
+                    onSelect={(v) => {
+                      const dateStr = `${month}-${String(day).padStart(2, "0")}`;
+                      if (v === null) deleteRota.mutate({ dealer_id: dealer.id, date: dateStr });
+                      else setRota.mutate({ dealer_id: dealer.id, date: dateStr, shift: v as typeof ROTA_SHIFTS[number] });
+                    }}
                     onKeyDown={e => handleKeyDown(e, dealer.id, day)}
-                    onPaste={e => handlePaste(e, dealer.id, day)}
-                    title={display ? "Click — next shift • Shift/Alt+Click or Right-click — clear • Delete — clear" : "Click to assign Middle"}
-                    className={`w-full h-8 rounded text-xs font-mono font-semibold transition-colors focus:outline-none focus:ring-1 focus:ring-primary ${
+                    onPaste={e => handlePaste(e as any, dealer.id, day)}
+                    cellClassName={`w-full h-8 rounded text-xs font-mono font-semibold transition-colors focus:outline-none focus:ring-1 focus:ring-primary ${
                       display
                         ? `${SHIFT_COLORS[display.shift] || "bg-muted text-muted-foreground"} ${display.isAuto ? "border border-dashed border-emerald-500/50" : ""}`
                         : "bg-transparent hover:bg-muted/50 text-muted-foreground/40 hover:text-muted-foreground"
                     }`}
-                  >
-                    {display?.shift || "·"}
-                  </button>
+                  />
                 </td>
               );
             })}
@@ -966,42 +978,32 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
               const cellTitle = isHoursSick ? `Sick — worked ${parsed.hours}h then went home` : undefined;
               return (
                 <td key={day} className={`px-0.5 py-0.5 text-center border-l border-border/25 ${isToday ? "bg-primary/25" : isWeekend ? "bg-muted/15" : ""}`}>
-                  <input
-                    type="text"
-                    defaultValue={displayVal}
+                  <CellPicker
+                    value={val || null}
+                    display={isHoursSick ? `${parsed.hours}S` : (val || (isScheduled && isEmpty ? rotaShift! : "·"))}
                     title={cellTitle}
-                    key={`${dealer.id}-${month}-${day}-${val}`}
-                    onBlur={e => handleSave(dealer.id, day, e.target.value)}
+                    rows={[
+                      { options: [
+                        { value: "A", label: "A", title: "Absent", className: ATT_COLORS["A"] },
+                        { value: "S", label: "S", title: "Sick", className: ATT_COLORS["S"] },
+                      ]},
+                      { label: "Hours", options: Array.from({ length: 12 }, (_, i) => i + 1).map(n => ({
+                        value: String(n), label: String(n),
+                        className: "bg-card-foreground/5 text-card-foreground",
+                      }))},
+                      { label: "Sick after Nh", options: [4,6,8,9,10,11,12].map(n => ({
+                        value: `${n}S`, label: `${n}S`,
+                        className: "bg-amber-500/15 text-amber-700 dark:text-amber-300",
+                      }))},
+                    ]}
+                    onSelect={(v) => handleSave(dealer.id, day, v ?? "")}
                     onKeyDown={e => {
-                      const input = e.target as HTMLInputElement;
-                      if (e.key === "Enter") { input.blur(); return; }
-                      const key = e.key.toUpperCase();
-                      if (key === "A" || key === "S") {
-                        e.preventDefault();
-                        // Set the input value so onBlur won't overwrite our save with stale text
-                        input.value = key;
-                        handleSave(dealer.id, day, key);
-                        const nextInput = input.closest("td")?.nextElementSibling?.querySelector("input") as HTMLInputElement;
-                        nextInput?.focus();
-                      } else if (key === "ARROWRIGHT") {
-                        e.preventDefault();
-                        (input.closest("td")?.nextElementSibling?.querySelector("input") as HTMLInputElement)?.focus();
-                      } else if (key === "ARROWLEFT") {
-                        e.preventDefault();
-                        (input.closest("td")?.previousElementSibling?.querySelector("input") as HTMLInputElement)?.focus();
-                      } else if (key === "ARROWDOWN") {
-                        e.preventDefault();
-                        const td = input.closest("td");
-                        const ci = td ? Array.from(td.parentElement!.children).indexOf(td) : -1;
-                        (td?.closest("tr")?.nextElementSibling?.children[ci]?.querySelector("input") as HTMLInputElement)?.focus();
-                      } else if (key === "ARROWUP") {
-                        e.preventDefault();
-                        const td = input.closest("td");
-                        const ci = td ? Array.from(td.parentElement!.children).indexOf(td) : -1;
-                        (td?.closest("tr")?.previousElementSibling?.children[ci]?.querySelector("input") as HTMLInputElement)?.focus();
-                      }
+                      const k = e.key.toUpperCase();
+                      if (k === "A" || k === "S") { e.preventDefault(); handleSave(dealer.id, day, k); return; }
+                      if (/^[0-9]$/.test(k)) { e.preventDefault(); handleSave(dealer.id, day, k); return; }
+                      if (k === "BACKSPACE" || k === "DELETE") { e.preventDefault(); handleSave(dealer.id, day, ""); return; }
                     }}
-                    className={`w-full h-8 rounded text-xs font-mono font-semibold text-center border-0 focus:outline-none focus:ring-1 focus:ring-primary transition-colors ${
+                    cellClassName={`w-full h-8 rounded text-xs font-mono font-semibold text-center focus:outline-none focus:ring-1 focus:ring-primary transition-colors ${
                       isStatus
                         ? `${ATT_COLORS[val]} ring-2 ring-red-500/80 dark:ring-red-400/80 ring-inset`
                         : isHoursSick ? "bg-transparent text-card-foreground font-bold ring-2 ring-red-500/80 dark:ring-red-400/80 ring-inset cursor-help"
@@ -1010,10 +1012,9 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
                             ? "bg-transparent text-card-foreground font-bold ring-2 ring-purple-500/70 dark:ring-purple-400/70 ring-inset"
                             : "bg-transparent text-card-foreground font-bold"
                         : isScheduled && isEmpty
-                          ? `${UNIFIED_SHIFT_TINTS[rotaShift] || "bg-muted/30 text-muted-foreground"} placeholder:text-current ${rotaShift === "E" ? "ring-2 ring-purple-500/70 dark:ring-purple-400/70 ring-inset" : ""}`
-                          : "bg-transparent text-transparent hover:text-muted-foreground"
+                          ? `${UNIFIED_SHIFT_TINTS[rotaShift] || "bg-muted/30 text-muted-foreground"} ${rotaShift === "E" ? "ring-2 ring-purple-500/70 dark:ring-purple-400/70 ring-inset" : ""}`
+                          : "bg-transparent text-muted-foreground/40 hover:text-muted-foreground"
                     }`}
-                    placeholder={isScheduled && isEmpty ? rotaShift! : "·"}
                   />
                 </td>
               );
