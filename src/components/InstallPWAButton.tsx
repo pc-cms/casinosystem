@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Download, CheckCircle2 } from "lucide-react";
+import { Download } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
@@ -11,16 +12,26 @@ type BeforeInstallPromptEvent = Event & {
  * Shows an "Install" button when the browser supports PWA installation.
  * Hides itself if the app is already installed (display-mode: standalone) or
  * if the platform never fires `beforeinstallprompt` (e.g. iOS Safari).
+ *
+ * Modes:
+ *   - default: outline button with label
+ *   - iconOnly: small square icon button (for inline action rows)
  */
-export const InstallPWAButton = ({ className, label = "Install App" }: { className?: string; label?: string }) => {
+export const InstallPWAButton = ({
+  className,
+  label = "Install App",
+  iconOnly = false,
+}: {
+  className?: string;
+  label?: string;
+  iconOnly?: boolean;
+}) => {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [installed, setInstalled] = useState(false);
 
   useEffect(() => {
-    // Already installed?
     const standalone =
       window.matchMedia?.("(display-mode: standalone)").matches ||
-      // iOS
       (window.navigator as any).standalone === true;
     if (standalone) {
       setInstalled(true);
@@ -44,35 +55,31 @@ export const InstallPWAButton = ({ className, label = "Install App" }: { classNa
     };
   }, []);
 
-  if (installed) {
+  if (installed || !deferredPrompt) return null;
+
+  const handleClick = async () => {
+    await deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === "accepted") setDeferredPrompt(null);
+  };
+
+  if (iconOnly) {
     return (
-      <div
-        className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-mono uppercase tracking-wider ${className ?? ""}`}
-        style={{
-          backgroundColor: "rgba(232, 198, 136, 0.12)",
-          color: "#E8C688",
-          border: "1px solid rgba(232, 198, 136, 0.35)",
-        }}
+      <button
+        onClick={handleClick}
+        title={label}
+        className={cn(
+          "h-7 flex-1 flex items-center justify-center rounded-md text-sidebar-foreground hover:bg-sidebar-accent transition-colors",
+          className,
+        )}
       >
-        <CheckCircle2 className="w-2.5 h-2.5" />
-        <span>Installed</span>
-      </div>
+        <Download className="w-3.5 h-3.5" />
+      </button>
     );
   }
 
-  if (!deferredPrompt) return null;
-
   return (
-    <Button
-      variant="outline"
-      size="sm"
-      className={className}
-      onClick={async () => {
-        await deferredPrompt.prompt();
-        const { outcome } = await deferredPrompt.userChoice;
-        if (outcome === "accepted") setDeferredPrompt(null);
-      }}
-    >
+    <Button variant="outline" size="sm" className={className} onClick={handleClick}>
       <Download className="w-3.5 h-3.5 mr-1.5" />
       {label}
     </Button>
