@@ -1,23 +1,27 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Wallet, CheckCircle2, Lock, Unlock, FileSpreadsheet, Printer } from "lucide-react";
+import { ArrowLeft, Wallet, CheckCircle2, Lock, Unlock, FileSpreadsheet, Printer, History } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { DataTable, DTHead, DTBody, DTRow, DTHeader, DTCell } from "@/components/ui/data-table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useAuth } from "@/lib/auth-context";
 import {
   usePayrollPeriod, usePayrollEntries, useUpdatePayrollEntry,
   useApproveHR, useApproveManager, useRevertToDraft, useUnlockPeriod,
+  usePayrollAuditLog, useEmployees,
   type PayrollEntry,
 } from "@/hooks/use-payroll";
 import {
   exportBankCsv, exportNssfReport, exportPayeReport, exportSdlReport,
-  exportWcfReport, exportJournal, exportSalarySlipsPrint, type BankFormat,
+  exportWcfReport, exportJournal, exportSalarySlipsPrint, exportSingleSalarySlip,
+  type BankFormat,
 } from "@/lib/payroll-exports";
+import { fmtDateTime } from "@/lib/format-date";
 
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 const fmt = (n: number) => new Intl.NumberFormat("en-US").format(n).replace(/,/g, " ");
