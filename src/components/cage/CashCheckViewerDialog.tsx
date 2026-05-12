@@ -4,7 +4,8 @@
  * Empty sections are collapsed (<details>) so the viewer can verify zeros.
  */
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
-import { CURRENCIES, CASH_DENOMS, CHIP_DENOMS, formatCurrency, formatNumberSpaces, formatChipLabel, formatCashDenomLabel, CURRENCY_SYMBOLS } from "@/lib/currency";
+import ChipToken from "@/components/ChipToken";
+import { CURRENCIES, CASH_DENOMS, CHIP_DENOMS, formatCurrency, formatNumberSpaces, formatCashDenomLabel, CURRENCY_SYMBOLS } from "@/lib/currency";
 import { MOBILE_PROVIDERS } from "@/components/cage/CageHelpers";
 import type { Tables } from "@/integrations/supabase/types";
 
