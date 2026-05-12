@@ -43,22 +43,24 @@ const Section = ({ title, isEmpty, children }: { title: string; isEmpty: boolean
 };
 
 const ChipsView = ({ chips }: { chips: Record<number, number> }) => (
-  <div className="grid grid-cols-2 gap-x-3 gap-y-1">
+  <div className="space-y-1.5">
     {CHIP_DENOMS.map(d => {
       const qty = chips[d] || 0;
       return (
-        <div key={d} className="flex items-center justify-between gap-2 text-xs font-mono">
+        <div key={d} className="grid grid-cols-[auto_1fr_auto] items-center gap-3 font-mono">
           <ChipToken denom={d} />
-          <span className={`tabular-nums ${qty > 0 ? "text-card-foreground" : "text-muted-foreground/50"}`}>{qty || "·"}</span>
-          <span className="tabular-nums text-muted-foreground text-[10px] w-20 text-right">
+          <span className={`tabular-nums text-lg font-bold text-right whitespace-nowrap ${qty > 0 ? "text-card-foreground" : "text-muted-foreground/40"}`}>
+            {qty || "·"}
+          </span>
+          <span className={`tabular-nums text-base whitespace-nowrap text-right min-w-[7rem] ${qty > 0 ? "text-muted-foreground" : "text-muted-foreground/40"}`}>
             {qty > 0 ? formatNumberSpaces(qty * d) : "·"}
           </span>
         </div>
       );
     })}
-    <div className="col-span-2 flex justify-between pt-2 mt-1 border-t border-border text-xs">
+    <div className="flex justify-between items-center pt-2 mt-1 border-t border-border">
       <span className="text-muted-foreground uppercase tracking-wider text-[10px]">Total</span>
-      <span className="font-mono font-bold text-card-foreground">TZS {formatNumberSpaces(sumValue(chips))}</span>
+      <span className="font-mono text-base font-bold text-card-foreground whitespace-nowrap">TZS {formatNumberSpaces(sumValue(chips))}</span>
     </div>
   </div>
 );
@@ -66,24 +68,26 @@ const ChipsView = ({ chips }: { chips: Record<number, number> }) => (
 const CashView = ({ values, denoms, currency }: { values: Record<number, number>; denoms: number[]; currency: string }) => {
   const total = sumValue(values);
   return (
-    <div className="space-y-0.5">
+    <div className="space-y-1">
       {denoms.map(d => {
         const qty = values[d] || 0;
         return (
-          <div key={d} className="grid grid-cols-[3.5rem_1fr_5rem] items-center gap-1.5 text-xs font-mono">
-            <span className="cms-chip text-[8px] bg-muted text-foreground h-5 w-14 shrink-0 justify-center">
+          <div key={d} className="grid grid-cols-[3.75rem_1fr_auto] items-center gap-3 font-mono">
+            <span className="cms-chip text-[9px] bg-muted text-foreground h-6 w-15 shrink-0 justify-center">
               {formatCashDenomLabel(d, currency)}
             </span>
-            <span className={`tabular-nums text-right ${qty > 0 ? "text-card-foreground" : "text-muted-foreground/50"}`}>{qty || "·"}</span>
-            <span className="tabular-nums text-muted-foreground text-[10px] text-right">
+            <span className={`tabular-nums text-lg font-bold text-right whitespace-nowrap ${qty > 0 ? "text-card-foreground" : "text-muted-foreground/40"}`}>
+              {qty || "·"}
+            </span>
+            <span className={`tabular-nums text-base whitespace-nowrap text-right min-w-[7rem] ${qty > 0 ? "text-muted-foreground" : "text-muted-foreground/40"}`}>
               {qty > 0 ? formatNumberSpaces(qty * d) : "·"}
             </span>
           </div>
         );
       })}
-      <div className="flex items-center justify-between gap-2 pt-1 mt-1 border-t border-border">
+      <div className="flex items-center justify-between pt-2 mt-1 border-t border-border">
         <span className="text-[10px] font-medium text-muted-foreground uppercase">Total</span>
-        <span className="font-mono text-xs font-bold text-card-foreground">
+        <span className="font-mono text-base font-bold text-card-foreground whitespace-nowrap">
           {currency === "TZS" ? `TZS ${formatNumberSpaces(total)}` : `${CURRENCY_SYMBOLS[currency] || currency}${formatNumberSpaces(total)}`}
         </span>
       </div>
