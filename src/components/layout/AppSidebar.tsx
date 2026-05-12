@@ -20,6 +20,7 @@ import { useMyModulePermissions } from "@/hooks/use-module-permissions";
 import { moduleKeyForRoute } from "@/lib/route-module-map";
 import { NetworkStatusIndicator } from "@/components/NetworkStatusIndicator";
 import { VersionIndicator } from "@/components/VersionIndicator";
+import { InstallPWAButton } from "@/components/InstallPWAButton";
 import { LogoutButton } from "@/components/LogoutButton";
 import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
 import { toast } from "sonner";
