@@ -4197,6 +4197,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_manager_op: { Args: { _uid: string }; Returns: boolean }
       list_open_cycles_for_day: { Args: { _casino_id: string }; Returns: Json }
       local_servers_overview: {
         Args: never
