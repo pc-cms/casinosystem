@@ -23,7 +23,7 @@ export const FinancePayments = () => {
   return (
     <div className="space-y-4 mt-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-medium text-muted-foreground">Office Expenses</h3>
+        <h3 className="text-sm font-medium text-muted-foreground">Wallet Payments</h3>
         <AddManualExpenseDialog />
       </div>
 
