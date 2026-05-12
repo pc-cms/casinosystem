@@ -142,7 +142,7 @@ export const UserPermissionsDialog = ({ open, onOpenChange, userId, userName }: 
       onOpenChange={onOpenChange}
       title={`Module Permissions — ${userName}`}
       description="Each module shows the role default. Override View, Write or Day depth per user. Empty override = inherit role default."
-      contentClassName="max-w-5xl"
+      size="xl"
     >
       <div className="space-y-4">
         <div className="flex flex-wrap items-center gap-2">
