@@ -18,26 +18,38 @@ import { MODULES, type ModuleKey } from "@/lib/modules";
 
 // Mirror of `role_module_defaults` rows for floor_manager where can_view=true.
 // Source of truth = DB; this constant is the contract the UI must respect.
+// Mirrors role_module_defaults rows for floor_manager (DB source of truth).
 const FLOOR_MANAGER_ALLOWED: ReadonlySet<ModuleKey> = new Set<ModuleKey>([
+  "bank_checks",
   "blacklist",
+  "business_days",
   "cage",
+  "cage_view",
+  "cashless",
   "dashboard",
+  "expenses",
+  "expenses_approvals",
   "in_casino",
+  "incidents",
   "miss_chips",
   "pit_active_players",
   "pit_attendance",
   "pit_breaklist",
-  "pit_rota",
   "pit_dealers",
+  "pit_rota",
+  "pitbook",
   "players",
   "reception",
   "reports",
   "staff",
+  "staff_attendance",
   "staff_employees",
   "staff_rota",
-  "staff_attendance",
+  "table_results",
   "table_tracker",
   "tables",
+  "tables_analytics",
+  "weekly_bonus",
 ]);
 
 // Routes that MUST be gated (have a module mapping). Mirrors App.tsx route table.
