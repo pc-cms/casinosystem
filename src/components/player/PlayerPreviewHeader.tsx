@@ -134,7 +134,7 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
     : "";
   const tags = ((player as any)?.player_tags || []).map((t: any) => t.tag);
   const visitsCount = visits.length;
-  const result = monthStats?.result ?? 0;
+  const result = dayStats?.result ?? 0;
 
   const submitAdj = () => {
     const inN = Number(chipIn) || 0;
@@ -225,11 +225,11 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
             {showFinancials && (
               <div className="flex items-baseline gap-6 font-mono">
                 <span className="text-sm text-muted-foreground">
-                  Cash In (m):{" "}
-                  <span className="text-foreground font-bold text-lg">{formatCurrency(monthStats?.cashIn ?? 0)}</span>
+                  Cash In (d):{" "}
+                  <span className="text-foreground font-bold text-lg">{formatCurrency(dayStats?.cashIn ?? 0)}</span>
                 </span>
                 <span className="text-sm text-muted-foreground">
-                  Result (m):{" "}
+                  Result (d):{" "}
                   <span className={cn("font-bold text-lg", result > 0 ? "cms-amount-positive" : result < 0 ? "cms-amount-negative" : "text-foreground")}>
                     {result > 0 ? "+" : ""}{formatCurrency(result)}
                   </span>
