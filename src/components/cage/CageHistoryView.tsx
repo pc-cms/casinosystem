@@ -193,7 +193,49 @@ const CageHistoryView = () => {
           </div>
         </TabsContent>
 
-        {/* Cashless */}
+        {/* Cashier checks */}
+        <TabsContent value="checks" className="space-y-3">
+          <div className="cms-panel">
+            <div className="cms-header">Cashier Checks ({cashChecks.length})</div>
+            <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
+              <table className="w-full text-xs">
+                <thead className="sticky top-0 bg-card z-10">
+                  <tr className="border-b border-border">
+                    {["Time", "Cashier", "Counted", "Diff"].map(h => (
+                      <th key={h} className={`px-3 py-1.5 font-medium text-muted-foreground uppercase ${h === "Counted" || h === "Diff" || h === "Time" ? "text-right" : "text-left"}`}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {cashChecks.length === 0 ? (
+                    <tr><td colSpan={4} className="text-center text-muted-foreground py-6">No checks for this day</td></tr>
+                  ) : cashChecks.map((cc: any) => {
+                    const t = (cc.denominations || {}).totals || {};
+                    const diff = Number(t.difference ?? 0);
+                    const balanced = !!t.balanced || diff === 0;
+                    return (
+                      <tr
+                        key={cc.id}
+                        onClick={() => setViewerCheck(cc)}
+                        className="border-b border-border last:border-0 cursor-pointer hover:bg-accent/30 transition-colors"
+                      >
+                        <td className="px-3 py-1.5 text-right font-mono text-[10px] text-muted-foreground">
+                          {new Date(cc.created_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
+                        </td>
+                        <td className="px-3 py-1.5">{cashierMap.get(cc.counted_by) || "—"}</td>
+                        <td className="px-3 py-1.5 text-right font-mono font-medium">{formatCurrency(Number(cc.total))}</td>
+                        <td className={`px-3 py-1.5 text-right font-mono font-bold ${balanced ? "text-success" : "text-destructive"}`}>
+                          {balanced ? "Balanced" : `${diff >= 0 ? "+" : ""}${formatCurrency(diff)}`}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </TabsContent>
+
         <TabsContent value="cashless" className="space-y-3">
           <div className="cms-panel">
             <div className="cms-header flex items-center justify-between gap-2 flex-wrap">
