@@ -32,7 +32,7 @@ export const canEditSection = (
   roles: string[],
 ): boolean => {
   const isSuper = roles.includes("super_admin");
-  const isManager = roles.includes("manager");
+  const isManager = roles.includes("manager") || roles.includes("floor_manager");
   const isFinance = roles.includes("finance_manager");
   if (FINANCIAL_SECTIONS.includes(section)) return isFinance || isSuper;
   if (PIT_SECTIONS.includes(section)) return isManager || isSuper;
