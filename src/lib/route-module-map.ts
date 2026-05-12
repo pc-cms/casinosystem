@@ -23,9 +23,14 @@ export const moduleKeyForRoute = (to: string, label?: string): ModuleKey | null 
   if (base === "/table-tracker") return "table_tracker";
   if (base === "/tables/analytics") return "tables";
   if (base === "/cage") return "cage";
+  if (base === "/cage/closings") return "cage";
+  if (base === "/cage/close-shift") return "cage";
+  if (base.startsWith("/cage/shift/")) return "cage";
+  if (base === "/players/register") return "cage";
+  if (base === "/tables/close") return "tables";
   if (base === "/expenses") return "expenses";
   if (base === "/cashless") return "expenses";
-  if (base === "/players") return "players";
+  if (base === "/players" || base.startsWith("/players/")) return "players";
   if (base === "/blacklist") return "blacklist";
   if (base === "/reception") return "reception";
   if (base === "/guests") return "in_casino";
@@ -42,6 +47,10 @@ export const moduleKeyForRoute = (to: string, label?: string): ModuleKey | null 
   if (base === "/groups") return "groups";
   if (base === "/reports") return "reports";
   if (base === "/table-results") return "reports";
+  if (base === "/business-days") return "reports";
+  if (base === "/weekly-bonus") return "reports";
+  if (base === "/pitbook") return "pit_rota";
+  if (base === "/incidents") return "pit_rota";
   if (base === "/import-reports") return "import_reports";
   if (base === "/logs") return "logs";
   if (base === "/admin") return "admin";
