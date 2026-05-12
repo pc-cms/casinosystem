@@ -2559,6 +2559,33 @@ export type Database = {
           },
         ]
       }
+      role_module_defaults: {
+        Row: {
+          can_view: boolean
+          can_write: boolean
+          day_horizon: Database["public"]["Enums"]["day_horizon"]
+          module_key: string
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at: string
+        }
+        Insert: {
+          can_view?: boolean
+          can_write?: boolean
+          day_horizon?: Database["public"]["Enums"]["day_horizon"]
+          module_key: string
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+        }
+        Update: {
+          can_view?: boolean
+          can_write?: boolean
+          day_horizon?: Database["public"]["Enums"]["day_horizon"]
+          module_key?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       shifts: {
         Row: {
           balance: number | null
@@ -3190,7 +3217,9 @@ export type Database = {
       user_module_permissions: {
         Row: {
           can_view: boolean
+          can_write: boolean | null
           created_at: string
+          day_horizon: Database["public"]["Enums"]["day_horizon"] | null
           granted_by: string | null
           id: string
           module_key: string
@@ -3199,7 +3228,9 @@ export type Database = {
         }
         Insert: {
           can_view?: boolean
+          can_write?: boolean | null
           created_at?: string
+          day_horizon?: Database["public"]["Enums"]["day_horizon"] | null
           granted_by?: string | null
           id?: string
           module_key: string
@@ -3208,7 +3239,9 @@ export type Database = {
         }
         Update: {
           can_view?: boolean
+          can_write?: boolean | null
           created_at?: string
+          day_horizon?: Database["public"]["Enums"]["day_horizon"] | null
           granted_by?: string | null
           id?: string
           module_key?: string
@@ -3663,6 +3696,15 @@ export type Database = {
         Args: { _closure_id: string; _patches: Json; _section: string }
         Returns: Json
       }
+      effective_module_perms: {
+        Args: { p_user_id: string }
+        Returns: {
+          can_view: boolean
+          can_write: boolean
+          day_horizon: Database["public"]["Enums"]["day_horizon"]
+          module_key: string
+        }[]
+      }
       finalize_open_cycles_for_close: {
         Args: { _casino_id: string; _user: string }
         Returns: Json
@@ -3851,6 +3893,7 @@ export type Database = {
         | "hr"
         | "floor_manager"
       card_type: "manual" | "rfid"
+      day_horizon: "today" | "7d" | "30d" | "all"
       dealer_category:
         | "trainee"
         | "dealer"
@@ -4087,6 +4130,7 @@ export const Constants = {
         "floor_manager",
       ],
       card_type: ["manual", "rfid"],
+      day_horizon: ["today", "7d", "30d", "all"],
       dealer_category: ["trainee", "dealer", "inspector", "expert", "pit_boss"],
       dealer_role: [
         "BJ",
