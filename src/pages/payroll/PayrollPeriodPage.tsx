@@ -180,9 +180,39 @@ const NUMERIC_INPUT_FIELDS = [
   ["gepf_loan", "GEPF Loan"],
 ] as const;
 
-const EntriesGrid = ({ entries, canEdit }: { entries: PayrollEntry[]; canEdit: boolean }) => {
+const EntriesGrid = ({ entries, canEdit, period }: { entries: PayrollEntry[]; canEdit: boolean; period: any }) => {
   const update = useUpdatePayrollEntry();
+  const { data: employees = [] } = useEmployees();
   const [draft, setDraft] = useState<Record<string, Partial<PayrollEntry>>>({});
+  const [dept, setDept] = useState<string>("__all__");
+
+  const empDeptMap = useMemo(() => {
+    const m = new Map<string, string>();
+    employees.forEach(emp => m.set(emp.id, emp.department || ""));
+    return m;
+  }, [employees]);
+
+  const departments = useMemo(() => {
+    const set = new Set<string>();
+    entries.forEach(e => {
+      const d = empDeptMap.get(e.employee_id) || "";
+      if (d) set.add(d);
+    });
+    return Array.from(set).sort();
+  }, [entries, empDeptMap]);
+
+  const filtered = useMemo(() =>
+    dept === "__all__" ? entries : entries.filter(e => (empDeptMap.get(e.employee_id) || "") === dept),
+    [entries, dept, empDeptMap]);
+
+  const totals = useMemo(() => filtered.reduce((a, e) => ({
+    basic: a.basic + e.snapshot_basic_salary,
+    gross: a.gross + e.gross_salary,
+    paye: a.paye + e.paye,
+    nssf: a.nssf + e.nssf_employee,
+    gepf: a.gepf + e.gepf_employee,
+    net: a.net + e.net_salary,
+  }), { basic: 0, gross: 0, paye: 0, nssf: 0, gepf: 0, net: 0 }), [filtered]);
 
   const onChange = (id: string, field: string, val: number) => {
     setDraft(d => ({ ...d, [id]: { ...d[id], [field]: val } }));
@@ -193,53 +223,90 @@ const EntriesGrid = ({ entries, canEdit }: { entries: PayrollEntry[]; canEdit: b
     update.mutate({ id, [field]: val } as any);
   };
 
+  const colCount = 3 + NUMERIC_INPUT_FIELDS.length + 5; // employee + basic + inputs + 4 calc + net + slip
+
   return (
-    <DataTable>
-      <DTHead>
-        <DTRow>
-          <DTHeader>Employee</DTHeader>
-          <DTHeader align="right">Basic</DTHeader>
-          {NUMERIC_INPUT_FIELDS.map(([k, l]) => <DTHeader key={k} align="right">{l}</DTHeader>)}
-          <DTHeader align="right">Gross</DTHeader>
-          <DTHeader align="right">PAYE</DTHeader>
-          <DTHeader align="right">NSSF</DTHeader>
-          <DTHeader align="right">GEPF</DTHeader>
-          <DTHeader align="right">NET</DTHeader>
-        </DTRow>
-      </DTHead>
-      <DTBody>
-        {entries.length === 0 && (
-          <DTRow><DTCell colSpan={14} className="text-center text-muted-foreground py-8">No employees in this period</DTCell></DTRow>
-        )}
-        {entries.map(e => (
-          <DTRow key={e.id}>
-            <DTCell className="font-medium">{e.snapshot_full_name}</DTCell>
-            <DTCell numeric>{fmt(e.snapshot_basic_salary)}</DTCell>
-            {NUMERIC_INPUT_FIELDS.map(([k]) => {
-              const cur = draft[e.id]?.[k as keyof PayrollEntry] ?? (e[k as keyof PayrollEntry] as number);
-              return (
-                <DTCell key={k} numeric>
-                  {canEdit ? (
-                    <input
-                      type="number"
-                      value={cur as number}
-                      onChange={ev => onChange(e.id, k, Number(ev.target.value) || 0)}
-                      onBlur={() => onBlur(e.id, k)}
-                      className="w-20 h-7 px-1 text-right font-mono text-xs bg-transparent border border-border rounded focus:outline-none focus:border-primary"
-                    />
-                  ) : <span className="font-mono text-xs">{fmt(cur as number)}</span>}
-                </DTCell>
-              );
-            })}
-            <DTCell numeric className="font-semibold">{fmt(e.gross_salary)}</DTCell>
-            <DTCell numeric>{fmt(e.paye)}</DTCell>
-            <DTCell numeric>{fmt(e.nssf_employee)}</DTCell>
-            <DTCell numeric>{fmt(e.gepf_employee)}</DTCell>
-            <DTCell numeric className="font-bold text-emerald-700 dark:text-emerald-400">{fmt(e.net_salary)}</DTCell>
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-muted-foreground uppercase tracking-wider">Department</span>
+        <Select value={dept} onValueChange={setDept}>
+          <SelectTrigger className="w-56"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all__">All departments ({entries.length})</SelectItem>
+            {departments.map(d => (
+              <SelectItem key={d} value={d}>{d}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <span className="text-xs text-muted-foreground ml-auto">{filtered.length} employees</span>
+      </div>
+
+      <DataTable>
+        <DTHead>
+          <DTRow>
+            <DTHeader>Employee</DTHeader>
+            <DTHeader align="right">Basic</DTHeader>
+            {NUMERIC_INPUT_FIELDS.map(([k, l]) => <DTHeader key={k} align="right">{l}</DTHeader>)}
+            <DTHeader align="right">Gross</DTHeader>
+            <DTHeader align="right">PAYE</DTHeader>
+            <DTHeader align="right">NSSF</DTHeader>
+            <DTHeader align="right">GEPF</DTHeader>
+            <DTHeader align="right">NET</DTHeader>
+            <DTHeader />
           </DTRow>
-        ))}
-      </DTBody>
-    </DataTable>
+        </DTHead>
+        <DTBody>
+          {filtered.length === 0 && (
+            <DTRow><DTCell colSpan={colCount} className="text-center text-muted-foreground py-8">No employees in this period</DTCell></DTRow>
+          )}
+          {filtered.map(e => (
+            <DTRow key={e.id}>
+              <DTCell className="font-medium">{e.snapshot_full_name}</DTCell>
+              <DTCell numeric>{fmt(e.snapshot_basic_salary)}</DTCell>
+              {NUMERIC_INPUT_FIELDS.map(([k]) => {
+                const cur = draft[e.id]?.[k as keyof PayrollEntry] ?? (e[k as keyof PayrollEntry] as number);
+                return (
+                  <DTCell key={k} numeric>
+                    {canEdit ? (
+                      <input
+                        type="number"
+                        value={cur as number}
+                        onChange={ev => onChange(e.id, k, Number(ev.target.value) || 0)}
+                        onBlur={() => onBlur(e.id, k)}
+                        className="w-20 h-7 px-1 text-right font-mono text-xs bg-transparent border border-border rounded focus:outline-none focus:border-primary"
+                      />
+                    ) : <span className="font-mono text-xs">{fmt(cur as number)}</span>}
+                  </DTCell>
+                );
+              })}
+              <DTCell numeric className="font-semibold">{fmt(e.gross_salary)}</DTCell>
+              <DTCell numeric>{fmt(e.paye)}</DTCell>
+              <DTCell numeric>{fmt(e.nssf_employee)}</DTCell>
+              <DTCell numeric>{fmt(e.gepf_employee)}</DTCell>
+              <DTCell numeric className="font-bold text-emerald-700 dark:text-emerald-400">{fmt(e.net_salary)}</DTCell>
+              <DTCell>
+                <Button size="sm" variant="ghost" title="Print this slip" onClick={() => exportSingleSalarySlip(e, period)}>
+                  <Printer className="w-3.5 h-3.5" />
+                </Button>
+              </DTCell>
+            </DTRow>
+          ))}
+          {filtered.length > 0 && (
+            <DTRow className="bg-muted/40 font-semibold border-t-2 border-border">
+              <DTCell>TOTAL</DTCell>
+              <DTCell numeric>{fmt(totals.basic)}</DTCell>
+              {NUMERIC_INPUT_FIELDS.map(([k]) => <DTCell key={k} />)}
+              <DTCell numeric>{fmt(totals.gross)}</DTCell>
+              <DTCell numeric>{fmt(totals.paye)}</DTCell>
+              <DTCell numeric>{fmt(totals.nssf)}</DTCell>
+              <DTCell numeric>{fmt(totals.gepf)}</DTCell>
+              <DTCell numeric className="text-emerald-700 dark:text-emerald-400 font-bold">{fmt(totals.net)}</DTCell>
+              <DTCell />
+            </DTRow>
+          )}
+        </DTBody>
+      </DataTable>
+    </div>
   );
 };
 
@@ -271,13 +338,20 @@ const TaxesPanel = ({ entries }: { entries: PayrollEntry[] }) => {
   );
 };
 
-const SlipsPanel = ({ entries, periodLabel }: { entries: PayrollEntry[]; periodLabel: string }) => (
+const SlipsPanel = ({ entries, period, periodLabel }: { entries: PayrollEntry[]; period: any; periodLabel: string }) => (
   <PageSection card={false}>
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
       {entries.map(e => (
         <div key={e.id} className="rounded-md border border-border bg-card p-4">
-          <div className="font-semibold">{e.snapshot_full_name}</div>
-          <div className="text-xs text-muted-foreground">{e.snapshot_position} · {periodLabel}</div>
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <div className="font-semibold">{e.snapshot_full_name}</div>
+              <div className="text-xs text-muted-foreground">{e.snapshot_position} · {periodLabel}</div>
+            </div>
+            <Button size="sm" variant="outline" onClick={() => exportSingleSalarySlip(e, period)}>
+              <Printer className="w-3.5 h-3.5 mr-1" /> PDF
+            </Button>
+          </div>
           <table className="w-full text-xs mt-3 font-mono">
             <tbody>
               <tr><td className="text-muted-foreground">Basic</td><td className="text-right">{fmt(e.snapshot_basic_salary)}</td></tr>
@@ -293,6 +367,58 @@ const SlipsPanel = ({ entries, periodLabel }: { entries: PayrollEntry[]; periodL
     </div>
   </PageSection>
 );
+
+const ACTION_LABELS: Record<string, string> = {
+  period_created: "Period created",
+  period_duplicated: "Duplicated from previous period",
+  hr_approved: "HR approved",
+  manager_approved: "Manager approved & locked",
+  reverted_to_draft: "Reverted to draft",
+  unlocked: "Unlocked by Super Admin",
+};
+
+const AuditPanel = ({ periodId }: { periodId: string }) => {
+  const { data: log = [], isLoading } = usePayrollAuditLog(periodId);
+  return (
+    <PageSection card={false}>
+      <div className="flex items-center gap-2 mb-3 text-sm text-muted-foreground">
+        <History className="w-4 h-4" /> Immutable audit trail — all approvals, reverts and unlocks.
+      </div>
+      {isLoading ? (
+        <div className="text-sm text-muted-foreground p-4">Loading audit log…</div>
+      ) : log.length === 0 ? (
+        <div className="text-sm text-muted-foreground p-4">No audit entries yet.</div>
+      ) : (
+        <DataTable>
+          <DTHead>
+            <DTRow>
+              <DTHeader>When</DTHeader>
+              <DTHeader>Action</DTHeader>
+              <DTHeader>Actor</DTHeader>
+              <DTHeader>Details</DTHeader>
+            </DTRow>
+          </DTHead>
+          <DTBody>
+            {log.map(row => (
+              <DTRow key={row.id}>
+                <DTCell className="font-mono text-xs whitespace-nowrap">{fmtDateTime(row.created_at)}</DTCell>
+                <DTCell className="font-medium">{ACTION_LABELS[row.action] ?? row.action}</DTCell>
+                <DTCell className="font-mono text-xs text-muted-foreground">
+                  {row.actor_id ? row.actor_id.slice(0, 8) : "—"}
+                </DTCell>
+                <DTCell className="text-xs text-muted-foreground">
+                  {row.details && Object.keys(row.details).length > 0
+                    ? <code className="font-mono">{JSON.stringify(row.details)}</code>
+                    : "—"}
+                </DTCell>
+              </DTRow>
+            ))}
+          </DTBody>
+        </DataTable>
+      )}
+    </PageSection>
+  );
+};
 
 const BankExportButton = ({ entries, period }: any) => {
   const [open, setOpen] = useState(false);
