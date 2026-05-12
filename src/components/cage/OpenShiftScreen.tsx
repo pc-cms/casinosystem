@@ -80,7 +80,25 @@ const OpenShiftScreen = ({ tables }: { tables: Tables<"gaming_tables">[] }) => {
   const bankTotal = useMemo(() => bankTotalTzs(bankBalance, rates), [bankBalance, rates]);
   const openingTotal = openingChipTotal + cashTotalTzs + mobTotal + bankTotal;
 
-  const handleOpen = () => {
+  // Per-denom diff between opening (entered) and closing (expected baseline).
+  // Only meaningful once we've prefilled from the previous closed shift —
+  // a fresh casino with no prior shift has no baseline to compare against.
+  const chipDiff = useMemo(() => {
+    if (!closingPrefilled) return [] as { denom: number; expected: number; entered: number; delta: number }[];
+    const out: { denom: number; expected: number; entered: number; delta: number }[] = [];
+    CHIP_DENOMS.forEach(d => {
+      const expected = Number(closingChips[d] || 0);
+      const entered = Number(openingChips[d] || 0);
+      if (expected !== entered) out.push({ denom: d, expected, entered, delta: entered - expected });
+    });
+    return out;
+  }, [closingChips, openingChips, closingPrefilled]);
+  const hasChipDelta = chipDiff.length > 0;
+  const chipDeltaTzs = openingChipTotal - closingChipTotal;
+
+  const [showDeltaConfirm, setShowDeltaConfirm] = useState(false);
+
+  const submitOpen = (override?: { managerId: string; reason: string }) => {
     openShift.mutate({
       exchange_rates: rates,
       opening_float: {
@@ -89,6 +107,21 @@ const OpenShiftScreen = ({ tables }: { tables: Tables<"gaming_tables">[] }) => {
         cash: openingCash,
         bank: bankBalance,
         mobile: mobileBalance,
+        ...(override
+          ? {
+              chip_delta_override: {
+                manager_id: override.managerId,
+                reason: override.reason,
+                expected_chips: closingChips,
+                entered_chips: openingChips,
+                diff: chipDiff,
+                expected_tzs: closingChipTotal,
+                entered_tzs: openingChipTotal,
+                delta_tzs: chipDeltaTzs,
+                approved_at: new Date().toISOString(),
+              },
+            }
+          : {}),
         totals: {
           closing_chips_tzs: closingChipTotal,
           chips_tzs: openingChipTotal,
@@ -98,7 +131,29 @@ const OpenShiftScreen = ({ tables }: { tables: Tables<"gaming_tables">[] }) => {
           total_tzs: openingTotal,
         },
       },
+    }, {
+      onSuccess: async (shift: any) => {
+        if (override && casinoId) {
+          await logAction(casinoId, "edit", "OPEN_SHIFT_CHIP_DELTA_OVERRIDE", {
+            shift_id: shift?.id,
+            manager_id: override.managerId,
+            reason: override.reason,
+            expected_chips: closingChips,
+            entered_chips: openingChips,
+            diff: chipDiff,
+            delta_tzs: chipDeltaTzs,
+          });
+        }
+      },
     });
+  };
+
+  const handleOpen = () => {
+    if (hasChipDelta) {
+      setShowDeltaConfirm(true);
+      return;
+    }
+    submitOpen();
   };
 
   return (
