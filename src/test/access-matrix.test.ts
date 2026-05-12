@@ -168,6 +168,8 @@ describe("floor_manager (Taras) — sidebar & route gate match matrix", () => {
       "/tables", "/tables/analytics", "/table-tracker", "/player-statistics",
       "/players/abc", "/pit", "/pit?tab=breaklist", "/pit?tab=attendance",
       "/pit?tab=rota", "/staff", "/staff?tab=attendance",
+      "/breaklist", "/rota/live", "/attendance/live",
+      "/rota/floor", "/attendance/floor", "/staff/employees",
       "/reports", "/table-results", "/business-days", "/weekly-bonus",
       "/miss-chips", "/pitbook", "/incidents",
     ];
