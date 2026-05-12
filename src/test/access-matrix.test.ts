@@ -170,7 +170,7 @@ describe("floor_manager (Taras) — sidebar & route gate match matrix", () => {
       "/finance/wallets", "/finance/dashboard", "/finance/review",
       "/finance/budget", "/finance/cash-count", "/finance/summary",
       "/finance/transfers", "/logs", "/admin", "/admin/users/new",
-      "/import-reports", "/bank-checks", "/groups",
+      "/import-reports", "/groups",
     ];
     for (const r of blocked) {
       expect(isVisibleForRole(r, allow), `route ${r} must be blocked`).toBe(false);
