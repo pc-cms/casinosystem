@@ -194,9 +194,25 @@ const ProtectedRoutes = () => {
           <Route path="/tables/analytics" element={<RoleGuard path="/tables/analytics"><TablesAnalytics /></RoleGuard>} />
           <Route path="/expenses" element={<RoleGuard path="/expenses"><Expenses /></RoleGuard>} />
           <Route path="/cashless" element={<RoleGuard path="/cashless"><Cashless /></RoleGuard>} />
-          <Route path="/pit" element={<RoleGuard path="/pit"><ErrorBoundary><Pit /></ErrorBoundary></RoleGuard>} />
-          <Route path="/staff" element={<RoleGuard path="/floor"><Staff /></RoleGuard>} />
-          <Route path="/floor" element={<RoleGuard path="/floor"><Staff /></RoleGuard>} />
+          {/* Phase 2 flat URLs — Pit (Live Game) */}
+          <Route path="/breaklist" element={<RoleGuard path="/breaklist"><ErrorBoundary><BreaklistPage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/rota/live" element={<RoleGuard path="/rota/live"><ErrorBoundary><PitRotaPage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/attendance/live" element={<RoleGuard path="/attendance/live"><ErrorBoundary><PitAttendancePage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/dealers" element={<RoleGuard path="/dealers"><ErrorBoundary><DealersPage /></ErrorBoundary></RoleGuard>} />
+
+          {/* Phase 2 flat URLs — Floor Staff */}
+          <Route path="/staff/employees" element={<RoleGuard path="/staff/employees"><ErrorBoundary><StaffEmployeesPage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/rota/floor" element={<RoleGuard path="/rota/floor"><ErrorBoundary><RotaFloorPage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/rota/security" element={<RoleGuard path="/rota/security"><ErrorBoundary><RotaSecurityPage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/rota/office" element={<RoleGuard path="/rota/office"><ErrorBoundary><RotaOfficePage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/attendance/floor" element={<RoleGuard path="/attendance/floor"><ErrorBoundary><AttendanceFloorPage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/attendance/security" element={<RoleGuard path="/attendance/security"><ErrorBoundary><AttendanceSecurityPage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/attendance/office" element={<RoleGuard path="/attendance/office"><ErrorBoundary><AttendanceOfficePage /></ErrorBoundary></RoleGuard>} />
+
+          {/* Legacy → flat-URL redirects (keep bookmarks alive) */}
+          <Route path="/pit" element={<LegacyPitRedirect />} />
+          <Route path="/staff" element={<LegacyStaffRedirect />} />
+          <Route path="/floor" element={<LegacyStaffRedirect />} />
           <Route path="/groups" element={<RoleGuard path="/groups"><Groups /></RoleGuard>} />
           <Route path="/finance" element={<Navigate to="/finance/wallets" replace />} />
           <Route path="/finance/wallets" element={<RoleGuard path="/finance/wallets"><ErrorBoundary><FinanceWalletsPage /></ErrorBoundary></RoleGuard>} />
