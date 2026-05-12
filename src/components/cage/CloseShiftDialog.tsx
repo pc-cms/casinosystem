@@ -440,12 +440,12 @@ const CloseShiftDialog = ({
                 <FormulaRow label="− Add Float" value={`−${formatNumberSpaces(floatAdded)}`} />
                 <FormulaRow label="+ Slots Cage Out" value={`+${formatNumberSpaces(slotsOut)}`} />
                 <FormulaRow label="− Slots Cage In" value={`−${formatNumberSpaces(slotsIn)}`} />
-                <FormulaRow label="+ Miss Chips (signed)" value={`${missTotal >= 0 ? "+" : ""}${formatNumberSpaces(missTotal)}`} />
                 <div className="flex justify-between pt-2 mt-1 border-t border-border text-base font-bold">
                   <span className="text-card-foreground">= Cash Desk Result</span>
                   <span className="text-card-foreground">{cashDeskResult >= 0 ? "+" : ""}{formatNumberSpaces(cashDeskResult)}</span>
                 </div>
                 <FormulaRow label="− Tables Result" value={`−(${resultTable >= 0 ? "+" : ""}${formatNumberSpaces(resultTable)})`} />
+                <FormulaRow label="− Miss Chips (signed)" value={`−(${missTotal >= 0 ? "+" : ""}${formatNumberSpaces(missTotal)})`} />
                 <div className={cn(
                   "flex justify-between pt-3 mt-2 border-t-2 text-lg font-bold",
                   isBalanced ? "border-success/60" : "border-destructive/60",
@@ -770,10 +770,9 @@ const CloseShiftDialog = ({
             : <span className="inline-flex items-center gap-1 text-xs font-semibold text-destructive"><AlertTriangle className="w-4 h-4" /> {balance > 0 ? "Surplus" : "Shortage"}</span>}
         </div>
         <div className="space-y-1 text-sm font-mono">
-          <div className="flex justify-between"><span className="text-muted-foreground">  Tables Result</span><span className="text-card-foreground">{resultTable >= 0 ? "+" : ""}{formatNumberSpaces(resultTable)}</span></div>
-          <div className="flex justify-between"><span className="text-muted-foreground">− Counted Money Δ (Cash + Mobile + Bank − Opening)</span><span className="text-card-foreground">−{formatNumberSpaces(cashDelta)}</span></div>
-          <div className="flex justify-between"><span className="text-muted-foreground">− Miss Chips ({missTotal >= 0 ? "+" : ""}{formatNumberSpaces(missTotal)})</span><span className="text-card-foreground">{(-missTotal) >= 0 ? "+" : ""}{formatNumberSpaces(-missTotal)}</span></div>
-          <div className="flex justify-between"><span className="text-muted-foreground">− Expenses</span><span className="text-card-foreground">−{formatNumberSpaces(totalExpenses)}</span></div>
+          <div className="flex justify-between"><span className="text-muted-foreground">Cash Desk Result</span><span className="text-card-foreground">{cashDeskResult >= 0 ? "+" : ""}{formatNumberSpaces(cashDeskResult)}</span></div>
+          <div className="flex justify-between"><span className="text-muted-foreground">− Tables Result</span><span className="text-card-foreground">−({resultTable >= 0 ? "+" : ""}{formatNumberSpaces(resultTable)})</span></div>
+          <div className="flex justify-between"><span className="text-muted-foreground">− Miss Chips</span><span className="text-card-foreground">−({missTotal >= 0 ? "+" : ""}{formatNumberSpaces(missTotal)})</span></div>
           <div className="flex justify-between border-t border-border pt-2 mt-2 text-base font-bold">
             <span className="text-card-foreground">= Shift Balance</span>
             <span className={isBalanced ? "text-success" : balance > 0 ? "cms-amount-positive" : "cms-amount-negative"}>
