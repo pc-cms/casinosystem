@@ -92,7 +92,8 @@ const ReprintShiftDialog = ({ open, onClose, shiftId, casinoId }: Props) => {
     shift?.tables_result ?? closingCount.result_table ?? shift?.shift_result ?? 0,
   );
   const balance = Number(shift?.balance ?? closingCount.cash_desk_balance ?? 0);
-  const missTotal = Number(shift?.miss_total ?? closingCount.chip_miss_total ?? 0);
+  const snapshotMiss = Number(closingCount.chip_miss_total ?? 0);
+  const missTotal = Number(shift?.miss_total ?? -snapshotMiss);
   const rates = (shift?.exchange_rates || {}) as Record<string, number>;
 
   // Add a body class while open so global @media print rules can target it.
