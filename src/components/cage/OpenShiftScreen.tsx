@@ -371,6 +371,17 @@ const OpenShiftScreen = ({ tables }: { tables: Tables<"gaming_tables">[] }) => {
         actionType="OPEN_SHIFT_CHIPS_EDIT_UNLOCKED"
         actionDetails={{ activated_by: displayName }}
       />
+      <OpeningDeltaConfirmDialog
+        open={showDeltaConfirm}
+        onClose={() => setShowDeltaConfirm(false)}
+        diff={chipDiff}
+        expectedTotal={closingChipTotal}
+        enteredTotal={openingChipTotal}
+        onConfirm={(override) => {
+          setShowDeltaConfirm(false);
+          submitOpen(override);
+        }}
+      />
     </PageShell>
   );
 };
