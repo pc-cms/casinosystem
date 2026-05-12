@@ -167,9 +167,12 @@ const CageHistoryView = () => {
       </PageHeader>
 
       <Tabs defaultValue="inout" className="space-y-3">
-        <TabsList className="w-full grid grid-cols-4 h-11">
+        <TabsList className="w-full grid grid-cols-5 h-11">
           <TabsTrigger value="inout" className="gap-1.5 text-sm font-semibold">
             <ArrowDownToLine className="w-4 h-4" /> IN / OUT
+          </TabsTrigger>
+          <TabsTrigger value="checks" className="gap-1.5 text-sm font-semibold">
+            <Calculator className="w-4 h-4" /> Checks
           </TabsTrigger>
           <TabsTrigger value="cashless" className="gap-1.5 text-sm font-semibold">
             <CreditCard className="w-4 h-4" /> Cashless
