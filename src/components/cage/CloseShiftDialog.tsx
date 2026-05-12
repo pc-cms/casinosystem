@@ -151,8 +151,8 @@ const CloseShiftDialog = ({
 
   // Canonical Cash Desk formula (mirrors DB RPC `compute_shift_balance`):
   //   Cash Desk Result = ΔCash + Expenses + Collection − AddFloat
-  //                    + SlotsOut − SlotsIn + Miss
-  //   Shift Balance    = Cash Desk Result − Tables Result      (= 0 ideal)
+  //                    + SlotsOut − SlotsIn                         (NO miss)
+  //   Shift Balance    = Cash Desk Result − Tables Result − Miss   (= 0 ideal)
   // ΔCash = closing money (cash + mobile + bank, TZS) − opening cash.
   const openingCashEffective = openingCashProp || openingCashTzs;
   const cashDelta = useMemo(
@@ -478,8 +478,8 @@ const CloseShiftDialog = ({
                 <KpiTile label="Cash Desk Result" value={cashDeskResult} tone={cashDeskResult >= 0 ? "pos" : "neg"} />
               </div>
               <p className="text-[10px] text-muted-foreground mt-2 italic">
-                Cash Desk Result = ΔCash + Expenses + Collection − AddFloat + SlotsOut − SlotsIn + Miss.
-                Shift Balance = Cash Desk Result − Tables Result. Must be zero.
+                Cash Desk Result = ΔCash + Expenses + Collection − AddFloat + SlotsOut − SlotsIn.
+                Shift Balance = Cash Desk Result − Tables Result − Miss. Must be zero.
               </p>
             </div>
 

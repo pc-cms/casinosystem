@@ -1,75 +1,93 @@
-## Задача
+## Проблема
 
-Сейчас Chip Count panel и автозапись в Number Count tracker показывают «сырой» результат `(actual − baseline) × denom`. Если за смену были Fill (кассир дал фишки столу) или Credit (кассир забрал фишки со стола) — цифра завышена/занижена ровно на их сумму. Финальный shift P&L при закрытии всё равно пересчитывается RPC корректно (`SnapResult − Fill + Credit`), но **во время смены** пит и менеджер видят неверные результаты, и неверные значения улетают в Number Count tracker.
+Формула баланса смены сейчас включает Miss в Cash Desk Result, но это даёт неверный 0-баланс, когда есть недостача/излишек фишек.
 
-Исправляем: везде во время смены показываем **adjusted** результат:
-
+**Канонически (как должно быть):**
 ```
-DisplayedResult = (actual − baseline) × denom − ΣFill + ΣCredit
+Cash Desk Result = ΔCash + Expenses + Collection − AddFloat + SlotsOut − SlotsIn
+Shift Balance    = Cash Desk Result − Tables Result − Miss        (= 0 идеально)
 ```
 
-Fill/Credit берём из `cage_transfers` за **активную смену** на каждый стол.
+Miss выносится отдельным членом баланса, а не «прячется» внутри CDR.
 
----
+**Проверка на смене 11 мая:**
+- CDR = −4 643 000 + 563 000 − 27 000 000 + 34 000 000 = **2 920 000**
+- Tables Result = **2 885 000**
+- Miss = **35 000**
+- Balance = 2 920 000 − 2 885 000 − 35 000 = **0** ✓
 
 ## Что меняется
 
-### 1. Источник Fill/Credit — новый хук
-Новый `src/hooks/use-shift-table-adjustments.ts`:
-- Вход: `shiftId` (активная смена для текущего бизнес-дня).
-- Запрос: `cage_transfers` где `shift_id = :shiftId` и `transfer_type IN ('fill','credit')`.
-- Возвращает map `{ [tableId]: { fill: number, credit: number, adjustment: number } }` где `adjustment = credit − fill` (готов к прибавлению к raw SnapResult).
-- Использует `useActiveShift()` чтобы взять текущую открытую смену.
+### 1. БД-триггер `compute_shift_balance` (миграция)
 
-### 2. ChipCountPanel (`src/components/tables/ChipCountPanel.tsx`)
-- Подключить новый хук.
-- В `rowResults` менять формулу:
-  ```
-  total = rawSnapDelta + adjustments[loc.id].adjustment
-  ```
-- `grandTotal` пересчитается автоматически (сумма adjusted строк).
-- В блоке Snapshot history — тоже применить adjustment (история показывает adjusted, чтобы пит понимал, что видел в моменте).
-- При `handleSave` → `setTrackerValue.mutate({ value: rowResults[ri].total })` — пишем уже **adjusted** значение в Number Count.
+Файл: новая миграция в `supabase/migrations/`.
 
-### 3. Live Table Result (`src/lib/table-live-result.ts`)
-- Расширить `LiveResultArgs`: добавить опциональный `adjustmentMap?: Record<string, number>` (tableId → credit − fill).
-- В `liveTableResult`: если `closingResult` нет, к chipSnapshotResult прибавить adjustment.
-- Все вызывающие (`Tables.tsx`, `TablesAnalytics.tsx`, дашборды) — пробросить adjustments из нового хука. Места найти `rg "liveTableResult\("`.
+```sql
+-- было:
+v_cash_desk := v_delta_cash + v_expenses + v_collection - v_add_float
+             + v_slots_out - v_slots_in + v_miss;
+v_balance   := v_cash_desk - v_tables;
 
-### 4. Number Count tracker (`src/pages/TableTracker.tsx`)
-Вьюшка только показывает значения из БД — она ничего не пересчитывает. Поскольку с шага 2 в `table_tracker` уже пишутся adjusted значения, исторические слоты после первого Chip Count в новой логике будут корректные. Старые записи трогать не надо (immutable data, см. Core Principles).
-
-### 5. Подсказка для пита
-В заголовке Chip Count panel под "Rows: tables · Columns: denominations" показать мелкую строку:
+-- стало:
+v_cash_desk := v_delta_cash + v_expenses + v_collection - v_add_float
+             + v_slots_out - v_slots_in;          -- БЕЗ miss
+v_balance   := v_cash_desk - v_tables - v_miss;   -- miss отдельным членом
 ```
-Result includes Fill/Credit adjustments for current shift
-```
-Чтобы пит понимал, что цифра — это уже реальный P&L стола, а не разница фишек.
 
----
+Триггер `BEFORE INSERT OR UPDATE` на `shifts` уже навешен (миграция `20260511231033`) и обновляет колонки `cash_desk_result` и `balance` — значит для всех новых/повторно открытых смен значения пересчитаются автоматически.
+
+Дополнительно — одноразовый `UPDATE shifts` для всех закрытых смен, чтобы пересчитать `cash_desk_result` и `balance` по новой формуле (через вызов функции в `UPDATE ... SET balance = ..., cash_desk_result = ...` либо `UPDATE shifts SET id = id` чтобы дёрнуть BEFORE-триггер).
+
+### 2. UI-формула `src/lib/cage-balance.ts`
+
+Зеркалим триггер:
+```ts
+const cashDeskResult =
+  deltaCash + expenses + collection - addFloat + slotsOut - slotsIn;
+const shiftBalance = cashDeskResult - tablesResult - miss;
+```
+Обновить doc-комментарий формулы в шапке файла.
+
+### 3. Подсказка в `src/pages/cage/CageClosingsPage.tsx`
+
+Поправить `title` у ячейки Balance:
+```
+"Cash Desk Result − Tables Result − Miss.
+ Cash Desk Result = ΔCash + Expenses + Collection − AddFloat + SlotsOut − SlotsIn"
+```
+
+И fallback-расчёт (на случай NULL колонок):
+```ts
+const balance = s.balance != null
+  ? Number(s.balance)
+  : (cashDeskResult != null
+      ? cashDeskResult - tablesResult - miss
+      : tablesResult - cash - miss);
+```
+
+### 4. `ShiftClosingReport` (печатный отчёт)
+
+Если в шапке/подвале отчёта есть текстовое описание формулы — синхронизировать с новой. Числа `balance`, `tablesResult`, `missTotal` уже приходят из `shifts.*` через `ReprintShiftDialog` и подтянутся автоматически.
+
+### 5. Память проекта
+
+Добавить пункт в `mem://features/canonical-tables-result` (или новый файл `mem://features/cash-desk-balance-formula`):
+> Cash Desk Result = ΔCash + Expenses + Collection − AddFloat + SlotsOut − SlotsIn (БЕЗ Miss). Shift Balance = CDR − Tables Result − Miss. Источник истины — DB-функция `compute_shift_balance`, UI-зеркало — `src/lib/cage-balance.ts`.
+
+### 6. Версия
+
+Бамп `package.json` patch (есть миграция и изменение триггера).
 
 ## Что НЕ меняется
 
-- **DB RPC `compute_shift_table_results`** — там формула уже правильная (`SnapResult − Fill + Credit`). Это источник истины для `shifts.tables_result` при закрытии смены. Никакой миграции не нужно.
-- **`shifts.tables_result`** и закрытие смены — без изменений.
-- **`chip_snapshots`** — продолжаем хранить только actual/expected фишек (физика). Корректировка применяется только на отображении.
-- **Прошлые snapshots и table_tracker записи** — не пересчитываем (immutable).
+- Wizard закрытия смены, ввод данных, snapshot `closing_count.chip_miss_total` — без изменений.
+- Колонки `shifts.miss_total`, `shifts.tables_result` — без изменений.
+- Логика тригера `compute_tables_result` — без изменений.
+- `ReprintShiftDialog` чтение канонических колонок — оставляем как есть (фикс прошлой итерации).
 
----
+## Проверка после деплоя
 
-## Технические детали
-
-**Файлы:**
-- `+ src/hooks/use-shift-table-adjustments.ts` (новый)
-- `~ src/components/tables/ChipCountPanel.tsx` (формула + history + tracker write)
-- `~ src/lib/table-live-result.ts` (опциональный adjustmentMap)
-- `~ src/pages/Tables.tsx`, `~ src/pages/TablesAnalytics.tsx`, и любые другие потребители `liveTableResult` — пробросить adjustments
-
-**Поведение при оффлайне:** хук `useCageTransfers` уже использует react-query c кэшем, при оффлайне покажет последние известные значения. Это согласуется с binary online/offline моделью.
-
-**Знак adjustment:**
-- `transfer_type='fill'` → `direction='chip_to_table'` → стол получил фишки → вычитаем `amount`.
-- `transfer_type='credit'` → `direction='chip_from_table'` → стол отдал фишки → прибавляем `amount`.
-- Формула: `adjustment = Σ(credit.amount) − Σ(fill.amount)`, итог: `displayed = rawDelta + adjustment`.
-
-**Backend изменений нет** → версию package.json бампать не нужно (правило Core применяется только к backend изменениям).
+- Смена 11 мая: `balance` должен стать **0** (вместо 2 920 000).
+- В Closed Shifts колонка Balance = 0 → серая.
+- Печатный отчёт показывает Balance = 0.
+- На сменах без Miss поведение не меняется (Miss=0, формула эквивалентна старой).
