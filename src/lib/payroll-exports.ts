@@ -25,21 +25,22 @@ const downloadCsv = (filename: string, rows: (string | number)[][]) => {
 export type BankFormat = "default" | "crdb";
 
 export const exportBankCsv = (entries: PayrollEntry[], period: PayrollPeriod, format: BankFormat = "default") => {
-  const desc = `${MONTH_NAMES[period.month - 1]} SALARY ${period.year}`;
-  if (format === "crdb") {
-    // Placeholder: real CRDB format will be supplied by user.
-    const rows: (string|number)[][] = [["NAME","ACCOUNT NUMBER","AMOUNT","BRANCH","DESCRIPTION"]];
-    entries.forEach(e => rows.push([e.snapshot_full_name, e.snapshot_account_number, e.net_salary, e.snapshot_branch_code, desc]));
-    downloadCsv(`CRDB_BANK_${period.year}_${period.month}.csv`, rows);
-    return;
-  }
-  // BANK1 default (matches uploaded workbook BANK1 sheet)
+  const monthName = MONTH_NAMES[period.month - 1];
+  const desc = `${monthName} SALARY ${period.year}`;
+  // CRDB format (matches CRDB_SALARY template): ID, NAME, ACCOUNT NUMBER, AMOUNT, BANK, BRANCH, DESCRIPTION
+  // BANK and BRANCH are numeric codes; DESCRIPTION is "<MONTH> SALARY <YEAR>"
   const rows: (string|number)[][] = [["ID","NAME","ACCOUNT NUMBER","AMOUNT","BANK","BRANCH","DESCRIPTION"]];
   entries.forEach((e, i) => rows.push([
-    i + 1, e.snapshot_full_name, e.snapshot_account_number, e.net_salary,
-    e.snapshot_bank_code, e.snapshot_branch_code, desc,
+    i + 1,
+    e.snapshot_full_name,
+    e.snapshot_account_number,
+    e.net_salary,
+    e.snapshot_bank_code,
+    e.snapshot_branch_code,
+    desc,
   ]));
-  downloadCsv(`BANK_${period.year}_${period.month}.csv`, rows);
+  const prefix = format === "crdb" ? "CRDB_SALARY" : "BANK_SALARY";
+  downloadCsv(`${prefix}_${monthName}_${period.year}.csv`, rows);
 };
 
 // ============= TAX REPORTS =============
