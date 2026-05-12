@@ -1,7 +1,7 @@
 // Role-based data visibility configuration
 // Controls what financial/sensitive data each role can see
 
-type AppRole = "cashier" | "pit" | "manager" | "reception" | "finance_manager" | "surveillance" | "super_admin" | "hr";
+type AppRole = "cashier" | "pit" | "manager" | "floor_manager" | "reception" | "finance_manager" | "surveillance" | "super_admin" | "hr";
 
 export type FinancialScope = "all" | "shift" | "none";
 
@@ -19,7 +19,7 @@ export const getFinancialScope = (roles: string[]): FinancialScope => {
   if (roles.includes("manager") || roles.includes("finance_manager") || roles.includes("surveillance") || roles.includes("super_admin")) {
     return "all";
   }
-  if (roles.includes("pit")) {
+  if (roles.includes("pit") || roles.includes("floor_manager")) {
     return "shift";
   }
   return "none";
@@ -44,7 +44,7 @@ export const canSeeAllTimeData = (roles: string[]): boolean => {
  * always show only the primary one (or hide entirely).
  */
 const ROLE_PRIORITY: AppRole[] = [
-  "super_admin", "finance_manager", "manager", "hr",
+  "super_admin", "finance_manager", "manager", "floor_manager", "hr",
   "pit", "cashier", "reception", "surveillance",
 ];
 
@@ -52,6 +52,7 @@ const ROLE_LABELS: Record<AppRole, string> = {
   super_admin: "Super Admin",
   finance_manager: "Finance",
   manager: "Manager",
+  floor_manager: "Floor Manager",
   hr: "HR",
   pit: "Pit",
   cashier: "Cashier",
