@@ -58,22 +58,22 @@ export const useMyModulePermissions = () => {
   return { ...rest, data: allowed };
 };
 
-/** Single module: can the current user view it? */
+/** Single module: can the current user view it? Matrix is the source of truth. */
 export const useModuleAccess = (moduleKey: ModuleKey): boolean => {
   const { roles } = useAuth();
-  const { data } = useMyEffectivePerms();
+  const { data, isLoading } = useMyEffectivePerms();
   if (roles.includes("super_admin")) return true;
-  if (!data || data.length === 0) return true; // fallback
+  if (isLoading || !data) return true; // avoid flicker while loading
   const row = data.find(r => r.module_key === moduleKey);
   return row ? row.can_view : false;
 };
 
-/** Single module: can write? */
+/** Single module: can write? Matrix is the source of truth. */
 export const useModuleWrite = (moduleKey: ModuleKey): boolean => {
   const { roles } = useAuth();
-  const { data } = useMyEffectivePerms();
+  const { data, isLoading } = useMyEffectivePerms();
   if (roles.includes("super_admin")) return true;
-  if (!data || data.length === 0) return true;
+  if (isLoading || !data) return false;
   const row = data.find(r => r.module_key === moduleKey);
   return row ? row.can_write : false;
 };
@@ -81,9 +81,9 @@ export const useModuleWrite = (moduleKey: ModuleKey): boolean => {
 /** Single module: day horizon for history filtering. */
 export const useModuleHorizon = (moduleKey: ModuleKey): DayHorizon => {
   const { roles } = useAuth();
-  const { data } = useMyEffectivePerms();
+  const { data, isLoading } = useMyEffectivePerms();
   if (roles.includes("super_admin")) return "all";
-  if (!data || data.length === 0) return "all";
+  if (isLoading || !data) return "today";
   const row = data.find(r => r.module_key === moduleKey);
   return row?.day_horizon ?? "today";
 };
