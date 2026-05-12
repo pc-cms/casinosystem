@@ -93,6 +93,31 @@ const CageHistoryView = () => {
   // Chip transfers for the date (uses existing hook scoped by day)
   const { data: chipTransfers = [] } = useChipTransfers(date);
 
+  // Cashier checks (cash_counts of count_type='check') for the business date
+  const { data: cashChecks = [] } = useCashChecksByBusinessDate(date);
+  const checkUserIds = useMemo(
+    () => Array.from(new Set((cashChecks || []).map((c: any) => c.counted_by).filter(Boolean))),
+    [cashChecks]
+  );
+  const { data: checkProfiles = [] } = useQuery({
+    queryKey: ["surv-check-profiles", casinoId, checkUserIds.join(",")],
+    queryFn: async () => {
+      if (!casinoId || checkUserIds.length === 0) return [] as any[];
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("user_id, display_name")
+        .in("user_id", checkUserIds);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!casinoId && checkUserIds.length > 0,
+  });
+  const cashierMap = useMemo(
+    () => new Map((checkProfiles as any[]).map((p) => [p.user_id, p.display_name])),
+    [checkProfiles]
+  );
+  const [viewerCheck, setViewerCheck] = useState<Tables<"cash_counts"> | null>(null);
+
   // Cashless provider filter (Mobile Money providers)
   const [providerFilter, setProviderFilter] = useState<string>("ALL");
   const cashlessFiltered = useMemo(() =>
