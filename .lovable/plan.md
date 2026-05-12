@@ -1,93 +1,90 @@
-## Проблема
 
-Формула баланса смены сейчас включает Miss в Cash Desk Result, но это даёт неверный 0-баланс, когда есть недостача/излишек фишек.
+# Аудит доступа: Роли × Меню × Глубина
 
-**Канонически (как должно быть):**
+**Цель:** один документ‑справочник (без изменений в коде), фиксирующий текущее состояние ролевого доступа и согласованное направление развития (per‑user глубина по дням; финансы — жёстко по роли).
+
+## Что будет создано
+
+1. `docs/ACCESS-MATRIX.md` — мастер‑документ (на русском, как просил пользователь). Источник истины для product‑решений.
+2. Запись в `mem://features/access-matrix` (~30 строк) — короткая выжимка с указателем на документ.
+3. Обновление `mem://index.md` → раздел **Auth & Users**: добавить ссылку на `mem://features/access-matrix`.
+
+**Без изменений** в `AppSidebar.tsx`, `role-access.ts`, `use-business-day-filter.ts`, RLS, миграциях, хуках, UI.
+
+---
+
+## Структура `docs/ACCESS-MATRIX.md`
+
+### 1. Роли (8)
+Таблица: код / метка / скоуп (одно казино vs сеть) / назначение.
+- `super_admin`, `finance_manager`, `manager`, `pit`, `cashier`, `reception`, `surveillance`, `hr`.
+- Примечание: пользователь может иметь несколько ролей; видимость = объединение, финансовый scope = по самой «сильной».
+
+### 2. Секции меню
+Описание восьми секций сайдбара: OVERVIEW, PIT, CASHIER, RECEPTION, FINANCE, HR, ANALYTICS, SYSTEM — кому каждая адресована.
+
+### 3. Полная матрица «Меню × Роль»
+Одна строка на каждый пункт из `NAV_ITEMS` (включая виртуальные группы Attendance/Rota и их под‑пункты Live / Floor / Security / Office). Колонки = 8 ролей. Значения: ✅ / R (read‑only) / —. Дополнительно: страницы вне сайдбара (Cashless, Bank Checks, Pitbook, Incidents, Weekly Bonus, Table Results, Business Days, Admin).
+
+### 4. Три оси глубины доступа
+
+**Ось A — Глубина по дням (history horizon)**
+- Сейчас: `pit / cashier / reception` → только текущий business day; остальные → вся история. Manager Override (сессионный тогл с паролем) снимает ограничение для pit.
+- **Согласованное направление (документируется, не реализуется):** добавить per‑user поле `history_horizon ∈ {today, 7d, 30d, all}` в `user_module_permissions` (или новой `user_access_settings`). Приоритет: per‑user override > role default. Применяется во всех местах, где сейчас вызывается `useBusinessDayFilter()`.
+
+**Ось B — Финансовая видимость (жёстко по роли)**
+- `manager / finance_manager / surveillance / super_admin` → `all` (lifetime KPI игрока, IN/OUT/Result).
+- `pit` → `shift` (current day; снимается Manager Override).
+- `cashier / reception / hr` → `none` (Player Card KPIs/Visits/Tracker скрыты).
+- **Документ явно запрещает** per‑user override этой оси (security‑критично).
+
+**Ось C — Casino scope (immutable)**
+- `super_admin / finance_manager` → все казино через `premier` сабдомен.
+- Остальные → только своё казино (RLS по `casino_id`).
+
+### 5. Особые правила (cross‑reference)
+- Cage write — только cashier; остальные read‑only история.
+- Pit Boss никогда в Breaklist, только в Rota с лейблом PB.
+- HR изолирован от финансов.
+- Surveillance read‑only + теги/наблюдения + фото сотрудников.
+- Manager Override — сессионный, требует пароль менеджера, лифтит ось A для pit и ось B для pit.
+- Текущий business day берётся из RPC `get_current_business_date`.
+
+### 6. Открытые вопросы (для решения владельцем)
+Перечисление расхождений, найденных при аудите, в форме вопросов (без рекомендаций):
+- Cashier видит Reception в меню, но не Dashboard — намеренно?
+- Surveillance видит Cage, но не Cage Closings — намеренно?
+- HR не видит Dashboard вообще — намеренно?
+- Weekly Bonus скрыт от pit, но открыт manager/finance — намеренно?
+- HR не имеет доступа к финансам, но видит «Live Game (Personnel view)» — где граница с Pit?
+
+### 7. Указатели на источник истины
+Для каждого факта — путь и символ:
+- Видимость меню → `src/components/layout/AppSidebar.tsx` (`NAV_ITEMS`).
+- Module gating → `src/lib/modules.ts`, `src/lib/route-module-map.ts`, `useMyModulePermissions`.
+- Ось A → `src/hooks/use-business-day-filter.ts`.
+- Ось B → `src/lib/role-access.ts`.
+- Manager Override → `src/lib/auth-context.tsx`, `ManagerOverrideDialog.tsx`.
+- Ось C → RLS политики + `src/lib/casino-context.tsx` + сабдомен `premier`.
+
+---
+
+## Обновление памяти
+
+Создать `mem://features/access-matrix.md` (краткая выжимка трёх осей + ссылка на `docs/ACCESS-MATRIX.md`).
+
+В `mem://index.md` под **Auth & Users** добавить:
 ```
-Cash Desk Result = ΔCash + Expenses + Collection − AddFloat + SlotsOut − SlotsIn
-Shift Balance    = Cash Desk Result − Tables Result − Miss        (= 0 идеально)
+- [Access Matrix](mem://features/access-matrix) — Полный аудит ролей × пунктов меню × глубины; per-user day-depth override как направление; финансовая видимость заблокирована per-role
 ```
 
-Miss выносится отдельным членом баланса, а не «прячется» внутри CDR.
+## Вне области (явно)
 
-**Проверка на смене 11 мая:**
-- CDR = −4 643 000 + 563 000 − 27 000 000 + 34 000 000 = **2 920 000**
-- Tables Result = **2 885 000**
-- Miss = **35 000**
-- Balance = 2 920 000 − 2 885 000 − 35 000 = **0** ✓
+- Никаких изменений в `NAV_ITEMS`, RLS, миграциях, хуках.
+- Ось A (per‑user горизонт истории) только документируется, UI редактора не создаётся в этом проходе.
+- Никакой реорганизации ролей.
+- Никакого кода — только документ + memory.
 
-## Что меняется
+## Язык
 
-### 1. БД-триггер `compute_shift_balance` (миграция)
-
-Файл: новая миграция в `supabase/migrations/`.
-
-```sql
--- было:
-v_cash_desk := v_delta_cash + v_expenses + v_collection - v_add_float
-             + v_slots_out - v_slots_in + v_miss;
-v_balance   := v_cash_desk - v_tables;
-
--- стало:
-v_cash_desk := v_delta_cash + v_expenses + v_collection - v_add_float
-             + v_slots_out - v_slots_in;          -- БЕЗ miss
-v_balance   := v_cash_desk - v_tables - v_miss;   -- miss отдельным членом
-```
-
-Триггер `BEFORE INSERT OR UPDATE` на `shifts` уже навешен (миграция `20260511231033`) и обновляет колонки `cash_desk_result` и `balance` — значит для всех новых/повторно открытых смен значения пересчитаются автоматически.
-
-Дополнительно — одноразовый `UPDATE shifts` для всех закрытых смен, чтобы пересчитать `cash_desk_result` и `balance` по новой формуле (через вызов функции в `UPDATE ... SET balance = ..., cash_desk_result = ...` либо `UPDATE shifts SET id = id` чтобы дёрнуть BEFORE-триггер).
-
-### 2. UI-формула `src/lib/cage-balance.ts`
-
-Зеркалим триггер:
-```ts
-const cashDeskResult =
-  deltaCash + expenses + collection - addFloat + slotsOut - slotsIn;
-const shiftBalance = cashDeskResult - tablesResult - miss;
-```
-Обновить doc-комментарий формулы в шапке файла.
-
-### 3. Подсказка в `src/pages/cage/CageClosingsPage.tsx`
-
-Поправить `title` у ячейки Balance:
-```
-"Cash Desk Result − Tables Result − Miss.
- Cash Desk Result = ΔCash + Expenses + Collection − AddFloat + SlotsOut − SlotsIn"
-```
-
-И fallback-расчёт (на случай NULL колонок):
-```ts
-const balance = s.balance != null
-  ? Number(s.balance)
-  : (cashDeskResult != null
-      ? cashDeskResult - tablesResult - miss
-      : tablesResult - cash - miss);
-```
-
-### 4. `ShiftClosingReport` (печатный отчёт)
-
-Если в шапке/подвале отчёта есть текстовое описание формулы — синхронизировать с новой. Числа `balance`, `tablesResult`, `missTotal` уже приходят из `shifts.*` через `ReprintShiftDialog` и подтянутся автоматически.
-
-### 5. Память проекта
-
-Добавить пункт в `mem://features/canonical-tables-result` (или новый файл `mem://features/cash-desk-balance-formula`):
-> Cash Desk Result = ΔCash + Expenses + Collection − AddFloat + SlotsOut − SlotsIn (БЕЗ Miss). Shift Balance = CDR − Tables Result − Miss. Источник истины — DB-функция `compute_shift_balance`, UI-зеркало — `src/lib/cage-balance.ts`.
-
-### 6. Версия
-
-Бамп `package.json` patch (есть миграция и изменение триггера).
-
-## Что НЕ меняется
-
-- Wizard закрытия смены, ввод данных, snapshot `closing_count.chip_miss_total` — без изменений.
-- Колонки `shifts.miss_total`, `shifts.tables_result` — без изменений.
-- Логика тригера `compute_tables_result` — без изменений.
-- `ReprintShiftDialog` чтение канонических колонок — оставляем как есть (фикс прошлой итерации).
-
-## Проверка после деплоя
-
-- Смена 11 мая: `balance` должен стать **0** (вместо 2 920 000).
-- В Closed Shifts колонка Balance = 0 → серая.
-- Печатный отчёт показывает Balance = 0.
-- На сменах без Miss поведение не меняется (Miss=0, формула эквивалентна старой).
+Документ `docs/ACCESS-MATRIX.md` — на русском (по запросу). Названия ролей, путей файлов, кодов модулей и SQL‑идентификаторов оставить на английском, как в кодовой базе.
