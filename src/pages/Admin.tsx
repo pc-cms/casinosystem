@@ -80,15 +80,16 @@ const useCasinoAccess = () => useQuery({
 
 // =================== MAIN ===================
 const Admin = () => {
-  const { isManager, roles, user } = useAuth();
+  const { roles, user } = useAuth();
   const isSuperAdmin = roles.includes("super_admin");
+  const isFinanceManager = roles.includes("finance_manager");
 
-  if (!isManager && !isSuperAdmin) {
+  if (!isSuperAdmin && !isFinanceManager) {
     return (
       <div className="text-center py-16">
         <Shield className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-        <h2 className="text-lg font-semibold text-foreground">Manager Access Required</h2>
-        <p className="text-sm text-muted-foreground mt-1">Only managers can access administration.</p>
+        <h2 className="text-lg font-semibold text-foreground">Super Admin Access Required</h2>
+        <p className="text-sm text-muted-foreground mt-1">Admin panel is restricted to Super Admins.</p>
       </div>
     );
   }
