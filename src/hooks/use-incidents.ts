@@ -73,9 +73,9 @@ export const useIncidents = (
         q = q.gte("incident_date", sinceDate);
       }
       const { data, error } = await q
-        .order("incident_date", { ascending: false })
-        .order("incident_time", { ascending: false })
-        .order("created_at", { ascending: false })
+        .order("incident_date", { ascending: true })
+        .order("incident_time", { ascending: true })
+        .order("created_at", { ascending: true })
         .limit(2000);
       if (error) throw error;
       return (data || []) as Incident[];
