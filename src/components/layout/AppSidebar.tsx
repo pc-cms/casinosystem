@@ -363,16 +363,15 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
   // Admin panel: super_admin always; others only if explicitly granted the "admin" module.
   // Currently only super_admin has it by role default — finance_manager can be granted via the access matrix.
   const canSeeAdmin = isSuper || (allowedModules?.has("admin") ?? false);
+  // Matrix is the single source of truth for sidebar visibility.
+  // No hard-coded role whitelists — only super_admin bypass + the matrix.
+  // Items without a module mapping (mk null) stay visible to everyone (they
+  // are auxiliary entries that don't correspond to a gated module).
   const visibleItems = NAV_ITEMS.filter(item => {
-    // Role gate. floor_manager inherits manager's nav whitelist; the access
-    // matrix (allowedModules below) narrows it down per user/role.
-    const effectiveRoles = roles.map(r => (r === "floor_manager" ? "manager" : r));
-    if (!effectiveRoles.some(r => item.roles.includes(r as AppRole))) return false;
-    // Per-user module gate (super_admin bypass; null = role defaults)
     if (isSuper) return true;
-    if (allowedModules == null) return true;
+    if (allowedModules === undefined) return false; // still loading → render nothing yet
     const mk = moduleKeyForRoute(item.to, item.label);
-    if (!mk) return true; // no mapping → not gated
+    if (!mk) return true; // unmapped auxiliary entry
     return allowedModules.has(mk);
   });
 

@@ -45,35 +45,35 @@ export const useMyEffectivePerms = () => {
 };
 
 /**
- * Backwards-compatible: returns a Set of allowed module keys (view=true) or
- * null when the user has no effective rows (treat as unrestricted fallback).
+ * Returns a Set of allowed module keys (view=true) for the current user.
+ * `undefined` while loading; empty Set if the matrix has no rows for this role.
+ * The matrix is the single source of truth — there is no implicit role
+ * whitelist that grants access without an explicit row.
  */
 export const useMyModulePermissions = () => {
   const { data, ...rest } = useMyEffectivePerms();
-  const allowed: Set<string> | null = !data
-    ? null
-    : data.length === 0
-      ? null
-      : new Set(data.filter(r => r.can_view).map(r => r.module_key));
+  const allowed: Set<string> | undefined = data === undefined
+    ? undefined
+    : new Set(data.filter(r => r.can_view).map(r => r.module_key));
   return { ...rest, data: allowed };
 };
 
-/** Single module: can the current user view it? */
+/** Single module: can the current user view it? Matrix is the source of truth. */
 export const useModuleAccess = (moduleKey: ModuleKey): boolean => {
   const { roles } = useAuth();
-  const { data } = useMyEffectivePerms();
+  const { data, isLoading } = useMyEffectivePerms();
   if (roles.includes("super_admin")) return true;
-  if (!data || data.length === 0) return true; // fallback
+  if (isLoading || !data) return true; // avoid flicker while loading
   const row = data.find(r => r.module_key === moduleKey);
   return row ? row.can_view : false;
 };
 
-/** Single module: can write? */
+/** Single module: can write? Matrix is the source of truth. */
 export const useModuleWrite = (moduleKey: ModuleKey): boolean => {
   const { roles } = useAuth();
-  const { data } = useMyEffectivePerms();
+  const { data, isLoading } = useMyEffectivePerms();
   if (roles.includes("super_admin")) return true;
-  if (!data || data.length === 0) return true;
+  if (isLoading || !data) return false;
   const row = data.find(r => r.module_key === moduleKey);
   return row ? row.can_write : false;
 };
@@ -81,9 +81,9 @@ export const useModuleWrite = (moduleKey: ModuleKey): boolean => {
 /** Single module: day horizon for history filtering. */
 export const useModuleHorizon = (moduleKey: ModuleKey): DayHorizon => {
   const { roles } = useAuth();
-  const { data } = useMyEffectivePerms();
+  const { data, isLoading } = useMyEffectivePerms();
   if (roles.includes("super_admin")) return "all";
-  if (!data || data.length === 0) return "all";
+  if (isLoading || !data) return "today";
   const row = data.find(r => r.module_key === moduleKey);
   return row?.day_horizon ?? "today";
 };
