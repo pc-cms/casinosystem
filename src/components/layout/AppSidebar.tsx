@@ -453,7 +453,7 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
               );
             })}
 
-            {nativeManager && (
+            {canSeeAdmin && (
               <Tooltip>
                 <TooltipTrigger asChild>
                   <NavLink
