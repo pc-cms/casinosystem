@@ -134,20 +134,7 @@ export const useCloseShift = () => {
     }) => {
       if (!casinoId || !user) throw new Error("Not authenticated");
 
-      // 1. Authoritative recomputation server-side. The DB function reads
-      //    transactions/expenses + shifts.closing_count.chip_miss_total for
-      //    the shift and returns canonical totals. UI numbers are never trusted.
-      const { data: rpcData, error: rpcError } = await (supabase as any)
-        .rpc("compute_shift_close", { p_shift_id: input.shift_id });
-      if (rpcError) throw rpcError;
-      const totals = (rpcData || {}) as {
-        cash_result?: number;
-        miss_total?: number;
-        shift_result?: number;
-        expected_cash?: number;
-      };
-
-      // 2. CASH RESULT = NET cash earned during the shift (closing cash −
+      // 1. CASH RESULT = NET cash earned during the shift (closing cash −
       //    opening cash float), excluding chips. Reflects only the money the
       //    shift actually generated, not the starting float.
       const cc = (input.closing_count as any)?.totals || {};
@@ -160,9 +147,15 @@ export const useCloseShift = () => {
         ? cashDeltaFromUI
         : (countedTotal > 0
             ? countedCash
-            : Number(totals.cash_result ?? input.cash_result ?? 0));
+            : Number(input.cash_result ?? 0));
 
-      // 3. Persist the closing snapshot using server-truth values.
+      const missTotalFinal = Number(input.miss_total ?? (input.closing_count as any)?.chip_miss_total ?? 0);
+
+      // 2. Persist the closing snapshot first. The DB trigger writes
+      //    shifts.miss_total from closing_count and recomputes balance using
+      //    the new row, avoiding stale pre-close values.
+      const tablesResultFinal = Number(input.shift_result ?? 0);
+
       const { error } = await supabase
         .from("shifts")
         .update({
@@ -173,19 +166,24 @@ export const useCloseShift = () => {
           closing_cash: {
             ...input.closing_cash,
             cash_result: cashResultFinal,
-            shift_result: Number(totals.shift_result ?? input.shift_result ?? 0),
-            expected_authoritative: Number(totals.expected_cash ?? 0),
+            shift_result: tablesResultFinal,
           },
           notes: input.notes,
           cash_result: cashResultFinal,
-          miss_total: Number(totals.miss_total ?? input.miss_total ?? 0),
-          shift_result: Number(totals.shift_result ?? input.shift_result ?? 0),
+          miss_total: missTotalFinal,
+          shift_result: tablesResultFinal,
         } as any)
         .eq("id", input.shift_id);
       if (error) throw error;
+
+      // 3. Verify through the authoritative DB function after the row exists
+      //    as closed. This is a functional check, not a source for UI values.
+      const { data: rpcData, error: rpcError } = await (supabase as any)
+        .rpc("compute_shift_close", { p_shift_id: input.shift_id });
+      if (rpcError) throw rpcError;
       await logAction(casinoId, "system", "SHIFT_CLOSED", {
         shift_id: input.shift_id,
-        server_totals: totals,
+        server_totals: rpcData,
       });
     },
     onSuccess: () => {

@@ -3612,6 +3612,10 @@ export type Database = {
         }[]
       }
       compute_shift_balance: { Args: { _shift_id: string }; Returns: Json }
+      compute_shift_balance_from_row: {
+        Args: { s: Database["public"]["Tables"]["shifts"]["Row"] }
+        Returns: Json
+      }
       compute_shift_close: { Args: { p_shift_id: string }; Returns: Json }
       compute_shift_table_results: {
         Args: { p_shift_id: string }
@@ -3767,6 +3771,10 @@ export type Database = {
       rotate_local_server_secret: {
         Args: { _server_id: string }
         Returns: string
+      }
+      shift_miss_total_from_closing_count: {
+        Args: { _closing_count: Json }
+        Returns: number
       }
       sync_apply_remote: {
         Args: {

@@ -52,6 +52,7 @@ const ShiftClosingReport = ({
   const [baselineByDenom, setBaselineByDenom] = useState<BaselineMap>({}); // tableId -> denom -> qty (Pit baseline)
   const [snapshotIndex, setSnapshotIndex] = useState<ReturnType<typeof buildLatestTableSnapshot>>({});
   const [fillCredits, setFillCredits] = useState<Record<string, { fill: number; credit: number }>>({});
+  const [cashFlowTransfers, setCashFlowTransfers] = useState({ addFloat: 0, slotsOut: 0 });
   /** IN per table = sum of all Cash Desk IN transactions (type 'buy' or 'in')
    *  for this shift, grouped by table_id. */
   const [inByTable, setInByTable] = useState<Record<string, number>>({});
@@ -73,7 +74,7 @@ const ShiftClosingReport = ({
         supabase.from("chip_baseline").select("location_id, denomination, expected_quantity")
           .eq("casino_id", casinoId).eq("location_type", "table"),
         supabase.from("cage_transfers").select("table_id, transfer_type, amount")
-          .eq("shift_id", shift.id).in("transfer_type", ["fill", "credit"]),
+          .eq("shift_id", shift.id).in("transfer_type", ["fill", "credit", "add_float", "slots_out"]),
         businessDate
           ? supabase.from("table_daily_results")
               .select("table_id, open, fill, credit, close, drop_amount, result")
@@ -103,13 +104,18 @@ const ShiftClosingReport = ({
       setBaselineByDenom(blByDenom);
       setSnapshotIndex(buildLatestTableSnapshot((snaps || []) as any));
       const fc: Record<string, { fill: number; credit: number }> = {};
+      let addFloat = 0;
+      let slotsOut = 0;
       (tr || []).forEach((r: any) => {
+        if (r.transfer_type === "add_float") { addFloat += Number(r.amount); return; }
+        if (r.transfer_type === "slots_out") { slotsOut += Number(r.amount); return; }
         if (!r.table_id) return;
         fc[r.table_id] = fc[r.table_id] || { fill: 0, credit: 0 };
         if (r.transfer_type === "fill") fc[r.table_id].fill += Number(r.amount);
         else if (r.transfer_type === "credit") fc[r.table_id].credit += Number(r.amount);
       });
       setFillCredits(fc);
+      setCashFlowTransfers({ addFloat, slotsOut });
       const inMap: Record<string, number> = {};
       (tx || []).forEach((r: any) => {
         if (!r.table_id) return;
@@ -289,8 +295,8 @@ const ShiftClosingReport = ({
         {/* Summary panel */}
         <div className="space-y-1">
           <SummaryRow label="Tables Result" value={totals.result} bold />
-          <SummaryRow label="Cash Flow FILL" value={totals.fill} />
-          <SummaryRow label="Cash Flow CREDIT" value={totals.credit} />
+          <SummaryRow label="Cash Flow FILL" value={cashFlowTransfers.addFloat} />
+          <SummaryRow label="Cash Flow CREDIT" value={cashFlowTransfers.slotsOut} />
           <SummaryRow label="Cash Desk Chips FILL" value={0} />
           <SummaryRow label="Cash Desk Chips CREDIT" value={0} />
           <SummaryRow label="Miss Chips" value={missTotal} bold />
