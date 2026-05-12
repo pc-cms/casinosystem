@@ -122,6 +122,30 @@ const FullScreenLoader = ({ label = "Loading CMS..." }: { label?: string }) => (
 import { moduleKeyForRoute as resolveRouteModule } from "@/lib/route-module-map";
 import { useMyModulePermissions } from "@/hooks/use-module-permissions";
 
+// Legacy /pit?tab=… → flat /breaklist|/rota/live|/attendance/live|/dealers
+const LegacyPitRedirect = () => {
+  const tab = new URLSearchParams(window.location.search).get("tab");
+  const target =
+    tab === "rota" ? "/rota/live" :
+    tab === "attendance" ? "/attendance/live" :
+    tab === "employee" ? "/dealers" :
+    "/breaklist";
+  return <Navigate to={target} replace />;
+};
+
+// Legacy /staff?tab=… or /floor?tab=… → flat /staff/employees|/rota/*|/attendance/*
+const LegacyStaffRedirect = () => {
+  const sp = new URLSearchParams(window.location.search);
+  const tab = sp.get("tab");
+  const group = sp.get("group") || "floor";
+  let target = "/staff/employees";
+  if (tab === "attendance") target = `/attendance/${group}`;
+  else if (tab === "rota_floor") target = "/rota/floor";
+  else if (tab === "rota_security") target = "/rota/security";
+  else if (tab === "rota_office") target = "/rota/office";
+  return <Navigate to={target} replace />;
+};
+
 const RoleGuard = ({ path, children }: { path: string; children: React.ReactNode }) => {
   const { roles } = useAuth();
   const { data: allowedModules, isLoading } = useMyModulePermissions();
