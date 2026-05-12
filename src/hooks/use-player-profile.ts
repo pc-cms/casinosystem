@@ -75,7 +75,7 @@ export const usePlayerTransactions = (playerId: string | undefined) => {
         .from("transactions")
         .select("id, casino_id, table_id, type, amount, created_at, gaming_tables(name, game)")
         .eq("player_id", playerId)
-        .in("type", ["buy", "cashout"])
+        .in("type", ["buy", "cashout", "in", "out"])
         .order("created_at", { ascending: false })
         .limit(5000);
       if (error) throw error;

@@ -120,8 +120,8 @@ const PlayerProfile = () => {
         const ts = new Date(t.created_at).getTime();
         if (ts < start || ts > end) continue;
         const amt = Number(t.amount) || 0;
-        if (t.type === "buy") totalIn += amt;
-        else if (t.type === "cashout") cashout += amt;
+        if (t.type === "buy" || t.type === "in") totalIn += amt;
+        else if (t.type === "cashout" || t.type === "out") cashout += amt;
       }
       for (const e of expenses) {
         if (e.casino_id !== v.casino_id) continue;
@@ -220,8 +220,8 @@ const PlayerProfile = () => {
       const game = t.gaming_tables?.game || "—";
       const cur = map.get(key) || { key, name, game, sessions: 0, hands: 0, betSum: 0, minutes: 0, totalIn: 0, totalOut: 0 };
       const amt = Number(t.amount) || 0;
-      if (t.type === "buy") cur.totalIn += amt;
-      else if (t.type === "cashout") cur.totalOut += amt;
+      if (t.type === "buy" || t.type === "in") cur.totalIn += amt;
+      else if (t.type === "cashout" || t.type === "out") cur.totalOut += amt;
       if (cur.name === "—" && name !== "—") cur.name = name;
       if (cur.game === "—" && game !== "—") cur.game = game;
       map.set(key, cur);
