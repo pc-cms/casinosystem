@@ -20,6 +20,7 @@ import { useMyModulePermissions } from "@/hooks/use-module-permissions";
 import { moduleKeyForRoute } from "@/lib/route-module-map";
 import { NetworkStatusIndicator } from "@/components/NetworkStatusIndicator";
 import { VersionIndicator } from "@/components/VersionIndicator";
+import { InstallPWAButton } from "@/components/InstallPWAButton";
 import { LogoutButton } from "@/components/LogoutButton";
 import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
 import { toast } from "sonner";
@@ -553,6 +554,14 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
+              <div className="w-10 flex items-center justify-center">
+                <InstallPWAButton iconOnly className="w-10 h-10" />
+              </div>
+            </TooltipTrigger>
+            <TooltipContent side="right">Install App</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
               <LogoutButton
                 className="w-10 h-10 flex items-center justify-center rounded-md hover:bg-sidebar-accent transition-colors text-sidebar-foreground"
               >
@@ -690,6 +699,7 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
           >
             <RefreshCw className="w-3.5 h-3.5" />
           </button>
+          <InstallPWAButton iconOnly />
           <LogoutButton
             title="Sign out"
             className="h-7 flex-1 flex items-center justify-center rounded-md text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
