@@ -14,7 +14,7 @@ import { formatNumberSpaces, formatInputWithSpaces, parseSpacedNumber } from "@/
 import { Plus } from "lucide-react";
 import { fmtDateTime } from "@/lib/format-date";
 
-export const FinanceExpenses = () => {
+export const FinancePayments = () => {
   const { data: txs = [] } = useWalletTransactions(500);
 
   // Filter only expense-type transactions
@@ -23,7 +23,7 @@ export const FinanceExpenses = () => {
   return (
     <div className="space-y-4 mt-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-medium text-muted-foreground">Office Expenses</h3>
+        <h3 className="text-sm font-medium text-muted-foreground">Wallet Payments</h3>
         <AddManualExpenseDialog />
       </div>
 

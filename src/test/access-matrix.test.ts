@@ -69,7 +69,7 @@ const GATED_ROUTES = [
   "/finance/wallets",
   "/finance/dashboard",
   "/finance/review",
-  "/finance/expenses",
+  "/finance/payments",
   "/finance/budget",
   "/finance/cash-count",
   "/finance/summary",

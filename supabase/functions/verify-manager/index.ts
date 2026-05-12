@@ -52,10 +52,10 @@ Deno.serve(async (req) => {
       .select("role")
       .eq("user_id", managerId);
 
-    const isManager = roles?.some((r: any) => r.role === "manager");
+    const isManager = roles?.some((r: any) => r.role === "manager" || r.role === "floor_manager");
 
     if (!isManager) {
-      return new Response(JSON.stringify({ error: "User is not a manager" }), {
+      return new Response(JSON.stringify({ error: "User is not a manager or floor manager" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

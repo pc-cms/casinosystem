@@ -24,7 +24,7 @@ import { toast } from "sonner";
 const Pitbook = () => {
   const { roles, user } = useAuth();
   const isCctv = roles.includes("surveillance");
-  const isManager = roles.includes("manager") || roles.includes("super_admin");
+  const isManager = roles.includes("manager") || roles.includes("floor_manager") || roles.includes("super_admin");
   const isPit = roles.includes("pit");
   const canPost = isCctv || isManager;
   const canAck = isPit || isManager;

@@ -36,7 +36,7 @@ const Staff = lazy(() => import("@/pages/Staff"));
 const FinanceWalletsPage = lazy(() => import("@/pages/finance/FinanceWalletsPage"));
 const FinanceDashboardPage = lazy(() => import("@/pages/finance/FinanceDashboardPage"));
 const FinanceReviewPage = lazy(() => import("@/pages/finance/FinanceReviewPage"));
-const FinanceExpensesPage = lazy(() => import("@/pages/finance/FinanceExpensesPage"));
+const FinancePaymentsPage = lazy(() => import("@/pages/finance/FinancePaymentsPage"));
 const FinanceBudgetPage = lazy(() => import("@/pages/finance/FinanceBudgetPage"));
 const FinanceCashCountPage = lazy(() => import("@/pages/finance/FinanceCashCountPage"));
 const FinanceSummaryPage = lazy(() => import("@/pages/finance/FinanceSummaryPage"));
@@ -198,7 +198,8 @@ const ProtectedRoutes = () => {
           <Route path="/finance/wallets" element={<RoleGuard path="/finance/wallets"><ErrorBoundary><FinanceWalletsPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/finance/dashboard" element={<RoleGuard path="/finance/dashboard"><ErrorBoundary><FinanceDashboardPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/finance/review" element={<RoleGuard path="/finance/review"><ErrorBoundary><FinanceReviewPage /></ErrorBoundary></RoleGuard>} />
-          <Route path="/finance/expenses" element={<RoleGuard path="/finance/expenses"><ErrorBoundary><FinanceExpensesPage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/finance/payments" element={<RoleGuard path="/finance/payments"><ErrorBoundary><FinancePaymentsPage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/finance/expenses" element={<Navigate to="/finance/payments" replace />} />
           <Route path="/finance/budget" element={<RoleGuard path="/finance/budget"><ErrorBoundary><FinanceBudgetPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/finance/cash-count" element={<RoleGuard path="/finance/cash-count"><ErrorBoundary><FinanceCashCountPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/finance/summary" element={<RoleGuard path="/finance/summary"><ErrorBoundary><FinanceSummaryPage /></ErrorBoundary></RoleGuard>} />
