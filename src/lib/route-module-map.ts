@@ -78,7 +78,7 @@ export const moduleKeyForRoute = (to: string, label?: string): ModuleKey | null 
   if (base === "/finance/cash-count") return "finance_cash_count";
   if (base === "/finance/review") return "finance_review";
   if (base === "/finance/dashboard") return "finance_dashboard";
-  if (base === "/finance/expenses") return "expenses";
+  if (base === "/finance/expenses" || base === "/finance/payments") return "expenses";
   if (base === "/finance/summary") return "finance_summary";
   if (base === "/finance/transfers") return "finance_transfers";
   if (base === "/finance/wallets") return "finance_wallets";
