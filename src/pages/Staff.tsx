@@ -79,7 +79,12 @@ const DEPT_ROW_COLORS: Record<string, string> = {
   reception: "bg-rose-500/5",
 };
 
-const Staff = () => {
+interface StaffProps {
+  forcedTab?: "employee" | "attendance" | "rota_floor" | "rota_security" | "rota_office";
+  forcedGroup?: "floor" | "security" | "office";
+}
+
+const Staff = ({ forcedTab, forcedGroup }: StaffProps = {}) => {
   const { isManager: isMgr, roles } = useAuth();
   // Only manager/HR (and super_admin via isManager) can edit Floor/Security/Office schedules.
   // Pit can navigate here (read-only) but must not write to non-Live-Game personnel.
