@@ -1,12 +1,13 @@
 /**
- * Module permissions hooks.
+ * Module permissions — backed by `effective_module_perms(user_id)` RPC which
+ * merges role baselines (`role_module_defaults`) with per-user overrides
+ * (`user_module_permissions.can_view/can_write/day_horizon`).
  *
- * Allow-list semantics:
- *   - super_admin always sees everything (bypass).
- *   - If user has zero rows in user_module_permissions → role defaults apply (no UI restriction).
- *   - If user has ≥ 1 row → only modules with can_view=true are visible.
- *
- * RLS is the real security boundary; this hook only hides nav items.
+ * Semantics:
+ *   - super_admin sees everything (bypass at hook level).
+ *   - If RPC returns rows → those are the effective allow-list.
+ *   - If RPC returns nothing (legacy seed missing) → fall back to "no restriction".
+ *   - RLS remains the real security boundary; this hook only gates UI.
  */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,25 +15,29 @@ import { useAuth } from "@/lib/auth-context";
 import type { ModuleKey } from "@/lib/modules";
 import { toast } from "sonner";
 
-interface PermissionRow {
+export type DayHorizon = "today" | "7d" | "30d" | "all";
+
+export interface EffectivePerm {
   module_key: string;
   can_view: boolean;
+  can_write: boolean;
+  day_horizon: DayHorizon;
 }
 
-/** Fetch current user's allowed modules. Returns null if no overrides set. */
-export const useMyModulePermissions = () => {
+const fetchEffective = async (userId: string): Promise<EffectivePerm[]> => {
+  const { data, error } = await supabase.rpc("effective_module_perms", { p_user_id: userId });
+  if (error) throw error;
+  return (data ?? []) as EffectivePerm[];
+};
+
+/** Full effective permission map for current user. */
+export const useMyEffectivePerms = () => {
   const { user } = useAuth();
   return useQuery({
-    queryKey: ["my-module-permissions", user?.id],
-    queryFn: async (): Promise<Set<string> | null> => {
-      if (!user?.id) return null;
-      const { data, error } = await supabase
-        .from("user_module_permissions")
-        .select("module_key, can_view")
-        .eq("user_id", user.id);
-      if (error) throw error;
-      if (!data || data.length === 0) return null; // no overrides → role defaults
-      return new Set((data as PermissionRow[]).filter(r => r.can_view).map(r => r.module_key));
+    queryKey: ["my-effective-perms", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [] as EffectivePerm[];
+      return fetchEffective(user.id);
     },
     enabled: !!user?.id,
     staleTime: 60_000,
@@ -40,64 +45,115 @@ export const useMyModulePermissions = () => {
 };
 
 /**
- * Hook: returns true if the current user can see the given module.
- * super_admin always true. No overrides → true (role defaults). Otherwise allow-list.
+ * Backwards-compatible: returns a Set of allowed module keys (view=true) or
+ * null when the user has no effective rows (treat as unrestricted fallback).
  */
-export const useModuleAccess = (moduleKey: ModuleKey): boolean => {
-  const { roles } = useAuth();
-  const { data: allowed } = useMyModulePermissions();
-  if (roles.includes("super_admin")) return true;
-  if (allowed === null || allowed === undefined) return true;
-  return allowed.has(moduleKey);
+export const useMyModulePermissions = () => {
+  const { data, ...rest } = useMyEffectivePerms();
+  const allowed: Set<string> | null = !data
+    ? null
+    : data.length === 0
+      ? null
+      : new Set(data.filter(r => r.can_view).map(r => r.module_key));
+  return { ...rest, data: allowed };
 };
 
-/** Admin: read another user's permissions. */
-export const useUserModulePermissions = (userId: string | null) => {
+/** Single module: can the current user view it? */
+export const useModuleAccess = (moduleKey: ModuleKey): boolean => {
+  const { roles } = useAuth();
+  const { data } = useMyEffectivePerms();
+  if (roles.includes("super_admin")) return true;
+  if (!data || data.length === 0) return true; // fallback
+  const row = data.find(r => r.module_key === moduleKey);
+  return row ? row.can_view : false;
+};
+
+/** Single module: can write? */
+export const useModuleWrite = (moduleKey: ModuleKey): boolean => {
+  const { roles } = useAuth();
+  const { data } = useMyEffectivePerms();
+  if (roles.includes("super_admin")) return true;
+  if (!data || data.length === 0) return true;
+  const row = data.find(r => r.module_key === moduleKey);
+  return row ? row.can_write : false;
+};
+
+/** Single module: day horizon for history filtering. */
+export const useModuleHorizon = (moduleKey: ModuleKey): DayHorizon => {
+  const { roles } = useAuth();
+  const { data } = useMyEffectivePerms();
+  if (roles.includes("super_admin")) return "all";
+  if (!data || data.length === 0) return "all";
+  const row = data.find(r => r.module_key === moduleKey);
+  return row?.day_horizon ?? "today";
+};
+
+/** Admin: read another user's effective permissions (merged). */
+export const useUserEffectivePerms = (userId: string | null) => {
   return useQuery({
-    queryKey: ["user-module-permissions", userId],
-    queryFn: async (): Promise<Set<string>> => {
-      if (!userId) return new Set();
-      const { data, error } = await supabase
-        .from("user_module_permissions")
-        .select("module_key, can_view")
-        .eq("user_id", userId);
-      if (error) throw error;
-      return new Set((data as PermissionRow[] | null ?? []).filter(r => r.can_view).map(r => r.module_key));
+    queryKey: ["user-effective-perms", userId],
+    queryFn: async () => {
+      if (!userId) return [] as EffectivePerm[];
+      return fetchEffective(userId);
     },
     enabled: !!userId,
   });
 };
 
-/** Admin: replace the full set of allowed modules for a user. */
-export const useSetUserModulePermissions = () => {
+/** Admin: read raw per-user override rows (NULL = inherit). */
+export interface OverrideRow {
+  module_key: string;
+  can_view: boolean | null;
+  can_write: boolean | null;
+  day_horizon: DayHorizon | null;
+}
+
+export const useUserModuleOverrides = (userId: string | null) => {
+  return useQuery({
+    queryKey: ["user-module-overrides", userId],
+    queryFn: async (): Promise<OverrideRow[]> => {
+      if (!userId) return [];
+      const { data, error } = await supabase
+        .from("user_module_permissions")
+        .select("module_key, can_view, can_write, day_horizon")
+        .eq("user_id", userId);
+      if (error) throw error;
+      return (data ?? []) as OverrideRow[];
+    },
+    enabled: !!userId,
+  });
+};
+
+/**
+ * Admin: write per-user overrides. Pass an array of rows; any row omitted is
+ * deleted (= inherit role default). To revert everything, pass [].
+ */
+export const useSetUserModuleOverrides = () => {
   const qc = useQueryClient();
   const { user } = useAuth();
   return useMutation({
-    mutationFn: async ({ userId, allowed }: { userId: string; allowed: ModuleKey[] }) => {
-      // Strategy: delete existing rows, then insert new allow-list.
-      // If allowed is empty → all rows removed → reverts to "no overrides" (role defaults).
+    mutationFn: async ({ userId, rows }: { userId: string; rows: OverrideRow[] }) => {
       const { error: delErr } = await supabase
         .from("user_module_permissions")
         .delete()
         .eq("user_id", userId);
       if (delErr) throw delErr;
-
-      if (allowed.length === 0) return;
-
-      const rows = allowed.map(module_key => ({
+      if (rows.length === 0) return;
+      const insert = rows.map(r => ({
         user_id: userId,
-        module_key,
-        can_view: true,
+        module_key: r.module_key,
+        can_view: r.can_view ?? true,
+        can_write: r.can_write,
+        day_horizon: r.day_horizon,
         granted_by: user?.id ?? null,
       }));
-      const { error: insErr } = await supabase
-        .from("user_module_permissions")
-        .insert(rows);
+      const { error: insErr } = await supabase.from("user_module_permissions").insert(insert);
       if (insErr) throw insErr;
     },
     onSuccess: (_d, vars) => {
-      qc.invalidateQueries({ queryKey: ["user-module-permissions", vars.userId] });
-      qc.invalidateQueries({ queryKey: ["my-module-permissions"] });
+      qc.invalidateQueries({ queryKey: ["user-module-overrides", vars.userId] });
+      qc.invalidateQueries({ queryKey: ["user-effective-perms", vars.userId] });
+      qc.invalidateQueries({ queryKey: ["my-effective-perms"] });
       toast.success("Permissions updated");
     },
     onError: (e: Error) => toast.error(`Failed: ${e.message}`),
