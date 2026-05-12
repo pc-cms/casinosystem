@@ -120,8 +120,8 @@ const PlayerProfile = () => {
         const ts = new Date(t.created_at).getTime();
         if (ts < start || ts > end) continue;
         const amt = Number(t.amount) || 0;
-        if (t.type === "buy") totalIn += amt;
-        else if (t.type === "cashout") cashout += amt;
+        if (t.type === "buy" || t.type === "in") totalIn += amt;
+        else if (t.type === "cashout" || t.type === "out") cashout += amt;
       }
       for (const e of expenses) {
         if (e.casino_id !== v.casino_id) continue;
