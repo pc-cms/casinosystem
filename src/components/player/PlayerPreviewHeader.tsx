@@ -117,12 +117,13 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
     };
   }, [playerId]);
 
+  const isBlacklisted = player?.status === "blacklist";
+  const { data: notes = [] } = usePlayerNotes(playerId || undefined, isBlacklisted);
+
   if (!playerId) return null;
 
   const handleClose = () => { onClose ? onClose() : ctx.clear(); };
 
-  const isBlacklisted = player?.status === "blacklist";
-  const { data: notes = [] } = usePlayerNotes(playerId || undefined, isBlacklisted);
   const blacklistReason = isBlacklisted
     ? (notes.find((n: any) => n.note_type === "blacklist")?.content || "").replace(/^Added to blacklist\.\s*Reason:\s*/i, "")
     : "";
