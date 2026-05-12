@@ -49,9 +49,9 @@ export const moduleKeyForRoute = (to: string, label?: string): ModuleKey | null 
   // ============= TABLES & TRACKERS =============
   if (base === "/tables") return "tables";
   if (base === "/tables/close") return "tables";
-  if (base === "/tables/analytics") return "tables";
+  if (base === "/tables/analytics") return "tables_analytics";
   if (base === "/table-tracker") return "table_tracker";
-  if (base === "/table-results") return "reports";
+  if (base === "/table-results") return "table_results";
 
   // ============= PLAYERS =============
   if (base === "/active-players" || base === "/player-statistics") return "pit_active_players";
@@ -63,14 +63,19 @@ export const moduleKeyForRoute = (to: string, label?: string): ModuleKey | null 
   if (base === "/groups") return "groups";
 
   // ============= CAGE =============
+  // /cage = cashier transactional surface; /cage/view = read-only history.
   if (base === "/cage") return "cage";
+  if (base === "/cage/view") return "cage_view";
   if (base === "/cage/closings") return "cage";
   if (base === "/cage/close-shift") return "cage";
   if (base.startsWith("/cage/shift/")) return "cage";
 
   // ============= EXPENSES / CASHLESS =============
   if (base === "/expenses") return "expenses";
-  if (base === "/cashless") return "expenses";
+  if (base === "/expenses/approvals") return "expenses_approvals";
+  if (base === "/cashless") return "cashless";
+
+  // (expenses/cashless mapped above)
 
   // ============= FINANCE =============
   if (base === "/bank-checks") return "bank_checks";
@@ -78,7 +83,7 @@ export const moduleKeyForRoute = (to: string, label?: string): ModuleKey | null 
   if (base === "/finance/cash-count") return "finance_cash_count";
   if (base === "/finance/review") return "finance_review";
   if (base === "/finance/dashboard") return "finance_dashboard";
-  if (base === "/finance/expenses" || base === "/finance/payments") return "expenses";
+  if (base === "/finance/expenses" || base === "/finance/payments") return "finance_payments";
   if (base === "/finance/summary") return "finance_summary";
   if (base === "/finance/transfers") return "finance_transfers";
   if (base === "/finance/wallets") return "finance_wallets";
@@ -86,12 +91,12 @@ export const moduleKeyForRoute = (to: string, label?: string): ModuleKey | null 
   // ============= REPORTS =============
   if (base === "/miss-chips") return "miss_chips";
   if (base === "/reports") return "reports";
-  if (base === "/business-days") return "reports";
-  if (base === "/weekly-bonus") return "reports";
+  if (base === "/business-days") return "business_days";
+  if (base === "/weekly-bonus") return "weekly_bonus";
 
   // ============= PIT EXTRAS =============
-  if (base === "/pitbook") return "pit_rota";
-  if (base === "/incidents") return "pit_rota";
+  if (base === "/pitbook") return "pitbook";
+  if (base === "/incidents") return "incidents";
 
   // ============= SYSTEM =============
   if (base === "/import-reports") return "import_reports";
