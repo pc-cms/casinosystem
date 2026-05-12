@@ -156,7 +156,9 @@ const CageClosingsPage = () => {
                   : null;
                 const balance = s.balance != null
                   ? Number(s.balance)
-                  : (cashDeskResult != null ? cashDeskResult - tablesResult : tablesResult - cash - miss);
+                  : (cashDeskResult != null
+                      ? cashDeskResult - tablesResult - miss
+                      : tablesResult - cash - miss);
                 const cleanNotes = String(s.notes || "")
                   .split(/\s*\|\s*(?:TABLES|CASH|MISS|BALANCE|RESULT|DIFF|mgr)\b/i)[0]
                   .trim();
