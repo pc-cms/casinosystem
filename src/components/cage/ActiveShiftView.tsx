@@ -576,8 +576,8 @@ const CashCheckForm = ({ expectedBalance, shiftId, exchangeRates, cashChecks, bu
         {displayedChecks.length === 0 ? (
           <div className="px-3 py-4 text-center text-[11px] text-muted-foreground">No checks for this day</div>
         ) : (
-          <div className="divide-y divide-border">
-            {displayedChecks.slice(0, browsingPast ? 50 : 5).map(cc => {
+          <div className="divide-y divide-border max-h-[320px] overflow-y-auto">
+            {displayedChecks.slice(0, browsingPast ? 50 : 50).map(cc => {
               const t = ((cc.denominations || {}) as Record<string, any>).totals || {};
               const diff = Number(t.difference ?? 0);
               const balanced = !!t.balanced || diff === 0;
