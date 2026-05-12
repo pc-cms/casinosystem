@@ -381,6 +381,13 @@ const CageHistoryView = () => {
           </div>
         </TabsContent>
       </Tabs>
+
+      <CashCheckViewerDialog
+        open={!!viewerCheck}
+        onOpenChange={(o) => { if (!o) setViewerCheck(null); }}
+        check={viewerCheck}
+        cashierName={viewerCheck ? cashierMap.get(viewerCheck.counted_by) : undefined}
+      />
     </PageShell>
   );
 };
