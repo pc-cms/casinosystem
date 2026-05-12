@@ -794,7 +794,7 @@ const StaffRotaGrid = ({ month, groupKey, monthLabel, readOnly = false }: { mont
 };
 const DepartmentBlock = ({
   dept, members, days, month, y, m, isCurrentMonth, todayDay,
-  getDisplayShift, handleClick, handleKeyDown, handlePaste, getStats, summaryShifts,
+  getDisplayShift, groupShifts, shiftLabels, handleKeyDown, handlePaste, onSet, onClear, getStats, summaryShifts,
 }: {
   dept: string;
   members: any[];
@@ -805,9 +805,12 @@ const DepartmentBlock = ({
   isCurrentMonth: boolean;
   todayDay: number;
   getDisplayShift: (id: string, day: number) => { shift: string; isAuto: boolean } | null;
-  handleClick: (id: string, day: number) => void;
+  groupShifts: readonly string[];
+  shiftLabels: Record<string, string>;
   handleKeyDown: (e: React.KeyboardEvent, id: string, day: number) => void;
   handlePaste: (e: React.ClipboardEvent, id: string, day: number) => void;
+  onSet: (id: string, day: number, shift: string) => void;
+  onClear: (id: string, day: number) => void;
   getStats: (id: string) => Record<string, number>;
   summaryShifts: string[];
 }) => (
@@ -835,18 +838,25 @@ const DepartmentBlock = ({
             const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
             return (
               <td key={day} className={`px-0.5 py-0.5 text-center border-l border-border/25 ${isToday ? "bg-primary/25" : isWeekend ? "bg-muted/15" : ""}`}>
-                <button
-                  onClick={() => handleClick(staff.id, day)}
+                <CellPicker
+                  value={display?.shift ?? null}
+                  display={display?.shift || "·"}
+                  rows={[{
+                    options: groupShifts.map(s => ({
+                      value: s, label: s,
+                      title: shiftLabels[s],
+                      className: STAFF_SHIFT_COLORS[s],
+                    })),
+                  }]}
+                  onSelect={(v) => v === null ? onClear(staff.id, day) : onSet(staff.id, day, v)}
                   onKeyDown={e => handleKeyDown(e, staff.id, day)}
-                  onPaste={e => handlePaste(e, staff.id, day)}
-                  className={`w-full h-8 rounded text-xs font-mono font-semibold transition-colors focus:outline-none focus:ring-1 focus:ring-primary ${
+                  onPaste={e => handlePaste(e as any, staff.id, day)}
+                  cellClassName={`w-full h-8 rounded text-xs font-mono font-semibold transition-colors focus:outline-none focus:ring-1 focus:ring-primary ${
                     display
                       ? `${STAFF_SHIFT_COLORS[display.shift] || "bg-muted text-muted-foreground"} ${display.isAuto ? "border border-dashed border-amber-500/50" : ""}`
                       : "bg-transparent hover:bg-muted/50 text-muted-foreground/40 hover:text-muted-foreground"
                   }`}
-                >
-                  {display?.shift || "·"}
-                </button>
+                />
               </td>
             );
           })}
