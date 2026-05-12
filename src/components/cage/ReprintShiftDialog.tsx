@@ -85,9 +85,14 @@ const ReprintShiftDialog = ({ open, onClose, shiftId, casinoId }: Props) => {
     [shift?.closed_at],
   );
 
-  const resultTable = Number(closingCount.result_table ?? shift?.shift_result ?? 0);
-  const balance = Number(closingCount.cash_desk_balance ?? 0);
-  const missTotal = Number(closingCount.chip_miss_total ?? shift?.miss_total ?? 0);
+  // Canonical columns (filled by DB trigger compute_shift_balance) are the
+  // source of truth. Snapshot fields in `closing_count` are kept only as a
+  // fallback for very old rows where the trigger never ran.
+  const resultTable = Number(
+    shift?.tables_result ?? closingCount.result_table ?? shift?.shift_result ?? 0,
+  );
+  const balance = Number(shift?.balance ?? closingCount.cash_desk_balance ?? 0);
+  const missTotal = Number(shift?.miss_total ?? closingCount.chip_miss_total ?? 0);
   const rates = (shift?.exchange_rates || {}) as Record<string, number>;
 
   // Add a body class while open so global @media print rules can target it.
