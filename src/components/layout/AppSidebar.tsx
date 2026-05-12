@@ -360,6 +360,9 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
 
   const { data: allowedModules } = useMyModulePermissions();
   const isSuper = roles.includes("super_admin" as AppRole);
+  // Admin panel: super_admin always; others only if explicitly granted the "admin" module.
+  // Currently only super_admin has it by role default — finance_manager can be granted via the access matrix.
+  const canSeeAdmin = isSuper || (allowedModules?.has("admin") ?? false);
   const visibleItems = NAV_ITEMS.filter(item => {
     // Role gate
     if (!roles.some(r => item.roles.includes(r as AppRole))) return false;
@@ -450,7 +453,7 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
               );
             })}
 
-            {nativeManager && (
+            {canSeeAdmin && (
               <Tooltip>
                 <TooltipTrigger asChild>
                   <NavLink
@@ -618,7 +621,7 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
 
       <SidebarSections
         visibleItems={visibleItems}
-        isManager={nativeManager}
+        isManager={canSeeAdmin}
         isPitActive={isPitActive}
         isStaffActive={isStaffActive}
         isTablesActive={isTablesActive}
