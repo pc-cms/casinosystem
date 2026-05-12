@@ -36,7 +36,7 @@ const Staff = lazy(() => import("@/pages/Staff"));
 const FinanceWalletsPage = lazy(() => import("@/pages/finance/FinanceWalletsPage"));
 const FinanceDashboardPage = lazy(() => import("@/pages/finance/FinanceDashboardPage"));
 const FinanceReviewPage = lazy(() => import("@/pages/finance/FinanceReviewPage"));
-const FinanceExpensesPage = lazy(() => import("@/pages/finance/FinanceExpensesPage"));
+const FinancePaymentsPage = lazy(() => import("@/pages/finance/FinancePaymentsPage"));
 const FinanceBudgetPage = lazy(() => import("@/pages/finance/FinanceBudgetPage"));
 const FinanceCashCountPage = lazy(() => import("@/pages/finance/FinanceCashCountPage"));
 const FinanceSummaryPage = lazy(() => import("@/pages/finance/FinanceSummaryPage"));
