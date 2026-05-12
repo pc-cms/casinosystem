@@ -294,7 +294,7 @@ const SidebarSections = ({
       <div key={`${sectionCtx}:${item.to}`}>
         <NavLink
           to={item.to}
-          end={item.to === "/" || item.to === "/pit" || item.to === "/staff" || item.to === "/tables" || isTabAware}
+          end={item.to === "/" || item.to === "/tables" || isTabAware}
           onClick={onNavigate}
           className={({ isActive }) => {
             const active = isTabAware ? isTabAwareActive : isActive;
