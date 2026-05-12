@@ -299,7 +299,7 @@ const ShiftClosingReport = ({
           <SummaryRow label="Cash Flow CREDIT" value={cashFlowTransfers.slotsOut} />
           <SummaryRow label="Cash Desk Chips FILL" value={0} />
           <SummaryRow label="Cash Desk Chips CREDIT" value={0} />
-          <SummaryRow label="Miss Chips" value={missTotal} bold />
+          <SummaryRow label="Miss Chips" value={missTotal} bold negative />
           <SummaryRow label="Casino Expenses" value={totalExpenses} bold />
           <SummaryRow label="Tips" value={0} />
           <div className="mt-3 pt-2 border-t-2 border-black flex justify-between items-center">
@@ -367,8 +367,9 @@ const Row = ({ label, value, bold, framed }: { label: string; value: string | nu
   </div>
 );
 
-const SummaryRow = ({ label, value, bold }: { label: string; value: number; bold?: boolean }) => {
-  const display = value === 0 ? "0" : value > 0 ? formatNumberSpaces(value) : `-${formatNumberSpaces(Math.abs(value))}`;
+const SummaryRow = ({ label, value, bold, negative }: { label: string; value: number; bold?: boolean; negative?: boolean }) => {
+  const signed = negative && value > 0 ? -value : value;
+  const display = signed === 0 ? "0" : signed > 0 ? formatNumberSpaces(signed) : `-${formatNumberSpaces(Math.abs(signed))}`;
   return (
     <div className={`flex justify-between items-center ${bold ? "font-bold" : ""}`}>
       <span>{label}</span>
