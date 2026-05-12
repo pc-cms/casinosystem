@@ -60,6 +60,8 @@ const CloseShiftPage = lazy(() => import("@/pages/cage/CloseShiftPage"));
 const RegisterPlayerPage = lazy(() => import("@/pages/cage/RegisterPlayerPage"));
 const EditOpeningChipsPage = lazy(() => import("@/pages/cage/EditOpeningChipsPage"));
 const CageClosingsPage = lazy(() => import("@/pages/cage/CageClosingsPage"));
+const CageViewPage = lazy(() => import("@/pages/cage/CageViewPage"));
+const ExpensesApprovals = lazy(() => import("@/pages/ExpensesApprovals"));
 const CloseTablesPage = lazy(() => import("@/pages/tables/CloseTablesPage"));
 
 const UserNewPage = lazy(() => import("@/pages/admin/UserNewPage"));
@@ -173,10 +175,12 @@ const ProtectedRoutes = () => {
           <Route path="/players/:id" element={<RoleGuard path="/players/:id"><PlayerProfile /></RoleGuard>} />
           
           <Route path="/cage" element={<RoleGuard path="/cage"><ErrorBoundary><Cage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/cage/view" element={<RoleGuard path="/cage/view"><ErrorBoundary><CageViewPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/cage/close-shift" element={<RoleGuard path="/cage"><ErrorBoundary><CloseShiftPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/cage/closings" element={<RoleGuard path="/cage/closings"><ErrorBoundary><CageClosingsPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/cage/shift/:id/edit-opening" element={<RoleGuard path="/cage"><ErrorBoundary><EditOpeningChipsPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/players/register" element={<RoleGuard path="/cage"><ErrorBoundary><RegisterPlayerPage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/expenses/approvals" element={<RoleGuard path="/expenses/approvals"><ErrorBoundary><ExpensesApprovals /></ErrorBoundary></RoleGuard>} />
           <Route path="/reception" element={<RoleGuard path="/reception"><Reception /></RoleGuard>} />
           <Route path="/guests" element={<RoleGuard path="/guests"><Guests /></RoleGuard>} />
           
