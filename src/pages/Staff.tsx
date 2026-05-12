@@ -110,7 +110,7 @@ const Staff = ({ forcedTab, forcedGroup }: StaffProps = {}) => {
   }, [month]);
 
   const [searchParams] = useSearchParams();
-  const activeTab = searchParams.get("tab") || "employee";
+  const activeTab = forcedTab || searchParams.get("tab") || "employee";
 
   const isRotaTab = activeTab.startsWith("rota_");
   const isPast = month < currentMonth;
@@ -121,7 +121,7 @@ const Staff = ({ forcedTab, forcedGroup }: StaffProps = {}) => {
   const rotaGroup = rotaGroupKey ? ROTA_GROUPS[rotaGroupKey] : null;
 
   // Attendance is scoped to a group (mirrors Rota grouping). Default: floor.
-  const attGroupParam = (searchParams.get("group") || "floor") as RotaGroupKey;
+  const attGroupParam = (forcedGroup || searchParams.get("group") || "floor") as RotaGroupKey;
   const attGroupKey: RotaGroupKey = (ROTA_GROUPS as any)[attGroupParam] ? attGroupParam : "floor";
 
   const showMonthNav = isRotaTab || activeTab === "attendance";
