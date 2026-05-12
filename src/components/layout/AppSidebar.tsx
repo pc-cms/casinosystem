@@ -691,6 +691,7 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
           >
             <RefreshCw className="w-3.5 h-3.5" />
           </button>
+          <InstallPWAButton iconOnly />
           <LogoutButton
             title="Sign out"
             className="h-7 flex-1 flex items-center justify-center rounded-md text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
