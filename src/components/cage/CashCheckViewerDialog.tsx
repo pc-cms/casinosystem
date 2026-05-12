@@ -48,7 +48,7 @@ const ChipsView = ({ chips }: { chips: Record<number, number> }) => (
       const qty = chips[d] || 0;
       return (
         <div key={d} className="flex items-center justify-between gap-2 text-xs font-mono">
-          <span className="cms-chip-token">{formatChipLabel(d)}</span>
+          <ChipToken denom={d} />
           <span className={`tabular-nums ${qty > 0 ? "text-card-foreground" : "text-muted-foreground/50"}`}>{qty || "·"}</span>
           <span className="tabular-nums text-muted-foreground text-[10px] w-20 text-right">
             {qty > 0 ? formatNumberSpaces(qty * d) : "·"}
