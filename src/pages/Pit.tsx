@@ -20,6 +20,7 @@ import { UNIFIED_SHIFT_COLORS, UNIFIED_ATT_COLORS, UNIFIED_SHIFT_TINTS } from "@
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { PitShell } from "@/components/pit/PitShell";
+import { CellPicker, type CellPickerRow } from "@/components/grids/CellPicker";
 
 
 const ROTA_SHIFTS = ["M", "N", "L", "E", "O"] as const;
