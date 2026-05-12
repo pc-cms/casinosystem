@@ -9,7 +9,7 @@
  */
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Landmark, ArrowDownToLine, CreditCard, ArrowLeftRight, Coins } from "lucide-react";
+import { Landmark, ArrowDownToLine, CreditCard, ArrowLeftRight, Coins, Calculator } from "lucide-react";
 import { DateNavigator } from "@/components/ui/date-navigator";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
@@ -17,7 +17,6 @@ import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/currency";
 import { useCashless } from "@/hooks/use-cashless";
@@ -25,6 +24,9 @@ import { useChipTransfers } from "@/hooks/use-chip-transfers";
 import { usePlayers, useGamingTables } from "@/hooks/use-casino-data";
 import { getBusinessDate, businessDayHourUTC } from "@/lib/business-day";
 import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
+import { useCashChecksByBusinessDate } from "@/hooks/use-cash-checks-by-date";
+import CashCheckViewerDialog from "@/components/cage/CashCheckViewerDialog";
+import type { Tables } from "@/integrations/supabase/types";
 
 const MAX_DAYS_BACK = 90;
 
@@ -91,6 +93,31 @@ const CageHistoryView = () => {
   // Chip transfers for the date (uses existing hook scoped by day)
   const { data: chipTransfers = [] } = useChipTransfers(date);
 
+  // Cashier checks (cash_counts of count_type='check') for the business date
+  const { data: cashChecks = [] } = useCashChecksByBusinessDate(date);
+  const checkUserIds = useMemo(
+    () => Array.from(new Set((cashChecks || []).map((c: any) => c.counted_by).filter(Boolean))),
+    [cashChecks]
+  );
+  const { data: checkProfiles = [] } = useQuery({
+    queryKey: ["surv-check-profiles", casinoId, checkUserIds.join(",")],
+    queryFn: async () => {
+      if (!casinoId || checkUserIds.length === 0) return [] as any[];
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("user_id, display_name")
+        .in("user_id", checkUserIds);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!casinoId && checkUserIds.length > 0,
+  });
+  const cashierMap = useMemo(
+    () => new Map((checkProfiles as any[]).map((p) => [p.user_id, p.display_name])),
+    [checkProfiles]
+  );
+  const [viewerCheck, setViewerCheck] = useState<Tables<"cash_counts"> | null>(null);
+
   // Cashless provider filter (Mobile Money providers)
   const [providerFilter, setProviderFilter] = useState<string>("ALL");
   const cashlessFiltered = useMemo(() =>
@@ -140,9 +167,12 @@ const CageHistoryView = () => {
       </PageHeader>
 
       <Tabs defaultValue="inout" className="space-y-3">
-        <TabsList className="w-full grid grid-cols-4 h-11">
+        <TabsList className="w-full grid grid-cols-5 h-11">
           <TabsTrigger value="inout" className="gap-1.5 text-sm font-semibold">
             <ArrowDownToLine className="w-4 h-4" /> IN / OUT
+          </TabsTrigger>
+          <TabsTrigger value="checks" className="gap-1.5 text-sm font-semibold">
+            <Calculator className="w-4 h-4" /> Checks
           </TabsTrigger>
           <TabsTrigger value="cashless" className="gap-1.5 text-sm font-semibold">
             <CreditCard className="w-4 h-4" /> Cashless
@@ -163,7 +193,49 @@ const CageHistoryView = () => {
           </div>
         </TabsContent>
 
-        {/* Cashless */}
+        {/* Cashier checks */}
+        <TabsContent value="checks" className="space-y-3">
+          <div className="cms-panel">
+            <div className="cms-header">Cashier Checks ({cashChecks.length})</div>
+            <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
+              <table className="w-full text-xs">
+                <thead className="sticky top-0 bg-card z-10">
+                  <tr className="border-b border-border">
+                    {["Time", "Cashier", "Counted", "Diff"].map(h => (
+                      <th key={h} className={`px-3 py-1.5 font-medium text-muted-foreground uppercase ${h === "Counted" || h === "Diff" || h === "Time" ? "text-right" : "text-left"}`}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {cashChecks.length === 0 ? (
+                    <tr><td colSpan={4} className="text-center text-muted-foreground py-6">No checks for this day</td></tr>
+                  ) : cashChecks.map((cc: any) => {
+                    const t = (cc.denominations || {}).totals || {};
+                    const diff = Number(t.difference ?? 0);
+                    const balanced = !!t.balanced || diff === 0;
+                    return (
+                      <tr
+                        key={cc.id}
+                        onClick={() => setViewerCheck(cc)}
+                        className="border-b border-border last:border-0 cursor-pointer hover:bg-accent/30 transition-colors"
+                      >
+                        <td className="px-3 py-1.5 text-right font-mono text-[10px] text-muted-foreground">
+                          {new Date(cc.created_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
+                        </td>
+                        <td className="px-3 py-1.5">{cashierMap.get(cc.counted_by) || "—"}</td>
+                        <td className="px-3 py-1.5 text-right font-mono font-medium">{formatCurrency(Number(cc.total))}</td>
+                        <td className={`px-3 py-1.5 text-right font-mono font-bold ${balanced ? "text-success" : "text-destructive"}`}>
+                          {balanced ? "Balanced" : `${diff >= 0 ? "+" : ""}${formatCurrency(diff)}`}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </TabsContent>
+
         <TabsContent value="cashless" className="space-y-3">
           <div className="cms-panel">
             <div className="cms-header flex items-center justify-between gap-2 flex-wrap">
@@ -309,6 +381,13 @@ const CageHistoryView = () => {
           </div>
         </TabsContent>
       </Tabs>
+
+      <CashCheckViewerDialog
+        open={!!viewerCheck}
+        onOpenChange={(o) => { if (!o) setViewerCheck(null); }}
+        check={viewerCheck}
+        cashierName={viewerCheck ? cashierMap.get(viewerCheck.counted_by) : undefined}
+      />
     </PageShell>
   );
 };

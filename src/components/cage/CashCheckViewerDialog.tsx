@@ -4,7 +4,8 @@
  * Empty sections are collapsed (<details>) so the viewer can verify zeros.
  */
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
-import { CURRENCIES, CASH_DENOMS, CHIP_DENOMS, formatCurrency, formatNumberSpaces, formatChipLabel, formatCashDenomLabel, CURRENCY_SYMBOLS } from "@/lib/currency";
+import ChipToken from "@/components/ChipToken";
+import { CURRENCIES, CASH_DENOMS, CHIP_DENOMS, formatCurrency, formatNumberSpaces, formatCashDenomLabel, CURRENCY_SYMBOLS } from "@/lib/currency";
 import { MOBILE_PROVIDERS } from "@/components/cage/CageHelpers";
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -47,7 +48,7 @@ const ChipsView = ({ chips }: { chips: Record<number, number> }) => (
       const qty = chips[d] || 0;
       return (
         <div key={d} className="flex items-center justify-between gap-2 text-xs font-mono">
-          <span className="cms-chip-token">{formatChipLabel(d)}</span>
+          <ChipToken denom={d} />
           <span className={`tabular-nums ${qty > 0 ? "text-card-foreground" : "text-muted-foreground/50"}`}>{qty || "·"}</span>
           <span className="tabular-nums text-muted-foreground text-[10px] w-20 text-right">
             {qty > 0 ? formatNumberSpaces(qty * d) : "·"}
