@@ -60,8 +60,8 @@ export const UserProfileDialog = ({ open, onOpenChange }: Props) => {
             <span className="font-medium">{displayName ?? "—"}</span>
           </div>
           <div className="flex justify-between gap-2">
-            <span className="text-muted-foreground">Email</span>
-            <span className="font-mono text-xs">{user?.email ?? "—"}</span>
+            <span className="text-muted-foreground">Login</span>
+            <span className="font-mono text-xs">{user?.email?.split("@")[0] ?? "—"}</span>
           </div>
           <div className="flex justify-between gap-2">
             <span className="text-muted-foreground">Role</span>
