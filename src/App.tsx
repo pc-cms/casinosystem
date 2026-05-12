@@ -173,7 +173,7 @@ const getDefaultRoute = (roles: string[]) => {
     return "/";
   }
   if (roles.includes("hr") && !roles.some(r => ["manager", "pit", "cashier", "reception", "finance_manager", "surveillance", "super_admin"].includes(r))) {
-    return "/staff";
+    return "/staff/employees";
   }
   if (roles.includes("reception") && !roles.some(r => ["manager", "pit", "cashier", "finance_manager", "surveillance", "super_admin", "hr"].includes(r))) {
     return "/reception";
