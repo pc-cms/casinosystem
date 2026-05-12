@@ -139,18 +139,18 @@ const CashCheckViewerDialog = ({
     >
       <div className="space-y-4">
         {/* Totals strip */}
-        <div className="grid grid-cols-3 gap-2 cms-panel p-3">
+        <div className="grid grid-cols-3 gap-2 cms-panel p-4">
           <div className="text-center">
-            <p className="text-[9px] uppercase text-muted-foreground">Expected</p>
-            <p className="font-mono text-sm font-bold text-card-foreground">{formatCurrency(expected)}</p>
+            <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Expected</p>
+            <p className="font-mono text-2xl font-bold text-card-foreground whitespace-nowrap">{formatCurrency(expected)}</p>
           </div>
           <div className="text-center">
-            <p className="text-[9px] uppercase text-muted-foreground">Counted</p>
-            <p className="font-mono text-sm font-bold text-card-foreground">{formatCurrency(counted)}</p>
+            <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Counted</p>
+            <p className="font-mono text-2xl font-bold text-card-foreground whitespace-nowrap">{formatCurrency(counted)}</p>
           </div>
           <div className="text-center">
-            <p className="text-[9px] uppercase text-muted-foreground">Diff</p>
-            <p className={`font-mono text-sm font-bold ${balanced ? "text-success" : "text-destructive"}`}>
+            <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Diff</p>
+            <p className={`font-mono text-2xl font-bold whitespace-nowrap ${balanced ? "text-success" : "text-destructive"}`}>
               {balanced ? "Balanced" : `${diff >= 0 ? "+" : ""}${formatCurrency(diff)}`}
             </p>
           </div>
