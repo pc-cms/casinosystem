@@ -3,11 +3,13 @@ import { useOpenShift, useLastClosedShift } from "@/hooks/use-shift";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { NumberInput } from "@/components/ui/number-input";
-import { Play, Settings2, ChevronRight, ChevronLeft, Landmark, Pencil } from "lucide-react";
+import { Play, Settings2, ChevronRight, ChevronLeft, Landmark, Pencil, ShieldAlert } from "lucide-react";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
+import OpeningDeltaConfirmDialog from "@/components/cage/OpeningDeltaConfirmDialog";
+import { logAction } from "@/lib/logging";
 import {
   CHIP_DENOMS, formatCurrency, formatNumberSpaces, CURRENCIES, FOREIGN_CURRENCIES,
   DEFAULT_EXCHANGE_RATES, CASH_DENOMS,
