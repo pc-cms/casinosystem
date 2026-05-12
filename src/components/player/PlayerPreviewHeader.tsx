@@ -87,7 +87,8 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
   const playerId = playerIdProp !== undefined ? playerIdProp : ctx.playerId;
   const { data: player, isLoading } = usePlayer(playerId || undefined);
   const { data: visits = [] } = usePlayerVisits(playerId || undefined);
-  const { data: monthStats } = useThisMonthPlayerStats(playerId);
+  const { data: businessDate } = useEffectiveBusinessDate();
+  const { data: dayStats } = useTodayPlayerStats(playerId, businessDate || undefined);
   const nav = useNavigate();
   const { roles } = useAuth();
   const showFinancials = canSeePlayerFinancials(roles || []);
