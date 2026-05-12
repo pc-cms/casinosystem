@@ -125,6 +125,11 @@ const Admin = () => {
           <TabsTrigger value="users" className="gap-1.5">
             <Shield className="w-3.5 h-3.5" /> Users & Roles
           </TabsTrigger>
+          {isSuperAdmin && (
+            <TabsTrigger value="role-defaults" className="gap-1.5">
+              <ShieldCheck className="w-3.5 h-3.5" /> Role Defaults
+            </TabsTrigger>
+          )}
           <TabsTrigger value="schedule" className="gap-1.5">
             <Clock className="w-3.5 h-3.5" /> Working Hours
           </TabsTrigger>
@@ -154,6 +159,7 @@ const Admin = () => {
         )}
 
         <TabsContent value="users"><UsersTab /></TabsContent>
+        {isSuperAdmin && <TabsContent value="role-defaults"><RoleDefaultsEditor /></TabsContent>}
         <TabsContent value="schedule"><ScheduleSettings /></TabsContent>
         <TabsContent value="tables"><TableManagement /></TabsContent>
         <TabsContent value="float">
