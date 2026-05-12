@@ -98,55 +98,27 @@ const FullScreenLoader = ({ label = "Loading CMS..." }: { label?: string }) => (
   </div>
 );
 
-// Role-based route access map.
-// Surveillance gets a strict allow-list: Dashboard, Pit, Player Statistics, Cage, Blacklist, and the Player card.
-const ROUTE_ROLES: Record<string, string[]> = {
-  "/": ["super_admin", "manager", "pit", "reception", "finance_manager", "surveillance"],
-  
-  "/players/:id": ["super_admin", "manager", "pit", "reception", "finance_manager", "surveillance"],
-  "/guests": ["super_admin", "manager", "pit", "reception", "finance_manager", "surveillance"],
-  "/blacklist": ["super_admin", "manager", "reception", "finance_manager", "surveillance"],
-  "/reception": ["super_admin", "manager", "reception", "cashier", "finance_manager"],
-  "/cage": ["super_admin", "manager", "cashier", "finance_manager", "surveillance"],
-  "/cage/closings": ["super_admin", "manager", "finance_manager"],
-  "/tables": ["super_admin", "manager", "cashier", "pit", "finance_manager", "surveillance"],
-  "/active-players": ["super_admin", "manager", "pit", "finance_manager", "surveillance"],
-  "/player-statistics": ["super_admin", "manager", "pit", "finance_manager", "surveillance"],
-  "/table-tracker": ["super_admin", "manager", "pit", "finance_manager", "surveillance"],
-  "/tables/analytics": ["super_admin", "manager", "finance_manager", "pit", "surveillance"],
-  "/expenses": ["super_admin", "manager", "cashier", "finance_manager"],
-  "/cashless": ["super_admin", "manager", "cashier", "finance_manager"],
-  "/pit": ["super_admin", "manager", "pit", "finance_manager", "hr", "surveillance"],
-  "/floor": ["super_admin", "manager", "pit", "finance_manager", "hr"],
-  "/groups": ["super_admin", "manager", "finance_manager"],
-  "/finance": ["super_admin", "manager", "finance_manager"],
-  "/finance/wallets": ["super_admin", "manager", "finance_manager"],
-  "/finance/dashboard": ["super_admin", "manager", "finance_manager"],
-  "/finance/review": ["super_admin", "manager", "finance_manager"],
-  "/finance/expenses": ["super_admin", "manager", "finance_manager"],
-  "/finance/budget": ["super_admin", "manager", "finance_manager"],
-  "/finance/cash-count": ["super_admin", "manager", "finance_manager"],
-  "/finance/summary": ["super_admin", "finance_manager"],
-  "/finance/transfers": ["super_admin", "finance_manager"],
-  "/reports": ["super_admin", "manager", "finance_manager"],
-  "/logs": ["super_admin", "manager", "finance_manager"],
-  "/admin": ["super_admin", "finance_manager"],
-  "/import-reports": ["super_admin", "manager"],
-  "/table-results": ["super_admin", "manager", "finance_manager", "surveillance"],
-  "/staff": ["super_admin", "manager", "pit", "finance_manager", "hr"],
-  "/bank-checks": ["super_admin", "manager", "finance_manager"],
-  "/miss-chips": ["super_admin", "manager", "finance_manager"],
-  "/business-days": ["super_admin", "manager", "finance_manager"],
-  "/weekly-bonus": ["super_admin", "manager", "finance_manager"],
-  
-  "/pitbook": ["super_admin", "manager", "pit", "finance_manager", "surveillance"],
-  "/incidents": ["super_admin", "manager", "pit", "finance_manager", "surveillance"],
-};
+// Route → access is now driven by the Permission Matrix (single source of truth).
+// We resolve each route to a module key via `moduleKeyForRoute` and check the
+// user's effective allow-list. Super admin bypasses. Routes with no module
+// mapping (auxiliary screens) are not gated here.
+import { moduleKeyForRoute as resolveRouteModule } from "@/lib/route-module-map";
+import { useMyModulePermissions } from "@/hooks/use-module-permissions";
 
 const RoleGuard = ({ path, children }: { path: string; children: React.ReactNode }) => {
   const { roles } = useAuth();
-  const allowed = ROUTE_ROLES[path];
-  if (allowed && !roles.some(r => allowed.includes(r))) {
+  const { data: allowedModules, isLoading } = useMyModulePermissions();
+  const isSuper = roles.includes("super_admin");
+  if (isSuper) return <>{children}</>;
+
+  const moduleKey = resolveRouteModule(path);
+  // No mapping → not gated by matrix (auxiliary route)
+  if (!moduleKey) return <>{children}</>;
+
+  // Still loading → render nothing yet (avoid flicker / wrong redirect)
+  if (isLoading || allowedModules === undefined) return <FullScreenLoader />;
+
+  if (!allowedModules.has(moduleKey)) {
     const fallback = roles.includes("cashier") ? "/cage" : "/";
     return <Navigate to={path === "/" ? fallback : "/"} replace />;
   }
