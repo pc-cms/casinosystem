@@ -34,6 +34,8 @@ export type ModuleKey =
   | "miss_chips"
   | "groups"
   | "staff"
+  | "staff_master"
+  | "payroll"
   | "logs"
   | "cctv"
   | "import_reports"
@@ -73,6 +75,8 @@ export const MODULES: ModuleDef[] = [
   { key: "import_reports", label: "Import Reports", group: "Reports" },
   { key: "logs", label: "Activity Logs", group: "Reports" },
   { key: "staff", label: "Staff", group: "System" },
+  { key: "staff_master", label: "Staff Master (HR)", group: "System" },
+  { key: "payroll", label: "Payroll", group: "Finance" },
   { key: "cctv", label: "CCTV", group: "System" },
   { key: "admin", label: "Admin Panel", group: "System" },
 ];

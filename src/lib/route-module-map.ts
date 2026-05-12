@@ -35,12 +35,16 @@ export const moduleKeyForRoute = (to: string, label?: string): ModuleKey | null 
   }
 
   // ============= STAFF / FLOOR =============
+  if (base === "/staff/master") return "staff_master";
   if (base === "/staff" || base === "/floor") {
     if (tab === "attendance") return "pit_attendance";
     if (tab === "employee") return "staff";
     // rota_floor / rota_security / rota_office and default
     return "staff";
   }
+
+  // ============= PAYROLL =============
+  if (base === "/payroll" || base.startsWith("/payroll/")) return "payroll";
 
   // ============= TABLES & TRACKERS =============
   if (base === "/tables") return "tables";

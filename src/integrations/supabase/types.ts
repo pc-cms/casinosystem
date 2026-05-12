@@ -1668,6 +1668,119 @@ export type Database = {
           },
         ]
       }
+      employee_bank_accounts: {
+        Row: {
+          account_number: string
+          bank_code: string
+          bank_name: string
+          branch_code: string
+          created_at: string
+          employee_id: string
+          id: string
+          is_primary: boolean
+        }
+        Insert: {
+          account_number?: string
+          bank_code?: string
+          bank_name?: string
+          branch_code?: string
+          created_at?: string
+          employee_id: string
+          id?: string
+          is_primary?: boolean
+        }
+        Update: {
+          account_number?: string
+          bank_code?: string
+          bank_name?: string
+          branch_code?: string
+          created_at?: string
+          employee_id?: string
+          id?: string
+          is_primary?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_bank_accounts_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employees: {
+        Row: {
+          basic_salary: number
+          casino_id: string
+          created_at: string
+          created_by: string | null
+          department: string
+          employment_date: string | null
+          full_name: string
+          gepf_number: string | null
+          id: string
+          nssf_number: string | null
+          payroll_status: string
+          photo_url: string | null
+          position: string
+          staff_member_id: string | null
+          tax_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          basic_salary?: number
+          casino_id: string
+          created_at?: string
+          created_by?: string | null
+          department?: string
+          employment_date?: string | null
+          full_name: string
+          gepf_number?: string | null
+          id?: string
+          nssf_number?: string | null
+          payroll_status?: string
+          photo_url?: string | null
+          position?: string
+          staff_member_id?: string | null
+          tax_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          basic_salary?: number
+          casino_id?: string
+          created_at?: string
+          created_by?: string | null
+          department?: string
+          employment_date?: string | null
+          full_name?: string
+          gepf_number?: string | null
+          id?: string
+          nssf_number?: string | null
+          payroll_status?: string
+          photo_url?: string | null
+          position?: string
+          staff_member_id?: string | null
+          tax_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employees_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_staff_member_id_fkey"
+            columns: ["staff_member_id"]
+            isOneToOne: false
+            referencedRelation: "staff_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       expenses: {
         Row: {
           amount: number
@@ -2099,6 +2212,301 @@ export type Database = {
             foreignKeyName: "local_servers_casino_id_fkey"
             columns: ["casino_id"]
             isOneToOne: true
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payroll_audit_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          casino_id: string
+          created_at: string
+          details: Json
+          id: string
+          period_id: string | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          casino_id: string
+          created_at?: string
+          details?: Json
+          id?: string
+          period_id?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          casino_id?: string
+          created_at?: string
+          details?: Json
+          id?: string
+          period_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_audit_log_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_periods"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payroll_entries: {
+        Row: {
+          cash_shortage: number
+          casino_id: string
+          created_at: string
+          deductions_missing_days: number
+          employee_id: string
+          gepf_employee: number
+          gepf_loan: number
+          gross_salary: number
+          hrs_worked_on_holiday: number
+          id: string
+          missing_days: number
+          net_salary: number
+          night_allowance: number
+          night_allowance_hours: number
+          night_days: number
+          nssf_employee: number
+          nssf_employer: number
+          off_days: number
+          off_days_hours: number
+          off_days_total: number
+          paye: number
+          period_id: string
+          public_holiday_earned: number
+          public_holiday_worked: number
+          salary_advances: number
+          sdl_amount: number
+          snapshot_account_number: string
+          snapshot_bank_code: string
+          snapshot_basic_salary: number
+          snapshot_branch_code: string
+          snapshot_full_name: string
+          snapshot_position: string
+          taxable_pay: number
+          updated_at: string
+          wcf_amount: number
+        }
+        Insert: {
+          cash_shortage?: number
+          casino_id: string
+          created_at?: string
+          deductions_missing_days?: number
+          employee_id: string
+          gepf_employee?: number
+          gepf_loan?: number
+          gross_salary?: number
+          hrs_worked_on_holiday?: number
+          id?: string
+          missing_days?: number
+          net_salary?: number
+          night_allowance?: number
+          night_allowance_hours?: number
+          night_days?: number
+          nssf_employee?: number
+          nssf_employer?: number
+          off_days?: number
+          off_days_hours?: number
+          off_days_total?: number
+          paye?: number
+          period_id: string
+          public_holiday_earned?: number
+          public_holiday_worked?: number
+          salary_advances?: number
+          sdl_amount?: number
+          snapshot_account_number?: string
+          snapshot_bank_code?: string
+          snapshot_basic_salary?: number
+          snapshot_branch_code?: string
+          snapshot_full_name: string
+          snapshot_position?: string
+          taxable_pay?: number
+          updated_at?: string
+          wcf_amount?: number
+        }
+        Update: {
+          cash_shortage?: number
+          casino_id?: string
+          created_at?: string
+          deductions_missing_days?: number
+          employee_id?: string
+          gepf_employee?: number
+          gepf_loan?: number
+          gross_salary?: number
+          hrs_worked_on_holiday?: number
+          id?: string
+          missing_days?: number
+          net_salary?: number
+          night_allowance?: number
+          night_allowance_hours?: number
+          night_days?: number
+          nssf_employee?: number
+          nssf_employer?: number
+          off_days?: number
+          off_days_hours?: number
+          off_days_total?: number
+          paye?: number
+          period_id?: string
+          public_holiday_earned?: number
+          public_holiday_worked?: number
+          salary_advances?: number
+          sdl_amount?: number
+          snapshot_account_number?: string
+          snapshot_bank_code?: string
+          snapshot_basic_salary?: number
+          snapshot_branch_code?: string
+          snapshot_full_name?: string
+          snapshot_position?: string
+          taxable_pay?: number
+          updated_at?: string
+          wcf_amount?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_entries_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_entries_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_entries_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_periods"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payroll_periods: {
+        Row: {
+          casino_id: string
+          created_at: string
+          created_by: string | null
+          hr_approved_at: string | null
+          hr_approved_by: string | null
+          id: string
+          locked_at: string | null
+          manager_approved_at: string | null
+          manager_approved_by: string | null
+          month: number
+          status: string
+          unlock_reason: string | null
+          unlocked_at: string | null
+          unlocked_by: string | null
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          casino_id: string
+          created_at?: string
+          created_by?: string | null
+          hr_approved_at?: string | null
+          hr_approved_by?: string | null
+          id?: string
+          locked_at?: string | null
+          manager_approved_at?: string | null
+          manager_approved_by?: string | null
+          month: number
+          status?: string
+          unlock_reason?: string | null
+          unlocked_at?: string | null
+          unlocked_by?: string | null
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          casino_id?: string
+          created_at?: string
+          created_by?: string | null
+          hr_approved_at?: string | null
+          hr_approved_by?: string | null
+          id?: string
+          locked_at?: string | null
+          manager_approved_at?: string | null
+          manager_approved_by?: string | null
+          month?: number
+          status?: string
+          unlock_reason?: string | null
+          unlocked_at?: string | null
+          unlocked_by?: string | null
+          updated_at?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_periods_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payroll_settings: {
+        Row: {
+          casino_id: string
+          created_at: string
+          effective_from: string
+          gepf_pct: number
+          hours_per_month: number
+          id: string
+          night_hours_per_day: number
+          night_rate_pct: number
+          nssf_employee_pct: number
+          nssf_employer_pct: number
+          sdl_pct: number
+          wcf_pct: number
+          working_days: number
+        }
+        Insert: {
+          casino_id: string
+          created_at?: string
+          effective_from: string
+          gepf_pct?: number
+          hours_per_month?: number
+          id?: string
+          night_hours_per_day?: number
+          night_rate_pct?: number
+          nssf_employee_pct?: number
+          nssf_employer_pct?: number
+          sdl_pct?: number
+          wcf_pct?: number
+          working_days?: number
+        }
+        Update: {
+          casino_id?: string
+          created_at?: string
+          effective_from?: string
+          gepf_pct?: number
+          hours_per_month?: number
+          id?: string
+          night_hours_per_day?: number
+          night_rate_pct?: number
+          nssf_employee_pct?: number
+          nssf_employer_pct?: number
+          sdl_pct?: number
+          wcf_pct?: number
+          working_days?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_settings_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
             referencedRelation: "casinos"
             referencedColumns: ["id"]
           },
@@ -3036,6 +3444,39 @@ export type Database = {
         }
         Relationships: []
       }
+      tax_brackets: {
+        Row: {
+          base_tax: number
+          bracket_order: number
+          created_at: string
+          effective_from: string
+          id: string
+          lower_bound: number
+          rate_pct: number
+          upper_bound: number | null
+        }
+        Insert: {
+          base_tax?: number
+          bracket_order: number
+          created_at?: string
+          effective_from: string
+          id?: string
+          lower_bound: number
+          rate_pct: number
+          upper_bound?: number | null
+        }
+        Update: {
+          base_tax?: number
+          bracket_order?: number
+          created_at?: string
+          effective_from?: string
+          id?: string
+          lower_bound?: number
+          rate_pct?: number
+          upper_bound?: number | null
+        }
+        Relationships: []
+      }
       transactions: {
         Row: {
           amount: number
@@ -3629,6 +4070,10 @@ export type Database = {
         Returns: Json
       }
       close_open_sessions_5am: { Args: never; Returns: Json }
+      compute_paye_for_amount: {
+        Args: { _amount: number; _at: string }
+        Returns: number
+      }
       compute_player_drop_split: {
         Args: { _from?: string; _player_id: string; _to?: string }
         Returns: {
@@ -3778,6 +4223,27 @@ export type Database = {
           display_name: string
           user_id: string
         }[]
+      }
+      payroll_approve_hr: { Args: { _period_id: string }; Returns: undefined }
+      payroll_approve_manager: {
+        Args: { _period_id: string }
+        Returns: undefined
+      }
+      payroll_create_period: {
+        Args: { _casino_id?: string; _month: number; _year: number }
+        Returns: string
+      }
+      payroll_duplicate_period: {
+        Args: { _month: number; _source_period_id: string; _year: number }
+        Returns: string
+      }
+      payroll_revert_to_draft: {
+        Args: { _period_id: string; _reason?: string }
+        Returns: undefined
+      }
+      payroll_unlock_period: {
+        Args: { _period_id: string; _reason: string }
+        Returns: undefined
       }
       player_active_visit_casino: {
         Args: { _player_id: string }
