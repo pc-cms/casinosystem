@@ -238,8 +238,11 @@ const SidebarSections = ({
     subs: VirtualSub[],
   ) => {
     const groupKey = `__virtual:${key}`;
-    const matchSub = (s: VirtualSub) =>
-      location.pathname === s.matchPath && currentTab === s.matchTab && (!s.matchGroup || currentGroup === s.matchGroup);
+    const matchSub = (s: VirtualSub) => {
+      // Phase 2: flat-URL subs (no matchTab) match by pathname only.
+      if (!s.matchTab) return location.pathname === s.matchPath;
+      return location.pathname === s.matchPath && currentTab === s.matchTab && (!s.matchGroup || currentGroup === s.matchGroup);
+    };
     const isGroupActive = subs.some(matchSub);
     const isOpen = open[groupKey] ?? isGroupActive;
     return (
