@@ -1,295 +1,223 @@
-# Universal Header — Global Sortable/Filterable Tables
+# Floor Manager Parity & Expenses ↔ Payments Split
 
-> Saved for later. Casino is live — do NOT implement until user gives the green light.
-
-## Goal
-
-Один универсальный механизм сортировки, фильтрации, видимости колонок, экспорта и сохранённых видов для ВСЕХ табличных страниц системы. Никаких локальных «своих» сортов в каждом компоненте — всё через общий API.
-
-## Architecture
-
-### 1. Core: `DataTableV2` (новый компонент, рядом со старым `DataTable`)
-
-Файл: `src/components/ui/data-table-v2.tsx` + хук `src/hooks/use-table-state.ts`.
-
-API через декларативные колонки:
-
-```ts
-type ColumnDef<Row> = {
-  id: string;                 // ключ для state/URL/storage
-  header: string;             // подпись + label в FilterBar
-  accessor: (r: Row) => unknown;        // значение для сортировки/фильтра
-  cell?: (r: Row) => ReactNode;         // кастомный рендер
-  align?: "left"|"right"|"center";
-  numeric?: boolean;          // моно-шрифт + правое выравнивание
-  sortable?: boolean;         // default true
-  filter?:
-    | { kind: "text" }
-    | { kind: "select", options?: () => Array<{value:string,label:string}> }
-    | { kind: "multiselect", options?: () => ... }
-    | { kind: "number-range" }
-    | { kind: "date-range" };
-  hidden?: boolean;
-  sticky?: boolean;
-  exportValue?: (r: Row) => string | number;
-};
-```
-
-Использование:
-
-```tsx
-<DataTableV2
-  tableId="payroll.entries"
-  rows={entries}
-  columns={cols}
-  rowKey={(r) => r.id}
-  onRowClick={...}
-  totalsRow={(rows) => ({ basic_salary: sum(...), net_salary: sum(...) })}
-/>
-```
-
-Внутри:
-- **FilterBar сверху** (через существующий `FilterBar`): поиск, per-column фильтры (Select/Input/DateRangePresets), кнопки `Columns`, `Export ▾`, `Views ▾`, `Reset`.
-- **Таблица** sticky thead, клик по th — сортировка (▲/▼, shift-click = вторичная), `sticky` колонка `position: sticky; left: 0`.
-- **Totals row** в `<tfoot>`.
-- Empty state «No rows match filters».
-
-### 2. State: `useTableState(tableId, columns)`
-
-Возвращает `{ filters, sort, hidden, view, derivedRows, setFilter, setSort, toggleColumn, ... }`.
-
-Persistence (и URL, и localStorage):
-- **URL query params** (текущая сессия): `?t.payroll.entries.sort=net_salary:desc&t.payroll.entries.f.bank=CRDB`. Префикс `t.<tableId>.` → не пересекается между таблицами на одной странице.
-- **localStorage** `cms.table.<tableId>.default` — последний набор применяется при заходе если URL пуст. `Reset to default` чистит URL.
-- **Saved views** `cms.table.<tableId>.views = [{name, state}]`. Меню `Views ▾` со списком + «Save current as…», «Manage…».
-
-### 3. Engine — чистые функции в `src/lib/table-engine.ts`
-- `applyFilters(rows, columns, filters)`
-- `applySort(rows, columns, sort)`
-- Стабильный sort, undefined/null в конец, числа через `accessor`, даты через `Date.parse`.
-- Глобальный поиск идёт по всем `text`-колонкам или с явным `searchable: true`.
-
-### 4. Export — `src/lib/table-export.ts`
-- `exportTableCsv(rows, columns, filename)` — `exportValue ?? accessor`, сырые числа, даты ISO.
-- `exportTableXlsx(rows, columns, filename)` — через `src/lib/excel-export.ts`.
-- Экспортируется отфильтрованный + отсортированный срез, только видимые колонки.
-
-### 5. Sticky первая колонка + горизонтальный скролл
-Обёртка `overflow-x-auto`, у sticky-колонки `sticky left-0 bg-card z-[1]` + теневой градиент справа.
-
-## Rollout plan
-
-### Phase A — Payroll & HR (главное по запросу)
-- `src/pages/payroll/PayrollPeriodPage.tsx` — фильтры department/bank/status, сорт, totals row остаётся.
-- `src/pages/Payroll.tsx` — список периодов (status, year, sort).
-- `src/pages/StaffMaster.tsx` — мастер-лист (department, role, active, bank, has_account).
-
-### Phase B — Финансы и журналы
-- `src/pages/Logs.tsx`, `src/pages/Expenses.tsx`, `src/pages/Cashless.tsx`, `src/pages/MissChips.tsx`, `src/pages/Reports.tsx`,
-- `src/pages/cage/CageClosingsPage.tsx`, `src/components/cage/CageHistoryView.tsx`, `src/components/cage/ChipMovementReport.tsx`,
-- `src/components/finance/FinanceExpenses.tsx`, `src/components/finance/InterCasinoTransfers.tsx`, `src/components/finance/BudgetPlanning.tsx`,
-- `src/components/bank-checks/BankChecksTable.tsx`, `src/components/bank-checks/ShiftSummaryTable.tsx`.
-
-### Phase C — Игроки и админка
-- `src/pages/Guests.tsx`, `src/pages/Blacklist.tsx`, `src/pages/PlayerStatistics.tsx`, `src/pages/WeeklyBonus.tsx`, `src/pages/Incidents.tsx`, `src/pages/Groups.tsx`, `src/pages/ImportReports.tsx`, `src/pages/BankChecks.tsx`,
-- `src/components/admin/users/UsersTab.tsx`, `src/components/admin/FloatManagement.tsx`, `src/components/admin/NetworkHealthPanel.tsx`, `src/components/admin/TableManagement.tsx`,
-- `src/components/player/PlayerVisitsBreakdown.tsx`, `src/components/player/PlayerChipAdjustmentsLog.tsx`, `src/components/player/PlayerChipTransfersLog.tsx`,
-- `src/components/business-days/SnapshotTable.tsx`, `src/components/business-days/ReportPanels.tsx`.
-
-### NOT migrated (спец-гриды и печатные отчёты)
-Pit BreaklistGrid, TableTracker, TableResults grid, ChipCountPanel, CloseTableWizard, CloseShiftDialog grids, ChipEmissionDialog, TransfersForm, ActiveShiftView, Dashboard виджеты, ShiftClosingReport / PrintPortal, CashCountGrid.
-
-## Memory updates (после внедрения)
-- Дополнить `mem://design/system-rules`: «Все list-таблицы используют `DataTableV2` с `tableId`».
-- Создать `mem://design/data-table-v2` с API и списком исключений.
-
-## Versioning
-Чистое frontend-изменение → patch-bump НЕ требуется (skip per "purely cosmetic UI tweaks" rule).
-
-## Safety / Rollout strategy (важно: казино работает 24/7)
-1. Имплементируем `DataTableV2` рядом со старым `DataTable` — никаких breaking changes.
-2. Phase A в нерабочее окно (≈ 06:00–10:00 EAT, после auto-close дня).
-3. Phase B и C — отдельными сессиями, по одной странице за раз с проверкой в preview перед публикацией.
-4. Старый `DataTable` НЕ удаляем до полной миграции всех страниц.
+> Цель: Floor Manager (Peter) получает **все** операционные привилегии Manager — апрувать кассирские расходы, использовать Manager Access Override, закрывать кассу, открывать закрытые столы и т.д. — но **без** доступа к финансовым штукам (Wallets, Finance Dashboard, Finance Summary, Finance Daily Review, Finance Cash Count). Параллельно: финансовый модуль "Expenses" переименовываем в **Payments** (это перевод денег с кошелька), а кассовые "Expenses" остаются как есть.
 
 ---
 
-# STAFF MASTER MIGRATION
+## 0. Корень проблемы
 
-> Saved for later. Casino is live — do NOT implement until user gives the green light.
-> Цель: единый реестр персонала в `employees` (Staff Master); старые `dealers`/`staff_members` остаются shadow-таблицами и зеркалируются триггерами, чтобы Pit Rota / Breaklist / Floor Rota / Attendance продолжали работать без изменений.
+Сейчас:
+- `isManager` в `auth-context.tsx:200` = `roles.includes("manager") || managerOverride.active`. **`floor_manager` сюда не входит**, поэтому 50+ мест в коде блокируют его (Approve expense, Manager Override gate, Pit past-day edit, Player blacklist, Cashless approve, etc.).
+- RLS `Managers approve expenses` (миграция `20260328180149`) проверяет только `has_role(uid,'manager')`. Даже если фронт даст кнопку — БД запретит.
+- ManagerOverrideDialog (RFID-проверка) принимает только `role === "manager"` — Floor Manager не может ни выступить аппрувером, ни активировать Override на себя.
+- Два модуля с именем "Expenses": `/expenses` (Cage расходы по кассе, immutable, approve кассиру) и `/finance/expenses` (списания с финансовых кошельков). Это путает пользователя.
 
-## 0. Текущее состояние (проблемы)
+---
 
-| Таблица | Назначение | Кол-во | Используется в |
-|---|---|---|---|
-| `dealers` | Live Game. `category` (trainee/dealer/inspector/expert/pit_boss), `is_pit_boss`, `salary numeric` | 29 | `pit_rota`, `dealer_attendance`, `breaklist`, `breaklist_logs`, `weekly_bonus_entries` |
-| `staff_members` | Floor/Security/Office. `department` enum, `salary numeric`. Категорий НЕТ | 40 | `staff_rota`, `staff_attendance` |
-| `employees` | HR/Payroll-мастер. `position TEXT`, `department TEXT`, `basic_salary BIGINT` | 40 | `payroll_entries`, `employee_bank_accounts` |
+## 1. Стратегия: «Floor Manager = Manager без денег»
 
-Проблемы текущего бэкфилла:
-- 40 строк `employees` имеют department из enum строкой, но `position` пустой.
-- 29 дилеров **не импортированы** в employees вообще.
-- `category` дилера и `is_pit_boss` нигде не сохранены в employees.
-- Нет полей `contract_start/end`, `is_active`, `staff_group`, разделения Live vs не-Live.
+Вводим единственное правило в коде: **везде, где сегодня проверяется `manager`-роль для операционных действий, добавляется `floor_manager`**. Финансовые поверхности уже корректно ограничены ролями `manager`/`finance_manager`/`super_admin` (см. AppSidebar роли FINANCE) — туда `floor_manager` не добавляем.
 
-## 1. Расширение схемы `employees`
+### 1a. Что разблокируем для Floor Manager
+
+| Способность | Где | Действие |
+|---|---|---|
+| Approve cashier expenses | RLS + `Expenses.tsx` `isManager` | ✅ |
+| Manager Access Override (toggle on self + RFID approve) | `ManagerOverrideDialog.tsx`, `auth-context.tsx` | ✅ |
+| Close Cage shift | RLS на `shifts`/`cage_*` | ✅ |
+| Reopen closed gaming tables | RLS + `useReopenTable` | ✅ |
+| Edit past-day Pit/Staff Rota & Attendance | `Pit.tsx`, `Staff.tsx` `isManager` гейт | ✅ |
+| Edit player category, blacklist, notes | `PlayerEditDialog.tsx`, `PlayerProfile.tsx` | ✅ |
+| Edit Business Days History (Pit-секции) | `use-business-day-history.ts` | ✅ |
+| Approve Cashless | `Cashless.tsx` `isManager` | ✅ |
+| Confirm Inter-Casino Transfers | `InterCasinoTransfers.tsx` `isManagerOrAbove` | ✅ |
+| Pitbook post/ack | `Pitbook.tsx` | ✅ |
+| Edit Players (full) / Issue cards | `PlayerEditDialog`, `Cage` actions | ✅ |
+| BreaklistGrid lock/unlock | `BreaklistGrid.tsx` | ✅ |
+| Manage tables (Admin → TableManagement) | проверить `RoleGuard` | ✅ |
+| Table Tracker edit | `TableTracker.tsx` | ✅ |
+| ImportReports | `ImportReports.tsx` | ✅ |
+| Close Business Day from Cage | RLS на `business_day_closures` + кнопка в Cage | ✅ |
+| Admin sidebar item | `AppSidebar.tsx` `isManager` → `canSeeAdmin` | ❌ оставить только для `manager`/`super_admin` |
+
+### 1b. Что НЕ разблокируем (финансы)
+
+| Поверхность | Текущая роль | Floor Manager? |
+|---|---|---|
+| `/finance/dashboard` (FinanceDashboard) | manager, finance_manager | ❌ |
+| `/finance/wallets` | manager, finance_manager | ❌ |
+| `/finance/summary` | finance_manager, super_admin | ❌ |
+| `/finance/review` (Daily Review) | manager, finance_manager | ❌ |
+| `/finance/cash-count` | manager, finance_manager | ❌ |
+| `/finance/budget` | manager, finance_manager | ❌ |
+| `/finance/transfers` (Inter-Casino) **просмотр** | manager, finance_manager | ❌ |
+| `/finance/expenses` → станет `/finance/payments` | manager, finance_manager | ❌ |
+| `/payroll/*` | hr, finance_manager, super_admin | ❌ |
+| Lifetime player financials (KPIs/Visits/Stats) | role-locked через `canSeePlayerFinancials` | оставить как есть (floor_manager уже = "shift" scope) |
+
+**Важно:** `getFinancialScope(['floor_manager'])` сейчас = `"shift"` — это корректно, не трогаем. Floor Manager видит **только текущий business day** для player-financials, как Pit. Manager Override **не повышает** до `"all"` — это сознательно (см. `Operational Business-Day Scope` memory).
+
+---
+
+## 2. Реализация — Frontend
+
+### 2a. `src/lib/auth-context.tsx`
+```diff
+- const isManager = roles.includes("manager") || managerOverride.active;
++ const isManager =
++   roles.includes("manager") ||
++   roles.includes("floor_manager") ||
++   managerOverride.active;
+```
+Это автоматически разблокирует **все** 30+ мест, где используется `isManager`. Risk: `Admin` сайдбар item — отдельно проверим, оставим за `manager`/`super_admin` (см. ниже).
+
+### 2b. `src/components/layout/AppSidebar.tsx`
+```diff
+- const canSeeAdmin = isManager;
++ const canSeeAdmin = roles.includes("manager") || roles.includes("super_admin");
+```
+(Admin даёт доступ к настройкам казино — это финансово-чувствительно.)
+
+### 2c. `src/components/ManagerOverrideDialog.tsx`
+```diff
+- const isManager = roles?.some(r => r.role === "manager");
++ const isManager = roles?.some(r => r.role === "manager" || r.role === "floor_manager");
+  if (!isManager) {
+-   setError(`${profile.display_name} is not a manager`);
++   setError(`${profile.display_name} is not a manager or floor manager`);
+```
+И аналогично в password-flow внутри того же диалога (если есть отдельная проверка). Это позволяет Floor Manager выступать аппрувером для Override, и активировать Override на себе самому (через тот же RFID/пароль flow).
+
+### 2d. `src/pages/Pitbook.tsx`
+```diff
+- const isManager = roles.includes("manager") || roles.includes("super_admin");
++ const isManager = roles.includes("manager") || roles.includes("floor_manager") || roles.includes("super_admin");
+```
+
+### 2e. `src/hooks/use-business-day-history.ts`
+```diff
+- const isManager = roles.includes("manager");
++ const isManager = roles.includes("manager") || roles.includes("floor_manager");
+```
+(Только Pit-секции; Finance-секции уже жёстко за `finance_manager`.)
+
+### 2f. Точечные ручные включения
+
+Пройти по списку из 1a и убедиться, что нет hard-coded `roles.includes("manager")` без Floor Manager. Кандидаты по grep:
+- `src/components/finance/InterCasinoTransfers.tsx` — `isManagerOrAbove` определение проверить (вероятно `manager || finance_manager || super_admin` → НЕ добавлять Floor Manager, это финансы; **подтвердить с пользователем**, см. Open question 1).
+
+---
+
+## 3. Реализация — Backend (RLS)
+
+Универсальный helper, чтобы не плодить копии:
 
 ```sql
-ALTER TABLE public.employees
-  ADD COLUMN dealer_id        uuid REFERENCES public.dealers(id) ON DELETE SET NULL,
-  ADD COLUMN staff_group      text NOT NULL DEFAULT 'floor'
-    CHECK (staff_group IN ('live','floor','security','office')),
-  ADD COLUMN dealer_category  dealer_category,
-  ADD COLUMN is_pit_boss      boolean NOT NULL DEFAULT false,
-  ADD COLUMN contract_start   date,
-  ADD COLUMN contract_end     date,
-  ADD COLUMN onboarding_date  date,
-  ADD COLUMN is_active        boolean NOT NULL DEFAULT true;
-
-CREATE UNIQUE INDEX employees_dealer_id_uniq
-  ON public.employees(dealer_id) WHERE dealer_id IS NOT NULL;
-CREATE UNIQUE INDEX employees_staff_member_id_uniq
-  ON public.employees(staff_member_id) WHERE staff_member_id IS NOT NULL;
-
-ALTER TABLE public.employees
-  ADD CONSTRAINT employees_category_only_live
-  CHECK ((staff_group = 'live') OR (dealer_category IS NULL AND is_pit_boss = false));
-
-CREATE INDEX idx_employees_group ON public.employees(casino_id, staff_group);
+-- security definer функция: "имеет ли пользователь права уровня менеджера операций"
+CREATE OR REPLACE FUNCTION public.is_manager_op(_uid uuid)
+RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.user_roles
+    WHERE user_id = _uid
+      AND role IN ('manager','floor_manager','super_admin')
+  );
+$$;
 ```
 
-Соответствие группа ↔ источник:
+Затем заменить во всех RLS политиках, которые сейчас гейтят чисто-операционные действия (НЕ финансовые!), `has_role(auth.uid(),'manager')` → `public.is_manager_op(auth.uid())`. Конкретно:
 
-| group | Источник | Категория | Шифты Rota |
-|---|---|---|---|
-| `live` | dealers | dealer_category + is_pit_boss | M/N/E/L |
-| `floor` | staff_members (cashier, bartender, hostess, waiter, cleaner, reception) | — | D/N/L/E/O |
-| `security` | staff_members (security) | — | D/M/N/G/L/E/O |
-| `office` | staff_members (it, hr, driver) | — | D/N/L/E/O |
+| Таблица / политика | Было | Стало |
+|---|---|---|
+| `expenses` UPDATE "Managers approve expenses" | `has_role(uid,'manager')` | `is_manager_op(uid)` |
+| `expenses` DELETE (если есть manager-only) | то же | `is_manager_op(uid)` |
+| `gaming_tables` UPDATE для reopen | то же | `is_manager_op(uid)` |
+| `shifts` close-related (если manager-only) | то же | `is_manager_op(uid)` |
+| `business_day_closures` INSERT | то же | `is_manager_op(uid)` |
+| `player_chip_adjustments` INSERT | manager/pit | оставить как есть (floor_manager эквивалент pit на полу — добавить) |
+| `cashless_*` approve | manager | `is_manager_op(uid)` |
+| `pit_rota`, `staff_rota`, `pit_attendance`, `staff_attendance` past-day write | manager | `is_manager_op(uid)` |
 
-## 2. Очистка плохого бэкфилла + правильный импорт
+**НЕ трогаем** RLS на `wallet_transactions`, `wallets`, `daily_summaries`, `cash_count_*`, `budget_*`, `payroll_*` — они должны остаться `manager`/`finance_manager` only.
 
-```sql
--- Перезаписать 40 строк employees правильными данными из staff_members
-UPDATE public.employees e
-SET staff_group = CASE
-      WHEN sm.department = 'security' THEN 'security'
-      WHEN sm.department IN ('it','hr','driver') THEN 'office'
-      ELSE 'floor' END,
-    department = sm.department::text,
-    position   = '',
-    contract_start = sm.contract_start,
-    contract_end   = sm.contract_end,
-    onboarding_date= sm.onboarding_date,
-    is_active      = sm.is_active,
-    basic_salary   = GREATEST(0, ROUND(COALESCE(sm.salary, 0))::bigint),
-    photo_url      = sm.photo_url,
-    full_name      = sm.name
-FROM public.staff_members sm
-WHERE e.staff_member_id = sm.id;
+Bump `package.json` patch (миграция → правило auto-bump).
 
--- Импортировать все 29 дилеров
-INSERT INTO public.employees (
-  casino_id, dealer_id, full_name, staff_group, department, position,
-  dealer_category, is_pit_boss, basic_salary,
-  contract_start, contract_end, onboarding_date,
-  photo_url, is_active, payroll_status)
-SELECT d.casino_id, d.id, d.name, 'live', 'live_game',
-       CASE WHEN d.is_pit_boss THEN 'Pit Boss' ELSE INITCAP(d.category::text) END,
-       d.category, d.is_pit_boss,
-       GREATEST(0, ROUND(COALESCE(d.salary, 0))::bigint),
-       d.contract_start, d.contract_end, d.onboarding_date,
-       d.photo_url, d.is_active,
-       CASE WHEN d.is_active THEN 'active' ELSE 'inactive' END
-FROM public.dealers d
-WHERE NOT EXISTS (SELECT 1 FROM public.employees e WHERE e.dealer_id = d.id);
-```
+---
 
-Итог: `employees` = 69 строк, каждая привязана либо к `dealers`, либо к `staff_members`.
+## 4. Expenses → Payments rename (Finance модуль)
 
-## 3. Двунаправленные триггеры зеркалирования
+### Что остаётся как «Expenses»
+- `/expenses` (страница `Expenses.tsx`) — **кассовые расходы**, immutable, approve менеджером, идут на `expenses` таблицу. Используется кассирами.
+- Sidebar PIT/CAGE: остаётся «Expenses».
 
-Anti-loop guard через session GUC `app.staff_sync`. Триггеры `SECURITY DEFINER`:
-- **employees → dealers / staff_members** (BEFORE INSERT/UPDATE) — при `staff_group='live'` создаёт/обновляет строку в `dealers`; иначе в `staff_members`. Перетаскивание группы Live↔Floor разрешено (одна shadow-привязка обнуляется).
-- **dealers UPDATE → employees** — обновляет name/category/is_pit_boss/salary/contracts/photo/is_active.
-- **staff_members UPDATE → employees** — обновляет name/department/salary/contracts/photo/is_active.
-- **dealers/staff_members AFTER INSERT → employees** — автосоздание employee, если кто-то добавил человека через старые формы (страховка).
+### Что переименовывается в «Payments»
+- Маршрут `/finance/expenses` → `/finance/payments` (со 301-редиректом со старого URL для совместимости).
+- Файлы:
+  - `src/pages/finance/FinanceExpensesPage.tsx` → `src/pages/finance/FinancePaymentsPage.tsx`
+  - `src/components/finance/FinanceExpenses.tsx` → `src/components/finance/FinancePayments.tsx`
+  - Экспорт `FinanceExpenses` → `FinancePayments`
+  - Заголовок «Office Expenses» → «Payments»
+- Sidebar FINANCE: лейбл `"Expenses"` → `"Payments"`, иконка `Receipt` → `Banknote` (или оставить).
+- `src/lib/route-module-map.ts`: `if (base === "/finance/expenses") return "expenses";` → новая строка для `/finance/payments` → ключ модуля **остаётся `"expenses"`** (чтобы не делать миграцию `role_module_defaults` и `user_module_permissions`). Это аккуратно — внутри БД ключ остаётся, в UI лейбл другой.
+- Старый редирект: `<Route path="/finance/expenses" element={<Navigate to="/finance/payments" replace />} />`.
 
-См. полные тела функций в обсуждении плана v2 (5 триггеров, 4 функции).
+### Семантическое уточнение в UI
+Под заголовком Payments добавить subtitle: `"Money paid out from operating wallets — recorded as wallet transactions, not cashier expenses."` Чтобы пользователь понимал разницу.
 
-## 4. UI: Staff Master с табами и редактированием
+### НЕ трогаем
+- Таблицу `wallet_transactions` и enum `tx_type` (`manual_expense`, `use_reserve`) — это backend, переименование сломает миграции и историю.
+- `EXPENSE_CATEGORY_GROUPS`, `CATEGORY_LABELS` константы.
+- Тест `access-matrix.test.ts` — заменить только пути, ключ модуля тот же.
 
-`/staff/master` — одна страница, общий FilterBar сверху, табы переключают набор колонок для тех же 69 человек:
+---
 
-```
-Header: [+ Add Employee] [Group: All|Live|Floor|Security|Office]
-        [Department ▾] [Search] [Status: Active|Inactive]
-Tabs: [Roster] [Onboarding & Contracts] [Payroll Profile] [Current Position]
-DataTable + кнопка ✏️ в каждой строке
-```
+## 5. Проверки и smoke-тест
 
-| Таб | Колонки |
-|---|---|
-| Roster (default) | Photo · Name · Group · Department · Position/Category · Status · ✏️ |
-| Onboarding & Contracts | Photo · Name · Group · Onboarding · Contract Start · End · Days Left · Years · ✏️ |
-| Payroll Profile | Photo · Name · Basic Salary · Bank · Account # · NSSF · Tax ID · GEPF · ✏️ |
-| Current Position | Photo · Name · Group · сегодня/завтра shift · последний attendance · текущий стол (Live) · ✏️ |
+1. Зайти под Peter (floor_manager):
+   - Открыть `/expenses` → кнопка `Approve` появляется на pending записях кассиров → кликнуть → запись становится Approved (RLS пропускает).
+   - Открыть Pit/Staff rota за прошлый день → редактируется (нет Lock иконки).
+   - В Cage → нажать Close Business Day → диалог манагер-пароля → проходит RFID/пароль самого Peter.
+   - Reopen closed table → работает.
+   - В Player Card → виден category edit, blacklist, notes.
+   - `/finance/*` → нет в сайдбаре, прямой URL → RoleGuard 403.
+   - `/admin` → нет в сайдбаре (только settings-чувствительные модули).
+2. Зайти под обычным `manager` → ничего не сломалось.
+3. Зайти под `cashier` → не видит `Approve` (как раньше).
+4. `/finance/expenses` URL → редиректит на `/finance/payments`, лейбл «Payments».
+5. Тест `access-matrix.test.ts` обновить с новым путём.
 
-### Универсальный EmployeeEditorDialog
-Условные секции:
-- **Identity**: Photo, Full Name *, Status, **Group** (radio: Live/Floor/Security/Office).
-- **Position**: для `Live` — `Dealer Category` + checkbox `Is Pit Boss`. Для `Floor`/`Office` — `Department` select по списку группы + free-text Position. Для `Security` — department залочен.
-- **Contracts**: Onboarding, Contract Start, Contract End, Employment Date.
-- **Payroll**: Basic Salary, NSSF, Tax ID, GEPF, Bank Name/Code/Branch/Account.
+---
 
-Сохранение через `useUpsertEmployee` → триггер БД зеркалит в `dealers`/`staff_members` → Pit Rota / Breaklist обновляются автоматически.
+## 6. Memory updates
 
-## 5. Sidebar: скрываем, не удаляем
+- `mem://auth/role-based-access-matrix` — дополнить: «Floor Manager идентичен Manager во всех **операционных** действиях, но финансовые модули (Finance Dashboard/Wallets/Summary/Review/CashCount/Budget/Payments/Transfers) и Admin для него закрыты. Реализовано через `isManager` (auth-context) и SQL функцию `is_manager_op()`.»
+- `mem://features/editable-access-matrix` — отметить, что ключ модуля `expenses` теперь означает Finance Payments в UI, кассовые Expenses — это `cage` / отдельный гейт.
+- `mem://features/financial-control/overview` или новый файл `mem://features/payments-vs-expenses` — пояснить семантику: Expenses = cashier petty cash log; Payments = wallet outflow.
 
-`src/components/layout/AppSidebar.tsx`:
-- Закомментировать `Live Game` и `Floor Staff` HR-пункты.
-- URL `/pit?tab=employee` и `/staff?tab=employee` остаются доступны напрямую — это страховочная сетка.
-- Добавить `hr` в roles для virtual `__attendance__` и `__rota__` (PIT-секция), чтобы HR попадал в эти грид'ы без отдельных кнопок.
-
-`Pit.tsx`, `Staff.tsx`, `EmployeeList`, `use-staff.ts`, `use-dealers.ts` — НЕ трогаем. Удалим в Phase B.
-
-## 6. RLS
-
-`employees` уже разрешает HR/Finance/SuperAdmin. Триггерные функции `SECURITY DEFINER` пропускают правки в `dealers`/`staff_members` без прямых прав. Существующие политики на shadow-таблицах остаются.
-
-## 7. Порядок выкатки
-
-1. **Миграция БД** одной транзакцией: ALTER + UPDATE 40 + INSERT 29 + 4 функции + 5 триггеров. Bump `package.json` patch.
-2. **Verify (read-only):** `count(*)=69`, распределение по `staff_group`, тест-правка зарплаты в employees → видна в dealers.
-3. **Деплой UI:** Staff Master с табами и editor; AppSidebar с закомментированными HR-кнопками.
-4. **Smoke на проде:** Break List, Pit Rota, Floor Rota, Attendance — те же люди и значения. Add/Edit Live + Floor через Staff Master → появляются в соответствующих гридах.
-5. **Откат при проблеме:**
-```sql
-ALTER TABLE employees     DISABLE TRIGGER trg_employees_sync;
-ALTER TABLE dealers       DISABLE TRIGGER trg_dealers_sync;
-ALTER TABLE staff_members DISABLE TRIGGER trg_staff_members_sync;
-```
-   Раскомментировать HR-кнопки в сайдбаре. Shadow-таблицы нетронуты.
-
-## 8. Phase B (через 2–4 недели стабильной работы — отдельная задача)
-
-- Удалить таб Employee из `Pit.tsx` и `Staff.tsx`, удалить `EmployeeList`.
-- Перевести FK: `pit_rota.dealer_id`→`employee_id`, аналогично `dealer_attendance`, `breaklist`, `breaklist_logs`, `weekly_bonus_entries`, `staff_rota`, `staff_attendance`.
-- Удалить shadow-таблицы `dealers`/`staff_members` и все sync-триггеры.
-- Тогда `employees` становится единственным реестром.
+---
 
 ## Файлы
 
-**Миграция:** ALTER + cleanup + import + 4 функции + 5 триггеров + version bump.
-
 **Frontend:**
-- `src/hooks/use-payroll.ts` — расширить `Employee` (`staff_group`, `dealer_category`, `is_pit_boss`, `contract_start/end`, `onboarding_date`, `is_active`); параметр `group` в `useEmployees`; новые поля в `useUpsertEmployee`.
-- `src/pages/StaffMaster.tsx` — Tabs + FilterBar + универсальный EmployeeEditorDialog с условными секциями + ✏️ inline edit.
-- `src/components/layout/AppSidebar.tsx` — закомментировать HR Live Game/Floor Staff; добавить `hr` в virtual Attendance/Rota.
+- `src/lib/auth-context.tsx` — расширить `isManager`
+- `src/components/layout/AppSidebar.tsx` — `canSeeAdmin` гейт; лейбл Payments
+- `src/components/ManagerOverrideDialog.tsx` — accept floor_manager в обоих flow (RFID + пароль)
+- `src/pages/Pitbook.tsx` — добавить floor_manager
+- `src/hooks/use-business-day-history.ts` — добавить floor_manager
+- `src/lib/route-module-map.ts` — добавить `/finance/payments`
+- `src/App.tsx` — переименовать lazy import + route + редирект
+- `src/pages/finance/FinanceExpensesPage.tsx` → `FinancePaymentsPage.tsx`
+- `src/components/finance/FinanceExpenses.tsx` → `FinancePayments.tsx` (export, заголовок, subtitle)
+- `src/test/access-matrix.test.ts` — путь обновить
 
-**Memory:** добавить `mem://features/unified-staff-master` с заметкой про двунаправленные триггеры и Phase B-план.
+**Backend (1 миграция):**
+- `is_manager_op(uuid)` security definer
+- DROP/CREATE RLS политик на: `expenses`, `gaming_tables` (reopen), `shifts` (close), `business_day_closures`, `cashless_*`, `pit_rota`, `staff_rota`, `pit_attendance`, `staff_attendance`, `player_chip_adjustments` — заменить `has_role('manager')` на `is_manager_op()` ТОЛЬКО для операционных таблиц.
+- Bump `package.json` patch.
 
-## Открытый вопрос
+---
 
-Для Live в колонке Position в Roster показывать `dealer_category` (badge) либо free-text `position`. Предпочтение: показывать категорию badge'ом, отдельный free-text для Live не давать (избегаем рассинхрона).
+## Открытые вопросы
+
+1. **Inter-Casino Transfers подтверждение:** сейчас `isManagerOrAbove` (вероятно `manager || finance_manager || super_admin`). Это перевод денег между казино — финансовая операция. Дать ли Floor Manager эту способность? Предложение: **нет**, оставить только Manager+ (Floor Manager — только операции на полу). Подтвердите.
+2. **`/admin` для Floor Manager:** сейчас открывается всем `isManager`, но содержит много чувствительного (TableManagement, Branding, Permissions, Float). Предложение: оставить **только** Manager / super_admin. (Так и сделано в плане.) Подтвердите.
+3. **Manager Override на самого себя:** Floor Manager сможет активировать Override на себе (как сейчас Manager). Это даёт `isManager=true` транзитно. Поскольку мы и так включаем floor_manager в `isManager` напрямую — Override становится для него **бесполезен** (он уже всё может). Оставить toggle видимым или скрыть для floor_manager? Предложение: **скрыть toggle** (нет смысла) — его роль уже даёт max операционных прав.
