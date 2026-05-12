@@ -737,9 +737,18 @@ const StaffRotaGrid = ({ month, groupKey, monthLabel, readOnly = false }: { mont
                   isCurrentMonth={isCurrentMonth}
                   todayDay={todayDay}
                   getDisplayShift={getDisplayShift}
-                  handleClick={handleClick}
+                  groupShifts={groupShifts as readonly string[]}
+                  shiftLabels={group.shiftLabels as Record<string, string>}
                   handleKeyDown={handleKeyDown}
                   handlePaste={handlePaste}
+                  onSet={(staffId, day, shift) => {
+                    const ds = `${month}-${String(day).padStart(2, "0")}`;
+                    setRota.mutate({ staff_id: staffId, date: ds, shift });
+                  }}
+                  onClear={(staffId, day) => {
+                    const ds = `${month}-${String(day).padStart(2, "0")}`;
+                    deleteRota.mutate({ staff_id: staffId, date: ds });
+                  }}
                   getStats={getStats}
                   summaryShifts={summaryShifts}
                 />
