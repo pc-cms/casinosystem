@@ -223,6 +223,23 @@ const OpenShiftScreen = ({ tables }: { tables: Tables<"gaming_tables">[] }) => {
             </LockableSection>
           </div>
 
+          {hasChipDelta && (
+            <div className="rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 flex items-start gap-2">
+              <ShieldAlert className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <p className="text-[11px] font-semibold text-destructive uppercase tracking-wider">
+                  Opening chips do not match the previous closing
+                </p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  Δ <span className={`font-mono font-bold ${chipDeltaTzs > 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
+                    {chipDeltaTzs > 0 ? "+" : ""}{formatNumberSpaces(chipDeltaTzs)}
+                  </span> TZS · {chipDiff.length} denomination{chipDiff.length === 1 ? "" : "s"} differ.
+                  Manager override and reason will be required to open the shift.
+                </p>
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
             <LockableSection title="TZS Cash" locked={locks.tzsCash} onToggleLock={() => toggleLock("tzsCash")}>
               <CashDenomInput values={openingCash["TZS"] || {}} onChange={v => setOpeningCash(c => ({ ...c, TZS: v }))} denoms={CASH_DENOMS["TZS"] || []} currency="TZS" />
