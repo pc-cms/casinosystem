@@ -367,8 +367,9 @@ const Row = ({ label, value, bold, framed }: { label: string; value: string | nu
   </div>
 );
 
-const SummaryRow = ({ label, value, bold }: { label: string; value: number; bold?: boolean }) => {
-  const display = value === 0 ? "0" : value > 0 ? formatNumberSpaces(value) : `-${formatNumberSpaces(Math.abs(value))}`;
+const SummaryRow = ({ label, value, bold, negative }: { label: string; value: number; bold?: boolean; negative?: boolean }) => {
+  const signed = negative && value > 0 ? -value : value;
+  const display = signed === 0 ? "0" : signed > 0 ? formatNumberSpaces(signed) : `-${formatNumberSpaces(Math.abs(signed))}`;
   return (
     <div className={`flex justify-between items-center ${bold ? "font-bold" : ""}`}>
       <span>{label}</span>
