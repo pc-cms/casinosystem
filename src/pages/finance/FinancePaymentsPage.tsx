@@ -1,18 +1,18 @@
-import { Receipt } from "lucide-react";
+import { Banknote } from "lucide-react";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { FinanceExpenses } from "@/components/finance/FinanceExpenses";
+import { FinancePayments } from "@/components/finance/FinancePayments";
 
-const FinanceExpensesPage = () => (
+const FinancePaymentsPage = () => (
   <PageShell>
     <PageHeader
-      icon={Receipt}
-      title="Finance Expenses"
-      subtitle="Office-level expenses by category"
+      icon={Banknote}
+      title="Payments"
+      subtitle="Money paid out from operating wallets — recorded as wallet transactions, not cashier expenses."
       date
     />
-    <FinanceExpenses />
+    <FinancePayments />
   </PageShell>
 );
 
-export default FinanceExpensesPage;
+export default FinancePaymentsPage;
