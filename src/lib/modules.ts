@@ -15,14 +15,19 @@ export type ModuleKey =
   | "pit_attendance"
   | "pit_active_players"
   | "cage"
+  | "cage_view"
   | "tables"
+  | "tables_analytics"
   | "table_tracker"
+  | "table_results"
   | "players"
   | "blacklist"
   | "reception"
   | "in_casino"
   | "bank_checks"
   | "expenses"
+  | "expenses_approvals"
+  | "cashless"
   | "finance_dashboard"
   | "finance_wallets"
   | "finance_cash_count"
@@ -30,8 +35,13 @@ export type ModuleKey =
   | "finance_review"
   | "finance_transfers"
   | "finance_summary"
+  | "finance_payments"
   | "reports"
   | "miss_chips"
+  | "business_days"
+  | "weekly_bonus"
+  | "incidents"
+  | "pitbook"
   | "groups"
   | "staff"
   | "staff_master"
@@ -53,9 +63,19 @@ export const MODULES: ModuleDef[] = [
   { key: "pit_breaklist", label: "Breaklist", group: "Operations" },
   { key: "pit_attendance", label: "Attendance", group: "Operations" },
   { key: "pit_active_players", label: "Player Statistics", group: "Operations" },
-  { key: "cage", label: "Cage", group: "Operations" },
+  { key: "cage", label: "Cage (Cashier)", group: "Operations" },
+  { key: "cage_view", label: "Cage View (Read-only)", group: "Operations" },
   { key: "tables", label: "Tables", group: "Operations" },
+  { key: "tables_analytics", label: "Table Analytics", group: "Operations" },
   { key: "table_tracker", label: "Table Check", group: "Operations" },
+  { key: "table_results", label: "Table Results", group: "Reports" },
+  { key: "incidents", label: "Incidents", group: "Operations" },
+  { key: "pitbook", label: "Pitbook", group: "Operations" },
+  { key: "weekly_bonus", label: "Weekly Bonus", group: "Operations" },
+  { key: "business_days", label: "Business Days", group: "Reports" },
+  { key: "cashless", label: "Cashless", group: "Operations" },
+  { key: "expenses_approvals", label: "Expenses Approvals", group: "Finance" },
+  { key: "finance_payments", label: "Finance Payments", group: "Finance" },
   { key: "reception", label: "Reception", group: "Players" },
   { key: "players", label: "Players", group: "Players" },
   { key: "in_casino", label: "Guests", group: "Players" },
