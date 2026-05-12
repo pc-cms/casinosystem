@@ -115,6 +115,9 @@ export const exportJournal = (entries: PayrollEntry[], period: PayrollPeriod) =>
 // ============= SALARY SLIPS (HTML print, opens print dialog) =============
 const fmt = (n: number) => new Intl.NumberFormat("en-US", { useGrouping: true }).format(n).replace(/,/g, " ");
 
+export const exportSingleSalarySlip = (entry: PayrollEntry, period: PayrollPeriod) =>
+  exportSalarySlipsPrint([entry], period);
+
 export const exportSalarySlipsPrint = (entries: PayrollEntry[], period: PayrollPeriod) => {
   const label = monthLabel(period);
   const slips = entries.map(e => `

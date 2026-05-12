@@ -265,3 +265,29 @@ export const useApproveHR        = rpcMutation("payroll_approve_hr",       "HR a
 export const useApproveManager   = rpcMutation("payroll_approve_manager",  "Manager approved — period locked");
 export const useRevertToDraft    = rpcMutation("payroll_revert_to_draft",  "Reverted to draft", true);
 export const useUnlockPeriod     = rpcMutation("payroll_unlock_period",    "Period unlocked",   true);
+
+// ============= AUDIT LOG =============
+export interface PayrollAuditEntry {
+  id: string;
+  period_id: string | null;
+  casino_id: string;
+  action: string;
+  actor_id: string | null;
+  details: Record<string, any>;
+  created_at: string;
+}
+
+export const usePayrollAuditLog = (periodId: string | undefined) =>
+  useQuery({
+    queryKey: ["payroll_audit", periodId],
+    queryFn: async (): Promise<PayrollAuditEntry[]> => {
+      const { data, error } = await supabase
+        .from("payroll_audit_log")
+        .select("*")
+        .eq("period_id", periodId!)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data || []) as PayrollAuditEntry[];
+    },
+    enabled: !!periodId,
+  });
