@@ -1143,53 +1143,35 @@ const AttendanceDepartmentBlock = ({
             const isEmpty = val === "";
             return (
               <td key={day} className={`px-0.5 py-0.5 text-center border-l border-border/25 ${isToday ? "bg-primary/25" : isWeekend ? "bg-muted/15" : ""}`}>
-                <input
-                  type="text"
-                  defaultValue={val}
-                  key={`${staff.id}-${month}-${day}-${val}`}
-                  onBlur={e => handleSave(staff.id, day, e.target.value)}
+                <CellPicker
+                  value={val || null}
+                  display={val || (isScheduled && isEmpty ? rotaShift! : "·")}
+                  rows={[
+                    { options: [
+                      { value: "A", label: "A", title: "Absent", className: ATT_COLORS["A"] },
+                      { value: "S", label: "S", title: "Sick", className: ATT_COLORS["S"] },
+                    ]},
+                    { label: "Hours", options: Array.from({ length: 12 }, (_, i) => i + 1).map(n => ({
+                      value: String(n), label: String(n),
+                      className: "bg-card-foreground/5 text-card-foreground",
+                    }))},
+                  ]}
+                  onSelect={(v) => handleSave(staff.id, day, v ?? "")}
                   onKeyDown={e => {
-                    const input = e.target as HTMLInputElement;
-                    if (e.key === "Enter") { input.blur(); return; }
-                    const key = e.key.toUpperCase();
-                    if (key === "A" || key === "S") {
-                      e.preventDefault();
-                      input.value = key;
-                      handleSave(staff.id, day, key);
-                      const nextInput = input.closest("td")?.nextElementSibling?.querySelector("input") as HTMLInputElement;
-                      nextInput?.focus();
-                    } else if (key === "ARROWRIGHT") {
-                      e.preventDefault();
-                      const next = input.closest("td")?.nextElementSibling?.querySelector("input") as HTMLInputElement;
-                      next?.focus();
-                    } else if (key === "ARROWLEFT") {
-                      e.preventDefault();
-                      const prev = input.closest("td")?.previousElementSibling?.querySelector("input") as HTMLInputElement;
-                      prev?.focus();
-                    } else if (key === "ARROWDOWN") {
-                      e.preventDefault();
-                      const td = input.closest("td");
-                      const idx2 = td ? Array.from(td.parentElement!.children).indexOf(td) : -1;
-                      const nextRow = td?.closest("tr")?.nextElementSibling;
-                      (nextRow?.children[idx2]?.querySelector("input") as HTMLInputElement)?.focus();
-                    } else if (key === "ARROWUP") {
-                      e.preventDefault();
-                      const td = input.closest("td");
-                      const idx2 = td ? Array.from(td.parentElement!.children).indexOf(td) : -1;
-                      const prevRow = td?.closest("tr")?.previousElementSibling;
-                      (prevRow?.children[idx2]?.querySelector("input") as HTMLInputElement)?.focus();
-                    }
+                    const k = e.key.toUpperCase();
+                    if (k === "A" || k === "S") { e.preventDefault(); handleSave(staff.id, day, k); return; }
+                    if (/^[0-9]$/.test(k)) { e.preventDefault(); handleSave(staff.id, day, k); return; }
+                    if (k === "BACKSPACE" || k === "DELETE") { e.preventDefault(); handleSave(staff.id, day, ""); return; }
                   }}
-                  className={`w-full h-8 rounded text-xs font-mono font-semibold text-center border-0 focus:outline-none focus:ring-1 focus:ring-primary transition-colors ${
+                  cellClassName={`w-full h-8 rounded text-xs font-mono font-semibold text-center focus:outline-none focus:ring-1 focus:ring-primary transition-colors ${
                     isStatus
                       ? ATT_COLORS[val]
                       : isHours
                         ? "bg-transparent text-card-foreground font-bold"
                         : isScheduled && isEmpty
-                          ? `${UNIFIED_SHIFT_TINTS[rotaShift!] || "bg-muted/30 text-muted-foreground"} placeholder:text-current`
-                          : "bg-transparent text-transparent hover:text-muted-foreground"
+                          ? `${UNIFIED_SHIFT_TINTS[rotaShift!] || "bg-muted/30 text-muted-foreground"}`
+                          : "bg-transparent text-muted-foreground/40 hover:text-muted-foreground"
                   }`}
-                  placeholder={isScheduled && isEmpty ? rotaShift! : "·"}
                 />
               </td>
             );
