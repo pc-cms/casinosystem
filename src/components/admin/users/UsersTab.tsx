@@ -211,6 +211,7 @@ export const UsersTab = () => {
         onOpenChange={o => !o && setPermsTarget(null)}
         userId={permsTarget?.id ?? null}
         userName={permsTarget?.name ?? ""}
+        userRoles={permsTarget ? (rolesByUser[permsTarget.id] || []) : []}
       />
 
       <AlertDialog open={!!disableTarget} onOpenChange={o => !o && setDisableTarget(null)}>
