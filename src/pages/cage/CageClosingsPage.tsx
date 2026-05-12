@@ -184,7 +184,7 @@ const CageClosingsPage = () => {
                     </td>
                     <td
                       className={`px-3 py-2 text-right font-mono ${balance === 0 ? "text-muted-foreground" : "cms-amount-negative font-semibold"}`}
-                      title="Cash Desk Result − Tables Result. Cash Desk Result = ΔCash + Expenses + Collection − AddFloat + SlotsOut − SlotsIn + Miss"
+                      title="Cash Desk Result − Tables Result − Miss. Cash Desk Result = ΔCash + Expenses + Collection − AddFloat + SlotsOut − SlotsIn"
                     >
                       {balance === 0 ? "0" : `${balance > 0 ? "+" : ""}${formatNumberSpaces(balance)}`}
                     </td>
