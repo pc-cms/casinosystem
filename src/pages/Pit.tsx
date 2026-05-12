@@ -66,7 +66,11 @@ const CATEGORY_COLORS: Record<string, string> = {
   pit_boss: "text-purple-700 bg-purple-100 dark:text-purple-400 dark:bg-purple-500/20",
 };
 
-const Pit = () => {
+interface PitProps {
+  forcedTab?: "breaklist" | "rota" | "attendance" | "employee" | "activeplayers" | "tabletracker";
+}
+
+const Pit = ({ forcedTab }: PitProps = {}) => {
   const { data: serverBusinessDate } = useEffectiveBusinessDate();
   const businessToday = serverBusinessDate || getBusinessDate();
   const [date, setDate] = useState(businessToday);
@@ -91,8 +95,8 @@ const Pit = () => {
   const { roles, isManager } = useAuth();
   const isHR = roles.includes("hr") && !roles.includes("pit") && !roles.includes("manager");
   const [searchParams] = useSearchParams();
-  // Default tabs: HR sees Employee first; Pit/Manager land on Attendance (Live Game shell)
-  const activeTab = searchParams.get("tab") || (isHR ? "employee" : "breaklist");
+  // Flat-URL wrappers pass forcedTab; legacy /pit?tab=… still supported via query param.
+  const activeTab = forcedTab || searchParams.get("tab") || (isHR ? "employee" : "breaklist");
 
   const showMonthNav = activeTab === "rota" || activeTab === "attendance";
   const showDatePicker = activeTab === "breaklist";
