@@ -24,6 +24,7 @@ const FLOOR_MANAGER_ALLOWED: ReadonlySet<ModuleKey> = new Set<ModuleKey>([
   "blacklist",
   "business_days",
   "cage",
+  "cage_closings",
   "cage_view",
   "cashless",
   "dashboard",
