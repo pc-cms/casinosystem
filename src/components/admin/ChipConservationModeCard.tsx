@@ -59,7 +59,7 @@ export const ChipConservationModeCard = () => {
 
         {!canEdit && (
           <p className="text-xs text-muted-foreground italic">
-            Only Manager or Super Admin can change this mode.
+            Only Manager can change this mode.
           </p>
         )}
       </CardContent>

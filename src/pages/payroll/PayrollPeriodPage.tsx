@@ -374,7 +374,7 @@ const ACTION_LABELS: Record<string, string> = {
   hr_approved: "HR approved",
   manager_approved: "Manager approved & locked",
   reverted_to_draft: "Reverted to draft",
-  unlocked: "Unlocked by Super Admin",
+  unlocked: "Unlocked by administrator",
 };
 
 const AuditPanel = ({ periodId }: { periodId: string }) => {
