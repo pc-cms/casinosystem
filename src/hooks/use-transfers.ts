@@ -19,22 +19,33 @@ export type InterCasinoTransfer = {
   updated_at: string;
 };
 
+/**
+ * Inter-casino transfers visible on the current surface.
+ *
+ * Per-domain rule:
+ *   - On premier (summary) — all transfers across the network.
+ *   - On a casino subdomain — only transfers where this casino is the source
+ *     OR the destination. Applies uniformly to every role, including
+ *     super_admin / finance_manager.
+ */
 export const useInterCasinoTransfers = () => {
-  const { activeCasinoId } = useCasino();
-  const { roles } = useAuth();
-  const isSuperOrFM = roles.includes("super_admin") || roles.includes("finance_manager");
+  const { activeCasinoId, isSummaryMode } = useCasino();
 
   return useQuery({
-    queryKey: ["inter-casino-transfers", isSuperOrFM ? "all" : activeCasinoId],
+    queryKey: ["inter-casino-transfers", isSummaryMode ? "summary" : activeCasinoId],
     queryFn: async () => {
-      // RLS handles filtering — super_admin/FM see all, managers see their casino's
-      const { data, error } = await supabase
+      let q = supabase
         .from("inter_casino_transfers")
         .select("*")
         .order("created_at", { ascending: false });
+      if (!isSummaryMode && activeCasinoId) {
+        q = q.or(`from_casino_id.eq.${activeCasinoId},to_casino_id.eq.${activeCasinoId}`);
+      }
+      const { data, error } = await q;
       if (error) throw error;
       return (data ?? []) as InterCasinoTransfer[];
     },
+    enabled: isSummaryMode || !!activeCasinoId,
   });
 };
 
