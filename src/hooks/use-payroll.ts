@@ -187,7 +187,7 @@ export const usePatchEmployee = () => {
       ] as const;
       const body: Record<string, unknown> = {};
       for (const k of allowed) if (k in patch) body[k] = (patch as any)[k];
-      const { error } = await supabase.from("employees").update(body).eq("id", id);
+      const { error } = await supabase.from("employees").update(body as any).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["employees"] }),
