@@ -4624,6 +4624,7 @@ export type Database = {
         | "TR"
         | "SRT"
         | "CLS"
+        | "LT"
       expense_category:
         | "food"
         | "alcohol"
@@ -4856,6 +4857,7 @@ export const Constants = {
         "TR",
         "SRT",
         "CLS",
+        "LT",
       ],
       expense_category: ["food", "alcohol", "taxi", "hotel", "flight", "other"],
       log_category: [
