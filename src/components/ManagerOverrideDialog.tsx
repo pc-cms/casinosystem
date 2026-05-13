@@ -61,8 +61,21 @@ const ManagerOverrideDialog = ({
         body: { email, password },
       });
 
+      // supabase-js returns the response body in fnError.context for non-2xx,
+      // so extract the real server-side error rather than masking it as "Invalid credentials".
+      let serverError: string | null = null;
+      if (fnError) {
+        try {
+          const ctx: any = (fnError as any).context;
+          if (ctx && typeof ctx.json === "function") {
+            const body = await ctx.json();
+            serverError = body?.error ?? null;
+          }
+        } catch { /* ignore */ }
+      }
+
       if (fnError || !data?.manager_id) {
-        setError(data?.error || "Invalid credentials");
+        setError(serverError || data?.error || fnError?.message || "Invalid credentials");
         setLoading(false);
         return;
       }
