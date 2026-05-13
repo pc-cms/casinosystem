@@ -17,7 +17,7 @@ import { useIncidents } from "@/hooks/use-incidents";
 import { useVisitsToday, useGamingTables } from "@/hooks/use-casino-data";
 import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
 import { getBusinessDate } from "@/lib/business-day";
-import { fmtDateOnly } from "@/lib/format";
+import { fmtDateOnly } from "@/lib/format-date";
 import { Button } from "@/components/ui/button";
 
 type ShiftKey = "all" | "M" | "E" | "N" | "L";
