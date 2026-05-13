@@ -7,6 +7,7 @@
  * — the database/UI computes them from the raw inputs.
  */
 import ExcelJS from "exceljs";
+import { deriveCategory } from "./staff-dictionaries";
 
 export type ParsedStaffRow = {
   full_name: string;
@@ -35,20 +36,38 @@ export type ParsedStaffRow = {
   license_available: boolean;
   license_pass_date: string | null;
   uniform_issued: boolean;
+  // derived
+  dealer_category: "dealer" | "inspector" | "trainee" | null;
+  is_pit_boss: boolean;
 };
 
-const isYes = (v: unknown) => typeof v === "string" && v.trim().toLowerCase() === "yes";
+const isYes = (v: unknown) => {
+  if (typeof v === "boolean") return v;
+  if (typeof v === "number") return v !== 0;
+  if (typeof v === "string") {
+    const s = v.trim().toLowerCase();
+    return s === "yes" || s === "y" || s === "true" || s === "1" || s === "✓" || s === "x";
+  }
+  return false;
+};
 
 const toStr = (v: unknown): string | null => {
   if (v === null || v === undefined) return null;
   if (v instanceof Date) return null;
+  if (typeof v === "object" && v !== null && "text" in (v as any)) {
+    return toStr((v as any).text);
+  }
+  if (typeof v === "object" && v !== null && "result" in (v as any)) {
+    return toStr((v as any).result);
+  }
   const s = String(v).trim();
   return s.length ? s : null;
 };
 
 const toNum = (v: unknown): number => {
   if (v === null || v === undefined || v === "") return 0;
-  const n = Number(typeof v === "string" ? v.replace(/\s/g, "") : v);
+  if (typeof v === "object" && v !== null && "result" in (v as any)) return toNum((v as any).result);
+  const n = Number(typeof v === "string" ? v.replace(/\s/g, "").replace(/,/g, "") : v);
   return Number.isFinite(n) ? n : 0;
 };
 
@@ -56,14 +75,21 @@ const toDate = (v: unknown): string | null => {
   if (!v) return null;
   if (v instanceof Date) {
     if (isNaN(v.getTime())) return null;
-    // Format as YYYY-MM-DD (UTC to avoid timezone drift on date-only fields)
     const y = v.getUTCFullYear();
     const m = String(v.getUTCMonth() + 1).padStart(2, "0");
     const d = String(v.getUTCDate()).padStart(2, "0");
     return `${y}-${m}-${d}`;
   }
+  if (typeof v === "object" && v !== null && "result" in (v as any)) return toDate((v as any).result);
   const s = String(v).trim();
   if (!s) return null;
+  // dd/mm/yyyy
+  const m = s.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{2,4})$/);
+  if (m) {
+    let [_, d, mo, y] = m;
+    if (y.length === 2) y = "20" + y;
+    return `${y}-${mo.padStart(2, "0")}-${d.padStart(2, "0")}`;
+  }
   const d = new Date(s);
   return isNaN(d.getTime()) ? null : toDate(d);
 };
@@ -74,7 +100,7 @@ const cleanPhone = (v: unknown): string | null => {
   return s.replace(/^\/+/, "").trim() || null;
 };
 
-// Column indices (1-based, matches ExcelJS getCell)
+// Column indices (1-based, matches ExcelJS getCell). Matches template-2.xlsx.
 const COL = {
   name: 2,
   department: 4,
@@ -118,10 +144,14 @@ export async function parseStaffMasterXlsx(file: File): Promise<ParsedStaffRow[]
     const name = toStr(row.getCell(COL.name).value);
     if (!name) continue;
 
+    const department = toStr(row.getCell(COL.department).value);
+    const position = toStr(row.getCell(COL.position).value);
+    const cat = deriveCategory(department, position);
+
     out.push({
       full_name: name,
-      department: toStr(row.getCell(COL.department).value),
-      position: toStr(row.getCell(COL.position).value),
+      department,
+      position,
       contract_type: toStr(row.getCell(COL.contract_type).value),
       basic_salary: toNum(row.getCell(COL.basic_salary).value),
       onboarding_date: toDate(row.getCell(COL.joining).value),
@@ -145,6 +175,8 @@ export async function parseStaffMasterXlsx(file: File): Promise<ParsedStaffRow[]
       license_available: isYes(row.getCell(COL.license_avail).value),
       license_pass_date: toDate(row.getCell(COL.pass_date).value),
       uniform_issued: isYes(row.getCell(COL.uniform).value),
+      dealer_category: cat.dealer_category,
+      is_pit_boss: cat.is_pit_boss,
     });
   }
   return out;
