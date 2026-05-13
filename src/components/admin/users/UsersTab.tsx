@@ -13,6 +13,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth-context";
+import { useCasino } from "@/lib/casino-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -33,9 +34,11 @@ import {
 export const UsersTab = () => {
   const navigate = useNavigate();
   const { user, roles: callerRoles } = useAuth();
+  const { isSummaryMode } = useCasino();
   const isSuperAdmin = callerRoles.includes("super_admin");
-  const isFinance = callerRoles.includes("finance_manager");
-  const showCasinoColumn = isSuperAdmin || isFinance;
+  // Casino column is meaningful only in network-wide (premier) view.
+  // On any single-casino subdomain it would just repeat the same name.
+  const showCasinoColumn = isSummaryMode;
 
   const { data: profiles = [], isLoading } = useUsersProfiles();
   const userIds = useMemo(() => profiles.map(p => p.user_id), [profiles]);
