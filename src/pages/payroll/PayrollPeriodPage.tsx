@@ -66,9 +66,10 @@ const PayrollPeriodPage = () => {
       <PageHeader
         icon={Wallet}
         title={`Payroll — ${periodLabel}`}
-        subtitle={`Status: ${period.status.replace("_", " ")}`}
+        subtitle={`Status: ${PERIOD_STATUS_LABEL[period.status]}`}
       >
-        {!isLocked && (isHR || isFinance) && (
+        <StatusBadge status={period.status} />
+        {!isLocked && !isPaid && (isHR || isFinance) && (
           <Button size="sm" variant="outline" onClick={() => refresh.mutate(period.id)} disabled={refresh.isPending}>
             <RefreshCw className={`w-4 h-4 mr-1 ${refresh.isPending ? "animate-spin" : ""}`} /> Refresh
           </Button>
@@ -114,20 +115,25 @@ const PayrollPeriodPage = () => {
         <div className="flex flex-wrap gap-2 items-center">
           {isDraft && isHR && (
             <Button onClick={() => approveHR.mutate({ periodId: period.id })}>
-              <CheckCircle2 className="w-4 h-4 mr-1" /> HR Approve
+              <CheckCircle2 className="w-4 h-4 mr-1" /> Mark as Reviewed
             </Button>
           )}
           {isHrApproved && isFinance && (
             <>
               <Button onClick={() => approveMgr.mutate({ periodId: period.id })}>
-                <Lock className="w-4 h-4 mr-1" /> Manager Approve & Lock
+                <Lock className="w-4 h-4 mr-1" /> Approve & Lock
               </Button>
               <Button variant="outline" onClick={() => revert.mutate({ periodId: period.id, reason: "revert" })}>
                 Revert to Draft
               </Button>
             </>
           )}
-          {isLocked && isSuper && (
+          {isLocked && isFinance && (
+            <Button onClick={() => markPaid.mutate({ periodId: period.id })}>
+              <Banknote className="w-4 h-4 mr-1" /> Mark as Paid
+            </Button>
+          )}
+          {(isLocked || isPaid) && isSuper && (
             <Button variant="outline" onClick={() => setUnlockOpen(true)}>
               <Unlock className="w-4 h-4 mr-1" /> Unlock (Super Admin)
             </Button>
