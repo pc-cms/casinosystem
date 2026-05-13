@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
-import { UserCheck, Plus, Pencil, Camera, RotateCw } from "lucide-react";
+import { useMemo, useRef, useState } from "react";
+import { UserCheck, Plus, Pencil, Camera, RotateCw, Upload } from "lucide-react";
+import { parseStaffMasterXlsx, type ParsedStaffRow } from "@/lib/staff-master-import";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { DataTable, DTHead, DTBody, DTRow, DTHeader, DTCell } from "@/components/ui/data-table";
@@ -18,7 +19,7 @@ import { fmtDate } from "@/lib/format-date";
 import { useQueryClient } from "@tanstack/react-query";
 
 const fmt = (n: number) => new Intl.NumberFormat("en-US").format(n).replace(/,/g, " ");
-const DEPT_ORDER = ["Pit", "Floor", "Security", "Office"] as const;
+const DEPT_ORDER = ["Management", "Office", "Cash Desk", "Live Game", "Slots", "F&B", "Security", "Housekeeper", "Pit", "Floor"] as const;
 
 const yearsBetween = (date: string | null) => {
   if (!date) return null;
@@ -76,12 +77,18 @@ const StaffMaster = () => {
   const { data: employees = [], isLoading } = useEmployees();
   const [editing, setEditing] = useState<Partial<Employee> | null>(null);
   const [reimporting, setReimporting] = useState(false);
+  const [importPreview, setImportPreview] = useState<ParsedStaffRow[] | null>(null);
+  const [wipeFirst, setWipeFirst] = useState(true);
+  const [importing, setImporting] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const grouped = useMemo(() => {
-    const by: Record<string, Employee[]> = { Pit: [], Floor: [], Security: [], Office: [], Other: [] };
+    const by: Record<string, Employee[]> = {};
+    for (const k of DEPT_ORDER) by[k] = [];
+    by["Other"] = [];
     for (const e of employees) {
       const k = (DEPT_ORDER as readonly string[]).includes(e.department) ? e.department : "Other";
-      by[k].push(e);
+      (by[k] ||= []).push(e);
     }
     for (const k of Object.keys(by)) by[k].sort((a, b) => a.full_name.localeCompare(b.full_name));
     return by;
@@ -106,11 +113,54 @@ const StaffMaster = () => {
     }
   };
 
+  const handlePickFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    e.target.value = "";
+    if (!f) return;
+    try {
+      const rows = await parseStaffMasterXlsx(f);
+      if (!rows.length) { toast.error("No rows found in file"); return; }
+      setImportPreview(rows);
+      setWipeFirst(true);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to parse file");
+    }
+  };
+
+  const handleConfirmImport = async () => {
+    if (!activeCasinoId || !importPreview) return;
+    setImporting(true);
+    try {
+      if (wipeFirst) {
+        const { error } = await supabase.from("employees").delete().eq("casino_id", activeCasinoId);
+        if (error) throw error;
+      }
+      const payload = importPreview.map(r => ({ ...r, casino_id: activeCasinoId, payroll_status: "active" as const }));
+      // Chunked insert to keep payloads small
+      for (let i = 0; i < payload.length; i += 100) {
+        const slice = payload.slice(i, i + 100);
+        const { error } = await supabase.from("employees").insert(slice as any);
+        if (error) throw error;
+      }
+      toast.success(`Imported ${payload.length} employees`);
+      qc.invalidateQueries({ queryKey: ["employees"] });
+      setImportPreview(null);
+    } catch (err: any) {
+      toast.error(err.message || "Import failed");
+    } finally {
+      setImporting(false);
+    }
+  };
+
   return (
     <PageShell>
-      <PageHeader icon={UserCheck} title="Staff Master" subtitle="Universal directory of all casino personnel — Pit, Floor, Security, Office">
+      <PageHeader icon={UserCheck} title="Staff Master" subtitle="Universal directory of all casino personnel">
         {canEdit && (
           <>
+            <input ref={fileRef} type="file" accept=".xlsx" className="hidden" onChange={handlePickFile} />
+            <Button variant="outline" size="sm" onClick={() => fileRef.current?.click()}>
+              <Upload className="w-4 h-4 mr-1" /> Import from Excel
+            </Button>
             <Button variant="outline" size="sm" onClick={handleReimport} disabled={reimporting}>
               <RotateCw className={`w-4 h-4 mr-1 ${reimporting ? "animate-spin" : ""}`} /> Reimport
             </Button>
@@ -169,7 +219,7 @@ const StaffMaster = () => {
                 {employees.length === 0 && (
                   <DTRow><DTCell colSpan={TOTAL_COLS} className="text-center text-muted-foreground py-8">No employees yet — click Reimport to build from Staff and Pit Personnel</DTCell></DTRow>
                 )}
-                {(["Pit", "Floor", "Security", "Office", "Other"] as const).flatMap(dept => {
+                {([...DEPT_ORDER, "Other"] as const).flatMap(dept => {
                   const list = grouped[dept];
                   if (!list || list.length === 0) return [] as JSX.Element[];
                   const rows: JSX.Element[] = [];
@@ -245,6 +295,38 @@ const StaffMaster = () => {
 
       {editing && (
         <EmployeeEditorDialog value={editing} onClose={() => setEditing(null)} />
+      )}
+
+      {importPreview && (
+        <Dialog open onOpenChange={() => !importing && setImportPreview(null)}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader><DialogTitle>Import Staff Master</DialogTitle></DialogHeader>
+            <div className="space-y-3 text-sm">
+              <div>Parsed <span className="font-mono font-semibold">{importPreview.length}</span> employees from the file.</div>
+              <div className="text-xs text-muted-foreground">
+                Existing in this casino: <span className="font-mono">{employees.length}</span>
+              </div>
+              <label className="flex items-center gap-2">
+                <Checkbox checked={wipeFirst} onCheckedChange={(c) => setWipeFirst(!!c)} />
+                <span>Wipe existing employees for this casino before import</span>
+              </label>
+              {wipeFirst && employees.length > 0 && (
+                <div className="text-xs text-destructive">
+                  All {employees.length} current employees will be deleted. This cannot be undone.
+                </div>
+              )}
+              <div className="text-xs text-muted-foreground">
+                Departments: {Array.from(new Set(importPreview.map(r => r.department).filter(Boolean))).join(", ")}
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setImportPreview(null)} disabled={importing}>Cancel</Button>
+              <Button onClick={handleConfirmImport} disabled={importing}>
+                {importing ? "Importing…" : `Import ${importPreview.length}`}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       )}
     </PageShell>
   );

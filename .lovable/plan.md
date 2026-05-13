@@ -1,86 +1,91 @@
-## Staff Master — full Excel-template parity
+## Цель
 
-Привожу таблицу и редактор сотрудника к точному набору колонок из загруженного Excel-шаблона (32 колонки, включая вычисляемые).
+Полностью очистить таблицу `employees` для активного казино и заново заполнить её из загруженного файла `template-2.xlsx` (54 сотрудника, 32 колонки).
 
-### Маппинг колонок шаблона → схема `employees`
+## Что в файле
 
-| # | Колонка шаблона | Откуда берётся |
+- 54 строки, 8 департаментов: **Live Game, Slots, F&B, Cash Desk, Security, Housekeeper, Management, Office**
+- 12 позиций (Dealer, APB, Cashier, Shift Manager, Bar Tender, Cleaner, Slot Attendant, Hostes, Slots Supervisor, Security Officer, Maasai, HR Manager)
+- Все на контракте `PM`
+- License Type: `Key` / `Support`
+- Compliance-флажки приходят как `"Yes"` / пусто
+
+## Маппинг колонок шаблона → `employees`
+
+| Шаблон | Поле БД | Заметки |
 |---|---|---|
-| 1 | S/N | вычисл. (порядковый номер в группе) |
-| 2 | Name | `full_name` ✅ |
-| 3 | Remain Days | вычисл. = Earned − Used − Sold |
-| 4 | Department | `department` ✅ |
-| 5 | Position | `position` ✅ |
-| 6 | **Contract Type** (PM / FT / PT…) | **новое поле** `contract_type` |
-| 7 | Basic Salary | `basic_salary` ✅ |
-| 8 | Joining Date | `onboarding_date` ✅ |
-| 9 | Experience YY | вычисл. (сегодня − Joining Date, в годах с десятичной) |
-| 10 | **Birthday** | **новое** `birthday date` |
-| 11 | Ages | вычисл. из Birthday |
-| 12 | **Phone** | **новое** `phone text` |
-| 13 | **Job Description** | **новое** `job_description text` |
-| 14 | **General Details** | **новое** `general_details text` |
-| 15 | **Introduct to Work** | **новое** `intro_to_work boolean` |
-| 16 | **Staff Rules** | **новое** `staff_rules_acknowledged boolean` |
-| 17 | **Disciplinary Proced** | **новое** `disciplinary_acknowledged boolean` |
-| 18 | **Confid Agreement** | **новое** `confidentiality_agreement boolean` |
-| 19 | Contract Start Date | `contract_start` ✅ |
-| 20 | Contract End Date | `contract_end` ✅ |
-| 21 | Contract End Month | вычисл. (= Contract End, формат MMM YYYY) |
-| 22 | **Annual Leave Earned** | **новое** `annual_leave_earned numeric` |
-| 23 | **Annual Leave Used** | **новое** `annual_leave_used numeric` |
-| 24 | **Annual Leave Sold** | **новое** `annual_leave_sold numeric` |
-| 25 | **Corporate Mail** | **новое** `corporate_mail text` |
-| 26 | **Gender** | **новое** `gender text` ('M'/'F') |
-| 27 | **Nationality** | **новое** `nationality text` |
-| 28 | **License Type** | **новое** `license_type text` |
-| 29 | **License Availability** | **новое** `license_available boolean` |
-| 30 | **Pass Date** (license expiry) | **новое** `license_pass_date date` |
-| 31 | To Renew Days | вычисл. = Pass Date − today |
-| 32 | **Uniform** | **новое** `uniform_issued boolean` |
+| Name | `full_name` | trim |
+| Department | `department` | как есть, free-text |
+| Position | `position` | |
+| Contract Type | `contract_type` | "PM" |
+| Basic Salary | `basic_salary` | numeric |
+| Joining Date | `onboarding_date` | date |
+| Birthday | `birthday` | date |
+| Phone | `phone` | очистить ведущий `/` |
+| Job Descrit / General Details | `job_description` / `general_details` | как текст ("Yes" сохраняется) |
+| Introduct to Work / Staff Rules / Displinary / Confid Agree | `intro_to_work`, `staff_rules_acknowledged`, `disciplinary_acknowledged`, `confidentiality_agreement` | `"Yes"` → true, иначе false |
+| Contract Start / End | `contract_start`, `contract_end` | |
+| Annual Leave Earned/Used/Sold | `annual_leave_earned`, `_used`, `_sold` | numeric |
+| Corprtv Mail | `corporate_mail` | |
+| Gender (M/F) | `gender` | |
+| Nationality | `nationality` | |
+| License Type | `license_type` | |
+| License Avalability | `license_available` | `"Yes"` → true |
+| Pass Date | `license_pass_date` | |
+| Uniform | `uniform_issued` | `"Yes"` → true |
 
-Итого **17 новых полей** (14 хранимых + 3 уже на месте) и **6 вычисляемых на лету** в UI.
+Игнорируем расчётные: S/N, Remain Days, Experience-YY, Ages, Contract End Month, To Renew Days.
 
-### Изменения
+Поля, которых нет в шаблоне (`nssf_number`, `tax_id`, `gepf_number`, `bank`, `photo_url`, `dealer_category`, `is_pit_boss`), не трогаем — оставляем `null/false`.
 
-**1. Migration (ALTER TABLE employees)**
-Добавить 17 колонок (типы выше). Все nullable, без значений по умолчанию (кроме boolean → false). Никаких данных не теряется. RLS уже настроен.
+## Реализация
 
-**2. UI — таблица `/staff-master`**
-Перестроить `DataTable`:
-- 32 колонки в порядке шаблона.
-- Горизонтальный скролл (`overflow-x-auto`), `text-xs font-mono` для плотности.
-- Вычисляемые колонки помечены тонкой `bg-muted/30` (визуально отличаются от ручных полей — стандарт «calculated vs manual»).
-- Boolean → "Yes"/"·" (тёмная точка для пустоты).
-- `Remain Days` и `To Renew Days` — красные при отрицательных, зелёные при положительных.
-- `fmtDate` для всех дат (DD/MM/YYYY).
-- `fmt(n)` (пробел-разделитель) для зарплаты.
+### 1. UI на странице `/staff-master`
 
-**3. UI — `EmployeeEditorDialog`**
-Реорганизовать в **5 секций** (через `PageSection`-подобные блоки внутри Dialog):
-1. **Identity** — Full Name, Gender, Birthday, Nationality, Phone, Corporate Mail
-2. **Position** — Department, Position, Contract Type, Pit fields (если Pit)
-3. **Contract & Salary** — Joining Date, Contract Start/End, Basic Salary, Status
-4. **Leave** — Earned, Used, Sold (Remain показан рядом, read-only)
-5. **Compliance & Other** — все 4 boolean (чекбоксы), License Type/Availability/Pass Date, Uniform, Job Description, General Details (textarea)
-6. **Bank & Tax** — оставить как есть (NSSF, Tax ID, GEPF, Bank).
+Добавить рядом с **Reimport** новую кнопку **«Import from Excel…»** (только для HR/Manager/Super Admin).
 
-Layout: `FormGrid` 2-колоночная, textarea — full width.
+Поток:
+1. Открывает `<input type="file" accept=".xlsx">`.
+2. Парсит локально через **ExcelJS** (уже в проекте после замены xlsx).
+3. Показывает диалог-превью: «Будет удалено N текущих записей и импортировано 54 новых». Чекбокс **«Wipe existing employees for this casino»** (по умолчанию on).
+4. По подтверждению:
+   - Если wipe: `supabase.from('employees').delete().eq('casino_id', activeCasinoId)`.
+   - Bulk `insert` нарезанными чанками по 100.
+5. Toast с итогом + invalidate `["employees"]`.
 
-**4. Хук `useEmployees` / `useUpsertEmployee`**
-Расширить тип `Employee` 17-ю новыми полями. Прокинуть в select/insert/update. Обновится автогенерируемый `types.ts` после миграции.
+Никаких миграций / RPC / триггеров — всё клиентом, чтобы оставаться в духе «manual entry, no smart logic».
 
-**5. Версия**
-`package.json` → 1.0.153 (миграция БД).
+### 2. Файл с парсером
 
-### Чего **не** делаем (уже подтверждено ранее)
-- Двусторонние триггеры sync `employees ↔ dealers/staff_members` — это отдельная задача.
-- Замена `reimport_staff_master` на UPSERT — отдельная задача.
-- Импорт из текущего Excel в `employees` — могу добавить отдельной кнопкой позже, если нужно.
+Новый `src/lib/staff-master-import.ts`:
 
-### Проверка после реализации
-- Открыть `/staff-master`, убедиться что отображаются все 32 колонки.
-- Создать тестового сотрудника, заполнить все поля, проверить вычисляемые (Ages, Tenure, Remain Days, To Renew, Contract End Month).
-- Проверить, что старые сотрудники остались целы (новые поля = null/false).
+```ts
+export type StaffRow = Partial<Employee> & { full_name: string };
+export async function parseStaffMasterXlsx(file: File): Promise<StaffRow[]>
+```
 
-Подтверди — начну с миграции.
+- Использует ExcelJS `Workbook.xlsx.load(buffer)`.
+- Берёт первый лист, строки начиная со 2-й.
+- Хелперы: `toBool(v) = v === 'Yes'`, `toDate(v)`, `toNum(v)`, `cleanPhone(v) = String(v).replace(/^\/+/, '').trim()`.
+- Возвращает массив строк, готовых к `useUpsertEmployee` (но импорт делаем bulk-insert напрямую, без upsert).
+
+### 3. Department list
+
+В `StaffMaster.tsx` расширить `DEPT_ORDER` до полного набора: `["Management", "Office", "Cash Desk", "Live Game", "Slots", "F&B", "Security", "Housekeeper"]`, чтобы группировка показывала все секции в естественном порядке.
+
+### 4. Версия
+
+Бамп `package.json` → `1.0.154`.
+
+## Что НЕ делаем
+
+- Не трогаем `dealers` / `staff_members` — Staff Master живёт независимо.
+- Не делаем UPSERT-merge по имени — пользователь явно хочет очистку.
+- Не сохраняем шаблон в репозитории.
+- Не меняем схему БД.
+
+## Файлы
+
+- `src/pages/StaffMaster.tsx` — кнопка + диалог импорта, расширенный DEPT_ORDER
+- `src/lib/staff-master-import.ts` — новый парсер
+- `package.json` — версия
