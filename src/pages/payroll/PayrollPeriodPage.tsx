@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Wallet, CheckCircle2, Lock, Unlock, FileSpreadsheet, Printer, History } from "lucide-react";
+import { ArrowLeft, Wallet, CheckCircle2, Lock, Unlock, FileSpreadsheet, Printer, History, RefreshCw } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { DataTable, DTHead, DTBody, DTRow, DTHeader, DTCell } from "@/components/ui/data-table";
@@ -16,6 +16,7 @@ import {
   usePayrollAuditLog, useEmployees,
   type PayrollEntry,
 } from "@/hooks/use-payroll";
+import { useRefreshPayrollPeriod } from "@/hooks/use-attendance-monthly";
 import {
   exportBankCsv, exportNssfReport, exportPayeReport, exportSdlReport,
   exportWcfReport, exportJournal, exportSalarySlipsPrint, exportSingleSalarySlip,
@@ -41,6 +42,7 @@ const PayrollPeriodPage = () => {
   const approveMgr = useApproveManager();
   const revert = useRevertToDraft();
   const unlock = useUnlockPeriod();
+  const refresh = useRefreshPayrollPeriod();
   const [unlockOpen, setUnlockOpen] = useState(false);
   const [unlockReason, setUnlockReason] = useState("");
 
@@ -61,6 +63,11 @@ const PayrollPeriodPage = () => {
         title={`Payroll — ${periodLabel}`}
         subtitle={`Status: ${period.status.replace("_", " ")}`}
       >
+        {!isLocked && (isHR || isFinance) && (
+          <Button size="sm" variant="outline" onClick={() => refresh.mutate(period.id)} disabled={refresh.isPending}>
+            <RefreshCw className={`w-4 h-4 mr-1 ${refresh.isPending ? "animate-spin" : ""}`} /> Refresh
+          </Button>
+        )}
         <Button size="sm" variant="ghost" onClick={() => nav("/payroll")}>
           <ArrowLeft className="w-4 h-4 mr-1" /> Back
         </Button>
