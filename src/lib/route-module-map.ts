@@ -45,6 +45,7 @@ export const moduleKeyForRoute = (to: string, label?: string): ModuleKey | null 
   if (base === "/rota/floor" || base === "/rota/security" || base === "/rota/office") return "staff_rota";
   if (base === "/attendance/floor" || base === "/attendance/security" || base === "/attendance/office") return "staff_attendance";
   if (base === "/staff/master") return "staff_master";
+  if (base === "/attendance/monthly") return "staff_master";
 
   // Legacy /staff?tab=… (redirects)
   if (base === "/staff" || base === "/floor") {
