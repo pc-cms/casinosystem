@@ -83,10 +83,12 @@ const StaffMaster = () => {
   const fileRef = useRef<HTMLInputElement>(null);
 
   const grouped = useMemo(() => {
-    const by: Record<string, Employee[]> = { Pit: [], Floor: [], Security: [], Office: [], Other: [] };
+    const by: Record<string, Employee[]> = {};
+    for (const k of DEPT_ORDER) by[k] = [];
+    by["Other"] = [];
     for (const e of employees) {
       const k = (DEPT_ORDER as readonly string[]).includes(e.department) ? e.department : "Other";
-      by[k].push(e);
+      (by[k] ||= []).push(e);
     }
     for (const k of Object.keys(by)) by[k].sort((a, b) => a.full_name.localeCompare(b.full_name));
     return by;
