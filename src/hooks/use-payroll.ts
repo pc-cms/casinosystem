@@ -355,7 +355,7 @@ export const useBankExport = (periodId: string | undefined) =>
         .from("payroll_bank_export_v" as any).select("*")
         .eq("period_id", periodId!).order("name");
       if (error) throw error;
-      return (data || []) as BankExportRow[];
+      return ((data as unknown) as BankExportRow[]) || [];
     },
     enabled: !!periodId,
   });
@@ -419,7 +419,7 @@ export const useLatestPayeBrackets = () => {
         .eq("casino_id", activeCasinoId!).eq("effective_from", (latest as any).effective_from)
         .order("ord");
       if (error) throw error;
-      return (data || []) as PayeBracket[];
+      return ((data as unknown) as PayeBracket[]) || [];
     },
     enabled: !!activeCasinoId,
   });
