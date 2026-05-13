@@ -12,11 +12,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { useAuth } from "@/lib/auth-context";
 import {
   usePayrollPeriod, usePayrollEntries, useUpdatePayrollEntry,
-  useApproveHR, useApproveManager, useRevertToDraft, useUnlockPeriod,
+  useApproveHR, useApproveManager, useMarkPaid, useRevertToDraft, useUnlockPeriod,
   usePayrollAuditLog, useEmployees,
+  PERIOD_STATUS_LABEL,
   type PayrollEntry,
 } from "@/hooks/use-payroll";
 import { useRefreshPayrollPeriod } from "@/hooks/use-attendance-monthly";
+import { StatusBadge } from "@/components/payroll/MonthCarousel";
+import { Banknote } from "lucide-react";
 import {
   exportBankCsv, exportNssfReport, exportPayeReport, exportSdlReport,
   exportWcfReport, exportJournal, exportSalarySlipsPrint, exportSingleSalarySlip,
@@ -40,6 +43,7 @@ const PayrollPeriodPage = () => {
 
   const approveHR = useApproveHR();
   const approveMgr = useApproveManager();
+  const markPaid = useMarkPaid();
   const revert = useRevertToDraft();
   const unlock = useUnlockPeriod();
   const refresh = useRefreshPayrollPeriod();
@@ -53,6 +57,7 @@ const PayrollPeriodPage = () => {
   const isDraft = period.status === "draft";
   const isHrApproved = period.status === "hr_approved";
   const isLocked = period.status === "locked";
+  const isPaid = period.status === "paid";
   const canEdit = isDraft && isHR;
   const periodLabel = `${MONTHS[period.month - 1]} ${period.year}`;
 
