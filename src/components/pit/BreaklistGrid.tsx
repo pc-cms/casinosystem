@@ -177,6 +177,32 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
   const handleRoleSelect = (role: string, tableId?: string) => {
     if (!activeCell) return;
 
+    // LT = Late: marks a single slot as Late and recomputes attendance.
+    // Each LT slot = 20 min late. Worked hours = max(0, 9 - ceil(LTcount * 20 / 60)).
+    if (role === "LT") {
+      setCell.mutate({
+        date,
+        dealer_id: activeCell.dealerId,
+        time_slot: activeCell.timeSlot,
+        role: "LT",
+        table_id: null,
+      });
+      // Recompute LT count INCLUDING this new cell (in case it didn't exist before)
+      const existingLT = breaklist.filter(
+        (b: any) => b.dealer_id === activeCell.dealerId && b.role === "LT"
+      );
+      const alreadyHadThisSlot = existingLT.some((b: any) => b.time_slot === activeCell.timeSlot);
+      const ltCount = existingLT.length + (alreadyHadThisSlot ? 0 : 1);
+      const lateMinutes = ltCount * 20;
+      const lateHours = Math.ceil(lateMinutes / 60);
+      const workedH = Math.max(0, 9 - lateHours);
+      const attValue = workedH > 0 ? `${workedH}L` : "L";
+      setAttendance.mutate({ dealer_id: activeCell.dealerId, date, value: attValue });
+      toast.success(`Late: ${ltCount} slot${ltCount === 1 ? "" : "s"} (~${lateHours}h), shift = ${workedH}h`);
+      setActiveCell(null);
+      return;
+    }
+
     // S = Sick: fill all slots from current one until end of shift with S.
     // No table assignment, no per-table conflict checks (S overrides everything for this dealer).
     if (role === "S") {
