@@ -113,11 +113,54 @@ const StaffMaster = () => {
     }
   };
 
+  const handlePickFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    e.target.value = "";
+    if (!f) return;
+    try {
+      const rows = await parseStaffMasterXlsx(f);
+      if (!rows.length) { toast.error("No rows found in file"); return; }
+      setImportPreview(rows);
+      setWipeFirst(true);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to parse file");
+    }
+  };
+
+  const handleConfirmImport = async () => {
+    if (!activeCasinoId || !importPreview) return;
+    setImporting(true);
+    try {
+      if (wipeFirst) {
+        const { error } = await supabase.from("employees").delete().eq("casino_id", activeCasinoId);
+        if (error) throw error;
+      }
+      const payload = importPreview.map(r => ({ ...r, casino_id: activeCasinoId, payroll_status: "active" as const }));
+      // Chunked insert to keep payloads small
+      for (let i = 0; i < payload.length; i += 100) {
+        const slice = payload.slice(i, i + 100);
+        const { error } = await supabase.from("employees").insert(slice as any);
+        if (error) throw error;
+      }
+      toast.success(`Imported ${payload.length} employees`);
+      qc.invalidateQueries({ queryKey: ["employees"] });
+      setImportPreview(null);
+    } catch (err: any) {
+      toast.error(err.message || "Import failed");
+    } finally {
+      setImporting(false);
+    }
+  };
+
   return (
     <PageShell>
-      <PageHeader icon={UserCheck} title="Staff Master" subtitle="Universal directory of all casino personnel — Pit, Floor, Security, Office">
+      <PageHeader icon={UserCheck} title="Staff Master" subtitle="Universal directory of all casino personnel">
         {canEdit && (
           <>
+            <input ref={fileRef} type="file" accept=".xlsx" className="hidden" onChange={handlePickFile} />
+            <Button variant="outline" size="sm" onClick={() => fileRef.current?.click()}>
+              <Upload className="w-4 h-4 mr-1" /> Import from Excel
+            </Button>
             <Button variant="outline" size="sm" onClick={handleReimport} disabled={reimporting}>
               <RotateCw className={`w-4 h-4 mr-1 ${reimporting ? "animate-spin" : ""}`} /> Reimport
             </Button>
