@@ -77,6 +77,10 @@ const StaffMaster = () => {
   const { data: employees = [], isLoading } = useEmployees();
   const [editing, setEditing] = useState<Partial<Employee> | null>(null);
   const [reimporting, setReimporting] = useState(false);
+  const [importPreview, setImportPreview] = useState<ParsedStaffRow[] | null>(null);
+  const [wipeFirst, setWipeFirst] = useState(true);
+  const [importing, setImporting] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const grouped = useMemo(() => {
     const by: Record<string, Employee[]> = { Pit: [], Floor: [], Security: [], Office: [], Other: [] };
