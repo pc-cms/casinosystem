@@ -46,6 +46,8 @@ export type Profile = {
   casino_id: string | null;
   disabled_at?: string | null;
   created_at?: string;
+  /** Aggregated casino IDs the user can access (primary + user_casino_access). */
+  casino_ids: string[];
 };
 
 const readFunctionError = async (error: Error) => {
@@ -61,22 +63,68 @@ const readFunctionError = async (error: Error) => {
   return detail;
 };
 
-/** Profiles visible to the current user (own casino, or all for super/FM). */
+/**
+ * Profiles visible on the current surface.
+ *
+ * Per-domain rule (matches global "single casino per subdomain" policy):
+ *   - On premier subdomain (isSummaryMode) — every super_admin/FM/surveillance
+ *     sees ALL profiles across the network.
+ *   - On any casino subdomain (Arusha/Mwanza/...) — even super_admin sees ONLY
+ *     users that belong to this casino, either as `profiles.casino_id`
+ *     (primary) OR via a row in `user_casino_access`. This collapses the
+ *     "CCTV with 4 casinos" case into a single row that appears on each
+ *     relevant casino subdomain.
+ */
 export const useUsersProfiles = () => {
-  const { roles } = useAuth();
-  const { activeCasinoId } = useCasino();
-  const isSuperOrFM = roles.includes("super_admin") || roles.includes("finance_manager");
+  const { activeCasinoId, isSummaryMode } = useCasino();
 
   return useQuery({
-    queryKey: ["admin-users:profiles", isSuperOrFM ? "all" : activeCasinoId],
+    queryKey: ["admin-users:profiles", isSummaryMode ? "summary" : activeCasinoId],
     queryFn: async () => {
-      let q = supabase.from("profiles").select("user_id, display_name, casino_id, disabled_at, created_at");
-      if (!isSuperOrFM && activeCasinoId) q = q.eq("casino_id", activeCasinoId);
-      const { data, error } = await q.order("display_name");
-      if (error) throw error;
-      return (data || []) as Profile[];
+      // 1. Fetch profiles. RLS already restricts non-privileged viewers; we
+      //    only narrow by primary casino when on a casino subdomain to keep
+      //    the response small. Multi-casino users (primary != activeCasino)
+      //    are picked up via the user_casino_access join below.
+      const { data: profiles, error: pErr } = await supabase
+        .from("profiles")
+        .select("user_id, display_name, casino_id, disabled_at, created_at")
+        .order("display_name");
+      if (pErr) throw pErr;
+
+      // 2. Fetch all access grants for the same set of users (single round-trip).
+      const userIds = (profiles || []).map((p: any) => p.user_id);
+      let accessByUser = new Map<string, string[]>();
+      if (userIds.length > 0) {
+        const { data: access, error: aErr } = await supabase
+          .from("user_casino_access")
+          .select("user_id, casino_id")
+          .in("user_id", userIds);
+        if (aErr) throw aErr;
+        (access || []).forEach((row: any) => {
+          const list = accessByUser.get(row.user_id) || [];
+          list.push(row.casino_id);
+          accessByUser.set(row.user_id, list);
+        });
+      }
+
+      // 3. Build the unified Profile[]: one row per user, with casino_ids
+      //    union(primary, access).
+      const rows: Profile[] = (profiles || []).map((p: any) => {
+        const ids = new Set<string>();
+        if (p.casino_id) ids.add(p.casino_id);
+        (accessByUser.get(p.user_id) || []).forEach(id => ids.add(id));
+        return { ...p, casino_ids: Array.from(ids) } as Profile;
+      });
+
+      // 4. Per-domain scoping: keep only users that touch this casino.
+      if (!isSummaryMode && activeCasinoId) {
+        return rows.filter(r =>
+          r.casino_id === activeCasinoId || r.casino_ids.includes(activeCasinoId)
+        );
+      }
+      return rows;
     },
-    enabled: isSuperOrFM || !!activeCasinoId,
+    enabled: isSummaryMode || !!activeCasinoId,
   });
 };
 
