@@ -25,6 +25,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { CCTVDashboardSection } from "@/components/dashboard/CCTVDashboardSection";
 
 const StatCard = ({ label, value, icon: Icon, href }: {
   label: string; value: string | number; icon: any; href: string;
@@ -186,6 +187,10 @@ const Dashboard = () => {
         subtitle={displayName ?? undefined}
         date
       />
+
+      {(roles.includes("surveillance") || roles.includes("super_admin")) && (
+        <CCTVDashboardSection />
+      )}
 
       {(() => {
         const isSurveillance = roles.includes("surveillance") && !roles.includes("manager") && !roles.includes("super_admin");
