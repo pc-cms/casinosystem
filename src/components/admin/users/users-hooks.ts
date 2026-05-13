@@ -46,6 +46,8 @@ export type Profile = {
   casino_id: string | null;
   disabled_at?: string | null;
   created_at?: string;
+  /** Aggregated casino IDs the user can access (primary + user_casino_access). */
+  casino_ids: string[];
 };
 
 const readFunctionError = async (error: Error) => {
