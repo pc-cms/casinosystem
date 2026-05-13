@@ -56,7 +56,7 @@ export const moduleKeyForRoute = (to: string, label?: string): ModuleKey | null 
   }
 
   // ============= PAYROLL =============
-  if (base === "/payroll" || base.startsWith("/payroll/")) return "payroll";
+  if (base === "/payroll" || base.startsWith("/payroll/") || base.startsWith("/payroll-")) return "payroll";
 
   // ============= TABLES & TRACKERS =============
   if (base === "/tables") return "tables";

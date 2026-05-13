@@ -83,6 +83,9 @@ const StaffMaster = lazy(() => import("@/pages/StaffMaster"));
 const AttendanceMonthly = lazy(() => import("@/pages/AttendanceMonthly"));
 const Payroll = lazy(() => import("@/pages/Payroll"));
 const PayrollPeriodPage = lazy(() => import("@/pages/payroll/PayrollPeriodPage"));
+const PayrollDashboardPage = lazy(() => import("@/pages/payroll/PayrollDashboardPage"));
+const PayrollSettingsPage = lazy(() => import("@/pages/payroll/PayrollSettingsPage"));
+const PayrollBankExportPage = lazy(() => import("@/pages/payroll/PayrollBankExportPage"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -280,6 +283,9 @@ const ProtectedRoutes = () => {
           <Route path="/staff/master" element={<RoleGuard path="/staff/master"><ErrorBoundary><StaffMaster /></ErrorBoundary></RoleGuard>} />
           <Route path="/attendance/monthly" element={<RoleGuard path="/attendance/monthly"><ErrorBoundary><AttendanceMonthly /></ErrorBoundary></RoleGuard>} />
           <Route path="/payroll" element={<RoleGuard path="/payroll"><ErrorBoundary><Payroll /></ErrorBoundary></RoleGuard>} />
+          <Route path="/payroll/dashboard" element={<RoleGuard path="/payroll/dashboard"><ErrorBoundary><PayrollDashboardPage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/payroll/settings" element={<RoleGuard path="/payroll/settings"><ErrorBoundary><PayrollSettingsPage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/payroll/bank-export" element={<RoleGuard path="/payroll/bank-export"><ErrorBoundary><PayrollBankExportPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/payroll/:id" element={<RoleGuard path="/payroll/:id"><ErrorBoundary><PayrollPeriodPage /></ErrorBoundary></RoleGuard>} />
         </Route>
         <Route path="*" element={<Suspense fallback={<PageLoader />}><NotFound /></Suspense>} />
