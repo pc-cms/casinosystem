@@ -1,135 +1,82 @@
-# Аудит ссылок и новая модель прав (Module = URL) — финальная версия
+## Цель
 
-## Принцип (правило №1)
+Сделать **Staff Master** единым каталогом всего персонала Arusha (~69 человек) с правильной структурой департаментов и видимыми колонками онбординга/контракта/стажа.
 
-**Одна ссылка = один маршрут = один ModuleKey.** Никаких `?tab=`, никаких "одна страница на 3 роли с разной начинкой". Если две роли видят разное содержимое — это **два разных модуля и два разных URL** (даже если они рендерят похожий компонент).
+## Шаг 1 — Миграция БД
 
-Каждый ModuleKey в матрице имеет три оси:
-- `can_view` — видит пункт в меню и может открыть страницу
-- `can_write` — может редактировать/создавать
-- `day_horizon` — глубина по дате (`today` / `7d` / `30d` / `all`)
+**Расширить `employees`:**
+- `onboarding_date date` — реальная дата найма (отдельно от employment_date)
+- `contract_end date` — окончание контракта
+- `dealer_category text` — `dealer` / `inspector` / `trainee` (NULL для не-pit)
+- `is_pit_boss boolean default false`
+- `source_table text` — `staff_members` или `dealers` (для будущих ре-импортов)
 
-Если разница между ролями = только редактирование или глубина — это **один модуль** с разными настройками. Если разница в **наборе кнопок/вкладок/секций** — это **разные модули** на разных URL.
+**Группировка департаментов:** добавить хелпер-функцию или хранить готовый `dept_group text` (Pit / Floor / Security / Office), вычисляемый при импорте:
+- `Pit` ← все из `dealers` (department='pit', position = "Pit Boss" / "Dealer" / "Inspector" / "Trainee")
+- `Floor` ← cashier, bartender, hostess, waiter, cleaner, reception
+- `Security` ← security
+- `Office` ← it, hr, driver
 
-## Решения по открытым вопросам (зафиксировано)
+`employment_date` = `onboarding_date` (для совместимости со старым UI/payroll).
 
-1. **Floor Manager на `/cage`**: видит всё **без Manager Override**, но дополнительные кассирские действия (открыть/закрыть смену, edit opening chips, register player) требуют Override. То есть `cage_main.can_view = true` для FM, `can_write` остаётся за override.
-2. **`expenses_approvals`**: Manager и Floor Manager — `can_write = true` (апрув без Override). Pit — `can_view = true` (видит очередь), `can_write = false`, апрув становится доступен только при Manager Override.
-3. **`finance_payments` ≠ `expenses_cage`**: Payments — реестр исходящих платежей менеджера (Office Safe → банк/контрагент). Expenses — повседневные кассовые расходы. Связь: апрувленный Expense может породить Payment, но это разные сущности и разные экраны.
-4. **`/cage/view` для Reception/HR**: НЕ дают доступ. Только Manager / Floor Manager / Pit / Surveillance / Finance.
+## Шаг 2 — RPC `reimport_staff_master(p_casino_id uuid)`
 
-## Финальная карта URL (плоская, без `?tab=`)
+Полная переинициализация для одной казино:
+1. Удалить `employee_bank_accounts` и `employees` где `casino_id = p_casino_id` (BANK данные сейчас пусты у всех — потеря несущественна).
+2. Вставить заново из `staff_members`:
+   - position = department label (Cashier, Waiter, Bartender, …)
+   - department = `dept_group` (Floor / Security / Office)
+   - onboarding_date, contract_start, contract_end, photo_url, salary, is_active → payroll_status
+3. Вставить из `dealers`:
+   - department = `Pit`
+   - position = `Pit Boss` (если is_pit_boss) иначе `Dealer` / `Inspector` / `Trainee` (по category)
+   - dealer_category, is_pit_boss
+   - onboarding_date, contract_start, contract_end, photo_url, salary, is_active → payroll_status
+4. Связь `staff_member_id` сохраняется только для строк из staff_members (для dealers создадим колонку `dealer_id` для будущей синхронизации).
 
-### OVERVIEW
-- `/` → `dashboard`
+Запустить RPC для Arusha (`48f4404f-...`) сразу после миграции.
 
-### PIT (operations)
-- `/breaklist` → `pit_breaklist`
-- `/tables` → `tables`
-- `/tables/analytics` → `tables_analytics`
-- `/table-tracker` → `table_tracker`
-- `/player-statistics` → `pit_active_players`
-- `/attendance/live` → `pit_attendance`
-- `/attendance/floor` → `staff_attendance_floor`
-- `/attendance/security` → `staff_attendance_security`
-- `/attendance/office` → `staff_attendance_office`
-- `/rota/live` → `pit_rota`
-- `/rota/floor` → `staff_rota_floor`
-- `/rota/security` → `staff_rota_security`
-- `/rota/office` → `staff_rota_office`
-- `/weekly-bonus` → `weekly_bonus`
-- `/pitbook` → `pitbook`
-- `/incidents` → `incidents` *(новый модуль — сейчас отсутствует, поэтому Floor Manager видит пустоту)*
+## Шаг 3 — UI Staff Master
 
-### CASHIER (Cage variants — это и есть та "ахинея")
-- `/cage` → `cage_main` — полнофункциональный кассирский модуль. Cashier `can_write=true`. Manager / Floor Manager / Pit / Finance / Surveillance — `can_view=true`, `can_write` только при Manager Override.
-- `/cage/view` → `cage_view` — read-only витрина истории смен (то, что сейчас отдаёт `CageHistoryView`). Manager / Floor Manager / Pit / Finance / Surveillance.
-- `/cage/closings` → `cage_closings` — список закрытых смен.
-- `/cage/close-shift`, `/cage/shift/:id/edit-opening`, `/players/register` — дочерние операции `cage_main` (наследуют его права).
-- `/expenses` → `expenses_cage` — журнал кассовых расходов (создание). Cashier write; Manager / Floor Manager — view + write через Override.
-- `/expenses/approvals` → `expenses_approvals` — очередь апрува. Manager / Floor Manager / Finance — write по умолчанию. Pit — view, write только при Override.
-- `/cashless` → `cashless`
+Перестроить `src/pages/StaffMaster.tsx`:
 
-### RECEPTION
-- `/reception` → `reception`
-- `/guests` → `in_casino`
-- `/blacklist` → `blacklist`
-- `/players/:id` → `players_profile` (один модуль, видимость финансовых блоков остаётся role-locked)
+**Группировка по департаментам** (Pit → Floor → Security → Office) с заголовками-разделителями в `DataTable`.
 
-### FINANCE
-- `/finance/payments` → `finance_payments` (исходящие платежи, **не** дубль Expenses)
-- `/finance/wallets` → `finance_wallets`
-- `/finance/dashboard` → `finance_dashboard`
-- `/finance/review` → `finance_review`
-- `/finance/budget` → `finance_budget`
-- `/finance/cash-count` → `finance_cash_count`
-- `/finance/summary` → `finance_summary`
-- `/finance/transfers` → `finance_transfers`
-- `/bank-checks` → `bank_checks`
-- `/miss-chips` → `miss_chips`
+**Новые колонки:**
+| Photo | Name | Position | Department | Onboarding | Tenure | Contract Start | Contract End | Salary | Bank | Acc # | NSSF | Tax ID | Status | ⋮ |
 
-### HR / Staff
-- `/staff/dealers` → `staff_master_dealers`
-- `/staff/floor` → `staff_master_floor`
-- `/staff/master` → `staff_master_full`
-- `/payroll`, `/payroll/:id` → `payroll`
+- **Onboarding** = `onboarding_date`, формат DD/MM/YYYY (`fmtDate`)
+- **Tenure** = years since onboarding (1 знак после запятой, `5.3y`)
+- **Pit Boss / Category** — бейдж рядом с Position для dept=Pit (PB / D / I / T)
+- Salary — формат с пробелом (1 250 000)
 
-### ANALYTICS
-- `/groups` → `groups`
-- `/reports` → `reports`
-- `/table-results` → `table_results`
-- `/business-days` → `business_days`
+**Editor Dialog:** добавить поля Onboarding Date, Contract End, Pit Boss toggle (если department=Pit), dropdown Position по департаменту.
 
-### SYSTEM
-- `/admin/users` → `admin_users`
-- `/admin/permissions` → `admin_permissions`
-- `/admin/branding` → `admin_branding`
-- `/admin/float` → `admin_float`
-- `/admin/network` → `admin_network`
-- `/import-reports` → `import_reports`
-- `/logs` → `logs`
+## Шаг 4 — Хук `use-payroll.ts`
 
-## Правило вариантов (когда один модуль, когда несколько)
-
-```
-Различие в UI                            → решение
-─────────────────────────────────────────────────────────────
-Только редактирование/чтение             → ОДИН модуль, can_write
-Только глубина по дате (today/30d)       → ОДИН модуль, day_horizon
-Manager Override открывает write         → ОДИН модуль (override flips can_write)
-Разный набор кнопок/секций               → РАЗНЫЕ модули (Main / View / Approvals)
-Разный список (свои / все / очередь)     → РАЗНЫЕ модули
+Расширить `Employee`:
+```ts
+onboarding_date: string | null;
+contract_start: string | null;
+contract_end: string | null;
+dealer_category: 'dealer'|'inspector'|'trainee'|null;
+is_pit_boss: boolean;
 ```
 
-Суффиксы:
-- `_main` — полный операционный экран
-- `_view` — read-only витрина того же контента
-- `_approvals` — очередь модерации
-- `_dealers` / `_floor` / `_full` — срезы списка по группам персонала
+`useUpsertEmployee` — пишет новые поля.
 
-## Шаблон для новой страницы (обязательный чек-лист)
+## Шаг 5 — Версия
 
-1. Один URL в `App.tsx` (никаких `?tab=`).
-2. Один `ModuleKey` в `src/lib/modules.ts`.
-3. Маппинг URL → ModuleKey в `src/lib/route-module-map.ts`.
-4. Baseline в миграции `role_module_defaults` для всех ролей.
-5. Пункт сайдбара в `AppSidebar.tsx` без `roles: [...]` — фильтрация только через матрицу.
-6. `RoleGuard` оборачивает `Route` (он уже резолвит модуль через `route-module-map`).
-7. Внутри страницы — `useModuleWrite(key)` для блокировки кнопок и `useModuleHorizon(key)` для фильтра по дате.
-8. Если нужен view-вариант — отдельный URL `*/view`, отдельный модуль `*_view`. Никакого `if (role === ...)` внутри страницы.
-9. Тест в `src/test/access-matrix.test.ts` — добавить URL в `GATED_ROUTES` и обновить allow-list ролей.
+Bump `package.json` patch (миграция + RPC).
 
-## План реализации (порядок шагов)
+## Что НЕ меняем
 
-1. **Расширить `ModuleKey`** в `src/lib/modules.ts`: добавить новые ключи (`cage_main`, `cage_view`, `cage_closings`, `expenses_cage`, `expenses_approvals`, `finance_payments`, `tables_analytics`, `incidents`, `pitbook`, `weekly_bonus`, `bank_checks`, `table_results`, `business_days`, `cashless`, `staff_attendance_{floor,security,office}`, `staff_rota_{floor,security,office}`, `staff_master_{dealers,floor,full}`, `admin_{users,permissions,branding,float,network}`).
-2. **Flat-URL миграция** для `/breaklist`, `/attendance/*`, `/rota/*`, `/staff/*`, `/admin/*`. Старые URL → `<Navigate>` редиректы.
-3. **Cage split**: новый маршрут `/cage/view` → `CageHistoryView`. `/cage` остаётся `cage_main` (Cashier write, остальные view + write-by-override). Убрать дубль пункта сайдбара для Surveillance — он будет ссылаться на `/cage/view`.
-4. **Expenses split**: `/expenses` = `expenses_cage`. Новый `/expenses/approvals` = `expenses_approvals` с кнопкой Approve, доступной по матрице (Manager/FM/Finance) или через Override (Pit).
-5. **`route-module-map.ts`** — переписать под flat URL и новые модули.
-6. **Миграция БД** — пересеять `role_module_defaults` под новый набор ключей. Floor Manager = Manager минус финансовые модули. Прописать write для `expenses_approvals` у Manager / Floor Manager / Finance.
-7. **`AppSidebar.tsx`** — убрать `roles: [...]` из `NAV_ITEMS`, видимость = `allowedModules.has(moduleKeyForRoute(to))`.
-8. **Удалить `Pit.tsx` и `Staff.tsx`** как страницы-скелеты — компоненты уже отдельные. Legacy URL → редиректы.
-9. **`docs/ACCESS-MATRIX.md`** обновить (новые модули, варианты Main/View/Approvals, шаблон).
-10. **Тесты** в `access-matrix.test.ts` — обновить `GATED_ROUTES` и `FLOOR_MANAGER_ALLOWED`.
+- `staff_members` и `dealers` остаются основными источниками для рота / breaklist / pit-rota — они не трогаются.
+- Bank / NSSF / Tax ID — они и так пусты, HR заполняет вручную через диалог.
+- Payroll periods/entries — структура не меняется, они продолжают читать `employees`.
 
-После аппрува плана — иду в реализацию.
+## Технические детали для проверки
+
+- Проверить, что `department text` в `employees` примет новые значения (Pit/Floor/Security/Office) — это `text` без CHECK, значит ок.
+- RLS на employees уже разрешает HR/Manager — RPC будет SECURITY DEFINER чтобы выполнить полную замену атомарно.
+- После RPC запустить контрольный SELECT: ожидаем 40 + 29 = **69 строк** для Arusha, разбиение Pit=29 / Floor=30 / Security=6 / Office=4.
