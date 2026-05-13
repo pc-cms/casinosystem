@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
-import { UserCheck, Plus, Pencil, Camera, RotateCw } from "lucide-react";
+import { useMemo, useRef, useState } from "react";
+import { UserCheck, Plus, Pencil, Camera, RotateCw, Upload } from "lucide-react";
+import { parseStaffMasterXlsx, type ParsedStaffRow } from "@/lib/staff-master-import";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { DataTable, DTHead, DTBody, DTRow, DTHeader, DTCell } from "@/components/ui/data-table";
