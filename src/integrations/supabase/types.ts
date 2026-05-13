@@ -1713,17 +1713,24 @@ export type Database = {
         Row: {
           basic_salary: number
           casino_id: string
+          contract_end: string | null
+          contract_start: string | null
           created_at: string
           created_by: string | null
+          dealer_category: string | null
+          dealer_id: string | null
           department: string
           employment_date: string | null
           full_name: string
           gepf_number: string | null
           id: string
+          is_pit_boss: boolean
           nssf_number: string | null
+          onboarding_date: string | null
           payroll_status: string
           photo_url: string | null
           position: string
+          source_table: string | null
           staff_member_id: string | null
           tax_id: string | null
           updated_at: string
@@ -1731,17 +1738,24 @@ export type Database = {
         Insert: {
           basic_salary?: number
           casino_id: string
+          contract_end?: string | null
+          contract_start?: string | null
           created_at?: string
           created_by?: string | null
+          dealer_category?: string | null
+          dealer_id?: string | null
           department?: string
           employment_date?: string | null
           full_name: string
           gepf_number?: string | null
           id?: string
+          is_pit_boss?: boolean
           nssf_number?: string | null
+          onboarding_date?: string | null
           payroll_status?: string
           photo_url?: string | null
           position?: string
+          source_table?: string | null
           staff_member_id?: string | null
           tax_id?: string | null
           updated_at?: string
@@ -1749,17 +1763,24 @@ export type Database = {
         Update: {
           basic_salary?: number
           casino_id?: string
+          contract_end?: string | null
+          contract_start?: string | null
           created_at?: string
           created_by?: string | null
+          dealer_category?: string | null
+          dealer_id?: string | null
           department?: string
           employment_date?: string | null
           full_name?: string
           gepf_number?: string | null
           id?: string
+          is_pit_boss?: boolean
           nssf_number?: string | null
+          onboarding_date?: string | null
           payroll_status?: string
           photo_url?: string | null
           position?: string
+          source_table?: string | null
           staff_member_id?: string | null
           tax_id?: string | null
           updated_at?: string
@@ -1770,6 +1791,13 @@ export type Database = {
             columns: ["casino_id"]
             isOneToOne: false
             referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_dealer_id_fkey"
+            columns: ["dealer_id"]
+            isOneToOne: false
+            referencedRelation: "dealers"
             referencedColumns: ["id"]
           },
           {
@@ -4273,6 +4301,7 @@ export type Database = {
         Args: { _casino_id: string }
         Returns: undefined
       }
+      reimport_staff_master: { Args: { p_casino_id: string }; Returns: Json }
       reopen_shift: {
         Args: { _reason?: string; _shift_id: string }
         Returns: Json
