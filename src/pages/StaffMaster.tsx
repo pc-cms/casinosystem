@@ -1,25 +1,35 @@
-import { useMemo, useRef, useState } from "react";
-import { UserCheck, Plus, Pencil, Camera, RotateCw, Upload } from "lucide-react";
+import { useMemo, useRef, useState, useCallback } from "react";
+import { UserCheck, Camera, RotateCw, Upload, Trash2, Plus } from "lucide-react";
 import { parseStaffMasterXlsx, type ParsedStaffRow } from "@/lib/staff-master-import";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { DataTable, DTHead, DTBody, DTRow, DTHeader, DTCell } from "@/components/ui/data-table";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useAuth } from "@/lib/auth-context";
 import { useCasino } from "@/lib/casino-context";
-import { useEmployees, useUpsertEmployee, type Employee } from "@/hooks/use-payroll";
+import {
+  useEmployees,
+  useUpsertEmployee,
+  usePatchEmployee,
+  useDeleteEmployee,
+  type Employee,
+} from "@/hooks/use-payroll";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { fmtDate } from "@/lib/format-date";
 import { useQueryClient } from "@tanstack/react-query";
+import {
+  DEPARTMENTS,
+  POSITIONS_BY_DEPT,
+  ALL_POSITIONS,
+  deriveCategory,
+  splitName,
+  joinName,
+} from "@/lib/staff-dictionaries";
+import { EditableCell } from "@/components/staff-master/editable-cell";
 
 const fmt = (n: number) => new Intl.NumberFormat("en-US").format(n).replace(/,/g, " ");
-const DEPT_ORDER = ["Management", "Office", "Cash Desk", "Live Game", "Slots", "F&B", "Security", "Housekeeper", "Pit", "Floor"] as const;
 
 const yearsBetween = (date: string | null) => {
   if (!date) return null;
@@ -37,8 +47,7 @@ const daysFromToday = (date: string | null) => {
   if (!date) return null;
   const d = new Date(date);
   if (isNaN(d.getTime())) return null;
-  const ms = d.getTime() - Date.now();
-  return Math.floor(ms / (24 * 3600 * 1000));
+  return Math.floor((d.getTime() - Date.now()) / (24 * 3600 * 1000));
 };
 
 const monthLabel = (date: string | null) => {
@@ -48,9 +57,14 @@ const monthLabel = (date: string | null) => {
   return d.toLocaleString("en-GB", { month: "short", year: "numeric" });
 };
 
-const dot = <span className="text-muted-foreground">·</span>;
+const fmtUTC = (date: string | null) => {
+  if (!date) return null;
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return null;
+  return `${String(d.getUTCDate()).padStart(2, "0")}/${String(d.getUTCMonth() + 1).padStart(2, "0")}/${d.getUTCFullYear()}`;
+};
 
-const yesNo = (v: boolean) => v ? <span className="text-emerald-600">Yes</span> : dot;
+const dot = <span className="text-muted-foreground">·</span>;
 
 const signedDays = (n: number | null) => {
   if (n == null) return dot;
@@ -58,16 +72,29 @@ const signedDays = (n: number | null) => {
   return <span className={cls}>{n}</span>;
 };
 
-const categoryBadge = (e: Employee) => {
-  if (e.is_pit_boss) return <Badge variant="secondary" className="ml-1 px-1 text-[10px]">PB</Badge>;
-  if (e.dealer_category === "dealer") return <Badge variant="outline" className="ml-1 px-1 text-[10px]">D</Badge>;
-  if (e.dealer_category === "inspector") return <Badge variant="outline" className="ml-1 px-1 text-[10px]">I</Badge>;
-  if (e.dealer_category === "trainee") return <Badge variant="outline" className="ml-1 px-1 text-[10px]">T</Badge>;
-  return null;
-};
-
-// Calculated-cell tint
 const calc = "bg-muted/30";
+
+// Sticky column offsets
+const STICKY = {
+  photo: { left: 0, w: 36 },
+  sn: { left: 36, w: 40 },
+  first: { left: 76, w: 130 },
+  last: { left: 206, w: 150 },
+};
+const HEADER_BG = "bg-muted";
+const ROW_BG = "bg-background";
+
+const stickyCell = (left: number, w: number, bg = ROW_BG) => ({
+  position: "sticky" as const,
+  left,
+  zIndex: 1,
+  minWidth: w,
+  maxWidth: w,
+  width: w,
+  background: undefined,
+  // bg via className so dark mode works
+  className: bg,
+});
 
 const StaffMaster = () => {
   const { roles } = useAuth();
@@ -75,26 +102,74 @@ const StaffMaster = () => {
   const qc = useQueryClient();
   const canEdit = roles.includes("hr") || roles.includes("manager") || roles.includes("super_admin");
   const { data: employees = [], isLoading } = useEmployees();
-  const [editing, setEditing] = useState<Partial<Employee> | null>(null);
+  const patch = usePatchEmployee();
+  const upsert = useUpsertEmployee();
+  const del = useDeleteEmployee();
   const [reimporting, setReimporting] = useState(false);
   const [importPreview, setImportPreview] = useState<ParsedStaffRow[] | null>(null);
   const [wipeFirst, setWipeFirst] = useState(true);
   const [importing, setImporting] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  // Group by department in DEPARTMENTS order; unknown depts → "Other"
   const grouped = useMemo(() => {
     const by: Record<string, Employee[]> = {};
-    for (const k of DEPT_ORDER) by[k] = [];
+    for (const k of DEPARTMENTS) by[k] = [];
     by["Other"] = [];
     for (const e of employees) {
-      const k = (DEPT_ORDER as readonly string[]).includes(e.department) ? e.department : "Other";
+      const k = (DEPARTMENTS as readonly string[]).includes(e.department) ? e.department : "Other";
       (by[k] ||= []).push(e);
     }
     for (const k of Object.keys(by)) by[k].sort((a, b) => a.full_name.localeCompare(b.full_name));
     return by;
   }, [employees]);
 
-  const TOTAL_COLS = 33; // 32 template cols + photo
+  const TOTAL_COLS = 35;
+
+  const onPatch = useCallback(
+    (id: string, key: keyof Employee, value: any) => patch.mutate({ id, patch: { [key]: value } as any }),
+    [patch],
+  );
+
+  const onPatchPosition = useCallback(
+    (e: Employee, position: string | null) => {
+      const cat = deriveCategory(e.department, position);
+      patch.mutate({
+        id: e.id,
+        patch: { position: position ?? "", dealer_category: cat.dealer_category, is_pit_boss: cat.is_pit_boss } as any,
+      });
+    },
+    [patch],
+  );
+
+  const onPatchDepartment = useCallback(
+    (e: Employee, department: string | null) => {
+      // Reset position if it's not valid in the new dept
+      const newDept = department ?? "";
+      const validPositions = POSITIONS_BY_DEPT[newDept] ?? [];
+      const keep = !e.position || validPositions.includes(e.position);
+      const cat = deriveCategory(newDept, keep ? e.position : null);
+      patch.mutate({
+        id: e.id,
+        patch: {
+          department: newDept,
+          position: keep ? e.position : "",
+          dealer_category: cat.dealer_category,
+          is_pit_boss: cat.is_pit_boss,
+        } as any,
+      });
+    },
+    [patch],
+  );
+
+  const onPatchName = useCallback(
+    (e: Employee, first: string | null, last: string | null) => {
+      const next = joinName(first ?? splitName(e.full_name).first, last ?? splitName(e.full_name).last);
+      if (!next) { toast.error("Name cannot be empty"); return; }
+      patch.mutate({ id: e.id, patch: { full_name: next } as any });
+    },
+    [patch],
+  );
 
   const handleReimport = async () => {
     if (!activeCasinoId) return;
@@ -136,7 +211,6 @@ const StaffMaster = () => {
         if (error) throw error;
       }
       const payload = importPreview.map(r => ({ ...r, casino_id: activeCasinoId, payroll_status: "active" as const }));
-      // Chunked insert to keep payloads small
       for (let i = 0; i < payload.length; i += 100) {
         const slice = payload.slice(i, i + 100);
         const { error } = await supabase.from("employees").insert(slice as any);
@@ -152,6 +226,7 @@ const StaffMaster = () => {
     }
   };
 
+  // ===== Render =====
   return (
     <PageShell>
       <PageHeader icon={UserCheck} title="Staff Master" subtitle="Universal directory of all casino personnel">
@@ -164,9 +239,6 @@ const StaffMaster = () => {
             <Button variant="outline" size="sm" onClick={handleReimport} disabled={reimporting}>
               <RotateCw className={`w-4 h-4 mr-1 ${reimporting ? "animate-spin" : ""}`} /> Reimport
             </Button>
-            <Button onClick={() => setEditing({ payroll_status: "active", department: "Floor" })} size="sm">
-              <Plus className="w-4 h-4 mr-1" /> Add Employee
-            </Button>
           </>
         )}
       </PageHeader>
@@ -175,150 +247,94 @@ const StaffMaster = () => {
         {isLoading ? (
           <div className="text-sm text-muted-foreground p-4">Loading…</div>
         ) : (
-          <div className="overflow-x-auto">
-            <DataTable className="text-xs">
-              <DTHead>
-                <DTRow>
-                  <DTHeader className="w-10"></DTHeader>
-                  <DTHeader className={calc}>S/N</DTHeader>
-                  <DTHeader>Name</DTHeader>
-                  <DTHeader className={calc}>Remain</DTHeader>
-                  <DTHeader>Dept</DTHeader>
-                  <DTHeader>Position</DTHeader>
-                  <DTHeader>Contract</DTHeader>
-                  <DTHeader align="right">Salary</DTHeader>
-                  <DTHeader>Joining</DTHeader>
-                  <DTHeader className={calc}>Exp YY</DTHeader>
-                  <DTHeader>Birthday</DTHeader>
-                  <DTHeader className={calc}>Age</DTHeader>
-                  <DTHeader>Phone</DTHeader>
-                  <DTHeader>Job Desc</DTHeader>
-                  <DTHeader>Gen Det</DTHeader>
-                  <DTHeader>Intro</DTHeader>
-                  <DTHeader>Rules</DTHeader>
-                  <DTHeader>Discip</DTHeader>
-                  <DTHeader>Confid</DTHeader>
-                  <DTHeader>Contr Start</DTHeader>
-                  <DTHeader>Contr End</DTHeader>
-                  <DTHeader className={calc}>End Mon</DTHeader>
-                  <DTHeader align="right">AL Earn</DTHeader>
-                  <DTHeader align="right">AL Used</DTHeader>
-                  <DTHeader align="right">AL Sold</DTHeader>
-                  <DTHeader>Corp Mail</DTHeader>
-                  <DTHeader>Gend</DTHeader>
-                  <DTHeader>Nation</DTHeader>
-                  <DTHeader>Lic Type</DTHeader>
-                  <DTHeader>Lic Av</DTHeader>
-                  <DTHeader>Pass Date</DTHeader>
-                  <DTHeader className={calc}>Renew</DTHeader>
-                  <DTHeader>Uniform</DTHeader>
-                  <DTHeader></DTHeader>
-                </DTRow>
-              </DTHead>
-              <DTBody>
+          <div className="w-full overflow-auto rounded-md border border-border max-h-[calc(100vh-180px)]">
+            <table className="text-xs border-collapse min-w-max">
+              <thead className={`${HEADER_BG} sticky top-0 z-20`}>
+                <tr className="border-b border-border [&_th]:px-2 [&_th]:h-8 [&_th]:text-[10px] [&_th]:uppercase [&_th]:tracking-wider [&_th]:text-muted-foreground [&_th]:font-semibold [&_th]:text-left [&_th]:whitespace-nowrap">
+                  <th className={`sticky left-0 z-30 ${HEADER_BG}`} style={{ minWidth: STICKY.photo.w, width: STICKY.photo.w }}></th>
+                  <th className={`sticky z-30 ${HEADER_BG}`} style={{ left: STICKY.sn.left, minWidth: STICKY.sn.w, width: STICKY.sn.w }}>S/N</th>
+                  <th className={`sticky z-30 ${HEADER_BG} border-l border-border`} style={{ left: STICKY.first.left, minWidth: STICKY.first.w, width: STICKY.first.w }}>First Name</th>
+                  <th className={`sticky z-30 ${HEADER_BG} border-r border-border`} style={{ left: STICKY.last.left, minWidth: STICKY.last.w, width: STICKY.last.w }}>Last Name</th>
+                  <th className={calc}>Remain</th>
+                  <th>Dept</th>
+                  <th>Position</th>
+                  <th>Contract</th>
+                  <th className="text-right">Salary</th>
+                  <th>Joining</th>
+                  <th className={calc}>Exp YY</th>
+                  <th>Birthday</th>
+                  <th className={calc}>Age</th>
+                  <th>Phone</th>
+                  <th>Job Desc</th>
+                  <th>Gen Det</th>
+                  <th>Intro</th>
+                  <th>Rules</th>
+                  <th>Discip</th>
+                  <th>Confid</th>
+                  <th>Contr Start</th>
+                  <th>Contr End</th>
+                  <th className={calc}>End Mon</th>
+                  <th className="text-right">AL Earn</th>
+                  <th className="text-right">AL Used</th>
+                  <th className="text-right">AL Sold</th>
+                  <th>Corp Mail</th>
+                  <th>Gend</th>
+                  <th>Nation</th>
+                  <th>Lic Type</th>
+                  <th>Lic Av</th>
+                  <th>Pass Date</th>
+                  <th className={calc}>Renew</th>
+                  <th>Uniform</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
                 {employees.length === 0 && (
-                  <DTRow><DTCell colSpan={TOTAL_COLS} className="text-center text-muted-foreground py-8">No employees yet — click Reimport to build from Staff and Pit Personnel</DTCell></DTRow>
+                  <tr><td colSpan={TOTAL_COLS} className="text-center text-muted-foreground py-8">No employees yet — click Reimport to build from Staff and Pit Personnel, or use the bottom row to add one</td></tr>
                 )}
-                {([...DEPT_ORDER, "Other"] as const).flatMap(dept => {
+                {([...DEPARTMENTS, "Other"] as const).flatMap(dept => {
                   const list = grouped[dept];
                   if (!list || list.length === 0) return [] as JSX.Element[];
                   const rows: JSX.Element[] = [];
                   rows.push(
-                    <DTRow key={`hdr-${dept}`} className="bg-muted/50">
-                      <DTCell colSpan={TOTAL_COLS} className="font-semibold text-xs uppercase tracking-wider text-muted-foreground py-1.5">
+                    <tr key={`hdr-${dept}`} className="bg-muted/50">
+                      <td colSpan={TOTAL_COLS} className="font-semibold text-xs uppercase tracking-wider text-muted-foreground py-1.5 px-3">
                         {dept} <span className="ml-2 text-[10px]">({list.length})</span>
-                      </DTCell>
-                    </DTRow>
+                      </td>
+                    </tr>
                   );
                   list.forEach((e, idx) => {
-                    const exp = yearsBetween(e.onboarding_date);
-                    const age = ageFromBirthday(e.birthday);
-                    const remain = (Number(e.annual_leave_earned) || 0) - (Number(e.annual_leave_used) || 0) - (Number(e.annual_leave_sold) || 0);
-                    const renew = daysFromToday(e.license_pass_date);
-                    rows.push(
-                      <DTRow key={e.id}>
-                        <DTCell><PhotoBadge employee={e} canEdit={canEdit} /></DTCell>
-                        <DTCell className={`${calc} font-mono`}>{idx + 1}</DTCell>
-                        <DTCell className="font-medium whitespace-nowrap">{e.full_name}</DTCell>
-                        <DTCell className={`${calc} font-mono`}>{signedDays(remain)}</DTCell>
-                        <DTCell>{e.department || dot}</DTCell>
-                        <DTCell>
-                          <span className="inline-flex items-center">
-                            {e.position || dot}
-                            {categoryBadge(e)}
-                          </span>
-                        </DTCell>
-                        <DTCell>{e.contract_type || dot}</DTCell>
-                        <DTCell numeric className="font-mono">{fmt(e.basic_salary)}</DTCell>
-                        <DTCell>{e.onboarding_date ? fmtDate(e.onboarding_date) : dot}</DTCell>
-                        <DTCell className={`${calc} font-mono`}>{exp != null ? exp.toFixed(1) : dot}</DTCell>
-                        <DTCell>{e.birthday ? fmtDate(e.birthday) : dot}</DTCell>
-                        <DTCell className={`${calc} font-mono`}>{age ?? dot}</DTCell>
-                        <DTCell className="font-mono">{e.phone || dot}</DTCell>
-                        <DTCell className="max-w-[120px] truncate" title={e.job_description ?? ""}>{e.job_description || dot}</DTCell>
-                        <DTCell className="max-w-[120px] truncate" title={e.general_details ?? ""}>{e.general_details || dot}</DTCell>
-                        <DTCell>{yesNo(e.intro_to_work)}</DTCell>
-                        <DTCell>{yesNo(e.staff_rules_acknowledged)}</DTCell>
-                        <DTCell>{yesNo(e.disciplinary_acknowledged)}</DTCell>
-                        <DTCell>{yesNo(e.confidentiality_agreement)}</DTCell>
-                        <DTCell>{e.contract_start ? fmtDate(e.contract_start) : dot}</DTCell>
-                        <DTCell>{e.contract_end ? fmtDate(e.contract_end) : dot}</DTCell>
-                        <DTCell className={calc}>{monthLabel(e.contract_end) ?? dot}</DTCell>
-                        <DTCell numeric className="font-mono">{Number(e.annual_leave_earned) || 0}</DTCell>
-                        <DTCell numeric className="font-mono">{Number(e.annual_leave_used) || 0}</DTCell>
-                        <DTCell numeric className="font-mono">{Number(e.annual_leave_sold) || 0}</DTCell>
-                        <DTCell className="max-w-[140px] truncate" title={e.corporate_mail ?? ""}>{e.corporate_mail || dot}</DTCell>
-                        <DTCell>{e.gender || dot}</DTCell>
-                        <DTCell>{e.nationality || dot}</DTCell>
-                        <DTCell>{e.license_type || dot}</DTCell>
-                        <DTCell>{yesNo(e.license_available)}</DTCell>
-                        <DTCell>{e.license_pass_date ? fmtDate(e.license_pass_date) : dot}</DTCell>
-                        <DTCell className={`${calc} font-mono`}>{signedDays(renew)}</DTCell>
-                        <DTCell>{yesNo(e.uniform_issued)}</DTCell>
-                        <DTCell>
-                          {canEdit && (
-                            <Button size="icon" variant="ghost" onClick={() => setEditing(e)}>
-                              <Pencil className="w-4 h-4" />
-                            </Button>
-                          )}
-                        </DTCell>
-                      </DTRow>
-                    );
+                    rows.push(<EmployeeRow key={e.id} e={e} idx={idx + 1} canEdit={canEdit} onPatch={onPatch} onPatchName={onPatchName} onPatchPosition={onPatchPosition} onPatchDepartment={onPatchDepartment} onDelete={() => del.mutate(e.id)} />);
                   });
                   return rows;
                 })}
-              </DTBody>
-            </DataTable>
+
+                {canEdit && <NewEmployeeRow casinoId={activeCasinoId} onSave={(p) => upsert.mutate(p as any)} />}
+              </tbody>
+            </table>
           </div>
         )}
       </PageSection>
 
-      {editing && (
-        <EmployeeEditorDialog value={editing} onClose={() => setEditing(null)} />
-      )}
-
       {importPreview && (
         <Dialog open onOpenChange={() => !importing && setImportPreview(null)}>
-          <DialogContent className="max-w-lg">
-            <DialogHeader><DialogTitle>Import Staff Master</DialogTitle></DialogHeader>
-            <div className="space-y-3 text-sm">
-              <div>Parsed <span className="font-mono font-semibold">{importPreview.length}</span> employees from the file.</div>
-              <div className="text-xs text-muted-foreground">
-                Existing in this casino: <span className="font-mono">{employees.length}</span>
-              </div>
-              <label className="flex items-center gap-2">
+          <DialogContent className="max-w-[95vw] w-[95vw] max-h-[90vh] flex flex-col">
+            <DialogHeader>
+              <DialogTitle>
+                Import Staff Master — Preview {importPreview.length} rows
+              </DialogTitle>
+            </DialogHeader>
+            <div className="text-xs text-muted-foreground space-y-1 pb-2">
+              <div>Existing in this casino: <span className="font-mono">{employees.length}</span> · Departments: {Array.from(new Set(importPreview.map(r => r.department).filter(Boolean))).join(", ") || "—"}</div>
+              <label className="flex items-center gap-2 pt-1">
                 <Checkbox checked={wipeFirst} onCheckedChange={(c) => setWipeFirst(!!c)} />
                 <span>Wipe existing employees for this casino before import</span>
               </label>
               {wipeFirst && employees.length > 0 && (
-                <div className="text-xs text-destructive">
-                  All {employees.length} current employees will be deleted. This cannot be undone.
-                </div>
+                <div className="text-destructive">All {employees.length} current employees will be deleted. Payroll history is kept (employee link cleared).</div>
               )}
-              <div className="text-xs text-muted-foreground">
-                Departments: {Array.from(new Set(importPreview.map(r => r.department).filter(Boolean))).join(", ")}
-              </div>
             </div>
+            <ImportPreviewTable rows={importPreview} />
             <DialogFooter>
               <Button variant="outline" onClick={() => setImportPreview(null)} disabled={importing}>Cancel</Button>
               <Button onClick={handleConfirmImport} disabled={importing}>
@@ -332,6 +348,279 @@ const StaffMaster = () => {
   );
 };
 
+// ===================== ROW =====================
+const EmployeeRow = ({ e, idx, canEdit, onPatch, onPatchName, onPatchPosition, onPatchDepartment, onDelete }: {
+  e: Employee;
+  idx: number;
+  canEdit: boolean;
+  onPatch: (id: string, key: keyof Employee, value: any) => void;
+  onPatchName: (e: Employee, first: string | null, last: string | null) => void;
+  onPatchPosition: (e: Employee, position: string | null) => void;
+  onPatchDepartment: (e: Employee, department: string | null) => void;
+  onDelete: () => void;
+}) => {
+  const exp = yearsBetween(e.onboarding_date);
+  const age = ageFromBirthday(e.birthday);
+  const remain = (Number(e.annual_leave_earned) || 0) - (Number(e.annual_leave_used) || 0) - (Number(e.annual_leave_sold) || 0);
+  const renew = daysFromToday(e.license_pass_date);
+  const { first, last } = splitName(e.full_name);
+  const positions = POSITIONS_BY_DEPT[e.department] ?? ALL_POSITIONS;
+
+  const ro = !canEdit;
+  const td = "h-9 align-middle border-b border-border whitespace-nowrap";
+
+  return (
+    <tr className="hover:bg-muted/30 group">
+      <td className={`${td} sticky left-0 z-10 ${ROW_BG} group-hover:bg-muted/30`} style={{ minWidth: STICKY.photo.w, width: STICKY.photo.w }}>
+        <PhotoBadge employee={e} canEdit={canEdit} />
+      </td>
+      <td className={`${td} sticky z-10 ${ROW_BG} group-hover:bg-muted/30 ${calc} font-mono text-center`} style={{ left: STICKY.sn.left, minWidth: STICKY.sn.w, width: STICKY.sn.w }}>{idx}</td>
+      <td className={`${td} sticky z-10 ${ROW_BG} group-hover:bg-muted/30 border-l border-border font-medium`} style={{ left: STICKY.first.left, minWidth: STICKY.first.w, width: STICKY.first.w }}>
+        <EditableCell type="text" value={first} readOnly={ro} onSave={(v) => onPatchName(e, v, null)} />
+      </td>
+      <td className={`${td} sticky z-10 ${ROW_BG} group-hover:bg-muted/30 border-r border-border font-medium`} style={{ left: STICKY.last.left, minWidth: STICKY.last.w, width: STICKY.last.w }}>
+        <EditableCell type="text" value={last} readOnly={ro} onSave={(v) => onPatchName(e, null, v)} />
+      </td>
+      <td className={`${td} ${calc} font-mono text-right px-2`}>{signedDays(remain)}</td>
+      <td className={td}>
+        <EditableCell type="select" value={e.department || null} options={DEPARTMENTS} readOnly={ro} onSave={(v) => onPatchDepartment(e, v)} />
+      </td>
+      <td className={td}>
+        <span className="inline-flex items-center gap-1 w-full">
+          <span className="flex-1 min-w-0">
+            <EditableCell type="select" value={e.position || null} options={positions} readOnly={ro} onSave={(v) => onPatchPosition(e, v)} />
+          </span>
+          {e.is_pit_boss && <Badge variant="secondary" className="px-1 text-[10px]">PB</Badge>}
+          {e.dealer_category === "dealer" && <Badge variant="outline" className="px-1 text-[10px]">D</Badge>}
+          {e.dealer_category === "inspector" && <Badge variant="outline" className="px-1 text-[10px]">I</Badge>}
+          {e.dealer_category === "trainee" && <Badge variant="outline" className="px-1 text-[10px]">T</Badge>}
+        </span>
+      </td>
+      <td className={td}><EditableCell type="select" value={e.contract_type || null} options={["FT", "PT", "PM"]} readOnly={ro} onSave={(v) => onPatch(e.id, "contract_type", v)} /></td>
+      <td className={`${td} text-right font-mono px-2`}><EditableCell type="number" align="right" value={Number(e.basic_salary) || 0} readOnly={ro} onSave={(v) => onPatch(e.id, "basic_salary", v)} /></td>
+      <td className={td}><EditableCell type="date" value={e.onboarding_date} readOnly={ro} onSave={(v) => onPatch(e.id, "onboarding_date", v)} /></td>
+      <td className={`${td} ${calc} font-mono px-2`}>{exp != null ? exp.toFixed(1) : dot}</td>
+      <td className={td}><EditableCell type="date" value={e.birthday} readOnly={ro} onSave={(v) => onPatch(e.id, "birthday", v)} /></td>
+      <td className={`${td} ${calc} font-mono px-2`}>{age ?? dot}</td>
+      <td className={`${td} font-mono`}><EditableCell type="text" value={e.phone} readOnly={ro} onSave={(v) => onPatch(e.id, "phone", v)} /></td>
+      <td className={`${td} max-w-[160px]`}><EditableCell type="text" value={e.job_description} readOnly={ro} onSave={(v) => onPatch(e.id, "job_description", v)} /></td>
+      <td className={`${td} max-w-[160px]`}><EditableCell type="text" value={e.general_details} readOnly={ro} onSave={(v) => onPatch(e.id, "general_details", v)} /></td>
+      <td className={td}><EditableCell type="yesno" value={e.intro_to_work} readOnly={ro} onSave={(v) => onPatch(e.id, "intro_to_work", v)} /></td>
+      <td className={td}><EditableCell type="yesno" value={e.staff_rules_acknowledged} readOnly={ro} onSave={(v) => onPatch(e.id, "staff_rules_acknowledged", v)} /></td>
+      <td className={td}><EditableCell type="yesno" value={e.disciplinary_acknowledged} readOnly={ro} onSave={(v) => onPatch(e.id, "disciplinary_acknowledged", v)} /></td>
+      <td className={td}><EditableCell type="yesno" value={e.confidentiality_agreement} readOnly={ro} onSave={(v) => onPatch(e.id, "confidentiality_agreement", v)} /></td>
+      <td className={td}><EditableCell type="date" value={e.contract_start} readOnly={ro} onSave={(v) => onPatch(e.id, "contract_start", v)} /></td>
+      <td className={td}><EditableCell type="date" value={e.contract_end} readOnly={ro} onSave={(v) => onPatch(e.id, "contract_end", v)} /></td>
+      <td className={`${td} ${calc} px-2`}>{monthLabel(e.contract_end) ?? dot}</td>
+      <td className={`${td} text-right font-mono px-2`}><EditableCell type="number" align="right" value={Number(e.annual_leave_earned) || 0} readOnly={ro} onSave={(v) => onPatch(e.id, "annual_leave_earned", v)} /></td>
+      <td className={`${td} text-right font-mono px-2`}><EditableCell type="number" align="right" value={Number(e.annual_leave_used) || 0} readOnly={ro} onSave={(v) => onPatch(e.id, "annual_leave_used", v)} /></td>
+      <td className={`${td} text-right font-mono px-2`}><EditableCell type="number" align="right" value={Number(e.annual_leave_sold) || 0} readOnly={ro} onSave={(v) => onPatch(e.id, "annual_leave_sold", v)} /></td>
+      <td className={`${td} max-w-[180px]`}><EditableCell type="text" value={e.corporate_mail} readOnly={ro} onSave={(v) => onPatch(e.id, "corporate_mail", v)} /></td>
+      <td className={td}><EditableCell type="select" value={e.gender} options={["M", "F"]} readOnly={ro} onSave={(v) => onPatch(e.id, "gender", v)} /></td>
+      <td className={td}><EditableCell type="text" value={e.nationality} readOnly={ro} onSave={(v) => onPatch(e.id, "nationality", v)} /></td>
+      <td className={td}><EditableCell type="text" value={e.license_type} readOnly={ro} onSave={(v) => onPatch(e.id, "license_type", v)} /></td>
+      <td className={td}><EditableCell type="yesno" value={e.license_available} readOnly={ro} onSave={(v) => onPatch(e.id, "license_available", v)} /></td>
+      <td className={td}><EditableCell type="date" value={e.license_pass_date} readOnly={ro} onSave={(v) => onPatch(e.id, "license_pass_date", v)} /></td>
+      <td className={`${td} ${calc} font-mono px-2`}>{signedDays(renew)}</td>
+      <td className={td}><EditableCell type="yesno" value={e.uniform_issued} readOnly={ro} onSave={(v) => onPatch(e.id, "uniform_issued", v)} /></td>
+      <td className={td}>
+        {canEdit && (
+          <Button size="icon" variant="ghost" className="h-7 w-7 opacity-0 group-hover:opacity-100" onClick={() => { if (confirm(`Delete ${e.full_name}?`)) onDelete(); }}>
+            <Trash2 className="w-3.5 h-3.5 text-destructive" />
+          </Button>
+        )}
+      </td>
+    </tr>
+  );
+};
+
+// ===================== NEW (BOTTOM) ROW =====================
+const blankNew = () => ({
+  first: "",
+  last: "",
+  department: "",
+  position: "",
+  contract_type: "",
+  basic_salary: 0,
+  phone: "",
+  birthday: "" as string | "",
+  onboarding_date: "" as string | "",
+});
+
+const NewEmployeeRow = ({ casinoId, onSave }: {
+  casinoId: string | null;
+  onSave: (payload: any) => void;
+}) => {
+  const [v, setV] = useState(blankNew());
+  const set = (k: keyof ReturnType<typeof blankNew>, val: any) => setV((s) => ({ ...s, [k]: val }));
+
+  const tryCommit = () => {
+    if (!casinoId) return;
+    if (!v.first.trim() || !v.last.trim()) return;
+    if (!v.department) return;
+    if (!v.position) return;
+    const cat = deriveCategory(v.department, v.position);
+    onSave({
+      full_name: joinName(v.first, v.last),
+      department: v.department,
+      position: v.position,
+      contract_type: v.contract_type || null,
+      basic_salary: Number(v.basic_salary) || 0,
+      phone: v.phone || null,
+      birthday: v.birthday || null,
+      onboarding_date: v.onboarding_date || null,
+      payroll_status: "active",
+      dealer_category: cat.dealer_category,
+      is_pit_boss: cat.is_pit_boss,
+    });
+    setV(blankNew());
+  };
+
+  const positions = POSITIONS_BY_DEPT[v.department] ?? ALL_POSITIONS;
+  const td = "h-9 align-middle border-b border-border whitespace-nowrap bg-primary/5";
+
+  return (
+    <tr className="bg-primary/5">
+      <td className={`${td} sticky left-0 z-10`} style={{ minWidth: STICKY.photo.w, width: STICKY.photo.w, background: "hsl(var(--primary) / 0.05)" }}>
+        <Plus className="w-3.5 h-3.5 text-muted-foreground mx-auto" />
+      </td>
+      <td className={`${td} sticky z-10`} style={{ left: STICKY.sn.left, minWidth: STICKY.sn.w, width: STICKY.sn.w, background: "hsl(var(--primary) / 0.05)" }}>
+        <span className="text-muted-foreground text-[10px]">new</span>
+      </td>
+      <td className={`${td} sticky z-10 border-l border-border`} style={{ left: STICKY.first.left, minWidth: STICKY.first.w, width: STICKY.first.w, background: "hsl(var(--primary) / 0.05)" }}>
+        <input
+          autoFocus={false}
+          placeholder="First name"
+          value={v.first}
+          onChange={(e) => set("first", e.target.value)}
+          onBlur={tryCommit}
+          onKeyDown={(e) => { if (e.key === "Enter") tryCommit(); }}
+          className="w-full bg-transparent border-0 px-1 text-xs focus:outline-none focus:bg-background focus:border focus:border-primary/40"
+        />
+      </td>
+      <td className={`${td} sticky z-10 border-r border-border`} style={{ left: STICKY.last.left, minWidth: STICKY.last.w, width: STICKY.last.w, background: "hsl(var(--primary) / 0.05)" }}>
+        <input
+          placeholder="Last name"
+          value={v.last}
+          onChange={(e) => set("last", e.target.value)}
+          onBlur={tryCommit}
+          onKeyDown={(e) => { if (e.key === "Enter") tryCommit(); }}
+          className="w-full bg-transparent border-0 px-1 text-xs focus:outline-none focus:bg-background focus:border focus:border-primary/40"
+        />
+      </td>
+      <td className={td}>{dot}</td>
+      <td className={td}>
+        <select
+          value={v.department}
+          onChange={(e) => { set("department", e.target.value); set("position", ""); }}
+          onBlur={tryCommit}
+          className="w-full bg-transparent border-0 px-1 text-xs focus:outline-none focus:bg-background focus:border focus:border-primary/40"
+        >
+          <option value="">— Dept —</option>
+          {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
+        </select>
+      </td>
+      <td className={td}>
+        <select
+          value={v.position}
+          onChange={(e) => set("position", e.target.value)}
+          onBlur={tryCommit}
+          className="w-full bg-transparent border-0 px-1 text-xs focus:outline-none focus:bg-background focus:border focus:border-primary/40"
+          disabled={!v.department}
+        >
+          <option value="">— Position —</option>
+          {positions.map(p => <option key={p} value={p}>{p}</option>)}
+        </select>
+      </td>
+      <td className={td}>
+        <select value={v.contract_type} onChange={(e) => set("contract_type", e.target.value)} onBlur={tryCommit} className="w-full bg-transparent border-0 px-1 text-xs focus:outline-none">
+          <option value="">—</option>
+          {["FT", "PT", "PM"].map(o => <option key={o} value={o}>{o}</option>)}
+        </select>
+      </td>
+      <td className={`${td} text-right font-mono px-2`}>
+        <input type="number" placeholder="0" value={v.basic_salary || ""} onChange={(e) => set("basic_salary", Number(e.target.value) || 0)} onBlur={tryCommit}
+          className="w-full bg-transparent border-0 px-1 text-xs text-right focus:outline-none focus:bg-background focus:border focus:border-primary/40" />
+      </td>
+      <td className={td}>
+        <input type="date" value={v.onboarding_date} onChange={(e) => set("onboarding_date", e.target.value)} onBlur={tryCommit}
+          className="w-full bg-transparent border-0 px-1 text-xs focus:outline-none" />
+      </td>
+      <td className={`${td} ${calc}`}>{dot}</td>
+      <td className={td}>
+        <input type="date" value={v.birthday} onChange={(e) => set("birthday", e.target.value)} onBlur={tryCommit}
+          className="w-full bg-transparent border-0 px-1 text-xs focus:outline-none" />
+      </td>
+      <td className={`${td} ${calc}`}>{dot}</td>
+      <td className={td}>
+        <input placeholder="Phone" value={v.phone} onChange={(e) => set("phone", e.target.value)} onBlur={tryCommit}
+          className="w-full bg-transparent border-0 px-1 text-xs font-mono focus:outline-none focus:bg-background focus:border focus:border-primary/40" />
+      </td>
+      <td colSpan={21} className={`${td} text-[10px] text-muted-foreground italic px-3`}>
+        Additional fields can be filled in after the employee is created — required: First, Last, Dept, Position.
+      </td>
+    </tr>
+  );
+};
+
+// ===================== IMPORT PREVIEW TABLE =====================
+const ImportPreviewTable = ({ rows }: { rows: ParsedStaffRow[] }) => {
+  return (
+    <div className="flex-1 min-h-0 overflow-auto rounded border border-border">
+      <table className="text-[11px] border-collapse min-w-max">
+        <thead className="bg-muted sticky top-0 z-10">
+          <tr className="[&_th]:px-2 [&_th]:h-7 [&_th]:text-[10px] [&_th]:uppercase [&_th]:font-semibold [&_th]:text-muted-foreground [&_th]:text-left [&_th]:whitespace-nowrap [&_th]:border-b [&_th]:border-border">
+            <th className="sticky left-0 z-20 bg-muted" style={{ minWidth: 40 }}>#</th>
+            <th className="sticky z-20 bg-muted border-r border-border" style={{ left: 40, minWidth: 200 }}>Name</th>
+            <th>Dept</th><th>Position</th><th>Contract</th><th className="text-right">Salary</th>
+            <th>Joining</th><th>Birthday</th><th>Phone</th>
+            <th>Job Desc</th><th>Gen Det</th>
+            <th>Intro</th><th>Rules</th><th>Discip</th><th>Confid</th>
+            <th>Contr Start</th><th>Contr End</th>
+            <th className="text-right">AL Earn</th><th className="text-right">AL Used</th><th className="text-right">AL Sold</th>
+            <th>Corp Mail</th><th>Gend</th><th>Nation</th>
+            <th>Lic Type</th><th>Lic Av</th><th>Pass Date</th><th>Uniform</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r, i) => (
+            <tr key={i} className="hover:bg-muted/30 group">
+              <td className="px-2 h-7 sticky left-0 bg-background group-hover:bg-muted/30 font-mono text-muted-foreground border-b border-border" style={{ minWidth: 40 }}>{i + 1}</td>
+              <td className="px-2 h-7 sticky bg-background group-hover:bg-muted/30 font-medium border-r border-b border-border whitespace-nowrap" style={{ left: 40, minWidth: 200 }}>{r.full_name}</td>
+              <td className="px-2 border-b border-border">{r.department || dot}</td>
+              <td className="px-2 border-b border-border whitespace-nowrap">{r.position || dot}</td>
+              <td className="px-2 border-b border-border">{r.contract_type || dot}</td>
+              <td className="px-2 border-b border-border text-right font-mono">{fmt(r.basic_salary)}</td>
+              <td className="px-2 border-b border-border">{fmtUTC(r.onboarding_date) || dot}</td>
+              <td className="px-2 border-b border-border">{fmtUTC(r.birthday) || dot}</td>
+              <td className="px-2 border-b border-border font-mono">{r.phone || dot}</td>
+              <td className="px-2 border-b border-border max-w-[180px] truncate" title={r.job_description ?? ""}>{r.job_description || dot}</td>
+              <td className="px-2 border-b border-border max-w-[180px] truncate" title={r.general_details ?? ""}>{r.general_details || dot}</td>
+              <td className="px-2 border-b border-border">{r.intro_to_work ? "Yes" : dot}</td>
+              <td className="px-2 border-b border-border">{r.staff_rules_acknowledged ? "Yes" : dot}</td>
+              <td className="px-2 border-b border-border">{r.disciplinary_acknowledged ? "Yes" : dot}</td>
+              <td className="px-2 border-b border-border">{r.confidentiality_agreement ? "Yes" : dot}</td>
+              <td className="px-2 border-b border-border">{fmtUTC(r.contract_start) || dot}</td>
+              <td className="px-2 border-b border-border">{fmtUTC(r.contract_end) || dot}</td>
+              <td className="px-2 border-b border-border text-right font-mono">{r.annual_leave_earned || 0}</td>
+              <td className="px-2 border-b border-border text-right font-mono">{r.annual_leave_used || 0}</td>
+              <td className="px-2 border-b border-border text-right font-mono">{r.annual_leave_sold || 0}</td>
+              <td className="px-2 border-b border-border max-w-[180px] truncate" title={r.corporate_mail ?? ""}>{r.corporate_mail || dot}</td>
+              <td className="px-2 border-b border-border">{r.gender || dot}</td>
+              <td className="px-2 border-b border-border">{r.nationality || dot}</td>
+              <td className="px-2 border-b border-border">{r.license_type || dot}</td>
+              <td className="px-2 border-b border-border">{r.license_available ? "Yes" : dot}</td>
+              <td className="px-2 border-b border-border">{fmtUTC(r.license_pass_date) || dot}</td>
+              <td className="px-2 border-b border-border">{r.uniform_issued ? "Yes" : dot}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+};
+
+// ===================== PHOTO =====================
 const PhotoBadge = ({ employee, canEdit }: { employee: Employee; canEdit: boolean }) => {
   const upsert = useUpsertEmployee();
   const onPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -344,142 +633,13 @@ const PhotoBadge = ({ employee, canEdit }: { employee: Employee; canEdit: boolea
     await upsert.mutateAsync({ id: employee.id, photo_url: data.publicUrl } as any);
   };
   return employee.photo_url ? (
-    <img src={employee.photo_url} alt={employee.full_name} className="w-8 h-8 rounded object-cover" />
+    <img src={employee.photo_url} alt={employee.full_name} className="w-7 h-7 rounded object-cover mx-auto" />
   ) : canEdit ? (
-    <label className="cursor-pointer inline-flex items-center justify-center w-8 h-8 rounded border border-dashed border-border text-muted-foreground hover:bg-muted">
-      <Camera className="w-3.5 h-3.5" />
+    <label className="cursor-pointer inline-flex items-center justify-center w-7 h-7 rounded border border-dashed border-border text-muted-foreground hover:bg-muted mx-auto">
+      <Camera className="w-3 h-3" />
       <input type="file" accept="image/*" className="hidden" onChange={onPick} />
     </label>
-  ) : dot;
+  ) : <span className="block text-center">{dot}</span>;
 };
-
-const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
-  <div className="space-y-2">
-    <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground border-b pb-1">{title}</div>
-    <div className="grid grid-cols-2 gap-3">{children}</div>
-  </div>
-);
-
-const EmployeeEditorDialog = ({ value, onClose }: { value: Partial<Employee>; onClose: () => void }) => {
-  const [v, setV] = useState<any>({ ...value, bank: value.bank || {} });
-  const upsert = useUpsertEmployee();
-  const set = (k: string, val: any) => setV((s: any) => ({ ...s, [k]: val }));
-  const setBank = (k: string, val: any) => setV((s: any) => ({ ...s, bank: { ...s.bank, [k]: val } }));
-  const isPit = v.department === "Pit";
-  const remain = (Number(v.annual_leave_earned) || 0) - (Number(v.annual_leave_used) || 0) - (Number(v.annual_leave_sold) || 0);
-  const save = async () => {
-    if (!v.full_name?.trim()) { toast.error("Name is required"); return; }
-    await upsert.mutateAsync(v);
-    onClose();
-  };
-  return (
-    <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader><DialogTitle>{v.id ? "Edit Employee" : "Add Employee"}</DialogTitle></DialogHeader>
-        <div className="space-y-5 py-2">
-          <Section title="Identity">
-            <Field label="Full Name *" v={v.full_name} onChange={x => set("full_name", x)} />
-            <Select label="Gender" v={v.gender ?? ""} onChange={x => set("gender", x || null)} options={["", "M", "F"]} />
-            <Field label="Birthday" type="date" v={v.birthday ?? ""} onChange={x => set("birthday", x || null)} />
-            <Field label="Nationality" v={v.nationality ?? ""} onChange={x => set("nationality", x)} />
-            <Field label="Phone" v={v.phone ?? ""} onChange={x => set("phone", x)} />
-            <Field label="Corporate Mail" v={v.corporate_mail ?? ""} onChange={x => set("corporate_mail", x)} />
-          </Section>
-
-          <Section title="Position">
-            <Field label="Department (Pit/Floor/Security/Office)" v={v.department} onChange={x => set("department", x)} />
-            <Field label="Position" v={v.position} onChange={x => set("position", x)} />
-            <Field label="Contract Type (PM/FT/PT)" v={v.contract_type ?? ""} onChange={x => set("contract_type", x)} />
-            <Select label="Status" v={v.payroll_status ?? "active"} onChange={x => set("payroll_status", x)} options={["active", "inactive"]} />
-            {isPit && (
-              <>
-                <Field label="Dealer Category (dealer/inspector/trainee)" v={v.dealer_category ?? ""} onChange={x => set("dealer_category", x || null)} />
-                <Select label="Pit Boss" v={v.is_pit_boss ? "yes" : "no"} onChange={x => set("is_pit_boss", x === "yes")} options={["no", "yes"]} />
-              </>
-            )}
-          </Section>
-
-          <Section title="Contract & Salary">
-            <Field label="Joining Date" type="date" v={v.onboarding_date ?? ""} onChange={x => set("onboarding_date", x || null)} />
-            <Field label="Basic Salary (TZS)" type="number" v={v.basic_salary ?? 0} onChange={x => set("basic_salary", Number(x) || 0)} />
-            <Field label="Contract Start" type="date" v={v.contract_start ?? ""} onChange={x => set("contract_start", x || null)} />
-            <Field label="Contract End" type="date" v={v.contract_end ?? ""} onChange={x => set("contract_end", x || null)} />
-          </Section>
-
-          <Section title="Annual Leave (days)">
-            <Field label="Earned" type="number" v={v.annual_leave_earned ?? 0} onChange={x => set("annual_leave_earned", Number(x) || 0)} />
-            <Field label="Used" type="number" v={v.annual_leave_used ?? 0} onChange={x => set("annual_leave_used", Number(x) || 0)} />
-            <Field label="Sold" type="number" v={v.annual_leave_sold ?? 0} onChange={x => set("annual_leave_sold", Number(x) || 0)} />
-            <div className="space-y-1 text-xs">
-              <span className="text-muted-foreground">Remain (calc)</span>
-              <div className={`h-9 rounded-md border border-input bg-muted px-3 flex items-center font-mono ${remain < 0 ? "text-destructive" : "text-emerald-600"}`}>{remain}</div>
-            </div>
-          </Section>
-
-          <Section title="Compliance & Other">
-            <Check label="Introduction to Work" v={v.intro_to_work} onChange={x => set("intro_to_work", x)} />
-            <Check label="Staff Rules Acknowledged" v={v.staff_rules_acknowledged} onChange={x => set("staff_rules_acknowledged", x)} />
-            <Check label="Disciplinary Procedure" v={v.disciplinary_acknowledged} onChange={x => set("disciplinary_acknowledged", x)} />
-            <Check label="Confidentiality Agreement" v={v.confidentiality_agreement} onChange={x => set("confidentiality_agreement", x)} />
-            <Field label="License Type" v={v.license_type ?? ""} onChange={x => set("license_type", x)} />
-            <Check label="License Available" v={v.license_available} onChange={x => set("license_available", x)} />
-            <Field label="Pass Date (license)" type="date" v={v.license_pass_date ?? ""} onChange={x => set("license_pass_date", x || null)} />
-            <Check label="Uniform Issued" v={v.uniform_issued} onChange={x => set("uniform_issued", x)} />
-            <div className="col-span-2">
-              <label className="space-y-1 text-xs block">
-                <span className="text-muted-foreground">Job Description</span>
-                <Textarea rows={2} value={v.job_description ?? ""} onChange={e => set("job_description", e.target.value)} />
-              </label>
-            </div>
-            <div className="col-span-2">
-              <label className="space-y-1 text-xs block">
-                <span className="text-muted-foreground">General Details</span>
-                <Textarea rows={2} value={v.general_details ?? ""} onChange={e => set("general_details", e.target.value)} />
-              </label>
-            </div>
-          </Section>
-
-          <Section title="Bank & Tax">
-            <Field label="NSSF Number" v={v.nssf_number ?? ""} onChange={x => set("nssf_number", x)} />
-            <Field label="Tax ID" v={v.tax_id ?? ""} onChange={x => set("tax_id", x)} />
-            <Field label="GEPF Number" v={v.gepf_number ?? ""} onChange={x => set("gepf_number", x)} />
-            <div />
-            <Field label="Bank Name" v={v.bank?.bank_name ?? ""} onChange={x => setBank("bank_name", x)} />
-            <Field label="Bank Code" v={v.bank?.bank_code ?? ""} onChange={x => setBank("bank_code", x)} />
-            <Field label="Branch Code" v={v.bank?.branch_code ?? ""} onChange={x => setBank("branch_code", x)} />
-            <Field label="Account Number" v={v.bank?.account_number ?? ""} onChange={x => setBank("account_number", x)} />
-          </Section>
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={save} disabled={upsert.isPending}>Save</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-};
-
-const Field = ({ label, v, onChange, type = "text" }: { label: string; v: any; onChange: (x: string) => void; type?: string }) => (
-  <label className="space-y-1 text-xs">
-    <span className="text-muted-foreground">{label}</span>
-    <Input type={type} value={v ?? ""} onChange={e => onChange(e.target.value)} />
-  </label>
-);
-
-const Select = ({ label, v, onChange, options }: { label: string; v: string; onChange: (x: string) => void; options: string[] }) => (
-  <label className="space-y-1 text-xs flex flex-col">
-    <span className="text-muted-foreground">{label}</span>
-    <select className="h-9 rounded-md border border-input bg-background px-2 text-sm" value={v} onChange={e => onChange(e.target.value)}>
-      {options.map(o => <option key={o} value={o}>{o || "—"}</option>)}
-    </select>
-  </label>
-);
-
-const Check = ({ label, v, onChange }: { label: string; v: boolean; onChange: (x: boolean) => void }) => (
-  <label className="flex items-center gap-2 text-xs h-9 px-1">
-    <Checkbox checked={!!v} onCheckedChange={(c) => onChange(!!c)} />
-    <span>{label}</span>
-  </label>
-);
 
 export default StaffMaster;
