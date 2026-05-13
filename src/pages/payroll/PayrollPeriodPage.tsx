@@ -139,7 +139,7 @@ const PayrollPeriodPage = () => {
             </Button>
           )}
 
-          {isLocked && (
+          {(isLocked || isPaid) && (
             <>
               <div className="w-full mt-2 text-xs text-muted-foreground uppercase tracking-wider">Exports</div>
               <BankExportButton entries={entries} period={period} />
