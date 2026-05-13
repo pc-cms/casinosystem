@@ -82,6 +82,98 @@ export type Database = {
         }
         Relationships: []
       }
+      attendance_holidays: {
+        Row: {
+          casino_id: string
+          created_at: string
+          created_by: string | null
+          date: string
+          id: string
+          multiplier: number
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          casino_id: string
+          created_at?: string
+          created_by?: string | null
+          date: string
+          id?: string
+          multiplier?: number
+          name?: string
+          updated_at?: string
+        }
+        Update: {
+          casino_id?: string
+          created_at?: string
+          created_by?: string | null
+          date?: string
+          id?: string
+          multiplier?: number
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_holidays_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      attendance_hours: {
+        Row: {
+          casino_id: string
+          created_at: string
+          date: string
+          employee_id: string
+          hours: number
+          id: string
+          note: string | null
+          recorded_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          casino_id: string
+          created_at?: string
+          date: string
+          employee_id: string
+          hours?: number
+          id?: string
+          note?: string | null
+          recorded_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          casino_id?: string
+          created_at?: string
+          date?: string
+          employee_id?: string
+          hours?: number
+          id?: string
+          note?: string | null
+          recorded_by?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_hours_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_hours_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bank_checks: {
         Row: {
           amount: number
@@ -4217,6 +4309,25 @@ export type Database = {
             }
             Returns: number
           }
+      get_monthly_attendance: {
+        Args: { p_casino_id: string; p_month: string }
+        Returns: {
+          auto_hours: number
+          d: string
+          dealer_category: string
+          department: string
+          effective_hours: number
+          employee_id: string
+          full_name: string
+          holiday_multiplier: number
+          is_holiday: boolean
+          is_pit_boss: boolean
+          job_position: string
+          manual_hours: number
+          photo_url: string
+          raw_value: string
+        }[]
+      }
       get_user_casino_id: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
@@ -4266,6 +4377,7 @@ export type Database = {
         Args: { _month: number; _source_period_id: string; _year: number }
         Returns: string
       }
+      payroll_refresh_period: { Args: { _period_id: string }; Returns: Json }
       payroll_revert_to_draft: {
         Args: { _period_id: string; _reason?: string }
         Returns: undefined
