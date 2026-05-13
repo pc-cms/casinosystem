@@ -80,6 +80,7 @@ const UserNewPage = lazy(() => import("@/pages/admin/UserNewPage"));
 const UserEditPage = lazy(() => import("@/pages/admin/UserEditPage"));
 const WeeklyBonus = lazy(() => import("@/pages/WeeklyBonus"));
 const StaffMaster = lazy(() => import("@/pages/StaffMaster"));
+const AttendanceMonthly = lazy(() => import("@/pages/AttendanceMonthly"));
 const Payroll = lazy(() => import("@/pages/Payroll"));
 const PayrollPeriodPage = lazy(() => import("@/pages/payroll/PayrollPeriodPage"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
@@ -277,6 +278,7 @@ const ProtectedRoutes = () => {
           <Route path="/pitbook" element={<RoleGuard path="/pitbook"><ErrorBoundary><Pitbook /></ErrorBoundary></RoleGuard>} />
           <Route path="/incidents" element={<RoleGuard path="/incidents"><ErrorBoundary><Incidents /></ErrorBoundary></RoleGuard>} />
           <Route path="/staff/master" element={<RoleGuard path="/staff/master"><ErrorBoundary><StaffMaster /></ErrorBoundary></RoleGuard>} />
+          <Route path="/attendance/monthly" element={<RoleGuard path="/attendance/monthly"><ErrorBoundary><AttendanceMonthly /></ErrorBoundary></RoleGuard>} />
           <Route path="/payroll" element={<RoleGuard path="/payroll"><ErrorBoundary><Payroll /></ErrorBoundary></RoleGuard>} />
           <Route path="/payroll/:id" element={<RoleGuard path="/payroll/:id"><ErrorBoundary><PayrollPeriodPage /></ErrorBoundary></RoleGuard>} />
         </Route>

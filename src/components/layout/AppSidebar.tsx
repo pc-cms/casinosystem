@@ -91,6 +91,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/dealers", icon: Gamepad2, label: "Live Game", roles: ["super_admin", "manager", "hr"], section: "HR" },
   { to: "/staff/employees", icon: Building2, label: "Floor Staff", roles: ["super_admin", "manager", "hr"], section: "HR" },
   { to: "/staff/master", icon: UserCheck, label: "Staff Master", roles: ["super_admin", "hr", "finance_manager"], section: "HR" },
+  { to: "/attendance/monthly", icon: CalendarDays, label: "Attendance (Month)", roles: ["super_admin", "hr", "manager", "finance_manager"], section: "HR" },
   { to: "/payroll", icon: Wallet, label: "Payroll", roles: ["super_admin", "hr", "finance_manager"], section: "HR" },
 
   // ANALYTICS — shared
