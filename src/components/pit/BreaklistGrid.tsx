@@ -61,7 +61,7 @@ const isInWorkingHours = (slot: string) => {
 // Map a stored role to the per-table exclusivity slot.
 // Three independent slots per table: Dealer (D), Inspector (I, ends with 'i'), Chipper (C, ends with 'c').
 const roleSlot = (r: string): "D" | "I" | "C" | null => {
-  if (!r || r === "BR" || r === "TR" || r === "S" || r === "SRT" || r === "CLS") return null;
+  if (!r || r === "BR" || r === "TR" || r === "S" || r === "LT" || r === "SRT" || r === "CLS") return null;
   if (/c$/i.test(r)) return "C";
   if (/i$/.test(r)) return "I";
   return "D";
@@ -176,6 +176,32 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
 
   const handleRoleSelect = (role: string, tableId?: string) => {
     if (!activeCell) return;
+
+    // LT = Late: marks a single slot as Late and recomputes attendance.
+    // Each LT slot = 20 min late. Worked hours = max(0, 9 - ceil(LTcount * 20 / 60)).
+    if (role === "LT") {
+      setCell.mutate({
+        date,
+        dealer_id: activeCell.dealerId,
+        time_slot: activeCell.timeSlot,
+        role: "LT",
+        table_id: null,
+      });
+      // Recompute LT count INCLUDING this new cell (in case it didn't exist before)
+      const existingLT = breaklist.filter(
+        (b: any) => b.dealer_id === activeCell.dealerId && b.role === "LT"
+      );
+      const alreadyHadThisSlot = existingLT.some((b: any) => b.time_slot === activeCell.timeSlot);
+      const ltCount = existingLT.length + (alreadyHadThisSlot ? 0 : 1);
+      const lateMinutes = ltCount * 20;
+      const lateHours = Math.ceil(lateMinutes / 60);
+      const workedH = Math.max(0, 9 - lateHours);
+      const attValue = workedH > 0 ? `${workedH}L` : "L";
+      setAttendance.mutate({ dealer_id: activeCell.dealerId, date, value: attValue });
+      toast.success(`Late: ${ltCount} slot${ltCount === 1 ? "" : "s"} (~${lateHours}h), shift = ${workedH}h`);
+      setActiveCell(null);
+      return;
+    }
 
     // S = Sick: fill all slots from current one until end of shift with S.
     // No table assignment, no per-table conflict checks (S overrides everything for this dealer).
@@ -429,6 +455,11 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
                                   title="Sick — fills all remaining slots until shift end"
                                   className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold transition-colors ${ROLE_COLORS["S"] || "bg-muted text-muted-foreground"} hover:opacity-80`}>
                                   S
+                                </button>
+                                <button onClick={() => handleRoleSelect("LT")}
+                                  title="Late — each slot deducts 20 min from shift"
+                                  className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold transition-colors ${ROLE_COLORS["LT"] || "bg-muted text-muted-foreground"} hover:opacity-80`}>
+                                  LT
                                 </button>
                               </div>
                               {openTables.length > 0 && (

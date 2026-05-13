@@ -128,7 +128,7 @@ export const TABLE_ROLES: Record<string, string[]> = {
 };
 
 // All possible breaklist roles (BR = break, TR = training, SRT = sorting, CLS = closing, S = sick — fills until shift end)
-export const ALL_ROLES = ["P", "Pi", "BJ", "BJi", "AR", "ARi", "ARc", "BR", "TR", "SRT", "CLS", "S"] as const;
+export const ALL_ROLES = ["P", "Pi", "BJ", "BJi", "AR", "ARi", "ARc", "BR", "TR", "SRT", "CLS", "S", "LT"] as const;
 
 // Chip distribution per location type
 export const CHIP_DISTRIBUTION = {
@@ -155,6 +155,8 @@ export const ROLE_COLORS: Record<string, string> = {
   CLS: "bg-rose-100 text-rose-800 dark:bg-rose-500/25 dark:text-rose-200",
   // Sick — neutral slate, not used by any other role/category
   S: "bg-slate-200 text-slate-700 dark:bg-slate-600/30 dark:text-slate-300",
+  // Late — orange, deducts time from shift attendance per slot (20 min each)
+  LT: "bg-orange-200 text-orange-800 dark:bg-orange-500/30 dark:text-orange-200",
 };
 
 // Get roles available for a specific table
