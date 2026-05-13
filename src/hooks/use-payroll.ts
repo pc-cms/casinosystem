@@ -14,10 +14,17 @@ export interface Employee {
   id: string;
   casino_id: string;
   staff_member_id: string | null;
+  dealer_id: string | null;
   full_name: string;
   position: string;
   department: string;
   employment_date: string | null;
+  onboarding_date: string | null;
+  contract_start: string | null;
+  contract_end: string | null;
+  dealer_category: "dealer" | "inspector" | "trainee" | null;
+  is_pit_boss: boolean;
+  source_table: "staff_members" | "dealers" | null;
   photo_url: string | null;
   nssf_number: string | null;
   tax_id: string | null;
