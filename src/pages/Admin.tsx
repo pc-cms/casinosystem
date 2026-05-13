@@ -30,23 +30,24 @@ import { UsersTab } from "@/components/admin/users/UsersTab";
 // (ROLES / ALL_ROLES / ROLE_LABELS moved to src/components/admin/users/users-hooks.ts)
 
 // =================== HOOKS ===================
+// Profiles for Admin sub-panels (network/server-push pickers).
+// Per-domain rule: on a casino subdomain even super_admin sees only this
+// casino's users; on premier we expose the whole network for cross-casino ops.
 const useProfiles = () => {
-  const { roles } = useAuth();
-  const { activeCasinoId } = useCasino();
-  const isSuperOrFM = roles.includes("super_admin") || roles.includes("finance_manager");
+  const { activeCasinoId, isSummaryMode } = useCasino();
 
   return useQuery({
-    queryKey: ["all-profiles", isSuperOrFM ? "all" : activeCasinoId],
+    queryKey: ["all-profiles", isSummaryMode ? "summary" : activeCasinoId],
     queryFn: async () => {
       let query = supabase.from("profiles").select("*");
-      if (!isSuperOrFM && activeCasinoId) {
+      if (!isSummaryMode && activeCasinoId) {
         query = query.eq("casino_id", activeCasinoId);
       }
       const { data, error } = await query;
       if (error) throw error;
       return data;
     },
-    enabled: isSuperOrFM || !!activeCasinoId,
+    enabled: isSummaryMode || !!activeCasinoId,
   });
 };
 
