@@ -34,6 +34,7 @@ import PhotoCapture from "@/components/PhotoCapture";
 import { FormGrid, FormField } from "@/components/ui/form-grid";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { useModuleAccess } from "@/hooks/use-module-permissions";
 
 
 
@@ -47,9 +48,33 @@ const isProfileIncomplete = (player: any): string[] => {
 
 const Reception = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const tab = searchParams.get("tab") || "checkin";
   const isMobile = useIsMobile();
 
+  const canCheckin = useModuleAccess("reception_checkin");
+  const canRegister = useModuleAccess("reception_register");
+  const canUpdate = useModuleAccess("reception_update");
+
+  const allowedTabs = useMemo(() => {
+    const list: string[] = [];
+    if (canCheckin) list.push("checkin");
+    if (canRegister) list.push("register");
+    if (canUpdate) list.push("update");
+    return list;
+  }, [canCheckin, canRegister, canUpdate]);
+
+  const requestedTab = searchParams.get("tab");
+  const tab = requestedTab && allowedTabs.includes(requestedTab)
+    ? requestedTab
+    : (allowedTabs[0] ?? "register");
+
+  // Auto-correct URL if requested tab is not permitted
+  useEffect(() => {
+    if (allowedTabs.length > 0 && (!requestedTab || !allowedTabs.includes(requestedTab))) {
+      setSearchParams({ tab }, { replace: true });
+    }
+  }, [allowedTabs, requestedTab, tab, setSearchParams]);
+
+  const tabCount = allowedTabs.length;
 
   return (
     <PageShell>
@@ -61,27 +86,38 @@ const Reception = () => {
       />
 
       <Tabs value={tab} onValueChange={v => setSearchParams({ tab: v })}>
-        <TabsList className="mb-3 sm:mb-4 w-full sm:w-auto grid grid-cols-3 sm:inline-flex">
-          <TabsTrigger value="checkin" className="gap-1 text-xs sm:text-sm">
-            <LogIn className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Check-in</span>
-            <span className="sm:hidden">In/Out</span>
-          </TabsTrigger>
-          <TabsTrigger value="register" className="gap-1 text-xs sm:text-sm">
-            <UserPlus className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Register</span>
-            <span className="sm:hidden">New</span>
-          </TabsTrigger>
-          <TabsTrigger value="update" className="gap-1 text-xs sm:text-sm">
-            <AlertTriangle className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Update Data</span>
-            <span className="sm:hidden">Update</span>
-          </TabsTrigger>
-        </TabsList>
+        {tabCount > 1 && (
+          <TabsList
+            className={`mb-3 sm:mb-4 w-full sm:w-auto grid sm:inline-flex`}
+            style={{ gridTemplateColumns: `repeat(${tabCount}, minmax(0, 1fr))` }}
+          >
+            {canCheckin && (
+              <TabsTrigger value="checkin" className="gap-1 text-xs sm:text-sm">
+                <LogIn className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Check-in</span>
+                <span className="sm:hidden">In/Out</span>
+              </TabsTrigger>
+            )}
+            {canRegister && (
+              <TabsTrigger value="register" className="gap-1 text-xs sm:text-sm">
+                <UserPlus className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Register</span>
+                <span className="sm:hidden">New</span>
+              </TabsTrigger>
+            )}
+            {canUpdate && (
+              <TabsTrigger value="update" className="gap-1 text-xs sm:text-sm">
+                <AlertTriangle className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Update Data</span>
+                <span className="sm:hidden">Update</span>
+              </TabsTrigger>
+            )}
+          </TabsList>
+        )}
 
-        <TabsContent value="checkin"><CheckInTab /></TabsContent>
-        <TabsContent value="register"><RegisterTab /></TabsContent>
-        <TabsContent value="update"><UpdateDataTab /></TabsContent>
+        {canCheckin && <TabsContent value="checkin"><CheckInTab /></TabsContent>}
+        {canRegister && <TabsContent value="register"><RegisterTab /></TabsContent>}
+        {canUpdate && <TabsContent value="update"><UpdateDataTab /></TabsContent>}
       </Tabs>
     </PageShell>
   );
