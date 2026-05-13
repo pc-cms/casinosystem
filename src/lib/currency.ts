@@ -128,7 +128,7 @@ export const TABLE_ROLES: Record<string, string[]> = {
 };
 
 // All possible breaklist roles (BR = break, TR = training, SRT = sorting, CLS = closing, S = sick — fills until shift end)
-export const ALL_ROLES = ["P", "Pi", "BJ", "BJi", "AR", "ARi", "ARc", "BR", "TR", "SRT", "CLS", "S"] as const;
+export const ALL_ROLES = ["P", "Pi", "BJ", "BJi", "AR", "ARi", "ARc", "BR", "TR", "SRT", "CLS", "S", "LT"] as const;
 
 // Chip distribution per location type
 export const CHIP_DISTRIBUTION = {
