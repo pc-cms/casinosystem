@@ -1803,78 +1803,135 @@ export type Database = {
       }
       employees: {
         Row: {
+          annual_leave_earned: number
+          annual_leave_sold: number
+          annual_leave_used: number
           basic_salary: number
+          birthday: string | null
           casino_id: string
+          confidentiality_agreement: boolean
           contract_end: string | null
           contract_start: string | null
+          contract_type: string | null
+          corporate_mail: string | null
           created_at: string
           created_by: string | null
           dealer_category: string | null
           dealer_id: string | null
           department: string
+          disciplinary_acknowledged: boolean
           employment_date: string | null
           full_name: string
+          gender: string | null
+          general_details: string | null
           gepf_number: string | null
           id: string
+          intro_to_work: boolean
           is_pit_boss: boolean
+          job_description: string | null
+          license_available: boolean
+          license_pass_date: string | null
+          license_type: string | null
+          nationality: string | null
           nssf_number: string | null
           onboarding_date: string | null
           payroll_status: string
+          phone: string | null
           photo_url: string | null
           position: string
           source_table: string | null
           staff_member_id: string | null
+          staff_rules_acknowledged: boolean
           tax_id: string | null
+          uniform_issued: boolean
           updated_at: string
         }
         Insert: {
+          annual_leave_earned?: number
+          annual_leave_sold?: number
+          annual_leave_used?: number
           basic_salary?: number
+          birthday?: string | null
           casino_id: string
+          confidentiality_agreement?: boolean
           contract_end?: string | null
           contract_start?: string | null
+          contract_type?: string | null
+          corporate_mail?: string | null
           created_at?: string
           created_by?: string | null
           dealer_category?: string | null
           dealer_id?: string | null
           department?: string
+          disciplinary_acknowledged?: boolean
           employment_date?: string | null
           full_name: string
+          gender?: string | null
+          general_details?: string | null
           gepf_number?: string | null
           id?: string
+          intro_to_work?: boolean
           is_pit_boss?: boolean
+          job_description?: string | null
+          license_available?: boolean
+          license_pass_date?: string | null
+          license_type?: string | null
+          nationality?: string | null
           nssf_number?: string | null
           onboarding_date?: string | null
           payroll_status?: string
+          phone?: string | null
           photo_url?: string | null
           position?: string
           source_table?: string | null
           staff_member_id?: string | null
+          staff_rules_acknowledged?: boolean
           tax_id?: string | null
+          uniform_issued?: boolean
           updated_at?: string
         }
         Update: {
+          annual_leave_earned?: number
+          annual_leave_sold?: number
+          annual_leave_used?: number
           basic_salary?: number
+          birthday?: string | null
           casino_id?: string
+          confidentiality_agreement?: boolean
           contract_end?: string | null
           contract_start?: string | null
+          contract_type?: string | null
+          corporate_mail?: string | null
           created_at?: string
           created_by?: string | null
           dealer_category?: string | null
           dealer_id?: string | null
           department?: string
+          disciplinary_acknowledged?: boolean
           employment_date?: string | null
           full_name?: string
+          gender?: string | null
+          general_details?: string | null
           gepf_number?: string | null
           id?: string
+          intro_to_work?: boolean
           is_pit_boss?: boolean
+          job_description?: string | null
+          license_available?: boolean
+          license_pass_date?: string | null
+          license_type?: string | null
+          nationality?: string | null
           nssf_number?: string | null
           onboarding_date?: string | null
           payroll_status?: string
+          phone?: string | null
           photo_url?: string | null
           position?: string
           source_table?: string | null
           staff_member_id?: string | null
+          staff_rules_acknowledged?: boolean
           tax_id?: string | null
+          uniform_issued?: boolean
           updated_at?: string
         }
         Relationships: [

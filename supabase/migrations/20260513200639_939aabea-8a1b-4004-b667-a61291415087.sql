@@ -1,0 +1,21 @@
+
+ALTER TABLE public.employees
+  ADD COLUMN IF NOT EXISTS contract_type text,
+  ADD COLUMN IF NOT EXISTS birthday date,
+  ADD COLUMN IF NOT EXISTS phone text,
+  ADD COLUMN IF NOT EXISTS job_description text,
+  ADD COLUMN IF NOT EXISTS general_details text,
+  ADD COLUMN IF NOT EXISTS intro_to_work boolean NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS staff_rules_acknowledged boolean NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS disciplinary_acknowledged boolean NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS confidentiality_agreement boolean NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS annual_leave_earned numeric(6,2) NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS annual_leave_used numeric(6,2) NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS annual_leave_sold numeric(6,2) NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS corporate_mail text,
+  ADD COLUMN IF NOT EXISTS gender text,
+  ADD COLUMN IF NOT EXISTS nationality text,
+  ADD COLUMN IF NOT EXISTS license_type text,
+  ADD COLUMN IF NOT EXISTS license_available boolean NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS license_pass_date date,
+  ADD COLUMN IF NOT EXISTS uniform_issued boolean NOT NULL DEFAULT false;

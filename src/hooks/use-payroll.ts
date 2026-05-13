@@ -31,6 +31,26 @@ export interface Employee {
   gepf_number: string | null;
   basic_salary: number;
   payroll_status: "active" | "inactive";
+  // Extended HR fields (Excel template parity)
+  contract_type: string | null;
+  birthday: string | null;
+  phone: string | null;
+  job_description: string | null;
+  general_details: string | null;
+  intro_to_work: boolean;
+  staff_rules_acknowledged: boolean;
+  disciplinary_acknowledged: boolean;
+  confidentiality_agreement: boolean;
+  annual_leave_earned: number;
+  annual_leave_used: number;
+  annual_leave_sold: number;
+  corporate_mail: string | null;
+  gender: string | null;
+  nationality: string | null;
+  license_type: string | null;
+  license_available: boolean;
+  license_pass_date: string | null;
+  uniform_issued: boolean;
   bank?: BankAccount | null;
 }
 export interface BankAccount {
@@ -69,6 +89,27 @@ export const useUpsertEmployee = () => {
     mutationFn: async (input: Partial<Employee> & { bank?: Partial<BankAccount> | null }) => {
       const { bank, ...emp } = input as any;
       let employeeId = emp.id as string | undefined;
+      const extended = {
+        contract_type: emp.contract_type ?? null,
+        birthday: emp.birthday ?? null,
+        phone: emp.phone ?? null,
+        job_description: emp.job_description ?? null,
+        general_details: emp.general_details ?? null,
+        intro_to_work: !!emp.intro_to_work,
+        staff_rules_acknowledged: !!emp.staff_rules_acknowledged,
+        disciplinary_acknowledged: !!emp.disciplinary_acknowledged,
+        confidentiality_agreement: !!emp.confidentiality_agreement,
+        annual_leave_earned: Number(emp.annual_leave_earned) || 0,
+        annual_leave_used: Number(emp.annual_leave_used) || 0,
+        annual_leave_sold: Number(emp.annual_leave_sold) || 0,
+        corporate_mail: emp.corporate_mail ?? null,
+        gender: emp.gender ?? null,
+        nationality: emp.nationality ?? null,
+        license_type: emp.license_type ?? null,
+        license_available: !!emp.license_available,
+        license_pass_date: emp.license_pass_date ?? null,
+        uniform_issued: !!emp.uniform_issued,
+      };
       if (employeeId) {
         const { error } = await supabase.from("employees").update({
           full_name: emp.full_name, position: emp.position, department: emp.department,
@@ -81,6 +122,7 @@ export const useUpsertEmployee = () => {
           photo_url: emp.photo_url,
           nssf_number: emp.nssf_number, tax_id: emp.tax_id, gepf_number: emp.gepf_number,
           basic_salary: emp.basic_salary ?? 0, payroll_status: emp.payroll_status ?? "active",
+          ...extended,
         }).eq("id", employeeId);
         if (error) throw error;
       } else {
@@ -97,6 +139,7 @@ export const useUpsertEmployee = () => {
           nssf_number: emp.nssf_number, tax_id: emp.tax_id, gepf_number: emp.gepf_number,
           basic_salary: emp.basic_salary ?? 0, payroll_status: emp.payroll_status ?? "active",
           created_by: user?.id, photo_url: emp.photo_url,
+          ...extended,
         }).select("id").single();
         if (error) throw error;
         employeeId = data.id;
