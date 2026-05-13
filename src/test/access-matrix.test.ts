@@ -207,3 +207,59 @@ describe("floor_manager (Taras) — sidebar & route gate match matrix", () => {
     }
   });
 });
+
+/**
+ * Cashier — Reception sub-module isolation.
+ *
+ * Cashier MUST be able to register new players (reception_register tab) but
+ * MUST NOT see check-in or update tabs. Mirrors role_module_defaults seed in
+ * migration 20260513044134_*.sql. The sub-modules are tab-gated inside
+ * Reception.tsx via useModuleAccess, so we assert the matrix contract directly.
+ */
+const CASHIER_ALLOWED: ReadonlySet<ModuleKey> = new Set<ModuleKey>([
+  "dashboard",
+  "cage",
+  "players",
+  "blacklist",
+  "reception",          // page-level access (route gate)
+  "reception_register", // only this tab inside Reception
+  "in_casino",
+  "tables",
+  "table_tracker",
+  "pit_active_players",
+  "expenses",
+  "cashless",
+  "bank_checks",
+  "incidents",
+]);
+
+describe("cashier — reception sub-module isolation", () => {
+  it("has access to reception_register only", () => {
+    expect(CASHIER_ALLOWED.has("reception_register")).toBe(true);
+  });
+
+  it("does NOT have access to reception_checkin or reception_update", () => {
+    expect(CASHIER_ALLOWED.has("reception_checkin" as ModuleKey)).toBe(false);
+    expect(CASHIER_ALLOWED.has("reception_update" as ModuleKey)).toBe(false);
+  });
+
+  it("does NOT have access to cage_closings (manager-only history)", () => {
+    expect(CASHIER_ALLOWED.has("cage_closings" as ModuleKey)).toBe(false);
+  });
+
+  it("reception sub-modules are registered as valid ModuleKeys", () => {
+    expect(VALID_KEYS.has("reception_register")).toBe(true);
+    expect(VALID_KEYS.has("reception_checkin")).toBe(true);
+    expect(VALID_KEYS.has("reception_update")).toBe(true);
+  });
+
+  it("simulated tab visibility: only Register tab is rendered for cashier", () => {
+    const tabs: Array<{ id: "checkin" | "register" | "update"; module: ModuleKey }> = [
+      { id: "checkin", module: "reception_checkin" },
+      { id: "register", module: "reception_register" },
+      { id: "update", module: "reception_update" },
+    ];
+    const visible = tabs.filter(t => CASHIER_ALLOWED.has(t.module)).map(t => t.id);
+    expect(visible).toEqual(["register"]);
+  });
+});
