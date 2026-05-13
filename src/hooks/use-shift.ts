@@ -56,6 +56,10 @@ export const useOpenShift = () => {
       opening_float: Record<string, any>;
     }) => {
       if (!casinoId || !user) throw new Error("Not authenticated");
+      // Pre-attempt audit trail: records the user even if RLS blocks the INSERT.
+      await logAction(casinoId, "system", "SHIFT_OPEN_ATTEMPT", {
+        opening_total: Number((input.opening_float as any)?.totals?.total_tzs) || 0,
+      });
       const { data, error } = await supabase
         .from("shifts")
         .insert({
@@ -67,6 +71,12 @@ export const useOpenShift = () => {
         .select()
         .single();
       if (error) {
+        await logAction(casinoId, "system", "SHIFT_OPEN_FAILED", {
+          message: error.message,
+          code: (error as any).code,
+          details: (error as any).details,
+          hint: (error as any).hint,
+        });
         if (error.message?.includes("shifts_one_open_per_casino")) {
           throw new Error("A shift is already open");
         }
