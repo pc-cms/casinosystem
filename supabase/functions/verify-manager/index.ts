@@ -12,6 +12,7 @@ Deno.serve(async (req) => {
 
   try {
     const { email, password } = await req.json();
+    console.log("[verify-manager] request for:", email);
 
     if (!email || !password) {
       return new Response(JSON.stringify({ error: "Email and password required" }), {
@@ -22,46 +23,50 @@ Deno.serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    // Create a separate client to verify credentials without affecting the caller's session
     const verifyClient = createClient(supabaseUrl, supabaseAnonKey);
-
     const { data: authData, error: authError } = await verifyClient.auth.signInWithPassword({
       email,
       password,
     });
 
     if (authError || !authData.user) {
+      console.log("[verify-manager] auth failed:", authError?.message);
       return new Response(JSON.stringify({ error: "Invalid credentials" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Sign out from the verify client immediately
     await verifyClient.auth.signOut();
-
     const managerId = authData.user.id;
+    console.log("[verify-manager] auth ok, user_id:", managerId);
 
-    // Check manager role using service role client
-    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const adminClient = createClient(supabaseUrl, serviceKey);
-
-    const { data: roles } = await adminClient
+    const { data: roles, error: rolesError } = await adminClient
       .from("user_roles")
       .select("role")
       .eq("user_id", managerId);
 
-    const isManager = roles?.some((r: any) => r.role === "manager" || r.role === "floor_manager");
+    console.log("[verify-manager] roles:", JSON.stringify(roles), "err:", rolesError?.message);
 
-    if (!isManager) {
-      return new Response(JSON.stringify({ error: "User is not a manager or floor manager" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    const allowed = ["manager", "floor_manager", "super_admin", "finance_manager"];
+    const isAllowed = roles?.some((r: any) => allowed.includes(r.role));
+
+    if (!isAllowed) {
+      console.log("[verify-manager] role rejected for", email, "roles:", roles);
+      return new Response(
+        JSON.stringify({
+          error: `User has no manager-equivalent role (got: ${(roles ?? []).map((r: any) => r.role).join(", ") || "none"})`,
+        }),
+        {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     }
 
-    // Get display name
     const { data: profile } = await adminClient
       .from("profiles")
       .select("display_name")
@@ -79,6 +84,7 @@ Deno.serve(async (req) => {
       }
     );
   } catch (err) {
+    console.error("[verify-manager] exception:", err);
     return new Response(JSON.stringify({ error: "Internal error" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
