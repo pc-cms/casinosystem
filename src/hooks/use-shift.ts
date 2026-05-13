@@ -56,6 +56,10 @@ export const useOpenShift = () => {
       opening_float: Record<string, any>;
     }) => {
       if (!casinoId || !user) throw new Error("Not authenticated");
+      // Pre-attempt audit trail: records the user even if RLS blocks the INSERT.
+      await logAction(casinoId, "system", "SHIFT_OPEN_ATTEMPT", {
+        opening_total: Number((input.opening_float as any)?.totals?.total_tzs) || 0,
+      });
       const { data, error } = await supabase
         .from("shifts")
         .insert({
@@ -67,6 +71,12 @@ export const useOpenShift = () => {
         .select()
         .single();
       if (error) {
+        await logAction(casinoId, "system", "SHIFT_OPEN_FAILED", {
+          message: error.message,
+          code: (error as any).code,
+          details: (error as any).details,
+          hint: (error as any).hint,
+        });
         if (error.message?.includes("shifts_one_open_per_casino")) {
           throw new Error("A shift is already open");
         }
@@ -156,6 +166,22 @@ export const useCloseShift = () => {
       //    the new row, avoiding stale pre-close values.
       const tablesResultFinal = Number(input.shift_result ?? 0);
 
+      // Pre-attempt audit trail: captures cashier's intended snapshot even if
+      // RLS blocks the UPDATE. Lets us see WHO tried to close, WHAT they entered,
+      // and WHY the database refused.
+      await logAction(casinoId, "system", "SHIFT_CLOSE_ATTEMPT", {
+        shift_id: input.shift_id,
+        cash_result: cashResultFinal,
+        miss_total: missTotalFinal,
+        shift_result: tablesResultFinal,
+        closing_count_totals: (input.closing_count as any)?.totals,
+        chips: (input.closing_count as any)?.chips,
+        chip_miss: (input.closing_count as any)?.chip_miss,
+        cash: (input.closing_count as any)?.cash,
+        mobile: (input.closing_count as any)?.mobile,
+        bank: (input.closing_count as any)?.bank,
+      });
+
       const { error } = await supabase
         .from("shifts")
         .update({
@@ -174,13 +200,33 @@ export const useCloseShift = () => {
           shift_result: tablesResultFinal,
         } as any)
         .eq("id", input.shift_id);
-      if (error) throw error;
+      if (error) {
+        await logAction(casinoId, "system", "SHIFT_CLOSE_FAILED", {
+          shift_id: input.shift_id,
+          stage: "update_shifts",
+          message: error.message,
+          code: (error as any).code,
+          details: (error as any).details,
+          hint: (error as any).hint,
+        });
+        throw error;
+      }
 
       // 3. Verify through the authoritative DB function after the row exists
       //    as closed. This is a functional check, not a source for UI values.
       const { data: rpcData, error: rpcError } = await (supabase as any)
         .rpc("compute_shift_close", { p_shift_id: input.shift_id });
-      if (rpcError) throw rpcError;
+      if (rpcError) {
+        await logAction(casinoId, "system", "SHIFT_CLOSE_FAILED", {
+          shift_id: input.shift_id,
+          stage: "compute_shift_close_rpc",
+          message: rpcError.message,
+          code: (rpcError as any).code,
+          details: (rpcError as any).details,
+          hint: (rpcError as any).hint,
+        });
+        throw rpcError;
+      }
       await logAction(casinoId, "system", "SHIFT_CLOSED", {
         shift_id: input.shift_id,
         server_totals: rpcData,
