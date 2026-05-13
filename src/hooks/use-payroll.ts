@@ -170,6 +170,44 @@ export const useUpsertEmployee = () => {
   });
 };
 
+/** Inline single-/multi-field patch (for click-to-edit table). */
+export const usePatchEmployee = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, patch }: { id: string; patch: Partial<Employee> }) => {
+      const allowed = [
+        "full_name","position","department","onboarding_date","employment_date",
+        "contract_start","contract_end","is_pit_boss","dealer_category",
+        "basic_salary","payroll_status","contract_type","birthday","phone",
+        "job_description","general_details","intro_to_work","staff_rules_acknowledged",
+        "disciplinary_acknowledged","confidentiality_agreement","annual_leave_earned",
+        "annual_leave_used","annual_leave_sold","corporate_mail","gender","nationality",
+        "license_type","license_available","license_pass_date","uniform_issued",
+        "nssf_number","tax_id","gepf_number","photo_url",
+      ] as const;
+      const body: Record<string, unknown> = {};
+      for (const k of allowed) if (k in patch) body[k] = (patch as any)[k];
+      const { error } = await supabase.from("employees").update(body).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["employees"] }),
+    onError: (e: Error) => toast.error(e.message),
+  });
+};
+
+/** Hard-delete an employee. Payroll history stays (employee_id is set NULL). */
+export const useDeleteEmployee = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("employees").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["employees"] }); toast.success("Employee removed"); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+};
+
 // ============= PERIODS =============
 export interface PayrollPeriod {
   id: string;
