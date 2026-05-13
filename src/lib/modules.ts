@@ -115,6 +115,7 @@ export const MODULES: ModuleDef[] = [
   { key: "staff_master", label: "Staff Master (HR)", group: "System" },
   { key: "payroll", label: "Payroll", group: "Finance" },
   { key: "cctv", label: "CCTV", group: "System" },
+  { key: "cctv_dashboard", label: "CCTV Dashboard", group: "System" },
   { key: "admin", label: "Admin Panel", group: "System" },
 ];
 
