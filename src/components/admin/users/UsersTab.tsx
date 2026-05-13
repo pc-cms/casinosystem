@@ -137,7 +137,28 @@ export const UsersTab = () => {
                       </div>
                     </td>
                     {showCasinoColumn && (
-                      <td className="px-4 py-3 text-xs text-muted-foreground">{casinoName(p.casino_id)}</td>
+                      <td className="px-4 py-3 text-xs text-muted-foreground">
+                        {p.casino_ids.length === 0 ? (
+                          <span className="text-muted-foreground/40">—</span>
+                        ) : (
+                          <span className="inline-flex flex-wrap gap-x-1.5 gap-y-0.5">
+                            {/* Primary first (bold), then the rest of granted casinos. */}
+                            {[
+                              p.casino_id,
+                              ...p.casino_ids.filter(id => id !== p.casino_id),
+                            ]
+                              .filter((id): id is string => !!id)
+                              .map((id, idx, arr) => (
+                                <span
+                                  key={id}
+                                  className={id === p.casino_id ? "font-semibold text-card-foreground" : ""}
+                                >
+                                  {casinoName(id)}{idx < arr.length - 1 ? "," : ""}
+                                </span>
+                              ))}
+                          </span>
+                        )}
+                      </td>
                     )}
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap gap-1">
