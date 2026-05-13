@@ -296,6 +296,38 @@ const StaffMaster = () => {
       {editing && (
         <EmployeeEditorDialog value={editing} onClose={() => setEditing(null)} />
       )}
+
+      {importPreview && (
+        <Dialog open onOpenChange={() => !importing && setImportPreview(null)}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader><DialogTitle>Import Staff Master</DialogTitle></DialogHeader>
+            <div className="space-y-3 text-sm">
+              <div>Parsed <span className="font-mono font-semibold">{importPreview.length}</span> employees from the file.</div>
+              <div className="text-xs text-muted-foreground">
+                Existing in this casino: <span className="font-mono">{employees.length}</span>
+              </div>
+              <label className="flex items-center gap-2">
+                <Checkbox checked={wipeFirst} onCheckedChange={(c) => setWipeFirst(!!c)} />
+                <span>Wipe existing employees for this casino before import</span>
+              </label>
+              {wipeFirst && employees.length > 0 && (
+                <div className="text-xs text-destructive">
+                  All {employees.length} current employees will be deleted. This cannot be undone.
+                </div>
+              )}
+              <div className="text-xs text-muted-foreground">
+                Departments: {Array.from(new Set(importPreview.map(r => r.department).filter(Boolean))).join(", ")}
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setImportPreview(null)} disabled={importing}>Cancel</Button>
+              <Button onClick={handleConfirmImport} disabled={importing}>
+                {importing ? "Importing…" : `Import ${importPreview.length}`}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </PageShell>
   );
 };
