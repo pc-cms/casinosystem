@@ -77,7 +77,7 @@ export const moduleKeyForRoute = (to: string, label?: string): ModuleKey | null 
   // /cage = cashier transactional surface; /cage/view = read-only history.
   if (base === "/cage") return "cage";
   if (base === "/cage/view") return "cage_view";
-  if (base === "/cage/closings") return "cage";
+  if (base === "/cage/closings") return "cage_closings";
   if (base === "/cage/close-shift") return "cage";
   if (base.startsWith("/cage/shift/")) return "cage";
 
