@@ -72,7 +72,13 @@ export const useUpsertEmployee = () => {
       if (employeeId) {
         const { error } = await supabase.from("employees").update({
           full_name: emp.full_name, position: emp.position, department: emp.department,
-          employment_date: emp.employment_date, photo_url: emp.photo_url,
+          employment_date: emp.employment_date ?? emp.onboarding_date ?? null,
+          onboarding_date: emp.onboarding_date ?? null,
+          contract_start: emp.contract_start ?? null,
+          contract_end: emp.contract_end ?? null,
+          is_pit_boss: !!emp.is_pit_boss,
+          dealer_category: emp.dealer_category ?? null,
+          photo_url: emp.photo_url,
           nssf_number: emp.nssf_number, tax_id: emp.tax_id, gepf_number: emp.gepf_number,
           basic_salary: emp.basic_salary ?? 0, payroll_status: emp.payroll_status ?? "active",
         }).eq("id", employeeId);
@@ -80,7 +86,14 @@ export const useUpsertEmployee = () => {
       } else {
         const { data, error } = await supabase.from("employees").insert({
           casino_id: activeCasinoId, full_name: emp.full_name, position: emp.position ?? "",
-          department: emp.department ?? "", employment_date: emp.employment_date,
+          department: emp.department ?? "",
+          employment_date: emp.employment_date ?? emp.onboarding_date ?? null,
+          onboarding_date: emp.onboarding_date ?? null,
+          contract_start: emp.contract_start ?? null,
+          contract_end: emp.contract_end ?? null,
+          is_pit_boss: !!emp.is_pit_boss,
+          dealer_category: emp.dealer_category ?? null,
+          source_table: null,
           nssf_number: emp.nssf_number, tax_id: emp.tax_id, gepf_number: emp.gepf_number,
           basic_salary: emp.basic_salary ?? 0, payroll_status: emp.payroll_status ?? "active",
           created_by: user?.id, photo_url: emp.photo_url,
