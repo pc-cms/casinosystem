@@ -89,8 +89,8 @@ const Admin = () => {
     return (
       <div className="text-center py-16">
         <Shield className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-        <h2 className="text-lg font-semibold text-foreground">Super Admin Access Required</h2>
-        <p className="text-sm text-muted-foreground mt-1">Admin panel is restricted to Super Admins.</p>
+        <h2 className="text-lg font-semibold text-foreground">Access Restricted</h2>
+        <p className="text-sm text-muted-foreground mt-1">Admin panel is restricted to administrators.</p>
       </div>
     );
   }
