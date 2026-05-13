@@ -52,13 +52,18 @@ export const UsersTab = () => {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return profiles;
-    return profiles.filter(p => {
+    // Hide super_admin accounts from non-super viewers — they should not even
+    // know super_admin exists. Defense in depth: badges below also strip the role.
+    const visible = isSuperAdmin
+      ? profiles
+      : profiles.filter(p => !(rolesByUser[p.user_id] || []).includes("super_admin"));
+    if (!q) return visible;
+    return visible.filter(p => {
       const name = (p.display_name || "").toLowerCase();
       const userRoles = (rolesByUser[p.user_id] || []).join(" ").toLowerCase();
       return name.includes(q) || userRoles.includes(q);
     });
-  }, [search, profiles, rolesByUser]);
+  }, [search, profiles, rolesByUser, isSuperAdmin]);
 
   const openCreate = () => navigate("/admin/users/new");
   const openEdit = (p: typeof profiles[number]) => navigate(`/admin/users/${p.user_id}/edit`);
