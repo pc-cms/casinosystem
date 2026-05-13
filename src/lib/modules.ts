@@ -56,6 +56,7 @@ export type ModuleKey =
   | "payroll"
   | "logs"
   | "cctv"
+  | "cctv_dashboard"
   | "import_reports"
   | "admin";
 
