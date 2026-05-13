@@ -1,82 +1,104 @@
-## Цель
+## Goal
 
-Сделать **Staff Master** единым каталогом всего персонала Arusha (~69 человек) с правильной структурой департаментов и видимыми колонками онбординга/контракта/стажа.
+Three connected upgrades around Staff Master:
+1. Full **Staff Master table** keeps Onboarding / Contract Start / Contract End columns (already added) and stays the single directory.
+2. New **Monthly Attendance** page: one big grid (employees × days of month) showing hours per day, with month totals on the right, holiday columns highlighted, hours editable per cell.
+3. **Payroll**: auto-includes every active employee from Staff Master and gets a **Refresh** button that recomputes the period from shifts/attendance/holidays.
 
-## Шаг 1 — Миграция БД
+English-only UI, design system wrappers, DD/MM/YYYY, space thousand separator, density tokens.
 
-**Расширить `employees`:**
-- `onboarding_date date` — реальная дата найма (отдельно от employment_date)
-- `contract_end date` — окончание контракта
-- `dealer_category text` — `dealer` / `inspector` / `trainee` (NULL для не-pit)
-- `is_pit_boss boolean default false`
-- `source_table text` — `staff_members` или `dealers` (для будущих ре-импортов)
+---
 
-**Группировка департаментов:** добавить хелпер-функцию или хранить готовый `dept_group text` (Pit / Floor / Security / Office), вычисляемый при импорте:
-- `Pit` ← все из `dealers` (department='pit', position = "Pit Boss" / "Dealer" / "Inspector" / "Trainee")
-- `Floor` ← cashier, bartender, hostess, waiter, cleaner, reception
-- `Security` ← security
-- `Office` ← it, hr, driver
+## 1. Database
 
-`employment_date` = `onboarding_date` (для совместимости со старым UI/payroll).
+### New table `attendance_holidays`
+- `casino_id`, `date`, `name`, `multiplier numeric(3,2) default 1.50`, `created_by`, timestamps
+- Unique (`casino_id`, `date`)
+- RLS: HR / Manager / Super Admin write; everyone in casino reads
 
-## Шаг 2 — RPC `reimport_staff_master(p_casino_id uuid)`
+### New table `attendance_hours`
+Stores per-cell hour overrides on top of the auto-derived 9h baseline.
+- `casino_id`, `employee_id` (fk employees), `date`, `hours numeric(4,2)`, `note`, `recorded_by`, timestamps
+- Unique (`casino_id`, `employee_id`, `date`)
+- RLS: HR / Manager / Super Admin
 
-Полная переинициализация для одной казино:
-1. Удалить `employee_bank_accounts` и `employees` где `casino_id = p_casino_id` (BANK данные сейчас пусты у всех — потеря несущественна).
-2. Вставить заново из `staff_members`:
-   - position = department label (Cashier, Waiter, Bartender, …)
-   - department = `dept_group` (Floor / Security / Office)
-   - onboarding_date, contract_start, contract_end, photo_url, salary, is_active → payroll_status
-3. Вставить из `dealers`:
-   - department = `Pit`
-   - position = `Pit Boss` (если is_pit_boss) иначе `Dealer` / `Inspector` / `Trainee` (по category)
-   - dealer_category, is_pit_boss
-   - onboarding_date, contract_start, contract_end, photo_url, salary, is_active → payroll_status
-4. Связь `staff_member_id` сохраняется только для строк из staff_members (для dealers создадим колонку `dealer_id` для будущей синхронизации).
+### RPC `get_monthly_attendance(p_casino_id, p_month date)`
+Returns one row per (employee × day) for the month with:
+- `auto_hours` — from `staff_attendance` / `pit_attendance` (9h after closure) for the matching staff_member_id / dealer_id
+- `manual_hours` — from `attendance_hours`
+- `effective_hours` — manual ?? auto ?? 0
+- `code` — D / N / L / E / O / H from rota
+- `is_holiday`, `holiday_multiplier`
 
-Запустить RPC для Arusha (`48f4404f-...`) сразу после миграции.
+### RPC `recalc_payroll_period(p_period_id uuid)`
+For the period's casino+date range:
+- Ensure a `payroll_lines` row exists for every `employees` row with `payroll_status='active'` (insert missing)
+- Sum `effective_hours` and `days_worked` from `get_monthly_attendance`
+- Compute:
+  - `regular_hours` = effective hours on non-holiday days
+  - `holiday_hours` = effective hours on holiday days
+  - `holiday_pay` = holiday_hours × hourly_rate × (avg multiplier)
+  - `base_pay` = `basic_salary ÷ standard_days_in_month × days_worked` (standard = 30)
+  - `overtime_hours` = effective − scheduled (>0 only)
+  - `gross` = base_pay + holiday_pay + overtime_pay
+- Updates `payroll_lines.last_calculated_at`. Idempotent. SECURITY DEFINER.
 
-## Шаг 3 — UI Staff Master
+Auto-bump `package.json` patch.
 
-Перестроить `src/pages/StaffMaster.tsx`:
+---
 
-**Группировка по департаментам** (Pit → Floor → Security → Office) с заголовками-разделителями в `DataTable`.
+## 2. Frontend
 
-**Новые колонки:**
-| Photo | Name | Position | Department | Onboarding | Tenure | Contract Start | Contract End | Salary | Bank | Acc # | NSSF | Tax ID | Status | ⋮ |
+### `src/pages/StaffMaster.tsx` — keep as is
+Current columns already cover Onboarding / Contract Start / Contract End — no change needed beyond bug fixes if any surface during build.
 
-- **Onboarding** = `onboarding_date`, формат DD/MM/YYYY (`fmtDate`)
-- **Tenure** = years since onboarding (1 знак после запятой, `5.3y`)
-- **Pit Boss / Category** — бейдж рядом с Position для dept=Pit (PB / D / I / T)
-- Salary — формат с пробелом (1 250 000)
+### New page `src/pages/Attendance.tsx`  (route `/attendance`)
+- Header: month picker (← Nov 2026 →), "Mark Holiday" button (HR/Manager), Export CSV
+- Single big grid via `DataTable`:
+  - Sticky left: Photo · Name · Position (grouped Pit/Floor/Security/Office)
+  - 28–31 day columns, header shows DD with weekday under; holiday days have amber background and a small ★ + multiplier badge
+  - Cell shows hours number (mono); empty = `·`; click to edit (inline number input); colored by code (D=teal, N=indigo, L=amber, O=muted, H=amber-strong)
+  - Right summary columns: Days, Hours, Leave, Holiday H, OT H
+- "Mark Holiday" opens small dialog: date picker + name + multiplier (default 1.5)
+- Read-only for non-HR/Manager
+- New hook `src/hooks/use-attendance.ts` with `useMonthlyAttendance`, `useUpsertAttendanceHours`, `useHolidays`, `useUpsertHoliday`, `useDeleteHoliday`
 
-**Editor Dialog:** добавить поля Onboarding Date, Contract End, Pit Boss toggle (если department=Pit), dropdown Position по департаменту.
+### Sidebar
+Add "Attendance" entry under HR section in `AppSidebar.tsx` (HR / Manager / Super Admin / Finance read-only).
 
-## Шаг 4 — Хук `use-payroll.ts`
+### Payroll page (existing `src/pages/Payroll.tsx` / `PayrollPeriodPage.tsx`)
+- Top toolbar: add primary **Refresh** button (HR/Manager/Finance/Super Admin)
+- On click: call `recalc_payroll_period(period_id)` → toast "Updated N lines" → invalidate query
+- Auto-list: when opening a period with zero lines, automatically call the same RPC once
+- Show `last_calculated_at` next to header
 
-Расширить `Employee`:
-```ts
-onboarding_date: string | null;
-contract_start: string | null;
-contract_end: string | null;
-dealer_category: 'dealer'|'inspector'|'trainee'|null;
-is_pit_boss: boolean;
-```
+### Module map / access matrix
+- Add `attendance` module → HR/Manager/Super_admin write, Finance read
+- Add to `role_module_defaults` and `docs/ACCESS-MATRIX.md`
 
-`useUpsertEmployee` — пишет новые поля.
+---
 
-## Шаг 5 — Версия
+## 3. Out of scope (keep behavior unchanged)
+- Salary structure, deductions, NSSF/PAYE engine
+- Rota grids stay sourced from `staff_rota` / pit rota
+- Auto-fill 9h logic untouched (still gated by business_day_closures)
 
-Bump `package.json` patch (миграция + RPC).
+---
 
-## Что НЕ меняем
+## Files
 
-- `staff_members` и `dealers` остаются основными источниками для рота / breaklist / pit-rota — они не трогаются.
-- Bank / NSSF / Tax ID — они и так пусты, HR заполняет вручную через диалог.
-- Payroll periods/entries — структура не меняется, они продолжают читать `employees`.
+**New**
+- `supabase/migrations/<ts>_attendance_payroll.sql`
+- `src/pages/Attendance.tsx`
+- `src/hooks/use-attendance.ts`
 
-## Технические детали для проверки
+**Edited**
+- `src/App.tsx` (route)
+- `src/components/layout/AppSidebar.tsx`
+- `src/pages/Payroll.tsx` and/or `src/pages/payroll/PayrollPeriodPage.tsx`
+- `src/hooks/use-payroll.ts` (add `useRecalcPeriod`)
+- `src/lib/route-module-map.ts`, `src/lib/modules.ts`
+- `docs/ACCESS-MATRIX.md`
+- `package.json` (patch bump)
 
-- Проверить, что `department text` в `employees` примет новые значения (Pit/Floor/Security/Office) — это `text` без CHECK, значит ок.
-- RLS на employees уже разрешает HR/Manager — RPC будет SECURITY DEFINER чтобы выполнить полную замену атомарно.
-- После RPC запустить контрольный SELECT: ожидаем 40 + 29 = **69 строк** для Arusha, разбиение Pit=29 / Floor=30 / Security=6 / Office=4.
+Memory: add `mem://features/monthly-attendance` and `mem://features/payroll-refresh` after build.
