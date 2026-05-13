@@ -133,13 +133,25 @@ export interface PayrollPeriod {
   casino_id: string;
   year: number;
   month: number;
-  status: "draft" | "hr_approved" | "locked";
+  status: "draft" | "hr_approved" | "locked" | "paid";
   hr_approved_by: string | null;
   hr_approved_at: string | null;
   manager_approved_by: string | null;
   manager_approved_at: string | null;
   locked_at: string | null;
+  paid_by?: string | null;
+  paid_at?: string | null;
+  payment_description?: string | null;
+  branch_label?: string | null;
 }
+
+/** Display labels for the 4-stage workflow (UI only — DB stores legacy values). */
+export const PERIOD_STATUS_LABEL: Record<PayrollPeriod["status"], string> = {
+  draft: "Draft",
+  hr_approved: "Reviewed",
+  locked: "Approved",
+  paid: "Paid",
+};
 
 export const usePayrollPeriods = () => {
   const { activeCasinoId } = useCasino();
