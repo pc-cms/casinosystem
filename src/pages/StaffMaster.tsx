@@ -219,7 +219,7 @@ const StaffMaster = () => {
                 {employees.length === 0 && (
                   <DTRow><DTCell colSpan={TOTAL_COLS} className="text-center text-muted-foreground py-8">No employees yet — click Reimport to build from Staff and Pit Personnel</DTCell></DTRow>
                 )}
-                {(["Pit", "Floor", "Security", "Office", "Other"] as const).flatMap(dept => {
+                {([...DEPT_ORDER, "Other"] as const).flatMap(dept => {
                   const list = grouped[dept];
                   if (!list || list.length === 0) return [] as JSX.Element[];
                   const rows: JSX.Element[] = [];
