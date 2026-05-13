@@ -188,6 +188,10 @@ const Dashboard = () => {
         date
       />
 
+      {(roles.includes("surveillance") || roles.includes("super_admin")) && (
+        <CCTVDashboardSection />
+      )}
+
       {(() => {
         const isSurveillance = roles.includes("surveillance") && !roles.includes("manager") && !roles.includes("super_admin");
         const gridCols = isSurveillance ? "sm:grid-cols-2 lg:grid-cols-2" : "sm:grid-cols-2 lg:grid-cols-4";
