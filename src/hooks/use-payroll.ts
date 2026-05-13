@@ -133,13 +133,25 @@ export interface PayrollPeriod {
   casino_id: string;
   year: number;
   month: number;
-  status: "draft" | "hr_approved" | "locked";
+  status: "draft" | "hr_approved" | "locked" | "paid";
   hr_approved_by: string | null;
   hr_approved_at: string | null;
   manager_approved_by: string | null;
   manager_approved_at: string | null;
   locked_at: string | null;
+  paid_by?: string | null;
+  paid_at?: string | null;
+  payment_description?: string | null;
+  branch_label?: string | null;
 }
+
+/** Display labels for the 4-stage workflow (UI only — DB stores legacy values). */
+export const PERIOD_STATUS_LABEL: Record<PayrollPeriod["status"], string> = {
+  draft: "Draft",
+  hr_approved: "Reviewed",
+  locked: "Approved",
+  paid: "Paid",
+};
 
 export const usePayrollPeriods = () => {
   const { activeCasinoId } = useCasino();
@@ -281,10 +293,137 @@ const rpcMutation = (rpc: string, success: string, withReason = false) => () => 
   });
 };
 
-export const useApproveHR        = rpcMutation("payroll_approve_hr",       "HR approved");
-export const useApproveManager   = rpcMutation("payroll_approve_manager",  "Manager approved — period locked");
+export const useApproveHR        = rpcMutation("payroll_approve_hr",       "Marked as Reviewed");
+export const useApproveManager   = rpcMutation("payroll_approve_manager",  "Approved");
+export const useMarkPaid         = rpcMutation("payroll_mark_paid",        "Marked as Paid");
 export const useRevertToDraft    = rpcMutation("payroll_revert_to_draft",  "Reverted to draft", true);
 export const useUnlockPeriod     = rpcMutation("payroll_unlock_period",    "Period unlocked",   true);
+
+// ============= UPDATE PERIOD METADATA (payment description, branch label) =============
+export const useUpdatePeriodMeta = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { id: string; payment_description?: string | null; branch_label?: string | null }) => {
+      const { id, ...patch } = input;
+      const { error } = await supabase.from("payroll_periods").update(patch).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["payroll_periods"] });
+      qc.invalidateQueries({ queryKey: ["payroll_period"] });
+      toast.success("Period updated");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+};
+
+// ============= FIND PERIOD BY MONTH (for month carousel) =============
+export const usePeriodForMonth = (year: number, month: number) => {
+  const { activeCasinoId } = useCasino();
+  return useQuery({
+    queryKey: ["payroll_period_by_month", activeCasinoId, year, month],
+    queryFn: async (): Promise<PayrollPeriod | null> => {
+      const { data, error } = await supabase
+        .from("payroll_periods").select("*")
+        .eq("casino_id", activeCasinoId!).eq("year", year).eq("month", month)
+        .maybeSingle();
+      if (error) throw error;
+      return (data as PayrollPeriod | null) ?? null;
+    },
+    enabled: !!activeCasinoId,
+  });
+};
+
+// ============= BANK EXPORT VIEW (with validations) =============
+export interface BankExportRow {
+  id: string;
+  period_id: string;
+  employee_id: string;
+  name: string;
+  account_number: string;
+  bank_code: string;
+  branch_code: string;
+  amount: number;
+  warning: "missing_account" | "negative_salary" | "zero_salary" | "duplicate_account" | null;
+}
+
+export const useBankExport = (periodId: string | undefined) =>
+  useQuery({
+    queryKey: ["payroll_bank_export", periodId],
+    queryFn: async (): Promise<BankExportRow[]> => {
+      const { data, error } = await supabase
+        .from("payroll_bank_export_v" as any).select("*")
+        .eq("period_id", periodId!).order("name");
+      if (error) throw error;
+      return ((data as unknown) as BankExportRow[]) || [];
+    },
+    enabled: !!periodId,
+  });
+
+// ============= SETTINGS =============
+export interface PayrollSettings {
+  id: string;
+  casino_id: string;
+  effective_from: string;
+  hours_per_month: number;
+  night_hours_per_day: number;
+  night_rate_pct: number;
+  gepf_pct: number;
+  nssf_employee_pct: number;
+  nssf_employer_pct: number;
+  wcf_pct: number;
+  sdl_pct: number;
+  working_days: number;
+  off_day_multiplier: number;
+  default_payment_description: string | null;
+}
+
+export const useLatestPayrollSettings = () => {
+  const { activeCasinoId } = useCasino();
+  return useQuery({
+    queryKey: ["payroll_settings_latest", activeCasinoId],
+    queryFn: async (): Promise<PayrollSettings | null> => {
+      const { data, error } = await supabase
+        .from("payroll_settings").select("*")
+        .eq("casino_id", activeCasinoId!)
+        .order("effective_from", { ascending: false }).limit(1).maybeSingle();
+      if (error) throw error;
+      return (data as PayrollSettings | null) ?? null;
+    },
+    enabled: !!activeCasinoId,
+  });
+};
+
+export interface PayeBracket {
+  id: string;
+  casino_id: string;
+  effective_from: string;
+  ord: number;
+  lower_bound: number;
+  upper_bound: number | null;
+  base_tax: number;
+  rate_pct: number;
+}
+
+export const useLatestPayeBrackets = () => {
+  const { activeCasinoId } = useCasino();
+  return useQuery({
+    queryKey: ["paye_brackets_latest", activeCasinoId],
+    queryFn: async (): Promise<PayeBracket[]> => {
+      const { data: latest } = await supabase
+        .from("payroll_paye_brackets" as any).select("effective_from")
+        .eq("casino_id", activeCasinoId!).order("effective_from", { ascending: false }).limit(1).maybeSingle();
+      if (!latest) return [];
+      const { data, error } = await supabase
+        .from("payroll_paye_brackets" as any).select("*")
+        .eq("casino_id", activeCasinoId!).eq("effective_from", (latest as any).effective_from)
+        .order("ord");
+      if (error) throw error;
+      return ((data as unknown) as PayeBracket[]) || [];
+    },
+    enabled: !!activeCasinoId,
+  });
+};
 
 // ============= AUDIT LOG =============
 export interface PayrollAuditEntry {

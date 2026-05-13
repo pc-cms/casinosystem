@@ -93,6 +93,9 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/staff/master", icon: UserCheck, label: "Staff Master", roles: ["super_admin", "hr", "finance_manager"], section: "HR" },
   { to: "/attendance/monthly", icon: CalendarDays, label: "Attendance (Month)", roles: ["super_admin", "hr", "manager", "finance_manager"], section: "HR" },
   { to: "/payroll", icon: Wallet, label: "Payroll", roles: ["super_admin", "hr", "finance_manager"], section: "HR" },
+  { to: "/payroll/dashboard", icon: Wallet, label: "Payroll · Dashboard", roles: ["super_admin", "hr", "finance_manager"], section: "HR" },
+  { to: "/payroll/bank-export", icon: Wallet, label: "Payroll · Bank Export", roles: ["super_admin", "finance_manager"], section: "HR" },
+  { to: "/payroll/settings", icon: Wallet, label: "Payroll · Settings", roles: ["super_admin", "finance_manager"], section: "HR" },
 
   // ANALYTICS — shared
   { to: "/groups", icon: UsersRound, label: "Groups", roles: ["super_admin", "manager", "floor_manager", "finance_manager"], section: "ANALYTICS" },

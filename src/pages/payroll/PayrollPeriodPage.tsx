@@ -12,11 +12,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { useAuth } from "@/lib/auth-context";
 import {
   usePayrollPeriod, usePayrollEntries, useUpdatePayrollEntry,
-  useApproveHR, useApproveManager, useRevertToDraft, useUnlockPeriod,
+  useApproveHR, useApproveManager, useMarkPaid, useRevertToDraft, useUnlockPeriod,
   usePayrollAuditLog, useEmployees,
+  PERIOD_STATUS_LABEL,
   type PayrollEntry,
 } from "@/hooks/use-payroll";
 import { useRefreshPayrollPeriod } from "@/hooks/use-attendance-monthly";
+import { StatusBadge } from "@/components/payroll/MonthCarousel";
+import { Banknote } from "lucide-react";
 import {
   exportBankCsv, exportNssfReport, exportPayeReport, exportSdlReport,
   exportWcfReport, exportJournal, exportSalarySlipsPrint, exportSingleSalarySlip,
@@ -40,6 +43,7 @@ const PayrollPeriodPage = () => {
 
   const approveHR = useApproveHR();
   const approveMgr = useApproveManager();
+  const markPaid = useMarkPaid();
   const revert = useRevertToDraft();
   const unlock = useUnlockPeriod();
   const refresh = useRefreshPayrollPeriod();
@@ -53,6 +57,7 @@ const PayrollPeriodPage = () => {
   const isDraft = period.status === "draft";
   const isHrApproved = period.status === "hr_approved";
   const isLocked = period.status === "locked";
+  const isPaid = period.status === "paid";
   const canEdit = isDraft && isHR;
   const periodLabel = `${MONTHS[period.month - 1]} ${period.year}`;
 
@@ -61,9 +66,10 @@ const PayrollPeriodPage = () => {
       <PageHeader
         icon={Wallet}
         title={`Payroll — ${periodLabel}`}
-        subtitle={`Status: ${period.status.replace("_", " ")}`}
+        subtitle={`Status: ${PERIOD_STATUS_LABEL[period.status]}`}
       >
-        {!isLocked && (isHR || isFinance) && (
+        <StatusBadge status={period.status} />
+        {!isLocked && !isPaid && (isHR || isFinance) && (
           <Button size="sm" variant="outline" onClick={() => refresh.mutate(period.id)} disabled={refresh.isPending}>
             <RefreshCw className={`w-4 h-4 mr-1 ${refresh.isPending ? "animate-spin" : ""}`} /> Refresh
           </Button>
@@ -109,26 +115,31 @@ const PayrollPeriodPage = () => {
         <div className="flex flex-wrap gap-2 items-center">
           {isDraft && isHR && (
             <Button onClick={() => approveHR.mutate({ periodId: period.id })}>
-              <CheckCircle2 className="w-4 h-4 mr-1" /> HR Approve
+              <CheckCircle2 className="w-4 h-4 mr-1" /> Mark as Reviewed
             </Button>
           )}
           {isHrApproved && isFinance && (
             <>
               <Button onClick={() => approveMgr.mutate({ periodId: period.id })}>
-                <Lock className="w-4 h-4 mr-1" /> Manager Approve & Lock
+                <Lock className="w-4 h-4 mr-1" /> Approve & Lock
               </Button>
               <Button variant="outline" onClick={() => revert.mutate({ periodId: period.id, reason: "revert" })}>
                 Revert to Draft
               </Button>
             </>
           )}
-          {isLocked && isSuper && (
+          {isLocked && isFinance && (
+            <Button onClick={() => markPaid.mutate({ periodId: period.id })}>
+              <Banknote className="w-4 h-4 mr-1" /> Mark as Paid
+            </Button>
+          )}
+          {(isLocked || isPaid) && isSuper && (
             <Button variant="outline" onClick={() => setUnlockOpen(true)}>
               <Unlock className="w-4 h-4 mr-1" /> Unlock (Super Admin)
             </Button>
           )}
 
-          {isLocked && (
+          {(isLocked || isPaid) && (
             <>
               <div className="w-full mt-2 text-xs text-muted-foreground uppercase tracking-wider">Exports</div>
               <BankExportButton entries={entries} period={period} />

@@ -2511,8 +2511,53 @@ export type Database = {
           },
         ]
       }
+      payroll_paye_brackets: {
+        Row: {
+          base_tax: number
+          casino_id: string
+          created_at: string
+          effective_from: string
+          id: string
+          lower_bound: number
+          ord: number
+          rate_pct: number
+          upper_bound: number | null
+        }
+        Insert: {
+          base_tax?: number
+          casino_id: string
+          created_at?: string
+          effective_from?: string
+          id?: string
+          lower_bound: number
+          ord: number
+          rate_pct?: number
+          upper_bound?: number | null
+        }
+        Update: {
+          base_tax?: number
+          casino_id?: string
+          created_at?: string
+          effective_from?: string
+          id?: string
+          lower_bound?: number
+          ord?: number
+          rate_pct?: number
+          upper_bound?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_paye_brackets_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payroll_periods: {
         Row: {
+          branch_label: string | null
           casino_id: string
           created_at: string
           created_by: string | null
@@ -2523,6 +2568,9 @@ export type Database = {
           manager_approved_at: string | null
           manager_approved_by: string | null
           month: number
+          paid_at: string | null
+          paid_by: string | null
+          payment_description: string | null
           status: string
           unlock_reason: string | null
           unlocked_at: string | null
@@ -2531,6 +2579,7 @@ export type Database = {
           year: number
         }
         Insert: {
+          branch_label?: string | null
           casino_id: string
           created_at?: string
           created_by?: string | null
@@ -2541,6 +2590,9 @@ export type Database = {
           manager_approved_at?: string | null
           manager_approved_by?: string | null
           month: number
+          paid_at?: string | null
+          paid_by?: string | null
+          payment_description?: string | null
           status?: string
           unlock_reason?: string | null
           unlocked_at?: string | null
@@ -2549,6 +2601,7 @@ export type Database = {
           year: number
         }
         Update: {
+          branch_label?: string | null
           casino_id?: string
           created_at?: string
           created_by?: string | null
@@ -2559,6 +2612,9 @@ export type Database = {
           manager_approved_at?: string | null
           manager_approved_by?: string | null
           month?: number
+          paid_at?: string | null
+          paid_by?: string | null
+          payment_description?: string | null
           status?: string
           unlock_reason?: string | null
           unlocked_at?: string | null
@@ -2580,6 +2636,7 @@ export type Database = {
         Row: {
           casino_id: string
           created_at: string
+          default_payment_description: string | null
           effective_from: string
           gepf_pct: number
           hours_per_month: number
@@ -2588,6 +2645,7 @@ export type Database = {
           night_rate_pct: number
           nssf_employee_pct: number
           nssf_employer_pct: number
+          off_day_multiplier: number
           sdl_pct: number
           wcf_pct: number
           working_days: number
@@ -2595,6 +2653,7 @@ export type Database = {
         Insert: {
           casino_id: string
           created_at?: string
+          default_payment_description?: string | null
           effective_from: string
           gepf_pct?: number
           hours_per_month?: number
@@ -2603,6 +2662,7 @@ export type Database = {
           night_rate_pct?: number
           nssf_employee_pct?: number
           nssf_employer_pct?: number
+          off_day_multiplier?: number
           sdl_pct?: number
           wcf_pct?: number
           working_days?: number
@@ -2610,6 +2670,7 @@ export type Database = {
         Update: {
           casino_id?: string
           created_at?: string
+          default_payment_description?: string | null
           effective_from?: string
           gepf_pct?: number
           hours_per_month?: number
@@ -2618,6 +2679,7 @@ export type Database = {
           night_rate_pct?: number
           nssf_employee_pct?: number
           nssf_employer_pct?: number
+          off_day_multiplier?: number
           sdl_pct?: number
           wcf_pct?: number
           working_days?: number
@@ -4039,6 +4101,43 @@ export type Database = {
         }
         Relationships: []
       }
+      payroll_bank_export_v: {
+        Row: {
+          account_number: string | null
+          amount: number | null
+          bank_code: string | null
+          branch_code: string | null
+          casino_id: string | null
+          employee_id: string | null
+          id: string | null
+          name: string | null
+          period_id: string | null
+          warning: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_entries_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_entries_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_entries_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_periods"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       player_economy: {
         Row: {
           casino_id: string | null
@@ -4377,6 +4476,7 @@ export type Database = {
         Args: { _month: number; _source_period_id: string; _year: number }
         Returns: string
       }
+      payroll_mark_paid: { Args: { _period_id: string }; Returns: undefined }
       payroll_refresh_period: { Args: { _period_id: string }; Returns: Json }
       payroll_revert_to_draft: {
         Args: { _period_id: string; _reason?: string }
