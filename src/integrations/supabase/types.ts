@@ -2438,7 +2438,7 @@ export type Database = {
           casino_id: string
           created_at: string
           deductions_missing_days: number
-          employee_id: string
+          employee_id: string | null
           gepf_employee: number
           gepf_loan: number
           gross_salary: number
@@ -2475,7 +2475,7 @@ export type Database = {
           casino_id: string
           created_at?: string
           deductions_missing_days?: number
-          employee_id: string
+          employee_id?: string | null
           gepf_employee?: number
           gepf_loan?: number
           gross_salary?: number
@@ -2512,7 +2512,7 @@ export type Database = {
           casino_id?: string
           created_at?: string
           deductions_missing_days?: number
-          employee_id?: string
+          employee_id?: string | null
           gepf_employee?: number
           gepf_loan?: number
           gross_salary?: number

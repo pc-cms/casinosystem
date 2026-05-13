@@ -1,76 +1,128 @@
 ## Goal
 
-Глобальное правило: на casino-домене (`arusha.`, `mwanza.`, `dodoma.`, `mbeya.`) **все модули и все роли** видят данные ТОЛЬКО этого казино. Сетевая (cross-casino) видимость остаётся ровно в двух местах:
+Превратить Staff Master в Excel-подобную таблицу с inline-редактированием, прилипшими колонками, корректным импортом всех колонок шаблона и без модалок добавления/редактирования.
 
-1. Домен `premier.casinosystem.app` — сводка для Super Admin / Finance Manager / Surveillance.
-2. На любом casino-домене — раздел **Admin → Network panels** (Network Health, Server Push, межсайтовый Sync) у Super Admin. Сам список **Users & Roles** — тоже per-domain.
+---
 
-## Что меняется
+## 1. DB migration — FK-safe wipe + nullable name parts
 
-### 1. Per-domain data filter (ядро)
+```sql
+-- Allow hard-delete of employees while preserving payroll history (snapshot fields stay)
+ALTER TABLE public.payroll_entries
+  DROP CONSTRAINT IF EXISTS payroll_entries_employee_id_fkey;
+ALTER TABLE public.payroll_entries
+  ADD CONSTRAINT payroll_entries_employee_id_fkey
+  FOREIGN KEY (employee_id) REFERENCES public.employees(id) ON DELETE SET NULL;
+ALTER TABLE public.payroll_entries
+  ALTER COLUMN employee_id DROP NOT NULL;
+```
 
-`src/lib/casino-context.tsx`
-- Сегодня для super_admin / finance_manager / surveillance включается «глобальный» режим вне зависимости от субдомена. Меняем правило:
-  - `isSummaryMode` — оставляем только при `detectedSlug === "__premier__"` для super_admin / finance_manager / surveillance.
-  - На любом casino-субдомене эти роли получают `activeCasinoId = casino, найденный по slug`. `overrideCasinoId(activeCasinoId)` уже распространит это в auth-context, и все хуки (`use-players`, `use-shift`, `use-tables`, `use-finance`, `use-payroll`, `use-staff`, `use-expenses`, `use-cage-transfers`, `use-bank-checks`, `use-attendance-monthly`, `use-business-day-history`, `use-dealers`, `use-incidents`, `use-import-reports` …) автоматически начнут отдавать данные одного казино.
-  - `accessibleCasinos` для премьер-ролей всё ещё грузим целиком (нужны для свитчера и для лейблов).
+Аналогично снимаем NOT NULL/каскад с любых других FK на `employees(id)`, найденных линтером (`shift_assignments`, `attendance`, `dealer_id` ссылки и т. п.) — все становятся `ON DELETE SET NULL`. Никаких новых колонок (`first_name`/`last_name` не добавляем — split только в UI).
 
-### 2. Хуки, где сейчас явный «role-bypass»
+Bump `package.json` patch.
 
-Заменить логику `isSuperOrFM ? "все" : activeCasinoId` → **всегда** `activeCasinoId` (а в premier-summary — отдельная ветка по `isSummaryMode`):
-- `src/components/admin/users/users-hooks.ts` → `useUsersProfiles`
-- `src/pages/Admin.tsx` → запрос `all-profiles` (используется в network-панелях; оставляем «все» только при `isSummaryMode`, иначе фильтр по `activeCasinoId`)
-- `src/hooks/use-transfers.ts` → межказиновские трансферы остаются «все» только в premier; на домене Arusha показываем переводы, где `from_casino_id = arusha OR to_casino_id = arusha`.
+---
 
-### 3. Users & Roles — per-domain
+## 2. Справочники (новый файл `src/lib/staff-dictionaries.ts`)
 
-`src/components/admin/users/users-hooks.ts` + `UsersTab.tsx`:
-- `useUsersProfiles` всегда фильтрует по `activeCasinoId`, кроме premier.
-- На premier-домене — текущее поведение «все казино».
-- Колонка **Casino** скрывается на casino-домене (она избыточна, всё равно одно казино) и показывается только в premier-режиме.
+```ts
+export const DEPARTMENTS = ["Office","Cash Desk","Live Game","Slots","Bar","Security","Housekeeper"] as const;
 
-### 4. Группировка пользователей с мульти-доступом (CCTV кейс)
+export const POSITIONS_BY_DEPT: Record<string, string[]> = {
+  "Live Game":   ["Dealer","Inspector","Trainee","Pit Boss"],
+  "Cash Desk":   ["Cashier","Head Cashier"],
+  "Slots":       ["Waiter","Hostess"],
+  "Bar":         ["Bartender"],
+  "Security":    ["Security","Supervisor Security"],
+  "Office":      ["IT","HR"],
+  "Housekeeper": [],
+};
 
-Сейчас, если у surveillance-юзера в `user_casino_access` 4 казино, а в `profiles.casino_id` — primary, на премьере он показывается 1 раз, на Arusha-домене — 1 раз (только если primary совпал). Реальная проблема пользователя: в каком-то списке он дублируется.
+// Live Game category derives from position: Dealer→D, Inspector→I, Trainee→T, Pit Boss→PB(+is_pit_boss)
+```
 
-Меняем `useUsersProfiles`:
-- Грузим за один заход:
-  - `profiles` (по правилу выше),
-  - `user_casino_access` (только для тех же `user_id`).
-- Возвращаем массив `Profile & { casino_ids: string[] }` — **уникальные** строки на user.
-- Фильтр «принадлежит этому казино» применяем как:
-  `primary_casino_id === activeCasinoId || casino_ids.includes(activeCasinoId)`.
-  Это значит, surveillance с доступом к Arusha будет виден на Arusha-домене, даже если его primary — Mwanza. И ровно одной строкой.
-- В `UsersTab` колонка Casino (только на premier) показывает primary жирным + остальные через запятую. На casino-домене колонка скрыта.
+Sidebar `Pit Boss` → `is_pit_boss=true` + `dealer_category=null` ставит DB-логика; в UI устанавливаем оба поля при выборе Position в Live Game.
 
-### 5. Sidebar / индикаторы
+---
 
-`src/components/layout/AppSidebar.tsx`:
-- Лейбл «All Casinos» оставляем только на premier. На casino-домене у super_admin тоже показываем имя текущего казино (никакого «All Casinos» вне premier).
+## 3. Импорт из Excel — все колонки + sticky preview
 
-### 6. Что НЕ трогаем
+`src/lib/staff-master-import.ts`: добавить недостающие поля шаблона (если в файле есть — парсим; иначе `null/0`):
+- `nssf_number`, `tax_id`, `gepf_number`, `gepf_loan` (если присутствуют)
+- сплит позиции на `is_pit_boss`/`dealer_category` по словам "Pit Boss"/"Dealer"/…
+- bank: `bank_name`, `bank_code`, `branch_code`, `account_number` (если в шаблоне есть колонки) → возвращаем как опциональный `bank` объект.
 
-- Network Health Panel, Server Push, Inter-Casino Sync — это и есть «общая информация» Admin'а; остаются как есть (читают все казино).
-- Finance Summary Dashboard — живёт только в premier-режиме.
-- Edge functions, RLS, миграции — без изменений: серверные политики и так разрешают super_admin/FM кросс-доступ; мы просто перестаём этим пользоваться в UI.
-- Пагинации, бизнес-день, цвета, формы — не трогаем.
+Preview-диалог (вместо текущего «summary»):
+- Полная таблица всех 32+ колонок parsed-данных.
+- `position: sticky` для первых ДВУХ колонок (S/N, Full Name) + горизонтальный скролл (`overflow-x-auto`, `min-w-max`).
+- Сверху строка-итог: «Parsed N · Existing M · ⚠ Wipe will delete M employees». Кнопки `Cancel` / `Import N (replace all)`.
+- Wipe идёт через `delete().eq("casino_id", id)` — теперь работает благодаря миграции.
 
-## Технические заметки
+---
 
-- Один общий helper в `casino-context.tsx`: `effectiveScope: "single" | "summary"`. Это явно проще, чем держать `hasGlobalAccess` + `isSummaryMode` параллельно. Все «обходы» удаляются из вызывающих хуков и заменяются на `activeCasinoId`.
-- `useUsersProfiles` переписать на 2 запроса (`profiles` + `user_casino_access`) и схлопывание в Map. Возврат: `Array<Profile & { casino_ids: string[] }>`. Тип расширяется в том же файле.
-- Тесты: `src/test/access-matrix.test.ts` — пробежать глазами; добавить кейс «super_admin на arusha видит только arusha».
+## 4. Главная таблица — Excel-style inline edit
 
-## Файлы, которые правим
+Перестроить `src/pages/StaffMaster.tsx`:
 
-- `src/lib/casino-context.tsx`
-- `src/components/admin/users/users-hooks.ts`
-- `src/components/admin/users/UsersTab.tsx`
-- `src/pages/Admin.tsx` (запрос профилей)
-- `src/hooks/use-transfers.ts`
-- `src/components/layout/AppSidebar.tsx` (лейбл)
-- `package.json` — bump patch (поведение фильтрации = backend-relevant правило).
+### Layout
+- Удалить `EmployeeEditorDialog` целиком и кнопку «Add Employee», открывающую модалку.
+- Удалить кнопку-карандаш в строке.
+- Внешний контейнер: `overflow-auto max-h-[calc(100vh-...)]` + `min-w-max` внутри таблицы.
+- **Sticky columns** (через `position: sticky; left: …; z-index: 2; background`):
+  1. S/N (`left-0`, ~40px)
+  2. First Name (~140px)
+  3. Last Name (~160px)
+- Sticky header (`sticky top-0`).
+- Первый столбец каждой группы — заголовок отдела (`bg-muted/50`) тоже sticky.
+
+### Колонки (33 шт.) — точно как сейчас, но `Name` → `First Name` + `Last Name`
+Split на лету: первое слово = First, остальные = Last. Save: склеиваем обратно в `full_name`.
+
+### Click-to-edit
+Создать компонент `EditableCell` (новый файл `src/components/staff-master/editable-cell.tsx`):
+- Props: `value`, `onSave(next)`, `type: "text"|"number"|"date"|"yesno"|"select"`, `options?`.
+- Обычный режим: рендерит значение или `·`.
+- Клик / Enter / F2: переходит в режим input/select/date с автофокусом и выделением.
+- `Enter` или blur → save (через `useUpsertEmployee` debounce). `Esc` → cancel. `Tab` → save + focus следующая editable-ячейка справа. `Shift+Tab` ← влево. `↑`/`↓` — переход по строкам.
+- Yes/No — toggle через клик (без режима ввода).
+- Photo, S/N, Remain, Exp YY, Age, End Mon, Renew — read-only (calc).
+- `dealer_category`/`is_pit_boss` редактируется неявно через Position (Live Game). Для прочих отделов скрыто.
+
+### Bottom "add row"
+- Внизу таблицы (после `Other`): постоянная пустая строка с inputs во всех 30+ редактируемых ячейках, S/N показывает `+`.
+- Минимум для создания: First Name + Last Name + Department + Position. После сохранения (Enter в любой ячейке или авто-blur при заполненных required) → инсёрт через `useUpsertEmployee`, строка очищается, фокус возвращается на First Name.
+- Помечена `bg-primary/5` визуально.
+
+### Группировка
+Сохраняем секции по `department` в текущем `DEPT_ORDER`. Pit Boss в Live Game (как сейчас).
+
+---
+
+## 5. Версия
+
+`package.json` — patch bump (есть миграция).
+
+---
+
+## Files
+
+**Created**
+- `src/lib/staff-dictionaries.ts`
+- `src/components/staff-master/editable-cell.tsx`
+- `supabase/migrations/<ts>_employees_fk_set_null.sql`
+
+**Edited**
+- `src/pages/StaffMaster.tsx` (большой рефакторинг: убрать модалку, sticky, inline-edit, bottom add-row, split name)
+- `src/lib/staff-master-import.ts` (все колонки + sticky preview заголовки)
+- `src/hooks/use-payroll.ts` (мелко — позволить partial inline-saves single-field; ничего не ломаем)
+- `package.json`
+
+**Deleted (внутри `StaffMaster.tsx`)**
+- `EmployeeEditorDialog`, `Section`, кнопка «Add Employee», иконка-карандаш.
+
+---
 
 ## Out of scope
-
-Любые изменения в RLS, edge functions, миграциях, бизнес-логике модулей.
+- Reorder/resize колонок, фильтры, сортировка, поиск — не трогаем.
+- Photo upload — оставляем как есть (PhotoBadge в первой видимой sticky-колонке S/N? — нет, оставим как сейчас в отдельной micro-колонке слева от S/N, тоже sticky `left-0`, S/N тогда `left-10`).
+- Bank-аккаунты в inline-edit не выносим (там есть отдельный Payroll-экран).
