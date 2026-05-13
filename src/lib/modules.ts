@@ -25,6 +25,9 @@ export type ModuleKey =
   | "players"
   | "blacklist"
   | "reception"
+  | "reception_checkin"
+  | "reception_register"
+  | "reception_update"
   | "in_casino"
   | "bank_checks"
   | "expenses"
@@ -84,6 +87,9 @@ export const MODULES: ModuleDef[] = [
   { key: "expenses_approvals", label: "Expenses Approvals", group: "Finance" },
   { key: "finance_payments", label: "Finance Payments", group: "Finance" },
   { key: "reception", label: "Reception", group: "Players" },
+  { key: "reception_checkin", label: "Reception · Check-in", group: "Players" },
+  { key: "reception_register", label: "Reception · Register", group: "Players" },
+  { key: "reception_update", label: "Reception · Update Data", group: "Players" },
   { key: "players", label: "Players", group: "Players" },
   { key: "in_casino", label: "Guests", group: "Players" },
   { key: "blacklist", label: "Blacklist", group: "Players" },
