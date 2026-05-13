@@ -31,6 +31,26 @@ export interface Employee {
   gepf_number: string | null;
   basic_salary: number;
   payroll_status: "active" | "inactive";
+  // Extended HR fields (Excel template parity)
+  contract_type: string | null;
+  birthday: string | null;
+  phone: string | null;
+  job_description: string | null;
+  general_details: string | null;
+  intro_to_work: boolean;
+  staff_rules_acknowledged: boolean;
+  disciplinary_acknowledged: boolean;
+  confidentiality_agreement: boolean;
+  annual_leave_earned: number;
+  annual_leave_used: number;
+  annual_leave_sold: number;
+  corporate_mail: string | null;
+  gender: string | null;
+  nationality: string | null;
+  license_type: string | null;
+  license_available: boolean;
+  license_pass_date: string | null;
+  uniform_issued: boolean;
   bank?: BankAccount | null;
 }
 export interface BankAccount {
