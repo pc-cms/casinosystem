@@ -19,7 +19,7 @@ import { fmtDate } from "@/lib/format-date";
 import { useQueryClient } from "@tanstack/react-query";
 
 const fmt = (n: number) => new Intl.NumberFormat("en-US").format(n).replace(/,/g, " ");
-const DEPT_ORDER = ["Pit", "Floor", "Security", "Office"] as const;
+const DEPT_ORDER = ["Management", "Office", "Cash Desk", "Live Game", "Slots", "F&B", "Security", "Housekeeper", "Pit", "Floor"] as const;
 
 const yearsBetween = (date: string | null) => {
   if (!date) return null;
