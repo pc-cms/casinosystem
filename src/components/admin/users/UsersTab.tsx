@@ -110,7 +110,9 @@ export const UsersTab = () => {
             </thead>
             <tbody>
               {filtered.map(p => {
-                const userRoles = rolesByUser[p.user_id] || [];
+                const rawRoles = rolesByUser[p.user_id] || [];
+                // Strip super_admin from the badge list when viewer is not super_admin.
+                const userRoles = isSuperAdmin ? rawRoles : rawRoles.filter(r => r !== "super_admin");
                 const isSelf = p.user_id === user?.id;
                 return (
                   <tr key={p.user_id} className="border-b border-border last:border-0 hover:bg-muted/20">
