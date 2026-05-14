@@ -320,6 +320,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "breaklist_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "breaklist_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "v_staff_master_legacy_map"
+            referencedColumns: ["employee_id"]
+          },
+          {
             foreignKeyName: "breaklist_table_id_fkey"
             columns: ["table_id"]
             isOneToOne: false
@@ -3374,6 +3388,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "staff_attendance_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_attendance_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "v_staff_master_legacy_map"
+            referencedColumns: ["employee_id"]
+          },
+          {
             foreignKeyName: "staff_attendance_staff_id_fkey"
             columns: ["staff_id"]
             isOneToOne: false
@@ -3470,6 +3498,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "casinos"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_rota_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_rota_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "v_staff_master_legacy_map"
+            referencedColumns: ["employee_id"]
           },
           {
             foreignKeyName: "staff_rota_staff_id_fkey"
