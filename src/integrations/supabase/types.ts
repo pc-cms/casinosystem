@@ -2996,6 +2996,7 @@ export type Database = {
           created_by: string | null
           id: string
           player_id: string
+          source: string
           tag: string
         }
         Insert: {
@@ -3003,6 +3004,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           player_id: string
+          source?: string
           tag: string
         }
         Update: {
@@ -3010,6 +3012,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           player_id?: string
+          source?: string
           tag?: string
         }
         Relationships: [
@@ -4454,6 +4457,10 @@ export type Database = {
       rotate_local_server_secret: {
         Args: { _server_id: string }
         Returns: string
+      }
+      set_player_category: {
+        Args: { _category: string; _player_id: string }
+        Returns: undefined
       }
       shift_miss_total_from_closing_count: {
         Args: { _closing_count: Json }
