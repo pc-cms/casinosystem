@@ -9,6 +9,7 @@ import { useAuth } from "@/lib/auth-context";
 import { logAction } from "@/lib/logging";
 import { offlineMutation } from "@/lib/offline-mutation";
 import { toast } from "sonner";
+import { buildDisplayNames, splitFullName } from "@/lib/display-name";
 
 // ============ DEALERS (= employees WHERE department='Pit') ============
 
