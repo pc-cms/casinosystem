@@ -13,6 +13,7 @@ import { DateRangePresets, type DatePreset, presetRange } from "@/components/ui/
 import CategoryBadge, { type PlayerCategory } from "@/components/player/CategoryBadge";
 import CasinoBadge from "@/components/player/CasinoBadge";
 import FlagBadges from "@/components/player/FlagBadges";
+import PlayerStatusTagsEditor from "@/components/player/PlayerStatusTagsEditor";
 import PlayerEditDialog from "@/components/PlayerEditDialog";
 import { fmtDate, fmtDateTime } from "@/lib/format-date";
 import {
@@ -310,7 +311,7 @@ const PlayerProfile = () => {
   }
 
   const fullName = `${player.first_name} ${player.last_name}`.trim();
-  const tags = (player.player_tags || []).map((t: any) => t.tag);
+  const tagRows = (player.player_tags || []) as Array<{ tag: string; source?: string | null }>;
   const activeCard = (player.player_cards || []).find((c: any) => c.is_active)?.card_number
     || player.player_cards?.[0]?.card_number;
 
@@ -369,7 +370,12 @@ const PlayerProfile = () => {
               </div>
             </div>
 
-            {tags.length > 0 && <FlagBadges tags={tags} />}
+            <PlayerStatusTagsEditor
+              playerId={player.id}
+              category={(player.category as PlayerCategory) || "normal"}
+              tagRows={tagRows}
+            />
+
 
             <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-9 gap-2 pt-2">
               <Kpi label="Visits" value={lifetime.visitCount.toString()} />
