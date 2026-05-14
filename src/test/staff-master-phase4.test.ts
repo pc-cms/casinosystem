@@ -80,6 +80,8 @@ describe("Phase 4 — staff master invariants", () => {
           if (!m) return;
           const value = m[2];
           if (/^(string|number|boolean|null|any|unknown)/.test(value)) return;
+          // Pure aliasing: `dealer_id: r.employee_id` — value derived from employee_id.
+          if (/employee_id\b/.test(value)) return;
           if (/\bmeta\s*:/.test(line)) return;
           // Read-side alias / optimistic-cache rows always pair the legacy
           // alias with `employee_id:` on the same object literal. A real DB
