@@ -5,7 +5,7 @@
 export const DEPARTMENTS = [
   "Office",
   "Cash Desk",
-  "Live Game",
+  "Pit",
   "Slots",
   "Bar",
   "Security",
@@ -15,7 +15,7 @@ export const DEPARTMENTS = [
 export type Department = (typeof DEPARTMENTS)[number];
 
 export const POSITIONS_BY_DEPT: Record<string, string[]> = {
-  "Live Game":   ["Dealer", "Inspector", "Trainee", "Pit Boss"],
+  "Pit":   ["Dealer", "Inspector", "Trainee", "Pit Boss"],
   "Cash Desk":   ["Cashier", "Head Cashier"],
   "Slots":       ["Waiter", "Hostess"],
   "Bar":         ["Bartender"],
@@ -33,7 +33,7 @@ export function deriveCategory(department: string | null, position: string | nul
   dealer_category: "dealer" | "inspector" | "trainee" | null;
   is_pit_boss: boolean;
 } {
-  if (department !== "Live Game") return { dealer_category: null, is_pit_boss: false };
+  if (department !== "Pit") return { dealer_category: null, is_pit_boss: false };
   switch (position) {
     case "Dealer":    return { dealer_category: "dealer",    is_pit_boss: false };
     case "Inspector": return { dealer_category: "inspector", is_pit_boss: false };
