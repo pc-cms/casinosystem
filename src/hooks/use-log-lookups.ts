@@ -15,7 +15,7 @@ export const useLogLookups = () => {
     queryFn: async () => {
       if (!casinoId) return {};
       const [dealersRes, playersRes, tablesRes, profilesRes] = await Promise.all([
-        supabase.from("dealers").select("id, full_name").eq("casino_id", casinoId),
+        supabase.from("employees").select("id, full_name").eq("casino_id", casinoId).eq("department", "Live Game"),
         supabase.from("players").select("id, full_name").eq("casino_id", casinoId),
         supabase.from("gaming_tables").select("id, name").eq("casino_id", casinoId),
         supabase.from("profiles").select("id, display_name"),

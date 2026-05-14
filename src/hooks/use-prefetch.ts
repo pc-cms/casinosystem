@@ -36,11 +36,13 @@ const queryFns = {
     return data ?? [];
   },
   dealers: (casinoId: string) => async () => {
+    // Phase 3: dealers = employees WHERE department='Live Game'
     const { data } = await supabase
-      .from("dealers")
+      .from("employees")
       .select("*")
       .eq("casino_id", casinoId)
-      .order("name");
+      .eq("department", "Live Game")
+      .order("full_name");
     return data ?? [];
   },
 };

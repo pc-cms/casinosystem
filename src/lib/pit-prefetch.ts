@@ -34,8 +34,10 @@ export async function prefetchPitData(qc: QueryClient, casinoId: string) {
     () => qc.prefetchQuery({
       queryKey: ["dealers", casinoId],
       queryFn: async () => {
+        // Phase 3: dealers = employees WHERE department='Live Game'
         const { data, error } = await supabase
-          .from("dealers").select("*").eq("casino_id", casinoId).order("name");
+          .from("employees").select("*")
+          .eq("casino_id", casinoId).eq("department", "Live Game").order("full_name");
         if (error) throw error;
         return data;
       },
@@ -69,7 +71,7 @@ export async function prefetchPitData(qc: QueryClient, casinoId: string) {
       queryKey: ["pit-rota-range", casinoId, monthStart, monthEnd],
       queryFn: async () => {
         const { data, error } = await supabase
-          .from("pit_rota").select("*, dealers(name)")
+          .from("pit_rota").select("*")
           .eq("casino_id", casinoId).gte("date", monthStart).lte("date", monthEnd);
         if (error) throw error;
         return data;
@@ -89,7 +91,7 @@ export async function prefetchPitData(qc: QueryClient, casinoId: string) {
       queryKey: ["breaklist", casinoId, today],
       queryFn: async () => {
         const { data, error } = await supabase
-          .from("breaklist").select("*, dealers(name), gaming_tables(name)")
+          .from("breaklist").select("*, gaming_tables(name)")
           .eq("casino_id", casinoId).eq("date", today);
         if (error) throw error;
         return data;
