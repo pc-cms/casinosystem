@@ -179,7 +179,7 @@ const AttendanceMonthly = () => {
                       <tr key={e.meta.employee_id} className="border-t border-border hover:bg-muted/20">
                         <td className="sticky left-0 z-10 bg-card px-2 py-0.5 font-sans">
                           <div className="font-medium text-xs flex items-center gap-1">
-                            {firstName(e.meta.full_name)}
+                            {displayName(e)}
                             {e.meta.is_pit_boss && <Badge variant="secondary" className="px-1 text-[9px]">PB</Badge>}
                             {e.meta.dealer_category === "dealer" && <Badge variant="outline" className="px-1 text-[9px]">D</Badge>}
                             {e.meta.dealer_category === "inspector" && <Badge variant="outline" className="px-1 text-[9px]">I</Badge>}
