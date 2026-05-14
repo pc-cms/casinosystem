@@ -208,7 +208,7 @@ export const useSetStaffRota = () => {
           date,
           shift,
           created_by: user!.id,
-        }, { onConflict: "casino_id,employee_id,date" });
+        } as any, { onConflict: "casino_id,employee_id,date" });
       if (error) throw error;
     },
     onMutate: async (vars) => {
@@ -277,7 +277,7 @@ export const useSetStaffAttendance = () => {
           date,
           value,
           recorded_by: user!.id,
-        }, { onConflict: "casino_id,employee_id,date" });
+        } as any, { onConflict: "casino_id,employee_id,date" });
       if (error) throw error;
     },
     onMutate: async (vars) => {
