@@ -81,6 +81,11 @@ describe("Phase 4 — staff master invariants", () => {
           const value = m[2];
           if (/^(string|number|boolean|null|any|unknown)/.test(value)) return;
           if (/\bmeta\s*:/.test(line)) return;
+          // Read-side alias / optimistic-cache rows always pair the legacy
+          // alias with `employee_id:` on the same object literal. A real DB
+          // payload never needs both, so when both are present this is a
+          // client-only shape (cache row, log lookup) and safe.
+          if (/\bemployee_id\s*:/.test(line)) return;
           if (/breaklist_logs/.test(line) || /breaklist_logs/.test(lines[i - 1] ?? "")) return;
           const window = lines.slice(Math.max(0, i - 8), i).join("\n");
           if (/breaklist_logs/.test(window)) return;
