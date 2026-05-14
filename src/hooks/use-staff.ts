@@ -74,6 +74,20 @@ export const STAFF_SHIFT_COLORS = UNIFIED_SHIFT_COLORS;
 // Phase 3: read employees (non-Live-Game), alias employee_id → staff_id, write employee_id (DB triggers fill legacy staff_id).
 
 const mapDept = (department: string, position: string | null): StaffDepartment => {
+  // "Floor" is the canonical bucket for all non-gaming staff — dispatch by position.
+  if (department === "Floor") {
+    switch (position) {
+      case "Bartender":   return "bartender";
+      case "Cashier":     return "cashier";
+      case "Cleaner":
+      case "Housekeeper": return "cleaner";
+      case "Hostess":     return "hostess";
+      case "Waiter":      return "waiter";
+      case "Receptionist":
+      case "Reception":   return "reception";
+      default:            return "cleaner";
+    }
+  }
   switch (department) {
     case "Security":    return "security";
     case "Cash Desk":   return "cashier";
