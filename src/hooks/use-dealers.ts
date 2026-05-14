@@ -197,11 +197,7 @@ export const usePitRota = (date: string) => {
     queryKey: ["pit-rota", casinoId, date],
     queryFn: async () => {
       if (!casinoId) return [];
-      const { data, error } = await supabase
-        .from("pit_rota").select("*")
-        .eq("casino_id", casinoId).eq("date", date);
-      if (error) throw error;
-      return (data ?? []).map(aliasRotaRow);
+      return (await fetchPitRotaRows(casinoId, date)).map(aliasRotaRow);
     },
     enabled: !!casinoId,
   });
@@ -213,11 +209,7 @@ export const usePitRotaRange = (startDate: string, endDate: string) => {
     queryKey: ["pit-rota-range", casinoId, startDate, endDate],
     queryFn: async () => {
       if (!casinoId) return [];
-      const { data, error } = await supabase
-        .from("pit_rota").select("*")
-        .eq("casino_id", casinoId).gte("date", startDate).lte("date", endDate);
-      if (error) throw error;
-      return (data ?? []).map(aliasRotaRow);
+      return (await fetchPitRotaRows(casinoId, startDate, endDate)).map(aliasRotaRow);
     },
     enabled: !!casinoId,
   });
@@ -309,11 +301,7 @@ export const useDealerAttendance = (date: string) => {
     queryKey: ["dealer-attendance", casinoId, date],
     queryFn: async () => {
       if (!casinoId) return [];
-      const { data, error } = await supabase
-        .from("dealer_attendance" as any).select("*")
-        .eq("casino_id", casinoId).eq("date", date);
-      if (error) throw error;
-      return (data as any[] ?? []).map(aliasAttRow);
+      return (await fetchDealerAttendanceRows(casinoId, date)).map(aliasAttRow);
     },
     enabled: !!casinoId,
   });
@@ -366,11 +354,7 @@ export const useDealerAttendanceRange = (startDate: string, endDate: string) => 
     queryKey: ["dealer-attendance-range", casinoId, startDate, endDate],
     queryFn: async () => {
       if (!casinoId) return [];
-      const { data, error } = await supabase
-        .from("dealer_attendance" as any).select("*")
-        .eq("casino_id", casinoId).gte("date", startDate).lte("date", endDate);
-      if (error) throw error;
-      return (data as any[] ?? []).map(aliasAttRow);
+      return (await fetchDealerAttendanceRows(casinoId, startDate, endDate)).map(aliasAttRow);
     },
     enabled: !!casinoId,
   });
@@ -386,13 +370,7 @@ export const useBreaklistData = (date: string) => {
     queryKey: ["breaklist", casinoId, date],
     queryFn: async () => {
       if (!casinoId) return [];
-      const { data, error } = await supabase
-        .from("breaklist")
-        .select("*, gaming_tables(name)")
-        .eq("casino_id", casinoId)
-        .eq("date", date);
-      if (error) throw error;
-      return (data ?? []).map(aliasBreaklistRow);
+      return (await fetchBreaklistRows(casinoId, date)).map(aliasBreaklistRow);
     },
     enabled: !!casinoId,
   });
