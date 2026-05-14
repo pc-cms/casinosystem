@@ -102,7 +102,8 @@ const mapDept = (department: string, position: string | null): StaffDepartment =
 const mapEmployeeToStaff = (e: any): StaffMember => ({
   id: e.id,
   casino_id: e.casino_id,
-  name: e.full_name,
+  // Rota/Attendance display: prefer first name (we work by first names in casino).
+  name: (e.first_name && String(e.first_name).trim()) || (e.full_name ? String(e.full_name).split(/\s+/)[0] : ""),
   department: mapDept(e.department, e.position),
   is_active: e.payroll_status === "active",
   salary: e.basic_salary != null ? Number(e.basic_salary) : null,
