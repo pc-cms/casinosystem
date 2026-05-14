@@ -326,7 +326,7 @@ const App = () => (
       persistOptions={{
         persister,
         maxAge: 1000 * 60 * 60 * 24, // 24h
-        buster: "v1",
+        buster: "v2-live-game-cache-shape",
       }}
     >
       <TooltipProvider>
