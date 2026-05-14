@@ -212,7 +212,7 @@ export const useDeleteStaffMember = () => {
       const { error } = await supabase.from("employees").update({ payroll_status: "inactive" }).eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["staff_members"] }),
+    onSuccess: () => invalidateEmployeeCaches(qc),
   });
 };
 

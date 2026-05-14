@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { useCasino } from "@/lib/casino-context";
 import { toast } from "sonner";
+import { invalidateEmployeeCaches } from "@/lib/invalidate-employees";
 
 // ============= EMPLOYEES =============
 export interface Employee {
@@ -171,7 +172,7 @@ export const useUpsertEmployee = () => {
       return employeeId;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["employees"] });
+      invalidateEmployeeCaches(qc);
       toast.success("Employee saved");
     },
     onError: (e: Error) => toast.error(e.message),
@@ -198,7 +199,7 @@ export const usePatchEmployee = () => {
       const { error } = await supabase.from("employees").update(body as any).eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["employees"] }),
+    onSuccess: () => invalidateEmployeeCaches(qc),
     onError: (e: Error) => toast.error(e.message),
   });
 };
@@ -211,7 +212,7 @@ export const useDeleteEmployee = () => {
       const { error } = await supabase.from("employees").delete().eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["employees"] }); toast.success("Employee removed"); },
+    onSuccess: () => { invalidateEmployeeCaches(qc); toast.success("Employee removed"); },
     onError: (e: Error) => toast.error(e.message),
   });
 };
