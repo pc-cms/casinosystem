@@ -25,7 +25,7 @@ const FlagBadges = ({ tags, size, compact = false, className }: FlagBadgesProps)
   const resolved: FlagBadgeSize = size ?? (compact ? "sm" : "base");
   return (
     <TooltipProvider delayDuration={150}>
-      <div className={cn("flex gap-1 flex-wrap items-center", className)}>
+      <div className={cn("flex gap-x-1 gap-y-0.5 flex-wrap items-center min-w-0", className)}>
         {tags.map(tag => {
           const def = getTagDef(tag);
           const label = def?.emoji ?? tag;
@@ -35,7 +35,7 @@ const FlagBadges = ({ tags, size, compact = false, className }: FlagBadgesProps)
               <TooltipTrigger asChild>
                 <span
                   aria-label={hint}
-                  className={cn(SIZE_CLASS[resolved], "leading-none cursor-default")}
+                  className={cn(SIZE_CLASS[resolved], "leading-[1.15] cursor-default inline-block")}
                 >
                   {label}
                 </span>
