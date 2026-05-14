@@ -196,7 +196,7 @@ const AttendanceMonthly = () => {
                               key={d}
                               className={`text-center border-l border-border px-0.5 py-0.5 ${cellBg}`}
                               onClick={canEdit ? () => {
-                                const v = prompt(`Hours for ${e.meta.full_name} on ${d} ${MONTHS[cursor.getMonth()]} (current ${display}):`, h ? String(h) : "");
+                                const v = prompt(`Hours for ${firstName(e.meta.full_name)} on ${d} ${MONTHS[cursor.getMonth()]} (current ${display}):`, h ? String(h) : "");
                                 if (v === null) return;
                                 const n = Number(v);
                                 if (Number.isFinite(n) && n >= 0 && n <= 24) {
