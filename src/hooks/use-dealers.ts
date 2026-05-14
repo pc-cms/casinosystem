@@ -28,21 +28,41 @@ type DealerRow = {
   created_at: string;
 };
 
-const mapEmployeeToDealer = (e: any): DealerRow => ({
-  id: e.id,
-  casino_id: e.casino_id,
-  // Rota/Attendance display: prefer first name (we work by first names in casino).
-  name: (e.first_name && String(e.first_name).trim()) || (e.full_name ? String(e.full_name).split(/\s+/)[0] : ""),
-  is_active: e.payroll_status === "active",
-  salary: e.basic_salary != null ? Number(e.basic_salary) : null,
-  contract_start: e.contract_start,
-  contract_end: e.contract_end,
-  category: (e.dealer_category as any) ?? "dealer",
-  is_pit_boss: !!e.is_pit_boss,
-  onboarding_date: e.onboarding_date,
-  photo_url: e.photo_url,
-  created_at: e.created_at,
-});
+const mapEmployeeToDealer = (e: any): DealerRow => {
+  const split = splitFullName(e.full_name);
+  const first = (e.first_name && String(e.first_name).trim()) || split.first;
+  return {
+    id: e.id,
+    casino_id: e.casino_id,
+    name: first,
+    is_active: e.payroll_status === "active",
+    salary: e.basic_salary != null ? Number(e.basic_salary) : null,
+    contract_start: e.contract_start,
+    contract_end: e.contract_end,
+    category: (e.dealer_category as any) ?? "dealer",
+    is_pit_boss: !!e.is_pit_boss,
+    onboarding_date: e.onboarding_date,
+    photo_url: e.photo_url,
+    created_at: e.created_at,
+  };
+};
+
+/** Apply duplicate-first-name disambiguation: "Berta" + "Berta" → "Berta K", "Berta M". */
+const disambiguateNames = <T extends { id: string; name: string }>(
+  rows: T[],
+  raw: any[]
+): T[] => {
+  const inputs = raw.map((e) => {
+    const split = splitFullName(e.full_name);
+    return {
+      id: e.id,
+      first: (e.first_name && String(e.first_name).trim()) || split.first,
+      last: (e.last_name && String(e.last_name).trim()) || split.last,
+    };
+  });
+  const map = buildDisplayNames(inputs);
+  return rows.map((r) => ({ ...r, name: map.get(r.id) || r.name }));
+};
 
 export const useDealers = () => {
   const { casinoId } = useAuth();
@@ -57,7 +77,8 @@ export const useDealers = () => {
         .eq("department", "Pit")
         .order("full_name");
       if (error) throw error;
-      return (data ?? []).map(mapEmployeeToDealer);
+      const raw = data ?? [];
+      return disambiguateNames(raw.map(mapEmployeeToDealer), raw);
     },
     enabled: !!casinoId,
   });
