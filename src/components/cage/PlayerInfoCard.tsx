@@ -51,6 +51,22 @@ const PlayerInfoCard = ({ player, tables, shiftTransactions = [] }: Props) => {
     staleTime: 1000 * 30,
   });
 
+  // Tags (floor + cctv) for the inline rows under IN/OUT.
+  const { data: tagRows = [] } = useQuery({
+    queryKey: ["player-info-card-tags", player?.id],
+    queryFn: async () => {
+      if (!player) return [];
+      const { data } = await supabase
+        .from("player_tags")
+        .select("tag, source")
+        .eq("player_id", player.id);
+      return (data || []) as Array<{ tag: string; source: string | null }>;
+    },
+    enabled: !!player,
+    staleTime: 30_000,
+  });
+  const { floor: floorTags, cctv: cctvTags } = useMemo(() => splitTagsBySource(tagRows), [tagRows]);
+
   const tableName = useMemo(() => {
     if (!currentSession?.table_id) return null;
     return tables.find(t => t.id === currentSession.table_id)?.name || null;
