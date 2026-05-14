@@ -24,6 +24,9 @@ const WEEKDAYS = ["Su","Mo","Tu","We","Th","Fr","Sa"];
 const fmtNum = (n: number) =>
   Number.isInteger(n) ? String(n) : n.toFixed(1);
 
+const firstName = (full: string | null | undefined) =>
+  (full ?? "").trim().split(/\s+/)[0] || (full ?? "");
+
 const today = () => new Date();
 const monthFirst = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
 
