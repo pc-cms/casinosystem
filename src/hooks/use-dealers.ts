@@ -30,7 +30,8 @@ type DealerRow = {
 const mapEmployeeToDealer = (e: any): DealerRow => ({
   id: e.id,
   casino_id: e.casino_id,
-  name: e.full_name,
+  // Rota/Attendance display: prefer first name (we work by first names in casino).
+  name: (e.first_name && String(e.first_name).trim()) || (e.full_name ? String(e.full_name).split(/\s+/)[0] : ""),
   is_active: e.payroll_status === "active",
   salary: e.basic_salary != null ? Number(e.basic_salary) : null,
   contract_start: e.contract_start,

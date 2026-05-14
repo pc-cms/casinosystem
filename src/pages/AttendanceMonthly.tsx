@@ -24,6 +24,9 @@ const WEEKDAYS = ["Su","Mo","Tu","We","Th","Fr","Sa"];
 const fmtNum = (n: number) =>
   Number.isInteger(n) ? String(n) : n.toFixed(1);
 
+const firstName = (full: string | null | undefined) =>
+  (full ?? "").trim().split(/\s+/)[0] || (full ?? "");
+
 const today = () => new Date();
 const monthFirst = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
 
@@ -164,7 +167,7 @@ const AttendanceMonthly = () => {
                       <tr key={e.meta.employee_id} className="border-t border-border hover:bg-muted/20">
                         <td className="sticky left-0 z-10 bg-card px-2 py-0.5 font-sans">
                           <div className="font-medium text-xs flex items-center gap-1">
-                            {e.meta.full_name}
+                            {firstName(e.meta.full_name)}
                             {e.meta.is_pit_boss && <Badge variant="secondary" className="px-1 text-[9px]">PB</Badge>}
                             {e.meta.dealer_category === "dealer" && <Badge variant="outline" className="px-1 text-[9px]">D</Badge>}
                             {e.meta.dealer_category === "inspector" && <Badge variant="outline" className="px-1 text-[9px]">I</Badge>}
@@ -193,7 +196,7 @@ const AttendanceMonthly = () => {
                               key={d}
                               className={`text-center border-l border-border px-0.5 py-0.5 ${cellBg}`}
                               onClick={canEdit ? () => {
-                                const v = prompt(`Hours for ${e.meta.full_name} on ${d} ${MONTHS[cursor.getMonth()]} (current ${display}):`, h ? String(h) : "");
+                                const v = prompt(`Hours for ${firstName(e.meta.full_name)} on ${d} ${MONTHS[cursor.getMonth()]} (current ${display}):`, h ? String(h) : "");
                                 if (v === null) return;
                                 const n = Number(v);
                                 if (Number.isFinite(n) && n >= 0 && n <= 24) {

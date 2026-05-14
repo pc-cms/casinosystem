@@ -1760,6 +1760,7 @@ export type Database = {
           department: string
           disciplinary_acknowledged: boolean
           employment_date: string | null
+          first_name: string
           full_name: string
           gender: string | null
           general_details: string | null
@@ -1768,6 +1769,7 @@ export type Database = {
           intro_to_work: boolean
           is_pit_boss: boolean
           job_description: string | null
+          last_name: string
           license_available: boolean
           license_pass_date: string | null
           license_type: string | null
@@ -1802,6 +1804,7 @@ export type Database = {
           department?: string
           disciplinary_acknowledged?: boolean
           employment_date?: string | null
+          first_name?: string
           full_name: string
           gender?: string | null
           general_details?: string | null
@@ -1810,6 +1813,7 @@ export type Database = {
           intro_to_work?: boolean
           is_pit_boss?: boolean
           job_description?: string | null
+          last_name?: string
           license_available?: boolean
           license_pass_date?: string | null
           license_type?: string | null
@@ -1844,6 +1848,7 @@ export type Database = {
           department?: string
           disciplinary_acknowledged?: boolean
           employment_date?: string | null
+          first_name?: string
           full_name?: string
           gender?: string | null
           general_details?: string | null
@@ -1852,6 +1857,7 @@ export type Database = {
           intro_to_work?: boolean
           is_pit_boss?: boolean
           job_description?: string | null
+          last_name?: string
           license_available?: boolean
           license_pass_date?: string | null
           license_type?: string | null

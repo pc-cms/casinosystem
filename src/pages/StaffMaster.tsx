@@ -113,10 +113,10 @@ const sortEmployees = (list: Employee[], key: SortKey, dir: SortDir): Employee[]
     let cmp = 0;
     switch (key) {
       case "first_name":
-        cmp = splitName(a.full_name).first.toLowerCase().localeCompare(splitName(b.full_name).first.toLowerCase());
+        cmp = (a.first_name ?? "").toLowerCase().localeCompare((b.first_name ?? "").toLowerCase());
         break;
       case "last_name":
-        cmp = splitName(a.full_name).last.toLowerCase().localeCompare(splitName(b.full_name).last.toLowerCase());
+        cmp = (a.last_name ?? a.full_name ?? "").toLowerCase().localeCompare((b.last_name ?? b.full_name ?? "").toLowerCase());
         break;
       case "remain": {
         const ra = (Number(a.annual_leave_earned) || 0) - (Number(a.annual_leave_used) || 0) - (Number(a.annual_leave_sold) || 0);
@@ -291,7 +291,11 @@ const StaffMaster = () => {
       if (sortKey) {
         by[k] = sortEmployees(by[k], sortKey, sortDir);
       } else {
-        by[k].sort((a, b) => a.full_name.localeCompare(b.full_name));
+        by[k].sort((a, b) =>
+          ((a.first_name ?? "").toLowerCase().localeCompare((b.first_name ?? "").toLowerCase())) ||
+          ((a.last_name  ?? "").toLowerCase().localeCompare((b.last_name  ?? "").toLowerCase())) ||
+          a.full_name.localeCompare(b.full_name)
+        );
       }
     }
     return by;
@@ -337,9 +341,10 @@ const StaffMaster = () => {
 
   const onPatchName = useCallback(
     (e: Employee, first: string | null, last: string | null) => {
-      const next = joinName(first ?? splitName(e.full_name).first, last ?? splitName(e.full_name).last);
-      if (!next) { toast.error("Name cannot be empty"); return; }
-      patch.mutate({ id: e.id, patch: { full_name: next } as any });
+      const nextFirst = first !== null ? first.trim() : (e.first_name ?? "").trim();
+      const nextLast = last !== null ? last.trim() : (e.last_name ?? "").trim();
+      if (!nextFirst && !nextLast) { toast.error("Name cannot be empty"); return; }
+      patch.mutate({ id: e.id, patch: { first_name: nextFirst, last_name: nextLast } as any });
     },
     [patch],
   );
@@ -423,10 +428,11 @@ const StaffMaster = () => {
           <div className="w-full overflow-auto rounded-md border border-border max-h-[calc(100vh-180px)]">
             <table className="text-xs border-collapse min-w-max">
               <thead className={`${HEADER_BG} sticky top-0 z-20`}>
-                <tr className="border-b border-border [&_th]:px-2 [&_th]:h-8 [&_th]:text-[10px] [&_th]:uppercase [&_th]:tracking-wider [&_th]:text-muted-foreground [&_th]:font-semibold [&_th]:text-left [&_th]:whitespace-nowrap">
+                <tr className="border-b border-border [&_th]:px-2 [&_th]:h-8 [&_th]:text-[10px] [&_th]:uppercase [&_th]:tracking-wider [&_th]:text-muted-foreground [&_th]:font-semibold [&_th]:text-left [&_th]:whitespace-nowrap [&_th]:border-r [&_th]:border-border/40">
                   <th className={`sticky left-0 z-30 ${HEADER_BG}`} style={{ minWidth: STICKY.photo.w, width: STICKY.photo.w }}></th>
-                  <SortHeaderTh sortKey="first_name" label="First Name" sticky left={STICKY.first.left} w={STICKY.first.w} extraClass="border-l border-border" current={sortKey} dir={sortDir} onClick={toggleSort} />
-                  <SortHeaderTh sortKey="last_name" label="Last Name" sticky left={STICKY.last.left} w={STICKY.last.w} extraClass="border-r border-border" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                  <th className={`sticky z-30 ${HEADER_BG} text-center`} style={{ left: STICKY.sn.left, minWidth: STICKY.sn.w, width: STICKY.sn.w }}>#</th>
+                  <SortHeaderTh sortKey="first_name" label="Name" sticky left={STICKY.first.left} w={STICKY.first.w} extraClass="border-l border-border" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                  <SortHeaderTh sortKey="last_name" label="Surname" sticky left={STICKY.last.left} w={STICKY.last.w} extraClass="border-r border-border" current={sortKey} dir={sortDir} onClick={toggleSort} />
                   <SortHeaderTh sortKey="remain" label="Remain" extraClass={calc} current={sortKey} dir={sortDir} onClick={toggleSort} />
                   <SortHeaderTh sortKey="department" label="Dept" current={sortKey} dir={sortDir} onClick={toggleSort} />
                   <SortHeaderTh sortKey="position" label="Position" current={sortKey} dir={sortDir} onClick={toggleSort} />
@@ -535,11 +541,12 @@ const EmployeeRow = ({ e, idx, canEdit, onPatch, onPatchName, onPatchPosition, o
   const age = ageFromBirthday(e.birthday);
   const remain = (Number(e.annual_leave_earned) || 0) - (Number(e.annual_leave_used) || 0) - (Number(e.annual_leave_sold) || 0);
   const renew = daysFromToday(e.license_pass_date);
-  const { first, last } = splitName(e.full_name);
+  const first = e.first_name ?? "";
+  const last = e.last_name ?? (e.first_name ? "" : (e.full_name ?? ""));
   const positions = POSITIONS_BY_DEPT[e.department] ?? ALL_POSITIONS;
 
   const ro = !canEdit;
-  const td = "h-9 align-middle border-b border-border whitespace-nowrap";
+  const td = "h-9 align-middle border-b border-r border-border/40 whitespace-nowrap";
 
   return (
     <tr className="hover:bg-muted/30 group">
@@ -548,10 +555,10 @@ const EmployeeRow = ({ e, idx, canEdit, onPatch, onPatchName, onPatchPosition, o
       </td>
       <td className={`${td} sticky z-10 ${ROW_BG} group-hover:bg-muted/30 ${calc} font-mono text-center`} style={{ left: STICKY.sn.left, minWidth: STICKY.sn.w, width: STICKY.sn.w }}>{idx}</td>
       <td className={`${td} sticky z-10 ${ROW_BG} group-hover:bg-muted/30 border-l border-border font-medium`} style={{ left: STICKY.first.left, minWidth: STICKY.first.w, width: STICKY.first.w }}>
-        <EditableCell type="text" value={first} readOnly={ro} onSave={(v) => onPatchName(e, v, null)} />
+        <EditableCell type="text" value={first} readOnly={ro} onSave={(v) => onPatchName(e, v ?? "", null)} />
       </td>
       <td className={`${td} sticky z-10 ${ROW_BG} group-hover:bg-muted/30 border-r border-border font-medium`} style={{ left: STICKY.last.left, minWidth: STICKY.last.w, width: STICKY.last.w }}>
-        <EditableCell type="text" value={last} readOnly={ro} onSave={(v) => onPatchName(e, null, v)} />
+        <EditableCell type="text" value={last} readOnly={ro} onSave={(v) => onPatchName(e, null, v ?? "")} />
       </td>
       <td className={`${td} ${calc} font-mono text-right px-2`}>{signedDays(remain)}</td>
       <td className={td}>
@@ -628,12 +635,14 @@ const NewEmployeeRow = ({ casinoId, onSave }: {
 
   const tryCommit = () => {
     if (!casinoId) return;
-    if (!v.first.trim() || !v.last.trim()) return;
+    if (!v.first.trim() && !v.last.trim()) return;
     if (!v.department) return;
     if (!v.position) return;
     const cat = deriveCategory(v.department, v.position);
     onSave({
       full_name: joinName(v.first, v.last),
+      first_name: v.first.trim(),
+      last_name: v.last.trim(),
       department: v.department,
       position: v.position,
       contract_type: v.contract_type || null,
@@ -649,7 +658,7 @@ const NewEmployeeRow = ({ casinoId, onSave }: {
   };
 
   const positions = POSITIONS_BY_DEPT[v.department] ?? ALL_POSITIONS;
-  const td = "h-9 align-middle border-b border-border whitespace-nowrap bg-primary/5";
+  const td = "h-9 align-middle border-b border-r border-border/40 whitespace-nowrap bg-primary/5";
 
   return (
     <tr className="bg-primary/5">
