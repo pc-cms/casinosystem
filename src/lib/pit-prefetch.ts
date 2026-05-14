@@ -13,7 +13,13 @@ import type { QueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { getBusinessDate } from "@/lib/business-day";
 import { fetchChipSnapshots } from "@/lib/chip-snapshots";
-import { disambiguateNames, mapEmployeeToDealer } from "@/hooks/use-dealers";
+import {
+  disambiguateNames,
+  fetchBreaklistRows,
+  fetchDealerAttendanceRows,
+  fetchPitRotaRows,
+  mapEmployeeToDealer,
+} from "@/hooks/use-dealers";
 
 const aliasEmployeeId = <T extends { employee_id?: string | null }>(row: T) => ({
   ...row,
@@ -77,31 +83,19 @@ export async function prefetchPitData(qc: QueryClient, casinoId: string) {
     () => qc.prefetchQuery({
       queryKey: ["pit-rota-range", casinoId, monthStart, monthEnd],
       queryFn: async () => {
-        const { data, error } = await supabase
-          .from("pit_rota").select("*")
-          .eq("casino_id", casinoId).gte("date", monthStart).lte("date", monthEnd);
-        if (error) throw error;
-        return (data ?? []).map(aliasEmployeeId);
+        return (await fetchPitRotaRows(casinoId, monthStart, monthEnd)).map(aliasEmployeeId);
       },
     }),
     () => qc.prefetchQuery({
       queryKey: ["dealer-attendance-range", casinoId, monthStart, monthEnd],
       queryFn: async () => {
-        const { data, error } = await supabase
-          .from("dealer_attendance" as any).select("*")
-          .eq("casino_id", casinoId).gte("date", monthStart).lte("date", monthEnd);
-        if (error) throw error;
-        return (data as any[] ?? []).map(aliasEmployeeId);
+        return (await fetchDealerAttendanceRows(casinoId, monthStart, monthEnd)).map(aliasEmployeeId);
       },
     }),
     () => qc.prefetchQuery({
       queryKey: ["breaklist", casinoId, today],
       queryFn: async () => {
-        const { data, error } = await supabase
-          .from("breaklist").select("*, gaming_tables(name)")
-          .eq("casino_id", casinoId).eq("date", today);
-        if (error) throw error;
-        return (data ?? []).map(aliasEmployeeId);
+        return (await fetchBreaklistRows(casinoId, today)).map(aliasEmployeeId);
       },
     }),
     () => qc.prefetchQuery({
