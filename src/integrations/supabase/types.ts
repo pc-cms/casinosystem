@@ -4116,6 +4116,7 @@ export type Database = {
           casino_id: string
           created_at: string
           dealer_id: string
+          employee_id: string | null
           extra_override: number | null
           id: string
           updated_at: string
@@ -4126,6 +4127,7 @@ export type Database = {
           casino_id: string
           created_at?: string
           dealer_id: string
+          employee_id?: string | null
           extra_override?: number | null
           id?: string
           updated_at?: string
@@ -4136,6 +4138,7 @@ export type Database = {
           casino_id?: string
           created_at?: string
           dealer_id?: string
+          employee_id?: string | null
           extra_override?: number | null
           id?: string
           updated_at?: string
@@ -4155,6 +4158,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "dealers"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "weekly_bonus_entries_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "weekly_bonus_entries_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "v_staff_master_legacy_map"
+            referencedColumns: ["employee_id"]
           },
         ]
       }
