@@ -70,6 +70,17 @@ const AttendanceMonthly = () => {
     return by;
   }, [employees]);
 
+  // Disambiguate first names across all visible employees (e.g. "Berta" + "Berta" → "Berta K", "Berta M").
+  const displayNameMap = useMemo(() => {
+    const inputs = employees.map((e) => {
+      const split = splitFullName(e.meta.full_name);
+      return { id: e.meta.employee_id, first: split.first, last: split.last };
+    });
+    return buildDisplayNames(inputs);
+  }, [employees]);
+  const displayName = (e: { meta: MonthlyAttendanceRow }) =>
+    displayNameMap.get(e.meta.employee_id) || firstName(e.meta.full_name);
+
   const holidayByDay = useMemo(() => {
     const m = new Map<number, { name: string; multiplier: number; id: string }>();
     for (const h of holidays) m.set(Number(h.date.slice(8, 10)), { name: h.name, multiplier: h.multiplier, id: h.id });
