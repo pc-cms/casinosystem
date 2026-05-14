@@ -56,7 +56,7 @@ const isoWeekKey = (d: Date) => {
 };
 const monthKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 const monthLabel = (d: Date) =>
-  d.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+  d.toLocaleDateString("en-GB", { timeZone: "Africa/Dar_es_Salaam", month: "long", year: "numeric" });
 const weekLabel = (start: Date) => {
   const end = new Date(start);
   end.setDate(start.getDate() + 6);
@@ -64,8 +64,8 @@ const weekLabel = (start: Date) => {
   const fmt = (x: Date) =>
     sameMonth
       ? x.getDate().toString()
-      : x.toLocaleDateString(undefined, { day: "numeric", month: "short" });
-  return `Week ${fmt(start)}–${fmt(end)} ${start.toLocaleDateString(undefined, { month: "short" })}`;
+      : x.toLocaleDateString("en-GB", { timeZone: "Africa/Dar_es_Salaam", day: "numeric", month: "short" });
+  return `Week ${fmt(start)}–${fmt(end)} ${start.toLocaleDateString("en-GB", { timeZone: "Africa/Dar_es_Salaam", month: "short" })}`;
 };
 
 type Agg = { visits: number; minutes: number; drop: number; out: number; comps: number };
@@ -274,7 +274,7 @@ export default function PlayerVisitsBreakdown({ visits, transactions, expenses, 
                             <td className="py-1 pl-12 pr-2 text-xs font-mono text-muted-foreground">
                               {fmtDate(day.dayKey)}
                               <span className="ml-2 text-[10px] uppercase">
-                                {day.date.toLocaleDateString(undefined, { weekday: "short" })}
+                                {day.date.toLocaleDateString("en-GB", { timeZone: "Africa/Dar_es_Salaam", weekday: "short" })}
                               </span>
                               {day.visits.length > 1 && (
                                 <span className="ml-2 text-[10px]">×{day.visits.length}</span>
