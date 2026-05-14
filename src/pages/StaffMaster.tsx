@@ -113,10 +113,10 @@ const sortEmployees = (list: Employee[], key: SortKey, dir: SortDir): Employee[]
     let cmp = 0;
     switch (key) {
       case "first_name":
-        cmp = splitName(a.full_name).first.toLowerCase().localeCompare(splitName(b.full_name).first.toLowerCase());
+        cmp = (a.first_name ?? "").toLowerCase().localeCompare((b.first_name ?? "").toLowerCase());
         break;
       case "last_name":
-        cmp = splitName(a.full_name).last.toLowerCase().localeCompare(splitName(b.full_name).last.toLowerCase());
+        cmp = (a.last_name ?? a.full_name ?? "").toLowerCase().localeCompare((b.last_name ?? b.full_name ?? "").toLowerCase());
         break;
       case "remain": {
         const ra = (Number(a.annual_leave_earned) || 0) - (Number(a.annual_leave_used) || 0) - (Number(a.annual_leave_sold) || 0);
