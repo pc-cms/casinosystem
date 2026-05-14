@@ -16,6 +16,8 @@ export interface Employee {
   staff_member_id: string | null;
   dealer_id: string | null;
   full_name: string;
+  first_name: string;
+  last_name: string;
   position: string;
   department: string;
   employment_date: string | null;
