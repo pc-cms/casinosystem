@@ -536,11 +536,12 @@ const EmployeeRow = ({ e, idx, canEdit, onPatch, onPatchName, onPatchPosition, o
   const age = ageFromBirthday(e.birthday);
   const remain = (Number(e.annual_leave_earned) || 0) - (Number(e.annual_leave_used) || 0) - (Number(e.annual_leave_sold) || 0);
   const renew = daysFromToday(e.license_pass_date);
-  const { first, last } = splitName(e.full_name);
+  const first = e.first_name ?? "";
+  const last = e.last_name ?? (e.first_name ? "" : (e.full_name ?? ""));
   const positions = POSITIONS_BY_DEPT[e.department] ?? ALL_POSITIONS;
 
   const ro = !canEdit;
-  const td = "h-9 align-middle border-b border-border whitespace-nowrap";
+  const td = "h-9 align-middle border-b border-r border-border/40 whitespace-nowrap";
 
   return (
     <tr className="hover:bg-muted/30 group">
@@ -549,10 +550,10 @@ const EmployeeRow = ({ e, idx, canEdit, onPatch, onPatchName, onPatchPosition, o
       </td>
       <td className={`${td} sticky z-10 ${ROW_BG} group-hover:bg-muted/30 ${calc} font-mono text-center`} style={{ left: STICKY.sn.left, minWidth: STICKY.sn.w, width: STICKY.sn.w }}>{idx}</td>
       <td className={`${td} sticky z-10 ${ROW_BG} group-hover:bg-muted/30 border-l border-border font-medium`} style={{ left: STICKY.first.left, minWidth: STICKY.first.w, width: STICKY.first.w }}>
-        <EditableCell type="text" value={first} readOnly={ro} onSave={(v) => onPatchName(e, v, null)} />
+        <EditableCell type="text" value={first} readOnly={ro} onSave={(v) => onPatchName(e, v ?? "", null)} />
       </td>
       <td className={`${td} sticky z-10 ${ROW_BG} group-hover:bg-muted/30 border-r border-border font-medium`} style={{ left: STICKY.last.left, minWidth: STICKY.last.w, width: STICKY.last.w }}>
-        <EditableCell type="text" value={last} readOnly={ro} onSave={(v) => onPatchName(e, null, v)} />
+        <EditableCell type="text" value={last} readOnly={ro} onSave={(v) => onPatchName(e, null, v ?? "")} />
       </td>
       <td className={`${td} ${calc} font-mono text-right px-2`}>{signedDays(remain)}</td>
       <td className={td}>
