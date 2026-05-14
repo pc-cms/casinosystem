@@ -157,12 +157,12 @@ const TagsRow = ({ playerId, source, label, active, canEdit }: {
   );
 
   return (
-    <div className="flex items-center gap-1.5 min-h-[20px]">
-      <span className="text-[9px] uppercase tracking-wider text-muted-foreground font-mono w-9 shrink-0">
+    <div className="flex items-start gap-1.5 min-w-0">
+      <span className="text-[9px] uppercase tracking-wider text-muted-foreground font-mono w-9 shrink-0 pt-1.5">
         {label}
       </span>
       <TooltipProvider delayDuration={150}>
-        <div className="flex items-center gap-1 flex-wrap">
+        <div className="flex-1 min-w-0 flex items-center gap-x-1.5 gap-y-1 flex-wrap">
           {activeList.map(t => (
             <Tooltip key={t.key}>
               <TooltipTrigger asChild>
@@ -171,7 +171,7 @@ const TagsRow = ({ playerId, source, label, active, canEdit }: {
                   disabled={!canEdit || toggleTag.isPending}
                   onClick={() => canEdit && handleToggle(t.key)}
                   className={cn(
-                    "text-[25px] leading-none",
+                    "text-[25px] leading-[1.15] inline-block",
                     canEdit && "hover:opacity-60 cursor-pointer",
                   )}
                   aria-label={t.hint}
@@ -193,10 +193,10 @@ const TagsRow = ({ playerId, source, label, active, canEdit }: {
                 ref={btnRef}
                 type="button"
                 onClick={() => setOpen(o => !o)}
-                className="inline-flex items-center justify-center w-5 h-5 rounded border border-dashed border-border text-muted-foreground hover:bg-muted hover:text-foreground transition"
+                className="inline-flex items-center justify-center w-6 h-6 rounded border border-dashed border-border text-muted-foreground hover:bg-muted hover:text-foreground transition"
                 title="Add tag"
               >
-                <Plus className="w-3 h-3" />
+                <Plus className="w-3.5 h-3.5" />
               </button>
               {open && (
                 <Popover onClose={() => setOpen(false)} anchorRef={btnRef}>
