@@ -172,6 +172,13 @@ export type Database = {
             referencedRelation: "employees"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "attendance_hours_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "v_staff_master_legacy_map"
+            referencedColumns: ["employee_id"]
+          },
         ]
       }
       bank_checks: {
@@ -255,6 +262,7 @@ export type Database = {
           created_by: string
           date: string
           dealer_id: string
+          employee_id: string | null
           id: string
           is_locked: boolean
           locked_by: string | null
@@ -270,6 +278,7 @@ export type Database = {
           created_by: string
           date: string
           dealer_id: string
+          employee_id?: string | null
           id?: string
           is_locked?: boolean
           locked_by?: string | null
@@ -285,6 +294,7 @@ export type Database = {
           created_by?: string
           date?: string
           dealer_id?: string
+          employee_id?: string | null
           id?: string
           is_locked?: boolean
           locked_by?: string | null
@@ -308,6 +318,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "dealers"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "breaklist_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "breaklist_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "v_staff_master_legacy_map"
+            referencedColumns: ["employee_id"]
           },
           {
             foreignKeyName: "breaklist_table_id_fkey"
@@ -1799,6 +1823,13 @@ export type Database = {
             referencedRelation: "employees"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "employee_bank_accounts_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "v_staff_master_legacy_map"
+            referencedColumns: ["employee_id"]
+          },
         ]
       }
       employees: {
@@ -2560,6 +2591,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "payroll_entries_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "v_staff_master_legacy_map"
+            referencedColumns: ["employee_id"]
+          },
+          {
             foreignKeyName: "payroll_entries_period_id_fkey"
             columns: ["period_id"]
             isOneToOne: false
@@ -3312,6 +3350,7 @@ export type Database = {
           casino_id: string
           created_at: string
           date: string
+          employee_id: string | null
           id: string
           recorded_by: string
           staff_id: string
@@ -3322,6 +3361,7 @@ export type Database = {
           casino_id: string
           created_at?: string
           date: string
+          employee_id?: string | null
           id?: string
           recorded_by: string
           staff_id: string
@@ -3332,6 +3372,7 @@ export type Database = {
           casino_id?: string
           created_at?: string
           date?: string
+          employee_id?: string | null
           id?: string
           recorded_by?: string
           staff_id?: string
@@ -3345,6 +3386,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "casinos"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_attendance_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_attendance_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "v_staff_master_legacy_map"
+            referencedColumns: ["employee_id"]
           },
           {
             foreignKeyName: "staff_attendance_staff_id_fkey"
@@ -3411,6 +3466,7 @@ export type Database = {
           created_at: string
           created_by: string
           date: string
+          employee_id: string | null
           id: string
           shift: string
           staff_id: string
@@ -3420,6 +3476,7 @@ export type Database = {
           created_at?: string
           created_by: string
           date: string
+          employee_id?: string | null
           id?: string
           shift?: string
           staff_id: string
@@ -3429,6 +3486,7 @@ export type Database = {
           created_at?: string
           created_by?: string
           date?: string
+          employee_id?: string | null
           id?: string
           shift?: string
           staff_id?: string
@@ -3440,6 +3498,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "casinos"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_rota_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_rota_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "v_staff_master_legacy_map"
+            referencedColumns: ["employee_id"]
           },
           {
             foreignKeyName: "staff_rota_staff_id_fkey"
@@ -4187,6 +4259,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "payroll_entries_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "v_staff_master_legacy_map"
+            referencedColumns: ["employee_id"]
+          },
+          {
             foreignKeyName: "payroll_entries_period_id_fkey"
             columns: ["period_id"]
             isOneToOne: false
@@ -4321,6 +4400,58 @@ export type Database = {
           table_name: string | null
         }
         Relationships: []
+      }
+      v_staff_master_legacy_map: {
+        Row: {
+          casino_id: string | null
+          department: string | null
+          employee_id: string | null
+          full_name: string | null
+          legacy_dealer_id: string | null
+          legacy_staff_member_id: string | null
+          position: string | null
+        }
+        Insert: {
+          casino_id?: string | null
+          department?: string | null
+          employee_id?: string | null
+          full_name?: string | null
+          legacy_dealer_id?: string | null
+          legacy_staff_member_id?: string | null
+          position?: string | null
+        }
+        Update: {
+          casino_id?: string | null
+          department?: string | null
+          employee_id?: string | null
+          full_name?: string | null
+          legacy_dealer_id?: string | null
+          legacy_staff_member_id?: string | null
+          position?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employees_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_dealer_id_fkey"
+            columns: ["legacy_dealer_id"]
+            isOneToOne: false
+            referencedRelation: "dealers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_staff_member_id_fkey"
+            columns: ["legacy_staff_member_id"]
+            isOneToOne: false
+            referencedRelation: "staff_members"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Functions: {
