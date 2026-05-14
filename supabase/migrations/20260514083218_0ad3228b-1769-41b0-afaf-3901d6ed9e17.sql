@@ -1,0 +1,1 @@
+ALTER VIEW public.v_staff_master_legacy_map SET (security_invoker = true);
