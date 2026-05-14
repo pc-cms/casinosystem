@@ -134,11 +134,13 @@ export const useStaffMembers = () => {
         .order("full_name");
       if (error) throw error;
       const raw = data ?? [];
+      // Disambiguate by full_name collisions (not first_name) — full_name is what we display.
       const inputs = raw.map((e: any) => {
         const split = splitFullName(e.full_name);
+        const fullDisplay = (e.full_name && String(e.full_name).trim()) || split.first;
         return {
           id: e.id,
-          first: (e.first_name && String(e.first_name).trim()) || split.first,
+          first: fullDisplay,
           last: (e.last_name && String(e.last_name).trim()) || split.last,
         };
       });
