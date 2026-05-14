@@ -11,7 +11,7 @@ export const usePlayer = (id: string | undefined) => {
       if (!id) return null;
       const { data, error } = await supabase
         .from("players")
-        .select("*, player_cards(*), player_tags(*)")
+        .select("*, player_cards(*), player_tags(id, tag, source, created_at)")
         .eq("id", id)
         .maybeSingle();
       if (error) throw error;
