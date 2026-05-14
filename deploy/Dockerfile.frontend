@@ -26,10 +26,11 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Зависимости: используем npm ci с package-lock.json (стабильнее в CI, чем bun)
-# bun.lockb намеренно игнорируется в этом образе.
-COPY package.json package-lock.json ./
-RUN npm ci --no-audit --no-fund --prefer-offline
+# Зависимости: package-lock.json может устаревать (deps добавляются через bun
+# в Lovable), поэтому используем `npm install` вместо `npm ci`. Это терпимо
+# к рассинхрону lockfile и регенерирует его при необходимости.
+COPY package.json package-lock.json* ./
+RUN npm install --no-audit --no-fund --prefer-offline --legacy-peer-deps
 
 # Исходники
 COPY . .
