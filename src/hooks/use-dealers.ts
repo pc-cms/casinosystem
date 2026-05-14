@@ -67,6 +67,52 @@ export const disambiguateNames = <T extends { id: string; name: string }>(
   return rows.map((r) => ({ ...r, name: map.get(r.id) || r.name }));
 };
 
+const PAGE_SIZE = 1000;
+
+const fetchPaged = async <T,>(buildQuery: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: any }>) => {
+  const rows: T[] = [];
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const { data, error } = await buildQuery(from, from + PAGE_SIZE - 1);
+    if (error) throw error;
+    const batch = data ?? [];
+    rows.push(...batch);
+    if (batch.length < PAGE_SIZE) break;
+  }
+  return rows;
+};
+
+export const fetchPitRotaRows = (casinoId: string, startDate: string, endDate = startDate) =>
+  fetchPaged<any>((from, to) => supabase
+    .from("pit_rota")
+    .select("*")
+    .eq("casino_id", casinoId)
+    .gte("date", startDate)
+    .lte("date", endDate)
+    .order("date")
+    .order("employee_id")
+    .range(from, to));
+
+export const fetchDealerAttendanceRows = (casinoId: string, startDate: string, endDate = startDate) =>
+  fetchPaged<any>((from, to) => supabase
+    .from("dealer_attendance" as any)
+    .select("*")
+    .eq("casino_id", casinoId)
+    .gte("date", startDate)
+    .lte("date", endDate)
+    .order("date")
+    .order("employee_id")
+    .range(from, to));
+
+export const fetchBreaklistRows = (casinoId: string, date: string) =>
+  fetchPaged<any>((from, to) => supabase
+    .from("breaklist")
+    .select("*, gaming_tables(name)")
+    .eq("casino_id", casinoId)
+    .eq("date", date)
+    .order("time_slot")
+    .order("employee_id")
+    .range(from, to));
+
 export const useDealers = () => {
   const { casinoId } = useAuth();
   return useQuery({
