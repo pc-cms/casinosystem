@@ -239,18 +239,22 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
               </div>
             )}
 
-            {/* Row 3 — Tags (floor + CCTV) */}
-            <div className="min-h-[28px] flex flex-col gap-1 justify-center">
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-mono w-12 shrink-0">Tags</span>
-                {floorTags.length > 0
-                  ? <FlagBadges tags={floorTags} size="lg15" />
-                  : <span className="text-xs text-muted-foreground/60">—</span>}
+            {/* Row 3 — Tags (floor + CCTV), wraps on narrow widths */}
+            <div className="flex flex-col gap-1">
+              <div className="flex items-start gap-2 min-w-0">
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-mono w-12 shrink-0 pt-1">Tags</span>
+                <div className="flex-1 min-w-0">
+                  {floorTags.length > 0
+                    ? <FlagBadges tags={floorTags} size="lg15" />
+                    : <span className="text-xs text-muted-foreground/60">—</span>}
+                </div>
               </div>
               {cctvTags.length > 0 && (
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-mono w-12 shrink-0">CCTV</span>
-                  <FlagBadges tags={cctvTags} size="lg15" />
+                <div className="flex items-start gap-2 min-w-0">
+                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-mono w-12 shrink-0 pt-1">CCTV</span>
+                  <div className="flex-1 min-w-0">
+                    <FlagBadges tags={cctvTags} size="lg15" />
+                  </div>
                 </div>
               )}
             </div>
