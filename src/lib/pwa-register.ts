@@ -76,7 +76,7 @@ export async function setupPWA() {
 
     const updateSW = registerSW({
       immediate: true,
-      onRegisteredSW(_swUrl, registration) {
+      async onRegisteredSW(_swUrl, registration) {
         if (!registration) return;
 
         // One-time cleanup: previous builds cached Supabase REST in a SW cache
