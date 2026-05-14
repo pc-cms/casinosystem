@@ -171,7 +171,7 @@ const TagsRow = ({ playerId, source, label, active, canEdit }: {
                   disabled={!canEdit || toggleTag.isPending}
                   onClick={() => canEdit && handleToggle(t.key)}
                   className={cn(
-                    "text-[15px] leading-none",
+                    "text-[25px] leading-none",
                     canEdit && "hover:opacity-60 cursor-pointer",
                   )}
                   aria-label={t.hint}

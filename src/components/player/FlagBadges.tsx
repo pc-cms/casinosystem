@@ -16,7 +16,7 @@ interface FlagBadgesProps {
 const SIZE_CLASS: Record<FlagBadgeSize, string> = {
   sm: "text-sm",
   base: "text-base",
-  lg15: "text-[15px]",
+  lg15: "text-[25px]",
   xl: "text-2xl",
 };
 
