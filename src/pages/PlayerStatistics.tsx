@@ -509,7 +509,7 @@ const PlayerStatistics = () => {
             <p className="text-xs font-semibold text-card-foreground truncate">
               {r.firstName} {r.lastName}
             </p>
-            {r.flags?.length > 0 && <FlagBadges tags={r.flags} compact />}
+            
           </div>
         </div>
       </td>
