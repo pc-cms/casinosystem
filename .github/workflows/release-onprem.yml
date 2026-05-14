@@ -81,7 +81,7 @@ jobs:
         run: |
           REPO_LC=$(echo "${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
           TAGS="${{ env.REGISTRY }}/${REPO_LC}:${{ steps.meta.outputs.version }}"
-          if [[ "${{ github.ref }}" == refs/tags/v* || "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+          if [[ "${{ github.ref }}" == refs/tags/* || "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             TAGS="${TAGS},${{ env.REGISTRY }}/${REPO_LC}:latest"
           fi
           if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
@@ -122,7 +122,7 @@ jobs:
 
   release:
     needs: build
-    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+    if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - name: Download migrations
