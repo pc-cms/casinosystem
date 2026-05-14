@@ -13,7 +13,7 @@ import { buildDisplayNames, splitFullName } from "@/lib/display-name";
 
 // ============ DEALERS (= employees WHERE department='Pit') ============
 
-type DealerRow = {
+export type DealerRow = {
   id: string;
   casino_id: string;
   name: string;
@@ -28,7 +28,7 @@ type DealerRow = {
   created_at: string;
 };
 
-const mapEmployeeToDealer = (e: any): DealerRow => {
+export const mapEmployeeToDealer = (e: any): DealerRow => {
   const split = splitFullName(e.full_name);
   const first = (e.first_name && String(e.first_name).trim()) || split.first;
   // Show full_name as stored; user splits surname/name manually later.
@@ -50,7 +50,7 @@ const mapEmployeeToDealer = (e: any): DealerRow => {
 };
 
 /** Apply duplicate-full-name disambiguation: identical "Berta" + "Berta" → "Berta K", "Berta M". */
-const disambiguateNames = <T extends { id: string; name: string }>(
+export const disambiguateNames = <T extends { id: string; name: string }>(
   rows: T[],
   raw: any[]
 ): T[] => {
