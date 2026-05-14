@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState, useCallback } from "react";
-import { UserCheck, Camera, RotateCw, Upload, Trash2, Plus } from "lucide-react";
+import { UserCheck, Camera, RotateCw, Upload, Trash2, Plus, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { parseStaffMasterXlsx, type ParsedStaffRow } from "@/lib/staff-master-import";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -96,6 +96,160 @@ const stickyCell = (left: number, w: number, bg = ROW_BG) => ({
   className: bg,
 });
 
+// ===== Sorting =====
+type SortDir = "asc" | "desc";
+type SortKey =
+  | "first_name" | "last_name" | "remain" | "department" | "position" | "contract_type"
+  | "basic_salary" | "onboarding_date" | "exp_years" | "birthday" | "age" | "phone"
+  | "job_description" | "general_details" | "intro_to_work" | "staff_rules_acknowledged"
+  | "disciplinary_acknowledged" | "confidentiality_agreement" | "contract_start" | "contract_end"
+  | "end_month" | "annual_leave_earned" | "annual_leave_used" | "annual_leave_sold"
+  | "corporate_mail" | "gender" | "nationality" | "license_type" | "license_available"
+  | "license_pass_date" | "renew_days" | "uniform_issued";
+
+const sortEmployees = (list: Employee[], key: SortKey, dir: SortDir): Employee[] => {
+  const m = dir === "asc" ? 1 : -1;
+  return [...list].sort((a, b) => {
+    let cmp = 0;
+    switch (key) {
+      case "first_name":
+        cmp = splitName(a.full_name).first.toLowerCase().localeCompare(splitName(b.full_name).first.toLowerCase());
+        break;
+      case "last_name":
+        cmp = splitName(a.full_name).last.toLowerCase().localeCompare(splitName(b.full_name).last.toLowerCase());
+        break;
+      case "remain": {
+        const ra = (Number(a.annual_leave_earned) || 0) - (Number(a.annual_leave_used) || 0) - (Number(a.annual_leave_sold) || 0);
+        const rb = (Number(b.annual_leave_earned) || 0) - (Number(b.annual_leave_used) || 0) - (Number(b.annual_leave_sold) || 0);
+        cmp = ra - rb;
+        break;
+      }
+      case "department": cmp = (a.department || "").localeCompare(b.department || ""); break;
+      case "position": cmp = (a.position || "").localeCompare(b.position || ""); break;
+      case "contract_type": cmp = (a.contract_type || "").localeCompare(b.contract_type || ""); break;
+      case "basic_salary": cmp = (Number(a.basic_salary) || 0) - (Number(b.basic_salary) || 0); break;
+      case "onboarding_date": {
+        const da = a.onboarding_date ? new Date(a.onboarding_date).getTime() : 0;
+        const db = b.onboarding_date ? new Date(b.onboarding_date).getTime() : 0;
+        cmp = da - db;
+        break;
+      }
+      case "exp_years": {
+        const ya = yearsBetween(a.onboarding_date) ?? -1;
+        const yb = yearsBetween(b.onboarding_date) ?? -1;
+        cmp = ya - yb;
+        break;
+      }
+      case "birthday": {
+        const ba = a.birthday ? new Date(a.birthday).getTime() : 0;
+        const bb = b.birthday ? new Date(b.birthday).getTime() : 0;
+        cmp = ba - bb;
+        break;
+      }
+      case "age": {
+        const aa = ageFromBirthday(a.birthday) ?? -1;
+        const ab = ageFromBirthday(b.birthday) ?? -1;
+        cmp = aa - ab;
+        break;
+      }
+      case "phone": cmp = (a.phone || "").localeCompare(b.phone || ""); break;
+      case "job_description": cmp = (a.job_description || "").localeCompare(b.job_description || ""); break;
+      case "general_details": cmp = (a.general_details || "").localeCompare(b.general_details || ""); break;
+      case "intro_to_work": cmp = (a.intro_to_work ? 1 : 0) - (b.intro_to_work ? 1 : 0); break;
+      case "staff_rules_acknowledged": cmp = (a.staff_rules_acknowledged ? 1 : 0) - (b.staff_rules_acknowledged ? 1 : 0); break;
+      case "disciplinary_acknowledged": cmp = (a.disciplinary_acknowledged ? 1 : 0) - (b.disciplinary_acknowledged ? 1 : 0); break;
+      case "confidentiality_agreement": cmp = (a.confidentiality_agreement ? 1 : 0) - (b.confidentiality_agreement ? 1 : 0); break;
+      case "contract_start": {
+        const sa = a.contract_start ? new Date(a.contract_start).getTime() : 0;
+        const sb = b.contract_start ? new Date(b.contract_start).getTime() : 0;
+        cmp = sa - sb;
+        break;
+      }
+      case "contract_end": {
+        const ea = a.contract_end ? new Date(a.contract_end).getTime() : 0;
+        const eb = b.contract_end ? new Date(b.contract_end).getTime() : 0;
+        cmp = ea - eb;
+        break;
+      }
+      case "end_month": {
+        const ma = monthLabel(a.contract_end) || "";
+        const mb = monthLabel(b.contract_end) || "";
+        cmp = ma.localeCompare(mb);
+        break;
+      }
+      case "annual_leave_earned": cmp = (Number(a.annual_leave_earned) || 0) - (Number(b.annual_leave_earned) || 0); break;
+      case "annual_leave_used": cmp = (Number(a.annual_leave_used) || 0) - (Number(b.annual_leave_used) || 0); break;
+      case "annual_leave_sold": cmp = (Number(a.annual_leave_sold) || 0) - (Number(b.annual_leave_sold) || 0); break;
+      case "corporate_mail": cmp = (a.corporate_mail || "").localeCompare(b.corporate_mail || ""); break;
+      case "gender": cmp = (a.gender || "").localeCompare(b.gender || ""); break;
+      case "nationality": cmp = (a.nationality || "").localeCompare(b.nationality || ""); break;
+      case "license_type": cmp = (a.license_type || "").localeCompare(b.license_type || ""); break;
+      case "license_available": cmp = (a.license_available ? 1 : 0) - (b.license_available ? 1 : 0); break;
+      case "license_pass_date": {
+        const pa = a.license_pass_date ? new Date(a.license_pass_date).getTime() : 0;
+        const pb = b.license_pass_date ? new Date(b.license_pass_date).getTime() : 0;
+        cmp = pa - pb;
+        break;
+      }
+      case "renew_days": {
+        const ra = daysFromToday(a.license_pass_date) ?? Infinity;
+        const rb = daysFromToday(b.license_pass_date) ?? Infinity;
+        cmp = ra - rb;
+        break;
+      }
+      case "uniform_issued": cmp = (a.uniform_issued ? 1 : 0) - (b.uniform_issued ? 1 : 0); break;
+    }
+    if (cmp !== 0) return cmp * m;
+    return a.full_name.localeCompare(b.full_name) * m;
+  });
+};
+
+function SortHeaderTh({
+  sortKey: key,
+  label,
+  sticky: isSticky,
+  left,
+  w,
+  extraClass,
+  align,
+  current,
+  dir,
+  onClick,
+}: {
+  sortKey: SortKey;
+  label: string;
+  sticky?: boolean;
+  left?: number;
+  w?: number;
+  extraClass?: string;
+  align?: "left" | "right" | "center";
+  current: SortKey | null;
+  dir: SortDir;
+  onClick: (k: SortKey) => void;
+}) {
+  const active = current === key;
+  const alignCls = align === "right" ? "text-right" : align === "center" ? "text-center" : "text-left";
+  const stickyStyle = isSticky && left !== undefined && w !== undefined
+    ? { position: "sticky" as const, left, minWidth: w, width: w, maxWidth: w, zIndex: 30 }
+    : undefined;
+  return (
+    <th
+      onClick={() => onClick(key)}
+      className={`cursor-pointer select-none hover:text-foreground transition-colors ${alignCls} ${extraClass ?? ""} ${isSticky ? HEADER_BG : ""}`}
+      style={stickyStyle}
+    >
+      <span className="inline-flex items-center gap-1">
+        {label}
+        {active ? (
+          dir === "asc" ? <ArrowUp className="w-3 h-3 text-primary" /> : <ArrowDown className="w-3 h-3 text-primary" />
+        ) : (
+          <ArrowUpDown className="w-3 h-3 opacity-30" />
+        )}
+      </span>
+    </th>
+  );
+}
+
 const StaffMaster = () => {
   const { roles } = useAuth();
   const { activeCasinoId } = useCasino();
@@ -111,6 +265,19 @@ const StaffMaster = () => {
   const [importing, setImporting] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  // Sorting state
+  const [sortKey, setSortKey] = useState<SortKey | null>(null);
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
+
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir("asc");
+    }
+  };
+
   // Group by department in DEPARTMENTS order; unknown depts → "Other"
   const grouped = useMemo(() => {
     const by: Record<string, Employee[]> = {};
@@ -120,9 +287,15 @@ const StaffMaster = () => {
       const k = (DEPARTMENTS as readonly string[]).includes(e.department) ? e.department : "Other";
       (by[k] ||= []).push(e);
     }
-    for (const k of Object.keys(by)) by[k].sort((a, b) => a.full_name.localeCompare(b.full_name));
+    for (const k of Object.keys(by)) {
+      if (sortKey) {
+        by[k] = sortEmployees(by[k], sortKey, sortDir);
+      } else {
+        by[k].sort((a, b) => a.full_name.localeCompare(b.full_name));
+      }
+    }
     return by;
-  }, [employees]);
+  }, [employees, sortKey, sortDir]);
 
   const TOTAL_COLS = 35;
 
@@ -252,39 +425,38 @@ const StaffMaster = () => {
               <thead className={`${HEADER_BG} sticky top-0 z-20`}>
                 <tr className="border-b border-border [&_th]:px-2 [&_th]:h-8 [&_th]:text-[10px] [&_th]:uppercase [&_th]:tracking-wider [&_th]:text-muted-foreground [&_th]:font-semibold [&_th]:text-left [&_th]:whitespace-nowrap">
                   <th className={`sticky left-0 z-30 ${HEADER_BG}`} style={{ minWidth: STICKY.photo.w, width: STICKY.photo.w }}></th>
-                  <th className={`sticky z-30 ${HEADER_BG}`} style={{ left: STICKY.sn.left, minWidth: STICKY.sn.w, width: STICKY.sn.w }}>S/N</th>
-                  <th className={`sticky z-30 ${HEADER_BG} border-l border-border`} style={{ left: STICKY.first.left, minWidth: STICKY.first.w, width: STICKY.first.w }}>First Name</th>
-                  <th className={`sticky z-30 ${HEADER_BG} border-r border-border`} style={{ left: STICKY.last.left, minWidth: STICKY.last.w, width: STICKY.last.w }}>Last Name</th>
-                  <th className={calc}>Remain</th>
-                  <th>Dept</th>
-                  <th>Position</th>
-                  <th>Contract</th>
-                  <th className="text-right">Salary</th>
-                  <th>Joining</th>
-                  <th className={calc}>Exp YY</th>
-                  <th>Birthday</th>
-                  <th className={calc}>Age</th>
-                  <th>Phone</th>
-                  <th>Job Desc</th>
-                  <th>Gen Det</th>
-                  <th>Intro</th>
-                  <th>Rules</th>
-                  <th>Discip</th>
-                  <th>Confid</th>
-                  <th>Contr Start</th>
-                  <th>Contr End</th>
-                  <th className={calc}>End Mon</th>
-                  <th className="text-right">AL Earn</th>
-                  <th className="text-right">AL Used</th>
-                  <th className="text-right">AL Sold</th>
-                  <th>Corp Mail</th>
-                  <th>Gend</th>
-                  <th>Nation</th>
-                  <th>Lic Type</th>
-                  <th>Lic Av</th>
-                  <th>Pass Date</th>
-                  <th className={calc}>Renew</th>
-                  <th>Uniform</th>
+                  <SortHeaderTh sortKey="first_name" label="First Name" sticky left={STICKY.first.left} w={STICKY.first.w} extraClass="border-l border-border" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                  <SortHeaderTh sortKey="last_name" label="Last Name" sticky left={STICKY.last.left} w={STICKY.last.w} extraClass="border-r border-border" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                  <SortHeaderTh sortKey="remain" label="Remain" extraClass={calc} current={sortKey} dir={sortDir} onClick={toggleSort} />
+                  <SortHeaderTh sortKey="department" label="Dept" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                  <SortHeaderTh sortKey="position" label="Position" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                  <SortHeaderTh sortKey="contract_type" label="Contract" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                  <SortHeaderTh sortKey="basic_salary" label="Salary" align="right" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                  <SortHeaderTh sortKey="onboarding_date" label="Joining" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                  <SortHeaderTh sortKey="exp_years" label="Exp YY" extraClass={calc} current={sortKey} dir={sortDir} onClick={toggleSort} />
+                  <SortHeaderTh sortKey="birthday" label="Birthday" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                  <SortHeaderTh sortKey="age" label="Age" extraClass={calc} current={sortKey} dir={sortDir} onClick={toggleSort} />
+                  <SortHeaderTh sortKey="phone" label="Phone" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                  <SortHeaderTh sortKey="job_description" label="Job Desc" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                  <SortHeaderTh sortKey="general_details" label="Gen Det" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                  <SortHeaderTh sortKey="intro_to_work" label="Intro" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                  <SortHeaderTh sortKey="staff_rules_acknowledged" label="Rules" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                  <SortHeaderTh sortKey="disciplinary_acknowledged" label="Discip" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                  <SortHeaderTh sortKey="confidentiality_agreement" label="Confid" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                  <SortHeaderTh sortKey="contract_start" label="Contr Start" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                  <SortHeaderTh sortKey="contract_end" label="Contr End" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                  <SortHeaderTh sortKey="end_month" label="End Mon" extraClass={calc} current={sortKey} dir={sortDir} onClick={toggleSort} />
+                  <SortHeaderTh sortKey="annual_leave_earned" label="AL Earn" align="right" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                  <SortHeaderTh sortKey="annual_leave_used" label="AL Used" align="right" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                  <SortHeaderTh sortKey="annual_leave_sold" label="AL Sold" align="right" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                  <SortHeaderTh sortKey="corporate_mail" label="Corp Mail" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                  <SortHeaderTh sortKey="gender" label="Gend" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                  <SortHeaderTh sortKey="nationality" label="Nation" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                  <SortHeaderTh sortKey="license_type" label="Lic Type" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                  <SortHeaderTh sortKey="license_available" label="Lic Av" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                  <SortHeaderTh sortKey="license_pass_date" label="Pass Date" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                  <SortHeaderTh sortKey="renew_days" label="Renew" extraClass={calc} current={sortKey} dir={sortDir} onClick={toggleSort} />
+                  <SortHeaderTh sortKey="uniform_issued" label="Uniform" current={sortKey} dir={sortDir} onClick={toggleSort} />
                   <th></th>
                 </tr>
               </thead>
