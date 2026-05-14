@@ -69,7 +69,7 @@ export const disambiguateNames = <T extends { id: string; name: string }>(
 
 const PAGE_SIZE = 1000;
 
-const fetchPaged = async <T,>(buildQuery: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: any }>) => {
+const fetchPaged = async <T,>(buildQuery: (from: number, to: number) => PromiseLike<{ data: any; error: any }>) => {
   const rows: T[] = [];
   for (let from = 0; ; from += PAGE_SIZE) {
     const { data, error } = await buildQuery(from, from + PAGE_SIZE - 1);
