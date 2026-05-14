@@ -253,7 +253,7 @@ const TransfersForm = ({ shiftId, tables }: Props) => {
                     </td>
                     <td className="px-3 py-2 text-xs text-muted-foreground truncate max-w-[160px]">{tr.note || "—"}</td>
                     <td className="px-3 py-2 text-right font-mono text-xs text-muted-foreground">
-                      {new Date(tr.created_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
+                      {new Date(tr.created_at).toLocaleTimeString("en-GB", { timeZone: "Africa/Dar_es_Salaam", hour: "2-digit", minute: "2-digit" })}
                     </td>
                   </tr>
                 );

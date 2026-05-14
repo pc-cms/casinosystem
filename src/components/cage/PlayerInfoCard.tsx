@@ -134,7 +134,7 @@ const PlayerInfoCard = ({ player, tables, shiftTransactions = [] }: Props) => {
                         {isIn ? "+" : "−"}{formatCurrency(Number(tx.amount))}
                       </td>
                       <td className="px-1 py-1 text-right font-mono text-[10px] text-muted-foreground w-12">
-                        {new Date(tx.created_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
+                        {new Date(tx.created_at).toLocaleTimeString("en-GB", { timeZone: "Africa/Dar_es_Salaam", hour: "2-digit", minute: "2-digit" })}
                       </td>
                     </tr>
                   );

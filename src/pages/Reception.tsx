@@ -272,7 +272,7 @@ const CheckInTab = () => {
                       if (!lv) return null;
                       return (
                         <span className="ml-2 text-muted-foreground/80">
-                          · last: {format(new Date(lv), "dd.MM.yyyy HH:mm")}
+                          · last: {new Date(lv).toLocaleString("en-GB", { timeZone: "Africa/Dar_es_Salaam", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}
                         </span>
                       );
                     })()}

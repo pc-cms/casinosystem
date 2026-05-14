@@ -78,7 +78,7 @@ const TransactionsTable = ({ transactions, tableMap, isInTx }: {
                   {isIn ? "+" : "−"}{formatCurrency(Number(tx.amount))}
                 </td>
                 <td className="px-3 py-1.5 text-right font-mono text-[10px] text-muted-foreground">
-                  {new Date(tx.created_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
+                  {new Date(tx.created_at).toLocaleTimeString("en-GB", { timeZone: "Africa/Dar_es_Salaam", hour: "2-digit", minute: "2-digit" })}
                 </td>
               </tr>
             );
@@ -588,7 +588,7 @@ const CashCheckForm = ({ expectedBalance, shiftId, exchangeRates, cashChecks, bu
                   onClick={() => setViewerCheck(cc)}
                   className="w-full px-3 py-1.5 flex items-center justify-between gap-3 hover:bg-accent/30 transition-colors text-left"
                 >
-                  <span className="text-[10px] text-muted-foreground font-mono">{new Date(cc.created_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}</span>
+                  <span className="text-[10px] text-muted-foreground font-mono">{new Date(cc.created_at).toLocaleTimeString("en-GB", { timeZone: "Africa/Dar_es_Salaam", hour: "2-digit", minute: "2-digit" })}</span>
                   <span className="font-mono text-xs font-medium text-card-foreground flex-1 text-right">{formatCurrency(Number(cc.total))}</span>
                   <span className={`font-mono text-[10px] font-bold w-24 text-right ${balanced ? "text-success" : "text-destructive"}`}>
                     {balanced ? "Balanced" : `${diff >= 0 ? "+" : ""}${formatCurrency(diff)}`}

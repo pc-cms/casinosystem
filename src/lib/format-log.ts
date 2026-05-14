@@ -58,10 +58,10 @@ export function actionLabel(action: string): string {
 
 const fmtDate = (s?: string) => {
   if (!s) return "";
-  // Accept "YYYY-MM-DD" or ISO; show "DD MMM"
+  // Accept "YYYY-MM-DD" or ISO; show "DD MMM" in EAT
   const d = new Date(s.length === 10 ? `${s}T00:00:00` : s);
   if (isNaN(d.getTime())) return s;
-  return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
+  return d.toLocaleDateString("en-GB", { timeZone: "Africa/Dar_es_Salaam", day: "2-digit", month: "short" });
 };
 
 const dealerName = (id: string | null | undefined, look: LogLookups) =>

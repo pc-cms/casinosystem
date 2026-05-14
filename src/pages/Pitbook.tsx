@@ -177,6 +177,7 @@ const Pitbook = () => {
                     <div className="flex items-center gap-2 flex-wrap text-[11px] text-muted-foreground font-mono">
                       <span>
                         {new Date(o.created_at).toLocaleString("en-GB", {
+                          timeZone: "Africa/Dar_es_Salaam",
                           day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit",
                         })}
                       </span>

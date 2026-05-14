@@ -126,6 +126,7 @@ const CashCheckViewerDialog = ({
   const balanced = !!t.balanced || diff === 0;
 
   const stamp = new Date(check.created_at).toLocaleString("en-GB", {
+    timeZone: "Africa/Dar_es_Salaam",
     day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit",
   });
 
