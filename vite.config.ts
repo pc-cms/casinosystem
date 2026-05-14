@@ -59,15 +59,21 @@ export default defineConfig(({ mode }) => ({
             },
           },
           {
-            // Supabase REST/storage — network first, fallback to cache when offline
-            urlPattern: ({ url }) => url.hostname.endsWith(".supabase.co"),
-            handler: "NetworkFirst",
-            options: {
-              cacheName: "supabase-api",
-              networkTimeoutSeconds: 5,
-              expiration: { maxEntries: 500, maxAgeSeconds: 60 * 60 * 24 },
-              cacheableResponse: { statuses: [0, 200] },
-            },
+            // Supabase REST/Realtime/Storage: NEVER cache via SW.
+            // Caching here caused the "either-or" symptom — slow network + 5s
+            // timeout returned a stale/empty response, React Query then stored
+            // [] and the tab stayed empty until a manual refetch.
+            // Offline support is handled by IndexedDB (offline-mutation) +
+            // React Query persister; the SW must not duplicate that path.
+            urlPattern: ({ url }) =>
+              url.hostname.endsWith(".supabase.co") ||
+              url.hostname.endsWith(".supabase.in") ||
+              url.pathname.startsWith("/rest/") ||
+              url.pathname.startsWith("/auth/") ||
+              url.pathname.startsWith("/realtime/") ||
+              url.pathname.startsWith("/storage/") ||
+              url.pathname.startsWith("/functions/"),
+            handler: "NetworkOnly",
           },
         ],
       },
