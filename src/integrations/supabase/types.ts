@@ -1689,6 +1689,7 @@ export type Database = {
           created_at: string
           date: string
           dealer_id: string
+          employee_id: string | null
           id: string
           recorded_by: string
           updated_at: string
@@ -1699,6 +1700,7 @@ export type Database = {
           created_at?: string
           date: string
           dealer_id: string
+          employee_id?: string | null
           id?: string
           recorded_by: string
           updated_at?: string
@@ -1709,6 +1711,7 @@ export type Database = {
           created_at?: string
           date?: string
           dealer_id?: string
+          employee_id?: string | null
           id?: string
           recorded_by?: string
           updated_at?: string
@@ -1728,6 +1731,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "dealers"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dealer_attendance_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dealer_attendance_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "v_staff_master_legacy_map"
+            referencedColumns: ["employee_id"]
           },
         ]
       }
@@ -2796,6 +2813,7 @@ export type Database = {
           created_by: string
           date: string
           dealer_id: string
+          employee_id: string | null
           id: string
           shift: Database["public"]["Enums"]["shift_type"]
         }
@@ -2805,6 +2823,7 @@ export type Database = {
           created_by: string
           date: string
           dealer_id: string
+          employee_id?: string | null
           id?: string
           shift: Database["public"]["Enums"]["shift_type"]
         }
@@ -2814,6 +2833,7 @@ export type Database = {
           created_by?: string
           date?: string
           dealer_id?: string
+          employee_id?: string | null
           id?: string
           shift?: Database["public"]["Enums"]["shift_type"]
         }
@@ -2831,6 +2851,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "dealers"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pit_rota_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pit_rota_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "v_staff_master_legacy_map"
+            referencedColumns: ["employee_id"]
           },
         ]
       }
