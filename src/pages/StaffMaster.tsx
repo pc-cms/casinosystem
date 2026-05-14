@@ -637,6 +637,8 @@ const NewEmployeeRow = ({ casinoId, onSave }: {
     const cat = deriveCategory(v.department, v.position);
     onSave({
       full_name: joinName(v.first, v.last),
+      first_name: v.first.trim(),
+      last_name: v.last.trim(),
       department: v.department,
       position: v.position,
       contract_type: v.contract_type || null,
