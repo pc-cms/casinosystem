@@ -19,6 +19,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
+import { invalidateEmployeeCaches } from "@/lib/invalidate-employees";
 import {
   DEPARTMENTS,
   POSITIONS_BY_DEPT,
@@ -358,7 +359,7 @@ const StaffMaster = () => {
       if (error) throw error;
       const r = data as any;
       toast.success(`Imported ${r.total} employees (Pit ${r.dealers_imported} + Staff ${r.staff_imported})`);
-      qc.invalidateQueries({ queryKey: ["employees"] });
+      invalidateEmployeeCaches(qc);
     } catch (e: any) {
       toast.error(e.message);
     } finally {
@@ -395,7 +396,7 @@ const StaffMaster = () => {
         if (error) throw error;
       }
       toast.success(`Imported ${payload.length} employees`);
-      qc.invalidateQueries({ queryKey: ["employees"] });
+      invalidateEmployeeCaches(qc);
       setImportPreview(null);
     } catch (err: any) {
       toast.error(err.message || "Import failed");

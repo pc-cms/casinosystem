@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { UNIFIED_SHIFT_COLORS } from "@/lib/shift-colors";
 import { buildDisplayNames, splitFullName } from "@/lib/display-name";
+import { invalidateEmployeeCaches } from "@/lib/invalidate-employees";
 
 export type StaffDepartment = "security" | "cashier" | "bartender" | "hostess" | "waiter" | "cleaner" | "it" | "hr" | "driver" | "reception";
 
@@ -180,7 +181,7 @@ export const useCreateStaffMember = () => {
         .insert({ casino_id: casinoId!, full_name: name, department: r.department, position: r.position, basic_salary: 0, payroll_status: "active" });
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["staff_members"] }),
+    onSuccess: () => invalidateEmployeeCaches(qc),
   });
 };
 
@@ -199,7 +200,7 @@ export const useUpdateStaffMember = () => {
       const { error } = await supabase.from("employees").update(patch).eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["staff_members"] }),
+    onSuccess: () => invalidateEmployeeCaches(qc),
   });
 };
 
@@ -211,7 +212,7 @@ export const useDeleteStaffMember = () => {
       const { error } = await supabase.from("employees").update({ payroll_status: "inactive" }).eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["staff_members"] }),
+    onSuccess: () => invalidateEmployeeCaches(qc),
   });
 };
 
