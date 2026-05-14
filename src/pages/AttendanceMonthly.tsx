@@ -16,6 +16,7 @@ import {
   useMonthlyAttendance, useHolidays, useUpsertHoliday, useDeleteHoliday, useSetAttendanceHours,
   type MonthlyAttendanceRow,
 } from "@/hooks/use-attendance-monthly";
+import { buildDisplayNames, splitFullName } from "@/lib/display-name";
 
 const DEPT_ORDER = ["Pit", "Floor", "Security", "Office"] as const;
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
