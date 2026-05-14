@@ -52,7 +52,7 @@ const NAV_ITEMS: NavItem[] = [
 
   // PIT — Break List, Live Tables, trackers, Attendance (parent), Rota (parent). Surveillance: read-only access to all.
   { to: "/breaklist", icon: ListChecks, label: "Break List", roles: ["super_admin", "manager", "floor_manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
-  { to: "/tables", icon: Table2, label: "Live Tables", roles: ["super_admin", "manager", "floor_manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
+  { to: "/tables", icon: Table2, label: "Live Tables", roles: ["super_admin", "manager", "floor_manager", "finance_manager", "surveillance"], section: "PIT" },
   { to: "/player-statistics", icon: Users, label: "Player Statistics", roles: ["super_admin", "manager", "floor_manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
   { to: "/table-tracker", icon: Target, label: "Table Check", roles: ["super_admin", "manager", "floor_manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
   { to: "/tables/analytics", icon: Target, label: "Table Analytics", roles: ["super_admin", "manager", "floor_manager", "finance_manager", "pit", "surveillance"], section: "PIT" },
@@ -60,7 +60,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: "__rota__", icon: CalendarDays, label: "Rota", roles: ["super_admin", "manager", "floor_manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
   { to: "/weekly-bonus", icon: Gift, label: "Weekly Bonus", roles: ["super_admin", "manager", "floor_manager", "finance_manager"], section: "PIT" },
   { to: "/pitbook", icon: MessageSquare, label: "Pitbook", roles: ["super_admin", "manager", "floor_manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
-  { to: "/incidents", icon: AlertTriangle, label: "Incidents", roles: ["super_admin", "manager", "floor_manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
+  { to: "/incidents", icon: AlertTriangle, label: "Incidents", roles: ["super_admin", "manager", "floor_manager", "finance_manager", "surveillance"], section: "PIT" },
 
   // CASHIER — Cage operations
   { to: "/cage", icon: Landmark, label: "Cage", roles: ["super_admin", "manager", "floor_manager", "cashier", "finance_manager"], section: "CASHIER" },
@@ -71,7 +71,7 @@ const NAV_ITEMS: NavItem[] = [
 
   // RECEPTION — Players & entry
   { to: "/reception", icon: DoorOpen, label: "Reception", roles: ["super_admin", "manager", "floor_manager", "reception", "cashier", "finance_manager"], section: "RECEPTION" },
-  { to: "/guests", icon: UserCheck, label: "Guests", roles: ["super_admin", "manager", "floor_manager", "pit", "reception", "finance_manager", "surveillance"], section: "RECEPTION" },
+  { to: "/guests", icon: UserCheck, label: "Guests", roles: ["super_admin", "manager", "floor_manager", "reception", "finance_manager", "surveillance"], section: "RECEPTION" },
   
   { to: "/blacklist", icon: ShieldAlert, label: "Blacklist", roles: ["super_admin", "manager", "floor_manager", "reception", "finance_manager", "surveillance"], section: "RECEPTION" },
 
