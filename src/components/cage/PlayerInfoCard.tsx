@@ -8,6 +8,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { ArrowDownToLine, ArrowUpFromLine, User } from "lucide-react";
 import CategoryBadge, { type PlayerCategory } from "@/components/player/CategoryBadge";
+import FlagBadges from "@/components/player/FlagBadges";
+import { splitTagsBySource } from "@/lib/player-tags";
 import { LazyImage } from "@/components/LazyImage";
 import type { Tables } from "@/integrations/supabase/types";
 import { getBusinessDate, businessDayHourUTC } from "@/lib/business-day";
