@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { UNIFIED_SHIFT_COLORS } from "@/lib/shift-colors";
+import { buildDisplayNames, splitFullName } from "@/lib/display-name";
 
 export type StaffDepartment = "security" | "cashier" | "bartender" | "hostess" | "waiter" | "cleaner" | "it" | "hr" | "driver" | "reception";
 
