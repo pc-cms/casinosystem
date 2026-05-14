@@ -10,7 +10,7 @@ import { logAction } from "@/lib/logging";
 import { offlineMutation } from "@/lib/offline-mutation";
 import { toast } from "sonner";
 
-// ============ DEALERS (= employees WHERE department='Live Game') ============
+// ============ DEALERS (= employees WHERE department='Pit') ============
 
 type DealerRow = {
   id: string;
@@ -52,7 +52,7 @@ export const useDealers = () => {
         .from("employees")
         .select("*")
         .eq("casino_id", casinoId)
-        .eq("department", "Live Game")
+        .eq("department", "Pit")
         .order("full_name");
       if (error) throw error;
       return (data ?? []).map(mapEmployeeToDealer);
@@ -69,7 +69,7 @@ export const useCreateDealer = () => {
       if (!casinoId) throw new Error("No casino");
       const position = is_pit_boss ? "Pit Boss" : category === "inspector" ? "Inspector" : category === "trainee" ? "Trainee" : "Dealer";
       const { error } = await supabase.from("employees").insert({
-        casino_id: casinoId, full_name: name, department: "Live Game", position,
+        casino_id: casinoId, full_name: name, department: "Pit", position,
         dealer_category: is_pit_boss ? null : (category as any),
         is_pit_boss, basic_salary: 0, payroll_status: "active",
       });

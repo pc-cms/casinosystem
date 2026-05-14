@@ -34,10 +34,10 @@ export async function prefetchPitData(qc: QueryClient, casinoId: string) {
     () => qc.prefetchQuery({
       queryKey: ["dealers", casinoId],
       queryFn: async () => {
-        // Phase 3: dealers = employees WHERE department='Live Game'
+        // Phase 3: dealers = employees WHERE department='Pit'
         const { data, error } = await supabase
           .from("employees").select("*")
-          .eq("casino_id", casinoId).eq("department", "Live Game").order("full_name");
+          .eq("casino_id", casinoId).eq("department", "Pit").order("full_name");
         if (error) throw error;
         return data;
       },
