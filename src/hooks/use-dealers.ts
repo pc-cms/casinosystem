@@ -1,9 +1,46 @@
+/**
+ * Phase 3: Dealer-keyed reads/writes go through `employees` (Live Game).
+ * Hooks alias employee_id → dealer_id and write employee_id (DB triggers
+ * keep the legacy `dealer_id` column in sync). Consumers stay unchanged.
+ */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { logAction } from "@/lib/logging";
 import { offlineMutation } from "@/lib/offline-mutation";
 import { toast } from "sonner";
+
+// ============ DEALERS (= employees WHERE department='Live Game') ============
+
+type DealerRow = {
+  id: string;
+  casino_id: string;
+  name: string;
+  is_active: boolean;
+  salary: number | null;
+  contract_start: string | null;
+  contract_end: string | null;
+  category: "dealer" | "inspector" | "trainee";
+  is_pit_boss: boolean;
+  onboarding_date: string | null;
+  photo_url: string | null;
+  created_at: string;
+};
+
+const mapEmployeeToDealer = (e: any): DealerRow => ({
+  id: e.id,
+  casino_id: e.casino_id,
+  name: e.full_name,
+  is_active: e.payroll_status === "active",
+  salary: e.basic_salary != null ? Number(e.basic_salary) : null,
+  contract_start: e.contract_start,
+  contract_end: e.contract_end,
+  category: (e.dealer_category as any) ?? "dealer",
+  is_pit_boss: !!e.is_pit_boss,
+  onboarding_date: e.onboarding_date,
+  photo_url: e.photo_url,
+  created_at: e.created_at,
+});
 
 export const useDealers = () => {
   const { casinoId } = useAuth();
@@ -12,12 +49,13 @@ export const useDealers = () => {
     queryFn: async () => {
       if (!casinoId) return [];
       const { data, error } = await supabase
-        .from("dealers")
+        .from("employees")
         .select("*")
         .eq("casino_id", casinoId)
-        .order("name");
+        .eq("department", "Live Game")
+        .order("full_name");
       if (error) throw error;
-      return data;
+      return (data ?? []).map(mapEmployeeToDealer);
     },
     enabled: !!casinoId,
   });
@@ -29,7 +67,12 @@ export const useCreateDealer = () => {
   return useMutation({
     mutationFn: async ({ name, category, is_pit_boss }: { name: string; category: string; is_pit_boss: boolean }) => {
       if (!casinoId) throw new Error("No casino");
-      const { error } = await supabase.from("dealers").insert({ casino_id: casinoId, name, category: category as any, is_pit_boss });
+      const position = is_pit_boss ? "Pit Boss" : category === "inspector" ? "Inspector" : category === "trainee" ? "Trainee" : "Dealer";
+      const { error } = await supabase.from("employees").insert({
+        casino_id: casinoId, full_name: name, department: "Live Game", position,
+        dealer_category: is_pit_boss ? null : (category as any),
+        is_pit_boss, basic_salary: 0, payroll_status: "active",
+      });
       if (error) throw error;
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["dealers"] }); toast.success("Staff added"); },
@@ -39,8 +82,21 @@ export const useCreateDealer = () => {
 export const useUpdateDealer = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, ...fields }: { id: string; name?: string; salary?: number | null; contract_start?: string | null; contract_end?: string | null; onboarding_date?: string | null; is_active?: boolean; category?: string; is_pit_boss?: boolean; photo_url?: string | null }) => {
-      const { error } = await supabase.from("dealers").update(fields as any).eq("id", id);
+    mutationFn: async ({ id, name, salary, contract_start, contract_end, onboarding_date, is_active, category, is_pit_boss, photo_url }: { id: string; name?: string; salary?: number | null; contract_start?: string | null; contract_end?: string | null; onboarding_date?: string | null; is_active?: boolean; category?: string; is_pit_boss?: boolean; photo_url?: string | null }) => {
+      const patch: any = {};
+      if (name !== undefined) patch.full_name = name;
+      if (salary !== undefined) patch.basic_salary = salary ?? 0;
+      if (contract_start !== undefined) patch.contract_start = contract_start;
+      if (contract_end !== undefined) patch.contract_end = contract_end;
+      if (onboarding_date !== undefined) patch.onboarding_date = onboarding_date;
+      if (is_active !== undefined) patch.payroll_status = is_active ? "active" : "inactive";
+      if (photo_url !== undefined) patch.photo_url = photo_url;
+      if (is_pit_boss !== undefined) {
+        patch.is_pit_boss = is_pit_boss;
+        if (is_pit_boss) patch.dealer_category = null;
+      }
+      if (category !== undefined && !is_pit_boss) patch.dealer_category = category;
+      const { error } = await supabase.from("employees").update(patch).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["dealers"] }),
@@ -51,14 +107,18 @@ export const useDeleteDealer = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("dealers").delete().eq("id", id);
+      // FK ON DELETE RESTRICT will block if history exists; UI should soft-deactivate instead.
+      const { error } = await supabase.from("employees").update({ payroll_status: "inactive" }).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["dealers"] }),
   });
 };
 
-// ============ PIT ROTA ============
+// ============ PIT ROTA — keyed by employee_id, aliased to dealer_id ============
+
+const aliasRotaRow = (r: any) => ({ ...r, dealer_id: r.employee_id });
+
 export const usePitRota = (date: string) => {
   const { casinoId } = useAuth();
   return useQuery({
@@ -66,12 +126,10 @@ export const usePitRota = (date: string) => {
     queryFn: async () => {
       if (!casinoId) return [];
       const { data, error } = await supabase
-        .from("pit_rota")
-        .select("*, dealers(name)")
-        .eq("casino_id", casinoId)
-        .eq("date", date);
+        .from("pit_rota").select("*")
+        .eq("casino_id", casinoId).eq("date", date);
       if (error) throw error;
-      return data;
+      return (data ?? []).map(aliasRotaRow);
     },
     enabled: !!casinoId,
   });
@@ -84,13 +142,10 @@ export const usePitRotaRange = (startDate: string, endDate: string) => {
     queryFn: async () => {
       if (!casinoId) return [];
       const { data, error } = await supabase
-        .from("pit_rota")
-        .select("*, dealers(name)")
-        .eq("casino_id", casinoId)
-        .gte("date", startDate)
-        .lte("date", endDate);
+        .from("pit_rota").select("*")
+        .eq("casino_id", casinoId).gte("date", startDate).lte("date", endDate);
       if (error) throw error;
-      return data;
+      return (data ?? []).map(aliasRotaRow);
     },
     enabled: !!casinoId,
   });
@@ -107,17 +162,15 @@ export const useSetPitRota = () => {
         operation: "upsert",
         payload: {
           casino_id: casinoId,
-          dealer_id: input.dealer_id,
+          employee_id: input.dealer_id, // dealer_id from useDealers IS employees.id now
           date: input.date,
           shift: input.shift as any,
           created_by: user.id,
         },
-        upsertConflict: "dealer_id,date",
+        upsertConflict: "casino_id,employee_id,date",
       });
       if (result.error) throw new Error(result.error);
-      if (!result.offline) {
-        await logAction(casinoId, "pit", "ROTA_SET", input);
-      }
+      if (!result.offline) await logAction(casinoId, "pit", "ROTA_SET", input);
       return { offline: result.offline };
     },
     onMutate: async (input) => {
@@ -126,14 +179,15 @@ export const useSetPitRota = () => {
       queries.forEach(([key, data]) => {
         if (!data) return;
         const idx = data.findIndex((r: any) => r.dealer_id === input.dealer_id && r.date === input.date);
-        const newEntry = { dealer_id: input.dealer_id, date: input.date, shift: input.shift, casino_id: casinoId, id: `temp-${Date.now()}`, created_by: user?.id };
+        const newEntry = { dealer_id: input.dealer_id, employee_id: input.dealer_id, date: input.date, shift: input.shift, casino_id: casinoId, id: `temp-${Date.now()}`, created_by: user?.id };
         const updated = [...data];
-        if (idx >= 0) { updated[idx] = { ...updated[idx], shift: input.shift }; } else { updated.push(newEntry); }
+        if (idx >= 0) updated[idx] = { ...updated[idx], shift: input.shift };
+        else updated.push(newEntry);
         qc.setQueryData(key, updated);
       });
       return { queries };
     },
-    onError: (_err) => { toast.error("Sync error (rota) — will retry", { duration: 2000 }); },
+    onError: () => { toast.error("Sync error (rota) — will retry", { duration: 2000 }); },
     onSettled: () => {},
   });
 };
@@ -144,28 +198,16 @@ export const useDeletePitRota = () => {
   return useMutation({
     mutationFn: async ({ dealer_id, date }: { dealer_id: string; date: string }) => {
       if (!casinoId) throw new Error("No casino");
-      // Delete via offline-aware update isn't supported; fall back to direct delete when online,
-      // and enqueue a "shift = null" upsert when offline so the cell visibly clears.
       if (navigator.onLine) {
         const { error } = await supabase
-          .from("pit_rota")
-          .delete()
-          .eq("casino_id", casinoId)
-          .eq("dealer_id", dealer_id)
-          .eq("date", date);
+          .from("pit_rota").delete()
+          .eq("casino_id", casinoId).eq("employee_id", dealer_id).eq("date", date);
         if (error) throw error;
       } else {
-        // Offline: enqueue an upsert that clears the shift; delete on next online sync via cleanup.
         const result = await offlineMutation({
-          table: "pit_rota",
-          operation: "upsert",
-          payload: {
-            casino_id: casinoId,
-            dealer_id,
-            date,
-            shift: null,
-          },
-          upsertConflict: "dealer_id,date",
+          table: "pit_rota", operation: "upsert",
+          payload: { casino_id: casinoId, employee_id: dealer_id, date, shift: null },
+          upsertConflict: "casino_id,employee_id,date",
           meta: { intent: "delete" },
         });
         if (result.error) throw new Error(result.error);
@@ -180,12 +222,15 @@ export const useDeletePitRota = () => {
       });
       return { queries };
     },
-    onError: (_err) => { toast.error("Sync error (rota delete) — will retry", { duration: 2000 }); },
+    onError: () => { toast.error("Sync error (rota delete) — will retry", { duration: 2000 }); },
     onSettled: () => {},
   });
 };
 
 // ============ DEALER ATTENDANCE ============
+
+const aliasAttRow = (a: any) => ({ ...a, dealer_id: a.employee_id });
+
 export const useDealerAttendance = (date: string) => {
   const { casinoId } = useAuth();
   return useQuery({
@@ -193,12 +238,10 @@ export const useDealerAttendance = (date: string) => {
     queryFn: async () => {
       if (!casinoId) return [];
       const { data, error } = await supabase
-        .from("dealer_attendance" as any)
-        .select("*")
-        .eq("casino_id", casinoId)
-        .eq("date", date);
+        .from("dealer_attendance" as any).select("*")
+        .eq("casino_id", casinoId).eq("date", date);
       if (error) throw error;
-      return data as any[];
+      return (data as any[] ?? []).map(aliasAttRow);
     },
     enabled: !!casinoId,
   });
@@ -215,13 +258,13 @@ export const useSetDealerAttendance = () => {
         operation: "upsert",
         payload: {
           casino_id: casinoId,
-          dealer_id: input.dealer_id,
+          employee_id: input.dealer_id,
           date: input.date,
           value: input.value,
           recorded_by: user.id,
           updated_at: new Date().toISOString(),
         },
-        upsertConflict: "casino_id,dealer_id,date",
+        upsertConflict: "casino_id,employee_id,date",
       });
       if (result.error) throw new Error(result.error);
       return { offline: result.offline };
@@ -233,13 +276,14 @@ export const useSetDealerAttendance = () => {
         if (!data) return;
         const idx = data.findIndex((a: any) => a.dealer_id === input.dealer_id && a.date === input.date);
         const updated = [...data];
-        const entry = { dealer_id: input.dealer_id, date: input.date, value: input.value, casino_id: casinoId };
-        if (idx >= 0) { updated[idx] = { ...updated[idx], value: input.value }; } else { updated.push(entry); }
+        const entry = { dealer_id: input.dealer_id, employee_id: input.dealer_id, date: input.date, value: input.value, casino_id: casinoId };
+        if (idx >= 0) updated[idx] = { ...updated[idx], value: input.value };
+        else updated.push(entry);
         qc.setQueryData(key, updated);
       });
       return { queries };
     },
-    onError: (_err) => { toast.error("Sync error (attendance) — will retry", { duration: 2000 }); },
+    onError: () => { toast.error("Sync error (attendance) — will retry", { duration: 2000 }); },
     onSettled: () => {},
   });
 };
@@ -251,19 +295,19 @@ export const useDealerAttendanceRange = (startDate: string, endDate: string) => 
     queryFn: async () => {
       if (!casinoId) return [];
       const { data, error } = await supabase
-        .from("dealer_attendance" as any)
-        .select("*")
-        .eq("casino_id", casinoId)
-        .gte("date", startDate)
-        .lte("date", endDate);
+        .from("dealer_attendance" as any).select("*")
+        .eq("casino_id", casinoId).gte("date", startDate).lte("date", endDate);
       if (error) throw error;
-      return data as any[];
+      return (data as any[] ?? []).map(aliasAttRow);
     },
     enabled: !!casinoId,
   });
 };
 
 // ============ BREAKLIST ============
+
+const aliasBreaklistRow = (b: any) => ({ ...b, dealer_id: b.employee_id });
+
 export const useBreaklistData = (date: string) => {
   const { casinoId } = useAuth();
   return useQuery({
@@ -272,11 +316,11 @@ export const useBreaklistData = (date: string) => {
       if (!casinoId) return [];
       const { data, error } = await supabase
         .from("breaklist")
-        .select("*, dealers(name), gaming_tables(name)")
+        .select("*, gaming_tables(name)")
         .eq("casino_id", casinoId)
         .eq("date", date);
       if (error) throw error;
-      return data;
+      return (data ?? []).map(aliasBreaklistRow);
     },
     enabled: !!casinoId,
   });
@@ -298,7 +342,7 @@ export const useSetBreaklistCell = () => {
       const payload = {
         casino_id: casinoId,
         date: input.date,
-        dealer_id: input.dealer_id,
+        employee_id: input.dealer_id, // employees.id
         time_slot: input.time_slot,
         role: input.role as any,
         table_id: input.table_id,
@@ -310,7 +354,7 @@ export const useSetBreaklistCell = () => {
         table: "breaklist",
         operation: "upsert",
         payload,
-        upsertConflict: "casino_id,date,dealer_id,time_slot",
+        upsertConflict: "casino_id,date,employee_id,time_slot",
         meta: { role: input.role, dealer_id: input.dealer_id, time_slot: input.time_slot },
       });
 
@@ -322,7 +366,7 @@ export const useSetBreaklistCell = () => {
           .select("id, role, table_id")
           .eq("casino_id", casinoId)
           .eq("date", input.date)
-          .eq("dealer_id", input.dealer_id)
+          .eq("employee_id", input.dealer_id)
           .eq("time_slot", input.time_slot)
           .maybeSingle();
 
@@ -330,7 +374,7 @@ export const useSetBreaklistCell = () => {
           await supabase.from("breaklist_logs").insert({
             casino_id: casinoId,
             breaklist_id: existing.id,
-            dealer_id: input.dealer_id,
+            dealer_id: input.dealer_id, // employees.id (audit only, not joined)
             date: input.date,
             time_slot: input.time_slot,
             action: "CELL_UPDATED",
@@ -354,25 +398,19 @@ export const useSetBreaklistCell = () => {
         if (!data) return;
         const idx = data.findIndex((b: any) => b.dealer_id === input.dealer_id && b.time_slot === input.time_slot);
         const updated = [...data];
-        const entry = { dealer_id: input.dealer_id, time_slot: input.time_slot, role: input.role, table_id: input.table_id, date: input.date, casino_id: casinoId, id: `temp-${Date.now()}`, is_locked: false };
-        if (idx >= 0) { updated[idx] = { ...updated[idx], role: input.role, table_id: input.table_id }; } else { updated.push(entry); }
+        const entry = { dealer_id: input.dealer_id, employee_id: input.dealer_id, time_slot: input.time_slot, role: input.role, table_id: input.table_id, date: input.date, casino_id: casinoId, id: `temp-${Date.now()}`, is_locked: false };
+        if (idx >= 0) updated[idx] = { ...updated[idx], role: input.role, table_id: input.table_id };
+        else updated.push(entry);
         qc.setQueryData(key, updated);
       });
       return { queries };
     },
     onError: (err: any, _input, ctx: any) => {
-      // Restore previous cache on failure so the optimistic write doesn't linger.
-      if (ctx?.queries) {
-        ctx.queries.forEach(([key, data]: [any, any]) => qc.setQueryData(key, data));
-      }
+      if (ctx?.queries) ctx.queries.forEach(([key, data]: [any, any]) => qc.setQueryData(key, data));
       const msg = err?.message || "Unknown error";
-      // Surface real reason (RLS / enum / network) instead of a generic toast.
       toast.error(`Breaklist not saved: ${msg}`, { duration: 4000 });
     },
-    onSettled: () => {
-      // Refetch so the grid reflects the authoritative server state (incl. is_locked, ids).
-      qc.invalidateQueries({ queryKey: ["breaklist"] });
-    },
+    onSettled: () => { qc.invalidateQueries({ queryKey: ["breaklist"] }); },
   });
 };
 

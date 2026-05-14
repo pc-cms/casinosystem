@@ -71,22 +71,65 @@ export const STAFF_SHIFT_LABELS: Record<string, string> = {
 
 export const STAFF_SHIFT_COLORS = UNIFIED_SHIFT_COLORS;
 
+// Phase 3: read employees (non-Live-Game), alias employee_id → staff_id, write employee_id (DB triggers fill legacy staff_id).
+
+const mapDept = (department: string, position: string | null): StaffDepartment => {
+  switch (department) {
+    case "Security":    return "security";
+    case "Cash Desk":   return "cashier";
+    case "Bar":         return "bartender";
+    case "Slots":       return position === "Waiter" ? "waiter" : "hostess";
+    case "Housekeeper": return "cleaner";
+    case "Office":      return position === "HR" ? "hr" : "it";
+    default:            return "cleaner";
+  }
+};
+
+const mapEmployeeToStaff = (e: any): StaffMember => ({
+  id: e.id,
+  casino_id: e.casino_id,
+  name: e.full_name,
+  department: mapDept(e.department, e.position),
+  is_active: e.payroll_status === "active",
+  salary: e.basic_salary != null ? Number(e.basic_salary) : null,
+  contract_start: e.contract_start,
+  contract_end: e.contract_end,
+  onboarding_date: e.onboarding_date,
+  created_at: e.created_at,
+});
+
 export const useStaffMembers = () => {
   const { casinoId } = useAuth();
   return useQuery({
     queryKey: ["staff_members", casinoId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("staff_members")
+        .from("employees")
         .select("*")
         .eq("casino_id", casinoId!)
+        .neq("department", "Live Game")
         .order("department")
-        .order("name");
+        .order("full_name");
       if (error) throw error;
-      return data as StaffMember[];
+      return (data ?? []).map(mapEmployeeToStaff);
     },
     enabled: !!casinoId,
   });
+};
+
+const reverseDept = (d: StaffDepartment): { department: string; position: string } => {
+  switch (d) {
+    case "security":  return { department: "Security",    position: "Security" };
+    case "cashier":   return { department: "Cash Desk",   position: "Cashier" };
+    case "bartender": return { department: "Bar",         position: "Bartender" };
+    case "hostess":   return { department: "Slots",       position: "Hostess" };
+    case "waiter":    return { department: "Slots",       position: "Waiter" };
+    case "cleaner":   return { department: "Housekeeper", position: "Housekeeper" };
+    case "it":
+    case "driver":    return { department: "Office",      position: "IT" };
+    case "hr":        return { department: "Office",      position: "HR" };
+    case "reception": return { department: "Slots",       position: "Hostess" };
+  }
 };
 
 export const useCreateStaffMember = () => {
@@ -94,9 +137,10 @@ export const useCreateStaffMember = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ name, department }: { name: string; department: StaffDepartment }) => {
+      const r = reverseDept(department);
       const { error } = await supabase
-        .from("staff_members")
-        .insert({ casino_id: casinoId!, name, department });
+        .from("employees")
+        .insert({ casino_id: casinoId!, full_name: name, department: r.department, position: r.position, basic_salary: 0, payroll_status: "active" });
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["staff_members"] }),
@@ -106,11 +150,16 @@ export const useCreateStaffMember = () => {
 export const useUpdateStaffMember = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, ...fields }: { id: string; name?: string; salary?: number | null; contract_start?: string | null; contract_end?: string | null; onboarding_date?: string | null; is_active?: boolean; photo_url?: string | null }) => {
-      const { error } = await supabase
-        .from("staff_members")
-        .update(fields)
-        .eq("id", id);
+    mutationFn: async ({ id, name, salary, contract_start, contract_end, onboarding_date, is_active, photo_url }: { id: string; name?: string; salary?: number | null; contract_start?: string | null; contract_end?: string | null; onboarding_date?: string | null; is_active?: boolean; photo_url?: string | null }) => {
+      const patch: any = {};
+      if (name !== undefined) patch.full_name = name;
+      if (salary !== undefined) patch.basic_salary = salary ?? 0;
+      if (contract_start !== undefined) patch.contract_start = contract_start;
+      if (contract_end !== undefined) patch.contract_end = contract_end;
+      if (onboarding_date !== undefined) patch.onboarding_date = onboarding_date;
+      if (is_active !== undefined) patch.payroll_status = is_active ? "active" : "inactive";
+      if (photo_url !== undefined) patch.photo_url = photo_url;
+      const { error } = await supabase.from("employees").update(patch).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["staff_members"] }),
@@ -121,12 +170,15 @@ export const useDeleteStaffMember = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("staff_members").delete().eq("id", id);
+      // FK ON DELETE RESTRICT blocks if history exists; soft-deactivate instead.
+      const { error } = await supabase.from("employees").update({ payroll_status: "inactive" }).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["staff_members"] }),
   });
 };
+
+const aliasStaffRow = (r: any) => ({ ...r, staff_id: r.employee_id });
 
 export const useStaffRotaRange = (startDate: string, endDate: string) => {
   const { casinoId } = useAuth();
@@ -134,13 +186,10 @@ export const useStaffRotaRange = (startDate: string, endDate: string) => {
     queryKey: ["staff_rota", casinoId, startDate, endDate],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("staff_rota")
-        .select("*")
-        .eq("casino_id", casinoId!)
-        .gte("date", startDate)
-        .lte("date", endDate);
+        .from("staff_rota").select("*")
+        .eq("casino_id", casinoId!).gte("date", startDate).lte("date", endDate);
       if (error) throw error;
-      return data as any[];
+      return (data ?? []).map(aliasStaffRow);
     },
     enabled: !!casinoId,
   });
@@ -155,16 +204,15 @@ export const useSetStaffRota = () => {
         .from("staff_rota")
         .upsert({
           casino_id: casinoId!,
-          staff_id,
+          employee_id: staff_id,
           date,
           shift,
           created_by: user!.id,
-        }, { onConflict: "casino_id,staff_id,date" });
+        }, { onConflict: "casino_id,employee_id,date" });
       if (error) throw error;
     },
     onMutate: async (vars) => {
       await qc.cancelQueries({ queryKey: ["staff_rota"] });
-      const prev = qc.getQueryData(["staff_rota", casinoId]) as any[];
       qc.setQueriesData({ queryKey: ["staff_rota"] }, (old: any[] | undefined) => {
         if (!old) return old;
         const idx = old.findIndex((r: any) => r.staff_id === vars.staff_id && r.date === vars.date);
@@ -173,9 +221,8 @@ export const useSetStaffRota = () => {
           copy[idx] = { ...copy[idx], shift: vars.shift };
           return copy;
         }
-        return [...old, { staff_id: vars.staff_id, date: vars.date, shift: vars.shift, casino_id: casinoId }];
+        return [...old, { staff_id: vars.staff_id, employee_id: vars.staff_id, date: vars.date, shift: vars.shift, casino_id: casinoId }];
       });
-      return { prev };
     },
     onSettled: () => qc.invalidateQueries({ queryKey: ["staff_rota"] }),
   });
@@ -187,11 +234,8 @@ export const useDeleteStaffRota = () => {
   return useMutation({
     mutationFn: async ({ staff_id, date }: { staff_id: string; date: string }) => {
       const { error } = await supabase
-        .from("staff_rota")
-        .delete()
-        .eq("casino_id", casinoId!)
-        .eq("staff_id", staff_id)
-        .eq("date", date);
+        .from("staff_rota").delete()
+        .eq("casino_id", casinoId!).eq("employee_id", staff_id).eq("date", date);
       if (error) throw error;
     },
     onMutate: async (vars) => {
@@ -211,13 +255,10 @@ export const useStaffAttendanceRange = (startDate: string, endDate: string) => {
     queryKey: ["staff_attendance", casinoId, startDate, endDate],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("staff_attendance")
-        .select("*")
-        .eq("casino_id", casinoId!)
-        .gte("date", startDate)
-        .lte("date", endDate);
+        .from("staff_attendance").select("*")
+        .eq("casino_id", casinoId!).gte("date", startDate).lte("date", endDate);
       if (error) throw error;
-      return data as any[];
+      return (data ?? []).map(aliasStaffRow);
     },
     enabled: !!casinoId,
   });
@@ -232,11 +273,11 @@ export const useSetStaffAttendance = () => {
         .from("staff_attendance")
         .upsert({
           casino_id: casinoId!,
-          staff_id,
+          employee_id: staff_id,
           date,
           value,
           recorded_by: user!.id,
-        }, { onConflict: "casino_id,staff_id,date" });
+        }, { onConflict: "casino_id,employee_id,date" });
       if (error) throw error;
     },
     onMutate: async (vars) => {
@@ -249,7 +290,7 @@ export const useSetStaffAttendance = () => {
           copy[idx] = { ...copy[idx], value: vars.value };
           return copy;
         }
-        return [...old, { staff_id: vars.staff_id, date: vars.date, value: vars.value, casino_id: casinoId }];
+        return [...old, { staff_id: vars.staff_id, employee_id: vars.staff_id, date: vars.date, value: vars.value, casino_id: casinoId }];
       });
     },
     onSettled: () => qc.invalidateQueries({ queryKey: ["staff_attendance"] }),
