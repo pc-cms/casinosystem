@@ -220,7 +220,7 @@ const CageHistoryView = () => {
                         className="border-b border-border last:border-0 cursor-pointer hover:bg-accent/30 transition-colors"
                       >
                         <td className="px-3 py-1.5 text-right font-mono text-[10px] text-muted-foreground">
-                          {new Date(cc.created_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
+                          {new Date(cc.created_at).toLocaleTimeString("en-GB", { timeZone: "Africa/Dar_es_Salaam", hour: "2-digit", minute: "2-digit" })}
                         </td>
                         <td className="px-3 py-1.5">{cashierMap.get(cc.counted_by) || "—"}</td>
                         <td className="px-3 py-1.5 text-right font-mono font-medium">{formatCurrency(Number(cc.total))}</td>
@@ -291,7 +291,7 @@ const CageHistoryView = () => {
                         <Badge variant="outline" className="text-[9px] py-0 h-4">{c.status}</Badge>
                       </td>
                       <td className="px-3 py-1.5 text-right font-mono text-[10px] text-muted-foreground">
-                        {new Date(c.created_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
+                        {new Date(c.created_at).toLocaleTimeString("en-GB", { timeZone: "Africa/Dar_es_Salaam", hour: "2-digit", minute: "2-digit" })}
                       </td>
                     </tr>
                   ))}
@@ -325,7 +325,7 @@ const CageHistoryView = () => {
                       <td className="px-3 py-1.5 text-right font-mono font-medium">{formatCurrency(Number(t.amount))}</td>
                       <td className="px-3 py-1.5 text-muted-foreground truncate max-w-xs">{t.note || "—"}</td>
                       <td className="px-3 py-1.5 text-right font-mono text-[10px] text-muted-foreground">
-                        {new Date(t.created_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
+                        {new Date(t.created_at).toLocaleTimeString("en-GB", { timeZone: "Africa/Dar_es_Salaam", hour: "2-digit", minute: "2-digit" })}
                       </td>
                     </tr>
                   ))}
@@ -370,7 +370,7 @@ const CageHistoryView = () => {
                           <td className="px-3 py-1.5 text-right font-mono font-medium">{formatCurrency(Number(t.amount))}</td>
                           <td className="px-3 py-1.5 text-muted-foreground truncate max-w-xs">{t.note || "—"}</td>
                           <td className="px-3 py-1.5 text-right font-mono text-[10px] text-muted-foreground">
-                            {new Date(t.created_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
+                            {new Date(t.created_at).toLocaleTimeString("en-GB", { timeZone: "Africa/Dar_es_Salaam", hour: "2-digit", minute: "2-digit" })}
                           </td>
                         </tr>
                       );
@@ -417,7 +417,7 @@ const TxTable = ({ title, rows, tableMap, variant }: {
                 {variant === "in" ? "+" : "−"}{formatCurrency(Number(tx.amount))}
               </td>
               <td className="px-3 py-1.5 text-right font-mono text-[10px] text-muted-foreground">
-                {new Date(tx.created_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
+                {new Date(tx.created_at).toLocaleTimeString("en-GB", { timeZone: "Africa/Dar_es_Salaam", hour: "2-digit", minute: "2-digit" })}
               </td>
             </tr>
           ))}
