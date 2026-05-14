@@ -12,7 +12,6 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { DateRangePresets, type DatePreset, presetRange } from "@/components/ui/date-range-presets";
 import CategoryBadge, { type PlayerCategory } from "@/components/player/CategoryBadge";
 import CasinoBadge from "@/components/player/CasinoBadge";
-import FlagBadges from "@/components/player/FlagBadges";
 import PlayerStatusTagsEditor from "@/components/player/PlayerStatusTagsEditor";
 import PlayerEditDialog from "@/components/PlayerEditDialog";
 import { fmtDate, fmtDateTime } from "@/lib/format-date";
