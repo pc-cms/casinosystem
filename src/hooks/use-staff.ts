@@ -107,7 +107,7 @@ export const useStaffMembers = () => {
         .from("employees")
         .select("*")
         .eq("casino_id", casinoId!)
-        .neq("department", "Live Game")
+        .neq("department", "Pit")
         .order("department")
         .order("full_name");
       if (error) throw error;
