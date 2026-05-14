@@ -38,6 +38,7 @@ export interface BonusPool {
   calculated_at: string | null;
 }
 
+// Phase 3: alias employee_id → dealer_id so consumers (Live-Game-keyed) stay unchanged.
 export const useWeeklyBonusEntries = (weekStart: string) => {
   const { casinoId } = useAuth();
   return useQuery({
@@ -50,7 +51,7 @@ export const useWeeklyBonusEntries = (weekStart: string) => {
         .eq("casino_id", casinoId)
         .eq("week_start", weekStart);
       if (error) throw error;
-      return (data ?? []) as unknown as BonusEntry[];
+      return ((data ?? []) as any[]).map((r) => ({ ...r, dealer_id: r.employee_id })) as unknown as BonusEntry[];
     },
     enabled: !!casinoId,
   });
@@ -81,17 +82,18 @@ export const useUpsertBonusEntry = () => {
   return useMutation({
     mutationFn: async (input: { dealer_id: string; week_start: string; extra_override?: number | null; bonus_points?: number }) => {
       if (!casinoId) throw new Error("No casino");
+      // Phase 3: input.dealer_id is employees.id; write employee_id, trigger fills legacy dealer_id.
       const { error } = await supabase
         .from("weekly_bonus_entries" as any)
         .upsert(
           {
             casino_id: casinoId,
-            dealer_id: input.dealer_id,
+            employee_id: input.dealer_id,
             week_start: input.week_start,
             extra_override: input.extra_override ?? null,
             bonus_points: input.bonus_points ?? 0,
-          },
-          { onConflict: "casino_id,dealer_id,week_start" },
+          } as any,
+          { onConflict: "casino_id,employee_id,week_start" },
         );
       if (error) throw error;
     },
