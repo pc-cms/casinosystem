@@ -114,7 +114,10 @@ export const useUpsertEmployee = () => {
       };
       if (employeeId) {
         const { error } = await supabase.from("employees").update({
-          full_name: emp.full_name, position: emp.position, department: emp.department,
+          full_name: emp.full_name,
+          ...(emp.first_name !== undefined ? { first_name: emp.first_name } : {}),
+          ...(emp.last_name  !== undefined ? { last_name:  emp.last_name  } : {}),
+          position: emp.position, department: emp.department,
           employment_date: emp.employment_date ?? emp.onboarding_date ?? null,
           onboarding_date: emp.onboarding_date ?? null,
           contract_start: emp.contract_start ?? null,
@@ -125,11 +128,14 @@ export const useUpsertEmployee = () => {
           nssf_number: emp.nssf_number, tax_id: emp.tax_id, gepf_number: emp.gepf_number,
           basic_salary: emp.basic_salary ?? 0, payroll_status: emp.payroll_status ?? "active",
           ...extended,
-        }).eq("id", employeeId);
+        } as any).eq("id", employeeId);
         if (error) throw error;
       } else {
         const { data, error } = await supabase.from("employees").insert({
-          casino_id: activeCasinoId, full_name: emp.full_name, position: emp.position ?? "",
+          casino_id: activeCasinoId, full_name: emp.full_name,
+          ...(emp.first_name !== undefined ? { first_name: emp.first_name } : {}),
+          ...(emp.last_name  !== undefined ? { last_name:  emp.last_name  } : {}),
+          position: emp.position ?? "",
           department: emp.department ?? "",
           employment_date: emp.employment_date ?? emp.onboarding_date ?? null,
           onboarding_date: emp.onboarding_date ?? null,
@@ -142,7 +148,7 @@ export const useUpsertEmployee = () => {
           basic_salary: emp.basic_salary ?? 0, payroll_status: emp.payroll_status ?? "active",
           created_by: user?.id, photo_url: emp.photo_url,
           ...extended,
-        }).select("id").single();
+        } as any).select("id").single();
         if (error) throw error;
         employeeId = data.id;
       }
