@@ -178,7 +178,7 @@ export const usePatchEmployee = () => {
   return useMutation({
     mutationFn: async ({ id, patch }: { id: string; patch: Partial<Employee> }) => {
       const allowed = [
-        "full_name","position","department","onboarding_date","employment_date",
+        "full_name","first_name","last_name","position","department","onboarding_date","employment_date",
         "contract_start","contract_end","is_pit_boss","dealer_category",
         "basic_salary","payroll_status","contract_type","birthday","phone",
         "job_description","general_details","intro_to_work","staff_rules_acknowledged",
