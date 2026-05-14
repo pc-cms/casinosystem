@@ -379,39 +379,38 @@ const StaffMaster = () => {
               <thead className={`${HEADER_BG} sticky top-0 z-20`}>
                 <tr className="border-b border-border [&_th]:px-2 [&_th]:h-8 [&_th]:text-[10px] [&_th]:uppercase [&_th]:tracking-wider [&_th]:text-muted-foreground [&_th]:font-semibold [&_th]:text-left [&_th]:whitespace-nowrap">
                   <th className={`sticky left-0 z-30 ${HEADER_BG}`} style={{ minWidth: STICKY.photo.w, width: STICKY.photo.w }}></th>
-                  <th className={`sticky z-30 ${HEADER_BG}`} style={{ left: STICKY.sn.left, minWidth: STICKY.sn.w, width: STICKY.sn.w }}>S/N</th>
-                  <th className={`sticky z-30 ${HEADER_BG} border-l border-border`} style={{ left: STICKY.first.left, minWidth: STICKY.first.w, width: STICKY.first.w }}>First Name</th>
-                  <th className={`sticky z-30 ${HEADER_BG} border-r border-border`} style={{ left: STICKY.last.left, minWidth: STICKY.last.w, width: STICKY.last.w }}>Last Name</th>
-                  <th className={calc}>Remain</th>
-                  <th>Dept</th>
-                  <th>Position</th>
-                  <th>Contract</th>
-                  <th className="text-right">Salary</th>
-                  <th>Joining</th>
-                  <th className={calc}>Exp YY</th>
-                  <th>Birthday</th>
-                  <th className={calc}>Age</th>
-                  <th>Phone</th>
-                  <th>Job Desc</th>
-                  <th>Gen Det</th>
-                  <th>Intro</th>
-                  <th>Rules</th>
-                  <th>Discip</th>
-                  <th>Confid</th>
-                  <th>Contr Start</th>
-                  <th>Contr End</th>
-                  <th className={calc}>End Mon</th>
-                  <th className="text-right">AL Earn</th>
-                  <th className="text-right">AL Used</th>
-                  <th className="text-right">AL Sold</th>
-                  <th>Corp Mail</th>
-                  <th>Gend</th>
-                  <th>Nation</th>
-                  <th>Lic Type</th>
-                  <th>Lic Av</th>
-                  <th>Pass Date</th>
-                  <th className={calc}>Renew</th>
-                  <th>Uniform</th>
+                  <SortHeaderTh sortKey="first_name" label="First Name" sticky left={STICKY.first.left} w={STICKY.first.w} extraClass="border-l border-border" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                  <SortHeaderTh sortKey="last_name" label="Last Name" sticky left={STICKY.last.left} w={STICKY.last.w} extraClass="border-r border-border" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                  <SortHeaderTh sortKey="remain" label="Remain" extraClass={calc} current={sortKey} dir={sortDir} onClick={toggleSort} />
+                  <SortHeaderTh sortKey="department" label="Dept" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                  <SortHeaderTh sortKey="position" label="Position" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                  <SortHeaderTh sortKey="contract_type" label="Contract" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                  <SortHeaderTh sortKey="basic_salary" label="Salary" align="right" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                  <SortHeaderTh sortKey="onboarding_date" label="Joining" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                  <SortHeaderTh sortKey="exp_years" label="Exp YY" extraClass={calc} current={sortKey} dir={sortDir} onClick={toggleSort} />
+                  <SortHeaderTh sortKey="birthday" label="Birthday" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                  <SortHeaderTh sortKey="age" label="Age" extraClass={calc} current={sortKey} dir={sortDir} onClick={toggleSort} />
+                  <SortHeaderTh sortKey="phone" label="Phone" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                  <SortHeaderTh sortKey="job_description" label="Job Desc" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                  <SortHeaderTh sortKey="general_details" label="Gen Det" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                  <SortHeaderTh sortKey="intro_to_work" label="Intro" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                  <SortHeaderTh sortKey="staff_rules_acknowledged" label="Rules" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                  <SortHeaderTh sortKey="disciplinary_acknowledged" label="Discip" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                  <SortHeaderTh sortKey="confidentiality_agreement" label="Confid" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                  <SortHeaderTh sortKey="contract_start" label="Contr Start" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                  <SortHeaderTh sortKey="contract_end" label="Contr End" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                  <SortHeaderTh sortKey="end_month" label="End Mon" extraClass={calc} current={sortKey} dir={sortDir} onClick={toggleSort} />
+                  <SortHeaderTh sortKey="annual_leave_earned" label="AL Earn" align="right" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                  <SortHeaderTh sortKey="annual_leave_used" label="AL Used" align="right" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                  <SortHeaderTh sortKey="annual_leave_sold" label="AL Sold" align="right" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                  <SortHeaderTh sortKey="corporate_mail" label="Corp Mail" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                  <SortHeaderTh sortKey="gender" label="Gend" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                  <SortHeaderTh sortKey="nationality" label="Nation" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                  <SortHeaderTh sortKey="license_type" label="Lic Type" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                  <SortHeaderTh sortKey="license_available" label="Lic Av" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                  <SortHeaderTh sortKey="license_pass_date" label="Pass Date" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                  <SortHeaderTh sortKey="renew_days" label="Renew" extraClass={calc} current={sortKey} dir={sortDir} onClick={toggleSort} />
+                  <SortHeaderTh sortKey="uniform_issued" label="Uniform" current={sortKey} dir={sortDir} onClick={toggleSort} />
                   <th></th>
                 </tr>
               </thead>
