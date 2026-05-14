@@ -13,6 +13,18 @@ import type { QueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { getBusinessDate } from "@/lib/business-day";
 import { fetchChipSnapshots } from "@/lib/chip-snapshots";
+import {
+  disambiguateNames,
+  fetchBreaklistRows,
+  fetchDealerAttendanceRows,
+  fetchPitRotaRows,
+  mapEmployeeToDealer,
+} from "@/hooks/use-dealers";
+
+const aliasEmployeeId = <T extends { employee_id?: string | null }>(row: T) => ({
+  ...row,
+  dealer_id: row.employee_id,
+});
 
 // In-flight guard so a remount of <PitShell> can't fire a second wave.
 const inFlight = new Map<string, Promise<void>>();
@@ -39,7 +51,8 @@ export async function prefetchPitData(qc: QueryClient, casinoId: string) {
           .from("employees").select("*")
           .eq("casino_id", casinoId).eq("department", "Pit").order("full_name");
         if (error) throw error;
-        return data;
+        const raw = data ?? [];
+        return disambiguateNames(raw.map(mapEmployeeToDealer), raw);
       },
     }),
     () => qc.prefetchQuery({
@@ -70,31 +83,19 @@ export async function prefetchPitData(qc: QueryClient, casinoId: string) {
     () => qc.prefetchQuery({
       queryKey: ["pit-rota-range", casinoId, monthStart, monthEnd],
       queryFn: async () => {
-        const { data, error } = await supabase
-          .from("pit_rota").select("*")
-          .eq("casino_id", casinoId).gte("date", monthStart).lte("date", monthEnd);
-        if (error) throw error;
-        return data;
+        return (await fetchPitRotaRows(casinoId, monthStart, monthEnd)).map(aliasEmployeeId);
       },
     }),
     () => qc.prefetchQuery({
       queryKey: ["dealer-attendance-range", casinoId, monthStart, monthEnd],
       queryFn: async () => {
-        const { data, error } = await supabase
-          .from("dealer_attendance" as any).select("*")
-          .eq("casino_id", casinoId).gte("date", monthStart).lte("date", monthEnd);
-        if (error) throw error;
-        return data as any[];
+        return (await fetchDealerAttendanceRows(casinoId, monthStart, monthEnd)).map(aliasEmployeeId);
       },
     }),
     () => qc.prefetchQuery({
       queryKey: ["breaklist", casinoId, today],
       queryFn: async () => {
-        const { data, error } = await supabase
-          .from("breaklist").select("*, gaming_tables(name)")
-          .eq("casino_id", casinoId).eq("date", today);
-        if (error) throw error;
-        return data;
+        return (await fetchBreaklistRows(casinoId, today)).map(aliasEmployeeId);
       },
     }),
     () => qc.prefetchQuery({

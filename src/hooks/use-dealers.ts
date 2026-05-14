@@ -13,7 +13,7 @@ import { buildDisplayNames, splitFullName } from "@/lib/display-name";
 
 // ============ DEALERS (= employees WHERE department='Pit') ============
 
-type DealerRow = {
+export type DealerRow = {
   id: string;
   casino_id: string;
   name: string;
@@ -28,7 +28,7 @@ type DealerRow = {
   created_at: string;
 };
 
-const mapEmployeeToDealer = (e: any): DealerRow => {
+export const mapEmployeeToDealer = (e: any): DealerRow => {
   const split = splitFullName(e.full_name);
   const first = (e.first_name && String(e.first_name).trim()) || split.first;
   // Show full_name as stored; user splits surname/name manually later.
@@ -50,7 +50,7 @@ const mapEmployeeToDealer = (e: any): DealerRow => {
 };
 
 /** Apply duplicate-full-name disambiguation: identical "Berta" + "Berta" → "Berta K", "Berta M". */
-const disambiguateNames = <T extends { id: string; name: string }>(
+export const disambiguateNames = <T extends { id: string; name: string }>(
   rows: T[],
   raw: any[]
 ): T[] => {
@@ -66,6 +66,52 @@ const disambiguateNames = <T extends { id: string; name: string }>(
   const map = buildDisplayNames(inputs);
   return rows.map((r) => ({ ...r, name: map.get(r.id) || r.name }));
 };
+
+const PAGE_SIZE = 1000;
+
+const fetchPaged = async <T,>(buildQuery: (from: number, to: number) => PromiseLike<{ data: any; error: any }>) => {
+  const rows: T[] = [];
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const { data, error } = await buildQuery(from, from + PAGE_SIZE - 1);
+    if (error) throw error;
+    const batch = data ?? [];
+    rows.push(...batch);
+    if (batch.length < PAGE_SIZE) break;
+  }
+  return rows;
+};
+
+export const fetchPitRotaRows = (casinoId: string, startDate: string, endDate = startDate) =>
+  fetchPaged<any>((from, to) => supabase
+    .from("pit_rota")
+    .select("*")
+    .eq("casino_id", casinoId)
+    .gte("date", startDate)
+    .lte("date", endDate)
+    .order("date")
+    .order("employee_id")
+    .range(from, to));
+
+export const fetchDealerAttendanceRows = (casinoId: string, startDate: string, endDate = startDate) =>
+  fetchPaged<any>((from, to) => supabase
+    .from("dealer_attendance" as any)
+    .select("*")
+    .eq("casino_id", casinoId)
+    .gte("date", startDate)
+    .lte("date", endDate)
+    .order("date")
+    .order("employee_id")
+    .range(from, to));
+
+export const fetchBreaklistRows = (casinoId: string, date: string) =>
+  fetchPaged<any>((from, to) => supabase
+    .from("breaklist")
+    .select("*, gaming_tables(name)")
+    .eq("casino_id", casinoId)
+    .eq("date", date)
+    .order("time_slot")
+    .order("employee_id")
+    .range(from, to));
 
 export const useDealers = () => {
   const { casinoId } = useAuth();
@@ -151,11 +197,7 @@ export const usePitRota = (date: string) => {
     queryKey: ["pit-rota", casinoId, date],
     queryFn: async () => {
       if (!casinoId) return [];
-      const { data, error } = await supabase
-        .from("pit_rota").select("*")
-        .eq("casino_id", casinoId).eq("date", date);
-      if (error) throw error;
-      return (data ?? []).map(aliasRotaRow);
+      return (await fetchPitRotaRows(casinoId, date)).map(aliasRotaRow);
     },
     enabled: !!casinoId,
   });
@@ -167,11 +209,7 @@ export const usePitRotaRange = (startDate: string, endDate: string) => {
     queryKey: ["pit-rota-range", casinoId, startDate, endDate],
     queryFn: async () => {
       if (!casinoId) return [];
-      const { data, error } = await supabase
-        .from("pit_rota").select("*")
-        .eq("casino_id", casinoId).gte("date", startDate).lte("date", endDate);
-      if (error) throw error;
-      return (data ?? []).map(aliasRotaRow);
+      return (await fetchPitRotaRows(casinoId, startDate, endDate)).map(aliasRotaRow);
     },
     enabled: !!casinoId,
   });
@@ -263,11 +301,7 @@ export const useDealerAttendance = (date: string) => {
     queryKey: ["dealer-attendance", casinoId, date],
     queryFn: async () => {
       if (!casinoId) return [];
-      const { data, error } = await supabase
-        .from("dealer_attendance" as any).select("*")
-        .eq("casino_id", casinoId).eq("date", date);
-      if (error) throw error;
-      return (data as any[] ?? []).map(aliasAttRow);
+      return (await fetchDealerAttendanceRows(casinoId, date)).map(aliasAttRow);
     },
     enabled: !!casinoId,
   });
@@ -320,11 +354,7 @@ export const useDealerAttendanceRange = (startDate: string, endDate: string) => 
     queryKey: ["dealer-attendance-range", casinoId, startDate, endDate],
     queryFn: async () => {
       if (!casinoId) return [];
-      const { data, error } = await supabase
-        .from("dealer_attendance" as any).select("*")
-        .eq("casino_id", casinoId).gte("date", startDate).lte("date", endDate);
-      if (error) throw error;
-      return (data as any[] ?? []).map(aliasAttRow);
+      return (await fetchDealerAttendanceRows(casinoId, startDate, endDate)).map(aliasAttRow);
     },
     enabled: !!casinoId,
   });
@@ -340,13 +370,7 @@ export const useBreaklistData = (date: string) => {
     queryKey: ["breaklist", casinoId, date],
     queryFn: async () => {
       if (!casinoId) return [];
-      const { data, error } = await supabase
-        .from("breaklist")
-        .select("*, gaming_tables(name)")
-        .eq("casino_id", casinoId)
-        .eq("date", date);
-      if (error) throw error;
-      return (data ?? []).map(aliasBreaklistRow);
+      return (await fetchBreaklistRows(casinoId, date)).map(aliasBreaklistRow);
     },
     enabled: !!casinoId,
   });
