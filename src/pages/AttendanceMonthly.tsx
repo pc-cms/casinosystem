@@ -16,6 +16,7 @@ import {
   useMonthlyAttendance, useHolidays, useUpsertHoliday, useDeleteHoliday, useSetAttendanceHours,
   type MonthlyAttendanceRow,
 } from "@/hooks/use-attendance-monthly";
+import { buildDisplayNames, splitFullName } from "@/lib/display-name";
 
 const DEPT_ORDER = ["Pit", "Floor", "Security", "Office"] as const;
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
@@ -68,6 +69,17 @@ const AttendanceMonthly = () => {
     for (const k of Object.keys(by)) by[k].sort((a, b) => a.meta.full_name.localeCompare(b.meta.full_name));
     return by;
   }, [employees]);
+
+  // Disambiguate first names across all visible employees (e.g. "Berta" + "Berta" → "Berta K", "Berta M").
+  const displayNameMap = useMemo(() => {
+    const inputs = employees.map((e) => {
+      const split = splitFullName(e.meta.full_name);
+      return { id: e.meta.employee_id, first: split.first, last: split.last };
+    });
+    return buildDisplayNames(inputs);
+  }, [employees]);
+  const displayName = (e: { meta: MonthlyAttendanceRow }) =>
+    displayNameMap.get(e.meta.employee_id) || firstName(e.meta.full_name);
 
   const holidayByDay = useMemo(() => {
     const m = new Map<number, { name: string; multiplier: number; id: string }>();
@@ -167,7 +179,7 @@ const AttendanceMonthly = () => {
                       <tr key={e.meta.employee_id} className="border-t border-border hover:bg-muted/20">
                         <td className="sticky left-0 z-10 bg-card px-2 py-0.5 font-sans">
                           <div className="font-medium text-xs flex items-center gap-1">
-                            {firstName(e.meta.full_name)}
+                            {displayName(e)}
                             {e.meta.is_pit_boss && <Badge variant="secondary" className="px-1 text-[9px]">PB</Badge>}
                             {e.meta.dealer_category === "dealer" && <Badge variant="outline" className="px-1 text-[9px]">D</Badge>}
                             {e.meta.dealer_category === "inspector" && <Badge variant="outline" className="px-1 text-[9px]">I</Badge>}
@@ -196,7 +208,7 @@ const AttendanceMonthly = () => {
                               key={d}
                               className={`text-center border-l border-border px-0.5 py-0.5 ${cellBg}`}
                               onClick={canEdit ? () => {
-                                const v = prompt(`Hours for ${firstName(e.meta.full_name)} on ${d} ${MONTHS[cursor.getMonth()]} (current ${display}):`, h ? String(h) : "");
+                                const v = prompt(`Hours for ${displayName(e)} on ${d} ${MONTHS[cursor.getMonth()]} (current ${display}):`, h ? String(h) : "");
                                 if (v === null) return;
                                 const n = Number(v);
                                 if (Number.isFinite(n) && n >= 0 && n <= 24) {
