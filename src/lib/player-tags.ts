@@ -68,3 +68,18 @@ const TAG_INDEX: Record<string, PlayerTagDef> = (() => {
 })();
 
 export const getTagDef = (tag: string): PlayerTagDef | undefined => TAG_INDEX[tag];
+
+export type PlayerTagSource = "floor" | "cctv";
+
+/** Group raw player_tags rows by source. Treats missing source as 'floor'. */
+export const splitTagsBySource = (
+  rows: Array<{ tag: string; source?: string | null }> | null | undefined,
+): { floor: string[]; cctv: string[] } => {
+  const floor: string[] = [];
+  const cctv: string[] = [];
+  for (const r of rows || []) {
+    if ((r.source || "floor") === "cctv") cctv.push(r.tag);
+    else floor.push(r.tag);
+  }
+  return { floor, cctv };
+};
