@@ -245,7 +245,7 @@ const Guests = () => {
         {r.isCandidate && <p className="text-[9px] text-muted-foreground italic">Not checked in today</p>}
       </td>
       <td className="px-2 py-1.5 min-w-[280px]">
-        {r.tags.length > 0 ? <FlagBadges tags={r.tags} compact /> : <span className="text-muted-foreground text-[10px]">·</span>}
+        <span className="text-muted-foreground text-[10px]">·</span>
       </td>
       <td className="px-1 py-1.5 w-[70px]">
         {r.playerType ? <Badge className={`${TYPE_CLASSES[r.playerType] || ""} text-[10px]`}>{TYPE_LABELS[r.playerType] || r.playerType}</Badge> : <span className="text-muted-foreground text-[10px]">·</span>}
