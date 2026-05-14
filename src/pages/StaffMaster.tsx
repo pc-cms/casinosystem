@@ -423,10 +423,11 @@ const StaffMaster = () => {
           <div className="w-full overflow-auto rounded-md border border-border max-h-[calc(100vh-180px)]">
             <table className="text-xs border-collapse min-w-max">
               <thead className={`${HEADER_BG} sticky top-0 z-20`}>
-                <tr className="border-b border-border [&_th]:px-2 [&_th]:h-8 [&_th]:text-[10px] [&_th]:uppercase [&_th]:tracking-wider [&_th]:text-muted-foreground [&_th]:font-semibold [&_th]:text-left [&_th]:whitespace-nowrap">
+                <tr className="border-b border-border [&_th]:px-2 [&_th]:h-8 [&_th]:text-[10px] [&_th]:uppercase [&_th]:tracking-wider [&_th]:text-muted-foreground [&_th]:font-semibold [&_th]:text-left [&_th]:whitespace-nowrap [&_th]:border-r [&_th]:border-border/40">
                   <th className={`sticky left-0 z-30 ${HEADER_BG}`} style={{ minWidth: STICKY.photo.w, width: STICKY.photo.w }}></th>
-                  <SortHeaderTh sortKey="first_name" label="First Name" sticky left={STICKY.first.left} w={STICKY.first.w} extraClass="border-l border-border" current={sortKey} dir={sortDir} onClick={toggleSort} />
-                  <SortHeaderTh sortKey="last_name" label="Last Name" sticky left={STICKY.last.left} w={STICKY.last.w} extraClass="border-r border-border" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                  <th className={`sticky z-30 ${HEADER_BG} text-center`} style={{ left: STICKY.sn.left, minWidth: STICKY.sn.w, width: STICKY.sn.w }}>#</th>
+                  <SortHeaderTh sortKey="first_name" label="Name" sticky left={STICKY.first.left} w={STICKY.first.w} extraClass="border-l border-border" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                  <SortHeaderTh sortKey="last_name" label="Surname" sticky left={STICKY.last.left} w={STICKY.last.w} extraClass="border-r border-border" current={sortKey} dir={sortDir} onClick={toggleSort} />
                   <SortHeaderTh sortKey="remain" label="Remain" extraClass={calc} current={sortKey} dir={sortDir} onClick={toggleSort} />
                   <SortHeaderTh sortKey="department" label="Dept" current={sortKey} dir={sortDir} onClick={toggleSort} />
                   <SortHeaderTh sortKey="position" label="Position" current={sortKey} dir={sortDir} onClick={toggleSort} />
