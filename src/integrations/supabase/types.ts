@@ -4211,7 +4211,7 @@ export type Database = {
         Args: {
           _casino_id: string
           _force_close_cycles?: boolean
-          _method?: string
+          _method: string
         }
         Returns: Json
       }
