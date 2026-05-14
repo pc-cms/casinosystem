@@ -10,6 +10,7 @@ import { logAction } from "@/lib/logging";
 import { offlineMutation } from "@/lib/offline-mutation";
 import { toast } from "sonner";
 import { buildDisplayNames, splitFullName } from "@/lib/display-name";
+import { invalidateEmployeeCaches } from "@/lib/invalidate-employees";
 
 // ============ DEALERS (= employees WHERE department='Pit') ============
 
@@ -148,7 +149,7 @@ export const useCreateDealer = () => {
       });
       if (error) throw error;
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["dealers"] }); toast.success("Staff added"); },
+    onSuccess: () => { invalidateEmployeeCaches(qc); toast.success("Staff added"); },
   });
 };
 
@@ -172,7 +173,7 @@ export const useUpdateDealer = () => {
       const { error } = await supabase.from("employees").update(patch).eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["dealers"] }),
+    onSuccess: () => invalidateEmployeeCaches(qc),
   });
 };
 
@@ -184,7 +185,7 @@ export const useDeleteDealer = () => {
       const { error } = await supabase.from("employees").update({ payroll_status: "inactive" }).eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["dealers"] }),
+    onSuccess: () => invalidateEmployeeCaches(qc),
   });
 };
 
