@@ -119,23 +119,28 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
   const breaklistDealers = useMemo(() => {
     const rotaDealerIds = new Set(rotaDealers.map(r => r.dealerId));
     // Pit Bosses must NOT appear; absent dealers (A) must NOT appear either.
+    // If the rota/feed cache is temporarily out of sync, keep the grid usable by
+    // showing all active non-PB dealers so Pit can still enter cells immediately.
     const filtered = activeDealers.filter(
       d => rotaDealerIds.has(d.id) && !(d as any).is_pit_boss && !absentDealerIds.has(d.id),
     );
+    const rows = filtered.length > 0
+      ? filtered
+      : activeDealers.filter(d => !(d as any).is_pit_boss && !absentDealerIds.has(d.id));
     const shiftOrder: Record<string, number> = { M: 0, N: 1, E: 2 };
     const categoryOrder: Record<string, number> = { trainee: 0, dealer: 1, inspector: 2, expert: 3, pit_boss: 4 };
     if (sortBy === "name") {
-      return [...filtered].sort((a, b) => a.name.localeCompare(b.name));
+      return [...rows].sort((a, b) => a.name.localeCompare(b.name));
     }
     if (sortBy === "category") {
-      return [...filtered].sort((a, b) => {
+      return [...rows].sort((a, b) => {
         const ca = categoryOrder[a.category] ?? 99;
         const cb = categoryOrder[b.category] ?? 99;
         return ca !== cb ? ca - cb : a.name.localeCompare(b.name);
       });
     }
     // shift
-    return [...filtered].sort((a, b) => {
+    return [...rows].sort((a, b) => {
       const sa = rotaDealers.find(r => r.dealerId === a.id)?.shift || "Z";
       const sb = rotaDealers.find(r => r.dealerId === b.id)?.shift || "Z";
       const diff = (shiftOrder[sa] ?? 9) - (shiftOrder[sb] ?? 9);
