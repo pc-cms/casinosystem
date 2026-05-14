@@ -631,7 +631,7 @@ const NewEmployeeRow = ({ casinoId, onSave }: {
 
   const tryCommit = () => {
     if (!casinoId) return;
-    if (!v.first.trim() || !v.last.trim()) return;
+    if (!v.first.trim() && !v.last.trim()) return;
     if (!v.department) return;
     if (!v.position) return;
     const cat = deriveCategory(v.department, v.position);
