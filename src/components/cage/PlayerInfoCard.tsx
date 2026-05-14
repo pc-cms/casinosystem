@@ -163,22 +163,26 @@ const PlayerInfoCard = ({ player, tables, shiftTransactions = [] }: Props) => {
         </div>
       </div>
 
-      {/* Tags — two rows (floor + cctv), big ~15 px emojis. */}
-      <div className="mt-3 pt-3 border-t border-border w-full text-left space-y-1">
-        <div className="flex items-center gap-2">
-          <span className="text-[10px] uppercase text-muted-foreground tracking-wider font-mono w-10 shrink-0">
+      {/* Tags — two rows (floor + cctv), 25 px emojis. Wraps cleanly on narrow screens. */}
+      <div className="mt-3 pt-3 border-t border-border w-full text-left space-y-1.5">
+        <div className="flex items-start gap-2 min-w-0">
+          <span className="text-[10px] uppercase text-muted-foreground tracking-wider font-mono w-10 shrink-0 pt-1">
             Tags
           </span>
-          {floorTags.length > 0
-            ? <FlagBadges tags={floorTags} size="lg15" />
-            : <span className="text-[11px] text-muted-foreground/60">—</span>}
+          <div className="flex-1 min-w-0">
+            {floorTags.length > 0
+              ? <FlagBadges tags={floorTags} size="lg15" />
+              : <span className="text-[11px] text-muted-foreground/60">—</span>}
+          </div>
         </div>
         {cctvTags.length > 0 && (
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] uppercase text-muted-foreground tracking-wider font-mono w-10 shrink-0">
+          <div className="flex items-start gap-2 min-w-0">
+            <span className="text-[10px] uppercase text-muted-foreground tracking-wider font-mono w-10 shrink-0 pt-1">
               CCTV
             </span>
-            <FlagBadges tags={cctvTags} size="lg15" />
+            <div className="flex-1 min-w-0">
+              <FlagBadges tags={cctvTags} size="lg15" />
+            </div>
           </div>
         )}
       </div>
