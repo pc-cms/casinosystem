@@ -942,11 +942,13 @@ const StaffAttendanceGrid = ({ month, monthLabel, groupKey = "floor", readOnly =
     if (!closedDates || closedDates.size === 0) return;
 
     const todayBd = effectiveBusinessDate || getBusinessDate();
+    if (!todayBd) return;
     for (const s of activeStaff) {
       for (let day = 1; day <= daysInMonth; day++) {
         const dateStr = `${month}-${String(day).padStart(2, "0")}`;
-        // HARD GUARD: never auto-fill the current open business day.
-        if (dateStr === todayBd) continue;
+        // HARD GUARD #1: never auto-fill current open business day or future.
+        if (dateStr >= todayBd) continue;
+        // HARD GUARD #2: closure record must exist for that date.
         if (!closedDates.has(dateStr)) continue;
         const key = `${s.id}|${dateStr}`;
         if (autoFilledRef.current.has(key)) continue;

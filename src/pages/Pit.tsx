@@ -893,13 +893,16 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
     if (!closedDates || closedDates.size === 0) return;
 
     const todayBd = effectiveBusinessDate || getBusinessDate();
+    // Без known todayBd auto-fill вообще не работает — иначе stale cache может
+    // подтянуть текущий открытый день и записать в него 9 часов.
+    if (!todayBd) return;
     const allActive = [...activeDealers, ...pitBosses];
     for (const d of allActive) {
       for (let day = 1; day <= daysInMonth; day++) {
         const dateStr = `${month}-${String(day).padStart(2, "0")}`;
-        // HARD GUARD: never auto-fill the current open business day,
-        // even if it somehow appears in closedDates.
-        if (dateStr === todayBd) continue;
+        // HARD GUARD #1: never auto-fill the current open business day OR future.
+        if (dateStr >= todayBd) continue;
+        // HARD GUARD #2: closure record must exist for that date.
         if (!closedDates.has(dateStr)) continue;
         const key = `${d.id}|${dateStr}`;
         if (autoFilledRef.current.has(key)) continue;
