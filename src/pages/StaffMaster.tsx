@@ -337,9 +337,10 @@ const StaffMaster = () => {
 
   const onPatchName = useCallback(
     (e: Employee, first: string | null, last: string | null) => {
-      const next = joinName(first ?? splitName(e.full_name).first, last ?? splitName(e.full_name).last);
-      if (!next) { toast.error("Name cannot be empty"); return; }
-      patch.mutate({ id: e.id, patch: { full_name: next } as any });
+      const nextFirst = first !== null ? first.trim() : (e.first_name ?? "").trim();
+      const nextLast = last !== null ? last.trim() : (e.last_name ?? "").trim();
+      if (!nextFirst && !nextLast) { toast.error("Name cannot be empty"); return; }
+      patch.mutate({ id: e.id, patch: { first_name: nextFirst, last_name: nextLast } as any });
     },
     [patch],
   );
