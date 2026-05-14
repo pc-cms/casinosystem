@@ -204,6 +204,52 @@ const sortEmployees = (list: Employee[], key: SortKey, dir: SortDir): Employee[]
   });
 };
 
+function SortHeaderTh({
+  sortKey: key,
+  label,
+  sticky: isSticky,
+  left,
+  w,
+  extraClass,
+  align,
+  current,
+  dir,
+  onClick,
+}: {
+  sortKey: SortKey;
+  label: string;
+  sticky?: boolean;
+  left?: number;
+  w?: number;
+  extraClass?: string;
+  align?: "left" | "right" | "center";
+  current: SortKey | null;
+  dir: SortDir;
+  onClick: (k: SortKey) => void;
+}) {
+  const active = current === key;
+  const alignCls = align === "right" ? "text-right" : align === "center" ? "text-center" : "text-left";
+  const stickyStyle = isSticky && left !== undefined && w !== undefined
+    ? { position: "sticky" as const, left, minWidth: w, width: w, maxWidth: w, zIndex: 30 }
+    : undefined;
+  return (
+    <th
+      onClick={() => onClick(key)}
+      className={`cursor-pointer select-none hover:text-foreground transition-colors ${alignCls} ${extraClass ?? ""} ${isSticky ? HEADER_BG : ""}`}
+      style={stickyStyle}
+    >
+      <span className="inline-flex items-center gap-1">
+        {label}
+        {active ? (
+          dir === "asc" ? <ArrowUp className="w-3 h-3 text-primary" /> : <ArrowDown className="w-3 h-3 text-primary" />
+        ) : (
+          <ArrowUpDown className="w-3 h-3 opacity-30" />
+        )}
+      </span>
+    </th>
+  );
+}
+
 const StaffMaster = () => {
   const { roles } = useAuth();
   const { activeCasinoId } = useCasino();
