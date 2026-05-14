@@ -103,10 +103,13 @@ const mapDept = (department: string, position: string | null): StaffDepartment =
 const mapEmployeeToStaff = (e: any): StaffMember => {
   const split = splitFullName(e.full_name);
   const first = (e.first_name && String(e.first_name).trim()) || split.first;
+  // Display the full name as stored — user splits surname/name manually in Staff Master.
+  // Disambiguation by surname-initial only kicks in when full_name itself collides.
+  const displayName = (e.full_name && String(e.full_name).trim()) || first;
   return {
     id: e.id,
     casino_id: e.casino_id,
-    name: first,
+    name: displayName,
     department: mapDept(e.department, e.position),
     is_active: e.payroll_status === "active",
     salary: e.basic_salary != null ? Number(e.basic_salary) : null,
@@ -131,11 +134,13 @@ export const useStaffMembers = () => {
         .order("full_name");
       if (error) throw error;
       const raw = data ?? [];
+      // Disambiguate by full_name collisions (not first_name) — full_name is what we display.
       const inputs = raw.map((e: any) => {
         const split = splitFullName(e.full_name);
+        const fullDisplay = (e.full_name && String(e.full_name).trim()) || split.first;
         return {
           id: e.id,
-          first: (e.first_name && String(e.first_name).trim()) || split.first,
+          first: fullDisplay,
           last: (e.last_name && String(e.last_name).trim()) || split.last,
         };
       });

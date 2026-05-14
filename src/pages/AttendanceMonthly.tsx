@@ -70,16 +70,17 @@ const AttendanceMonthly = () => {
     return by;
   }, [employees]);
 
-  // Disambiguate first names across all visible employees (e.g. "Berta" + "Berta" → "Berta K", "Berta M").
+  // Display the FULL name as stored; disambiguate only when full_names collide.
   const displayNameMap = useMemo(() => {
     const inputs = employees.map((e) => {
       const split = splitFullName(e.meta.full_name);
-      return { id: e.meta.employee_id, first: split.first, last: split.last };
+      const fullDisplay = (e.meta.full_name && String(e.meta.full_name).trim()) || split.first;
+      return { id: e.meta.employee_id, first: fullDisplay, last: split.last };
     });
     return buildDisplayNames(inputs);
   }, [employees]);
   const displayName = (e: { meta: MonthlyAttendanceRow }) =>
-    displayNameMap.get(e.meta.employee_id) || firstName(e.meta.full_name);
+    displayNameMap.get(e.meta.employee_id) || (e.meta.full_name || firstName(e.meta.full_name));
 
   const holidayByDay = useMemo(() => {
     const m = new Map<number, { name: string; multiplier: number; id: string }>();
