@@ -100,19 +100,22 @@ const mapDept = (department: string, position: string | null): StaffDepartment =
   }
 };
 
-const mapEmployeeToStaff = (e: any): StaffMember => ({
-  id: e.id,
-  casino_id: e.casino_id,
-  // Rota/Attendance display: prefer first name (we work by first names in casino).
-  name: (e.first_name && String(e.first_name).trim()) || (e.full_name ? String(e.full_name).split(/\s+/)[0] : ""),
-  department: mapDept(e.department, e.position),
-  is_active: e.payroll_status === "active",
-  salary: e.basic_salary != null ? Number(e.basic_salary) : null,
-  contract_start: e.contract_start,
-  contract_end: e.contract_end,
-  onboarding_date: e.onboarding_date,
-  created_at: e.created_at,
-});
+const mapEmployeeToStaff = (e: any): StaffMember => {
+  const split = splitFullName(e.full_name);
+  const first = (e.first_name && String(e.first_name).trim()) || split.first;
+  return {
+    id: e.id,
+    casino_id: e.casino_id,
+    name: first,
+    department: mapDept(e.department, e.position),
+    is_active: e.payroll_status === "active",
+    salary: e.basic_salary != null ? Number(e.basic_salary) : null,
+    contract_start: e.contract_start,
+    contract_end: e.contract_end,
+    onboarding_date: e.onboarding_date,
+    created_at: e.created_at,
+  };
+};
 
 export const useStaffMembers = () => {
   const { casinoId } = useAuth();
@@ -127,7 +130,20 @@ export const useStaffMembers = () => {
         .order("department")
         .order("full_name");
       if (error) throw error;
-      return (data ?? []).map(mapEmployeeToStaff);
+      const raw = data ?? [];
+      const inputs = raw.map((e: any) => {
+        const split = splitFullName(e.full_name);
+        return {
+          id: e.id,
+          first: (e.first_name && String(e.first_name).trim()) || split.first,
+          last: (e.last_name && String(e.last_name).trim()) || split.last,
+        };
+      });
+      const dispMap = buildDisplayNames(inputs);
+      return raw.map((e: any) => {
+        const m = mapEmployeeToStaff(e);
+        return { ...m, name: dispMap.get(m.id) || m.name };
+      });
     },
     enabled: !!casinoId,
   });
