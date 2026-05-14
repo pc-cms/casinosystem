@@ -291,7 +291,11 @@ const StaffMaster = () => {
       if (sortKey) {
         by[k] = sortEmployees(by[k], sortKey, sortDir);
       } else {
-        by[k].sort((a, b) => a.full_name.localeCompare(b.full_name));
+        by[k].sort((a, b) =>
+          ((a.first_name ?? "").toLowerCase().localeCompare((b.first_name ?? "").toLowerCase())) ||
+          ((a.last_name  ?? "").toLowerCase().localeCompare((b.last_name  ?? "").toLowerCase())) ||
+          a.full_name.localeCompare(b.full_name)
+        );
       }
     }
     return by;
