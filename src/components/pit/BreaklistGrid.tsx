@@ -77,7 +77,8 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
   const setCell = useSetBreaklistCell();
   const setAttendance = useSetDealerAttendance();
   const lockCell = useLockBreaklistCell();
-  const { isManager } = useAuth();
+  const { isManager, roles } = useAuth();
+  const isPit = roles.includes("pit");
 
   const activeDealers = dealers.filter(d => d.is_active);
   const openTables = tables.filter(t => t.status === "open");
@@ -151,8 +152,10 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
   const { data: effectiveBusinessDate } = useEffectiveBusinessDate();
   const isToday = !!effectiveBusinessDate && date === effectiveBusinessDate;
   const pastLock = isToday && isAfterBreaklistLock(casino?.breaklist_lock || "05:30");
-  // Editable if it's today AND not past lock time (or if manager)
-  const isEditable = isToday && (!pastLock || isManager);
+  // Editable if it's today AND not past lock time (or if manager / pit operator).
+  // Pit role is the on-duty operator and must be able to prepare the breaklist
+  // ahead of the 18:00 shift start, so they bypass the morning-lock window.
+  const isEditable = isToday && (!pastLock || isManager || isPit);
 
   // Inline role picker state
   const [activeCell, setActiveCell] = useState<{ dealerId: string; timeSlot: string; dropUp: boolean } | null>(null);
