@@ -60,7 +60,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: "__rota__", icon: CalendarDays, label: "Rota", roles: ["super_admin", "manager", "floor_manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
   { to: "/weekly-bonus", icon: Gift, label: "Weekly Bonus", roles: ["super_admin", "manager", "floor_manager", "finance_manager"], section: "PIT" },
   { to: "/pitbook", icon: MessageSquare, label: "Pitbook", roles: ["super_admin", "manager", "floor_manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
-  { to: "/incidents", icon: AlertTriangle, label: "Incidents", roles: ["super_admin", "manager", "floor_manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
+  { to: "/incidents", icon: AlertTriangle, label: "Incidents", roles: ["super_admin", "manager", "floor_manager", "finance_manager", "surveillance"], section: "PIT" },
 
   // CASHIER — Cage operations
   { to: "/cage", icon: Landmark, label: "Cage", roles: ["super_admin", "manager", "floor_manager", "cashier", "finance_manager"], section: "CASHIER" },
