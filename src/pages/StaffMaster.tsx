@@ -654,7 +654,7 @@ const NewEmployeeRow = ({ casinoId, onSave }: {
   };
 
   const positions = POSITIONS_BY_DEPT[v.department] ?? ALL_POSITIONS;
-  const td = "h-9 align-middle border-b border-border whitespace-nowrap bg-primary/5";
+  const td = "h-9 align-middle border-b border-r border-border/40 whitespace-nowrap bg-primary/5";
 
   return (
     <tr className="bg-primary/5">
