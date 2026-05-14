@@ -52,7 +52,7 @@ const NAV_ITEMS: NavItem[] = [
 
   // PIT — Break List, Live Tables, trackers, Attendance (parent), Rota (parent). Surveillance: read-only access to all.
   { to: "/breaklist", icon: ListChecks, label: "Break List", roles: ["super_admin", "manager", "floor_manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
-  { to: "/tables", icon: Table2, label: "Live Tables", roles: ["super_admin", "manager", "floor_manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
+  { to: "/tables", icon: Table2, label: "Live Tables", roles: ["super_admin", "manager", "floor_manager", "finance_manager", "surveillance"], section: "PIT" },
   { to: "/player-statistics", icon: Users, label: "Player Statistics", roles: ["super_admin", "manager", "floor_manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
   { to: "/table-tracker", icon: Target, label: "Table Check", roles: ["super_admin", "manager", "floor_manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
   { to: "/tables/analytics", icon: Target, label: "Table Analytics", roles: ["super_admin", "manager", "floor_manager", "finance_manager", "pit", "surveillance"], section: "PIT" },
