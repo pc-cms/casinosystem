@@ -79,6 +79,19 @@ export async function setupPWA() {
       onRegisteredSW(_swUrl, registration) {
         if (!registration) return;
 
+        // One-time cleanup: previous builds cached Supabase REST in a SW cache
+        // called "supabase-api". That cache occasionally served empty/stale
+        // arrays after a 5s timeout, causing the "either-or" empty-tab bug.
+        // We no longer cache the API in the SW — purge any leftover entries.
+        try {
+          const names = await caches.keys();
+          await Promise.all(
+            names
+              .filter((n) => n.includes("supabase-api"))
+              .map((n) => caches.delete(n)),
+          );
+        } catch { /* ignore */ }
+
         // 1) Check immediately on app open (don't wait for the 30-min timer).
         registration.update().catch(() => {});
 
