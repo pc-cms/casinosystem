@@ -8,6 +8,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { ArrowDownToLine, ArrowUpFromLine, User } from "lucide-react";
 import CategoryBadge, { type PlayerCategory } from "@/components/player/CategoryBadge";
+import FlagBadges from "@/components/player/FlagBadges";
+import { splitTagsBySource } from "@/lib/player-tags";
 import { LazyImage } from "@/components/LazyImage";
 import type { Tables } from "@/integrations/supabase/types";
 import { getBusinessDate, businessDayHourUTC } from "@/lib/business-day";
@@ -48,6 +50,22 @@ const PlayerInfoCard = ({ player, tables, shiftTransactions = [] }: Props) => {
     enabled: !!player && !!casinoId,
     staleTime: 1000 * 30,
   });
+
+  // Tags (floor + cctv) for the inline rows under IN/OUT.
+  const { data: tagRows = [] } = useQuery({
+    queryKey: ["player-info-card-tags", player?.id],
+    queryFn: async () => {
+      if (!player) return [];
+      const { data } = await supabase
+        .from("player_tags")
+        .select("tag, source")
+        .eq("player_id", player.id);
+      return (data || []) as Array<{ tag: string; source: string | null }>;
+    },
+    enabled: !!player,
+    staleTime: 30_000,
+  });
+  const { floor: floorTags, cctv: cctvTags } = useMemo(() => splitTagsBySource(tagRows), [tagRows]);
 
   const tableName = useMemo(() => {
     if (!currentSession?.table_id) return null;
@@ -143,6 +161,26 @@ const PlayerInfoCard = ({ player, tables, shiftTransactions = [] }: Props) => {
             </table>
           )}
         </div>
+      </div>
+
+      {/* Tags — two rows (floor + cctv), big ~15 px emojis. */}
+      <div className="mt-3 pt-3 border-t border-border w-full text-left space-y-1">
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] uppercase text-muted-foreground tracking-wider font-mono w-10 shrink-0">
+            Tags
+          </span>
+          {floorTags.length > 0
+            ? <FlagBadges tags={floorTags} size="lg15" />
+            : <span className="text-[11px] text-muted-foreground/60">—</span>}
+        </div>
+        {cctvTags.length > 0 && (
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] uppercase text-muted-foreground tracking-wider font-mono w-10 shrink-0">
+              CCTV
+            </span>
+            <FlagBadges tags={cctvTags} size="lg15" />
+          </div>
+        )}
       </div>
     </div>
   );

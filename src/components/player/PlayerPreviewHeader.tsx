@@ -10,6 +10,7 @@ import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
 import { businessDayHourUTC } from "@/lib/business-day";
 import CategoryBadge from "@/components/player/CategoryBadge";
 import FlagBadges from "@/components/player/FlagBadges";
+import { splitTagsBySource } from "@/lib/player-tags";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/lib/auth-context";
@@ -132,7 +133,8 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
   const blacklistReason = isBlacklisted
     ? (notes.find((n: any) => n.note_type === "blacklist")?.content || "").replace(/^Added to blacklist\.\s*Reason:\s*/i, "")
     : "";
-  const tags = ((player as any)?.player_tags || []).map((t: any) => t.tag);
+  const tagRows = ((player as any)?.player_tags || []) as Array<{ tag: string; source?: string | null }>;
+  const { floor: floorTags, cctv: cctvTags } = splitTagsBySource(tagRows);
   const visitsCount = visits.length;
   const result = dayStats?.result ?? 0;
 
@@ -237,14 +239,19 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
               </div>
             )}
 
-            {/* Row 3 — Tags (big emojis) */}
-            <div className="min-h-[28px] flex items-center">
-              {tags.length > 0 ? (
-                <div className="flex gap-2 flex-wrap items-center text-2xl leading-none">
-                  <FlagBadges tags={tags} />
+            {/* Row 3 — Tags (floor + CCTV) */}
+            <div className="min-h-[28px] flex flex-col gap-1 justify-center">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-mono w-12 shrink-0">Tags</span>
+                {floorTags.length > 0
+                  ? <FlagBadges tags={floorTags} size="lg15" />
+                  : <span className="text-xs text-muted-foreground/60">—</span>}
+              </div>
+              {cctvTags.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-mono w-12 shrink-0">CCTV</span>
+                  <FlagBadges tags={cctvTags} size="lg15" />
                 </div>
-              ) : (
-                <span className="text-xs text-muted-foreground/60">No tags</span>
               )}
             </div>
           </div>

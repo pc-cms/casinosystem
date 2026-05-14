@@ -11,7 +11,7 @@ export const usePlayer = (id: string | undefined) => {
       if (!id) return null;
       const { data, error } = await supabase
         .from("players")
-        .select("*, player_cards(*), player_tags(*)")
+        .select("*, player_cards(*), player_tags(id, tag, source, created_at)")
         .eq("id", id)
         .maybeSingle();
       if (error) throw error;
@@ -199,5 +199,65 @@ export const useSetPlayerStatus = () => {
       toast.success(vars.status === "blacklist" ? "Player blacklisted" : "Player reactivated");
     },
     onError: (e: any) => toast.error(e.message || "Failed to update status"),
+  });
+};
+
+/** Update player category (Normal/Gold/Platinum/Diamond) via RPC. */
+export const useUpdatePlayerCategory = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { player_id: string; category: "normal" | "gold" | "platinum" | "diamond" }) => {
+      const { error } = await supabase.rpc("set_player_category", {
+        _player_id: input.player_id,
+        _category: input.category,
+      } as any);
+      if (error) throw error;
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ["player", vars.player_id] });
+      qc.invalidateQueries({ queryKey: ["players"] });
+      toast.success("Status updated");
+    },
+    onError: (e: any) => toast.error(e.message || "Failed to update status"),
+  });
+};
+
+/** Add or remove a tag on the player, on the given source layer ('floor' | 'cctv'). */
+export const useTogglePlayerTag = () => {
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  return useMutation({
+    mutationFn: async (input: {
+      player_id: string;
+      tag: string;
+      source: "floor" | "cctv";
+      enabled: boolean;
+    }) => {
+      if (input.enabled) {
+        const { error } = await supabase
+          .from("player_tags")
+          .insert({
+            player_id: input.player_id,
+            tag: input.tag,
+            source: input.source,
+            created_by: user?.id || null,
+          } as any);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("player_tags")
+          .delete()
+          .eq("player_id", input.player_id)
+          .eq("tag", input.tag)
+          .eq("source", input.source);
+        if (error) throw error;
+      }
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ["player", vars.player_id] });
+      qc.invalidateQueries({ queryKey: ["players"] });
+      qc.invalidateQueries({ queryKey: ["player_tags_dialog", vars.player_id] });
+    },
+    onError: (e: any) => toast.error(e.message || "Failed to update tag"),
   });
 };
