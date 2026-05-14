@@ -130,6 +130,7 @@ export const useDealers = () => {
       return disambiguateNames(raw.map(mapEmployeeToDealer), raw);
     },
     enabled: !!casinoId,
+    staleTime: 1000 * 60 * 2,
   });
 };
 

@@ -8,6 +8,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { getBusinessDate } from "@/lib/business-day";
+import { disambiguateNames, mapEmployeeToDealer } from "@/hooks/use-dealers";
 
 // Shared query functions — must match the hooks in use-casino-data.ts exactly
 const queryFns = {
@@ -37,13 +38,15 @@ const queryFns = {
   },
   dealers: (casinoId: string) => async () => {
     // Phase 3: dealers = employees WHERE department='Pit'
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("employees")
       .select("*")
       .eq("casino_id", casinoId)
       .eq("department", "Pit")
       .order("full_name");
-    return data ?? [];
+    if (error) throw error;
+    const raw = data ?? [];
+    return disambiguateNames(raw.map(mapEmployeeToDealer), raw);
   },
 };
 
@@ -82,7 +85,7 @@ export function usePrefetchCriticalData() {
       qc.prefetchQuery({
         queryKey: ["dealers", casinoId],
         queryFn: queryFns.dealers(casinoId),
-        staleTime: 1000 * 60 * 10,
+        staleTime: 1000 * 60 * 2,
       });
     }
   }, [casinoId, user, roles, qc]);
