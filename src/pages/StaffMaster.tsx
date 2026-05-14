@@ -219,6 +219,19 @@ const StaffMaster = () => {
   const [importing, setImporting] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  // Sorting state
+  const [sortKey, setSortKey] = useState<SortKey | null>(null);
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
+
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir("asc");
+    }
+  };
+
   // Group by department in DEPARTMENTS order; unknown depts → "Other"
   const grouped = useMemo(() => {
     const by: Record<string, Employee[]> = {};
@@ -228,9 +241,15 @@ const StaffMaster = () => {
       const k = (DEPARTMENTS as readonly string[]).includes(e.department) ? e.department : "Other";
       (by[k] ||= []).push(e);
     }
-    for (const k of Object.keys(by)) by[k].sort((a, b) => a.full_name.localeCompare(b.full_name));
+    for (const k of Object.keys(by)) {
+      if (sortKey) {
+        by[k] = sortEmployees(by[k], sortKey, sortDir);
+      } else {
+        by[k].sort((a, b) => a.full_name.localeCompare(b.full_name));
+      }
+    }
     return by;
-  }, [employees]);
+  }, [employees, sortKey, sortDir]);
 
   const TOTAL_COLS = 35;
 
