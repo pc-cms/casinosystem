@@ -165,13 +165,13 @@ const CageClosingsPage = () => {
                 return (
                   <tr key={s.id} className="border-b border-border last:border-0 hover:bg-muted/40">
                     <td className="px-3 py-2 font-mono text-[11px] text-muted-foreground">
-                      {s.opened_at ? new Date(s.opened_at).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) : "—"}
+                      {s.opened_at ? new Date(s.opened_at).toLocaleString("en-GB", { timeZone: "Africa/Dar_es_Salaam", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) : "—"}
                     </td>
                     <td className="px-3 py-2 font-mono">
                       {closedDate ? (
                         <div className="flex flex-col">
                           <span>{fmtDate(closedDate.toISOString().slice(0,10))}</span>
-                          <span className="text-[10px] text-muted-foreground">{closedDate.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}</span>
+                          <span className="text-[10px] text-muted-foreground">{closedDate.toLocaleTimeString("en-GB", { timeZone: "Africa/Dar_es_Salaam", hour: "2-digit", minute: "2-digit" })}</span>
                         </div>
                       ) : "—"}
                     </td>

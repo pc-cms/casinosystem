@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/lib/auth-context";
 import { usePayrollPeriods, useCreatePayrollPeriod, useDuplicatePayrollPeriod, type PayrollPeriod } from "@/hooks/use-payroll";
+import { fmtDateTime } from "@/lib/format-date";
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
@@ -74,9 +75,9 @@ const Payroll = () => {
                 <DTRow key={p.id} className="cursor-pointer" onClick={() => nav(`/payroll/${p.id}`)}>
                   <DTCell className="font-medium">{MONTHS[p.month-1]} {p.year}</DTCell>
                   <DTCell>{statusBadge(p.status)}</DTCell>
-                  <DTCell className="text-xs text-muted-foreground">{p.hr_approved_at ? new Date(p.hr_approved_at).toLocaleString() : "·"}</DTCell>
-                  <DTCell className="text-xs text-muted-foreground">{p.manager_approved_at ? new Date(p.manager_approved_at).toLocaleString() : "·"}</DTCell>
-                  <DTCell className="text-xs text-muted-foreground">{p.locked_at ? new Date(p.locked_at).toLocaleString() : "·"}</DTCell>
+                  <DTCell className="text-xs text-muted-foreground">{p.hr_approved_at ? fmtDateTime(p.hr_approved_at) : "·"}</DTCell>
+                  <DTCell className="text-xs text-muted-foreground">{p.manager_approved_at ? fmtDateTime(p.manager_approved_at) : "·"}</DTCell>
+                  <DTCell className="text-xs text-muted-foreground">{p.locked_at ? fmtDateTime(p.locked_at) : "·"}</DTCell>
                   <DTCell>
                     {canCreate && (
                       <Button size="sm" variant="outline" onClick={e => { e.stopPropagation(); setDupSource(p.id); }}>

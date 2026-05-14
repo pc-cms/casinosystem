@@ -475,7 +475,7 @@ const LocalServerManagement = () => {
                     </Badge>
                   </td>
                   <td className="px-4 py-3 text-xs text-muted-foreground">
-                    {s.last_sync_at ? new Date(s.last_sync_at).toLocaleString() : "Never"}
+                    {s.last_sync_at ? new Date(s.last_sync_at).toLocaleString("en-GB", { timeZone: "Africa/Dar_es_Salaam", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "Never"}
                   </td>
                   <td className="px-2 py-3">
                     <div className="flex gap-0.5 justify-end items-center">

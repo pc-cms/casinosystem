@@ -99,7 +99,7 @@ const Logs = () => {
               ) : filtered.map(log => (
                 <tr key={log.id} className="border-b border-border last:border-0 hover:bg-muted/30">
                   <td className="px-3 py-1.5 font-mono text-[10px] text-muted-foreground whitespace-nowrap">
-                    {new Date(log.created_at).toLocaleString("en-GB", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+                    {new Date(log.created_at).toLocaleString("en-GB", { timeZone: "Africa/Dar_es_Salaam", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit" })}
                   </td>
                   <td className="px-3 py-1.5">
                     <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded uppercase ${CATEGORY_STYLES[log.category] || ""}`}>{log.category}</span>

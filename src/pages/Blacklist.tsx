@@ -59,7 +59,7 @@ const BlacklistPhoto = ({ playerId, photoUrl }: { playerId: string; photoUrl: st
 
 const fmtDate = (iso?: string | null) => {
   if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+  return new Date(iso).toLocaleDateString("en-GB", { timeZone: "Africa/Dar_es_Salaam", day: "2-digit", month: "short", year: "numeric" });
 };
 
 const Blacklist = () => {

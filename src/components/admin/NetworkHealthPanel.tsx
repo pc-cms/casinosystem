@@ -16,7 +16,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 const fmtMs = (ms: number | null) => ms == null ? "—" : ms < 1000 ? `${Math.round(ms)} ms` : `${(ms / 1000).toFixed(2)} s`;
-const fmtTime = (ts: string | null) => ts ? new Date(ts).toLocaleString() : "—";
+const fmtTime = (ts: string | null) => ts ? new Date(ts).toLocaleString("en-GB", { timeZone: "Africa/Dar_es_Salaam", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—";
 const fmtUptime = (s: number | null) => {
   if (s == null) return "—";
   const d = Math.floor(s / 86400);

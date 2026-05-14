@@ -54,7 +54,7 @@ const monthLabel = (date: string | null) => {
   if (!date) return null;
   const d = new Date(date);
   if (isNaN(d.getTime())) return null;
-  return d.toLocaleString("en-GB", { month: "short", year: "numeric" });
+  return d.toLocaleString("en-GB", { timeZone: "Africa/Dar_es_Salaam", month: "short", year: "numeric" });
 };
 
 const fmtUTC = (date: string | null) => {
