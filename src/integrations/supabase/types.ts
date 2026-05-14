@@ -172,13 +172,6 @@ export type Database = {
             referencedRelation: "employees"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "attendance_hours_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "v_staff_master_legacy_map"
-            referencedColumns: ["employee_id"]
-          },
         ]
       }
       bank_checks: {
@@ -261,8 +254,7 @@ export type Database = {
           created_at: string
           created_by: string
           date: string
-          dealer_id: string
-          employee_id: string | null
+          employee_id: string
           id: string
           is_locked: boolean
           locked_by: string | null
@@ -277,8 +269,7 @@ export type Database = {
           created_at?: string
           created_by: string
           date: string
-          dealer_id: string
-          employee_id?: string | null
+          employee_id: string
           id?: string
           is_locked?: boolean
           locked_by?: string | null
@@ -293,8 +284,7 @@ export type Database = {
           created_at?: string
           created_by?: string
           date?: string
-          dealer_id?: string
-          employee_id?: string | null
+          employee_id?: string
           id?: string
           is_locked?: boolean
           locked_by?: string | null
@@ -313,25 +303,11 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "breaklist_dealer_id_fkey"
-            columns: ["dealer_id"]
-            isOneToOne: false
-            referencedRelation: "dealers"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "breaklist_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "employees"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "breaklist_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "v_staff_master_legacy_map"
-            referencedColumns: ["employee_id"]
           },
           {
             foreignKeyName: "breaklist_table_id_fkey"
@@ -401,13 +377,6 @@ export type Database = {
             columns: ["casino_id"]
             isOneToOne: false
             referencedRelation: "casinos"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "breaklist_logs_dealer_id_fkey"
-            columns: ["dealer_id"]
-            isOneToOne: false
-            referencedRelation: "dealers"
             referencedColumns: ["id"]
           },
           {
@@ -1688,8 +1657,7 @@ export type Database = {
           casino_id: string
           created_at: string
           date: string
-          dealer_id: string
-          employee_id: string | null
+          employee_id: string
           id: string
           recorded_by: string
           updated_at: string
@@ -1699,8 +1667,7 @@ export type Database = {
           casino_id: string
           created_at?: string
           date: string
-          dealer_id: string
-          employee_id?: string | null
+          employee_id: string
           id?: string
           recorded_by: string
           updated_at?: string
@@ -1710,8 +1677,7 @@ export type Database = {
           casino_id?: string
           created_at?: string
           date?: string
-          dealer_id?: string
-          employee_id?: string | null
+          employee_id?: string
           id?: string
           recorded_by?: string
           updated_at?: string
@@ -1726,77 +1692,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "dealer_attendance_dealer_id_fkey"
-            columns: ["dealer_id"]
-            isOneToOne: false
-            referencedRelation: "dealers"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "dealer_attendance_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "employees"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "dealer_attendance_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "v_staff_master_legacy_map"
-            referencedColumns: ["employee_id"]
-          },
-        ]
-      }
-      dealers: {
-        Row: {
-          casino_id: string
-          category: Database["public"]["Enums"]["dealer_category"]
-          contract_end: string | null
-          contract_start: string | null
-          created_at: string
-          id: string
-          is_active: boolean
-          is_pit_boss: boolean
-          name: string
-          onboarding_date: string | null
-          photo_url: string | null
-          salary: number | null
-        }
-        Insert: {
-          casino_id: string
-          category?: Database["public"]["Enums"]["dealer_category"]
-          contract_end?: string | null
-          contract_start?: string | null
-          created_at?: string
-          id?: string
-          is_active?: boolean
-          is_pit_boss?: boolean
-          name: string
-          onboarding_date?: string | null
-          photo_url?: string | null
-          salary?: number | null
-        }
-        Update: {
-          casino_id?: string
-          category?: Database["public"]["Enums"]["dealer_category"]
-          contract_end?: string | null
-          contract_start?: string | null
-          created_at?: string
-          id?: string
-          is_active?: boolean
-          is_pit_boss?: boolean
-          name?: string
-          onboarding_date?: string | null
-          photo_url?: string | null
-          salary?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "dealers_casino_id_fkey"
-            columns: ["casino_id"]
-            isOneToOne: false
-            referencedRelation: "casinos"
             referencedColumns: ["id"]
           },
         ]
@@ -1840,13 +1739,6 @@ export type Database = {
             referencedRelation: "employees"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "employee_bank_accounts_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "v_staff_master_legacy_map"
-            referencedColumns: ["employee_id"]
-          },
         ]
       }
       employees: {
@@ -1865,7 +1757,6 @@ export type Database = {
           created_at: string
           created_by: string | null
           dealer_category: string | null
-          dealer_id: string | null
           department: string
           disciplinary_acknowledged: boolean
           employment_date: string | null
@@ -1888,7 +1779,6 @@ export type Database = {
           photo_url: string | null
           position: string
           source_table: string | null
-          staff_member_id: string | null
           staff_rules_acknowledged: boolean
           tax_id: string | null
           uniform_issued: boolean
@@ -1909,7 +1799,6 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           dealer_category?: string | null
-          dealer_id?: string | null
           department?: string
           disciplinary_acknowledged?: boolean
           employment_date?: string | null
@@ -1932,7 +1821,6 @@ export type Database = {
           photo_url?: string | null
           position?: string
           source_table?: string | null
-          staff_member_id?: string | null
           staff_rules_acknowledged?: boolean
           tax_id?: string | null
           uniform_issued?: boolean
@@ -1953,7 +1841,6 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           dealer_category?: string | null
-          dealer_id?: string | null
           department?: string
           disciplinary_acknowledged?: boolean
           employment_date?: string | null
@@ -1976,7 +1863,6 @@ export type Database = {
           photo_url?: string | null
           position?: string
           source_table?: string | null
-          staff_member_id?: string | null
           staff_rules_acknowledged?: boolean
           tax_id?: string | null
           uniform_issued?: boolean
@@ -1988,20 +1874,6 @@ export type Database = {
             columns: ["casino_id"]
             isOneToOne: false
             referencedRelation: "casinos"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "employees_dealer_id_fkey"
-            columns: ["dealer_id"]
-            isOneToOne: false
-            referencedRelation: "dealers"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "employees_staff_member_id_fkey"
-            columns: ["staff_member_id"]
-            isOneToOne: false
-            referencedRelation: "staff_members"
             referencedColumns: ["id"]
           },
         ]
@@ -2608,13 +2480,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "payroll_entries_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "v_staff_master_legacy_map"
-            referencedColumns: ["employee_id"]
-          },
-          {
             foreignKeyName: "payroll_entries_period_id_fkey"
             columns: ["period_id"]
             isOneToOne: false
@@ -2812,8 +2677,7 @@ export type Database = {
           created_at: string
           created_by: string
           date: string
-          dealer_id: string
-          employee_id: string | null
+          employee_id: string
           id: string
           shift: Database["public"]["Enums"]["shift_type"]
         }
@@ -2822,8 +2686,7 @@ export type Database = {
           created_at?: string
           created_by: string
           date: string
-          dealer_id: string
-          employee_id?: string | null
+          employee_id: string
           id?: string
           shift: Database["public"]["Enums"]["shift_type"]
         }
@@ -2832,8 +2695,7 @@ export type Database = {
           created_at?: string
           created_by?: string
           date?: string
-          dealer_id?: string
-          employee_id?: string | null
+          employee_id?: string
           id?: string
           shift?: Database["public"]["Enums"]["shift_type"]
         }
@@ -2846,25 +2708,11 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "pit_rota_dealer_id_fkey"
-            columns: ["dealer_id"]
-            isOneToOne: false
-            referencedRelation: "dealers"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "pit_rota_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "employees"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pit_rota_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "v_staff_master_legacy_map"
-            referencedColumns: ["employee_id"]
           },
         ]
       }
@@ -3384,10 +3232,9 @@ export type Database = {
           casino_id: string
           created_at: string
           date: string
-          employee_id: string | null
+          employee_id: string
           id: string
           recorded_by: string
-          staff_id: string
           updated_at: string
           value: string
         }
@@ -3395,10 +3242,9 @@ export type Database = {
           casino_id: string
           created_at?: string
           date: string
-          employee_id?: string | null
+          employee_id: string
           id?: string
           recorded_by: string
-          staff_id: string
           updated_at?: string
           value?: string
         }
@@ -3406,10 +3252,9 @@ export type Database = {
           casino_id?: string
           created_at?: string
           date?: string
-          employee_id?: string | null
+          employee_id?: string
           id?: string
           recorded_by?: string
-          staff_id?: string
           updated_at?: string
           value?: string
         }
@@ -3428,70 +3273,6 @@ export type Database = {
             referencedRelation: "employees"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "staff_attendance_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "v_staff_master_legacy_map"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "staff_attendance_staff_id_fkey"
-            columns: ["staff_id"]
-            isOneToOne: false
-            referencedRelation: "staff_members"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      staff_members: {
-        Row: {
-          casino_id: string
-          contract_end: string | null
-          contract_start: string | null
-          created_at: string
-          department: Database["public"]["Enums"]["staff_department"]
-          id: string
-          is_active: boolean
-          name: string
-          onboarding_date: string | null
-          photo_url: string | null
-          salary: number | null
-        }
-        Insert: {
-          casino_id: string
-          contract_end?: string | null
-          contract_start?: string | null
-          created_at?: string
-          department: Database["public"]["Enums"]["staff_department"]
-          id?: string
-          is_active?: boolean
-          name: string
-          onboarding_date?: string | null
-          photo_url?: string | null
-          salary?: number | null
-        }
-        Update: {
-          casino_id?: string
-          contract_end?: string | null
-          contract_start?: string | null
-          created_at?: string
-          department?: Database["public"]["Enums"]["staff_department"]
-          id?: string
-          is_active?: boolean
-          name?: string
-          onboarding_date?: string | null
-          photo_url?: string | null
-          salary?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "staff_members_casino_id_fkey"
-            columns: ["casino_id"]
-            isOneToOne: false
-            referencedRelation: "casinos"
-            referencedColumns: ["id"]
-          },
         ]
       }
       staff_rota: {
@@ -3500,30 +3281,27 @@ export type Database = {
           created_at: string
           created_by: string
           date: string
-          employee_id: string | null
+          employee_id: string
           id: string
           shift: string
-          staff_id: string
         }
         Insert: {
           casino_id: string
           created_at?: string
           created_by: string
           date: string
-          employee_id?: string | null
+          employee_id: string
           id?: string
           shift?: string
-          staff_id: string
         }
         Update: {
           casino_id?: string
           created_at?: string
           created_by?: string
           date?: string
-          employee_id?: string | null
+          employee_id?: string
           id?: string
           shift?: string
-          staff_id?: string
         }
         Relationships: [
           {
@@ -3538,20 +3316,6 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "employees"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "staff_rota_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "v_staff_master_legacy_map"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "staff_rota_staff_id_fkey"
-            columns: ["staff_id"]
-            isOneToOne: false
-            referencedRelation: "staff_members"
             referencedColumns: ["id"]
           },
         ]
@@ -4115,8 +3879,7 @@ export type Database = {
           bonus_points: number
           casino_id: string
           created_at: string
-          dealer_id: string
-          employee_id: string | null
+          employee_id: string
           extra_override: number | null
           id: string
           updated_at: string
@@ -4126,8 +3889,7 @@ export type Database = {
           bonus_points?: number
           casino_id: string
           created_at?: string
-          dealer_id: string
-          employee_id?: string | null
+          employee_id: string
           extra_override?: number | null
           id?: string
           updated_at?: string
@@ -4137,8 +3899,7 @@ export type Database = {
           bonus_points?: number
           casino_id?: string
           created_at?: string
-          dealer_id?: string
-          employee_id?: string | null
+          employee_id?: string
           extra_override?: number | null
           id?: string
           updated_at?: string
@@ -4153,25 +3914,11 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "weekly_bonus_entries_dealer_id_fkey"
-            columns: ["dealer_id"]
-            isOneToOne: false
-            referencedRelation: "dealers"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "weekly_bonus_entries_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "employees"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "weekly_bonus_entries_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "v_staff_master_legacy_map"
-            referencedColumns: ["employee_id"]
           },
         ]
       }
@@ -4310,13 +4057,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "payroll_entries_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "v_staff_master_legacy_map"
-            referencedColumns: ["employee_id"]
-          },
-          {
             foreignKeyName: "payroll_entries_period_id_fkey"
             columns: ["period_id"]
             isOneToOne: false
@@ -4451,58 +4191,6 @@ export type Database = {
           table_name: string | null
         }
         Relationships: []
-      }
-      v_staff_master_legacy_map: {
-        Row: {
-          casino_id: string | null
-          department: string | null
-          employee_id: string | null
-          full_name: string | null
-          legacy_dealer_id: string | null
-          legacy_staff_member_id: string | null
-          position: string | null
-        }
-        Insert: {
-          casino_id?: string | null
-          department?: string | null
-          employee_id?: string | null
-          full_name?: string | null
-          legacy_dealer_id?: string | null
-          legacy_staff_member_id?: string | null
-          position?: string | null
-        }
-        Update: {
-          casino_id?: string | null
-          department?: string | null
-          employee_id?: string | null
-          full_name?: string | null
-          legacy_dealer_id?: string | null
-          legacy_staff_member_id?: string | null
-          position?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "employees_casino_id_fkey"
-            columns: ["casino_id"]
-            isOneToOne: false
-            referencedRelation: "casinos"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "employees_dealer_id_fkey"
-            columns: ["legacy_dealer_id"]
-            isOneToOne: false
-            referencedRelation: "dealers"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "employees_staff_member_id_fkey"
-            columns: ["legacy_staff_member_id"]
-            isOneToOne: false
-            referencedRelation: "staff_members"
-            referencedColumns: ["id"]
-          },
-        ]
       }
     }
     Functions: {
