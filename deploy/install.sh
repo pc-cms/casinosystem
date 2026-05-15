@@ -367,34 +367,10 @@ done
 # ────────── 5.5. Super admin (одноразово) ──────────
 SUPER_ADMIN_DONE_FILE="${SCRIPT_DIR}/.super-admin-done"
 if [[ ! -f "$SUPER_ADMIN_DONE_FILE" ]]; then
-  title "Создание Super Admin"
-  echo "  Этот пользователь сможет войти в систему и запустить Initial Sync."
-  echo
+  title "Создание Super Admin (auto: admin/admin)"
 
-  ask_tty() {
-    local _prompt="$1" _var="$2" _silent="${3:-0}"
-    local _input=""
-    if [[ "$_silent" == "1" ]]; then
-      if [[ -e /dev/tty ]]; then read -rs -p "$_prompt" _input </dev/tty; else read -rs -p "$_prompt" _input; fi
-      echo
-    else
-      if [[ -e /dev/tty ]]; then read -r -p "$_prompt" _input </dev/tty; else read -r -p "$_prompt" _input; fi
-    fi
-    printf -v "$_var" '%s' "$_input"
-  }
-
-  SA_EMAIL=""
-  while [[ ! "$SA_EMAIL" =~ ^[^@]+@[^@]+\.[^@]+$ ]]; do
-    ask_tty "  Email super_admin: " SA_EMAIL
-    [[ "$SA_EMAIL" =~ ^[^@]+@[^@]+\.[^@]+$ ]] || warn "Неверный email."
-  done
-  SA_PASS=""; SA_PASS2="x"
-  while [[ "$SA_PASS" != "$SA_PASS2" || ${#SA_PASS} -lt 8 ]]; do
-    ask_tty "  Пароль (мин 8 символов): " SA_PASS 1
-    ask_tty "  Повторите пароль:         " SA_PASS2 1
-    [[ ${#SA_PASS} -lt 8 ]] && { warn "Минимум 8 символов."; continue; }
-    [[ "$SA_PASS" != "$SA_PASS2" ]] && warn "Пароли не совпадают."
-  done
+  SA_EMAIL="${SUPER_ADMIN_EMAIL:-admin@admin.local}"
+  SA_PASS="${SUPER_ADMIN_PASSWORD:-admin}"
 
   log "Жду готовности GoTrue..."
   for i in $(seq 1 30); do
@@ -402,7 +378,7 @@ if [[ ! -f "$SUPER_ADMIN_DONE_FILE" ]]; then
     sleep 2
   done
 
-  log "Создаю пользователя через GoTrue admin API..."
+  log "Создаю пользователя через GoTrue admin API: ${SA_EMAIL}"
   SA_RESP=$(docker compose exec -T gotrue wget -q -O- \
     --header="Authorization: Bearer ${SERVICE_ROLE_KEY}" \
     --header="Content-Type: application/json" \
@@ -425,7 +401,7 @@ if [[ ! -f "$SUPER_ADMIN_DONE_FILE" ]]; then
       psql -h 127.0.0.1 -U "${POSTGRES_USER:-postgres}" -d "${POSTGRES_DB:-postgres}" -c \
       "INSERT INTO public.user_roles (user_id, role) VALUES ('${SA_USER_ID}', 'super_admin')
        ON CONFLICT (user_id, role) DO NOTHING;" &>/dev/null || true
-    ok "Super admin создан: ${SA_EMAIL}"
+    ok "Super admin создан: ${SA_EMAIL} / ${SA_PASS}"
     touch "$SUPER_ADMIN_DONE_FILE"
   fi
 fi
