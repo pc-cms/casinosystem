@@ -13,7 +13,7 @@
 #
 set -euo pipefail
 
-INSTALLER_VERSION="1.0.192"
+INSTALLER_VERSION="1.0.193"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
@@ -29,6 +29,7 @@ warn()   { echo -e "${YELLOW}[warn]${NC} $*"; }
 fail()   { echo -e "${RED}[fail]${NC} $*" >&2; exit 1; }
 hr()     { echo -e "${CYAN}────────────────────────────────────────────────────────${NC}"; }
 title()  { echo; hr; echo -e "${BOLD}${CYAN}  $*${NC}"; hr; }
+trap 'rc=$?; echo -e "${RED}[fail]${NC} Installer stopped at line ${LINENO} (exit ${rc}). Run: sudo docker compose logs --tail=80 postgres" >&2; exit "$rc"' ERR
 
 require_root() { [[ $EUID -eq 0 ]] || fail "Запустите от root: sudo ./deploy/install.sh"; }
 
