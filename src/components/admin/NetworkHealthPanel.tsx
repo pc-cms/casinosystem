@@ -115,6 +115,33 @@ const useCasinoNameMap = () => {
   return data ?? new Map<string, string>();
 };
 
+const ClearFailedSyncJobsButton = ({ jobs }: { jobs: InitialSyncJob[] }) => {
+  const clear = useDeleteFailedInitialSyncJobs();
+  const failedCount = jobs.filter(j => j.status === "failed").length;
+  if (failedCount === 0) return null;
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <Button size="sm" variant="ghost" className="ml-auto h-7 gap-1 text-xs text-destructive hover:text-destructive">
+          <Trash2 className="w-3 h-3" />Clear {failedCount} failed
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Удалить все неудачные Initial Sync?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Будут удалены все записи со статусом <code>failed</code> ({failedCount} шт.). Это безопасно — записи только информационные, на сами данные не влияет.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Отмена</AlertDialogCancel>
+          <AlertDialogAction onClick={() => clear.mutate()}>Удалить</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+};
+
 export const NetworkHealthPanel = () => {
   const { data: cron = [] } = useCronHealth();
   const { data: sync = [] } = useSyncOutboxHealth();
