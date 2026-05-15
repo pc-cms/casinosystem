@@ -59,7 +59,7 @@ trap 'rm -rf "$TMP"' EXIT
 # ── Определяем ref: latest release или branch ──
 log "Запрашиваю latest release из GitHub API..."
 REL_HTTP=$(curl -fsS -o "$TMP/release.json" -w "%{http_code}" \
-  -H "$AUTH_HDR" -H "$ACCEPT_HDR" -H "$API_VER_HDR" \
+  "${AUTH_ARGS[@]}" -H "$ACCEPT_HDR" -H "$API_VER_HDR" \
   --retry 3 --retry-delay 2 \
   "https://api.github.com/repos/${REPO}/releases/latest" 2>/dev/null || echo "000")
 
@@ -67,7 +67,7 @@ if [[ "$REL_HTTP" == "200" ]]; then
   REF=$(grep -oP '"tag_name"\s*:\s*"\K[^"]+' "$TMP/release.json" | head -n1)
   ok "Latest release: $REF"
 elif [[ "$REL_HTTP" == "401" || "$REL_HTTP" == "403" ]]; then
-  fail "GitHub отклонил token (HTTP=$REL_HTTP). Проверь GH_TOKEN и его scope (нужен 'repo' или Contents:Read)."
+  fail "GitHub отклонил доступ (HTTP=$REL_HTTP). Если репо приватная — нужен GH_TOKEN. Если публичная — проверь имя репо: ${REPO}."
 elif [[ "$REL_HTTP" == "404" ]]; then
   warn "Релизов в репо нет — fallback на ветку '${BRANCH}'"
   REF="$BRANCH"
@@ -80,11 +80,11 @@ fi
 TARBALL_URL="https://api.github.com/repos/${REPO}/tarball/${REF}"
 log "Скачиваю tarball: $TARBALL_URL"
 HTTP=$(curl -fL --retry 3 --retry-delay 2 \
-  -H "$AUTH_HDR" -H "$ACCEPT_HDR" -H "$API_VER_HDR" \
+  "${AUTH_ARGS[@]}" -H "$ACCEPT_HDR" -H "$API_VER_HDR" \
   -o "$TMP/src.tar.gz" -w "%{http_code}" \
   "$TARBALL_URL" 2>&1 | tail -n1 || echo "000")
 
-[[ "$HTTP" == "200" ]] || fail "Не удалось скачать tarball (HTTP=$HTTP). Проверь GH_TOKEN и доступ к ${REPO}."
+[[ "$HTTP" == "200" ]] || fail "Не удалось скачать tarball (HTTP=$HTTP). Проверь доступ к ${REPO} (или задай GH_TOKEN если репо приватная)."
 
 SIZE=$(stat -c%s "$TMP/src.tar.gz" 2>/dev/null || stat -f%z "$TMP/src.tar.gz")
 [[ "$SIZE" -gt 100000 ]] || fail "Скачанный архив подозрительно мал ($SIZE байт)."
