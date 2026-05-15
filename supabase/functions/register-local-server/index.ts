@@ -148,7 +148,6 @@ Deno.serve(async (req) => {
           id: row.id,
           casino_id: row.approved_casino_id,
           sync_secret: row.sync_secret,
-          seed_token: row.seed_token,
           supabase_url: SUPABASE_URL,
           anon_key: ANON_KEY,
         });
