@@ -9,9 +9,12 @@
 import {
   useCronHealth, useSyncOutboxHealth, useUpdateCommands,
   useLocalServersOverview, useSyncInboxHealth, useSyncOutboxPerTable,
+  useInitialSyncJobs, useTriggerInitialSync, type InitialSyncJob,
 } from "@/hooks/use-network-admin";
 import { Badge } from "@/components/ui/badge";
-import { Activity, Database, Rocket, AlertTriangle, CheckCircle2, Clock, Server, Inbox, HardDrive, Wifi, WifiOff } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Activity, Database, Rocket, AlertTriangle, CheckCircle2, Clock, Server, Inbox, HardDrive, Wifi, WifiOff, DownloadCloud, Loader2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { PendingServersPanel } from "./PendingServersPanel";
@@ -33,6 +36,56 @@ const fmtMinutes = (m: number | null) => {
 const shortId = (id: string | null | undefined) => id ? id.slice(0, 8) : "—";
 const casinoLabel = (names: Map<string, string>, casinoId: string | null | undefined) =>
   casinoId ? (names.get(casinoId) ?? shortId(casinoId)) : "—";
+
+const InitialSyncCell = ({ serverId, isOnline, jobs }: { serverId: string; isOnline: boolean; jobs: InitialSyncJob[] }) => {
+  const trigger = useTriggerInitialSync();
+  const job = jobs.find(j => j.local_server_id === serverId);
+  const active = job && (job.status === "pending" || job.status === "running");
+
+  if (active) {
+    const pct = job!.rows_total && job!.rows_total > 0
+      ? Math.min(100, Math.round((Number(job!.rows_done ?? 0) / Number(job!.rows_total)) * 100))
+      : null;
+    return (
+      <div className="flex items-center gap-2 text-xs">
+        <Loader2 className="w-3 h-3 animate-spin text-primary" />
+        <span className="font-mono">
+          {job!.tables_done ?? 0}/{job!.tables_total ?? "?"} tbl · {pct != null ? `${pct}%` : `${job!.rows_done ?? 0} rows`}
+        </span>
+        {job!.current_table && <span className="text-muted-foreground truncate max-w-[100px]">{job!.current_table}</span>}
+      </div>
+    );
+  }
+
+  const lastFailed = job?.status === "failed";
+  const lastDone = job?.status === "done";
+  const label = lastDone ? "Re-sync" : lastFailed ? "Retry sync" : "Initial Sync";
+
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <Button size="sm" variant={lastFailed ? "destructive" : lastDone ? "outline" : "default"} disabled={!isOnline || trigger.isPending} className="h-7 gap-1 text-xs">
+          <DownloadCloud className="w-3 h-3" />{label}
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Запустить Initial Sync?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Локальный сервер подтянет все данные казино из облака. Существующие записи на локальной БД с теми же id будут пропущены (insert-only). Операция безопасна для повторного запуска, но может занять несколько минут.
+            {lastFailed && job?.error && (
+              <span className="block mt-2 text-destructive">Прошлая ошибка: {job.error}</span>
+            )}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Отмена</AlertDialogCancel>
+          <AlertDialogAction onClick={() => trigger.mutate(serverId)}>Запустить</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+};
 
 const useCasinoNameMap = () => {
   const { data } = useQuery({
