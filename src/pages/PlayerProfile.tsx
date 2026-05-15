@@ -61,7 +61,7 @@ const PlayerProfile = () => {
   const { data: groupHistory = [] } = usePlayerGroupHistory(id);
   const { data: economy = null } = usePlayerEconomy(id);
   const { data: expenses = [] } = usePlayerExpenses(id);
-  const canSeeNotes = roles.some(r => ["pit", "surveillance", "manager"].includes(r)) || isManager;
+  const canSeeNotes = roles.some(r => ["pit", "surveillance", "manager", "floor_manager"].includes(r)) || isManager;
   const { data: notes = [] } = usePlayerNotes(id, canSeeNotes);
 
   // Pit / Cashier / Reception are restricted to the current business day
