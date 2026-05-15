@@ -284,8 +284,41 @@ const PlayerStatistics = () => {
     }).filter(Boolean) as Array<NonNullable<ReturnType<typeof Object>>>;
   }, [visits, players, transactions, chipByPlayer, activeSessionByPlayer, tableNameById, playersDropSplit]);
 
+  // For multi-day periods, group rows per player so the same player isn't repeated for each visit.
+  const displayRows = useMemo(() => {
+    if (!isMultiDay) return rows;
+    const map = new Map<string, any>();
+    for (const r of rows as any[]) {
+      const cur = map.get(r.playerId);
+      if (!cur) {
+        map.set(r.playerId, { ...r, id: `g-${r.playerId}`, visitNumber: 1 });
+      } else {
+        cur.visitNumber += 1;
+        cur.inDrop += r.inDrop;
+        cur.out += r.out;
+        cur.dropR += r.dropR;
+        cur.chipIn += r.chipIn;
+        cur.chipOut += r.chipOut;
+        cur.chipDelta = cur.chipIn - cur.chipOut;
+        cur.result += r.result;
+        cur.inCount += r.inCount;
+        cur.outCount += r.outCount;
+        if (r.entryAt < cur.entryAt) cur.entryAt = r.entryAt;
+        if (r.exitAt && (!cur.exitAt || r.exitAt > cur.exitAt)) cur.exitAt = r.exitAt;
+        if (r.isPresent) { cur.isPresent = true; cur.position = r.position; cur.tableName = r.tableName; }
+        if (r.avgBet > (cur.avgBet || 0)) cur.avgBet = r.avgBet;
+      }
+    }
+    // Renumber by entry time for stable display
+    const arr = Array.from(map.values()).sort(
+      (a, b) => new Date(a.entryAt).getTime() - new Date(b.entryAt).getTime()
+    );
+    arr.forEach((r, i) => { r.displayIndex = i + 1; });
+    return arr;
+  }, [rows, isMultiDay]);
+
   const filtered = useMemo(() => {
-    let list = rows;
+    let list = displayRows;
     if (tab === "present") list = list.filter((r: any) => r.isPresent);
     if (tab === "left") list = list.filter((r: any) => !r.isPresent);
     list = list.filter((r: any) => categoryFilter.has(r.category));
