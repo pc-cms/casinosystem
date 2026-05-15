@@ -349,7 +349,8 @@ if [[ ! -f "$SEED_DONE_FILE" && -n "${SEED_TOKEN:-}" ]]; then
       -e PGPASSWORD="${POSTGRES_PASSWORD}" \
       -e PGDATABASE="${POSTGRES_DB:-postgres}" \
       -e SEED_FILE=/seed.json \
-      node:20-alpine sh -c "npm i --silent --no-fund --no-audit pg >/dev/null 2>&1 && node /seed-import.js"
+      -e NODE_PATH=/work/node_modules \
+      node:20-alpine sh -c "set -e; mkdir -p /work && cd /work && echo '{\"type\":\"module\"}' > package.json && npm i --no-fund --no-audit --loglevel=error pg 2>&1 | tail -20 && cp /seed-import.js /work/seed-import.mjs && node /work/seed-import.mjs /seed.json"
   SEED_RC=$?
   set -e
   [[ $SEED_RC -eq 0 ]] || fail "Seed-импорт завершился с ошибкой ($SEED_RC). Файл сохранён: $SEED_FILE. Запустите ./install.sh ещё раз."
