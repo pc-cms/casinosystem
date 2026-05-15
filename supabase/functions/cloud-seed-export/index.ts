@@ -138,12 +138,27 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ error: "method not allowed" }), { status: 405, headers: corsHeaders });
   }
 
-  // — auth: x-service-key OR x-seed-token (HS256, kind=seed) —
+  // — auth: x-service-key OR x-seed-token (legacy) OR x-sync-secret + x-casino-id —
   const providedKey = req.headers.get("x-service-key") ?? "";
   const seedTokenHdr = req.headers.get("x-seed-token") ?? "";
+  const syncSecret = req.headers.get("x-sync-secret") ?? "";
+  const syncCasino = req.headers.get("x-casino-id") ?? "";
   let tokenCasinoId: string | null = null;
 
-  if (seedTokenHdr) {
+  const adminPre = createClient(supabaseUrl, serviceRoleKey);
+
+  if (syncSecret && syncCasino) {
+    const { data } = await adminPre
+      .from("local_servers")
+      .select("casino_id")
+      .eq("casino_id", syncCasino)
+      .eq("sync_secret", syncSecret)
+      .maybeSingle();
+    if (!data) {
+      return new Response(JSON.stringify({ error: "invalid sync credentials" }), { status: 401, headers: corsHeaders });
+    }
+    tokenCasinoId = data.casino_id as string;
+  } else if (seedTokenHdr) {
     try {
       const key = await crypto.subtle.importKey(
         "raw", new TextEncoder().encode(jwtSecret),
@@ -158,7 +173,7 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "invalid seed token" }), { status: 401, headers: corsHeaders });
     }
   } else if (!providedKey || providedKey !== serviceRoleKey) {
-    return new Response(JSON.stringify({ error: "auth required (x-service-key or x-seed-token)" }), { status: 401, headers: corsHeaders });
+    return new Response(JSON.stringify({ error: "auth required (x-service-key, x-seed-token or x-sync-secret)" }), { status: 401, headers: corsHeaders });
   }
 
   const url = new URL(req.url);
