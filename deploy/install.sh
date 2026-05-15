@@ -283,20 +283,36 @@ if [[ ! -f "$SEED_DONE_FILE" && -n "${SEED_TOKEN:-}" ]]; then
   [[ -n "$COMPOSE_NET" ]] || COMPOSE_NET="cms-net"
 
   set +e
-  curl -fsSL --max-time 1800 \
+  mkdir -p "${SCRIPT_DIR}/postgres/seed-data"
+  SEED_FILE="${SCRIPT_DIR}/postgres/seed-data/seed.json"
+  rm -f "$SEED_FILE"
+  log "Скачиваю seed-данные (это может занять несколько минут)..."
+  HTTP_CODE=$(curl -sS --max-time 1800 -w "%{http_code}" -o "$SEED_FILE" \
     "${CLOUD_URL}/functions/v1/cloud-seed-export?days=all" \
-    -H "x-seed-token: ${SEED_TOKEN}" \
-  | docker run --rm -i \
+    -H "x-seed-token: ${SEED_TOKEN}")
+  CURL_RC=$?
+  if [[ $CURL_RC -ne 0 || "$HTTP_CODE" != "200" ]]; then
+    echo "curl rc=$CURL_RC http=$HTTP_CODE"
+    [[ -s "$SEED_FILE" ]] && head -c 500 "$SEED_FILE"
+    fail "Не удалось скачать seed (curl=$CURL_RC, http=$HTTP_CODE). Проверьте интернет/токен и запустите ./install.sh ещё раз."
+  fi
+  SEED_SIZE=$(stat -c%s "$SEED_FILE" 2>/dev/null || echo 0)
+  ok "Seed скачан ($((SEED_SIZE/1024)) KB)"
+
+  log "Импортирую данные в Postgres..."
+  docker run --rm \
       --network "$COMPOSE_NET" \
       -v "${SCRIPT_DIR}/postgres/seed-import.js:/seed-import.js:ro" \
+      -v "${SEED_FILE}:/seed.json:ro" \
       -e PGHOST=postgres \
       -e PGUSER="${POSTGRES_USER:-postgres}" \
       -e PGPASSWORD="${POSTGRES_PASSWORD}" \
       -e PGDATABASE="${POSTGRES_DB:-postgres}" \
-      node:20-alpine sh -c "npm i --silent --no-fund --no-audit pg >/dev/null && node /seed-import.js"
+      -e SEED_FILE=/seed.json \
+      node:20-alpine sh -c "npm i --silent --no-fund --no-audit pg >/dev/null 2>&1 && node /seed-import.js < /seed.json"
   SEED_RC=$?
   set -e
-  [[ $SEED_RC -eq 0 ]] || fail "Seed завершился с ошибкой ($SEED_RC). Запустите ./install.sh ещё раз."
+  [[ $SEED_RC -eq 0 ]] || fail "Seed-импорт завершился с ошибкой ($SEED_RC). Запустите ./install.sh ещё раз."
   touch "$SEED_DONE_FILE"
   ok "Данные загружены"
 fi
