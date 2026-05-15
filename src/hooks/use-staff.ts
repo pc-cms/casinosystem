@@ -157,16 +157,16 @@ export const useStaffMembers = () => {
 
 const reverseDept = (d: StaffDepartment): { department: string; position: string } => {
   switch (d) {
-    case "security":  return { department: "Security",    position: "Security" };
-    case "cashier":   return { department: "Cash Desk",   position: "Cashier" };
-    case "bartender": return { department: "Bar",         position: "Bartender" };
-    case "hostess":   return { department: "Slots",       position: "Hostess" };
-    case "waiter":    return { department: "Slots",       position: "Waiter" };
-    case "cleaner":   return { department: "Housekeeper", position: "Housekeeper" };
+    case "security":  return { department: "Security", position: "Security" };
+    case "cashier":   return { department: "Floor",    position: "Cashier" };
+    case "bartender": return { department: "Floor",    position: "Bartender" };
+    case "hostess":   return { department: "Floor",    position: "Hostess" };
+    case "waiter":    return { department: "Floor",    position: "Waiter" };
+    case "cleaner":   return { department: "Floor",    position: "Cleaner" };
+    case "reception": return { department: "Floor",    position: "Receptionist" };
     case "it":
-    case "driver":    return { department: "Office",      position: "IT" };
-    case "hr":        return { department: "Office",      position: "HR" };
-    case "reception": return { department: "Slots",       position: "Hostess" };
+    case "driver":    return { department: "Office",   position: "IT" };
+    case "hr":        return { department: "Office",   position: "HR" };
   }
 };
 
