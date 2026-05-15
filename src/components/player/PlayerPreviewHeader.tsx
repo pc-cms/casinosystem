@@ -238,15 +238,19 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
               )}
             </div>
 
-            {/* Row 2 — Cash In (m) / Result (m) */}
+            {/* Row 2 — Drop / Cash In / Result for the active period */}
             {showFinancials && (
-              <div className="flex items-baseline gap-6 font-mono">
+              <div className="flex items-baseline gap-6 font-mono flex-wrap">
                 <span className="text-sm text-muted-foreground">
-                  Cash In (d):{" "}
+                  Drop {periodSuffix}:{" "}
+                  <span className="text-foreground font-bold text-lg">{formatCurrency(dropSplit?.dropR ?? 0)}</span>
+                </span>
+                <span className="text-sm text-muted-foreground">
+                  Cash In {periodSuffix}:{" "}
                   <span className="text-foreground font-bold text-lg">{formatCurrency(dayStats?.cashIn ?? 0)}</span>
                 </span>
                 <span className="text-sm text-muted-foreground">
-                  Result (d):{" "}
+                  Result {periodSuffix}:{" "}
                   <span className={cn("font-bold text-lg", result > 0 ? "cms-amount-positive" : result < 0 ? "cms-amount-negative" : "text-foreground")}>
                     {result > 0 ? "+" : ""}{formatCurrency(result)}
                   </span>
