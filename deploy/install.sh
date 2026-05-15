@@ -305,11 +305,6 @@ if [[ ! -f "$SEED_DONE_FILE" && -n "${SEED_TOKEN:-}" ]]; then
     CURL_RC=$?
     SEED_SIZE=$(stat -c%s "$SEED_TMP" 2>/dev/null || echo 0)
 
-    if [[ $CURL_RC -ne 0 ]]; then
-      echo "  ✗ curl завершился с кодом $CURL_RC (http=$HTTP_CODE, size=${SEED_SIZE}B)"
-      [[ -s "$SEED_TMP" ]] && { echo "  ── ответ (первые 500 байт):"; head -c 500 "$SEED_TMP"; echo; }
-      sleep 5; continue
-    fi
     if [[ "$HTTP_CODE" != "200" ]]; then
       echo "  ✗ HTTP $HTTP_CODE (size=${SEED_SIZE}B)"
       [[ -s "$SEED_TMP" ]] && { echo "  ── тело:"; head -c 500 "$SEED_TMP"; echo; }
@@ -325,6 +320,9 @@ if [[ ! -f "$SEED_DONE_FILE" && -n "${SEED_TOKEN:-}" ]]; then
       echo "  ✗ Ответ не похож на JSON (начало: '$FIRST_CHAR')"
       head -c 500 "$SEED_TMP"; echo
       sleep 5; continue
+    fi
+    if [[ $CURL_RC -ne 0 ]]; then
+      warn "curl вернул код $CURL_RC, но seed-файл уже скачан и прошёл проверки (http=$HTTP_CODE, size=${SEED_SIZE}B). Продолжаю импорт."
     fi
 
     mv -f "$SEED_TMP" "$SEED_FILE"
