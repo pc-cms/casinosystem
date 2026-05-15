@@ -363,13 +363,13 @@ const PlayerStatistics = () => {
       if (a.isPresent !== b.isPresent) return a.isPresent ? -1 : 1;
       return new Date(b.entryAt).getTime() - new Date(a.entryAt).getTime();
     });
-  }, [rows, tab, categoryFilter, posFilter, search, sortKey, sortDir]);
+  }, [displayRows, tab, categoryFilter, posFilter, search, sortKey, sortDir]);
 
   const counts = useMemo(() => ({
-    day: rows.length,
-    present: rows.filter((r: any) => r.isPresent).length,
-    left: rows.filter((r: any) => !r.isPresent).length,
-  }), [rows]);
+    day: displayRows.length,
+    present: displayRows.filter((r: any) => r.isPresent).length,
+    left: displayRows.filter((r: any) => !r.isPresent).length,
+  }), [displayRows]);
 
   // Totals across the currently filtered list (period + tab + filters + search).
   const totals = useMemo(() => {
