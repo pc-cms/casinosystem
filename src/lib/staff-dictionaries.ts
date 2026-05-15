@@ -4,24 +4,18 @@
  */
 export const DEPARTMENTS = [
   "Office",
-  "Cash Desk",
   "Pit",
-  "Slots",
-  "Bar",
+  "Floor",
   "Security",
-  "Housekeeper",
 ] as const;
 
 export type Department = (typeof DEPARTMENTS)[number];
 
 export const POSITIONS_BY_DEPT: Record<string, string[]> = {
-  "Pit":   ["Dealer", "Inspector", "Trainee", "Pit Boss"],
-  "Cash Desk":   ["Cashier", "Head Cashier"],
-  "Slots":       ["Waiter", "Hostess"],
-  "Bar":         ["Bartender"],
-  "Security":    ["Security", "Supervisor Security"],
-  "Office":      ["IT", "HR", "Manager"],
-  "Housekeeper": ["Housekeeper"],
+  "Pit":      ["Dealer", "Inspector", "Trainee", "Pit Boss"],
+  "Floor":    ["Cashier", "Head Cashier", "Bartender", "Waiter", "Hostess", "Receptionist", "Cleaner", "Housekeeper"],
+  "Security": ["Security", "Supervisor Security"],
+  "Office":   ["IT", "HR", "Manager"],
 };
 
 export const ALL_POSITIONS = Array.from(
