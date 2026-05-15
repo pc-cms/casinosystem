@@ -31,21 +31,6 @@ die()  { echo -e "${RED}[error]${NC} $*" >&2; exit 1; }
 
 cd "${CMS_DIR}/deploy"
 
-# Resolve Cloud URL (override > .env > default)
-CLOUD_URL="${CLOUD_URL:-$(grep -E '^CLOUD_URL=' "$ENV_FILE" | head -1 | cut -d= -f2- | tr -d '"' || true)}"
-CLOUD_URL="${CLOUD_URL:-https://rpehngjvwcnipvkouluu.supabase.co}"
-log "Cloud:  ${CLOUD_URL}"
-
-# Sanity: cms-sync must be up
-if ! docker compose ps cms-sync 2>/dev/null | grep -q "Up\|running"; then
-  warn "cms-sync container is not running — starting it"
-  docker compose up -d cms-sync
-  sleep 3
-fi
-
-# Make sure pair-cli.js exists in the container (came with latest update.sh)
-if ! docker compose exec -T cms-sync test -f /app/pair-cli.js 2>/dev/null; then
-  die "pair-cli.js not found in cms-sync container. Run update.sh first:
 # Resolve Cloud URL (override > .env > default). Strip both single and double quotes.
 CLOUD_URL="${CLOUD_URL:-$(grep -E '^CLOUD_URL=' "$ENV_FILE" | head -1 | cut -d= -f2- | tr -d '"'"'"'' || true)}"
 CLOUD_URL="${CLOUD_URL:-https://rpehngjvwcnipvkouluu.supabase.co}"
