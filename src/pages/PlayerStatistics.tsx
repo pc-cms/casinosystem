@@ -158,13 +158,14 @@ const PlayerStatistics = () => {
   const canTransfer = false;
 
   const { data: visits = [] } = useQuery({
-    queryKey: ["casino_visits", casinoId, effectiveDate],
+    queryKey: ["casino_visits", casinoId, fromDate, toDate],
     queryFn: async () => {
       const { data } = await supabase
         .from("casino_visits")
         .select("*")
         .eq("casino_id", casinoId!)
-        .eq("date", effectiveDate);
+        .gte("date", fromDate)
+        .lte("date", toDate);
       return (data || []) as any[];
     },
     enabled: !!casinoId,
@@ -172,15 +173,14 @@ const PlayerStatistics = () => {
   });
 
   const { data: sessions = [] } = useQuery({
-    queryKey: ["client_sessions", casinoId, effectiveDate],
+    queryKey: ["client_sessions", casinoId, fromDate, toDate],
     queryFn: async () => {
-      const endIso = businessDayHourUTC(effectiveDate, 13 + 24);
       const { data } = await supabase
         .from("client_sessions")
         .select("*")
         .eq("casino_id", casinoId!)
         .gte("started_at", windowStartUTC)
-        .lt("started_at", endIso)
+        .lt("started_at", windowEndUTC)
         .order("started_at", { ascending: false });
       return (data || []) as any[];
     },
