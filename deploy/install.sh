@@ -439,12 +439,13 @@ echo -e "  🌐 URL:        ${BOLD}https://${LOCAL_DOMAIN}${NC}"
 echo -e "  🖥️  IP:         ${LOCAL_IP}"
 echo -e "  🔑 CA:         ${SCRIPT_DIR}/certs/ca.crt"
 echo
+echo -e "  👤 Login:      ${BOLD}admin@admin.local${NC}  /  ${BOLD}admin${NC}"
+echo
 echo -e "  Следующие шаги:"
-echo -e "    1. Скопируйте ${BOLD}certs/ca.crt${NC} на каждое устройство и установите как Trusted Root"
-echo -e "    2. Пропишите DNS:  ${LOCAL_IP}  ${LOCAL_DOMAIN}  на роутере"
-echo -e "    3. Откройте ${BOLD}Cloud-админку → Network → Local Servers${NC} → найдите этот сервер"
-echo -e "       и нажмите ${BOLD}Initial Sync${NC} чтобы подтянуть данные казино из облака"
-echo -e "    4. После завершения sync — откройте https://${LOCAL_DOMAIN} и войдите как super_admin"
+echo -e "    1. Откройте ${BOLD}https://${LOCAL_DOMAIN}${NC} (или http://${LOCAL_IP}) и войдите"
+echo -e "    2. Опционально: скопируйте ${BOLD}certs/ca.crt${NC} как Trusted Root для HTTPS без warning"
+echo -e "    3. Для синхронизации с облаком: запустите ${CYAN}sudo ./deploy/install.sh --pair${NC}"
+echo -e "       — получите pairing-code → Approve в Cloud → нажмите Initial Sync"
 echo
 echo -e "  📊 Статус:     ${CYAN}docker compose ps${NC}"
 echo -e "  📜 Логи:       ${CYAN}docker compose logs -f${NC}"
