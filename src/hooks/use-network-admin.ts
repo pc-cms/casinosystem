@@ -170,3 +170,52 @@ export const useSyncOutboxPerTable = () => useQuery({
   },
   refetchInterval: 30_000,
 });
+
+// ───── Initial Sync jobs ─────
+export interface InitialSyncJob {
+  id: string;
+  casino_id: string;
+  local_server_id: string;
+  status: "pending" | "running" | "done" | "failed";
+  tables_total: number | null;
+  tables_done: number | null;
+  rows_total: number | null;
+  rows_done: number | null;
+  current_table: string | null;
+  error: string | null;
+  started_at: string | null;
+  finished_at: string | null;
+  created_at: string;
+}
+
+export const useInitialSyncJobs = () => useQuery({
+  queryKey: ["initial-sync-jobs"],
+  queryFn: async (): Promise<InitialSyncJob[]> => {
+    const { data, error } = await supabase
+      .from("initial_sync_jobs" as any)
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(100);
+    if (error) throw error;
+    return (data ?? []) as unknown as InitialSyncJob[];
+  },
+  refetchInterval: 3_000,
+});
+
+export const useTriggerInitialSync = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (localServerId: string) => {
+      const { data, error } = await supabase.functions.invoke("initial-sync-trigger", {
+        body: { local_server_id: localServerId },
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["initial-sync-jobs"] });
+      toast.success("Initial Sync queued — server will start pulling within 10s");
+    },
+    onError: (e: Error) => toast.error(`Failed: ${e.message}`),
+  });
+};

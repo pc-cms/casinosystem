@@ -167,8 +167,8 @@ if [[ $WIPE -eq 1 ]]; then
   warn "WIPE: удаляю все контейнеры, volumes, .env и сертификаты..."
   docker compose down -v --remove-orphans &>/dev/null || true
   docker volume ls --format '{{.Name}}' | grep -E '(postgres|storage|cms-)' | xargs -r docker volume rm &>/dev/null || true
-  rm -f .env "$SEED_DONE_FILE"
-  rm -rf certs postgres/seed-data
+  rm -f .env "$SEED_DONE_FILE" "${SCRIPT_DIR}/.super-admin-done"
+  rm -rf certs postgres/seed-data data runtime-config.json
   ok "WIPE завершён — продолжаю чистую установку"
 fi
 
@@ -399,6 +399,72 @@ for i in $(seq 1 15); do
   sleep 2
 done
 
+# ────────── 5.5. Super admin (одноразово) ──────────
+SUPER_ADMIN_DONE_FILE="${SCRIPT_DIR}/.super-admin-done"
+if [[ ! -f "$SUPER_ADMIN_DONE_FILE" ]]; then
+  title "Создание Super Admin"
+  echo "  Этот пользователь сможет войти в систему и запустить Initial Sync."
+  echo
+
+  ask_tty() {
+    local _prompt="$1" _var="$2" _silent="${3:-0}"
+    local _input=""
+    if [[ "$_silent" == "1" ]]; then
+      if [[ -e /dev/tty ]]; then read -rs -p "$_prompt" _input </dev/tty; else read -rs -p "$_prompt" _input; fi
+      echo
+    else
+      if [[ -e /dev/tty ]]; then read -r -p "$_prompt" _input </dev/tty; else read -r -p "$_prompt" _input; fi
+    fi
+    printf -v "$_var" '%s' "$_input"
+  }
+
+  SA_EMAIL=""
+  while [[ ! "$SA_EMAIL" =~ ^[^@]+@[^@]+\.[^@]+$ ]]; do
+    ask_tty "  Email super_admin: " SA_EMAIL
+    [[ "$SA_EMAIL" =~ ^[^@]+@[^@]+\.[^@]+$ ]] || warn "Неверный email."
+  done
+  SA_PASS=""; SA_PASS2="x"
+  while [[ "$SA_PASS" != "$SA_PASS2" || ${#SA_PASS} -lt 8 ]]; do
+    ask_tty "  Пароль (мин 8 символов): " SA_PASS 1
+    ask_tty "  Повторите пароль:         " SA_PASS2 1
+    [[ ${#SA_PASS} -lt 8 ]] && { warn "Минимум 8 символов."; continue; }
+    [[ "$SA_PASS" != "$SA_PASS2" ]] && warn "Пароли не совпадают."
+  done
+
+  log "Жду готовности GoTrue..."
+  for i in $(seq 1 30); do
+    docker compose exec -T gotrue wget -q -O- http://localhost:9999/health 2>/dev/null | grep -q '"name"' && break
+    sleep 2
+  done
+
+  log "Создаю пользователя через GoTrue admin API..."
+  SA_RESP=$(docker compose exec -T gotrue wget -q -O- \
+    --header="Authorization: Bearer ${SERVICE_ROLE_KEY}" \
+    --header="Content-Type: application/json" \
+    --post-data="$(jq -n --arg e "$SA_EMAIL" --arg p "$SA_PASS" '{email:$e,password:$p,email_confirm:true}')" \
+    http://localhost:9999/admin/users 2>&1 || true)
+  SA_USER_ID=$(echo "$SA_RESP" | jq -r '.id // empty' 2>/dev/null)
+
+  if [[ -z "$SA_USER_ID" ]]; then
+    # Возможно уже существует — найдём по email
+    SA_USER_ID=$(docker compose exec -T -e PGPASSWORD="${POSTGRES_PASSWORD}" postgres \
+      psql -h 127.0.0.1 -U "${POSTGRES_USER:-postgres}" -d "${POSTGRES_DB:-postgres}" -tAc \
+      "SELECT id FROM auth.users WHERE email='${SA_EMAIL}' LIMIT 1" 2>/dev/null | tr -d ' \n' || true)
+  fi
+
+  if [[ -z "$SA_USER_ID" ]]; then
+    warn "Не удалось создать super_admin. Ответ GoTrue: $SA_RESP"
+    warn "Установка продолжится, но super_admin нужно будет создать вручную."
+  else
+    docker compose exec -T -e PGPASSWORD="${POSTGRES_PASSWORD}" postgres \
+      psql -h 127.0.0.1 -U "${POSTGRES_USER:-postgres}" -d "${POSTGRES_DB:-postgres}" -c \
+      "INSERT INTO public.user_roles (user_id, role) VALUES ('${SA_USER_ID}', 'super_admin')
+       ON CONFLICT (user_id, role) DO NOTHING;" &>/dev/null || true
+    ok "Super admin создан: ${SA_EMAIL}"
+    touch "$SUPER_ADMIN_DONE_FILE"
+  fi
+fi
+
 # systemd
 SYSTEMD_UNIT=/etc/systemd/system/casino-system.service
 if [[ ! -f "$SYSTEMD_UNIT" ]]; then
@@ -435,10 +501,13 @@ echo
 echo -e "  Следующие шаги:"
 echo -e "    1. Скопируйте ${BOLD}certs/ca.crt${NC} на каждое устройство и установите как Trusted Root"
 echo -e "    2. Пропишите DNS:  ${LOCAL_IP}  ${LOCAL_DOMAIN}  на роутере"
-echo -e "    3. Откройте https://${LOCAL_DOMAIN} → Установить приложение"
+echo -e "    3. Откройте ${BOLD}Cloud-админку → Network → Local Servers${NC} → найдите этот сервер"
+echo -e "       и нажмите ${BOLD}Initial Sync${NC} чтобы подтянуть данные казино из облака"
+echo -e "    4. После завершения sync — откройте https://${LOCAL_DOMAIN} и войдите как super_admin"
 echo
 echo -e "  📊 Статус:     ${CYAN}docker compose ps${NC}"
 echo -e "  📜 Логи:       ${CYAN}docker compose logs -f${NC}"
 echo -e "  🔄 Пересборка: ${CYAN}sudo ./deploy/install.sh --rebuild${NC}"
-echo -e "  ⚙️  Заново:     ${CYAN}sudo ./deploy/install.sh --reset${NC}"
+echo -e "  ⚙️  Заново:    ${CYAN}sudo ./deploy/install.sh --reset${NC}"
+echo -e "  💣 Полный wipe: ${CYAN}sudo ./deploy/install.sh --wipe${NC}"
 echo
