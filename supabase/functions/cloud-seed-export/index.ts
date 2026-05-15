@@ -24,15 +24,17 @@
  *   ON CONFLICT DO NOTHING).
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { verify as verifyJwt } from "https://deno.land/x/djwt@v3.0.2/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "x-service-key, content-type",
+  "Access-Control-Allow-Headers": "x-service-key, x-seed-token, content-type",
   "Access-Control-Allow-Methods": "GET, OPTIONS",
 };
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const jwtSecret = Deno.env.get("SUPABASE_JWT_SECRET") ?? serviceRoleKey;
 
 // Порядок ВАЖЕН — соблюдаем FK-зависимости при импорте.
 // "scope": full → выгрузить всё, что относится к этому casino_id;
@@ -136,21 +138,40 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ error: "method not allowed" }), { status: 405, headers: corsHeaders });
   }
 
-  // — auth —
+  // — auth: x-service-key OR x-seed-token (HS256, kind=seed) —
   const providedKey = req.headers.get("x-service-key") ?? "";
-  if (!providedKey || providedKey !== serviceRoleKey) {
-    return new Response(JSON.stringify({ error: "invalid x-service-key" }), { status: 401, headers: corsHeaders });
+  const seedTokenHdr = req.headers.get("x-seed-token") ?? "";
+  let tokenCasinoId: string | null = null;
+
+  if (seedTokenHdr) {
+    try {
+      const key = await crypto.subtle.importKey(
+        "raw", new TextEncoder().encode(jwtSecret),
+        { name: "HMAC", hash: "SHA-256" }, false, ["verify"],
+      );
+      const payload = await verifyJwt(seedTokenHdr, key) as { kind?: string; casino_id?: string };
+      if (payload.kind !== "seed" || !payload.casino_id) {
+        return new Response(JSON.stringify({ error: "invalid seed token" }), { status: 401, headers: corsHeaders });
+      }
+      tokenCasinoId = payload.casino_id;
+    } catch {
+      return new Response(JSON.stringify({ error: "invalid seed token" }), { status: 401, headers: corsHeaders });
+    }
+  } else if (!providedKey || providedKey !== serviceRoleKey) {
+    return new Response(JSON.stringify({ error: "auth required (x-service-key or x-seed-token)" }), { status: 401, headers: corsHeaders });
   }
 
   const url = new URL(req.url);
-  const casinoId = url.searchParams.get("casino_id") ?? "";
-  const days = Math.max(1, Math.min(365, parseInt(url.searchParams.get("days") ?? "90", 10)));
+  const casinoId = tokenCasinoId ?? url.searchParams.get("casino_id") ?? "";
+  const daysParam = url.searchParams.get("days") ?? "90";
+  const allHistory = daysParam === "all";
+  const days = allHistory ? 0 : Math.max(1, Math.min(3650, parseInt(daysParam, 10)));
   if (!/^[0-9a-f-]{36}$/i.test(casinoId)) {
     return new Response(JSON.stringify({ error: "casino_id required (uuid)" }), { status: 400, headers: corsHeaders });
   }
 
   const admin = createClient(supabaseUrl, serviceRoleKey);
-  const sinceIso = new Date(Date.now() - days * 86400_000).toISOString();
+  const sinceIso = allHistory ? null : new Date(Date.now() - days * 86400_000).toISOString();
   const counts: Record<string, number> = {};
 
   const stream = new ReadableStream({
