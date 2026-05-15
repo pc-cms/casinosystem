@@ -9,12 +9,12 @@
 import {
   useCronHealth, useSyncOutboxHealth, useUpdateCommands,
   useLocalServersOverview, useSyncInboxHealth, useSyncOutboxPerTable,
-  useInitialSyncJobs, useTriggerInitialSync, type InitialSyncJob,
+  useInitialSyncJobs, useTriggerInitialSync, useDeleteInitialSyncJob, useDeleteFailedInitialSyncJobs, type InitialSyncJob,
 } from "@/hooks/use-network-admin";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Activity, Database, Rocket, AlertTriangle, CheckCircle2, Clock, Server, Inbox, HardDrive, Wifi, WifiOff, DownloadCloud, Loader2 } from "lucide-react";
+import { Activity, Database, Rocket, AlertTriangle, CheckCircle2, Clock, Server, Inbox, HardDrive, Wifi, WifiOff, DownloadCloud, Loader2, Trash2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { PendingServersPanel } from "./PendingServersPanel";
@@ -39,6 +39,7 @@ const casinoLabel = (names: Map<string, string>, casinoId: string | null | undef
 
 const InitialSyncCell = ({ serverId, isOnline, jobs }: { serverId: string; isOnline: boolean; jobs: InitialSyncJob[] }) => {
   const trigger = useTriggerInitialSync();
+  const del = useDeleteInitialSyncJob();
   const job = jobs.find(j => j.local_server_id === serverId);
   const active = job && (job.status === "pending" || job.status === "running");
 
@@ -62,28 +63,42 @@ const InitialSyncCell = ({ serverId, isOnline, jobs }: { serverId: string; isOnl
   const label = lastDone ? "Re-sync" : lastFailed ? "Retry sync" : "Initial Sync";
 
   return (
-    <AlertDialog>
-      <AlertDialogTrigger asChild>
-        <Button size="sm" variant={lastFailed ? "destructive" : lastDone ? "outline" : "default"} disabled={!isOnline || trigger.isPending} className="h-7 gap-1 text-xs">
-          <DownloadCloud className="w-3 h-3" />{label}
+    <div className="flex items-center gap-1">
+      <AlertDialog>
+        <AlertDialogTrigger asChild>
+          <Button size="sm" variant={lastFailed ? "destructive" : lastDone ? "outline" : "default"} disabled={!isOnline || trigger.isPending} className="h-7 gap-1 text-xs">
+            <DownloadCloud className="w-3 h-3" />{label}
+          </Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Запустить Initial Sync?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Локальный сервер подтянет все данные казино из облака. Существующие записи на локальной БД с теми же id будут пропущены (insert-only). Операция безопасна для повторного запуска, но может занять несколько минут.
+              {lastFailed && job?.error && (
+                <span className="block mt-2 text-destructive">Прошлая ошибка: {job.error}</span>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Отмена</AlertDialogCancel>
+            <AlertDialogAction onClick={() => trigger.mutate(serverId)}>Запустить</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      {job && (lastFailed || lastDone) && (
+        <Button
+          size="sm"
+          variant="ghost"
+          className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
+          title="Remove this sync record"
+          disabled={del.isPending}
+          onClick={() => del.mutate(job.id)}
+        >
+          <Trash2 className="w-3 h-3" />
         </Button>
-      </AlertDialogTrigger>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Запустить Initial Sync?</AlertDialogTitle>
-          <AlertDialogDescription>
-            Локальный сервер подтянет все данные казино из облака. Существующие записи на локальной БД с теми же id будут пропущены (insert-only). Операция безопасна для повторного запуска, но может занять несколько минут.
-            {lastFailed && job?.error && (
-              <span className="block mt-2 text-destructive">Прошлая ошибка: {job.error}</span>
-            )}
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Отмена</AlertDialogCancel>
-          <AlertDialogAction onClick={() => trigger.mutate(serverId)}>Запустить</AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+      )}
+    </div>
   );
 };
 
@@ -98,6 +113,33 @@ const useCasinoNameMap = () => {
     },
   });
   return data ?? new Map<string, string>();
+};
+
+const ClearFailedSyncJobsButton = ({ jobs }: { jobs: InitialSyncJob[] }) => {
+  const clear = useDeleteFailedInitialSyncJobs();
+  const failedCount = jobs.filter(j => j.status === "failed").length;
+  if (failedCount === 0) return null;
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <Button size="sm" variant="ghost" className="ml-auto h-7 gap-1 text-xs text-destructive hover:text-destructive">
+          <Trash2 className="w-3 h-3" />Clear {failedCount} failed
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Удалить все неудачные Initial Sync?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Будут удалены все записи со статусом <code>failed</code> ({failedCount} шт.). Это безопасно — записи только информационные, на сами данные не влияет.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Отмена</AlertDialogCancel>
+          <AlertDialogAction onClick={() => clear.mutate()}>Удалить</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
 };
 
 export const NetworkHealthPanel = () => {
@@ -119,8 +161,10 @@ export const NetworkHealthPanel = () => {
         <div className="flex items-center gap-2 mb-3">
           <Server className="w-4 h-4 text-muted-foreground" />
           <h3 className="text-sm font-semibold text-card-foreground">Local Servers</h3>
-          <span className="ml-auto text-[10px] text-muted-foreground">auto-refresh 30s</span>
+          <ClearFailedSyncJobsButton jobs={syncJobs} />
+          <span className="ml-2 text-[10px] text-muted-foreground">auto-refresh 30s</span>
         </div>
+
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
