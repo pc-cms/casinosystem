@@ -275,7 +275,7 @@ touch "$SEED_DONE_FILE"
 ok "БД готова. Данные подтянутся после Initial Sync из Cloud-админки."
 
 # ────────── 5. Сборка frontend + старт ──────────
-title "5/5  Сборка frontend и запуск стека"
+title "4/4  Сборка frontend и запуск стека"
 
 if [[ $REBUILD -eq 1 ]] || ! docker image inspect "cms-frontend:${FRONTEND_VERSION:-local}" &>/dev/null; then
   log "Собираю cms-frontend (3-7 минут)..."
