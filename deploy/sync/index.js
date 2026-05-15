@@ -421,6 +421,7 @@ async function runInitialSync(job) {
 
 async function jobPollOnce() {
   if (initialSyncBusy) return;
+  if (!CONNECTED) return;
   const res = await fetch(`${CLOUD_URL}/functions/v1/initial-sync-trigger`, {
     method: "GET",
     headers: { "x-sync-secret": SYNC_SECRET, "x-casino-id": CASINO_ID },
@@ -442,13 +443,30 @@ async function jobLoop() {
   }
 }
 
-log("info", "sync.start", { casino_id: CASINO_ID, cloud: CLOUD_URL, batch: BATCH, tick_ms: TICK_MS });
+// Periodically refresh creds from DB so newly-paired servers wake up
+async function credsRefreshLoop() {
+  while (true) {
+    const client = await pool.connect();
+    try { await refreshCreds(client); } catch {} finally { client.release(); }
+    await sleep(5_000);
+  }
+}
+
+log("info", "sync.start", { batch: BATCH, tick_ms: TICK_MS });
+
+// Start local HTTP API for the admin UI (exposed via nginx as /api/cloud/*)
+startApi({
+  pool,
+  getCreds: () => ({ cloudUrl: CLOUD_URL, casinoId: CASINO_ID, syncSecret: SYNC_SECRET }),
+  setCreds: setCredsInMemory,
+});
 
 Promise.all([
   loop("push", pushOnce, () => pushBackoff, (v) => (pushBackoff = v)),
   loop("pull", pullOnce, () => pullBackoff, (v) => (pullBackoff = v)),
   gcLoop(),
   jobLoop(),
+  credsRefreshLoop(),
 ]).catch((e) => {
   log("error", "sync.crash", { err: String(e) });
   process.exit(1);
