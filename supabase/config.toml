@@ -19,7 +19,16 @@ verify_jwt = false
 [functions.upload-backup]
 verify_jwt = false
 
-# Initial data seed for fresh on-prem servers (см. install.sh шаг 6.5).
-# verify_jwt=false: функция сама проверяет x-service-key header.
+# Initial data seed for fresh on-prem servers.
+# verify_jwt=false: функция сама проверяет x-service-key OR x-sync-secret.
 [functions.cloud-seed-export]
+verify_jwt = false
+
+# initial-sync-trigger: смешанная аутентификация (super_admin JWT для POST,
+# x-sync-secret для GET/PATCH от локального сервера).
+[functions.initial-sync-trigger]
+verify_jwt = false
+
+# register-local-server: anon регистрация + super_admin JWT для approve/reject.
+[functions.register-local-server]
 verify_jwt = false
