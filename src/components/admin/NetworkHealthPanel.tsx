@@ -130,7 +130,13 @@ export const NetworkHealthPanel = () => {
       <PendingServersPanel />
 
       {/* Local servers */}
-      <LocalServersBlock servers={servers} syncJobs={syncJobs} names={names} />
+      <div className="cms-panel p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <Server className="w-4 h-4 text-muted-foreground" />
+          <h3 className="text-sm font-semibold text-card-foreground">Local Servers</h3>
+          <ClearFailedSyncJobsButton jobs={syncJobs} />
+          <span className="ml-2 text-[10px] text-muted-foreground">auto-refresh 30s</span>
+        </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
