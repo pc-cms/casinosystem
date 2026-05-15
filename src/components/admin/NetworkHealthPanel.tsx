@@ -107,6 +107,7 @@ export const NetworkHealthPanel = () => {
   const { data: servers = [] } = useLocalServersOverview();
   const { data: inbox = [] } = useSyncInboxHealth();
   const { data: outboxPerTable = [] } = useSyncOutboxPerTable();
+  const { data: syncJobs = [] } = useInitialSyncJobs();
   const names = useCasinoNameMap();
 
   return (
@@ -133,6 +134,7 @@ export const NetworkHealthPanel = () => {
                 <th className="text-center px-3 py-2">Containers</th>
                 <th className="text-right px-3 py-2">Disk</th>
                 <th className="text-left px-3 py-2">Last sync</th>
+                <th className="text-left px-3 py-2">Initial Sync</th>
               </tr>
             </thead>
             <tbody>
@@ -167,11 +169,14 @@ export const NetworkHealthPanel = () => {
                         {fmtMinutes(s.minutes_since_sync)} ago
                       </span>
                     </td>
+                    <td className="px-3 py-2">
+                      <InitialSyncCell serverId={s.id} isOnline={s.is_online} jobs={syncJobs} />
+                    </td>
                   </tr>
                 );
               })}
               {servers.length === 0 && (
-                <tr><td colSpan={9} className="text-center py-6 text-sm text-muted-foreground">No local servers linked yet</td></tr>
+                <tr><td colSpan={10} className="text-center py-6 text-sm text-muted-foreground">No local servers linked yet</td></tr>
               )}
             </tbody>
           </table>
