@@ -258,10 +258,17 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      CASINO_ID:        ${CASINO_ID}
-      SYNC_SECRET:      ${SYNC_SECRET}
+      # Cloud creds are now read from public.cloud_connection at runtime,
+      # but env values are kept as a fallback for legacy installs.
+      CASINO_ID:        ${CASINO_ID:-}
+      SYNC_SECRET:      ${SYNC_SECRET:-}
       SYNC_MODE:        ${SYNC_MODE:-hybrid}
       CLOUD_URL:        ${CLOUD_URL:-https://rpehngjvwcnipvkouluu.supabase.co}
+      CLOUD_ANON_KEY:   ${CLOUD_ANON_KEY:-}
+      CASINO_NAME:      ${CASINO_NAME:-Local Casino}
+      CASINO_SLUG:      ${CASINO_SLUG:-local}
+      LOCAL_IP:         ${LOCAL_IP:-}
+      GOTRUE_URL:       http://gotrue:9999
       LOCAL_DB_URL:     postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-postgres}
       SYNC_BATCH_SIZE:  ${SYNC_BATCH_SIZE:-200}
       SYNC_INTERVAL_MS: ${SYNC_INTERVAL_MS:-5000}
