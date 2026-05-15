@@ -163,6 +163,15 @@ postgres_network_name() {
 # ────────── 2. Конфигурация / сопряжение ──────────
 SEED_DONE_FILE="${SCRIPT_DIR}/.pairing-done"
 
+if [[ $WIPE -eq 1 ]]; then
+  warn "WIPE: удаляю все контейнеры, volumes, .env и сертификаты..."
+  docker compose down -v --remove-orphans &>/dev/null || true
+  docker volume ls --format '{{.Name}}' | grep -E '(postgres|storage|cms-)' | xargs -r docker volume rm &>/dev/null || true
+  rm -f .env "$SEED_DONE_FILE"
+  rm -rf certs postgres/seed-data
+  ok "WIPE завершён — продолжаю чистую установку"
+fi
+
 if [[ $RESET -eq 1 ]]; then
   rm -f "$SEED_DONE_FILE" .env
 fi
