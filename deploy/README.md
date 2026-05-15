@@ -1,254 +1,160 @@
-# Casino System — On-Premises Deployment
+# Casino System — On-Premises (Pairing Edition)
 
-Универсальный установщик для **любой** локации (Arusha, Dodoma, Mbeya, Mwanza, новые филиалы).
-Один и тот же `deploy/` каталог — параметры локации задаются мастером при установке.
+Installs a fully self-contained backend for one casino on Ubuntu 22.04 / 24.04
+LTS. No GitHub tokens, no manual JWTs, no CASINO_ID lookups — the server is
+**paired** with Cloud through a one-time 8-character code that a super_admin
+approves in the admin panel.
 
-## Архитектура
+---
 
-```
-┌──────────────────────────────────────────────┐
-│  Ubuntu 22.04 — один сервер на казино        │
-│  ┌────────────────────────────────────────┐  │
-│  │ Docker Compose stack                   │  │
-│  │   • postgres   (БД, схема из Cloud)    │  │
-│  │   • postgrest  (REST API)              │  │
-│  │   • gotrue     (auth)                  │  │
-│  │   • realtime   (live updates)          │  │
-│  │   • storage    (фото игроков)          │  │
-│  │   • imgproxy   (resize)                │  │
-│  │   • nginx      (TLS + статика фронта)  │  │
-│  │   • cms-frontend  (React PWA)          │  │
-│  │   • cms-sync      (заглушка → этап C)  │  │
-│  │   • cms-updater   (заглушка → этап D)  │  │
-│  └────────────────────────────────────────┘  │
-└──────────────────────────────────────────────┘
-       ▲ HTTPS (LAN, https://arusha.local)
-       │
-   Кассы / Pit / Cage / Reception / Surveillance (PWA)
-```
+## 1. System requirements
 
-## Системные требования
+- Ubuntu Server **22.04 LTS** or **24.04 LTS** (clean install OK)
+- 4 GB RAM, 50 GB SSD, x86_64
+- Internet access at install time (to fetch base images and casino data)
+- Root / sudo
 
-| Компонент | Минимум | Рекомендуется |
-|---|---|---|
-| ОС | Ubuntu Desktop/Server 22.04 | Ubuntu 22.04 LTS |
-| CPU | 2 ядра | 4 ядра |
-| RAM | 4 GB | 8 GB |
-| SSD | 50 GB | 250 GB SSD |
-| Сеть | Ethernet 1 Гбит | Ethernet + Wi-Fi для устройств |
+---
 
-## Установка
+## 2. Build the installer (on dev machine, once)
 
-### Шаг 1. Получите параметры у Premier admin
-- `CASINO_ID` (UUID локации из таблицы `casinos`)
-- `SYNC_SECRET` (выдаётся при регистрации `local_servers`)
-- **GitHub Personal Access Token** с правом `read:packages` — нужен для скачивания
-  Docker-образа `cms-frontend` из приватного `ghcr.io/pc-cms/cms-frontend`.
-  Создаётся на github.com/settings/tokens (classic) → scopes = `read:packages`.
-  Один токен можно использовать для всех локаций.
-- (опционально) **Service-role key** Cloud Supabase — нужен только при первой
-  установке, если хотите перенести существующие данные казино из Cloud в локальную БД.
-
-### Шаг 1.5. Подготовьте GitHub-релиз (один раз для всей сети)
-Если репозиторий ещё не выпускал релизов, на github.com/pc-cms/casinosystem:
-- **Releases → Draft a new release → Choose a tag → `v0.1.0` → Publish**
-- Workflow `release-onprem.yml` соберёт `ghcr.io/pc-cms/cms-frontend:0.1.0` (~3 мин)
-- Если пакет приватный (по умолчанию) — на странице пакета можно
-  `Settings → Change visibility → Public`, тогда `read:packages` token не нужен.
-
-
-### Шаг 2. Скопируйте `deploy/` на сервер
 ```bash
-scp -r deploy/ user@server:/opt/casino-system/
-ssh user@server
+./deploy/build-installer.sh
+# → deploy/dist/casino-system-installer-<sha>.tar.gz   (~80 MB)
+# → deploy/dist/INSTALL.txt                            (3-line guide)
+```
+
+Copy **both files** to the root of a USB stick.
+
+---
+
+## 3. Install on the server (3 commands)
+
+Plug in the USB, then on the server:
+
+```bash
+sudo mkdir -p /opt/casino-system
+sudo tar -xzf /media/*/casino-system-installer-*.tar.gz -C /opt/casino-system
 cd /opt/casino-system
+sudo ./deploy/install.sh
 ```
 
-### Шаг 3. Запустите интерактивный мастер
-```bash
-sudo ./install.sh
-```
-
-Мастер задаст вопросы по очереди:
+The installer will ask 4 short questions:
 
 ```
-1/8  Проверка системы
-  ✓ Ubuntu: 22.04
-  ✓ Docker: 24.0.7
-
-2/8  Настройка казино
-  Название локации (Premier Arusha): _
-  Slug (arusha): _
-  Локальный IP сервера в сети казино [192.168.1.100]: _
-  Локальный домен (arusha.local): _
-  CASINO_ID (UUID, выдаёт Premier admin): _
-  SYNC_SECRET: _
-
-3/8  Проверка связи с Cloud
-  ✓ Cloud доступен
-  ✓ Локация найдена в Cloud: Premier Arusha (arusha)
-
-4/8  Генерация криптографических ключей
-  ✓ POSTGRES_PASSWORD сгенерирован
-  ✓ JWT_SECRET сгенерирован
-  ✓ ANON_KEY (JWT) сгенерирован
-  ✓ SERVICE_ROLE_KEY (JWT) сгенерирован
-
-5/8  TLS сертификаты
-  ✓ CA создан: certs/ca.crt
-  ✓ Сертификат для arusha.local (включает IP 192.168.1.100)
-
-6/8  Миграции БД
-  ✓ Скопировано 47 миграций
-
-7/8  Проверка обновлений образа
-  ✓ Версия актуальна: v1.4.2
-
-8/8  Запуск Docker stack
-  ✓ Postgres готов
-  ✓ systemd unit установлен
-
-  ✓ Установка завершена!
+  Название локации: Premier Arusha
+  Slug:             arusha          (auto-suggested)
+  Локальный IP:     192.168.1.100   (auto-detected)
+  Домен в LAN:      arusha.local    (auto: <slug>.local)
 ```
 
-Скрипт сделает всё автоматически:
-- Установит Docker (если нет)
-- Сгенерирует JWT/ANON/SERVICE_ROLE
-- **Проверит связь с Cloud и существование `CASINO_ID`**
-- Создаст self-signed CA + сертификат для `LOCAL_DOMAIN` + `LOCAL_IP`
-- **Проверит, нет ли свежей версии Docker-образа на GitHub** (если есть `GITHUB_TOKEN`)
-- Применит миграции БД
-- Поднимет docker compose stack
-- Установит systemd `casino-system.service` (автозапуск)
+Then it shows an **8-character pairing code** and starts polling Cloud.
 
-### CLI-режим (для Ansible / автоматизации)
+---
 
-```bash
-sudo ./install.sh \
-  --slug arusha \
-  --name "Premier Arusha" \
-  --domain arusha.local \
-  --ip 192.168.1.100 \
-  --casino-id 11111111-2222-3333-4444-555555555555 \
-  --sync-secret your-32-char-secret \
-  --github-owner your-org
+## 4. Approve in Cloud admin
+
+Open the Cloud admin panel (e.g. `premier.casinosystem.app`) as super_admin:
+
+```
+Admin → Network → Pending Server Registrations
 ```
 
-### Шаг 4. Установите CA на клиентские устройства
+Find the row with your pairing code, pick the casino from the dropdown, click
+**Approve**. Within 5–10 seconds the server will:
 
-Файл `deploy/certs/ca.crt` — доверенный корневой сертификат. Без него PWA не установится.
+1. Receive sync_secret and a one-time seed token
+2. Stream the **full** casino history into the local Postgres
+3. Build `cms-frontend` locally from the bundled sources (3–7 minutes)
+4. Start the Docker stack, install the systemd service
 
-| Платформа | Куда |
+Final output:
+
+```
+✓ Установка завершена!
+  📍 Premier Arusha (slug: arusha)
+  🌐 URL:  https://arusha.local
+```
+
+---
+
+## 5. Post-install (per device)
+
+| Step | Why |
 |---|---|
-| Windows  | `certmgr.msc` → Trusted Root Certification Authorities → Import |
-| macOS    | Keychain Access → System → Certificates → drag&drop → Always Trust |
-| Android  | Settings → Security → Encryption → Install certificate → CA certificate |
-| iOS      | AirDrop → Settings → General → VPN & Device Management → установить → Certificate Trust Settings → Enable Full Trust |
-| Ubuntu   | `sudo cp ca.crt /usr/local/share/ca-certificates/casino-ca.crt && sudo update-ca-certificates` |
+| Copy `certs/ca.crt` to each Windows/Android/iOS device → install as Trusted Root | Removes browser TLS warning |
+| Add DNS entry on the casino router: `<LOCAL_IP> <LOCAL_DOMAIN>` | So all clients resolve `arusha.local` |
+| Open `https://<LOCAL_DOMAIN>` → Chrome → Install app | Installs the PWA |
 
-### Шаг 5. Настройте локальный DNS
+---
 
-**Вариант A** (простой) — `/etc/hosts` на каждом устройстве:
-```
-192.168.1.100  arusha.local
-```
-
-**Вариант B** (правильный) — A-запись в DHCP/DNS роутера: `arusha.local → 192.168.1.100`
-
-## Управление
-
-| Команда | Действие |
-|---|---|
-| `sudo systemctl status casino-system`     | Статус |
-| `sudo systemctl restart casino-system`    | Перезапуск |
-| `docker compose ps`                       | Что работает |
-| `docker compose logs -f cms-frontend`     | Логи фронта |
-| `docker compose logs -f postgres`         | Логи БД |
-| `sudo ./install.sh --reconfigure`         | Изменить настройки локации |
-| `sudo ./install.sh --check-update`        | Проверить наличие обновлений |
-| `docker compose exec postgres psql -U postgres` | psql shell |
-
-## Что специфично для локации
-
-После запуска:
-
-| Файл | Содержимое |
-|---|---|
-| `https://arusha.local/runtime-config.json` | `casinoId`, `casinoSlug`, `casinoName`, `localMode: true`, `version` |
-| `https://arusha.local/manifest-local.json` | Динамически сгенерирован: `"name": "Premier Arusha LOCAL — Casino System"` |
-| `https://arusha.local/icon-512-local.png`  | Золотой логотип на чёрном фоне (LAN-PWA) |
-
-PWA, установленные через **облачный** домен (`arusha.casinosystem.app`), используют красную иконку (`/icon-512.png` на фоне `#A0000D`). Локальные через `arusha.local` — чёрную. Это позволяет визуально различать на главном экране устройства, в каком режиме сейчас работает приложение.
-
-## Бэкап БД
+## 6. Day-to-day operations
 
 ```bash
-docker compose exec -T postgres pg_dump -U postgres -Fc postgres > backup-$(date +%F).dump
+docker compose ps                     # status
+docker compose logs -f                # follow logs
+systemctl restart casino-system       # full restart
+sudo ./deploy/install.sh --rebuild    # rebuild frontend after a code update
+sudo ./deploy/install.sh --reset      # forget pairing, start over
 ```
 
-Восстановление:
-```bash
-docker compose exec -T postgres pg_restore -U postgres -d postgres -c < backup-2026-04-30.dump
-```
+### Updating to a new code version
 
-## Синхронизация с Cloud (этап C — реализовано)
+1. On the dev machine: `./deploy/build-installer.sh` → new tarball
+2. `scp` the tarball to the server
+3. `sudo tar -xzf casino-system-installer-*.tar.gz -C /opt/casino-system && sudo /opt/casino-system/deploy/install.sh --rebuild`
 
-`cms-sync` — Node-воркер, поднимается одним контейнером. Принцип: **outbox + idempotent inbox**.
+The pairing is preserved — only the frontend is rebuilt from new sources.
 
-**Local → Cloud (push):**
-- Триггеры на ключевых таблицах (`transactions`, `shifts`, `cage_transfers`, `expenses`, `wallet_transactions`, `chip_*`, `casino_visits`, `players`, `breaklist`, `rota`, `activity_logs`, `daily_review`, `budget_*`, …) пишут каждое изменение в `sync.outbox` (см. `postgres/init/02-sync-outbox.sql`).
-- Воркер каждые `SYNC_INTERVAL_MS` (по-умолчанию 5 с) забирает батч `SYNC_BATCH_SIZE` (200) и POST-ит в edge function `pull-changes` с заголовками `x-sync-secret` + `x-casino-id`.
-- Cloud-функция валидирует пару `(casino_id, sync_secret)` против `local_servers`, делает upsert (с принудительной подменой `casino_id` на авторизованное), пишет в `sync_inbox_log` для идемпотентности.
-- При ошибке — экспоненциальный backoff (5 с → 10 → 20 → 40 → max 60 с).
+---
 
-**Cloud → Local (pull):**
-- В Cloud аналогичные триггеры пишут в `public.sync_outbox` (доступ только service_role).
-- Воркер периодически GET-ит `pull-changes?since=<cursor>&limit=200` — отдаёт изменения для своего `casino_id` или `casino_id IS NULL` (глобальные: blacklist, global players, inter-casino transfers).
-- Применяет в транзакции под GUC `SET LOCAL sync.applying='on'` — триггеры outbox это видят и **не** зацикливают изменения обратно.
-- Курсор хранится в `sync.cloud_cursor`.
+## 7. Backup & restore
 
-**Оффлайн-поведение:** если Cloud недоступен — outbox растёт, push молча копит. После восстановления связи — выгружается батчами в порядке `id ASC`. GC удаляет `sent_at < now() - 7 days`.
+See `ARCHIVE-RESTORE.md`. Backups go to `backup_data` volume; with
+`BACKUP_OFFSITE=cloud` they are also pushed to Cloud Storage via the
+`upload-backup` edge function.
 
-## Авто-обновление (этап D — реализовано)
+---
 
-`cms-updater` — Node-сервис с примонтированным `docker.sock` и каталогом `/compose`.
+## 8. Troubleshooting
 
-**Цикл (каждые `CHECK_INTERVAL_MINUTES`, по-умолчанию 60):**
-1. `fetch https://api.github.com` — если интернета нет, тихо ждём следующий цикл.
-2. `GET /repos/${OWNER}/${REPO}/releases/latest` (с `GITHUB_TOKEN` если задан).
-3. Семантическое сравнение `tag_name` с `FRONTEND_VERSION` из `.env`.
-4. Если новее → `docker pull ghcr.io/${owner}/cms-frontend:<latest>` (валидация наличия в registry).
-5. **Если `AUTO_APPLY=true`:**
-   - Сохраняет `PREVIOUS_VERSION = <current>` в `.env`.
-   - Меняет `FRONTEND_VERSION = <latest>`.
-   - `docker compose up -d cms-frontend nginx`.
-   - Health-check `https://nginx/healthz` 30 секунд.
-   - При фейле → автоматический rollback (`FRONTEND_VERSION = PREVIOUS_VERSION` + restart).
-6. **Если `AUTO_APPLY=false`** (по-умолчанию, безопасный режим):
-   - Только записывает `/compose/UPDATE_AVAILABLE` с метаданными.
-   - Админ применяет вручную: `sudo ./install.sh --upgrade-to <version>`.
-
-**Логи:** структурированный JSON в `/compose/updater.log` + stdout контейнера.
-
-**Ручные команды:**
-```bash
-docker compose logs -f cms-updater                # смотреть live
-cat updater.log | jq 'select(.lvl=="error")'     # все ошибки
-cat UPDATE_AVAILABLE                              # есть ли ожидающее обновление
-sudo ./install.sh --check-update                  # форсированная проверка
-sudo ./install.sh --upgrade-to v1.4.2             # ручной апгрейд
-```
-
-## Что будет реализовано позднее
-
-| Этап | Что |
+| Symptom | Fix |
 |---|---|
-| **E** | Полная инструкция для IT-админа казино: kiosk-режим для Surveillance, мониторинг, удалённый VPN-доступ |
+| **"Pairing-код истёк"** | Codes expire in 30 min. Run `--reset`. |
+| **`docker compose build` дольше 10 мин** | Ожидаемо при первом запуске на слабом железе. Кэш npm ускорит повторные сборки. |
+| **Polling висит "?????"** | Cloud вернул нестандартный статус — проверьте логи `register-local-server` в админке Cloud. |
+| **Seed RC≠0** | Нет связи с Cloud, или seed-token истёк (24ч). `--reset` и заново. |
+| **Frontend не отвечает** | `docker compose logs cms-frontend` — обычно проблема в build-args или JWT. |
 
-## Безопасность
+---
 
-- Postgres слушает только `127.0.0.1` — никогда наружу
-- HTTPS с self-signed CA обязателен (PWA требует TLS)
-- `sync_secret` уникален на казино, валидируется в облачном `push-data`
-- JWT срок 10 лет — auth полностью отделён от Cloud (Cloud-пароли реплицируются в Local на этапе C)
-- При установке проверяется связь с Cloud и существование `CASINO_ID` в реестре
+## 9. Architecture
+
+```text
+                 USB-flash
+                ─────────────
+   dev machine ──tarball──▶  Ubuntu server (Premier Arusha)
+                                │
+                                ├─ install.sh
+                                │     ├─ pairing code → Cloud
+                                │     ├─ wait approve  ← super_admin
+                                │     ├─ seed-import   ← cloud-seed-export (days=all)
+                                │     └─ docker compose build + up -d
+                                │
+                                ▼
+                            postgres ─ cms-sync ─ Cloud
+                            postgrest    ▲
+                            gotrue       │
+                            realtime     │
+                            storage      │
+                            cms-frontend │
+                            nginx (TLS)  │
+                                         │
+                                  LAN clients
+                                  https://arusha.local
+```
+
+Optional auto-updater (disabled by default):
+```bash
+docker compose --profile with-updater up -d
+```
