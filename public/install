@@ -137,4 +137,11 @@ ok "Alias установлен: \`sudo casino-update [args]\`"
 
 ok "Код установлен. Запускаю инсталлер..."
 echo
-exec bash "$TARGET/deploy/install.sh" "$@"
+# CRITICAL: stdin занят pipe от `curl | sudo bash` — read -p получит EOF
+# и все интерактивные вопросы будут пропущены. Перенаправляем stdin с /dev/tty.
+if [[ -e /dev/tty ]]; then
+  exec bash "$TARGET/deploy/install.sh" "$@" </dev/tty
+else
+  warn "/dev/tty недоступен — интерактивные вопросы могут не работать."
+  exec bash "$TARGET/deploy/install.sh" "$@"
+fi
