@@ -173,8 +173,6 @@ Deno.serve(async (req) => {
       if (row.status !== "pending") return json(409, { error: `status=${row.status}` });
 
       const sync_secret = genSecret(48);
-      const seed_token = await makeSeedToken(casino_id);
-      const seed_token_expires_at = new Date(Date.now() + 24 * 3600_000).toISOString();
 
       // upsert local_servers (одна строка на (casino_id, server_ip))
       await admin.from("local_servers").upsert({
@@ -195,8 +193,6 @@ Deno.serve(async (req) => {
           approved_by: user.id,
           approved_at: new Date().toISOString(),
           sync_secret,
-          seed_token,
-          seed_token_expires_at,
         })
         .eq("id", id);
       if (updErr) return json(500, { error: updErr.message });
