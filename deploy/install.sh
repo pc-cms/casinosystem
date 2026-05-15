@@ -179,61 +179,30 @@ fi
 [[ -f .env ]] || cp env.template .env
 set -a; source .env; set +a
 
-NEED_PAIRING=1
-[[ -f "$SEED_DONE_FILE" && -n "${CASINO_ID:-}" && -n "${SYNC_SECRET:-}" ]] && NEED_PAIRING=0
-
-if [[ $NEED_PAIRING -eq 1 || $RECONFIGURE -eq 1 ]]; then
-  title "2/5  Параметры локации"
-
-  # Helper: read из /dev/tty (если доступен) или из stdin.
-  ask() {
-    local _prompt="$1" _var="$2" _default="${3:-}"
-    local _input=""
-    if [[ -e /dev/tty ]]; then
-      read -r -p "$_prompt" _input </dev/tty
-    else
-      read -r -p "$_prompt" _input
-    fi
-    printf -v "$_var" '%s' "${_input:-$_default}"
-  }
-
-  # Название — обязательное, спрашиваем пока не введут.
-  CASINO_NAME=""
-  while [[ -z "$CASINO_NAME" ]]; do
-    ask "  Название локации (например: Premier Arusha): " CASINO_NAME ""
-    [[ -z "$CASINO_NAME" ]] && warn "Название обязательно — введите хотя бы одно слово."
-  done
-
-  DEFAULT_SLUG=$(echo "${CASINO_SLUG:-${CASINO_NAME,,}}" | tr ' ' '-' | tr -cd 'a-z0-9-')
-  CASINO_SLUG=""
-  while [[ ! "$CASINO_SLUG" =~ ^[a-z0-9-]+$ ]]; do
-    ask "  Slug (a-z, 0-9, дефис) [${DEFAULT_SLUG}]: " CASINO_SLUG "$DEFAULT_SLUG"
-    [[ "$CASINO_SLUG" =~ ^[a-z0-9-]+$ ]] || warn "Только латиница, цифры и дефис."
-  done
-
-  DEFAULT_IP=$(hostname -I | awk '{print $1}')
-  LOCAL_IP=""
-  while [[ ! "$LOCAL_IP" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; do
-    ask "  Локальный IP сервера [${DEFAULT_IP}]: " LOCAL_IP "$DEFAULT_IP"
-    [[ "$LOCAL_IP" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]] || warn "IP в формате X.X.X.X."
-  done
-
-  DEFAULT_DOMAIN="${LOCAL_DOMAIN:-${CASINO_SLUG}.local}"
-  ask "  Домен в LAN [${DEFAULT_DOMAIN}]: " LOCAL_DOMAIN "$DEFAULT_DOMAIN"
-
-  update_env CASINO_NAME   "$CASINO_NAME"
-  update_env CASINO_SLUG   "$CASINO_SLUG"
-  update_env LOCAL_IP      "$LOCAL_IP"
-  update_env LOCAL_DOMAIN  "$LOCAL_DOMAIN"
-  ok "Параметры сохранены"
+NEED_PAIRING=0
+if [[ $PAIR -eq 1 ]]; then
+  NEED_PAIRING=1
+  [[ -f "$SEED_DONE_FILE" && -n "${CASINO_ID:-}" && -n "${SYNC_SECRET:-}" ]] && NEED_PAIRING=0
 fi
 
+# ── Параметры локации (non-interactive, с дефолтами) ──
+title "2/5  Параметры локации (auto)"
+: "${CASINO_NAME:=Local Casino}"
+: "${CASINO_SLUG:=local}"
+: "${LOCAL_IP:=$(hostname -I 2>/dev/null | awk '{print $1}')}"
+: "${LOCAL_IP:=127.0.0.1}"
+: "${LOCAL_DOMAIN:=casino.local}"
+update_env CASINO_NAME   "$CASINO_NAME"
+update_env CASINO_SLUG   "$CASINO_SLUG"
+update_env LOCAL_IP      "$LOCAL_IP"
+update_env LOCAL_DOMAIN  "$LOCAL_DOMAIN"
+ok "Casino: ${CASINO_NAME} (${CASINO_SLUG}) @ ${LOCAL_IP} / ${LOCAL_DOMAIN}"
 
 set -a; source .env; set +a
 
-# ────────── 3. Pairing (если нужно) ──────────
+# ────────── 3. Pairing (опционально, --pair) ──────────
 if [[ $NEED_PAIRING -eq 1 ]]; then
-  title "3/5  Сопряжение с Cloud"
+  title "3/5  Сопряжение с Cloud (--pair)"
 
   HOSTNAME_VAL=$(hostname)
   RAM_GB=$(awk '/MemTotal/ {printf "%d", $2/1024/1024}' /proc/meminfo)
@@ -262,19 +231,13 @@ if [[ $NEED_PAIRING -eq 1 ]]; then
 
   echo
   echo "  ┌────────────────────────────────────────┐"
-  echo "  │                                        │"
   printf "  │      ${BOLD}PAIRING CODE:  %s — %s${NC}      │\n" "${PAIRING_CODE:0:4}" "${PAIRING_CODE:4:4}"
-  echo "  │                                        │"
-  echo "  │  Откройте в Cloud-админке:             │"
-  echo "  │    Admin → Network → Pending Servers   │"
-  echo "  │  Найдите этот код, выберите казино     │"
-  echo "  │  и нажмите Approve.                    │"
-  echo "  │                                        │"
-  echo "  │  Код действителен до: ${EXPIRES_AT:11:5} UTC      │"
+  echo "  │  Cloud → Admin → Network → Pending     │"
+  echo "  │  Approve. Code valid until: ${EXPIRES_AT:11:5} UTC  │"
   echo "  └────────────────────────────────────────┘"
   echo
 
-  log "Жду аппрува (polling каждые 5 сек, до 30 минут)..."
+  log "Жду аппрува (polling 5s, до 30 мин)..."
   APPROVED_JSON=""
   for i in $(seq 1 360); do
     POLL=$(curl -fsS --max-time 10 \
@@ -285,7 +248,7 @@ if [[ $NEED_PAIRING -eq 1 ]]; then
     case "$STATUS" in
       approved)  APPROVED_JSON="$POLL"; break ;;
       rejected)  fail "Запрос отклонён super_admin'ом" ;;
-      expired)   fail "Pairing-код истёк. Запустите снова: sudo ./deploy/install.sh --reset" ;;
+      expired)   fail "Pairing-код истёк. Запустите снова: sudo ./deploy/install.sh --reset --pair" ;;
       pending)   printf "."; sleep 5 ;;
       *)         printf "?"; sleep 5 ;;
     esac
@@ -295,11 +258,12 @@ if [[ $NEED_PAIRING -eq 1 ]]; then
 
   CASINO_ID=$(echo "$APPROVED_JSON" | jq -r '.casino_id')
   SYNC_SECRET=$(echo "$APPROVED_JSON" | jq -r '.sync_secret')
-  SEED_TOKEN=$(echo "$APPROVED_JSON" | jq -r '.seed_token')
   ok "Аппрув получен. casino_id=${CASINO_ID:0:8}..."
   update_env CASINO_ID   "$CASINO_ID"
   update_env SYNC_SECRET "$SYNC_SECRET"
   set -a; source .env; set +a
+else
+  log "Pairing с Cloud пропущен (запустите с --pair, чтобы связать с облаком и включить Initial Sync)."
 fi
 
 # ────────── 4. Секреты + сертификаты ──────────
