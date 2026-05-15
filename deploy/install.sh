@@ -87,11 +87,15 @@ ok "Интернет доступен"
 # ────────── helper ──────────
 update_env() {
   local key="$1" val="$2"
+  # Always single-quote value so spaces/specials are safe when sourced.
+  # Escape any existing single quotes inside the value.
+  local q_val
+  q_val=$(printf "'%s'" "$(printf '%s' "$val" | sed "s/'/'\\\\''/g")")
   if grep -qE "^${key}=" .env 2>/dev/null; then
-    local esc=$(printf '%s\n' "$val" | sed -e 's/[\/&|]/\\&/g')
+    local esc=$(printf '%s\n' "$q_val" | sed -e 's/[\/&|]/\\&/g')
     sed -i "s|^${key}=.*|${key}=${esc}|" .env
   else
-    echo "${key}=${val}" >> .env
+    echo "${key}=${q_val}" >> .env
   fi
 }
 gen_secret() { openssl rand -base64 48 | tr -d '\n=+/' | cut -c1-64; }
