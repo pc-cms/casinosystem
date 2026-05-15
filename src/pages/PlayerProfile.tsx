@@ -482,7 +482,7 @@ const PlayerProfile = () => {
         <TabsContent value="info" className="space-y-4">
           {canSeeNotes && (
             <PageSection card title={`Notes (${notes.length})`}>
-              <NotesPanel playerId={(player as any).id} notes={notes} canPost={roles.some(r => ["pit","manager","surveillance","super_admin"].includes(r))} />
+              <NotesPanel playerId={(player as any).id} notes={notes} canPost={roles.some(r => ["pit","manager","floor_manager","surveillance","super_admin"].includes(r))} />
             </PageSection>
           )}
 
