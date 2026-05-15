@@ -373,9 +373,12 @@ echo -e "  👤 Login:      ${BOLD}admin@admin.local${NC}  /  ${BOLD}admin${NC}"
 echo
 echo -e "  Следующие шаги:"
 echo -e "    1. Откройте ${BOLD}https://${LOCAL_DOMAIN}${NC} (или http://${LOCAL_IP}) и войдите"
-echo -e "    2. Опционально: скопируйте ${BOLD}certs/ca.crt${NC} как Trusted Root для HTTPS без warning"
-echo -e "    3. Для синхронизации с облаком: запустите ${CYAN}sudo ./deploy/install.sh --pair${NC}"
-echo -e "       — получите pairing-code → Approve в Cloud → нажмите Initial Sync"
+echo -e "    2. Перейдите в ${BOLD}Admin → Network${NC} → нажмите ${BOLD}Connect to Cloud${NC}"
+echo -e "       → введите URL Cloud-сервера → получите pairing-code"
+echo -e "    3. На Cloud-сервере super_admin делает Approve в Admin → Network → Pending"
+echo -e "    4. После approve в локальной админке нажмите ${BOLD}Sync Data from Cloud${NC}"
+echo
+echo -e "  ℹ️  Опционально: скопируйте ${BOLD}certs/ca.crt${NC} как Trusted Root для HTTPS без warning"
 echo
 echo -e "  📊 Статус:     ${CYAN}docker compose ps${NC}"
 echo -e "  📜 Логи:       ${CYAN}docker compose logs -f${NC}"
