@@ -174,8 +174,8 @@ Deno.serve(async (req) => {
 
       const sync_secret = genSecret(48);
 
-      // upsert local_servers (одна строка на (casino_id, server_ip))
-      await admin.from("local_servers").upsert({
+      // upsert local_servers (one row per casino_id)
+      const { error: lsErr } = await admin.from("local_servers").upsert({
         casino_id,
         server_ip: row.server_ip ?? "0.0.0.0",
         server_name: row.server_name,
@@ -183,7 +183,8 @@ Deno.serve(async (req) => {
         sync_secret,
         linked_by: user.id,
         linked_at: new Date().toISOString(),
-      }, { onConflict: "casino_id,server_ip" });
+      }, { onConflict: "casino_id" });
+      if (lsErr) return json(500, { error: `local_servers upsert: ${lsErr.message}` });
 
       const { error: updErr } = await admin
         .from("pending_server_registrations")
