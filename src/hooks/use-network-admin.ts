@@ -202,6 +202,40 @@ export const useInitialSyncJobs = () => useQuery({
   refetchInterval: 3_000,
 });
 
+export const useDeleteInitialSyncJob = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (jobId: string) => {
+      const { error } = await supabase.from("initial_sync_jobs" as any).delete().eq("id", jobId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["initial-sync-jobs"] });
+      toast.success("Sync job removed");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+};
+
+export const useDeleteFailedInitialSyncJobs = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const { error, count } = await supabase
+        .from("initial_sync_jobs" as any)
+        .delete({ count: "exact" })
+        .eq("status", "failed");
+      if (error) throw error;
+      return count ?? 0;
+    },
+    onSuccess: (n) => {
+      qc.invalidateQueries({ queryKey: ["initial-sync-jobs"] });
+      toast.success(`Removed ${n} failed sync job${n === 1 ? "" : "s"}`);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+};
+
 export const useTriggerInitialSync = () => {
   const qc = useQueryClient();
   return useMutation({
