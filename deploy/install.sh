@@ -383,8 +383,24 @@ if [[ ! -f "$SEED_DONE_FILE" && -n "${SEED_TOKEN:-}" ]]; then
   fi
 
   log "Загружаю полные данные казино из Cloud..."
-  COMPOSE_NET=$(docker network ls --format '{{.Name}}' | grep -E "^$(basename "$SCRIPT_DIR")_cms-net$" | head -1)
-  [[ -n "$COMPOSE_NET" ]] || COMPOSE_NET="cms-net"
+  COMPOSE_NET="$(postgres_network_name)" || fail "Не удалось определить Docker network для Postgres"
+  log "Проверяю доступ к Postgres из seed-контейнера..."
+  if ! docker run --rm --network "$COMPOSE_NET" -e PGPASSWORD="${POSTGRES_PASSWORD}" postgres:15-alpine \
+      psql -h postgres -U "${POSTGRES_USER:-postgres}" -d "${POSTGRES_DB:-postgres}" -tAc "SELECT 1" &>/dev/null; then
+    warn "Seed-контейнер не может войти в Postgres с текущим .env — пересоздаю Postgres volume."
+    reset_postgres_volume
+    docker compose up -d postgres
+    for i in $(seq 1 60); do
+      docker compose exec -T postgres pg_isready -U "${POSTGRES_USER:-postgres}" &>/dev/null && break
+      sleep 2
+      [[ $i -eq 60 ]] && fail "Postgres не стартовал после пересоздания тома"
+    done
+    COMPOSE_NET="$(postgres_network_name)" || fail "Не удалось определить Docker network для Postgres после пересоздания"
+    docker run --rm --network "$COMPOSE_NET" -e PGPASSWORD="${POSTGRES_PASSWORD}" postgres:15-alpine \
+      psql -h postgres -U "${POSTGRES_USER:-postgres}" -d "${POSTGRES_DB:-postgres}" -tAc "SELECT 1" &>/dev/null \
+      || fail "Seed-контейнер всё ещё не может войти в Postgres. Запустите: sudo docker compose down -v && sudo ./install.sh --reset"
+  fi
+  ok "Seed-контейнер видит Postgres с правильным паролем"
 
   set +e
   mkdir -p "${SCRIPT_DIR}/postgres/seed-data"
