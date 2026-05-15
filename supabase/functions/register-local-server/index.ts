@@ -20,7 +20,6 @@
  *     body: { id, reason? }
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
-import { create as createJwt } from "https://deno.land/x/djwt@v3.0.2/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -51,21 +50,9 @@ const json = (status: number, body: unknown) =>
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
-async function makeSeedToken(casinoId: string): Promise<string> {
-  const key = await crypto.subtle.importKey(
-    "raw",
-    new TextEncoder().encode(JWT_SECRET),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign", "verify"],
-  );
-  const exp = Math.floor(Date.now() / 1000) + 24 * 3600;
-  return await createJwt(
-    { alg: "HS256", typ: "JWT" },
-    { kind: "seed", casino_id: casinoId, exp },
-    key,
-  );
-}
+// seed_token больше не используется — данные тянутся через initial-sync-trigger
+// после approve. Поля seed_token / seed_token_expires_at в БД сохранены для
+// обратной совместимости со старыми установками.
 
 async function requireSuperAdmin(req: Request) {
   const authHeader = req.headers.get("Authorization") ?? "";
@@ -161,7 +148,6 @@ Deno.serve(async (req) => {
           id: row.id,
           casino_id: row.approved_casino_id,
           sync_secret: row.sync_secret,
-          seed_token: row.seed_token,
           supabase_url: SUPABASE_URL,
           anon_key: ANON_KEY,
         });
@@ -187,8 +173,6 @@ Deno.serve(async (req) => {
       if (row.status !== "pending") return json(409, { error: `status=${row.status}` });
 
       const sync_secret = genSecret(48);
-      const seed_token = await makeSeedToken(casino_id);
-      const seed_token_expires_at = new Date(Date.now() + 24 * 3600_000).toISOString();
 
       // upsert local_servers (одна строка на (casino_id, server_ip))
       await admin.from("local_servers").upsert({
@@ -209,8 +193,6 @@ Deno.serve(async (req) => {
           approved_by: user.id,
           approved_at: new Date().toISOString(),
           sync_secret,
-          seed_token,
-          seed_token_expires_at,
         })
         .eq("id", id);
       if (updErr) return json(500, { error: updErr.message });
