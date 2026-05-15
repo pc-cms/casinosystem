@@ -93,7 +93,6 @@ async function pushOnce() {
   try {
     await refreshCreds(client);
     if (!CONNECTED) return 0;
-  try {
     const { rows } = await client.query(
       `SELECT id, casino_id, table_name, op, pk, payload, attempts
          FROM sync.outbox
