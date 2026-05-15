@@ -5,6 +5,7 @@ import { useRealtimeSubscriptions } from "@/hooks/use-realtime";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { MobileHeader } from "./AppSidebar";
 import { PWAUpdateNotification } from "@/components/PWAUpdateNotification";
+import { LocalServerBadge } from "@/components/LocalServerBadge";
 
 import { cn } from "@/lib/utils";
 
@@ -48,6 +49,7 @@ export const AppLayout = () => {
 
   return (
     <div className="flex h-screen overflow-hidden">
+      <LocalServerBadge />
       {!isMobile && (
         <div className="no-print">
           <AppSidebar collapsed={collapsed} onToggle={() => setCollapsed((c) => !c)} />
