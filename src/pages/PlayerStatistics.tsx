@@ -609,35 +609,62 @@ const PlayerStatistics = () => {
   );
 
   const dateControl = canBrowseHistory ? (
-    <div className="flex items-center gap-1.5">
-      <DateNavigator
-        value={date}
-        onChange={(iso) => {
-          if (iso < minDate || iso > today) return;
-          setDate(iso);
+    <div className="flex items-center gap-2 flex-wrap">
+      <DateRangePresets
+        preset={preset}
+        from={range.from}
+        to={range.to}
+        onChange={(next) => {
+          setPreset(next.preset);
+          if (next.preset === "day") {
+            setDate(next.from);
+            setRange({ from: next.from, to: next.from });
+          } else {
+            setRange({ from: next.from, to: next.to });
+          }
         }}
-        minDate={new Date(minDate + "T00:00:00")}
-        maxDate={new Date(today + "T00:00:00")}
       />
-      {date !== today && (
-        <Button variant="outline" size="sm" className="h-7 text-[10px]" onClick={() => setDate(today)}>
+      {preset === "day" && (
+        <DateNavigator
+          value={date}
+          onChange={(iso) => {
+            if (iso < minDate || iso > today) return;
+            setDate(iso);
+            setRange({ from: iso, to: iso });
+          }}
+          minDate={new Date(minDate + "T00:00:00")}
+          maxDate={new Date(today + "T00:00:00")}
+        />
+      )}
+      {(preset !== "day" || date !== today) && (
+        <Button variant="outline" size="sm" className="h-9 text-xs" onClick={() => {
+          setPreset("day");
+          setDate(today);
+          setRange({ from: today, to: today });
+        }}>
           Today
         </Button>
       )}
     </div>
   ) : undefined;
 
+  const subtitleText = isMultiDay
+    ? `Period · ${fromDate} → ${toDate}`
+    : isHistorical
+      ? `Historical · ${fromDate}`
+      : "Today's visitors — entry, position, results";
+
   return (
     <PageShell>
       <PageHeader
         icon={BarChart3}
         title="Player Statistics"
-        subtitle={isHistorical ? `Historical · ${effectiveDate}` : "Today's visitors — entry, position, results"}
+        subtitle={subtitleText}
         centerSlot={dateControl}
         date={!canBrowseHistory}
       />
 
-      <PlayerPreviewHeader />
+      <PlayerPreviewHeader range={effectiveRange} />
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as TabKey)} className="space-y-3">
         <div className="flex items-center justify-between gap-3 flex-wrap">
