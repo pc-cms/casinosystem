@@ -1,131 +1,106 @@
 ## Цель
 
-Команда `curl ... | sudo bash` на Ubuntu-сервере должна работать для приватного репозитория `pms-cms/casinosystem`, без ручного скачивания архивов.
+Перестроить флоу установки on-prem сервера: ставим **полностью пустую** систему (схема + super_admin), а данные тянем из клауда **после** approve через кнопку «Initial Sync» в админке.
 
-## Архитектура
+---
 
-```text
-┌──────────────────────────────────────────────────────────────┐
-│  GitHub: pms-cms/casinosystem (private)                      │
-│  Releases: v1.0.181, v1.0.182, ... ← latest tag              │
-│           └─ source code (auto, .tar.gz)                     │
-└────────────┬─────────────────────────────────────────────────┘
-             │ Authorization: Bearer $GH_TOKEN
-             │
-┌────────────▼─────────────────────────────────────────────────┐
-│  Ubuntu сервер казино                                        │
-│  /etc/casino-system/bootstrap.env  (GH_TOKEN, BRANCH=...)    │
-│                                                              │
-│  $ casino-update     ← один alias                            │
-│       ↓                                                      │
-│  bootstrap.sh: GET releases/latest API → tarball_url         │
-│              → curl с токеном → /opt/casino-system           │
-│              → exec deploy/install.sh                        │
-└──────────────────────────────────────────────────────────────┘
+## 1. Installer (`deploy/install.sh`) — упростить
+
+**Удалить полностью:**
+- Шаг 6.5 «Импорт данных в Postgres» (вызов `cloud-seed-export` + `seed-import.js`).
+- Логику `SEED_TOKEN` / `seed-data/seed.json` / preflight psql из seed-контейнера.
+- `reset_postgres_volume` оставить, но вызывать только при `--wipe` или `--reset`.
+
+**Добавить:**
+- Флаг `--wipe` — полное обнуление: останавливает все контейнеры, удаляет **все** volumes (`postgres_data`, `storage`, `cms-*`, `deploy_*`), удаляет `.env`, `data/`, `runtime-config.json`. Затем продолжает обычную установку с нуля.
+- Шаг «Создать super_admin» — спрашивает email + пароль (с подтверждением), вызывает SQL внутри postgres-контейнера: создаёт user в `auth.users` через `gotrue` admin API + строку в `user_roles` (role=`super_admin`). Если email уже есть — пропускает.
+- После старта стека и применения миграций → `register-local-server` (pairing flow остаётся как есть, но **без seed_token**).
+- Финальное сообщение: «Сервер зарегистрирован. Войдите в облачную админку → Network → Pending servers → Approve → Initial Sync».
+
+**Что меняется в install.sh:**
+- `INSTALLER_VERSION` → `1.1.0` (мажор: новая схема установки)
+- Убрать `wait_for_postgres` (двойная проверка), оставить только `wait_for_postgres_ready` (pg_isready)
+- Убрать обработку `SEED_PSQL_OUT`
+
+---
+
+## 2. Pairing edge function (`register-local-server`) — убрать seed_token
+
+- Убрать `makeSeedToken()` и поле `seed_token` из ответов `GET ?code=` и из upsert в `pending_server_registrations`.
+- Миграция: `pending_server_registrations` — оставить колонки `seed_token`, `seed_token_expires_at` (для совместимости), просто перестать писать.
+
+---
+
+## 3. Initial Sync — кнопка в админке
+
+**Новая edge function `initial-sync-trigger`:**
+- POST, требует super_admin JWT.
+- Body: `{ local_server_id }`.
+- Проверяет что сервер `is_online=true` (есть свежий heartbeat ≤ 5 мин).
+- Создаёт строку в новой таблице `initial_sync_jobs` (status=`pending`, casino_id, server_id, requested_by, started_at).
+- Возвращает `{ job_id, status }`.
+
+**Новая таблица `initial_sync_jobs`:**
+- `id uuid pk`, `casino_id uuid`, `local_server_id uuid`, `status text` (pending/running/done/failed), `tables_total int`, `tables_done int`, `rows_total bigint`, `rows_done bigint`, `error text`, `requested_by uuid`, `started_at`, `finished_at`.
+- RLS: super_admin читает всё, локальный сервер (через service_role на стороне cms-sync) — свои.
+
+**Логика на стороне локального `cms-sync` (`deploy/sync/index.js`):**
+- Каждые 10 сек поллит свой `initial_sync_jobs` через `pull-changes` или прямой select.
+- Если есть `pending` job для своего casino_id → status=`running`, начинает full snapshot pull всех whitelisted таблиц (тот же список что в `pull-changes`), батчами по 500 строк, использует существующий applying-GUC чтобы не зациклиться.
+- Обновляет `tables_done`/`rows_done` каждый батч.
+- На finish → status=`done`. Ошибка → `failed` + error.
+
+**UI — новая кнопка в `src/components/admin/PendingServersPanel.tsx` (или в `NetworkHealthPanel`):**
+- На карточке approved-сервера: кнопка **«Initial Sync»** (variant=`default`).
+- При клике → подтверждение «Это перезальёт все данные с облака. Продолжить?» → вызов edge function.
+- Показывает прогресс (`tables_done / tables_total`, `rows_done / rows_total`) с polling каждые 3 сек пока `status === 'running'`.
+- Disabled если сервер offline.
+- Кнопка «Re-sync» доступна всегда (для повторного запуска), не только сразу после approve.
+
+---
+
+## 4. Cleanup
+
+- Удалить `deploy/postgres/seed-import.js` и `deploy/postgres/seed-data/`.
+- Edge function `cloud-seed-export` — оставить (используется как backup/manual экспорт), пометить deprecated в комментарии шапки.
+- `package.json` → bump до `1.1.0`.
+
+---
+
+## 5. Технические детали
+
+**SQL для super_admin** (через psql в postgres-контейнере, gotrue admin API недоступен пока он не запущен → используем прямой insert в `auth.users` с bcrypt-хешем; bcrypt считаем через `node -e "require('bcryptjs').hashSync(...)"` уже доступный в seed-image, либо через `crypt()` из pgcrypto):
+
+```sql
+INSERT INTO auth.users (id, email, encrypted_password, email_confirmed_at, ...)
+VALUES (gen_random_uuid(), $email, crypt($pass, gen_salt('bf')), now(), ...);
+INSERT INTO user_roles (user_id, role) VALUES (..., 'super_admin');
 ```
 
-## Что меняется
+**Sync whitelist:** все таблицы кроме `auth.*`, `storage.*`, `realtime.*`, `pending_server_registrations`, `local_servers`, `initial_sync_jobs`, `cms_sync_outbox/inbox`. Список — копия из `pull-changes/index.ts`.
 
-### 1. `public/install` (bootstrap)
+**Идемпотентность:** все insert идут с `onConflict: 'id' ignoreDuplicates: false` (upsert), чтобы повторный sync был безопасен.
 
-Переписать так, чтобы:
+---
 
-- **Источник версии**: GitHub API `GET /repos/pms-cms/casinosystem/releases/latest` (с токеном).
-  Если релизов ещё нет — fallback на ветку `main` через `GET /repos/.../tarball/main`.
-- **Авторизация**: `Authorization: Bearer $GH_TOKEN` + `Accept: application/vnd.github+json`.
-  Токен берётся из (по приоритету):
-  1. env-переменная `GH_TOKEN` при запуске
-  2. файл `/etc/casino-system/bootstrap.env` (создаётся при первом запуске)
-- **Первый запуск без токена**: bootstrap печатает чёткую инструкцию:
-  ```
-  Нужен GitHub token (classic, scope: repo).
-  Создай: https://github.com/settings/tokens/new?scopes=repo&description=casino-system
-  Затем:  echo 'GH_TOKEN=ghp_xxx' | sudo tee /etc/casino-system/bootstrap.env
-          sudo chmod 600 /etc/casino-system/bootstrap.env
-  И запусти команду снова.
-  ```
-- **Сам tarball**: качается через
-  `curl -fL -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" -o src.tar.gz "https://api.github.com/repos/pms-cms/casinosystem/tarball/<ref>"`
-  (это правильный приватный endpoint, не `codeload`).
-- **Сохранение состояния**: `.env` и `data/` старой установки переносятся в новую (как уже есть).
-- **Установка alias**: при первом успешном запуске bootstrap кладёт скрипт-обёртку:
-  `/usr/local/bin/casino-update` → `curl ... | sudo bash -s -- "$@"`.
-  Дальше обновление = просто `sudo casino-update` (или `sudo casino-update --rebuild`).
+## Порядок миграций
 
-### 2. `public/install.sh` и `deploy/bootstrap.sh`
+1. Migration: создать `initial_sync_jobs` + RLS.
+2. Edge function `initial-sync-trigger` — deploy.
+3. Edge function `register-local-server` — убрать seed_token.
+4. `deploy/sync/index.js` — добавить job poller.
+5. `deploy/install.sh` — переписать (убрать seed step, добавить --wipe, добавить super_admin creation).
+6. UI — кнопка Initial Sync в PendingServersPanel.
+7. Удалить `deploy/postgres/seed-import.js` + `seed-data/`.
+8. Bump version → `1.1.0`.
 
-Те же изменения — это копии того же файла.
+---
 
-### 3. CI: автоматический GitHub Release при каждом push в main (опционально, рекомендуется)
-
-Добавить `.github/workflows/release.yml`:
-
-```yaml
-on:
-  push:
-    branches: [main]
-    paths-ignore: ['**.md', '.github/**']
-permissions:
-  contents: write
-jobs:
-  release:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - id: ver
-        run: echo "v=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
-      - uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ steps.ver.outputs.v }}
-          name: ${{ steps.ver.outputs.v }}
-          generate_release_notes: true
-```
-
-Релизы создаются автоматически, source `.tar.gz` прикрепляется GitHub-ом без участия CI.
-
-Если не хочешь CI — можно вручную: `Releases → Draft new release → Publish` после каждого важного изменения. Bootstrap всё равно работает (использует `releases/latest`).
-
-### 4. README / docs
-
-Короткая шпаргалка:
+## После релиза пользователь делает:
 
 ```bash
-# Первая установка на новом сервере
-sudo mkdir -p /etc/casino-system
-echo 'GH_TOKEN=ghp_xxx' | sudo tee /etc/casino-system/bootstrap.env
-sudo chmod 600 /etc/casino-system/bootstrap.env
-curl -fsSL https://casinosystem.app/install | sudo bash
-
-# Обновление существующей установки
-sudo casino-update
-sudo casino-update --rebuild
-sudo casino-update --reset
+sudo casino-update --wipe
+# вводит email + пароль для super_admin
+# вводит pairing code в облачной админке
+# жмёт Approve → жмёт Initial Sync → ждёт прогресс
 ```
-
-## Что НЕ делаем
-
-- Не публикуем токен ни в одном файле репозитория.
-- Не делаем релизы вручную каждый раз — берём `releases/latest` или fallback на `main`.
-- Не меняем `deploy/install.sh` — bootstrap его только запускает.
-
-## Технические детали (для сверки)
-
-- GitHub API tarball endpoint для приватных репо требует scope `repo` у classic PAT (или `contents:read` у fine-grained). Fine-grained PAT привязывается к конкретному репо — безопаснее.
-- Файл `/etc/casino-system/bootstrap.env` читается через `set -a; . /etc/casino-system/bootstrap.env; set +a` чтобы переменные ушли в env.
-- HTTP redirect от api.github.com на codeload отрабатывается `-L`. Добавляем `--retry 3 --retry-delay 2`.
-- Проверка размера tarball (>100KB) и HTTP=200 — оставляем.
-- Версия bootstrap печатается в баннере (как сейчас).
-- `package.json` версия будет автоматом через CI становиться тегом релиза.
-
-## Шаги внедрения после approve
-
-1. Переписать `public/install` (+ зеркала `public/install.sh`, `deploy/bootstrap.sh`).
-2. Добавить `.github/workflows/release.yml`.
-3. Бампнуть `package.json` patch.
-4. Пуш в main → автоматически создаётся release v1.0.182.
-5. Ты на сервере один раз кладёшь `GH_TOKEN` в `/etc/casino-system/bootstrap.env` и запускаешь `curl ... | sudo bash`.
-6. Дальше — `sudo casino-update`.
-
-## Вопрос перед стартом
-
-Нужна ли тебе помощь с генерацией fine-grained PAT (точные галочки) — могу расписать пошагово в инструкции, которую печатает bootstrap при отсутствии токена.

@@ -2207,6 +2207,60 @@ export type Database = {
           },
         ]
       }
+      initial_sync_jobs: {
+        Row: {
+          casino_id: string
+          created_at: string
+          current_table: string | null
+          error: string | null
+          finished_at: string | null
+          id: string
+          local_server_id: string
+          requested_by: string | null
+          rows_done: number
+          rows_total: number
+          started_at: string | null
+          status: string
+          tables_done: number
+          tables_total: number
+          updated_at: string
+        }
+        Insert: {
+          casino_id: string
+          created_at?: string
+          current_table?: string | null
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          local_server_id: string
+          requested_by?: string | null
+          rows_done?: number
+          rows_total?: number
+          started_at?: string | null
+          status?: string
+          tables_done?: number
+          tables_total?: number
+          updated_at?: string
+        }
+        Update: {
+          casino_id?: string
+          created_at?: string
+          current_table?: string | null
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          local_server_id?: string
+          requested_by?: string | null
+          rows_done?: number
+          rows_total?: number
+          started_at?: string | null
+          status?: string
+          tables_done?: number
+          tables_total?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       inter_casino_transfers: {
         Row: {
           amount: number
