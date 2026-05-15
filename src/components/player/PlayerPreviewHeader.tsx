@@ -18,22 +18,28 @@ import { canSeePlayerFinancials } from "@/lib/role-access";
 import { formatCurrency, formatNumberSpaces } from "@/lib/currency";
 import { cn } from "@/lib/utils";
 import { useCreatePlayerChipAdjustment } from "@/hooks/use-player-chip-adjustments";
+import { usePlayerDropSplit } from "@/hooks/use-drop-split";
 
 interface Props {
   playerId?: string | null;
   onClose?: () => void;
   className?: string;
+  /** Optional period (YYYY-MM-DD inclusive). Defaults to current business day. */
+  range?: { from: string; to: string };
 }
 
-/** Today's (current business day) CASH IN (drop) and RESULT for one player.
- *  Player-format: result = (cashout) − (drop). */
-const useTodayPlayerStats = (playerId: string | undefined | null, businessDate: string | undefined) => {
+/** CASH IN and RESULT for one player over an arbitrary business-day range. */
+const usePeriodPlayerStats = (
+  playerId: string | undefined | null,
+  fromDate: string | undefined,
+  toDate: string | undefined,
+) => {
   return useQuery({
-    queryKey: ["player-day-stats", playerId, businessDate],
+    queryKey: ["player-period-stats", playerId, fromDate, toDate],
     queryFn: async () => {
-      if (!playerId || !businessDate) return { cashIn: 0, result: 0 };
-      const start = businessDayHourUTC(businessDate, 13);
-      const end = businessDayHourUTC(businessDate, 13 + 24);
+      if (!playerId || !fromDate || !toDate) return { cashIn: 0, result: 0 };
+      const start = businessDayHourUTC(fromDate, 13);
+      const end = businessDayHourUTC(toDate, 13 + 24);
       const { data, error } = await supabase
         .from("transactions")
         .select("type, amount")
@@ -50,7 +56,7 @@ const useTodayPlayerStats = (playerId: string | undefined | null, businessDate: 
       }
       return { cashIn, result: cashOut - cashIn };
     },
-    enabled: !!playerId && !!businessDate,
+    enabled: !!playerId && !!fromDate && !!toDate,
     staleTime: 30_000,
   });
 };
@@ -83,13 +89,22 @@ const LEVEL_TINT: Record<string, string> = {
 };
 
 
-export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className }: Props) => {
+export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className, range }: Props) => {
   const ctx = useSelectedPlayer();
   const playerId = playerIdProp !== undefined ? playerIdProp : ctx.playerId;
   const { data: player, isLoading } = usePlayer(playerId || undefined);
   const { data: visits = [] } = usePlayerVisits(playerId || undefined);
   const { data: businessDate } = useEffectiveBusinessDate();
-  const { data: dayStats } = useTodayPlayerStats(playerId, businessDate || undefined);
+  const fromDate = range?.from || businessDate || undefined;
+  const toDate = range?.to || businessDate || undefined;
+  const isMultiDay = !!fromDate && !!toDate && fromDate !== toDate;
+  const periodSuffix = isMultiDay ? "(p)" : "(d)";
+  const { data: dayStats } = usePeriodPlayerStats(playerId, fromDate, toDate);
+  const { data: dropSplit } = usePlayerDropSplit(
+    playerId || undefined,
+    fromDate ? businessDayHourUTC(fromDate, 13) : undefined,
+    toDate ? businessDayHourUTC(toDate, 13 + 24) : undefined,
+  );
   const nav = useNavigate();
   const { roles } = useAuth();
   const showFinancials = canSeePlayerFinancials(roles || []);
@@ -223,15 +238,19 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
               )}
             </div>
 
-            {/* Row 2 — Cash In (m) / Result (m) */}
+            {/* Row 2 — Drop / Cash In / Result for the active period */}
             {showFinancials && (
-              <div className="flex items-baseline gap-6 font-mono">
+              <div className="flex items-baseline gap-6 font-mono flex-wrap">
                 <span className="text-sm text-muted-foreground">
-                  Cash In (d):{" "}
+                  Drop {periodSuffix}:{" "}
+                  <span className="text-foreground font-bold text-lg">{formatCurrency(dropSplit?.dropR ?? 0)}</span>
+                </span>
+                <span className="text-sm text-muted-foreground">
+                  Cash In {periodSuffix}:{" "}
                   <span className="text-foreground font-bold text-lg">{formatCurrency(dayStats?.cashIn ?? 0)}</span>
                 </span>
                 <span className="text-sm text-muted-foreground">
-                  Result (d):{" "}
+                  Result {periodSuffix}:{" "}
                   <span className={cn("font-bold text-lg", result > 0 ? "cms-amount-positive" : result < 0 ? "cms-amount-negative" : "text-foreground")}>
                     {result > 0 ? "+" : ""}{formatCurrency(result)}
                   </span>
