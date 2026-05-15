@@ -61,7 +61,7 @@ const PlayerProfile = () => {
   const { data: groupHistory = [] } = usePlayerGroupHistory(id);
   const { data: economy = null } = usePlayerEconomy(id);
   const { data: expenses = [] } = usePlayerExpenses(id);
-  const canSeeNotes = roles.some(r => ["pit", "surveillance", "manager"].includes(r)) || isManager;
+  const canSeeNotes = roles.some(r => ["pit", "surveillance", "manager", "floor_manager"].includes(r)) || isManager;
   const { data: notes = [] } = usePlayerNotes(id, canSeeNotes);
 
   // Pit / Cashier / Reception are restricted to the current business day
@@ -482,7 +482,7 @@ const PlayerProfile = () => {
         <TabsContent value="info" className="space-y-4">
           {canSeeNotes && (
             <PageSection card title={`Notes (${notes.length})`}>
-              <NotesPanel playerId={(player as any).id} notes={notes} canPost={roles.some(r => ["pit","manager","surveillance","super_admin"].includes(r))} />
+              <NotesPanel playerId={(player as any).id} notes={notes} canPost={roles.some(r => ["pit","manager","floor_manager","surveillance","super_admin"].includes(r))} />
             </PageSection>
           )}
 
