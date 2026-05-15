@@ -411,10 +411,10 @@ const PlayerStatistics = () => {
       };
     },
     onSuccess: (res: any) => {
-      queryClient.setQueryData<any[]>(["casino_visits", casinoId, effectiveDate], (old = []) =>
+      queryClient.setQueryData<any[]>(["casino_visits", casinoId, fromDate, toDate], (old = []) =>
         old.map(v => v.id === res.visitId ? { ...v, position: res.visitPosition } : v)
       );
-      queryClient.setQueryData<any[]>(["client_sessions", casinoId, effectiveDate], (old = []) => {
+      queryClient.setQueryData<any[]>(["client_sessions", casinoId, fromDate, toDate], (old = []) => {
         const stopped = old.map(s =>
           s.player_id === res.playerId && !s.stopped_at ? { ...s, stopped_at: res.sessionStoppedAt } : s
         );
