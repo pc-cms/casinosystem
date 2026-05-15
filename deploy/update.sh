@@ -87,13 +87,13 @@ rsync -a --delete \
   --exclude '.git/' \
   "$EXTRACTED"/ "$CMS_DIR"/
 
-# 6. Rebuild frontend + restart
+# 6. Rebuild frontend + cms-sync + restart
 cd "${CMS_DIR}/deploy"
-log "Building cms-frontend (this may take 3-7 min)..."
-docker compose build cms-frontend
+log "Building cms-frontend + cms-sync (this may take 3-7 min)..."
+docker compose build cms-frontend cms-sync
 
-log "Restarting frontend + nginx..."
-docker compose up -d cms-frontend nginx
+log "Restarting frontend + nginx + cms-sync..."
+docker compose up -d cms-frontend nginx cms-sync
 
 # 7. Health check
 log "Waiting for frontend..."
