@@ -139,6 +139,17 @@ wait_for_postgres() {
   fail "${label} не принимает пароль из .env после ожидания"
 }
 
+wait_for_postgres_ready() {
+  local label="${1:-Postgres}"
+  for i in $(seq 1 60); do
+    docker compose exec -T postgres pg_isready -U "${POSTGRES_USER:-postgres}" &>/dev/null && { ok "${label} готов"; return 0; }
+    sleep 2
+  done
+  docker compose ps postgres >&2 || true
+  docker compose logs --tail=80 postgres >&2 || true
+  fail "${label} не стартовал"
+}
+
 postgres_network_name() {
   local cid net
   cid="$(docker compose ps -q postgres 2>/dev/null || true)"
