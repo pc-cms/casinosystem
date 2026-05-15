@@ -1,26 +1,26 @@
 #!/usr/bin/env bash
 #
-# Casino System — One-line bootstrap installer
-# ----------------------------------------------
+# Casino System — One-line bootstrap installer (private repo edition)
+# --------------------------------------------------------------------
 # Usage:
 #   curl -fsSL https://casinosystem.app/install | sudo bash
 #   curl -fsSL https://casinosystem.app/install | sudo bash -s -- --reset
 #   curl -fsSL https://casinosystem.app/install | sudo bash -s -- --rebuild
 #   curl -fsSL https://casinosystem.app/install | sudo bash -s -- --reconfigure
 #
-# Что делает:
-#   1. Качает свежий tarball репозитория pms-cms/casinosystem (ветка main) с GitHub.
-#   2. Бэкапит существующий /opt/casino-system → /opt/casino-system.bak.<timestamp>
-#   3. Распаковывает в /opt/casino-system.
-#   4. Запускает deploy/install.sh с теми же аргументами, что переданы в bash.
+# Авторизация для приватного репо:
+#   GH_TOKEN передаётся через env или через /etc/casino-system/bootstrap.env
+#   echo 'GH_TOKEN=ghp_xxx' | sudo tee /etc/casino-system/bootstrap.env
+#   sudo chmod 600 /etc/casino-system/bootstrap.env
 #
 set -euo pipefail
 
-BOOTSTRAP_VERSION="1.0.0"
-REPO="pms-cms/casinosystem"
+BOOTSTRAP_VERSION="1.1.0"
+REPO="${CASINO_REPO:-pms-cms/casinosystem}"
 BRANCH="${CASINO_BRANCH:-main}"
-TARGET="/opt/casino-system"
-TARBALL_URL="https://codeload.github.com/${REPO}/tar.gz/refs/heads/${BRANCH}"
+TARGET="${CASINO_TARGET:-/opt/casino-system}"
+ENV_FILE="/etc/casino-system/bootstrap.env"
+SELF_URL="${CASINO_BOOTSTRAP_URL:-https://casinosystem.app/install}"
 
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; CYAN='\033[0;36m'; BOLD='\033[1m'; NC='\033[0m'
 log()  { echo -e "${CYAN}[bootstrap]${NC} $*"; }
@@ -29,37 +29,100 @@ warn() { echo -e "${YELLOW}[warn]${NC} $*"; }
 fail() { echo -e "${RED}[fail]${NC} $*" >&2; exit 1; }
 
 echo -e "${CYAN}╔════════════════════════════════════════════════╗${NC}"
-echo -e "${CYAN}║  Casino System Bootstrap  v${BOOTSTRAP_VERSION}                ║${NC}"
-echo -e "${CYAN}║  repo: ${REPO}@${BRANCH}             ║${NC}"
+echo -e "${CYAN}║  Casino System Bootstrap  v${BOOTSTRAP_VERSION}              ║${NC}"
+echo -e "${CYAN}║  repo: ${REPO}@${BRANCH}${NC}"
 echo -e "${CYAN}╚════════════════════════════════════════════════╝${NC}"
 
-[[ $EUID -eq 0 ]] || fail "Запустите от root: curl -fsSL https://casinosystem.app/install | sudo bash"
+[[ $EUID -eq 0 ]] || fail "Запустите от root: curl -fsSL ${SELF_URL} | sudo bash"
 
 command -v curl >/dev/null 2>&1 || { log "Устанавливаю curl..."; apt-get update -qq && apt-get install -y -qq curl; }
 command -v tar  >/dev/null 2>&1 || { log "Устанавливаю tar...";  apt-get update -qq && apt-get install -y -qq tar; }
 
+# ── Загружаем токен ──
+if [[ -z "${GH_TOKEN:-}" ]] && [[ -f "$ENV_FILE" ]]; then
+  set -a; . "$ENV_FILE"; set +a
+fi
+
+if [[ -z "${GH_TOKEN:-}" ]]; then
+  echo
+  echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+  echo -e "${YELLOW}  Нужен GitHub Personal Access Token (репо приватная)${NC}"
+  echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+  cat <<EOF
+
+  1. Создай token:
+     https://github.com/settings/tokens/new?scopes=repo&description=casino-system
+
+     Или fine-grained (безопаснее):
+     https://github.com/settings/personal-access-tokens/new
+       Repository access → Only select repositories → ${REPO}
+       Permissions → Contents: Read-only
+
+  2. Сохрани token на сервере:
+     sudo mkdir -p /etc/casino-system
+     echo 'GH_TOKEN=ghp_xxxxxxxxxxxxxxxxxxxx' | sudo tee ${ENV_FILE}
+     sudo chmod 600 ${ENV_FILE}
+
+  3. Запусти команду заново:
+     curl -fsSL ${SELF_URL} | sudo bash
+
+EOF
+  fail "GH_TOKEN не найден"
+fi
+
+AUTH_HDR="Authorization: Bearer ${GH_TOKEN}"
+ACCEPT_HDR="Accept: application/vnd.github+json"
+API_VER_HDR="X-GitHub-Api-Version: 2022-11-28"
+
 TMP="$(mktemp -d /tmp/casino-bootstrap.XXXXXX)"
 trap 'rm -rf "$TMP"' EXIT
 
-log "Скачиваю свежий код: ${TARBALL_URL}"
-HTTP=$(curl -fsSL --retry 3 --retry-delay 2 -w "%{http_code}" -o "$TMP/src.tar.gz" "$TARBALL_URL" || echo "000")
-[[ "$HTTP" == "200" ]] || fail "Не удалось скачать tarball (HTTP=$HTTP). Проверь интернет / доступ к GitHub."
+# ── Определяем ref: latest release или branch ──
+log "Запрашиваю latest release из GitHub API..."
+REL_HTTP=$(curl -fsS -o "$TMP/release.json" -w "%{http_code}" \
+  -H "$AUTH_HDR" -H "$ACCEPT_HDR" -H "$API_VER_HDR" \
+  --retry 3 --retry-delay 2 \
+  "https://api.github.com/repos/${REPO}/releases/latest" 2>/dev/null || echo "000")
+
+if [[ "$REL_HTTP" == "200" ]]; then
+  REF=$(grep -oP '"tag_name"\s*:\s*"\K[^"]+' "$TMP/release.json" | head -n1)
+  ok "Latest release: $REF"
+elif [[ "$REL_HTTP" == "401" || "$REL_HTTP" == "403" ]]; then
+  fail "GitHub отклонил token (HTTP=$REL_HTTP). Проверь GH_TOKEN и его scope (нужен 'repo' или Contents:Read)."
+elif [[ "$REL_HTTP" == "404" ]]; then
+  warn "Релизов в репо нет — fallback на ветку '${BRANCH}'"
+  REF="$BRANCH"
+else
+  warn "GitHub API вернул HTTP=$REL_HTTP — fallback на ветку '${BRANCH}'"
+  REF="$BRANCH"
+fi
+
+# ── Качаем tarball ──
+TARBALL_URL="https://api.github.com/repos/${REPO}/tarball/${REF}"
+log "Скачиваю tarball: $TARBALL_URL"
+HTTP=$(curl -fL --retry 3 --retry-delay 2 \
+  -H "$AUTH_HDR" -H "$ACCEPT_HDR" -H "$API_VER_HDR" \
+  -o "$TMP/src.tar.gz" -w "%{http_code}" \
+  "$TARBALL_URL" 2>&1 | tail -n1 || echo "000")
+
+[[ "$HTTP" == "200" ]] || fail "Не удалось скачать tarball (HTTP=$HTTP). Проверь GH_TOKEN и доступ к ${REPO}."
+
 SIZE=$(stat -c%s "$TMP/src.tar.gz" 2>/dev/null || stat -f%z "$TMP/src.tar.gz")
 [[ "$SIZE" -gt 100000 ]] || fail "Скачанный архив подозрительно мал ($SIZE байт)."
 ok "Архив скачан: $((SIZE/1024)) KB"
 
 log "Распаковываю..."
 tar -xzf "$TMP/src.tar.gz" -C "$TMP"
-SRC_DIR=$(find "$TMP" -maxdepth 1 -type d -name "casinosystem-*" | head -n1)
+SRC_DIR=$(find "$TMP" -maxdepth 1 -type d \( -name "${REPO##*/}-*" -o -name "pms-cms-*" \) | head -n1)
 [[ -d "$SRC_DIR" ]] || fail "Не найдена распакованная папка"
 [[ -f "$SRC_DIR/deploy/install.sh" ]] || fail "В архиве нет deploy/install.sh"
 
+# ── Бэкап + сохранение состояния ──
 if [[ -d "$TARGET" ]]; then
   BAK="${TARGET}.bak.$(date +%Y%m%d-%H%M%S)"
   log "Бэкаплю существующую папку → $BAK"
-  # Сохраняем только важное (.env, runtime-config), сам код заменим
   if [[ -f "$TARGET/.env" ]]; then cp -f "$TARGET/.env" "$TMP/.env.preserve"; fi
-  if [[ -d "$TARGET/data" ]]; then mv "$TARGET/data" "$TMP/data.preserve"; fi
+  if [[ -d "$TARGET/data" ]]; then cp -a "$TARGET/data" "$TMP/data.preserve"; fi
   mv "$TARGET" "$BAK"
   ok "Старая версия → $BAK"
 fi
@@ -68,17 +131,27 @@ log "Устанавливаю в $TARGET"
 mkdir -p "$(dirname "$TARGET")"
 mv "$SRC_DIR" "$TARGET"
 
-# Восстанавливаем сохранённое
 if [[ -f "$TMP/.env.preserve" ]]; then
   cp -f "$TMP/.env.preserve" "$TARGET/.env"
   ok "Восстановлен .env"
 fi
 if [[ -d "$TMP/data.preserve" ]]; then
+  rm -rf "$TARGET/data" 2>/dev/null || true
   mv "$TMP/data.preserve" "$TARGET/data"
   ok "Восстановлена папка data/"
 fi
 
 chmod +x "$TARGET/deploy/install.sh" 2>/dev/null || true
+
+# ── Ставим alias `casino-update` ──
+ALIAS_PATH="/usr/local/bin/casino-update"
+cat > "$ALIAS_PATH" <<EOF
+#!/usr/bin/env bash
+# Auto-generated by Casino System bootstrap
+exec curl -fsSL ${SELF_URL} | sudo bash -s -- "\$@"
+EOF
+chmod +x "$ALIAS_PATH"
+ok "Alias установлен: \`sudo casino-update [args]\`"
 
 ok "Код установлен. Запускаю инсталлер..."
 echo
