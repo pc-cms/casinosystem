@@ -31,9 +31,10 @@ die()  { echo -e "${RED}[error]${NC} $*" >&2; exit 1; }
 
 cd "${CMS_DIR}/deploy"
 
-# Resolve Cloud URL (override > .env > default)
-CLOUD_URL="${CLOUD_URL:-$(grep -E '^CLOUD_URL=' "$ENV_FILE" | head -1 | cut -d= -f2- | tr -d '"' || true)}"
+# Resolve Cloud URL (override > .env > default). Strip both single and double quotes.
+CLOUD_URL="${CLOUD_URL:-$(grep -E '^CLOUD_URL=' "$ENV_FILE" | head -1 | cut -d= -f2- | tr -d '"'"'"'' || true)}"
 CLOUD_URL="${CLOUD_URL:-https://rpehngjvwcnipvkouluu.supabase.co}"
+CLOUD_URL="${CLOUD_URL%/}"
 log "Cloud:  ${CLOUD_URL}"
 
 # Sanity: cms-sync must be up
@@ -43,9 +44,14 @@ if ! docker compose ps cms-sync 2>/dev/null | grep -q "Up\|running"; then
   sleep 3
 fi
 
-# Make sure pair-cli.js exists in the container (came with latest update.sh)
+# Make sure pair-cli.js exists in the container; if not — rebuild cms-sync from current sources
 if ! docker compose exec -T cms-sync test -f /app/pair-cli.js 2>/dev/null; then
-  die "pair-cli.js not found in cms-sync container. Run update.sh first:
+  warn "pair-cli.js missing in cms-sync image — rebuilding cms-sync (1-2 min)..."
+  docker compose build cms-sync || die "cms-sync rebuild failed"
+  docker compose up -d --force-recreate cms-sync
+  sleep 4
+  docker compose exec -T cms-sync test -f /app/pair-cli.js 2>/dev/null \
+    || die "pair-cli.js still missing after rebuild. Run update.sh first:
        curl -fsSL https://casinosystem.app/update.sh | sudo bash"
 fi
 
