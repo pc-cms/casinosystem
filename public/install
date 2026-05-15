@@ -15,8 +15,11 @@
 #
 set -euo pipefail
 
-BOOTSTRAP_VERSION="1.2.0"
+BOOTSTRAP_VERSION="1.2.1"
 REPO="${CASINO_REPO:-pc-cms/casinosystem}"
+if [[ "$REPO" == "pms-cms/casinosystem" ]]; then
+  REPO="pc-cms/casinosystem"
+fi
 BRANCH="${CASINO_BRANCH:-main}"
 TARGET="${CASINO_TARGET:-/opt/casino-system}"
 ENV_FILE="/etc/casino-system/bootstrap.env"
