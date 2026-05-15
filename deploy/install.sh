@@ -355,11 +355,8 @@ if [[ ! -f "$SEED_DONE_FILE" && -n "${SEED_TOKEN:-}" ]]; then
   fi
 
   if [[ $PG_OK -eq 0 ]]; then
-    warn "Не удалось синхронизировать пароль. Seed ещё не выполнен — пересоздаю том postgres (данных там нет)."
-    docker compose down postgres &>/dev/null || true
-    PG_VOLUME=$(docker volume ls --format '{{.Name}}' | grep -E "$(basename "$SCRIPT_DIR")_postgres-data$" | head -1)
-    [[ -n "$PG_VOLUME" ]] || PG_VOLUME="$(basename "$SCRIPT_DIR")_postgres-data"
-    docker volume rm "$PG_VOLUME" &>/dev/null || warn "Не удалось удалить volume $PG_VOLUME (возможно уже удалён)"
+    warn "Не удалось синхронизировать пароль. Seed ещё не выполнен — пересоздаю postgres volume (данных там нет)."
+    reset_postgres_volume
     log "Поднимаю postgres заново с чистым томом..."
     docker compose up -d postgres
     for i in $(seq 1 60); do
