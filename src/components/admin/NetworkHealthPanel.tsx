@@ -30,6 +30,9 @@ const fmtMinutes = (m: number | null) => {
   if (m < 60) return `${Math.round(m)}m`;
   return `${(m / 60).toFixed(1)}h`;
 };
+const shortId = (id: string | null | undefined) => id ? id.slice(0, 8) : "—";
+const casinoLabel = (names: Map<string, string>, casinoId: string | null | undefined) =>
+  casinoId ? (names.get(casinoId) ?? shortId(casinoId)) : "—";
 
 const useCasinoNameMap = () => {
   const { data } = useQuery({
@@ -86,7 +89,7 @@ export const NetworkHealthPanel = () => {
                 const diskWarn = (s.disk_used_pct ?? 0) > 85;
                 return (
                   <tr key={s.id} className="border-b border-border last:border-0">
-                    <td className="px-3 py-2 font-medium">{names.get(s.casino_id) ?? s.casino_id.slice(0, 8)}</td>
+                    <td className="px-3 py-2 font-medium">{casinoLabel(names, s.casino_id)}</td>
                     <td className="px-3 py-2 font-mono text-xs">{s.server_name}</td>
                     <td className="px-3 py-2 font-mono text-xs text-muted-foreground">{s.server_ip ?? "—"}</td>
                     <td className="px-3 py-2 text-center">
@@ -142,7 +145,7 @@ export const NetworkHealthPanel = () => {
             <tbody>
               {inbox.map(i => (
                 <tr key={i.casino_id} className="border-b border-border last:border-0">
-                  <td className="px-3 py-2 font-medium">{names.get(i.casino_id) ?? i.casino_id.slice(0, 8)}</td>
+                  <td className="px-3 py-2 font-medium">{casinoLabel(names, i.casino_id)}</td>
                   <td className="px-3 py-2 text-right font-mono">{i.total_24h}</td>
                   <td className="px-3 py-2 text-right">
                     {i.errors_24h > 0
@@ -187,7 +190,7 @@ export const NetworkHealthPanel = () => {
                 const stuck = (t.oldest_minutes ?? 0) > 10;
                 return (
                   <tr key={`${t.casino_id}-${t.table_name}-${idx}`} className="border-b border-border last:border-0">
-                    <td className="px-3 py-2 font-medium">{names.get(t.casino_id) ?? t.casino_id.slice(0, 8)}</td>
+                    <td className="px-3 py-2 font-medium">{casinoLabel(names, t.casino_id)}</td>
                     <td className="px-3 py-2 font-mono text-xs">{t.table_name}</td>
                     <td className="px-3 py-2 text-right font-mono">{t.pending_count}</td>
                     <td className={`px-3 py-2 text-right font-mono text-xs ${stuck ? "text-warning font-semibold" : "text-muted-foreground"}`}>
@@ -285,7 +288,7 @@ export const NetworkHealthPanel = () => {
                 const stuck = s.oldest_pending_at && (Date.now() - new Date(s.oldest_pending_at).getTime()) > 1000 * 60 * 10;
                 return (
                   <tr key={s.casino_id} className="border-b border-border last:border-0">
-                    <td className="px-3 py-2 font-medium">{names.get(s.casino_id) ?? s.casino_id.slice(0, 8)}</td>
+                    <td className="px-3 py-2 font-medium">{casinoLabel(names, s.casino_id)}</td>
                     <td className={`px-3 py-2 text-right font-mono ${stuck ? "text-warning font-semibold" : ""}`}>{s.pending_count}</td>
                     <td className="px-3 py-2 text-xs text-muted-foreground">
                       {fmtTime(s.oldest_pending_at)}
@@ -334,7 +337,7 @@ export const NetworkHealthPanel = () => {
                   : "outline";
                 return (
                   <tr key={c.id} className="border-b border-border last:border-0">
-                    <td className="px-3 py-2 font-medium">{names.get(c.casino_id) ?? c.casino_id.slice(0, 8)}</td>
+                    <td className="px-3 py-2 font-medium">{casinoLabel(names, c.casino_id)}</td>
                     <td className="px-3 py-2 font-mono text-xs">{c.target_version}</td>
                     <td className="px-3 py-2 text-center text-xs">{c.auto_apply ? "✓" : "—"}</td>
                     <td className="px-3 py-2"><Badge variant={variant} className="text-[10px]">{c.status}</Badge></td>
