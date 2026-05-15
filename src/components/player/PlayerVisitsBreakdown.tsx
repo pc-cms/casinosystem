@@ -116,7 +116,8 @@ export default function PlayerVisitsBreakdown({ visits, transactions, expenses, 
         const vid = findVisit(t.casino_id, ts);
         if (vid) {
           const cur = m.get(vid)!;
-          cur.drop += ext; // Drop R only — recycled excluded from "real drop"
+          cur.drop += ext;     // Drop R only — recycled excluded from "real drop"
+          cur.inGross += amt;  // Gross IN — every buy-in including recycled
         }
       } else if (t.type === "cashout" || (t.type as string) === "out") {
         nep -= amt;
