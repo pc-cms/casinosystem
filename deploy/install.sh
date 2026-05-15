@@ -34,12 +34,13 @@ trap 'rc=$?; echo -e "${RED}[fail]${NC} Installer stopped at line ${LINENO} (exi
 require_root() { [[ $EUID -eq 0 ]] || fail "Запустите от root: sudo ./deploy/install.sh"; }
 
 # ── CLI ──
-RESET=0; REBUILD=0; RECONFIGURE=0
+RESET=0; REBUILD=0; RECONFIGURE=0; WIPE=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --reset)        RESET=1; shift ;;
     --rebuild)      REBUILD=1; shift ;;
     --reconfigure)  RECONFIGURE=1; shift ;;
+    --wipe)         WIPE=1; RESET=1; shift ;;
     -h|--help)      sed -n '4,16p' "$0"; exit 0 ;;
     *) fail "Неизвестный аргумент: $1" ;;
   esac
