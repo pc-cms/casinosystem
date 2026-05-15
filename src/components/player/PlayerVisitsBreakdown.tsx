@@ -184,7 +184,7 @@ export default function PlayerVisitsBreakdown({ visits, transactions, expenses, 
     return <div className="text-sm text-muted-foreground py-6 text-center">No visits recorded.</div>;
   }
 
-  const colSpan = showFinancials ? 6 : 3;
+  const colSpan = showFinancials ? 8 : 3;
 
   return (
     <div className="overflow-x-auto">
@@ -196,7 +196,8 @@ export default function PlayerVisitsBreakdown({ visits, transactions, expenses, 
             <th className="text-right py-2 px-2">Time</th>
             {showFinancials && <>
               <th className="text-right py-2 px-2" title="Drop — NEP-aware (external cash only)">Drop</th>
-              <th className="text-right py-2 px-2">Cashout</th>
+              <th className="text-right py-2 px-2" title="Total cash in (all buy-ins, including recycled)">In</th>
+              <th className="text-right py-2 px-2" title="Total cashout">Out</th>
               <th className="text-right py-2 px-2">Result</th>
               <th className="text-right py-2 px-2">Comps</th>
               <th className="text-right py-2 px-2">Total</th>
