@@ -304,30 +304,60 @@ if [[ ! -f "$SEED_DONE_FILE" && -n "${SEED_TOKEN:-}" ]]; then
   done
   ok "Postgres готов"
 
-  # Если volume уже существовал с другим паролем — синхронизируем.
-  # Внутри контейнера локальное TCP к localhost требует пароль, поэтому используем
-  # Unix-сокет (peer/trust auth для постgres-юзера через psql).
+  # Sanity-check пароля: если volume инициализирован ранее с другим паролем,
+  # ALTER USER через локальный сокет (peer auth для OS-user "postgres" внутри контейнера).
+  # Если и это не помогло — а seed ещё не делали — безопасно пересоздать том (данных нет).
   log "Проверяю пароль postgres..."
-  if ! docker compose exec -T -e PGPASSWORD="${POSTGRES_PASSWORD}" postgres \
+  PG_OK=0
+  if docker compose exec -T -e PGPASSWORD="${POSTGRES_PASSWORD}" postgres \
        psql -h 127.0.0.1 -U "${POSTGRES_USER:-postgres}" -d "${POSTGRES_DB:-postgres}" -tAc "SELECT 1" &>/dev/null; then
-    warn "Пароль postgres не совпадает с .env (volume инициализирован ранее с другим паролем)."
-    log "Сбрасываю пароль внутри контейнера через локальный сокет..."
+    PG_OK=1
+    ok "Пароль postgres валиден"
+  fi
+
+  if [[ $PG_OK -eq 0 ]]; then
+    warn "Пароль postgres не совпадает с .env. Пробую ALTER USER через локальный сокет..."
     PG_ESCAPED=$(printf "%s" "${POSTGRES_PASSWORD}" | sed "s/'/''/g")
-    if docker compose exec -T postgres \
+    ALTER_OUT=$(docker compose exec -T -u postgres postgres \
          psql -U "${POSTGRES_USER:-postgres}" -d "${POSTGRES_DB:-postgres}" \
-         -c "ALTER USER \"${POSTGRES_USER:-postgres}\" WITH PASSWORD '${PG_ESCAPED}';" &>/dev/null; then
-      ok "Пароль postgres синхронизирован с .env"
-      # Перезапустим зависимые сервисы (postgrest/auth/etc), они закэшировали старый URL.
+         -c "ALTER USER \"${POSTGRES_USER:-postgres}\" WITH PASSWORD '${PG_ESCAPED}';" 2>&1)
+    ALTER_RC=$?
+    if [[ $ALTER_RC -eq 0 ]]; then
       docker compose restart postgres &>/dev/null || true
       for i in $(seq 1 30); do
         docker compose exec -T postgres pg_isready -U "${POSTGRES_USER:-postgres}" &>/dev/null && break
         sleep 2
       done
+      if docker compose exec -T -e PGPASSWORD="${POSTGRES_PASSWORD}" postgres \
+           psql -h 127.0.0.1 -U "${POSTGRES_USER:-postgres}" -d "${POSTGRES_DB:-postgres}" -tAc "SELECT 1" &>/dev/null; then
+        PG_OK=1
+        ok "Пароль postgres синхронизирован с .env"
+      fi
     else
-      fail "Не смог сбросить пароль postgres. Запустите: cd ${SCRIPT_DIR} && docker compose down -v && sudo ./install.sh (внимание: -v удалит данные postgres-volume!)"
+      warn "ALTER USER не сработал: ${ALTER_OUT}"
     fi
-  else
-    ok "Пароль postgres валиден"
+  fi
+
+  if [[ $PG_OK -eq 0 ]]; then
+    warn "Не удалось синхронизировать пароль. Seed ещё не выполнен — пересоздаю том postgres (данных там нет)."
+    docker compose down postgres &>/dev/null || true
+    PG_VOLUME=$(docker volume ls --format '{{.Name}}' | grep -E "$(basename "$SCRIPT_DIR")_postgres-data$" | head -1)
+    [[ -n "$PG_VOLUME" ]] || PG_VOLUME="$(basename "$SCRIPT_DIR")_postgres-data"
+    docker volume rm "$PG_VOLUME" &>/dev/null || warn "Не удалось удалить volume $PG_VOLUME (возможно уже удалён)"
+    log "Поднимаю postgres заново с чистым томом..."
+    docker compose up -d postgres
+    for i in $(seq 1 60); do
+      docker compose exec -T postgres pg_isready -U "${POSTGRES_USER:-postgres}" &>/dev/null && break
+      sleep 2
+      [[ $i -eq 60 ]] && fail "Postgres не стартовал после пересоздания тома"
+    done
+    if docker compose exec -T -e PGPASSWORD="${POSTGRES_PASSWORD}" postgres \
+         psql -h 127.0.0.1 -U "${POSTGRES_USER:-postgres}" -d "${POSTGRES_DB:-postgres}" -tAc "SELECT 1" &>/dev/null; then
+      ok "Postgres пересоздан с правильным паролем"
+      PG_OK=1
+    else
+      fail "Даже после пересоздания тома пароль не работает. Проверьте POSTGRES_PASSWORD в ${SCRIPT_DIR}/.env"
+    fi
   fi
 
   log "Загружаю полные данные казино из Cloud..."
