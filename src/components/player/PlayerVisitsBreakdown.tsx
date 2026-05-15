@@ -68,11 +68,11 @@ const weekLabel = (start: Date) => {
   return `Week ${fmt(start)}–${fmt(end)} ${start.toLocaleDateString("en-GB", { timeZone: "Africa/Dar_es_Salaam", month: "short" })}`;
 };
 
-type Agg = { visits: number; minutes: number; drop: number; out: number; comps: number };
-const blank = (): Agg => ({ visits: 0, minutes: 0, drop: 0, out: 0, comps: 0 });
+type Agg = { visits: number; minutes: number; drop: number; inGross: number; out: number; comps: number };
+const blank = (): Agg => ({ visits: 0, minutes: 0, drop: 0, inGross: 0, out: 0, comps: 0 });
 const add = (a: Agg, b: Agg): Agg => ({
   visits: a.visits + b.visits, minutes: a.minutes + b.minutes,
-  drop: a.drop + b.drop, out: a.out + b.out, comps: a.comps + b.comps,
+  drop: a.drop + b.drop, inGross: a.inGross + b.inGross, out: a.out + b.out, comps: a.comps + b.comps,
 });
 const result = (a: Agg) => a.out - a.drop;
 const total = (a: Agg) => result(a) - a.comps;
