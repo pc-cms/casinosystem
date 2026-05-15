@@ -50,21 +50,9 @@ const json = (status: number, body: unknown) =>
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
-async function makeSeedToken(casinoId: string): Promise<string> {
-  const key = await crypto.subtle.importKey(
-    "raw",
-    new TextEncoder().encode(JWT_SECRET),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign", "verify"],
-  );
-  const exp = Math.floor(Date.now() / 1000) + 24 * 3600;
-  return await createJwt(
-    { alg: "HS256", typ: "JWT" },
-    { kind: "seed", casino_id: casinoId, exp },
-    key,
-  );
-}
+// seed_token больше не используется — данные тянутся через initial-sync-trigger
+// после approve. Поля seed_token / seed_token_expires_at в БД сохранены для
+// обратной совместимости со старыми установками.
 
 async function requireSuperAdmin(req: Request) {
   const authHeader = req.headers.get("Authorization") ?? "";
