@@ -31,12 +31,16 @@ die()  { echo -e "${RED}[error]${NC} $*" >&2; exit 1; }
 [[ -d "$CMS_DIR" ]] || die "$CMS_DIR not found — is the system installed?"
 [[ -f "$ENV_FILE" ]] || die "$ENV_FILE not found"
 
-OWNER=$(grep -E '^GITHUB_OWNER=' "$ENV_FILE" | head -1 | cut -d= -f2- | tr -d '"')
-REPO=$(grep -E '^GITHUB_REPO='  "$ENV_FILE" | head -1 | cut -d= -f2- | tr -d '"')
-TOKEN=$(grep -E '^GITHUB_TOKEN=' "$ENV_FILE" | head -1 | cut -d= -f2- | tr -d '"' || true)
+OWNER="${OWNER:-$(grep -E '^GITHUB_OWNER=' "$ENV_FILE" | head -1 | cut -d= -f2- | tr -d '"')}"
+REPO="${REPO:-$(grep -E '^GITHUB_REPO='  "$ENV_FILE" | head -1 | cut -d= -f2- | tr -d '"')}"
+TOKEN="${TOKEN:-$(grep -E '^GITHUB_TOKEN=' "$ENV_FILE" | head -1 | cut -d= -f2- | tr -d '"' || true)}"
 BRANCH="${BRANCH:-main}"
 
-[[ -n "$OWNER" && -n "$REPO" ]] || die "GITHUB_OWNER / GITHUB_REPO missing in $ENV_FILE"
+# Sensible defaults if still empty
+OWNER="${OWNER:-pc-cms}"
+REPO="${REPO:-casinosystem}"
+
+[[ -n "$OWNER" && -n "$REPO" ]] || die "GITHUB_OWNER / GITHUB_REPO missing (pass OWNER=... REPO=... or add to $ENV_FILE)"
 
 log "Repo:    $OWNER/$REPO  branch=$BRANCH"
 log "Target:  $CMS_DIR"
