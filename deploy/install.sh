@@ -13,7 +13,7 @@
 #
 set -euo pipefail
 
-INSTALLER_VERSION="1.0.180"
+INSTALLER_VERSION="1.0.181"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
@@ -108,23 +108,42 @@ NEED_PAIRING=1
 
 if [[ $NEED_PAIRING -eq 1 || $RECONFIGURE -eq 1 ]]; then
   title "2/5  Параметры локации"
-  read -r -p "  Название локации (например Premier Arusha) [${CASINO_NAME:-}]: " in_name
-  CASINO_NAME="${in_name:-${CASINO_NAME:-}}"
-  [[ -n "$CASINO_NAME" ]] || fail "Название обязательно"
+
+  # Helper: read из /dev/tty (если доступен) или из stdin.
+  ask() {
+    local _prompt="$1" _var="$2" _default="${3:-}"
+    local _input=""
+    if [[ -e /dev/tty ]]; then
+      read -r -p "$_prompt" _input </dev/tty
+    else
+      read -r -p "$_prompt" _input
+    fi
+    printf -v "$_var" '%s' "${_input:-$_default}"
+  }
+
+  # Название — обязательное, спрашиваем пока не введут.
+  CASINO_NAME=""
+  while [[ -z "$CASINO_NAME" ]]; do
+    ask "  Название локации (например: Premier Arusha): " CASINO_NAME ""
+    [[ -z "$CASINO_NAME" ]] && warn "Название обязательно — введите хотя бы одно слово."
+  done
 
   DEFAULT_SLUG=$(echo "${CASINO_SLUG:-${CASINO_NAME,,}}" | tr ' ' '-' | tr -cd 'a-z0-9-')
-  read -r -p "  Slug (a-z, 0-9, дефис) [${DEFAULT_SLUG}]: " in_slug
-  CASINO_SLUG="${in_slug:-$DEFAULT_SLUG}"
-  [[ "$CASINO_SLUG" =~ ^[a-z0-9-]+$ ]] || fail "Неверный slug"
+  CASINO_SLUG=""
+  while [[ ! "$CASINO_SLUG" =~ ^[a-z0-9-]+$ ]]; do
+    ask "  Slug (a-z, 0-9, дефис) [${DEFAULT_SLUG}]: " CASINO_SLUG "$DEFAULT_SLUG"
+    [[ "$CASINO_SLUG" =~ ^[a-z0-9-]+$ ]] || warn "Только латиница, цифры и дефис."
+  done
 
   DEFAULT_IP=$(hostname -I | awk '{print $1}')
-  read -r -p "  Локальный IP сервера [${LOCAL_IP:-$DEFAULT_IP}]: " in_ip
-  LOCAL_IP="${in_ip:-${LOCAL_IP:-$DEFAULT_IP}}"
-  [[ "$LOCAL_IP" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]] || fail "Неверный IP"
+  LOCAL_IP=""
+  while [[ ! "$LOCAL_IP" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; do
+    ask "  Локальный IP сервера [${DEFAULT_IP}]: " LOCAL_IP "$DEFAULT_IP"
+    [[ "$LOCAL_IP" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]] || warn "IP в формате X.X.X.X."
+  done
 
   DEFAULT_DOMAIN="${LOCAL_DOMAIN:-${CASINO_SLUG}.local}"
-  read -r -p "  Домен в LAN [${DEFAULT_DOMAIN}]: " in_dom
-  LOCAL_DOMAIN="${in_dom:-$DEFAULT_DOMAIN}"
+  ask "  Домен в LAN [${DEFAULT_DOMAIN}]: " LOCAL_DOMAIN "$DEFAULT_DOMAIN"
 
   update_env CASINO_NAME   "$CASINO_NAME"
   update_env CASINO_SLUG   "$CASINO_SLUG"
@@ -132,6 +151,7 @@ if [[ $NEED_PAIRING -eq 1 || $RECONFIGURE -eq 1 ]]; then
   update_env LOCAL_DOMAIN  "$LOCAL_DOMAIN"
   ok "Параметры сохранены"
 fi
+
 
 set -a; source .env; set +a
 
