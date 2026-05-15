@@ -16,7 +16,7 @@
 set -euo pipefail
 
 BOOTSTRAP_VERSION="1.2.0"
-REPO="${CASINO_REPO:-pms-cms/casinosystem}"
+REPO="${CASINO_REPO:-pc-cms/casinosystem}"
 BRANCH="${CASINO_BRANCH:-main}"
 TARGET="${CASINO_TARGET:-/opt/casino-system}"
 ENV_FILE="/etc/casino-system/bootstrap.env"
@@ -92,7 +92,7 @@ ok "Архив скачан: $((SIZE/1024)) KB"
 
 log "Распаковываю..."
 tar -xzf "$TMP/src.tar.gz" -C "$TMP"
-SRC_DIR=$(find "$TMP" -maxdepth 1 -type d \( -name "${REPO##*/}-*" -o -name "pms-cms-*" \) | head -n1)
+SRC_DIR=$(find "$TMP" -maxdepth 1 -type d \( -name "${REPO##*/}-*" -o -name "pc-cms-*" \) | head -n1)
 [[ -d "$SRC_DIR" ]] || fail "Не найдена распакованная папка"
 [[ -f "$SRC_DIR/deploy/install.sh" ]] || fail "В архиве нет deploy/install.sh"
 
