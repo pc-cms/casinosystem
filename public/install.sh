@@ -15,7 +15,7 @@
 #
 set -euo pipefail
 
-BOOTSTRAP_VERSION="1.2.1"
+BOOTSTRAP_VERSION="1.2.2"
 REPO="${CASINO_REPO:-pc-cms/casinosystem}"
 if [[ "$REPO" == "pms-cms/casinosystem" ]]; then
   REPO="pc-cms/casinosystem"
@@ -137,4 +137,9 @@ ok "Alias установлен: \`sudo casino-update [args]\`"
 
 ok "Код установлен. Запускаю инсталлер..."
 echo
-exec bash "$TARGET/deploy/install.sh" "$@"
+if [[ -e /dev/tty ]]; then
+  exec bash "$TARGET/deploy/install.sh" "$@" </dev/tty
+else
+  warn "/dev/tty недоступен — интерактивные вопросы могут не работать."
+  exec bash "$TARGET/deploy/install.sh" "$@"
+fi
