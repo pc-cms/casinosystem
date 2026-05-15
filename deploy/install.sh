@@ -1,19 +1,19 @@
 #!/usr/bin/env bash
 #
-# Casino System — On-Premises Installer (pairing edition)
+# Casino System — On-Premises Installer (fully automatic)
 # --------------------------------------------------------
-# Минимальный мастер: 4 вопроса → pairing code → ждём аппрува в Cloud →
-# автоматически загружаем все данные казино + собираем frontend локально.
+# Полностью неинтерактивная установка. Pairing с Cloud делается
+# из локальной админки кнопкой "Connect to Cloud" (super_admin).
 #
 # Запуск:
 #   sudo ./deploy/install.sh                   # обычная установка
-#   sudo ./deploy/install.sh --reset           # начать pairing заново
 #   sudo ./deploy/install.sh --rebuild         # пересобрать frontend
-#   sudo ./deploy/install.sh --reconfigure     # перенастроить .env (имя/IP/домен)
+#   sudo ./deploy/install.sh --reset           # сбросить .env (БД остаётся)
+#   sudo ./deploy/install.sh --wipe            # удалить ВСЁ и поставить заново
 #
 set -euo pipefail
 
-INSTALLER_VERSION="1.2.0"
+INSTALLER_VERSION="1.3.0"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
@@ -34,14 +34,13 @@ trap 'rc=$?; echo -e "${RED}[fail]${NC} Installer stopped at line ${LINENO} (exi
 require_root() { [[ $EUID -eq 0 ]] || fail "Запустите от root: sudo ./deploy/install.sh"; }
 
 # ── CLI ──
-RESET=0; REBUILD=0; RECONFIGURE=0; WIPE=0; PAIR=0
+RESET=0; REBUILD=0; RECONFIGURE=0; WIPE=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --reset)        RESET=1; shift ;;
     --rebuild)      REBUILD=1; shift ;;
     --reconfigure)  RECONFIGURE=1; shift ;;
     --wipe)         WIPE=1; RESET=1; shift ;;
-    --pair)         PAIR=1; shift ;;
     -h|--help)      sed -n '4,16p' "$0"; exit 0 ;;
     *) fail "Неизвестный аргумент: $1" ;;
   esac
@@ -161,14 +160,14 @@ postgres_network_name() {
   printf '%s' "$net"
 }
 
-# ────────── 2. Конфигурация / сопряжение ──────────
-SEED_DONE_FILE="${SCRIPT_DIR}/.pairing-done"
+# ────────── 2. Конфигурация ──────────
+SEED_DONE_FILE="${SCRIPT_DIR}/.install-done"
 
 if [[ $WIPE -eq 1 ]]; then
   warn "WIPE: удаляю все контейнеры, volumes, .env и сертификаты..."
   docker compose down -v --remove-orphans &>/dev/null || true
   docker volume ls --format '{{.Name}}' | grep -E '(postgres|storage|cms-)' | xargs -r docker volume rm &>/dev/null || true
-  rm -f .env "$SEED_DONE_FILE" "${SCRIPT_DIR}/.super-admin-done"
+  rm -f .env "$SEED_DONE_FILE" "${SCRIPT_DIR}/.super-admin-done" "${SCRIPT_DIR}/.pairing-done"
   rm -rf certs postgres/seed-data data runtime-config.json
   ok "WIPE завершён — продолжаю чистую установку"
 fi
@@ -179,14 +178,8 @@ fi
 [[ -f .env ]] || cp env.template .env
 set -a; source .env; set +a
 
-NEED_PAIRING=0
-if [[ $PAIR -eq 1 ]]; then
-  NEED_PAIRING=1
-  [[ -f "$SEED_DONE_FILE" && -n "${CASINO_ID:-}" && -n "${SYNC_SECRET:-}" ]] && NEED_PAIRING=0
-fi
-
-# ── Параметры локации (non-interactive, с дефолтами) ──
-title "2/5  Параметры локации (auto)"
+# ── Параметры локации (auto, никаких вопросов) ──
+title "2/4  Параметры локации (auto)"
 : "${CASINO_NAME:=Local Casino}"
 : "${CASINO_SLUG:=local}"
 : "${LOCAL_IP:=$(hostname -I 2>/dev/null | awk '{print $1}')}"
@@ -200,74 +193,11 @@ ok "Casino: ${CASINO_NAME} (${CASINO_SLUG}) @ ${LOCAL_IP} / ${LOCAL_DOMAIN}"
 
 set -a; source .env; set +a
 
-# ────────── 3. Pairing (опционально, --pair) ──────────
-if [[ $NEED_PAIRING -eq 1 ]]; then
-  title "3/5  Сопряжение с Cloud (--pair)"
-
-  HOSTNAME_VAL=$(hostname)
-  RAM_GB=$(awk '/MemTotal/ {printf "%d", $2/1024/1024}' /proc/meminfo)
-  DISK_GB=$(df -BG --output=size / | tail -1 | tr -dc '0-9')
-  DOCKER_VER=$(docker --version 2>/dev/null | awk '{print $3}' | tr -d ',')
-
-  log "Регистрирую сервер в Cloud..."
-  REG_PAYLOAD=$(jq -n \
-    --arg name "$CASINO_NAME" --arg slug "$CASINO_SLUG" \
-    --arg ip "$LOCAL_IP" --arg host "$HOSTNAME_VAL" \
-    --arg ubuntu "$UBUNTU_VER" --arg docker "$DOCKER_VER" \
-    --argjson ram "$RAM_GB" --argjson disk "$DISK_GB" \
-    '{server_name:$name, server_slug:$slug, server_ip:$ip, hostname:$host,
-      system_info:{ubuntu:$ubuntu, docker:$docker, ram_gb:$ram, disk_gb:$disk}}')
-
-  REG_RESP=$(curl -fsS --max-time 15 -X POST \
-    "${CLOUD_URL}/functions/v1/register-local-server" \
-    -H "apikey: ${CLOUD_ANON_KEY}" \
-    -H "Authorization: Bearer ${CLOUD_ANON_KEY}" \
-    -H "Content-Type: application/json" \
-    -d "$REG_PAYLOAD") || fail "Не удалось зарегистрировать сервер в Cloud"
-
-  PAIRING_CODE=$(echo "$REG_RESP" | jq -r '.pairing_code // empty')
-  EXPIRES_AT=$(echo "$REG_RESP" | jq -r '.expires_at // empty')
-  [[ -n "$PAIRING_CODE" ]] || fail "Cloud вернул: $REG_RESP"
-
-  echo
-  echo "  ┌────────────────────────────────────────┐"
-  printf "  │      ${BOLD}PAIRING CODE:  %s — %s${NC}      │\n" "${PAIRING_CODE:0:4}" "${PAIRING_CODE:4:4}"
-  echo "  │  Cloud → Admin → Network → Pending     │"
-  echo "  │  Approve. Code valid until: ${EXPIRES_AT:11:5} UTC  │"
-  echo "  └────────────────────────────────────────┘"
-  echo
-
-  log "Жду аппрува (polling 5s, до 30 мин)..."
-  APPROVED_JSON=""
-  for i in $(seq 1 360); do
-    POLL=$(curl -fsS --max-time 10 \
-      "${CLOUD_URL}/functions/v1/register-local-server?code=${PAIRING_CODE}" \
-      -H "apikey: ${CLOUD_ANON_KEY}" \
-      -H "Authorization: Bearer ${CLOUD_ANON_KEY}" 2>/dev/null || echo '{}')
-    STATUS=$(echo "$POLL" | jq -r '.status // "unknown"')
-    case "$STATUS" in
-      approved)  APPROVED_JSON="$POLL"; break ;;
-      rejected)  fail "Запрос отклонён super_admin'ом" ;;
-      expired)   fail "Pairing-код истёк. Запустите снова: sudo ./deploy/install.sh --reset --pair" ;;
-      pending)   printf "."; sleep 5 ;;
-      *)         printf "?"; sleep 5 ;;
-    esac
-  done
-  echo
-  [[ -n "$APPROVED_JSON" ]] || fail "Время ожидания истекло (30 мин)"
-
-  CASINO_ID=$(echo "$APPROVED_JSON" | jq -r '.casino_id')
-  SYNC_SECRET=$(echo "$APPROVED_JSON" | jq -r '.sync_secret')
-  ok "Аппрув получен. casino_id=${CASINO_ID:0:8}..."
-  update_env CASINO_ID   "$CASINO_ID"
-  update_env SYNC_SECRET "$SYNC_SECRET"
-  set -a; source .env; set +a
-else
-  log "Pairing с Cloud пропущен (запустите с --pair, чтобы связать с облаком и включить Initial Sync)."
-fi
+# Сопряжение с Cloud — теперь делается из админки кнопкой Connect to Cloud.
+# install.sh ничего не запрашивает.
 
 # ────────── 4. Секреты + сертификаты ──────────
-title "4/5  Секреты и сертификаты"
+title "3/4  Секреты и сертификаты"
 
 [[ -z "${POSTGRES_PASSWORD:-}" ]] && { update_env POSTGRES_PASSWORD "$(gen_secret)"; ok "POSTGRES_PASSWORD"; }
 [[ -z "${JWT_SECRET:-}" ]]        && { update_env JWT_SECRET        "$(gen_secret)"; ok "JWT_SECRET"; }
@@ -345,7 +275,7 @@ touch "$SEED_DONE_FILE"
 ok "БД готова. Данные подтянутся после Initial Sync из Cloud-админки."
 
 # ────────── 5. Сборка frontend + старт ──────────
-title "5/5  Сборка frontend и запуск стека"
+title "4/4  Сборка frontend и запуск стека"
 
 if [[ $REBUILD -eq 1 ]] || ! docker image inspect "cms-frontend:${FRONTEND_VERSION:-local}" &>/dev/null; then
   log "Собираю cms-frontend (3-7 минут)..."
@@ -443,9 +373,12 @@ echo -e "  👤 Login:      ${BOLD}admin@admin.local${NC}  /  ${BOLD}admin${NC}"
 echo
 echo -e "  Следующие шаги:"
 echo -e "    1. Откройте ${BOLD}https://${LOCAL_DOMAIN}${NC} (или http://${LOCAL_IP}) и войдите"
-echo -e "    2. Опционально: скопируйте ${BOLD}certs/ca.crt${NC} как Trusted Root для HTTPS без warning"
-echo -e "    3. Для синхронизации с облаком: запустите ${CYAN}sudo ./deploy/install.sh --pair${NC}"
-echo -e "       — получите pairing-code → Approve в Cloud → нажмите Initial Sync"
+echo -e "    2. Перейдите в ${BOLD}Admin → Network${NC} → нажмите ${BOLD}Connect to Cloud${NC}"
+echo -e "       → введите URL Cloud-сервера → получите pairing-code"
+echo -e "    3. На Cloud-сервере super_admin делает Approve в Admin → Network → Pending"
+echo -e "    4. После approve в локальной админке нажмите ${BOLD}Sync Data from Cloud${NC}"
+echo
+echo -e "  ℹ️  Опционально: скопируйте ${BOLD}certs/ca.crt${NC} как Trusted Root для HTTPS без warning"
 echo
 echo -e "  📊 Статус:     ${CYAN}docker compose ps${NC}"
 echo -e "  📜 Логи:       ${CYAN}docker compose logs -f${NC}"

@@ -12,6 +12,7 @@ import { Plus, Shield, Coins, Clock, Building2, Server, Link2, Unlink, Globe, Pa
 import { RoleDefaultsEditor } from "@/components/admin/RoleDefaultsEditor";
 import { ServerPushUpdateDialog } from "@/components/admin/ServerPushUpdateDialog";
 import { NetworkHealthPanel } from "@/components/admin/NetworkHealthPanel";
+import { CloudConnectionPanel } from "@/components/admin/CloudConnectionPanel";
 import { useRotateServerSecret } from "@/hooks/use-network-admin";
 import { resetPWACache } from "@/lib/pwa-register";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -155,7 +156,12 @@ const Admin = () => {
             <TabsContent value="casinos"><CasinoManagement /></TabsContent>
             <TabsContent value="access"><CasinoAccessManagement /></TabsContent>
             <TabsContent value="servers"><LocalServerManagement /></TabsContent>
-            <TabsContent value="network"><NetworkHealthPanel /></TabsContent>
+            <TabsContent value="network">
+              <div className="space-y-4">
+                <CloudConnectionPanel />
+                <NetworkHealthPanel />
+              </div>
+            </TabsContent>
           </>
         )}
 

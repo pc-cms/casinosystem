@@ -14,24 +14,64 @@
  *   SYNC_BACKOFF_MAX_MS (default 60000)
  */
 import pg from "pg";
+import { startApi } from "./api.js";
 
 const {
   LOCAL_DB_URL,
-  CLOUD_URL,
-  CASINO_ID,
-  SYNC_SECRET,
   SYNC_MODE = "hybrid",
   SYNC_BATCH_SIZE = "200",
   SYNC_INTERVAL_MS = "5000",
   SYNC_BACKOFF_MAX_MS = "60000",
 } = process.env;
 
-if (SYNC_MODE === "standalone") {
-  console.log("[cms-sync] SYNC_MODE=standalone → push/pull disabled, idle loop");
-  setInterval(() => {}, 60_000);
-} else if (!LOCAL_DB_URL || !CLOUD_URL || !CASINO_ID || !SYNC_SECRET) {
-  console.error("[cms-sync] FATAL: missing env (LOCAL_DB_URL/CLOUD_URL/CASINO_ID/SYNC_SECRET)");
+if (!LOCAL_DB_URL) {
+  console.error("[cms-sync] FATAL: missing LOCAL_DB_URL");
   process.exit(1);
+}
+
+// Cloud creds are read from the public.cloud_connection table at runtime
+// and refreshed every tick. While `connected` is false, push/pull/jobLoop idle.
+let CLOUD_URL = process.env.CLOUD_URL || null;
+let CASINO_ID = process.env.CASINO_ID || null;
+let SYNC_SECRET = process.env.SYNC_SECRET || null;
+let CONNECTED = false;
+
+async function refreshCreds(client) {
+  try {
+    const { rows } = await client.query(
+      `SELECT cloud_url, status, casino_id, sync_secret FROM public.cloud_connection WHERE id = 1`
+    );
+    const row = rows[0];
+    if (row && row.status === "connected" && row.casino_id && row.sync_secret) {
+      CLOUD_URL = row.cloud_url || CLOUD_URL;
+      CASINO_ID = row.casino_id;
+      SYNC_SECRET = row.sync_secret;
+      CONNECTED = true;
+    } else {
+      CONNECTED = false;
+    }
+  } catch {
+    // table may not exist on first boot before migrations applied — stay idle
+    CONNECTED = false;
+  }
+}
+
+function setCredsInMemory(creds) {
+  if (!creds) {
+    CLOUD_URL = process.env.CLOUD_URL || null;
+    CASINO_ID = null;
+    SYNC_SECRET = null;
+    CONNECTED = false;
+    return;
+  }
+  CLOUD_URL = creds.cloudUrl;
+  CASINO_ID = creds.casinoId;
+  SYNC_SECRET = creds.syncSecret;
+  CONNECTED = true;
+}
+
+if (SYNC_MODE === "standalone") {
+  console.log("[cms-sync] SYNC_MODE=standalone → push/pull disabled");
 }
 
 const BATCH = parseInt(SYNC_BATCH_SIZE, 10);
@@ -48,8 +88,11 @@ const log = (lvl, msg, extra) =>
 
 // ───────────── PUSH ─────────────
 async function pushOnce() {
+  if (!CONNECTED || SYNC_MODE === "standalone") return 0;
   const client = await pool.connect();
   try {
+    await refreshCreds(client);
+    if (!CONNECTED) return 0;
     const { rows } = await client.query(
       `SELECT id, casino_id, table_name, op, pk, payload, attempts
          FROM sync.outbox
@@ -101,8 +144,11 @@ async function pushOnce() {
 
 // ───────────── PULL ─────────────
 async function pullOnce() {
+  if (!CONNECTED || SYNC_MODE === "standalone") return 0;
   const client = await pool.connect();
   try {
+    await refreshCreds(client);
+    if (!CONNECTED) return 0;
     const { rows: c } = await client.query(
       `SELECT last_pulled_at FROM sync.cloud_cursor WHERE casino_id = $1`,
       [CASINO_ID]
@@ -374,6 +420,7 @@ async function runInitialSync(job) {
 
 async function jobPollOnce() {
   if (initialSyncBusy) return;
+  if (!CONNECTED) return;
   const res = await fetch(`${CLOUD_URL}/functions/v1/initial-sync-trigger`, {
     method: "GET",
     headers: { "x-sync-secret": SYNC_SECRET, "x-casino-id": CASINO_ID },
@@ -395,13 +442,30 @@ async function jobLoop() {
   }
 }
 
-log("info", "sync.start", { casino_id: CASINO_ID, cloud: CLOUD_URL, batch: BATCH, tick_ms: TICK_MS });
+// Periodically refresh creds from DB so newly-paired servers wake up
+async function credsRefreshLoop() {
+  while (true) {
+    const client = await pool.connect();
+    try { await refreshCreds(client); } catch {} finally { client.release(); }
+    await sleep(5_000);
+  }
+}
+
+log("info", "sync.start", { batch: BATCH, tick_ms: TICK_MS });
+
+// Start local HTTP API for the admin UI (exposed via nginx as /api/cloud/*)
+startApi({
+  pool,
+  getCreds: () => ({ cloudUrl: CLOUD_URL, casinoId: CASINO_ID, syncSecret: SYNC_SECRET }),
+  setCreds: setCredsInMemory,
+});
 
 Promise.all([
   loop("push", pushOnce, () => pushBackoff, (v) => (pushBackoff = v)),
   loop("pull", pullOnce, () => pullBackoff, (v) => (pullBackoff = v)),
   gcLoop(),
   jobLoop(),
+  credsRefreshLoop(),
 ]).catch((e) => {
   log("error", "sync.crash", { err: String(e) });
   process.exit(1);

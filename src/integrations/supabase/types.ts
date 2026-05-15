@@ -1569,6 +1569,51 @@ export type Database = {
         }
         Relationships: []
       }
+      cloud_connection: {
+        Row: {
+          casino_id: string | null
+          cloud_url: string | null
+          connected_at: string | null
+          id: number
+          last_error: string | null
+          last_polled_at: string | null
+          pairing_code: string | null
+          pairing_expires_at: string | null
+          pairing_id: string | null
+          status: string
+          sync_secret: string | null
+          updated_at: string
+        }
+        Insert: {
+          casino_id?: string | null
+          cloud_url?: string | null
+          connected_at?: string | null
+          id?: number
+          last_error?: string | null
+          last_polled_at?: string | null
+          pairing_code?: string | null
+          pairing_expires_at?: string | null
+          pairing_id?: string | null
+          status?: string
+          sync_secret?: string | null
+          updated_at?: string
+        }
+        Update: {
+          casino_id?: string | null
+          cloud_url?: string | null
+          connected_at?: string | null
+          id?: number
+          last_error?: string | null
+          last_polled_at?: string | null
+          pairing_code?: string | null
+          pairing_expires_at?: string | null
+          pairing_id?: string | null
+          status?: string
+          sync_secret?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       cron_run_log: {
         Row: {
           created_at: string
