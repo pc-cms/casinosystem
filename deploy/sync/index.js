@@ -210,12 +210,198 @@ async function gcLoop() {
   }
 }
 
+// ───────────── Initial Sync Job Poller ─────────────
+// Поллит cloud-функцию initial-sync-trigger (GET) каждые 10 сек.
+// Если найден pending job для этого казино — запускает full snapshot import
+// через cloud-seed-export (NDJSON stream) с авторизацией по x-sync-secret.
+
+let initialSyncBusy = false;
+
+async function postJobUpdate(jobId, patch) {
+  try {
+    await fetch(`${CLOUD_URL}/functions/v1/initial-sync-trigger`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        "x-sync-secret": SYNC_SECRET,
+        "x-casino-id": CASINO_ID,
+      },
+      body: JSON.stringify({ job_id: jobId, ...patch }),
+    });
+  } catch (e) {
+    log("warn", "job.patch.fail", { err: String(e?.message ?? e) });
+  }
+}
+
+function buildSeedInsert(table, row) {
+  const cols = Object.keys(row);
+  if (cols.length === 0) return null;
+  const params = cols.map((_, i) => `$${i + 1}`).join(",");
+  const vals = cols.map((c) => {
+    const v = row[c];
+    if (v !== null && typeof v === "object" && !Array.isArray(v)) return JSON.stringify(v);
+    if (Array.isArray(v) && v.length > 0 && typeof v[0] === "object") return JSON.stringify(v);
+    return v;
+  });
+  const sql = `INSERT INTO public."${table}" (${cols.map((c) => `"${c}"`).join(",")})
+               VALUES (${params})
+               ON CONFLICT DO NOTHING`;
+  return { sql, vals };
+}
+
+async function runInitialSync(job) {
+  log("info", "initial-sync.start", { job_id: job.id });
+  await postJobUpdate(job.id, { status: "running" });
+
+  const client = await pool.connect();
+  let rowsDone = 0;
+  let tablesDone = 0;
+  let currentTable = null;
+  const tableCounts = {};
+  const errors = {};
+  let lastProgressAt = Date.now();
+
+  try {
+    // Disable triggers — мы импортируем "из Cloud", outbox-события не нужны.
+    await client.query("SET session_replication_role = 'replica'");
+
+    const res = await fetch(
+      `${CLOUD_URL}/functions/v1/cloud-seed-export?days=all`,
+      {
+        method: "GET",
+        headers: {
+          "x-sync-secret": SYNC_SECRET,
+          "x-casino-id": CASINO_ID,
+          Accept: "application/x-ndjson",
+        },
+      }
+    );
+    if (!res.ok || !res.body) {
+      const txt = await res.text().catch(() => "");
+      throw new Error(`seed-export HTTP ${res.status}: ${txt.slice(0, 300)}`);
+    }
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = "";
+
+    const handleLine = async (line) => {
+      if (!line.trim()) return;
+      let obj;
+      try { obj = JSON.parse(line); } catch { return; }
+
+      if (obj._meta) {
+        await postJobUpdate(job.id, { tables_total: obj._meta.tables?.length ?? 0 });
+        return;
+      }
+      if (obj._error || obj._fatal) {
+        log("warn", "seed.server-error", { table: obj._error?.table, msg: obj._error?.msg ?? obj._fatal });
+        return;
+      }
+      if (obj._done) return;
+      if (!obj.table || !obj.row) return;
+
+      if (currentTable !== obj.table) {
+        if (currentTable !== null) tablesDone += 1;
+        currentTable = obj.table;
+        tableCounts[currentTable] = 0;
+      }
+
+      const ins = buildSeedInsert(obj.table, obj.row);
+      if (!ins) return;
+      try {
+        await client.query(ins.sql, ins.vals);
+        tableCounts[obj.table] += 1;
+        rowsDone += 1;
+      } catch (e) {
+        const k = `${obj.table}: ${e.code || ""} ${(e.message || "").slice(0, 80)}`;
+        errors[k] = (errors[k] || 0) + 1;
+      }
+
+      if (Date.now() - lastProgressAt > 2000) {
+        lastProgressAt = Date.now();
+        await postJobUpdate(job.id, {
+          rows_done: rowsDone,
+          tables_done: tablesDone,
+          current_table: currentTable,
+        });
+      }
+    };
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      let nl;
+      while ((nl = buf.indexOf("\n")) >= 0) {
+        const line = buf.slice(0, nl);
+        buf = buf.slice(nl + 1);
+        await handleLine(line);
+      }
+    }
+    if (buf.trim()) await handleLine(buf);
+
+    if (currentTable !== null) tablesDone += 1;
+
+    // Двигаем cloud_cursor → обычный pull не задублирует.
+    await client.query(
+      `INSERT INTO sync.cloud_cursor (casino_id, last_pulled_at)
+       VALUES ($1, NOW())
+       ON CONFLICT (casino_id) DO UPDATE SET last_pulled_at = EXCLUDED.last_pulled_at`,
+      [CASINO_ID]
+    );
+
+    await postJobUpdate(job.id, {
+      status: "done",
+      rows_done: rowsDone,
+      tables_done: tablesDone,
+      current_table: null,
+    });
+    log("info", "initial-sync.done", { rows: rowsDone, tables: tablesDone, errors: Object.keys(errors).length });
+  } catch (e) {
+    log("error", "initial-sync.fail", { err: String(e?.message ?? e) });
+    await postJobUpdate(job.id, {
+      status: "failed",
+      error: String(e?.message ?? e).slice(0, 500),
+      rows_done: rowsDone,
+      tables_done: tablesDone,
+    });
+  } finally {
+    try { await client.query("SET session_replication_role = 'origin'"); } catch {}
+    client.release();
+  }
+}
+
+async function jobPollOnce() {
+  if (initialSyncBusy) return;
+  const res = await fetch(`${CLOUD_URL}/functions/v1/initial-sync-trigger`, {
+    method: "GET",
+    headers: { "x-sync-secret": SYNC_SECRET, "x-casino-id": CASINO_ID },
+  });
+  if (!res.ok) return;
+  const { job } = await res.json();
+  if (!job || job.status === "done" || job.status === "failed") return;
+  if (job.status === "running") return; // уже стартовали (возможно, рестарт контейнера)
+  initialSyncBusy = true;
+  try { await runInitialSync(job); }
+  finally { initialSyncBusy = false; }
+}
+
+async function jobLoop() {
+  while (true) {
+    try { await jobPollOnce(); }
+    catch (e) { log("warn", "job.poll.fail", { err: String(e?.message ?? e) }); }
+    await sleep(10_000);
+  }
+}
+
 log("info", "sync.start", { casino_id: CASINO_ID, cloud: CLOUD_URL, batch: BATCH, tick_ms: TICK_MS });
 
 Promise.all([
   loop("push", pushOnce, () => pushBackoff, (v) => (pushBackoff = v)),
   loop("pull", pullOnce, () => pullBackoff, (v) => (pullBackoff = v)),
   gcLoop(),
+  jobLoop(),
 ]).catch((e) => {
   log("error", "sync.crash", { err: String(e) });
   process.exit(1);
