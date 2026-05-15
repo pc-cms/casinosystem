@@ -59,7 +59,7 @@ const Row = ({ row, casinos }: { row: PendingServer; casinos: { id: string; name
   return (
     <tr className="border-b border-border last:border-0 align-top">
       <td className="px-3 py-2">
-        <div className="font-mono text-base font-bold tracking-wider">{row.pairing_code.slice(0, 4)}-{row.pairing_code.slice(4)}</div>
+        <div className="font-mono text-base font-bold tracking-wider">{row.pairing_code ? `${row.pairing_code.slice(0, 4)}-${row.pairing_code.slice(4)}` : "—"}</div>
         <div className="text-[10px] text-muted-foreground flex items-center gap-1 mt-1">
           <Clock className="w-3 h-3" />expires {fmtTime(row.expires_at)}
         </div>
