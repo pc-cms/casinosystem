@@ -258,6 +258,7 @@ export default function PlayerVisitsBreakdown({ visits, transactions, expenses, 
                         <td className="py-1.5 px-2 text-right font-mono text-xs">{fmtDuration(wk.agg.minutes)}</td>
                         {showFinancials && <>
                           <td className="py-1.5 px-2 text-right font-mono text-xs">{wk.agg.drop ? fmtMoney(wk.agg.drop) : dot}</td>
+                          <td className="py-1.5 px-2 text-right font-mono text-xs">{wk.agg.inGross ? fmtMoney(wk.agg.inGross) : dot}</td>
                           <td className="py-1.5 px-2 text-right font-mono text-xs">{wk.agg.out ? fmtMoney(wk.agg.out) : dot}</td>
                           <td className={`py-1.5 px-2 text-right font-mono text-xs ${wkRes === 0 ? "text-muted-foreground" : wkRes > 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
                             {wkRes === 0 ? "·" : fmtMoney(wkRes)}
