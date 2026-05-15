@@ -13,7 +13,7 @@
 #
 set -euo pipefail
 
-INSTALLER_VERSION="1.0.181"
+INSTALLER_VERSION="1.0.182"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
@@ -303,6 +303,32 @@ if [[ ! -f "$SEED_DONE_FILE" && -n "${SEED_TOKEN:-}" ]]; then
     [[ $i -eq 30 ]] && fail "Postgres не стартовал"
   done
   ok "Postgres готов"
+
+  # Если volume уже существовал с другим паролем — синхронизируем.
+  # Внутри контейнера локальное TCP к localhost требует пароль, поэтому используем
+  # Unix-сокет (peer/trust auth для постgres-юзера через psql).
+  log "Проверяю пароль postgres..."
+  if ! docker compose exec -T -e PGPASSWORD="${POSTGRES_PASSWORD}" postgres \
+       psql -h 127.0.0.1 -U "${POSTGRES_USER:-postgres}" -d "${POSTGRES_DB:-postgres}" -tAc "SELECT 1" &>/dev/null; then
+    warn "Пароль postgres не совпадает с .env (volume инициализирован ранее с другим паролем)."
+    log "Сбрасываю пароль внутри контейнера через локальный сокет..."
+    PG_ESCAPED=$(printf "%s" "${POSTGRES_PASSWORD}" | sed "s/'/''/g")
+    if docker compose exec -T postgres \
+         psql -U "${POSTGRES_USER:-postgres}" -d "${POSTGRES_DB:-postgres}" \
+         -c "ALTER USER \"${POSTGRES_USER:-postgres}\" WITH PASSWORD '${PG_ESCAPED}';" &>/dev/null; then
+      ok "Пароль postgres синхронизирован с .env"
+      # Перезапустим зависимые сервисы (postgrest/auth/etc), они закэшировали старый URL.
+      docker compose restart postgres &>/dev/null || true
+      for i in $(seq 1 30); do
+        docker compose exec -T postgres pg_isready -U "${POSTGRES_USER:-postgres}" &>/dev/null && break
+        sleep 2
+      done
+    else
+      fail "Не смог сбросить пароль postgres. Запустите: cd ${SCRIPT_DIR} && docker compose down -v && sudo ./install.sh (внимание: -v удалит данные postgres-volume!)"
+    fi
+  else
+    ok "Пароль postgres валиден"
+  fi
 
   log "Загружаю полные данные казино из Cloud..."
   COMPOSE_NET=$(docker network ls --format '{{.Name}}' | grep -E "^$(basename "$SCRIPT_DIR")_cms-net$" | head -1)
