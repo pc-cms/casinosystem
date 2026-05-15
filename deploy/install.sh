@@ -13,7 +13,7 @@
 #
 set -euo pipefail
 
-INSTALLER_VERSION="1.3.1"
+INSTALLER_VERSION="1.3.2"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
@@ -342,7 +342,7 @@ if [[ ! -f "$SUPER_ADMIN_DONE_FILE" ]]; then
     --header="Content-Type: application/json" \
     --post-data="$(jq -n --arg e "$SA_EMAIL" --arg p "$SA_PASS" '{email:$e,password:$p,email_confirm:true}')" \
     http://localhost:9999/admin/users 2>&1 || true)
-  SA_USER_ID=$(echo "$SA_RESP" | jq -r '.id // empty' 2>/dev/null)
+  SA_USER_ID=$(printf '%s' "$SA_RESP" | jq -er '.id // empty' 2>/dev/null || true)
 
   if [[ -z "$SA_USER_ID" ]]; then
     # Возможно уже существует — найдём по email
@@ -353,6 +353,7 @@ if [[ ! -f "$SUPER_ADMIN_DONE_FILE" ]]; then
 
   if [[ -z "$SA_USER_ID" ]]; then
     warn "Не удалось создать super_admin. Ответ GoTrue: $SA_RESP"
+    docker compose logs --tail=40 gotrue >&2 || true
     warn "Установка продолжится, но super_admin нужно будет создать вручную."
   else
     docker compose exec -T -e PGPASSWORD="${POSTGRES_PASSWORD}" postgres \
