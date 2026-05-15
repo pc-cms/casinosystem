@@ -39,6 +39,7 @@ const casinoLabel = (names: Map<string, string>, casinoId: string | null | undef
 
 const InitialSyncCell = ({ serverId, isOnline, jobs }: { serverId: string; isOnline: boolean; jobs: InitialSyncJob[] }) => {
   const trigger = useTriggerInitialSync();
+  const del = useDeleteInitialSyncJob();
   const job = jobs.find(j => j.local_server_id === serverId);
   const active = job && (job.status === "pending" || job.status === "running");
 
@@ -62,28 +63,42 @@ const InitialSyncCell = ({ serverId, isOnline, jobs }: { serverId: string; isOnl
   const label = lastDone ? "Re-sync" : lastFailed ? "Retry sync" : "Initial Sync";
 
   return (
-    <AlertDialog>
-      <AlertDialogTrigger asChild>
-        <Button size="sm" variant={lastFailed ? "destructive" : lastDone ? "outline" : "default"} disabled={!isOnline || trigger.isPending} className="h-7 gap-1 text-xs">
-          <DownloadCloud className="w-3 h-3" />{label}
+    <div className="flex items-center gap-1">
+      <AlertDialog>
+        <AlertDialogTrigger asChild>
+          <Button size="sm" variant={lastFailed ? "destructive" : lastDone ? "outline" : "default"} disabled={!isOnline || trigger.isPending} className="h-7 gap-1 text-xs">
+            <DownloadCloud className="w-3 h-3" />{label}
+          </Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Запустить Initial Sync?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Локальный сервер подтянет все данные казино из облака. Существующие записи на локальной БД с теми же id будут пропущены (insert-only). Операция безопасна для повторного запуска, но может занять несколько минут.
+              {lastFailed && job?.error && (
+                <span className="block mt-2 text-destructive">Прошлая ошибка: {job.error}</span>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Отмена</AlertDialogCancel>
+            <AlertDialogAction onClick={() => trigger.mutate(serverId)}>Запустить</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      {job && (lastFailed || lastDone) && (
+        <Button
+          size="sm"
+          variant="ghost"
+          className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
+          title="Remove this sync record"
+          disabled={del.isPending}
+          onClick={() => del.mutate(job.id)}
+        >
+          <Trash2 className="w-3 h-3" />
         </Button>
-      </AlertDialogTrigger>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Запустить Initial Sync?</AlertDialogTitle>
-          <AlertDialogDescription>
-            Локальный сервер подтянет все данные казино из облака. Существующие записи на локальной БД с теми же id будут пропущены (insert-only). Операция безопасна для повторного запуска, но может занять несколько минут.
-            {lastFailed && job?.error && (
-              <span className="block mt-2 text-destructive">Прошлая ошибка: {job.error}</span>
-            )}
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Отмена</AlertDialogCancel>
-          <AlertDialogAction onClick={() => trigger.mutate(serverId)}>Запустить</AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+      )}
+    </div>
   );
 };
 
