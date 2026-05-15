@@ -13,7 +13,7 @@
 #
 set -euo pipefail
 
-INSTALLER_VERSION="1.0.190"
+INSTALLER_VERSION="1.0.191"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
@@ -108,6 +108,15 @@ reset_postgres_volume() {
   docker volume ls --format '{{.Name}}' | grep -E '(^|_)postgres[_-]data$' | while read -r v; do
     docker volume inspect "$v" --format '{{ index .Labels "com.docker.compose.project" }} {{ index .Labels "com.docker.compose.volume" }}' 2>/dev/null | grep -q "^${project_name} postgres_data$" && docker volume rm "$v" &>/dev/null || true
   done
+}
+
+postgres_network_name() {
+  local cid net
+  cid="$(docker compose ps -q postgres 2>/dev/null || true)"
+  [[ -n "$cid" ]] || return 1
+  net="$(docker inspect "$cid" --format '{{range $name, $conf := .NetworkSettings.Networks}}{{println $name}}{{end}}' 2>/dev/null | head -1)"
+  [[ -n "$net" ]] || return 1
+  printf '%s' "$net"
 }
 
 # ────────── 2. Конфигурация / сопряжение ──────────
