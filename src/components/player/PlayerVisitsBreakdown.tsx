@@ -68,11 +68,11 @@ const weekLabel = (start: Date) => {
   return `Week ${fmt(start)}–${fmt(end)} ${start.toLocaleDateString("en-GB", { timeZone: "Africa/Dar_es_Salaam", month: "short" })}`;
 };
 
-type Agg = { visits: number; minutes: number; drop: number; out: number; comps: number };
-const blank = (): Agg => ({ visits: 0, minutes: 0, drop: 0, out: 0, comps: 0 });
+type Agg = { visits: number; minutes: number; drop: number; inGross: number; out: number; comps: number };
+const blank = (): Agg => ({ visits: 0, minutes: 0, drop: 0, inGross: 0, out: 0, comps: 0 });
 const add = (a: Agg, b: Agg): Agg => ({
   visits: a.visits + b.visits, minutes: a.minutes + b.minutes,
-  drop: a.drop + b.drop, out: a.out + b.out, comps: a.comps + b.comps,
+  drop: a.drop + b.drop, inGross: a.inGross + b.inGross, out: a.out + b.out, comps: a.comps + b.comps,
 });
 const result = (a: Agg) => a.out - a.drop;
 const total = (a: Agg) => result(a) - a.comps;
@@ -86,7 +86,7 @@ export default function PlayerVisitsBreakdown({ visits, transactions, expenses, 
   // each cash-in's External portion to the visit window it falls into.
   const visitFin = useMemo(() => {
     const m = new Map<string, Agg>();
-    for (const v of visits) m.set(v.id, { visits: 1, minutes: visitMins(v), drop: 0, out: 0, comps: 0 });
+    for (const v of visits) m.set(v.id, { visits: 1, minutes: visitMins(v), drop: 0, inGross: 0, out: 0, comps: 0 });
 
     // Build sorted ranges of visits per casino for fast lookup.
     type Range = { id: string; casinoId: string; start: number; end: number };
@@ -116,7 +116,8 @@ export default function PlayerVisitsBreakdown({ visits, transactions, expenses, 
         const vid = findVisit(t.casino_id, ts);
         if (vid) {
           const cur = m.get(vid)!;
-          cur.drop += ext; // Drop R only — recycled excluded from "real drop"
+          cur.drop += ext;     // Drop R only — recycled excluded from "real drop"
+          cur.inGross += amt;  // Gross IN — every buy-in including recycled
         }
       } else if (t.type === "cashout" || (t.type as string) === "out") {
         nep -= amt;
@@ -183,7 +184,7 @@ export default function PlayerVisitsBreakdown({ visits, transactions, expenses, 
     return <div className="text-sm text-muted-foreground py-6 text-center">No visits recorded.</div>;
   }
 
-  const colSpan = showFinancials ? 6 : 3;
+  const colSpan = showFinancials ? 8 : 3;
 
   return (
     <div className="overflow-x-auto">
@@ -195,7 +196,8 @@ export default function PlayerVisitsBreakdown({ visits, transactions, expenses, 
             <th className="text-right py-2 px-2">Time</th>
             {showFinancials && <>
               <th className="text-right py-2 px-2" title="Drop — NEP-aware (external cash only)">Drop</th>
-              <th className="text-right py-2 px-2">Cashout</th>
+              <th className="text-right py-2 px-2" title="Total cash in (all buy-ins, including recycled)">In</th>
+              <th className="text-right py-2 px-2" title="Total cashout">Out</th>
               <th className="text-right py-2 px-2">Result</th>
               <th className="text-right py-2 px-2">Comps</th>
               <th className="text-right py-2 px-2">Total</th>
@@ -224,6 +226,7 @@ export default function PlayerVisitsBreakdown({ visits, transactions, expenses, 
                   <td className="py-2 px-2 text-right font-mono">{fmtDuration(mo.agg.minutes)}</td>
                   {showFinancials && <>
                     <td className="py-2 px-2 text-right font-mono">{mo.agg.drop ? fmtMoney(mo.agg.drop) : dot}</td>
+                    <td className="py-2 px-2 text-right font-mono">{mo.agg.inGross ? fmtMoney(mo.agg.inGross) : dot}</td>
                     <td className="py-2 px-2 text-right font-mono">{mo.agg.out ? fmtMoney(mo.agg.out) : dot}</td>
                     <td className={`py-2 px-2 text-right font-mono ${moRes === 0 ? "text-muted-foreground" : moRes > 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
                       {moRes === 0 ? "·" : fmtMoney(moRes)}
@@ -255,6 +258,7 @@ export default function PlayerVisitsBreakdown({ visits, transactions, expenses, 
                         <td className="py-1.5 px-2 text-right font-mono text-xs">{fmtDuration(wk.agg.minutes)}</td>
                         {showFinancials && <>
                           <td className="py-1.5 px-2 text-right font-mono text-xs">{wk.agg.drop ? fmtMoney(wk.agg.drop) : dot}</td>
+                          <td className="py-1.5 px-2 text-right font-mono text-xs">{wk.agg.inGross ? fmtMoney(wk.agg.inGross) : dot}</td>
                           <td className="py-1.5 px-2 text-right font-mono text-xs">{wk.agg.out ? fmtMoney(wk.agg.out) : dot}</td>
                           <td className={`py-1.5 px-2 text-right font-mono text-xs ${wkRes === 0 ? "text-muted-foreground" : wkRes > 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
                             {wkRes === 0 ? "·" : fmtMoney(wkRes)}
@@ -284,6 +288,7 @@ export default function PlayerVisitsBreakdown({ visits, transactions, expenses, 
                             <td className="py-1 px-2 text-right font-mono text-xs">{fmtDuration(day.agg.minutes)}</td>
                             {showFinancials && <>
                               <td className="py-1 px-2 text-right font-mono text-xs">{day.agg.drop ? fmtMoney(day.agg.drop) : dot}</td>
+                              <td className="py-1 px-2 text-right font-mono text-xs">{day.agg.inGross ? fmtMoney(day.agg.inGross) : dot}</td>
                               <td className="py-1 px-2 text-right font-mono text-xs">{day.agg.out ? fmtMoney(day.agg.out) : dot}</td>
                               <td className={`py-1 px-2 text-right font-mono text-xs ${dRes === 0 ? "text-muted-foreground" : dRes > 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
                                 {dRes === 0 ? "·" : fmtMoney(dRes)}
@@ -315,6 +320,7 @@ export default function PlayerVisitsBreakdown({ visits, transactions, expenses, 
                 <td className="py-2 px-2 text-right font-mono">{fmtDuration(tot.minutes)}</td>
                 {showFinancials && <>
                   <td className="py-2 px-2 text-right font-mono">{fmtMoney(tot.drop)}</td>
+                  <td className="py-2 px-2 text-right font-mono">{fmtMoney(tot.inGross)}</td>
                   <td className="py-2 px-2 text-right font-mono">{fmtMoney(tot.out)}</td>
                   <td className={`py-2 px-2 text-right font-mono ${r === 0 ? "" : r > 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>{fmtMoney(r)}</td>
                   <td className="py-2 px-2 text-right font-mono">{fmtMoney(tot.comps)}</td>
