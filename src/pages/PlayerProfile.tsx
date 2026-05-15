@@ -542,11 +542,11 @@ const PlayerProfile = () => {
                   <tfoot>
                     {(() => {
                       const periodMins = visitsInRange.reduce((s, v) => s + visitDuration(v), 0);
-                      let pIn = 0, pOut = 0, pComps = 0;
+                      let pDropR = 0, pIn = 0, pOut = 0, pComps = 0;
                       for (const v of visitsInRange) {
                         const f = visitFinancials.get(v.id);
                         if (!f) continue;
-                        pIn += f.totalIn; pOut += f.cashout; pComps += f.comps;
+                        pDropR += f.dropR; pIn += f.totalIn; pOut += f.cashout; pComps += f.comps;
                       }
                       const pRes = pOut - pIn;
                       const pTotal = pRes - pComps;
@@ -555,6 +555,7 @@ const PlayerProfile = () => {
                           <td className="py-2 px-2 text-xs uppercase text-muted-foreground" colSpan={4}>Total (period)</td>
                           <td className="py-2 px-2">{fmtDuration(periodMins)}</td>
                           <td className="py-2 px-2"></td>
+                          {showFinancials && <td className="py-2 px-2 font-mono text-xs text-right">{fmtMoney(pDropR)}</td>}
                           {showFinancials && <td className="py-2 px-2 font-mono text-xs text-right">{fmtMoney(pIn)}</td>}
                           {showFinancials && <td className="py-2 px-2 font-mono text-xs text-right">{fmtMoney(pOut)}</td>}
                           {showFinancials && <td className={`py-2 px-2 font-mono text-xs text-right ${pRes === 0 ? "" : pRes > 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>{fmtMoney(pRes)}</td>}
