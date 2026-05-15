@@ -23,7 +23,7 @@
 #   5432 → Postgres (только localhost, никогда не наружу)
 #
 
-version: "3.9"
+# version field intentionally omitted (deprecated in Docker Compose v2+)
 
 x-restart: &restart_policy
   restart: unless-stopped
@@ -199,10 +199,15 @@ services:
   # FRONTEND + NGINX (TLS)
   # ────────────────────────────────────────────────────────────────
   cms-frontend:
-    image: ghcr.io/${GITHUB_OWNER}/cms-frontend:${FRONTEND_VERSION:-latest}
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.frontend
+      args:
+        VITE_BUILD_VERSION: ${FRONTEND_VERSION:-local}
+    image: cms-frontend:${FRONTEND_VERSION:-local}
     container_name: cms-frontend
     <<: [*restart_policy, *default_logging]
-    pull_policy: missing
+    pull_policy: never
     environment:
       # Передаются в frontend-entrypoint.sh, который патчит runtime-config.json
       # и генерирует /manifest-local.json динамически под текущее казино.
@@ -269,6 +274,7 @@ services:
       dockerfile: Dockerfile
     image: cms-updater:local
     container_name: cms-updater
+    profiles: ["with-updater"]
     <<: [*restart_policy, *default_logging]
     environment:
       GITHUB_OWNER:           ${GITHUB_OWNER}
