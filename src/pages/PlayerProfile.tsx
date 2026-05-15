@@ -510,7 +510,7 @@ const PlayerProfile = () => {
                   </thead>
                   <tbody>
                     {visitsInRange.slice(0, 200).map((v: any) => {
-                      const f = visitFinancials.get(v.id) || { totalIn: 0, cashout: 0, comps: 0 };
+                      const f = visitFinancials.get(v.id) || { totalIn: 0, cashout: 0, comps: 0, dropR: 0 };
                       const result = f.cashout - f.totalIn;
                       const total = result - f.comps;
                       return (
@@ -521,6 +521,7 @@ const PlayerProfile = () => {
                           <td className="py-1.5 px-2 font-mono text-xs">{v.checked_out_at ? fmtDateTime(v.checked_out_at) : "—"}</td>
                           <td className="py-1.5 px-2">{fmtDuration(visitDuration(v))}</td>
                           <td className="py-1.5 px-2"><span className="inline-flex items-center gap-1 text-xs"><MapPin className="w-3 h-3" />{v.position}</span></td>
+                          {showFinancials && <td className="py-1.5 px-2 font-mono text-xs text-right">{f.dropR ? fmtMoney(f.dropR) : dot()}</td>}
                           {showFinancials && <td className="py-1.5 px-2 font-mono text-xs text-right">{f.totalIn ? fmtMoney(f.totalIn) : dot()}</td>}
                           {showFinancials && <td className="py-1.5 px-2 font-mono text-xs text-right">{f.cashout ? fmtMoney(f.cashout) : dot()}</td>}
                           {showFinancials && (
