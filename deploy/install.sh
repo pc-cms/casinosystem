@@ -369,149 +369,15 @@ if [[ -d ../supabase/migrations ]]; then
   ok "Скопировано $(ls postgres/migrations/*.sql 2>/dev/null | wc -l) миграций"
 fi
 
-if [[ ! -f "$SEED_DONE_FILE" && -n "${SEED_TOKEN:-}" ]]; then
-  log "Запускаю postgres для seed-импорта..."
-  docker compose up -d postgres
-  wait_for_postgres_ready "Postgres"
-
-  # Sanity-check пароля: если volume инициализирован ранее с другим паролем,
-  # ALTER USER через локальный сокет (peer auth для OS-user "postgres" внутри контейнера).
-  # Если и это не помогло — а seed ещё не делали — безопасно пересоздать том (данных нет).
-  log "Проверяю пароль postgres..."
-  PG_OK=0
-  if docker compose exec -T -e PGPASSWORD="${POSTGRES_PASSWORD}" postgres \
-       psql -h 127.0.0.1 -U "${POSTGRES_USER:-postgres}" -d "${POSTGRES_DB:-postgres}" -tAc "SELECT 1" &>/dev/null; then
-    PG_OK=1
-    ok "Пароль postgres валиден"
-  fi
-
-  if [[ $PG_OK -eq 0 ]]; then
-    warn "Пароль postgres не совпадает с .env. Пробую ALTER USER через локальный сокет..."
-    PG_ESCAPED=$(printf "%s" "${POSTGRES_PASSWORD}" | sed "s/'/''/g")
-    ALTER_OUT=$(docker compose exec -T -u postgres postgres \
-         psql -U "${POSTGRES_USER:-postgres}" -d "${POSTGRES_DB:-postgres}" \
-         -c "ALTER USER \"${POSTGRES_USER:-postgres}\" WITH PASSWORD '${PG_ESCAPED}';" 2>&1)
-    ALTER_RC=$?
-    if [[ $ALTER_RC -eq 0 ]]; then
-      docker compose restart postgres &>/dev/null || true
-      for i in $(seq 1 30); do
-        docker compose exec -T postgres pg_isready -U "${POSTGRES_USER:-postgres}" &>/dev/null && break
-        sleep 2
-      done
-      if docker compose exec -T -e PGPASSWORD="${POSTGRES_PASSWORD}" postgres \
-           psql -h 127.0.0.1 -U "${POSTGRES_USER:-postgres}" -d "${POSTGRES_DB:-postgres}" -tAc "SELECT 1" &>/dev/null; then
-        PG_OK=1
-        ok "Пароль postgres синхронизирован с .env"
-      fi
-    else
-      warn "ALTER USER не сработал: ${ALTER_OUT}"
-    fi
-  fi
-
-  if [[ $PG_OK -eq 0 ]]; then
-    warn "Не удалось синхронизировать пароль. Seed ещё не выполнен — пересоздаю postgres volume (данных там нет)."
-    reset_postgres_volume
-    log "Поднимаю postgres заново с чистым томом..."
-    docker compose up -d postgres
-    wait_for_postgres "Postgres после пересоздания тома"
-    if docker compose exec -T -e PGPASSWORD="${POSTGRES_PASSWORD}" postgres \
-         psql -h 127.0.0.1 -U "${POSTGRES_USER:-postgres}" -d "${POSTGRES_DB:-postgres}" -tAc "SELECT 1" &>/dev/null; then
-      ok "Postgres пересоздан с правильным паролем"
-      PG_OK=1
-    else
-      fail "Даже после пересоздания тома пароль не работает. Проверьте POSTGRES_PASSWORD в ${SCRIPT_DIR}/.env"
-    fi
-  fi
-
-  log "Загружаю полные данные казино из Cloud..."
-  COMPOSE_NET="$(postgres_network_name)" || fail "Не удалось определить Docker network для Postgres"
-  log "Проверяю доступ к Postgres из seed-контейнера..."
-  if ! docker run --rm --network "$COMPOSE_NET" -e PGPASSWORD="${POSTGRES_PASSWORD}" postgres:15-alpine \
-      psql -h postgres -U "${POSTGRES_USER:-postgres}" -d "${POSTGRES_DB:-postgres}" -tAc "SELECT 1" &>/dev/null; then
-    warn "Seed-контейнер не может войти в Postgres с текущим .env — пересоздаю Postgres volume."
-    reset_postgres_volume
-    docker compose up -d postgres
-    wait_for_postgres "Postgres после пересоздания тома"
-    COMPOSE_NET="$(postgres_network_name)" || fail "Не удалось определить Docker network для Postgres после пересоздания"
-    SEED_PSQL_OUT=$(docker run --rm --network "$COMPOSE_NET" -e PGPASSWORD="${POSTGRES_PASSWORD}" postgres:15-alpine \
-      psql -h postgres -U "${POSTGRES_USER:-postgres}" -d "${POSTGRES_DB:-postgres}" -tAc "SELECT 1" 2>&1) \
-      || fail "Seed-контейнер всё ещё не может войти в Postgres: ${SEED_PSQL_OUT}. Запустите: sudo docker compose down -v && sudo ./install.sh --reset"
-  fi
-  ok "Seed-контейнер видит Postgres с правильным паролем"
-
-  set +e
-  mkdir -p "${SCRIPT_DIR}/postgres/seed-data"
-  SEED_FILE="${SCRIPT_DIR}/postgres/seed-data/seed.json"
-  SEED_TMP="${SEED_FILE}.part"
-  SEED_HEADERS="${SCRIPT_DIR}/postgres/seed-data/seed.headers"
-  MIN_SEED_BYTES=1024
-
-  SEED_OK=0
-  for attempt in 1 2 3; do
-    log "Скачиваю seed-данные (попытка ${attempt}/3, может занять несколько минут)..."
-    rm -f "$SEED_TMP" "$SEED_HEADERS"
-    HTTP_CODE=$(curl -sS --fail-with-body \
-      --connect-timeout 30 --max-time 1800 \
-      --retry 3 --retry-delay 5 --retry-all-errors \
-      -D "$SEED_HEADERS" \
-      -o "$SEED_TMP" \
-      -w "%{http_code}" \
-      -H "x-seed-token: ${SEED_TOKEN}" \
-      -H "Accept: application/json" \
-      "${CLOUD_URL}/functions/v1/cloud-seed-export?days=all")
-    CURL_RC=$?
-    SEED_SIZE=$(stat -c%s "$SEED_TMP" 2>/dev/null || echo 0)
-
-    if [[ "$HTTP_CODE" != "200" ]]; then
-      echo "  ✗ HTTP $HTTP_CODE (size=${SEED_SIZE}B)"
-      [[ -s "$SEED_TMP" ]] && { echo "  ── тело:"; head -c 500 "$SEED_TMP"; echo; }
-      sleep 5; continue
-    fi
-    if [[ "$SEED_SIZE" -lt "$MIN_SEED_BYTES" ]]; then
-      echo "  ✗ Файл слишком маленький (${SEED_SIZE}B < ${MIN_SEED_BYTES}B) — вероятно пустой ответ"
-      [[ -s "$SEED_TMP" ]] && head -c 500 "$SEED_TMP" && echo
-      sleep 5; continue
-    fi
-    FIRST_CHAR=$(head -c 1 "$SEED_TMP")
-    if [[ "$FIRST_CHAR" != "{" && "$FIRST_CHAR" != "[" ]]; then
-      echo "  ✗ Ответ не похож на JSON (начало: '$FIRST_CHAR')"
-      head -c 500 "$SEED_TMP"; echo
-      sleep 5; continue
-    fi
-    if [[ $CURL_RC -ne 0 ]]; then
-      warn "curl вернул код $CURL_RC, но seed-файл уже скачан и прошёл проверки (http=$HTTP_CODE, size=${SEED_SIZE}B). Продолжаю импорт."
-    fi
-
-    mv -f "$SEED_TMP" "$SEED_FILE"
-    SEED_OK=1
-    ok "Seed скачан ($((SEED_SIZE/1024)) KB, http=$HTTP_CODE)"
-    break
-  done
-
-  rm -f "$SEED_HEADERS"
-  if [[ $SEED_OK -ne 1 ]]; then
-    set -e
-    fail "Не удалось скачать seed после 3 попыток. Проверьте интернет/CLOUD_URL/SEED_TOKEN и запустите ./install.sh ещё раз."
-  fi
-
-  log "Импортирую данные в Postgres..."
-  docker run --rm \
-      --network "$COMPOSE_NET" \
-      -v "${SCRIPT_DIR}/postgres/seed-import.js:/seed-import.js:ro" \
-      -v "${SEED_FILE}:/seed.json:ro" \
-      -e PGHOST=postgres \
-      -e PGUSER="${POSTGRES_USER:-postgres}" \
-      -e PGPASSWORD="${POSTGRES_PASSWORD}" \
-      -e PGDATABASE="${POSTGRES_DB:-postgres}" \
-      -e SEED_FILE=/seed.json \
-      -e NODE_PATH=/work/node_modules \
-      node:20-alpine sh -c "set -e; mkdir -p /work && cd /work && echo '{\"type\":\"module\"}' > package.json && npm i --no-fund --no-audit --loglevel=error pg 2>&1 | tail -20 && cp /seed-import.js /work/seed-import.mjs && node /work/seed-import.mjs /seed.json"
-  SEED_RC=$?
-  set -e
-  [[ $SEED_RC -eq 0 ]] || fail "Seed-импорт завершился с ошибкой ($SEED_RC). Файл сохранён: $SEED_FILE. Запустите ./install.sh ещё раз."
-  touch "$SEED_DONE_FILE"
-  ok "Данные загружены"
-fi
+# ────────── 4.6. Чистая установка БД (без seed) ──────────
+# v1.1.0+: данные больше НЕ импортируются в install.sh.
+# После approve в Cloud-админке нужно нажать кнопку "Initial Sync" —
+# cms-sync сам подтянет все данные казино из Cloud в пустую БД.
+log "Запускаю postgres (чистая БД, миграции применятся автоматически)..."
+docker compose up -d postgres
+wait_for_postgres_ready "Postgres"
+touch "$SEED_DONE_FILE"
+ok "БД готова. Данные подтянутся после Initial Sync из Cloud-админки."
 
 # ────────── 5. Сборка frontend + старт ──────────
 title "5/5  Сборка frontend и запуск стека"
