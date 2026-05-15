@@ -13,7 +13,7 @@
 #
 set -euo pipefail
 
-INSTALLER_VERSION="1.0.191"
+INSTALLER_VERSION="1.0.192"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
@@ -105,9 +105,17 @@ reset_postgres_volume() {
   [[ -n "$project_name" ]] || project_name="$(basename "$SCRIPT_DIR")"
   volume_name="${project_name}_postgres_data"
   docker volume rm "$volume_name" &>/dev/null || true
-  docker volume ls --format '{{.Name}}' | grep -E '(^|_)postgres[_-]data$' | while read -r v; do
-    docker volume inspect "$v" --format '{{ index .Labels "com.docker.compose.project" }} {{ index .Labels "com.docker.compose.volume" }}' 2>/dev/null | grep -q "^${project_name} postgres_data$" && docker volume rm "$v" &>/dev/null || true
-  done
+  while IFS= read -r v; do
+    [[ -n "$v" ]] || continue
+    if docker volume inspect "$v" --format '{{ index .Labels "com.docker.compose.project" }} {{ index .Labels "com.docker.compose.volume" }}' 2>/dev/null | grep -q "^${project_name} postgres_data$"; then
+      docker volume rm "$v" &>/dev/null || true
+    fi
+  done < <(docker volume ls --format '{{.Name}}' | grep -E '(^|_)postgres[_-]data$' || true)
+  while IFS= read -r v; do
+    [[ -n "$v" ]] || continue
+    docker volume rm "$v" &>/dev/null || true
+  done < <(docker volume ls --format '{{.Name}}' | grep -E '(^|_)postgres-data$' || true)
+  return 0
 }
 
 postgres_network_name() {
