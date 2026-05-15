@@ -167,8 +167,8 @@ if [[ $WIPE -eq 1 ]]; then
   warn "WIPE: удаляю все контейнеры, volumes, .env и сертификаты..."
   docker compose down -v --remove-orphans &>/dev/null || true
   docker volume ls --format '{{.Name}}' | grep -E '(postgres|storage|cms-)' | xargs -r docker volume rm &>/dev/null || true
-  rm -f .env "$SEED_DONE_FILE"
-  rm -rf certs postgres/seed-data
+  rm -f .env "$SEED_DONE_FILE" "${SCRIPT_DIR}/.super-admin-done"
+  rm -rf certs postgres/seed-data data runtime-config.json
   ok "WIPE завершён — продолжаю чистую установку"
 fi
 
