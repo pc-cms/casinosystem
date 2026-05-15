@@ -4,8 +4,7 @@ import { BarChart3, Search, ArrowUp, ArrowDown, ArrowUpDown, ChevronLeft, Chevro
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
-import { usePlayers, useTransactions, useGamingTables } from "@/hooks/use-casino-data";
-import { useChipTransfers } from "@/hooks/use-chip-transfers";
+import { usePlayers, useGamingTables } from "@/hooks/use-casino-data";
 import { usePlayersDropSplit } from "@/hooks/use-drop-split";
 import { getBusinessDate, businessDayHourUTC } from "@/lib/business-day";
 import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
