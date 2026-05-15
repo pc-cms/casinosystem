@@ -107,29 +107,60 @@ const PlayerProfile = () => {
   );
 
   // Map transactions to visits (same casino + within check-in / check-out window).
+  // dropR = NEP-aware external drop per visit (computed via lifetime walk).
   const visitFinancials = useMemo(() => {
-    const map = new Map<string, { totalIn: number; cashout: number; comps: number }>();
+    const map = new Map<string, { totalIn: number; cashout: number; comps: number; dropR: number }>();
     for (const v of visits) {
-      const start = new Date(v.checked_in_at).getTime();
-      const end = v.checked_out_at ? new Date(v.checked_out_at).getTime() : start + 24 * 3600 * 1000;
-      let totalIn = 0;
-      let cashout = 0;
-      let comps = 0;
-      for (const t of transactions) {
-        if (t.casino_id !== v.casino_id) continue;
-        const ts = new Date(t.created_at).getTime();
-        if (ts < start || ts > end) continue;
-        const amt = Number(t.amount) || 0;
-        if (t.type === "buy" || t.type === "in") totalIn += amt;
-        else if (t.type === "cashout" || t.type === "out") cashout += amt;
+      map.set(v.id, { totalIn: 0, cashout: 0, comps: 0, dropR: 0 });
+    }
+    // Sort visits per casino by check-in for window matching.
+    const visitsByCasino = new Map<string, any[]>();
+    for (const v of visits) {
+      const arr = visitsByCasino.get(v.casino_id) || [];
+      arr.push(v);
+      visitsByCasino.set(v.casino_id, arr);
+    }
+    const findVisit = (casinoId: string, ts: number) => {
+      const arr = visitsByCasino.get(casinoId);
+      if (!arr) return null;
+      for (const v of arr) {
+        const start = new Date(v.checked_in_at).getTime();
+        const end = v.checked_out_at ? new Date(v.checked_out_at).getTime() : start + 24 * 3600 * 1000;
+        if (ts >= start && ts <= end) return v;
       }
-      for (const e of expenses) {
-        if (e.casino_id !== v.casino_id) continue;
-        const ts = new Date(e.created_at).getTime();
-        if (ts < start || ts > end) continue;
-        comps += Number(e.amount) || 0;
+      return null;
+    };
+    // NEP walk over all transactions chronologically (lifetime, all casinos combined).
+    const sorted = [...transactions].sort((a: any, b: any) => String(a.created_at).localeCompare(String(b.created_at)));
+    let nep = 0;
+    for (const t of sorted as any[]) {
+      const amt = Number(t.amount) || 0;
+      const ts = new Date(t.created_at).getTime();
+      const v = findVisit(t.casino_id, ts);
+      if (t.type === "buy" || t.type === "in") {
+        const rec = nep < 0 ? Math.min(amt, -nep) : 0;
+        const ext = amt - rec;
+        nep += amt;
+        if (v) {
+          const f = map.get(v.id)!;
+          f.totalIn += amt;
+          f.dropR += ext;
+        }
+      } else if (t.type === "cashout" || t.type === "out") {
+        nep -= amt;
+        if (v) {
+          const f = map.get(v.id)!;
+          f.cashout += amt;
+        }
       }
-      map.set(v.id, { totalIn, cashout, comps });
+    }
+    for (const e of expenses) {
+      const ts = new Date(e.created_at).getTime();
+      const v = findVisit(e.casino_id, ts);
+      if (v) {
+        const f = map.get(v.id)!;
+        f.comps += Number(e.amount) || 0;
+      }
     }
     return map;
   }, [visits, transactions, expenses]);
@@ -469,7 +500,8 @@ const PlayerProfile = () => {
                       <th className="text-left py-2 px-2">Check-out</th>
                       <th className="text-left py-2 px-2">Duration</th>
                       <th className="text-left py-2 px-2">Position</th>
-                      {showFinancials && <th className="text-right py-2 px-2">Drop</th>}
+                      {showFinancials && <th className="text-right py-2 px-2" title="Drop — NEP-aware (external cash only)">Drop</th>}
+                      {showFinancials && <th className="text-right py-2 px-2" title="Total cash in (all buy-ins)">Cash In</th>}
                       {showFinancials && <th className="text-right py-2 px-2">Cashout</th>}
                       {showFinancials && <th className="text-right py-2 px-2">Result</th>}
                       {showFinancials && <th className="text-right py-2 px-2">Comps</th>}
@@ -478,7 +510,7 @@ const PlayerProfile = () => {
                   </thead>
                   <tbody>
                     {visitsInRange.slice(0, 200).map((v: any) => {
-                      const f = visitFinancials.get(v.id) || { totalIn: 0, cashout: 0, comps: 0 };
+                      const f = visitFinancials.get(v.id) || { totalIn: 0, cashout: 0, comps: 0, dropR: 0 };
                       const result = f.cashout - f.totalIn;
                       const total = result - f.comps;
                       return (
@@ -489,6 +521,7 @@ const PlayerProfile = () => {
                           <td className="py-1.5 px-2 font-mono text-xs">{v.checked_out_at ? fmtDateTime(v.checked_out_at) : "—"}</td>
                           <td className="py-1.5 px-2">{fmtDuration(visitDuration(v))}</td>
                           <td className="py-1.5 px-2"><span className="inline-flex items-center gap-1 text-xs"><MapPin className="w-3 h-3" />{v.position}</span></td>
+                          {showFinancials && <td className="py-1.5 px-2 font-mono text-xs text-right">{f.dropR ? fmtMoney(f.dropR) : dot()}</td>}
                           {showFinancials && <td className="py-1.5 px-2 font-mono text-xs text-right">{f.totalIn ? fmtMoney(f.totalIn) : dot()}</td>}
                           {showFinancials && <td className="py-1.5 px-2 font-mono text-xs text-right">{f.cashout ? fmtMoney(f.cashout) : dot()}</td>}
                           {showFinancials && (
@@ -509,11 +542,11 @@ const PlayerProfile = () => {
                   <tfoot>
                     {(() => {
                       const periodMins = visitsInRange.reduce((s, v) => s + visitDuration(v), 0);
-                      let pIn = 0, pOut = 0, pComps = 0;
+                      let pDropR = 0, pIn = 0, pOut = 0, pComps = 0;
                       for (const v of visitsInRange) {
                         const f = visitFinancials.get(v.id);
                         if (!f) continue;
-                        pIn += f.totalIn; pOut += f.cashout; pComps += f.comps;
+                        pDropR += f.dropR; pIn += f.totalIn; pOut += f.cashout; pComps += f.comps;
                       }
                       const pRes = pOut - pIn;
                       const pTotal = pRes - pComps;
@@ -522,6 +555,7 @@ const PlayerProfile = () => {
                           <td className="py-2 px-2 text-xs uppercase text-muted-foreground" colSpan={4}>Total (period)</td>
                           <td className="py-2 px-2">{fmtDuration(periodMins)}</td>
                           <td className="py-2 px-2"></td>
+                          {showFinancials && <td className="py-2 px-2 font-mono text-xs text-right">{fmtMoney(pDropR)}</td>}
                           {showFinancials && <td className="py-2 px-2 font-mono text-xs text-right">{fmtMoney(pIn)}</td>}
                           {showFinancials && <td className="py-2 px-2 font-mono text-xs text-right">{fmtMoney(pOut)}</td>}
                           {showFinancials && <td className={`py-2 px-2 font-mono text-xs text-right ${pRes === 0 ? "" : pRes > 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>{fmtMoney(pRes)}</td>}
