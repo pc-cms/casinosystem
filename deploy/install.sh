@@ -351,12 +351,7 @@ fi
 if [[ ! -f "$SEED_DONE_FILE" && -n "${SEED_TOKEN:-}" ]]; then
   log "Запускаю postgres для seed-импорта..."
   docker compose up -d postgres
-  for i in $(seq 1 30); do
-    docker compose exec -T postgres pg_isready -U "${POSTGRES_USER:-postgres}" &>/dev/null && break
-    sleep 2
-    [[ $i -eq 30 ]] && fail "Postgres не стартовал"
-  done
-  ok "Postgres готов"
+  wait_for_postgres "Postgres"
 
   # Sanity-check пароля: если volume инициализирован ранее с другим паролем,
   # ALTER USER через локальный сокет (peer auth для OS-user "postgres" внутри контейнера).
@@ -397,11 +392,7 @@ if [[ ! -f "$SEED_DONE_FILE" && -n "${SEED_TOKEN:-}" ]]; then
     reset_postgres_volume
     log "Поднимаю postgres заново с чистым томом..."
     docker compose up -d postgres
-    for i in $(seq 1 60); do
-      docker compose exec -T postgres pg_isready -U "${POSTGRES_USER:-postgres}" &>/dev/null && break
-      sleep 2
-      [[ $i -eq 60 ]] && fail "Postgres не стартовал после пересоздания тома"
-    done
+    wait_for_postgres "Postgres после пересоздания тома"
     if docker compose exec -T -e PGPASSWORD="${POSTGRES_PASSWORD}" postgres \
          psql -h 127.0.0.1 -U "${POSTGRES_USER:-postgres}" -d "${POSTGRES_DB:-postgres}" -tAc "SELECT 1" &>/dev/null; then
       ok "Postgres пересоздан с правильным паролем"
@@ -419,15 +410,11 @@ if [[ ! -f "$SEED_DONE_FILE" && -n "${SEED_TOKEN:-}" ]]; then
     warn "Seed-контейнер не может войти в Postgres с текущим .env — пересоздаю Postgres volume."
     reset_postgres_volume
     docker compose up -d postgres
-    for i in $(seq 1 60); do
-      docker compose exec -T postgres pg_isready -U "${POSTGRES_USER:-postgres}" &>/dev/null && break
-      sleep 2
-      [[ $i -eq 60 ]] && fail "Postgres не стартовал после пересоздания тома"
-    done
+    wait_for_postgres "Postgres после пересоздания тома"
     COMPOSE_NET="$(postgres_network_name)" || fail "Не удалось определить Docker network для Postgres после пересоздания"
-    docker run --rm --network "$COMPOSE_NET" -e PGPASSWORD="${POSTGRES_PASSWORD}" postgres:15-alpine \
-      psql -h postgres -U "${POSTGRES_USER:-postgres}" -d "${POSTGRES_DB:-postgres}" -tAc "SELECT 1" &>/dev/null \
-      || fail "Seed-контейнер всё ещё не может войти в Postgres. Запустите: sudo docker compose down -v && sudo ./install.sh --reset"
+    SEED_PSQL_OUT=$(docker run --rm --network "$COMPOSE_NET" -e PGPASSWORD="${POSTGRES_PASSWORD}" postgres:15-alpine \
+      psql -h postgres -U "${POSTGRES_USER:-postgres}" -d "${POSTGRES_DB:-postgres}" -tAc "SELECT 1" 2>&1) \
+      || fail "Seed-контейнер всё ещё не может войти в Postgres: ${SEED_PSQL_OUT}. Запустите: sudo docker compose down -v && sudo ./install.sh --reset"
   fi
   ok "Seed-контейнер видит Postgres с правильным паролем"
 
