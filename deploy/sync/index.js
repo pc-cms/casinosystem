@@ -145,8 +145,11 @@ async function pushOnce() {
 
 // ───────────── PULL ─────────────
 async function pullOnce() {
+  if (!CONNECTED || SYNC_MODE === "standalone") return 0;
   const client = await pool.connect();
   try {
+    await refreshCreds(client);
+    if (!CONNECTED) return 0;
     const { rows: c } = await client.query(
       `SELECT last_pulled_at FROM sync.cloud_cursor WHERE casino_id = $1`,
       [CASINO_ID]
