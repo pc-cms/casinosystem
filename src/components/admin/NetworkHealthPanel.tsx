@@ -9,12 +9,12 @@
 import {
   useCronHealth, useSyncOutboxHealth, useUpdateCommands,
   useLocalServersOverview, useSyncInboxHealth, useSyncOutboxPerTable,
-  useInitialSyncJobs, useTriggerInitialSync, type InitialSyncJob,
+  useInitialSyncJobs, useTriggerInitialSync, useDeleteInitialSyncJob, useDeleteFailedInitialSyncJobs, type InitialSyncJob,
 } from "@/hooks/use-network-admin";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Activity, Database, Rocket, AlertTriangle, CheckCircle2, Clock, Server, Inbox, HardDrive, Wifi, WifiOff, DownloadCloud, Loader2 } from "lucide-react";
+import { Activity, Database, Rocket, AlertTriangle, CheckCircle2, Clock, Server, Inbox, HardDrive, Wifi, WifiOff, DownloadCloud, Loader2, Trash2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { PendingServersPanel } from "./PendingServersPanel";
