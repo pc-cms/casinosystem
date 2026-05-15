@@ -16,12 +16,37 @@ import {
   useDisconnectCloud,
   useTriggerInitialSync,
 } from "@/hooks/use-cloud-connection";
-import { isLocalMode } from "@/lib/runtime-config";
+import { getRuntimeConfig, isLocalMode } from "@/lib/runtime-config";
 
 const DEFAULT_CLOUD_URL = "https://rpehngjvwcnipvkouluu.supabase.co";
 
+function isLikelyOnPremHost() {
+  if (typeof window === "undefined") return false;
+  const host = window.location.hostname.toLowerCase();
+  if (host === "localhost" || host === "127.0.0.1" || host.endsWith(".local")) return true;
+  if (/^192\.168\.\d{1,3}\.\d{1,3}$/.test(host)) return true;
+  if (/^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(host)) return true;
+  return /^172\.(1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}$/.test(host);
+}
+
 export function CloudConnectionPanel() {
-  if (!isLocalMode()) return null;
+  const [shouldShow, setShouldShow] = useState(() => isLocalMode() || isLikelyOnPremHost());
+
+  useEffect(() => {
+    let active = true;
+    getRuntimeConfig()
+      .then((cfg) => {
+        if (active) setShouldShow(cfg.localMode || isLikelyOnPremHost());
+      })
+      .catch(() => {
+        if (active) setShouldShow(isLikelyOnPremHost());
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  if (!shouldShow) return null;
   return <CloudConnectionPanelInner />;
 }
 
@@ -93,7 +118,7 @@ function CloudConnectionPanelInner() {
               className="gap-1.5"
             >
               <Link2 className="w-4 h-4" />
-              Connect to Cloud
+              Start pairing
             </Button>
           </div>
         </div>
