@@ -22,7 +22,6 @@
 #   443  → nginx → arusha.local (или dodoma/mbeya/mwanza)
 #   5432 → Postgres (только localhost, никогда не наружу)
 #
-
 # version field intentionally omitted (deprecated in Docker Compose v2+)
 
 x-restart: &restart_policy
