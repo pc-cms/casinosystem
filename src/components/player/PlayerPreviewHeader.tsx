@@ -18,22 +18,28 @@ import { canSeePlayerFinancials } from "@/lib/role-access";
 import { formatCurrency, formatNumberSpaces } from "@/lib/currency";
 import { cn } from "@/lib/utils";
 import { useCreatePlayerChipAdjustment } from "@/hooks/use-player-chip-adjustments";
+import { usePlayerDropSplit } from "@/hooks/use-drop-split";
 
 interface Props {
   playerId?: string | null;
   onClose?: () => void;
   className?: string;
+  /** Optional period (YYYY-MM-DD inclusive). Defaults to current business day. */
+  range?: { from: string; to: string };
 }
 
-/** Today's (current business day) CASH IN (drop) and RESULT for one player.
- *  Player-format: result = (cashout) − (drop). */
-const useTodayPlayerStats = (playerId: string | undefined | null, businessDate: string | undefined) => {
+/** CASH IN and RESULT for one player over an arbitrary business-day range. */
+const usePeriodPlayerStats = (
+  playerId: string | undefined | null,
+  fromDate: string | undefined,
+  toDate: string | undefined,
+) => {
   return useQuery({
-    queryKey: ["player-day-stats", playerId, businessDate],
+    queryKey: ["player-period-stats", playerId, fromDate, toDate],
     queryFn: async () => {
-      if (!playerId || !businessDate) return { cashIn: 0, result: 0 };
-      const start = businessDayHourUTC(businessDate, 13);
-      const end = businessDayHourUTC(businessDate, 13 + 24);
+      if (!playerId || !fromDate || !toDate) return { cashIn: 0, result: 0 };
+      const start = businessDayHourUTC(fromDate, 13);
+      const end = businessDayHourUTC(toDate, 13 + 24);
       const { data, error } = await supabase
         .from("transactions")
         .select("type, amount")
@@ -50,7 +56,7 @@ const useTodayPlayerStats = (playerId: string | undefined | null, businessDate: 
       }
       return { cashIn, result: cashOut - cashIn };
     },
-    enabled: !!playerId && !!businessDate,
+    enabled: !!playerId && !!fromDate && !!toDate,
     staleTime: 30_000,
   });
 };
