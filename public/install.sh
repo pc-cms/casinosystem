@@ -21,6 +21,7 @@ if [[ "$REPO" == "pms-cms/casinosystem" ]]; then
   REPO="pc-cms/casinosystem"
 fi
 BRANCH="${CASINO_BRANCH:-main}"
+USE_LATEST_RELEASE="${CASINO_USE_LATEST_RELEASE:-false}"
 TARGET="${CASINO_TARGET:-/opt/casino-system}"
 ENV_FILE="/etc/casino-system/bootstrap.env"
 SELF_URL="${CASINO_BOOTSTRAP_URL:-https://casinosystem.app/install}"
@@ -81,24 +82,25 @@ API_VER_HDR="X-GitHub-Api-Version: 2022-11-28"
 TMP="$(mktemp -d /tmp/casino-bootstrap.XXXXXX)"
 trap 'rm -rf "$TMP"' EXIT
 
-# ── Определяем ref: latest release или branch ──
-log "Запрашиваю latest release из GitHub API..."
-REL_HTTP=$(curl -fsS -o "$TMP/release.json" -w "%{http_code}" \
-  "${AUTH_ARGS[@]}" -H "$ACCEPT_HDR" -H "$API_VER_HDR" \
-  --retry 3 --retry-delay 2 \
-  "https://api.github.com/repos/${REPO}/releases/latest" 2>/dev/null || echo "000")
+# ── Определяем ref: по умолчанию main; release только если явно включён ──
+REF="$BRANCH"
+if [[ "$USE_LATEST_RELEASE" == "true" ]]; then
+  log "Запрашиваю latest release из GitHub API..."
+  REL_HTTP=$(curl -fsS -o "$TMP/release.json" -w "%{http_code}" \
+    "${AUTH_ARGS[@]}" -H "$ACCEPT_HDR" -H "$API_VER_HDR" \
+    --retry 3 --retry-delay 2 \
+    "https://api.github.com/repos/${REPO}/releases/latest" 2>/dev/null || echo "000")
 
-if [[ "$REL_HTTP" == "200" ]]; then
-  REF=$(grep -oP '"tag_name"\s*:\s*"\K[^"]+' "$TMP/release.json" | head -n1)
-  ok "Latest release: $REF"
-elif [[ "$REL_HTTP" == "401" || "$REL_HTTP" == "403" ]]; then
-  fail "GitHub отклонил доступ (HTTP=$REL_HTTP). Если репо приватная — нужен GH_TOKEN. Если публичная — проверь имя репо: ${REPO}."
-elif [[ "$REL_HTTP" == "404" ]]; then
-  warn "Релизов в репо нет — fallback на ветку '${BRANCH}'"
-  REF="$BRANCH"
+  if [[ "$REL_HTTP" == "200" ]]; then
+    REF=$(grep -oP '"tag_name"\s*:\s*"\K[^"]+' "$TMP/release.json" | head -n1)
+    ok "Latest release: $REF"
+  elif [[ "$REL_HTTP" == "401" || "$REL_HTTP" == "403" ]]; then
+    fail "GitHub отклонил доступ (HTTP=$REL_HTTP). Если репо приватная — нужен GH_TOKEN. Если публичная — проверь имя репо: ${REPO}."
+  else
+    warn "GitHub API вернул HTTP=$REL_HTTP — использую ветку '${BRANCH}'"
+  fi
 else
-  warn "GitHub API вернул HTTP=$REL_HTTP — fallback на ветку '${BRANCH}'"
-  REF="$BRANCH"
+  log "Использую ветку '${BRANCH}'"
 fi
 
 # ── Качаем tarball ──
