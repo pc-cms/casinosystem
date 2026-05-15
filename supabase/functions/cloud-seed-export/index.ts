@@ -28,7 +28,7 @@ import { verify as verifyJwt } from "https://deno.land/x/djwt@v3.0.2/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "x-service-key, x-seed-token, content-type",
+  "Access-Control-Allow-Headers": "x-service-key, x-seed-token, x-sync-secret, x-casino-id, content-type",
   "Access-Control-Allow-Methods": "GET, OPTIONS",
 };
 
