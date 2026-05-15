@@ -50,7 +50,11 @@ const PlayerStatistics = () => {
   const { casinoId, roles, user } = useAuth();
   const { data: serverBusinessDate } = useEffectiveBusinessDate();
   const today = serverBusinessDate || getBusinessDate();
-  const canBrowseHistory = canSeeAllTimeData(roles);
+  // Manager and Floor Manager can also browse historical periods (day/week/month/year/custom)
+  const canBrowseHistory =
+    canSeeAllTimeData(roles) ||
+    roles.includes("manager") ||
+    roles.includes("floor_manager");
   const minDate = subDays(today, -MAX_DAYS_BACK);
 
   // Date model: anchor `date` for single-day mode + period preset/range for managers.
