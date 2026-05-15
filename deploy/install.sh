@@ -100,12 +100,16 @@ compose_project_name() {
 }
 
 reset_postgres_volume() {
+  log "Останавливаю stack и удаляю docker volumes Postgres..."
+  docker compose stop postgres postgrest gotrue realtime storage cms-frontend nginx cms-sync cms-monitor cms-updater cms-backup &>/dev/null || true
+  docker rm -f cms-postgres &>/dev/null || true
   docker compose down -v --remove-orphans &>/dev/null || true
   local project_name volume_name
   project_name="$(compose_project_name)"
   [[ -n "$project_name" ]] || project_name="$(basename "$SCRIPT_DIR")"
   volume_name="${project_name}_postgres_data"
   docker volume rm "$volume_name" &>/dev/null || true
+  docker volume rm "deploy_postgres_data" "casino-system_postgres_data" "casino-system-deploy_postgres_data" "cms-postgres-data" &>/dev/null || true
   while IFS= read -r v; do
     [[ -n "$v" ]] || continue
     if docker volume inspect "$v" --format '{{ index .Labels "com.docker.compose.project" }} {{ index .Labels "com.docker.compose.volume" }}' 2>/dev/null | grep -q "^${project_name} postgres_data$"; then
@@ -116,7 +120,23 @@ reset_postgres_volume() {
     [[ -n "$v" ]] || continue
     docker volume rm "$v" &>/dev/null || true
   done < <(docker volume ls --format '{{.Name}}' | grep -E '(^|_)postgres-data$' || true)
+  ok "Postgres volume очищен"
   return 0
+}
+
+wait_for_postgres() {
+  local label="${1:-Postgres}"
+  for i in $(seq 1 60); do
+    if docker compose exec -T -e PGPASSWORD="${POSTGRES_PASSWORD}" postgres \
+        psql -h 127.0.0.1 -U "${POSTGRES_USER:-postgres}" -d "${POSTGRES_DB:-postgres}" -tAc "SELECT 1" &>/dev/null; then
+      ok "${label} готов и принимает пароль из .env"
+      return 0
+    fi
+    sleep 2
+  done
+  docker compose ps postgres >&2 || true
+  docker compose logs --tail=80 postgres >&2 || true
+  fail "${label} не принимает пароль из .env после ожидания"
 }
 
 postgres_network_name() {
