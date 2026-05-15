@@ -13,7 +13,7 @@
 #
 set -euo pipefail
 
-INSTALLER_VERSION="1.0.182"
+INSTALLER_VERSION="1.0.190"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
@@ -93,6 +93,22 @@ update_env() {
   fi
 }
 gen_secret() { openssl rand -base64 48 | tr -d '\n=+/' | cut -c1-64; }
+
+compose_project_name() {
+  docker compose config --format json 2>/dev/null | jq -r '.name // empty' 2>/dev/null || true
+}
+
+reset_postgres_volume() {
+  docker compose down -v --remove-orphans &>/dev/null || true
+  local project_name volume_name
+  project_name="$(compose_project_name)"
+  [[ -n "$project_name" ]] || project_name="$(basename "$SCRIPT_DIR")"
+  volume_name="${project_name}_postgres_data"
+  docker volume rm "$volume_name" &>/dev/null || true
+  docker volume ls --format '{{.Name}}' | grep -E '(^|_)postgres[_-]data$' | while read -r v; do
+    docker volume inspect "$v" --format '{{ index .Labels "com.docker.compose.project" }} {{ index .Labels "com.docker.compose.volume" }}' 2>/dev/null | grep -q "^${project_name} postgres_data$" && docker volume rm "$v" &>/dev/null || true
+  done
+}
 
 # ────────── 2. Конфигурация / сопряжение ──────────
 SEED_DONE_FILE="${SCRIPT_DIR}/.pairing-done"
