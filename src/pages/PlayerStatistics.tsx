@@ -50,7 +50,11 @@ const PlayerStatistics = () => {
   const { casinoId, roles, user } = useAuth();
   const { data: serverBusinessDate } = useEffectiveBusinessDate();
   const today = serverBusinessDate || getBusinessDate();
-  const canBrowseHistory = canSeeAllTimeData(roles);
+  // Manager and Floor Manager can also browse historical periods (day/week/month/year/custom)
+  const canBrowseHistory =
+    canSeeAllTimeData(roles) ||
+    roles.includes("manager") ||
+    roles.includes("floor_manager");
   const minDate = subDays(today, -MAX_DAYS_BACK);
 
   // Date model: anchor `date` for single-day mode + period preset/range for managers.
@@ -280,8 +284,41 @@ const PlayerStatistics = () => {
     }).filter(Boolean) as Array<NonNullable<ReturnType<typeof Object>>>;
   }, [visits, players, transactions, chipByPlayer, activeSessionByPlayer, tableNameById, playersDropSplit]);
 
+  // For multi-day periods, group rows per player so the same player isn't repeated for each visit.
+  const displayRows = useMemo(() => {
+    if (!isMultiDay) return rows;
+    const map = new Map<string, any>();
+    for (const r of rows as any[]) {
+      const cur = map.get(r.playerId);
+      if (!cur) {
+        map.set(r.playerId, { ...r, id: `g-${r.playerId}`, visitNumber: 1 });
+      } else {
+        cur.visitNumber += 1;
+        cur.inDrop += r.inDrop;
+        cur.out += r.out;
+        cur.dropR += r.dropR;
+        cur.chipIn += r.chipIn;
+        cur.chipOut += r.chipOut;
+        cur.chipDelta = cur.chipIn - cur.chipOut;
+        cur.result += r.result;
+        cur.inCount += r.inCount;
+        cur.outCount += r.outCount;
+        if (r.entryAt < cur.entryAt) cur.entryAt = r.entryAt;
+        if (r.exitAt && (!cur.exitAt || r.exitAt > cur.exitAt)) cur.exitAt = r.exitAt;
+        if (r.isPresent) { cur.isPresent = true; cur.position = r.position; cur.tableName = r.tableName; }
+        if (r.avgBet > (cur.avgBet || 0)) cur.avgBet = r.avgBet;
+      }
+    }
+    // Renumber by entry time for stable display
+    const arr = Array.from(map.values()).sort(
+      (a, b) => new Date(a.entryAt).getTime() - new Date(b.entryAt).getTime()
+    );
+    arr.forEach((r, i) => { r.displayIndex = i + 1; });
+    return arr;
+  }, [rows, isMultiDay]);
+
   const filtered = useMemo(() => {
-    let list = rows;
+    let list = displayRows;
     if (tab === "present") list = list.filter((r: any) => r.isPresent);
     if (tab === "left") list = list.filter((r: any) => !r.isPresent);
     list = list.filter((r: any) => categoryFilter.has(r.category));
@@ -326,13 +363,13 @@ const PlayerStatistics = () => {
       if (a.isPresent !== b.isPresent) return a.isPresent ? -1 : 1;
       return new Date(b.entryAt).getTime() - new Date(a.entryAt).getTime();
     });
-  }, [rows, tab, categoryFilter, posFilter, search, sortKey, sortDir]);
+  }, [displayRows, tab, categoryFilter, posFilter, search, sortKey, sortDir]);
 
   const counts = useMemo(() => ({
-    day: rows.length,
-    present: rows.filter((r: any) => r.isPresent).length,
-    left: rows.filter((r: any) => !r.isPresent).length,
-  }), [rows]);
+    day: displayRows.length,
+    present: displayRows.filter((r: any) => r.isPresent).length,
+    left: displayRows.filter((r: any) => !r.isPresent).length,
+  }), [displayRows]);
 
   // Totals across the currently filtered list (period + tab + filters + search).
   const totals = useMemo(() => {
