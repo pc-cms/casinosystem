@@ -52,20 +52,70 @@ const PlayerStatistics = () => {
   const today = serverBusinessDate || getBusinessDate();
   const canBrowseHistory = canSeeAllTimeData(roles);
   const minDate = subDays(today, -MAX_DAYS_BACK);
+
+  // Date model: anchor `date` for single-day mode + period preset/range for managers.
   const [date, setDate] = useState(today);
-  const effectiveDate = canBrowseHistory ? date : today;
-  const isHistorical = effectiveDate !== today;
-  const windowStartUTC = businessDayHourUTC(effectiveDate, 13);
-  const windowEndUTC = businessDayHourUTC(effectiveDate, 13 + 24);
+  const [preset, setPreset] = useState<DatePreset>("day");
+  const [range, setRange] = useState<{ from: string; to: string }>({ from: today, to: today });
+
+  // Effective range is what drives ALL queries.
+  const effectiveRange = useMemo<{ from: string; to: string }>(() => {
+    if (!canBrowseHistory) return { from: today, to: today };
+    if (preset === "day") return { from: date, to: date };
+    return range;
+  }, [canBrowseHistory, today, preset, date, range]);
+  const fromDate = effectiveRange.from;
+  const toDate = effectiveRange.to;
+  const isMultiDay = fromDate !== toDate;
+  const isHistorical = toDate !== today || fromDate !== today;
+  const windowStartUTC = businessDayHourUTC(fromDate, 13);
+  const windowEndUTC = businessDayHourUTC(toDate, 13 + 24);
   const queryClient = useQueryClient();
-  const canEditPosition = !isHistorical && roles.some(r => ["pit", "manager", "reception", "super_admin"].includes(r));
+  const canEditPosition = !isMultiDay && !isHistorical && roles.some(r => ["pit", "manager", "reception", "super_admin"].includes(r));
 
   const { data: players = [] } = usePlayers();
   const { data: tables = [] } = useGamingTables();
-  const { data: transactions = [] } = useTransactions(effectiveDate);
-  const { data: chipTransfers = [] } = useChipTransfers(effectiveDate);
+
+  const { data: transactions = [] } = useQuery({
+    queryKey: ["ps-transactions", casinoId, fromDate, toDate],
+    queryFn: async () => {
+      if (!casinoId) return [] as any[];
+      const { data, error } = await supabase
+        .from("transactions")
+        .select("*, players(first_name, last_name, nickname), gaming_tables(name)")
+        .eq("casino_id", casinoId)
+        .gte("created_at", windowStartUTC)
+        .lt("created_at", windowEndUTC)
+        .order("created_at", { ascending: false })
+        .limit(5000);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!casinoId,
+    staleTime: 1000 * 30,
+    refetchInterval: isHistorical ? false : 30_000,
+  });
+
+  const { data: chipTransfers = [] } = useQuery({
+    queryKey: ["ps-chip-transfers", casinoId, fromDate, toDate],
+    queryFn: async () => {
+      if (!casinoId) return [] as any[];
+      const { data, error } = await (supabase.from as any)("chip_transfers")
+        .select("*")
+        .eq("casino_id", casinoId)
+        .gte("created_at", windowStartUTC)
+        .lt("created_at", windowEndUTC)
+        .order("created_at", { ascending: false })
+        .limit(5000);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!casinoId,
+    staleTime: 1000 * 30,
+    refetchInterval: isHistorical ? false : 30_000,
+  });
   const { data: chipAdjustments = [] } = useQuery({
-    queryKey: ["player_chip_adjustments", "by-date", casinoId, effectiveDate],
+    queryKey: ["player_chip_adjustments", "by-range", casinoId, fromDate, toDate],
     queryFn: async () => {
       if (!casinoId) return [] as Array<{ player_id: string; chip_in: number; chip_out: number }>;
       const { data, error } = await (supabase.from as any)("player_chip_adjustments")
@@ -73,13 +123,13 @@ const PlayerStatistics = () => {
         .eq("casino_id", casinoId)
         .gte("created_at", windowStartUTC)
         .lt("created_at", windowEndUTC)
-        .limit(2000);
+        .limit(5000);
       if (error) throw error;
       return (data || []) as Array<{ player_id: string; chip_in: number; chip_out: number }>;
     },
     enabled: !!casinoId,
     staleTime: 30_000,
-    refetchInterval: 30_000,
+    refetchInterval: isHistorical ? false : 30_000,
   });
   const { data: playersDropSplit } = usePlayersDropSplit(windowStartUTC, windowEndUTC);
 
