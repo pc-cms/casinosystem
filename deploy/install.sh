@@ -13,7 +13,7 @@
 #
 set -euo pipefail
 
-INSTALLER_VERSION="1.3.0"
+INSTALLER_VERSION="1.3.1"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
@@ -98,6 +98,27 @@ update_env() {
     echo "${key}=${q_val}" >> .env
   fi
 }
+
+normalize_env_file() {
+  [[ -f .env ]] || return 0
+  local tmp
+  tmp="$(mktemp)"
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    if [[ -z "$line" || "$line" =~ ^[[:space:]]*# || "$line" != *=* ]]; then
+      printf '%s\n' "$line" >> "$tmp"
+      continue
+    fi
+    local key="${line%%=*}" val="${line#*=}"
+    if [[ ! "$key" =~ ^[A-Za-z_][A-Za-z0-9_]*$ || -z "$val" || "$val" =~ ^\'.*\'$ || "$val" =~ ^\".*\"$ ]]; then
+      printf '%s\n' "$line" >> "$tmp"
+      continue
+    fi
+    local q_val
+    q_val=$(printf "'%s'" "$(printf '%s' "$val" | sed "s/'/'\\\\''/g")")
+    printf '%s=%s\n' "$key" "$q_val" >> "$tmp"
+  done < .env
+  mv "$tmp" .env
+}
 gen_secret() { openssl rand -base64 48 | tr -d '\n=+/' | cut -c1-64; }
 
 compose_project_name() {
@@ -180,6 +201,7 @@ if [[ $RESET -eq 1 ]]; then
   rm -f "$SEED_DONE_FILE" .env
 fi
 [[ -f .env ]] || cp env.template .env
+normalize_env_file
 set -a; source .env; set +a
 
 # ── Параметры локации (auto, никаких вопросов) ──
@@ -195,6 +217,7 @@ update_env LOCAL_IP      "$LOCAL_IP"
 update_env LOCAL_DOMAIN  "$LOCAL_DOMAIN"
 ok "Casino: ${CASINO_NAME} (${CASINO_SLUG}) @ ${LOCAL_IP} / ${LOCAL_DOMAIN}"
 
+normalize_env_file
 set -a; source .env; set +a
 
 # Сопряжение с Cloud — теперь делается из админки кнопкой Connect to Cloud.
@@ -205,6 +228,7 @@ title "3/4  Секреты и сертификаты"
 
 [[ -z "${POSTGRES_PASSWORD:-}" ]] && { update_env POSTGRES_PASSWORD "$(gen_secret)"; ok "POSTGRES_PASSWORD"; }
 [[ -z "${JWT_SECRET:-}" ]]        && { update_env JWT_SECRET        "$(gen_secret)"; ok "JWT_SECRET"; }
+normalize_env_file
 set -a; source .env; set +a
 
 gen_jwt() {
