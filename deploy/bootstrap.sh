@@ -15,7 +15,7 @@
 #
 set -euo pipefail
 
-BOOTSTRAP_VERSION="1.2.2"
+BOOTSTRAP_VERSION="1.2.3"
 REPO="${CASINO_REPO:-pc-cms/casinosystem}"
 if [[ "$REPO" == "pms-cms/casinosystem" ]]; then
   REPO="pc-cms/casinosystem"
@@ -30,6 +30,28 @@ log()  { echo -e "${CYAN}[bootstrap]${NC} $*"; }
 ok()   { echo -e "${GREEN}[ ok ]${NC} $*"; }
 warn() { echo -e "${YELLOW}[warn]${NC} $*"; }
 fail() { echo -e "${RED}[fail]${NC} $*" >&2; exit 1; }
+
+normalize_env_file() {
+  local env_path="$1"
+  [[ -f "$env_path" ]] || return 0
+  local tmp
+  tmp="$(mktemp)"
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    if [[ -z "$line" || "$line" =~ ^[[:space:]]*# || "$line" != *=* ]]; then
+      printf '%s\n' "$line" >> "$tmp"
+      continue
+    fi
+    local key="${line%%=*}" val="${line#*=}"
+    if [[ ! "$key" =~ ^[A-Za-z_][A-Za-z0-9_]*$ || -z "$val" || "$val" =~ ^\'.*\'$ || "$val" =~ ^\".*\"$ ]]; then
+      printf '%s\n' "$line" >> "$tmp"
+      continue
+    fi
+    local q_val
+    q_val=$(printf "'%s'" "$(printf '%s' "$val" | sed "s/'/'\\\\''/g")")
+    printf '%s=%s\n' "$key" "$q_val" >> "$tmp"
+  done < "$env_path"
+  mv "$tmp" "$env_path"
+}
 
 echo -e "${CYAN}╔════════════════════════════════════════════════╗${NC}"
 echo -e "${CYAN}║  Casino System Bootstrap  v${BOOTSTRAP_VERSION}              ║${NC}"
@@ -115,6 +137,7 @@ mv "$SRC_DIR" "$TARGET"
 
 if [[ -f "$TMP/.env.preserve" ]]; then
   cp -f "$TMP/.env.preserve" "$TARGET/.env"
+  normalize_env_file "$TARGET/.env"
   ok "Восстановлен .env"
 fi
 if [[ -d "$TMP/data.preserve" ]]; then
