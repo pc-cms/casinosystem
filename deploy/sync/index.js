@@ -14,24 +14,64 @@
  *   SYNC_BACKOFF_MAX_MS (default 60000)
  */
 import pg from "pg";
+import { startApi } from "./api.js";
 
 const {
   LOCAL_DB_URL,
-  CLOUD_URL,
-  CASINO_ID,
-  SYNC_SECRET,
   SYNC_MODE = "hybrid",
   SYNC_BATCH_SIZE = "200",
   SYNC_INTERVAL_MS = "5000",
   SYNC_BACKOFF_MAX_MS = "60000",
 } = process.env;
 
-if (SYNC_MODE === "standalone") {
-  console.log("[cms-sync] SYNC_MODE=standalone → push/pull disabled, idle loop");
-  setInterval(() => {}, 60_000);
-} else if (!LOCAL_DB_URL || !CLOUD_URL || !CASINO_ID || !SYNC_SECRET) {
-  console.error("[cms-sync] FATAL: missing env (LOCAL_DB_URL/CLOUD_URL/CASINO_ID/SYNC_SECRET)");
+if (!LOCAL_DB_URL) {
+  console.error("[cms-sync] FATAL: missing LOCAL_DB_URL");
   process.exit(1);
+}
+
+// Cloud creds are read from the public.cloud_connection table at runtime
+// and refreshed every tick. While `connected` is false, push/pull/jobLoop idle.
+let CLOUD_URL = process.env.CLOUD_URL || null;
+let CASINO_ID = process.env.CASINO_ID || null;
+let SYNC_SECRET = process.env.SYNC_SECRET || null;
+let CONNECTED = false;
+
+async function refreshCreds(client) {
+  try {
+    const { rows } = await client.query(
+      `SELECT cloud_url, status, casino_id, sync_secret FROM public.cloud_connection WHERE id = 1`
+    );
+    const row = rows[0];
+    if (row && row.status === "connected" && row.casino_id && row.sync_secret) {
+      CLOUD_URL = row.cloud_url || CLOUD_URL;
+      CASINO_ID = row.casino_id;
+      SYNC_SECRET = row.sync_secret;
+      CONNECTED = true;
+    } else {
+      CONNECTED = false;
+    }
+  } catch {
+    // table may not exist on first boot before migrations applied — stay idle
+    CONNECTED = false;
+  }
+}
+
+function setCredsInMemory(creds) {
+  if (!creds) {
+    CLOUD_URL = process.env.CLOUD_URL || null;
+    CASINO_ID = null;
+    SYNC_SECRET = null;
+    CONNECTED = false;
+    return;
+  }
+  CLOUD_URL = creds.cloudUrl;
+  CASINO_ID = creds.casinoId;
+  SYNC_SECRET = creds.syncSecret;
+  CONNECTED = true;
+}
+
+if (SYNC_MODE === "standalone") {
+  console.log("[cms-sync] SYNC_MODE=standalone → push/pull disabled");
 }
 
 const BATCH = parseInt(SYNC_BATCH_SIZE, 10);
