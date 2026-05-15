@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Activity, Database, Rocket, AlertTriangle, CheckCircle2, Clock, Server, Inbox, HardDrive, Wifi, WifiOff } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { PendingServersPanel } from "./PendingServersPanel";
 
 const fmtMs = (ms: number | null) => ms == null ? "—" : ms < 1000 ? `${Math.round(ms)} ms` : `${(ms / 1000).toFixed(2)} s`;
 const fmtTime = (ts: string | null) => ts ? new Date(ts).toLocaleString("en-GB", { timeZone: "Africa/Dar_es_Salaam", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—";
@@ -54,6 +55,8 @@ export const NetworkHealthPanel = () => {
 
   return (
     <div className="space-y-6">
+      <PendingServersPanel />
+
       {/* Local servers */}
       <div className="cms-panel p-4">
         <div className="flex items-center gap-2 mb-3">
