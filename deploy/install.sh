@@ -362,7 +362,7 @@ fi
 if [[ ! -f "$SEED_DONE_FILE" && -n "${SEED_TOKEN:-}" ]]; then
   log "Запускаю postgres для seed-импорта..."
   docker compose up -d postgres
-  wait_for_postgres "Postgres"
+  wait_for_postgres_ready "Postgres"
 
   # Sanity-check пароля: если volume инициализирован ранее с другим паролем,
   # ALTER USER через локальный сокет (peer auth для OS-user "postgres" внутри контейнера).
