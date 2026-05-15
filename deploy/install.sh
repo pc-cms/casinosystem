@@ -285,19 +285,59 @@ if [[ ! -f "$SEED_DONE_FILE" && -n "${SEED_TOKEN:-}" ]]; then
   set +e
   mkdir -p "${SCRIPT_DIR}/postgres/seed-data"
   SEED_FILE="${SCRIPT_DIR}/postgres/seed-data/seed.json"
-  rm -f "$SEED_FILE"
-  log "Скачиваю seed-данные (это может занять несколько минут)..."
-  HTTP_CODE=$(curl -sS --max-time 1800 -w "%{http_code}" -o "$SEED_FILE" \
-    "${CLOUD_URL}/functions/v1/cloud-seed-export?days=all" \
-    -H "x-seed-token: ${SEED_TOKEN}")
-  CURL_RC=$?
-  if [[ $CURL_RC -ne 0 || "$HTTP_CODE" != "200" ]]; then
-    echo "curl rc=$CURL_RC http=$HTTP_CODE"
-    [[ -s "$SEED_FILE" ]] && head -c 500 "$SEED_FILE"
-    fail "Не удалось скачать seed (curl=$CURL_RC, http=$HTTP_CODE). Проверьте интернет/токен и запустите ./install.sh ещё раз."
+  SEED_TMP="${SEED_FILE}.part"
+  SEED_HEADERS="${SCRIPT_DIR}/postgres/seed-data/seed.headers"
+  MIN_SEED_BYTES=1024
+
+  SEED_OK=0
+  for attempt in 1 2 3; do
+    log "Скачиваю seed-данные (попытка ${attempt}/3, может занять несколько минут)..."
+    rm -f "$SEED_TMP" "$SEED_HEADERS"
+    HTTP_CODE=$(curl -sS --fail-with-body \
+      --connect-timeout 30 --max-time 1800 \
+      --retry 3 --retry-delay 5 --retry-all-errors \
+      -D "$SEED_HEADERS" \
+      -o "$SEED_TMP" \
+      -w "%{http_code}" \
+      -H "x-seed-token: ${SEED_TOKEN}" \
+      -H "Accept: application/json" \
+      "${CLOUD_URL}/functions/v1/cloud-seed-export?days=all")
+    CURL_RC=$?
+    SEED_SIZE=$(stat -c%s "$SEED_TMP" 2>/dev/null || echo 0)
+
+    if [[ $CURL_RC -ne 0 ]]; then
+      echo "  ✗ curl завершился с кодом $CURL_RC (http=$HTTP_CODE, size=${SEED_SIZE}B)"
+      [[ -s "$SEED_TMP" ]] && { echo "  ── ответ (первые 500 байт):"; head -c 500 "$SEED_TMP"; echo; }
+      sleep 5; continue
+    fi
+    if [[ "$HTTP_CODE" != "200" ]]; then
+      echo "  ✗ HTTP $HTTP_CODE (size=${SEED_SIZE}B)"
+      [[ -s "$SEED_TMP" ]] && { echo "  ── тело:"; head -c 500 "$SEED_TMP"; echo; }
+      sleep 5; continue
+    fi
+    if [[ "$SEED_SIZE" -lt "$MIN_SEED_BYTES" ]]; then
+      echo "  ✗ Файл слишком маленький (${SEED_SIZE}B < ${MIN_SEED_BYTES}B) — вероятно пустой ответ"
+      [[ -s "$SEED_TMP" ]] && head -c 500 "$SEED_TMP" && echo
+      sleep 5; continue
+    fi
+    FIRST_CHAR=$(head -c 1 "$SEED_TMP")
+    if [[ "$FIRST_CHAR" != "{" && "$FIRST_CHAR" != "[" ]]; then
+      echo "  ✗ Ответ не похож на JSON (начало: '$FIRST_CHAR')"
+      head -c 500 "$SEED_TMP"; echo
+      sleep 5; continue
+    fi
+
+    mv -f "$SEED_TMP" "$SEED_FILE"
+    SEED_OK=1
+    ok "Seed скачан ($((SEED_SIZE/1024)) KB, http=$HTTP_CODE)"
+    break
+  done
+
+  rm -f "$SEED_HEADERS"
+  if [[ $SEED_OK -ne 1 ]]; then
+    set -e
+    fail "Не удалось скачать seed после 3 попыток. Проверьте интернет/CLOUD_URL/SEED_TOKEN и запустите ./install.sh ещё раз."
   fi
-  SEED_SIZE=$(stat -c%s "$SEED_FILE" 2>/dev/null || echo 0)
-  ok "Seed скачан ($((SEED_SIZE/1024)) KB)"
 
   log "Импортирую данные в Postgres..."
   docker run --rm \
@@ -309,10 +349,10 @@ if [[ ! -f "$SEED_DONE_FILE" && -n "${SEED_TOKEN:-}" ]]; then
       -e PGPASSWORD="${POSTGRES_PASSWORD}" \
       -e PGDATABASE="${POSTGRES_DB:-postgres}" \
       -e SEED_FILE=/seed.json \
-      node:20-alpine sh -c "npm i --silent --no-fund --no-audit pg >/dev/null 2>&1 && node /seed-import.js < /seed.json"
+      node:20-alpine sh -c "npm i --silent --no-fund --no-audit pg >/dev/null 2>&1 && node /seed-import.js"
   SEED_RC=$?
   set -e
-  [[ $SEED_RC -eq 0 ]] || fail "Seed-импорт завершился с ошибкой ($SEED_RC). Запустите ./install.sh ещё раз."
+  [[ $SEED_RC -eq 0 ]] || fail "Seed-импорт завершился с ошибкой ($SEED_RC). Файл сохранён: $SEED_FILE. Запустите ./install.sh ещё раз."
   touch "$SEED_DONE_FILE"
   ok "Данные загружены"
 fi
