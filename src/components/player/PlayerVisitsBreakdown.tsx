@@ -86,7 +86,7 @@ export default function PlayerVisitsBreakdown({ visits, transactions, expenses, 
   // each cash-in's External portion to the visit window it falls into.
   const visitFin = useMemo(() => {
     const m = new Map<string, Agg>();
-    for (const v of visits) m.set(v.id, { visits: 1, minutes: visitMins(v), drop: 0, out: 0, comps: 0 });
+    for (const v of visits) m.set(v.id, { visits: 1, minutes: visitMins(v), drop: 0, inGross: 0, out: 0, comps: 0 });
 
     // Build sorted ranges of visits per casino for fast lookup.
     type Range = { id: string; casinoId: string; start: number; end: number };
