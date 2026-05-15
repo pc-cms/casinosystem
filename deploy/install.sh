@@ -13,7 +13,7 @@
 #
 set -euo pipefail
 
-INSTALLER_VERSION="1.0.192"
+INSTALLER_VERSION="1.0.193"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
@@ -29,6 +29,7 @@ warn()   { echo -e "${YELLOW}[warn]${NC} $*"; }
 fail()   { echo -e "${RED}[fail]${NC} $*" >&2; exit 1; }
 hr()     { echo -e "${CYAN}────────────────────────────────────────────────────────${NC}"; }
 title()  { echo; hr; echo -e "${BOLD}${CYAN}  $*${NC}"; hr; }
+trap 'rc=$?; echo -e "${RED}[fail]${NC} Installer stopped at line ${LINENO} (exit ${rc}). Run: sudo docker compose logs --tail=80 postgres" >&2; exit "$rc"' ERR
 
 require_root() { [[ $EUID -eq 0 ]] || fail "Запустите от root: sudo ./deploy/install.sh"; }
 
@@ -99,12 +100,16 @@ compose_project_name() {
 }
 
 reset_postgres_volume() {
+  log "Останавливаю stack и удаляю docker volumes Postgres..."
+  docker compose stop postgres postgrest gotrue realtime storage cms-frontend nginx cms-sync cms-monitor cms-updater cms-backup &>/dev/null || true
+  docker rm -f cms-postgres &>/dev/null || true
   docker compose down -v --remove-orphans &>/dev/null || true
   local project_name volume_name
   project_name="$(compose_project_name)"
   [[ -n "$project_name" ]] || project_name="$(basename "$SCRIPT_DIR")"
   volume_name="${project_name}_postgres_data"
   docker volume rm "$volume_name" &>/dev/null || true
+  docker volume rm "deploy_postgres_data" "casino-system_postgres_data" "casino-system-deploy_postgres_data" "cms-postgres-data" &>/dev/null || true
   while IFS= read -r v; do
     [[ -n "$v" ]] || continue
     if docker volume inspect "$v" --format '{{ index .Labels "com.docker.compose.project" }} {{ index .Labels "com.docker.compose.volume" }}' 2>/dev/null | grep -q "^${project_name} postgres_data$"; then
@@ -115,7 +120,34 @@ reset_postgres_volume() {
     [[ -n "$v" ]] || continue
     docker volume rm "$v" &>/dev/null || true
   done < <(docker volume ls --format '{{.Name}}' | grep -E '(^|_)postgres-data$' || true)
+  ok "Postgres volume очищен"
   return 0
+}
+
+wait_for_postgres() {
+  local label="${1:-Postgres}"
+  for i in $(seq 1 60); do
+    if docker compose exec -T -e PGPASSWORD="${POSTGRES_PASSWORD}" postgres \
+        psql -h 127.0.0.1 -U "${POSTGRES_USER:-postgres}" -d "${POSTGRES_DB:-postgres}" -tAc "SELECT 1" &>/dev/null; then
+      ok "${label} готов и принимает пароль из .env"
+      return 0
+    fi
+    sleep 2
+  done
+  docker compose ps postgres >&2 || true
+  docker compose logs --tail=80 postgres >&2 || true
+  fail "${label} не принимает пароль из .env после ожидания"
+}
+
+wait_for_postgres_ready() {
+  local label="${1:-Postgres}"
+  for i in $(seq 1 60); do
+    docker compose exec -T postgres pg_isready -U "${POSTGRES_USER:-postgres}" &>/dev/null && { ok "${label} готов"; return 0; }
+    sleep 2
+  done
+  docker compose ps postgres >&2 || true
+  docker compose logs --tail=80 postgres >&2 || true
+  fail "${label} не стартовал"
 }
 
 postgres_network_name() {
@@ -330,12 +362,7 @@ fi
 if [[ ! -f "$SEED_DONE_FILE" && -n "${SEED_TOKEN:-}" ]]; then
   log "Запускаю postgres для seed-импорта..."
   docker compose up -d postgres
-  for i in $(seq 1 30); do
-    docker compose exec -T postgres pg_isready -U "${POSTGRES_USER:-postgres}" &>/dev/null && break
-    sleep 2
-    [[ $i -eq 30 ]] && fail "Postgres не стартовал"
-  done
-  ok "Postgres готов"
+  wait_for_postgres_ready "Postgres"
 
   # Sanity-check пароля: если volume инициализирован ранее с другим паролем,
   # ALTER USER через локальный сокет (peer auth для OS-user "postgres" внутри контейнера).
@@ -376,11 +403,7 @@ if [[ ! -f "$SEED_DONE_FILE" && -n "${SEED_TOKEN:-}" ]]; then
     reset_postgres_volume
     log "Поднимаю postgres заново с чистым томом..."
     docker compose up -d postgres
-    for i in $(seq 1 60); do
-      docker compose exec -T postgres pg_isready -U "${POSTGRES_USER:-postgres}" &>/dev/null && break
-      sleep 2
-      [[ $i -eq 60 ]] && fail "Postgres не стартовал после пересоздания тома"
-    done
+    wait_for_postgres "Postgres после пересоздания тома"
     if docker compose exec -T -e PGPASSWORD="${POSTGRES_PASSWORD}" postgres \
          psql -h 127.0.0.1 -U "${POSTGRES_USER:-postgres}" -d "${POSTGRES_DB:-postgres}" -tAc "SELECT 1" &>/dev/null; then
       ok "Postgres пересоздан с правильным паролем"
@@ -398,15 +421,11 @@ if [[ ! -f "$SEED_DONE_FILE" && -n "${SEED_TOKEN:-}" ]]; then
     warn "Seed-контейнер не может войти в Postgres с текущим .env — пересоздаю Postgres volume."
     reset_postgres_volume
     docker compose up -d postgres
-    for i in $(seq 1 60); do
-      docker compose exec -T postgres pg_isready -U "${POSTGRES_USER:-postgres}" &>/dev/null && break
-      sleep 2
-      [[ $i -eq 60 ]] && fail "Postgres не стартовал после пересоздания тома"
-    done
+    wait_for_postgres "Postgres после пересоздания тома"
     COMPOSE_NET="$(postgres_network_name)" || fail "Не удалось определить Docker network для Postgres после пересоздания"
-    docker run --rm --network "$COMPOSE_NET" -e PGPASSWORD="${POSTGRES_PASSWORD}" postgres:15-alpine \
-      psql -h postgres -U "${POSTGRES_USER:-postgres}" -d "${POSTGRES_DB:-postgres}" -tAc "SELECT 1" &>/dev/null \
-      || fail "Seed-контейнер всё ещё не может войти в Postgres. Запустите: sudo docker compose down -v && sudo ./install.sh --reset"
+    SEED_PSQL_OUT=$(docker run --rm --network "$COMPOSE_NET" -e PGPASSWORD="${POSTGRES_PASSWORD}" postgres:15-alpine \
+      psql -h postgres -U "${POSTGRES_USER:-postgres}" -d "${POSTGRES_DB:-postgres}" -tAc "SELECT 1" 2>&1) \
+      || fail "Seed-контейнер всё ещё не может войти в Postgres: ${SEED_PSQL_OUT}. Запустите: sudo docker compose down -v && sudo ./install.sh --reset"
   fi
   ok "Seed-контейнер видит Postgres с правильным паролем"
 
