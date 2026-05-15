@@ -20,7 +20,6 @@
  *     body: { id, reason? }
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
-import { create as createJwt } from "https://deno.land/x/djwt@v3.0.2/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
