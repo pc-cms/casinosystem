@@ -89,13 +89,22 @@ const LEVEL_TINT: Record<string, string> = {
 };
 
 
-export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className }: Props) => {
+export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className, range }: Props) => {
   const ctx = useSelectedPlayer();
   const playerId = playerIdProp !== undefined ? playerIdProp : ctx.playerId;
   const { data: player, isLoading } = usePlayer(playerId || undefined);
   const { data: visits = [] } = usePlayerVisits(playerId || undefined);
   const { data: businessDate } = useEffectiveBusinessDate();
-  const { data: dayStats } = useTodayPlayerStats(playerId, businessDate || undefined);
+  const fromDate = range?.from || businessDate || undefined;
+  const toDate = range?.to || businessDate || undefined;
+  const isMultiDay = !!fromDate && !!toDate && fromDate !== toDate;
+  const periodSuffix = isMultiDay ? "(p)" : "(d)";
+  const { data: dayStats } = usePeriodPlayerStats(playerId, fromDate, toDate);
+  const { data: dropSplit } = usePlayerDropSplit(
+    playerId || undefined,
+    fromDate ? businessDayHourUTC(fromDate, 13) : undefined,
+    toDate ? businessDayHourUTC(toDate, 13 + 24) : undefined,
+  );
   const nav = useNavigate();
   const { roles } = useAuth();
   const showFinancials = canSeePlayerFinancials(roles || []);
