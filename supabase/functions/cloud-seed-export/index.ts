@@ -183,7 +183,7 @@ Deno.serve(async (req) => {
         _meta: {
           casino_id: casinoId,
           exported_at: new Date().toISOString(),
-          since_days: days,
+          since_days: allHistory ? "all" : days,
           tables: TABLES.map((t) => t.name),
         },
       });
