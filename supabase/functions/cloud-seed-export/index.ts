@@ -221,6 +221,11 @@ Deno.serve(async (req) => {
           }
         }
         writeLine({ _done: true, counts });
+        if (seedTokenHdr) {
+          await admin.from("pending_server_registrations")
+            .update({ status: "consumed", consumed_at: new Date().toISOString() })
+            .eq("seed_token", seedTokenHdr);
+        }
       } catch (e) {
         writeLine({ _fatal: String((e as Error)?.message ?? e) });
       } finally {
