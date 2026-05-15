@@ -15,7 +15,7 @@
 #
 set -euo pipefail
 
-BOOTSTRAP_VERSION="1.1.0"
+BOOTSTRAP_VERSION="1.2.0"
 REPO="${CASINO_REPO:-pms-cms/casinosystem}"
 BRANCH="${CASINO_BRANCH:-main}"
 TARGET="${CASINO_TARGET:-/opt/casino-system}"
