@@ -88,7 +88,11 @@ const log = (lvl, msg, extra) =>
 
 // ───────────── PUSH ─────────────
 async function pushOnce() {
+  if (!CONNECTED || SYNC_MODE === "standalone") return 0;
   const client = await pool.connect();
+  try {
+    await refreshCreds(client);
+    if (!CONNECTED) return 0;
   try {
     const { rows } = await client.query(
       `SELECT id, casino_id, table_name, op, pk, payload, attempts
