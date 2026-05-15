@@ -1,0 +1,109 @@
+#!/usr/bin/env bash
+#
+# update.sh — one-shot updater for an on-prem Casino System install.
+#
+# Usage on server (as root):
+#   curl -fsSL https://raw.githubusercontent.com/<OWNER>/<REPO>/main/deploy/update.sh | sudo bash
+#
+# What it does:
+#   1. Reads GITHUB_OWNER / GITHUB_REPO (and optional GITHUB_TOKEN) from /opt/casino-system/deploy/.env
+#   2. Downloads latest source tarball of `main` branch from GitHub
+#   3. Backs up .env, certs, postgres data — never touches them
+#   4. rsyncs new sources over /opt/casino-system
+#   5. Rebuilds cms-frontend and restarts frontend + nginx
+#
+# Safe to re-run. Exits non-zero on any error.
+#
+set -euo pipefail
+
+CMS_DIR="/opt/casino-system"
+ENV_FILE="${CMS_DIR}/deploy/.env"
+TS="$(date +%Y%m%d-%H%M%S)"
+TMP_DIR="/tmp/cms-update-${TS}"
+BACKUP_DIR="/opt/casino-system.bak.${TS}"
+
+RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; NC='\033[0m'
+log()  { echo -e "${GREEN}[update]${NC} $*"; }
+warn() { echo -e "${YELLOW}[warn]${NC} $*"; }
+die()  { echo -e "${RED}[error]${NC} $*" >&2; exit 1; }
+
+[[ $EUID -eq 0 ]] || die "Run as root (use sudo)"
+[[ -d "$CMS_DIR" ]] || die "$CMS_DIR not found — is the system installed?"
+[[ -f "$ENV_FILE" ]] || die "$ENV_FILE not found"
+
+OWNER=$(grep -E '^GITHUB_OWNER=' "$ENV_FILE" | head -1 | cut -d= -f2- | tr -d '"')
+REPO=$(grep -E '^GITHUB_REPO='  "$ENV_FILE" | head -1 | cut -d= -f2- | tr -d '"')
+TOKEN=$(grep -E '^GITHUB_TOKEN=' "$ENV_FILE" | head -1 | cut -d= -f2- | tr -d '"' || true)
+BRANCH="${BRANCH:-main}"
+
+[[ -n "$OWNER" && -n "$REPO" ]] || die "GITHUB_OWNER / GITHUB_REPO missing in $ENV_FILE"
+
+log "Repo:    $OWNER/$REPO  branch=$BRANCH"
+log "Target:  $CMS_DIR"
+log "Backup:  $BACKUP_DIR"
+
+# 1. Check internet
+if ! curl -fsS --max-time 8 -o /dev/null https://api.github.com 2>/dev/null; then
+  die "No internet access to api.github.com"
+fi
+
+# 2. Download tarball
+mkdir -p "$TMP_DIR"
+TARBALL="${TMP_DIR}/src.tar.gz"
+AUTH_HEADER=()
+if [[ -n "${TOKEN:-}" && "$TOKEN" != "ghp_replace_me" ]]; then
+  AUTH_HEADER=(-H "Authorization: Bearer $TOKEN")
+  URL="https://api.github.com/repos/${OWNER}/${REPO}/tarball/${BRANCH}"
+else
+  URL="https://codeload.github.com/${OWNER}/${REPO}/tar.gz/refs/heads/${BRANCH}"
+fi
+log "Downloading $URL"
+curl -fL "${AUTH_HEADER[@]}" -o "$TARBALL" "$URL" || die "Download failed"
+SIZE=$(du -h "$TARBALL" | awk '{print $1}')
+log "Got $SIZE"
+
+# 3. Extract
+log "Extracting..."
+tar -xzf "$TARBALL" -C "$TMP_DIR"
+EXTRACTED=$(find "$TMP_DIR" -mindepth 1 -maxdepth 1 -type d | head -1)
+[[ -d "$EXTRACTED" && -d "$EXTRACTED/deploy" ]] || die "Bad tarball: no deploy/ inside"
+
+# 4. Backup current install
+log "Creating backup at $BACKUP_DIR"
+cp -a "$CMS_DIR" "$BACKUP_DIR"
+
+# 5. Sync new source over old (preserve .env, certs, data)
+log "Syncing new sources..."
+rsync -a --delete \
+  --exclude 'deploy/.env' \
+  --exclude 'deploy/certs/' \
+  --exclude 'deploy/postgres/data/' \
+  --exclude 'deploy/dist/' \
+  --exclude 'node_modules/' \
+  --exclude '.git/' \
+  "$EXTRACTED"/ "$CMS_DIR"/
+
+# 6. Rebuild frontend + restart
+cd "${CMS_DIR}/deploy"
+log "Building cms-frontend (this may take 3-7 min)..."
+docker compose build cms-frontend
+
+log "Restarting frontend + nginx..."
+docker compose up -d cms-frontend nginx
+
+# 7. Health check
+log "Waiting for frontend..."
+for i in $(seq 1 30); do
+  if docker compose exec -T cms-frontend curl -fsS http://localhost/ -o /dev/null 2>/dev/null; then
+    log "Frontend is up."
+    break
+  fi
+  sleep 2
+done
+
+# 8. Cleanup tmp
+rm -rf "$TMP_DIR"
+
+echo
+log "✓ Update finished. Backup kept at: $BACKUP_DIR"
+log "  Open https://$(hostname -I | awk '{print $1}')/admin to verify."
