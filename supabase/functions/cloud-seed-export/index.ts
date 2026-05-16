@@ -157,6 +157,19 @@ Deno.serve(async (req) => {
       .maybeSingle();
     if (data) {
       tokenCasinoId = data.approved_casino_id as string;
+      const { data: existingPeer } = await adminPre
+        .from("peer_links")
+        .select("id")
+        .eq("sync_secret", syncSecret)
+        .maybeSingle();
+      if (!existingPeer) {
+        await adminPre.from("peer_links").insert({
+          peer_url: `pending://${syncCasino}`,
+          display_name: "Local server",
+          sync_secret: syncSecret,
+          status: "pending_outbound",
+        });
+      }
     } else {
       const { data: peer } = await adminPre
         .from("peer_links")
