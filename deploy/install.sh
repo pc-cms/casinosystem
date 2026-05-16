@@ -243,9 +243,12 @@ postgres_network_name() {
 SEED_DONE_FILE="${SCRIPT_DIR}/.install-done"
 
 if [[ $WIPE -eq 1 ]]; then
-  warn "WIPE: удаляю все контейнеры, volumes, .env и сертификаты..."
+  warn "WIPE: удаляю все контейнеры, volumes, образы frontend, .env и сертификаты..."
   docker compose down -v --remove-orphans &>/dev/null || true
   docker volume ls --format '{{.Name}}' | grep -E '(postgres|storage|cms-)' | xargs -r docker volume rm &>/dev/null || true
+  # Удаляем образ frontend, чтобы гарантированно пересобрать с новым кодом
+  docker image rm -f "cms-frontend:${FRONTEND_VERSION:-local}" cms-frontend:local &>/dev/null || true
+  docker builder prune -af &>/dev/null || true
   rm -f .env "$SEED_DONE_FILE" "${SCRIPT_DIR}/.super-admin-done" "${SCRIPT_DIR}/.pairing-done"
   rm -rf certs postgres/seed-data data runtime-config.json
   ok "WIPE завершён — продолжаю чистую установку"
