@@ -94,7 +94,11 @@ fi
 # marked Active in Cloud while cms-sync has no local peer_links/node_identity.
 REPAIR_FILE="${CMS_DIR}/deploy/postgres/repair-local-schema.sql"
 TMP_REPAIR="$(mktemp /tmp/cms-repair-XXXXXX.sql)"
-if curl -fsSL "${PAIR_SH_URL%/}/repair-local-schema.sql" -o "$TMP_REPAIR" 2>/dev/null; then
+REPAIR_BASE="https://casinosystem.app"
+if [[ -n "${PAIR_SH_URL:-}" ]]; then
+  REPAIR_BASE="${PAIR_SH_URL%/pair.sh}"
+fi
+if curl -fsSL "${REPAIR_BASE%/}/repair-local-schema.sql" -o "$TMP_REPAIR" 2>/dev/null; then
   REPAIR_FILE="$TMP_REPAIR"
 elif curl -fsSL "https://casinosystem.app/repair-local-schema.sql" -o "$TMP_REPAIR" 2>/dev/null; then
   REPAIR_FILE="$TMP_REPAIR"
