@@ -14,6 +14,7 @@ import { PeerLinksPanel } from "@/components/admin/PeerLinksPanel";
 import { ServerIdentityPanel } from "@/components/admin/ServerIdentityPanel";
 import { SyncMirrorPanel } from "@/components/admin/SyncMirrorPanel";
 import { LocalUpdaterPanel } from "@/components/admin/LocalUpdaterPanel";
+import { LocalServerWizard } from "@/components/admin/LocalServerWizard";
 import { resetPWACache } from "@/lib/pwa-register";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { toast } from "sonner";
@@ -149,6 +150,7 @@ const Admin = () => {
             <TabsContent value="access"><CasinoAccessManagement /></TabsContent>
             <TabsContent value="peers">
               <div className="space-y-4">
+                <LocalServerWizard />
                 <ServerIdentityPanel />
                 <LocalUpdaterPanel />
                 <PeerLinksPanel />
