@@ -374,6 +374,8 @@ gen_jwt() {
 [[ -z "${ANON_KEY:-}" ]]         && { update_env ANON_KEY         "$(gen_jwt anon "$JWT_SECRET")";          ok "ANON_KEY"; }
 [[ -z "${SERVICE_ROLE_KEY:-}" ]] && { update_env SERVICE_ROLE_KEY "$(gen_jwt service_role "$JWT_SECRET")"; ok "SERVICE_ROLE_KEY"; }
 set -a; source .env; set +a
+write_root_compose_env
+fix_local_file_permissions
 assert_local_frontend_env
 
 mkdir -p certs
@@ -383,7 +385,9 @@ if [[ ! -f certs/ca.crt ]]; then
     -out certs/ca.crt -subj "/C=TZ/O=${CASINO_NAME}/CN=Casino System Local CA" 2>/dev/null
   ok "CA создан"
 fi
-if [[ ! -f certs/server.crt ]] || ! openssl x509 -in certs/server.crt -noout -text 2>/dev/null | grep -q "DNS:${LOCAL_DOMAIN}"; then
+if [[ ! -f certs/server.crt ]] \
+  || ! openssl x509 -in certs/server.crt -noout -text 2>/dev/null | grep -q "DNS:${LOCAL_DOMAIN}" \
+  || ! openssl x509 -in certs/server.crt -noout -text 2>/dev/null | grep -q "IP Address:${LOCAL_IP}"; then
   openssl genrsa -out certs/server.key 2048 2>/dev/null
   cat > certs/server.cnf <<EOF
 [req]
@@ -415,6 +419,7 @@ fi
 
 grep -qE "^[^#]*\s${LOCAL_DOMAIN}(\s|$)" /etc/hosts \
   || echo "127.0.0.1  ${LOCAL_DOMAIN}" >> /etc/hosts
+open_firewall_ports
 
 # ────────── 4.5. Миграции + seed ──────────
 mkdir -p postgres/migrations postgres/init
