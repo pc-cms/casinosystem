@@ -210,6 +210,7 @@ async function pullPeer(peer) {
       WHERE id = $2`,
     [nextSince, peer.id]
   );
+  bufferExchange(peer, { direction: "pull", status: "ok", row_count: changes.length, meta: { cursor: nextSince } });
   return changes.length;
 }
 
