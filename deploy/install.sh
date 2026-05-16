@@ -544,9 +544,11 @@ if [[ -z "$SA_USER_ID" ]]; then
   warn "Не удалось создать/найти super_admin (${SA_EMAIL})."
   docker compose logs --tail=40 gotrue >&2 || true
 else
-  # Ensure (1) super_admin role, (2) profile row linked to placeholder casino.
-  # Local UI gates everything on profiles.casino_id via get_user_casino_id() RLS,
-  # so without this insert the admin sees an empty app on first login.
+  # Ensure (1) super_admin role, (2) profile row linked to placeholder casino,
+  # (3) the casinos row's name/slug match this server's .env so the frontend's
+  #     slug-based casino resolver (runtime-config.json → accessibleCasinos)
+  #     actually matches. Without (3) the admin logs in but sees an empty UI
+  #     because slug "arusha" never matches the seed row's slug "local".
   docker compose exec -T -e PGPASSWORD="${POSTGRES_PASSWORD}" postgres \
     psql -h 127.0.0.1 -U "${POSTGRES_USER:-postgres}" -d "${POSTGRES_DB:-postgres}" -v ON_ERROR_STOP=1 -c "
       INSERT INTO public.user_roles (user_id, role)
@@ -558,6 +560,11 @@ else
       ON CONFLICT (user_id) DO UPDATE
         SET casino_id    = COALESCE(public.profiles.casino_id, EXCLUDED.casino_id),
             display_name = COALESCE(NULLIF(public.profiles.display_name,''), EXCLUDED.display_name);
+
+      UPDATE public.casinos
+         SET name = '${CASINO_NAME//\'/\'\'}',
+             slug = '${CASINO_SLUG//\'/\'\'}'
+       WHERE id   = '${CASINO_ID}'::uuid;
     " &>/dev/null || warn "Не удалось привязать профиль super_admin (${SA_EMAIL})."
   ok "Super admin готов: ${SA_EMAIL} / ${SA_PASS}"
 fi
