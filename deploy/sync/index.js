@@ -321,7 +321,7 @@ log("info", "sync.start", { batch: BATCH, tick_ms: TICK_MS, schema_version: SCHE
 
 startApi({ pool });
 
-Promise.all([mainLoop(), gcLoop(), identityRefreshLoop()]).catch((e) => {
+Promise.all([mainLoop(), gcLoop(), identityRefreshLoop(), heartbeatLoop()]).catch((e) => {
   log("error", "sync.crash", { err: String(e) });
   process.exit(1);
 });
