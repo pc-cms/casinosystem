@@ -486,7 +486,7 @@ SUPER_ADMIN_DONE_FILE="${SCRIPT_DIR}/.super-admin-done"
 if [[ ! -f "$SUPER_ADMIN_DONE_FILE" ]]; then
   title "Создание Super Admin (auto: admin/admin)"
 
-  SA_EMAIL="${SUPER_ADMIN_EMAIL:-admin@admin.local}"
+  SA_EMAIL="${SUPER_ADMIN_EMAIL:-admin@cms.local}"
   SA_PASS="${SUPER_ADMIN_PASSWORD:-admin}"
 
   log "Жду готовности GoTrue..."
