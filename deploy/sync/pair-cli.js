@@ -250,8 +250,12 @@ async function triggerSync() {
     await client.query("BEGIN");
     await client.query(`SELECT set_config('sync.applying','on', true)`);
     try {
+      await client.query("SAVEPOINT seed_reset");
       await client.query(`SELECT public.sync_reset_outbox($1::uuid, true)`, [casinoId]);
+      await client.query("RELEASE SAVEPOINT seed_reset");
     } catch (e) {
+      await client.query("ROLLBACK TO SAVEPOINT seed_reset").catch(() => {});
+      await client.query("RELEASE SAVEPOINT seed_reset").catch(() => {});
       console.error(`[seed] sync_reset_outbox skipped: ${String(e?.message || e).slice(0, 160)}`);
     }
 
