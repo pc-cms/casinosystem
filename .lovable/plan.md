@@ -1,162 +1,237 @@
 
-## Цель
+# Autonomous Peer Mesh — Final Architecture
 
-Сбросить накопленную сложность вокруг локального сервера и pairing. Сделать так, чтобы:
+## The model (locked)
 
-1. Локальный сервер ставился полностью офлайн с пустой, но корректной БД.
-2. Pairing был один и тот же для cloud↔local и local↔local.
-3. На каждом подключении админ явно выбирал, кто primary.
-4. Health Monitor работал всегда, даже без интернета.
-5. В админке был чистый список версий и кнопка push.
-6. На время первичной синхронизации primary показывал баннер "идёт sync".
+```text
+            ┌──────────────┐         ┌──────────────┐
+            │   LOCAL A    │ ◀─────▶ │   LOCAL B    │   ← mutual peer sync
+            │  (Arusha)    │         │  (Mwanza)    │     no hub, no hierarchy
+            │              │         │              │
+            │ Full stack:  │         │ Full stack:  │
+            │ Postgres +   │         │ Postgres +   │
+            │ GoTrue +     │         │ GoTrue +     │
+            │ PostgREST +  │         │ PostgREST +  │
+            │ Storage +    │         │ Storage +    │
+            │ Realtime +   │         │ Realtime +   │
+            │ cms-sync     │         │ cms-sync     │
+            └──────┬───────┘         └──────┬───────┘
+                   │                        │
+                   └───────────┬────────────┘
+                               │  optional
+                        ┌──────▼──────┐
+                        │    CLOUD    │   ← just another peer
+                        │  (optional) │     same protocol, no special role
+                        └─────────────┘
+```
 
-Транспорт оставляем текущий: `sync_outbox` + edge function `pull-changes`. Чиним вокруг него, не переписываем.
+**Axioms:**
+1. **Every node is self-sufficient.** Installer ships a complete Supabase stack + frontend + DB schema. Disconnect ethernet — works for years.
+2. **All peers are equal.** No primary, no replica. Cloud has zero special privileges.
+3. **Casino-scoped writes.** Each node only writes rows where `casino_id = <own casino>`. Reading other casinos' rows is allowed (read-only mirror via sync).
+4. **Conflict-free by design** for casino-scoped tables (no two nodes write same row).
+5. **Global tables (Global Player Base, Blacklist, Categories)** use **last-write-wins by `updated_at` timestamp** on conflict.
+6. **Failover = network-layer (VRRP/keepalived).** Two paired nodes share a virtual IP; if A dies, B takes the IP and frontends keep working without code changes.
 
 ---
 
-## 1. Schema-only образ Postgres
+## Installer (`install.sh` — what user runs once)
 
-```text
-GitHub Actions (release-onprem.yml)
-  └─ pg_dump --schema-only --no-owner --no-privileges
-       FROM Cloud Postgres
-       → deploy/postgres/init/00-schema.sql   (артефакт релиза)
-  └─ docker build deploy/postgres
-       COPY 00-schema.sql /docker-entrypoint-initdb.d/
+Single command on a fresh Ubuntu box:
+```bash
+curl -sSL https://get.casinosystem.app | bash -s -- --casino-name="Mwanza" --admin-email="admin@local"
 ```
 
-- Дамп берётся с прод-Cloud один раз на релиз, кладётся в образ.
-- На локалке Postgres при первом старте автоматически создаёт все таблицы / функции / триггеры / RLS — идентично Cloud, без данных.
-- Seed только одной записи: `auth.users` admin + `user_roles(super_admin)` + дефолтные `casinos` пустые. Пароль `Welcome6407!`.
-- Никакого `cloud-seed-export` на этом этапе — пустая БД работает сразу.
+What it does:
+1. Installs Docker + docker-compose.
+2. Pulls `docker-compose.yml` from GitHub Release.
+3. Pulls images: `supabase/postgres`, `supabase/gotrue`, `supabase/postgrest`, `supabase/storage-api`, `supabase/realtime`, `ghcr.io/.../cms-frontend`, `cms-sync`, `cms-monitor`, `cms-updater`, `nginx`.
+4. Generates random JWT secret, DB password, sync secret. Writes `.env`.
+5. Loads `schema-X.Y.Z.sql` (data-empty, structure from CI dump of Arusha Cloud — that's our golden master).
+6. Creates `admin@local` user via GoTrue Admin API with the password user provided.
+7. Creates one casino row with the name from `--casino-name`.
+8. Starts everything. Prints local URL (`http://<host-ip>`) and admin credentials.
 
-Файлы:
-- `.github/workflows/release-onprem.yml` — шаг "Dump Cloud schema"
-- `deploy/postgres/init/00-schema.sql` — артефакт (в .gitignore, генерится в CI)
-- `deploy/postgres/init/10-bootstrap-admin.sql` — admin + роль + минимум casino
-- удалить старые init-скрипты, которые конфликтуют
-
-## 2. Универсальный pairing
-
-Одна сущность `peer_links` (на каждом узле своя локальная), одна форма, один протокол.
-
-```text
-[Local UI]  → POST {target_url}/peer/register {name, fingerprint}
-            ← {pairing_code, expires_at}
-[Target UI] Admin → Network → Pending Peers
-            кнопки: Approve as PRIMARY · Approve as REPLICA · Reject
-[Local]     poll  {target_url}/peer/status?code=...
-            ← {status, role_assigned, sync_secret, casino_id}
-[Local]     сохраняет в peer_links, флипает локальный runtime
-```
-
-- `target_url` вводится при pairing: либо `https://casinosystem.app`, либо `https://192.168.x.x` соседнего локального.
-- Edge function на Cloud и Node-сервис на локалке выставляют **одинаковый** REST: `/peer/register`, `/peer/status`, `/peer/approve`, `/peer/clear`.
-- Безопасность сейчас — простой `sync_secret` (32 байта), без сложных подписей. Усложним позже.
-- Кнопка **"Очистить неудачные/висящие pairing"** на обеих сторонах: один RPC `clear_stale_peer_requests()` удаляет всё кроме `pending` за последние 30 мин.
-
-Файлы:
-- `supabase/functions/peer-register/index.ts`, `peer-status/index.ts`, `peer-approve/index.ts` (новые, заменяют `register-local-server`, `initial-sync-trigger`)
-- `deploy/sync/peer-api.js` — те же эндпоинты на локалке
-- `src/components/admin/PeerPairingPanel.tsx` — единая форма pairing
-- `src/components/admin/PendingPeersPanel.tsx` — список заявок + Approve as PRIMARY/REPLICA + Clear button
-- Миграция: `peer_links { id, target_url, role, sync_secret, casino_id, is_primary, paired_at, last_seen_at, last_error }`. Старые `local_servers`, `pending_server_registrations` мягко мигрируются в `peer_links`.
-
-## 3. Primary/replica и первичный seed
-
-- На approve админ нажимает либо **Approve as PRIMARY (мои данные → к нему)**, либо **Approve as REPLICA (его данные → ко мне)**.
-- Если выбрана `PRIMARY` — на этом узле включается флаг "SYNCING", фронт показывает блокирующий баннер: "Синхронизация в процессе, сервер недоступен ≈3-5 мин". Cashier/Pit нельзя писать.
-- В это время `pull-changes` гонит дамп таблиц на replica батчами по 1000 строк (используется существующий `cloud-seed-export` → переименовать в `peer-seed-export`, работает и для cloud, и для local).
-- По завершению — баннер снимается, начинается обычный двунаправленный outbox-sync.
-
-Компоненты:
-- `src/components/SyncLockBanner.tsx` — full-screen overlay при `peer_links.sync_status='seeding'`
-- Хук `useSyncLock()` подписывается на realtime и блочит мутации.
-
-## 4. Health Monitor — всегда локально
-
-- Уже есть `deploy/monitor/index.js`. Цель: подключить его UI в `Admin → Health` без проверки `localMode`.
-- Карточка показывает: CPU, RAM, диск, uptime, статус контейнеров, размер БД, последний backup.
-- После pairing появляется вторая карточка "Peer health" — данные тянутся из `/peer/health` соседа.
-
-Файлы:
-- `src/components/admin/LocalHealthPanel.tsx` — данные с `/api/monitor/health`
-- `src/components/admin/PeerHealthPanel.tsx` — данные с `{peer.target_url}/peer/health`
-- `deploy/monitor/index.js` — добавить эндпоинт `/peer/health` (тот же набор метрик)
-
-## 5. Админка версий
-
-- GitHub Releases API → `Admin → Network → Versions` показывает последние 5 релизов с тегом, датой, changelog.
-- Для каждого peer-сервера показывается **текущая версия** (берётся из `/peer/health.version`).
-- Кнопка **Push version X to peer Y** кладёт запись в `update_commands` (уже есть). `cms-updater` на локали забирает и обновляется.
-- Никакого ручного ввода версии — только выбор из списка релизов.
-
-Файлы:
-- `src/components/admin/VersionsPanel.tsx` (новый, заменяет `ServerPushUpdateDialog`)
-- `supabase/functions/list-releases/index.ts` — прокси к `api.github.com/repos/.../releases?per_page=5`
-
-## 6. Бейдж "LOCAL"
-
-- Бейдж рендерится исключительно по факту `runtime-config.json.localMode === true`, который проставляет `frontend-entrypoint.sh` на локалке.
-- Если `RUNTIME_SUPABASE_URL` указывает на `*.supabase.co` или пуст — entrypoint падает с ошибкой (уже реализовано, оставляем).
-
-## 7. Что выпиливаем
-
-- `register-local-server`, `initial-sync-trigger` (заменены `peer-*`).
-- `PendingServersPanel` в текущем виде (заменён `PendingPeersPanel`).
-- `pair.sh` упрощается: только проверка контейнеров + вывод адреса админки. Сам pairing полностью через UI.
-- Старые `pending_server_registrations`, `local_servers` — мягкая миграция данных в `peer_links`, потом DROP в следующем релизе.
+**No Cloud connection required.** Installer can run on a laptop in a Faraday cage.
 
 ---
 
-## Технические детали
+## Local Supabase stack (what runs in docker-compose)
 
-### Новые таблицы
+```yaml
+services:
+  postgres:        # supabase/postgres:15 (has all extensions)
+  gotrue:          # supabase/gotrue (own users, own JWT)
+  postgrest:       # supabase/postgrest (REST API)
+  storage:         # supabase/storage-api (files on local disk)
+  realtime:        # supabase/realtime (websockets)
+  kong:            # gateway: one URL → routes to all of above
+  cms-frontend:    # React app, reads runtime-config.json
+  cms-sync:        # mutual peer replication daemon
+  cms-monitor:     # health endpoint /api/monitor/health
+  cms-updater:     # polls GitHub Releases, pulls new images
+  nginx:           # public entry, serves frontend + proxies /supabase/
+  backup:          # nightly pg_dump to /var/backups
+```
+
+Frontend's `runtime-config.json` → `{ supabaseUrl: "http://<host>/supabase/", localMode: true, casinoId: "..." }`.
+
+**Every node runs identical stack.** Cloud is the same Docker stack just hosted at `casinosystem.app`. No "Cloud-only" code paths.
+
+---
+
+## Peer pairing (`peer_links` table — on every node)
 
 ```sql
-create table peer_links (
-  id uuid primary key default gen_random_uuid(),
-  target_url text not null,            -- куда мы запарились
-  display_name text not null,
-  role text not null check (role in ('cloud','local')),
-  is_primary boolean not null,
-  sync_secret text not null,
-  casino_id uuid,
-  sync_status text not null default 'idle'
-    check (sync_status in ('idle','seeding','active','error')),
+peer_links (
+  id uuid pk,
+  peer_url text,              -- 'http://192.168.1.50' or 'https://casinosystem.app'
+  peer_node_id uuid,          -- their node_id (mutual handshake)
+  display_name text,          -- 'Mwanza' / 'Cloud'
+  sync_secret text,           -- shared secret, 32 bytes hex
+  status text,                -- 'pending_outbound' | 'pending_inbound' | 'active' | 'paused'
   last_seen_at timestamptz,
-  last_error text,
-  created_at timestamptz default now()
-);
+  last_pull_cursor bigint,    -- last outbox seq pulled from peer
+  last_push_cursor bigint,    -- last outbox seq pushed to peer
+  created_at timestamptz
+)
 ```
 
-Та же таблица создаётся и на Cloud, и на локали (через общий schema-only dump).
+**Pairing flow (symmetric handshake):**
+1. On node A: Admin → Network → **Add Peer** → enters peer URL `http://192.168.1.50`.
+2. A calls `POST <peer_url>/peer/handshake` with `{my_node_id, my_name, my_pubkey}`.
+3. B receives, creates `peer_links` row in `pending_inbound`. Shows in B's Admin → Network → Pending.
+4. B's admin clicks **Approve** → B's side becomes `active`, B calls back `POST <a_url>/peer/handshake/confirm` with shared secret.
+5. Both sides now `active`. Sync starts immediately.
 
-### Edge functions
+**No primary/replica question is ever asked.** Both nodes already have their own data — they just start mirroring each other.
 
-`peer-register`, `peer-status`, `peer-approve`, `peer-health`, `peer-seed-export`, `list-releases`. Все с `verify_jwt = false`, авторизация по `x-sync-secret` или по сессии админа.
-
-### Очерёдность задач
-
-```text
-M0  Schema dump pipeline + пустой образ Postgres + admin seed
-M1  Таблица peer_links + миграция данных из local_servers
-M2  Edge: peer-register / peer-status / peer-approve / peer-health
-M3  UI: PeerPairingPanel + PendingPeersPanel + кнопка Clear stale
-M4  Seeding flow: SyncLockBanner + peer-seed-export
-M5  LocalHealthPanel + PeerHealthPanel
-M6  VersionsPanel + list-releases + push через update_commands
-M7  Удаление старого register-local-server / PendingServersPanel / упрощение pair.sh
-```
-
-Каждый шаг — отдельный commit, после M4 уже можно тестить установку.
+**"Clean pending" button** in Admin → Network deletes any `pending_*` row older than 1 hour or rejected.
 
 ---
 
-## Открытые вопросы (могу решить по умолчанию)
+## Sync protocol (`cms-sync` daemon, identical on every node)
 
-1. **Имя локального сервера** при pairing — берём из hostname или просим вводить вручную в форме? *По умолчанию: ручной ввод + предзаполнено hostname.*
-2. **TLS между локалями** — сейчас nginx внутри docker генерит self-signed. Для local↔local pairing будем принимать самоподписанные сертификаты (insecure flag в node-клиенте). *По умолчанию: да, принимать.*
-3. **Хранение GitHub PAT** для `list-releases` — секрет в Lovable Cloud. *По умолчанию: добавлю `GITHUB_RELEASES_TOKEN` через add_secret, если репо приватный; если публичный — без токена.*
+```text
+every 5s for each active peer:
+  PUSH:  POST <peer>/peer/push  body={rows after last_push_cursor}
+  PULL:  GET  <peer>/peer/pull?since=<last_pull_cursor>
+  HEARTBEAT: implicit (both calls update last_seen_at on success)
+```
 
-Если возражений нет — нажимай Approve, начну с M0+M1.
+Auth: HMAC(sync_secret, body) header. No JWT shenanigans.
+
+**Rules enforced on receiver:**
+- Operational tables (shifts, transactions, etc.): only accept rows where `casino_id ∈ {peer's owned casinos}`. Rejects others (data isolation invariant).
+- Global tables (players, blacklist, categories): accept any row. If existing row's `updated_at > incoming.updated_at` → ignore (LWW). Else upsert.
+- Loop prevention: each row carries `origin_node_id`. Don't echo back to origin.
+
+Outbox already exists in `02-sync-outbox.sql`. Reuse, don't rebuild.
+
+---
+
+## Failover (VRRP/keepalived)
+
+Documented in `deploy/HA-SETUP.md`. Outside the app:
+- Two paired nodes on same LAN get `keepalived` installed.
+- Virtual IP `192.168.1.100` floats between them.
+- Frontends always talk to `192.168.1.100`. If A dies, B answers.
+- Sync ensures B already has all of A's data within seconds of A's last write.
+- App-side: zero changes. Just document the network setup.
+
+We **do not build VRRP into the app.** It's a 50-line keepalived config the network admin sets up.
+
+---
+
+## Cloud's role
+
+**Cloud is identical to a local node, just public.** Run the same docker-compose on a VPS, give it a domain, register it as a peer from any local node.
+
+Cloud gets:
+- Mirror of all paired casinos' data (for cross-casino reporting on `premier.casinosystem.app`).
+- Nothing special. If Cloud dies, locals don't care.
+- "Connect to Cloud" button in local Admin → Network is just `Add Peer` with URL pre-filled to `https://casinosystem.app`.
+
+---
+
+## What we delete
+
+- `register-local-server`, `initial-sync-trigger` edge functions.
+- `local_servers`, `pending_server_registrations` tables.
+- Last session's `peer_links` migration (re-create with new shape).
+- All "Cloud-as-hub" assumptions in `cloud-seed-export`, `pull-changes`, `push-data`.
+
+---
+
+## What we keep
+
+- `sync_outbox` schema + triggers (already proven).
+- `cms-sync` Node.js daemon (rewritten to be symmetric).
+- `cms-monitor` health endpoint.
+- `cms-updater` GitHub Releases poller.
+- GitHub Actions schema dump (M0 from last session).
+- Local PWA manifests + nginx config.
+
+---
+
+## Build order (small, testable increments)
+
+### Phase 1 — Local stack (largest, must come first)
+- **P1.1** Rewrite `deploy/docker-compose.yml` with full Supabase stack (postgres, gotrue, postgrest, storage, realtime, kong).
+- **P1.2** Update `deploy/install.sh` to accept `--casino-name` + `--admin-email`, seed admin via GoTrue Admin API.
+- **P1.3** Update `deploy/postgres/init/` — schema dump goes to `00-schema.sql`, drop the GoTrue/storage init (handled by their containers).
+- **P1.4** Frontend `runtime-config.json` patching at container start (already exists in `frontend-entrypoint.sh`, just verify it works with kong URL).
+- **P1.5** Smoke test: install on fresh box, login as admin, create a casino, write a shift. **No internet at any point.**
+
+### Phase 2 — Peer pairing
+- **P2.1** Migration: drop old `local_servers`/`pending_server_registrations`/`peer_links`. Create fresh `peer_links` table on **public schema** (deployed everywhere, including Cloud).
+- **P2.2** Node-side HTTP endpoints in `cms-sync`: `POST /peer/handshake`, `POST /peer/handshake/confirm`, `POST /peer/push`, `GET /peer/pull`, `GET /peer/health`. HMAC-signed.
+- **P2.3** UI: `src/components/admin/PeerLinksPanel.tsx` with **Add Peer** form, list of peers (status, last_seen, push/pull cursors), **Approve / Reject / Pause / Delete** actions, **Clear Stale** button.
+- **P2.4** Bidirectional smoke test: 2 boxes on LAN, pair them, write on A → appears on B within 10s, write on B → appears on A.
+
+### Phase 3 — Conflict & global-table rules
+- **P3.1** Receiver-side validation in `cms-sync`: enforce `casino_id` whitelist per peer, enforce LWW for global tables (deterministic list: `players`, `blacklist_entries`, `global_categories`, `player_intel_logs`).
+- **P3.2** Add `origin_node_id` + `updated_at` columns where missing on global tables.
+- **P3.3** Test: edit same player on A and B within 1s → newer `updated_at` wins, both nodes converge.
+
+### Phase 4 — Health monitor (local + cross)
+- **P4.1** `cms-monitor` already exposes `/api/monitor/health` — wire it through nginx so it's reachable as `<peer>/health`.
+- **P4.2** UI: `LocalHealthCard` (own `/health`) + `PeerHealthCard` per peer (fetched from peer URL). Lives in Admin → Network.
+
+### Phase 5 — Updater + versions
+- **P5.1** `cms-updater` polls GitHub Releases (already exists). Verify works offline (graceful no-op when no internet).
+- **P5.2** UI: Admin → Network → **Versions** — dropdown of last 5 releases (cached locally if no internet). Pin / auto-update toggle per node.
+
+### Phase 6 — Docs + HA recipe
+- **P6.1** `deploy/HA-SETUP.md` — keepalived config example for VRRP virtual IP.
+- **P6.2** `deploy/MIGRATION-v2.md` — how to move existing Arusha test box to new stack (backup → wipe → install → restore).
+- **P6.3** Update memory: `mem://architecture/multi-casino-topology` + new `mem://architecture/peer-mesh`.
+
+---
+
+## Risks & answers
+
+| Risk | Mitigation |
+|------|------------|
+| **Schema drift between nodes on different versions.** | Each push includes `schema_version`. Mismatch → sync paused with clear UI error. User must update via `cms-updater` before resuming. |
+| **Global table LWW loses an edit.** | All changes go to immutable audit log (existing logging architecture). Lost write is recoverable from log if needed. |
+| **Bidirectional sync echo loop.** | `origin_node_id` per row; never push back to origin. Proven pattern. |
+| **GoTrue users diverge between nodes.** | `auth.users` is added to sync via custom outbox trigger (treated as global LWW table). Admin creates user on A → appears on B in seconds. Password hash syncs as-is. |
+| **Install on a box without internet.** | Provide offline bundle: `casino-system-vX.Y.Z-offline.tar.gz` with all Docker images pre-pulled. `install.sh --offline ./bundle.tar.gz`. |
+| **Two nodes start with same casino_id by accident.** | Pairing handshake rejects if peer claims a `casino_id` we already own. Forces admin to pick distinct casinos at install. |
+
+---
+
+## Why this is correct now
+
+- Matches your mental model: **fully autonomous nodes, optional peers, Cloud is not special**.
+- No phantom abstractions (no primary/replica, no hub/spoke).
+- Failover is solved by **proven network tech (VRRP)**, not custom JavaScript.
+- Each phase is independently shippable and testable.
+- Phase 1 alone gives you a working offline installer — even if we never build phases 2–6, you have a usable product.
+
+---
+
+## Next step after approval
+
+Start with **Phase 1** (local stack rewrite). Phase 2+ ships once P1.5 smoke test passes on a fresh box.
