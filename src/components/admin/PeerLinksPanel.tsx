@@ -510,6 +510,8 @@ export const PeerLinksPanel = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <SyncExchangeLog />
     </div>
   );
 };
