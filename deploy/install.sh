@@ -34,19 +34,73 @@ trap 'rc=$?; echo -e "${RED}[fail]${NC} Installer stopped at line ${BASH_LINENO[
 require_root() { [[ $EUID -eq 0 ]] || fail "Запустите от root: sudo ./deploy/install.sh"; }
 
 # ── CLI ──
-RESET=0; REBUILD=0; RECONFIGURE=0; WIPE=0
+RESET=0; REBUILD=0; RECONFIGURE=0; WIPE=0; UPDATE=0; MENU=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --reset)        RESET=1; shift ;;
     --rebuild)      REBUILD=1; shift ;;
     --reconfigure)  RECONFIGURE=1; shift ;;
-    --wipe)         WIPE=1; RESET=1; shift ;;
+    --wipe)         WIPE=1; RESET=1; REBUILD=1; shift ;;
+    --update)       UPDATE=1; REBUILD=1; shift ;;
+    --menu)         MENU=1; shift ;;
     -h|--help)      sed -n '4,16p' "$0"; exit 0 ;;
     *) fail "Неизвестный аргумент: $1" ;;
   esac
 done
 
 require_root
+
+# ── Interactive menu (default when запущен без флагов в TTY) ──
+if [[ $MENU -eq 0 && $RESET -eq 0 && $REBUILD -eq 0 && $RECONFIGURE -eq 0 && $WIPE -eq 0 && $UPDATE -eq 0 ]]; then
+  if [[ -t 0 || -e /dev/tty ]]; then MENU=1; fi
+fi
+
+if [[ $MENU -eq 1 ]]; then
+  exec </dev/tty 2>/dev/null || true
+  echo
+  echo -e "${BOLD}${CYAN}  Выберите действие:${NC}"
+  echo
+  if [[ -f "${SCRIPT_DIR}/.env" ]]; then
+    echo -e "    ${BOLD}1${NC})  ${GREEN}Обновить${NC}        — пересобрать frontend, сохранить БД и .env  ${YELLOW}(рекомендуется)${NC}"
+    echo -e "    ${BOLD}2${NC})  Переустановить    — пересоздать .env и сертификаты, БД сохранить"
+    echo -e "    ${BOLD}3${NC})  ${RED}Стереть всё${NC}     — удалить БД, .env, образы и поставить заново"
+    echo -e "    ${BOLD}4${NC})  Статус и логи"
+    echo -e "    ${BOLD}5${NC})  Выйти"
+    DEFAULT_CHOICE=1
+  else
+    echo -e "    ${BOLD}1${NC})  ${GREEN}Установить${NC}      — чистая установка (БД и .env будут созданы)"
+    echo -e "    ${BOLD}2${NC})  Выйти"
+    DEFAULT_CHOICE=1
+  fi
+  echo
+  read -r -p "  Ваш выбор [${DEFAULT_CHOICE}]: " CHOICE || CHOICE=""
+  CHOICE="${CHOICE:-$DEFAULT_CHOICE}"
+
+  if [[ -f "${SCRIPT_DIR}/.env" ]]; then
+    case "$CHOICE" in
+      1) UPDATE=1; REBUILD=1 ;;
+      2) RESET=1 ;;
+      3)
+         echo
+         read -r -p "  ⚠  Это удалит ВСЮ базу данных. Введите 'WIPE' для подтверждения: " CONFIRM
+         [[ "$CONFIRM" == "WIPE" ]] || fail "Отмена."
+         WIPE=1; RESET=1; REBUILD=1
+         ;;
+      4)
+         echo; docker compose ps || true; echo
+         echo -e "${CYAN}Последние логи (Ctrl+C для выхода):${NC}"
+         exec docker compose logs --tail=100 -f
+         ;;
+      5|*) echo "Выход."; exit 0 ;;
+    esac
+  else
+    case "$CHOICE" in
+      1) : ;;  # обычная установка
+      2|*) echo "Выход."; exit 0 ;;
+    esac
+  fi
+  echo
+fi
 
 # ────────── 1. Система ──────────
 title "1/5  Проверка системы"
