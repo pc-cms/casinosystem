@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RefreshCw } from "lucide-react";
-import { fmtDateTime } from "@/lib/date-format";
+import { fmtDateTime } from "@/lib/format-date";
 
 type Direction = "pull" | "push" | "clone" | "heartbeat" | "handshake";
 type Status = "ok" | "warn" | "error";
