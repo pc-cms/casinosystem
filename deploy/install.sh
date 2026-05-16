@@ -1,15 +1,16 @@
 #!/usr/bin/env bash
 #
-# Casino System — On-Premises Installer (fully automatic)
+# Casino System — On-Premises Installer
 # --------------------------------------------------------
-# Полностью неинтерактивная установка. Pairing с Cloud делается
-# из локальной админки кнопкой "Connect to Cloud" (super_admin).
+# Запуск без аргументов = интерактивное меню:
+#   sudo ./deploy/install.sh                   # меню: Обновить / Переустановить / Стереть всё
 #
-# Запуск:
-#   sudo ./deploy/install.sh                   # обычная установка
-#   sudo ./deploy/install.sh --rebuild         # пересобрать frontend
+# Или сразу с флагом:
+#   sudo ./deploy/install.sh --update          # обновить frontend, сохранить БД и .env
+#   sudo ./deploy/install.sh --rebuild         # пересобрать frontend (no-cache)
 #   sudo ./deploy/install.sh --reset           # сбросить .env (БД остаётся)
-#   sudo ./deploy/install.sh --wipe            # удалить ВСЁ и поставить заново
+#   sudo ./deploy/install.sh --wipe            # удалить ВСЁ (БД, образы) и поставить заново
+#   sudo ./deploy/install.sh --menu            # принудительно показать меню
 #
 set -euo pipefail
 
