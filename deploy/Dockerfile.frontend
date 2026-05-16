@@ -40,12 +40,14 @@ ARG VITE_BUILD_VERSION=0.1.0
 ENV VITE_BUILD_VERSION=$VITE_BUILD_VERSION
 
 # ──────────────────────────────────────────────────────────────
-# CRITICAL: on-prem must build with LOCAL Supabase URL.
-# Vite inlines `import.meta.env.VITE_SUPABASE_URL` at build time
-# (it's not readable from runtime-config.json). Without these args
-# the bundle would talk to Cloud Supabase even in on-prem mode.
-# install.sh passes VITE_SUPABASE_URL=https://${LOCAL_DOMAIN}/api
-# and VITE_SUPABASE_PUBLISHABLE_KEY=${ANON_KEY}.
+# UNIVERSAL on-prem bundle:
+# The placeholder `__CMS_ORIGIN_PLACEHOLDER__/api` is baked into the bundle and
+# rewritten by frontend-entrypoint.sh at container start to use
+# `location.origin + "/api"` — so the same image works for ANY hostname
+# (IP, mDNS, custom domain) without per-server rebuilds.
+# install.sh / docker-compose.yml pass:
+#   VITE_SUPABASE_URL=__CMS_ORIGIN_PLACEHOLDER__/api
+#   VITE_SUPABASE_PUBLISHABLE_KEY=${ANON_KEY}
 # ──────────────────────────────────────────────────────────────
 ARG VITE_SUPABASE_URL
 ARG VITE_SUPABASE_PUBLISHABLE_KEY
@@ -54,22 +56,18 @@ ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL
 ENV VITE_SUPABASE_PUBLISHABLE_KEY=$VITE_SUPABASE_PUBLISHABLE_KEY
 ENV VITE_SUPABASE_PROJECT_ID=$VITE_SUPABASE_PROJECT_ID
 
-# Fail-fast: this Dockerfile is used for on-prem builds. The frontend bundle
-# must never silently fall back to the checked-in Cloud .env. A Cloud-facing
-# build is only allowed if explicitly requested for a special CI job.
+# Fail-fast: on-prem build must use the placeholder or another local URL.
+# A Cloud-facing build is only allowed if explicitly requested.
 ARG ALLOW_CLOUD_FRONTEND_BUILD=false
 RUN if [ "$ALLOW_CLOUD_FRONTEND_BUILD" != "true" ]; then \
       if [ -z "$VITE_SUPABASE_URL" ]; then \
-        echo "FATAL: VITE_SUPABASE_URL is empty. On-prem build must bake https://<LOCAL_DOMAIN>/api." >&2; \
+        echo "FATAL: VITE_SUPABASE_URL is empty. On-prem build must set the placeholder URL." >&2; \
         exit 1; \
       fi; \
       if echo "$VITE_SUPABASE_URL" | grep -q "supabase.co"; then \
-        echo "FATAL: VITE_SUPABASE_URL points at Cloud ($VITE_SUPABASE_URL). On-prem build must use https://<LOCAL_DOMAIN>/api." >&2; \
+        echo "FATAL: VITE_SUPABASE_URL points at Cloud ($VITE_SUPABASE_URL)." >&2; \
         exit 1; \
       fi; \
-      case "$VITE_SUPABASE_URL" in https://*/api) ;; \
-        *) echo "FATAL: VITE_SUPABASE_URL must look like https://<LOCAL_DOMAIN>/api (got: $VITE_SUPABASE_URL)." >&2; exit 1 ;; \
-      esac; \
     fi
 
 # Write .env.production.local so Vite sees the build args. We do this in addition
