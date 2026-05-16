@@ -524,8 +524,12 @@ async function cloneFromCloud(pool, conn, casinoId) {
     // 2) Wipe casino-scoped rows
     for (const t of wipeTables) {
       try {
+        await client.query("SAVEPOINT clone_wipe_table");
         await client.query(`DELETE FROM public.${t} WHERE casino_id = $1::uuid`, [casinoId]);
+        await client.query("RELEASE SAVEPOINT clone_wipe_table");
       } catch (e) {
+        await client.query("ROLLBACK TO SAVEPOINT clone_wipe_table").catch(() => {});
+        await client.query("RELEASE SAVEPOINT clone_wipe_table").catch(() => {});
         // table may not exist or lack casino_id; continue
         console.log(`[clone] wipe.skip ${t}: ${String(e?.message || e).slice(0, 120)}`);
       }
