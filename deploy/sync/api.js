@@ -34,6 +34,7 @@ const FLAG_FILE = `${COMPOSE_DIR}/UPDATE_AVAILABLE`;
 const PUSH_FILE = `${COMPOSE_DIR}/PUSH_COMMAND.json`;
 const ACK_FILE = `${COMPOSE_DIR}/PUSH_COMMAND_ACK.json`;
 const CHECK_NOW_FILE = `${COMPOSE_DIR}/CHECK_NOW`;
+const RECONFIGURE_FILE = `${COMPOSE_DIR}/RECONFIGURE_FRONTEND`;
 
 export function startApi({ pool }) {
   const server = http.createServer(async (req, res) => {
@@ -109,6 +110,43 @@ export function startApi({ pool }) {
         try { writeFileSync(PUSH_FILE, JSON.stringify(cmd, null, 2)); }
         catch (e) { return send(res, 500, { error: String(e?.message ?? e) }); }
         return send(res, 200, { ok: true, command: cmd });
+      }
+
+      // ── Server Identity (CASINO_SLUG / CASINO_ID / NAME / DOMAIN / IP) ──
+      if (req.method === "GET" && path === "/node/server-identity") {
+        const env = readEnvMap();
+        return send(res, 200, {
+          casino_id:    env.CASINO_ID    || "",
+          casino_slug:  env.CASINO_SLUG  || "local",
+          casino_name:  env.CASINO_NAME  || "",
+          local_domain: env.LOCAL_DOMAIN || "",
+          local_ip:     env.LOCAL_IP     || "",
+          unconfigured: !env.CASINO_SLUG || env.CASINO_SLUG === "local" || !env.CASINO_ID,
+        });
+      }
+      if (req.method === "POST" && path === "/node/server-identity") {
+        const body = await readJson(req);
+        const slug = String(body.casino_slug || "").toLowerCase().replace(/[^a-z0-9_-]/g, "");
+        const cid  = String(body.casino_id   || "").trim();
+        const name = String(body.casino_name || "").slice(0, 120);
+        const dom  = String(body.local_domain|| "").slice(0, 120);
+        const ip   = String(body.local_ip    || "").slice(0, 64);
+        if (!slug) return send(res, 400, { error: "casino_slug required" });
+        if (cid && !/^[0-9a-f-]{8,}$/i.test(cid)) return send(res, 400, { error: "casino_id must be UUID" });
+        try {
+          writeEnvKey("CASINO_SLUG", slug);
+          if (cid)  writeEnvKey("CASINO_ID",    cid);
+          if (name) writeEnvKey("CASINO_NAME",  name);
+          if (dom)  writeEnvKey("LOCAL_DOMAIN", dom);
+          if (ip)   writeEnvKey("LOCAL_IP",     ip);
+          writeFileSync(RECONFIGURE_FILE, new Date().toISOString());
+        } catch (e) {
+          return send(res, 500, { error: String(e?.message ?? e) });
+        }
+        return send(res, 200, {
+          ok: true,
+          message: "saved; cms-frontend will restart in ~10s and become available again after ~30s",
+        });
       }
 
       return send(res, 404, { error: "unknown route", path });
@@ -311,6 +349,14 @@ async function peerPull(pool, res, body, peer) {
 }
 
 // ─────────── Updater helpers ───────────
+function writeEnvKey(key, value) {
+  let txt = existsSync(ENV_FILE) ? readFileSync(ENV_FILE, "utf8") : "";
+  const quoted = `'${String(value).replace(/'/g, "'\\''")}'`;
+  const re = new RegExp(`^${key}=.*$`, "m");
+  if (re.test(txt)) txt = txt.replace(re, `${key}=${quoted}`);
+  else { if (txt && !txt.endsWith("\n")) txt += "\n"; txt += `${key}=${quoted}\n`; }
+  writeFileSync(ENV_FILE, txt);
+}
 function readEnvMap() {
   if (!existsSync(ENV_FILE)) return {};
   const out = {};

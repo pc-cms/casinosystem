@@ -53,6 +53,7 @@ const FLAG_FILE = `${COMPOSE_PROJECT_DIR}/UPDATE_AVAILABLE`;
 const PUSH_FILE = `${COMPOSE_PROJECT_DIR}/PUSH_COMMAND.json`;
 const ACK_FILE = `${COMPOSE_PROJECT_DIR}/PUSH_COMMAND_ACK.json`;
 const CHECK_NOW_FILE = `${COMPOSE_PROJECT_DIR}/CHECK_NOW`;
+const RECONFIGURE_FILE = `${COMPOSE_PROJECT_DIR}/RECONFIGURE_FRONTEND`;
 const APPLIED_MIGRATIONS_TABLE = "public._cms_applied_migrations";
 const HEALTH_TIMEOUT_S = 60;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -447,7 +448,18 @@ const FAST_POLL_MS = 10_000;
       const now = Date.now();
       const checkNow = existsSync(CHECK_NOW_FILE);
       const pushPending = existsSync(PUSH_FILE);
+      const reconfigure = existsSync(RECONFIGURE_FILE);
       const due = now - lastFullTick >= TICK_MS;
+
+      // Highest priority: hot-reconfigure cms-frontend (slug/name change)
+      if (reconfigure) {
+        try { unlinkSync(RECONFIGURE_FILE); } catch {}
+        log("info", "reconfigure.frontend.start");
+        const r = compose(["up", "-d", "--force-recreate", "cms-frontend"]);
+        log(r.code === 0 ? "info" : "error", "reconfigure.frontend.done",
+            { code: r.code, out: r.out.slice(-400) });
+      }
+
       if (checkNow || pushPending || due) {
         if (checkNow) { try { unlinkSync(CHECK_NOW_FILE); } catch {}
           log("info", "tick.triggered_by_check_now"); }

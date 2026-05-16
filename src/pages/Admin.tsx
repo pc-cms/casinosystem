@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Shield, Coins, Clock, Building2, Link2, Unlink, Globe, Palette, Settings, RefreshCw, LayoutGrid, ShieldCheck, Network } from "lucide-react";
 import { RoleDefaultsEditor } from "@/components/admin/RoleDefaultsEditor";
 import { PeerLinksPanel } from "@/components/admin/PeerLinksPanel";
+import { ServerIdentityPanel } from "@/components/admin/ServerIdentityPanel";
 import { LocalUpdaterPanel } from "@/components/admin/LocalUpdaterPanel";
 import { resetPWACache } from "@/lib/pwa-register";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -147,6 +148,7 @@ const Admin = () => {
             <TabsContent value="access"><CasinoAccessManagement /></TabsContent>
             <TabsContent value="peers">
               <div className="space-y-4">
+                <ServerIdentityPanel />
                 <LocalUpdaterPanel />
                 <PeerLinksPanel />
                 <AppCacheCard />
