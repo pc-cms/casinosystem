@@ -149,15 +149,16 @@ Deno.serve(async (req) => {
 
   if (syncSecret && syncCasino) {
     const { data } = await adminPre
-      .from("local_servers")
-      .select("casino_id")
-      .eq("casino_id", syncCasino)
+      .from("pending_server_registrations")
+      .select("approved_casino_id")
+      .eq("approved_casino_id", syncCasino)
       .eq("sync_secret", syncSecret)
+      .in("status", ["approved", "consumed"])
       .maybeSingle();
     if (!data) {
       return new Response(JSON.stringify({ error: "invalid sync credentials" }), { status: 401, headers: corsHeaders });
     }
-    tokenCasinoId = data.casino_id as string;
+    tokenCasinoId = data.approved_casino_id as string;
   } else if (seedTokenHdr) {
     try {
       const key = await crypto.subtle.importKey(
