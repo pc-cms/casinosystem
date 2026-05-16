@@ -2810,6 +2810,80 @@ export type Database = {
         }
         Relationships: []
       }
+      pending_server_registrations: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          approved_casino_id: string | null
+          consumed_at: string | null
+          created_at: string
+          expires_at: string
+          hostname: string | null
+          id: string
+          pairing_code: string
+          rejected_reason: string | null
+          seed_token: string | null
+          seed_token_expires_at: string | null
+          server_ip: string | null
+          server_name: string
+          server_slug: string | null
+          status: string
+          sync_secret: string | null
+          system_info: Json | null
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          approved_casino_id?: string | null
+          consumed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          hostname?: string | null
+          id?: string
+          pairing_code: string
+          rejected_reason?: string | null
+          seed_token?: string | null
+          seed_token_expires_at?: string | null
+          server_ip?: string | null
+          server_name: string
+          server_slug?: string | null
+          status?: string
+          sync_secret?: string | null
+          system_info?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          approved_casino_id?: string | null
+          consumed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          hostname?: string | null
+          id?: string
+          pairing_code?: string
+          rejected_reason?: string | null
+          seed_token?: string | null
+          seed_token_expires_at?: string | null
+          server_ip?: string | null
+          server_name?: string
+          server_slug?: string | null
+          status?: string
+          sync_secret?: string | null
+          system_info?: Json | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pending_server_registrations_approved_casino_id_fkey"
+            columns: ["approved_casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pit_rota: {
         Row: {
           casino_id: string
