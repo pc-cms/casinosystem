@@ -4482,6 +4482,7 @@ export type Database = {
         Args: { _casino_id: string; _user: string }
         Returns: Json
       }
+      gc_pending_server_registrations: { Args: never; Returns: undefined }
       generate_card_number: { Args: never; Returns: string }
       get_business_date_for_casino: {
         Args: { _casino_id: string }
