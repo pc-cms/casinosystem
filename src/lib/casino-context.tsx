@@ -55,6 +55,13 @@ export const getBaseDomain = (): string => {
 
 /** Extract casino slug from current hostname */
 export const getSlugFromHostname = (): string | null => {
+  // On-prem local install: runtime-config.json pins this server to ONE casino
+  // regardless of hostname. Works for IP / arucms.local / any custom name.
+  // Cloud builds get a placeholder which cleanValue() turns into null, so this
+  // branch is silently skipped in production.
+  const rc = getCachedRuntimeConfig();
+  if (rc?.casinoSlug) return rc.casinoSlug.toLowerCase();
+
   const hostname = window.location.hostname;
 
   // Production: arusha.casinosystem.app / arusha.casinosystem.lovable.app / arusha.casinosystem.local
