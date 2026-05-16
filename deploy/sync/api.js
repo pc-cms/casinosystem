@@ -564,11 +564,27 @@ async function cloneFromCloud(pool, conn, casinoId) {
         const sql = `INSERT INTO public."${obj.table}" (${cols.map(c => `"${c}"`).join(",")})
                      VALUES (${placeholders})
                      ON CONFLICT (id) DO UPDATE SET ${setlist}`;
+        const fallbackSql = `INSERT INTO public."${obj.table}" (${cols.map(c => `"${c}"`).join(",")})
+                             VALUES (${placeholders})
+                             ON CONFLICT DO NOTHING`;
         try {
+          await client.query("SAVEPOINT clone_row");
           await client.query(sql, cols.map(c => obj.row[c]));
+          await client.query("RELEASE SAVEPOINT clone_row");
           cloneState.counts[obj.table] = (cloneState.counts[obj.table] || 0) + 1;
         } catch (e) {
-          console.log(`[clone] insert.fail ${obj.table}: ${String(e?.message || e).slice(0, 200)}`);
+          await client.query("ROLLBACK TO SAVEPOINT clone_row").catch(() => {});
+          await client.query("RELEASE SAVEPOINT clone_row").catch(() => {});
+          try {
+            await client.query("SAVEPOINT clone_row_fallback");
+            const rr = await client.query(fallbackSql, cols.map(c => obj.row[c]));
+            await client.query("RELEASE SAVEPOINT clone_row_fallback");
+            if (rr.rowCount > 0) cloneState.counts[obj.table] = (cloneState.counts[obj.table] || 0) + rr.rowCount;
+          } catch (e2) {
+            await client.query("ROLLBACK TO SAVEPOINT clone_row_fallback").catch(() => {});
+            await client.query("RELEASE SAVEPOINT clone_row_fallback").catch(() => {});
+            console.log(`[clone] insert.fail ${obj.table}: ${String(e2?.message || e2 || e).slice(0, 200)}`);
+          }
         }
       }
     }
