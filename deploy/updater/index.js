@@ -215,8 +215,8 @@ async function fullStackApply(targetVersion, cmdId) {
   const owner = envValue(env.GITHUB_OWNER) || GITHUB_OWNER;
   const repo = envValue(env.GITHUB_REPO) || GITHUB_REPO;
   const image = `ghcr.io/${owner}/cms-frontend:${target}`;
-  const localDomain = envValue(env.LOCAL_DOMAIN);
-  const localApiUrl = localDomain ? `https://${localDomain}/api` : "";
+  const localIp = envValue(env.LOCAL_IP);
+  const localApiUrl = localIp ? `https://${localIp}/api` : "";
 
   log("info", "apply.start", { from: currentVersion, to: target });
   writeAck(cmdId, "in_progress", `pulling sources for v${target}`);
@@ -325,10 +325,10 @@ async function fullStackApply(targetVersion, cmdId) {
   //    build-args are picked up even if Dockerfile lines haven't changed.
   writeAck(cmdId, "in_progress", "rebuilding local services (frontend + sync + monitor + backup)");
   log("info", "apply.compose_build");
-  if (!localDomain || localApiUrl.includes("supabase.co")) {
-    log("error", "apply.local_frontend_env_invalid", { localDomain, localApiUrl });
+  if (!localIp || localApiUrl.includes("supabase.co")) {
+    log("error", "apply.local_frontend_env_invalid", { localIp, localApiUrl });
     rollbackFrom(backupDir, currentVersion);
-    writeAck(cmdId, "failed", "LOCAL_DOMAIN invalid — refused to build frontend against Cloud");
+    writeAck(cmdId, "failed", "LOCAL_IP invalid — refused to build frontend against Cloud");
     rmSync(tmpDir, { recursive: true, force: true });
     return false;
   }
