@@ -3528,6 +3528,27 @@ export type Database = {
         }
         Relationships: []
       }
+      sync_seed_marker: {
+        Row: {
+          casino_id: string
+          completed_at: string
+          row_count: number
+          table_name: string
+        }
+        Insert: {
+          casino_id: string
+          completed_at?: string
+          row_count?: number
+          table_name: string
+        }
+        Update: {
+          casino_id?: string
+          completed_at?: string
+          row_count?: number
+          table_name?: string
+        }
+        Relationships: []
+      }
       system_locks: {
         Row: {
           casino_id: string
@@ -4655,6 +4676,17 @@ export type Database = {
           oldest_change_at: string
           oldest_minutes: number
           pending_count: number
+          table_name: string
+        }[]
+      }
+      sync_reset_outbox: {
+        Args: { p_advance_cursors?: boolean; p_casino_id: string }
+        Returns: Json
+      }
+      sync_seed_from_existing: {
+        Args: { p_casino_id: string }
+        Returns: {
+          inserted_count: number
           table_name: string
         }[]
       }
