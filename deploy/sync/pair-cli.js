@@ -216,22 +216,15 @@ async function ping() {
   if (!row || row.status !== "connected") {
     return { ok: false, reason: "not connected", status: row?.status || "none" };
   }
-  const url = new URL(`${row.cloud_url}/functions/v1/pull-changes`);
-  url.searchParams.set("since", "1970-01-01T00:00:00Z");
-  url.searchParams.set("limit", "1");
-  const r = await fetch(url, {
-    method: "GET",
-    headers: { "x-sync-secret": row.sync_secret, "x-casino-id": row.casino_id },
-  });
-  const text = await r.text().catch(() => "");
+  const result = await handshakeCloudPeer(row);
   await pool.query(
     `UPDATE public.cloud_connection
         SET last_polled_at = now(),
             last_error = $1
       WHERE id = 1`,
-    [r.ok ? null : `ping HTTP ${r.status}: ${text.slice(0, 200)}`]
+    [result.ok ? null : `peer handshake failed: ${JSON.stringify(result).slice(0, 220)}`]
   );
-  return { ok: r.ok, http: r.status, body: text.slice(0, 300) };
+  return result;
 }
 
 async function triggerSync() {
@@ -285,9 +278,13 @@ async function triggerSync() {
                      VALUES (${placeholders})
                      ON CONFLICT (id) DO UPDATE SET ${setlist}`;
         try {
+          await client.query("SAVEPOINT seed_row");
           await client.query(sql, cols.map(c => obj.row[c]));
+          await client.query("RELEASE SAVEPOINT seed_row");
           counts[obj.table] = (counts[obj.table] || 0) + 1;
         } catch (e) {
+          await client.query("ROLLBACK TO SAVEPOINT seed_row").catch(() => {});
+          await client.query("RELEASE SAVEPOINT seed_row").catch(() => {});
           console.error(`[seed] insert.fail ${obj.table}: ${String(e?.message || e).slice(0, 160)}`);
         }
       }
@@ -333,6 +330,13 @@ const arg = process.argv[3];
       const r = await ping();
       console.log(JSON.stringify(r));
       process.exit(r.ok ? 0 : 5);
+    }
+    if (cmd === "mesh") {
+      const row = await getRow();
+      if (!row || row.status !== "connected") throw new Error("Not connected to Cloud");
+      const r = await handshakeCloudPeer(row);
+      console.log(JSON.stringify(r));
+      process.exit(r.ok ? 0 : 6);
     }
     if (cmd === "sync") {
       const r = await triggerSync();
