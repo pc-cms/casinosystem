@@ -60,14 +60,9 @@ const useAllCasinos = () => useQuery({
   },
 });
 
-const useLocalServers = () => useQuery({
-  queryKey: ["local-servers"],
-  queryFn: async () => {
-    const { data, error } = await supabase.from("local_servers").select("*");
-    if (error) throw error;
-    return data;
-  },
-});
+
+// (useLocalServers removed — replaced by node_identity + peer_links in PeerLinksPanel)
+
 
 const useCasinoAccess = () => useQuery({
   queryKey: ["casino-access"],
@@ -113,11 +108,8 @@ const Admin = () => {
               <TabsTrigger value="access" className="gap-1.5">
                 <Globe className="w-3.5 h-3.5" /> Casino Access
               </TabsTrigger>
-              <TabsTrigger value="servers" className="gap-1.5">
-                <Server className="w-3.5 h-3.5" /> Local Servers
-              </TabsTrigger>
-              <TabsTrigger value="network" className="gap-1.5">
-                <Activity className="w-3.5 h-3.5" /> Network
+              <TabsTrigger value="peers" className="gap-1.5">
+                <Network className="w-3.5 h-3.5" /> Peers
               </TabsTrigger>
             </>
           )}
@@ -152,13 +144,7 @@ const Admin = () => {
           <>
             <TabsContent value="casinos"><CasinoManagement /></TabsContent>
             <TabsContent value="access"><CasinoAccessManagement /></TabsContent>
-            <TabsContent value="servers"><LocalServerManagement /></TabsContent>
-            <TabsContent value="network">
-              <div className="space-y-4">
-                <CloudConnectionPanel />
-                <NetworkHealthPanel />
-              </div>
-            </TabsContent>
+            <TabsContent value="peers"><PeerLinksPanel /></TabsContent>
           </>
         )}
 
