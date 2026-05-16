@@ -15,7 +15,7 @@
 #
 set -euo pipefail
 
-BOOTSTRAP_VERSION="1.3.2"
+BOOTSTRAP_VERSION="1.3.3"
 REPO="${CASINO_REPO:-pc-cms/casinosystem}"
 if [[ "$REPO" == "pms-cms/casinosystem" ]]; then
   REPO="pc-cms/casinosystem"
@@ -127,16 +127,18 @@ SRC_DIR=$(find "$TMP" -maxdepth 1 -type d \( -name "${REPO##*/}-*" -o -name "pc-
 if [[ -d "$TARGET" ]]; then
   BAK="${TARGET}.bak.$(date +%Y%m%d-%H%M%S)"
   log "Бэкаплю существующую папку → $BAK"
+  command -v rsync >/dev/null 2>&1 || { log "Устанавливаю rsync..."; apt-get update -qq && apt-get install -y -qq rsync; }
   if [[ -f "$TARGET/deploy/.env" ]]; then cp -f "$TARGET/deploy/.env" "$TMP/deploy.env.preserve"; fi
   if [[ -d "$TARGET/deploy/certs" ]]; then cp -a "$TARGET/deploy/certs" "$TMP/certs.preserve"; fi
   if [[ -d "$TARGET/data" ]]; then cp -a "$TARGET/data" "$TMP/data.preserve"; fi
-  mv "$TARGET" "$BAK"
-  ok "Старая версия → $BAK"
+  rsync -a --delete "$TARGET"/ "$BAK"/
+  ok "Backup → $BAK"
 fi
 
 log "Устанавливаю в $TARGET"
 mkdir -p "$(dirname "$TARGET")"
-mv "$SRC_DIR" "$TARGET"
+mkdir -p "$TARGET"
+rsync -a --delete "$SRC_DIR"/ "$TARGET"/
 
 if [[ -f "$TMP/deploy.env.preserve" ]]; then
   cp -f "$TMP/deploy.env.preserve" "$TARGET/deploy/.env"
