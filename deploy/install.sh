@@ -14,7 +14,7 @@
 #
 set -euo pipefail
 
-INSTALLER_VERSION="2.1.0"
+INSTALLER_VERSION="2.1.1"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
@@ -209,6 +209,16 @@ normalize_env_file() {
 }
 gen_secret() { openssl rand -base64 48 | tr -d '\n=+/' | cut -c1-64; }
 
+assert_local_frontend_env() {
+  : "${LOCAL_DOMAIN:?LOCAL_DOMAIN missing}"
+  : "${ANON_KEY:?ANON_KEY missing}"
+  local expected="https://${LOCAL_DOMAIN}/api"
+  [[ "$expected" != *"supabase.co"* ]] || fail "Frontend local URL resolved to Cloud: ${expected}"
+  docker compose config 2>/dev/null | grep -q "VITE_SUPABASE_URL: ${expected}" \
+    || fail "docker-compose is not baking local API URL (${expected}) into cms-frontend."
+  ok "Frontend build target: ${expected}"
+}
+
 compose_project_name() {
   docker compose config --format json 2>/dev/null | jq -r '.name // empty' 2>/dev/null || true
 }
@@ -311,6 +321,7 @@ ok "Поменять можно после установки в Admin → Peers
 
 normalize_env_file
 set -a; source .env; set +a
+assert_local_frontend_env
 
 # Сопряжение с Cloud — теперь делается из админки кнопкой Connect to Cloud.
 # install.sh ничего не запрашивает.
