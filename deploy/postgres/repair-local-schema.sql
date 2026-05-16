@@ -412,6 +412,95 @@ CREATE INDEX IF NOT EXISTS idx_sync_outbox_casino_changed ON public.sync_outbox(
 CREATE INDEX IF NOT EXISTS idx_sync_outbox_changed ON public.sync_outbox(changed_at);
 CREATE INDEX IF NOT EXISTS idx_sync_outbox_origin ON public.sync_outbox(origin_node_id);
 
+CREATE OR REPLACE FUNCTION public.sync_capture_change()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_casino_id uuid;
+  v_row jsonb;
+  v_payload jsonb;
+  v_origin uuid;
+  v_supplied text;
+BEGIN
+  IF current_setting('sync.applying', true) = 'on' THEN
+    RETURN COALESCE(NEW, OLD);
+  END IF;
+
+  IF TG_OP = 'DELETE' THEN
+    v_row := to_jsonb(OLD);
+    v_payload := NULL;
+  ELSE
+    v_row := to_jsonb(NEW);
+    v_payload := v_row;
+  END IF;
+
+  BEGIN
+    v_casino_id := NULLIF(v_row->>'casino_id','')::uuid;
+  EXCEPTION WHEN OTHERS THEN
+    v_casino_id := NULL;
+  END;
+
+  v_supplied := current_setting('sync.origin_node_id', true);
+  IF v_supplied IS NOT NULL AND v_supplied <> '' THEN
+    BEGIN
+      v_origin := v_supplied::uuid;
+    EXCEPTION WHEN OTHERS THEN
+      v_origin := NULL;
+    END;
+  END IF;
+  IF v_origin IS NULL THEN
+    SELECT node_id INTO v_origin FROM public.node_identity WHERE id = true;
+  END IF;
+
+  INSERT INTO public.sync_outbox (casino_id, table_name, op, pk, payload, origin_node_id)
+  VALUES (v_casino_id, TG_TABLE_NAME, TG_OP, jsonb_build_object('id', v_row->'id'), v_payload, v_origin);
+
+  RETURN COALESCE(NEW, OLD);
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.sync_attach(p_table regclass)
+RETURNS void
+LANGUAGE plpgsql AS $$
+BEGIN
+  EXECUTE format('DROP TRIGGER IF EXISTS trg_sync_capture ON %s', p_table);
+  EXECUTE format(
+    'CREATE TRIGGER trg_sync_capture AFTER INSERT OR UPDATE OR DELETE ON %s
+       FOR EACH ROW EXECUTE FUNCTION public.sync_capture_change()',
+    p_table
+  );
+END;
+$$;
+
+DO $$
+DECLARE
+  t text;
+  tables text[] := ARRAY[
+    'casinos','gaming_tables','chip_color_settings',
+    'chip_initial_baseline','chip_baseline','chip_inventory','chip_snapshots',
+    'financial_wallets','budget_categories','budget_periods','budget_items',
+    'dealers','staff_members','profiles','user_casino_access','user_module_permissions',
+    'players','player_cards','player_groups','group_members','player_tags','player_notes',
+    'transactions','shifts','cage_transfers','expenses','wallet_transactions',
+    'chip_emissions','chip_transfers','casino_visits','breaklist','pit_rota','staff_rota',
+    'dealer_attendance','staff_attendance','table_tracker','table_daily_results',
+    'business_day_closures','cash_counts','cash_count_snapshots','cashless_transactions',
+    'bank_checks','cctv_observations','player_position_history','daily_summaries',
+    'inter_casino_transfers','activity_logs','daily_review','blacklist'
+  ];
+BEGIN
+  FOREACH t IN ARRAY tables LOOP
+    BEGIN
+      PERFORM public.sync_attach(format('public.%I', t)::regclass);
+    EXCEPTION WHEN undefined_table THEN
+      NULL;
+    END;
+  END LOOP;
+END $$;
+
 CREATE OR REPLACE FUNCTION public.sync_outbox_gc()
 RETURNS void LANGUAGE sql SET search_path = public AS $$
   DELETE FROM public.sync_outbox WHERE changed_at < now() - INTERVAL '30 days';
