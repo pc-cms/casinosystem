@@ -48,7 +48,7 @@ grep -q "VITE_SUPABASE_URL: https://" deploy/docker-compose.yml \
   || die "docker-compose.yml does not contain the fix — repo is outdated."
 
 # 3. Show what URL will be baked in
-LOCAL_DOMAIN=$(grep -E '^LOCAL_DOMAIN=' deploy/.env | cut -d= -f2- | tr -d '"' | head -1)
+LOCAL_DOMAIN=$(grep -E '^LOCAL_DOMAIN=' deploy/.env | cut -d= -f2- | sed -e "s/^'//" -e "s/'$//" -e 's/^"//' -e 's/"$//' | head -1)
 [[ -n "$LOCAL_DOMAIN" ]] || die "LOCAL_DOMAIN missing from deploy/.env"
 log "Will bake Supabase URL: ${BOLD}https://${LOCAL_DOMAIN}/api${NC}"
 
