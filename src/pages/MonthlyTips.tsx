@@ -314,21 +314,21 @@ export default function MonthlyTips() {
         </div>
 
         <div className="w-full overflow-x-auto rounded-md border border-border print-target mt-print-target">
-          <div className="hidden print:block text-center font-bold text-[10pt] mb-1">
-            Monthly Tips — {fmtDateOnly(periodStart)} – {fmtDateOnly(periodEnd)}
+          <div className="hidden print:block text-center font-bold text-[12pt] mb-2">
+            Tips for Period {fmtDateOnly(periodStart)} – {fmtDateOnly(periodEnd)}
           </div>
           <table className="w-full text-xs border-collapse">
             <thead className="bg-primary text-primary-foreground">
               <tr>
-                <th className="h-9 w-7 text-center font-semibold">#</th>
-                <th className="h-9 w-8 text-center font-semibold">Cat</th>
-                <th className="h-9 px-2 text-left font-semibold w-[140px] min-w-[140px] max-w-[140px]">Name</th>
+                <th className="h-9 w-7 text-center font-semibold no-print">#</th>
+                <th className="h-9 w-8 text-center font-semibold no-print">Cat</th>
+                <th className="h-9 px-2 text-left font-semibold w-[140px] min-w-[140px] max-w-[140px] print:w-auto print:max-w-none">Name</th>
                 {days.map((day) => {
                   const [, m, d] = day.split("-");
                   const dow = dowOf(day);
                   const isWeekend = dow === 0 || dow === 6;
                   return (
-                    <th key={day} className={cn("h-9 px-0.5 w-7 text-center font-semibold", isWeekend && "bg-primary/70")}>
+                    <th key={day} className={cn("h-9 px-0.5 w-7 text-center font-semibold no-print", isWeekend && "bg-primary/70")}>
                       <div className="text-[10px] leading-tight font-mono">{d}</div>
                       <div className="text-[8px] font-normal opacity-80">{DOW_SHORT[dow]}</div>
                     </th>
