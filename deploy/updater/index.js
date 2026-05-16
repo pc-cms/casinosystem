@@ -53,6 +53,7 @@ const FLAG_FILE = `${COMPOSE_PROJECT_DIR}/UPDATE_AVAILABLE`;
 const PUSH_FILE = `${COMPOSE_PROJECT_DIR}/PUSH_COMMAND.json`;
 const ACK_FILE = `${COMPOSE_PROJECT_DIR}/PUSH_COMMAND_ACK.json`;
 const CHECK_NOW_FILE = `${COMPOSE_PROJECT_DIR}/CHECK_NOW`;
+const RECONFIGURE_FILE = `${COMPOSE_PROJECT_DIR}/RECONFIGURE_FRONTEND`;
 const APPLIED_MIGRATIONS_TABLE = "public._cms_applied_migrations";
 const HEALTH_TIMEOUT_S = 60;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
