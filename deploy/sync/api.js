@@ -112,6 +112,80 @@ export function startApi({ pool }) {
         return send(res, 200, { ok: true, command: cmd });
       }
 
+      // ── Initial seed push (Local→Cloud): backfill outbox from existing rows ──
+      if (req.method === "POST" && path === "/node/seed-push") {
+        const body = await readJson(req);
+        const env = readEnvMap();
+        const cid = String(body.casino_id || env.CASINO_ID || "").trim();
+        if (!/^[0-9a-f-]{36}$/i.test(cid)) return send(res, 400, { error: "casino_id required (uuid)" });
+        try {
+          const { rows } = await pool.query(
+            `SELECT * FROM public.sync_seed_from_existing($1::uuid)`,
+            [cid]
+          );
+          const total = rows.reduce((s, r) => s + Number(r.inserted_count || 0), 0);
+          return send(res, 200, { ok: true, counts: rows, total_inserted: total });
+        } catch (e) {
+          return send(res, 500, { error: String(e?.message || e) });
+        }
+      }
+      if (req.method === "GET" && path === "/node/seed-push/status") {
+        const env = readEnvMap();
+        const cid = String(url.searchParams.get("casino_id") || env.CASINO_ID || "").trim();
+        if (!/^[0-9a-f-]{36}$/i.test(cid)) return send(res, 400, { error: "casino_id required (uuid)" });
+        try {
+          const { rows: marks } = await pool.query(
+            `SELECT table_name, row_count, completed_at
+               FROM public.sync_seed_marker WHERE casino_id = $1 ORDER BY table_name`,
+            [cid]
+          );
+          const { rows: out } = await pool.query(
+            `SELECT COUNT(*)::int AS pending,
+                    COALESCE(MAX(id),0)::bigint AS max_id
+               FROM public.sync_outbox WHERE casino_id = $1`,
+            [cid]
+          );
+          const { rows: peers } = await pool.query(
+            `SELECT display_name, status, last_push_cursor, last_pull_cursor, last_push_error
+               FROM public.peer_links ORDER BY display_name`
+          );
+          return send(res, 200, { marks, outbox: out[0] ?? {}, peers });
+        } catch (e) {
+          return send(res, 500, { error: String(e?.message || e) });
+        }
+      }
+
+      // ── Clone-from-Cloud (Cloud→Local wipe & replace) ──
+      // Streams cloud-seed-export with the local sync_secret credentials, wipes
+      // local data tables for this casino_id, then imports the NDJSON stream
+      // with sync.applying='on' so import doesn't re-emit to outbox.
+      if (req.method === "POST" && path === "/node/clone-from-cloud") {
+        const env = readEnvMap();
+        const cid = env.CASINO_ID;
+        if (!/^[0-9a-f-]{36}$/i.test(cid || "")) {
+          return send(res, 400, { error: "this server has no CASINO_ID configured" });
+        }
+        // Look up the active peer = Cloud (cloud_connection row)
+        const { rows: cc } = await pool.query(
+          `SELECT cloud_url, sync_secret, casino_id, status FROM public.cloud_connection WHERE id = 1`
+        );
+        const conn = cc[0];
+        if (!conn || conn.status !== "connected") {
+          return send(res, 400, { error: "Cloud connection not active — pair this server first" });
+        }
+        if (conn.casino_id !== cid) {
+          return send(res, 400, { error: `Cloud casino_id (${conn.casino_id}) ≠ local CASINO_ID (${cid})` });
+        }
+        // Stream + import (fire-and-forget; client polls /node/clone-from-cloud/status)
+        cloneFromCloud(pool, conn, cid).catch((e) => {
+          console.error("[clone] fatal", e);
+        });
+        return send(res, 202, { ok: true, message: "Clone started — poll /node/clone-from-cloud/status" });
+      }
+      if (req.method === "GET" && path === "/node/clone-from-cloud/status") {
+        return send(res, 200, getCloneStatus());
+      }
+
       // ── Server Identity (CASINO_SLUG / CASINO_ID / NAME / DOMAIN / IP) ──
       if (req.method === "GET" && path === "/node/server-identity") {
         const env = readEnvMap();
