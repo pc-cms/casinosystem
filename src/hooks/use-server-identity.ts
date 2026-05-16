@@ -58,3 +58,70 @@ export const useSaveServerIdentity = () => {
     onError: (e: Error) => toast.error(e.message),
   });
 };
+
+// ─────────────────────────────────────────────────────────────
+// Initial seed push (Case 1: Local → Cloud full mirror upload)
+// ─────────────────────────────────────────────────────────────
+export interface SeedPushStatus {
+  marks: { table_name: string; row_count: number; completed_at: string }[];
+  outbox: { pending: number; max_id: number };
+  peers: { display_name: string; status: string; last_push_cursor: number; last_pull_cursor: number; last_push_error: string | null }[];
+}
+
+export const useSeedPush = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (casinoId?: string) =>
+      authedFetch("/api/node/seed-push", {
+        method: "POST",
+        body: JSON.stringify(casinoId ? { casino_id: casinoId } : {}),
+      }),
+    onSuccess: (data: { total_inserted: number }) => {
+      toast.success(`Queued ${data.total_inserted.toLocaleString()} rows for upload to Cloud`);
+      qc.invalidateQueries({ queryKey: ["seed-push-status"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+};
+
+export const useSeedPushStatus = (enabled: boolean) =>
+  useQuery({
+    queryKey: ["seed-push-status"],
+    queryFn: (): Promise<SeedPushStatus> => authedFetch("/api/node/seed-push/status"),
+    enabled: enabled && isLocalServer(),
+    refetchInterval: 3000,
+  });
+
+// ─────────────────────────────────────────────────────────────
+// Clone from Cloud (Case 2: wipe local & replace with Cloud copy)
+// ─────────────────────────────────────────────────────────────
+export interface CloneStatus {
+  status: "idle" | "running" | "error" | "done";
+  started_at: string | null;
+  finished_at: string | null;
+  current_table: string | null;
+  counts: Record<string, number>;
+  error: string | null;
+}
+
+export const useCloneFromCloud = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      authedFetch("/api/node/clone-from-cloud", { method: "POST", body: "{}" }),
+    onSuccess: () => {
+      toast.success("Clone started — see progress below");
+      qc.invalidateQueries({ queryKey: ["clone-status"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+};
+
+export const useCloneStatus = (enabled: boolean) =>
+  useQuery({
+    queryKey: ["clone-status"],
+    queryFn: (): Promise<CloneStatus> => authedFetch("/api/node/clone-from-cloud/status"),
+    enabled: enabled && isLocalServer(),
+    refetchInterval: 2000,
+  });
+
