@@ -45,12 +45,12 @@ if ! docker compose ps cms-sync 2>/dev/null | grep -q "Up\|running"; then
 fi
 
 # Make sure pair-cli.js exists in the container; if not — rebuild cms-sync from current sources
-if ! docker compose exec -T cms-sync test -f /app/pair-cli.js 2>/dev/null; then
+if ! docker compose exec -T cms-sync test -f /app/pair-cli.js </dev/null 2>/dev/null; then
   warn "pair-cli.js missing in cms-sync image — rebuilding cms-sync (1-2 min)..."
-  docker compose build cms-sync || die "cms-sync rebuild failed"
-  docker compose up -d --force-recreate cms-sync
+  docker compose build cms-sync </dev/null || die "cms-sync rebuild failed"
+  docker compose up -d --force-recreate cms-sync </dev/null
   sleep 4
-  docker compose exec -T cms-sync test -f /app/pair-cli.js 2>/dev/null \
+  docker compose exec -T cms-sync test -f /app/pair-cli.js </dev/null 2>/dev/null \
     || die "pair-cli.js still missing after rebuild. Run update.sh first:
        curl -fsSL https://casinosystem.app/update.sh | sudo bash"
 fi
