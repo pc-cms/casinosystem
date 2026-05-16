@@ -96,7 +96,7 @@ REPAIR_FILE="${CMS_DIR}/deploy/postgres/repair-local-schema.sql"
 if [[ -f "$REPAIR_FILE" ]]; then
   log "Checking local sync schema..."
   docker compose exec -T -e PGPASSWORD="$POSTGRES_PASSWORD" postgres \
-    sh -c 'psql -U "${POSTGRES_USER:-postgres}" -d "${POSTGRES_DB:-postgres}" -v ON_ERROR_STOP=1' \
+    sh -c 'psql -h 127.0.0.1 -U "${POSTGRES_USER:-postgres}" -d "${POSTGRES_DB:-postgres}" -v ON_ERROR_STOP=1' \
     < "$REPAIR_FILE" >/dev/null \
     || die "local schema repair failed — check: docker compose logs --tail=80 postgres"
 fi
