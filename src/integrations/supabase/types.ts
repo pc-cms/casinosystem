@@ -4633,6 +4633,7 @@ export type Database = {
           module_key: string
         }[]
       }
+      export_full_schema_ddl: { Args: never; Returns: string }
       finalize_open_cycles_for_close: {
         Args: { _casino_id: string; _user: string }
         Returns: Json
