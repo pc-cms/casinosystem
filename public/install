@@ -1,40 +1,195 @@
 #!/usr/bin/env bash
 #
-# Casino System — One-line bootstrap installer (private repo edition)
-# --------------------------------------------------------------------
-# Usage:
-#   curl -fsSL https://casinosystem.app/install | sudo bash
-#   curl -fsSL https://casinosystem.app/install | sudo bash -s -- --reset
-#   curl -fsSL https://casinosystem.app/install | sudo bash -s -- --rebuild
-#   curl -fsSL https://casinosystem.app/install | sudo bash -s -- --reconfigure
+# Casino System — On-Premises Installer
+# --------------------------------------------------------
+# Запуск без аргументов = интерактивное меню:
+#   sudo ./deploy/install.sh                   # меню: Обновить / Переустановить / Стереть всё
 #
-# Авторизация для приватного репо:
-#   GH_TOKEN передаётся через env или через /etc/casino-system/bootstrap.env
-#   echo 'GH_TOKEN=ghp_xxx' | sudo tee /etc/casino-system/bootstrap.env
-#   sudo chmod 600 /etc/casino-system/bootstrap.env
+# Или сразу с флагом:
+#   sudo ./deploy/install.sh --update          # обновить frontend, сохранить БД и .env
+#   sudo ./deploy/install.sh --rebuild         # пересобрать frontend (no-cache)
+#   sudo ./deploy/install.sh --reset           # сбросить .env (БД остаётся)
+#   sudo ./deploy/install.sh --wipe            # удалить ВСЁ (БД, образы) и поставить заново
+#   sudo ./deploy/install.sh --menu            # принудительно показать меню
 #
 set -euo pipefail
 
-BOOTSTRAP_VERSION="1.3.3"
-REPO="${CASINO_REPO:-pc-cms/casinosystem}"
-if [[ "$REPO" == "pms-cms/casinosystem" ]]; then
-  REPO="pc-cms/casinosystem"
-fi
-BRANCH="${CASINO_BRANCH:-main}"
-USE_LATEST_RELEASE="${CASINO_USE_LATEST_RELEASE:-false}"
-TARGET="${CASINO_TARGET:-/opt/casino-system}"
-ENV_FILE="/etc/casino-system/bootstrap.env"
-SELF_URL="${CASINO_BOOTSTRAP_URL:-https://casinosystem.app/install}"
+INSTALLER_VERSION="2.1.2"
 
-RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; CYAN='\033[0;36m'; BOLD='\033[1m'; NC='\033[0m'
-log()  { echo -e "${CYAN}[bootstrap]${NC} $*"; }
-ok()   { echo -e "${GREEN}[ ok ]${NC} $*"; }
-warn() { echo -e "${YELLOW}[warn]${NC} $*"; }
-fail() { echo -e "${RED}[fail]${NC} $*" >&2; exit 1; }
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CMS_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+cd "$SCRIPT_DIR"
+
+echo -e "\033[1;36m╔════════════════════════════════════════════════╗\033[0m"
+echo -e "\033[1;36m║  Casino System Installer  v${INSTALLER_VERSION}              ║\033[0m"
+echo -e "\033[1;36m╚════════════════════════════════════════════════╝\033[0m"
+
+RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; BLUE='\033[0;34m'; CYAN='\033[0;36m'; BOLD='\033[1m'; NC='\033[0m'
+log()    { echo -e "${BLUE}[install]${NC} $*"; }
+ok()     { echo -e "${GREEN}[ ok ]${NC} $*"; }
+warn()   { echo -e "${YELLOW}[warn]${NC} $*"; }
+fail()   { echo -e "${RED}[fail]${NC} $*" >&2; exit 1; }
+hr()     { echo -e "${CYAN}────────────────────────────────────────────────────────${NC}"; }
+title()  { echo; hr; echo -e "${BOLD}${CYAN}  $*${NC}"; hr; }
+trap 'rc=$?; echo -e "${RED}[fail]${NC} Installer stopped at line ${BASH_LINENO[0]} (exit ${rc})\n        command: ${BASH_COMMAND}\n        Diag: sudo docker compose -f $SCRIPT_DIR/docker-compose.yml logs --tail=80" >&2; exit "$rc"' ERR
+
+require_root() { [[ $EUID -eq 0 ]] || fail "Запустите от root: sudo ./deploy/install.sh"; }
+
+# ── CLI ──
+RESET=0; REBUILD=0; RECONFIGURE=0; WIPE=0; UPDATE=0; MENU=0
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --reset)        RESET=1; shift ;;
+    --rebuild)      REBUILD=1; shift ;;
+    --reconfigure)  RECONFIGURE=1; shift ;;
+    --wipe)         WIPE=1; RESET=1; REBUILD=1; shift ;;
+    --update)       UPDATE=1; REBUILD=1; shift ;;
+    --menu)         MENU=1; shift ;;
+    -h|--help)      sed -n '4,16p' "$0"; exit 0 ;;
+    *) fail "Неизвестный аргумент: $1" ;;
+  esac
+done
+
+require_root
+
+# ── Interactive menu (default when запущен без флагов в TTY) ──
+if [[ $MENU -eq 0 && $RESET -eq 0 && $REBUILD -eq 0 && $RECONFIGURE -eq 0 && $WIPE -eq 0 && $UPDATE -eq 0 ]]; then
+  if [[ -t 0 || -e /dev/tty ]]; then MENU=1; fi
+fi
+
+if [[ $MENU -eq 1 ]]; then
+  # Открываем /dev/tty как fd 3 — read будет читать оттуда напрямую,
+  # независимо от того, чем заняты stdin/stdout (pipe от curl и т.п.).
+  if [[ -e /dev/tty ]]; then
+    exec 3</dev/tty || { warn "Нет доступа к /dev/tty — пропускаю меню"; MENU=0; }
+  else
+    warn "/dev/tty недоступен — пропускаю меню"
+    MENU=0
+  fi
+fi
+
+if [[ $MENU -eq 1 ]]; then
+  echo
+  echo -e "${BOLD}${CYAN}  Выберите действие:${NC}"
+  echo
+  HAS_ENV=0; [[ -f "${SCRIPT_DIR}/.env" ]] && HAS_ENV=1
+  if [[ $HAS_ENV -eq 1 ]]; then
+    echo -e "    ${BOLD}1${NC})  ${GREEN}Обновить${NC}        — пересобрать ВСЁ (frontend + сервисы), БД и .env сохранить  ${YELLOW}(рекомендуется)${NC}"
+    echo -e "    ${BOLD}2${NC})  Переустановить    — пересоздать .env, сертификаты и пересобрать frontend (БД сохранить)"
+    echo -e "    ${BOLD}3${NC})  ${RED}Стереть всё${NC}     — удалить БД, .env, образы и поставить заново"
+    echo -e "    ${BOLD}4${NC})  Статус и логи"
+    echo -e "    ${BOLD}5${NC})  Выйти"
+  else
+    echo -e "    ${BOLD}1${NC})  ${GREEN}Установить${NC}      — чистая установка (БД и .env будут созданы)  ${YELLOW}(рекомендуется)${NC}"
+    echo -e "    ${BOLD}2${NC})  ${RED}Стереть всё и поставить заново${NC}  — на всякий случай очистить остатки"
+    echo -e "    ${BOLD}3${NC})  Статус и логи"
+    echo -e "    ${BOLD}4${NC})  Выйти"
+  fi
+  DEFAULT_CHOICE=1
+  echo
+  printf "  Ваш выбор [%s]: " "$DEFAULT_CHOICE"
+  CHOICE=""
+  if ! IFS= read -r -u 3 CHOICE; then CHOICE=""; fi
+  CHOICE="${CHOICE//[[:space:]]/}"
+  CHOICE="${CHOICE:-$DEFAULT_CHOICE}"
+  echo
+
+  if [[ $HAS_ENV -eq 1 ]]; then
+    case "$CHOICE" in
+      1) echo -e "${GREEN}▶ Запускаю: Обновление (полная пересборка)${NC}"; UPDATE=1; REBUILD=1 ;;
+      2) echo -e "${GREEN}▶ Запускаю: Переустановка (.env + пересборка frontend)${NC}"; RESET=1; REBUILD=1 ;;
+      3)
+         echo
+         printf "  ⚠  Это удалит ВСЮ базу данных. Введите 'WIPE' для подтверждения: "
+         CONFIRM=""; IFS= read -r -u 3 CONFIRM || true
+         [[ "$CONFIRM" == "WIPE" ]] || fail "Отмена."
+         echo -e "${RED}▶ Запускаю: Полная очистка и установка с нуля${NC}"
+         WIPE=1; RESET=1; REBUILD=1
+         ;;
+      4)
+         echo; docker compose ps || true; echo
+         echo -e "${CYAN}Последние логи (Ctrl+C для выхода):${NC}"
+         exec docker compose logs --tail=100 -f
+         ;;
+      5) echo "Выход."; exit 0 ;;
+      *) fail "Неизвестный выбор: '${CHOICE}'" ;;
+    esac
+  else
+    case "$CHOICE" in
+      1) echo -e "${GREEN}▶ Запускаю: Чистая установка${NC}" ;;
+      2)
+         echo
+         printf "  ⚠  Введите 'WIPE' для подтверждения полной очистки: "
+         CONFIRM=""; IFS= read -r -u 3 CONFIRM || true
+         [[ "$CONFIRM" == "WIPE" ]] || fail "Отмена."
+         echo -e "${RED}▶ Запускаю: Полная очистка и установка${NC}"
+         WIPE=1; RESET=1; REBUILD=1
+         ;;
+      3)
+         echo; docker compose ps 2>/dev/null || true; echo
+         echo -e "${CYAN}Последние логи (Ctrl+C для выхода):${NC}"
+         exec docker compose logs --tail=100 -f 2>/dev/null || { echo "Стек ещё не запущен."; exit 0; }
+         ;;
+      4) echo "Выход."; exit 0 ;;
+      *) fail "Неизвестный выбор: '${CHOICE}'" ;;
+    esac
+  fi
+  echo
+fi
+
+# ────────── 1. Система ──────────
+title "1/5  Проверка системы"
+
+if ! command -v lsb_release &>/dev/null; then
+  apt-get update -qq && apt-get install -y -qq lsb-release
+fi
+UBUNTU_VER=$(lsb_release -rs)
+log "Ubuntu: $UBUNTU_VER"
+[[ "${UBUNTU_VER%%.*}" -ge 22 ]] || fail "Нужен Ubuntu 22.04+ (у вас $UBUNTU_VER)"
+
+for pkg in curl jq openssl ca-certificates; do
+  command -v "$pkg" &>/dev/null || apt-get install -y -qq "$pkg" 2>&1 | tail -2
+done
+
+if ! command -v docker &>/dev/null; then
+  log "Устанавливаю Docker..."
+  apt-get install -y -qq gnupg
+  install -m 0755 -d /etc/apt/keyrings
+  curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+  chmod a+r /etc/apt/keyrings/docker.gpg
+  echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" \
+    > /etc/apt/sources.list.d/docker.list
+  apt-get update -qq
+  apt-get install -y -qq docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+  systemctl enable --now docker
+  ok "Docker установлен"
+else
+  ok "Docker: $(docker --version | awk '{print $3}' | tr -d ',')"
+fi
+
+# Проверка интернета
+if ! curl -fsS --max-time 8 -o /dev/null https://1.1.1.1 2>/dev/null; then
+  fail "Нет интернета. На сервере должен быть доступ к Cloud (хотя бы на момент установки)."
+fi
+ok "Интернет доступен"
+
+# ────────── helper ──────────
+update_env() {
+  local key="$1" val="$2"
+  # Always single-quote value so spaces/specials are safe when sourced.
+  # Escape any existing single quotes inside the value.
+  local q_val
+  q_val=$(printf "'%s'" "$(printf '%s' "$val" | sed "s/'/'\\\\''/g")")
+  if grep -qE "^${key}=" .env 2>/dev/null; then
+    local esc=$(printf '%s\n' "$q_val" | sed -e 's/[\/&|]/\\&/g')
+    sed -i "s|^${key}=.*|${key}=${esc}|" .env
+  else
+    echo "${key}=${q_val}" >> .env
+  fi
+}
 
 normalize_env_file() {
-  local env_path="$1"
-  [[ -f "$env_path" ]] || return 0
+  [[ -f .env ]] || return 0
   local tmp
   tmp="$(mktemp)"
   while IFS= read -r line || [[ -n "$line" ]]; do
@@ -50,129 +205,400 @@ normalize_env_file() {
     local q_val
     q_val=$(printf "'%s'" "$(printf '%s' "$val" | sed "s/'/'\\\\''/g")")
     printf '%s=%s\n' "$key" "$q_val" >> "$tmp"
-  done < "$env_path"
-  mv "$tmp" "$env_path"
+  done < .env
+  mv "$tmp" .env
+}
+gen_secret() { openssl rand -base64 48 | tr -d '\n=+/' | cut -c1-64; }
+
+write_root_compose_env() {
+  {
+    echo "# Auto-generated by Casino System installer."
+    echo "# Lets \`docker compose ...\` work from /opt/casino-system."
+    echo "COMPOSE_FILE=deploy/docker-compose.yml"
+    echo "COMPOSE_PROJECT_NAME=deploy"
+    grep -vE '^COMPOSE_(FILE|PROJECT_NAME|ENV_FILES)=' .env 2>/dev/null || true
+  } > "${CMS_ROOT}/.env"
 }
 
-echo -e "${CYAN}╔════════════════════════════════════════════════╗${NC}"
-echo -e "${CYAN}║  Casino System Bootstrap  v${BOOTSTRAP_VERSION}              ║${NC}"
-echo -e "${CYAN}║  repo: ${REPO}@${BRANCH}${NC}"
-echo -e "${CYAN}╚════════════════════════════════════════════════╝${NC}"
-
-[[ $EUID -eq 0 ]] || fail "Запустите от root: curl -fsSL ${SELF_URL} | sudo bash"
-
-command -v curl >/dev/null 2>&1 || { log "Устанавливаю curl..."; apt-get update -qq && apt-get install -y -qq curl; }
-command -v tar  >/dev/null 2>&1 || { log "Устанавливаю tar...";  apt-get update -qq && apt-get install -y -qq tar; }
-
-# ── Загружаем токен (опционально, нужен только для приватных репо) ──
-if [[ -z "${GH_TOKEN:-}" ]] && [[ -f "$ENV_FILE" ]]; then
-  set -a; . "$ENV_FILE"; set +a
-fi
-
-AUTH_ARGS=()
-if [[ -n "${GH_TOKEN:-}" ]]; then
-  AUTH_ARGS=(-H "Authorization: Bearer ${GH_TOKEN}")
-  log "Использую GH_TOKEN из ${ENV_FILE:-env}"
-else
-  log "GH_TOKEN не задан — работаю в анонимном режиме (репо должна быть публичной)"
-fi
-ACCEPT_HDR="Accept: application/vnd.github+json"
-API_VER_HDR="X-GitHub-Api-Version: 2022-11-28"
-
-TMP="$(mktemp -d /tmp/casino-bootstrap.XXXXXX)"
-trap 'rm -rf "$TMP"' EXIT
-
-# ── Определяем ref: по умолчанию main; release только если явно включён ──
-REF="$BRANCH"
-if [[ "$USE_LATEST_RELEASE" == "true" ]]; then
-  log "Запрашиваю latest release из GitHub API..."
-  REL_HTTP=$(curl -fsS -o "$TMP/release.json" -w "%{http_code}" \
-    "${AUTH_ARGS[@]}" -H "$ACCEPT_HDR" -H "$API_VER_HDR" \
-    --retry 3 --retry-delay 2 \
-    "https://api.github.com/repos/${REPO}/releases/latest" 2>/dev/null || echo "000")
-
-  if [[ "$REL_HTTP" == "200" ]]; then
-    REF=$(grep -oP '"tag_name"\s*:\s*"\K[^"]+' "$TMP/release.json" | head -n1)
-    ok "Latest release: $REF"
-  elif [[ "$REL_HTTP" == "401" || "$REL_HTTP" == "403" ]]; then
-    fail "GitHub отклонил доступ (HTTP=$REL_HTTP). Если репо приватная — нужен GH_TOKEN. Если публичная — проверь имя репо: ${REPO}."
+fix_local_file_permissions() {
+  if getent group docker >/dev/null 2>&1; then
+    chgrp docker .env "${CMS_ROOT}/.env" 2>/dev/null || true
+    chmod 0640 .env "${CMS_ROOT}/.env" 2>/dev/null || true
   else
-    warn "GitHub API вернул HTTP=$REL_HTTP — использую ветку '${BRANCH}'"
+    chmod 0644 .env "${CMS_ROOT}/.env" 2>/dev/null || true
+  fi
+}
+
+open_firewall_ports() {
+  if command -v ufw >/dev/null 2>&1 && ufw status 2>/dev/null | grep -qi '^Status: active'; then
+    ufw allow 80/tcp >/dev/null 2>&1 || true
+    ufw allow 443/tcp >/dev/null 2>&1 || true
+    ufw allow 51820/udp >/dev/null 2>&1 || true
+    ok "Firewall: открыты 80/tcp, 443/tcp, 51820/udp"
+  fi
+}
+
+assert_local_frontend_env() {
+  : "${LOCAL_IP:?LOCAL_IP missing}"
+  : "${ANON_KEY:?ANON_KEY missing}"
+  local expected="https://${LOCAL_IP}/api"
+  [[ "$expected" != *"supabase.co"* ]] || fail "Frontend local URL resolved to Cloud: ${expected}"
+  docker compose config 2>/dev/null | grep -q "VITE_SUPABASE_URL: ${expected}" \
+    || fail "docker-compose is not baking local API URL (${expected}) into cms-frontend."
+  ok "Frontend build target: ${expected}"
+}
+
+compose_project_name() {
+  docker compose config --format json 2>/dev/null | jq -r '.name // empty' 2>/dev/null || true
+}
+
+reset_postgres_volume() {
+  log "Останавливаю stack и удаляю docker volumes Postgres..."
+  docker compose stop postgres postgrest gotrue realtime storage cms-frontend nginx cms-sync cms-monitor cms-updater cms-backup &>/dev/null || true
+  docker rm -f cms-postgres &>/dev/null || true
+  docker compose down -v --remove-orphans &>/dev/null || true
+  local project_name volume_name
+  project_name="$(compose_project_name)"
+  [[ -n "$project_name" ]] || project_name="$(basename "$SCRIPT_DIR")"
+  volume_name="${project_name}_postgres_data"
+  docker volume rm "$volume_name" &>/dev/null || true
+  docker volume rm "deploy_postgres_data" "casino-system_postgres_data" "casino-system-deploy_postgres_data" "cms-postgres-data" &>/dev/null || true
+  while IFS= read -r v; do
+    [[ -n "$v" ]] || continue
+    if docker volume inspect "$v" --format '{{ index .Labels "com.docker.compose.project" }} {{ index .Labels "com.docker.compose.volume" }}' 2>/dev/null | grep -q "^${project_name} postgres_data$"; then
+      docker volume rm "$v" &>/dev/null || true
+    fi
+  done < <(docker volume ls --format '{{.Name}}' | grep -E '(^|_)postgres[_-]data$' || true)
+  while IFS= read -r v; do
+    [[ -n "$v" ]] || continue
+    docker volume rm "$v" &>/dev/null || true
+  done < <(docker volume ls --format '{{.Name}}' | grep -E '(^|_)postgres-data$' || true)
+  ok "Postgres volume очищен"
+  return 0
+}
+
+wait_for_postgres() {
+  local label="${1:-Postgres}"
+  for i in $(seq 1 60); do
+    if docker compose exec -T -e PGPASSWORD="${POSTGRES_PASSWORD}" postgres \
+        psql -h 127.0.0.1 -U "${POSTGRES_USER:-postgres}" -d "${POSTGRES_DB:-postgres}" -tAc "SELECT 1" &>/dev/null; then
+      ok "${label} готов и принимает пароль из .env"
+      return 0
+    fi
+    sleep 2
+  done
+  docker compose ps postgres >&2 || true
+  docker compose logs --tail=80 postgres >&2 || true
+  fail "${label} не принимает пароль из .env после ожидания"
+}
+
+wait_for_postgres_ready() {
+  local label="${1:-Postgres}"
+  for i in $(seq 1 60); do
+    docker compose exec -T postgres pg_isready -U "${POSTGRES_USER:-postgres}" &>/dev/null && { ok "${label} готов"; return 0; }
+    sleep 2
+  done
+  docker compose ps postgres >&2 || true
+  docker compose logs --tail=80 postgres >&2 || true
+  fail "${label} не стартовал"
+}
+
+postgres_network_name() {
+  local cid net
+  cid="$(docker compose ps -q postgres 2>/dev/null || true)"
+  [[ -n "$cid" ]] || return 1
+  net="$(docker inspect "$cid" --format '{{range $name, $conf := .NetworkSettings.Networks}}{{println $name}}{{end}}' 2>/dev/null | head -1)"
+  [[ -n "$net" ]] || return 1
+  printf '%s' "$net"
+}
+
+# ────────── 2. Конфигурация ──────────
+SEED_DONE_FILE="${SCRIPT_DIR}/.install-done"
+
+if [[ $WIPE -eq 1 ]]; then
+  warn "WIPE: удаляю все контейнеры, volumes, образы frontend, .env и сертификаты..."
+  docker compose down -v --remove-orphans &>/dev/null || true
+  docker volume ls --format '{{.Name}}' | grep -E '(postgres|storage|cms-)' | xargs -r docker volume rm &>/dev/null || true
+  # Удаляем образ frontend, чтобы гарантированно пересобрать с новым кодом
+  docker image rm -f "cms-frontend:${FRONTEND_VERSION:-local}" cms-frontend:local &>/dev/null || true
+  docker builder prune -af &>/dev/null || true
+  rm -f .env "$SEED_DONE_FILE" "${SCRIPT_DIR}/.super-admin-done" "${SCRIPT_DIR}/.pairing-done"
+  rm -rf certs postgres/seed-data data runtime-config.json
+  ok "WIPE завершён — продолжаю чистую установку"
+fi
+
+if [[ $RESET -eq 1 ]]; then
+  rm -f "$SEED_DONE_FILE" .env
+fi
+[[ -f .env ]] || cp env.template .env
+normalize_env_file
+set -a; source .env; set +a
+
+# ── Параметры локации (auto; меняются позже в Admin → Peers → Server Identity) ──
+title "2/4  Параметры локации (auto)"
+# Placeholder casino UUID — matches deploy/postgres/init/20-seed-defaults.sql.
+# Name/slug/IP редактируется в UI, но CASINO_ID остаётся постоянным.
+: "${CASINO_ID:=00000000-0000-0000-0000-0000000000ca}"
+: "${CASINO_NAME:=Local Casino}"
+: "${CASINO_SLUG:=local}"
+: "${LOCAL_IP:=$(hostname -I 2>/dev/null | awk '{print $1}')}"
+: "${LOCAL_IP:=127.0.0.1}"
+: "${LOCAL_DOMAIN:=casino.local}"
+update_env CASINO_ID     "$CASINO_ID"
+update_env CASINO_NAME   "$CASINO_NAME"
+update_env CASINO_SLUG   "$CASINO_SLUG"
+update_env LOCAL_IP      "$LOCAL_IP"
+update_env LOCAL_DOMAIN  "$LOCAL_DOMAIN"
+ok "Casino: ${CASINO_NAME} (${CASINO_SLUG}) @ ${LOCAL_IP} / ${LOCAL_DOMAIN}"
+ok "Поменять можно после установки в Admin → Peers → Server Identity"
+
+normalize_env_file
+set -a; source .env; set +a
+
+# Сопряжение с Cloud — теперь делается из админки кнопкой Connect to Cloud.
+# install.sh ничего не запрашивает.
+
+# ────────── 4. Секреты + сертификаты ──────────
+title "3/4  Секреты и сертификаты"
+
+[[ -z "${POSTGRES_PASSWORD:-}" ]] && { update_env POSTGRES_PASSWORD "$(gen_secret)"; ok "POSTGRES_PASSWORD"; }
+[[ -z "${JWT_SECRET:-}" ]]        && { update_env JWT_SECRET        "$(gen_secret)"; ok "JWT_SECRET"; }
+normalize_env_file
+set -a; source .env; set +a
+
+gen_jwt() {
+  local role="$1" secret="$2"
+  local header='{"alg":"HS256","typ":"JWT"}'
+  local payload="{\"iss\":\"casino-local\",\"role\":\"${role}\",\"iat\":$(date +%s),\"exp\":$(date -d '+10 years' +%s)}"
+  local h=$(printf '%s' "$header"  | openssl base64 -A | tr -d '=' | tr '/+' '_-')
+  local p=$(printf '%s' "$payload" | openssl base64 -A | tr -d '=' | tr '/+' '_-')
+  local sig=$(printf '%s.%s' "$h" "$p" | openssl dgst -sha256 -hmac "$secret" -binary | openssl base64 -A | tr -d '=' | tr '/+' '_-')
+  echo "${h}.${p}.${sig}"
+}
+[[ -z "${ANON_KEY:-}" ]]         && { update_env ANON_KEY         "$(gen_jwt anon "$JWT_SECRET")";          ok "ANON_KEY"; }
+[[ -z "${SERVICE_ROLE_KEY:-}" ]] && { update_env SERVICE_ROLE_KEY "$(gen_jwt service_role "$JWT_SECRET")"; ok "SERVICE_ROLE_KEY"; }
+set -a; source .env; set +a
+write_root_compose_env
+fix_local_file_permissions
+assert_local_frontend_env
+
+mkdir -p certs
+if [[ ! -f certs/ca.crt ]]; then
+  openssl genrsa -out certs/ca.key 4096 2>/dev/null
+  openssl req -x509 -new -nodes -key certs/ca.key -sha256 -days 3650 \
+    -out certs/ca.crt -subj "/C=TZ/O=${CASINO_NAME}/CN=Casino System Local CA" 2>/dev/null
+  ok "CA создан"
+fi
+if [[ ! -f certs/server.crt ]] \
+  || ! openssl x509 -in certs/server.crt -noout -text 2>/dev/null | grep -q "DNS:${LOCAL_DOMAIN}" \
+  || ! openssl x509 -in certs/server.crt -noout -text 2>/dev/null | grep -q "IP Address:${LOCAL_IP}"; then
+  openssl genrsa -out certs/server.key 2048 2>/dev/null
+  cat > certs/server.cnf <<EOF
+[req]
+distinguished_name = req_distinguished_name
+req_extensions = v3_req
+prompt = no
+[req_distinguished_name]
+C = TZ
+O = ${CASINO_NAME}
+CN = ${LOCAL_DOMAIN}
+[v3_req]
+keyUsage = keyEncipherment, dataEncipherment, digitalSignature
+extendedKeyUsage = serverAuth
+subjectAltName = @alt_names
+[alt_names]
+DNS.1 = ${LOCAL_DOMAIN}
+DNS.2 = *.${LOCAL_DOMAIN}
+DNS.3 = localhost
+IP.1  = 127.0.0.1
+IP.2  = ${LOCAL_IP}
+EOF
+  openssl req -new -key certs/server.key -out certs/server.csr -config certs/server.cnf 2>/dev/null
+  openssl x509 -req -in certs/server.csr -CA certs/ca.crt -CAkey certs/ca.key -CAcreateserial \
+    -out certs/server.crt -days 3650 -sha256 -extensions v3_req -extfile certs/server.cnf 2>/dev/null
+  rm -f certs/server.csr certs/server.cnf certs/ca.srl
+  chmod 600 certs/*.key
+  ok "Server cert для ${LOCAL_DOMAIN}"
+fi
+
+grep -qE "^[^#]*\s${LOCAL_DOMAIN}(\s|$)" /etc/hosts \
+  || echo "127.0.0.1  ${LOCAL_DOMAIN}" >> /etc/hosts
+open_firewall_ports
+
+# ────────── 4.5. Миграции + seed ──────────
+mkdir -p postgres/migrations postgres/init
+if [[ -d ../supabase/migrations ]]; then
+  cp ../supabase/migrations/*.sql postgres/migrations/ 2>/dev/null || true
+  cp ../supabase/migrations/*.sql postgres/init/      2>/dev/null || true
+  ok "Скопировано $(ls postgres/migrations/*.sql 2>/dev/null | wc -l) миграций"
+fi
+
+# ────────── 4.6. Чистая установка БД (без seed) ──────────
+# v1.1.0+: данные больше НЕ импортируются в install.sh.
+# После approve в Cloud-админке нужно нажать кнопку "Initial Sync" —
+# cms-sync сам подтянет все данные казино из Cloud в пустую БД.
+log "Запускаю postgres (чистая БД, миграции применятся автоматически)..."
+docker compose up -d postgres
+wait_for_postgres_ready "Postgres"
+touch "$SEED_DONE_FILE"
+ok "БД готова. Данные подтянутся после Initial Sync из Cloud-админки."
+
+# ────────── 5. Сборка frontend + старт ──────────
+title "4/4  Сборка frontend и запуск стека"
+
+if [[ $UPDATE -eq 1 ]]; then
+  log "UPDATE: пересобираю ВСЕ локальные образы (frontend, sync, monitor, updater, backup)..."
+  # Удаляем старые образы локальной сборки, чтобы гарантированно подтянуть новый код
+  docker image rm -f \
+    "cms-frontend:${FRONTEND_VERSION:-local}" cms-frontend:local \
+    cms-sync:local cms-monitor:local cms-updater:local cms-backup:local &>/dev/null || true
+  log "Подтягиваю свежие образы внешних сервисов (postgres, gotrue, postgrest, realtime, storage, nginx)..."
+  docker compose pull --ignore-pull-failures 2>&1 | grep -vE '^$' || true
+  log "Собираю все локальные сервисы (--no-cache, 5-10 минут)..."
+  docker compose build --no-cache --pull
+  ok "Все образы пересобраны"
+  log "Перезапускаю весь стек с новыми образами..."
+  docker compose up -d --force-recreate --remove-orphans
+elif [[ $REBUILD -eq 1 ]]; then
+  log "Удаляю старый образ frontend для чистой пересборки..."
+  docker image rm -f "cms-frontend:${FRONTEND_VERSION:-local}" cms-frontend:local &>/dev/null || true
+  log "Собираю cms-frontend (3-7 минут)..."
+  docker compose build --no-cache cms-frontend
+  ok "Frontend собран"
+  log "Запуск всех контейнеров..."
+  docker compose up -d
+elif ! docker image inspect "cms-frontend:${FRONTEND_VERSION:-local}" &>/dev/null; then
+  log "Собираю cms-frontend (3-7 минут)..."
+  docker compose build cms-frontend
+  ok "Frontend собран"
+  log "Запуск всех контейнеров..."
+  docker compose up -d
+else
+  ok "Frontend образ уже есть (используем кэш). --rebuild чтобы пересобрать."
+  log "Запуск всех контейнеров..."
+  docker compose up -d
+fi
+
+log "Жду готовности frontend (до 30 сек)..."
+for i in $(seq 1 15); do
+  docker compose exec -T cms-frontend curl -fsS http://localhost/ -o /dev/null 2>/dev/null && { ok "Frontend запущен"; break; }
+  sleep 2
+done
+
+# ────────── 5.5. Super admin (idempotent) ──────────
+# Always ensure superadmin@cms.local exists with super_admin role + correct password.
+title "Ensure Super Admin (superadmin@cms.local / superadmin)"
+
+SA_EMAIL="${SUPER_ADMIN_EMAIL:-superadmin@cms.local}"
+SA_PASS="${SUPER_ADMIN_PASSWORD:-superadmin}"
+
+log "Жду готовности GoTrue..."
+for i in $(seq 1 30); do
+  docker compose exec -T gotrue wget -q -O- http://localhost:9999/health 2>/dev/null | grep -q '"name"' && break
+  sleep 2
+done
+
+# Check if user already exists in DB
+SA_USER_ID=$(docker compose exec -T -e PGPASSWORD="${POSTGRES_PASSWORD}" postgres \
+  psql -h 127.0.0.1 -U "${POSTGRES_USER:-postgres}" -d "${POSTGRES_DB:-postgres}" -tAc \
+  "SELECT id FROM auth.users WHERE email='${SA_EMAIL}' LIMIT 1" 2>/dev/null | tr -d ' \n' || true)
+
+if [[ -z "$SA_USER_ID" ]]; then
+  log "Создаю пользователя через GoTrue admin API: ${SA_EMAIL}"
+  SA_RESP=$(docker compose exec -T gotrue wget -q -O- \
+    --header="Authorization: Bearer ${SERVICE_ROLE_KEY}" \
+    --header="Content-Type: application/json" \
+    --post-data="$(jq -n --arg e "$SA_EMAIL" --arg p "$SA_PASS" '{email:$e,password:$p,email_confirm:true}')" \
+    http://localhost:9999/admin/users 2>&1 || true)
+  SA_USER_ID=$(printf '%s' "$SA_RESP" | jq -er '.id // empty' 2>/dev/null || true)
+  if [[ -z "$SA_USER_ID" ]]; then
+    SA_USER_ID=$(docker compose exec -T -e PGPASSWORD="${POSTGRES_PASSWORD}" postgres \
+      psql -h 127.0.0.1 -U "${POSTGRES_USER:-postgres}" -d "${POSTGRES_DB:-postgres}" -tAc \
+      "SELECT id FROM auth.users WHERE email='${SA_EMAIL}' LIMIT 1" 2>/dev/null | tr -d ' \n' || true)
   fi
 else
-  log "Использую ветку '${BRANCH}'"
+  log "Пользователь ${SA_EMAIL} уже существует — обновляю пароль через GoTrue"
+  docker compose exec -T gotrue wget -q -O- \
+    --method=PUT \
+    --header="Authorization: Bearer ${SERVICE_ROLE_KEY}" \
+    --header="Content-Type: application/json" \
+    --body-data="$(jq -n --arg p "$SA_PASS" '{password:$p}')" \
+    "http://localhost:9999/admin/users/${SA_USER_ID}" &>/dev/null || true
 fi
 
-# ── Качаем tarball ──
-TARBALL_URL="https://api.github.com/repos/${REPO}/tarball/${REF}"
-log "Скачиваю tarball: $TARBALL_URL"
-HTTP=$(curl -fL --retry 3 --retry-delay 2 \
-  "${AUTH_ARGS[@]}" -H "$ACCEPT_HDR" -H "$API_VER_HDR" \
-  -o "$TMP/src.tar.gz" -w "%{http_code}" \
-  "$TARBALL_URL" 2>&1 | tail -n1 || echo "000")
-
-[[ "$HTTP" == "200" ]] || fail "Не удалось скачать tarball (HTTP=$HTTP). Проверь доступ к ${REPO} (или задай GH_TOKEN если репо приватная)."
-
-SIZE=$(stat -c%s "$TMP/src.tar.gz" 2>/dev/null || stat -f%z "$TMP/src.tar.gz")
-[[ "$SIZE" -gt 100000 ]] || fail "Скачанный архив подозрительно мал ($SIZE байт)."
-ok "Архив скачан: $((SIZE/1024)) KB"
-
-log "Распаковываю..."
-tar -xzf "$TMP/src.tar.gz" -C "$TMP"
-SRC_DIR=$(find "$TMP" -maxdepth 1 -type d \( -name "${REPO##*/}-*" -o -name "pc-cms-*" \) | head -n1)
-[[ -d "$SRC_DIR" ]] || fail "Не найдена распакованная папка"
-[[ -f "$SRC_DIR/deploy/install.sh" ]] || fail "В архиве нет deploy/install.sh"
-
-# ── Бэкап + сохранение состояния ──
-if [[ -d "$TARGET" ]]; then
-  BAK="${TARGET}.bak.$(date +%Y%m%d-%H%M%S)"
-  log "Бэкаплю существующую папку → $BAK"
-  command -v rsync >/dev/null 2>&1 || { log "Устанавливаю rsync..."; apt-get update -qq && apt-get install -y -qq rsync; }
-  if [[ -f "$TARGET/deploy/.env" ]]; then cp -f "$TARGET/deploy/.env" "$TMP/deploy.env.preserve"; fi
-  if [[ -d "$TARGET/deploy/certs" ]]; then cp -a "$TARGET/deploy/certs" "$TMP/certs.preserve"; fi
-  if [[ -d "$TARGET/data" ]]; then cp -a "$TARGET/data" "$TMP/data.preserve"; fi
-  rsync -a --delete "$TARGET"/ "$BAK"/
-  ok "Backup → $BAK"
-fi
-
-log "Устанавливаю в $TARGET"
-mkdir -p "$(dirname "$TARGET")"
-mkdir -p "$TARGET"
-rsync -a --delete "$SRC_DIR"/ "$TARGET"/
-
-if [[ -f "$TMP/deploy.env.preserve" ]]; then
-  cp -f "$TMP/deploy.env.preserve" "$TARGET/deploy/.env"
-  normalize_env_file "$TARGET/deploy/.env"
-  ok "Восстановлен deploy/.env"
-fi
-if [[ -d "$TMP/certs.preserve" ]]; then
-  rm -rf "$TARGET/deploy/certs" 2>/dev/null || true
-  mv "$TMP/certs.preserve" "$TARGET/deploy/certs"
-  ok "Восстановлены deploy/certs/"
-fi
-if [[ -d "$TMP/data.preserve" ]]; then
-  rm -rf "$TARGET/data" 2>/dev/null || true
-  mv "$TMP/data.preserve" "$TARGET/data"
-  ok "Восстановлена папка data/"
-fi
-
-chmod +x "$TARGET/deploy/install.sh" 2>/dev/null || true
-
-# ── Ставим alias `casino-update` ──
-ALIAS_PATH="/usr/local/bin/casino-update"
-cat > "$ALIAS_PATH" <<EOF
-#!/usr/bin/env bash
-# Auto-generated by Casino System bootstrap
-exec curl -fsSL ${SELF_URL} | sudo bash -s -- "\$@"
-EOF
-chmod +x "$ALIAS_PATH"
-ok "Alias установлен: \`sudo casino-update [args]\`"
-
-ok "Код установлен. Запускаю инсталлер..."
-echo
-if [[ -e /dev/tty ]]; then
-  exec bash "$TARGET/deploy/install.sh" "$@" </dev/tty
+if [[ -z "$SA_USER_ID" ]]; then
+  warn "Не удалось создать/найти super_admin (${SA_EMAIL})."
+  docker compose logs --tail=40 gotrue >&2 || true
 else
-  warn "/dev/tty недоступен — интерактивные вопросы могут не работать."
-  exec bash "$TARGET/deploy/install.sh" "$@"
+  # Ensure (1) super_admin role, (2) profile row linked to placeholder casino.
+  # Local UI gates everything on profiles.casino_id via get_user_casino_id() RLS,
+  # so without this insert the admin sees an empty app on first login.
+  docker compose exec -T -e PGPASSWORD="${POSTGRES_PASSWORD}" postgres \
+    psql -h 127.0.0.1 -U "${POSTGRES_USER:-postgres}" -d "${POSTGRES_DB:-postgres}" -v ON_ERROR_STOP=1 -c "
+      INSERT INTO public.user_roles (user_id, role)
+      VALUES ('${SA_USER_ID}', 'super_admin')
+      ON CONFLICT (user_id, role) DO NOTHING;
+
+      INSERT INTO public.profiles (user_id, casino_id, display_name)
+      VALUES ('${SA_USER_ID}', '${CASINO_ID}'::uuid, 'Super Admin')
+      ON CONFLICT (user_id) DO UPDATE
+        SET casino_id    = COALESCE(public.profiles.casino_id, EXCLUDED.casino_id),
+            display_name = COALESCE(NULLIF(public.profiles.display_name,''), EXCLUDED.display_name);
+    " &>/dev/null || warn "Не удалось привязать профиль super_admin (${SA_EMAIL})."
+  ok "Super admin готов: ${SA_EMAIL} / ${SA_PASS}"
 fi
+
+
+
+# systemd
+SYSTEMD_UNIT=/etc/systemd/system/casino-system.service
+if [[ ! -f "$SYSTEMD_UNIT" ]]; then
+  cat > "$SYSTEMD_UNIT" <<EOF
+[Unit]
+Description=Casino System (${CASINO_NAME})
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=${SCRIPT_DIR}
+ExecStart=/usr/bin/docker compose up -d
+ExecStop=/usr/bin/docker compose down
+TimeoutStartSec=600
+[Install]
+WantedBy=multi-user.target
+EOF
+  systemctl daemon-reload
+  systemctl enable casino-system.service
+  ok "systemd unit установлен"
+fi
+
+# ── финал ──
+echo; hr
+echo -e "${GREEN}${BOLD}  ✓ Установка завершена!${NC}"
+hr; echo
+echo -e "  📍 ${BOLD}${CASINO_NAME}${NC} (slug: ${CASINO_SLUG})"
+echo -e "  🌐 URL:        ${BOLD}https://${LOCAL_DOMAIN}${NC}"
+echo -e "  🖥️  IP:         ${LOCAL_IP}"
+echo -e "  🔑 CA:         ${SCRIPT_DIR}/certs/ca.crt"
+echo
+echo -e "  👤 Login:      ${BOLD}superadmin${NC}  /  ${BOLD}superadmin${NC}   (полный email: superadmin@cms.local)"
+echo
+echo -e "  Следующие шаги (опционально — узел работает автономно):"
+echo -e "    1. Откройте ${BOLD}https://${LOCAL_DOMAIN}${NC} (или http://${LOCAL_IP}) и войдите"
+echo -e "    2. Если есть другой узел (Cloud или соседний local), перейдите в"
+echo -e "       ${BOLD}Admin → Peers → Add Peer${NC} → введите URL соседа и придумайте"
+echo -e "       общий ${BOLD}sync secret${NC} → нажмите Add"
+echo -e "    3. На соседнем узле в ${BOLD}Admin → Peers${NC} нажмите ${BOLD}Approve${NC} рядом"
+echo -e "       с входящим запросом. Сразу начнётся двунаправленная синхронизация"
+echo -e "    4. HA (виртуальный IP через keepalived) — см. ${BOLD}deploy/HA-SETUP.md${NC}"
+echo
+echo -e "  ℹ️  Опционально: скопируйте ${BOLD}certs/ca.crt${NC} как Trusted Root для HTTPS без warning"
+echo
+echo -e "  📊 Статус:     ${CYAN}docker compose ps${NC}"
+echo -e "  📜 Логи:       ${CYAN}docker compose logs -f${NC}"
+echo -e "  🔄 Меню:        ${CYAN}sudo casino-update${NC}   (или sudo ./deploy/install.sh)"
+echo -e "  ⬆️  Обновить:    ${CYAN}sudo casino-update --update${NC}"
+echo -e "  💣 Стереть всё: ${CYAN}sudo casino-update --wipe${NC}"
+echo
