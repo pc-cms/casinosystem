@@ -94,7 +94,7 @@ log "Approved! casino_id=${CASINO_ID}"
 
 # ─────────── 3. Trigger initial seed ───────────
 log "Streaming initial data seed from Cloud into local DB..."
-SYNC_OUT="$(docker compose exec -T cms-sync node /app/pair-cli.js sync)" \
+SYNC_OUT="$(docker compose exec -T cms-sync node /app/pair-cli.js sync </dev/null)" \
   || die "initial seed failed:
 $SYNC_OUT"
 log "Seed complete."
