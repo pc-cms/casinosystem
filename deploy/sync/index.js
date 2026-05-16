@@ -123,6 +123,7 @@ async function handshakePeer(peer) {
     [j.node_id ?? null, j.schema_version ?? null, peer.id]
   );
   log("info", "peer.handshake.ok", { peer: peer.display_name, peer_node_id: j.node_id });
+  bufferExchange(peer, { direction: "handshake", status: "ok", row_count: 0, meta: { peer_node_id: j.node_id } });
 }
 
 // ─────────── PUSH ───────────
