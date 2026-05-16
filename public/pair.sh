@@ -88,6 +88,17 @@ if ! docker compose exec -T cms-sync test -f /app/pair-cli.js </dev/null 2>/dev/
        curl -fsSL https://casinosystem.app/update.sh | sudo bash"
 fi
 
+# Existing installs may have been created before peer-mesh tables existed.
+# Apply the idempotent local repair before pairing, otherwise the server can be
+# marked Active in Cloud while cms-sync has no local peer_links/node_identity.
+REPAIR_FILE="${CMS_DIR}/deploy/postgres/repair-local-schema.sql"
+if [[ -f "$REPAIR_FILE" ]]; then
+  log "Checking local sync schema..."
+  docker compose exec -T postgres sh -c 'psql -U "${POSTGRES_USER:-postgres}" -d "${POSTGRES_DB:-postgres}" -v ON_ERROR_STOP=1' \
+    < "$REPAIR_FILE" >/dev/null \
+    || die "local schema repair failed — check: docker compose logs --tail=80 postgres"
+fi
+
 # ─────────── 1. Start pairing ───────────
 log "Registering on Cloud..."
 START_OUT="$(docker compose exec -T cms-sync node /app/pair-cli.js start "$CLOUD_URL" </dev/null)" \
