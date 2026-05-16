@@ -185,8 +185,9 @@ if echo "$PING_OUT" | grep -q '"ok":true'; then
 else
   warn "Sync channel not yet healthy:"
   echo "  $PING_OUT"
-  warn "Pairing succeeded but cms-sync can't reach Cloud yet."
-  warn "Check: docker compose logs --tail=80 cms-sync"
+  die "Pairing credentials were saved, but peer-mesh sync is NOT active yet.
+Check: docker compose logs --tail=80 cms-sync
+Then re-run pair.sh after fixing the reported error."
 fi
 
 echo
