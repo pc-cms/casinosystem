@@ -10,7 +10,7 @@
 #   2. Downloads latest source tarball of `main` branch from GitHub
 #   3. Backs up .env, certs, postgres data — never touches them
 #   4. rsyncs new sources over /opt/casino-system
-#   5. Rebuilds cms-frontend and restarts frontend + nginx
+#   5. Rebuilds cms-frontend with LOCAL database URL and restarts frontend + nginx
 #
 # Safe to re-run. Exits non-zero on any error.
 #
@@ -45,6 +45,10 @@ REPO="${REPO:-casinosystem}"
 log "Repo:    $OWNER/$REPO  branch=$BRANCH"
 log "Target:  $CMS_DIR"
 log "Backup:  $BACKUP_DIR"
+
+read_env_key() {
+  grep -E "^$1=" "$ENV_FILE" | head -1 | cut -d= -f2- | sed -e "s/^'//" -e "s/'$//" -e 's/^"//' -e 's/"$//'
+}
 
 # 1. Check internet
 if ! curl -fsS --max-time 8 -o /dev/null https://api.github.com 2>/dev/null; then
@@ -87,13 +91,20 @@ rsync -a --delete \
   --exclude '.git/' \
   "$EXTRACTED"/ "$CMS_DIR"/
 
-# 6. Rebuild frontend + restart
+# 6. Rebuild frontend + cms-sync + restart
 cd "${CMS_DIR}/deploy"
-log "Building cms-frontend (this may take 3-7 min)..."
-docker compose build cms-frontend
+LOCAL_DOMAIN="$(read_env_key LOCAL_DOMAIN)"
+[[ -n "$LOCAL_DOMAIN" ]] || die "LOCAL_DOMAIN missing from $ENV_FILE"
+EXPECTED_URL="https://${LOCAL_DOMAIN}/api"
+[[ "$EXPECTED_URL" != *"supabase.co"* ]] || die "Refusing to bake Cloud URL into local frontend: $EXPECTED_URL"
+docker compose config 2>/dev/null | grep -q "VITE_SUPABASE_URL: ${EXPECTED_URL}" \
+  || die "docker-compose is not baking local API URL (${EXPECTED_URL}) into cms-frontend"
+log "Building cms-frontend with LOCAL API ${EXPECTED_URL} + cms-sync (this may take 3-7 min)..."
+docker image ls --format '{{.Repository}}:{{.Tag}}' | grep '^cms-frontend:' | xargs -r docker image rm -f 2>/dev/null || true
+docker compose build --no-cache cms-frontend cms-sync
 
-log "Restarting frontend + nginx..."
-docker compose up -d cms-frontend nginx
+log "Restarting frontend + nginx + cms-sync..."
+docker compose up -d cms-frontend nginx cms-sync
 
 # 7. Health check
 log "Waiting for frontend..."

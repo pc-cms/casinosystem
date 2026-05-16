@@ -30,20 +30,16 @@ die()  { echo -e "${RED}[fail]${NC}  $*" >&2; exit 1; }
 
 [[ $EUID -eq 0 ]] || die "Run with sudo."
 
-CMS_ROOT="${CMS_ROOT:-/opt/cms}"
+CMS_ROOT="${CMS_ROOT:-/opt/casino-system}"
 [[ -d "$CMS_ROOT/deploy" ]] || die "Casino System install not found at $CMS_ROOT (set CMS_ROOT=...)."
 
 cd "$CMS_ROOT"
 
-# 1. Pull latest sources (deploy/Dockerfile.frontend + docker-compose.yml fix)
-log "Pulling latest sources from GitHub..."
-if [[ -d .git ]]; then
-  git fetch --all --tags --quiet
-  git reset --hard origin/main --quiet || die "git reset failed"
-else
-  die "$CMS_ROOT is not a git checkout — cannot auto-update sources."
-fi
-ok "Sources updated to $(git rev-parse --short HEAD)"
+# 1. Pull latest sources through the normal updater so non-git installs are fixed too
+log "Running normal updater first (preserves deploy/.env, certs and database)..."
+bash deploy/update.sh || die "deploy/update.sh failed"
+cd "$CMS_ROOT"
+ok "Sources updated"
 
 # 2. Sanity-check the fix is present
 grep -q "VITE_SUPABASE_URL" deploy/Dockerfile.frontend \
@@ -52,7 +48,7 @@ grep -q "VITE_SUPABASE_URL: https://" deploy/docker-compose.yml \
   || die "docker-compose.yml does not contain the fix — repo is outdated."
 
 # 3. Show what URL will be baked in
-LOCAL_DOMAIN=$(grep -E '^LOCAL_DOMAIN=' deploy/.env | cut -d= -f2- | tr -d '"' | head -1)
+LOCAL_DOMAIN=$(grep -E '^LOCAL_DOMAIN=' deploy/.env | cut -d= -f2- | sed -e "s/^'//" -e "s/'$//" -e 's/^"//' -e 's/"$//' | head -1)
 [[ -n "$LOCAL_DOMAIN" ]] || die "LOCAL_DOMAIN missing from deploy/.env"
 log "Will bake Supabase URL: ${BOLD}https://${LOCAL_DOMAIN}/api${NC}"
 

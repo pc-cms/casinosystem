@@ -15,7 +15,7 @@
 #
 set -euo pipefail
 
-BOOTSTRAP_VERSION="1.2.3"
+BOOTSTRAP_VERSION="1.3.2"
 REPO="${CASINO_REPO:-pc-cms/casinosystem}"
 if [[ "$REPO" == "pms-cms/casinosystem" ]]; then
   REPO="pc-cms/casinosystem"
@@ -127,7 +127,8 @@ SRC_DIR=$(find "$TMP" -maxdepth 1 -type d \( -name "${REPO##*/}-*" -o -name "pc-
 if [[ -d "$TARGET" ]]; then
   BAK="${TARGET}.bak.$(date +%Y%m%d-%H%M%S)"
   log "Бэкаплю существующую папку → $BAK"
-  if [[ -f "$TARGET/.env" ]]; then cp -f "$TARGET/.env" "$TMP/.env.preserve"; fi
+  if [[ -f "$TARGET/deploy/.env" ]]; then cp -f "$TARGET/deploy/.env" "$TMP/deploy.env.preserve"; fi
+  if [[ -d "$TARGET/deploy/certs" ]]; then cp -a "$TARGET/deploy/certs" "$TMP/certs.preserve"; fi
   if [[ -d "$TARGET/data" ]]; then cp -a "$TARGET/data" "$TMP/data.preserve"; fi
   mv "$TARGET" "$BAK"
   ok "Старая версия → $BAK"
@@ -137,10 +138,15 @@ log "Устанавливаю в $TARGET"
 mkdir -p "$(dirname "$TARGET")"
 mv "$SRC_DIR" "$TARGET"
 
-if [[ -f "$TMP/.env.preserve" ]]; then
-  cp -f "$TMP/.env.preserve" "$TARGET/.env"
-  normalize_env_file "$TARGET/.env"
-  ok "Восстановлен .env"
+if [[ -f "$TMP/deploy.env.preserve" ]]; then
+  cp -f "$TMP/deploy.env.preserve" "$TARGET/deploy/.env"
+  normalize_env_file "$TARGET/deploy/.env"
+  ok "Восстановлен deploy/.env"
+fi
+if [[ -d "$TMP/certs.preserve" ]]; then
+  rm -rf "$TARGET/deploy/certs" 2>/dev/null || true
+  mv "$TMP/certs.preserve" "$TARGET/deploy/certs"
+  ok "Восстановлены deploy/certs/"
 fi
 if [[ -d "$TMP/data.preserve" ]]; then
   rm -rf "$TARGET/data" 2>/dev/null || true

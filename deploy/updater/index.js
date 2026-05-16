@@ -80,6 +80,9 @@ function readEnv() {
   }
   return out;
 }
+function envValue(value) {
+  return String(value ?? "").trim().replace(/^['"]|['"]$/g, "");
+}
 function writeEnvKey(key, value) {
   let txt = existsSync(ENV_FILE) ? readFileSync(ENV_FILE, "utf8") : "";
   const re = new RegExp(`^${key}=.*$`, "m");
@@ -207,11 +210,13 @@ async function fullStackApply(targetVersion, cmdId) {
   const tmpDir = `/tmp/cms-upgrade-${ts}`;
   const backupDir = `/cms-root.bak.${ts}`;
   const env = readEnv();
-  const currentVersion = (env.FRONTEND_VERSION || FRONTEND_VERSION || "latest").replace(/^v/, "");
+  const currentVersion = (envValue(env.FRONTEND_VERSION) || FRONTEND_VERSION || "latest").replace(/^v/, "");
   const target = String(targetVersion).replace(/^v/, "");
-  const owner = env.GITHUB_OWNER || GITHUB_OWNER;
-  const repo = env.GITHUB_REPO || GITHUB_REPO;
+  const owner = envValue(env.GITHUB_OWNER) || GITHUB_OWNER;
+  const repo = envValue(env.GITHUB_REPO) || GITHUB_REPO;
   const image = `ghcr.io/${owner}/cms-frontend:${target}`;
+  const localDomain = envValue(env.LOCAL_DOMAIN);
+  const localApiUrl = localDomain ? `https://${localDomain}/api` : "";
 
   log("info", "apply.start", { from: currentVersion, to: target });
   writeAck(cmdId, "in_progress", `pulling sources for v${target}`);
@@ -320,6 +325,21 @@ async function fullStackApply(targetVersion, cmdId) {
   //    build-args are picked up even if Dockerfile lines haven't changed.
   writeAck(cmdId, "in_progress", "rebuilding local services (frontend + sync + monitor + backup)");
   log("info", "apply.compose_build");
+  if (!localDomain || localApiUrl.includes("supabase.co")) {
+    log("error", "apply.local_frontend_env_invalid", { localDomain, localApiUrl });
+    rollbackFrom(backupDir, currentVersion);
+    writeAck(cmdId, "failed", "LOCAL_DOMAIN invalid — refused to build frontend against Cloud");
+    rmSync(tmpDir, { recursive: true, force: true });
+    return false;
+  }
+  const cfg = compose(["config"]);
+  if (cfg.code !== 0 || !cfg.out.includes(`VITE_SUPABASE_URL: ${localApiUrl}`)) {
+    log("error", "apply.local_frontend_config_missing", { expected: localApiUrl, out: cfg.out.slice(0, 800) });
+    rollbackFrom(backupDir, currentVersion);
+    writeAck(cmdId, "failed", `compose does not bake local API URL (${localApiUrl})`);
+    rmSync(tmpDir, { recursive: true, force: true });
+    return false;
+  }
   // Remove old frontend image so the build is truly fresh
   run("docker", ["image", "rm", "-f", `cms-frontend:${target}`, "cms-frontend:local"]);
   const build = compose(["build", "--no-cache", "cms-frontend", "cms-sync", "cms-monitor", "cms-backup", "cms-updater"]);
@@ -455,9 +475,18 @@ const FAST_POLL_MS = 10_000;
       if (reconfigure) {
         try { unlinkSync(RECONFIGURE_FILE); } catch {}
         log("info", "reconfigure.frontend.start");
-        const r = compose(["up", "-d", "--force-recreate", "cms-frontend"]);
-        log(r.code === 0 ? "info" : "error", "reconfigure.frontend.done",
-            { code: r.code, out: r.out.slice(-400) });
+        const env = readEnv();
+        const localDomain = envValue(env.LOCAL_DOMAIN);
+        const localApiUrl = localDomain ? `https://${localDomain}/api` : "";
+        if (!localDomain || localApiUrl.includes("supabase.co")) {
+          log("error", "reconfigure.frontend.invalid_local_domain", { localDomain, localApiUrl });
+        } else {
+          run("docker", ["image", "rm", "-f", `cms-frontend:${envValue(env.FRONTEND_VERSION) || "local"}`, "cms-frontend:local"]);
+          const b = compose(["build", "--no-cache", "cms-frontend"]);
+          const r = b.code === 0 ? compose(["up", "-d", "--force-recreate", "cms-frontend", "nginx"]) : b;
+          log(r.code === 0 ? "info" : "error", "reconfigure.frontend.done",
+              { code: r.code, localApiUrl, out: r.out.slice(-400) });
+        }
       }
 
       if (checkNow || pushPending || due) {
