@@ -2369,55 +2369,38 @@ export type Database = {
           },
         ]
       }
-      local_servers: {
+      node_identity: {
         Row: {
-          casino_id: string
-          health_snapshot: Json | null
-          health_updated_at: string | null
-          id: string
-          is_online: boolean
-          last_sync_at: string | null
-          linked_at: string
-          linked_by: string
-          server_ip: string
-          server_name: string
-          sync_secret: string
+          created_at: string
+          display_name: string
+          id: boolean
+          node_id: string
+          node_kind: string
+          owned_casino_ids: string[]
+          schema_version: string
+          updated_at: string
         }
         Insert: {
-          casino_id: string
-          health_snapshot?: Json | null
-          health_updated_at?: string | null
-          id?: string
-          is_online?: boolean
-          last_sync_at?: string | null
-          linked_at?: string
-          linked_by: string
-          server_ip: string
-          server_name?: string
-          sync_secret?: string
+          created_at?: string
+          display_name?: string
+          id?: boolean
+          node_id?: string
+          node_kind?: string
+          owned_casino_ids?: string[]
+          schema_version?: string
+          updated_at?: string
         }
         Update: {
-          casino_id?: string
-          health_snapshot?: Json | null
-          health_updated_at?: string | null
-          id?: string
-          is_online?: boolean
-          last_sync_at?: string | null
-          linked_at?: string
-          linked_by?: string
-          server_ip?: string
-          server_name?: string
-          sync_secret?: string
+          created_at?: string
+          display_name?: string
+          id?: boolean
+          node_id?: string
+          node_kind?: string
+          owned_casino_ids?: string[]
+          schema_version?: string
+          updated_at?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "local_servers_casino_id_fkey"
-            columns: ["casino_id"]
-            isOneToOne: true
-            referencedRelation: "casinos"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       payroll_audit_log: {
         Row: {
@@ -2778,130 +2761,54 @@ export type Database = {
       }
       peer_links: {
         Row: {
-          casino_id: string | null
           created_at: string
-          created_by: string | null
           display_name: string
           id: string
-          is_primary: boolean
-          last_error: string | null
+          last_pull_cursor: number
+          last_pull_error: string | null
+          last_push_cursor: number
+          last_push_error: string | null
           last_seen_at: string | null
-          peer_kind: string
-          sync_secret: string
-          sync_status: string
-          target_url: string
-        }
-        Insert: {
-          casino_id?: string | null
-          created_at?: string
-          created_by?: string | null
-          display_name?: string
-          id?: string
-          is_primary?: boolean
-          last_error?: string | null
-          last_seen_at?: string | null
-          peer_kind: string
-          sync_secret?: string
-          sync_status?: string
-          target_url: string
-        }
-        Update: {
-          casino_id?: string | null
-          created_at?: string
-          created_by?: string | null
-          display_name?: string
-          id?: string
-          is_primary?: boolean
-          last_error?: string | null
-          last_seen_at?: string | null
-          peer_kind?: string
-          sync_secret?: string
-          sync_status?: string
-          target_url?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "peer_links_casino_id_fkey"
-            columns: ["casino_id"]
-            isOneToOne: false
-            referencedRelation: "casinos"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      pending_server_registrations: {
-        Row: {
-          approved_at: string | null
-          approved_by: string | null
-          approved_casino_id: string | null
-          consumed_at: string | null
-          created_at: string
-          expires_at: string
-          hostname: string | null
-          id: string
-          pairing_code: string
-          rejected_reason: string | null
-          seed_token: string | null
-          seed_token_expires_at: string | null
-          server_ip: string | null
-          server_name: string
-          server_slug: string | null
+          peer_node_id: string | null
+          peer_url: string
+          schema_version: string | null
           status: string
-          sync_secret: string | null
-          system_info: Json | null
+          sync_secret: string
           updated_at: string
         }
         Insert: {
-          approved_at?: string | null
-          approved_by?: string | null
-          approved_casino_id?: string | null
-          consumed_at?: string | null
           created_at?: string
-          expires_at?: string
-          hostname?: string | null
+          display_name: string
           id?: string
-          pairing_code: string
-          rejected_reason?: string | null
-          seed_token?: string | null
-          seed_token_expires_at?: string | null
-          server_ip?: string | null
-          server_name: string
-          server_slug?: string | null
+          last_pull_cursor?: number
+          last_pull_error?: string | null
+          last_push_cursor?: number
+          last_push_error?: string | null
+          last_seen_at?: string | null
+          peer_node_id?: string | null
+          peer_url: string
+          schema_version?: string | null
           status?: string
-          sync_secret?: string | null
-          system_info?: Json | null
+          sync_secret: string
           updated_at?: string
         }
         Update: {
-          approved_at?: string | null
-          approved_by?: string | null
-          approved_casino_id?: string | null
-          consumed_at?: string | null
           created_at?: string
-          expires_at?: string
-          hostname?: string | null
+          display_name?: string
           id?: string
-          pairing_code?: string
-          rejected_reason?: string | null
-          seed_token?: string | null
-          seed_token_expires_at?: string | null
-          server_ip?: string | null
-          server_name?: string
-          server_slug?: string | null
+          last_pull_cursor?: number
+          last_pull_error?: string | null
+          last_push_cursor?: number
+          last_push_error?: string | null
+          last_seen_at?: string | null
+          peer_node_id?: string | null
+          peer_url?: string
+          schema_version?: string | null
           status?: string
-          sync_secret?: string | null
-          system_info?: Json | null
+          sync_secret?: string
           updated_at?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "pending_server_registrations_approved_casino_id_fkey"
-            columns: ["approved_casino_id"]
-            isOneToOne: false
-            referencedRelation: "casinos"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       pit_rota: {
         Row: {
@@ -4442,6 +4349,7 @@ export type Database = {
         Returns: Json
       }
       cleanup_old_data: { Args: never; Returns: Json }
+      clear_stale_peer_links: { Args: never; Returns: number }
       clear_stale_peer_requests: { Args: never; Returns: number }
       close_business_day: {
         Args: {
