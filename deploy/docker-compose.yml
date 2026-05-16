@@ -207,10 +207,11 @@ services:
       dockerfile: deploy/Dockerfile.frontend
       args:
         VITE_BUILD_VERSION: ${FRONTEND_VERSION:-local}
-        # CRITICAL: bake LOCAL Supabase URL/key into the bundle at build time.
-        # Vite inlines `import.meta.env.VITE_*` — runtime-config.json cannot
-        # override the supabase client URL after build.
-        VITE_SUPABASE_URL: https://${LOCAL_IP}/api
+        # UNIVERSAL bundle: bake a placeholder origin that frontend-entrypoint.sh
+        # rewrites at container start to `location.origin + "/api"`, so the SAME
+        # image works for ANY hostname: https://<IP>/, https://arucms/,
+        # https://arusha.cms.local/, etc. No per-server rebuild required.
+        VITE_SUPABASE_URL: __CMS_ORIGIN_PLACEHOLDER__/api
         VITE_SUPABASE_PUBLISHABLE_KEY: ${ANON_KEY}
         VITE_SUPABASE_PROJECT_ID: local
     image: cms-frontend:${FRONTEND_VERSION:-local}
@@ -218,9 +219,10 @@ services:
     <<: [*restart_policy, *default_logging]
     pull_policy: never
     environment:
-      # Передаются в frontend-entrypoint.sh, который патчит runtime-config.json
-      # и генерирует /manifest-local.json динамически под текущее казино.
-      RUNTIME_SUPABASE_URL: https://${LOCAL_IP}/api
+      # Передаются в frontend-entrypoint.sh, который патчит runtime-config.json,
+      # generates /manifest-local.json, and rewrites the baked placeholder
+      # origin inside built JS to `location.origin`.
+      RUNTIME_SUPABASE_URL: __CMS_ORIGIN_PLACEHOLDER__/api
       RUNTIME_SUPABASE_KEY: ${ANON_KEY}
       RUNTIME_CASINO_ID:    ${CASINO_ID}
       RUNTIME_CASINO_SLUG:  ${CASINO_SLUG}
