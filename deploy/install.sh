@@ -13,7 +13,7 @@
 #
 set -euo pipefail
 
-INSTALLER_VERSION="1.3.2"
+INSTALLER_VERSION="2.0.0"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
@@ -400,12 +400,14 @@ echo -e "  🔑 CA:         ${SCRIPT_DIR}/certs/ca.crt"
 echo
 echo -e "  👤 Login:      ${BOLD}admin@admin.local${NC}  /  ${BOLD}admin${NC}"
 echo
-echo -e "  Следующие шаги:"
+echo -e "  Следующие шаги (опционально — узел работает автономно):"
 echo -e "    1. Откройте ${BOLD}https://${LOCAL_DOMAIN}${NC} (или http://${LOCAL_IP}) и войдите"
-echo -e "    2. Перейдите в ${BOLD}Admin → Network${NC} → нажмите ${BOLD}Connect to Cloud${NC}"
-echo -e "       → введите URL Cloud-сервера → получите pairing-code"
-echo -e "    3. На Cloud-сервере super_admin делает Approve в Admin → Network → Pending"
-echo -e "    4. После approve в локальной админке нажмите ${BOLD}Sync Data from Cloud${NC}"
+echo -e "    2. Если есть другой узел (Cloud или соседний local), перейдите в"
+echo -e "       ${BOLD}Admin → Peers → Add Peer${NC} → введите URL соседа и придумайте"
+echo -e "       общий ${BOLD}sync secret${NC} → нажмите Add"
+echo -e "    3. На соседнем узле в ${BOLD}Admin → Peers${NC} нажмите ${BOLD}Approve${NC} рядом"
+echo -e "       с входящим запросом. Сразу начнётся двунаправленная синхронизация"
+echo -e "    4. HA (виртуальный IP через keepalived) — см. ${BOLD}deploy/HA-SETUP.md${NC}"
 echo
 echo -e "  ℹ️  Опционально: скопируйте ${BOLD}certs/ca.crt${NC} как Trusted Root для HTTPS без warning"
 echo
