@@ -390,7 +390,7 @@ export default function MonthlyTips() {
                               ? cn(UNIFIED_SHIFT_TINTS[c.shift] || "bg-muted/30 text-muted-foreground", "placeholder:text-current placeholder:opacity-60", c.shift === "E" && "ring-2 ring-purple-500/70 dark:ring-purple-400/70 ring-inset")
                               : "bg-slate-700/90 dark:bg-slate-900 text-slate-300 placeholder:text-slate-400/60";
                       return (
-                        <td key={i} className="px-0.5 py-0.5 text-center border-l border-border/25">
+                        <td key={i} className="px-0.5 py-0.5 text-center border-l border-border/25 no-print">
                           <input
                             type="text"
                             disabled={locked}
