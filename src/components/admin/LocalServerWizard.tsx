@@ -225,11 +225,12 @@ export const LocalServerWizard = () => {
     try {
       const { data, error } = await supabase
         .from("sync_exchange_logs")
-        .select("kind, created_at, peer_name")
+        .select("direction, created_at, peer_name")
         .order("created_at", { ascending: false })
         .limit(20);
       if (error) throw error;
-      const hb = (data ?? []).find(r => r.kind === "heartbeat");
+      const rows = (data ?? []) as { direction: string; created_at: string; peer_name: string | null }[];
+      const hb = rows.find(r => r.direction === "heartbeat");
       if (!hb) {
         setStage("heartbeat", {
           status: "warn",
@@ -243,7 +244,7 @@ export const LocalServerWizard = () => {
         setStage("heartbeat", {
           status: "ok",
           message: `Live (${Math.round(ageSec)}s ago)`,
-          detail: `Last 20 events include ${(data ?? []).length} from ${hb.peer_name ?? "Cloud"}.`,
+          detail: `Last 20 events include ${rows.length} from ${hb.peer_name ?? "Cloud"}.`,
         });
       } else {
         setStage("heartbeat", {
