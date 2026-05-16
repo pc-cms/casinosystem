@@ -485,7 +485,7 @@ echo -e "  ℹ️  Опционально: скопируйте ${BOLD}certs/ca.
 echo
 echo -e "  📊 Статус:     ${CYAN}docker compose ps${NC}"
 echo -e "  📜 Логи:       ${CYAN}docker compose logs -f${NC}"
-echo -e "  🔄 Пересборка: ${CYAN}sudo ./deploy/install.sh --rebuild${NC}"
-echo -e "  ⚙️  Заново:    ${CYAN}sudo ./deploy/install.sh --reset${NC}"
-echo -e "  💣 Полный wipe: ${CYAN}sudo ./deploy/install.sh --wipe${NC}"
+echo -e "  🔄 Меню:        ${CYAN}sudo casino-update${NC}   (или sudo ./deploy/install.sh)"
+echo -e "  ⬆️  Обновить:    ${CYAN}sudo casino-update --update${NC}"
+echo -e "  💣 Стереть всё: ${CYAN}sudo casino-update --wipe${NC}"
 echo
