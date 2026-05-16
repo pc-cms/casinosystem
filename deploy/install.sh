@@ -239,9 +239,9 @@ open_firewall_ports() {
 }
 
 assert_local_frontend_env() {
-  : "${LOCAL_DOMAIN:?LOCAL_DOMAIN missing}"
+  : "${LOCAL_IP:?LOCAL_IP missing}"
   : "${ANON_KEY:?ANON_KEY missing}"
-  local expected="https://${LOCAL_DOMAIN}/api"
+  local expected="https://${LOCAL_IP}/api"
   [[ "$expected" != *"supabase.co"* ]] || fail "Frontend local URL resolved to Cloud: ${expected}"
   docker compose config 2>/dev/null | grep -q "VITE_SUPABASE_URL: ${expected}" \
     || fail "docker-compose is not baking local API URL (${expected}) into cms-frontend."
