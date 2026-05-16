@@ -103,7 +103,7 @@ echo "  $SYNC_OUT"
 # ─────────── 4. Verify sync channel actually works ───────────
 log "Pinging Cloud through cms-sync (this is what flips the server to ONLINE)..."
 sleep 2
-PING_OUT="$(docker compose exec -T cms-sync node /app/pair-cli.js ping || true)"
+PING_OUT="$(docker compose exec -T cms-sync node /app/pair-cli.js ping </dev/null || true)"
 if echo "$PING_OUT" | grep -q '"ok":true'; then
   log "${GRN}✓ Sync channel OK — server is now ONLINE in Cloud admin.${NC}"
 else
