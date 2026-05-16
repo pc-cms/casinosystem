@@ -12,6 +12,7 @@ import { Plus, Shield, Coins, Clock, Building2, Link2, Unlink, Globe, Palette, S
 import { RoleDefaultsEditor } from "@/components/admin/RoleDefaultsEditor";
 import { PeerLinksPanel } from "@/components/admin/PeerLinksPanel";
 import { ServerIdentityPanel } from "@/components/admin/ServerIdentityPanel";
+import { SyncMirrorPanel } from "@/components/admin/SyncMirrorPanel";
 import { LocalUpdaterPanel } from "@/components/admin/LocalUpdaterPanel";
 import { resetPWACache } from "@/lib/pwa-register";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -151,6 +152,7 @@ const Admin = () => {
                 <ServerIdentityPanel />
                 <LocalUpdaterPanel />
                 <PeerLinksPanel />
+                <SyncMirrorPanel />
                 <AppCacheCard />
               </div>
             </TabsContent>
