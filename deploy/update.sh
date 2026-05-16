@@ -127,6 +127,13 @@ if docker compose ps postgres --status=running 2>/dev/null | grep -q postgres; t
       && log "Seed defaults applied." \
       || warn "Seed defaults skipped (postgres not ready or already applied)."
   fi
+  if [[ -f "${CMS_DIR}/deploy/postgres/repair-local-schema.sql" ]]; then
+    log "Applying local schema repair (idempotent)..."
+    docker compose exec -T postgres psql -U postgres -d postgres -v ON_ERROR_STOP=1 \
+      < "${CMS_DIR}/deploy/postgres/repair-local-schema.sql" >/dev/null 2>&1 \
+      && log "Local schema repair applied." \
+      || warn "Local schema repair skipped (postgres not ready)."
+  fi
 fi
 
 LOCAL_IP="$(read_env_key LOCAL_IP)"
