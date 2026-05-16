@@ -16,7 +16,21 @@ set -euo pipefail
 
 INSTALLER_VERSION="2.1.2"
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Resolve script directory robustly. Falls back when piped through
+# `curl ... | bash` (no BASH_SOURCE) — then we look for an installed
+# tree under /opt/casino-system/deploy.
+_SRC="${BASH_SOURCE[0]:-${0:-}}"
+if [[ -z "$_SRC" || "$_SRC" == "bash" || ! -f "$_SRC" ]]; then
+  if [[ -f /opt/casino-system/deploy/install.sh ]]; then
+    SCRIPT_DIR="/opt/casino-system/deploy"
+  else
+    echo "[fail] Cannot locate installer tree. Unpack the USB tarball into" >&2
+    echo "       /opt/casino-system first, then run: sudo /opt/casino-system/deploy/install.sh" >&2
+    exit 1
+  fi
+else
+  SCRIPT_DIR="$(cd "$(dirname "$_SRC")" && pwd)"
+fi
 CMS_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 cd "$SCRIPT_DIR"
 
@@ -31,7 +45,7 @@ warn()   { echo -e "${YELLOW}[warn]${NC} $*"; }
 fail()   { echo -e "${RED}[fail]${NC} $*" >&2; exit 1; }
 hr()     { echo -e "${CYAN}────────────────────────────────────────────────────────${NC}"; }
 title()  { echo; hr; echo -e "${BOLD}${CYAN}  $*${NC}"; hr; }
-trap 'rc=$?; echo -e "${RED}[fail]${NC} Installer stopped at line ${BASH_LINENO[0]} (exit ${rc})\n        command: ${BASH_COMMAND}\n        Diag: sudo docker compose -f $SCRIPT_DIR/docker-compose.yml logs --tail=80" >&2; exit "$rc"' ERR
+trap 'rc=$?; ln="${BASH_LINENO[0]:-?}"; cmd="${BASH_COMMAND:-?}"; echo -e "${RED}[fail]${NC} Installer stopped at line ${ln} (exit ${rc})\n        command: ${cmd}\n        Diag: sudo docker compose -f ${SCRIPT_DIR:-/opt/casino-system/deploy}/docker-compose.yml logs --tail=80" >&2; exit "$rc"' ERR
 
 require_root() { [[ $EUID -eq 0 ]] || fail "Запустите от root: sudo ./deploy/install.sh"; }
 
