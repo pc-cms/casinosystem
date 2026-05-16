@@ -144,7 +144,12 @@ const Admin = () => {
           <>
             <TabsContent value="casinos"><CasinoManagement /></TabsContent>
             <TabsContent value="access"><CasinoAccessManagement /></TabsContent>
-            <TabsContent value="peers"><PeerLinksPanel /></TabsContent>
+            <TabsContent value="peers">
+              <div className="space-y-4">
+                <PeerLinksPanel />
+                <AppCacheCard />
+              </div>
+            </TabsContent>
           </>
         )}
 
