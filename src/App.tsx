@@ -79,6 +79,7 @@ const CloseTablesPage = lazy(() => import("@/pages/tables/CloseTablesPage"));
 const UserNewPage = lazy(() => import("@/pages/admin/UserNewPage"));
 const UserEditPage = lazy(() => import("@/pages/admin/UserEditPage"));
 const WeeklyBonus = lazy(() => import("@/pages/WeeklyBonus"));
+const MonthlyTips = lazy(() => import("@/pages/MonthlyTips"));
 const StaffMaster = lazy(() => import("@/pages/StaffMaster"));
 const AttendanceMonthly = lazy(() => import("@/pages/AttendanceMonthly"));
 const Payroll = lazy(() => import("@/pages/Payroll"));
@@ -276,6 +277,7 @@ const ProtectedRoutes = () => {
           <Route path="/miss-chips" element={<RoleGuard path="/miss-chips"><MissChips /></RoleGuard>} />
           <Route path="/business-days" element={<RoleGuard path="/business-days"><BusinessDays /></RoleGuard>} />
           <Route path="/weekly-bonus" element={<RoleGuard path="/weekly-bonus"><ErrorBoundary><WeeklyBonus /></ErrorBoundary></RoleGuard>} />
+          <Route path="/monthly-tips" element={<RoleGuard path="/monthly-tips"><ErrorBoundary><MonthlyTips /></ErrorBoundary></RoleGuard>} />
           
           <Route path="/reports/miss-chips" element={<Navigate to="/miss-chips" replace />} />
           <Route path="/pitbook" element={<RoleGuard path="/pitbook"><ErrorBoundary><Pitbook /></ErrorBoundary></RoleGuard>} />

@@ -2369,6 +2369,101 @@ export type Database = {
           },
         ]
       }
+      monthly_tips_entries: {
+        Row: {
+          bonus_points: number
+          casino_id: string
+          created_at: string
+          employee_id: string
+          extra_override: number | null
+          id: string
+          period_start: string
+          updated_at: string
+        }
+        Insert: {
+          bonus_points?: number
+          casino_id: string
+          created_at?: string
+          employee_id: string
+          extra_override?: number | null
+          id?: string
+          period_start: string
+          updated_at?: string
+        }
+        Update: {
+          bonus_points?: number
+          casino_id?: string
+          created_at?: string
+          employee_id?: string
+          extra_override?: number | null
+          id?: string
+          period_start?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "monthly_tips_entries_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "monthly_tips_entries_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      monthly_tips_pools: {
+        Row: {
+          calculated_at: string | null
+          calculated_by: string | null
+          casino_id: string
+          created_at: string
+          currency: string
+          id: string
+          is_calculated: boolean
+          period_start: string
+          pool_amount: number
+          updated_at: string
+        }
+        Insert: {
+          calculated_at?: string | null
+          calculated_by?: string | null
+          casino_id: string
+          created_at?: string
+          currency?: string
+          id?: string
+          is_calculated?: boolean
+          period_start: string
+          pool_amount?: number
+          updated_at?: string
+        }
+        Update: {
+          calculated_at?: string | null
+          calculated_by?: string | null
+          casino_id?: string
+          created_at?: string
+          currency?: string
+          id?: string
+          is_calculated?: boolean
+          period_start?: string
+          pool_amount?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "monthly_tips_pools_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       node_identity: {
         Row: {
           created_at: string
