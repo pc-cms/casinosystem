@@ -205,7 +205,64 @@ export const PeerLinksPanel = () => {
       </div>
 
       <div className="cms-panel overflow-hidden">
-        <table className="w-full">
+        <div className="md:hidden divide-y divide-border">
+          {peers.map((p) => (
+            <div key={p.id} className="p-4 space-y-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-card-foreground break-words">{p.display_name}</p>
+                  <p className="text-xs font-mono text-muted-foreground break-all mt-1">{p.peer_url}</p>
+                </div>
+                <StatusBadge s={p.status} />
+              </div>
+              <div className="grid grid-cols-2 gap-3 text-xs text-muted-foreground">
+                <div>
+                  <span className="block uppercase tracking-wider text-[10px]">Last seen</span>
+                  <span>{fmtTime(p.last_seen_at)}</span>
+                </div>
+                <div>
+                  <span className="block uppercase tracking-wider text-[10px]">Push / Pull</span>
+                  <span className="font-mono">{p.last_push_cursor} / {p.last_pull_cursor}</span>
+                </div>
+              </div>
+              {(p.last_push_error || p.last_pull_error) && (
+                <p className="text-xs text-destructive break-words">{p.last_push_error || p.last_pull_error}</p>
+              )}
+              <div className="flex justify-end gap-2">
+                {p.status === "pending_inbound" && (
+                  <Button variant="outline" size="sm" onClick={() => updateStatus.mutate({ id: p.id, status: "active" })} className="gap-1.5">
+                    <CheckCircle2 className="w-3.5 h-3.5" /> Approve
+                  </Button>
+                )}
+                {p.status === "active" && (
+                  <Button variant="outline" size="sm" onClick={() => updateStatus.mutate({ id: p.id, status: "paused" })} className="gap-1.5">
+                    <Pause className="w-3.5 h-3.5" /> Pause
+                  </Button>
+                )}
+                {p.status === "paused" && (
+                  <Button variant="outline" size="sm" onClick={() => updateStatus.mutate({ id: p.id, status: "active" })} className="gap-1.5">
+                    <Play className="w-3.5 h-3.5" /> Resume
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    if (!confirm(`Remove peer "${p.display_name}"? This stops sync immediately.`)) return;
+                    deletePeer.mutate(p.id);
+                  }}
+                  className="gap-1.5"
+                >
+                  <Trash2 className="w-3.5 h-3.5" /> Delete
+                </Button>
+              </div>
+            </div>
+          ))}
+          {peers.length === 0 && (
+            <div className="text-center py-8 text-sm text-muted-foreground">No peers paired</div>
+          )}
+        </div>
+        <table className="hidden md:table w-full">
           <thead>
             <tr className="border-b border-border">
               <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-3">Name</th>
