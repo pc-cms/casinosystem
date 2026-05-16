@@ -318,6 +318,18 @@ wait_for_postgres_ready() {
   fail "${label} не стартовал"
 }
 
+apply_local_schema_repair() {
+  local repair_file="${SCRIPT_DIR}/postgres/repair-local-schema.sql"
+  [[ -f "$repair_file" ]] || repair_file="${SCRIPT_DIR}/repair-local-schema.sql"
+  [[ -f "$repair_file" ]] || { warn "repair-local-schema.sql не найден — пропускаю repair"; return 0; }
+  log "Проверяю локальную схему (profiles/user_casino_access/effective_module_perms)..."
+  docker compose exec -T -e PGPASSWORD="${POSTGRES_PASSWORD}" postgres \
+    psql -h 127.0.0.1 -U "${POSTGRES_USER:-postgres}" -d "${POSTGRES_DB:-postgres}" \
+    -v ON_ERROR_STOP=1 < "$repair_file" >/dev/null \
+    && ok "Локальная схема проверена/исправлена" \
+    || warn "Schema repair не применился; проверьте docker compose logs postgres"
+}
+
 postgres_network_name() {
   local cid net
   cid="$(docker compose ps -q postgres 2>/dev/null || true)"
@@ -463,6 +475,12 @@ if [[ -d ../supabase/migrations ]]; then
   cp ../supabase/migrations/*.sql postgres/init/      2>/dev/null || true
   ok "Скопировано $(ls postgres/migrations/*.sql 2>/dev/null | wc -l) миграций"
 fi
+if [[ -f postgres/init/20-seed-defaults.sql ]]; then
+  mv -f postgres/init/20-seed-defaults.sql postgres/init/99-seed-defaults.sql
+fi
+if [[ -f postgres/repair-local-schema.sql ]]; then
+  cp postgres/repair-local-schema.sql postgres/init/98-repair-local-schema.sql 2>/dev/null || true
+fi
 
 # ────────── 4.6. Чистая установка БД (без seed) ──────────
 # v1.1.0+: данные больше НЕ импортируются в install.sh.
@@ -474,6 +492,7 @@ wait_for_postgres_ready "Postgres"
 docker compose exec -T -e PGPASSWORD="${POSTGRES_PASSWORD}" postgres \
   psql -h 127.0.0.1 -U "${POSTGRES_USER:-postgres}" -d "${POSTGRES_DB:-postgres}" \
   -v ON_ERROR_STOP=1 -c "$ensure_auth_defaults_sql" &>/dev/null || true
+apply_local_schema_repair
 touch "$SEED_DONE_FILE"
 ok "БД готова. Данные подтянутся после Initial Sync из Cloud-админки."
 
