@@ -45,19 +45,19 @@ if ! docker compose ps cms-sync 2>/dev/null | grep -q "Up\|running"; then
 fi
 
 # Make sure pair-cli.js exists in the container; if not — rebuild cms-sync from current sources
-if ! docker compose exec -T cms-sync test -f /app/pair-cli.js 2>/dev/null; then
+if ! docker compose exec -T cms-sync test -f /app/pair-cli.js </dev/null 2>/dev/null; then
   warn "pair-cli.js missing in cms-sync image — rebuilding cms-sync (1-2 min)..."
-  docker compose build cms-sync || die "cms-sync rebuild failed"
-  docker compose up -d --force-recreate cms-sync
+  docker compose build cms-sync </dev/null || die "cms-sync rebuild failed"
+  docker compose up -d --force-recreate cms-sync </dev/null
   sleep 4
-  docker compose exec -T cms-sync test -f /app/pair-cli.js 2>/dev/null \
+  docker compose exec -T cms-sync test -f /app/pair-cli.js </dev/null 2>/dev/null \
     || die "pair-cli.js still missing after rebuild. Run update.sh first:
        curl -fsSL https://casinosystem.app/update.sh | sudo bash"
 fi
 
 # ─────────── 1. Start pairing ───────────
 log "Registering on Cloud..."
-START_OUT="$(docker compose exec -T cms-sync node /app/pair-cli.js start "$CLOUD_URL")" \
+START_OUT="$(docker compose exec -T cms-sync node /app/pair-cli.js start "$CLOUD_URL" </dev/null)" \
   || die "pair-cli start failed:
 $START_OUT"
 
@@ -78,7 +78,7 @@ echo
 
 # ─────────── 2. Wait for approve ───────────
 log "Waiting up to 15 min for super_admin approval (polling every 5s)..."
-WAIT_OUT="$(docker compose exec -T cms-sync node /app/pair-cli.js wait 900)" || {
+WAIT_OUT="$(docker compose exec -T cms-sync node /app/pair-cli.js wait 900 </dev/null)" || {
   RC=$?
   case "$RC" in
     3) die "Pairing was rejected or expired:
@@ -94,7 +94,7 @@ log "Approved! casino_id=${CASINO_ID}"
 
 # ─────────── 3. Trigger initial seed ───────────
 log "Streaming initial data seed from Cloud into local DB..."
-SYNC_OUT="$(docker compose exec -T cms-sync node /app/pair-cli.js sync)" \
+SYNC_OUT="$(docker compose exec -T cms-sync node /app/pair-cli.js sync </dev/null)" \
   || die "initial seed failed:
 $SYNC_OUT"
 log "Seed complete."
@@ -103,7 +103,7 @@ echo "  $SYNC_OUT"
 # ─────────── 4. Verify sync channel actually works ───────────
 log "Pinging Cloud through cms-sync (this is what flips the server to ONLINE)..."
 sleep 2
-PING_OUT="$(docker compose exec -T cms-sync node /app/pair-cli.js ping || true)"
+PING_OUT="$(docker compose exec -T cms-sync node /app/pair-cli.js ping </dev/null || true)"
 if echo "$PING_OUT" | grep -q '"ok":true'; then
   log "${GRN}✓ Sync channel OK — server is now ONLINE in Cloud admin.${NC}"
 else
