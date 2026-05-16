@@ -1,62 +1,126 @@
-# Plan — Clone Arusha (Cloud → Local), per Case 2
 
-Goal: get a local on-prem server that is an exact mirror of `arusha.casinosystem.app`, with both sides staying in bidirectional sync afterwards. CCTV / Fin-director keep using the Cloud URL; floor users switch to `arusha.local`.
+# Куда мы зашли и почему «оно не универсальное»
 
-## Step-by-step
+Сейчас стек на самом деле почти весь правильный (Postgres + PostgREST + GoTrue + Realtime + Storage + Nginx + cms-sync + cms-updater + cms-monitor). Сломано не «много всего», а несколько ключевых точек, которые делают каждую установку штучной и хрупкой.
 
-### 1. Install the local server (fresh box)
+## 1. Главная проблема: фронтенд знает свой IP на этапе сборки
+
+В `deploy/docker-compose.yml` фронт собирается с
+`VITE_SUPABASE_URL: https://${LOCAL_IP}/api`.
+Vite инлайнит это в бандл — значит:
+
+- бандл валиден только для одного IP/домена;
+- открыть тот же сервер по `https://arucms/` или `https://192.168.1.94/` нельзя без пересборки;
+- `runtime-config.json` теряет смысл — клиент Supabase всё равно ходит по «зашитому» URL;
+- именно из-за этого `runtime-config.json` показывает `casinoSlug=local` и админка пустая — фронт уже «прибит» к чужому конфигу.
+
+Это и есть корень того, что «суперадмин без интерфейса».
+
+## 2. Auth role = "" → 400 на каждом запросе
+
+Логи Cloud показывают:
+`DEPRECATION: GOTRUE_JWT_DEFAULT_GROUP_NAME not supported by Supabase's GoTrue`.
+Наш фикс через эту переменную работает локально, но это deprecated путь. Надёжный путь — гарантировать `auth.users.role='authenticated'` и `aud='authenticated'` в БД (heal-скрипт уже есть в `install.sh`, надо его сделать обязательным шагом, а переменную убрать).
+
+## 3. Установщик слишком «ручной»
+
+`env.template` требует, чтобы пользователь сам ввёл `CASINO_SLUG`, `CASINO_NAME`, `LOCAL_DOMAIN`. Если он этого не сделал — бутстрап БД и runtime-config расходятся, и фронт показывает «Local Casino / local». Нужно: один вопрос мастера → одно имя → всё остальное генерируется.
+
+## 4. Pairing разорван на три места
+
+- `deploy/sync/pair-cli.js` — CLI внутри контейнера
+- `cloud_connection` + `peer_links` — таблицы
+- Admin → Peers UI — пустой, потому что админка не грузится (проблема #1)
+
+То есть архитектурно peer-mesh готов (symmetric, HMAC, outbox/inbox, нет primary), но пользователь не может им воспользоваться, потому что не доходит до экрана.
+
+---
+
+# План: универсальный сервер за один шаг
+
+## Этап A. Сделать фронт по-настоящему универсальным (главный фикс)
+
+1. В `deploy/docker-compose.yml` для `cms-frontend` убрать `VITE_SUPABASE_URL`/`VITE_SUPABASE_PUBLISHABLE_KEY` из build-args. Заменить на:
+   - `VITE_SUPABASE_URL: /api`  (относительный путь — работает с любым хостом)
+   - `VITE_SUPABASE_PUBLISHABLE_KEY` — оставить, но строго равной `ANON_KEY` из `.env` (это безопасно, ключ публичный).
+2. В `src/integrations/supabase/client.ts` уже читается `import.meta.env.VITE_SUPABASE_URL`. После шага 1 при любом hostname (IP, `arucms`, `arusha.casinosystem.local`) клиент будет идти в свой же nginx по `/api`. Один билд — любая инсталляция.
+3. `runtime-config.json` остаётся источником истины только для `casinoId/casinoSlug/casinoName/localMode`. Никаких `supabaseUrl` там быть не должно (или он игнорируется).
+4. Убрать привязку nginx-сертификата к одному hostname: self-signed CA выпускает wildcard `*.local` + SAN со списком IP. Это уже частично есть в `install.sh` — надо просто добавить введённый `LOCAL_IP` в SAN и `*` как fallback.
+
+Результат: один Docker image `cms-frontend:<version>`, который Cloud-сборка может публиковать в GHCR, и `install.sh` его просто **pull**-ит, а не собирает. Это убирает 90% «починили — снова сломалось».
+
+## Этап B. Один honest установщик
+
+Один интерактивный вопрос в `install.sh`:
+
 ```
-sudo mkdir -p /opt/casino-system
-sudo tar -xzf /media/*/casino-system-installer-*.tar.gz -C /opt/casino-system
-cd /opt/casino-system
-sudo ./deploy/install.sh
+Casino name (e.g. Arusha): _
 ```
-Answer the 4 questions: name = `Arusha`, slug = `arusha`, LAN IP, LAN domain (`arusha.local`). The installer brings up Postgres + cms-sync + cms-frontend with seed-only data (tables/slots empty, no employees, no players).
 
-### 2. Pair with Cloud
-- Installer prints an 8-char pairing code.
-- super_admin opens `https://premier.casinosystem.app` → Admin → Network → Pending Server Registrations.
-- Picks casino **Arusha**, clicks Approve.
-- Installer auto-detects approval; cms-sync writes `cloud_connection` row, status = `connected`.
+Из ответа автоматически:
+- `CASINO_SLUG = slugify(name)`  (arusha)
+- `CASINO_NAME = name`
+- `LOCAL_DOMAIN = ${slug}.cms.local`
+- `LOCAL_IP    = $(hostname -I | awk '{print $1}')`
+- `CASINO_ID   = gen_random_uuid()` (или placeholder, если pairing с Cloud потом)
 
-After this point the peer mesh is live, but the local DB is still empty seed data.
+После старта контейнеров — обязательный шаг:
+```
+docker exec cms-postgres psql -c "
+  UPDATE public.casinos SET name=$1, slug=$2 WHERE id=$3;
+  -- heal auth.users role='authenticated', aud='authenticated'
+"
+```
 
-### 3. Open the local admin panel
-Browse `https://arusha.local` (or LAN IP), log in as super_admin → Admin → **Server Identity** panel: verify the casino is bound (slug `arusha`, casino_id present).
+Убрать `GOTRUE_JWT_DEFAULT_GROUP_NAME` из compose. Heal-скрипт делает то же надёжнее.
 
-### 4. Run the Clone
-Same Admin page → **Full Mirror Sync** panel → **Clone from Cloud** (red button).
-- Confirm dialog requires typing `Arusha`.
-- Backend (`/api/node/clone-from-cloud`) does, inside one txn-per-table with `sync.applying='on'`:
-  1. `TRUNCATE` all casino-scoped business tables for `casino_id = arusha`.
-  2. `sync_reset_outbox(casino_id, advance_cursors=true)` — clears any pending outbox, advances peer cursors so we don't re-push the wipe.
-  3. Streams `cloud-seed-export?casino_id=…&days=all` from Cloud, applies row-by-row.
-- Progress shown live (current table, row counts).
-- Expected duration: 3–5 min for typical Arusha volume.
+## Этап C. Pairing как один экран
 
-**Recommended downtime window:** ask Arusha cashier/pit to pause writes for ~3 min while clone runs, to guarantee the Cloud snapshot is consistent. (Reads can continue.)
+В Admin → Peers (`/admin/peers`) три кнопки:
 
-### 5. Verify
-After status = `done`:
-- Spot-check on `arusha.local`: gaming tables list, recent shifts, last 3 days of expenses, employee count, player count match Cloud.
-- Open Admin → **Peers**: `last_pull_cursor` and `last_push_cursor` both advancing.
-- Make a tiny write on Cloud (rename a chip color note) → appears on Local within ~5 s. Make a write on Local → appears on Cloud.
+1. **Connect to Cloud** — вызывает `pair-cli.js start`, показывает 6-значный код, опрашивает каждые 5с, по approve в Cloud → сохраняет `cloud_connection.status='connected'` и запускает initial seed.
+2. **Connect to another casino** — вводишь URL соседа (`https://192.168.2.10`) и его 6-значный код (тот сгенерировал у себя). Симметричный HMAC handshake → строка в `peer_links` с обеих сторон.
+3. **Standalone** — ничего не делать, работать только локально.
 
-### 6. Switch traffic
-- Floor staff PWAs: reinstall from `https://arusha.local/install` (or just change bookmark). LAN-fast, offline-resilient.
-- CCTV + Finance Director keep using `https://arusha.casinosystem.app` — no change.
-- Both URLs now serve the same data; writes on either side replicate.
+Никакого CLI для конечного юзера. CLI остаётся как fallback для саппорта.
 
-## Rollback
-If clone fails mid-way, the backend transaction rolls back per-table. If the result is unusable: re-run **Clone from Cloud** — it's idempotent (TRUNCATE + replace). Worst case, `pg_dump` snapshot taken automatically before wipe is in `/opt/casino-system/backups/pre-clone-<ts>.sql.gz`.
+## Этап D. Cloud как «ещё один peer»
 
-## What this plan does NOT change
-- No code changes — all the machinery (`SyncMirrorPanel`, `/api/node/clone-from-cloud`, `sync_seed_from_existing`, `sync_reset_outbox`, extended `sync_attach` whitelist) was already shipped in v1.3.27.
-- This plan is operational: run the installer, pair, click Clone, verify. If during verification we find a missing table in the whitelist or a bug in the clone endpoint, that becomes a follow-up fix in a new version.
+В `cms-sync` Cloud уже трактуется как обычный peer (symmetric mesh). Надо лишь:
+- в Cloud завести edge function `peer-handshake` (если ещё нет) — отвечает HMAC по тому же протоколу что и локальный `sync/api.js`;
+- в Admin → Peers показывать Cloud отдельной строкой со статусом `connected/syncing/lagging`.
 
-## Decision point before I proceed
-Confirm one of:
-- **A) Just run it now** — I'll walk through the 6 steps live against `arusha.casinosystem.app` and report each step's result.
-- **B) Dry-run first** — I add a `--dry-run` flag to `/api/node/clone-from-cloud` that streams + counts but doesn't TRUNCATE, so we see exact row counts per table before committing. ~30 min of code work, then run for real.
+## Этап E. Проверка end-to-end
 
-Default if you say "go": **A**.
+После реализации A+B+C ставим на чистую Ubuntu:
+```
+curl -fsSL https://casinosystem.app/install | sudo bash
+# 1 вопрос: имя казино
+# через 3 минуты: https://<IP>/ → логин → полная админка
+# Admin → Peers → Connect to Cloud → 6-значный код в Cloud → connected
+```
+
+И тот же образ, без пересборки, должен открываться по `https://arucms/`, `https://192.168.1.94/`, `https://arusha.cms.local/`.
+
+---
+
+# Что ломается сейчас — короткий список
+
+| # | Симптом | Причина | Где чинить |
+|---|---|---|---|
+| 1 | Пустая админка у superadmin | Бандл с чужим `VITE_SUPABASE_URL`, фронт ходит не туда | `docker-compose.yml` build-args |
+| 2 | `role "" does not exist` 400 | GoTrue не выставляет role в JWT | Heal в `install.sh` + убрать deprecated env |
+| 3 | `runtime-config.casinoSlug=local` | `.env` пустой, мастер не спрашивает | `install.sh` интерактив |
+| 4 | Pairing недоступен из UI | `/admin/peers` не грузится (см. #1) | После #1 автоматически решится |
+| 5 | Каждая установка = пересборка | Vite инлайн URL/key | Этап A |
+
+---
+
+# Технические детали (для разработчика)
+
+- Файлы: `deploy/docker-compose.yml` (build-args), `deploy/install.sh` (wizard + DB heal), `deploy/nginx/conf.d/*.conf` (SAN cert), `src/integrations/supabase/client.ts` (убедиться что fallback на `/api`), `src/lib/casino-context.tsx` (читать только slug/id из runtime-config).
+- Версия фронта публикуется в GHCR как `ghcr.io/<org>/cms-frontend:<semver>`. `install.sh --update` делает `docker pull` вместо `docker build`. Время апдейта падает с 8 минут до 30 секунд.
+- Sync-протокол не трогаем — он уже симметричный и правильный.
+- Cloud edge function `register-local-server` + `peer-handshake` остаются как есть, добавляем только UI-обвязку.
+
+После твоего одобрения иду по этапам A → B → C → D → E.

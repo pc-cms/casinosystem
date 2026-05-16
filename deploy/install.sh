@@ -253,13 +253,14 @@ open_firewall_ports() {
 }
 
 assert_local_frontend_env() {
-  : "${LOCAL_IP:?LOCAL_IP missing}"
   : "${ANON_KEY:?ANON_KEY missing}"
-  local expected="https://${LOCAL_IP}/api"
-  [[ "$expected" != *"supabase.co"* ]] || fail "Frontend local URL resolved to Cloud: ${expected}"
-  docker compose config 2>/dev/null | grep -q "VITE_SUPABASE_URL: ${expected}" \
-    || fail "docker-compose is not baking local API URL (${expected}) into cms-frontend."
-  ok "Frontend build target: ${expected}"
+  # Universal bundle: docker-compose bakes a placeholder rewritten at runtime to
+  # `location.origin + "/api"`. We just verify the placeholder is present so a
+  # bad edit can't silently bake a Cloud URL.
+  if ! docker compose config 2>/dev/null | grep -q "VITE_SUPABASE_URL: __CMS_ORIGIN_PLACEHOLDER__/api"; then
+    fail "docker-compose is not baking the universal __CMS_ORIGIN_PLACEHOLDER__ URL."
+  fi
+  ok "Frontend build target: universal (location.origin/api)"
 }
 
 compose_project_name() {
