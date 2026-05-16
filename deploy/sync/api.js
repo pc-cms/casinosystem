@@ -112,6 +112,43 @@ export function startApi({ pool }) {
         return send(res, 200, { ok: true, command: cmd });
       }
 
+      // ── Server Identity (CASINO_SLUG / CASINO_ID / NAME / DOMAIN / IP) ──
+      if (req.method === "GET" && path === "/node/server-identity") {
+        const env = readEnvMap();
+        return send(res, 200, {
+          casino_id:    env.CASINO_ID    || "",
+          casino_slug:  env.CASINO_SLUG  || "local",
+          casino_name:  env.CASINO_NAME  || "",
+          local_domain: env.LOCAL_DOMAIN || "",
+          local_ip:     env.LOCAL_IP     || "",
+          unconfigured: !env.CASINO_SLUG || env.CASINO_SLUG === "local" || !env.CASINO_ID,
+        });
+      }
+      if (req.method === "POST" && path === "/node/server-identity") {
+        const body = await readJson(req);
+        const slug = String(body.casino_slug || "").toLowerCase().replace(/[^a-z0-9_-]/g, "");
+        const cid  = String(body.casino_id   || "").trim();
+        const name = String(body.casino_name || "").slice(0, 120);
+        const dom  = String(body.local_domain|| "").slice(0, 120);
+        const ip   = String(body.local_ip    || "").slice(0, 64);
+        if (!slug) return send(res, 400, { error: "casino_slug required" });
+        if (cid && !/^[0-9a-f-]{8,}$/i.test(cid)) return send(res, 400, { error: "casino_id must be UUID" });
+        try {
+          writeEnvKey("CASINO_SLUG", slug);
+          if (cid)  writeEnvKey("CASINO_ID",    cid);
+          if (name) writeEnvKey("CASINO_NAME",  name);
+          if (dom)  writeEnvKey("LOCAL_DOMAIN", dom);
+          if (ip)   writeEnvKey("LOCAL_IP",     ip);
+          writeFileSync(RECONFIGURE_FILE, new Date().toISOString());
+        } catch (e) {
+          return send(res, 500, { error: String(e?.message ?? e) });
+        }
+        return send(res, 200, {
+          ok: true,
+          message: "saved; cms-frontend will restart in ~10s and become available again after ~30s",
+        });
+      }
+
       return send(res, 404, { error: "unknown route", path });
     } catch (e) {
       return send(res, 500, { error: String(e?.message || e) });
