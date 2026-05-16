@@ -150,6 +150,7 @@ async function pullPeer(peer) {
     await client.query("BEGIN");
     for (const ch of changes) {
       try {
+        await client.query("SAVEPOINT peer_pull_row");
         await client.query(
           `SELECT public.peer_apply_change($1::uuid, $2::text, $3::text, $4::jsonb, $5::jsonb, $6::timestamptz)`,
           [
@@ -161,7 +162,10 @@ async function pullPeer(peer) {
             ch.changed_at ?? new Date().toISOString(),
           ]
         );
+        await client.query("RELEASE SAVEPOINT peer_pull_row");
       } catch (e) {
+        await client.query("ROLLBACK TO SAVEPOINT peer_pull_row").catch(() => {});
+        await client.query("RELEASE SAVEPOINT peer_pull_row").catch(() => {});
         log("warn", "peer.pull.apply.fail", { peer: peer.display_name, table: ch.table, id: ch.id, err: String(e?.message ?? e).slice(0, 200) });
       }
     }
