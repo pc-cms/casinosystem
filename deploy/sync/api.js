@@ -432,13 +432,18 @@ function writeEnvKey(key, value) {
   writeFileSync(ENV_FILE, txt);
 }
 function readEnvMap() {
-  if (!existsSync(ENV_FILE)) return {};
-  const out = {};
-  for (const line of readFileSync(ENV_FILE, "utf8").split("\n")) {
-    const m = line.match(/^([A-Z0-9_]+)=(.*)$/);
-    if (m) out[m[1]] = m[2].replace(/^['"]|['"]$/g, "");
+  try {
+    if (!existsSync(ENV_FILE)) return {};
+    const out = {};
+    for (const line of readFileSync(ENV_FILE, "utf8").split("\n")) {
+      const m = line.match(/^([A-Z0-9_]+)=(.*)$/);
+      if (m) out[m[1]] = m[2].replace(/^['"]|['"]$/g, "");
+    }
+    return out;
+  } catch (e) {
+    console.warn(`[updater] cannot read ${ENV_FILE}: ${e?.message || e}`);
+    return {};
   }
-  return out;
 }
 function safeReadJson(file) {
   try { return JSON.parse(readFileSync(file, "utf8")); } catch { return null; }
