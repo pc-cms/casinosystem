@@ -8,12 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Shield, Coins, Clock, Building2, Server, Link2, Unlink, Globe, Palette, Settings, RefreshCw, Rocket, KeyRound, Activity, LayoutGrid, ShieldCheck } from "lucide-react";
+import { Plus, Shield, Coins, Clock, Building2, Link2, Unlink, Globe, Palette, Settings, RefreshCw, LayoutGrid, ShieldCheck, Network } from "lucide-react";
 import { RoleDefaultsEditor } from "@/components/admin/RoleDefaultsEditor";
-import { ServerPushUpdateDialog } from "@/components/admin/ServerPushUpdateDialog";
-import { NetworkHealthPanel } from "@/components/admin/NetworkHealthPanel";
-import { CloudConnectionPanel } from "@/components/admin/CloudConnectionPanel";
-import { useRotateServerSecret } from "@/hooks/use-network-admin";
+import { PeerLinksPanel } from "@/components/admin/PeerLinksPanel";
 import { resetPWACache } from "@/lib/pwa-register";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { toast } from "sonner";
@@ -63,14 +60,9 @@ const useAllCasinos = () => useQuery({
   },
 });
 
-const useLocalServers = () => useQuery({
-  queryKey: ["local-servers"],
-  queryFn: async () => {
-    const { data, error } = await supabase.from("local_servers").select("*");
-    if (error) throw error;
-    return data;
-  },
-});
+
+// (useLocalServers removed — replaced by node_identity + peer_links in PeerLinksPanel)
+
 
 const useCasinoAccess = () => useQuery({
   queryKey: ["casino-access"],
@@ -116,11 +108,8 @@ const Admin = () => {
               <TabsTrigger value="access" className="gap-1.5">
                 <Globe className="w-3.5 h-3.5" /> Casino Access
               </TabsTrigger>
-              <TabsTrigger value="servers" className="gap-1.5">
-                <Server className="w-3.5 h-3.5" /> Local Servers
-              </TabsTrigger>
-              <TabsTrigger value="network" className="gap-1.5">
-                <Activity className="w-3.5 h-3.5" /> Network
+              <TabsTrigger value="peers" className="gap-1.5">
+                <Network className="w-3.5 h-3.5" /> Peers
               </TabsTrigger>
             </>
           )}
@@ -155,11 +144,10 @@ const Admin = () => {
           <>
             <TabsContent value="casinos"><CasinoManagement /></TabsContent>
             <TabsContent value="access"><CasinoAccessManagement /></TabsContent>
-            <TabsContent value="servers"><LocalServerManagement /></TabsContent>
-            <TabsContent value="network">
+            <TabsContent value="peers">
               <div className="space-y-4">
-                <CloudConnectionPanel />
-                <NetworkHealthPanel />
+                <PeerLinksPanel />
+                <AppCacheCard />
               </div>
             </TabsContent>
           </>
@@ -387,206 +375,8 @@ const CasinoAccessManagement = () => {
   );
 };
 
-// =================== LOCAL SERVER MANAGEMENT ===================
-const LocalServerManagement = () => {
-  const { data: servers = [] } = useLocalServers();
-  const { data: casinos = [] } = useAllCasinos();
-  const { user } = useAuth();
-  const qc = useQueryClient();
-  const rotate = useRotateServerSecret();
-
-  const [showLink, setShowLink] = useState(false);
-  const [selectedCasino, setSelectedCasino] = useState("");
-  const [serverIp, setServerIp] = useState("");
-  const [serverName, setServerName] = useState("");
-  const [pushTarget, setPushTarget] = useState<{ casinoId: string; casinoName: string } | null>(null);
-  const [secretReveal, setSecretReveal] = useState<{ name: string; secret: string } | null>(null);
-
-  const linkedCasinoIds = servers.map(s => s.casino_id);
-  const availableCasinos = casinos.filter(c => !linkedCasinoIds.includes(c.id));
-
-  const linkServer = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase.from("local_servers").insert({
-        casino_id: selectedCasino,
-        server_ip: serverIp,
-        server_name: serverName || casinos.find(c => c.id === selectedCasino)?.name || "",
-        linked_by: user!.id,
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["local-servers"] });
-      toast.success("Local server linked");
-      setShowLink(false);
-      setSelectedCasino("");
-      setServerIp("");
-      setServerName("");
-    },
-    onError: (e) => toast.error(e.message),
-  });
-
-  const unlinkServer = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("local_servers").delete().eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["local-servers"] });
-      toast.success("Server unlinked");
-    },
-  });
-
-  const handleRotate = async (id: string, name: string) => {
-    if (!confirm(`Rotate sync secret for "${name}"? The local server will go offline until you update its .env.`)) return;
-    const newSecret = await rotate.mutateAsync(id);
-    setSecretReveal({ name, secret: newSecret });
-  };
-
-  const getCasinoName = (casinoId: string) => casinos.find(c => c.id === casinoId)?.name ?? casinoId.slice(0, 8);
-
-  return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <div>
-          <h3 className="text-sm font-semibold text-card-foreground">Local Servers</h3>
-          <p className="text-xs text-muted-foreground">Link local servers for offline operation per casino.</p>
-        </div>
-        <Button onClick={() => setShowLink(true)} className="gap-1.5" disabled={availableCasinos.length === 0}>
-          <Link2 className="w-4 h-4" /> Link Server
-        </Button>
-      </div>
-
-      <div className="cms-panel overflow-hidden">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-border">
-              <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-3">Casino</th>
-              <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-3">Server IP</th>
-              <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-3">Status</th>
-              <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-3">Last Sync</th>
-              <th className="text-right text-xs font-medium text-muted-foreground uppercase px-4 py-3">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {servers.map(s => {
-              const cName = getCasinoName(s.casino_id);
-              return (
-                <tr key={s.id} className="border-b border-border last:border-0">
-                  <td className="px-4 py-3 text-sm font-medium text-card-foreground">{cName}</td>
-                  <td className="px-4 py-3 text-sm font-mono text-muted-foreground">{s.server_ip}</td>
-                  <td className="px-4 py-3">
-                    <Badge variant={s.is_online ? "default" : "secondary"} className="text-[10px]">
-                      {s.is_online ? "Online" : "Offline"}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-3 text-xs text-muted-foreground">
-                    {s.last_sync_at ? new Date(s.last_sync_at).toLocaleString("en-GB", { timeZone: "Africa/Dar_es_Salaam", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "Never"}
-                  </td>
-                  <td className="px-2 py-3">
-                    <div className="flex gap-0.5 justify-end items-center">
-                      <button
-                        onClick={() => setPushTarget({ casinoId: s.casino_id, casinoName: cName })}
-                        className="text-muted-foreground/60 hover:text-primary transition-colors p-1"
-                        title="Push update"
-                      >
-                        <Rocket className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        onClick={() => handleRotate(s.id, cName)}
-                        className="text-muted-foreground/60 hover:text-warning transition-colors p-1"
-                        title="Rotate sync secret"
-                        disabled={rotate.isPending}
-                      >
-                        <KeyRound className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        onClick={() => unlinkServer.mutate(s.id)}
-                        className="text-muted-foreground/40 hover:text-destructive transition-colors p-1"
-                        title="Unlink"
-                      >
-                        <Unlink className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-            {servers.length === 0 && (
-              <tr><td colSpan={5} className="text-center py-8 text-sm text-muted-foreground">No local servers linked</td></tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      <AppCacheCard />
-
-      <Dialog open={showLink} onOpenChange={setShowLink}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader><DialogTitle>Link Local Server</DialogTitle></DialogHeader>
-          <div className="space-y-3">
-            <div>
-              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1 block">Casino</label>
-              <Select value={selectedCasino} onValueChange={setSelectedCasino}>
-                <SelectTrigger><SelectValue placeholder="Select casino" /></SelectTrigger>
-                <SelectContent>
-                  {availableCasinos.map(c => (
-                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1 block">Server IP / Hostname</label>
-              <Input value={serverIp} onChange={e => setServerIp(e.target.value)} placeholder="e.g. 192.168.1.50" className="font-mono" />
-            </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1 block">Server Name (optional)</label>
-              <Input value={serverName} onChange={e => setServerName(e.target.value)} placeholder="e.g. Arusha Local" />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowLink(false)}>Cancel</Button>
-            <Button onClick={() => linkServer.mutate()} disabled={!selectedCasino || !serverIp || linkServer.isPending}>
-              {linkServer.isPending ? "Linking..." : "Link Server"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <ServerPushUpdateDialog
-        open={!!pushTarget}
-        onOpenChange={(o) => !o && setPushTarget(null)}
-        casinoId={pushTarget?.casinoId ?? null}
-        casinoName={pushTarget?.casinoName ?? ""}
-      />
-
-      <Dialog open={!!secretReveal} onOpenChange={(o) => !o && setSecretReveal(null)}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>New sync secret — {secretReveal?.name}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
-            <p className="text-xs text-muted-foreground">
-              Copy this once — it will not be shown again. Update <code className="font-mono">SYNC_SECRET</code> in the local server's <code className="font-mono">/compose/.env</code> and restart cms-sync &amp; cms-monitor.
-            </p>
-            <pre className="bg-muted p-3 rounded font-mono text-xs break-all whitespace-pre-wrap select-all">
-              {secretReveal?.secret}
-            </pre>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => { if (secretReveal) { navigator.clipboard.writeText(secretReveal.secret); toast.success("Copied"); } }}
-            >Copy</Button>
-          </div>
-          <DialogFooter>
-            <Button onClick={() => setSecretReveal(null)}>Done</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-};
+// LocalServerManagement removed — replaced by PeerLinksPanel (peer mesh model).
+// AppCacheCard is still rendered from PeerLinksPanel? — moved into the Peers tab below if needed.
 
 // =================== USERS & ROLES ===================
 // Moved to: src/components/admin/users/UsersTab.tsx

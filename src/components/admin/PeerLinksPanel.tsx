@@ -1,0 +1,355 @@
+/**
+ * PeerLinksPanel — symmetric peer mesh manager.
+ * Every node (local or Cloud) is identical. No primary/replica concept.
+ * - Add Peer: outbound handshake request
+ * - Approve/Reject inbound requests
+ * - Pause/Resume sync
+ * - Delete peer
+ * - Clear Stale: removes stuck pending pairings older than 1 hour
+ *
+ * Network endpoints (POST /peer/handshake etc.) are implemented in cms-sync —
+ * this panel only manages the peer_links table.
+ */
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { toast } from "sonner";
+import { Plus, Trash2, Pause, Play, CheckCircle2, XCircle, Sparkles, Server, Cloud } from "lucide-react";
+
+type PeerStatus = "pending_outbound" | "pending_inbound" | "active" | "paused" | "rejected";
+
+interface PeerLink {
+  id: string;
+  peer_url: string;
+  peer_node_id: string | null;
+  display_name: string;
+  sync_secret: string;
+  status: PeerStatus;
+  schema_version: string | null;
+  last_seen_at: string | null;
+  last_push_cursor: number;
+  last_pull_cursor: number;
+  last_push_error: string | null;
+  last_pull_error: string | null;
+  created_at: string;
+}
+
+interface NodeIdentity {
+  node_id: string;
+  display_name: string;
+  node_kind: "local" | "cloud";
+  schema_version: string;
+  owned_casino_ids: string[];
+}
+
+const useNodeIdentity = () => useQuery({
+  queryKey: ["node-identity"],
+  queryFn: async (): Promise<NodeIdentity | null> => {
+    const { data, error } = await supabase.from("node_identity" as any).select("*").maybeSingle();
+    if (error) throw error;
+    return (data ?? null) as unknown as NodeIdentity | null;
+  },
+});
+
+const usePeerLinks = () => useQuery({
+  queryKey: ["peer-links"],
+  queryFn: async (): Promise<PeerLink[]> => {
+    const { data, error } = await supabase
+      .from("peer_links" as any)
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+    return (data ?? []) as unknown as PeerLink[];
+  },
+  refetchInterval: 10_000,
+});
+
+const generateSecret = () => {
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
+};
+
+const fmtTime = (ts: string | null) =>
+  ts ? new Date(ts).toLocaleString("en-GB", { timeZone: "Africa/Dar_es_Salaam", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "Never";
+
+const StatusBadge = ({ s }: { s: PeerStatus }) => {
+  const map: Record<PeerStatus, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
+    active: { label: "Active", variant: "default" },
+    pending_outbound: { label: "Awaiting peer", variant: "outline" },
+    pending_inbound: { label: "Needs approval", variant: "outline" },
+    paused: { label: "Paused", variant: "secondary" },
+    rejected: { label: "Rejected", variant: "destructive" },
+  };
+  const { label, variant } = map[s];
+  return <Badge variant={variant} className="text-[10px]">{label}</Badge>;
+};
+
+export const PeerLinksPanel = () => {
+  const qc = useQueryClient();
+  const { data: identity } = useNodeIdentity();
+  const { data: peers = [] } = usePeerLinks();
+
+  const [showAdd, setShowAdd] = useState(false);
+  const [peerUrl, setPeerUrl] = useState("");
+  const [displayName, setDisplayName] = useState("");
+  const [secret, setSecret] = useState("");
+  const [secretReveal, setSecretReveal] = useState<{ name: string; secret: string } | null>(null);
+
+  const addPeer = useMutation({
+    mutationFn: async () => {
+      const finalSecret = secret.trim() || generateSecret();
+      const { error } = await supabase.from("peer_links" as any).insert({
+        peer_url: peerUrl.trim().replace(/\/$/, ""),
+        display_name: displayName.trim() || peerUrl.trim(),
+        sync_secret: finalSecret,
+        status: "pending_outbound",
+      } as any);
+      if (error) throw error;
+      return { secret: finalSecret, name: displayName.trim() || peerUrl.trim() };
+    },
+    onSuccess: ({ secret, name }) => {
+      qc.invalidateQueries({ queryKey: ["peer-links"] });
+      toast.success("Peer added — handshake will be attempted by cms-sync");
+      setShowAdd(false);
+      setPeerUrl("");
+      setDisplayName("");
+      setSecret("");
+      setSecretReveal({ name, secret });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const updateStatus = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: PeerStatus }) => {
+      const { error } = await supabase.from("peer_links" as any).update({ status } as any).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["peer-links"] }),
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const deletePeer = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("peer_links" as any).delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["peer-links"] });
+      toast.success("Peer removed");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const clearStale = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.rpc("clear_stale_peer_links" as any);
+      if (error) throw error;
+      return (data as unknown as number) ?? 0;
+    },
+    onSuccess: (n) => {
+      qc.invalidateQueries({ queryKey: ["peer-links"] });
+      toast.success(`Removed ${n} stale peer${n === 1 ? "" : "s"}`);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const NodeKindIcon = identity?.node_kind === "cloud" ? Cloud : Server;
+
+  return (
+    <div className="space-y-4">
+      {/* This node identity */}
+      <div className="cms-panel p-4 flex items-center gap-3">
+        <NodeKindIcon className="w-5 h-5 text-primary shrink-0" />
+        <div className="flex-1 min-w-0">
+          <h3 className="text-sm font-semibold text-card-foreground">This node</h3>
+          <p className="text-xs text-muted-foreground">
+            <span className="font-mono">{identity?.display_name ?? "—"}</span>
+            <span className="mx-1.5">·</span>
+            <span className="uppercase tracking-wider">{identity?.node_kind ?? "—"}</span>
+            <span className="mx-1.5">·</span>
+            <span>schema v{identity?.schema_version ?? "—"}</span>
+            <span className="mx-1.5">·</span>
+            <span className="font-mono text-[10px]">{identity?.node_id?.slice(0, 8) ?? "—"}</span>
+          </p>
+        </div>
+      </div>
+
+      {/* Peers list */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-sm font-semibold text-card-foreground">Peers</h3>
+          <p className="text-xs text-muted-foreground">
+            Symmetric mesh — every paired node mirrors data both ways. No hub.
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => clearStale.mutate()}
+            disabled={clearStale.isPending}
+            className="gap-1.5"
+            title="Remove pending/rejected peers older than 1 hour"
+          >
+            <Sparkles className="w-3.5 h-3.5" /> Clear Stale
+          </Button>
+          <Button onClick={() => setShowAdd(true)} className="gap-1.5">
+            <Plus className="w-4 h-4" /> Add Peer
+          </Button>
+        </div>
+      </div>
+
+      <div className="cms-panel overflow-hidden">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-border">
+              <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-3">Name</th>
+              <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-3">URL</th>
+              <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-3">Status</th>
+              <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-3">Last Seen</th>
+              <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-3">Push / Pull</th>
+              <th className="text-right text-xs font-medium text-muted-foreground uppercase px-4 py-3">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {peers.map((p) => (
+              <tr key={p.id} className="border-b border-border last:border-0">
+                <td className="px-4 py-3 text-sm font-medium text-card-foreground">{p.display_name}</td>
+                <td className="px-4 py-3 text-sm font-mono text-muted-foreground truncate max-w-[280px]">{p.peer_url}</td>
+                <td className="px-4 py-3"><StatusBadge s={p.status} /></td>
+                <td className="px-4 py-3 text-xs text-muted-foreground">{fmtTime(p.last_seen_at)}</td>
+                <td className="px-4 py-3 text-xs font-mono text-muted-foreground">
+                  {p.last_push_cursor} / {p.last_pull_cursor}
+                </td>
+                <td className="px-2 py-3">
+                  <div className="flex gap-0.5 justify-end items-center">
+                    {p.status === "pending_inbound" && (
+                      <button
+                        onClick={() => updateStatus.mutate({ id: p.id, status: "active" })}
+                        className="text-muted-foreground/60 hover:text-success transition-colors p-1"
+                        title="Approve"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                    {p.status === "pending_inbound" && (
+                      <button
+                        onClick={() => updateStatus.mutate({ id: p.id, status: "rejected" })}
+                        className="text-muted-foreground/60 hover:text-destructive transition-colors p-1"
+                        title="Reject"
+                      >
+                        <XCircle className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                    {p.status === "active" && (
+                      <button
+                        onClick={() => updateStatus.mutate({ id: p.id, status: "paused" })}
+                        className="text-muted-foreground/60 hover:text-warning transition-colors p-1"
+                        title="Pause sync"
+                      >
+                        <Pause className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                    {p.status === "paused" && (
+                      <button
+                        onClick={() => updateStatus.mutate({ id: p.id, status: "active" })}
+                        className="text-muted-foreground/60 hover:text-success transition-colors p-1"
+                        title="Resume sync"
+                      >
+                        <Play className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                    <button
+                      onClick={() => {
+                        if (!confirm(`Remove peer "${p.display_name}"? This stops sync immediately.`)) return;
+                        deletePeer.mutate(p.id);
+                      }}
+                      className="text-muted-foreground/40 hover:text-destructive transition-colors p-1"
+                      title="Delete peer"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+            {peers.length === 0 && (
+              <tr><td colSpan={6} className="text-center py-8 text-sm text-muted-foreground">No peers paired</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Add Peer dialog */}
+      <Dialog open={showAdd} onOpenChange={setShowAdd}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Add Peer</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1 block">Peer URL</label>
+              <Input
+                value={peerUrl}
+                onChange={(e) => setPeerUrl(e.target.value)}
+                placeholder="https://192.168.1.50 or https://casinosystem.app"
+                className="font-mono"
+              />
+              <p className="text-[10px] text-muted-foreground mt-1">Root URL of the other node. cms-sync will hit /peer/handshake.</p>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1 block">Display Name</label>
+              <Input value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="e.g. Mwanza local / Cloud" />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1 block">Shared Secret (optional)</label>
+              <Input
+                value={secret}
+                onChange={(e) => setSecret(e.target.value)}
+                placeholder="Leave empty to auto-generate"
+                className="font-mono text-[11px]"
+              />
+              <p className="text-[10px] text-muted-foreground mt-1">
+                The peer must enter the same secret on their side. We'll show it once after creating.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAdd(false)}>Cancel</Button>
+            <Button onClick={() => addPeer.mutate()} disabled={!peerUrl.trim() || addPeer.isPending}>
+              {addPeer.isPending ? "Adding..." : "Add Peer"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reveal secret once */}
+      <Dialog open={!!secretReveal} onOpenChange={(o) => !o && setSecretReveal(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Shared secret — {secretReveal?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              Copy this once and paste it on the peer side when they add this node. It will not be shown again.
+            </p>
+            <pre className="bg-muted p-3 rounded font-mono text-xs break-all whitespace-pre-wrap select-all">
+              {secretReveal?.secret}
+            </pre>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => { if (secretReveal) { navigator.clipboard.writeText(secretReveal.secret); toast.success("Copied"); } }}
+            >Copy</Button>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setSecretReveal(null)}>Done</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
