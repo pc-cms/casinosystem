@@ -237,8 +237,7 @@ export const PeerLinksPanel = () => {
         </div>
       </div>
 
-      {identity?.node_kind === "cloud" && (
-        <div className="cms-panel p-4 space-y-3">
+      <div className="cms-panel p-4 space-y-3">
           <div>
             <h3 className="text-sm font-semibold text-card-foreground">Approve local server</h3>
             <p className="text-xs text-muted-foreground">Enter the code printed by pair.sh and assign it to a casino.</p>
@@ -269,8 +268,7 @@ export const PeerLinksPanel = () => {
               <CheckCircle2 className="w-4 h-4" /> {approvePairingCode.isPending ? "Approving..." : "Approve"}
             </Button>
           </div>
-        </div>
-      )}
+      </div>
 
       {/* Peers list */}
       <div className="flex items-center justify-between">
