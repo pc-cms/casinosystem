@@ -12,11 +12,13 @@
  */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth-context";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Plus, Trash2, Pause, Play, CheckCircle2, XCircle, Sparkles, Server, Cloud } from "lucide-react";
 
@@ -46,6 +48,12 @@ interface NodeIdentity {
   owned_casino_ids: string[];
 }
 
+interface CasinoOption {
+  id: string;
+  name: string;
+  slug: string | null;
+}
+
 const useNodeIdentity = () => useQuery({
   queryKey: ["node-identity"],
   queryFn: async (): Promise<NodeIdentity | null> => {
@@ -66,6 +74,15 @@ const usePeerLinks = () => useQuery({
     return (data ?? []) as unknown as PeerLink[];
   },
   refetchInterval: 10_000,
+});
+
+const useCasinos = () => useQuery({
+  queryKey: ["peer-link-casinos"],
+  queryFn: async (): Promise<CasinoOption[]> => {
+    const { data, error } = await supabase.from("casinos").select("id, name, slug").order("name");
+    if (error) throw error;
+    return (data ?? []) as CasinoOption[];
+  },
 });
 
 const generateSecret = () => {
@@ -91,14 +108,18 @@ const StatusBadge = ({ s }: { s: PeerStatus }) => {
 
 export const PeerLinksPanel = () => {
   const qc = useQueryClient();
+  const { user } = useAuth();
   const { data: identity } = useNodeIdentity();
   const { data: peers = [] } = usePeerLinks();
+  const { data: casinos = [] } = useCasinos();
 
   const [showAdd, setShowAdd] = useState(false);
   const [peerUrl, setPeerUrl] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [secret, setSecret] = useState("");
   const [secretReveal, setSecretReveal] = useState<{ name: string; secret: string } | null>(null);
+  const [pairingCode, setPairingCode] = useState("");
+  const [pairingCasinoId, setPairingCasinoId] = useState("");
 
   const addPeer = useMutation({
     mutationFn: async () => {
@@ -158,6 +179,43 @@ export const PeerLinksPanel = () => {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const approvePairingCode = useMutation({
+    mutationFn: async () => {
+      const code = pairingCode.trim().toUpperCase();
+      if (!code || !pairingCasinoId) throw new Error("Enter pairing code and casino");
+
+      const { data: pending, error: lookupError } = await supabase
+        .from("pending_server_registrations" as any)
+        .select("id, status, expires_at")
+        .eq("pairing_code", code)
+        .maybeSingle();
+
+      if (lookupError) throw lookupError;
+      if (!pending) throw new Error("Pairing code not found");
+      if ((pending as any).status !== "pending") throw new Error(`Pairing is ${(pending as any).status}`);
+      if (new Date((pending as any).expires_at).getTime() < Date.now()) throw new Error("Pairing code expired");
+
+      const { error } = await supabase
+        .from("pending_server_registrations" as any)
+        .update({
+          status: "approved",
+          approved_casino_id: pairingCasinoId,
+          approved_by: user?.id ?? null,
+          approved_at: new Date().toISOString(),
+          sync_secret: generateSecret(),
+          seed_token: generateSecret(),
+          seed_token_expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+        } as any)
+        .eq("id", (pending as any).id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      setPairingCode("");
+      toast.success("Pairing code approved");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const NodeKindIcon = identity?.node_kind === "cloud" ? Cloud : Server;
 
   return (
@@ -178,6 +236,41 @@ export const PeerLinksPanel = () => {
           </p>
         </div>
       </div>
+
+      {identity?.node_kind === "cloud" && (
+        <div className="cms-panel p-4 space-y-3">
+          <div>
+            <h3 className="text-sm font-semibold text-card-foreground">Approve local server</h3>
+            <p className="text-xs text-muted-foreground">Enter the code printed by pair.sh and assign it to a casino.</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-[180px_1fr_auto] gap-2">
+            <Input
+              value={pairingCode}
+              onChange={(e) => setPairingCode(e.target.value.toUpperCase())}
+              placeholder="PAIRING CODE"
+              className="font-mono uppercase"
+              maxLength={12}
+            />
+            <Select value={pairingCasinoId} onValueChange={setPairingCasinoId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Pick casino…" />
+              </SelectTrigger>
+              <SelectContent>
+                {casinos.map((casino) => (
+                  <SelectItem key={casino.id} value={casino.id}>{casino.name}{casino.slug ? ` (${casino.slug})` : ""}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button
+              onClick={() => approvePairingCode.mutate()}
+              disabled={!pairingCode.trim() || !pairingCasinoId || approvePairingCode.isPending}
+              className="gap-1.5"
+            >
+              <CheckCircle2 className="w-4 h-4" /> {approvePairingCode.isPending ? "Approving..." : "Approve"}
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Peers list */}
       <div className="flex items-center justify-between">
