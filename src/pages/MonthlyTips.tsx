@@ -359,8 +359,8 @@ export default function MonthlyTips() {
                 const zebra = idx % 2 === 0 ? "" : "bg-muted/10";
                 return (
                   <tr key={r.dealer.id} className={cn("border-b border-border last:border-0", zebra)}>
-                    <td className="px-1 py-1 text-center text-muted-foreground font-mono text-[11px]">{idx + 1}</td>
-                    <td className="px-1 py-1 text-center">
+                    <td className="px-1 py-1 text-center text-muted-foreground font-mono text-[11px] no-print">{idx + 1}</td>
+                    <td className="px-1 py-1 text-center no-print">
                       <span className={cn(
                         "inline-flex items-center justify-center w-5 h-5 rounded text-[9px] font-mono font-bold",
                         CATEGORY_COLORS[r.cat] || "text-muted-foreground bg-muted/20",
@@ -368,7 +368,7 @@ export default function MonthlyTips() {
                         {CATEGORY_LETTER[r.cat] || "?"}
                       </span>
                     </td>
-                    <td className="px-2 py-1 text-[12px] font-medium truncate max-w-[140px]" title={r.dealer.name}>
+                    <td className="px-2 py-1 text-[12px] font-medium truncate max-w-[140px] print:max-w-none print:truncate-none print:font-semibold" title={r.dealer.name}>
                       {r.dealer.name}
                     </td>
                     {r.cells.map((c, i) => {
