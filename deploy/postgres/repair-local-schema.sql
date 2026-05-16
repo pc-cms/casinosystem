@@ -452,4 +452,78 @@ BEGIN
 END;
 $$;
 
+CREATE OR REPLACE FUNCTION public.peer_apply_change(
+  p_origin_node_id uuid,
+  p_table text,
+  p_op text,
+  p_pk jsonb,
+  p_payload jsonb,
+  p_changed_at timestamptz
+) RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_id text;
+  v_sql text;
+  v_cols text[];
+  v_setlist text;
+  v_existing_updated_at timestamptz;
+  v_incoming_updated_at timestamptz;
+BEGIN
+  IF p_table !~ '^[a-z_][a-z0-9_]*$' THEN
+    RAISE EXCEPTION 'invalid table name';
+  END IF;
+  IF to_regclass(format('public.%I', p_table)) IS NULL THEN
+    RAISE EXCEPTION 'unknown table: %', p_table;
+  END IF;
+
+  PERFORM set_config('sync.applying','on', true);
+  PERFORM set_config('sync.origin_node_id', p_origin_node_id::text, true);
+
+  v_id := p_pk->>'id';
+
+  IF p_op = 'DELETE' THEN
+    EXECUTE format('DELETE FROM public.%I WHERE id = $1', p_table) USING v_id;
+    RETURN;
+  END IF;
+
+  IF p_payload ? 'updated_at' THEN
+    BEGIN
+      v_incoming_updated_at := (p_payload->>'updated_at')::timestamptz;
+      EXECUTE format('SELECT updated_at FROM public.%I WHERE id = $1', p_table)
+        INTO v_existing_updated_at USING v_id;
+      IF v_existing_updated_at IS NOT NULL
+         AND v_incoming_updated_at IS NOT NULL
+         AND v_existing_updated_at > v_incoming_updated_at THEN
+        RETURN;
+      END IF;
+    EXCEPTION WHEN undefined_column THEN
+      NULL;
+    END;
+  END IF;
+
+  SELECT array_agg(k) INTO v_cols FROM jsonb_object_keys(p_payload) k;
+  IF v_cols IS NULL OR array_length(v_cols,1) = 0 THEN RETURN; END IF;
+
+  SELECT string_agg(format('%I = EXCLUDED.%I', c, c), ', ')
+    INTO v_setlist
+    FROM unnest(v_cols) c
+    WHERE c <> 'id';
+
+  v_sql := format(
+    'INSERT INTO public.%I (%s) SELECT %s FROM jsonb_populate_record(NULL::public.%I, $1) ON CONFLICT (id) DO UPDATE SET %s',
+    p_table,
+    (SELECT string_agg(format('%I', c), ',') FROM unnest(v_cols) c),
+    (SELECT string_agg(format('%I', c), ',') FROM unnest(v_cols) c),
+    p_table,
+    COALESCE(v_setlist, format('%I = EXCLUDED.%I', v_cols[1], v_cols[1]))
+  );
+  EXECUTE v_sql USING p_payload;
+END;
+$$;
+
+REVOKE EXECUTE ON FUNCTION public.peer_apply_change(uuid,text,text,jsonb,jsonb,timestamptz) FROM public, anon, authenticated;
+
 NOTIFY pgrst, 'reload schema';
