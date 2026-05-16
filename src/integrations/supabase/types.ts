@@ -2776,6 +2776,59 @@ export type Database = {
           },
         ]
       }
+      peer_links: {
+        Row: {
+          casino_id: string | null
+          created_at: string
+          created_by: string | null
+          display_name: string
+          id: string
+          is_primary: boolean
+          last_error: string | null
+          last_seen_at: string | null
+          peer_kind: string
+          sync_secret: string
+          sync_status: string
+          target_url: string
+        }
+        Insert: {
+          casino_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          display_name?: string
+          id?: string
+          is_primary?: boolean
+          last_error?: string | null
+          last_seen_at?: string | null
+          peer_kind: string
+          sync_secret?: string
+          sync_status?: string
+          target_url: string
+        }
+        Update: {
+          casino_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          display_name?: string
+          id?: string
+          is_primary?: boolean
+          last_error?: string | null
+          last_seen_at?: string | null
+          peer_kind?: string
+          sync_secret?: string
+          sync_status?: string
+          target_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "peer_links_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pending_server_registrations: {
         Row: {
           approved_at: string | null
@@ -4389,6 +4442,7 @@ export type Database = {
         Returns: Json
       }
       cleanup_old_data: { Args: never; Returns: Json }
+      clear_stale_peer_requests: { Args: never; Returns: number }
       close_business_day: {
         Args: {
           _casino_id: string

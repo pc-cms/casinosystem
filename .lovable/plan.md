@@ -1,109 +1,162 @@
+
 ## Цель
 
-Полностью автоматическая установка локального сервера. Pairing с Cloud — из локальной админки кнопкой, а не из CLI.
+Сбросить накопленную сложность вокруг локального сервера и pairing. Сделать так, чтобы:
 
-## Новый flow
+1. Локальный сервер ставился полностью офлайн с пустой, но корректной БД.
+2. Pairing был один и тот же для cloud↔local и local↔local.
+3. На каждом подключении админ явно выбирал, кто primary.
+4. Health Monitor работал всегда, даже без интернета.
+5. В админке был чистый список версий и кнопка push.
+6. На время первичной синхронизации primary показывал баннер "идёт sync".
+
+Транспорт оставляем текущий: `sync_outbox` + edge function `pull-changes`. Чиним вокруг него, не переписываем.
+
+---
+
+## 1. Schema-only образ Postgres
 
 ```text
-1. sudo ./deploy/install.sh
-   → ставит всё автоматически (DHCP IP, casino.local, super_admin admin/admin)
-   → НЕ задаёт вопросов, НЕ требует --pair
-   → результат: рабочий локальный сервер с пустой БД
-
-2. Админ: https://casino.local → login admin@admin.local / admin
-
-3. Admin → Network появляется новая секция "Cloud Connection":
-   ┌─ Status: Not connected ──────────────────┐
-   │ [Configure Local Server]  [Connect to Cloud] │
-   └──────────────────────────────────────────┘
-
-4. Жмёт "Connect to Cloud":
-   - вводит Cloud URL (default: https://casinosystem.app)
-   - локальный сервер вызывает Cloud edge fn → получает pairing-code
-   - в UI показывается код XXXX-XXXX + статус "Waiting for approval…"
-
-5. Cloud admin (на casinosystem.app) → Admin → Network → Pending:
-   - видит заявку с кодом, IP, hostname
-   - выбирает casino из dropdown → Approve
-   
-6. Локальный UI автоматически (polling) видит approved:
-   - status → "Connected to casinosystem.app, casino: <name>"
-   - сохраняет CASINO_ID + SYNC_SECRET в локальную БД
-
-7. После connect появляется кнопка "Sync Data from Cloud":
-   - запускает initial-sync-trigger
-   - показывает прогресс (tables/rows/%)
+GitHub Actions (release-onprem.yml)
+  └─ pg_dump --schema-only --no-owner --no-privileges
+       FROM Cloud Postgres
+       → deploy/postgres/init/00-schema.sql   (артефакт релиза)
+  └─ docker build deploy/postgres
+       COPY 00-schema.sql /docker-entrypoint-initdb.d/
 ```
 
-## Что меняется
+- Дамп берётся с прод-Cloud один раз на релиз, кладётся в образ.
+- На локалке Postgres при первом старте автоматически создаёт все таблицы / функции / триггеры / RLS — идентично Cloud, без данных.
+- Seed только одной записи: `auth.users` admin + `user_roles(super_admin)` + дефолтные `casinos` пустые. Пароль `Welcome6407!`.
+- Никакого `cloud-seed-export` на этом этапе — пустая БД работает сразу.
 
-### `deploy/install.sh`
-- Убрать флаги `--pair`, всю секцию pairing'а из CLI
-- Установка строго неинтерактивная: DHCP IP, `casino.local`, super_admin `admin@admin.local`/`admin`
-- Финальное сообщение: «Открой https://casino.local, войди admin/admin, в Admin → Network нажми Connect to Cloud»
+Файлы:
+- `.github/workflows/release-onprem.yml` — шаг "Dump Cloud schema"
+- `deploy/postgres/init/00-schema.sql` — артефакт (в .gitignore, генерится в CI)
+- `deploy/postgres/init/10-bootstrap-admin.sql` — admin + роль + минимум casino
+- удалить старые init-скрипты, которые конфликтуют
 
-### Новая таблица `cloud_connection` (локальная БД)
-Одна строка на сервер:
-- `cloud_url`, `pairing_code`, `pairing_expires_at`
-- `status`: `disconnected | pairing | connected`
-- `casino_id`, `sync_secret`, `connected_at`
+## 2. Универсальный pairing
 
-### Новый локальный edge endpoint (либо через cms-sync REST)
-Локальный сервер должен иметь HTTP endpoint для админки:
-- `POST /cloud/start-pairing { cloud_url }` — вызывает Cloud register-local-server, сохраняет pairing_code
-- `GET /cloud/pairing-status` — polling Cloud, при approved сохраняет casino_id+sync_secret
-- `POST /cloud/disconnect` — очищает запись
-- `POST /cloud/initial-sync` — запускает локальный sync с Cloud
+Одна сущность `peer_links` (на каждом узле своя локальная), одна форма, один протокол.
 
-Решение: добавим эти endpoints в существующий `deploy/sync` сервис (он уже работает с Cloud).
+```text
+[Local UI]  → POST {target_url}/peer/register {name, fingerprint}
+            ← {pairing_code, expires_at}
+[Target UI] Admin → Network → Pending Peers
+            кнопки: Approve as PRIMARY · Approve as REPLICA · Reject
+[Local]     poll  {target_url}/peer/status?code=...
+            ← {status, role_assigned, sync_secret, casino_id}
+[Local]     сохраняет в peer_links, флипает локальный runtime
+```
 
-### Новый UI компонент `src/components/admin/CloudConnectionPanel.tsx`
-Только когда `runtime-config.json.mode === "local"`:
-- карточка статуса
-- кнопки: Configure / Connect to Cloud / Disconnect / Sync Data
-- диалог с pairing-кодом и countdown 30 мин
-- автоматический polling каждые 5с
-- после connect — кнопка Initial Sync с прогрессом
+- `target_url` вводится при pairing: либо `https://casinosystem.app`, либо `https://192.168.x.x` соседнего локального.
+- Edge function на Cloud и Node-сервис на локалке выставляют **одинаковый** REST: `/peer/register`, `/peer/status`, `/peer/approve`, `/peer/clear`.
+- Безопасность сейчас — простой `sync_secret` (32 байта), без сложных подписей. Усложним позже.
+- Кнопка **"Очистить неудачные/висящие pairing"** на обеих сторонах: один RPC `clear_stale_peer_requests()` удаляет всё кроме `pending` за последние 30 мин.
 
-Размещаем сверху `NetworkHealthPanel` на странице Admin.
+Файлы:
+- `supabase/functions/peer-register/index.ts`, `peer-status/index.ts`, `peer-approve/index.ts` (новые, заменяют `register-local-server`, `initial-sync-trigger`)
+- `deploy/sync/peer-api.js` — те же эндпоинты на локалке
+- `src/components/admin/PeerPairingPanel.tsx` — единая форма pairing
+- `src/components/admin/PendingPeersPanel.tsx` — список заявок + Approve as PRIMARY/REPLICA + Clear button
+- Миграция: `peer_links { id, target_url, role, sync_secret, casino_id, is_primary, paired_at, last_seen_at, last_error }`. Старые `local_servers`, `pending_server_registrations` мягко мигрируются в `peer_links`.
 
-### Cloud-сторона (без изменений по большей части)
-- `register-local-server` edge fn уже работает (POST → код, GET → polling, POST /approve)
-- `PendingServersPanel` уже есть в Cloud-админке
-- `initial-sync-trigger` уже есть
+## 3. Primary/replica и первичный seed
 
-Только убрать упоминания `seed_token` (уже сделано).
+- На approve админ нажимает либо **Approve as PRIMARY (мои данные → к нему)**, либо **Approve as REPLICA (его данные → ко мне)**.
+- Если выбрана `PRIMARY` — на этом узле включается флаг "SYNCING", фронт показывает блокирующий баннер: "Синхронизация в процессе, сервер недоступен ≈3-5 мин". Cashier/Pit нельзя писать.
+- В это время `pull-changes` гонит дамп таблиц на replica батчами по 1000 строк (используется существующий `cloud-seed-export` → переименовать в `peer-seed-export`, работает и для cloud, и для local).
+- По завершению — баннер снимается, начинается обычный двунаправленный outbox-sync.
+
+Компоненты:
+- `src/components/SyncLockBanner.tsx` — full-screen overlay при `peer_links.sync_status='seeding'`
+- Хук `useSyncLock()` подписывается на realtime и блочит мутации.
+
+## 4. Health Monitor — всегда локально
+
+- Уже есть `deploy/monitor/index.js`. Цель: подключить его UI в `Admin → Health` без проверки `localMode`.
+- Карточка показывает: CPU, RAM, диск, uptime, статус контейнеров, размер БД, последний backup.
+- После pairing появляется вторая карточка "Peer health" — данные тянутся из `/peer/health` соседа.
+
+Файлы:
+- `src/components/admin/LocalHealthPanel.tsx` — данные с `/api/monitor/health`
+- `src/components/admin/PeerHealthPanel.tsx` — данные с `{peer.target_url}/peer/health`
+- `deploy/monitor/index.js` — добавить эндпоинт `/peer/health` (тот же набор метрик)
+
+## 5. Админка версий
+
+- GitHub Releases API → `Admin → Network → Versions` показывает последние 5 релизов с тегом, датой, changelog.
+- Для каждого peer-сервера показывается **текущая версия** (берётся из `/peer/health.version`).
+- Кнопка **Push version X to peer Y** кладёт запись в `update_commands` (уже есть). `cms-updater` на локали забирает и обновляется.
+- Никакого ручного ввода версии — только выбор из списка релизов.
+
+Файлы:
+- `src/components/admin/VersionsPanel.tsx` (новый, заменяет `ServerPushUpdateDialog`)
+- `supabase/functions/list-releases/index.ts` — прокси к `api.github.com/repos/.../releases?per_page=5`
+
+## 6. Бейдж "LOCAL"
+
+- Бейдж рендерится исключительно по факту `runtime-config.json.localMode === true`, который проставляет `frontend-entrypoint.sh` на локалке.
+- Если `RUNTIME_SUPABASE_URL` указывает на `*.supabase.co` или пуст — entrypoint падает с ошибкой (уже реализовано, оставляем).
+
+## 7. Что выпиливаем
+
+- `register-local-server`, `initial-sync-trigger` (заменены `peer-*`).
+- `PendingServersPanel` в текущем виде (заменён `PendingPeersPanel`).
+- `pair.sh` упрощается: только проверка контейнеров + вывод адреса админки. Сам pairing полностью через UI.
+- Старые `pending_server_registrations`, `local_servers` — мягкая миграция данных в `peer_links`, потом DROP в следующем релизе.
+
+---
 
 ## Технические детали
 
-- Локальный sync-сервис слушает на внутреннем порту, проксируется через nginx как `/api/cloud/*` с проверкой что юзер super_admin (через локальный gotrue JWT).
-- pairing_code хранится локально, чтобы при перезагрузке UI восстановить статус.
-- При успешном approve `cloud_url`, `casino_id`, `sync_secret` пишутся в локальную таблицу + опционально в `.env` для cms-sync (через перезапуск контейнера или hot-reload).
-- DHCP IP: install.sh уже использует `hostname -I`, оставляем как есть.
+### Новые таблицы
 
-## Файлы
+```sql
+create table peer_links (
+  id uuid primary key default gen_random_uuid(),
+  target_url text not null,            -- куда мы запарились
+  display_name text not null,
+  role text not null check (role in ('cloud','local')),
+  is_primary boolean not null,
+  sync_secret text not null,
+  casino_id uuid,
+  sync_status text not null default 'idle'
+    check (sync_status in ('idle','seeding','active','error')),
+  last_seen_at timestamptz,
+  last_error text,
+  created_at timestamptz default now()
+);
+```
 
-**Новые:**
-- `src/components/admin/CloudConnectionPanel.tsx`
-- `src/hooks/use-cloud-connection.ts`
-- `supabase/migrations/<ts>_cloud_connection.sql` (для on-prem БД, через postgres/migrations)
-- `deploy/sync/cloud-pairing.js` (новые HTTP routes)
+Та же таблица создаётся и на Cloud, и на локали (через общий schema-only dump).
 
-**Изменения:**
-- `deploy/install.sh` — убрать `--pair`, упростить
-- `deploy/sync/index.js` — подключить cloud-pairing routes
-- `deploy/nginx/conf.d/casino.conf` — проксировать `/api/cloud/*` → cms-sync
-- `src/pages/Admin.tsx` — добавить CloudConnectionPanel в local mode
-- `package.json` — bump version
+### Edge functions
 
-## Порядок реализации
+`peer-register`, `peer-status`, `peer-approve`, `peer-health`, `peer-seed-export`, `list-releases`. Все с `verify_jwt = false`, авторизация по `x-sync-secret` или по сессии админа.
 
-1. Упростить `install.sh` (убрать pair flow)
-2. Локальная миграция `cloud_connection` table
-3. Endpoints в `deploy/sync`
-4. UI panel + hook
-5. Тест end-to-end локально
+### Очерёдность задач
 
-## Открытый вопрос
+```text
+M0  Schema dump pipeline + пустой образ Postgres + admin seed
+M1  Таблица peer_links + миграция данных из local_servers
+M2  Edge: peer-register / peer-status / peer-approve / peer-health
+M3  UI: PeerPairingPanel + PendingPeersPanel + кнопка Clear stale
+M4  Seeding flow: SyncLockBanner + peer-seed-export
+M5  LocalHealthPanel + PeerHealthPanel
+M6  VersionsPanel + list-releases + push через update_commands
+M7  Удаление старого register-local-server / PendingServersPanel / упрощение pair.sh
+```
 
-«Configure Local Server» — что под этим имеется в виду? Думаю, это редактирование имени казино/IP/домена (то, что раньше было в install.sh). Подтверди — добавлять её в этом раунде или отложить?
+Каждый шаг — отдельный commit, после M4 уже можно тестить установку.
+
+---
+
+## Открытые вопросы (могу решить по умолчанию)
+
+1. **Имя локального сервера** при pairing — берём из hostname или просим вводить вручную в форме? *По умолчанию: ручной ввод + предзаполнено hostname.*
+2. **TLS между локалями** — сейчас nginx внутри docker генерит self-signed. Для local↔local pairing будем принимать самоподписанные сертификаты (insecure flag в node-клиенте). *По умолчанию: да, принимать.*
+3. **Хранение GitHub PAT** для `list-releases` — секрет в Lovable Cloud. *По умолчанию: добавлю `GITHUB_RELEASES_TOKEN` через add_secret, если репо приватный; если публичный — без токена.*
+
+Если возражений нет — нажимай Approve, начну с M0+M1.
