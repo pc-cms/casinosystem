@@ -148,6 +148,7 @@ const Admin = () => {
             <TabsContent value="access"><CasinoAccessManagement /></TabsContent>
             <TabsContent value="peers">
               <div className="space-y-4">
+                <ServerIdentityPanel />
                 <LocalUpdaterPanel />
                 <PeerLinksPanel />
                 <AppCacheCard />
