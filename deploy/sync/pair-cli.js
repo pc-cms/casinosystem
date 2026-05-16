@@ -153,18 +153,71 @@ async function ping() {
 async function triggerSync() {
   const row = await getRow();
   if (!row || row.status !== "connected") throw new Error("Not connected to Cloud");
-  const r = await fetch(`${row.cloud_url}/functions/v1/initial-sync-trigger`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-sync-secret": row.sync_secret,
-      "x-casino-id": row.casino_id,
-    },
-    body: JSON.stringify({ casino_id: row.casino_id }),
+  const casinoId = row.casino_id;
+
+  // Stream cloud-seed-export NDJSON directly into local Postgres.
+  // (initial-sync-trigger edge fn was removed in v2 — see deploy/MIGRATION-v2.md)
+  const seedUrl = `${row.cloud_url}/functions/v1/cloud-seed-export?casino_id=${casinoId}&days=all`;
+  const r = await fetch(seedUrl, {
+    headers: { "x-sync-secret": row.sync_secret, "x-casino-id": casinoId },
   });
-  const j = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(`initial-sync-trigger ${r.status}: ${JSON.stringify(j).slice(0, 300)}`);
-  return { ok: true, job: j.job ?? null };
+  if (!r.ok || !r.body) {
+    throw new Error(`cloud-seed-export ${r.status}: ${(await r.text().catch(()=>""))?.slice(0,300)}`);
+  }
+
+  const client = await pool.connect();
+  const counts = {};
+  try {
+    await client.query("BEGIN");
+    await client.query(`SELECT set_config('sync.applying','on', true)`);
+    try {
+      await client.query(`SELECT public.sync_reset_outbox($1::uuid, true)`, [casinoId]);
+    } catch (e) {
+      console.error(`[seed] sync_reset_outbox skipped: ${String(e?.message || e).slice(0, 160)}`);
+    }
+
+    const reader = r.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = "";
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      let nl;
+      while ((nl = buf.indexOf("\n")) !== -1) {
+        const line = buf.slice(0, nl).trim();
+        buf = buf.slice(nl + 1);
+        if (!line) continue;
+        let obj;
+        try { obj = JSON.parse(line); } catch { continue; }
+        if (obj._meta || obj._done || obj._error || obj._fatal) continue;
+        if (!obj.table || !obj.row) continue;
+        const cols = Object.keys(obj.row);
+        if (cols.length === 0) continue;
+        const placeholders = cols.map((_, i) => `$${i + 1}`).join(",");
+        const setlist = cols.filter(c => c !== "id")
+          .map(c => `"${c}" = EXCLUDED."${c}"`).join(",") || `"id" = EXCLUDED."id"`;
+        const sql = `INSERT INTO public."${obj.table}" (${cols.map(c => `"${c}"`).join(",")})
+                     VALUES (${placeholders})
+                     ON CONFLICT (id) DO UPDATE SET ${setlist}`;
+        try {
+          await client.query(sql, cols.map(c => obj.row[c]));
+          counts[obj.table] = (counts[obj.table] || 0) + 1;
+        } catch (e) {
+          console.error(`[seed] insert.fail ${obj.table}: ${String(e?.message || e).slice(0, 160)}`);
+        }
+      }
+    }
+    await client.query("COMMIT");
+  } catch (e) {
+    await client.query("ROLLBACK").catch(() => {});
+    throw e;
+  } finally {
+    client.release();
+  }
+
+  const total = Object.values(counts).reduce((a, b) => a + b, 0);
+  return { ok: true, total, by_table: counts };
 }
 
 const cmd = process.argv[2];
