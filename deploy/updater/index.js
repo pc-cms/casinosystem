@@ -210,10 +210,10 @@ async function fullStackApply(targetVersion, cmdId) {
   const tmpDir = `/tmp/cms-upgrade-${ts}`;
   const backupDir = `/cms-root.bak.${ts}`;
   const env = readEnv();
-  const currentVersion = (env.FRONTEND_VERSION || FRONTEND_VERSION || "latest").replace(/^v/, "");
+  const currentVersion = (envValue(env.FRONTEND_VERSION) || FRONTEND_VERSION || "latest").replace(/^v/, "");
   const target = String(targetVersion).replace(/^v/, "");
-  const owner = env.GITHUB_OWNER || GITHUB_OWNER;
-  const repo = env.GITHUB_REPO || GITHUB_REPO;
+  const owner = envValue(env.GITHUB_OWNER) || GITHUB_OWNER;
+  const repo = envValue(env.GITHUB_REPO) || GITHUB_REPO;
   const image = `ghcr.io/${owner}/cms-frontend:${target}`;
   const localDomain = envValue(env.LOCAL_DOMAIN);
   const localApiUrl = localDomain ? `https://${localDomain}/api` : "";
