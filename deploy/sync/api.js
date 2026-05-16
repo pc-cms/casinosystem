@@ -7,6 +7,10 @@
  *      GET  /node/status                    → node_identity + peers count
  *      POST /node/identity { display_name } → rename this node
  *      POST /peer/test  { peer_url }        → probe a peer URL (handshake dry-run)
+ *      GET  /node/updater/status            → current/available frontend version + log tail
+ *      POST /node/updater/check             → force cms-updater to check now
+ *      POST /node/updater/apply { version?, auto_apply? }
+ *                                           → queue PUSH_COMMAND.json for cms-updater
  *
  *  B) PEER routes (machine-to-machine — authenticated by HMAC-SHA256
  *     signature over the request body using the per-peer sync_secret):
@@ -15,12 +19,21 @@
  *      POST /peer/pull      → return outbox changes since cursor
  *      GET  /peer/health    → liveness + schema_version (no auth)
  *
- * Mounted by nginx as /api/cloud/* (admin) and /peer/* (peer-to-peer).
+ * Mounted by nginx as /api/node/* (admin) and /peer/* (peer-to-peer).
  */
 import http from "node:http";
 import crypto from "node:crypto";
+import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import { randomUUID } from "node:crypto";
 
 const GOTRUE_URL = process.env.GOTRUE_URL || "http://gotrue:9999";
+const COMPOSE_DIR = "/compose";
+const ENV_FILE = `${COMPOSE_DIR}/.env`;
+const LOG_FILE = `${COMPOSE_DIR}/updater.log`;
+const FLAG_FILE = `${COMPOSE_DIR}/UPDATE_AVAILABLE`;
+const PUSH_FILE = `${COMPOSE_DIR}/PUSH_COMMAND.json`;
+const ACK_FILE = `${COMPOSE_DIR}/PUSH_COMMAND_ACK.json`;
+const CHECK_NOW_FILE = `${COMPOSE_DIR}/CHECK_NOW`;
 
 export function startApi({ pool }) {
   const server = http.createServer(async (req, res) => {
@@ -72,6 +85,32 @@ export function startApi({ pool }) {
           return send(res, 200, { ok: false, error: String(e?.message ?? e) });
         }
       }
+
+      // ── Updater control routes ──
+      if (req.method === "GET" && path === "/node/updater/status") {
+        return send(res, 200, getUpdaterStatus());
+      }
+      if (req.method === "POST" && path === "/node/updater/check") {
+        try { writeFileSync(CHECK_NOW_FILE, new Date().toISOString()); }
+        catch (e) { return send(res, 500, { error: String(e?.message ?? e) }); }
+        return send(res, 200, { ok: true, message: "check queued; updater polls every 10s" });
+      }
+      if (req.method === "POST" && path === "/node/updater/apply") {
+        const body = await readJson(req);
+        const status = getUpdaterStatus();
+        const target = String(body.version || status.available_version || "").trim().replace(/^v/, "");
+        if (!target) return send(res, 400, { error: "no version specified and none available" });
+        const cmd = {
+          id: randomUUID(),
+          target_version: target,
+          auto_apply: body.auto_apply !== false,
+          issued_at: new Date().toISOString(),
+        };
+        try { writeFileSync(PUSH_FILE, JSON.stringify(cmd, null, 2)); }
+        catch (e) { return send(res, 500, { error: String(e?.message ?? e) }); }
+        return send(res, 200, { ok: true, command: cmd });
+      }
+
       return send(res, 404, { error: "unknown route", path });
     } catch (e) {
       return send(res, 500, { error: String(e?.message || e) });
@@ -269,4 +308,41 @@ async function peerPull(pool, res, body, peer) {
   );
   const nextSinceId = rows.length ? rows[rows.length - 1].id : sinceId;
   return send(res, 200, { changes: rows, next_since_id: nextSinceId });
+}
+
+// ─────────── Updater helpers ───────────
+function readEnvMap() {
+  if (!existsSync(ENV_FILE)) return {};
+  const out = {};
+  for (const line of readFileSync(ENV_FILE, "utf8").split("\n")) {
+    const m = line.match(/^([A-Z0-9_]+)=(.*)$/);
+    if (m) out[m[1]] = m[2].replace(/^['"]|['"]$/g, "");
+  }
+  return out;
+}
+function safeReadJson(file) {
+  try { return JSON.parse(readFileSync(file, "utf8")); } catch { return null; }
+}
+function tailLog(file, n = 30) {
+  try {
+    const lines = readFileSync(file, "utf8").split("\n").filter(Boolean);
+    return lines.slice(-n);
+  } catch { return []; }
+}
+function getUpdaterStatus() {
+  const env = readEnvMap();
+  const flag = safeReadJson(FLAG_FILE);
+  const push = safeReadJson(PUSH_FILE);
+  const ack = safeReadJson(ACK_FILE);
+  return {
+    current_version: (env.FRONTEND_VERSION || "unknown").replace(/^v/, ""),
+    previous_version: env.PREVIOUS_VERSION ? env.PREVIOUS_VERSION.replace(/^v/, "") : null,
+    available_version: flag?.available ? String(flag.available).replace(/^v/, "") : null,
+    available_image: flag?.image ?? null,
+    available_pushed: flag?.push === true,
+    auto_apply: env.AUTO_APPLY === "true",
+    push_command: push,
+    push_ack: ack,
+    log_tail: tailLog(LOG_FILE, 30),
+  };
 }
