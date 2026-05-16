@@ -3631,6 +3631,59 @@ export type Database = {
           },
         ]
       }
+      sync_exchange_logs: {
+        Row: {
+          batch_id: string | null
+          created_at: string
+          direction: string
+          error_text: string | null
+          id: number
+          meta: Json | null
+          peer_link_id: string | null
+          peer_name: string | null
+          peer_node_id: string | null
+          row_count: number | null
+          status: string
+          table_name: string | null
+        }
+        Insert: {
+          batch_id?: string | null
+          created_at?: string
+          direction: string
+          error_text?: string | null
+          id?: number
+          meta?: Json | null
+          peer_link_id?: string | null
+          peer_name?: string | null
+          peer_node_id?: string | null
+          row_count?: number | null
+          status: string
+          table_name?: string | null
+        }
+        Update: {
+          batch_id?: string | null
+          created_at?: string
+          direction?: string
+          error_text?: string | null
+          id?: number
+          meta?: Json | null
+          peer_link_id?: string | null
+          peer_name?: string | null
+          peer_node_id?: string | null
+          row_count?: number | null
+          status?: string
+          table_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sync_exchange_logs_peer_link_id_fkey"
+            columns: ["peer_link_id"]
+            isOneToOne: false
+            referencedRelation: "peer_links"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sync_inbox_log: {
         Row: {
           applied_at: string
@@ -4819,6 +4872,7 @@ export type Database = {
         Returns: Json
       }
       sync_attach: { Args: { p_table: unknown }; Returns: undefined }
+      sync_exchange_logs_gc: { Args: never; Returns: undefined }
       sync_inbox_health: {
         Args: never
         Returns: {
