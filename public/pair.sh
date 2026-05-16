@@ -25,6 +25,16 @@ log()  { echo -e "${GRN}[pair]${NC} $*"; }
 warn() { echo -e "${YLW}[warn]${NC} $*"; }
 die()  { echo -e "${RED}[error]${NC} $*" >&2; exit 1; }
 
+set_env() {
+  local key="$1" value="$2" escaped
+  escaped="$(printf '%s' "$value" | sed "s/'/'\\''/g")"
+  if grep -qE "^${key}=" "$ENV_FILE"; then
+    sed -i "s|^${key}=.*|${key}='${escaped}'|" "$ENV_FILE"
+  else
+    printf "\n%s='%s'\n" "$key" "$escaped" >> "$ENV_FILE"
+  fi
+}
+
 [[ $EUID -eq 0 ]] || die "Run as root (use sudo)"
 [[ -d "$CMS_DIR/deploy" ]] || die "$CMS_DIR not found — run install.sh first"
 [[ -f "$ENV_FILE" ]] || die "$ENV_FILE missing"
@@ -90,7 +100,15 @@ $WAIT_OUT" ;;
 }
 
 CASINO_ID="$(echo "$WAIT_OUT" | grep -oE '"casino_id":"[^"]+"' | head -1 | cut -d'"' -f4)"
+SYNC_SECRET="$(echo "$WAIT_OUT" | grep -oE '"sync_secret":"[^"]+"' | head -1 | cut -d'"' -f4)"
 log "Approved! casino_id=${CASINO_ID}"
+
+if [[ -n "${CASINO_ID}" && -n "${SYNC_SECRET}" ]]; then
+  log "Saving Cloud credentials into local .env..."
+  set_env CLOUD_URL "$CLOUD_URL"
+  set_env CASINO_ID "$CASINO_ID"
+  set_env SYNC_SECRET "$SYNC_SECRET"
+fi
 
 # ─────────── 3. Trigger initial seed ───────────
 log "Streaming initial data seed from Cloud into local DB..."
@@ -100,8 +118,23 @@ $SYNC_OUT"
 log "Seed complete."
 echo "  $SYNC_OUT"
 
+log "Activating peer-mesh sync channel..."
+MESH_OUT="$(docker compose exec -T cms-sync node /app/pair-cli.js mesh </dev/null || true)"
+if echo "$MESH_OUT" | grep -q '"ok":true'; then
+  log "Peer-mesh handshake OK."
+else
+  warn "Peer-mesh handshake not ready yet:"
+  echo "  $MESH_OUT"
+fi
+
+if [[ -n "${CASINO_ID}" && -n "${SYNC_SECRET}" ]]; then
+  log "Restarting local services with saved credentials..."
+  docker compose up -d --force-recreate cms-frontend cms-monitor cms-backup </dev/null >/dev/null 2>&1 || \
+    warn "Service restart skipped; run: sudo docker compose up -d --force-recreate cms-frontend cms-monitor cms-backup"
+fi
+
 # ─────────── 4. Verify sync channel actually works ───────────
-log "Pinging Cloud through cms-sync (this is what flips the server to ONLINE)..."
+log "Pinging Cloud through cms-sync..."
 sleep 2
 PING_OUT="$(docker compose exec -T cms-sync node /app/pair-cli.js ping </dev/null || true)"
 if echo "$PING_OUT" | grep -q '"ok":true'; then
