@@ -186,6 +186,14 @@ async function pollOnce() {
        WHERE id = 1`,
       [j.casino_id, j.sync_secret]
     );
+    // Tag this node as the owner of the paired casino so Full Mirror Sync
+    // controls in Admin → Peers unlock (they require node_identity.owned_casino_ids).
+    await pool.query(
+      `UPDATE public.node_identity
+          SET owned_casino_ids = ARRAY[$1::uuid]
+        WHERE id = true`,
+      [j.casino_id]
+    ).catch((e) => console.warn(`[pair] could not tag owned_casino_ids: ${e?.message || e}`));
     await ensureLocalCloudPeer({ cloud_url: row.cloud_url, sync_secret: j.sync_secret });
     return { status: "connected", casino_id: j.casino_id, sync_secret: j.sync_secret };
   }
