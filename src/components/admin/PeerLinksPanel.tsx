@@ -186,7 +186,7 @@ export const PeerLinksPanel = () => {
 
       const { data: pending, error: lookupError } = await supabase
         .from("pending_server_registrations" as any)
-        .select("id, status, expires_at")
+        .select("id, status, expires_at, server_name, server_ip, server_slug")
         .eq("pairing_code", code)
         .maybeSingle();
 
@@ -194,6 +194,8 @@ export const PeerLinksPanel = () => {
       if (!pending) throw new Error("Pairing code not found");
       if ((pending as any).status !== "pending") throw new Error(`Pairing is ${(pending as any).status}`);
       if (new Date((pending as any).expires_at).getTime() < Date.now()) throw new Error("Pairing code expired");
+      const finalSecret = generateSecret();
+      const seedToken = generateSecret();
 
       const { error } = await supabase
         .from("pending_server_registrations" as any)
@@ -202,12 +204,21 @@ export const PeerLinksPanel = () => {
           approved_casino_id: pairingCasinoId,
           approved_by: user?.id ?? null,
           approved_at: new Date().toISOString(),
-          sync_secret: generateSecret(),
-          seed_token: generateSecret(),
+          sync_secret: finalSecret,
+          seed_token: seedToken,
           seed_token_expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
         } as any)
         .eq("id", (pending as any).id);
       if (error) throw error;
+
+      const peerUrl = (pending as any).server_ip ? `https://${(pending as any).server_ip}` : `pending://${code.toLowerCase()}`;
+      const { error: peerError } = await supabase.from("peer_links" as any).insert({
+        peer_url: peerUrl,
+        display_name: (pending as any).server_name || (pending as any).server_slug || `Local server ${code}`,
+        sync_secret: finalSecret,
+        status: "active",
+      } as any);
+      if (peerError) throw peerError;
     },
     onSuccess: () => {
       setPairingCode("");

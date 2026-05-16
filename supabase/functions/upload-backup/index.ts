@@ -1,7 +1,7 @@
 // Receives encrypted/compressed backup blobs from on-prem cms-backup containers
 // and stores them in the private "backups" bucket.
 //
-// Auth: x-sync-secret matched against local_servers.sync_secret.
+// Auth: x-sync-secret matched against legacy registrations or peer_links.
 // Headers: x-casino-slug, x-backup-tag (daily|monthly), x-file-name.
 // Body: raw bytes (Content-Type: application/octet-stream).
 //
@@ -40,14 +40,30 @@ Deno.serve(async (req) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   );
 
-  // Verify sync_secret belongs to this casino_slug
-  const { data: srv, error: sErr } = await sb
-    .from("local_servers")
-    .select("casino_id, casino:casinos(slug)")
+  const { data: casino, error: cErr } = await sb
+    .from("casinos")
+    .select("id")
+    .eq("slug", slug)
+    .maybeSingle();
+  if (cErr || !casino) {
+    return new Response(JSON.stringify({ error: "unauthorized" }), { status: 401, headers: cors });
+  }
+
+  const { data: reg } = await sb
+    .from("pending_server_registrations")
+    .select("id")
+    .eq("approved_casino_id", (casino as any).id)
     .eq("sync_secret", secret)
+    .in("status", ["approved", "consumed"])
+    .maybeSingle();
+  const { data: peer, error: pErr } = reg ? { data: null, error: null } : await sb
+    .from("peer_links")
+    .select("id")
+    .eq("sync_secret", secret)
+    .in("status", ["pending_outbound", "pending_inbound", "active", "paused"])
     .maybeSingle();
 
-  if (sErr || !srv || (srv as any).casino?.slug !== slug) {
+  if (pErr || (!reg && !peer)) {
     return new Response(JSON.stringify({ error: "unauthorized" }), { status: 401, headers: cors });
   }
 

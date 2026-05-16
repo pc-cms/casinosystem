@@ -18,6 +18,7 @@
  */
 import pg from "pg";
 import os from "node:os";
+import crypto from "node:crypto";
 
 const { LOCAL_DB_URL, CLOUD_URL: ENV_CLOUD_URL } = process.env;
 const CLOUD_ANON_KEY =
@@ -44,6 +45,88 @@ async function getRow() {
 
 async function ensureRow() {
   await pool.query(`INSERT INTO public.cloud_connection (id) VALUES (1) ON CONFLICT (id) DO NOTHING`);
+}
+
+function cloudPeerUrl(cloudUrl) {
+  return `${cloudUrl.replace(/\/$/, "")}/functions/v1/peer-mesh`;
+}
+
+async function ensureLocalCloudPeer(row) {
+  if (!row?.cloud_url || !row?.sync_secret) return null;
+  const peerUrl = cloudPeerUrl(row.cloud_url);
+  try {
+    const { rows } = await pool.query(
+      `SELECT id FROM public.peer_links WHERE sync_secret = $1 OR peer_url = $2 LIMIT 1`,
+      [row.sync_secret, peerUrl]
+    );
+    if (rows[0]) {
+      await pool.query(
+        `UPDATE public.peer_links
+            SET peer_url = $1, display_name = 'Lovable Cloud', sync_secret = $2,
+                status = CASE WHEN status = 'rejected' THEN 'pending_outbound' ELSE status END,
+                last_push_error = NULL, last_pull_error = NULL
+          WHERE id = $3`,
+        [peerUrl, row.sync_secret, rows[0].id]
+      );
+      return rows[0].id;
+    }
+    const { rows: inserted } = await pool.query(
+      `INSERT INTO public.peer_links (peer_url, display_name, sync_secret, status)
+       VALUES ($1, 'Lovable Cloud', $2, 'pending_outbound')
+       RETURNING id`,
+      [peerUrl, row.sync_secret]
+    );
+    return inserted[0]?.id ?? null;
+  } catch (e) {
+    console.error(`[pair] peer_links setup skipped: ${String(e?.message || e).slice(0, 160)}`);
+    return null;
+  }
+}
+
+async function handshakeCloudPeer(row) {
+  await ensureLocalCloudPeer(row);
+  const { rows: identities } = await pool.query(
+    `SELECT node_id, display_name, node_kind, schema_version FROM public.node_identity WHERE id = true`
+  );
+  const identity = identities[0];
+  if (!identity?.node_id) return { ok: false, reason: "node_identity missing" };
+
+  const { rows: peers } = await pool.query(
+    `SELECT * FROM public.peer_links WHERE sync_secret = $1 ORDER BY created_at DESC LIMIT 1`,
+    [row.sync_secret]
+  );
+  const peer = peers[0];
+  if (!peer) return { ok: false, reason: "Cloud peer row missing" };
+
+  const body = {
+    my_node_id: identity.node_id,
+    my_display_name: identity.display_name,
+    my_node_kind: identity.node_kind,
+    my_schema_version: identity.schema_version,
+  };
+  const raw = JSON.stringify(body);
+  const signature = crypto.createHmac("sha256", peer.sync_secret).update(raw).digest("hex");
+  const res = await fetch(`${peer.peer_url}/peer/handshake`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-peer-node-id": identity.node_id,
+      "x-peer-signature": signature,
+    },
+    body: raw,
+  });
+  const text = await res.text().catch(() => "");
+  let json = {};
+  try { json = text ? JSON.parse(text) : {}; } catch {}
+  if (!res.ok) return { ok: false, http: res.status, body: text.slice(0, 300) };
+  await pool.query(
+    `UPDATE public.peer_links
+        SET peer_node_id = $1, schema_version = $2, status = 'active',
+            last_seen_at = now(), last_push_error = NULL, last_pull_error = NULL
+      WHERE id = $3`,
+    [json.node_id ?? null, json.schema_version ?? null, peer.id]
+  );
+  return { ok: true, http: res.status, peer_node_id: json.node_id ?? null };
 }
 
 async function start(cloudUrl) {
@@ -101,7 +184,8 @@ async function pollOnce() {
        WHERE id = 1`,
       [j.casino_id, j.sync_secret]
     );
-    return { status: "connected", casino_id: j.casino_id };
+    await ensureLocalCloudPeer({ cloud_url: row.cloud_url, sync_secret: j.sync_secret });
+    return { status: "connected", casino_id: j.casino_id, sync_secret: j.sync_secret };
   }
   if (j.status === "rejected" || j.status === "expired") {
     await pool.query(
@@ -132,22 +216,15 @@ async function ping() {
   if (!row || row.status !== "connected") {
     return { ok: false, reason: "not connected", status: row?.status || "none" };
   }
-  const url = new URL(`${row.cloud_url}/functions/v1/pull-changes`);
-  url.searchParams.set("since", "1970-01-01T00:00:00Z");
-  url.searchParams.set("limit", "1");
-  const r = await fetch(url, {
-    method: "GET",
-    headers: { "x-sync-secret": row.sync_secret, "x-casino-id": row.casino_id },
-  });
-  const text = await r.text().catch(() => "");
+  const result = await handshakeCloudPeer(row);
   await pool.query(
     `UPDATE public.cloud_connection
         SET last_polled_at = now(),
             last_error = $1
       WHERE id = 1`,
-    [r.ok ? null : `ping HTTP ${r.status}: ${text.slice(0, 200)}`]
+    [result.ok ? null : `peer handshake failed: ${JSON.stringify(result).slice(0, 220)}`]
   );
-  return { ok: r.ok, http: r.status, body: text.slice(0, 300) };
+  return result;
 }
 
 async function triggerSync() {
@@ -200,11 +277,27 @@ async function triggerSync() {
         const sql = `INSERT INTO public."${obj.table}" (${cols.map(c => `"${c}"`).join(",")})
                      VALUES (${placeholders})
                      ON CONFLICT (id) DO UPDATE SET ${setlist}`;
+        const fallbackSql = `INSERT INTO public."${obj.table}" (${cols.map(c => `"${c}"`).join(",")})
+                             VALUES (${placeholders})
+                             ON CONFLICT DO NOTHING`;
         try {
+          await client.query("SAVEPOINT seed_row");
           await client.query(sql, cols.map(c => obj.row[c]));
+          await client.query("RELEASE SAVEPOINT seed_row");
           counts[obj.table] = (counts[obj.table] || 0) + 1;
         } catch (e) {
-          console.error(`[seed] insert.fail ${obj.table}: ${String(e?.message || e).slice(0, 160)}`);
+          await client.query("ROLLBACK TO SAVEPOINT seed_row").catch(() => {});
+          await client.query("RELEASE SAVEPOINT seed_row").catch(() => {});
+          try {
+            await client.query("SAVEPOINT seed_row_fallback");
+            const rr = await client.query(fallbackSql, cols.map(c => obj.row[c]));
+            await client.query("RELEASE SAVEPOINT seed_row_fallback");
+            if (rr.rowCount > 0) counts[obj.table] = (counts[obj.table] || 0) + rr.rowCount;
+          } catch (e2) {
+            await client.query("ROLLBACK TO SAVEPOINT seed_row_fallback").catch(() => {});
+            await client.query("RELEASE SAVEPOINT seed_row_fallback").catch(() => {});
+            console.error(`[seed] insert.fail ${obj.table}: ${String(e2?.message || e2 || e).slice(0, 160)}`);
+          }
         }
       }
     }
@@ -250,6 +343,13 @@ const arg = process.argv[3];
       console.log(JSON.stringify(r));
       process.exit(r.ok ? 0 : 5);
     }
+    if (cmd === "mesh") {
+      const row = await getRow();
+      if (!row || row.status !== "connected") throw new Error("Not connected to Cloud");
+      const r = await handshakeCloudPeer(row);
+      console.log(JSON.stringify(r));
+      process.exit(r.ok ? 0 : 6);
+    }
     if (cmd === "sync") {
       const r = await triggerSync();
       console.log(JSON.stringify(r));
@@ -271,7 +371,7 @@ const arg = process.argv[3];
       console.log(JSON.stringify(row));
       process.exit(0);
     }
-    console.error("usage: pair-cli.js {start <cloud_url>|poll|wait [seconds]|ping|sync|status}");
+    console.error("usage: pair-cli.js {start <cloud_url>|poll|wait [seconds]|ping|mesh|sync|status}");
     process.exit(1);
   } catch (e) {
     console.error(`ERROR: ${e?.message || e}`);

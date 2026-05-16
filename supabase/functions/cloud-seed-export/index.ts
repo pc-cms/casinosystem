@@ -155,10 +155,33 @@ Deno.serve(async (req) => {
       .eq("sync_secret", syncSecret)
       .in("status", ["approved", "consumed"])
       .maybeSingle();
-    if (!data) {
-      return new Response(JSON.stringify({ error: "invalid sync credentials" }), { status: 401, headers: corsHeaders });
+    if (data) {
+      tokenCasinoId = data.approved_casino_id as string;
+      const { data: existingPeer } = await adminPre
+        .from("peer_links")
+        .select("id")
+        .eq("sync_secret", syncSecret)
+        .maybeSingle();
+      if (!existingPeer) {
+        await adminPre.from("peer_links").insert({
+          peer_url: `pending://${syncCasino}`,
+          display_name: "Local server",
+          sync_secret: syncSecret,
+          status: "pending_outbound",
+        });
+      }
+    } else {
+      const { data: peer } = await adminPre
+        .from("peer_links")
+        .select("id")
+        .eq("sync_secret", syncSecret)
+        .in("status", ["pending_outbound", "pending_inbound", "active", "paused"])
+        .maybeSingle();
+      if (!peer) {
+        return new Response(JSON.stringify({ error: "invalid sync credentials" }), { status: 401, headers: corsHeaders });
+      }
+      tokenCasinoId = syncCasino;
     }
-    tokenCasinoId = data.approved_casino_id as string;
   } else if (seedTokenHdr) {
     try {
       const key = await crypto.subtle.importKey(
