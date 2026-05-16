@@ -65,8 +65,9 @@ Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   const url = new URL(req.url);
-  // Strip /peer-mesh prefix (function name path segment)
-  const sub = url.pathname.replace(/^\/peer-mesh/, "") || "/";
+  // Strip /peer-mesh prefix (function name path segment). Local cms-sync uses
+  // /peer/* routes, so accept both /handshake and /peer/handshake variants.
+  const sub = (url.pathname.replace(/^\/peer-mesh/, "") || "/").replace(/^\/peer(?=\/)/, "");
 
   try {
     if (sub === "/health" && req.method === "GET") {

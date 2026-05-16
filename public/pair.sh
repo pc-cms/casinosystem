@@ -94,8 +94,8 @@ START_OUT="$(docker compose exec -T cms-sync node /app/pair-cli.js start "$CLOUD
   || die "pair-cli start failed:
 $START_OUT"
 
-PAIRING_CODE="$(echo "$START_OUT" | grep -oE '"pairing_code":"[A-Z0-9]+"' | head -1 | cut -d'"' -f4)"
-EXPIRES_AT="$(echo "$START_OUT" | grep -oE '"expires_at":"[^"]+"' | head -1 | cut -d'"' -f4)"
+PAIRING_CODE="$(echo "$START_OUT" | grep -oE '"pairing_code":"[A-Z0-9]+"' | head -1 | cut -d'"' -f4 || true)"
+EXPIRES_AT="$(echo "$START_OUT" | grep -oE '"expires_at":"[^"]+"' | head -1 | cut -d'"' -f4 || true)"
 [[ -n "$PAIRING_CODE" ]] || die "Cloud did not return a pairing_code:
 $START_OUT"
 
@@ -122,8 +122,15 @@ $WAIT_OUT" ;;
   esac
 }
 
-CASINO_ID="$(echo "$WAIT_OUT" | grep -oE '"casino_id":"[^"]+"' | head -1 | cut -d'"' -f4)"
-SYNC_SECRET="$(echo "$WAIT_OUT" | grep -oE '"sync_secret":"[^"]+"' | head -1 | cut -d'"' -f4)"
+CASINO_ID="$(echo "$WAIT_OUT" | grep -oE '"casino_id":"[^"]+"' | head -1 | cut -d'"' -f4 || true)"
+SYNC_SECRET="$(echo "$WAIT_OUT" | grep -oE '"sync_secret":"[^"]+"' | head -1 | cut -d'"' -f4 || true)"
+if [[ -z "$SYNC_SECRET" ]]; then
+  STATUS_OUT="$(docker compose exec -T cms-sync node /app/pair-cli.js status </dev/null || true)"
+  SYNC_SECRET="$(echo "$STATUS_OUT" | grep -oE '"sync_secret":"[^"]+"' | head -1 | cut -d'"' -f4 || true)"
+  [[ -n "$CASINO_ID" ]] || CASINO_ID="$(echo "$STATUS_OUT" | grep -oE '"casino_id":"[^"]+"' | head -1 | cut -d'"' -f4 || true)"
+fi
+[[ -n "$CASINO_ID" && -n "$SYNC_SECRET" ]] || die "Cloud approved pairing but local credentials are incomplete:
+$WAIT_OUT"
 log "Approved! casino_id=${CASINO_ID}"
 
 if [[ -n "${CASINO_ID}" && -n "${SYNC_SECRET}" ]]; then

@@ -165,7 +165,9 @@ async function start(cloudUrl) {
 async function pollOnce() {
   const row = await getRow();
   if (!row) return { status: "disconnected" };
-  if (row.status === "connected") return { status: "connected", casino_id: row.casino_id };
+  if (row.status === "connected") {
+    return { status: "connected", casino_id: row.casino_id, sync_secret: row.sync_secret };
+  }
   if (row.status !== "pairing" || !row.pairing_code) return { status: row.status };
 
   const r = await fetch(
