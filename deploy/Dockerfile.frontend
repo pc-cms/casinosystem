@@ -38,6 +38,41 @@ COPY . .
 # Билд
 ARG VITE_BUILD_VERSION=0.1.0
 ENV VITE_BUILD_VERSION=$VITE_BUILD_VERSION
+
+# ──────────────────────────────────────────────────────────────
+# CRITICAL: on-prem must build with LOCAL Supabase URL.
+# Vite inlines `import.meta.env.VITE_SUPABASE_URL` at build time
+# (it's not readable from runtime-config.json). Without these args
+# the bundle would talk to Cloud Supabase even in on-prem mode.
+# install.sh passes VITE_SUPABASE_URL=https://${LOCAL_DOMAIN}/api
+# and VITE_SUPABASE_PUBLISHABLE_KEY=${ANON_KEY}.
+# ──────────────────────────────────────────────────────────────
+ARG VITE_SUPABASE_URL
+ARG VITE_SUPABASE_PUBLISHABLE_KEY
+ARG VITE_SUPABASE_PROJECT_ID=local
+ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL
+ENV VITE_SUPABASE_PUBLISHABLE_KEY=$VITE_SUPABASE_PUBLISHABLE_KEY
+ENV VITE_SUPABASE_PROJECT_ID=$VITE_SUPABASE_PROJECT_ID
+
+# Fail-fast: refuse to build a Cloud-pointing image when used by install.sh
+RUN if [ -n "$VITE_SUPABASE_URL" ] && echo "$VITE_SUPABASE_URL" | grep -q "supabase.co"; then \
+      echo "FATAL: VITE_SUPABASE_URL points at Cloud ($VITE_SUPABASE_URL). On-prem build must use https://<LOCAL_DOMAIN>/api." >&2; \
+      exit 1; \
+    fi
+
+# Write .env.production.local so Vite sees the build args. We do this in addition
+# to ENV because Vite only reads dotenv files, not arbitrary env vars (except
+# those prefixed with VITE_ — which we use, so ENV alone would also work, but
+# dotenv is the canonical Vite way and survives any future sandboxing changes).
+RUN if [ -n "$VITE_SUPABASE_URL" ]; then \
+      printf 'VITE_SUPABASE_URL=%s\nVITE_SUPABASE_PUBLISHABLE_KEY=%s\nVITE_SUPABASE_PROJECT_ID=%s\n' \
+        "$VITE_SUPABASE_URL" "$VITE_SUPABASE_PUBLISHABLE_KEY" "$VITE_SUPABASE_PROJECT_ID" \
+        > .env.production.local; \
+      echo "[build] using LOCAL Supabase: $VITE_SUPABASE_URL"; \
+    else \
+      echo "[build] no VITE_SUPABASE_URL — Cloud build (lovable.app)"; \
+    fi
+
 RUN npm run build
 
 
