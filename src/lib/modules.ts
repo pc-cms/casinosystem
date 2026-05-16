@@ -45,6 +45,7 @@ export type ModuleKey =
   | "miss_chips"
   | "business_days"
   | "weekly_bonus"
+  | "monthly_tips"
   | "incidents"
   | "pitbook"
   | "groups"
@@ -83,6 +84,7 @@ export const MODULES: ModuleDef[] = [
   { key: "incidents", label: "Incidents", group: "Operations" },
   { key: "pitbook", label: "Pitbook", group: "Operations" },
   { key: "weekly_bonus", label: "Weekly Bonus", group: "Operations" },
+  { key: "monthly_tips", label: "Monthly Tips", group: "Operations" },
   { key: "business_days", label: "Business Days", group: "Reports" },
   { key: "cashless", label: "Cashless", group: "Operations" },
   { key: "expenses_approvals", label: "Expenses Approvals", group: "Finance" },

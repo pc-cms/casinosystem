@@ -105,6 +105,7 @@ export const moduleKeyForRoute = (to: string, label?: string): ModuleKey | null 
   if (base === "/reports") return "reports";
   if (base === "/business-days") return "business_days";
   if (base === "/weekly-bonus") return "weekly_bonus";
+  if (base === "/monthly-tips") return "monthly_tips";
 
   // ============= PIT EXTRAS =============
   if (base === "/pitbook") return "pitbook";
