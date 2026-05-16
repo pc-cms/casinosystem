@@ -57,7 +57,7 @@ fi
 
 # ─────────── 1. Start pairing ───────────
 log "Registering on Cloud..."
-START_OUT="$(docker compose exec -T cms-sync node /app/pair-cli.js start "$CLOUD_URL")" \
+START_OUT="$(docker compose exec -T cms-sync node /app/pair-cli.js start "$CLOUD_URL" </dev/null)" \
   || die "pair-cli start failed:
 $START_OUT"
 
