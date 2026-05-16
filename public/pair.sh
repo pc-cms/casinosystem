@@ -163,7 +163,28 @@ if [[ -n "${CASINO_ID}" && -n "${SYNC_SECRET}" ]]; then
   set_env SYNC_SECRET "$SYNC_SECRET"
 fi
 
-# ─────────── 3. Trigger initial seed ───────────
+# ─────────── 3a. Pull full schema from Cloud (creates any missing tables) ───────────
+log "Fetching latest schema from Cloud..."
+TMP_SCHEMA="$(mktemp /tmp/cms-schema-XXXXXX.sql)"
+SCHEMA_URL="${CLOUD_URL}/functions/v1/cloud-schema-export"
+if curl -fsSL -H "x-sync-secret: ${SYNC_SECRET}" -H "x-casino-id: ${CASINO_ID}" \
+     "$SCHEMA_URL" -o "$TMP_SCHEMA" && [[ -s "$TMP_SCHEMA" ]]; then
+  log "Applying Cloud schema locally (idempotent)..."
+  if docker compose exec -T -e PGPASSWORD="$POSTGRES_PASSWORD" postgres \
+       sh -c 'psql -h 127.0.0.1 -U "${POSTGRES_USER:-postgres}" -d "${POSTGRES_DB:-postgres}" -v ON_ERROR_STOP=0' \
+       < "$TMP_SCHEMA" >/tmp/cms-schema-apply.log 2>&1; then
+    log "Schema sync OK."
+  else
+    warn "Schema apply reported errors (continuing, most are harmless type/column re-adds)."
+    warn "Details: /tmp/cms-schema-apply.log on the local server."
+  fi
+  rm -f "$TMP_SCHEMA"
+else
+  warn "Could not fetch cloud-schema-export — some tables may be missing locally."
+  warn "Seed will skip rows for missing tables; re-run pair.sh after deploying cloud-schema-export."
+fi
+
+# ─────────── 3b. Trigger initial seed ───────────
 log "Streaming initial data seed from Cloud into local DB..."
 SYNC_OUT="$(docker compose exec -T cms-sync node /app/pair-cli.js sync </dev/null)" \
   || die "initial seed failed:
