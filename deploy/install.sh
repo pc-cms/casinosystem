@@ -34,17 +34,45 @@ trap 'rc=$?; echo -e "${RED}[fail]${NC} Installer stopped at line ${BASH_LINENO[
 require_root() { [[ $EUID -eq 0 ]] || fail "Запустите от root: sudo ./deploy/install.sh"; }
 
 # ── CLI ──
-RESET=0; REBUILD=0; RECONFIGURE=0; WIPE=0
+RESET=0; REBUILD=0; RECONFIGURE=0; WIPE=0; NONINTERACTIVE=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --reset)        RESET=1; shift ;;
-    --rebuild)      REBUILD=1; shift ;;
-    --reconfigure)  RECONFIGURE=1; shift ;;
-    --wipe)         WIPE=1; RESET=1; shift ;;
-    -h|--help)      sed -n '4,16p' "$0"; exit 0 ;;
+    --reset)            RESET=1; shift ;;
+    --rebuild)          REBUILD=1; shift ;;
+    --reconfigure)      RECONFIGURE=1; shift ;;
+    --wipe)             WIPE=1; RESET=1; shift ;;
+    -y|--yes|--non-interactive) NONINTERACTIVE=1; shift ;;
+    --slug=*)           CLI_SLUG="${1#*=}"; shift ;;
+    --name=*)           CLI_NAME="${1#*=}"; shift ;;
+    --domain=*)         CLI_DOMAIN="${1#*=}"; shift ;;
+    --ip=*)             CLI_IP="${1#*=}"; shift ;;
+    -h|--help)          sed -n '4,16p' "$0"; exit 0 ;;
     *) fail "Неизвестный аргумент: $1" ;;
   esac
 done
+
+# Detect if we have a real TTY (works even under `curl | sudo bash`).
+HAS_TTY=0
+if [[ -r /dev/tty ]] && { : >/dev/tty; } 2>/dev/null; then
+  HAS_TTY=1
+fi
+
+ask() {
+  # ask VAR "Prompt" "default"
+  local var="$1" prompt="$2" def="${3:-}" val=""
+  if [[ $NONINTERACTIVE -eq 1 || $HAS_TTY -eq 0 ]]; then
+    printf -v "$var" '%s' "$def"
+    return 0
+  fi
+  if [[ -n "$def" ]]; then
+    printf "${CYAN}?${NC} %s [${BOLD}%s${NC}]: " "$prompt" "$def" >/dev/tty
+  else
+    printf "${CYAN}?${NC} %s: " "$prompt" >/dev/tty
+  fi
+  IFS= read -r val </dev/tty || val=""
+  [[ -z "$val" ]] && val="$def"
+  printf -v "$var" '%s' "$val"
+}
 
 require_root
 
