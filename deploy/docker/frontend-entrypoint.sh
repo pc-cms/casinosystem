@@ -23,7 +23,7 @@ ROOT="/usr/share/nginx/html"
 CONFIG_FILE="${ROOT}/runtime-config.json"
 MANIFEST_FILE="${ROOT}/manifest-local.json"
 
-: "${RUNTIME_SUPABASE_URL:=}"
+: "${RUNTIME_SUPABASE_URL:=__CMS_ORIGIN_PLACEHOLDER__/api}"
 : "${RUNTIME_SUPABASE_KEY:=}"
 : "${RUNTIME_CASINO_ID:=}"
 : "${RUNTIME_CASINO_SLUG:=local}"
@@ -31,25 +31,27 @@ MANIFEST_FILE="${ROOT}/manifest-local.json"
 : "${RUNTIME_LOCAL_MODE:=true}"
 : "${RUNTIME_VERSION:=unknown}"
 
-# ────────── Sanity: on-prem must NOT silently fall back to Cloud ──────────
-# If RUNTIME_SUPABASE_URL is empty or points at the Cloud Supabase project,
-# the local frontend would talk directly to Cloud — defeating the whole
-# on-prem install. Refuse to start so the operator notices.
-if [[ "$RUNTIME_LOCAL_MODE" == "true" ]]; then
-  if [[ -z "$RUNTIME_SUPABASE_URL" ]]; then
-    echo "[entrypoint] FATAL: RUNTIME_SUPABASE_URL is empty in on-prem mode." >&2
-    echo "             Set LOCAL_DOMAIN in deploy/.env and re-run install.sh." >&2
-    exit 1
-  fi
-  if [[ "$RUNTIME_SUPABASE_URL" == *"supabase.co"* ]]; then
-    echo "[entrypoint] FATAL: RUNTIME_SUPABASE_URL points at Cloud Supabase (${RUNTIME_SUPABASE_URL})." >&2
-    echo "             On-prem frontend must use https://<LOCAL_DOMAIN>/api." >&2
-    echo "             Fix LOCAL_DOMAIN in deploy/.env and re-run install.sh." >&2
-    exit 1
-  fi
+# ────────── 0. Universal-origin patch ──────────
+# Replace baked placeholder with runtime `location.origin + "/api"` so the
+# same image works for ANY hostname (IP / mDNS / custom domain).
+# Vite inlines `import.meta.env.VITE_SUPABASE_URL` as a string literal at build
+# time, so we sed the bundled JS once at container start. Idempotent.
+PLACEHOLDER='"__CMS_ORIGIN_PLACEHOLDER__/api"'
+REPLACEMENT='(typeof location!=="undefined"?location.origin:"")+"/api"'
+PATCHED=0
+if grep -rqlF "$PLACEHOLDER" "${ROOT}/assets" 2>/dev/null; then
+  echo "[entrypoint] rewriting __CMS_ORIGIN_PLACEHOLDER__ → location.origin"
+  # Use a delimiter that won't appear in the replacement
+  while IFS= read -r f; do
+    sed -i "s|${PLACEHOLDER}|${REPLACEMENT}|g" "$f"
+    PATCHED=$((PATCHED+1))
+  done < <(grep -rlF "$PLACEHOLDER" "${ROOT}/assets" 2>/dev/null)
+  echo "[entrypoint] patched ${PATCHED} bundle file(s)"
 fi
 
 # ────────── 1. runtime-config.json ──────────
+# supabaseUrl is left as the placeholder string — the bundle already uses
+# location.origin via the sed above. runtime-config drives only casino identity.
 if [[ -f "$CONFIG_FILE" ]]; then
   echo "[entrypoint] patching ${CONFIG_FILE}"
   TMP=$(mktemp)
