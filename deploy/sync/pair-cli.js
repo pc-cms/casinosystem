@@ -277,6 +277,9 @@ async function triggerSync() {
         const sql = `INSERT INTO public."${obj.table}" (${cols.map(c => `"${c}"`).join(",")})
                      VALUES (${placeholders})
                      ON CONFLICT (id) DO UPDATE SET ${setlist}`;
+        const fallbackSql = `INSERT INTO public."${obj.table}" (${cols.map(c => `"${c}"`).join(",")})
+                             VALUES (${placeholders})
+                             ON CONFLICT DO NOTHING`;
         try {
           await client.query("SAVEPOINT seed_row");
           await client.query(sql, cols.map(c => obj.row[c]));
@@ -285,7 +288,16 @@ async function triggerSync() {
         } catch (e) {
           await client.query("ROLLBACK TO SAVEPOINT seed_row").catch(() => {});
           await client.query("RELEASE SAVEPOINT seed_row").catch(() => {});
-          console.error(`[seed] insert.fail ${obj.table}: ${String(e?.message || e).slice(0, 160)}`);
+          try {
+            await client.query("SAVEPOINT seed_row_fallback");
+            const rr = await client.query(fallbackSql, cols.map(c => obj.row[c]));
+            await client.query("RELEASE SAVEPOINT seed_row_fallback");
+            if (rr.rowCount > 0) counts[obj.table] = (counts[obj.table] || 0) + rr.rowCount;
+          } catch (e2) {
+            await client.query("ROLLBACK TO SAVEPOINT seed_row_fallback").catch(() => {});
+            await client.query("RELEASE SAVEPOINT seed_row_fallback").catch(() => {});
+            console.error(`[seed] insert.fail ${obj.table}: ${String(e2?.message || e2 || e).slice(0, 160)}`);
+          }
         }
       }
     }
@@ -359,7 +371,7 @@ const arg = process.argv[3];
       console.log(JSON.stringify(row));
       process.exit(0);
     }
-    console.error("usage: pair-cli.js {start <cloud_url>|poll|wait [seconds]|ping|sync|status}");
+    console.error("usage: pair-cli.js {start <cloud_url>|poll|wait [seconds]|ping|mesh|sync|status}");
     process.exit(1);
   } catch (e) {
     console.error(`ERROR: ${e?.message || e}`);
