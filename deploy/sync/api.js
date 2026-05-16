@@ -85,6 +85,32 @@ export function startApi({ pool }) {
           return send(res, 200, { ok: false, error: String(e?.message ?? e) });
         }
       }
+
+      // ── Updater control routes ──
+      if (req.method === "GET" && path === "/node/updater/status") {
+        return send(res, 200, getUpdaterStatus());
+      }
+      if (req.method === "POST" && path === "/node/updater/check") {
+        try { writeFileSync(CHECK_NOW_FILE, new Date().toISOString()); }
+        catch (e) { return send(res, 500, { error: String(e?.message ?? e) }); }
+        return send(res, 200, { ok: true, message: "check queued; updater polls every 10s" });
+      }
+      if (req.method === "POST" && path === "/node/updater/apply") {
+        const body = await readJson(req);
+        const status = getUpdaterStatus();
+        const target = String(body.version || status.available_version || "").trim().replace(/^v/, "");
+        if (!target) return send(res, 400, { error: "no version specified and none available" });
+        const cmd = {
+          id: randomUUID(),
+          target_version: target,
+          auto_apply: body.auto_apply !== false,
+          issued_at: new Date().toISOString(),
+        };
+        try { writeFileSync(PUSH_FILE, JSON.stringify(cmd, null, 2)); }
+        catch (e) { return send(res, 500, { error: String(e?.message ?? e) }); }
+        return send(res, 200, { ok: true, command: cmd });
+      }
+
       return send(res, 404, { error: "unknown route", path });
     } catch (e) {
       return send(res, 500, { error: String(e?.message || e) });
