@@ -466,3 +466,125 @@ function getUpdaterStatus() {
     log_tail: tailLog(LOG_FILE, 30),
   };
 }
+
+// ─────────── Clone-from-Cloud ───────────
+// In-memory status — survives until process restart. UI polls every 2s.
+let cloneState = {
+  status: "idle",        // idle | running | error | done
+  started_at: null,
+  finished_at: null,
+  current_table: null,
+  counts: {},            // { table_name: rows_imported }
+  error: null,
+};
+function getCloneStatus() { return cloneState; }
+
+async function cloneFromCloud(pool, conn, casinoId) {
+  cloneState = {
+    status: "running",
+    started_at: new Date().toISOString(),
+    finished_at: null,
+    current_table: null,
+    counts: {},
+    error: null,
+  };
+  const client = await pool.connect();
+  try {
+    // Tables to wipe — same list whose scope=='full' in cloud-seed-export.
+    const wipeTables = [
+      "transactions","shifts","cage_transfers","expenses",
+      "wallet_transactions","chip_emissions","chip_transfers",
+      "chip_snapshots","chip_baseline","chip_initial_baseline","chip_inventory",
+      "casino_visits","breaklist","pit_rota","staff_rota",
+      "dealer_attendance","staff_attendance",
+      "table_tracker","table_daily_results","business_day_closures",
+      "cash_counts","cash_count_snapshots","cashless_transactions",
+      "bank_checks","cctv_observations","player_position_history",
+      "daily_summaries","inter_casino_transfers",
+      "player_tags","player_notes","group_members","player_groups",
+      "player_cards","players",
+      "dealers","staff_members",
+      "gaming_tables","chip_color_settings",
+      "financial_wallets","budget_items","budget_periods","budget_categories",
+      "user_module_permissions","user_casino_access",
+    ];
+
+    await client.query("BEGIN");
+    await client.query(`SELECT set_config('sync.applying','on', true)`);
+
+    // 1) Clear sync_outbox + seed markers + advance peer cursors so we don't
+    //    push the freshly-imported rows back to Cloud.
+    await client.query(`SELECT public.sync_reset_outbox($1::uuid, true)`, [casinoId]);
+
+    // 2) Wipe casino-scoped rows
+    for (const t of wipeTables) {
+      try {
+        await client.query(`DELETE FROM public.${t} WHERE casino_id = $1::uuid`, [casinoId]);
+      } catch (e) {
+        // table may not exist or lack casino_id; continue
+        console.log(`[clone] wipe.skip ${t}: ${String(e?.message || e).slice(0, 120)}`);
+      }
+    }
+
+    // 3) Stream NDJSON from cloud-seed-export
+    const seedUrl = `${conn.cloud_url}/functions/v1/cloud-seed-export?casino_id=${casinoId}&days=all`;
+    const r = await fetch(seedUrl, {
+      headers: { "x-sync-secret": conn.sync_secret, "x-casino-id": casinoId },
+    });
+    if (!r.ok || !r.body) {
+      throw new Error(`cloud-seed-export ${r.status}: ${(await r.text().catch(()=>""))?.slice(0,300)}`);
+    }
+
+    const reader = r.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = "";
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      let nl;
+      while ((nl = buf.indexOf("\n")) !== -1) {
+        const line = buf.slice(0, nl).trim();
+        buf = buf.slice(nl + 1);
+        if (!line) continue;
+        let obj;
+        try { obj = JSON.parse(line); } catch { continue; }
+        if (obj._meta || obj._done) continue;
+        if (obj._error || obj._fatal) {
+          console.log(`[clone] seed-export error`, obj);
+          continue;
+        }
+        if (!obj.table || !obj.row) continue;
+        cloneState.current_table = obj.table;
+        const cols = Object.keys(obj.row);
+        if (cols.length === 0) continue;
+        const placeholders = cols.map((_, i) => `$${i + 1}`).join(",");
+        const setlist = cols.filter(c => c !== "id")
+          .map(c => `"${c}" = EXCLUDED."${c}"`).join(",") || `"id" = EXCLUDED."id"`;
+        const sql = `INSERT INTO public."${obj.table}" (${cols.map(c => `"${c}"`).join(",")})
+                     VALUES (${placeholders})
+                     ON CONFLICT (id) DO UPDATE SET ${setlist}`;
+        try {
+          await client.query(sql, cols.map(c => obj.row[c]));
+          cloneState.counts[obj.table] = (cloneState.counts[obj.table] || 0) + 1;
+        } catch (e) {
+          console.log(`[clone] insert.fail ${obj.table}: ${String(e?.message || e).slice(0, 200)}`);
+        }
+      }
+    }
+
+    await client.query("COMMIT");
+    cloneState.status = "done";
+    cloneState.finished_at = new Date().toISOString();
+    cloneState.current_table = null;
+    console.log("[clone] done", cloneState.counts);
+  } catch (e) {
+    await client.query("ROLLBACK").catch(() => {});
+    cloneState.status = "error";
+    cloneState.error = String(e?.message || e);
+    cloneState.finished_at = new Date().toISOString();
+    console.error("[clone] error", e);
+  } finally {
+    client.release();
+  }
+}
