@@ -68,6 +68,7 @@ cd "${CMS_DIR}/deploy"
 CLOUD_URL="${CLOUD_URL:-$(grep -E '^CLOUD_URL=' "$ENV_FILE" | head -1 | cut -d= -f2- | tr -d '"'"'"'' || true)}"
 CLOUD_URL="${CLOUD_URL:-https://rpehngjvwcnipvkouluu.supabase.co}"
 CLOUD_URL="${CLOUD_URL%/}"
+POSTGRES_PASSWORD="$(grep -E '^POSTGRES_PASSWORD=' "$ENV_FILE" | head -1 | cut -d= -f2- | sed -e "s/^'//" -e "s/'$//" -e 's/^"//' -e 's/"$//' || true)"
 log "Cloud:  ${CLOUD_URL}"
 
 # Sanity: cms-sync must be up
@@ -94,7 +95,8 @@ fi
 REPAIR_FILE="${CMS_DIR}/deploy/postgres/repair-local-schema.sql"
 if [[ -f "$REPAIR_FILE" ]]; then
   log "Checking local sync schema..."
-  docker compose exec -T postgres sh -c 'psql -U "${POSTGRES_USER:-postgres}" -d "${POSTGRES_DB:-postgres}" -v ON_ERROR_STOP=1' \
+  docker compose exec -T -e PGPASSWORD="$POSTGRES_PASSWORD" postgres \
+    sh -c 'psql -U "${POSTGRES_USER:-postgres}" -d "${POSTGRES_DB:-postgres}" -v ON_ERROR_STOP=1' \
     < "$REPAIR_FILE" >/dev/null \
     || die "local schema repair failed — check: docker compose logs --tail=80 postgres"
 fi
