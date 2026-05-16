@@ -118,6 +118,29 @@ Deno.serve(async (req: Request) => {
       return json(200, { accepted });
     }
 
+    if (sub === "/log") {
+      // Local cms-sync ships compact batch summaries here so Cloud has full
+      // visibility of what is being exchanged with every paired node.
+      const entries = Array.isArray(body.entries) ? body.entries : [];
+      if (entries.length === 0) return json(200, { accepted: 0 });
+      const rows = entries.slice(0, 500).map((e: any) => ({
+        peer_link_id: peer.id,
+        peer_node_id: peer.peer_node_id,
+        peer_name:    peer.display_name,
+        direction:    ["pull","push","clone","heartbeat","handshake"].includes(e.direction) ? e.direction : "heartbeat",
+        status:       ["ok","warn","error"].includes(e.status) ? e.status : "ok",
+        table_name:   e.table_name ?? null,
+        row_count:    Number.isFinite(Number(e.row_count)) ? Number(e.row_count) : 0,
+        batch_id:     e.batch_id ? String(e.batch_id).slice(0, 64) : null,
+        error_text:   e.error_text ? String(e.error_text).slice(0, 1000) : null,
+        meta:         (e.meta && typeof e.meta === "object") ? e.meta : {},
+      }));
+      const { error } = await admin.from("sync_exchange_logs").insert(rows);
+      if (error) return json(500, { error: error.message });
+      await admin.from("peer_links").update({ last_seen_at: new Date().toISOString() }).eq("id", peer.id);
+      return json(200, { accepted: rows.length });
+    }
+
     if (sub === "/pull") {
       const sinceId = Number(body.since_id ?? 0) || 0;
       const limit = Math.min(Number(body.limit ?? 500) || 500, 2000);

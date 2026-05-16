@@ -82,6 +82,30 @@ async function peerFetch(peer, path, body) {
   return json ?? {};
 }
 
+// ─────────── Exchange log shipping ───────────
+// Buffer batch summaries and ship them to the Cloud peer-mesh /log endpoint
+// so Cloud-side admins can see exactly what each local node syncs.
+const logBuffer = new Map(); // peer.id -> entries[]
+function bufferExchange(peer, entry) {
+  const arr = logBuffer.get(peer.id) ?? [];
+  arr.push({ ...entry, ts: new Date().toISOString() });
+  if (arr.length > 200) arr.splice(0, arr.length - 200);
+  logBuffer.set(peer.id, arr);
+}
+async function flushExchangeLog(peer) {
+  const arr = logBuffer.get(peer.id);
+  if (!arr || arr.length === 0) return;
+  const batch = arr.splice(0, arr.length);
+  try {
+    await peerFetch(peer, "/log", { entries: batch });
+  } catch (e) {
+    // Buffer back on failure (cap at 500 to avoid unbounded memory)
+    const restored = (logBuffer.get(peer.id) ?? []);
+    logBuffer.set(peer.id, batch.concat(restored).slice(0, 500));
+    log("warn", "peer.log.flush.fail", { peer: peer.display_name, err: String(e?.message ?? e).slice(0, 200) });
+  }
+}
+
 // ─────────── HANDSHAKE ───────────
 async function handshakePeer(peer) {
   const body = {
@@ -99,6 +123,7 @@ async function handshakePeer(peer) {
     [j.node_id ?? null, j.schema_version ?? null, peer.id]
   );
   log("info", "peer.handshake.ok", { peer: peer.display_name, peer_node_id: j.node_id });
+  bufferExchange(peer, { direction: "handshake", status: "ok", row_count: 0, meta: { peer_node_id: j.node_id } });
 }
 
 // ─────────── PUSH ───────────
@@ -125,6 +150,7 @@ async function pushPeer(peer) {
       WHERE id = $2`,
     [maxId, peer.id]
   );
+  bufferExchange(peer, { direction: "push", status: accepted.size === rows.length ? "ok" : "warn", row_count: accepted.size, meta: { attempted: rows.length, cursor: maxId } });
   return rows.length;
 }
 
@@ -184,6 +210,7 @@ async function pullPeer(peer) {
       WHERE id = $2`,
     [nextSince, peer.id]
   );
+  bufferExchange(peer, { direction: "pull", status: "ok", row_count: changes.length, meta: { cursor: nextSince } });
   return changes.length;
 }
 
@@ -214,12 +241,43 @@ async function tickPeer(peer) {
     if (sent || recv) log("info", "peer.sync.ok", { peer: peer.display_name, sent, recv });
   } catch (e) {
     const b = peerBackoff.get(peer.id) ?? TICK_MS;
-    log("warn", "peer.sync.fail", { peer: peer.display_name, err: String(e?.message ?? e), backoff_ms: b });
+    const errStr = String(e?.message ?? e);
+    log("warn", "peer.sync.fail", { peer: peer.display_name, err: errStr, backoff_ms: b });
+    bufferExchange(peer, { direction: "push", status: "error", row_count: 0, error_text: errStr.slice(0, 500) });
     await pool.query(
       `UPDATE public.peer_links SET last_push_error = $1 WHERE id = $2`,
-      [String(e?.message ?? e).slice(0, 240), peer.id]
+      [errStr.slice(0, 240), peer.id]
     );
     peerBackoff.set(peer.id, Math.min(b * 2, BACKOFF_MAX));
+  }
+  // Always try to flush exchange log (best-effort) so Cloud sees activity
+  await flushExchangeLog(peer);
+}
+
+// ─────────── heartbeat ───────────
+async function heartbeatLoop() {
+  while (true) {
+    try {
+      const { rows: peers } = await pool.query(
+        `SELECT * FROM public.peer_links WHERE status = 'active' AND peer_node_id IS NOT NULL`
+      );
+      for (const p of peers) {
+        bufferExchange(p, {
+          direction: "heartbeat",
+          status: "ok",
+          row_count: 0,
+          meta: {
+            push_cursor: Number(p.last_push_cursor) || 0,
+            pull_cursor: Number(p.last_pull_cursor) || 0,
+            schema_version: SCHEMA_VERSION,
+          },
+        });
+        await flushExchangeLog(p);
+      }
+    } catch (e) {
+      log("warn", "heartbeat.fail", { err: String(e?.message ?? e) });
+    }
+    await sleep(30_000);
   }
 }
 
@@ -263,7 +321,7 @@ log("info", "sync.start", { batch: BATCH, tick_ms: TICK_MS, schema_version: SCHE
 
 startApi({ pool });
 
-Promise.all([mainLoop(), gcLoop(), identityRefreshLoop()]).catch((e) => {
+Promise.all([mainLoop(), gcLoop(), identityRefreshLoop(), heartbeatLoop()]).catch((e) => {
   log("error", "sync.crash", { err: String(e) });
   process.exit(1);
 });
