@@ -470,6 +470,9 @@ fi
 log "Запускаю postgres (чистая БД, миграции применятся автоматически)..."
 docker compose up -d postgres
 wait_for_postgres_ready "Postgres"
+docker compose exec -T -e PGPASSWORD="${POSTGRES_PASSWORD}" postgres \
+  psql -h 127.0.0.1 -U "${POSTGRES_USER:-postgres}" -d "${POSTGRES_DB:-postgres}" \
+  -v ON_ERROR_STOP=1 -c "$ensure_auth_defaults_sql" &>/dev/null || true
 touch "$SEED_DONE_FILE"
 ok "БД готова. Данные подтянутся после Initial Sync из Cloud-админки."
 
@@ -567,6 +570,8 @@ else
   #     because slug "arusha" never matches the seed row's slug "local".
   docker compose exec -T -e PGPASSWORD="${POSTGRES_PASSWORD}" postgres \
     psql -h 127.0.0.1 -U "${POSTGRES_USER:-postgres}" -d "${POSTGRES_DB:-postgres}" -v ON_ERROR_STOP=1 -c "
+      ${ensure_auth_defaults_sql}
+
       INSERT INTO public.user_roles (user_id, role)
       VALUES ('${SA_USER_ID}', 'super_admin')
       ON CONFLICT (user_id, role) DO NOTHING;
