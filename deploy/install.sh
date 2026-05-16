@@ -482,11 +482,11 @@ for i in $(seq 1 15); do
 done
 
 # ────────── 5.5. Super admin (idempotent) ──────────
-# Always ensure admin@cms.local exists with super_admin role. Re-runs are safe.
-title "Ensure Super Admin (admin@cms.local / admin)"
+# Always ensure superadmin@cms.local exists with super_admin role + correct password.
+title "Ensure Super Admin (superadmin@cms.local / superadmin)"
 
-SA_EMAIL="${SUPER_ADMIN_EMAIL:-admin@cms.local}"
-SA_PASS="${SUPER_ADMIN_PASSWORD:-admin}"
+SA_EMAIL="${SUPER_ADMIN_EMAIL:-superadmin@cms.local}"
+SA_PASS="${SUPER_ADMIN_PASSWORD:-superadmin}"
 
 log "Жду готовности GoTrue..."
 for i in $(seq 1 30); do
@@ -512,6 +512,14 @@ if [[ -z "$SA_USER_ID" ]]; then
       psql -h 127.0.0.1 -U "${POSTGRES_USER:-postgres}" -d "${POSTGRES_DB:-postgres}" -tAc \
       "SELECT id FROM auth.users WHERE email='${SA_EMAIL}' LIMIT 1" 2>/dev/null | tr -d ' \n' || true)
   fi
+else
+  log "Пользователь ${SA_EMAIL} уже существует — обновляю пароль через GoTrue"
+  docker compose exec -T gotrue wget -q -O- \
+    --method=PUT \
+    --header="Authorization: Bearer ${SERVICE_ROLE_KEY}" \
+    --header="Content-Type: application/json" \
+    --body-data="$(jq -n --arg p "$SA_PASS" '{password:$p}')" \
+    "http://localhost:9999/admin/users/${SA_USER_ID}" &>/dev/null || true
 fi
 
 if [[ -z "$SA_USER_ID" ]]; then
@@ -524,6 +532,7 @@ else
      ON CONFLICT (user_id, role) DO NOTHING;" &>/dev/null || true
   ok "Super admin готов: ${SA_EMAIL} / ${SA_PASS}"
 fi
+
 
 
 # systemd
