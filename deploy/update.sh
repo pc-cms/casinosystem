@@ -110,6 +110,25 @@ rsync -a --delete \
 # 6. Rebuild frontend + cms-sync + restart
 cd "${CMS_DIR}/deploy"
 write_root_compose_env
+
+# 6a. Backfill missing CASINO_ID for installs that predate the placeholder UUID.
+if ! grep -qE '^CASINO_ID=' "$ENV_FILE"; then
+  log "Adding CASINO_ID placeholder to .env"
+  echo 'CASINO_ID=00000000-0000-0000-0000-0000000000ca' >> "$ENV_FILE"
+fi
+
+# 6b. Re-apply seed defaults (roles matrix, placeholder casino, wallets, chip colors).
+# Idempotent (ON CONFLICT DO NOTHING) — safe to run on existing installs.
+if docker compose ps postgres --status=running 2>/dev/null | grep -q postgres; then
+  if [[ -f "${CMS_DIR}/deploy/postgres/init/20-seed-defaults.sql" ]]; then
+    log "Applying seed defaults (idempotent)..."
+    docker compose exec -T postgres psql -U postgres -d postgres \
+      < "${CMS_DIR}/deploy/postgres/init/20-seed-defaults.sql" >/dev/null 2>&1 \
+      && log "Seed defaults applied." \
+      || warn "Seed defaults skipped (postgres not ready or already applied)."
+  fi
+fi
+
 LOCAL_IP="$(read_env_key LOCAL_IP)"
 [[ -n "$LOCAL_IP" ]] || die "LOCAL_IP missing from $ENV_FILE"
 EXPECTED_URL="https://${LOCAL_IP}/api"
