@@ -150,6 +150,7 @@ async function pushPeer(peer) {
       WHERE id = $2`,
     [maxId, peer.id]
   );
+  bufferExchange(peer, { direction: "push", status: accepted.size === rows.length ? "ok" : "warn", row_count: accepted.size, meta: { attempted: rows.length, cursor: maxId } });
   return rows.length;
 }
 
