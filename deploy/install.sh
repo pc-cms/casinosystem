@@ -204,42 +204,19 @@ fi
 normalize_env_file
 set -a; source .env; set +a
 
-# ── Параметры локации ──
-title "2/4  Параметры локации"
-
-# Priority: CLI flag > env var (already in .env or shell) > interactive prompt > default.
-DEFAULT_IP="$(hostname -I 2>/dev/null | awk '{print $1}')"
-[[ -z "$DEFAULT_IP" ]] && DEFAULT_IP="127.0.0.1"
-
-CUR_SLUG="${CLI_SLUG:-${CASINO_SLUG:-}}"
-CUR_NAME="${CLI_NAME:-${CASINO_NAME:-}}"
-CUR_DOMAIN="${CLI_DOMAIN:-${LOCAL_DOMAIN:-}}"
-CUR_IP="${CLI_IP:-${LOCAL_IP:-}}"
-
-if [[ -z "$CUR_SLUG" || "$CUR_SLUG" == "local" ]]; then
-  ask CUR_SLUG   "Casino slug (must match Cloud, e.g. arusha, mwanza)" "${CUR_SLUG:-arusha}"
-fi
-if [[ -z "$CUR_NAME" || "$CUR_NAME" == "Local Casino" ]]; then
-  # auto-capitalize slug as default name
-  DEF_NAME="$(echo "${CUR_SLUG:0:1}" | tr '[:lower:]' '[:upper:]')${CUR_SLUG:1}"
-  ask CUR_NAME   "Casino display name" "${CUR_NAME:-$DEF_NAME}"
-fi
-if [[ -z "$CUR_DOMAIN" || "$CUR_DOMAIN" == "casino.local" ]]; then
-  ask CUR_DOMAIN "Local LAN hostname" "${CUR_DOMAIN:-${CUR_SLUG}.local}"
-fi
-if [[ -z "$CUR_IP" ]]; then
-  ask CUR_IP     "Server LAN IP"      "${DEFAULT_IP}"
-fi
-
-# Normalize slug to lowercase + safe chars
-CUR_SLUG="$(echo "$CUR_SLUG" | tr '[:upper:]' '[:lower:]' | tr -cd 'a-z0-9_-')"
-[[ -n "$CUR_SLUG" ]] || fail "Casino slug не может быть пустым"
-
-update_env CASINO_NAME   "$CUR_NAME"
-update_env CASINO_SLUG   "$CUR_SLUG"
-update_env LOCAL_IP      "$CUR_IP"
-update_env LOCAL_DOMAIN  "$CUR_DOMAIN"
-ok "Casino: ${CUR_NAME} (${CUR_SLUG}) @ ${CUR_IP} / ${CUR_DOMAIN}"
+# ── Параметры локации (auto; меняются позже в Admin → Peers → Server Identity) ──
+title "2/4  Параметры локации (auto)"
+: "${CASINO_NAME:=Local Casino}"
+: "${CASINO_SLUG:=local}"
+: "${LOCAL_IP:=$(hostname -I 2>/dev/null | awk '{print $1}')}"
+: "${LOCAL_IP:=127.0.0.1}"
+: "${LOCAL_DOMAIN:=casino.local}"
+update_env CASINO_NAME   "$CASINO_NAME"
+update_env CASINO_SLUG   "$CASINO_SLUG"
+update_env LOCAL_IP      "$LOCAL_IP"
+update_env LOCAL_DOMAIN  "$LOCAL_DOMAIN"
+ok "Casino: ${CASINO_NAME} (${CASINO_SLUG}) @ ${LOCAL_IP} / ${LOCAL_DOMAIN}"
+ok "Поменять можно после установки в Admin → Peers → Server Identity"
 
 normalize_env_file
 set -a; source .env; set +a
