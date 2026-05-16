@@ -349,6 +349,14 @@ async function peerPull(pool, res, body, peer) {
 }
 
 // ─────────── Updater helpers ───────────
+function writeEnvKey(key, value) {
+  let txt = existsSync(ENV_FILE) ? readFileSync(ENV_FILE, "utf8") : "";
+  const quoted = `'${String(value).replace(/'/g, "'\\''")}'`;
+  const re = new RegExp(`^${key}=.*$`, "m");
+  if (re.test(txt)) txt = txt.replace(re, `${key}=${quoted}`);
+  else { if (txt && !txt.endsWith("\n")) txt += "\n"; txt += `${key}=${quoted}\n`; }
+  writeFileSync(ENV_FILE, txt);
+}
 function readEnvMap() {
   if (!existsSync(ENV_FILE)) return {};
   const out = {};
