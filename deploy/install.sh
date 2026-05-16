@@ -377,26 +377,35 @@ ok "БД готова. Данные подтянутся после Initial Sync
 # ────────── 5. Сборка frontend + старт ──────────
 title "4/4  Сборка frontend и запуск стека"
 
-if [[ $REBUILD -eq 1 ]]; then
+if [[ $UPDATE -eq 1 ]]; then
+  log "UPDATE: пересобираю ВСЕ локальные образы (frontend, sync, monitor, updater, backup)..."
+  # Удаляем старые образы локальной сборки, чтобы гарантированно подтянуть новый код
+  docker image rm -f \
+    "cms-frontend:${FRONTEND_VERSION:-local}" cms-frontend:local \
+    cms-sync:local cms-monitor:local cms-updater:local cms-backup:local &>/dev/null || true
+  log "Подтягиваю свежие образы внешних сервисов (postgres, gotrue, postgrest, realtime, storage, nginx)..."
+  docker compose pull --ignore-pull-failures 2>&1 | grep -vE '^$' || true
+  log "Собираю все локальные сервисы (--no-cache, 5-10 минут)..."
+  docker compose build --no-cache --pull
+  ok "Все образы пересобраны"
+  log "Перезапускаю весь стек с новыми образами..."
+  docker compose up -d --force-recreate --remove-orphans
+elif [[ $REBUILD -eq 1 ]]; then
   log "Удаляю старый образ frontend для чистой пересборки..."
   docker image rm -f "cms-frontend:${FRONTEND_VERSION:-local}" cms-frontend:local &>/dev/null || true
   log "Собираю cms-frontend (3-7 минут)..."
   docker compose build --no-cache cms-frontend
   ok "Frontend собран"
+  log "Запуск всех контейнеров..."
+  docker compose up -d
 elif ! docker image inspect "cms-frontend:${FRONTEND_VERSION:-local}" &>/dev/null; then
   log "Собираю cms-frontend (3-7 минут)..."
   docker compose build cms-frontend
   ok "Frontend собран"
-else
-  ok "Frontend образ уже есть (используем кэш). --rebuild чтобы пересобрать."
-fi
-
-if [[ $UPDATE -eq 1 ]]; then
-  log "UPDATE: перезапускаю frontend + nginx с новым образом..."
-  docker compose up -d --force-recreate --no-deps cms-frontend nginx
-  log "Запуск/обновление остальных контейнеров..."
+  log "Запуск всех контейнеров..."
   docker compose up -d
 else
+  ok "Frontend образ уже есть (используем кэш). --rebuild чтобы пересобрать."
   log "Запуск всех контейнеров..."
   docker compose up -d
 fi
