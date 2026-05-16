@@ -336,11 +336,15 @@ set -a; source .env; set +a
 
 # ── Параметры локации (auto; меняются позже в Admin → Peers → Server Identity) ──
 title "2/4  Параметры локации (auto)"
+# Placeholder casino UUID — matches deploy/postgres/init/20-seed-defaults.sql.
+# Name/slug/IP редактируется в UI, но CASINO_ID остаётся постоянным.
+: "${CASINO_ID:=00000000-0000-0000-0000-0000000000ca}"
 : "${CASINO_NAME:=Local Casino}"
 : "${CASINO_SLUG:=local}"
 : "${LOCAL_IP:=$(hostname -I 2>/dev/null | awk '{print $1}')}"
 : "${LOCAL_IP:=127.0.0.1}"
 : "${LOCAL_DOMAIN:=casino.local}"
+update_env CASINO_ID     "$CASINO_ID"
 update_env CASINO_NAME   "$CASINO_NAME"
 update_env CASINO_SLUG   "$CASINO_SLUG"
 update_env LOCAL_IP      "$LOCAL_IP"
