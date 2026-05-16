@@ -3501,6 +3501,7 @@ export type Database = {
           changed_at: string
           id: number
           op: string
+          origin_node_id: string | null
           payload: Json | null
           pk: Json
           table_name: string
@@ -3510,6 +3511,7 @@ export type Database = {
           changed_at?: string
           id?: number
           op: string
+          origin_node_id?: string | null
           payload?: Json | null
           pk: Json
           table_name: string
@@ -3519,6 +3521,7 @@ export type Database = {
           changed_at?: string
           id?: number
           op?: string
+          origin_node_id?: string | null
           payload?: Json | null
           pk?: Json
           table_name?: string
@@ -4556,6 +4559,17 @@ export type Database = {
       }
       payroll_unlock_period: {
         Args: { _period_id: string; _reason: string }
+        Returns: undefined
+      }
+      peer_apply_change: {
+        Args: {
+          p_changed_at: string
+          p_op: string
+          p_origin_node_id: string
+          p_payload: Json
+          p_pk: Json
+          p_table: string
+        }
         Returns: undefined
       }
       player_active_visit_casino: {
