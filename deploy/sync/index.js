@@ -241,12 +241,43 @@ async function tickPeer(peer) {
     if (sent || recv) log("info", "peer.sync.ok", { peer: peer.display_name, sent, recv });
   } catch (e) {
     const b = peerBackoff.get(peer.id) ?? TICK_MS;
-    log("warn", "peer.sync.fail", { peer: peer.display_name, err: String(e?.message ?? e), backoff_ms: b });
+    const errStr = String(e?.message ?? e);
+    log("warn", "peer.sync.fail", { peer: peer.display_name, err: errStr, backoff_ms: b });
+    bufferExchange(peer, { direction: "push", status: "error", row_count: 0, error_text: errStr.slice(0, 500) });
     await pool.query(
       `UPDATE public.peer_links SET last_push_error = $1 WHERE id = $2`,
-      [String(e?.message ?? e).slice(0, 240), peer.id]
+      [errStr.slice(0, 240), peer.id]
     );
     peerBackoff.set(peer.id, Math.min(b * 2, BACKOFF_MAX));
+  }
+  // Always try to flush exchange log (best-effort) so Cloud sees activity
+  await flushExchangeLog(peer);
+}
+
+// ─────────── heartbeat ───────────
+async function heartbeatLoop() {
+  while (true) {
+    try {
+      const { rows: peers } = await pool.query(
+        `SELECT * FROM public.peer_links WHERE status = 'active' AND peer_node_id IS NOT NULL`
+      );
+      for (const p of peers) {
+        bufferExchange(p, {
+          direction: "heartbeat",
+          status: "ok",
+          row_count: 0,
+          meta: {
+            push_cursor: Number(p.last_push_cursor) || 0,
+            pull_cursor: Number(p.last_pull_cursor) || 0,
+            schema_version: SCHEMA_VERSION,
+          },
+        });
+        await flushExchangeLog(p);
+      }
+    } catch (e) {
+      log("warn", "heartbeat.fail", { err: String(e?.message ?? e) });
+    }
+    await sleep(30_000);
   }
 }
 
