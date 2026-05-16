@@ -481,20 +481,25 @@ for i in $(seq 1 15); do
   sleep 2
 done
 
-# ────────── 5.5. Super admin (одноразово) ──────────
-SUPER_ADMIN_DONE_FILE="${SCRIPT_DIR}/.super-admin-done"
-if [[ ! -f "$SUPER_ADMIN_DONE_FILE" ]]; then
-  title "Создание Super Admin (auto: admin/admin)"
+# ────────── 5.5. Super admin (idempotent) ──────────
+# Always ensure admin@cms.local exists with super_admin role. Re-runs are safe.
+title "Ensure Super Admin (admin@cms.local / admin)"
 
-  SA_EMAIL="${SUPER_ADMIN_EMAIL:-admin@cms.local}"
-  SA_PASS="${SUPER_ADMIN_PASSWORD:-admin}"
+SA_EMAIL="${SUPER_ADMIN_EMAIL:-admin@cms.local}"
+SA_PASS="${SUPER_ADMIN_PASSWORD:-admin}"
 
-  log "Жду готовности GoTrue..."
-  for i in $(seq 1 30); do
-    docker compose exec -T gotrue wget -q -O- http://localhost:9999/health 2>/dev/null | grep -q '"name"' && break
-    sleep 2
-  done
+log "Жду готовности GoTrue..."
+for i in $(seq 1 30); do
+  docker compose exec -T gotrue wget -q -O- http://localhost:9999/health 2>/dev/null | grep -q '"name"' && break
+  sleep 2
+done
 
+# Check if user already exists in DB
+SA_USER_ID=$(docker compose exec -T -e PGPASSWORD="${POSTGRES_PASSWORD}" postgres \
+  psql -h 127.0.0.1 -U "${POSTGRES_USER:-postgres}" -d "${POSTGRES_DB:-postgres}" -tAc \
+  "SELECT id FROM auth.users WHERE email='${SA_EMAIL}' LIMIT 1" 2>/dev/null | tr -d ' \n' || true)
+
+if [[ -z "$SA_USER_ID" ]]; then
   log "Создаю пользователя через GoTrue admin API: ${SA_EMAIL}"
   SA_RESP=$(docker compose exec -T gotrue wget -q -O- \
     --header="Authorization: Bearer ${SERVICE_ROLE_KEY}" \
@@ -502,27 +507,24 @@ if [[ ! -f "$SUPER_ADMIN_DONE_FILE" ]]; then
     --post-data="$(jq -n --arg e "$SA_EMAIL" --arg p "$SA_PASS" '{email:$e,password:$p,email_confirm:true}')" \
     http://localhost:9999/admin/users 2>&1 || true)
   SA_USER_ID=$(printf '%s' "$SA_RESP" | jq -er '.id // empty' 2>/dev/null || true)
-
   if [[ -z "$SA_USER_ID" ]]; then
-    # Возможно уже существует — найдём по email
     SA_USER_ID=$(docker compose exec -T -e PGPASSWORD="${POSTGRES_PASSWORD}" postgres \
       psql -h 127.0.0.1 -U "${POSTGRES_USER:-postgres}" -d "${POSTGRES_DB:-postgres}" -tAc \
       "SELECT id FROM auth.users WHERE email='${SA_EMAIL}' LIMIT 1" 2>/dev/null | tr -d ' \n' || true)
   fi
-
-  if [[ -z "$SA_USER_ID" ]]; then
-    warn "Не удалось создать super_admin. Ответ GoTrue: $SA_RESP"
-    docker compose logs --tail=40 gotrue >&2 || true
-    warn "Установка продолжится, но super_admin нужно будет создать вручную."
-  else
-    docker compose exec -T -e PGPASSWORD="${POSTGRES_PASSWORD}" postgres \
-      psql -h 127.0.0.1 -U "${POSTGRES_USER:-postgres}" -d "${POSTGRES_DB:-postgres}" -c \
-      "INSERT INTO public.user_roles (user_id, role) VALUES ('${SA_USER_ID}', 'super_admin')
-       ON CONFLICT (user_id, role) DO NOTHING;" &>/dev/null || true
-    ok "Super admin создан: ${SA_EMAIL} / ${SA_PASS}"
-    touch "$SUPER_ADMIN_DONE_FILE"
-  fi
 fi
+
+if [[ -z "$SA_USER_ID" ]]; then
+  warn "Не удалось создать/найти super_admin (${SA_EMAIL})."
+  docker compose logs --tail=40 gotrue >&2 || true
+else
+  docker compose exec -T -e PGPASSWORD="${POSTGRES_PASSWORD}" postgres \
+    psql -h 127.0.0.1 -U "${POSTGRES_USER:-postgres}" -d "${POSTGRES_DB:-postgres}" -c \
+    "INSERT INTO public.user_roles (user_id, role) VALUES ('${SA_USER_ID}', 'super_admin')
+     ON CONFLICT (user_id, role) DO NOTHING;" &>/dev/null || true
+  ok "Super admin готов: ${SA_EMAIL} / ${SA_PASS}"
+fi
+
 
 # systemd
 SYSTEMD_UNIT=/etc/systemd/system/casino-system.service
