@@ -284,4 +284,172 @@ CREATE TRIGGER trg_cloud_connection_touch
   BEFORE UPDATE ON public.cloud_connection
   FOR EACH ROW EXECUTE FUNCTION public.cloud_connection_touch();
 
+-- ── peer mesh core: required by cms-sync and pair-cli.js ───────────────────
+CREATE TABLE IF NOT EXISTS public.node_identity (
+  id boolean PRIMARY KEY DEFAULT true CHECK (id = true),
+  node_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  display_name text NOT NULL DEFAULT 'Local Server',
+  node_kind text NOT NULL DEFAULT 'local' CHECK (node_kind IN ('local','cloud')),
+  schema_version text NOT NULL DEFAULT '0.0.0',
+  owned_casino_ids uuid[] NOT NULL DEFAULT '{}'::uuid[],
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.node_identity
+  ADD COLUMN IF NOT EXISTS node_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  ADD COLUMN IF NOT EXISTS display_name text NOT NULL DEFAULT 'Local Server',
+  ADD COLUMN IF NOT EXISTS node_kind text NOT NULL DEFAULT 'local',
+  ADD COLUMN IF NOT EXISTS schema_version text NOT NULL DEFAULT '0.0.0',
+  ADD COLUMN IF NOT EXISTS owned_casino_ids uuid[] NOT NULL DEFAULT '{}'::uuid[],
+  ADD COLUMN IF NOT EXISTS created_at timestamptz NOT NULL DEFAULT now(),
+  ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now();
+
+INSERT INTO public.node_identity (id, display_name, node_kind)
+VALUES (true, 'Local Server', 'local')
+ON CONFLICT (id) DO NOTHING;
+
+CREATE TABLE IF NOT EXISTS public.peer_links (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  peer_url text NOT NULL,
+  peer_node_id uuid,
+  display_name text NOT NULL DEFAULT 'Peer',
+  sync_secret text NOT NULL,
+  status text NOT NULL DEFAULT 'pending_outbound',
+  schema_version text,
+  last_seen_at timestamptz,
+  last_push_cursor bigint NOT NULL DEFAULT 0,
+  last_pull_cursor bigint NOT NULL DEFAULT 0,
+  last_push_error text,
+  last_pull_error text,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.peer_links
+  ADD COLUMN IF NOT EXISTS peer_url text,
+  ADD COLUMN IF NOT EXISTS peer_node_id uuid,
+  ADD COLUMN IF NOT EXISTS display_name text NOT NULL DEFAULT 'Peer',
+  ADD COLUMN IF NOT EXISTS sync_secret text,
+  ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 'pending_outbound',
+  ADD COLUMN IF NOT EXISTS schema_version text,
+  ADD COLUMN IF NOT EXISTS last_seen_at timestamptz,
+  ADD COLUMN IF NOT EXISTS last_push_cursor bigint NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS last_pull_cursor bigint NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS last_push_error text,
+  ADD COLUMN IF NOT EXISTS last_pull_error text,
+  ADD COLUMN IF NOT EXISTS created_at timestamptz NOT NULL DEFAULT now(),
+  ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now();
+
+CREATE INDEX IF NOT EXISTS peer_links_status_idx ON public.peer_links(status);
+CREATE INDEX IF NOT EXISTS peer_links_last_seen_idx ON public.peer_links(last_seen_at DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS peer_links_peer_node_id_key
+  ON public.peer_links(peer_node_id) WHERE peer_node_id IS NOT NULL;
+
+CREATE OR REPLACE FUNCTION public.touch_peer_links()
+RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  NEW.updated_at = now();
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_peer_links_touch ON public.peer_links;
+CREATE TRIGGER trg_peer_links_touch
+  BEFORE UPDATE ON public.peer_links
+  FOR EACH ROW EXECUTE FUNCTION public.touch_peer_links();
+
+DROP TRIGGER IF EXISTS trg_node_identity_touch ON public.node_identity;
+CREATE TRIGGER trg_node_identity_touch
+  BEFORE UPDATE ON public.node_identity
+  FOR EACH ROW EXECUTE FUNCTION public.touch_peer_links();
+
+ALTER TABLE public.node_identity ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.peer_links ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "node_identity readable to authenticated" ON public.node_identity;
+CREATE POLICY "node_identity readable to authenticated" ON public.node_identity
+FOR SELECT TO authenticated USING (true);
+
+DROP POLICY IF EXISTS "node_identity writable to super_admin" ON public.node_identity;
+CREATE POLICY "node_identity writable to super_admin" ON public.node_identity
+FOR ALL TO authenticated
+USING (public.has_role(auth.uid(), 'super_admin'::public.app_role))
+WITH CHECK (public.has_role(auth.uid(), 'super_admin'::public.app_role));
+
+DROP POLICY IF EXISTS "peer_links readable to authenticated" ON public.peer_links;
+CREATE POLICY "peer_links readable to authenticated" ON public.peer_links
+FOR SELECT TO authenticated USING (true);
+
+DROP POLICY IF EXISTS "peer_links writable to super_admin" ON public.peer_links;
+CREATE POLICY "peer_links writable to super_admin" ON public.peer_links
+FOR ALL TO authenticated
+USING (public.has_role(auth.uid(), 'super_admin'::public.app_role))
+WITH CHECK (public.has_role(auth.uid(), 'super_admin'::public.app_role));
+
+-- ── sync_outbox compatibility for peer mesh loop-prevention ────────────────
+CREATE TABLE IF NOT EXISTS public.sync_outbox (
+  id bigserial PRIMARY KEY,
+  casino_id uuid,
+  table_name text NOT NULL,
+  op text NOT NULL CHECK (op IN ('INSERT','UPDATE','DELETE')),
+  pk jsonb NOT NULL,
+  payload jsonb,
+  changed_at timestamptz NOT NULL DEFAULT now(),
+  origin_node_id uuid
+);
+
+ALTER TABLE public.sync_outbox
+  ADD COLUMN IF NOT EXISTS casino_id uuid,
+  ADD COLUMN IF NOT EXISTS table_name text,
+  ADD COLUMN IF NOT EXISTS op text,
+  ADD COLUMN IF NOT EXISTS pk jsonb,
+  ADD COLUMN IF NOT EXISTS payload jsonb,
+  ADD COLUMN IF NOT EXISTS changed_at timestamptz NOT NULL DEFAULT now(),
+  ADD COLUMN IF NOT EXISTS origin_node_id uuid;
+
+CREATE INDEX IF NOT EXISTS idx_sync_outbox_casino_changed ON public.sync_outbox(casino_id, changed_at);
+CREATE INDEX IF NOT EXISTS idx_sync_outbox_changed ON public.sync_outbox(changed_at);
+CREATE INDEX IF NOT EXISTS idx_sync_outbox_origin ON public.sync_outbox(origin_node_id);
+
+CREATE OR REPLACE FUNCTION public.sync_outbox_gc()
+RETURNS void LANGUAGE sql SET search_path = public AS $$
+  DELETE FROM public.sync_outbox WHERE changed_at < now() - INTERVAL '30 days';
+$$;
+
+CREATE TABLE IF NOT EXISTS public.sync_seed_marker (
+  casino_id uuid NOT NULL,
+  table_name text NOT NULL,
+  row_count integer NOT NULL DEFAULT 0,
+  completed_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (casino_id, table_name)
+);
+
+CREATE OR REPLACE FUNCTION public.sync_reset_outbox(p_casino_id uuid, p_advance_cursors boolean DEFAULT true)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_deleted bigint;
+  v_max_id bigint;
+BEGIN
+  IF p_casino_id IS NULL THEN
+    RAISE EXCEPTION 'casino_id required';
+  END IF;
+
+  DELETE FROM public.sync_outbox WHERE casino_id = p_casino_id;
+  GET DIAGNOSTICS v_deleted = ROW_COUNT;
+  DELETE FROM public.sync_seed_marker WHERE casino_id = p_casino_id;
+
+  IF p_advance_cursors THEN
+    SELECT COALESCE(MAX(id), 0) INTO v_max_id FROM public.sync_outbox;
+    UPDATE public.peer_links SET last_push_cursor = GREATEST(last_push_cursor, v_max_id);
+  END IF;
+
+  RETURN jsonb_build_object('deleted_outbox_rows', v_deleted, 'advanced_cursor_to', COALESCE(v_max_id, 0));
+END;
+$$;
+
 NOTIFY pgrst, 'reload schema';
