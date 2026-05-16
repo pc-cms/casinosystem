@@ -114,7 +114,24 @@ jobs:
             -C supabase migrations
           (cd release && sha256sum migrations-${{ steps.meta.outputs.version }}.tar.gz > migrations-${{ steps.meta.outputs.version }}.tar.gz.sha256)
 
-      - name: Upload migrations artifact
+      # ─── M0: schema-only dump from Cloud → shipped as release asset ───
+      # Requires repo secret CLOUD_DB_URL = postgres://...:.@db.<ref>.supabase.co:5432/postgres
+      # Local installs use this dump to bootstrap an empty Postgres 1-to-1 with Cloud.
+      - name: Dump Cloud schema (schema-only)
+        if: ${{ env.CLOUD_DB_URL != '' }}
+        env:
+          CLOUD_DB_URL: ${{ secrets.CLOUD_DB_URL }}
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client-15
+          pg_dump "$CLOUD_DB_URL" \
+            --schema-only --no-owner --no-privileges --no-publications --no-subscriptions \
+            -n public -n auth -n storage \
+            > release/schema-${{ steps.meta.outputs.version }}.sql
+          (cd release && sha256sum schema-${{ steps.meta.outputs.version }}.sql > schema-${{ steps.meta.outputs.version }}.sql.sha256)
+          echo "Schema dump: $(wc -l < release/schema-${{ steps.meta.outputs.version }}.sql) lines"
+
+      - name: Upload release assets
         uses: actions/upload-artifact@v4
         with:
           name: migrations-${{ steps.meta.outputs.version }}
