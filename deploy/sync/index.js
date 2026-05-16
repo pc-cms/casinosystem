@@ -82,6 +82,30 @@ async function peerFetch(peer, path, body) {
   return json ?? {};
 }
 
+// ─────────── Exchange log shipping ───────────
+// Buffer batch summaries and ship them to the Cloud peer-mesh /log endpoint
+// so Cloud-side admins can see exactly what each local node syncs.
+const logBuffer = new Map(); // peer.id -> entries[]
+function bufferExchange(peer, entry) {
+  const arr = logBuffer.get(peer.id) ?? [];
+  arr.push({ ...entry, ts: new Date().toISOString() });
+  if (arr.length > 200) arr.splice(0, arr.length - 200);
+  logBuffer.set(peer.id, arr);
+}
+async function flushExchangeLog(peer) {
+  const arr = logBuffer.get(peer.id);
+  if (!arr || arr.length === 0) return;
+  const batch = arr.splice(0, arr.length);
+  try {
+    await peerFetch(peer, "/log", { entries: batch });
+  } catch (e) {
+    // Buffer back on failure (cap at 500 to avoid unbounded memory)
+    const restored = (logBuffer.get(peer.id) ?? []);
+    logBuffer.set(peer.id, batch.concat(restored).slice(0, 500));
+    log("warn", "peer.log.flush.fail", { peer: peer.display_name, err: String(e?.message ?? e).slice(0, 200) });
+  }
+}
+
 // ─────────── HANDSHAKE ───────────
 async function handshakePeer(peer) {
   const body = {
