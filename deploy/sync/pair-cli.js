@@ -127,6 +127,29 @@ async function wait(seconds) {
   return { status: "timeout" };
 }
 
+async function ping() {
+  const row = await getRow();
+  if (!row || row.status !== "connected") {
+    return { ok: false, reason: "not connected", status: row?.status || "none" };
+  }
+  const url = new URL(`${row.cloud_url}/functions/v1/pull-changes`);
+  url.searchParams.set("since", "1970-01-01T00:00:00Z");
+  url.searchParams.set("limit", "1");
+  const r = await fetch(url, {
+    method: "GET",
+    headers: { "x-sync-secret": row.sync_secret, "x-casino-id": row.casino_id },
+  });
+  const text = await r.text().catch(() => "");
+  await pool.query(
+    `UPDATE public.cloud_connection
+        SET last_polled_at = now(),
+            last_error = $1
+      WHERE id = 1`,
+    [r.ok ? null : `ping HTTP ${r.status}: ${text.slice(0, 200)}`]
+  );
+  return { ok: r.ok, http: r.status, body: text.slice(0, 300) };
+}
+
 async function triggerSync() {
   const row = await getRow();
   if (!row || row.status !== "connected") throw new Error("Not connected to Cloud");
@@ -169,6 +192,11 @@ const arg = process.argv[3];
       console.log(JSON.stringify(r));
       process.exit(r.status === "connected" ? 0 : (r.status === "timeout" ? 4 : 3));
     }
+    if (cmd === "ping") {
+      const r = await ping();
+      console.log(JSON.stringify(r));
+      process.exit(r.ok ? 0 : 5);
+    }
     if (cmd === "sync") {
       const r = await triggerSync();
       console.log(JSON.stringify(r));
@@ -179,7 +207,7 @@ const arg = process.argv[3];
       console.log(JSON.stringify(row));
       process.exit(0);
     }
-    console.error("usage: pair-cli.js {start <cloud_url>|poll|wait [seconds]|sync|status}");
+    console.error("usage: pair-cli.js {start <cloud_url>|poll|wait [seconds]|ping|sync|status}");
     process.exit(1);
   } catch (e) {
     console.error(`ERROR: ${e?.message || e}`);

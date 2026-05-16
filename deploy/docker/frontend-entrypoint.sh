@@ -31,6 +31,24 @@ MANIFEST_FILE="${ROOT}/manifest-local.json"
 : "${RUNTIME_LOCAL_MODE:=true}"
 : "${RUNTIME_VERSION:=unknown}"
 
+# ────────── Sanity: on-prem must NOT silently fall back to Cloud ──────────
+# If RUNTIME_SUPABASE_URL is empty or points at the Cloud Supabase project,
+# the local frontend would talk directly to Cloud — defeating the whole
+# on-prem install. Refuse to start so the operator notices.
+if [[ "$RUNTIME_LOCAL_MODE" == "true" ]]; then
+  if [[ -z "$RUNTIME_SUPABASE_URL" ]]; then
+    echo "[entrypoint] FATAL: RUNTIME_SUPABASE_URL is empty in on-prem mode." >&2
+    echo "             Set LOCAL_DOMAIN in deploy/.env and re-run install.sh." >&2
+    exit 1
+  fi
+  if [[ "$RUNTIME_SUPABASE_URL" == *"supabase.co"* ]]; then
+    echo "[entrypoint] FATAL: RUNTIME_SUPABASE_URL points at Cloud Supabase (${RUNTIME_SUPABASE_URL})." >&2
+    echo "             On-prem frontend must use https://<LOCAL_DOMAIN>/api." >&2
+    echo "             Fix LOCAL_DOMAIN in deploy/.env and re-run install.sh." >&2
+    exit 1
+  fi
+fi
+
 # ────────── 1. runtime-config.json ──────────
 if [[ -f "$CONFIG_FILE" ]]; then
   echo "[entrypoint] patching ${CONFIG_FILE}"

@@ -100,6 +100,19 @@ $SYNC_OUT"
 log "Seed job enqueued on Cloud. cms-sync will stream the data into local Postgres."
 echo "  $SYNC_OUT"
 
+# ─────────── 4. Verify sync channel actually works ───────────
+log "Pinging Cloud through cms-sync (this is what flips the server to ONLINE)..."
+sleep 2
+PING_OUT="$(docker compose exec -T cms-sync node /app/pair-cli.js ping || true)"
+if echo "$PING_OUT" | grep -q '"ok":true'; then
+  log "${GRN}✓ Sync channel OK — server is now ONLINE in Cloud admin.${NC}"
+else
+  warn "Sync channel not yet healthy:"
+  echo "  $PING_OUT"
+  warn "Pairing succeeded but cms-sync can't reach Cloud yet."
+  warn "Check: docker compose logs --tail=80 cms-sync"
+fi
+
 echo
 log "${GRN}✓ Pairing complete.${NC}"
 echo -e "  Watch progress: ${CYN}docker compose logs -f cms-sync${NC}"
