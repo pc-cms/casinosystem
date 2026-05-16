@@ -137,13 +137,14 @@ if docker compose ps postgres --status=running 2>/dev/null | grep -q postgres; t
   fi
 fi
 
-LOCAL_IP="$(read_env_key LOCAL_IP)"
-[[ -n "$LOCAL_IP" ]] || die "LOCAL_IP missing from $ENV_FILE"
-EXPECTED_URL="https://${LOCAL_IP}/api"
-[[ "$EXPECTED_URL" != *"supabase.co"* ]] || die "Refusing to bake Cloud URL into local frontend: $EXPECTED_URL"
-docker compose config 2>/dev/null | grep -q "VITE_SUPABASE_URL: ${EXPECTED_URL}" \
-  || die "docker-compose is not baking local API URL (${EXPECTED_URL}) into cms-frontend"
-log "Building cms-frontend with LOCAL API ${EXPECTED_URL} + cms-sync (this may take 3-7 min)..."
+# Frontend uses universal placeholder __CMS_ORIGIN_PLACEHOLDER__/api baked at build,
+# rewritten to location.origin by docker/frontend-entrypoint.sh at container start.
+EXPECTED_PLACEHOLDER="__CMS_ORIGIN_PLACEHOLDER__/api"
+docker compose config 2>/dev/null | grep -q "VITE_SUPABASE_URL: ${EXPECTED_PLACEHOLDER}" \
+  || die "docker-compose is not baking universal placeholder (${EXPECTED_PLACEHOLDER}) into cms-frontend"
+docker compose config 2>/dev/null | grep -q "supabase.co" \
+  && die "Refusing to update: docker-compose contains a Cloud supabase.co URL for cms-frontend"
+log "Building cms-frontend (universal origin placeholder) + cms-sync (this may take 3-7 min)..."
 docker image ls --format '{{.Repository}}:{{.Tag}}' | grep '^cms-frontend:' | xargs -r docker image rm -f 2>/dev/null || true
 docker compose build --no-cache cms-frontend cms-sync
 
