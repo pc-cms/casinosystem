@@ -568,7 +568,7 @@ echo -e "  🌐 URL:        ${BOLD}https://${LOCAL_DOMAIN}${NC}"
 echo -e "  🖥️  IP:         ${LOCAL_IP}"
 echo -e "  🔑 CA:         ${SCRIPT_DIR}/certs/ca.crt"
 echo
-echo -e "  👤 Login:      ${BOLD}admin${NC}  /  ${BOLD}admin${NC}   (полный email: admin@cms.local)"
+echo -e "  👤 Login:      ${BOLD}superadmin${NC}  /  ${BOLD}superadmin${NC}   (полный email: superadmin@cms.local)"
 echo
 echo -e "  Следующие шаги (опционально — узел работает автономно):"
 echo -e "    1. Откройте ${BOLD}https://${LOCAL_DOMAIN}${NC} (или http://${LOCAL_IP}) и войдите"
