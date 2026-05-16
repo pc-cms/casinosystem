@@ -259,15 +259,10 @@ async function fullStackApply(targetVersion, cmdId) {
     return false;
   }
 
-  // 4. Pull frontend image (validate registry has it)
-  log("info", "apply.pull_image", { image });
-  const pull = run("docker", ["pull", image]);
-  if (pull.code !== 0) {
-    log("error", "apply.pull_fail", { image, out: pull.out.slice(0, 500) });
-    writeAck(cmdId, "failed", `image pull failed: ${pull.out.slice(0, 200)}`);
-    rmSync(tmpDir, { recursive: true, force: true });
-    return false;
-  }
+  // 4. (Frontend image is built locally per-casino — URL is baked at build time.
+  //     We rebuild it in step 9 along with cms-sync etc. No registry pull.)
+  log("info", "apply.skip_image_pull", { reason: "frontend is per-casino local build" });
+
 
   // 5. Snapshot current install for rollback
   log("info", "apply.backup", { backupDir });
@@ -319,10 +314,15 @@ async function fullStackApply(targetVersion, cmdId) {
     return false;
   }
 
-  // 9. Rebuild locally-built services + recreate stack
-  writeAck(cmdId, "in_progress", "rebuilding local services");
+  // 9. Rebuild ALL locally-built services (including cms-frontend — it bakes the
+  //    local Supabase URL at build time, so a registry image would point at Cloud).
+  //    Force --no-cache for cms-frontend to guarantee the new VITE_SUPABASE_URL
+  //    build-args are picked up even if Dockerfile lines haven't changed.
+  writeAck(cmdId, "in_progress", "rebuilding local services (frontend + sync + monitor + backup)");
   log("info", "apply.compose_build");
-  const build = compose(["build", "cms-sync", "cms-monitor", "cms-backup", "cms-updater"]);
+  // Remove old frontend image so the build is truly fresh
+  run("docker", ["image", "rm", "-f", `cms-frontend:${target}`, "cms-frontend:local"]);
+  const build = compose(["build", "--no-cache", "cms-frontend", "cms-sync", "cms-monitor", "cms-backup", "cms-updater"]);
   if (build.code !== 0) {
     log("error", "apply.build_fail", { out: build.out.slice(0, 800) });
     rollbackFrom(backupDir, currentVersion);
