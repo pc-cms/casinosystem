@@ -34,6 +34,7 @@ const FLAG_FILE = `${COMPOSE_DIR}/UPDATE_AVAILABLE`;
 const PUSH_FILE = `${COMPOSE_DIR}/PUSH_COMMAND.json`;
 const ACK_FILE = `${COMPOSE_DIR}/PUSH_COMMAND_ACK.json`;
 const CHECK_NOW_FILE = `${COMPOSE_DIR}/CHECK_NOW`;
+const RECONFIGURE_FILE = `${COMPOSE_DIR}/RECONFIGURE_FRONTEND`;
 
 export function startApi({ pool }) {
   const server = http.createServer(async (req, res) => {
