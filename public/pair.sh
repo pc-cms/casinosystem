@@ -93,11 +93,11 @@ CASINO_ID="$(echo "$WAIT_OUT" | grep -oE '"casino_id":"[^"]+"' | head -1 | cut -
 log "Approved! casino_id=${CASINO_ID}"
 
 # ─────────── 3. Trigger initial seed ───────────
-log "Requesting initial data seed from Cloud..."
+log "Streaming initial data seed from Cloud into local DB..."
 SYNC_OUT="$(docker compose exec -T cms-sync node /app/pair-cli.js sync)" \
-  || die "initial-sync-trigger failed:
+  || die "initial seed failed:
 $SYNC_OUT"
-log "Seed job enqueued on Cloud. cms-sync will stream the data into local Postgres."
+log "Seed complete."
 echo "  $SYNC_OUT"
 
 # ─────────── 4. Verify sync channel actually works ───────────
