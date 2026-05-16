@@ -228,15 +228,37 @@ async function applyChange(client, ch) {
 }
 
 // ───────────── Loop ─────────────
+async function recordError(name, msg) {
+  try {
+    await pool.query(
+      `UPDATE public.cloud_connection
+          SET last_error = $1, last_polled_at = now()
+        WHERE id = 1`,
+      [`${name}: ${String(msg).slice(0, 240)}`]
+    );
+  } catch {}
+}
+async function clearError() {
+  try {
+    await pool.query(
+      `UPDATE public.cloud_connection
+          SET last_error = NULL, last_polled_at = now()
+        WHERE id = 1 AND last_error IS NOT NULL`
+    );
+  } catch {}
+}
+
 async function loop(name, fn, getBackoff, setBackoff) {
   while (true) {
     try {
       const n = await fn();
       setBackoff(TICK_MS);
+      if (CONNECTED) await clearError();
       await sleep(n > 0 ? 250 : TICK_MS); // если был батч — сразу ещё
     } catch (e) {
       const b = getBackoff();
       log("error", `${name}.fail`, { err: String(e?.message ?? e), backoff_ms: b });
+      await recordError(name, e?.message ?? e);
       await sleep(b);
       setBackoff(Math.min(b * 2, BACKOFF_MAX));
     }
@@ -244,6 +266,32 @@ async function loop(name, fn, getBackoff, setBackoff) {
 }
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// Heartbeat loop — pokes pull-changes every 30s even with empty outbox
+// so Cloud sees the server as online (is_online=true, last_sync_at=now()).
+async function heartbeatLoop() {
+  while (true) {
+    await sleep(30_000);
+    if (!CONNECTED || SYNC_MODE === "standalone") continue;
+    try {
+      const url = new URL(`${CLOUD_URL}/functions/v1/pull-changes`);
+      url.searchParams.set("since", new Date().toISOString());
+      url.searchParams.set("limit", "1");
+      const res = await fetch(url, {
+        method: "GET",
+        headers: { "x-sync-secret": SYNC_SECRET, "x-casino-id": CASINO_ID },
+      });
+      if (!res.ok) {
+        const t = await res.text().catch(() => "");
+        await recordError("heartbeat", `HTTP ${res.status}: ${t.slice(0, 160)}`);
+      } else {
+        await clearError();
+      }
+    } catch (e) {
+      await recordError("heartbeat", e?.message ?? e);
+    }
+  }
+}
 
 async function gcLoop() {
   while (true) {
@@ -466,6 +514,7 @@ Promise.all([
   gcLoop(),
   jobLoop(),
   credsRefreshLoop(),
+  heartbeatLoop(),
 ]).catch((e) => {
   log("error", "sync.crash", { err: String(e) });
   process.exit(1);

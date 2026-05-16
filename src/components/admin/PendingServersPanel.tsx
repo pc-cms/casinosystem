@@ -106,12 +106,26 @@ const Row = ({ row, casinos }: { row: PendingServer; casinos: { id: string; name
 export const PendingServersPanel = () => {
   const { data: rows = [] } = usePendingServers();
   const { data: casinos = [] } = useCasinosList();
+  const [showHistory, setShowHistory] = useState(false);
+
+  const visible = showHistory ? rows : rows.filter(r => r.status === "pending" || r.status === "approved");
+  const historyCount = rows.length - visible.length;
 
   return (
     <div className="cms-panel p-4">
       <div className="flex items-center gap-2 mb-3">
         <KeyRound className="w-4 h-4 text-muted-foreground" />
         <h3 className="text-sm font-semibold text-card-foreground">Pending Server Registrations</h3>
+        {historyCount > 0 && !showHistory && (
+          <Button size="sm" variant="ghost" className="h-6 text-[10px] ml-2" onClick={() => setShowHistory(true)}>
+            Show history ({historyCount})
+          </Button>
+        )}
+        {showHistory && (
+          <Button size="sm" variant="ghost" className="h-6 text-[10px] ml-2" onClick={() => setShowHistory(false)}>
+            Hide history
+          </Button>
+        )}
         <span className="ml-auto text-[10px] text-muted-foreground">realtime</span>
       </div>
       <div className="overflow-x-auto">
@@ -128,8 +142,8 @@ export const PendingServersPanel = () => {
             </tr>
           </thead>
           <tbody>
-            {rows.map(r => <Row key={r.id} row={r} casinos={casinos} />)}
-            {rows.length === 0 && (
+            {visible.map(r => <Row key={r.id} row={r} casinos={casinos} />)}
+            {visible.length === 0 && (
               <tr><td colSpan={7} className="text-center py-6 text-sm text-muted-foreground">
                 <Server className="w-5 h-5 inline mr-2 opacity-50" />No pending registrations
               </td></tr>

@@ -207,7 +207,7 @@ const arg = process.argv[3];
       console.log(JSON.stringify(row));
       process.exit(0);
     }
-    console.error("usage: pair-cli.js {start <cloud_url>|poll|wait [seconds]|sync|status}");
+    console.error("usage: pair-cli.js {start <cloud_url>|poll|wait [seconds]|ping|sync|status}");
     process.exit(1);
   } catch (e) {
     console.error(`ERROR: ${e?.message || e}`);
