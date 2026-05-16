@@ -3,7 +3,7 @@
  * self-hosted server, AND returns any pending `update_commands` so the local
  * cms-updater can pick up new release targets pushed by Super Admin.
  *
- * Auth: x-sync-secret + x-casino-id (matched against local_servers.sync_secret).
+ * Auth: x-sync-secret + x-casino-id (matched against legacy registrations or peer_links).
  *
  * Body:
  *   { metrics: {...},
@@ -33,20 +33,32 @@ Deno.serve(async (req) => {
   if (!secret || !casino) return json({ error: "missing headers" }, 401);
 
   const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-  const { data: srv, error } = await admin
-    .from("local_servers").select("id, casino_id").eq("casino_id", casino).eq("sync_secret", secret).maybeSingle();
-  if (error || !srv) return json({ error: "invalid creds" }, 401);
+  const { data: reg } = await admin
+    .from("pending_server_registrations")
+    .select("id, approved_casino_id")
+    .eq("approved_casino_id", casino)
+    .eq("sync_secret", secret)
+    .in("status", ["approved", "consumed"])
+    .maybeSingle();
+  let srv: any = reg ? { id: reg.id, casino_id: reg.approved_casino_id, source: "registration" } : null;
+  if (!srv) {
+    const { data: peer, error } = await admin
+      .from("peer_links")
+      .select("id")
+      .eq("sync_secret", secret)
+      .in("status", ["pending_outbound", "pending_inbound", "active", "paused"])
+      .maybeSingle();
+    if (error || !peer) return json({ error: "invalid creds" }, 401);
+    srv = { id: peer.id, casino_id: casino, source: "peer" };
+  }
 
   let body: any = {};
   try { body = await req.json(); } catch { /* tolerate empty/bad body */ }
 
   // 1) Save metrics + mark online
-  await admin.from("local_servers").update({
-    health_snapshot: body?.metrics ?? null,
-    health_updated_at: new Date().toISOString(),
-    is_online: true,
-    last_sync_at: new Date().toISOString(),
-  }).eq("id", srv.id);
+  if (srv.source === "peer") {
+    await admin.from("peer_links").update({ last_seen_at: new Date().toISOString() }).eq("id", srv.id);
+  }
 
   // 2) Process command ACK (if updater reports back)
   const ack = body?.ack;
