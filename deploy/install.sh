@@ -321,7 +321,6 @@ ok "Поменять можно после установки в Admin → Peers
 
 normalize_env_file
 set -a; source .env; set +a
-assert_local_frontend_env
 
 # Сопряжение с Cloud — теперь делается из админки кнопкой Connect to Cloud.
 # install.sh ничего не запрашивает.
@@ -346,6 +345,7 @@ gen_jwt() {
 [[ -z "${ANON_KEY:-}" ]]         && { update_env ANON_KEY         "$(gen_jwt anon "$JWT_SECRET")";          ok "ANON_KEY"; }
 [[ -z "${SERVICE_ROLE_KEY:-}" ]] && { update_env SERVICE_ROLE_KEY "$(gen_jwt service_role "$JWT_SECRET")"; ok "SERVICE_ROLE_KEY"; }
 set -a; source .env; set +a
+assert_local_frontend_env
 
 mkdir -p certs
 if [[ ! -f certs/ca.crt ]]; then
