@@ -34,7 +34,7 @@ export const ServerIdentityPanel = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("casinos")
-        .select("id, slug, name, subdomain")
+        .select("id, slug, name")
         .order("name");
       if (error) throw error;
       return data ?? [];
