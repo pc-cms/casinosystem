@@ -68,6 +68,7 @@ cd "${CMS_DIR}/deploy"
 CLOUD_URL="${CLOUD_URL:-$(grep -E '^CLOUD_URL=' "$ENV_FILE" | head -1 | cut -d= -f2- | tr -d '"'"'"'' || true)}"
 CLOUD_URL="${CLOUD_URL:-https://rpehngjvwcnipvkouluu.supabase.co}"
 CLOUD_URL="${CLOUD_URL%/}"
+POSTGRES_PASSWORD="$(grep -E '^POSTGRES_PASSWORD=' "$ENV_FILE" | head -1 | cut -d= -f2- | sed -e "s/^'//" -e "s/'$//" -e 's/^"//' -e 's/"$//' || true)"
 log "Cloud:  ${CLOUD_URL}"
 
 # Sanity: cms-sync must be up
@@ -86,6 +87,28 @@ if ! docker compose exec -T cms-sync test -f /app/pair-cli.js </dev/null 2>/dev/
   docker compose exec -T cms-sync test -f /app/pair-cli.js </dev/null 2>/dev/null \
     || die "pair-cli.js still missing after rebuild. Run update.sh first:
        curl -fsSL https://casinosystem.app/update.sh | sudo bash"
+fi
+
+# Existing installs may have been created before peer-mesh tables existed.
+# Apply the idempotent local repair before pairing, otherwise the server can be
+# marked Active in Cloud while cms-sync has no local peer_links/node_identity.
+REPAIR_FILE="${CMS_DIR}/deploy/postgres/repair-local-schema.sql"
+TMP_REPAIR="$(mktemp /tmp/cms-repair-XXXXXX.sql)"
+REPAIR_BASE="https://casinosystem.app"
+if [[ -n "${PAIR_SH_URL:-}" ]]; then
+  REPAIR_BASE="${PAIR_SH_URL%/pair.sh}"
+fi
+if curl -fsSL "${REPAIR_BASE%/}/repair-local-schema.sql" -o "$TMP_REPAIR" 2>/dev/null; then
+  REPAIR_FILE="$TMP_REPAIR"
+elif curl -fsSL "https://casinosystem.app/repair-local-schema.sql" -o "$TMP_REPAIR" 2>/dev/null; then
+  REPAIR_FILE="$TMP_REPAIR"
+fi
+if [[ -f "$REPAIR_FILE" ]]; then
+  log "Checking local sync schema..."
+  docker compose exec -T -e PGPASSWORD="$POSTGRES_PASSWORD" postgres \
+    sh -c 'psql -h 127.0.0.1 -U "${POSTGRES_USER:-postgres}" -d "${POSTGRES_DB:-postgres}" -v ON_ERROR_STOP=1' \
+    < "$REPAIR_FILE" >/dev/null \
+    || die "local schema repair failed — check: docker compose logs --tail=80 postgres"
 fi
 
 # ─────────── 1. Start pairing ───────────
@@ -172,8 +195,9 @@ if echo "$PING_OUT" | grep -q '"ok":true'; then
 else
   warn "Sync channel not yet healthy:"
   echo "  $PING_OUT"
-  warn "Pairing succeeded but cms-sync can't reach Cloud yet."
-  warn "Check: docker compose logs --tail=80 cms-sync"
+  die "Pairing credentials were saved, but peer-mesh sync is NOT active yet.
+Check: docker compose logs --tail=80 cms-sync
+Then re-run pair.sh after fixing the reported error."
 fi
 
 echo

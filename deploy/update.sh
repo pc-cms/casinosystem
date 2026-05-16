@@ -120,12 +120,20 @@ fi
 # 6b. Re-apply seed defaults (roles matrix, placeholder casino, wallets, chip colors).
 # Idempotent (ON CONFLICT DO NOTHING) — safe to run on existing installs.
 if docker compose ps postgres --status=running 2>/dev/null | grep -q postgres; then
+  PGPASSWORD_VALUE="$(read_env_key POSTGRES_PASSWORD)"
   if [[ -f "${CMS_DIR}/deploy/postgres/init/20-seed-defaults.sql" ]]; then
     log "Applying seed defaults (idempotent)..."
-    docker compose exec -T postgres psql -U postgres -d postgres \
+    docker compose exec -T -e PGPASSWORD="$PGPASSWORD_VALUE" postgres psql -h 127.0.0.1 -U postgres -d postgres \
       < "${CMS_DIR}/deploy/postgres/init/20-seed-defaults.sql" >/dev/null 2>&1 \
       && log "Seed defaults applied." \
       || warn "Seed defaults skipped (postgres not ready or already applied)."
+  fi
+  if [[ -f "${CMS_DIR}/deploy/postgres/repair-local-schema.sql" ]]; then
+    log "Applying local schema repair (idempotent)..."
+    docker compose exec -T -e PGPASSWORD="$PGPASSWORD_VALUE" postgres psql -h 127.0.0.1 -U postgres -d postgres -v ON_ERROR_STOP=1 \
+      < "${CMS_DIR}/deploy/postgres/repair-local-schema.sql" >/dev/null 2>&1 \
+      && log "Local schema repair applied." \
+      || warn "Local schema repair skipped (postgres not ready)."
   fi
 fi
 
