@@ -270,4 +270,66 @@ INSERT INTO public.chip_color_settings (casino_id, denomination, bg_color, text_
   ('00000000-0000-0000-0000-0000000000ca',     500, '#e279d9', '#000000', '#050505')
 ON CONFLICT DO NOTHING;
 
-DO $$ BEGIN RAISE NOTICE 'Seed defaults applied: placeholder casino + roles matrix + wallets + chip colors'; END $$;
+-- ── 5. Standard gaming tables (zero float, status=open, archived=false) ──
+-- Manager renames / archives / adds via Admin → Tables. Floats are filled by
+-- the cashier on shift open. These are just the typical layout for a small
+-- floor — six tables covering Blackjack, Roulette, Poker. Names are unique
+-- per casino, ON CONFLICT skip avoids duplicates on re-run.
+INSERT INTO public.gaming_tables (casino_id, name, game, status, float_amount, denominations, is_archived)
+SELECT '00000000-0000-0000-0000-0000000000ca'::uuid, t.name, t.game, 'open'::table_status, 0, t.denoms, false
+FROM (VALUES
+  ('BJ1', 'Blackjack',         ARRAY[500,1000,2000,5000,10000,25000,50000,100000]),
+  ('BJ2', 'Blackjack',         ARRAY[500,1000,2000,5000,10000,25000,50000,100000]),
+  ('BJ3', 'Blackjack',         ARRAY[500,1000,2000,5000,10000,25000,50000,100000]),
+  ('AR1', 'American Roulette', ARRAY[500,1000,2000,5000,10000,25000,50000,100000,500000]),
+  ('AR2', 'American Roulette', ARRAY[500,1000,2000,5000,10000,25000,50000,100000,500000]),
+  ('P1',  'Texas Holdem',      ARRAY[500,1000,2000,5000,10000,25000,50000,100000])
+) AS t(name, game, denoms)
+WHERE NOT EXISTS (
+  SELECT 1 FROM public.gaming_tables g
+  WHERE g.casino_id = '00000000-0000-0000-0000-0000000000ca'::uuid
+    AND g.name = t.name
+);
+
+-- ── 6. Player tag conflict rules (network-wide validation) ──
+INSERT INTO public.tag_conflicts (tag_a, tag_b) VALUES
+  ('No Alcohol', 'Free Drinks'),
+  ('VIP',        'Watch List'),
+  ('Free Food',  'No Food')
+ON CONFLICT (tag_a, tag_b) DO NOTHING;
+
+-- ── 7. Finance / Budget categories for placeholder casino ──
+-- created_by uses a system UUID (no FK to auth.users on this column).
+-- Manager / Finance can edit these later in Admin → Finance → Categories.
+INSERT INTO public.budget_categories (casino_id, name, parent_group, expense_mapping, created_by)
+SELECT '00000000-0000-0000-0000-0000000000ca'::uuid, c.name, c.grp, c.mapping, '00000000-0000-0000-0000-000000000001'::uuid
+FROM (VALUES
+  -- operating
+  ('Salary',          'operating',  'salary'),
+  ('Bonus',           'operating',  'bonus'),
+  ('Fuel',            'operating',  'fuel'),
+  ('Transport',       'operating',  'transport'),
+  ('Repairs',         'operating',  'repairs'),
+  ('Internet & IT',   'operating',  'internet_it'),
+  ('Security',        'operating',  'security_expense'),
+  ('Cleaning',        'operating',  'cleaning'),
+  ('Office Supplies', 'operating',  'office'),
+  -- fixed
+  ('Rent',            'fixed',      'rent'),
+  ('Utilities',       'fixed',      'utilities'),
+  -- government
+  ('Gaming Tax',      'government', 'gaming_tax'),
+  ('Fixed Tax',       'government', 'fixed_tax'),
+  ('License',         'government', 'license'),
+  ('Visa',            'government', 'visa'),
+  -- tech
+  ('Machines',        'tech',       'machines'),
+  ('Parts',           'tech',       'parts'),
+  -- other
+  ('Debts',           'other',      'debts'),
+  ('Adjustments',     'other',      'adjustments'),
+  ('Other Office',    'other',      'other_office')
+) AS c(name, grp, mapping)
+ON CONFLICT (casino_id, name) DO NOTHING;
+
+DO $$ BEGIN RAISE NOTICE 'Seed defaults applied: placeholder casino + roles matrix + wallets + chip colors + tables + tag conflicts + budget categories'; END $$;
