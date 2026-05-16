@@ -163,22 +163,45 @@ export const SyncMirrorPanel = () => {
               <AlertTriangle className="w-4 h-4 text-destructive" /> Clone from Cloud — destructive
             </DialogTitle>
             <DialogDescription className="text-xs">
-              All local data for <span className="font-mono font-medium">{identity?.casino_name}</span> will be
-              deleted and replaced with the Cloud copy. This takes about 3–5 minutes;
-              local users may see brief inconsistencies until it finishes.
+              All local data will be deleted and replaced with the Cloud copy. Takes about
+              3–5 minutes; local users may see brief inconsistencies until it finishes.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-2">
-            <Label className="text-xs">
-              Type <span className="font-mono">{identity?.casino_name}</span> to confirm
-            </Label>
-            <Input
-              value={confirmName}
-              onChange={(e) => setConfirmName(e.target.value)}
-              placeholder={identity?.casino_name ?? ""}
-              autoFocus
-            />
+
+          <div className="space-y-3">
+            <div className="rounded border border-border bg-muted/40 p-3 text-xs space-y-1.5">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-muted-foreground">Source (Cloud casino):</span>
+                <span className="font-mono font-semibold">{identity?.casino_name ?? "—"}</span>
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-muted-foreground">Casino ID:</span>
+                <span className="font-mono text-[10px]">{identity?.casino_id ?? "—"}</span>
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-muted-foreground">Slug:</span>
+                <span className="font-mono">{identity?.casino_slug ?? "—"}</span>
+              </div>
+              <p className="text-[10px] text-muted-foreground pt-1 border-t border-border">
+                The Cloud casino is bound by <span className="font-mono">CASINO_ID</span> in Server Identity above.
+                Wrong casino? Cancel and update Server Identity first.
+              </p>
+            </div>
+
+            <div>
+              <Label className="text-xs">
+                Type <span className="font-mono font-semibold">{identity?.casino_name}</span> to confirm
+              </Label>
+              <Input
+                value={confirmName}
+                onChange={(e) => setConfirmName(e.target.value)}
+                placeholder={identity?.casino_name ?? ""}
+                autoFocus
+                className="mt-1"
+              />
+            </div>
           </div>
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowClone(false)}>Cancel</Button>
             <Button
