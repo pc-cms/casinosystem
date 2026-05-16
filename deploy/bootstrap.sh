@@ -15,7 +15,7 @@
 #
 set -euo pipefail
 
-BOOTSTRAP_VERSION="1.2.3"
+BOOTSTRAP_VERSION="1.3.0"
 REPO="${CASINO_REPO:-pc-cms/casinosystem}"
 if [[ "$REPO" == "pms-cms/casinosystem" ]]; then
   REPO="pc-cms/casinosystem"
