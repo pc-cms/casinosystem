@@ -57,14 +57,24 @@ if [[ $MENU -eq 0 && $RESET -eq 0 && $REBUILD -eq 0 && $RECONFIGURE -eq 0 && $WI
 fi
 
 if [[ $MENU -eq 1 ]]; then
-  exec </dev/tty 2>/dev/null || true
+  # Открываем /dev/tty как fd 3 — read будет читать оттуда напрямую,
+  # независимо от того, чем заняты stdin/stdout (pipe от curl и т.п.).
+  if [[ -e /dev/tty ]]; then
+    exec 3</dev/tty || { warn "Нет доступа к /dev/tty — пропускаю меню"; MENU=0; }
+  else
+    warn "/dev/tty недоступен — пропускаю меню"
+    MENU=0
+  fi
+fi
+
+if [[ $MENU -eq 1 ]]; then
   echo
   echo -e "${BOLD}${CYAN}  Выберите действие:${NC}"
   echo
   HAS_ENV=0; [[ -f "${SCRIPT_DIR}/.env" ]] && HAS_ENV=1
   if [[ $HAS_ENV -eq 1 ]]; then
-    echo -e "    ${BOLD}1${NC})  ${GREEN}Обновить${NC}        — пересобрать ВСЁ (frontend + все сервисы), БД и .env сохранить  ${YELLOW}(рекомендуется)${NC}"
-    echo -e "    ${BOLD}2${NC})  Переустановить    — пересоздать .env и сертификаты, БД сохранить"
+    echo -e "    ${BOLD}1${NC})  ${GREEN}Обновить${NC}        — пересобрать ВСЁ (frontend + сервисы), БД и .env сохранить  ${YELLOW}(рекомендуется)${NC}"
+    echo -e "    ${BOLD}2${NC})  Переустановить    — пересоздать .env, сертификаты и пересобрать frontend (БД сохранить)"
     echo -e "    ${BOLD}3${NC})  ${RED}Стереть всё${NC}     — удалить БД, .env, образы и поставить заново"
     echo -e "    ${BOLD}4${NC})  Статус и логи"
     echo -e "    ${BOLD}5${NC})  Выйти"
@@ -76,17 +86,23 @@ if [[ $MENU -eq 1 ]]; then
   fi
   DEFAULT_CHOICE=1
   echo
-  read -r -p "  Ваш выбор [${DEFAULT_CHOICE}]: " CHOICE || CHOICE=""
+  printf "  Ваш выбор [%s]: " "$DEFAULT_CHOICE"
+  CHOICE=""
+  if ! IFS= read -r -u 3 CHOICE; then CHOICE=""; fi
+  CHOICE="${CHOICE//[[:space:]]/}"
   CHOICE="${CHOICE:-$DEFAULT_CHOICE}"
+  echo
 
   if [[ $HAS_ENV -eq 1 ]]; then
     case "$CHOICE" in
-      1) UPDATE=1; REBUILD=1 ;;
-      2) RESET=1 ;;
+      1) echo -e "${GREEN}▶ Запускаю: Обновление (полная пересборка)${NC}"; UPDATE=1; REBUILD=1 ;;
+      2) echo -e "${GREEN}▶ Запускаю: Переустановка (.env + пересборка frontend)${NC}"; RESET=1; REBUILD=1 ;;
       3)
          echo
-         read -r -p "  ⚠  Это удалит ВСЮ базу данных. Введите 'WIPE' для подтверждения: " CONFIRM
+         printf "  ⚠  Это удалит ВСЮ базу данных. Введите 'WIPE' для подтверждения: "
+         CONFIRM=""; IFS= read -r -u 3 CONFIRM || true
          [[ "$CONFIRM" == "WIPE" ]] || fail "Отмена."
+         echo -e "${RED}▶ Запускаю: Полная очистка и установка с нуля${NC}"
          WIPE=1; RESET=1; REBUILD=1
          ;;
       4)
@@ -94,15 +110,18 @@ if [[ $MENU -eq 1 ]]; then
          echo -e "${CYAN}Последние логи (Ctrl+C для выхода):${NC}"
          exec docker compose logs --tail=100 -f
          ;;
-      5|*) echo "Выход."; exit 0 ;;
+      5) echo "Выход."; exit 0 ;;
+      *) fail "Неизвестный выбор: '${CHOICE}'" ;;
     esac
   else
     case "$CHOICE" in
-      1) : ;;  # чистая установка
+      1) echo -e "${GREEN}▶ Запускаю: Чистая установка${NC}" ;;
       2)
          echo
-         read -r -p "  ⚠  Введите 'WIPE' для подтверждения полной очистки: " CONFIRM
+         printf "  ⚠  Введите 'WIPE' для подтверждения полной очистки: "
+         CONFIRM=""; IFS= read -r -u 3 CONFIRM || true
          [[ "$CONFIRM" == "WIPE" ]] || fail "Отмена."
+         echo -e "${RED}▶ Запускаю: Полная очистка и установка${NC}"
          WIPE=1; RESET=1; REBUILD=1
          ;;
       3)
@@ -110,7 +129,8 @@ if [[ $MENU -eq 1 ]]; then
          echo -e "${CYAN}Последние логи (Ctrl+C для выхода):${NC}"
          exec docker compose logs --tail=100 -f 2>/dev/null || { echo "Стек ещё не запущен."; exit 0; }
          ;;
-      4|*) echo "Выход."; exit 0 ;;
+      4) echo "Выход."; exit 0 ;;
+      *) fail "Неизвестный выбор: '${CHOICE}'" ;;
     esac
   fi
   echo
