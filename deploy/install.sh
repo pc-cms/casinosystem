@@ -363,7 +363,13 @@ ok "БД готова. Данные подтянутся после Initial Sync
 # ────────── 5. Сборка frontend + старт ──────────
 title "4/4  Сборка frontend и запуск стека"
 
-if [[ $REBUILD -eq 1 ]] || ! docker image inspect "cms-frontend:${FRONTEND_VERSION:-local}" &>/dev/null; then
+if [[ $REBUILD -eq 1 ]]; then
+  log "Удаляю старый образ frontend для чистой пересборки..."
+  docker image rm -f "cms-frontend:${FRONTEND_VERSION:-local}" cms-frontend:local &>/dev/null || true
+  log "Собираю cms-frontend (3-7 минут)..."
+  docker compose build --no-cache cms-frontend
+  ok "Frontend собран"
+elif ! docker image inspect "cms-frontend:${FRONTEND_VERSION:-local}" &>/dev/null; then
   log "Собираю cms-frontend (3-7 минут)..."
   docker compose build cms-frontend
   ok "Frontend собран"
@@ -371,8 +377,15 @@ else
   ok "Frontend образ уже есть (используем кэш). --rebuild чтобы пересобрать."
 fi
 
-log "Запуск всех контейнеров..."
-docker compose up -d
+if [[ $UPDATE -eq 1 ]]; then
+  log "UPDATE: перезапускаю frontend + nginx с новым образом..."
+  docker compose up -d --force-recreate --no-deps cms-frontend nginx
+  log "Запуск/обновление остальных контейнеров..."
+  docker compose up -d
+else
+  log "Запуск всех контейнеров..."
+  docker compose up -d
+fi
 
 log "Жду готовности frontend (до 30 сек)..."
 for i in $(seq 1 15); do
