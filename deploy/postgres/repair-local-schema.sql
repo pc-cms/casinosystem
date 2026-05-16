@@ -253,4 +253,35 @@ BEGIN
   END IF;
 END $$;
 
+-- ── cloud_connection: required by pair-cli.js ───────────────────────────────
+CREATE TABLE IF NOT EXISTS public.cloud_connection (
+  id integer PRIMARY KEY DEFAULT 1 CHECK (id = 1),
+  cloud_url text,
+  status text NOT NULL DEFAULT 'disconnected'
+    CHECK (status IN ('disconnected','pairing','connected')),
+  pairing_id uuid,
+  pairing_code text,
+  pairing_expires_at timestamptz,
+  casino_id uuid,
+  sync_secret text,
+  connected_at timestamptz,
+  last_polled_at timestamptz,
+  last_error text,
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+INSERT INTO public.cloud_connection (id) VALUES (1) ON CONFLICT (id) DO NOTHING;
+
+CREATE OR REPLACE FUNCTION public.cloud_connection_touch()
+RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  NEW.updated_at := now();
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_cloud_connection_touch ON public.cloud_connection;
+CREATE TRIGGER trg_cloud_connection_touch
+  BEFORE UPDATE ON public.cloud_connection
+  FOR EACH ROW EXECUTE FUNCTION public.cloud_connection_touch();
+
 NOTIFY pgrst, 'reload schema';
