@@ -309,3 +309,40 @@ async function peerPull(pool, res, body, peer) {
   const nextSinceId = rows.length ? rows[rows.length - 1].id : sinceId;
   return send(res, 200, { changes: rows, next_since_id: nextSinceId });
 }
+
+// ─────────── Updater helpers ───────────
+function readEnvMap() {
+  if (!existsSync(ENV_FILE)) return {};
+  const out = {};
+  for (const line of readFileSync(ENV_FILE, "utf8").split("\n")) {
+    const m = line.match(/^([A-Z0-9_]+)=(.*)$/);
+    if (m) out[m[1]] = m[2].replace(/^['"]|['"]$/g, "");
+  }
+  return out;
+}
+function safeReadJson(file) {
+  try { return JSON.parse(readFileSync(file, "utf8")); } catch { return null; }
+}
+function tailLog(file, n = 30) {
+  try {
+    const lines = readFileSync(file, "utf8").split("\n").filter(Boolean);
+    return lines.slice(-n);
+  } catch { return []; }
+}
+function getUpdaterStatus() {
+  const env = readEnvMap();
+  const flag = safeReadJson(FLAG_FILE);
+  const push = safeReadJson(PUSH_FILE);
+  const ack = safeReadJson(ACK_FILE);
+  return {
+    current_version: (env.FRONTEND_VERSION || "unknown").replace(/^v/, ""),
+    previous_version: env.PREVIOUS_VERSION ? env.PREVIOUS_VERSION.replace(/^v/, "") : null,
+    available_version: flag?.available ? String(flag.available).replace(/^v/, "") : null,
+    available_image: flag?.image ?? null,
+    available_pushed: flag?.push === true,
+    auto_apply: env.AUTO_APPLY === "true",
+    push_command: push,
+    push_ack: ack,
+    log_tail: tailLog(LOG_FILE, 30),
+  };
+}
