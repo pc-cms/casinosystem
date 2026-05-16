@@ -203,6 +203,12 @@ services:
       dockerfile: deploy/Dockerfile.frontend
       args:
         VITE_BUILD_VERSION: ${FRONTEND_VERSION:-local}
+        # CRITICAL: bake LOCAL Supabase URL/key into the bundle at build time.
+        # Vite inlines `import.meta.env.VITE_*` — runtime-config.json cannot
+        # override the supabase client URL after build.
+        VITE_SUPABASE_URL: https://${LOCAL_DOMAIN}/api
+        VITE_SUPABASE_PUBLISHABLE_KEY: ${ANON_KEY}
+        VITE_SUPABASE_PROJECT_ID: local
     image: cms-frontend:${FRONTEND_VERSION:-local}
     container_name: cms-frontend
     <<: [*restart_policy, *default_logging]
