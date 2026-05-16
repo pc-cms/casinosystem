@@ -383,7 +383,9 @@ set -a; source .env; set +a
 gen_jwt() {
   local role="$1" secret="$2"
   local header='{"alg":"HS256","typ":"JWT"}'
-  local payload="{\"iss\":\"casino-local\",\"role\":\"${role}\",\"iat\":$(date +%s),\"exp\":$(date -d '+10 years' +%s)}"
+  local aud="$role"
+  [[ "$role" == "service_role" ]] && aud="authenticated"
+  local payload="{\"iss\":\"casino-local\",\"aud\":\"${aud}\",\"role\":\"${role}\",\"iat\":$(date +%s),\"exp\":$(date -d '+10 years' +%s)}"
   local h=$(printf '%s' "$header"  | openssl base64 -A | tr -d '=' | tr '/+' '_-')
   local p=$(printf '%s' "$payload" | openssl base64 -A | tr -d '=' | tr '/+' '_-')
   local sig=$(printf '%s.%s' "$h" "$p" | openssl dgst -sha256 -hmac "$secret" -binary | openssl base64 -A | tr -d '=' | tr '/+' '_-')
@@ -395,6 +397,20 @@ set -a; source .env; set +a
 write_root_compose_env
 fix_local_file_permissions
 assert_local_frontend_env
+
+# Repair existing local auth users created by older installers. Those GoTrue
+# versions could mint access tokens with an empty DB role, causing PostgREST to
+# reject profile/role queries with `role "" does not exist` after login.
+ensure_auth_defaults_sql="
+  UPDATE auth.users
+     SET raw_app_meta_data = COALESCE(raw_app_meta_data, '{}'::jsonb)
+                           || jsonb_build_object('provider','email','providers',ARRAY['email'],'role','authenticated'),
+         aud = 'authenticated',
+         role = 'authenticated'
+   WHERE COALESCE(role, '') = ''
+      OR COALESCE(aud, '') = ''
+      OR COALESCE(raw_app_meta_data->>'role', '') = '';
+"
 
 mkdir -p certs
 if [[ ! -f certs/ca.crt ]]; then
@@ -454,6 +470,9 @@ fi
 log "Запускаю postgres (чистая БД, миграции применятся автоматически)..."
 docker compose up -d postgres
 wait_for_postgres_ready "Postgres"
+docker compose exec -T -e PGPASSWORD="${POSTGRES_PASSWORD}" postgres \
+  psql -h 127.0.0.1 -U "${POSTGRES_USER:-postgres}" -d "${POSTGRES_DB:-postgres}" \
+  -v ON_ERROR_STOP=1 -c "$ensure_auth_defaults_sql" &>/dev/null || true
 touch "$SEED_DONE_FILE"
 ok "БД готова. Данные подтянутся после Initial Sync из Cloud-админки."
 
@@ -551,6 +570,8 @@ else
   #     because slug "arusha" never matches the seed row's slug "local".
   docker compose exec -T -e PGPASSWORD="${POSTGRES_PASSWORD}" postgres \
     psql -h 127.0.0.1 -U "${POSTGRES_USER:-postgres}" -d "${POSTGRES_DB:-postgres}" -v ON_ERROR_STOP=1 -c "
+      ${ensure_auth_defaults_sql}
+
       INSERT INTO public.user_roles (user_id, role)
       VALUES ('${SA_USER_ID}', 'super_admin')
       ON CONFLICT (user_id, role) DO NOTHING;
