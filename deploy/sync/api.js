@@ -7,6 +7,10 @@
  *      GET  /node/status                    → node_identity + peers count
  *      POST /node/identity { display_name } → rename this node
  *      POST /peer/test  { peer_url }        → probe a peer URL (handshake dry-run)
+ *      GET  /node/updater/status            → current/available frontend version + log tail
+ *      POST /node/updater/check             → force cms-updater to check now
+ *      POST /node/updater/apply { version?, auto_apply? }
+ *                                           → queue PUSH_COMMAND.json for cms-updater
  *
  *  B) PEER routes (machine-to-machine — authenticated by HMAC-SHA256
  *     signature over the request body using the per-peer sync_secret):
@@ -15,12 +19,21 @@
  *      POST /peer/pull      → return outbox changes since cursor
  *      GET  /peer/health    → liveness + schema_version (no auth)
  *
- * Mounted by nginx as /api/cloud/* (admin) and /peer/* (peer-to-peer).
+ * Mounted by nginx as /api/node/* (admin) and /peer/* (peer-to-peer).
  */
 import http from "node:http";
 import crypto from "node:crypto";
+import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import { randomUUID } from "node:crypto";
 
 const GOTRUE_URL = process.env.GOTRUE_URL || "http://gotrue:9999";
+const COMPOSE_DIR = "/compose";
+const ENV_FILE = `${COMPOSE_DIR}/.env`;
+const LOG_FILE = `${COMPOSE_DIR}/updater.log`;
+const FLAG_FILE = `${COMPOSE_DIR}/UPDATE_AVAILABLE`;
+const PUSH_FILE = `${COMPOSE_DIR}/PUSH_COMMAND.json`;
+const ACK_FILE = `${COMPOSE_DIR}/PUSH_COMMAND_ACK.json`;
+const CHECK_NOW_FILE = `${COMPOSE_DIR}/CHECK_NOW`;
 
 export function startApi({ pool }) {
   const server = http.createServer(async (req, res) => {
