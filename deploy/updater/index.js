@@ -475,9 +475,18 @@ const FAST_POLL_MS = 10_000;
       if (reconfigure) {
         try { unlinkSync(RECONFIGURE_FILE); } catch {}
         log("info", "reconfigure.frontend.start");
-        const r = compose(["up", "-d", "--force-recreate", "cms-frontend"]);
-        log(r.code === 0 ? "info" : "error", "reconfigure.frontend.done",
-            { code: r.code, out: r.out.slice(-400) });
+        const env = readEnv();
+        const localDomain = envValue(env.LOCAL_DOMAIN);
+        const localApiUrl = localDomain ? `https://${localDomain}/api` : "";
+        if (!localDomain || localApiUrl.includes("supabase.co")) {
+          log("error", "reconfigure.frontend.invalid_local_domain", { localDomain, localApiUrl });
+        } else {
+          run("docker", ["image", "rm", "-f", `cms-frontend:${envValue(env.FRONTEND_VERSION) || "local"}`, "cms-frontend:local"]);
+          const b = compose(["build", "--no-cache", "cms-frontend"]);
+          const r = b.code === 0 ? compose(["up", "-d", "--force-recreate", "cms-frontend", "nginx"]) : b;
+          log(r.code === 0 ? "info" : "error", "reconfigure.frontend.done",
+              { code: r.code, localApiUrl, out: r.out.slice(-400) });
+        }
       }
 
       if (checkNow || pushPending || due) {
