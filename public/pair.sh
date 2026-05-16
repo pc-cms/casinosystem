@@ -78,7 +78,7 @@ echo
 
 # ─────────── 2. Wait for approve ───────────
 log "Waiting up to 15 min for super_admin approval (polling every 5s)..."
-WAIT_OUT="$(docker compose exec -T cms-sync node /app/pair-cli.js wait 900)" || {
+WAIT_OUT="$(docker compose exec -T cms-sync node /app/pair-cli.js wait 900 </dev/null)" || {
   RC=$?
   case "$RC" in
     3) die "Pairing was rejected or expired:
