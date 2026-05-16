@@ -128,13 +128,11 @@ export default function MonthlyTips() {
     const out = activeDealers.map((d) => {
       let hours = 0;
       let extraComputed = 0;
-      let hasAbsent = false;
       const cells = days.map((day) => {
         const key = `${d.id}|${day}`;
         const att = (attDraft[key] ?? attMap.get(key)) ?? "";
         const shift = rotaMap.get(key) ?? "";
         const p = parseValue(att);
-        if (p.kind === "absent") hasAbsent = true;
         if (p.kind === "hours" || p.kind === "hours-sick") hours += p.hours;
         if (shift === "E") extraComputed += 1;
         return { att, shift, parsed: p, key, day };
@@ -142,9 +140,9 @@ export default function MonthlyTips() {
       const entry = entryMap.get(d.id);
       const extra = entry?.extra_override ?? extraComputed;
       const bonusPts = entry?.bonus_points ?? 0;
-      const points = hasAbsent ? 0 : (hours + extra + bonusPts);
+      const points = hours + extra + bonusPts;
       const cat = d.is_pit_boss ? "pit_boss" : (d.category || "dealer");
-      return { dealer: d, cells, hours, extraComputed, extra, bonusPts, hasAbsent, points, cat };
+      return { dealer: d, cells, hours, extraComputed, extra, bonusPts, points, cat };
     });
 
     return out.sort((a, b) => {
@@ -159,7 +157,7 @@ export default function MonthlyTips() {
   const valuePerPoint = totalPoints > 0 && poolAmount > 0 ? poolAmount / totalPoints : 0;
   const roundedBonus = (pts: number) => Math.round((pts * valuePerPoint) / 1000) * 1000;
   const totalDistributed = rows.reduce(
-    (s, r) => s + (calculated && !r.hasAbsent ? roundedBonus(r.points) : 0),
+    (s, r) => s + (calculated ? roundedBonus(r.points) : 0),
     0,
   );
   const balance = totalDistributed - poolAmount;
@@ -168,7 +166,6 @@ export default function MonthlyTips() {
     const t: Record<number, number> = { 10000: 0, 5000: 0, 2000: 0, 1000: 0 };
     if (!calculated) return t;
     rows.forEach((r) => {
-      if (r.hasAbsent) return;
       const b = breakdown(roundedBonus(r.points));
       for (const d of DENOMS) t[d] += b[d];
     });
@@ -359,11 +356,11 @@ export default function MonthlyTips() {
                 </tr>
               )}
               {rows.map((r, idx) => {
-                const bonus = calculated && !r.hasAbsent ? roundedBonus(r.points) : 0;
+                const bonus = calculated ? roundedBonus(r.points) : 0;
                 const bd = bonus > 0 ? breakdown(bonus) : null;
                 const zebra = idx % 2 === 0 ? "" : "bg-muted/10";
                 return (
-                  <tr key={r.dealer.id} className={cn("border-b border-border last:border-0", zebra, r.hasAbsent && "opacity-60")}>
+                  <tr key={r.dealer.id} className={cn("border-b border-border last:border-0", zebra)}>
                     <td className="px-1 py-1 text-center text-muted-foreground font-mono text-[11px]">{idx + 1}</td>
                     <td className="px-1 py-1 text-center">
                       <span className={cn(
@@ -464,9 +461,7 @@ export default function MonthlyTips() {
                     </td>
                     <td className="px-2 py-1 text-center text-[10px] mt-sign-cell border-b border-foreground/40 print:border-foreground">
                       <span className="print:hidden">
-                        {r.hasAbsent
-                          ? <span className="text-destructive font-semibold">Excluded</span>
-                          : <span className="text-muted-foreground">—</span>}
+                        <span className="text-muted-foreground">—</span>
                       </span>
                     </td>
                     {DENOMS.map((d) => (
