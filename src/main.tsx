@@ -5,9 +5,16 @@ import { setupPWA } from "./lib/pwa-register";
 import { installChunkRecovery } from "./lib/chunk-recovery";
 import { initAuthLeaderElection } from "./lib/auth-leader";
 import { installAuthThrottle } from "./lib/auth-throttle";
+import { getRuntimeConfig } from "./lib/runtime-config";
 
 // Install BEFORE rendering so we catch chunk errors during initial route load.
 installChunkRecovery();
+
+// Preload runtime-config.json (local on-prem casinoSlug/casinoId) so that
+// synchronous slug detection in casino-context can pick it up on first render.
+// Fire-and-forget kicks off the fetch immediately; we also await it before
+// mounting so on local installs the UI doesn't flash an empty/landing state.
+const runtimeReady = getRuntimeConfig().catch(() => null);
 
 // Patch window.fetch to throttle /auth/v1/token requests. Must run BEFORE any
 // Supabase client call. Protects shared-IP networks (5-10 casino devices behind
