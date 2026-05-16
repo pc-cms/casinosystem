@@ -292,12 +292,29 @@ log("info", "updater.start", {
   interval_min: CHECK_INTERVAL_MINUTES, auto_apply: AUTO_APPLY,
 });
 
+const CHECK_NOW_FILE = `${COMPOSE_PROJECT_DIR}/CHECK_NOW`;
+const FAST_POLL_MS = 10_000;
+
 (async function main() {
   // первая проверка через 30 сек (даём стеку прогреться)
   await sleep(30_000);
+  let lastFullTick = 0;
   while (true) {
-    try { await tick(); } catch (e) { log("error", "tick.crash", { err: String(e?.message ?? e) }); }
-    await sleep(TICK_MS);
+    try {
+      const now = Date.now();
+      const checkNow = existsSync(CHECK_NOW_FILE);
+      const pushPending = existsSync(PUSH_FILE);
+      const due = now - lastFullTick >= TICK_MS;
+
+      if (checkNow || pushPending || due) {
+        if (checkNow) { try { unlinkSync(CHECK_NOW_FILE); } catch {} log("info", "tick.triggered_by_check_now"); }
+        await tick();
+        lastFullTick = now;
+      }
+    } catch (e) {
+      log("error", "tick.crash", { err: String(e?.message ?? e) });
+    }
+    await sleep(FAST_POLL_MS);
   }
 })();
 

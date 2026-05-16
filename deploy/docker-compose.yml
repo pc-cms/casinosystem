@@ -267,6 +267,10 @@ services:
       SCHEMA_VERSION:   ${FRONTEND_VERSION:-0.0.0}
       SYNC_BATCH_SIZE:  ${SYNC_BATCH_SIZE:-200}
       SYNC_INTERVAL_MS: ${SYNC_INTERVAL_MS:-5000}
+    volumes:
+      # /compose is shared with cms-updater so the admin API can read updater.log,
+      # the UPDATE_AVAILABLE flag, .env, and write CHECK_NOW / PUSH_COMMAND.json files.
+      - ./:/compose
     networks:
       - cms-net
 
