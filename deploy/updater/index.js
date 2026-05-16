@@ -259,15 +259,10 @@ async function fullStackApply(targetVersion, cmdId) {
     return false;
   }
 
-  // 4. Pull frontend image (validate registry has it)
-  log("info", "apply.pull_image", { image });
-  const pull = run("docker", ["pull", image]);
-  if (pull.code !== 0) {
-    log("error", "apply.pull_fail", { image, out: pull.out.slice(0, 500) });
-    writeAck(cmdId, "failed", `image pull failed: ${pull.out.slice(0, 200)}`);
-    rmSync(tmpDir, { recursive: true, force: true });
-    return false;
-  }
+  // 4. (Frontend image is built locally per-casino — URL is baked at build time.
+  //     We rebuild it in step 9 along with cms-sync etc. No registry pull.)
+  log("info", "apply.skip_image_pull", { reason: "frontend is per-casino local build" });
+
 
   // 5. Snapshot current install for rollback
   log("info", "apply.backup", { backupDir });
