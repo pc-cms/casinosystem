@@ -110,9 +110,9 @@ rsync -a --delete \
 # 6. Rebuild frontend + cms-sync + restart
 cd "${CMS_DIR}/deploy"
 write_root_compose_env
-LOCAL_DOMAIN="$(read_env_key LOCAL_DOMAIN)"
-[[ -n "$LOCAL_DOMAIN" ]] || die "LOCAL_DOMAIN missing from $ENV_FILE"
-EXPECTED_URL="https://${LOCAL_DOMAIN}/api"
+LOCAL_IP="$(read_env_key LOCAL_IP)"
+[[ -n "$LOCAL_IP" ]] || die "LOCAL_IP missing from $ENV_FILE"
+EXPECTED_URL="https://${LOCAL_IP}/api"
 [[ "$EXPECTED_URL" != *"supabase.co"* ]] || die "Refusing to bake Cloud URL into local frontend: $EXPECTED_URL"
 docker compose config 2>/dev/null | grep -q "VITE_SUPABASE_URL: ${EXPECTED_URL}" \
   || die "docker-compose is not baking local API URL (${EXPECTED_URL}) into cms-frontend"
