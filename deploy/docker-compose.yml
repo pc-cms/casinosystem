@@ -115,6 +115,10 @@ services:
       GOTRUE_JWT_SECRET: ${JWT_SECRET}
       GOTRUE_JWT_EXP: 3600
       GOTRUE_JWT_AUD: authenticated
+      # Required for local GoTrue tokens. Without this, access tokens may be
+      # minted with an empty `role` claim, and PostgREST fails every request with
+      # `role "" does not exist`.
+      GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
       GOTRUE_MAILER_AUTOCONFIRM: "true"
       GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
       GOTRUE_PASSWORD_MIN_LENGTH: "1"
