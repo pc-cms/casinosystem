@@ -202,6 +202,17 @@ const arg = process.argv[3];
       console.log(JSON.stringify(r));
       process.exit(0);
     }
+    if (cmd === "seed-push") {
+      const row = await getRow();
+      const cid = process.env.CASINO_ID || row?.casino_id;
+      if (!cid) throw new Error("CASINO_ID env var or paired connection required");
+      const { rows } = await pool.query(
+        `SELECT * FROM public.sync_seed_from_existing($1::uuid)`, [cid]
+      );
+      const total = rows.reduce((s, r) => s + Number(r.inserted_count || 0), 0);
+      console.log(JSON.stringify({ ok: true, total_queued: total, by_table: rows }));
+      process.exit(0);
+    }
     if (cmd === "status") {
       const row = await getRow();
       console.log(JSON.stringify(row));
