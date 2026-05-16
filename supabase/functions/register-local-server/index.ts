@@ -143,6 +143,21 @@ Deno.serve(async (req) => {
       }
 
       if (row.status === "approved") {
+        // Auto-mark as consumed once a local_servers row exists for this casino —
+        // the local pair-cli has its secret, no reason to keep the pending row.
+        if (row.approved_casino_id) {
+          const { data: ls } = await admin
+            .from("local_servers")
+            .select("id")
+            .eq("casino_id", row.approved_casino_id)
+            .maybeSingle();
+          if (ls) {
+            await admin
+              .from("pending_server_registrations")
+              .update({ status: "consumed" })
+              .eq("id", row.id);
+          }
+        }
         return json(200, {
           status: "approved",
           id: row.id,
