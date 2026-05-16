@@ -80,6 +80,9 @@ function readEnv() {
   }
   return out;
 }
+function envValue(value) {
+  return String(value ?? "").trim().replace(/^['"]|['"]$/g, "");
+}
 function writeEnvKey(key, value) {
   let txt = existsSync(ENV_FILE) ? readFileSync(ENV_FILE, "utf8") : "";
   const re = new RegExp(`^${key}=.*$`, "m");
