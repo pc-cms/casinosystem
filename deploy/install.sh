@@ -61,23 +61,25 @@ if [[ $MENU -eq 1 ]]; then
   echo
   echo -e "${BOLD}${CYAN}  Выберите действие:${NC}"
   echo
-  if [[ -f "${SCRIPT_DIR}/.env" ]]; then
-    echo -e "    ${BOLD}1${NC})  ${GREEN}Обновить${NC}        — пересобрать frontend, сохранить БД и .env  ${YELLOW}(рекомендуется)${NC}"
+  HAS_ENV=0; [[ -f "${SCRIPT_DIR}/.env" ]] && HAS_ENV=1
+  if [[ $HAS_ENV -eq 1 ]]; then
+    echo -e "    ${BOLD}1${NC})  ${GREEN}Обновить${NC}        — пересобрать ВСЁ (frontend + все сервисы), БД и .env сохранить  ${YELLOW}(рекомендуется)${NC}"
     echo -e "    ${BOLD}2${NC})  Переустановить    — пересоздать .env и сертификаты, БД сохранить"
     echo -e "    ${BOLD}3${NC})  ${RED}Стереть всё${NC}     — удалить БД, .env, образы и поставить заново"
     echo -e "    ${BOLD}4${NC})  Статус и логи"
     echo -e "    ${BOLD}5${NC})  Выйти"
-    DEFAULT_CHOICE=1
   else
-    echo -e "    ${BOLD}1${NC})  ${GREEN}Установить${NC}      — чистая установка (БД и .env будут созданы)"
-    echo -e "    ${BOLD}2${NC})  Выйти"
-    DEFAULT_CHOICE=1
+    echo -e "    ${BOLD}1${NC})  ${GREEN}Установить${NC}      — чистая установка (БД и .env будут созданы)  ${YELLOW}(рекомендуется)${NC}"
+    echo -e "    ${BOLD}2${NC})  ${RED}Стереть всё и поставить заново${NC}  — на всякий случай очистить остатки"
+    echo -e "    ${BOLD}3${NC})  Статус и логи"
+    echo -e "    ${BOLD}4${NC})  Выйти"
   fi
+  DEFAULT_CHOICE=1
   echo
   read -r -p "  Ваш выбор [${DEFAULT_CHOICE}]: " CHOICE || CHOICE=""
   CHOICE="${CHOICE:-$DEFAULT_CHOICE}"
 
-  if [[ -f "${SCRIPT_DIR}/.env" ]]; then
+  if [[ $HAS_ENV -eq 1 ]]; then
     case "$CHOICE" in
       1) UPDATE=1; REBUILD=1 ;;
       2) RESET=1 ;;
@@ -96,8 +98,19 @@ if [[ $MENU -eq 1 ]]; then
     esac
   else
     case "$CHOICE" in
-      1) : ;;  # обычная установка
-      2|*) echo "Выход."; exit 0 ;;
+      1) : ;;  # чистая установка
+      2)
+         echo
+         read -r -p "  ⚠  Введите 'WIPE' для подтверждения полной очистки: " CONFIRM
+         [[ "$CONFIRM" == "WIPE" ]] || fail "Отмена."
+         WIPE=1; RESET=1; REBUILD=1
+         ;;
+      3)
+         echo; docker compose ps 2>/dev/null || true; echo
+         echo -e "${CYAN}Последние логи (Ctrl+C для выхода):${NC}"
+         exec docker compose logs --tail=100 -f 2>/dev/null || { echo "Стек ещё не запущен."; exit 0; }
+         ;;
+      4|*) echo "Выход."; exit 0 ;;
     esac
   fi
   echo
