@@ -17,6 +17,29 @@
 #
 set -euo pipefail
 
+# ── Self re-exec from a temp file with stdin=/dev/null ─────────────────────
+# When invoked via `curl | sudo bash`, bash reads this script from a pipe AND
+# any long-running child process (docker exec, polling loops) can stall or
+# silently exit when the pipe is closed. Re-execute ourselves from a real
+# file with stdin detached so no child can ever inherit the curl pipe.
+if [ -z "${PAIR_SH_REEXEC:-}" ]; then
+  export PAIR_SH_REEXEC=1
+  TMP_SELF="$(mktemp /tmp/pair-XXXXXX.sh)"
+  trap 'rm -f "$TMP_SELF"' EXIT
+  if [ -n "${BASH_SOURCE[0]:-}" ] && [ -r "${BASH_SOURCE[0]}" ] && [ "${BASH_SOURCE[0]}" != "/dev/stdin" ]; then
+    cp "${BASH_SOURCE[0]}" "$TMP_SELF"
+  else
+    # Piped from curl — re-download ourselves to a real file.
+    REPAIR_URL="${PAIR_SH_URL:-https://casinosystem.app/pair.sh}"
+    curl -fsSL "$REPAIR_URL" -o "$TMP_SELF" || {
+      echo "[error] could not download pair.sh from $REPAIR_URL" >&2
+      exit 1
+    }
+  fi
+  chmod +x "$TMP_SELF"
+  exec bash "$TMP_SELF" "$@" </dev/null
+fi
+
 CMS_DIR="/opt/casino-system"
 ENV_FILE="${CMS_DIR}/deploy/.env"
 
