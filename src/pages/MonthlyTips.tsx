@@ -212,7 +212,7 @@ export default function MonthlyTips() {
     <PageShell>
       <style>{`
         @media print {
-          @page { size: A4 landscape; margin: 4mm; }
+          @page { size: A4 landscape; margin: 8mm; }
           html, body { margin: 0 !important; padding: 0 !important; background: #fff !important; }
           body * { visibility: hidden !important; }
           .mt-print-target, .mt-print-target * { visibility: visible !important; }
@@ -221,15 +221,13 @@ export default function MonthlyTips() {
             left: 0 !important; top: 0 !important; right: 0 !important;
             margin: 0 !important; padding: 0 !important;
             border: 0 !important; background: #fff !important;
-            font-size: 7pt !important;
+            font-size: 10pt !important;
           }
-          .mt-print-target table { font-size: 6.5pt !important; table-layout: fixed; width: 100% !important; }
-          .mt-print-target th, .mt-print-target td { padding: 0px 1px !important; border: 0.4px solid #999 !important; }
-          .mt-print-target thead th { height: 11px !important; }
-          .mt-print-target tbody tr { height: 9px !important; }
-          .mt-print-target .mt-cell { height: 8px !important; padding: 0 !important; }
-          .mt-print-target input { font-size: 6.5pt !important; height: 8px !important; line-height: 8px !important; }
-          .mt-sign-cell { min-width: 70px; border-bottom: 0.5px solid #000 !important; }
+          .mt-print-target table { font-size: 10pt !important; table-layout: fixed; width: 100% !important; }
+          .mt-print-target th, .mt-print-target td { padding: 2px 4px !important; border: 0.5px solid #666 !important; }
+          .mt-print-target thead th { height: 18px !important; background: #eee !important; color: #000 !important; }
+          .mt-print-target tbody tr { height: 22px !important; }
+          .mt-sign-cell { min-width: 140px; border-bottom: 0.5px solid #000 !important; }
         }
       `}</style>
 
@@ -316,21 +314,21 @@ export default function MonthlyTips() {
         </div>
 
         <div className="w-full overflow-x-auto rounded-md border border-border print-target mt-print-target">
-          <div className="hidden print:block text-center font-bold text-[10pt] mb-1">
-            Monthly Tips — {fmtDateOnly(periodStart)} – {fmtDateOnly(periodEnd)}
+          <div className="hidden print:block text-center font-bold text-[12pt] mb-2">
+            Tips for Period {fmtDateOnly(periodStart)} – {fmtDateOnly(periodEnd)}
           </div>
           <table className="w-full text-xs border-collapse">
             <thead className="bg-primary text-primary-foreground">
               <tr>
-                <th className="h-9 w-7 text-center font-semibold">#</th>
-                <th className="h-9 w-8 text-center font-semibold">Cat</th>
-                <th className="h-9 px-2 text-left font-semibold w-[140px] min-w-[140px] max-w-[140px]">Name</th>
+                <th className="h-9 w-7 text-center font-semibold no-print">#</th>
+                <th className="h-9 w-8 text-center font-semibold no-print">Cat</th>
+                <th className="h-9 px-2 text-left font-semibold w-[140px] min-w-[140px] max-w-[140px] print:w-auto print:max-w-none">Name</th>
                 {days.map((day) => {
                   const [, m, d] = day.split("-");
                   const dow = dowOf(day);
                   const isWeekend = dow === 0 || dow === 6;
                   return (
-                    <th key={day} className={cn("h-9 px-0.5 w-7 text-center font-semibold", isWeekend && "bg-primary/70")}>
+                    <th key={day} className={cn("h-9 px-0.5 w-7 text-center font-semibold no-print", isWeekend && "bg-primary/70")}>
                       <div className="text-[10px] leading-tight font-mono">{d}</div>
                       <div className="text-[8px] font-normal opacity-80">{DOW_SHORT[dow]}</div>
                     </th>
@@ -361,8 +359,8 @@ export default function MonthlyTips() {
                 const zebra = idx % 2 === 0 ? "" : "bg-muted/10";
                 return (
                   <tr key={r.dealer.id} className={cn("border-b border-border last:border-0", zebra)}>
-                    <td className="px-1 py-1 text-center text-muted-foreground font-mono text-[11px]">{idx + 1}</td>
-                    <td className="px-1 py-1 text-center">
+                    <td className="px-1 py-1 text-center text-muted-foreground font-mono text-[11px] no-print">{idx + 1}</td>
+                    <td className="px-1 py-1 text-center no-print">
                       <span className={cn(
                         "inline-flex items-center justify-center w-5 h-5 rounded text-[9px] font-mono font-bold",
                         CATEGORY_COLORS[r.cat] || "text-muted-foreground bg-muted/20",
@@ -370,7 +368,7 @@ export default function MonthlyTips() {
                         {CATEGORY_LETTER[r.cat] || "?"}
                       </span>
                     </td>
-                    <td className="px-2 py-1 text-[12px] font-medium truncate max-w-[140px]" title={r.dealer.name}>
+                    <td className="px-2 py-1 text-[12px] font-medium truncate max-w-[140px] print:max-w-none print:truncate-none print:font-semibold" title={r.dealer.name}>
                       {r.dealer.name}
                     </td>
                     {r.cells.map((c, i) => {
@@ -392,7 +390,7 @@ export default function MonthlyTips() {
                               ? cn(UNIFIED_SHIFT_TINTS[c.shift] || "bg-muted/30 text-muted-foreground", "placeholder:text-current placeholder:opacity-60", c.shift === "E" && "ring-2 ring-purple-500/70 dark:ring-purple-400/70 ring-inset")
                               : "bg-slate-700/90 dark:bg-slate-900 text-slate-300 placeholder:text-slate-400/60";
                       return (
-                        <td key={i} className="px-0.5 py-0.5 text-center border-l border-border/25">
+                        <td key={i} className="px-0.5 py-0.5 text-center border-l border-border/25 no-print">
                           <input
                             type="text"
                             disabled={locked}
