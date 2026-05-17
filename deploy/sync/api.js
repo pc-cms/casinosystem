@@ -668,9 +668,11 @@ async function cloneFromCloud(pool, conn, casinoId, initiatorUserId) {
             `, [u.id, u.email]);
             await client.query("RELEASE SAVEPOINT clone_auth_user");
             cloneState.counts["auth.users"] = (cloneState.counts["auth.users"] || 0) + 1;
+            importedAuthIds.add(u.id);
           } catch (e) {
             await client.query("ROLLBACK TO SAVEPOINT clone_auth_user").catch(() => {});
             await client.query("RELEASE SAVEPOINT clone_auth_user").catch(() => {});
+            recordCloneError("auth.users", `${u?.email}: ${e?.message || e}`);
             console.log(`[clone] auth.user fail ${u?.email}: ${String(e?.message || e).slice(0, 200)}`);
           }
           continue;
@@ -701,13 +703,52 @@ async function cloneFromCloud(pool, conn, casinoId, initiatorUserId) {
             await client.query("SAVEPOINT clone_row_fallback");
             const rr = await client.query(fallbackSql, cols.map(c => obj.row[c]));
             await client.query("RELEASE SAVEPOINT clone_row_fallback");
-            if (rr.rowCount > 0) cloneState.counts[obj.table] = (cloneState.counts[obj.table] || 0) + rr.rowCount;
+            if (rr.rowCount > 0) {
+              cloneState.counts[obj.table] = (cloneState.counts[obj.table] || 0) + rr.rowCount;
+            } else {
+              recordCloneError(obj.table, String(e?.message || e));
+            }
           } catch (e2) {
             await client.query("ROLLBACK TO SAVEPOINT clone_row_fallback").catch(() => {});
             await client.query("RELEASE SAVEPOINT clone_row_fallback").catch(() => {});
+            recordCloneError(obj.table, String(e2?.message || e2 || e));
             console.log(`[clone] insert.fail ${obj.table}: ${String(e2?.message || e2 || e).slice(0, 200)}`);
           }
         }
+      }
+    }
+
+    // 4) Post-import auth GC: delete only users ABSENT from the cloud
+    //    snapshot — never the initiator, never the bootstrap superadmin.
+    //    This replaces the old destructive pre-wipe.
+    if (importedAuthIds.size > 0) {
+      try {
+        await client.query("SAVEPOINT clone_auth_gc");
+        const idsArr = Array.from(importedAuthIds);
+        await client.query(`
+          WITH casino_users AS (
+            SELECT u.id, u.email
+              FROM auth.users u
+             WHERE u.id IN (
+               SELECT user_id FROM public.user_casino_access WHERE casino_id = $1::uuid
+               UNION
+               SELECT id      FROM public.profiles            WHERE casino_id = $1::uuid
+             )
+          )
+          DELETE FROM auth.users
+           WHERE id IN (
+             SELECT id FROM casino_users
+              WHERE email <> 'superadmin@cms.local'
+                AND ($3::uuid IS NULL OR id <> $3::uuid)
+                AND NOT (id = ANY($2::uuid[]))
+           )
+        `, [casinoId, idsArr, initiatorUserId || null]);
+        await client.query("RELEASE SAVEPOINT clone_auth_gc");
+      } catch (e) {
+        await client.query("ROLLBACK TO SAVEPOINT clone_auth_gc").catch(() => {});
+        await client.query("RELEASE SAVEPOINT clone_auth_gc").catch(() => {});
+        recordCloneError("auth.users.gc", e?.message || e);
+        console.log(`[clone] auth.users gc skip: ${String(e?.message || e).slice(0, 200)}`);
       }
     }
 
@@ -715,7 +756,8 @@ async function cloneFromCloud(pool, conn, casinoId, initiatorUserId) {
     cloneState.status = "done";
     cloneState.finished_at = new Date().toISOString();
     cloneState.current_table = null;
-    console.log("[clone] done", cloneState.counts);
+    const totalErrors = Object.values(cloneState.errors_by_table).reduce((s, n) => s + n, 0);
+    console.log("[clone] done", { counts: cloneState.counts, errors: totalErrors, errors_by_table: cloneState.errors_by_table });
   } catch (e) {
     await client.query("ROLLBACK").catch(() => {});
     cloneState.status = "error";
