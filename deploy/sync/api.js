@@ -686,7 +686,9 @@ async function cloneFromCloud(pool, conn, casinoId, initiatorUserId) {
         }
 
         if (!obj.table || !obj.row) continue;
-        // Strip GENERATED ALWAYS columns — Postgres rejects explicit inserts.
+        // Skip derived views and strip GENERATED ALWAYS columns — Postgres rejects explicit inserts.
+        const SKIP_TABLES = new Set(["player_economy", "player_session_stats", "player_session_drops"]);
+        if (SKIP_TABLES.has(obj.table)) continue;
         const CLONE_STRIP = { player_position_history: ["duration_seconds"] };
         for (const c of (CLONE_STRIP[obj.table] || [])) delete obj.row[c];
         cloneState.current_table = obj.table;
