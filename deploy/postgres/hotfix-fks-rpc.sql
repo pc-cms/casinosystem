@@ -60,20 +60,21 @@ END $$;
 -- ─────────── 2. business_day_closures table (if missing) ───────────
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
-DO $$ BEGIN
-  CREATE TYPE public.player_position AS ENUM ('table', 'hall', 'slots');
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
 CREATE TABLE IF NOT EXISTS public.player_position_history (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   casino_id uuid NOT NULL,
   player_id uuid NOT NULL,
   visit_id uuid,
   table_id uuid,
-  position public.player_position NOT NULL,
+  position text NOT NULL,
   started_at timestamptz NOT NULL DEFAULT now(),
   ended_at timestamptz,
-  duration_seconds integer,
+  duration_seconds integer GENERATED ALWAYS AS (
+    CASE WHEN ended_at IS NOT NULL
+      THEN GREATEST(0, EXTRACT(EPOCH FROM (ended_at - started_at))::int)
+      ELSE NULL
+    END
+  ) STORED,
   created_by uuid,
   created_at timestamptz NOT NULL DEFAULT now()
 );
