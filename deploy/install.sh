@@ -173,7 +173,7 @@ fi
 
 # ── Repair fast path: применить hotfix SQL и перезапустить postgrest ───────
 if [[ $REPAIR -eq 1 ]]; then
-  title "Repair БД (hotfix FKs + RPC)"
+  title "Repair БД (hotfix FKs + RPC + Cloud schema sync)"
   cd "$SCRIPT_DIR"
   [[ -f .env ]] || fail ".env не найден — repair доступен только на установленной системе."
   set -a; . ./.env; set +a
@@ -194,6 +194,31 @@ if [[ $REPAIR -eq 1 ]]; then
     psql -U "${POSTGRES_USER:-postgres}" -d "${POSTGRES_DB:-postgres}" \
     -v ON_ERROR_STOP=1 -f /tmp/hotfix-fks-rpc.sql
   ok "Hotfix применён."
+
+  # ── Pull missing tables from Cloud schema ───────────────────────────────
+  if [[ -n "${CLOUD_URL:-}" && -n "${SYNC_SECRET:-}" && -n "${CASINO_ID:-}" ]]; then
+    log "Скачиваю актуальную схему из Cloud (cloud-schema-export)..."
+    TMP_DDL=$(mktemp /tmp/cloud-schema.XXXXXX.sql)
+    if curl -fsSL --max-time 30 \
+        -H "x-sync-secret: ${SYNC_SECRET}" -H "x-casino-id: ${CASINO_ID}" \
+        "${CLOUD_URL}/functions/v1/cloud-schema-export" -o "$TMP_DDL" 2>/dev/null \
+        && [[ -s "$TMP_DDL" ]]; then
+      log "Применяю Cloud-схему локально (idempotent, CREATE IF NOT EXISTS)..."
+      docker compose cp "$TMP_DDL" postgres:/tmp/cloud-schema.sql
+      # NOT --ON_ERROR_STOP: дублирующиеся объекты ожидаемы; warnings игнорим
+      docker compose exec -T -e PGPASSWORD="${POSTGRES_PASSWORD}" postgres \
+        psql -U "${POSTGRES_USER:-postgres}" -d "${POSTGRES_DB:-postgres}" \
+        -f /tmp/cloud-schema.sql 2>&1 | grep -iE "ERROR|FATAL" | grep -viE "already exists|duplicate" | head -20 || true
+      rm -f "$TMP_DDL"
+      ok "Cloud-схема применена (новые таблицы добавлены, существующие не тронуты)."
+    else
+      warn "cloud-schema-export недоступен — пропускаю sync схемы (хотфикс уже применён)."
+      rm -f "$TMP_DDL"
+    fi
+  else
+    warn "CLOUD_URL/SYNC_SECRET/CASINO_ID не заданы — пропускаю Cloud schema sync."
+  fi
+
   log "Перезапускаю postgrest (обновление schema cache)..."
   docker compose restart postgrest >/dev/null 2>&1 || warn "Не удалось перезапустить postgrest"
   ok "Repair завершён. Очистите кэш браузера (Ctrl+Shift+R) на ${LOCAL_DOMAIN:-arusha.local}"
