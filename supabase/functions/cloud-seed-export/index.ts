@@ -43,7 +43,7 @@ const jwtSecret = Deno.env.get("SUPABASE_JWT_SECRET") ?? serviceRoleKey;
 //   global   → вся таблица (справочники, общие для сети)
 //   by_user  → строки, где user_id ∈ users-of-this-casino
 //              (profiles/user_roles/user_credentials)
-const TABLES: Array<{ name: string; scope: "single" | "full" | "global" | "by_user"; sinceDays?: number; userIdCol?: string }> = [
+const TABLES: Array<{ name: string; scope: "single" | "full" | "global" | "by_user" | "by_player"; sinceDays?: number; userIdCol?: string }> = [
   // 1. Справочники (нужны раньше FK)
   { name: "casinos", scope: "single" },
 
