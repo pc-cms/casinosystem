@@ -153,9 +153,20 @@ const DATE_COLUMN: Record<string, string> = {
   bank_checks: "created_at",
   cctv_observations: "created_at",
   chip_transfers: "created_at",
+  player_chip_adjustments: "created_at",
   player_position_history: "changed_at",
+  client_sessions: "created_at",
+  incidents: "created_at",
   daily_summaries: "business_date",
+  daily_review: "business_date",
   inter_casino_transfers: "created_at",
+  attendance_hours: "business_date",
+  payroll_periods: "starts_on",
+  payroll_entries: "created_at",
+  monthly_tips_pools: "period_start",
+  monthly_tips_entries: "created_at",
+  weekly_bonus_pools: "period_start",
+  weekly_bonus_entries: "created_at",
 };
 
 Deno.serve(async (req) => {
