@@ -243,11 +243,18 @@ if [[ $VERIFY -eq 1 ]]; then
   }
 
   for T in "${TABLES[@]}"; do
-    LOC=$("${PG_RUN[@]}" -c "SELECT count(*) FROM public.${T} WHERE casino_id='${CASINO_ID}'" 2>/dev/null || true)
-    if [[ -z "$LOC" ]]; then
-      LOC=$("${PG_RUN[@]}" -c "SELECT count(*) FROM public.${T}" 2>/dev/null || true)
-      [[ -z "$LOC" ]] && LOC="MISS"
-    fi
+    case "$T" in
+      player_cards|player_tags)
+        LOC=$("${PG_RUN[@]}" -c "SELECT count(*) FROM public.${T} t JOIN public.players p ON p.id=t.player_id WHERE p.casino_id='${CASINO_ID}'" 2>/dev/null || true)
+        ;;
+      casinos|user_roles|user_casino_access|sync_table_registry)
+        LOC=$("${PG_RUN[@]}" -c "SELECT count(*) FROM public.${T}" 2>/dev/null || true)
+        ;;
+      *)
+        LOC=$("${PG_RUN[@]}" -c "SELECT count(*) FROM public.${T} WHERE casino_id='${CASINO_ID}'" 2>/dev/null || true)
+        ;;
+    esac
+    [[ -z "$LOC" ]] && LOC="MISS"
     CLD=$(get_cloud "$T")
     [[ -z "$CLD" ]] && CLD="?"
     if [[ "$LOC" == "MISS" ]]; then
