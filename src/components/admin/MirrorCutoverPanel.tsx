@@ -17,8 +17,10 @@ import { useCasino } from "@/lib/casino-context";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PageSection } from "@/components/layout/PageShell";
-import { Loader2, ShieldCheck, RefreshCw, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Loader2, ShieldCheck, RefreshCw, AlertTriangle, CheckCircle2, ArrowUpCircle, ArrowDownCircle } from "lucide-react";
 import { fmtDateTime } from "@/lib/format-date";
+import { toast } from "sonner";
+import { useReplicationMode } from "@/hooks/use-replication-mode";
 
 interface ParityRow {
   table_name: string;
