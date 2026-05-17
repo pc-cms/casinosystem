@@ -923,3 +923,16 @@ echo -e "  🔄 Меню:        ${CYAN}sudo casino-update${NC}   (или sudo .
 echo -e "  ⬆️  Обновить:    ${CYAN}sudo casino-update --update${NC}"
 echo -e "  💣 Стереть всё: ${CYAN}sudo casino-update --wipe${NC}"
 echo
+
+# ── Авто-цепочка после --update: применить hotfix БД и сверить parity ──
+# Чтобы пользователь одним `--update` получал свежий код + актуальную схему
+# + отчёт о расхождениях с Cloud.
+if [[ $UPDATE -eq 1 ]]; then
+  title "Авто-цепочка: --repair → --verify-parity"
+  if ! "${SCRIPT_DIR}/install.sh" --repair; then
+    warn "repair завершился с ошибкой — посмотрите вывод выше"
+  fi
+  if ! "${SCRIPT_DIR}/install.sh" --verify-parity; then
+    warn "verify-parity показал расхождения — посмотрите таблицу выше"
+  fi
+fi
