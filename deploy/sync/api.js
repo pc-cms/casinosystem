@@ -686,6 +686,9 @@ async function cloneFromCloud(pool, conn, casinoId, initiatorUserId) {
         }
 
         if (!obj.table || !obj.row) continue;
+        // Strip GENERATED ALWAYS columns — Postgres rejects explicit inserts.
+        const CLONE_STRIP = { player_position_history: ["duration_seconds"] };
+        for (const c of (CLONE_STRIP[obj.table] || [])) delete obj.row[c];
         cloneState.current_table = obj.table;
         const cols = Object.keys(obj.row);
         if (cols.length === 0) continue;

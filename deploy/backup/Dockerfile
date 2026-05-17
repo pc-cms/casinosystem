@@ -1,4 +1,4 @@
-FROM alpine:3.20
+FROM alpine:3.19
 RUN apk add --no-cache postgresql15-client zstd tar bash curl tzdata
 COPY backup.sh /usr/local/bin/backup.sh
 RUN chmod +x /usr/local/bin/backup.sh
