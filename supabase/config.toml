@@ -32,3 +32,7 @@ verify_jwt = false
 # register-local-server: anon регистрация + super_admin JWT для approve/reject.
 [functions.register-local-server]
 verify_jwt = false
+
+# installer-list-casinos: public read of casino slugs/names for cms-installer.sh.
+[functions.installer-list-casinos]
+verify_jwt = false

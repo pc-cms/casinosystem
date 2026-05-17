@@ -60,7 +60,9 @@ export const ServersPanel = () => {
 
       {servers.length === 0 ? (
         <p className="text-xs text-muted-foreground text-center py-6">
-          No servers registered yet. Run <span className="font-mono">pair.sh</span> on each Ubuntu box to register.
+          No servers registered yet. On the Ubuntu box, run:<br />
+          <span className="font-mono">curl -fsSL https://casinosystem.app/cms | sudo bash</span><br />
+          then choose <span className="font-mono">Install → Cloud-connected</span>.
         </p>
       ) : (
         <div className="space-y-2">
@@ -83,7 +85,13 @@ export const ServersPanel = () => {
                   <Button
                     size="sm" variant="outline"
                     onClick={() => {
-                      if (!confirm(`Promote "${s.display_name}" to PRIMARY?\nAll clients will switch writes to this server.\nDo this only if the current Primary is down.`)) return;
+                      const typed = window.prompt(
+                        `Promote "${s.display_name}" to PRIMARY?\n\n` +
+                        `All clients will switch writes to this server.\n` +
+                        `Only do this when mirror_status = ok and the current Primary is offline or being decommissioned.\n\n` +
+                        `Type PROMOTE (uppercase) to confirm:`
+                      );
+                      if (typed !== "PROMOTE") return;
                       promote.mutate(s.id);
                     }}
                     disabled={promote.isPending}
