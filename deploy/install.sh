@@ -226,6 +226,24 @@ if [[ $REPAIR -eq 1 ]]; then
   exit 0
 fi
 
+# ── Backfill fast path: дозалить недостающие строки из Cloud (ON CONFLICT DO NOTHING) ──
+if [[ $BACKFILL -eq 1 ]]; then
+  title "Backfill from Cloud (idempotent)"
+  cd "$SCRIPT_DIR"
+  [[ -f .env ]] || fail ".env не найден — backfill доступен только на установленной системе."
+  set -a; . ./.env; set +a
+  : "${CASINO_ID:?CASINO_ID не задан в .env}"
+  : "${SYNC_SECRET:?SYNC_SECRET не задан — сервер ещё не спарен с Cloud}"
+
+  log "Запускаю pair-cli.js sync (стрим cloud-seed-export, ON CONFLICT DO UPDATE)…"
+  if ! docker compose exec -T cms-sync node /app/pair-cli.js sync; then
+    fail "Backfill завершился с ошибкой. См. логи: docker compose logs --tail=80 cms-sync"
+  fi
+  ok "Backfill завершён."
+  log "Проверьте: sudo casino-update --verify-parity"
+  exit 0
+fi
+
 # ── Verify-parity fast path: сравнить локальную копию с Cloud ──────────────
 if [[ $VERIFY -eq 1 ]]; then
   title "Verify parity (Local ↔ Cloud)"
