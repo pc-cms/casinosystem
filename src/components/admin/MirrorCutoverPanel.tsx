@@ -17,8 +17,10 @@ import { useCasino } from "@/lib/casino-context";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PageSection } from "@/components/layout/PageShell";
-import { Loader2, ShieldCheck, RefreshCw, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Loader2, ShieldCheck, RefreshCw, AlertTriangle, CheckCircle2, ArrowUpCircle, ArrowDownCircle } from "lucide-react";
 import { fmtDateTime } from "@/lib/format-date";
+import { toast } from "sonner";
+import { useReplicationMode } from "@/hooks/use-replication-mode";
 
 interface ParityRow {
   table_name: string;
@@ -82,10 +84,12 @@ export function MirrorCutoverPanel() {
   const { activeCasinoId, activeCasino } = useCasino();
   const activeName = activeCasino?.name ?? activeCasino?.slug ?? null;
   const isLocalNode = detectIsLocalNode();
+  const { mode } = useReplicationMode();
 
   const [localSnap, setLocalSnap] = useState<ParityResponse | null>(null);
   const [cloudSnap, setCloudSnap] = useState<ParityResponse | null>(null);
   const [loading, setLoading] = useState(false);
+  const [promoting, setPromoting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const runCheck = async () => {
@@ -241,6 +245,70 @@ export function MirrorCutoverPanel() {
             {isLocalNode && (
               <Button onClick={recordParity} variant="outline" size="sm">
                 Record result
+              </Button>
+            )}
+          </div>
+
+          {/* ── Promote / Demote — Cutover controls ───────────────────── */}
+          <div className="flex flex-wrap items-center gap-3 mb-3 p-3 rounded-md border bg-muted/20">
+            <span className="text-sm">
+              Current mode:{" "}
+              <Badge variant={mode === "local_primary" ? "default" : "outline"}>
+                {mode === "local_primary" ? "LOCAL PRIMARY" : mode === "cloud_primary" ? "CLOUD PRIMARY" : "unknown"}
+              </Badge>
+            </span>
+            <div className="flex-1" />
+            {mode !== "local_primary" && (
+              <Button
+                size="sm"
+                disabled={!comparison.allMatch || promoting || !activeCasinoId}
+                onClick={async () => {
+                  if (!activeCasinoId) return;
+                  if (!confirm(`Promote ${activeName} to LOCAL PRIMARY?\n\nCloud will stop accepting direct writes to operational tables for this casino.`)) return;
+                  setPromoting(true);
+                  try {
+                    await recordParity();
+                    const { data, error: e } = await supabase.rpc("promote_to_local_primary", { p_casino_id: activeCasinoId, p_force: false });
+                    if (e) throw e;
+                    const res = data as any;
+                    if (!res?.ok) {
+                      toast.error(`Promotion blocked: ${JSON.stringify(res?.check?.reasons ?? [])}`);
+                    } else {
+                      toast.success("Promoted to LOCAL PRIMARY");
+                    }
+                  } catch (e: any) {
+                    toast.error(String(e?.message ?? e));
+                  } finally {
+                    setPromoting(false);
+                  }
+                }}
+              >
+                {promoting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUpCircle className="h-4 w-4" />}
+                <span className="ml-2">Promote to Local Primary</span>
+              </Button>
+            )}
+            {mode === "local_primary" && (
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={promoting || !activeCasinoId}
+                onClick={async () => {
+                  if (!activeCasinoId) return;
+                  if (!confirm(`Demote ${activeName} back to CLOUD PRIMARY?\n\nLocal server will become read-only again.`)) return;
+                  setPromoting(true);
+                  try {
+                    const { error: e } = await supabase.rpc("demote_to_cloud_primary", { p_casino_id: activeCasinoId });
+                    if (e) throw e;
+                    toast.success("Demoted to CLOUD PRIMARY");
+                  } catch (e: any) {
+                    toast.error(String(e?.message ?? e));
+                  } finally {
+                    setPromoting(false);
+                  }
+                }}
+              >
+                {promoting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowDownCircle className="h-4 w-4" />}
+                <span className="ml-2">Demote to Cloud Primary</span>
               </Button>
             )}
           </div>
