@@ -706,6 +706,7 @@ echo -e "  ℹ️  Опционально: скопируйте ${BOLD}certs/ca.
 echo
 echo -e "  📊 Статус:     ${CYAN}docker compose ps${NC}"
 echo -e "  📜 Логи:       ${CYAN}docker compose logs -f${NC}"
+echo -e "  🩺 Диагностика: ${CYAN}sudo cms-status${NC}   (mirror | logs | errors | probe <peer>)"
 echo -e "  🔄 Меню:        ${CYAN}sudo casino-update${NC}   (или sudo ./deploy/install.sh)"
 echo -e "  ⬆️  Обновить:    ${CYAN}sudo casino-update --update${NC}"
 echo -e "  💣 Стереть всё: ${CYAN}sudo casino-update --wipe${NC}"
