@@ -5119,6 +5119,14 @@ export type Database = {
           user_id: string
         }[]
       }
+      mirror_parity_snapshot: {
+        Args: { p_casino_id: string }
+        Returns: {
+          max_updated_at: string
+          row_count: number
+          table_name: string
+        }[]
+      }
       payroll_approve_hr: { Args: { _period_id: string }; Returns: undefined }
       payroll_approve_manager: {
         Args: { _period_id: string }
