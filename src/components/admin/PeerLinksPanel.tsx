@@ -17,10 +17,10 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Trash2, Pause, Play, CheckCircle2, XCircle, Sparkles, Server, Cloud } from "lucide-react";
+import { Trash2, Pause, Play, CheckCircle2, XCircle, Sparkles, Server, Cloud, AlertTriangle } from "lucide-react";
 import { RecentExchangeActivity } from "./RecentExchangeActivity";
 
 type PeerStatus = "pending_outbound" | "pending_inbound" | "active" | "paused" | "rejected";
