@@ -331,17 +331,18 @@ async function triggerSync() {
   try {
     const checksumSrc = Object.keys(counts).sort().map(t => `${t}:${counts[t]}`).join("|");
     const checksum = crypto.createHash("sha256").update(checksumSrc).digest("hex").slice(0, 32);
+    const snapshotId = `seed-${Date.now()}`;
     await pool.query(
       `INSERT INTO public.sync_snapshot_state
          (casino_id, snapshot_id, imported_at, table_counts, checksum, source)
-       VALUES ($1::uuid, gen_random_uuid(), now(), $2::jsonb, $3::text, 'cloud-seed-export')
+       VALUES ($1::uuid, $2::text, now(), $3::jsonb, $4::text, 'cloud-seed-export')
        ON CONFLICT (casino_id) DO UPDATE
          SET snapshot_id  = EXCLUDED.snapshot_id,
              imported_at  = EXCLUDED.imported_at,
              table_counts = EXCLUDED.table_counts,
              checksum     = EXCLUDED.checksum,
              source       = EXCLUDED.source`,
-      [casinoId, JSON.stringify(counts), checksum]
+      [casinoId, snapshotId, JSON.stringify(counts), checksum]
     );
   } catch (e) {
     console.error(`[seed] snapshot_state record failed: ${String(e?.message || e).slice(0, 200)}`);
