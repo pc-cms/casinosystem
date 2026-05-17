@@ -488,17 +488,27 @@ let cloneState = {
   finished_at: null,
   current_table: null,
   counts: {},            // { table_name: rows_imported }
+  errors_by_table: {},   // { table_name: rows_failed }
+  error_samples: {},     // { table_name: ["first error msg", ...] (max 3) }
   error: null,
 };
 function getCloneStatus() { return cloneState; }
 
-async function cloneFromCloud(pool, conn, casinoId) {
+function recordCloneError(table, msg) {
+  cloneState.errors_by_table[table] = (cloneState.errors_by_table[table] || 0) + 1;
+  const arr = cloneState.error_samples[table] || (cloneState.error_samples[table] = []);
+  if (arr.length < 3) arr.push(String(msg || "").slice(0, 240));
+}
+
+async function cloneFromCloud(pool, conn, casinoId, initiatorUserId) {
   cloneState = {
     status: "running",
     started_at: new Date().toISOString(),
     finished_at: null,
     current_table: null,
     counts: {},
+    errors_by_table: {},
+    error_samples: {},
     error: null,
   };
   const client = await pool.connect();
