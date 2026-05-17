@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import PlayerPhotoLightbox from "@/components/player/PlayerPhotoLightbox";
+import PlayerEditDialog from "@/components/PlayerEditDialog";
 import { useNavigate } from "react-router-dom";
-import { X, ExternalLink, User, ArrowDownToLine, ArrowUpFromLine, Check } from "lucide-react";
+import { X, ExternalLink, User, ArrowDownToLine, ArrowUpFromLine, Check, Pencil } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { usePlayer, usePlayerVisits, usePlayerNotes } from "@/hooks/use-player-profile";
@@ -109,12 +110,17 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
   const { roles } = useAuth();
   const showFinancials = canSeePlayerFinancials(roles || []);
   const canAdjust = (roles || []).some((r) => r === "pit" || r === "manager");
+  // Pit-only users get read-only PlayerEditDialog upstream; everyone else
+  // (reception, hr, surveillance, manager, finance, super_admin) may edit.
+  const isPitOnly = (roles || []).some((r) => r === "pit") && !(roles || []).some((r) => r === "manager" || r === "super_admin");
+  const canEditProfile = !isPitOnly;
 
   const [chipIn, setChipIn] = useState("");
   const [chipOut, setChipOut] = useState("");
   const [note, setNote] = useState("");
   const createAdj = useCreatePlayerChipAdjustment();
   const [photoOpen, setPhotoOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
   // Expose header height as CSS var so downstream sticky elements (table headers,
@@ -206,13 +212,26 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
           <div className="shrink-0 flex flex-col justify-center items-center gap-2 pr-5 border-r border-border self-stretch">
             <span className="font-mono text-xs text-muted-foreground uppercase tracking-wide">Visits</span>
             <span className="text-foreground font-bold text-3xl tabular-nums leading-none">{visitsCount}</span>
-            <Button
-              size="sm"
-              onClick={() => nav(`/players/${player.id}`)}
-              className="gap-1 mt-1"
-            >
-              Profile <ExternalLink className="h-3.5 w-3.5" />
-            </Button>
+            <div className="flex gap-1.5 mt-1">
+              <Button
+                size="sm"
+                onClick={() => nav(`/players/${player.id}`)}
+                className="gap-1"
+              >
+                Profile <ExternalLink className="h-3.5 w-3.5" />
+              </Button>
+              {canEditProfile && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setEditOpen(true)}
+                  aria-label="Edit player profile"
+                  className="gap-1"
+                >
+                  <Pencil className="h-3.5 w-3.5" /> Edit
+                </Button>
+              )}
+            </div>
           </div>
 
           {/* Identity block: Name+Nick / Cash In + Result / Tags */}
@@ -342,6 +361,11 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
         onOpenChange={setPhotoOpen}
         src={player?.photo_url}
         alt={player ? `${player.first_name} ${player.last_name}` : undefined}
+      />
+      <PlayerEditDialog
+        player={player ? (player as any) : null}
+        open={editOpen}
+        onOpenChange={setEditOpen}
       />
     </div>
   );
