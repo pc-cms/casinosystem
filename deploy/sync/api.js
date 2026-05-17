@@ -550,6 +550,11 @@ async function cloneFromCloud(pool, conn, casinoId, initiatorUserId) {
 
     await client.query("BEGIN");
     await client.query(`SELECT set_config('sync.applying','on', true)`);
+    // Disable FK + user triggers for the import — eliminates silent FK losses
+    // on child tables (e.g. staff_rota.staff_member_id referencing a row that
+    // hasn't been streamed yet). The sync.applying GUC already prevents the
+    // outbox enqueue triggers from firing, so this is safe.
+    await client.query(`SET LOCAL session_replication_role = replica`);
 
     // 1) Clear sync_outbox + seed markers + advance peer cursors so we don't
     //    push the freshly-imported rows back to Cloud.
@@ -582,28 +587,12 @@ async function cloneFromCloud(pool, conn, casinoId, initiatorUserId) {
       }
     }
 
-    // 2c) Wipe auth.users + dependent rows for this casino's users.
-    //     We keep the bootstrap superadmin (superadmin@cms.local) untouched.
-    try {
-      await client.query("SAVEPOINT clone_wipe_auth");
-      await client.query(`
-        WITH users_to_wipe AS (
-          SELECT u.id FROM auth.users u
-          WHERE u.email <> 'superadmin@cms.local'
-            AND u.id IN (
-              SELECT user_id FROM public.user_casino_access WHERE casino_id = $1::uuid
-              UNION
-              SELECT id      FROM public.profiles            WHERE casino_id = $1::uuid
-            )
-        )
-        DELETE FROM auth.users WHERE id IN (SELECT id FROM users_to_wipe)
-      `, [casinoId]);
-      await client.query("RELEASE SAVEPOINT clone_wipe_auth");
-    } catch (e) {
-      await client.query("ROLLBACK TO SAVEPOINT clone_wipe_auth").catch(() => {});
-      await client.query("RELEASE SAVEPOINT clone_wipe_auth").catch(() => {});
-      console.log(`[clone] wipe.skip auth.users: ${String(e?.message || e).slice(0, 200)}`);
-    }
+    // 2c) NOTE: auth.users is no longer pre-wiped. Pre-wiping was killing the
+    //     active super_admin session ("users appeared for a second and vanished").
+    //     Instead, after the stream finishes (step 4) we delete only users
+    //     ABSENT from the cloud snapshot — and never the initiator,
+    //     never superadmin@cms.local.
+    const importedAuthIds = new Set();
 
     // 3) Stream NDJSON from cloud-seed-export
     const seedUrl = `${conn.cloud_url}/functions/v1/cloud-seed-export?casino_id=${casinoId}&days=all`;
