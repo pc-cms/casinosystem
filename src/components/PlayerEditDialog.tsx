@@ -8,8 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AlertTriangle, Camera, User, FileImage, StickyNote, Send, Shield, ImagePlus, Ban } from "lucide-react";
+import { AlertTriangle, Camera, User, FileImage, StickyNote, Send, Shield, ImagePlus, Ban, Eye } from "lucide-react";
 import PhotoCapture from "@/components/PhotoCapture";
+import PlayerPhotoLightbox from "@/components/player/PlayerPhotoLightbox";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -70,6 +71,13 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
   const [noteType, setNoteType] = useState<string>("info");
   const [addingNote, setAddingNote] = useState(false);
   const [blacklistOpen, setBlacklistOpen] = useState(false);
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const openLightbox = (src: string | null | undefined) => {
+    if (!src) return;
+    setLightboxSrc(src);
+    setLightboxOpen(true);
+  };
 
   // Pit gets read-only view: can see Notes but cannot edit fields or add notes.
   // Reception/HR/etc. get the standard editable view (no Notes).
@@ -252,52 +260,90 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
         <div><FlagBadges tags={playerTags} /></div>
       )}
 
-      {/* Row 1: TWO PHOTOS side-by-side (Profile + ID Doc) */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1.5">
-          <label className="text-xs text-muted-foreground font-medium">Profile Photo</label>
-          <div className="w-full aspect-[4/3] rounded-lg bg-muted flex items-center justify-center overflow-hidden border border-border">
-            {(photoUrl || player.photo_url) ? (
-              <img src={photoUrl || player.photo_url || ""} className="w-full h-full object-cover" alt="Profile" />
-            ) : (
-              <User className="w-12 h-12 text-muted-foreground" />
+      {/* Photos column (left, stacked) + form (right) */}
+      <div className="flex gap-4">
+        <div className="w-[136px] shrink-0 space-y-3">
+          <div className="space-y-1.5">
+            <label className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium">Profile</label>
+            <button
+              type="button"
+              onClick={() => openLightbox(photoUrl || player.photo_url || null)}
+              disabled={!(photoUrl || player.photo_url)}
+              aria-label="View profile photo"
+              className="relative w-full aspect-square rounded-lg bg-muted flex items-center justify-center overflow-hidden border border-border group disabled:cursor-default enabled:hover:ring-2 enabled:hover:ring-primary/40 transition"
+            >
+              {(photoUrl || player.photo_url) ? (
+                <>
+                  <img src={photoUrl || player.photo_url || ""} className="w-full h-full object-cover" alt="Profile" />
+                  <span className="absolute inset-0 group-hover:bg-black/30 transition flex items-center justify-center">
+                    <Eye className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition" />
+                  </span>
+                </>
+              ) : (
+                <User className="w-10 h-10 text-muted-foreground" />
+              )}
+            </button>
+            {!readOnly && (
+              <PhotoCapture
+                photoUrl={photoUrl || player.photo_url || null}
+                onPhotoSelect={handlePhotoUpload}
+                label="Photo"
+                size="sm"
+                captureId={`edit-photo-${player.id}`}
+                disabled={uploading}
+                compact
+              />
             )}
           </div>
-          {!readOnly && (
-            <PhotoCapture
-              photoUrl={photoUrl || player.photo_url || null}
-              onPhotoSelect={handlePhotoUpload}
-              label="Photo"
-              size="sm"
-              captureId={`edit-photo-${player.id}`}
-              disabled={uploading}
-              compact
-            />
-          )}
+
+          <div className="space-y-1.5">
+            <label className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium">ID / Passport</label>
+            {readOnly ? (
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full h-10 gap-1.5"
+                disabled={!docUrl}
+                onClick={() => openLightbox(docUrl)}
+              >
+                <Eye className="w-3.5 h-3.5" />
+                {docUrl ? "Preview" : "No file"}
+              </Button>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={() => openLightbox(docUrl)}
+                  disabled={!docUrl}
+                  aria-label="View ID document"
+                  className="relative w-full aspect-square rounded-lg bg-muted flex items-center justify-center overflow-hidden border border-border group disabled:cursor-default enabled:hover:ring-2 enabled:hover:ring-primary/40 transition"
+                >
+                  {docUrl ? (
+                    <>
+                      <img src={docUrl} className="w-full h-full object-cover" alt="ID" />
+                      <span className="absolute inset-0 group-hover:bg-black/30 transition flex items-center justify-center">
+                        <Eye className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition" />
+                      </span>
+                    </>
+                  ) : (
+                    <FileImage className="w-8 h-8 text-muted-foreground" />
+                  )}
+                </button>
+                <PhotoCapture
+                  photoUrl={docUrl || null}
+                  onPhotoSelect={handleDocUpload}
+                  label="ID Doc"
+                  size="sm"
+                  captureId={`edit-doc-${player.id}`}
+                  disabled={uploadingDoc}
+                  compact
+                />
+              </>
+            )}
+          </div>
         </div>
 
-        <div className="space-y-1.5">
-          <label className="text-xs text-muted-foreground font-medium">ID / Passport Document</label>
-          <div className="w-full aspect-[4/3] rounded-lg bg-muted flex items-center justify-center overflow-hidden border border-border">
-            {docUrl ? (
-              <img src={docUrl} className="w-full h-full object-cover" alt="ID" />
-            ) : (
-              <FileImage className="w-10 h-10 text-muted-foreground" />
-            )}
-          </div>
-          {!readOnly && (
-            <PhotoCapture
-              photoUrl={docUrl || null}
-              onPhotoSelect={handleDocUpload}
-              label="ID Doc"
-              size="sm"
-              captureId={`edit-doc-${player.id}`}
-              disabled={uploadingDoc}
-              compact
-            />
-          )}
-        </div>
-      </div>
+        <div className="flex-1 min-w-0">
 
       {/* Row 2+: All form fields on a unified 12-col grid */}
       <FormGrid>
@@ -411,8 +457,11 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
             )}
           </FormSection>
         )}
-      </FormGrid>
+          </FormGrid>
+        </div>
+      </div>
     </div>
+
   ) : null;
 
   const titleContent = (
@@ -457,6 +506,18 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
     />
   ) : null;
 
+  const sharedExtras = (
+    <>
+      {blacklistDialog}
+      <PlayerPhotoLightbox
+        open={lightboxOpen}
+        onOpenChange={setLightboxOpen}
+        src={lightboxSrc}
+        alt={player ? `${player.first_name} ${player.last_name}` : undefined}
+      />
+    </>
+  );
+
   if (isMobile) {
     return (
       <>
@@ -473,7 +534,7 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
             </DrawerFooter>
           </DrawerContent>
         </Drawer>
-        {blacklistDialog}
+        {sharedExtras}
       </>
     );
   }
@@ -491,7 +552,7 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      {blacklistDialog}
+      {sharedExtras}
     </>
   );
 };
