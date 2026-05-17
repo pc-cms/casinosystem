@@ -1,62 +1,304 @@
-## Корневые причины
+План, чтобы перестать гонять команды по одной и за один прогон понять причину:
 
-Скриншот Health Check ясно показывает главное: **Cloud Peer Connection — No Cloud peer paired** и **Live Sync Heartbeat — No heartbeat seen yet**.
+1. Дать один read-only bash-скрипт для запуска на сервере `/opt/casino-system/deploy`.
+   - Он сам прочитает `.env`, `runtime-config.json`, состояние контейнеров и nginx.
+   - Подключится к `cms-postgres` и выполнит полный набор SQL-проверок.
+   - Ничего не изменит в БД.
 
-Это объясняет всё:
+2. SQL-диагностика проверит именно проблемные цепочки:
+   - активное казино `48f4404f-7724-418c-8365-29af3998e113`, slug/name;
+   - профиль и роли `superadmin@cms.local`;
+   - `user_casino_access`;
+   - распределение `players`, `employees`, `gaming_tables`, `shifts`, `daily_summaries`, `table_tracker`, `miss_chips` по `casino_id`;
+   - активные/архивные игроки и столы;
+   - наличие игрока `Test` любым регистром/частичным совпадением;
+   - свежие смены и `tables_result/shift_result/opened_at/status`;
+   - текущую business date через RPC, если функция есть;
+   - RLS/policies для `players`, `player_cards`, `player_tags`, `gaming_tables`, `shifts`, `daily_summaries`;
+   - проверку видимости через роль `authenticated` и JWT claims конкретного пользователя, чтобы отличить “данные есть, RLS режет” от “UI фильтрует не тот casino_id”.
 
-1. **«Создал клиента в Cloud — на локали нет»** — Clone это **разовый** bulk‑импорт. Постоянная синхронизация идёт через `cms-sync` ↔ `peer-mesh` по `peer_links`. У вас в `peer_links` нет строки на Cloud → ничего из Cloud в реальном времени не приходит и не уходит обратно.
+3. Скрипт сохранит полный отчёт в файл, например:
+   `/tmp/cms_diag_YYYYMMDD_HHMMSS.log`
+   и в конце покажет короткий блок `LIKELY_CAUSE`, где будет указано одно из:
+   - wrong active casino / runtime mismatch;
+   - data belongs to another casino_id;
+   - RLS/policy issue;
+   - archived/status/date filter issue;
+   - UI/version/runtime display issue.
 
-2. **«Пользователи появились на секунду и пропали»** — у локального superadmin сейчас активная сессия. Когда Clone делает `DELETE FROM auth.users WHERE … profiles.casino_id = arusha`, удаляется и тот пользователь, под которым вы залогинены (если его профиль привязан к Arusha). Браузер ещё короткое время держит JWT → UI рисует список, потом следующий рефреш токена возвращает 401 и список схлопывается.
+4. После твоего запуска ты пришлёшь сюда весь файл отчёта одной вставкой или командой `tail -n +1 /tmp/cms_diag_*.log`, и я уже по нему дам точечный fix-скрипт, а не буду угадывать.
 
-3. **«Staff Rota пустая, а Breaklist работает»** — `staff_rota` действительно отгружается (`days=all`, 1249 строк в Cloud для Arusha). Раз он пуст локально при непустом `breaklist` — это типичный признак тихого FK‑фейла на импорте: строки `staff_rota` ссылаются на `staff_member_id`/`dealer_id`, которых нет к моменту вставки. Текущий код Clone при ошибке откатывает SAVEPOINT и пробует `ON CONFLICT DO NOTHING` — это не помогает на FK‑фейле, строка просто теряется без явной ошибки в UI. Counts в Toast показывают «Imported N rows», но эти потери в N не видны.
+Скрипт, который нужно будет выполнить:
 
-## Что делаем
+```bash
+cat > /tmp/cms_diag.sh <<'BASH'
+#!/usr/bin/env bash
+set -Eeuo pipefail
 
-### Шаг 1. Pair Cloud peer (главное, без этого всё бессмысленно)
+OUT="/tmp/cms_diag_$(date +%Y%m%d_%H%M%S).log"
+DEPLOY_DIR="/opt/casino-system/deploy"
+ENV_FILE="$DEPLOY_DIR/.env"
+CASINO_ID_EXPECTED="48f4404f-7724-418c-8365-29af3998e113"
+SUPERADMIN_EMAIL="superadmin@cms.local"
+SUPERADMIN_ID="d11f5421-ebba-44d8-b239-1cba4af20566"
 
-В Admin → Peers нажать **Pair with Cloud** (или соответствующую существующую кнопку). Если в UI её нет/она не работает — диагностируем `peer-mesh /peer/handshake` в `cms-sync` логах и чиним. После пары:
-- `cms-sync` начнёт push/pull каждые 5 c
-- Health Check #4 станет зелёным, #6 покажет heartbeat <60 c назад
-- Новые клиенты, созданные на Cloud, появятся на локали в течение ~5 c
+exec > >(tee "$OUT") 2>&1
 
-### Шаг 2. Не дать Clone выпиливать активного пользователя
+section(){ echo; echo "===== $* ====="; }
+run(){ echo; echo "+ $*"; "$@" || true; }
+psqlq(){ sudo docker exec -i cms-postgres psql -U postgres -d postgres -v ON_ERROR_STOP=0 -P pager=off -c "$1" || true; }
+psqlblock(){ sudo docker exec -i cms-postgres psql -U postgres -d postgres -v ON_ERROR_STOP=0 -P pager=off <<SQL || true
+$1
+SQL
+}
 
-В `deploy/sync/api.js` (block `2c) Wipe auth.users`) добавить в исключения **всех** локальных авто‑созданных служебных пользователей и тех, чей `id` совпадает с `auth.uid()` инициатора Clone, плюс ВСЕХ super_admin‑ов локали. Безопаснее всего — wipe только тех, кого реально получим из Cloud (двух‑проходный clone: сначала собрать список `auth_user.id` из стрима в память, потом DELETE отсутствующих).
+section "BASIC"
+date -Is
+hostname -f || hostname
+whoami
+pwd
 
-### Шаг 3. Видимость потерь при Clone
+section "ENV / RUNTIME"
+if [ -f "$ENV_FILE" ]; then
+  sudo grep -E '^(CASINO_ID|CASINO_SLUG|CASINO_NAME|LOCAL_DOMAIN|LOCAL_IP|FRONTEND_VERSION)=' "$ENV_FILE" || true
+else
+  echo "MISSING $ENV_FILE"
+fi
+run curl -sk https://arusha.local/runtime-config.json
+run curl -sk https://arusha.local/healthz
 
-В `cloneState` добавить `errors_by_table: { staff_rota: 312, … }` и в Peers UI поверх строки «Imported: N rows» отрисовать жёлтый sub‑label «N skipped (FK/validation)». Сейчас потери немые — пользователь видит «успех», а половины таблицы нет.
+section "DOCKER"
+run sudo docker ps --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}'
+run sudo docker logs --tail=80 cms-frontend
+run sudo docker logs --tail=80 cms-postgrest
+run sudo docker logs --tail=80 cms-auth
 
-### Шаг 4. Diagnose staff_rota конкретно
+section "DATABASE IDENTITY"
+psqlblock "
+SELECT 'db_now' AS k, now() AS v;
+SELECT id, slug, name, code FROM public.casinos ORDER BY name;
+SELECT * FROM public.node_identity;
+"
 
-Открыть `cloneState.error_samples["staff_rota"]` (первые 3 текста ошибок) — это сразу покажет, на чём падает (отсутствующий `staff_member_id`, NOT NULL по новой колонке, или enum). Дальше либо:
-- двигаем `staff_rota` после `dealers`/`staff_members` в TABLES (сейчас уже после, но `employees` мог попасть позже — проверим),
-- либо ослабляем FK на on‑prem схеме до `DEFERRABLE INITIALLY DEFERRED`.
+section "SUPERADMIN PROFILE / ROLES / ACCESS"
+psqlblock "
+SELECT u.id AS auth_user_id, u.email, u.role AS jwt_db_role, u.aud, u.email_confirmed_at, u.last_sign_in_at
+FROM auth.users u
+WHERE u.email = '$SUPERADMIN_EMAIL' OR u.id = '$SUPERADMIN_ID'::uuid;
 
-### Шаг 5. Health Check учится отвечать на «всё ли пришло»
+SELECT p.user_id, p.display_name, p.casino_id, c.slug, c.name, p.disabled_at
+FROM public.profiles p
+LEFT JOIN public.casinos c ON c.id = p.casino_id
+WHERE p.user_id = '$SUPERADMIN_ID'::uuid;
 
-В `Local Server — Full Health Check` добавить 7‑й чек **Sync Lag**: 
-- сравнить `MAX(sync_outbox.id)` на Cloud (через peer‑mesh `/peer/lag`) с `peer_links.last_pull_cursor` локали;
-- зелёный если lag = 0, жёлтый ≤ 50, красный иначе.
+SELECT ur.user_id, ur.role
+FROM public.user_roles ur
+WHERE ur.user_id = '$SUPERADMIN_ID'::uuid
+ORDER BY ur.role;
 
-Это и есть ответ на «как понять что сейчас все обновления приходят».
+SELECT uca.user_id, uca.casino_id, c.slug, c.name
+FROM public.user_casino_access uca
+LEFT JOIN public.casinos c ON c.id = uca.casino_id
+WHERE uca.user_id = '$SUPERADMIN_ID'::uuid
+ORDER BY c.name;
+"
 
-### Шаг 6. Параллельно — диагностика «почему Cloud Peer не спарен»
+section "COUNTS BY CASINO"
+psqlblock "
+WITH table_counts AS (
+  SELECT 'players' AS table_name, casino_id, count(*)::bigint AS rows FROM public.players GROUP BY casino_id
+  UNION ALL SELECT 'employees', casino_id, count(*) FROM public.employees GROUP BY casino_id
+  UNION ALL SELECT 'gaming_tables', casino_id, count(*) FROM public.gaming_tables GROUP BY casino_id
+  UNION ALL SELECT 'shifts', casino_id, count(*) FROM public.shifts GROUP BY casino_id
+  UNION ALL SELECT 'daily_summaries', casino_id, count(*) FROM public.daily_summaries GROUP BY casino_id
+  UNION ALL SELECT 'table_tracker', casino_id, count(*) FROM public.table_tracker GROUP BY casino_id
+  UNION ALL SELECT 'miss_chips', casino_id, count(*) FROM public.miss_chips GROUP BY casino_id
+)
+SELECT tc.table_name, tc.casino_id, c.slug, c.name, tc.rows
+FROM table_counts tc
+LEFT JOIN public.casinos c ON c.id = tc.casino_id
+ORDER BY tc.table_name, c.name NULLS LAST;
+"
 
-Если в Peers UI кнопка пары есть и не отрабатывает — смотрим `docker logs cms-sync` сразу после нажатия: `peer.handshake.fail` с конкретной причиной (DNS, x-peer-signature, schema_version mismatch, 401 от peer-mesh). Чиним конкретное.
+section "EXPECTED CASINO DETAILS"
+psqlblock "
+SELECT 'players' AS entity,
+       count(*) AS total,
+       count(*) FILTER (WHERE archived_at IS NULL) AS not_archived,
+       count(*) FILTER (WHERE archived_at IS NOT NULL) AS archived,
+       min(created_at) AS min_created,
+       max(created_at) AS max_created
+FROM public.players WHERE casino_id = '$CASINO_ID_EXPECTED'::uuid;
 
-## Что нужно от вас
+SELECT 'gaming_tables' AS entity,
+       count(*) AS total,
+       count(*) FILTER (WHERE coalesce(is_archived,false)=false) AS active,
+       count(*) FILTER (WHERE coalesce(is_archived,false)=true) AS archived
+FROM public.gaming_tables WHERE casino_id = '$CASINO_ID_EXPECTED'::uuid;
 
-Подтвердите порядок:
+SELECT 'shifts' AS entity,
+       count(*) AS total,
+       count(*) FILTER (WHERE status='open') AS open,
+       count(*) FILTER (WHERE status='closed') AS closed,
+       min(opened_at) AS min_opened,
+       max(opened_at) AS max_opened
+FROM public.shifts WHERE casino_id = '$CASINO_ID_EXPECTED'::uuid;
 
-A. Сначала пробуем спарить Cloud peer вручную через существующий UI и смотрим что мешает (Шаг 1 + Шаг 6) — без правок кода. Если получится — 90% проблем уйдёт само.
+SELECT id, name, type, status, is_archived, closing_result, created_at, updated_at
+FROM public.gaming_tables
+WHERE casino_id = '$CASINO_ID_EXPECTED'::uuid
+ORDER BY name;
 
-B. Параллельно я готовлю патч на Шаги 2, 3, 4, 5 — это новая версия (1.3.62), доставляется через `casino-update`.
+SELECT id, shift_type, status, opened_at, closed_at, cash_result, tables_result, shift_result
+FROM public.shifts
+WHERE casino_id = '$CASINO_ID_EXPECTED'::uuid
+ORDER BY opened_at DESC
+LIMIT 30;
+"
 
-Или хотите сразу B, не тратя время на ручную диагностику?
+section "PLAYER SEARCH TEST"
+psqlblock "
+SELECT id, casino_id, first_name, last_name, nickname, phone, status, archived_at, created_at
+FROM public.players
+WHERE first_name ILIKE '%test%'
+   OR last_name ILIKE '%test%'
+   OR nickname ILIKE '%test%'
+   OR phone ILIKE '%test%'
+ORDER BY created_at DESC
+LIMIT 50;
 
-## Технические детали
+SELECT id, casino_id, first_name, last_name, nickname, phone, status, archived_at, created_at
+FROM public.players
+WHERE casino_id = '$CASINO_ID_EXPECTED'::uuid
+ORDER BY created_at DESC
+LIMIT 20;
+"
 
-- Файлы под правку: `deploy/sync/api.js` (Шаги 2, 3), `deploy/cli/cms-status.mjs` или соответствующая Health Check‑страница (Шаг 5), при необходимости `supabase/functions/peer-mesh/index.ts` (новый endpoint `/peer/lag`).
-- Миграции БД не требуются.
-- Версия → 1.3.62.
+section "TABLE RESULT DATE WINDOWS"
+psqlblock "
+DO \$\$
+DECLARE d date;
+BEGIN
+  BEGIN
+    SELECT public.get_current_business_date('$CASINO_ID_EXPECTED'::uuid) INTO d;
+    RAISE NOTICE 'get_current_business_date=%', d;
+  EXCEPTION WHEN OTHERS THEN
+    RAISE NOTICE 'get_current_business_date failed: %', SQLERRM;
+    d := (now() AT TIME ZONE 'Africa/Dar_es_Salaam')::date;
+  END;
+END \$\$;
+
+WITH dates AS (
+  SELECT (now() AT TIME ZONE 'Africa/Dar_es_Salaam')::date AS d
+  UNION SELECT ((now() AT TIME ZONE 'Africa/Dar_es_Salaam')::date - 1)
+  UNION SELECT opened_at::date FROM public.shifts WHERE casino_id = '$CASINO_ID_EXPECTED'::uuid ORDER BY 1 DESC LIMIT 10
+)
+SELECT d.d AS ui_date_window,
+       count(s.*) AS shifts,
+       sum(coalesce(s.tables_result, s.shift_result, 0)) AS ui_tables_result_sum,
+       min(s.opened_at) AS first_opened,
+       max(s.opened_at) AS last_opened
+FROM dates d
+LEFT JOIN public.shifts s
+  ON s.casino_id = '$CASINO_ID_EXPECTED'::uuid
+ AND s.opened_at >= d.d::timestamp
+ AND s.opened_at < (d.d + 1)::timestamp
+GROUP BY d.d
+ORDER BY d.d DESC;
+
+SELECT date, tables_result, cash_result, miss_chips, created_at, updated_at
+FROM public.daily_summaries
+WHERE casino_id = '$CASINO_ID_EXPECTED'::uuid
+ORDER BY date DESC
+LIMIT 30;
+"
+
+section "RLS / POLICIES"
+psqlblock "
+SELECT schemaname, tablename, rowsecurity
+FROM pg_tables
+WHERE schemaname='public'
+  AND tablename IN ('players','player_cards','player_tags','gaming_tables','shifts','daily_summaries','table_tracker','miss_chips','profiles','user_roles','user_casino_access','casinos')
+ORDER BY tablename;
+
+SELECT schemaname, tablename, policyname, permissive, roles, cmd, qual, with_check
+FROM pg_policies
+WHERE schemaname='public'
+  AND tablename IN ('players','player_cards','player_tags','gaming_tables','shifts','daily_summaries','table_tracker','miss_chips','profiles','user_roles','user_casino_access','casinos')
+ORDER BY tablename, policyname;
+"
+
+section "SIMULATED AUTHENTICATED USER VISIBILITY"
+psqlblock "
+BEGIN;
+SET LOCAL ROLE authenticated;
+SET LOCAL request.jwt.claim.sub = '$SUPERADMIN_ID';
+SET LOCAL request.jwt.claim.role = 'authenticated';
+SET LOCAL request.jwt.claim.email = '$SUPERADMIN_EMAIL';
+
+SELECT 'auth.uid()' AS k, auth.uid() AS v;
+SELECT 'players_visible' AS k, count(*) AS v FROM public.players;
+SELECT 'players_expected_casino_visible' AS k, count(*) AS v FROM public.players WHERE casino_id = '$CASINO_ID_EXPECTED'::uuid;
+SELECT 'player_cards_visible' AS k, count(*) AS v FROM public.player_cards;
+SELECT 'player_tags_visible' AS k, count(*) AS v FROM public.player_tags;
+SELECT 'gaming_tables_expected_visible' AS k, count(*) AS v FROM public.gaming_tables WHERE casino_id = '$CASINO_ID_EXPECTED'::uuid AND coalesce(is_archived,false)=false;
+SELECT 'shifts_expected_visible' AS k, count(*) AS v FROM public.shifts WHERE casino_id = '$CASINO_ID_EXPECTED'::uuid;
+SELECT 'daily_summaries_expected_visible' AS k, count(*) AS v FROM public.daily_summaries WHERE casino_id = '$CASINO_ID_EXPECTED'::uuid;
+
+SELECT id, first_name, last_name, nickname, phone, casino_id
+FROM public.players
+ORDER BY last_name
+LIMIT 10;
+
+ROLLBACK;
+"
+
+section "POSTGREST API DIRECT CHECK"
+ANON_KEY=""
+if [ -f "$ENV_FILE" ]; then
+  ANON_KEY=$(sudo awk -F= '/^ANON_KEY=/{gsub(/^'"'"'|^"|\r|'","",$2); print $2}' "$ENV_FILE" | tail -1)
+fi
+if [ -n "$ANON_KEY" ]; then
+  echo "ANON_KEY present: yes"
+  run curl -sk "https://arusha.local/api/rest/v1/players?select=id,first_name,last_name,nickname,casino_id&limit=5" -H "apikey: $ANON_KEY" -H "Authorization: Bearer $ANON_KEY"
+  run curl -sk "https://arusha.local/api/rest/v1/gaming_tables?select=id,name,casino_id,is_archived&casino_id=eq.$CASINO_ID_EXPECTED" -H "apikey: $ANON_KEY" -H "Authorization: Bearer $ANON_KEY"
+else
+  echo "ANON_KEY missing in env"
+fi
+
+section "LIKELY_CAUSE QUICK SIGNALS"
+psqlblock "
+WITH expected AS (SELECT '$CASINO_ID_EXPECTED'::uuid AS cid),
+raw AS (
+  SELECT
+    (SELECT count(*) FROM public.players p, expected e WHERE p.casino_id=e.cid) AS players_expected,
+    (SELECT count(*) FROM public.players) AS players_total,
+    (SELECT count(*) FROM public.gaming_tables t, expected e WHERE t.casino_id=e.cid AND coalesce(t.is_archived,false)=false) AS active_tables_expected,
+    (SELECT count(*) FROM public.gaming_tables) AS tables_total,
+    (SELECT count(*) FROM public.shifts s, expected e WHERE s.casino_id=e.cid) AS shifts_expected,
+    (SELECT count(*) FROM public.miss_chips m, expected e WHERE m.casino_id=e.cid) AS miss_expected,
+    (SELECT count(*) FROM public.user_casino_access u, expected e WHERE u.user_id='$SUPERADMIN_ID'::uuid AND u.casino_id=e.cid) AS super_access_expected,
+    (SELECT count(*) FROM public.profiles p, expected e WHERE p.user_id='$SUPERADMIN_ID'::uuid AND p.casino_id=e.cid) AS super_profile_expected
+)
+SELECT *,
+  CASE
+    WHEN players_total > 0 AND players_expected = 0 THEN 'DATA_CASINO_ID_MISMATCH_FOR_PLAYERS'
+    WHEN super_profile_expected = 0 OR super_access_expected = 0 THEN 'SUPERADMIN_ACCESS_MISMATCH'
+    WHEN active_tables_expected = 0 AND tables_total > 0 THEN 'TABLES_ARCHIVED_OR_WRONG_CASINO'
+    WHEN shifts_expected = 0 AND miss_expected > 0 THEN 'SHIFTS_WRONG_CASINO_OR_NOT_SYNCED_BUT_MISS_EXISTS'
+    ELSE 'NEED_RLS_OR_UI_FILTER_CHECK_FROM_SECTIONS_ABOVE'
+  END AS likely_cause
+FROM raw;
+"
+
+echo
+echo "REPORT_FILE=$OUT"
+echo "Send me this file output: sudo cat $OUT"
+BASH
+chmod +x /tmp/cms_diag.sh
+sudo /tmp/cms_diag.sh
+```
+
+После отчёта следующий шаг будет один из двух:
+- если это данные/локальная БД — дам безопасный SQL-fix под `SET LOCAL cms.applying='on'`;
+- если это UI/runtime/version — дам точечный патч в коде, чтобы версия и активный casinoId отображались и диагностировались прямо в интерфейсе.
