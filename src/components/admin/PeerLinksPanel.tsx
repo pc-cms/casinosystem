@@ -203,6 +203,28 @@ export const PeerLinksPanel = () => {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const wipeCloudData = useMutation({
+    mutationFn: async () => {
+      if (!wipeCasinoId) throw new Error("Pick a casino");
+      const { data, error } = await supabase.rpc("sync_wipe_casino_data" as any, {
+        p_casino_id: wipeCasinoId,
+        p_confirm_slug: wipeConfirmSlug.trim(),
+      });
+      if (error) throw error;
+      return data as { total_rows_deleted: number; casino_slug: string };
+    },
+    onSuccess: (r) => {
+      toast.success(`Wiped ${r.total_rows_deleted} rows from "${r.casino_slug}"`);
+      setWipeOpen(false);
+      setWipeCasinoId("");
+      setWipeConfirmSlug("");
+      qc.invalidateQueries();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const wipeSelected = casinos.find((c) => c.id === wipeCasinoId);
+
   const NodeKindIcon = identity?.node_kind === "cloud" ? Cloud : Server;
 
   return (
