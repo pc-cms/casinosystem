@@ -15,6 +15,7 @@ import { ServerIdentityPanel } from "@/components/admin/ServerIdentityPanel";
 import { SyncMirrorPanel } from "@/components/admin/SyncMirrorPanel";
 import { LocalUpdaterPanel } from "@/components/admin/LocalUpdaterPanel";
 import { MirrorHealthPanel } from "@/components/admin/MirrorHealthPanel";
+import { SyncStatusPanel } from "@/components/admin/SyncStatusPanel";
 import { ApplyErrorsPanel } from "@/components/admin/ApplyErrorsPanel";
 import { ServersPanel } from "@/components/admin/ServersPanel";
 import { resetPWACache } from "@/lib/pwa-register";
@@ -154,6 +155,7 @@ const Admin = () => {
               <div className="space-y-4">
                 <ServerIdentityPanel />
                 <ServersPanel />
+                <SyncStatusPanel />
                 <MirrorHealthPanel />
                 <ApplyErrorsPanel />
                 <LocalUpdaterPanel />
