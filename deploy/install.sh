@@ -50,7 +50,7 @@ trap 'rc=$?; ln="${BASH_LINENO[0]:-?}"; cmd="${BASH_COMMAND:-?}"; echo -e "${RED
 require_root() { [[ $EUID -eq 0 ]] || fail "Запустите от root: sudo ./deploy/install.sh"; }
 
 # ── CLI ──
-RESET=0; REBUILD=0; RECONFIGURE=0; WIPE=0; UPDATE=0; UPDATE_FRONT=0; MENU=0; REPAIR=0
+RESET=0; REBUILD=0; RECONFIGURE=0; WIPE=0; UPDATE=0; UPDATE_FRONT=0; MENU=0; REPAIR=0; VERIFY=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --reset)         RESET=1; shift ;;
@@ -60,6 +60,7 @@ while [[ $# -gt 0 ]]; do
     --update)        UPDATE=1; REBUILD=1; shift ;;
     --frontend-only|--update-frontend) UPDATE_FRONT=1; shift ;;
     --repair)        REPAIR=1; shift ;;
+    --verify-parity) VERIFY=1; shift ;;
     --menu)          MENU=1; shift ;;
     -h|--help)       sed -n '4,16p' "$0"; exit 0 ;;
     *) fail "Неизвестный аргумент: $1" ;;
