@@ -17,6 +17,7 @@ import { LocalUpdaterPanel } from "@/components/admin/LocalUpdaterPanel";
 import { MirrorHealthPanel } from "@/components/admin/MirrorHealthPanel";
 import { SyncStatusPanel } from "@/components/admin/SyncStatusPanel";
 import { DataInventoryPanel } from "@/components/admin/DataInventoryPanel";
+import { MirrorCutoverPanel } from "@/components/admin/MirrorCutoverPanel";
 import { ApplyErrorsPanel } from "@/components/admin/ApplyErrorsPanel";
 import { ServersPanel } from "@/components/admin/ServersPanel";
 import { resetPWACache } from "@/lib/pwa-register";
@@ -158,6 +159,7 @@ const Admin = () => {
                 <ServersPanel />
                 <SyncStatusPanel />
                 <MirrorHealthPanel />
+                <MirrorCutoverPanel />
                 <DataInventoryPanel />
                 <ApplyErrorsPanel />
                 <LocalUpdaterPanel />

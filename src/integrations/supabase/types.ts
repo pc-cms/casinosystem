@@ -2399,6 +2399,45 @@ export type Database = {
           },
         ]
       }
+      mirror_cutover_state: {
+        Row: {
+          casino_id: string
+          freeze_started_at: string | null
+          freeze_started_by: string | null
+          last_parity_at: string | null
+          last_parity_ok: boolean | null
+          last_parity_summary: Json | null
+          promoted_by: string | null
+          promoted_to_local_at: string | null
+          updated_at: string
+          write_freeze: boolean
+        }
+        Insert: {
+          casino_id: string
+          freeze_started_at?: string | null
+          freeze_started_by?: string | null
+          last_parity_at?: string | null
+          last_parity_ok?: boolean | null
+          last_parity_summary?: Json | null
+          promoted_by?: string | null
+          promoted_to_local_at?: string | null
+          updated_at?: string
+          write_freeze?: boolean
+        }
+        Update: {
+          casino_id?: string
+          freeze_started_at?: string | null
+          freeze_started_by?: string | null
+          last_parity_at?: string | null
+          last_parity_ok?: boolean | null
+          last_parity_summary?: Json | null
+          promoted_by?: string | null
+          promoted_to_local_at?: string | null
+          updated_at?: string
+          write_freeze?: boolean
+        }
+        Relationships: []
+      }
       monthly_tips_entries: {
         Row: {
           bonus_points: number
@@ -4107,6 +4146,36 @@ export type Database = {
         }
         Relationships: []
       }
+      sync_table_registry: {
+        Row: {
+          critical: boolean
+          date_column: string | null
+          notes: string | null
+          parity_required: boolean
+          scope: string
+          table_name: string
+          updated_at: string
+        }
+        Insert: {
+          critical?: boolean
+          date_column?: string | null
+          notes?: string | null
+          parity_required?: boolean
+          scope: string
+          table_name: string
+          updated_at?: string
+        }
+        Update: {
+          critical?: boolean
+          date_column?: string | null
+          notes?: string | null
+          parity_required?: boolean
+          scope?: string
+          table_name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       system_locks: {
         Row: {
           casino_id: string
@@ -5119,6 +5188,19 @@ export type Database = {
           user_id: string
         }[]
       }
+      mirror_freeze_writes: { Args: { p_casino_id: string }; Returns: Json }
+      mirror_full_parity_snapshot: {
+        Args: { p_casino_id: string }
+        Returns: {
+          critical: boolean
+          ids_checksum: string
+          max_change_ts: string
+          row_count: number
+          rows_checksum: string
+          scope: string
+          table_name: string
+        }[]
+      }
       mirror_parity_snapshot: {
         Args: { p_casino_id: string }
         Returns: {
@@ -5127,6 +5209,11 @@ export type Database = {
           table_name: string
         }[]
       }
+      mirror_record_parity: {
+        Args: { p_casino_id: string; p_ok: boolean; p_summary: Json }
+        Returns: undefined
+      }
+      mirror_unfreeze_writes: { Args: { p_casino_id: string }; Returns: Json }
       payroll_approve_hr: { Args: { _period_id: string }; Returns: undefined }
       payroll_approve_manager: {
         Args: { _period_id: string }
