@@ -585,6 +585,10 @@ DECLARE
   v_incoming_updated_at timestamptz;
   v_id_type text;
 BEGIN
+  IF p_table = 'casinos' THEN
+    RETURN;
+  END IF;
+
   IF p_table !~ '^[a-z_][a-z0-9_]*$' THEN
     RAISE EXCEPTION 'invalid table name';
   END IF;
