@@ -76,6 +76,7 @@ export const LocalServerWizard = () => {
     peer:      { status: "pending" },
     data:      { status: "pending" },
     heartbeat: { status: "pending" },
+    probe:     { status: "pending" },
   });
 
   const setStage = (key: string, patch: { status: Status; message?: string; detail?: string }) =>
@@ -260,6 +261,45 @@ export const LocalServerWizard = () => {
     }
   };
 
+  const runProbe = async () => {
+    setStage("probe", { status: "running", message: "Sending probe…" });
+    try {
+      const { data: idRes } = await supabase
+        .from("node_identity" as any).select("node_id, display_name").maybeSingle();
+      const nodeId = (idRes as any)?.node_id;
+      const slug = (idRes as any)?.display_name || "local";
+      if (!nodeId) throw new Error("node_identity missing");
+      const { data: probeId, error } = await supabase
+        .rpc("sync_roundtrip_probe" as any, {
+          p_origin_casino_id: "00000000-0000-0000-0000-0000000000ca",
+          p_origin_slug: slug,
+        });
+      if (error) throw error;
+      const startedAt = Date.now();
+      const TIMEOUT = 90_000;
+      while (Date.now() - startedAt < TIMEOUT) {
+        await new Promise(r => setTimeout(r, 3_000));
+        const { data: row } = await supabase
+          .from("sync_probes" as any).select("status, echoed_at, received_back_at, latency_ms")
+          .eq("id", probeId).maybeSingle();
+        const r = row as any;
+        if (r?.received_back_at) {
+          const lat = r.latency_ms ?? (Date.now() - startedAt);
+          setStage("probe", { status: "ok", message: `Mirror OK (${lat}ms)`, detail: "Push → Cloud → Pull round-trip verified." });
+          return true;
+        }
+        if (r?.echoed_at && !r?.received_back_at) {
+          setStage("probe", { status: "running", message: "Cloud echoed, waiting for return…" });
+        }
+      }
+      setStage("probe", { status: "warn", message: "Probe timed out", detail: "Cloud may not have echoed within 90s. Check Sync Log for last push." });
+      return true;
+    } catch (e: any) {
+      setStage("probe", { status: "error", message: "Probe failed", detail: String(e?.message ?? e) });
+      return true;
+    }
+  };
+
   // ── Run-all orchestrator ─────────────────────────────────────────────
   const runAll = async () => {
     setRunning(true);
@@ -270,6 +310,7 @@ export const LocalServerWizard = () => {
       peer:      { status: "pending" },
       data:      { status: "pending" },
       heartbeat: { status: "pending" },
+      probe:     { status: "pending" },
     });
     try {
       const ok1 = await runIdentity();         if (!ok1) return;
@@ -278,6 +319,7 @@ export const LocalServerWizard = () => {
       await runPeer();
       await runData();
       await runHeartbeat();
+      await runProbe();
       toast.success("Health check complete");
     } finally {
       setRunning(false);
@@ -317,6 +359,12 @@ export const LocalServerWizard = () => {
         : undefined,
     },
     { key: "heartbeat", label: "Live Sync Heartbeat",     icon: Activity,     ...stages.heartbeat },
+    {
+      key: "probe", label: "Mirror Round-trip Probe", icon: Activity, ...stages.probe,
+      action: stages.probe.status !== "running"
+        ? { label: "Run Probe", onClick: () => runProbe(), disabled: false }
+        : undefined,
+    },
   ], [stages, updater.data, updaterApply.isPending, cloneStatus.data, cloneMut.isPending]);
 
   const done = stageList.filter(s => s.status === "ok" || s.status === "warn" || s.status === "error").length;

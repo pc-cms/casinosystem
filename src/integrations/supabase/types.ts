@@ -2854,6 +2854,36 @@ export type Database = {
           },
         ]
       }
+      peer_bootstrap_tokens: {
+        Row: {
+          consumed_at: string | null
+          consumed_by_casino_id: string | null
+          consumed_by_slug: string | null
+          created_at: string
+          description: string | null
+          expires_at: string | null
+          token: string
+        }
+        Insert: {
+          consumed_at?: string | null
+          consumed_by_casino_id?: string | null
+          consumed_by_slug?: string | null
+          created_at?: string
+          description?: string | null
+          expires_at?: string | null
+          token: string
+        }
+        Update: {
+          consumed_at?: string | null
+          consumed_by_casino_id?: string | null
+          consumed_by_slug?: string | null
+          created_at?: string
+          description?: string | null
+          expires_at?: string | null
+          token?: string
+        }
+        Relationships: []
+      }
       peer_links: {
         Row: {
           created_at: string
@@ -3747,6 +3777,42 @@ export type Database = {
           payload?: Json | null
           pk?: Json
           table_name?: string
+        }
+        Relationships: []
+      }
+      sync_probes: {
+        Row: {
+          details: Json
+          echoed_at: string | null
+          id: string
+          latency_ms: number | null
+          origin_casino_id: string
+          origin_slug: string
+          received_back_at: string | null
+          sent_at: string
+          status: string
+        }
+        Insert: {
+          details?: Json
+          echoed_at?: string | null
+          id?: string
+          latency_ms?: number | null
+          origin_casino_id: string
+          origin_slug: string
+          received_back_at?: string | null
+          sent_at?: string
+          status?: string
+        }
+        Update: {
+          details?: Json
+          echoed_at?: string | null
+          id?: string
+          latency_ms?: number | null
+          origin_casino_id?: string
+          origin_slug?: string
+          received_back_at?: string | null
+          sent_at?: string
+          status?: string
         }
         Relationships: []
       }
@@ -4906,6 +4972,10 @@ export type Database = {
       sync_reset_outbox: {
         Args: { p_advance_cursors?: boolean; p_casino_id: string }
         Returns: Json
+      }
+      sync_roundtrip_probe: {
+        Args: { p_origin_casino_id: string; p_origin_slug: string }
+        Returns: string
       }
       sync_seed_from_existing: {
         Args: { p_casino_id: string }
