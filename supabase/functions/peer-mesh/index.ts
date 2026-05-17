@@ -101,9 +101,18 @@ Deno.serve(async (req: Request) => {
       const accepted: number[] = [];
       const rejected: Array<{ outbox_id: number; error_code: string; error_text: string }> = [];
       for (const ch of changes) {
-        // Skip profile rows whose auth user doesn't exist in Cloud (local-only
-        // super_admin@local users). Accept them so the local outbox drains.
-        if (ch.table === "profiles" && ch.op !== "delete") {
+        // Skip rows whose referenced auth user doesn't exist on this side.
+        // Happens both ways: local-only super_admin@local users pushed to Cloud,
+        // and Cloud-only users pulled into a fresh local node before the auth
+        // user has been provisioned. Accept so the outbox drains and the row
+        // will be re-applied on the next pass once the user exists.
+        const USER_FK_TABLES = new Set([
+          "profiles",
+          "user_casino_access",
+          "user_module_permissions",
+          "user_density_preferences",
+        ]);
+        if (USER_FK_TABLES.has(ch.table) && ch.op !== "delete") {
           const uid = ch.payload?.user_id ?? ch.pk?.user_id;
           if (uid) {
             const { data: u } = await admin.auth.admin.getUserById(uid);
