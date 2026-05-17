@@ -154,6 +154,17 @@ if [[ $MENU -eq 1 ]]; then
   echo
 fi
 
+# ── Frontend-only fast path: делегируем в update.sh и выходим ─────────────
+if [[ $UPDATE_FRONT -eq 1 ]]; then
+  title "Frontend-only update"
+  log "Пропускаю проверки системы, .env, сертификаты, миграции БД."
+  log "Только: git pull → rebuild cms-frontend → restart frontend + nginx."
+  if [[ ! -x "${SCRIPT_DIR}/update.sh" ]]; then
+    chmod +x "${SCRIPT_DIR}/update.sh" 2>/dev/null || true
+  fi
+  exec bash "${SCRIPT_DIR}/update.sh" --frontend-only
+fi
+
 # ────────── 1. Система ──────────
 title "1/5  Проверка системы"
 
