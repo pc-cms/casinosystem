@@ -16,6 +16,19 @@
 #
 set -euo pipefail
 
+# ── Modes ────────────────────────────────────────────────────────────────────
+# Default: full update (sources + DB seed/repair + rebuild cms-frontend & cms-sync)
+# --frontend-only | FRONTEND_ONLY=1
+#   Pulls new sources, rebuilds ONLY cms-frontend, restarts cms-frontend+nginx.
+#   Does NOT touch the database (no seed-defaults.sql, no repair-local-schema.sql).
+#   Does NOT rebuild cms-sync. Safe for UI-only patches.
+FRONTEND_ONLY="${FRONTEND_ONLY:-0}"
+for arg in "$@"; do
+  case "$arg" in
+    --frontend-only|-f) FRONTEND_ONLY=1 ;;
+  esac
+done
+
 CMS_DIR="/opt/casino-system"
 ENV_FILE="${CMS_DIR}/deploy/.env"
 TS="$(date +%Y%m%d-%H%M%S)"
