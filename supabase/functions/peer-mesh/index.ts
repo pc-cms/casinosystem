@@ -141,8 +141,6 @@ Deno.serve(async (req: Request) => {
       return json(200, { accepted: rows.length });
     }
 
-    }
-
     if (sub === "/probe") {
       // Round-trip mirror verification. Local sends a probe row id; we stamp
       // echoed_at and emit a sync_outbox event so it routes back to origin.
