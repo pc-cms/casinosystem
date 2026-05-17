@@ -114,37 +114,9 @@ export const PeerLinksPanel = () => {
   const { data: peers = [] } = usePeerLinks();
   const { data: casinos = [] } = useCasinos();
 
-  const [showAdd, setShowAdd] = useState(false);
-  const [peerUrl, setPeerUrl] = useState("");
-  const [displayName, setDisplayName] = useState("");
-  const [secret, setSecret] = useState("");
   const [secretReveal, setSecretReveal] = useState<{ name: string; secret: string } | null>(null);
   const [pairingCode, setPairingCode] = useState("");
   const [pairingCasinoId, setPairingCasinoId] = useState("");
-
-  const addPeer = useMutation({
-    mutationFn: async () => {
-      const finalSecret = secret.trim() || generateSecret();
-      const { error } = await supabase.from("peer_links" as any).insert({
-        peer_url: peerUrl.trim().replace(/\/$/, ""),
-        display_name: displayName.trim() || peerUrl.trim(),
-        sync_secret: finalSecret,
-        status: "pending_outbound",
-      } as any);
-      if (error) throw error;
-      return { secret: finalSecret, name: displayName.trim() || peerUrl.trim() };
-    },
-    onSuccess: ({ secret, name }) => {
-      qc.invalidateQueries({ queryKey: ["peer-links"] });
-      toast.success("Peer added — handshake will be attempted by cms-sync");
-      setShowAdd(false);
-      setPeerUrl("");
-      setDisplayName("");
-      setSecret("");
-      setSecretReveal({ name, secret });
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
 
   const updateStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: PeerStatus }) => {
