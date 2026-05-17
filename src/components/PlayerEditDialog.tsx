@@ -71,6 +71,13 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
   const [noteType, setNoteType] = useState<string>("info");
   const [addingNote, setAddingNote] = useState(false);
   const [blacklistOpen, setBlacklistOpen] = useState(false);
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const openLightbox = (src: string | null | undefined) => {
+    if (!src) return;
+    setLightboxSrc(src);
+    setLightboxOpen(true);
+  };
 
   // Pit gets read-only view: can see Notes but cannot edit fields or add notes.
   // Reception/HR/etc. get the standard editable view (no Notes).
