@@ -1,17 +1,12 @@
 /**
  * cloud-parity-counts — returns row counts for a casino across a fixed
- * whitelist of tables. Used by `install.sh --verify-parity` so the local
- * server can compare Cloud counts vs its own without needing
- * SUPABASE_SERVICE_ROLE_KEY locally (anon is blocked by RLS).
+ * whitelist of tables. Used by `install.sh --verify-parity`.
  *
  * GET /cloud-parity-counts
  *   Headers:
- *     x-sync-secret: <peer/registration secret>
- *     x-casino-id:   <uuid>
- *   OR
- *     x-service-key: <SUPABASE_SERVICE_ROLE_KEY>
+ *     x-sync-secret + x-casino-id   OR   x-service-key: <service role>
  *
- * Response: { casino_id, counts: { players: 405, gaming_tables: 9, ... } }
+ * Response: { casino_id, counts: { <table>: <number | "ERR:..."> } }
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
@@ -24,16 +19,19 @@ const corsHeaders = {
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY  = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-// Tables scoped by casino_id
+// Tables scoped directly by casino_id
 const CASINO_TABLES = [
   "players", "gaming_tables", "shifts", "daily_summaries", "employees",
   "transactions", "expenses", "casino_visits", "client_sessions",
-  "player_cards", "player_tags", "player_notes", "player_chip_adjustments",
-  "chips", "chip_emissions", "cage_shifts", "cash_count_entries",
+  "player_notes", "player_chip_adjustments",
+  "chip_inventory", "chip_emissions", "cash_counts",
   "table_tracker", "table_daily_results", "business_day_closures",
+  "player_position_history", "mirror_cutover_state", "node_modes",
 ];
-// Tables without casino_id — counted globally
-const GLOBAL_TABLES = ["casinos", "user_roles", "user_casino_access"];
+// Scoped via players.casino_id (no direct casino_id column)
+const PLAYER_JOIN_TABLES = ["player_cards", "player_tags"];
+// Global tables (no casino_id)
+const GLOBAL_TABLES = ["casinos", "user_roles", "user_casino_access", "sync_table_registry"];
 
 const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), {
@@ -51,10 +49,8 @@ Deno.serve(async (req) => {
   const syncSecret  = req.headers.get("x-sync-secret") ?? "";
   const casinoId    = req.headers.get("x-casino-id") ?? "";
 
-  let authed = false;
-  if (providedKey && providedKey === SERVICE_KEY) {
-    authed = true;
-  } else if (syncSecret && casinoId) {
+  let authed = providedKey && providedKey === SERVICE_KEY;
+  if (!authed && syncSecret && casinoId) {
     const { data: pend } = await admin
       .from("pending_server_registrations")
       .select("approved_casino_id")
@@ -78,18 +74,28 @@ Deno.serve(async (req) => {
 
   const counts: Record<string, number | string> = {};
 
+  const errLabel = (e: { code?: string; message: string }) =>
+    `ERR:${e.code ?? e.message.slice(0, 40)}`;
+
   for (const t of CASINO_TABLES) {
     const { count, error } = await admin
       .from(t)
       .select("*", { count: "exact", head: true })
       .eq("casino_id", casinoId);
-    counts[t] = error ? `ERR:${error.code ?? error.message.slice(0, 20)}` : (count ?? 0);
+    counts[t] = error ? errLabel(error) : (count ?? 0);
+  }
+  for (const t of PLAYER_JOIN_TABLES) {
+    const { count, error } = await admin
+      .from(t)
+      .select("id, players!inner(casino_id)", { count: "exact", head: true })
+      .eq("players.casino_id", casinoId);
+    counts[t] = error ? errLabel(error) : (count ?? 0);
   }
   for (const t of GLOBAL_TABLES) {
     const { count, error } = await admin
       .from(t)
       .select("*", { count: "exact", head: true });
-    counts[t] = error ? `ERR:${error.code ?? error.message.slice(0, 20)}` : (count ?? 0);
+    counts[t] = error ? errLabel(error) : (count ?? 0);
   }
 
   return json(200, { casino_id: casinoId, counts });

@@ -173,7 +173,7 @@ fi
 
 # ── Repair fast path: применить hotfix SQL и перезапустить postgrest ───────
 if [[ $REPAIR -eq 1 ]]; then
-  title "Repair БД (hotfix FKs + RPC)"
+  title "Repair БД (hotfix FKs + RPC + Cloud schema sync)"
   cd "$SCRIPT_DIR"
   [[ -f .env ]] || fail ".env не найден — repair доступен только на установленной системе."
   set -a; . ./.env; set +a
@@ -194,6 +194,31 @@ if [[ $REPAIR -eq 1 ]]; then
     psql -U "${POSTGRES_USER:-postgres}" -d "${POSTGRES_DB:-postgres}" \
     -v ON_ERROR_STOP=1 -f /tmp/hotfix-fks-rpc.sql
   ok "Hotfix применён."
+
+  # ── Pull missing tables from Cloud schema ───────────────────────────────
+  if [[ -n "${CLOUD_URL:-}" && -n "${SYNC_SECRET:-}" && -n "${CASINO_ID:-}" ]]; then
+    log "Скачиваю актуальную схему из Cloud (cloud-schema-export)..."
+    TMP_DDL=$(mktemp /tmp/cloud-schema.XXXXXX.sql)
+    if curl -fsSL --max-time 30 \
+        -H "x-sync-secret: ${SYNC_SECRET}" -H "x-casino-id: ${CASINO_ID}" \
+        "${CLOUD_URL}/functions/v1/cloud-schema-export" -o "$TMP_DDL" 2>/dev/null \
+        && [[ -s "$TMP_DDL" ]]; then
+      log "Применяю Cloud-схему локально (idempotent, CREATE IF NOT EXISTS)..."
+      docker compose cp "$TMP_DDL" postgres:/tmp/cloud-schema.sql
+      # NOT --ON_ERROR_STOP: дублирующиеся объекты ожидаемы; warnings игнорим
+      docker compose exec -T -e PGPASSWORD="${POSTGRES_PASSWORD}" postgres \
+        psql -U "${POSTGRES_USER:-postgres}" -d "${POSTGRES_DB:-postgres}" \
+        -f /tmp/cloud-schema.sql 2>&1 | grep -iE "ERROR|FATAL" | grep -viE "already exists|duplicate" | head -20 || true
+      rm -f "$TMP_DDL"
+      ok "Cloud-схема применена (новые таблицы добавлены, существующие не тронуты)."
+    else
+      warn "cloud-schema-export недоступен — пропускаю sync схемы (хотфикс уже применён)."
+      rm -f "$TMP_DDL"
+    fi
+  else
+    warn "CLOUD_URL/SYNC_SECRET/CASINO_ID не заданы — пропускаю Cloud schema sync."
+  fi
+
   log "Перезапускаю postgrest (обновление schema cache)..."
   docker compose restart postgrest >/dev/null 2>&1 || warn "Не удалось перезапустить postgrest"
   ok "Repair завершён. Очистите кэш браузера (Ctrl+Shift+R) на ${LOCAL_DOMAIN:-arusha.local}"
@@ -217,9 +242,10 @@ if [[ $VERIFY -eq 1 ]]; then
   TABLES=(players gaming_tables shifts daily_summaries employees casinos
           transactions expenses casino_visits client_sessions
           player_cards player_tags player_notes player_chip_adjustments
-          chips chip_emissions cage_shifts cash_count_entries
+          chip_inventory chip_emissions cash_counts
           table_tracker table_daily_results business_day_closures
-          user_roles user_casino_access)
+          player_position_history mirror_cutover_state node_modes
+          sync_table_registry user_roles user_casino_access)
 
   PASS=0; DIFF=0; MISS=0
   printf "\n  ${BOLD}%-32s %12s %12s   %s${NC}\n" "Table" "Local" "Cloud" "Status"
@@ -242,11 +268,18 @@ if [[ $VERIFY -eq 1 ]]; then
   }
 
   for T in "${TABLES[@]}"; do
-    LOC=$("${PG_RUN[@]}" -c "SELECT count(*) FROM public.${T} WHERE casino_id='${CASINO_ID}'" 2>/dev/null || true)
-    if [[ -z "$LOC" ]]; then
-      LOC=$("${PG_RUN[@]}" -c "SELECT count(*) FROM public.${T}" 2>/dev/null || true)
-      [[ -z "$LOC" ]] && LOC="MISS"
-    fi
+    case "$T" in
+      player_cards|player_tags)
+        LOC=$("${PG_RUN[@]}" -c "SELECT count(*) FROM public.${T} t JOIN public.players p ON p.id=t.player_id WHERE p.casino_id='${CASINO_ID}'" 2>/dev/null || true)
+        ;;
+      casinos|user_roles|user_casino_access|sync_table_registry)
+        LOC=$("${PG_RUN[@]}" -c "SELECT count(*) FROM public.${T}" 2>/dev/null || true)
+        ;;
+      *)
+        LOC=$("${PG_RUN[@]}" -c "SELECT count(*) FROM public.${T} WHERE casino_id='${CASINO_ID}'" 2>/dev/null || true)
+        ;;
+    esac
+    [[ -z "$LOC" ]] && LOC="MISS"
     CLD=$(get_cloud "$T")
     [[ -z "$CLD" ]] && CLD="?"
     if [[ "$LOC" == "MISS" ]]; then
