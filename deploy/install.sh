@@ -69,7 +69,7 @@ done
 require_root
 
 # ── Interactive menu (default when запущен без флагов в TTY) ──
-if [[ $MENU -eq 0 && $RESET -eq 0 && $REBUILD -eq 0 && $RECONFIGURE -eq 0 && $WIPE -eq 0 && $UPDATE -eq 0 && $UPDATE_FRONT -eq 0 ]]; then
+if [[ $MENU -eq 0 && $RESET -eq 0 && $REBUILD -eq 0 && $RECONFIGURE -eq 0 && $WIPE -eq 0 && $UPDATE -eq 0 && $UPDATE_FRONT -eq 0 && $REPAIR -eq 0 ]]; then
   if [[ -t 0 || -e /dev/tty ]]; then MENU=1; fi
 fi
 
