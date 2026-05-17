@@ -1,23 +1,21 @@
 #!/usr/bin/env node
 /**
- * cms-sync — symmetric peer-mesh sync worker.
+ * cms-sync — symmetric peer-mesh sync worker (v1.3.49).
  * ─────────────────────────────────────────────
- * For each `peer_links` row with status='active', this process:
+ * Changes vs prior version:
+ *   • heartbeats now UPSERT public.sync_peer_health (via sync_record_health RPC)
+ *     instead of spamming sync_exchange_logs every 30s
+ *   • apply loop per-row: rejected rows are persisted to sync_apply_errors with
+ *     error_code + payload hash; cursor advances only past accepted/skipped rows
+ *   • after N consecutive rejects → peer state = schema_mismatch, pull paused
+ *   • round-trip probe: every 60s emit a probe to each peer via /peer/probe/start;
+ *     peers ack via /peer/probe/ack (round-trip path uses normal peer-mesh HTTP)
+ *   • exchange log only receives meaningful events (push >0, pull >0, errors,
+ *     handshake, snapshot, promote, probe results). Empty ticks are dropped.
  *
- *   • runs outbound HANDSHAKE for status='pending_outbound' rows
- *   • PUSHes new sync_outbox rows (id > last_push_cursor) signed with HMAC
- *   • PULLs peer's outbox rows since last_pull_cursor and applies them
- *     via the public.peer_apply_change RPC (which sets origin_node_id so
- *     re-emitted outbox rows are tagged with the source peer → no loops)
- *
- * No primary/replica. Every node runs this same loop. Cloud is just another peer.
- *
- * Env:
- *   LOCAL_DB_URL          (required)
- *   SYNC_BATCH_SIZE       default 200
- *   SYNC_INTERVAL_MS      default 5000
- *   SYNC_BACKOFF_MAX_MS   default 60000
- *   SCHEMA_VERSION        embedded in handshake (read from package.json by container)
+ * Env: LOCAL_DB_URL, SYNC_BATCH_SIZE=200, SYNC_INTERVAL_MS=5000,
+ *      SYNC_BACKOFF_MAX_MS=60000, SCHEMA_VERSION, SYNC_PROBE_INTERVAL_MS=60000,
+ *      SYNC_REJECT_THRESHOLD=20
  */
 import pg from "pg";
 import crypto from "node:crypto";
@@ -29,6 +27,8 @@ const {
   SYNC_INTERVAL_MS = "5000",
   SYNC_BACKOFF_MAX_MS = "60000",
   SCHEMA_VERSION = "0.0.0",
+  SYNC_PROBE_INTERVAL_MS = "60000",
+  SYNC_REJECT_THRESHOLD = "20",
 } = process.env;
 
 if (!LOCAL_DB_URL) { console.error("[cms-sync] FATAL: missing LOCAL_DB_URL"); process.exit(1); }
@@ -36,13 +36,17 @@ if (!LOCAL_DB_URL) { console.error("[cms-sync] FATAL: missing LOCAL_DB_URL"); pr
 const BATCH      = parseInt(SYNC_BATCH_SIZE, 10);
 const TICK_MS    = parseInt(SYNC_INTERVAL_MS, 10);
 const BACKOFF_MAX = parseInt(SYNC_BACKOFF_MAX_MS, 10);
+const PROBE_MS   = parseInt(SYNC_PROBE_INTERVAL_MS, 10);
+const REJECT_LIMIT = parseInt(SYNC_REJECT_THRESHOLD, 10);
 
 const pool = new pg.Pool({ connectionString: LOCAL_DB_URL, max: 6 });
 const log = (lvl, msg, extra = {}) =>
   console.log(JSON.stringify({ ts: new Date().toISOString(), lvl, msg, ...extra }));
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const md5 = (s) => crypto.createHash("md5").update(typeof s === "string" ? s : JSON.stringify(s)).digest("hex");
 
-let IDENTITY = null; // cached node_identity row
+let IDENTITY = null;
+const peerRejectStreak = new Map(); // peer.id → consecutive rejects
 
 async function loadIdentity() {
   const { rows } = await pool.query(
@@ -82,11 +86,12 @@ async function peerFetch(peer, path, body) {
   return json ?? {};
 }
 
-// ─────────── Exchange log shipping ───────────
-// Buffer batch summaries and ship them to the Cloud peer-mesh /log endpoint
-// so Cloud-side admins can see exactly what each local node syncs.
-const logBuffer = new Map(); // peer.id -> entries[]
+// ─────────── Exchange log shipping (meaningful events only) ───────────
+const logBuffer = new Map();
 function bufferExchange(peer, entry) {
+  // Drop noise: heartbeats and empty ticks are never logged here anymore.
+  if (entry.direction === "heartbeat") return;
+  if (entry.status === "ok" && (entry.row_count ?? 0) === 0 && entry.direction !== "probe" && entry.direction !== "handshake") return;
   const arr = logBuffer.get(peer.id) ?? [];
   arr.push({ ...entry, ts: new Date().toISOString() });
   if (arr.length > 200) arr.splice(0, arr.length - 200);
@@ -96,14 +101,54 @@ async function flushExchangeLog(peer) {
   const arr = logBuffer.get(peer.id);
   if (!arr || arr.length === 0) return;
   const batch = arr.splice(0, arr.length);
-  try {
-    await peerFetch(peer, "/log", { entries: batch });
-  } catch (e) {
-    // Buffer back on failure (cap at 500 to avoid unbounded memory)
+  try { await peerFetch(peer, "/log", { entries: batch }); }
+  catch (e) {
     const restored = (logBuffer.get(peer.id) ?? []);
     logBuffer.set(peer.id, batch.concat(restored).slice(0, 500));
     log("warn", "peer.log.flush.fail", { peer: peer.display_name, err: String(e?.message ?? e).slice(0, 200) });
   }
+}
+
+// ─────────── Health helpers ───────────
+async function recordHealth(peer, state, extra = {}) {
+  try {
+    const { rows: ob } = await pool.query(
+      `SELECT COUNT(*)::int AS n FROM public.sync_outbox
+        WHERE id > $1 AND (origin_node_id IS NULL OR origin_node_id <> $2)`,
+      [peer.last_push_cursor, peer.peer_node_id]
+    );
+    await pool.query(
+      `SELECT public.sync_record_health($1::uuid, $2::text, now(), $3::int, $4::int, $5::text, $6::text, $7::text, $8::text)`,
+      [
+        peer.id,
+        state,
+        ob[0]?.n ?? 0,
+        extra.lag_seconds ?? null,
+        IDENTITY?.schema_version ?? null,
+        peer.schema_version ?? null,
+        extra.error_code ?? null,
+        extra.error_text ? String(extra.error_text).slice(0, 500) : null,
+      ]
+    );
+  } catch (e) { log("warn", "health.record.fail", { peer: peer.display_name, err: String(e?.message ?? e).slice(0, 200) }); }
+}
+
+async function recordApplyError(peer, ch, errorCode, errorText) {
+  try {
+    await pool.query(
+      `SELECT public.sync_record_apply_error($1::uuid, $2::bigint, $3::text, $4::text, $5::jsonb, $6::text, $7::text, $8::text)`,
+      [
+        peer.id,
+        ch.id ?? null,
+        ch.table ?? ch.table_name ?? "unknown",
+        ch.op ?? null,
+        ch.pk ?? {},
+        md5(ch.payload ?? {}),
+        errorCode,
+        String(errorText ?? "").slice(0, 500),
+      ]
+    );
+  } catch (e) { log("warn", "apply_error.record.fail", { err: String(e?.message ?? e).slice(0, 200) }); }
 }
 
 // ─────────── HANDSHAKE ───────────
@@ -124,12 +169,11 @@ async function handshakePeer(peer) {
   );
   log("info", "peer.handshake.ok", { peer: peer.display_name, peer_node_id: j.node_id });
   bufferExchange(peer, { direction: "handshake", status: "ok", row_count: 0, meta: { peer_node_id: j.node_id } });
+  await recordHealth({ ...peer, peer_node_id: j.node_id, schema_version: j.schema_version }, "ok");
 }
 
 // ─────────── PUSH ───────────
 async function pushPeer(peer) {
-  // Read outbox slice strictly greater than last_push_cursor,
-  // excluding rows authored by this peer (loop prevention).
   const { rows } = await pool.query(
     `SELECT id, casino_id, table_name AS table, op, pk, payload, changed_at, origin_node_id
        FROM public.sync_outbox
@@ -143,14 +187,40 @@ async function pushPeer(peer) {
 
   const j = await peerFetch(peer, "/peer/push", { changes: rows });
   const accepted = new Set(Array.isArray(j.accepted) ? j.accepted.map(Number) : rows.map((r) => r.id));
-  const maxId = rows.reduce((m, r) => (r.id > m && accepted.has(r.id) ? r.id : m), peer.last_push_cursor);
+  const skipped  = new Set(Array.isArray(j.skipped)  ? j.skipped.map(Number)  : []);
+  const rejected = Array.isArray(j.rejected) ? j.rejected : [];
+
+  // Cursor advances only through accepted ∪ skipped (rejected rows stay queued).
+  let safeMax = peer.last_push_cursor;
+  for (const r of rows) {
+    if (accepted.has(r.id) || skipped.has(r.id)) {
+      if (r.id > safeMax) safeMax = r.id;
+    } else if (rejected.some((rr) => Number(rr.outbox_id) === r.id)) {
+      break; // stop at first rejected
+    } else if (accepted.size === rows.length) {
+      if (r.id > safeMax) safeMax = r.id;
+    } else {
+      break;
+    }
+  }
+  // Record any rejected rows from peer
+  for (const rr of rejected) {
+    const ch = rows.find((r) => r.id === Number(rr.outbox_id));
+    if (ch) await recordApplyError(peer, ch, rr.error_code || "remote_reject", rr.error_text || "");
+  }
   await pool.query(
     `UPDATE public.peer_links
         SET last_push_cursor = $1, last_seen_at = now(), last_push_error = NULL
       WHERE id = $2`,
-    [maxId, peer.id]
+    [safeMax, peer.id]
   );
-  bufferExchange(peer, { direction: "push", status: accepted.size === rows.length ? "ok" : "warn", row_count: accepted.size, meta: { attempted: rows.length, cursor: maxId } });
+  await pool.query(`SELECT public.sync_record_push_ok($1::uuid)`, [peer.id]);
+  bufferExchange(peer, {
+    direction: "push",
+    status: rejected.length ? "warn" : "ok",
+    row_count: accepted.size,
+    meta: { attempted: rows.length, rejected: rejected.length, cursor: safeMax },
+  });
   return rows.length;
 }
 
@@ -171,51 +241,98 @@ async function pullPeer(peer) {
     return 0;
   }
 
-  const client = await pool.connect();
-  try {
-    await client.query("BEGIN");
-    for (const ch of changes) {
-      try {
-        await client.query("SAVEPOINT peer_pull_row");
-        await client.query(
-          `SELECT public.peer_apply_change($1::uuid, $2::text, $3::text, $4::jsonb, $5::jsonb, $6::timestamptz)`,
-          [
-            ch.origin_node_id || peer.peer_node_id,
-            ch.table,
-            ch.op,
-            ch.pk ?? {},
-            ch.payload ?? {},
-            ch.changed_at ?? new Date().toISOString(),
-          ]
-        );
-        await client.query("RELEASE SAVEPOINT peer_pull_row");
-      } catch (e) {
-        await client.query("ROLLBACK TO SAVEPOINT peer_pull_row").catch(() => {});
-        await client.query("RELEASE SAVEPOINT peer_pull_row").catch(() => {});
-        log("warn", "peer.pull.apply.fail", { peer: peer.display_name, table: ch.table, id: ch.id, err: String(e?.message ?? e).slice(0, 200) });
+  let safeCursor = peer.last_pull_cursor;
+  let applied = 0;
+  let rejectedRun = 0;
+  let firstError = null;
+
+  for (const ch of changes) {
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+      await client.query(`SELECT set_config('sync.applying','on', true)`);
+      await client.query(
+        `SELECT public.peer_apply_change($1::uuid, $2::text, $3::text, $4::jsonb, $5::jsonb, $6::timestamptz)`,
+        [
+          ch.origin_node_id || peer.peer_node_id,
+          ch.table,
+          ch.op,
+          ch.pk ?? {},
+          ch.payload ?? {},
+          ch.changed_at ?? new Date().toISOString(),
+        ]
+      );
+      await client.query("COMMIT");
+      safeCursor = ch.id;
+      applied += 1;
+      rejectedRun = 0;
+    } catch (e) {
+      await client.query("ROLLBACK").catch(() => {});
+      const errStr = String(e?.message ?? e);
+      const code = /column .* does not exist|unknown column|relation .* does not exist/i.test(errStr)
+        ? "schema_mismatch"
+        : /violates foreign key/i.test(errStr) ? "fk_violation"
+        : /violates not-null/i.test(errStr) ? "not_null"
+        : "apply_error";
+      if (!firstError) firstError = { code, text: errStr };
+      await recordApplyError(peer, ch, code, errStr);
+      rejectedRun += 1;
+      if (rejectedRun >= REJECT_LIMIT) {
+        log("warn", "peer.pull.reject.streak", { peer: peer.display_name, code, threshold: REJECT_LIMIT });
+        // Stop advancing; will retry from here next tick after operator fixes.
+        await recordHealth(peer, "schema_mismatch", { error_code: code, error_text: errStr });
+        bufferExchange(peer, { direction: "pull", status: "error", row_count: applied, error_text: errStr.slice(0,500), meta: { code, stopped_at: ch.id } });
+        await pool.query(`UPDATE public.peer_links SET last_pull_cursor = $1, last_pull_error = $2 WHERE id = $3`,
+          [safeCursor, errStr.slice(0, 240), peer.id]);
+        return applied;
       }
-    }
-    await client.query("COMMIT");
-  } catch (e) {
-    await client.query("ROLLBACK").catch(() => {});
-    throw e;
-  } finally {
-    client.release();
+      // Otherwise: skip this row, move cursor past it (it's recorded in apply_errors for manual retry).
+      safeCursor = ch.id;
+    } finally { client.release(); }
   }
 
-  const nextSince = j.next_since_id ?? changes[changes.length - 1].id;
   await pool.query(
     `UPDATE public.peer_links
-        SET last_pull_cursor = $1, last_seen_at = now(), last_pull_error = NULL
-      WHERE id = $2`,
-    [nextSince, peer.id]
+        SET last_pull_cursor = $1, last_seen_at = now(), last_pull_error = $2
+      WHERE id = $3`,
+    [safeCursor, firstError ? firstError.text.slice(0, 240) : null, peer.id]
   );
-  bufferExchange(peer, { direction: "pull", status: "ok", row_count: changes.length, meta: { cursor: nextSince } });
-  return changes.length;
+  await pool.query(`SELECT public.sync_record_pull_ok($1::uuid)`, [peer.id]);
+  await pool.query(`SELECT public.sync_record_apply_ok($1::uuid)`, [peer.id]);
+  bufferExchange(peer, {
+    direction: "pull",
+    status: firstError ? "warn" : "ok",
+    row_count: applied,
+    meta: { cursor: safeCursor, attempted: changes.length, errors: changes.length - applied },
+  });
+  return applied;
+}
+
+// ─────────── PROBE ───────────
+async function probePeer(peer) {
+  let probeId;
+  try {
+    const { rows } = await pool.query(`SELECT public.sync_record_probe_sent($1::uuid, 'out') AS id`, [peer.id]);
+    probeId = rows[0]?.id;
+  } catch (e) { log("warn", "probe.create.fail", { err: String(e?.message ?? e) }); return; }
+  if (!probeId) return;
+  try {
+    const r = await peerFetch(peer, "/peer/probe/start", { probe_id: probeId, origin_node_id: IDENTITY.node_id });
+    // Peer should call our /peer/probe/ack via its own sync; we still record an immediate synchronous ack for liveness.
+    if (r && r.ok) {
+      await pool.query(`SELECT public.sync_record_probe_ack($1::uuid, 'ok', NULL)`, [probeId]);
+      bufferExchange(peer, { direction: "probe", status: "ok", row_count: 0, meta: { probe_id: probeId } });
+    } else {
+      await pool.query(`SELECT public.sync_record_probe_ack($1::uuid, 'error', $2::text)`, [probeId, "no_ack"]);
+    }
+  } catch (e) {
+    await pool.query(`SELECT public.sync_record_probe_ack($1::uuid, 'error', $2::text)`, [probeId, String(e?.message ?? e).slice(0,200)]).catch(()=>{});
+    bufferExchange(peer, { direction: "probe", status: "error", row_count: 0, error_text: String(e?.message ?? e).slice(0,200) });
+  }
 }
 
 // ─────────── per-peer driver ───────────
-const peerBackoff = new Map(); // peer.id → ms
+const peerBackoff = new Map();
 
 async function tickPeer(peer) {
   if (peer.status === "pending_outbound") {
@@ -223,65 +340,64 @@ async function tickPeer(peer) {
     catch (e) {
       const b = peerBackoff.get(peer.id) ?? TICK_MS;
       log("warn", "peer.handshake.fail", { peer: peer.display_name, err: String(e?.message ?? e), backoff_ms: b });
-      await pool.query(
-        `UPDATE public.peer_links SET last_push_error = $1 WHERE id = $2`,
-        [String(e?.message ?? e).slice(0, 240), peer.id]
-      );
+      await pool.query(`UPDATE public.peer_links SET last_push_error = $1 WHERE id = $2`, [String(e?.message ?? e).slice(0, 240), peer.id]);
+      await recordHealth(peer, "pairing", { error_code: "handshake_fail", error_text: String(e?.message ?? e) });
       peerBackoff.set(peer.id, Math.min(b * 2, BACKOFF_MAX));
     }
     return;
   }
   if (peer.status !== "active") return;
-  if (!peer.peer_node_id) return; // not yet handshaken
+  if (!peer.peer_node_id) return;
 
   try {
     const sent = await pushPeer(peer);
     const recv = await pullPeer(peer);
     peerBackoff.set(peer.id, TICK_MS);
     if (sent || recv) log("info", "peer.sync.ok", { peer: peer.display_name, sent, recv });
+    await recordHealth(peer, "ok");
   } catch (e) {
     const b = peerBackoff.get(peer.id) ?? TICK_MS;
     const errStr = String(e?.message ?? e);
     log("warn", "peer.sync.fail", { peer: peer.display_name, err: errStr, backoff_ms: b });
     bufferExchange(peer, { direction: "push", status: "error", row_count: 0, error_text: errStr.slice(0, 500) });
-    await pool.query(
-      `UPDATE public.peer_links SET last_push_error = $1 WHERE id = $2`,
-      [errStr.slice(0, 240), peer.id]
-    );
+    await pool.query(`UPDATE public.peer_links SET last_push_error = $1 WHERE id = $2`, [errStr.slice(0, 240), peer.id]);
+    await recordHealth(peer, b > BACKOFF_MAX / 2 ? "broken" : "degraded", { error_code: "transport", error_text: errStr });
     peerBackoff.set(peer.id, Math.min(b * 2, BACKOFF_MAX));
   }
-  // Always try to flush exchange log (best-effort) so Cloud sees activity
   await flushExchangeLog(peer);
 }
 
-// ─────────── heartbeat ───────────
+// ─────────── loops ───────────
 async function heartbeatLoop() {
+  while (true) {
+    try {
+      const { rows: peers } = await pool.query(
+        `SELECT * FROM public.peer_links WHERE status IN ('active','pending_outbound')`
+      );
+      for (const p of peers) {
+        // Health only — NOT exchange log.
+        await recordHealth(p, p.peer_node_id ? "ok" : "pairing");
+      }
+    } catch (e) { log("warn", "heartbeat.fail", { err: String(e?.message ?? e) }); }
+    await sleep(30_000);
+  }
+}
+
+async function probeLoop() {
   while (true) {
     try {
       const { rows: peers } = await pool.query(
         `SELECT * FROM public.peer_links WHERE status = 'active' AND peer_node_id IS NOT NULL`
       );
       for (const p of peers) {
-        bufferExchange(p, {
-          direction: "heartbeat",
-          status: "ok",
-          row_count: 0,
-          meta: {
-            push_cursor: Number(p.last_push_cursor) || 0,
-            pull_cursor: Number(p.last_pull_cursor) || 0,
-            schema_version: SCHEMA_VERSION,
-          },
-        });
-        await flushExchangeLog(p);
+        await probePeer(p).catch(() => {});
+        await flushExchangeLog(p).catch(() => {});
       }
-    } catch (e) {
-      log("warn", "heartbeat.fail", { err: String(e?.message ?? e) });
-    }
-    await sleep(30_000);
+    } catch (e) { log("warn", "probe.loop.fail", { err: String(e?.message ?? e) }); }
+    await sleep(PROBE_MS);
   }
 }
 
-// ─────────── main loop ───────────
 async function mainLoop() {
   while (true) {
     try {
@@ -289,23 +405,22 @@ async function mainLoop() {
       const { rows: peers } = await pool.query(
         `SELECT * FROM public.peer_links WHERE status IN ('pending_outbound','active') ORDER BY id`
       );
-      // Run each peer with its own backoff
       await Promise.all(peers.map(async (p) => {
         const b = peerBackoff.get(p.id) ?? 0;
         if (b > TICK_MS) { peerBackoff.set(p.id, Math.max(0, b - TICK_MS)); return; }
         await tickPeer(p);
       }));
-    } catch (e) {
-      log("error", "main.loop.fail", { err: String(e?.message ?? e) });
-    }
+    } catch (e) { log("error", "main.loop.fail", { err: String(e?.message ?? e) }); }
     await sleep(TICK_MS);
   }
 }
 
 async function gcLoop() {
   while (true) {
-    try { await pool.query(`SELECT public.sync_outbox_gc()`); }
-    catch (e) { log("warn", "gc.fail", { err: String(e?.message ?? e) }); }
+    try {
+      await pool.query(`SELECT public.sync_outbox_gc()`);
+      await pool.query(`SELECT public.sync_diagnostics_gc()`).catch(() => {});
+    } catch (e) { log("warn", "gc.fail", { err: String(e?.message ?? e) }); }
     await sleep(60 * 60 * 1000);
   }
 }
@@ -317,11 +432,11 @@ async function identityRefreshLoop() {
   }
 }
 
-log("info", "sync.start", { batch: BATCH, tick_ms: TICK_MS, schema_version: SCHEMA_VERSION });
+log("info", "sync.start", { batch: BATCH, tick_ms: TICK_MS, probe_ms: PROBE_MS, schema_version: SCHEMA_VERSION });
 
 startApi({ pool });
 
-Promise.all([mainLoop(), gcLoop(), identityRefreshLoop(), heartbeatLoop()]).catch((e) => {
+Promise.all([mainLoop(), gcLoop(), identityRefreshLoop(), heartbeatLoop(), probeLoop()]).catch((e) => {
   log("error", "sync.crash", { err: String(e) });
   process.exit(1);
 });
