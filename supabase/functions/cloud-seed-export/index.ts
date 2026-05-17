@@ -184,6 +184,17 @@ const DATE_COLUMN: Record<string, string> = {
   monthly_tips_entries: "created_at",
   weekly_bonus_pools: "period_start",
   weekly_bonus_entries: "created_at",
+  player_session_stats: "updated_at",
+  player_session_drops: "created_at",
+  activity_logs: "created_at",
+  activity_logs_archive: "created_at",
+  breaklist_logs: "created_at",
+  breaklist_logs_archive: "created_at",
+  budget_logs: "created_at",
+  casino_visits_archive: "created_at",
+  client_sessions_archive: "created_at",
+  incidents_audit: "created_at",
+  payroll_audit_log: "created_at",
 };
 
 Deno.serve(async (req) => {
