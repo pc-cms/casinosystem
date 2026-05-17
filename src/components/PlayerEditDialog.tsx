@@ -508,7 +508,7 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
 
   const sharedExtras = (
     <>
-      {sharedExtras}
+      {blacklistDialog}
       <PlayerPhotoLightbox
         open={lightboxOpen}
         onOpenChange={setLightboxOpen}
