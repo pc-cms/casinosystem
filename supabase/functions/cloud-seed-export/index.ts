@@ -186,7 +186,7 @@ const DATE_COLUMN: Record<string, string> = {
   weekly_bonus_pools: "period_start",
   weekly_bonus_entries: "created_at",
   player_session_stats: "updated_at",
-  player_session_drops: "created_at",
+  
   activity_logs: "created_at",
   activity_logs_archive: "created_at",
   breaklist_logs: "created_at",
