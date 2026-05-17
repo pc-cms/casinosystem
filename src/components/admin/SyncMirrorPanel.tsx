@@ -51,7 +51,10 @@ export const SyncMirrorPanel = () => {
   const uploadRemaining = Math.max(0, outboxMax - pushCursor);
 
   const cloneCounts = cloneStatus.data?.counts ?? {};
-  const cloneTotal = Object.values(cloneCounts).reduce((s, n) => s + n, 0);
+  const cloneTotal = Object.values(cloneCounts).reduce((s: number, n) => s + Number(n || 0), 0);
+  const cloneErrorsByTable = (cloneStatus.data as any)?.errors_by_table ?? {};
+  const cloneErrorTotal = Object.values(cloneErrorsByTable).reduce((s: number, n) => s + Number(n || 0), 0);
+  const cloneErrorSamples = (cloneStatus.data as any)?.error_samples ?? {};
 
   return (
     <div className="rounded-lg border border-border bg-card p-4 space-y-4">
