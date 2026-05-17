@@ -916,6 +916,36 @@ export type Database = {
         }
         Relationships: []
       }
+      casino_servers: {
+        Row: {
+          casino_id: string
+          created_at: string
+          display_name: string | null
+          id: string
+          local_url: string | null
+          node_id: string | null
+          role: Database["public"]["Enums"]["casino_server_role"]
+        }
+        Insert: {
+          casino_id: string
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          local_url?: string | null
+          node_id?: string | null
+          role?: Database["public"]["Enums"]["casino_server_role"]
+        }
+        Update: {
+          casino_id?: string
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          local_url?: string | null
+          node_id?: string | null
+          role?: Database["public"]["Enums"]["casino_server_role"]
+        }
+        Relationships: []
+      }
       casino_visits: {
         Row: {
           casino_id: string
@@ -3661,6 +3691,68 @@ export type Database = {
           },
         ]
       }
+      sync_apply_errors: {
+        Row: {
+          attempts: number
+          error_code: string
+          error_text: string | null
+          first_seen_at: string
+          id: number
+          last_seen_at: string
+          op: string | null
+          payload_hash: string | null
+          peer_link_id: string | null
+          peer_name: string | null
+          pk: Json | null
+          resolution: string | null
+          resolved_at: string | null
+          source_outbox_id: number | null
+          table_name: string
+        }
+        Insert: {
+          attempts?: number
+          error_code: string
+          error_text?: string | null
+          first_seen_at?: string
+          id?: number
+          last_seen_at?: string
+          op?: string | null
+          payload_hash?: string | null
+          peer_link_id?: string | null
+          peer_name?: string | null
+          pk?: Json | null
+          resolution?: string | null
+          resolved_at?: string | null
+          source_outbox_id?: number | null
+          table_name: string
+        }
+        Update: {
+          attempts?: number
+          error_code?: string
+          error_text?: string | null
+          first_seen_at?: string
+          id?: number
+          last_seen_at?: string
+          op?: string | null
+          payload_hash?: string | null
+          peer_link_id?: string | null
+          peer_name?: string | null
+          pk?: Json | null
+          resolution?: string | null
+          resolved_at?: string | null
+          source_outbox_id?: number | null
+          table_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sync_apply_errors_peer_link_id_fkey"
+            columns: ["peer_link_id"]
+            isOneToOne: false
+            referencedRelation: "peer_links"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sync_exchange_logs: {
         Row: {
           batch_id: string | null
@@ -3780,6 +3872,118 @@ export type Database = {
         }
         Relationships: []
       }
+      sync_peer_health: {
+        Row: {
+          apply_errors_count: number
+          last_apply_ok_at: string | null
+          last_error_code: string | null
+          last_error_text: string | null
+          last_heartbeat_at: string | null
+          last_probe_at: string | null
+          last_probe_latency_ms: number | null
+          last_pull_ok_at: string | null
+          last_push_ok_at: string | null
+          peer_link_id: string
+          peer_name: string | null
+          peer_node_id: string | null
+          pending_outbox_count: number
+          remote_lag_seconds: number | null
+          schema_version_local: string | null
+          schema_version_remote: string | null
+          state: string
+          updated_at: string
+        }
+        Insert: {
+          apply_errors_count?: number
+          last_apply_ok_at?: string | null
+          last_error_code?: string | null
+          last_error_text?: string | null
+          last_heartbeat_at?: string | null
+          last_probe_at?: string | null
+          last_probe_latency_ms?: number | null
+          last_pull_ok_at?: string | null
+          last_push_ok_at?: string | null
+          peer_link_id: string
+          peer_name?: string | null
+          peer_node_id?: string | null
+          pending_outbox_count?: number
+          remote_lag_seconds?: number | null
+          schema_version_local?: string | null
+          schema_version_remote?: string | null
+          state?: string
+          updated_at?: string
+        }
+        Update: {
+          apply_errors_count?: number
+          last_apply_ok_at?: string | null
+          last_error_code?: string | null
+          last_error_text?: string | null
+          last_heartbeat_at?: string | null
+          last_probe_at?: string | null
+          last_probe_latency_ms?: number | null
+          last_pull_ok_at?: string | null
+          last_push_ok_at?: string | null
+          peer_link_id?: string
+          peer_name?: string | null
+          peer_node_id?: string | null
+          pending_outbox_count?: number
+          remote_lag_seconds?: number | null
+          schema_version_local?: string | null
+          schema_version_remote?: string | null
+          state?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sync_peer_health_peer_link_id_fkey"
+            columns: ["peer_link_id"]
+            isOneToOne: true
+            referencedRelation: "peer_links"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sync_probe_events: {
+        Row: {
+          ack_at: string | null
+          direction: string
+          error_text: string | null
+          id: string
+          latency_ms: number | null
+          peer_link_id: string | null
+          sent_at: string
+          status: string
+        }
+        Insert: {
+          ack_at?: string | null
+          direction: string
+          error_text?: string | null
+          id?: string
+          latency_ms?: number | null
+          peer_link_id?: string | null
+          sent_at?: string
+          status?: string
+        }
+        Update: {
+          ack_at?: string | null
+          direction?: string
+          error_text?: string | null
+          id?: string
+          latency_ms?: number | null
+          peer_link_id?: string | null
+          sent_at?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sync_probe_events_peer_link_id_fkey"
+            columns: ["peer_link_id"]
+            isOneToOne: false
+            referencedRelation: "peer_links"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sync_probes: {
         Row: {
           details: Json
@@ -3834,6 +4038,36 @@ export type Database = {
           completed_at?: string
           row_count?: number
           table_name?: string
+        }
+        Relationships: []
+      }
+      sync_snapshot_state: {
+        Row: {
+          casino_id: string
+          checksum: string | null
+          imported_at: string
+          snapshot_id: string | null
+          source: string | null
+          source_created_at: string | null
+          table_counts: Json
+        }
+        Insert: {
+          casino_id: string
+          checksum?: string | null
+          imported_at?: string
+          snapshot_id?: string | null
+          source?: string | null
+          source_created_at?: string | null
+          table_counts?: Json
+        }
+        Update: {
+          casino_id?: string
+          checksum?: string | null
+          imported_at?: string
+          snapshot_id?: string | null
+          source?: string | null
+          source_created_at?: string | null
+          table_counts?: Json
         }
         Relationships: []
       }
@@ -4821,6 +5055,7 @@ export type Database = {
         Returns: boolean
       }
       is_manager_op: { Args: { _uid: string }; Returns: boolean }
+      is_super_admin: { Args: { _uid: string }; Returns: boolean }
       list_open_cycles_for_day: { Args: { _casino_id: string }; Returns: Json }
       local_servers_overview: {
         Args: never
@@ -4938,6 +5173,7 @@ export type Database = {
         Returns: Json
       }
       sync_attach: { Args: { p_table: unknown }; Returns: undefined }
+      sync_diagnostics_gc: { Args: never; Returns: undefined }
       sync_exchange_logs_gc: { Args: never; Returns: undefined }
       sync_inbox_health: {
         Args: never
@@ -4969,9 +5205,72 @@ export type Database = {
           table_name: string
         }[]
       }
+      sync_promote_server: { Args: { p_server_id: string }; Returns: undefined }
+      sync_record_apply_error: {
+        Args: {
+          p_error_code: string
+          p_error_text: string
+          p_op: string
+          p_payload_hash: string
+          p_peer_link_id: string
+          p_pk: Json
+          p_source_outbox_id: number
+          p_table: string
+        }
+        Returns: number
+      }
+      sync_record_apply_ok: {
+        Args: { p_peer_link_id: string }
+        Returns: undefined
+      }
+      sync_record_health: {
+        Args: {
+          p_heartbeat_at?: string
+          p_last_error_code?: string
+          p_last_error_text?: string
+          p_peer_link_id: string
+          p_pending_outbox?: number
+          p_remote_lag_seconds?: number
+          p_schema_version_local?: string
+          p_schema_version_remote?: string
+          p_state: string
+        }
+        Returns: undefined
+      }
+      sync_record_probe_ack: {
+        Args: { p_error_text?: string; p_probe_id: string; p_status?: string }
+        Returns: undefined
+      }
+      sync_record_probe_sent: {
+        Args: { p_direction?: string; p_peer_link_id: string }
+        Returns: string
+      }
+      sync_record_pull_ok: {
+        Args: { p_peer_link_id: string }
+        Returns: undefined
+      }
+      sync_record_push_ok: {
+        Args: { p_peer_link_id: string }
+        Returns: undefined
+      }
+      sync_record_snapshot: {
+        Args: {
+          p_casino_id: string
+          p_checksum: string
+          p_snapshot_id: string
+          p_source: string
+          p_source_created_at: string
+          p_table_counts: Json
+        }
+        Returns: undefined
+      }
       sync_reset_outbox: {
         Args: { p_advance_cursors?: boolean; p_casino_id: string }
         Returns: Json
+      }
+      sync_resolve_apply_error: {
+        Args: { p_id: number; p_resolution: string }
+        Returns: undefined
       }
       sync_roundtrip_probe: {
         Args: { p_origin_casino_id: string; p_origin_slug: string }
@@ -5017,6 +5316,7 @@ export type Database = {
         | "hr"
         | "floor_manager"
       card_type: "manual" | "rfid"
+      casino_server_role: "primary" | "replica"
       day_horizon: "today" | "7d" | "30d" | "all"
       dealer_category:
         | "trainee"
@@ -5255,6 +5555,7 @@ export const Constants = {
         "floor_manager",
       ],
       card_type: ["manual", "rfid"],
+      casino_server_role: ["primary", "replica"],
       day_horizon: ["today", "7d", "30d", "all"],
       dealer_category: ["trainee", "dealer", "inspector", "expert", "pit_boss"],
       dealer_role: [
