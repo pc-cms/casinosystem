@@ -158,10 +158,16 @@ fi
 # Frontend uses universal placeholder __CMS_ORIGIN_PLACEHOLDER__/api baked at build,
 # rewritten to location.origin by docker/frontend-entrypoint.sh at container start.
 EXPECTED_PLACEHOLDER="__CMS_ORIGIN_PLACEHOLDER__/api"
-docker compose config 2>/dev/null | grep -q "VITE_SUPABASE_URL: ${EXPECTED_PLACEHOLDER}" \
+# Scope the Cloud-URL guard to the cms-frontend service block only.
+# Other services (cms-sync) legitimately reference Cloud via CLOUD_URL for mesh sync.
+FRONTEND_BLOCK="$(docker compose config 2>/dev/null | awk '
+  /^  [a-zA-Z0-9_-]+:/ { svc=$1; sub(/:$/,"",svc); next }
+  svc=="cms-frontend" { print }
+')"
+echo "$FRONTEND_BLOCK" | grep -q "VITE_SUPABASE_URL: ${EXPECTED_PLACEHOLDER}" \
   || die "docker-compose is not baking universal placeholder (${EXPECTED_PLACEHOLDER}) into cms-frontend"
-docker compose config 2>/dev/null | grep -q "supabase.co" \
-  && die "Refusing to update: docker-compose contains a Cloud supabase.co URL for cms-frontend"
+echo "$FRONTEND_BLOCK" | grep -q "supabase.co" \
+  && die "Refusing to update: cms-frontend service references a Cloud supabase.co URL"
 
 docker image ls --format '{{.Repository}}:{{.Tag}}' | grep '^cms-frontend:' | xargs -r docker image rm -f 2>/dev/null || true
 
