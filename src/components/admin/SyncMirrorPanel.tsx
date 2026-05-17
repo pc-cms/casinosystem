@@ -52,9 +52,9 @@ export const SyncMirrorPanel = () => {
 
   const cloneCounts = cloneStatus.data?.counts ?? {};
   const cloneTotal = Object.values(cloneCounts).reduce((s: number, n) => s + Number(n || 0), 0);
-  const cloneErrorsByTable = (cloneStatus.data as any)?.errors_by_table ?? {};
-  const cloneErrorTotal = Object.values(cloneErrorsByTable).reduce((s: number, n) => s + Number(n || 0), 0);
-  const cloneErrorSamples = (cloneStatus.data as any)?.error_samples ?? {};
+  const cloneErrorsByTable = ((cloneStatus.data as any)?.errors_by_table ?? {}) as Record<string, number>;
+  const cloneErrorTotal: number = Object.values(cloneErrorsByTable).reduce((s, n) => s + Number(n || 0), 0);
+  const cloneErrorSamples = ((cloneStatus.data as any)?.error_samples ?? {}) as Record<string, string[]>;
 
   return (
     <div className="rounded-lg border border-border bg-card p-4 space-y-4">
