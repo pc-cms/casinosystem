@@ -503,22 +503,38 @@ async function cloneFromCloud(pool, conn, casinoId) {
   const client = await pool.connect();
   try {
     // Tables to wipe — same list whose scope=='full' in cloud-seed-export.
+    // Order: child rows first (so FK cascades don't bite), parents last.
     const wipeTables = [
+      // operational (FK-children of players/staff/tables)
       "transactions","shifts","cage_transfers","expenses",
       "wallet_transactions","chip_emissions","chip_transfers",
       "chip_snapshots","chip_baseline","chip_initial_baseline","chip_inventory",
       "casino_visits","breaklist","pit_rota","staff_rota",
-      "dealer_attendance","staff_attendance",
+      "dealer_attendance","staff_attendance","attendance_hours","attendance_holidays",
       "table_tracker","table_daily_results","business_day_closures",
       "cash_counts","cash_count_snapshots","cashless_transactions",
-      "bank_checks","cctv_observations","player_position_history",
-      "daily_summaries","inter_casino_transfers",
+      "bank_checks","cctv_observations",
+      "player_chip_adjustments","player_position_history",
+      "client_sessions","incidents",
+      "daily_summaries","daily_review","inter_casino_transfers",
+      "payroll_entries","payroll_periods","payroll_settings",
+      "monthly_tips_entries","monthly_tips_pools",
+      "weekly_bonus_entries","weekly_bonus_pools",
+      // players / cards / groups
       "player_tags","player_notes","group_members","player_groups",
       "player_cards","players",
+      // staff
       "dealers","staff_members",
+      // config
       "gaming_tables","chip_color_settings",
       "financial_wallets","budget_items","budget_periods","budget_categories",
+      // user links (auth.users wiped separately — see below)
       "user_module_permissions","user_casino_access",
+    ];
+
+    // Global tables to wipe (no casino_id filter)
+    const wipeGlobalTables = [
+      "blacklist","role_module_defaults","payroll_paye_brackets","tax_brackets",
     ];
 
     await client.query("BEGIN");
