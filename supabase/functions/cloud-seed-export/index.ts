@@ -81,9 +81,7 @@ const TABLES: Array<{ name: string; scope: "single" | "full" | "global" | "by_us
   { name: "group_members", scope: "full" },
   { name: "player_tags", scope: "by_player" },
   { name: "player_notes", scope: "full" },
-  { name: "player_economy", scope: "full" },
-  { name: "player_session_stats", scope: "full", sinceDays: 365 },
-  // player_session_drops is a VIEW (aggregated from client_sessions) — never seed
+  // player_economy / player_session_stats / player_session_drops are VIEWs — never seed
 
   // 5. Пользователи системы — auth.users шлются отдельным потоком (см. ниже)
   //    после обычных таблиц. Здесь — связанные с ними public-таблицы.
@@ -185,7 +183,6 @@ const DATE_COLUMN: Record<string, string> = {
   monthly_tips_entries: "created_at",
   weekly_bonus_pools: "period_start",
   weekly_bonus_entries: "created_at",
-  player_session_stats: "updated_at",
   
   activity_logs: "created_at",
   activity_logs_archive: "created_at",
