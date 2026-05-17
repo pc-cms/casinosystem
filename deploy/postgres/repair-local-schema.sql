@@ -76,6 +76,10 @@ CREATE INDEX IF NOT EXISTS idx_player_position_history_casino_started
 CREATE INDEX IF NOT EXISTS idx_player_position_history_player_started
   ON public.player_position_history(player_id, started_at DESC);
 
+-- player_drop_split_lifetime: NEP split per player (Drop R = external new money,
+-- Drop Recycled = chips returned by previous cashouts). Until full NEP RPC is
+-- ported to on-prem, approximate: Drop R = total buy minus cashout, Drop Recycled
+-- = min(buy, cashout). Keeps "Drop result" non-zero in Player Statistics.
 CREATE OR REPLACE FUNCTION public.player_drop_split_lifetime(_player_id uuid)
 RETURNS TABLE (drop_r bigint, drop_recycled bigint)
 LANGUAGE sql
@@ -83,9 +87,16 @@ STABLE
 SECURITY INVOKER
 SET search_path = public
 AS $$
-  SELECT COALESCE(SUM(amount), 0)::bigint, 0::bigint
-  FROM public.transactions
-  WHERE player_id = _player_id AND type IN ('buy','in')
+  WITH s AS (
+    SELECT
+      COALESCE(SUM(CASE WHEN type IN ('buy','in')      THEN amount END), 0)::bigint AS buy,
+      COALESCE(SUM(CASE WHEN type IN ('cashout','out') THEN amount END), 0)::bigint AS cash
+    FROM public.transactions
+    WHERE player_id = _player_id
+  )
+  SELECT GREATEST(buy - cash, 0)::bigint AS drop_r,
+         LEAST(buy, cash)::bigint        AS drop_recycled
+  FROM s
 $$;
 
 DO $$
@@ -563,14 +574,21 @@ DECLARE
     'casinos','gaming_tables','chip_color_settings',
     'chip_initial_baseline','chip_baseline','chip_inventory','chip_snapshots',
     'financial_wallets','budget_categories','budget_periods','budget_items',
-    'dealers','staff_members','profiles','user_casino_access','user_module_permissions',
+    'dealers','staff_members','employees','employee_bank_accounts',
+    'profiles','user_casino_access','user_module_permissions',
     'players','player_cards','player_groups','group_members','player_tags','player_notes',
     'transactions','shifts','cage_transfers','expenses','wallet_transactions',
-    'chip_emissions','chip_transfers','casino_visits','breaklist','pit_rota','staff_rota',
-    'dealer_attendance','staff_attendance','table_tracker','table_daily_results',
+    'chip_emissions','chip_transfers','casino_visits',
+    'breaklist','breaklist_logs','pit_rota','staff_rota',
+    'dealer_attendance','staff_attendance','attendance_hours','attendance_holidays',
+    'table_tracker','table_daily_results',
     'business_day_closures','cash_counts','cash_count_snapshots','cashless_transactions',
     'bank_checks','cctv_observations','player_position_history','daily_summaries',
-    'inter_casino_transfers','activity_logs','daily_review','blacklist'
+    'inter_casino_transfers','activity_logs','daily_review','blacklist',
+    'client_sessions','incidents',
+    'payroll_settings','payroll_periods','payroll_entries',
+    'monthly_tips_pools','monthly_tips_entries',
+    'weekly_bonus_pools','weekly_bonus_entries'
   ];
 BEGIN
   FOREACH t IN ARRAY tables LOOP
