@@ -101,6 +101,18 @@ Deno.serve(async (req: Request) => {
       const accepted: number[] = [];
       const rejected: Array<{ outbox_id: number; error_code: string; error_text: string }> = [];
       for (const ch of changes) {
+        // Skip profile rows whose auth user doesn't exist in Cloud (local-only
+        // super_admin@local users). Accept them so the local outbox drains.
+        if (ch.table === "profiles" && ch.op !== "delete") {
+          const uid = ch.payload?.user_id ?? ch.pk?.user_id;
+          if (uid) {
+            const { data: u } = await admin.auth.admin.getUserById(uid);
+            if (!u?.user) {
+              accepted.push(ch.id);
+              continue;
+            }
+          }
+        }
         const { error } = await admin.rpc("peer_apply_change", {
           p_origin_node_id: ch.origin_node_id || peer.peer_node_id,
           p_table: ch.table,
