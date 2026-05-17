@@ -43,7 +43,7 @@ const jwtSecret = Deno.env.get("SUPABASE_JWT_SECRET") ?? serviceRoleKey;
 //   global   → вся таблица (справочники, общие для сети)
 //   by_user  → строки, где user_id ∈ users-of-this-casino
 //              (profiles/user_roles/user_credentials)
-const TABLES: Array<{ name: string; scope: "single" | "full" | "global" | "by_user"; sinceDays?: number; userIdCol?: string }> = [
+const TABLES: Array<{ name: string; scope: "single" | "full" | "global" | "by_user" | "by_player"; sinceDays?: number; userIdCol?: string }> = [
   // 1. Справочники (нужны раньше FK)
   { name: "casinos", scope: "single" },
 
@@ -75,10 +75,11 @@ const TABLES: Array<{ name: string; scope: "single" | "full" | "global" | "by_us
 
   // 4. Игроки и карты
   { name: "players", scope: "full" },
-  { name: "player_cards", scope: "full" },
+  // player_cards и player_tags не имеют casino_id — фильтруем через player_id ∈ players_of_casino
+  { name: "player_cards", scope: "by_player" },
   { name: "player_groups", scope: "full" },
   { name: "group_members", scope: "full" },
-  { name: "player_tags", scope: "full" },
+  { name: "player_tags", scope: "by_player" },
   { name: "player_notes", scope: "full" },
   { name: "player_economy", scope: "full" },
   { name: "player_session_stats", scope: "full", sinceDays: 365 },
@@ -368,7 +369,38 @@ Deno.serve(async (req) => {
             continue;
           }
 
-          // full / global — пагинация
+          // by_player — строки, где player_id ∈ players_of_casino (для таблиц без casino_id)
+          if (t.scope === "by_player") {
+            // соберём список player ids этого казино один раз
+            const playerIds: string[] = [];
+            {
+              let pf = 0;
+              while (true) {
+                const { data, error } = await admin
+                  .from("players").select("id").eq("casino_id", casinoId)
+                  .range(pf, pf + PAGE_SIZE - 1);
+                if (error) { writeLine({ _error: { table: t.name, msg: `players lookup: ${error.message}` } }); break; }
+                if (!data || data.length === 0) break;
+                for (const r of data) playerIds.push((r as any).id);
+                if (data.length < PAGE_SIZE) break;
+                pf += PAGE_SIZE;
+              }
+            }
+            if (playerIds.length === 0) continue;
+            for (let i = 0; i < playerIds.length; i += 500) {
+              const slice = playerIds.slice(i, i + 500);
+              const { data, error } = await admin
+                .from(t.name).select("*").in("player_id", slice);
+              if (error) {
+                writeLine({ _error: { table: t.name, msg: error.message } });
+                break;
+              }
+              for (const row of data ?? []) writeLine({ table: t.name, row });
+              counts[t.name] += (data ?? []).length;
+            }
+            continue;
+          }
+
           while (true) {
             let q = admin.from(t.name).select("*").range(from, from + PAGE_SIZE - 1);
             if (t.scope === "full") q = q.eq("casino_id", casinoId);

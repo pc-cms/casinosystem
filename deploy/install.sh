@@ -50,7 +50,7 @@ trap 'rc=$?; ln="${BASH_LINENO[0]:-?}"; cmd="${BASH_COMMAND:-?}"; echo -e "${RED
 require_root() { [[ $EUID -eq 0 ]] || fail "Запустите от root: sudo ./deploy/install.sh"; }
 
 # ── CLI ──
-RESET=0; REBUILD=0; RECONFIGURE=0; WIPE=0; UPDATE=0; UPDATE_FRONT=0; MENU=0; REPAIR=0; VERIFY=0
+RESET=0; REBUILD=0; RECONFIGURE=0; WIPE=0; UPDATE=0; UPDATE_FRONT=0; MENU=0; REPAIR=0; VERIFY=0; BACKFILL=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --reset)         RESET=1; shift ;;
@@ -61,6 +61,7 @@ while [[ $# -gt 0 ]]; do
     --frontend-only|--update-frontend) UPDATE_FRONT=1; shift ;;
     --repair)        REPAIR=1; shift ;;
     --verify-parity) VERIFY=1; shift ;;
+    --backfill)      BACKFILL=1; shift ;;
     --menu)          MENU=1; shift ;;
     -h|--help)       sed -n '4,16p' "$0"; exit 0 ;;
     *) fail "Неизвестный аргумент: $1" ;;
@@ -70,7 +71,7 @@ done
 require_root
 
 # ── Interactive menu (default when запущен без флагов в TTY) ──
-if [[ $MENU -eq 0 && $RESET -eq 0 && $REBUILD -eq 0 && $RECONFIGURE -eq 0 && $WIPE -eq 0 && $UPDATE -eq 0 && $UPDATE_FRONT -eq 0 && $REPAIR -eq 0 && $VERIFY -eq 0 ]]; then
+if [[ $MENU -eq 0 && $RESET -eq 0 && $REBUILD -eq 0 && $RECONFIGURE -eq 0 && $WIPE -eq 0 && $UPDATE -eq 0 && $UPDATE_FRONT -eq 0 && $REPAIR -eq 0 && $VERIFY -eq 0 && $BACKFILL -eq 0 ]]; then
   if [[ -t 0 || -e /dev/tty ]]; then MENU=1; fi
 fi
 
@@ -225,6 +226,24 @@ if [[ $REPAIR -eq 1 ]]; then
   exit 0
 fi
 
+# ── Backfill fast path: дозалить недостающие строки из Cloud (ON CONFLICT DO NOTHING) ──
+if [[ $BACKFILL -eq 1 ]]; then
+  title "Backfill from Cloud (idempotent)"
+  cd "$SCRIPT_DIR"
+  [[ -f .env ]] || fail ".env не найден — backfill доступен только на установленной системе."
+  set -a; . ./.env; set +a
+  : "${CASINO_ID:?CASINO_ID не задан в .env}"
+  : "${SYNC_SECRET:?SYNC_SECRET не задан — сервер ещё не спарен с Cloud}"
+
+  log "Запускаю pair-cli.js sync (стрим cloud-seed-export, ON CONFLICT DO UPDATE)…"
+  if ! docker compose exec -T cms-sync node /app/pair-cli.js sync; then
+    fail "Backfill завершился с ошибкой. См. логи: docker compose logs --tail=80 cms-sync"
+  fi
+  ok "Backfill завершён."
+  log "Проверьте: sudo casino-update --verify-parity"
+  exit 0
+fi
+
 # ── Verify-parity fast path: сравнить локальную копию с Cloud ──────────────
 if [[ $VERIFY -eq 1 ]]; then
   title "Verify parity (Local ↔ Cloud)"
@@ -267,12 +286,21 @@ if [[ $VERIFY -eq 1 ]]; then
     echo "$PARITY_JSON" | grep -oE "\"$1\"[[:space:]]*:[[:space:]]*[0-9]+" | head -1 | grep -oE '[0-9]+$' || echo ""
   }
 
+  # Глобальные / Cloud-only таблицы — расхождение ожидаемо (super_admin'ы из других казино,
+  # cloud-side оркестрация). Показываем как INFO и не считаем в DIFF.
+  is_info_table() {
+    case "$1" in
+      user_roles|user_casino_access|sync_table_registry|node_modes|mirror_cutover_state) return 0 ;;
+      *) return 1 ;;
+    esac
+  }
+  INFO=0
   for T in "${TABLES[@]}"; do
     case "$T" in
       player_cards|player_tags)
         LOC=$("${PG_RUN[@]}" -c "SELECT count(*) FROM public.${T} t JOIN public.players p ON p.id=t.player_id WHERE p.casino_id='${CASINO_ID}'" 2>/dev/null || true)
         ;;
-      casinos|user_roles|user_casino_access|sync_table_registry)
+      casinos|user_roles|user_casino_access|sync_table_registry|node_modes)
         LOC=$("${PG_RUN[@]}" -c "SELECT count(*) FROM public.${T}" 2>/dev/null || true)
         ;;
       *)
@@ -288,6 +316,9 @@ if [[ $VERIFY -eq 1 ]]; then
     elif [[ "$LOC" == "$CLD" ]]; then
       printf "  %-32s %12s %12s   ${GREEN}%s${NC}\n" "$T" "$LOC" "$CLD" "OK"
       PASS=$((PASS+1))
+    elif is_info_table "$T"; then
+      printf "  %-32s %12s %12s   ${CYAN}%s${NC}\n" "$T" "$LOC" "$CLD" "INFO"
+      INFO=$((INFO+1))
     else
       printf "  %-32s %12s %12s   ${YELLOW}%s${NC}\n" "$T" "$LOC" "$CLD" "DIFF"
       DIFF=$((DIFF+1))
@@ -324,7 +355,12 @@ if [[ $VERIFY -eq 1 ]]; then
 
   echo
   hr
-  printf "  ${BOLD}Итог:${NC}  ${GREEN}OK: %d${NC}   ${YELLOW}DIFF: %d${NC}   ${RED}MISSING: %d${NC}\n" "$PASS" "$DIFF" "$MISS"
+  printf "  ${BOLD}Итог:${NC}  ${GREEN}OK: %d${NC}   ${YELLOW}DIFF: %d${NC}   ${CYAN}INFO: %d${NC}   ${RED}MISSING: %d${NC}\n" "$PASS" "$DIFF" "$INFO" "$MISS"
+  if [[ $DIFF -gt 0 ]]; then
+    echo
+    warn "Есть расхождения. Запустите дозалив из Cloud:"
+    echo "    sudo casino-update --backfill"
+  fi
   hr
   exit 0
 fi
