@@ -506,6 +506,18 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
     />
   ) : null;
 
+  const sharedExtras = (
+    <>
+      {blacklistDialog}
+      <PlayerPhotoLightbox
+        open={lightboxOpen}
+        onOpenChange={setLightboxOpen}
+        src={lightboxSrc}
+        alt={player ? `${player.first_name} ${player.last_name}` : undefined}
+      />
+    </>
+  );
+
   if (isMobile) {
     return (
       <>
