@@ -117,6 +117,9 @@ export const PeerLinksPanel = () => {
   const [secretReveal, setSecretReveal] = useState<{ name: string; secret: string } | null>(null);
   const [pairingCode, setPairingCode] = useState("");
   const [pairingCasinoId, setPairingCasinoId] = useState("");
+  const [wipeCasinoId, setWipeCasinoId] = useState("");
+  const [wipeConfirmSlug, setWipeConfirmSlug] = useState("");
+  const [wipeOpen, setWipeOpen] = useState(false);
 
   const updateStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: PeerStatus }) => {
