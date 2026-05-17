@@ -567,11 +567,17 @@ async function cloneFromCloud(pool, conn, casinoId, initiatorUserId) {
     //    push the freshly-imported rows back to Cloud.
     await client.query(`SELECT public.sync_reset_outbox($1::uuid, true)`, [casinoId]);
 
-    // 2) Wipe casino-scoped rows
+    // 2) Wipe casino-scoped rows. Some player child tables do not have casino_id;
+    // wipe them through players first so clone is a true replacement, not a merge.
+    const playerScopedTables = new Set(["player_cards", "player_tags", "group_members"]);
     for (const t of wipeTables) {
       try {
         await client.query("SAVEPOINT clone_wipe_table");
-        await client.query(`DELETE FROM public.${t} WHERE casino_id = $1::uuid`, [casinoId]);
+        if (playerScopedTables.has(t)) {
+          await client.query(`DELETE FROM public.${t} WHERE player_id IN (SELECT id FROM public.players WHERE casino_id = $1::uuid)`, [casinoId]);
+        } else {
+          await client.query(`DELETE FROM public.${t} WHERE casino_id = $1::uuid`, [casinoId]);
+        }
         await client.query("RELEASE SAVEPOINT clone_wipe_table");
       } catch (e) {
         await client.query("ROLLBACK TO SAVEPOINT clone_wipe_table").catch(() => {});
