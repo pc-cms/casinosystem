@@ -16,6 +16,7 @@ import { SyncMirrorPanel } from "@/components/admin/SyncMirrorPanel";
 import { LocalUpdaterPanel } from "@/components/admin/LocalUpdaterPanel";
 import { MirrorHealthPanel } from "@/components/admin/MirrorHealthPanel";
 import { SyncStatusPanel } from "@/components/admin/SyncStatusPanel";
+import { DataInventoryPanel } from "@/components/admin/DataInventoryPanel";
 import { ApplyErrorsPanel } from "@/components/admin/ApplyErrorsPanel";
 import { ServersPanel } from "@/components/admin/ServersPanel";
 import { resetPWACache } from "@/lib/pwa-register";
