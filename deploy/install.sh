@@ -639,7 +639,26 @@ fi
 
 
 
-# systemd
+# ── cms-status CLI (Ubuntu diagnostics, works even if frontend is down) ──
+CLI_SRC="${SCRIPT_DIR}/cli"
+CLI_DST="/opt/casino-system/cli"
+if [[ -d "$CLI_SRC" ]]; then
+  mkdir -p "$CLI_DST"
+  cp -f "${CLI_SRC}/cms-status.mjs" "${CLI_DST}/cms-status.mjs"
+  cp -f "${CLI_SRC}/package.json"    "${CLI_DST}/package.json"
+  chmod +x "${CLI_DST}/cms-status.mjs"
+  # Install pg via npm into /opt (idempotent, offline-tolerant)
+  if command -v npm >/dev/null 2>&1; then
+    (cd "$CLI_DST" && npm install --omit=dev --no-audit --no-fund --silent 2>/dev/null) || \
+      warn "cms-status: npm install pg failed (offline?). CLI will work once 'npm i pg' runs in ${CLI_DST}."
+  else
+    warn "npm не найден — cms-status CLI установлен без зависимостей. Установите Node.js + npm и выполните 'cd ${CLI_DST} && npm i'."
+  fi
+  # Symlink to /usr/local/bin
+  ln -sf "${CLI_DST}/cms-status.mjs" /usr/local/bin/cms-status
+  ok "cms-status CLI установлен — запускайте 'sudo cms-status' для диагностики"
+fi
+
 SYSTEMD_UNIT=/etc/systemd/system/casino-system.service
 if [[ ! -f "$SYSTEMD_UNIT" ]]; then
   cat > "$SYSTEMD_UNIT" <<EOF
@@ -687,6 +706,7 @@ echo -e "  ℹ️  Опционально: скопируйте ${BOLD}certs/ca.
 echo
 echo -e "  📊 Статус:     ${CYAN}docker compose ps${NC}"
 echo -e "  📜 Логи:       ${CYAN}docker compose logs -f${NC}"
+echo -e "  🩺 Диагностика: ${CYAN}sudo cms-status${NC}   (mirror | logs | errors | probe <peer>)"
 echo -e "  🔄 Меню:        ${CYAN}sudo casino-update${NC}   (или sudo ./deploy/install.sh)"
 echo -e "  ⬆️  Обновить:    ${CYAN}sudo casino-update --update${NC}"
 echo -e "  💣 Стереть всё: ${CYAN}sudo casino-update --wipe${NC}"

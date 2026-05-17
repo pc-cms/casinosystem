@@ -357,13 +357,10 @@ async function peerHandshake(pool, req, res, body, peer) {
 async function peerPush(pool, res, body, peer) {
   // body: { changes: [{ id, table, op, pk, payload, changed_at, origin_node_id }] }
   const changes = Array.isArray(body.changes) ? body.changes : [];
-  if (changes.length === 0) return send(res, 200, { accepted: [] });
+  if (changes.length === 0) return send(res, 200, { accepted: [], rejected: [] });
 
-  // Per-peer casino_id whitelist enforcement.
-  // If peer has owned_casino_ids set on their side, those + global (NULL) are allowed.
-  // We trust peer not to lie about its origin — but every change carries origin_node_id,
-  // and we never echo our own changes back (filtered on PULL).
   const accepted = [];
+  const rejected = [];
   const client = await pool.connect();
   try {
     for (const ch of changes) {
@@ -381,20 +378,30 @@ async function peerPush(pool, res, body, peer) {
         );
         accepted.push(ch.id);
       } catch (e) {
-        // Log and continue — don't fail the whole batch
-        console.log(JSON.stringify({ ts: new Date().toISOString(), lvl: "warn", msg: "peer.push.apply.fail", peer: peer.display_name, table: ch.table, id: ch.id, err: String(e?.message ?? e).slice(0, 240) }));
+        const errMsg = String(e?.message ?? e).slice(0, 480);
+        const errCode = e?.code || "apply_failed";
+        console.log(JSON.stringify({ ts: new Date().toISOString(), lvl: "warn", msg: "peer.push.apply.fail", peer: peer.display_name, table: ch.table, id: ch.id, err: errMsg }));
+        rejected.push({ outbox_id: ch.id, error_code: errCode, error_text: errMsg });
+        // Persist for diagnostics
+        try {
+          const payloadHash = crypto.createHash("md5").update(JSON.stringify(ch.payload ?? {})).digest("hex");
+          await client.query(
+            `SELECT public.sync_record_apply_error($1::uuid, $2::bigint, $3::text, $4::text, $5::jsonb, $6::text, $7::text, $8::text)`,
+            [peer.id, ch.id ?? null, ch.table ?? "unknown", ch.op ?? null, ch.pk ?? {}, payloadHash, errCode, errMsg]
+          );
+        } catch { /* swallow */ }
       }
     }
     await client.query(
       `UPDATE public.peer_links
-          SET last_seen_at = now(), last_push_error = NULL
+          SET last_seen_at = now(), last_push_error = $2
         WHERE id = $1`,
-      [peer.id]
+      [peer.id, rejected.length ? `${rejected.length} rejected` : null]
     );
   } finally {
     client.release();
   }
-  return send(res, 200, { accepted });
+  return send(res, 200, { accepted, rejected });
 }
 
 async function peerPull(pool, res, body, peer) {

@@ -20,7 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Plus, Trash2, Pause, Play, CheckCircle2, XCircle, Sparkles, Server, Cloud } from "lucide-react";
+import { Trash2, Pause, Play, CheckCircle2, XCircle, Sparkles, Server, Cloud } from "lucide-react";
 import { RecentExchangeActivity } from "./RecentExchangeActivity";
 
 type PeerStatus = "pending_outbound" | "pending_inbound" | "active" | "paused" | "rejected";
@@ -114,37 +114,9 @@ export const PeerLinksPanel = () => {
   const { data: peers = [] } = usePeerLinks();
   const { data: casinos = [] } = useCasinos();
 
-  const [showAdd, setShowAdd] = useState(false);
-  const [peerUrl, setPeerUrl] = useState("");
-  const [displayName, setDisplayName] = useState("");
-  const [secret, setSecret] = useState("");
   const [secretReveal, setSecretReveal] = useState<{ name: string; secret: string } | null>(null);
   const [pairingCode, setPairingCode] = useState("");
   const [pairingCasinoId, setPairingCasinoId] = useState("");
-
-  const addPeer = useMutation({
-    mutationFn: async () => {
-      const finalSecret = secret.trim() || generateSecret();
-      const { error } = await supabase.from("peer_links" as any).insert({
-        peer_url: peerUrl.trim().replace(/\/$/, ""),
-        display_name: displayName.trim() || peerUrl.trim(),
-        sync_secret: finalSecret,
-        status: "pending_outbound",
-      } as any);
-      if (error) throw error;
-      return { secret: finalSecret, name: displayName.trim() || peerUrl.trim() };
-    },
-    onSuccess: ({ secret, name }) => {
-      qc.invalidateQueries({ queryKey: ["peer-links"] });
-      toast.success("Peer added — handshake will be attempted by cms-sync");
-      setShowAdd(false);
-      setPeerUrl("");
-      setDisplayName("");
-      setSecret("");
-      setSecretReveal({ name, secret });
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
 
   const updateStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: PeerStatus }) => {
@@ -301,9 +273,6 @@ export const PeerLinksPanel = () => {
           >
             <Sparkles className="w-3.5 h-3.5" /> Clear Stale
           </Button>
-          <Button onClick={() => setShowAdd(true)} className="gap-1.5">
-            <Plus className="w-4 h-4" /> Add Peer
-          </Button>
         </div>
       </div>
 
@@ -445,46 +414,6 @@ export const PeerLinksPanel = () => {
         </table>
       </div>
 
-      {/* Add Peer dialog */}
-      <Dialog open={showAdd} onOpenChange={setShowAdd}>
-        <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>Add Peer</DialogTitle></DialogHeader>
-          <div className="space-y-3">
-            <div>
-              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1 block">Peer URL</label>
-              <Input
-                value={peerUrl}
-                onChange={(e) => setPeerUrl(e.target.value)}
-                placeholder="https://192.168.1.50 or https://casinosystem.app"
-                className="font-mono"
-              />
-              <p className="text-[10px] text-muted-foreground mt-1">Root URL of the other node. cms-sync will hit /peer/handshake.</p>
-            </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1 block">Display Name</label>
-              <Input value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="e.g. Mwanza local / Cloud" />
-            </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1 block">Shared Secret (optional)</label>
-              <Input
-                value={secret}
-                onChange={(e) => setSecret(e.target.value)}
-                placeholder="Leave empty to auto-generate"
-                className="font-mono text-[11px]"
-              />
-              <p className="text-[10px] text-muted-foreground mt-1">
-                The peer must enter the same secret on their side. We'll show it once after creating.
-              </p>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAdd(false)}>Cancel</Button>
-            <Button onClick={() => addPeer.mutate()} disabled={!peerUrl.trim() || addPeer.isPending}>
-              {addPeer.isPending ? "Adding..." : "Add Peer"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Reveal secret once */}
       <Dialog open={!!secretReveal} onOpenChange={(o) => !o && setSecretReveal(null)}>
