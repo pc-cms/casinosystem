@@ -1,141 +1,69 @@
-# Universal Installer (cms-installer)
+# Make Arusha local server visible & ready to promote
 
-Один скрипт, один curl. Никаких `CASINO=mwanza` в командной строке, никаких отдельных `pair.sh` / `update.sh` / `install.sh`. Всё через интерактивное меню.
+Three small, independent fixes to close the gap between "pairing works" and "I can click Promote to Primary in Cloud admin".
 
-## Точка входа
+## 1. Auto-register local server in `casino_servers` on pairing
 
-```
-curl -fsSL https://casinosystem.app/cms | sudo bash
-```
+**Problem:** After successful pair, Cloud's *Servers (Primary/Replica)* panel stays empty — so the **Promote to Primary** button never appears, even though sync is healthy.
 
-Алиас на `public/cms-installer.sh`. Старые URL (`/install.sh`, `/pair.sh`, `/update.sh`) остаются как тонкие враппepы для обратной совместимости — внутри вызывают `cms-installer` с предзаполненным режимом.
+**Fix:** In `supabase/functions/peer-mesh/index.ts`, inside the **approve-pairing** handler (the one that consumes the pairing code and creates the symmetric peer rows), add an idempotent insert:
 
-## Главное меню
-
-После запуска скрипт показывает состояние машины (есть/нет установка, версия, режим, sync-статус) и меню:
-
-```
-Casino Management System — Installer v2
-
-Detected: arusha-local, v1.3.51, Cloud-connected, mirror=ok, replica
-
-  1) Install              — set up a new server
-  2) Update               — upgrade code/containers, keep DB
-  3) Wipe & Reinstall     — destroy DB + reinstall (asks again)
-  4) Status / Diagnostics — version, sync, peers, logs
-
-  q) Quit
-
-Choose [1-4]:
+```sql
+INSERT INTO casino_servers (casino_id, node_id, display_name, local_url, role)
+VALUES ($casino_id, $local_node_id, $local_display_name, $local_url, 'replica')
+ON CONFLICT (node_id) DO UPDATE
+  SET display_name = EXCLUDED.display_name,
+      local_url    = EXCLUDED.local_url;
 ```
 
-Меню — единственный способ запустить любое действие. Никаких флагов. Любая деструктивная операция спрашивает подтверждение фразой `WIPE`.
-
-## Режим 1 — Install
-
-Подрежим:
+Cloud is **not** inserted as a row — Cloud is the implicit primary until a replica is promoted. After the local box pairs, the Cloud admin will show:
 
 ```
-  a) Cloud-connected   — sync with cloud, pick existing casino
-  b) Standalone offline — no cloud, optional snapshot restore
+[Crown] Local Server   https://192.168.1.94   [primary?]  ← no, [replica]
+                                                          [Promote to Primary]
 ```
 
-### 1a — Cloud-connected (универсальный для Arusha / Mwanza / Dodoma / Mbeya)
+## 2. Promote flow stays simple (no Cloud-side changes)
 
-1. `docker compose up -d` (Postgres + frontend + cms-sync + cms-updater).
-2. Скрипт делает запрос к Cloud edge-функции `installer-list-casinos` (новая, public, возвращает `[{slug, display_name, subdomain, active}]` — только активные).
-3. Показывает нумерованный список:
-   ```
-   Available casinos in cloud:
-     1) Arusha   (arusha.casinosystem.app)
-     2) Mwanza   (mwanza.casinosystem.app)
-     3) Dodoma   (dodoma.casinosystem.app)
-     4) Mbeya    (mbeya.casinosystem.app)
-   Pick [1-4]:
-   ```
-4. Пользователь выбирает номер → `CASINO_SLUG` сохраняется в `/etc/cms/server.env`.
-5. Спрашивает Pair Token (одноразовый, генерится в Cloud Admin → Servers → "Add Server").
-6. Прогон `cloud-seed-export` → стрим в локальный Postgres → ждём `mirror=ok` (polling каждые 5с, прогресс-бар).
-7. Cloud остаётся primary. Локальный — replica. Конец установки.
-8. В UI Admin → Servers пользователь сам нажимает **Promote to Primary** когда хочет.
+Per your decision: when you click **Promote to Primary** on `arusha.casinosystem.app/admin`:
+- Local row flips `role = 'primary'`.
+- Cloud stays a peer in the mesh, keeps mirroring both directions.
+- No read-only lockdown on Cloud, no subdomain redirect — clients on `arusha.casinosystem.app` keep writing to Cloud, and the mesh propagates to local within ~5 s. Clients on `https://192.168.1.94` write to local directly.
+- This means the existing `sync_promote_server` RPC + the `PROMOTE` confirmation prompt we already added are enough. **No code change needed for promote itself.**
 
-Этот сценарий покрывает оба исходных кейса (Arusha с полным сидом, Mwanza с почти пустым) — разница только в объёме данных, логика одна.
+## 3. Remove "Reset Cloud Data" from Cloud admin
 
-### 1b — Standalone offline
+The big red **Reset Cloud Data** button on `arusha.casinosystem.app/admin → Peers` is dangerous and no longer needed (the new installer never asks for `SKIP_SEED`). Remove the entire block from `src/components/admin/PeersPanel.tsx` (or whichever file renders it — will locate during implementation).
 
-1. `docker compose up -d`.
-2. Спрашивает: пустая БД или snapshot?
-3. Если snapshot — спрашивает источник: `local file path` или `URL`. Скачивает/читает, `pg_restore` в локальный Postgres.
-4. Создаётся локальный super_admin. Sync выключен (`CMS_SYNC_ENABLED=false`).
-5. Casino slug либо берётся из snapshot, либо запрашивается вручную (только в этом режиме допустим ручной ввод).
+Also remove the `sync_reset_outbox`-driven UI helpers if they're only used by that button.
 
-## Режим 2 — Update
+## 4. Server Identity "Not configured" badge
 
-1. `cms-updater` pull последнего тега из GitHub Releases.
-2. `docker compose pull && up -d`.
-3. БД не трогается. Миграции применяются автоматически (idempotent).
-4. Версия в `/etc/cms/version` обновляется.
+No code change — you just haven't pressed **Save & restart** yet on the local box. After you do:
+- Slug: `local` → `arusha`
+- Display name: `Local Casino` → `Arusha Cloud`
+- Badge: `Not configured` → green/configured
+- cms-frontend restarts (~30 s)
 
-## Режим 3 — Wipe & Reinstall
+I'll leave a note in the form's helper text reminding users to pick the matching casino from the dropdown before saving (the dropdown already shows real casinos from Cloud).
 
-1. Требует ввод `WIPE` в верхнем регистре.
-2. `docker compose down -v` (удаляет volume Postgres).
-3. Удаляет `/etc/cms/server.env` и pair-token.
-4. Возвращается в меню Install (1a или 1b).
+## Technical details
 
-## Режим 4 — Status / Diagnostics
+**Files touched:**
+- `supabase/functions/peer-mesh/index.ts` — add `casino_servers` upsert in pair-approve path. Reads local node_id, display_name, local_url from the pairing payload (already sent by `cms-sync` during pair).
+- `src/components/admin/PeersPanel.tsx` (or `ResetCloudDataCard.tsx` if extracted) — delete the Reset Cloud Data card.
+- `package.json` — patch bump (backend change → auto bump rule).
 
-Печатает:
-- Версия фронтенда + БД миграций
-- Режим (cloud / standalone), casino slug
-- Sync: cursor, outbox lag, последний обмен, peers
-- Контейнеры (docker ps)
-- Последние 50 строк логов cms-sync
+**No DB migration needed** — `casino_servers` table already exists with the right columns.
 
-Только чтение, ничего не меняет.
+**What won't change:**
+- The pairing UX (PAIRING CODE + Pick casino + Approve) stays identical.
+- `cms-sync` on the local box doesn't need any change.
+- The installer doesn't need any change — pairing already happens in the Cloud-connected install flow.
 
-## Bootstrap super_admin — local-only
+## Verification after deploy
 
-Подтверждённое решение:
-
-- При **любой** установке создаётся локальный super_admin `admin@local` с паролем из `/etc/cms/server.env` (генерится случайно при первой установке, показывается один раз).
-- Этот пользователь **никогда** не реплицируется в Cloud. Триггер `cms_sync_outbox` исключает `auth.users` где `email LIKE '%@local'` и связанные `user_roles`.
-- При Cloud-connected установке Cloud-овский super_admin приходит через seed и работает параллельно.
-- Если интернет упал — `admin@local` всегда доступен на `http://<server>.local`.
-- При promotion to Primary локальный super_admin остаётся, Cloud-овский продолжает работать (они независимы).
-
-## Что нужно построить
-
-### Новое
-- `public/cms-installer.sh` — единый интерактивный скрипт (меню, цвета, подтверждения, polling).
-- Edge function `installer-list-casinos` — публичный список активных казино (slug, display_name, subdomain).
-- Edge function `installer-issue-pair-token` уже существует как часть `peer-mesh` — переиспользуем.
-- Кнопка **Add Server** в `ServersPanel.tsx` — генерит pair-token, копируется в буфер, показывается команда `curl ... | sudo bash`.
-
-### Изменения
-- `public/install.sh`, `public/pair.sh`, `public/update.sh` → тонкие враппepы, делают `exec curl .../cms` с переменной `CMS_PREFILL_MODE=install|pair|update` (только для backward compat; новые пользователи всегда видят меню).
-- `deploy/install.sh` → удаляется (логика переезжает в `cms-installer.sh`, который работает как из curl, так и локально).
-- Sync outbox trigger → добавить exclusion для `@local` super_admin.
-- `ServersPanel.tsx` → блокировка кнопки **Promote to Primary** пока `mirror_status != 'ok'` (уже обсуждалось, добавим в этом же подходе).
-
-### Удаляется
-- Логика `SKIP_SEED` и явный `Reset Cloud Data` flow из `pair.sh` — в новом скрипте Reset Cloud — это отдельная кнопка в Cloud Admin, не часть установщика. Standalone-режим заменяет необходимость в SKIP_SEED.
-
-## Безопасность
-
-- Pair-token одноразовый, TTL 1 час, привязан к выбранному casino_slug на стороне Cloud. Невозможно ошибиться казино — токен валиден только для одного.
-- `WIPE` подтверждение исключает случайный выбор пункта 3.
-- Локальный super_admin пароль показывается один раз при первой установке + сохраняется в `/etc/cms/server.env` (root-only, 0600).
-- Список казино публичный (slug + display_name + subdomain), без чувствительных данных.
-
-## Документация
-
-Один файл `deploy/INSTALL.md`:
-
-```
-# Установка
-curl -fsSL https://casinosystem.app/cms | sudo bash
-# Дальше следуй меню.
-```
-
-Всё. Никаких 25 шагов.
+1. On the local box admin (192.168.1.94) → press **Save & restart** on Server Identity → wait 30 s → badge turns green.
+2. On `arusha.casinosystem.app/admin → Peers` → *Servers (Primary/Replica)* panel now shows **Local Server** with a **Promote to Primary** button.
+3. Reset Cloud Data card is gone.
+4. Click Promote → type `PROMOTE` → Local Server gets the crown, Cloud stays in the peer list as replica, sync keeps running.
