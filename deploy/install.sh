@@ -659,6 +659,35 @@ if [[ -d "$CLI_SRC" ]]; then
   ok "cms-status CLI установлен — запускайте 'sudo cms-status' для диагностики"
 fi
 
+# ── systemd timer for `cms-status pull-cmd` (Cloud→Local remote-control) ──
+# Polls peer-mesh /node/commands/pop every 60s, runs whitelisted actions
+# (restart_sync, repair_pairing, retry_errors). No SSH required.
+PULLCMD_SERVICE=/etc/systemd/system/cms-pull-cmd.service
+PULLCMD_TIMER=/etc/systemd/system/cms-pull-cmd.timer
+cat > "$PULLCMD_SERVICE" <<EOF
+[Unit]
+Description=Casino System — pull remote commands from Cloud
+After=network-online.target docker.service
+Wants=network-online.target
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/cms-status pull-cmd
+EOF
+cat > "$PULLCMD_TIMER" <<EOF
+[Unit]
+Description=Casino System — poll Cloud commands every 60s
+[Timer]
+OnBootSec=90
+OnUnitActiveSec=60
+Unit=cms-pull-cmd.service
+[Install]
+WantedBy=timers.target
+EOF
+systemctl daemon-reload 2>/dev/null || true
+systemctl enable --now cms-pull-cmd.timer 2>/dev/null \
+  && ok "cms-pull-cmd.timer enabled — Cloud commands pulled every 60s" \
+  || warn "cms-pull-cmd.timer could not be enabled (systemd unavailable?)"
+
 SYSTEMD_UNIT=/etc/systemd/system/casino-system.service
 if [[ ! -f "$SYSTEMD_UNIT" ]]; then
   cat > "$SYSTEMD_UNIT" <<EOF
