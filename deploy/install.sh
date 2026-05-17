@@ -217,9 +217,10 @@ if [[ $VERIFY -eq 1 ]]; then
   TABLES=(players gaming_tables shifts daily_summaries employees casinos
           transactions expenses casino_visits client_sessions
           player_cards player_tags player_notes player_chip_adjustments
-          chips chip_emissions cage_shifts cash_count_entries
+          chip_inventory chip_emissions cash_counts
           table_tracker table_daily_results business_day_closures
-          user_roles user_casino_access)
+          player_position_history mirror_cutover_state node_modes
+          sync_table_registry user_roles user_casino_access)
 
   PASS=0; DIFF=0; MISS=0
   printf "\n  ${BOLD}%-32s %12s %12s   %s${NC}\n" "Table" "Local" "Cloud" "Status"
