@@ -414,46 +414,6 @@ export const PeerLinksPanel = () => {
         </table>
       </div>
 
-      {/* Add Peer dialog */}
-      <Dialog open={showAdd} onOpenChange={setShowAdd}>
-        <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>Add Peer</DialogTitle></DialogHeader>
-          <div className="space-y-3">
-            <div>
-              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1 block">Peer URL</label>
-              <Input
-                value={peerUrl}
-                onChange={(e) => setPeerUrl(e.target.value)}
-                placeholder="https://192.168.1.50 or https://casinosystem.app"
-                className="font-mono"
-              />
-              <p className="text-[10px] text-muted-foreground mt-1">Root URL of the other node. cms-sync will hit /peer/handshake.</p>
-            </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1 block">Display Name</label>
-              <Input value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="e.g. Mwanza local / Cloud" />
-            </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1 block">Shared Secret (optional)</label>
-              <Input
-                value={secret}
-                onChange={(e) => setSecret(e.target.value)}
-                placeholder="Leave empty to auto-generate"
-                className="font-mono text-[11px]"
-              />
-              <p className="text-[10px] text-muted-foreground mt-1">
-                The peer must enter the same secret on their side. We'll show it once after creating.
-              </p>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAdd(false)}>Cancel</Button>
-            <Button onClick={() => addPeer.mutate()} disabled={!peerUrl.trim() || addPeer.isPending}>
-              {addPeer.isPending ? "Adding..." : "Add Peer"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Reveal secret once */}
       <Dialog open={!!secretReveal} onOpenChange={(o) => !o && setSecretReveal(null)}>
