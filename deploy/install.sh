@@ -286,12 +286,21 @@ if [[ $VERIFY -eq 1 ]]; then
     echo "$PARITY_JSON" | grep -oE "\"$1\"[[:space:]]*:[[:space:]]*[0-9]+" | head -1 | grep -oE '[0-9]+$' || echo ""
   }
 
+  # Глобальные / Cloud-only таблицы — расхождение ожидаемо (super_admin'ы из других казино,
+  # cloud-side оркестрация). Показываем как INFO и не считаем в DIFF.
+  is_info_table() {
+    case "$1" in
+      user_roles|user_casino_access|sync_table_registry|node_modes|mirror_cutover_state) return 0 ;;
+      *) return 1 ;;
+    esac
+  }
+  INFO=0
   for T in "${TABLES[@]}"; do
     case "$T" in
       player_cards|player_tags)
         LOC=$("${PG_RUN[@]}" -c "SELECT count(*) FROM public.${T} t JOIN public.players p ON p.id=t.player_id WHERE p.casino_id='${CASINO_ID}'" 2>/dev/null || true)
         ;;
-      casinos|user_roles|user_casino_access|sync_table_registry)
+      casinos|user_roles|user_casino_access|sync_table_registry|node_modes)
         LOC=$("${PG_RUN[@]}" -c "SELECT count(*) FROM public.${T}" 2>/dev/null || true)
         ;;
       *)
@@ -307,6 +316,9 @@ if [[ $VERIFY -eq 1 ]]; then
     elif [[ "$LOC" == "$CLD" ]]; then
       printf "  %-32s %12s %12s   ${GREEN}%s${NC}\n" "$T" "$LOC" "$CLD" "OK"
       PASS=$((PASS+1))
+    elif is_info_table "$T"; then
+      printf "  %-32s %12s %12s   ${CYAN}%s${NC}\n" "$T" "$LOC" "$CLD" "INFO"
+      INFO=$((INFO+1))
     else
       printf "  %-32s %12s %12s   ${YELLOW}%s${NC}\n" "$T" "$LOC" "$CLD" "DIFF"
       DIFF=$((DIFF+1))
