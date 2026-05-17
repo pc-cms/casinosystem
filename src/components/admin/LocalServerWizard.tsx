@@ -359,6 +359,12 @@ export const LocalServerWizard = () => {
         : undefined,
     },
     { key: "heartbeat", label: "Live Sync Heartbeat",     icon: Activity,     ...stages.heartbeat },
+    {
+      key: "probe", label: "Mirror Round-trip Probe", icon: Activity, ...stages.probe,
+      action: stages.probe.status !== "running"
+        ? { label: "Run Probe", onClick: () => runProbe(), disabled: false }
+        : undefined,
+    },
   ], [stages, updater.data, updaterApply.isPending, cloneStatus.data, cloneMut.isPending]);
 
   const done = stageList.filter(s => s.status === "ok" || s.status === "warn" || s.status === "error").length;
