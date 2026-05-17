@@ -70,6 +70,9 @@ const TABLES: Array<{ name: string; scope: "single" | "full" | "global" | "by_us
   { name: "dealers", scope: "full" },
   { name: "staff_members", scope: "full" },
 
+  // 3b. Employees (HR master list — separate from dealers/staff_members which are role-specific)
+  { name: "employees", scope: "full" },
+
   // 4. Игроки и карты
   { name: "players", scope: "full" },
   { name: "player_cards", scope: "full" },
@@ -77,6 +80,9 @@ const TABLES: Array<{ name: string; scope: "single" | "full" | "global" | "by_us
   { name: "group_members", scope: "full" },
   { name: "player_tags", scope: "full" },
   { name: "player_notes", scope: "full" },
+  { name: "player_economy", scope: "full" },
+  { name: "player_session_stats", scope: "full", sinceDays: 365 },
+  { name: "player_session_drops", scope: "full", sinceDays: 365 },
 
   // 5. Пользователи системы — auth.users шлются отдельным потоком (см. ниже)
   //    после обычных таблиц. Здесь — связанные с ними public-таблицы.
@@ -124,6 +130,17 @@ const TABLES: Array<{ name: string; scope: "single" | "full" | "global" | "by_us
   { name: "monthly_tips_entries", scope: "full", sinceDays: 365 },
   { name: "weekly_bonus_pools", scope: "full", sinceDays: 365 },
   { name: "weekly_bonus_entries", scope: "full", sinceDays: 365 },
+
+  // 7. Audit & log tables (Clone берёт все строки в режиме days=all)
+  { name: "activity_logs", scope: "full", sinceDays: 90 },
+  { name: "activity_logs_archive", scope: "full", sinceDays: 365 },
+  { name: "breaklist_logs", scope: "full", sinceDays: 90 },
+  { name: "breaklist_logs_archive", scope: "full", sinceDays: 365 },
+  { name: "budget_logs", scope: "full", sinceDays: 365 },
+  { name: "casino_visits_archive", scope: "full", sinceDays: 365 },
+  { name: "client_sessions_archive", scope: "full", sinceDays: 365 },
+  { name: "incidents_audit", scope: "full", sinceDays: 365 },
+  { name: "payroll_audit_log", scope: "full", sinceDays: 365 },
 ];
 
 const PAGE_SIZE = 1000;
@@ -167,6 +184,17 @@ const DATE_COLUMN: Record<string, string> = {
   monthly_tips_entries: "created_at",
   weekly_bonus_pools: "period_start",
   weekly_bonus_entries: "created_at",
+  player_session_stats: "updated_at",
+  player_session_drops: "created_at",
+  activity_logs: "created_at",
+  activity_logs_archive: "created_at",
+  breaklist_logs: "created_at",
+  breaklist_logs_archive: "created_at",
+  budget_logs: "created_at",
+  casino_visits_archive: "created_at",
+  client_sessions_archive: "created_at",
+  incidents_audit: "created_at",
+  payroll_audit_log: "created_at",
 };
 
 Deno.serve(async (req) => {
