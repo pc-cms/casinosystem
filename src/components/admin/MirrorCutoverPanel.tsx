@@ -84,10 +84,12 @@ export function MirrorCutoverPanel() {
   const { activeCasinoId, activeCasino } = useCasino();
   const activeName = activeCasino?.name ?? activeCasino?.slug ?? null;
   const isLocalNode = detectIsLocalNode();
+  const { mode } = useReplicationMode();
 
   const [localSnap, setLocalSnap] = useState<ParityResponse | null>(null);
   const [cloudSnap, setCloudSnap] = useState<ParityResponse | null>(null);
   const [loading, setLoading] = useState(false);
+  const [promoting, setPromoting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const runCheck = async () => {
