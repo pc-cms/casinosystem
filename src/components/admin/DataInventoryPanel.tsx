@@ -54,23 +54,25 @@ export function DataInventoryPanel() {
 
   return (
     <PageSection
-      title="Data Inventory"
-      description={
-        <span>
-          Per-table row counts for <b>{activeCasinoName ?? "current casino"}</b>.
-          Run this on both Cloud and Local — the numbers should match table-by-table
-          once sync has fully caught up. Mismatches reveal exactly which module
-          hasn't replicated.
+      title={
+        <span className="flex items-center gap-2">
+          <Database className="h-4 w-4" /> Data Inventory
         </span>
       }
-      icon={Database}
-      actions={
+      titleRight={
         <Button onClick={snapshot} disabled={loading || !activeCasinoId} size="sm">
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
           <span className="ml-2">Snapshot</span>
         </Button>
       }
     >
+      <div className="text-xs text-muted-foreground mb-3">
+        Per-table row counts for <b>{activeCasinoName ?? "current casino"}</b>.
+        Run this on both <b>Cloud</b> and <b>Local</b> — the numbers should match
+        table-by-table once sync has fully caught up. Mismatches reveal exactly
+        which module hasn't replicated.
+      </div>
+
       {error && (
         <div className="text-sm text-destructive p-3 rounded-md bg-destructive/10 mb-3">
           {error}
