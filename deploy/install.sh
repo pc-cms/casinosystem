@@ -89,11 +89,12 @@ if [[ $MENU -eq 1 ]]; then
   echo
   HAS_ENV=0; [[ -f "${SCRIPT_DIR}/.env" ]] && HAS_ENV=1
   if [[ $HAS_ENV -eq 1 ]]; then
-    echo -e "    ${BOLD}1${NC})  ${GREEN}Обновить${NC}        — пересобрать ВСЁ (frontend + сервисы), БД и .env сохранить  ${YELLOW}(рекомендуется)${NC}"
-    echo -e "    ${BOLD}2${NC})  Переустановить    — пересоздать .env, сертификаты и пересобрать frontend (БД сохранить)"
-    echo -e "    ${BOLD}3${NC})  ${RED}Стереть всё${NC}     — удалить БД, .env, образы и поставить заново"
-    echo -e "    ${BOLD}4${NC})  Статус и логи"
-    echo -e "    ${BOLD}5${NC})  Выйти"
+    echo -e "    ${BOLD}1${NC})  ${GREEN}Обновить только Frontend${NC} — быстро (3-5 мин), БД и сервисы НЕ трогаются  ${YELLOW}(для UI-патчей)${NC}"
+    echo -e "    ${BOLD}2${NC})  ${GREEN}Обновить ВСЁ${NC}              — пересобрать frontend + sync + применить миграции БД"
+    echo -e "    ${BOLD}3${NC})  Переустановить              — пересоздать .env, сертификаты и пересобрать frontend (БД сохранить)"
+    echo -e "    ${BOLD}4${NC})  ${RED}Стереть всё${NC}              — удалить БД, .env, образы и поставить заново"
+    echo -e "    ${BOLD}5${NC})  Статус и логи"
+    echo -e "    ${BOLD}6${NC})  Выйти"
   else
     echo -e "    ${BOLD}1${NC})  ${GREEN}Установить${NC}      — чистая установка (БД и .env будут созданы)  ${YELLOW}(рекомендуется)${NC}"
     echo -e "    ${BOLD}2${NC})  ${RED}Стереть всё и поставить заново${NC}  — на всякий случай очистить остатки"
@@ -111,9 +112,10 @@ if [[ $MENU -eq 1 ]]; then
 
   if [[ $HAS_ENV -eq 1 ]]; then
     case "$CHOICE" in
-      1) echo -e "${GREEN}▶ Запускаю: Обновление (полная пересборка)${NC}"; UPDATE=1; REBUILD=1 ;;
-      2) echo -e "${GREEN}▶ Запускаю: Переустановка (.env + пересборка frontend)${NC}"; RESET=1; REBUILD=1 ;;
-      3)
+      1) echo -e "${GREEN}▶ Запускаю: Обновление Frontend (БД не трогаю)${NC}"; UPDATE_FRONT=1 ;;
+      2) echo -e "${GREEN}▶ Запускаю: Полное обновление${NC}"; UPDATE=1; REBUILD=1 ;;
+      3) echo -e "${GREEN}▶ Запускаю: Переустановка (.env + пересборка frontend)${NC}"; RESET=1; REBUILD=1 ;;
+      4)
          echo
          printf "  ⚠  Это удалит ВСЮ базу данных. Введите 'WIPE' для подтверждения: "
          CONFIRM=""; IFS= read -r -u 3 CONFIRM || true
@@ -121,12 +123,12 @@ if [[ $MENU -eq 1 ]]; then
          echo -e "${RED}▶ Запускаю: Полная очистка и установка с нуля${NC}"
          WIPE=1; RESET=1; REBUILD=1
          ;;
-      4)
+      5)
          echo; docker compose ps || true; echo
          echo -e "${CYAN}Последние логи (Ctrl+C для выхода):${NC}"
          exec docker compose logs --tail=100 -f
          ;;
-      5) echo "Выход."; exit 0 ;;
+      6) echo "Выход."; exit 0 ;;
       *) fail "Неизвестный выбор: '${CHOICE}'" ;;
     esac
   else
