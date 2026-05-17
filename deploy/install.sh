@@ -97,7 +97,8 @@ if [[ $MENU -eq 1 ]]; then
     echo -e "    ${BOLD}4${NC})  ${RED}Стереть всё${NC}              — удалить БД, .env, образы и поставить заново"
     echo -e "    ${BOLD}5${NC})  Статус и логи"
     echo -e "    ${BOLD}6${NC})  ${CYAN}Repair БД${NC}                 — починить схему (FKs, RPC) без пересборки/wipe"
-    echo -e "    ${BOLD}7${NC})  Выйти"
+    echo -e "    ${BOLD}7${NC})  ${CYAN}Verify parity${NC}             — сравнить локальную копию с Cloud (схема, данные, версия)"
+    echo -e "    ${BOLD}8${NC})  Выйти"
   else
     echo -e "    ${BOLD}1${NC})  ${GREEN}Установить${NC}      — чистая установка (БД и .env будут созданы)  ${YELLOW}(рекомендуется)${NC}"
     echo -e "    ${BOLD}2${NC})  ${RED}Стереть всё и поставить заново${NC}  — на всякий случай очистить остатки"
