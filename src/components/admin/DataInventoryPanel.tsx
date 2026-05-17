@@ -10,12 +10,12 @@
  */
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useCasino } from "@/contexts/CasinoContext";
+import { useCasino } from "@/lib/casino-context";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { PageSection } from "@/components/layout/PageSection";
+import { PageSection } from "@/components/layout/PageShell";
 import { Loader2, Database, RefreshCw } from "lucide-react";
-import { fmtDateTime } from "@/lib/datetime";
+import { fmtDateTime } from "@/lib/format-date";
 
 interface Row {
   table_name: string;
