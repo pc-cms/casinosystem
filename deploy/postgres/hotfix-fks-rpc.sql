@@ -24,7 +24,11 @@ DECLARE
     ARRAY['gaming_tables','casino_id','casinos','id'],
     ARRAY['shifts','casino_id','casinos','id'],
     ARRAY['daily_summaries','casino_id','casinos','id'],
-    ARRAY['employees','casino_id','casinos','id']
+    ARRAY['employees','casino_id','casinos','id'],
+    ARRAY['player_position_history','casino_id','casinos','id'],
+    ARRAY['player_position_history','player_id','players','id'],
+    ARRAY['player_position_history','table_id','gaming_tables','id'],
+    ARRAY['player_position_history','visit_id','casino_visits','id']
   ];
   tbl text; col text; rtbl text; rcol text; cname text;
 BEGIN
@@ -55,6 +59,30 @@ END $$;
 
 -- ─────────── 2. business_day_closures table (if missing) ───────────
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+CREATE TABLE IF NOT EXISTS public.player_position_history (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  casino_id uuid NOT NULL,
+  player_id uuid NOT NULL,
+  visit_id uuid,
+  table_id uuid,
+  position text NOT NULL,
+  started_at timestamptz NOT NULL DEFAULT now(),
+  ended_at timestamptz,
+  duration_seconds integer GENERATED ALWAYS AS (
+    CASE WHEN ended_at IS NOT NULL
+      THEN GREATEST(0, EXTRACT(EPOCH FROM (ended_at - started_at))::int)
+      ELSE NULL
+    END
+  ) STORED,
+  created_by uuid,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_player_position_history_casino_started
+  ON public.player_position_history(casino_id, started_at DESC);
+CREATE INDEX IF NOT EXISTS idx_player_position_history_player_started
+  ON public.player_position_history(player_id, started_at DESC);
 
 CREATE TABLE IF NOT EXISTS public.business_day_closures (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),

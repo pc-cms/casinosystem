@@ -249,6 +249,12 @@ async function pullPeer(peer) {
   for (const ch of changes) {
     const client = await pool.connect();
     try {
+      if (ch.table === "casinos") {
+        safeCursor = ch.id;
+        applied += 1;
+        rejectedRun = 0;
+        continue;
+      }
       await client.query("BEGIN");
       await client.query(`SELECT set_config('sync.applying','on', true)`);
       await client.query(

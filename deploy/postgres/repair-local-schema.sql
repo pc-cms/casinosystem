@@ -52,6 +52,30 @@ ALTER TABLE public.profiles
 CREATE INDEX IF NOT EXISTS idx_profiles_user_id ON public.profiles(user_id);
 CREATE INDEX IF NOT EXISTS idx_profiles_disabled_at ON public.profiles(disabled_at);
 
+CREATE TABLE IF NOT EXISTS public.player_position_history (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  casino_id uuid NOT NULL,
+  player_id uuid NOT NULL,
+  visit_id uuid,
+  table_id uuid,
+  position text NOT NULL,
+  started_at timestamptz NOT NULL DEFAULT now(),
+  ended_at timestamptz,
+  duration_seconds integer GENERATED ALWAYS AS (
+    CASE WHEN ended_at IS NOT NULL
+      THEN GREATEST(0, EXTRACT(EPOCH FROM (ended_at - started_at))::int)
+      ELSE NULL
+    END
+  ) STORED,
+  created_by uuid,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_player_position_history_casino_started
+  ON public.player_position_history(casino_id, started_at DESC);
+CREATE INDEX IF NOT EXISTS idx_player_position_history_player_started
+  ON public.player_position_history(player_id, started_at DESC);
+
 CREATE TABLE IF NOT EXISTS public.user_roles (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL,
@@ -562,6 +586,10 @@ DECLARE
   v_incoming_updated_at timestamptz;
   v_id_type text;
 BEGIN
+  IF p_table = 'casinos' THEN
+    RETURN;
+  END IF;
+
   IF p_table !~ '^[a-z_][a-z0-9_]*$' THEN
     RAISE EXCEPTION 'invalid table name';
   END IF;
