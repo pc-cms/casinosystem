@@ -407,6 +407,14 @@ fi
 normalize_env_file
 set -a; source .env; set +a
 
+# ── Версия фронтенда: всегда берём из package.json (а не "local") ──
+PKG_VERSION="$(grep -oP '"version"\s*:\s*"\K[^"]+' "${CMS_ROOT}/package.json" 2>/dev/null | head -n1 || true)"
+if [[ -n "$PKG_VERSION" ]]; then
+  update_env FRONTEND_VERSION "$PKG_VERSION"
+  set -a; source .env; set +a
+  ok "FRONTEND_VERSION=${PKG_VERSION} (из package.json)"
+fi
+
 # ── Параметры локации (auto; меняются позже в Admin → Peers → Server Identity) ──
 title "2/4  Параметры локации (auto)"
 # Placeholder casino UUID — matches deploy/postgres/init/20-seed-defaults.sql.
