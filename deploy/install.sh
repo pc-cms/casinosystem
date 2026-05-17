@@ -482,10 +482,10 @@ if [[ -f postgres/repair-local-schema.sql ]]; then
   cp postgres/repair-local-schema.sql postgres/init/98-repair-local-schema.sql 2>/dev/null || true
 fi
 
-# ────────── 4.6. Чистая установка БД (без seed) ──────────
-# v1.1.0+: данные больше НЕ импортируются в install.sh.
-# После approve в Cloud-админке нужно нажать кнопку "Initial Sync" —
-# cms-sync сам подтянет все данные казино из Cloud в пустую БД.
+# ────────── 4.6. Чистая установка БД + baked snapshot seed (Variant B) ──────────
+# v1.3.47+: install.sh tries to seed a fresh DB from a baked snapshot stored
+# in Lovable Cloud Storage (bucket: installer-snapshots). This is one-shot,
+# guarded by $SEED_DONE_FILE — re-runs never re-seed.
 log "Запускаю postgres (чистая БД, миграции применятся автоматически)..."
 docker compose up -d postgres
 wait_for_postgres_ready "Postgres"
@@ -493,8 +493,35 @@ docker compose exec -T -e PGPASSWORD="${POSTGRES_PASSWORD}" postgres \
   psql -h 127.0.0.1 -U "${POSTGRES_USER:-postgres}" -d "${POSTGRES_DB:-postgres}" \
   -v ON_ERROR_STOP=1 -c "$ensure_auth_defaults_sql" &>/dev/null || true
 apply_local_schema_repair
+
+# Baked snapshot seed — pulls latest <slug>/latest.ndjson.gz via cloud-snapshot-build
+# edge function (uses SERVICE_ROLE on Cloud side; we only forward ANON_KEY here
+# because the snapshot itself is delivered as a signed URL by the function).
+if [[ ! -f "$SEED_DONE_FILE" && "${SKIP_SEED:-0}" != "1" ]]; then
+  log "Пытаюсь загрузить baked snapshot для '${CASINO_SLUG}' из Cloud..."
+  SEED_TMP="/tmp/seed-${CASINO_SLUG}-$$.ndjson.gz"
+  SEED_URL="${CLOUD_URL}/storage/v1/object/sign/installer-snapshots/${CASINO_SLUG}/latest.ndjson.gz"
+  # Try public-style fetch first (works if bucket has public read policy added later)
+  if curl -fsSL --max-time 120 -o "$SEED_TMP" \
+       "${CLOUD_URL}/storage/v1/object/public/installer-snapshots/${CASINO_SLUG}/latest.ndjson.gz" 2>/dev/null \
+     && [[ -s "$SEED_TMP" ]]; then
+    log "Snapshot скачан ($(du -h "$SEED_TMP" | awk '{print $1}'))."
+    if command -v gzip >/dev/null && command -v node >/dev/null && [[ -x "${SCRIPT_DIR}/sync/seed-import.js" ]]; then
+      gzip -dc "$SEED_TMP" | LOCAL_DB_URL="postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@127.0.0.1:5432/${POSTGRES_DB:-postgres}" \
+        node "${SCRIPT_DIR}/sync/seed-import.js" - \
+        && ok "Snapshot применён в локальную БД." \
+        || warn "Snapshot import упал; продолжаю без seed (БД пустая)."
+    else
+      warn "seed-import.js не найден или node не установлен; пропускаю applying."
+    fi
+    rm -f "$SEED_TMP"
+  else
+    warn "Baked snapshot недоступен (нет публичного URL или не сгенерирован)."
+    warn "БД останется пустой — данные подтянутся через cms-sync после pairing."
+  fi
+fi
 touch "$SEED_DONE_FILE"
-ok "БД готова. Данные подтянутся после Initial Sync из Cloud-админки."
+ok "БД готова."
 
 # ────────── 5. Сборка frontend + старт ──────────
 title "4/4  Сборка frontend и запуск стека"

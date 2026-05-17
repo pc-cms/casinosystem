@@ -76,6 +76,7 @@ export const LocalServerWizard = () => {
     peer:      { status: "pending" },
     data:      { status: "pending" },
     heartbeat: { status: "pending" },
+    probe:     { status: "pending" },
   });
 
   const setStage = (key: string, patch: { status: Status; message?: string; detail?: string }) =>
