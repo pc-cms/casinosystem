@@ -653,3 +653,188 @@ REVOKE EXECUTE ON FUNCTION public.peer_apply_change(uuid,text,text,jsonb,jsonb,t
 GRANT EXECUTE ON FUNCTION public.peer_apply_change(uuid,text,text,jsonb,jsonb,timestamptz) TO service_role;
 
 NOTIFY pgrst, 'reload schema';
+-- ─────────────────────────────────────────────────────────────
+-- v1.3.49+ Mirror Health & Diagnostics (idempotent backfill)
+-- Local servers installed before these RPCs need them so cms-sync
+-- can record push/pull/apply outcomes without erroring.
+-- ─────────────────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS public.sync_peer_health (
+  peer_link_id uuid PRIMARY KEY,
+  peer_node_id uuid,
+  peer_name text,
+  state text NOT NULL DEFAULT 'pairing',
+  last_heartbeat_at timestamptz,
+  last_push_ok_at timestamptz,
+  last_pull_ok_at timestamptz,
+  last_apply_ok_at timestamptz,
+  last_probe_latency_ms integer,
+  last_probe_at timestamptz,
+  pending_outbox_count integer NOT NULL DEFAULT 0,
+  remote_lag_seconds integer,
+  schema_version_local text,
+  schema_version_remote text,
+  apply_errors_count integer NOT NULL DEFAULT 0,
+  last_error_code text,
+  last_error_text text,
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.sync_apply_errors (
+  id bigserial PRIMARY KEY,
+  peer_link_id uuid,
+  peer_name text,
+  source_outbox_id bigint,
+  table_name text NOT NULL,
+  op text,
+  pk jsonb,
+  payload_hash text,
+  error_code text NOT NULL,
+  error_text text,
+  attempts integer NOT NULL DEFAULT 1,
+  first_seen_at timestamptz NOT NULL DEFAULT now(),
+  last_seen_at  timestamptz NOT NULL DEFAULT now(),
+  resolved_at   timestamptz,
+  resolution    text
+);
+CREATE INDEX IF NOT EXISTS idx_apply_errors_unresolved
+  ON public.sync_apply_errors (resolved_at NULLS FIRST, last_seen_at DESC);
+
+CREATE TABLE IF NOT EXISTS public.sync_probe_events (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  peer_link_id uuid,
+  direction text NOT NULL,
+  sent_at timestamptz NOT NULL DEFAULT now(),
+  ack_at  timestamptz,
+  status  text NOT NULL DEFAULT 'pending',
+  latency_ms integer,
+  error_text text
+);
+
+CREATE OR REPLACE FUNCTION public.sync_record_health(
+  p_peer_link_id uuid,
+  p_state text,
+  p_heartbeat_at timestamptz DEFAULT now(),
+  p_pending_outbox integer DEFAULT NULL,
+  p_remote_lag_seconds integer DEFAULT NULL,
+  p_schema_version_local text DEFAULT NULL,
+  p_schema_version_remote text DEFAULT NULL,
+  p_last_error_code text DEFAULT NULL,
+  p_last_error_text text DEFAULT NULL
+)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE v_name text; v_node uuid;
+BEGIN
+  SELECT display_name, peer_node_id INTO v_name, v_node
+    FROM public.peer_links WHERE id = p_peer_link_id;
+  INSERT INTO public.sync_peer_health AS h
+    (peer_link_id, peer_node_id, peer_name, state, last_heartbeat_at,
+     pending_outbox_count, remote_lag_seconds,
+     schema_version_local, schema_version_remote,
+     last_error_code, last_error_text, updated_at)
+  VALUES
+    (p_peer_link_id, v_node, v_name, p_state, p_heartbeat_at,
+     COALESCE(p_pending_outbox,0), p_remote_lag_seconds,
+     p_schema_version_local, p_schema_version_remote,
+     p_last_error_code, p_last_error_text, now())
+  ON CONFLICT (peer_link_id) DO UPDATE SET
+    peer_node_id = COALESCE(EXCLUDED.peer_node_id, h.peer_node_id),
+    peer_name = COALESCE(EXCLUDED.peer_name, h.peer_name),
+    state = EXCLUDED.state,
+    last_heartbeat_at = EXCLUDED.last_heartbeat_at,
+    pending_outbox_count = COALESCE(EXCLUDED.pending_outbox_count, h.pending_outbox_count),
+    remote_lag_seconds = COALESCE(EXCLUDED.remote_lag_seconds, h.remote_lag_seconds),
+    schema_version_local = COALESCE(EXCLUDED.schema_version_local, h.schema_version_local),
+    schema_version_remote = COALESCE(EXCLUDED.schema_version_remote, h.schema_version_remote),
+    last_error_code = EXCLUDED.last_error_code,
+    last_error_text = EXCLUDED.last_error_text,
+    updated_at = now();
+END $$;
+
+CREATE OR REPLACE FUNCTION public.sync_record_apply_ok(p_peer_link_id uuid)
+RETURNS void LANGUAGE sql SECURITY DEFINER SET search_path = public AS $$
+  UPDATE public.sync_peer_health SET last_apply_ok_at = now(), updated_at = now()
+   WHERE peer_link_id = p_peer_link_id;
+$$;
+
+CREATE OR REPLACE FUNCTION public.sync_record_push_ok(p_peer_link_id uuid)
+RETURNS void LANGUAGE sql SECURITY DEFINER SET search_path = public AS $$
+  UPDATE public.sync_peer_health SET last_push_ok_at = now(), updated_at = now()
+   WHERE peer_link_id = p_peer_link_id;
+$$;
+
+CREATE OR REPLACE FUNCTION public.sync_record_pull_ok(p_peer_link_id uuid)
+RETURNS void LANGUAGE sql SECURITY DEFINER SET search_path = public AS $$
+  UPDATE public.sync_peer_health SET last_pull_ok_at = now(), updated_at = now()
+   WHERE peer_link_id = p_peer_link_id;
+$$;
+
+CREATE OR REPLACE FUNCTION public.sync_record_apply_error(
+  p_peer_link_id uuid,
+  p_source_outbox_id bigint,
+  p_table text,
+  p_op text,
+  p_pk jsonb,
+  p_payload_hash text,
+  p_error_code text,
+  p_error_text text
+)
+RETURNS bigint LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE v_id bigint; v_name text;
+BEGIN
+  SELECT display_name INTO v_name FROM public.peer_links WHERE id = p_peer_link_id;
+  INSERT INTO public.sync_apply_errors
+    (peer_link_id, peer_name, source_outbox_id, table_name, op, pk, payload_hash, error_code, error_text)
+  VALUES
+    (p_peer_link_id, v_name, p_source_outbox_id, p_table, p_op, p_pk, p_payload_hash, p_error_code, p_error_text)
+  RETURNING id INTO v_id;
+
+  UPDATE public.sync_peer_health
+     SET apply_errors_count = apply_errors_count + 1,
+         last_error_code = p_error_code,
+         last_error_text = p_error_text,
+         updated_at = now()
+   WHERE peer_link_id = p_peer_link_id;
+  RETURN v_id;
+END $$;
+
+CREATE OR REPLACE FUNCTION public.sync_record_probe_sent(
+  p_peer_link_id uuid, p_direction text DEFAULT 'out'
+) RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE v_id uuid;
+BEGIN
+  INSERT INTO public.sync_probe_events (peer_link_id, direction)
+  VALUES (p_peer_link_id, p_direction) RETURNING id INTO v_id;
+  RETURN v_id;
+END $$;
+
+CREATE OR REPLACE FUNCTION public.sync_record_probe_ack(
+  p_probe_id uuid, p_status text DEFAULT 'ok', p_error_text text DEFAULT NULL
+) RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE v_sent timestamptz; v_peer uuid; v_lat integer;
+BEGIN
+  SELECT sent_at, peer_link_id INTO v_sent, v_peer FROM public.sync_probe_events WHERE id = p_probe_id;
+  IF v_sent IS NULL THEN RETURN; END IF;
+  v_lat := GREATEST(0, EXTRACT(EPOCH FROM (now() - v_sent)) * 1000)::int;
+  UPDATE public.sync_probe_events
+     SET ack_at = now(), status = p_status, latency_ms = v_lat, error_text = p_error_text
+   WHERE id = p_probe_id;
+  UPDATE public.sync_peer_health
+     SET last_probe_at = now(), last_probe_latency_ms = v_lat, updated_at = now()
+   WHERE peer_link_id = v_peer;
+END $$;
+
+CREATE OR REPLACE FUNCTION public.sync_diagnostics_gc()
+RETURNS void LANGUAGE sql SECURITY DEFINER SET search_path = public AS $$
+  DELETE FROM public.sync_apply_errors WHERE last_seen_at < now() - interval '90 days';
+  DELETE FROM public.sync_probe_events  WHERE sent_at      < now() - interval '30 days';
+$$;
+
+GRANT EXECUTE ON FUNCTION public.sync_record_health(uuid,text,timestamptz,integer,integer,text,text,text,text) TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.sync_record_apply_error(uuid,bigint,text,text,jsonb,text,text,text) TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.sync_record_apply_ok(uuid) TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.sync_record_push_ok(uuid) TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.sync_record_pull_ok(uuid) TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.sync_record_probe_sent(uuid,text) TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.sync_record_probe_ack(uuid,text,text) TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.sync_diagnostics_gc() TO authenticated, service_role;
