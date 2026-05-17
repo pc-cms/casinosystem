@@ -22,6 +22,7 @@ set -euo pipefail
 ROOT="/usr/share/nginx/html"
 CONFIG_FILE="${ROOT}/runtime-config.json"
 MANIFEST_FILE="${ROOT}/manifest-local.json"
+HEALTHZ_FILE="${ROOT}/healthz"
 
 : "${RUNTIME_SUPABASE_URL:=__CMS_ORIGIN_PLACEHOLDER__/api}"
 : "${RUNTIME_SUPABASE_KEY:=}"
@@ -30,6 +31,13 @@ MANIFEST_FILE="${ROOT}/manifest-local.json"
 : "${RUNTIME_CASINO_NAME:=Casino}"
 : "${RUNTIME_LOCAL_MODE:=true}"
 : "${RUNTIME_VERSION:=unknown}"
+
+# ────────── 0. Healthcheck marker ──────────
+# cms-frontend uses nginx default static serving internally, while the public
+# cms-nginx container has an explicit /healthz location. Keep a real file here
+# so Docker healthchecks against cms-frontend also pass.
+printf 'ok\n' > "$HEALTHZ_FILE"
+chmod 644 "$HEALTHZ_FILE"
 
 # ────────── 0. Universal-origin patch ──────────
 # Replace baked placeholder with runtime `location.origin + "/api"` so the
