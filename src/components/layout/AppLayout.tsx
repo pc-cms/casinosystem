@@ -49,7 +49,7 @@ export const AppLayout = () => {
 
   return (
     <div className="flex h-screen overflow-hidden">
-      <LocalServerBadge />
+      
       {!isMobile && (
         <div className="no-print">
           <AppSidebar collapsed={collapsed} onToggle={() => setCollapsed((c) => !c)} />
