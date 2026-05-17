@@ -188,13 +188,34 @@ export const PeerLinksPanel = () => {
       if (error) throw error;
 
       const peerUrl = (pending as any).server_ip ? `https://${(pending as any).server_ip}` : `pending://${code.toLowerCase()}`;
+      const displayName = (pending as any).server_name || (pending as any).server_slug || `Local server ${code}`;
       const { error: peerError } = await supabase.from("peer_links" as any).insert({
         peer_url: peerUrl,
-        display_name: (pending as any).server_name || (pending as any).server_slug || `Local server ${code}`,
+        display_name: displayName,
         sync_secret: finalSecret,
         status: "active",
       } as any);
       if (peerError) throw peerError;
+
+      // Register this local server as a replica in casino_servers so the
+      // Cloud admin Servers (Primary/Replica) panel can show it and offer
+      // Promote to Primary. Idempotent: only insert if no row exists yet
+      // for the same casino + local_url pair.
+      const { data: existingServer } = await supabase
+        .from("casino_servers" as any)
+        .select("id")
+        .eq("casino_id", pairingCasinoId)
+        .eq("local_url", peerUrl)
+        .maybeSingle();
+      if (!existingServer) {
+        const { error: serverError } = await supabase.from("casino_servers" as any).insert({
+          casino_id: pairingCasinoId,
+          display_name: displayName,
+          local_url: peerUrl,
+          role: "replica",
+        } as any);
+        if (serverError) throw serverError;
+      }
     },
     onSuccess: () => {
       setPairingCode("");
