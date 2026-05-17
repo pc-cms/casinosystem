@@ -22,7 +22,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { Plus, Trash2, Pause, Play, CheckCircle2, XCircle, Sparkles, Server, Cloud } from "lucide-react";
 import { RecentExchangeActivity } from "./RecentExchangeActivity";
-import { BuildSnapshotButton } from "./BuildSnapshotButton";
 
 type PeerStatus = "pending_outbound" | "pending_inbound" | "active" | "paused" | "rejected";
 
@@ -249,8 +248,6 @@ export const PeerLinksPanel = () => {
           </p>
         </div>
       </div>
-
-      <BuildSnapshotButton />
 
       <div className="cms-panel p-4 space-y-3">
           <div>
