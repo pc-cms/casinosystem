@@ -50,7 +50,7 @@ trap 'rc=$?; ln="${BASH_LINENO[0]:-?}"; cmd="${BASH_COMMAND:-?}"; echo -e "${RED
 require_root() { [[ $EUID -eq 0 ]] || fail "Запустите от root: sudo ./deploy/install.sh"; }
 
 # ── CLI ──
-RESET=0; REBUILD=0; RECONFIGURE=0; WIPE=0; UPDATE=0; UPDATE_FRONT=0; MENU=0
+RESET=0; REBUILD=0; RECONFIGURE=0; WIPE=0; UPDATE=0; UPDATE_FRONT=0; MENU=0; REPAIR=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --reset)         RESET=1; shift ;;
@@ -59,6 +59,7 @@ while [[ $# -gt 0 ]]; do
     --wipe)          WIPE=1; RESET=1; REBUILD=1; shift ;;
     --update)        UPDATE=1; REBUILD=1; shift ;;
     --frontend-only|--update-frontend) UPDATE_FRONT=1; shift ;;
+    --repair)        REPAIR=1; shift ;;
     --menu)          MENU=1; shift ;;
     -h|--help)       sed -n '4,16p' "$0"; exit 0 ;;
     *) fail "Неизвестный аргумент: $1" ;;
@@ -68,7 +69,7 @@ done
 require_root
 
 # ── Interactive menu (default when запущен без флагов в TTY) ──
-if [[ $MENU -eq 0 && $RESET -eq 0 && $REBUILD -eq 0 && $RECONFIGURE -eq 0 && $WIPE -eq 0 && $UPDATE -eq 0 && $UPDATE_FRONT -eq 0 ]]; then
+if [[ $MENU -eq 0 && $RESET -eq 0 && $REBUILD -eq 0 && $RECONFIGURE -eq 0 && $WIPE -eq 0 && $UPDATE -eq 0 && $UPDATE_FRONT -eq 0 && $REPAIR -eq 0 ]]; then
   if [[ -t 0 || -e /dev/tty ]]; then MENU=1; fi
 fi
 
@@ -94,7 +95,8 @@ if [[ $MENU -eq 1 ]]; then
     echo -e "    ${BOLD}3${NC})  Переустановить              — пересоздать .env, сертификаты и пересобрать frontend (БД сохранить)"
     echo -e "    ${BOLD}4${NC})  ${RED}Стереть всё${NC}              — удалить БД, .env, образы и поставить заново"
     echo -e "    ${BOLD}5${NC})  Статус и логи"
-    echo -e "    ${BOLD}6${NC})  Выйти"
+    echo -e "    ${BOLD}6${NC})  ${CYAN}Repair БД${NC}                 — починить схему (FKs, RPC) без пересборки/wipe"
+    echo -e "    ${BOLD}7${NC})  Выйти"
   else
     echo -e "    ${BOLD}1${NC})  ${GREEN}Установить${NC}      — чистая установка (БД и .env будут созданы)  ${YELLOW}(рекомендуется)${NC}"
     echo -e "    ${BOLD}2${NC})  ${RED}Стереть всё и поставить заново${NC}  — на всякий случай очистить остатки"
@@ -128,7 +130,8 @@ if [[ $MENU -eq 1 ]]; then
          echo -e "${CYAN}Последние логи (Ctrl+C для выхода):${NC}"
          exec docker compose logs --tail=100 -f
          ;;
-      6) echo "Выход."; exit 0 ;;
+      6) echo -e "${CYAN}▶ Запускаю: Repair БД${NC}"; REPAIR=1 ;;
+      7) echo "Выход."; exit 0 ;;
       *) fail "Неизвестный выбор: '${CHOICE}'" ;;
     esac
   else
@@ -163,6 +166,35 @@ if [[ $UPDATE_FRONT -eq 1 ]]; then
     chmod +x "${SCRIPT_DIR}/update.sh" 2>/dev/null || true
   fi
   exec bash "${SCRIPT_DIR}/update.sh" --frontend-only
+fi
+
+# ── Repair fast path: применить hotfix SQL и перезапустить postgrest ───────
+if [[ $REPAIR -eq 1 ]]; then
+  title "Repair БД (hotfix FKs + RPC)"
+  cd "$SCRIPT_DIR"
+  [[ -f .env ]] || fail ".env не найден — repair доступен только на установленной системе."
+  set -a; . ./.env; set +a
+  HOTFIX="${SCRIPT_DIR}/postgres/hotfix-fks-rpc.sql"
+  [[ -f "$HOTFIX" ]] || fail "Не найден $HOTFIX"
+  if ! docker compose ps postgres 2>/dev/null | grep -qE "Up|running"; then
+    log "Postgres не запущен — стартую..."
+    docker compose up -d postgres
+    for i in $(seq 1 30); do
+      docker compose exec -T postgres pg_isready -U "${POSTGRES_USER:-postgres}" &>/dev/null && break
+      sleep 2
+    done
+  fi
+  log "Копирую hotfix в контейнер postgres..."
+  docker compose cp "$HOTFIX" postgres:/tmp/hotfix-fks-rpc.sql
+  log "Применяю hotfix..."
+  docker compose exec -T -e PGPASSWORD="${POSTGRES_PASSWORD}" postgres \
+    psql -U "${POSTGRES_USER:-postgres}" -d "${POSTGRES_DB:-postgres}" \
+    -v ON_ERROR_STOP=1 -f /tmp/hotfix-fks-rpc.sql
+  ok "Hotfix применён."
+  log "Перезапускаю postgrest (обновление schema cache)..."
+  docker compose restart postgrest >/dev/null 2>&1 || warn "Не удалось перезапустить postgrest"
+  ok "Repair завершён. Очистите кэш браузера (Ctrl+Shift+R) на ${LOCAL_DOMAIN:-arusha.local}"
+  exit 0
 fi
 
 # ────────── 1. Система ──────────
@@ -650,7 +682,6 @@ else
     " &>/dev/null || warn "Не удалось привязать профиль super_admin (${SA_EMAIL})."
   ok "Super admin готов: ${SA_EMAIL} / ${SA_PASS}"
 fi
-
 
 
 # ── cms-status CLI (Ubuntu diagnostics, works even if frontend is down) ──
