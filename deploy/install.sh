@@ -133,7 +133,8 @@ if [[ $MENU -eq 1 ]]; then
          exec docker compose logs --tail=100 -f
          ;;
       6) echo -e "${CYAN}▶ Запускаю: Repair БД${NC}"; REPAIR=1 ;;
-      7) echo "Выход."; exit 0 ;;
+      7) echo -e "${CYAN}▶ Запускаю: Verify parity${NC}"; VERIFY=1 ;;
+      8) echo "Выход."; exit 0 ;;
       *) fail "Неизвестный выбор: '${CHOICE}'" ;;
     esac
   else
