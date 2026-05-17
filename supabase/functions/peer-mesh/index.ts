@@ -119,15 +119,18 @@ Deno.serve(async (req: Request) => {
     }
 
     if (sub === "/log") {
-      // Local cms-sync ships compact batch summaries here so Cloud has full
-      // visibility of what is being exchanged with every paired node.
+      // Drop heartbeats — they live in sync_peer_health now, not the exchange log.
       const entries = Array.isArray(body.entries) ? body.entries : [];
-      if (entries.length === 0) return json(200, { accepted: 0 });
-      const rows = entries.slice(0, 500).map((e: any) => ({
+      const meaningful = entries.filter((e: any) =>
+        e && e.direction !== "heartbeat" &&
+        !(e.status === "ok" && Number(e.row_count ?? 0) === 0 && e.direction !== "probe" && e.direction !== "handshake")
+      );
+      if (meaningful.length === 0) return json(200, { accepted: 0 });
+      const rows = meaningful.slice(0, 500).map((e: any) => ({
         peer_link_id: peer.id,
         peer_node_id: peer.peer_node_id,
         peer_name:    peer.display_name,
-        direction:    ["pull","push","clone","heartbeat","handshake"].includes(e.direction) ? e.direction : "heartbeat",
+        direction:    ["pull","push","clone","probe","handshake"].includes(e.direction) ? e.direction : "push",
         status:       ["ok","warn","error"].includes(e.status) ? e.status : "ok",
         table_name:   e.table_name ?? null,
         row_count:    Number.isFinite(Number(e.row_count)) ? Number(e.row_count) : 0,
@@ -139,6 +142,15 @@ Deno.serve(async (req: Request) => {
       if (error) return json(500, { error: error.message });
       await admin.from("peer_links").update({ last_seen_at: new Date().toISOString() }).eq("id", peer.id);
       return json(200, { accepted: rows.length });
+    }
+
+    if (sub === "/probe/start") {
+      // Local node asks Cloud to ack a probe. Cloud immediately acks and also
+      // records its own inbound probe for the reverse-direction visibility.
+      const probeId = body.probe_id;
+      if (!probeId) return json(400, { error: "probe_id required" });
+      await admin.rpc("sync_record_probe_ack", { p_probe_id: probeId, p_status: "ok", p_error_text: null });
+      return json(200, { ok: true, echoed_at: new Date().toISOString() });
     }
 
     if (sub === "/probe") {
