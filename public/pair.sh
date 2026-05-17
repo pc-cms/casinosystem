@@ -185,12 +185,18 @@ else
 fi
 
 # ─────────── 3b. Trigger initial seed ───────────
-log "Streaming initial data seed from Cloud into local DB..."
-SYNC_OUT="$(docker compose exec -T cms-sync node /app/pair-cli.js sync </dev/null)" \
-  || die "initial seed failed:
+if [[ "${SKIP_SEED:-0}" == "1" || "${SKIP_SEED:-}" == "true" ]]; then
+  warn "SKIP_SEED=1 — skipping cloud→local seed import."
+  warn "Use this only for Case 2 (Local Primary first, Cloud is empty/wiped)."
+  warn "Run 'Upload (Local → Cloud)' from Admin → Peers after promote."
+else
+  log "Streaming initial data seed from Cloud into local DB..."
+  SYNC_OUT="$(docker compose exec -T cms-sync node /app/pair-cli.js sync </dev/null)" \
+    || die "initial seed failed:
 $SYNC_OUT"
-log "Seed complete."
-echo "  $SYNC_OUT"
+  log "Seed complete."
+  echo "  $SYNC_OUT"
+fi
 
 log "Activating peer-mesh sync channel..."
 MESH_OUT="$(docker compose exec -T cms-sync node /app/pair-cli.js mesh </dev/null || true)"
