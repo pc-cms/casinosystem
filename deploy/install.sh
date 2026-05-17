@@ -355,7 +355,12 @@ if [[ $VERIFY -eq 1 ]]; then
 
   echo
   hr
-  printf "  ${BOLD}Итог:${NC}  ${GREEN}OK: %d${NC}   ${YELLOW}DIFF: %d${NC}   ${RED}MISSING: %d${NC}\n" "$PASS" "$DIFF" "$MISS"
+  printf "  ${BOLD}Итог:${NC}  ${GREEN}OK: %d${NC}   ${YELLOW}DIFF: %d${NC}   ${CYAN}INFO: %d${NC}   ${RED}MISSING: %d${NC}\n" "$PASS" "$DIFF" "$INFO" "$MISS"
+  if [[ $DIFF -gt 0 ]]; then
+    echo
+    warn "Есть расхождения. Запустите дозалив из Cloud:"
+    echo "    sudo casino-update --backfill"
+  fi
   hr
   exit 0
 fi
