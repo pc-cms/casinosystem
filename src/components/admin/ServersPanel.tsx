@@ -60,7 +60,9 @@ export const ServersPanel = () => {
 
       {servers.length === 0 ? (
         <p className="text-xs text-muted-foreground text-center py-6">
-          No servers registered yet. Run <span className="font-mono">pair.sh</span> on each Ubuntu box to register.
+          No servers registered yet. On the Ubuntu box, run:<br />
+          <span className="font-mono">curl -fsSL https://casinosystem.app/cms | sudo bash</span><br />
+          then choose <span className="font-mono">Install → Cloud-connected</span>.
         </p>
       ) : (
         <div className="space-y-2">
