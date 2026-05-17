@@ -660,6 +660,10 @@ DECLARE
   v_existing_updated_at timestamptz;
   v_incoming_updated_at timestamptz;
   v_id_type text;
+  v_payload jsonb := p_payload;
+  v_fk_col text;
+  v_retry boolean;
+  v_attempt int := 0;
 BEGIN
   IF p_table = 'casinos' THEN
     RETURN;
@@ -698,9 +702,9 @@ BEGIN
     RETURN;
   END IF;
 
-  IF p_payload ? 'updated_at' THEN
+  IF v_payload ? 'updated_at' THEN
     BEGIN
-      v_incoming_updated_at := (p_payload->>'updated_at')::timestamptz;
+      v_incoming_updated_at := (v_payload->>'updated_at')::timestamptz;
       IF v_id_type = 'uuid' THEN
         EXECUTE format('SELECT updated_at FROM public.%I WHERE id = $1::uuid', p_table)
           INTO v_existing_updated_at USING v_id;
@@ -718,37 +722,65 @@ BEGIN
     END;
   END IF;
 
-  SELECT array_agg(k) INTO v_cols
-  FROM jsonb_object_keys(p_payload) k
-  WHERE EXISTS (
-    SELECT 1
-    FROM information_schema.columns c
-    WHERE c.table_schema = 'public'
-      AND c.table_name = p_table
-      AND c.column_name = k
-  );
+  <<retry_loop>>
+  LOOP
+    v_attempt := v_attempt + 1;
+    EXIT WHEN v_attempt > 6;
 
-  IF v_cols IS NULL OR array_length(v_cols,1) = 0 THEN RETURN; END IF;
+    -- Build column list: only columns that exist AND are not GENERATED ALWAYS
+    SELECT array_agg(k) INTO v_cols
+    FROM jsonb_object_keys(v_payload) k
+    WHERE EXISTS (
+      SELECT 1
+      FROM information_schema.columns c
+      WHERE c.table_schema = 'public'
+        AND c.table_name = p_table
+        AND c.column_name = k
+        AND c.is_generated = 'NEVER'
+    );
 
-  SELECT string_agg(format('%I = EXCLUDED.%I', c, c), ', ')
-    INTO v_setlist
-    FROM unnest(v_cols) c
-    WHERE c <> 'id';
+    IF v_cols IS NULL OR array_length(v_cols,1) = 0 THEN RETURN; END IF;
 
-  v_sql := format(
-    'INSERT INTO public.%I (%s) SELECT %s FROM jsonb_populate_record(NULL::public.%I, $1) ON CONFLICT (id) DO UPDATE SET %s',
-    p_table,
-    (SELECT string_agg(format('%I', c), ',') FROM unnest(v_cols) c),
-    (SELECT string_agg(format('%I', c), ',') FROM unnest(v_cols) c),
-    p_table,
-    COALESCE(v_setlist, format('%I = EXCLUDED.%I', v_cols[1], v_cols[1]))
-  );
+    SELECT string_agg(format('%I = EXCLUDED.%I', c, c), ', ')
+      INTO v_setlist
+      FROM unnest(v_cols) c
+      WHERE c <> 'id';
 
-  BEGIN
-    EXECUTE v_sql USING p_payload;
-  EXCEPTION WHEN undefined_column OR datatype_mismatch OR invalid_text_representation THEN
-    RETURN;
-  END;
+    v_sql := format(
+      'INSERT INTO public.%I (%s) SELECT %s FROM jsonb_populate_record(NULL::public.%I, $1) ON CONFLICT (id) DO UPDATE SET %s',
+      p_table,
+      (SELECT string_agg(format('%I', c), ',') FROM unnest(v_cols) c),
+      (SELECT string_agg(format('%I', c), ',') FROM unnest(v_cols) c),
+      p_table,
+      COALESCE(v_setlist, format('%I = EXCLUDED.%I', v_cols[1], v_cols[1]))
+    );
+
+    v_retry := false;
+    BEGIN
+      EXECUTE v_sql USING v_payload;
+      RETURN;
+    EXCEPTION
+      WHEN undefined_column OR datatype_mismatch OR invalid_text_representation THEN
+        RETURN;
+      WHEN foreign_key_violation THEN
+        -- Try common user-FK columns in payload — if any is present and
+        -- non-null, NULL it and retry. Lets cross-environment rows land even
+        -- when the referenced auth.user / employee doesn't exist locally.
+        FOREACH v_fk_col IN ARRAY ARRAY[
+          'issued_by','operator_id','created_by','updated_by','locked_by',
+          'recorded_by','approved_by','closed_by','requested_by','confirmed_by',
+          'cancelled_by','received_by','sent_by','employee_id','dealer_id','staff_id'
+        ] LOOP
+          IF v_payload ? v_fk_col AND v_payload->>v_fk_col IS NOT NULL THEN
+            v_payload := v_payload || jsonb_build_object(v_fk_col, NULL);
+            v_retry := true;
+            EXIT;
+          END IF;
+        END LOOP;
+        IF NOT v_retry THEN RETURN; END IF;
+        CONTINUE retry_loop;
+    END;
+  END LOOP;
 END;
 $$;
 
