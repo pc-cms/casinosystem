@@ -83,7 +83,13 @@ export const ServersPanel = () => {
                   <Button
                     size="sm" variant="outline"
                     onClick={() => {
-                      if (!confirm(`Promote "${s.display_name}" to PRIMARY?\nAll clients will switch writes to this server.\nDo this only if the current Primary is down.`)) return;
+                      const typed = window.prompt(
+                        `Promote "${s.display_name}" to PRIMARY?\n\n` +
+                        `All clients will switch writes to this server.\n` +
+                        `Only do this when mirror_status = ok and the current Primary is offline or being decommissioned.\n\n` +
+                        `Type PROMOTE (uppercase) to confirm:`
+                      );
+                      if (typed !== "PROMOTE") return;
                       promote.mutate(s.id);
                     }}
                     disabled={promote.isPending}
