@@ -15,6 +15,10 @@ ALTER TYPE public.app_role ADD VALUE IF NOT EXISTS 'hr';
 ALTER TYPE public.app_role ADD VALUE IF NOT EXISTS 'floor_manager';
 
 DO $$ BEGIN
+  CREATE TYPE public.player_position AS ENUM ('table', 'hall', 'slots');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
   CREATE TYPE public.day_horizon AS ENUM ('today','7d','30d','all');
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
@@ -51,6 +55,25 @@ ALTER TABLE public.profiles
 
 CREATE INDEX IF NOT EXISTS idx_profiles_user_id ON public.profiles(user_id);
 CREATE INDEX IF NOT EXISTS idx_profiles_disabled_at ON public.profiles(disabled_at);
+
+CREATE TABLE IF NOT EXISTS public.player_position_history (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  casino_id uuid NOT NULL,
+  player_id uuid NOT NULL,
+  visit_id uuid,
+  table_id uuid,
+  position public.player_position NOT NULL,
+  started_at timestamptz NOT NULL DEFAULT now(),
+  ended_at timestamptz,
+  duration_seconds integer,
+  created_by uuid,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_player_position_history_casino_started
+  ON public.player_position_history(casino_id, started_at DESC);
+CREATE INDEX IF NOT EXISTS idx_player_position_history_player_started
+  ON public.player_position_history(player_id, started_at DESC);
 
 CREATE TABLE IF NOT EXISTS public.user_roles (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
