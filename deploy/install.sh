@@ -130,7 +130,8 @@ if [[ $MENU -eq 1 ]]; then
          echo -e "${CYAN}Последние логи (Ctrl+C для выхода):${NC}"
          exec docker compose logs --tail=100 -f
          ;;
-      6) echo "Выход."; exit 0 ;;
+      6) echo -e "${CYAN}▶ Запускаю: Repair БД${NC}"; REPAIR=1 ;;
+      7) echo "Выход."; exit 0 ;;
       *) fail "Неизвестный выбор: '${CHOICE}'" ;;
     esac
   else
