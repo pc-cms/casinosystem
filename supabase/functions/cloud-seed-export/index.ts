@@ -384,8 +384,8 @@ Deno.serve(async (req) => {
               }
             }
             if (playerIds.length === 0) continue;
-            for (let i = 0; i < playerIds.length; i += 500) {
-              const slice = playerIds.slice(i, i + 500);
+            for (let i = 0; i < playerIds.length; i += 100) {
+              const slice = playerIds.slice(i, i + 100);
               const { data, error } = await admin
                 .from(t.name).select("*").in("player_id", slice);
               if (error) {
