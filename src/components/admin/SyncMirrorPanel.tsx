@@ -51,7 +51,10 @@ export const SyncMirrorPanel = () => {
   const uploadRemaining = Math.max(0, outboxMax - pushCursor);
 
   const cloneCounts = cloneStatus.data?.counts ?? {};
-  const cloneTotal = Object.values(cloneCounts).reduce((s, n) => s + n, 0);
+  const cloneTotal = Object.values(cloneCounts).reduce((s: number, n) => s + Number(n || 0), 0);
+  const cloneErrorsByTable = ((cloneStatus.data as any)?.errors_by_table ?? {}) as Record<string, number>;
+  const cloneErrorTotal: number = Object.values(cloneErrorsByTable).reduce((s, n) => s + Number(n || 0), 0);
+  const cloneErrorSamples = ((cloneStatus.data as any)?.error_samples ?? {}) as Record<string, string[]>;
 
   return (
     <div className="rounded-lg border border-border bg-card p-4 space-y-4">
@@ -146,7 +149,24 @@ export const SyncMirrorPanel = () => {
                   {cloneStatus.data.current_table && ` · current: ${cloneStatus.data.current_table}`}
                 </div>
                 <div>Imported: {cloneTotal.toLocaleString()} rows across {Object.keys(cloneCounts).length} tables</div>
-                {cloneStatus.data.error && (
+                {cloneErrorTotal > 0 && (
+                  <div className="text-warning">
+                    Skipped: {cloneErrorTotal.toLocaleString()} rows
+                    {" — "}
+                    {Object.entries(cloneErrorsByTable)
+                      .sort((a, b) => Number(b[1]) - Number(a[1]))
+                      .slice(0, 4)
+                      .map(([t, n]) => `${t}:${n}`)
+                      .join(", ")}
+                    {Object.keys(cloneErrorsByTable).length > 4 && " …"}
+                  </div>
+                )}
+                {cloneErrorTotal > 0 && Object.entries(cloneErrorSamples).slice(0, 2).map(([t, samples]) => (
+                  <div key={t} className="text-[10px] text-muted-foreground/80 pl-2 break-words">
+                    {t}: {(samples as string[])[0]}
+                  </div>
+                ))}
+                {cloneStatus.data?.error && (
                   <div className="text-destructive break-words">{cloneStatus.data.error}</div>
                 )}
               </div>

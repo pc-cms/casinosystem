@@ -1,116 +1,62 @@
-# Full Replication Foundation + Cutover Gate
+## Корневые причины
 
-Один релиз, который превращает локальный сервер в **полную копию Cloud 1:1** и даёт защищённую кнопку **Promote local to Primary** в premier admin.
+Скриншот Health Check ясно показывает главное: **Cloud Peer Connection — No Cloud peer paired** и **Live Sync Heartbeat — No heartbeat seen yet**.
 
----
+Это объясняет всё:
 
-## Цели
+1. **«Создал клиента в Cloud — на локали нет»** — Clone это **разовый** bulk‑импорт. Постоянная синхронизация идёт через `cms-sync` ↔ `peer-mesh` по `peer_links`. У вас в `peer_links` нет строки на Cloud → ничего из Cloud в реальном времени не приходит и не уходит обратно.
 
-1. **100% реплика** — локальный сервер содержит абсолютно все данные казино (а не последние 90 дней). Никаких "выборок таблиц".
-2. **REPLICA mode** — локальный работает в read-only до момента cutover'а. Пользователи логинятся, но писать нельзя.
-3. **Parity Gate** — premier admin показывает per-casino "готов к промоушену / не готов" с реальной сверкой строк.
-4. **Promote button** — одна кнопка переводит казино с Cloud-primary на Local-primary только при 100% parity.
-5. **Rollback** — обратная кнопка Demote, тот же gate.
+2. **«Пользователи появились на секунду и пропали»** — у локального superadmin сейчас активная сессия. Когда Clone делает `DELETE FROM auth.users WHERE … profiles.casino_id = arusha`, удаляется и тот пользователь, под которым вы залогинены (если его профиль привязан к Arusha). Браузер ещё короткое время держит JWT → UI рисует список, потом следующий рефреш токена возвращает 401 и список схлопывается.
 
----
+3. **«Staff Rota пустая, а Breaklist работает»** — `staff_rota` действительно отгружается (`days=all`, 1249 строк в Cloud для Arusha). Раз он пуст локально при непустом `breaklist` — это типичный признак тихого FK‑фейла на импорте: строки `staff_rota` ссылаются на `staff_member_id`/`dealer_id`, которых нет к моменту вставки. Текущий код Clone при ошибке откатывает SAVEPOINT и пробует `ON CONFLICT DO NOTHING` — это не помогает на FK‑фейле, строка просто теряется без явной ошибки в UI. Counts в Toast показывают «Imported N rows», но эти потери в N не видны.
 
-## Что меняется
+## Что делаем
 
-### 1. Table Registry (`supabase/functions/_shared/replication-registry.ts`)
-Единый список **всех** таблиц казино в FK-safe порядке:
-- **single**: `casinos`
-- **full** (полностью, без days-limit): конфиг + игроки + сотрудники + все операционные таблицы
-- **global** (network-wide справочники): currencies, app_settings, role_module_defaults
-- **cloud_only** (никогда не реплицируется на local): system audit, premier-only
+### Шаг 1. Pair Cloud peer (главное, без этого всё бессмысленно)
 
-Используется в `cloud-seed-export`, `mirror-parity`, `peer-mesh`.
+В Admin → Peers нажать **Pair with Cloud** (или соответствующую существующую кнопку). Если в UI её нет/она не работает — диагностируем `peer-mesh /peer/handshake` в `cms-sync` логах и чиним. После пары:
+- `cms-sync` начнёт push/pull каждые 5 c
+- Health Check #4 станет зелёным, #6 покажет heartbeat <60 c назад
+- Новые клиенты, созданные на Cloud, появятся на локали в течение ~5 c
 
-### 2. `cloud-seed-export` — убрать 90-day limit
-- Параметр `days` остаётся для legacy, но `?mode=full` (новый default из install.sh) выгружает **всю историю**.
-- Источник таблиц = registry, не хардкод массива.
+### Шаг 2. Не дать Clone выпиливать активного пользователя
 
-### 3. `mirror-parity` — реальная сверка
-Сейчас параметры hardcoded. Переписать так:
-- Принимает `casino_id`.
-- Для каждой таблицы registry: `count(*)` + `max(updated_at)` + `xor of id hashes` (быстро, без скачивания строк).
-- Возвращает `{ table, cloud_count, local_count, match: bool, lag_seconds }`.
-- Кнопка Promote разблокирована только если **все таблицы match=true** + lag<2s + outbox=0 + нет открытого business day.
+В `deploy/sync/api.js` (block `2c) Wipe auth.users`) добавить в исключения **всех** локальных авто‑созданных служебных пользователей и тех, чей `id` совпадает с `auth.uid()` инициатора Clone, плюс ВСЕХ super_admin‑ов локали. Безопаснее всего — wipe только тех, кого реально получим из Cloud (двух‑проходный clone: сначала собрать список `auth_user.id` из стрима в память, потом DELETE отсутствующих).
 
-### 4. Node identity & mode
-Новая таблица `node_modes`:
-```
-casino_id uuid PK
-mode text  -- 'cloud_primary' | 'local_primary'
-promoted_at timestamptz
-promoted_by uuid
-```
-- Default = `cloud_primary`.
-- Local server читает свой mode из этой таблицы (через cms-sync pull). Если `local_primary` И это его casino → выходит из REPLICA в PRIMARY.
-- Cloud RLS: если `mode='local_primary'`, INSERT/UPDATE/DELETE на операционные таблицы этого казино блокируются (только sync inbox может писать).
+### Шаг 3. Видимость потерь при Clone
 
-### 5. REPLICA mode на локалке
-- `useReadonlyMode()` расширяется: дополнительно блокирует если `node_modes.mode != local_primary` И мы на local node.
-- Visual badge "REPLICA · syncing from Cloud" в шапке.
+В `cloneState` добавить `errors_by_table: { staff_rota: 312, … }` и в Peers UI поверх строки «Imported: N rows» отрисовать жёлтый sub‑label «N skipped (FK/validation)». Сейчас потери немые — пользователь видит «успех», а половины таблицы нет.
 
-### 6. Promote/Demote RPC
-```sql
-promote_to_local_primary(p_casino_id uuid) returns jsonb
-demote_to_cloud_primary(p_casino_id uuid) returns jsonb
-```
-- Проверяет parity gate server-side (вызывает `mirror-parity` логику инлайн).
-- Атомарно: freeze writes → drain outbox → final check → flip mode.
-- Только `super_admin`.
+### Шаг 4. Diagnose staff_rota конкретно
 
-### 7. UI — premier admin → новая вкладка "Replication & Cutover"
-Заменяет/дополняет `MirrorCutoverPanel`. Для каждого казино:
-- Status: `cloud_primary` / `local_primary` / `transitioning`
-- Local server: `online · lag 0.4s · outbox 0`
-- Parity: зелёный 100% или список таблиц с дельтой
-- Кнопка **Promote to Local Primary** (disabled пока не зелёное всё)
-- Кнопка **Demote to Cloud Primary** (для отката)
-- Audit log промоушенов внизу
+Открыть `cloneState.error_samples["staff_rota"]` (первые 3 текста ошибок) — это сразу покажет, на чём падает (отсутствующий `staff_member_id`, NOT NULL по новой колонке, или enum). Дальше либо:
+- двигаем `staff_rota` после `dealers`/`staff_members` в TABLES (сейчас уже после, но `employees` мог попасть позже — проверим),
+- либо ослабляем FK на on‑prem схеме до `DEFERRABLE INITIALLY DEFERRED`.
 
-### 8. install.sh bootstrap mode
-Шаг 6.5 (cloud-seed) уже есть — переключить на `mode=full`, убрать 90-day. После импорта local стартует в REPLICA mode автоматически (запись в `node_modes` не делается, поэтому остаётся cloud_primary, локалка просто read-only до решения админа).
+### Шаг 5. Health Check учится отвечать на «всё ли пришло»
 
----
+В `Local Server — Full Health Check` добавить 7‑й чек **Sync Lag**: 
+- сравнить `MAX(sync_outbox.id)` на Cloud (через peer‑mesh `/peer/lag`) с `peer_links.last_pull_cursor` локали;
+- зелёный если lag = 0, жёлтый ≤ 50, красный иначе.
+
+Это и есть ответ на «как понять что сейчас все обновления приходят».
+
+### Шаг 6. Параллельно — диагностика «почему Cloud Peer не спарен»
+
+Если в Peers UI кнопка пары есть и не отрабатывает — смотрим `docker logs cms-sync` сразу после нажатия: `peer.handshake.fail` с конкретной причиной (DNS, x-peer-signature, schema_version mismatch, 401 от peer-mesh). Чиним конкретное.
+
+## Что нужно от вас
+
+Подтвердите порядок:
+
+A. Сначала пробуем спарить Cloud peer вручную через существующий UI и смотрим что мешает (Шаг 1 + Шаг 6) — без правок кода. Если получится — 90% проблем уйдёт само.
+
+B. Параллельно я готовлю патч на Шаги 2, 3, 4, 5 — это новая версия (1.3.62), доставляется через `casino-update`.
+
+Или хотите сразу B, не тратя время на ручную диагностику?
 
 ## Технические детали
 
-**Параллельные данные между Cloud и Local после промоушена:**
-- Cloud-only зоны (finance wallets, role_module_defaults, user_module_permissions, FM-операции): Cloud остаётся primary даже после промоушена. Local подтягивает через cms-sync inbox.
-- Operational зоны (shifts, transactions, cage, tables, players, business_days...): после промоушена local primary, Cloud получает через outbox.
-- Эта разделённость уже отражена в правиле "Cloud never writes to casino operational tables" (memory).
-
-**Parity hash:** для скорости используем `md5(string_agg(id::text, ',' ORDER BY id))` per table, не построчное сравнение.
-
-**Audit:** все промоушены/демоушены пишутся в `system_audit_log` с ролью, временем, parity snapshot.
-
-**Без HA-pair** — это следующий релиз, как договорились.
-
----
-
-## Файлы
-
-**New:**
-- `supabase/functions/_shared/replication-registry.ts` — единый список таблиц
-- `supabase/functions/replication-parity/index.ts` — заменяет mirror-parity или дополняет
-- `supabase/functions/replication-promote/index.ts` — promote/demote RPC wrapper
-- `src/components/admin/ReplicationCutoverPanel.tsx` — новый UI
-- `src/hooks/use-replication-status.ts`
-
-**Modified:**
-- `supabase/functions/cloud-seed-export/index.ts` — registry-driven, `mode=full`
-- `supabase/functions/mirror-parity/index.ts` — registry-driven, real row-level hash
-- `deploy/install.sh` — `mode=full` в cloud-seed call
-- `src/hooks/use-readonly-mode.ts` — учитывать node_modes
-- `src/pages/Admin.tsx` — добавить вкладку Replication
-- DB migration: `node_modes` table + `promote_to_local_primary` + `demote_to_cloud_primary` RPC + RLS triggers на операционные таблицы
-
----
-
-## Объём
-
-Релиз большой: ~12 файлов, 1 миграция, 2 edge functions, 1 новая admin-панель. Версия патчится автоматически.
-
-После approve — сразу пишу миграцию, дожидаюсь твоего "ok" на неё, потом код параллельно.
+- Файлы под правку: `deploy/sync/api.js` (Шаги 2, 3), `deploy/cli/cms-status.mjs` или соответствующая Health Check‑страница (Шаг 5), при необходимости `supabase/functions/peer-mesh/index.ts` (новый endpoint `/peer/lag`).
+- Миграции БД не требуются.
+- Версия → 1.3.62.

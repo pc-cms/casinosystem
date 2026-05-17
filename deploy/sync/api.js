@@ -177,7 +177,8 @@ export function startApi({ pool }) {
           return send(res, 400, { error: `Cloud casino_id (${conn.casino_id}) ≠ local CASINO_ID (${cid})` });
         }
         // Stream + import (fire-and-forget; client polls /node/clone-from-cloud/status)
-        cloneFromCloud(pool, conn, cid).catch((e) => {
+        // Pass initiator userId so their auth row is never wiped mid-clone.
+        cloneFromCloud(pool, conn, cid, userId).catch((e) => {
           console.error("[clone] fatal", e);
         });
         return send(res, 202, { ok: true, message: "Clone started — poll /node/clone-from-cloud/status" });
@@ -487,17 +488,27 @@ let cloneState = {
   finished_at: null,
   current_table: null,
   counts: {},            // { table_name: rows_imported }
+  errors_by_table: {},   // { table_name: rows_failed }
+  error_samples: {},     // { table_name: ["first error msg", ...] (max 3) }
   error: null,
 };
 function getCloneStatus() { return cloneState; }
 
-async function cloneFromCloud(pool, conn, casinoId) {
+function recordCloneError(table, msg) {
+  cloneState.errors_by_table[table] = (cloneState.errors_by_table[table] || 0) + 1;
+  const arr = cloneState.error_samples[table] || (cloneState.error_samples[table] = []);
+  if (arr.length < 3) arr.push(String(msg || "").slice(0, 240));
+}
+
+async function cloneFromCloud(pool, conn, casinoId, initiatorUserId) {
   cloneState = {
     status: "running",
     started_at: new Date().toISOString(),
     finished_at: null,
     current_table: null,
     counts: {},
+    errors_by_table: {},
+    error_samples: {},
     error: null,
   };
   const client = await pool.connect();
@@ -539,6 +550,11 @@ async function cloneFromCloud(pool, conn, casinoId) {
 
     await client.query("BEGIN");
     await client.query(`SELECT set_config('sync.applying','on', true)`);
+    // Disable FK + user triggers for the import — eliminates silent FK losses
+    // on child tables (e.g. staff_rota.staff_member_id referencing a row that
+    // hasn't been streamed yet). The sync.applying GUC already prevents the
+    // outbox enqueue triggers from firing, so this is safe.
+    await client.query(`SET LOCAL session_replication_role = replica`);
 
     // 1) Clear sync_outbox + seed markers + advance peer cursors so we don't
     //    push the freshly-imported rows back to Cloud.
@@ -571,28 +587,12 @@ async function cloneFromCloud(pool, conn, casinoId) {
       }
     }
 
-    // 2c) Wipe auth.users + dependent rows for this casino's users.
-    //     We keep the bootstrap superadmin (superadmin@cms.local) untouched.
-    try {
-      await client.query("SAVEPOINT clone_wipe_auth");
-      await client.query(`
-        WITH users_to_wipe AS (
-          SELECT u.id FROM auth.users u
-          WHERE u.email <> 'superadmin@cms.local'
-            AND u.id IN (
-              SELECT user_id FROM public.user_casino_access WHERE casino_id = $1::uuid
-              UNION
-              SELECT id      FROM public.profiles            WHERE casino_id = $1::uuid
-            )
-        )
-        DELETE FROM auth.users WHERE id IN (SELECT id FROM users_to_wipe)
-      `, [casinoId]);
-      await client.query("RELEASE SAVEPOINT clone_wipe_auth");
-    } catch (e) {
-      await client.query("ROLLBACK TO SAVEPOINT clone_wipe_auth").catch(() => {});
-      await client.query("RELEASE SAVEPOINT clone_wipe_auth").catch(() => {});
-      console.log(`[clone] wipe.skip auth.users: ${String(e?.message || e).slice(0, 200)}`);
-    }
+    // 2c) NOTE: auth.users is no longer pre-wiped. Pre-wiping was killing the
+    //     active super_admin session ("users appeared for a second and vanished").
+    //     Instead, after the stream finishes (step 4) we delete only users
+    //     ABSENT from the cloud snapshot — and never the initiator,
+    //     never superadmin@cms.local.
+    const importedAuthIds = new Set();
 
     // 3) Stream NDJSON from cloud-seed-export
     const seedUrl = `${conn.cloud_url}/functions/v1/cloud-seed-export?casino_id=${casinoId}&days=all`;
@@ -668,9 +668,11 @@ async function cloneFromCloud(pool, conn, casinoId) {
             `, [u.id, u.email]);
             await client.query("RELEASE SAVEPOINT clone_auth_user");
             cloneState.counts["auth.users"] = (cloneState.counts["auth.users"] || 0) + 1;
+            importedAuthIds.add(u.id);
           } catch (e) {
             await client.query("ROLLBACK TO SAVEPOINT clone_auth_user").catch(() => {});
             await client.query("RELEASE SAVEPOINT clone_auth_user").catch(() => {});
+            recordCloneError("auth.users", `${u?.email}: ${e?.message || e}`);
             console.log(`[clone] auth.user fail ${u?.email}: ${String(e?.message || e).slice(0, 200)}`);
           }
           continue;
@@ -701,13 +703,52 @@ async function cloneFromCloud(pool, conn, casinoId) {
             await client.query("SAVEPOINT clone_row_fallback");
             const rr = await client.query(fallbackSql, cols.map(c => obj.row[c]));
             await client.query("RELEASE SAVEPOINT clone_row_fallback");
-            if (rr.rowCount > 0) cloneState.counts[obj.table] = (cloneState.counts[obj.table] || 0) + rr.rowCount;
+            if (rr.rowCount > 0) {
+              cloneState.counts[obj.table] = (cloneState.counts[obj.table] || 0) + rr.rowCount;
+            } else {
+              recordCloneError(obj.table, String(e?.message || e));
+            }
           } catch (e2) {
             await client.query("ROLLBACK TO SAVEPOINT clone_row_fallback").catch(() => {});
             await client.query("RELEASE SAVEPOINT clone_row_fallback").catch(() => {});
+            recordCloneError(obj.table, String(e2?.message || e2 || e));
             console.log(`[clone] insert.fail ${obj.table}: ${String(e2?.message || e2 || e).slice(0, 200)}`);
           }
         }
+      }
+    }
+
+    // 4) Post-import auth GC: delete only users ABSENT from the cloud
+    //    snapshot — never the initiator, never the bootstrap superadmin.
+    //    This replaces the old destructive pre-wipe.
+    if (importedAuthIds.size > 0) {
+      try {
+        await client.query("SAVEPOINT clone_auth_gc");
+        const idsArr = Array.from(importedAuthIds);
+        await client.query(`
+          WITH casino_users AS (
+            SELECT u.id, u.email
+              FROM auth.users u
+             WHERE u.id IN (
+               SELECT user_id FROM public.user_casino_access WHERE casino_id = $1::uuid
+               UNION
+               SELECT id      FROM public.profiles            WHERE casino_id = $1::uuid
+             )
+          )
+          DELETE FROM auth.users
+           WHERE id IN (
+             SELECT id FROM casino_users
+              WHERE email <> 'superadmin@cms.local'
+                AND ($3::uuid IS NULL OR id <> $3::uuid)
+                AND NOT (id = ANY($2::uuid[]))
+           )
+        `, [casinoId, idsArr, initiatorUserId || null]);
+        await client.query("RELEASE SAVEPOINT clone_auth_gc");
+      } catch (e) {
+        await client.query("ROLLBACK TO SAVEPOINT clone_auth_gc").catch(() => {});
+        await client.query("RELEASE SAVEPOINT clone_auth_gc").catch(() => {});
+        recordCloneError("auth.users.gc", e?.message || e);
+        console.log(`[clone] auth.users gc skip: ${String(e?.message || e).slice(0, 200)}`);
       }
     }
 
@@ -715,7 +756,8 @@ async function cloneFromCloud(pool, conn, casinoId) {
     cloneState.status = "done";
     cloneState.finished_at = new Date().toISOString();
     cloneState.current_table = null;
-    console.log("[clone] done", cloneState.counts);
+    const totalErrors = Object.values(cloneState.errors_by_table).reduce((s, n) => s + n, 0);
+    console.log("[clone] done", { counts: cloneState.counts, errors: totalErrors, errors_by_table: cloneState.errors_by_table });
   } catch (e) {
     await client.query("ROLLBACK").catch(() => {});
     cloneState.status = "error";
