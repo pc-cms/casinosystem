@@ -101,6 +101,15 @@ Deno.serve(async (req: Request) => {
       const accepted: number[] = [];
       const rejected: Array<{ outbox_id: number; error_code: string; error_text: string }> = [];
       for (const ch of changes) {
+        // Casino rows are environment-owned on each node (Cloud names/slugs differ
+        // from Local names/slugs). Updating them through row-sync can hit FK
+        // constraints when an older local row payload conflicts with Cloud rows.
+        // Treat as accepted so the cursor advances; casino metadata is managed by
+        // installer/Admin flows, not by mirror data sync.
+        if (ch.table === "casinos") {
+          accepted.push(ch.id);
+          continue;
+        }
         // Skip rows whose referenced auth user doesn't exist on this side.
         // Happens both ways: local-only super_admin@local users pushed to Cloud,
         // and Cloud-only users pulled into a fresh local node before the auth
