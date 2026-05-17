@@ -7,7 +7,7 @@
 -- ─────────── 1. Foreign keys needed for PostgREST embedding ───────────
 DO $$
 DECLARE
-  r record;
+  r text[];
   fks text[][] := ARRAY[
     ARRAY['players','casino_id','casinos','id'],
     ARRAY['player_cards','player_id','players','id'],
@@ -39,6 +39,7 @@ BEGIN
       ) AND EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name=tbl)
         AND EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name=rtbl)
         AND EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name=tbl AND column_name=col)
+        AND EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name=rtbl AND column_name=rcol)
       THEN
         EXECUTE format(
           'ALTER TABLE public.%I ADD CONSTRAINT %I FOREIGN KEY (%I) REFERENCES public.%I(%I) NOT VALID',
@@ -53,6 +54,8 @@ BEGIN
 END $$;
 
 -- ─────────── 2. business_day_closures table (if missing) ───────────
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
 CREATE TABLE IF NOT EXISTS public.business_day_closures (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   casino_id uuid NOT NULL,
@@ -94,7 +97,18 @@ BEGIN
 END;
 $function$;
 
-GRANT EXECUTE ON FUNCTION public.get_current_business_date(uuid) TO anon, authenticated, service_role;
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN
+    GRANT EXECUTE ON FUNCTION public.get_current_business_date(uuid) TO anon;
+  END IF;
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN
+    GRANT EXECUTE ON FUNCTION public.get_current_business_date(uuid) TO authenticated;
+  END IF;
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role') THEN
+    GRANT EXECUTE ON FUNCTION public.get_current_business_date(uuid) TO service_role;
+  END IF;
+END $$;
 
 -- ─────────── 4. Reload PostgREST schema cache ───────────
 NOTIFY pgrst, 'reload schema';
