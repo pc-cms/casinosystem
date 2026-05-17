@@ -135,16 +135,18 @@ Deno.serve(async (req: Request) => {
           const payloadHash = hash
             ? Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2,"0")).join("")
             : String(payloadStr.length);
-          await admin.rpc("sync_record_apply_error", {
-            p_peer_link_id: peer.id,
-            p_source_outbox_id: ch.id ?? null,
-            p_table: ch.table ?? "unknown",
-            p_op: ch.op ?? null,
-            p_pk: ch.pk ?? {},
-            p_payload_hash: payloadHash,
-            p_error_code: errCode,
-            p_error_text: errText,
-          }).catch(() => {});
+          try {
+            await admin.rpc("sync_record_apply_error", {
+              p_peer_link_id: peer.id,
+              p_source_outbox_id: ch.id ?? null,
+              p_table: ch.table ?? "unknown",
+              p_op: ch.op ?? null,
+              p_pk: ch.pk ?? {},
+              p_payload_hash: payloadHash,
+              p_error_code: errCode,
+              p_error_text: errText,
+            });
+          } catch (_e) { /* swallow audit errors */ }
         }
       }
       await admin.from("peer_links").update({
