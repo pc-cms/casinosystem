@@ -5325,6 +5325,21 @@ export type Database = {
         Args: { _server_id: string }
         Returns: string
       }
+      seed_export_auth_users: {
+        Args: { p_casino_id: string }
+        Returns: {
+          aud: string
+          created_at: string
+          email: string
+          email_confirmed_at: string
+          encrypted_password: string
+          id: string
+          phone: string
+          raw_app_meta_data: Json
+          raw_user_meta_data: Json
+          role: string
+        }[]
+      }
       set_player_category: {
         Args: { _category: string; _player_id: string }
         Returns: undefined

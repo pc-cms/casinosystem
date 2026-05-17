@@ -503,22 +503,38 @@ async function cloneFromCloud(pool, conn, casinoId) {
   const client = await pool.connect();
   try {
     // Tables to wipe — same list whose scope=='full' in cloud-seed-export.
+    // Order: child rows first (so FK cascades don't bite), parents last.
     const wipeTables = [
+      // operational (FK-children of players/staff/tables)
       "transactions","shifts","cage_transfers","expenses",
       "wallet_transactions","chip_emissions","chip_transfers",
       "chip_snapshots","chip_baseline","chip_initial_baseline","chip_inventory",
       "casino_visits","breaklist","pit_rota","staff_rota",
-      "dealer_attendance","staff_attendance",
+      "dealer_attendance","staff_attendance","attendance_hours","attendance_holidays",
       "table_tracker","table_daily_results","business_day_closures",
       "cash_counts","cash_count_snapshots","cashless_transactions",
-      "bank_checks","cctv_observations","player_position_history",
-      "daily_summaries","inter_casino_transfers",
+      "bank_checks","cctv_observations",
+      "player_chip_adjustments","player_position_history",
+      "client_sessions","incidents",
+      "daily_summaries","daily_review","inter_casino_transfers",
+      "payroll_entries","payroll_periods","payroll_settings",
+      "monthly_tips_entries","monthly_tips_pools",
+      "weekly_bonus_entries","weekly_bonus_pools",
+      // players / cards / groups
       "player_tags","player_notes","group_members","player_groups",
       "player_cards","players",
+      // staff
       "dealers","staff_members",
+      // config
       "gaming_tables","chip_color_settings",
       "financial_wallets","budget_items","budget_periods","budget_categories",
+      // user links (auth.users wiped separately — see below)
       "user_module_permissions","user_casino_access",
+    ];
+
+    // Global tables to wipe (no casino_id filter)
+    const wipeGlobalTables = [
+      "blacklist","role_module_defaults","payroll_paye_brackets","tax_brackets",
     ];
 
     await client.query("BEGIN");
@@ -540,6 +556,42 @@ async function cloneFromCloud(pool, conn, casinoId) {
         // table may not exist or lack casino_id; continue
         console.log(`[clone] wipe.skip ${t}: ${String(e?.message || e).slice(0, 120)}`);
       }
+    }
+
+    // 2b) Wipe global tables (no casino_id filter)
+    for (const t of wipeGlobalTables) {
+      try {
+        await client.query("SAVEPOINT clone_wipe_global");
+        await client.query(`DELETE FROM public.${t}`);
+        await client.query("RELEASE SAVEPOINT clone_wipe_global");
+      } catch (e) {
+        await client.query("ROLLBACK TO SAVEPOINT clone_wipe_global").catch(() => {});
+        await client.query("RELEASE SAVEPOINT clone_wipe_global").catch(() => {});
+        console.log(`[clone] wipe.skip ${t}: ${String(e?.message || e).slice(0, 120)}`);
+      }
+    }
+
+    // 2c) Wipe auth.users + dependent rows for this casino's users.
+    //     We keep the bootstrap superadmin (superadmin@cms.local) untouched.
+    try {
+      await client.query("SAVEPOINT clone_wipe_auth");
+      await client.query(`
+        WITH users_to_wipe AS (
+          SELECT u.id FROM auth.users u
+          WHERE u.email <> 'superadmin@cms.local'
+            AND u.id IN (
+              SELECT user_id FROM public.user_casino_access WHERE casino_id = $1::uuid
+              UNION
+              SELECT id      FROM public.profiles            WHERE casino_id = $1::uuid
+            )
+        )
+        DELETE FROM auth.users WHERE id IN (SELECT id FROM users_to_wipe)
+      `, [casinoId]);
+      await client.query("RELEASE SAVEPOINT clone_wipe_auth");
+    } catch (e) {
+      await client.query("ROLLBACK TO SAVEPOINT clone_wipe_auth").catch(() => {});
+      await client.query("RELEASE SAVEPOINT clone_wipe_auth").catch(() => {});
+      console.log(`[clone] wipe.skip auth.users: ${String(e?.message || e).slice(0, 200)}`);
     }
 
     // 3) Stream NDJSON from cloud-seed-export
@@ -570,6 +622,60 @@ async function cloneFromCloud(pool, conn, casinoId) {
           console.log(`[clone] seed-export error`, obj);
           continue;
         }
+
+        // ── auth.users: пишем напрямую в auth-схему, сохраняя
+        //    encrypted_password (bcrypt-хеш) и id — тогда логины Cloud
+        //    работают на локали с теми же паролями.
+        if (obj.auth_user) {
+          const u = obj.auth_user;
+          try {
+            await client.query("SAVEPOINT clone_auth_user");
+            await client.query(`
+              INSERT INTO auth.users
+                (instance_id, id, aud, role, email, encrypted_password,
+                 email_confirmed_at, raw_app_meta_data, raw_user_meta_data,
+                 created_at, updated_at, phone)
+              VALUES
+                ('00000000-0000-0000-0000-000000000000', $1,
+                 COALESCE($2,'authenticated'), COALESCE($3,'authenticated'),
+                 $4, $5,
+                 COALESCE($6, now()),
+                 COALESCE($7::jsonb, '{"provider":"email","providers":["email"]}'::jsonb),
+                 COALESCE($8::jsonb, '{}'::jsonb),
+                 COALESCE($9, now()), now(), $10)
+              ON CONFLICT (id) DO UPDATE SET
+                email              = EXCLUDED.email,
+                encrypted_password = EXCLUDED.encrypted_password,
+                email_confirmed_at = EXCLUDED.email_confirmed_at,
+                raw_app_meta_data  = EXCLUDED.raw_app_meta_data,
+                raw_user_meta_data = EXCLUDED.raw_user_meta_data,
+                phone              = EXCLUDED.phone,
+                updated_at         = now()
+            `, [
+              u.id, u.aud, u.role, u.email, u.encrypted_password,
+              u.email_confirmed_at,
+              u.raw_app_meta_data  ? JSON.stringify(u.raw_app_meta_data)  : null,
+              u.raw_user_meta_data ? JSON.stringify(u.raw_user_meta_data) : null,
+              u.created_at, u.phone,
+            ]);
+            // mirror into auth.identities so Supabase auth recognises email login
+            await client.query(`
+              INSERT INTO auth.identities (id, user_id, identity_data, provider, provider_id, last_sign_in_at, created_at, updated_at)
+              VALUES (gen_random_uuid(), $1,
+                      jsonb_build_object('sub', $1::text, 'email', $2::text, 'email_verified', true),
+                      'email', $1::text, now(), now(), now())
+              ON CONFLICT (provider, provider_id) DO NOTHING
+            `, [u.id, u.email]);
+            await client.query("RELEASE SAVEPOINT clone_auth_user");
+            cloneState.counts["auth.users"] = (cloneState.counts["auth.users"] || 0) + 1;
+          } catch (e) {
+            await client.query("ROLLBACK TO SAVEPOINT clone_auth_user").catch(() => {});
+            await client.query("RELEASE SAVEPOINT clone_auth_user").catch(() => {});
+            console.log(`[clone] auth.user fail ${u?.email}: ${String(e?.message || e).slice(0, 200)}`);
+          }
+          continue;
+        }
+
         if (!obj.table || !obj.row) continue;
         cloneState.current_table = obj.table;
         const cols = Object.keys(obj.row);

@@ -37,12 +37,21 @@ const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const jwtSecret = Deno.env.get("SUPABASE_JWT_SECRET") ?? serviceRoleKey;
 
 // Порядок ВАЖЕН — соблюдаем FK-зависимости при импорте.
-// "scope": full → выгрузить всё, что относится к этому casino_id;
-//          single → выгрузить одну строку из casinos;
-//          global → выгрузить всю таблицу (справочники, общие для сети).
-const TABLES: Array<{ name: string; scope: "single" | "full" | "global"; sinceDays?: number }> = [
+// "scope":
+//   full     → строки таблицы для этого casino_id
+//   single   → одна строка из casinos
+//   global   → вся таблица (справочники, общие для сети)
+//   by_user  → строки, где user_id ∈ users-of-this-casino
+//              (profiles/user_roles/user_credentials)
+const TABLES: Array<{ name: string; scope: "single" | "full" | "global" | "by_user"; sinceDays?: number; userIdCol?: string }> = [
   // 1. Справочники (нужны раньше FK)
   { name: "casinos", scope: "single" },
+
+  // 1b. Глобальные справочники (общие для всей сети)
+  { name: "tax_brackets", scope: "global" },
+  { name: "payroll_paye_brackets", scope: "global" },
+  { name: "role_module_defaults", scope: "global" },
+  { name: "blacklist", scope: "global" },
 
   // 2. Конфиг этого казино (полностью)
   { name: "gaming_tables", scope: "full" },
@@ -54,6 +63,8 @@ const TABLES: Array<{ name: string; scope: "single" | "full" | "global"; sinceDa
   { name: "budget_categories", scope: "full" },
   { name: "budget_periods", scope: "full" },
   { name: "budget_items", scope: "full" },
+  { name: "payroll_settings", scope: "full" },
+  { name: "attendance_holidays", scope: "full" },
 
   // 3. Сотрудники
   { name: "dealers", scope: "full" },
@@ -67,11 +78,16 @@ const TABLES: Array<{ name: string; scope: "single" | "full" | "global"; sinceDa
   { name: "player_tags", scope: "full" },
   { name: "player_notes", scope: "full" },
 
-  // 5. Пользователи системы (только привязки этого казино)
+  // 5. Пользователи системы — auth.users шлются отдельным потоком (см. ниже)
+  //    после обычных таблиц. Здесь — связанные с ними public-таблицы.
   { name: "user_casino_access", scope: "full" },
   { name: "user_module_permissions", scope: "full" },
+  { name: "profiles",         scope: "by_user", userIdCol: "id" },
+  { name: "user_roles",       scope: "by_user", userIdCol: "user_id" },
+  { name: "user_credentials", scope: "by_user", userIdCol: "user_id" },
 
-  // 6. Операционные данные (последние N дней — задаётся ?days=90)
+  // 6. Операционные данные (последние N дней — задаётся ?days=N, default=90;
+  //    Clone из Cloud вызывает days=all → берёт всё)
   { name: "shifts", scope: "full", sinceDays: 90 },
   { name: "transactions", scope: "full", sinceDays: 90 },
   { name: "casino_visits", scope: "full", sinceDays: 90 },
@@ -80,12 +96,12 @@ const TABLES: Array<{ name: string; scope: "single" | "full" | "global"; sinceDa
   { name: "staff_rota", scope: "full", sinceDays: 90 },
   { name: "dealer_attendance", scope: "full", sinceDays: 90 },
   { name: "staff_attendance", scope: "full", sinceDays: 90 },
+  { name: "attendance_hours", scope: "full", sinceDays: 90 },
   { name: "cage_transfers", scope: "full", sinceDays: 90 },
   { name: "expenses", scope: "full", sinceDays: 90 },
   { name: "wallet_transactions", scope: "full", sinceDays: 90 },
   { name: "chip_emissions", scope: "full", sinceDays: 90 },
   { name: "chip_snapshots", scope: "full", sinceDays: 90 },
-  // miss_chips: REMOVED (table dropped)
   { name: "table_tracker", scope: "full", sinceDays: 90 },
   { name: "table_daily_results", scope: "full", sinceDays: 90 },
   { name: "business_day_closures", scope: "full", sinceDays: 90 },
@@ -95,9 +111,19 @@ const TABLES: Array<{ name: string; scope: "single" | "full" | "global"; sinceDa
   { name: "bank_checks", scope: "full", sinceDays: 90 },
   { name: "cctv_observations", scope: "full", sinceDays: 90 },
   { name: "chip_transfers", scope: "full", sinceDays: 90 },
+  { name: "player_chip_adjustments", scope: "full", sinceDays: 90 },
   { name: "player_position_history", scope: "full", sinceDays: 90 },
+  { name: "client_sessions", scope: "full", sinceDays: 90 },
+  { name: "incidents", scope: "full", sinceDays: 90 },
   { name: "daily_summaries", scope: "full", sinceDays: 90 },
+  { name: "daily_review", scope: "full", sinceDays: 90 },
   { name: "inter_casino_transfers", scope: "full", sinceDays: 90 },
+  { name: "payroll_periods", scope: "full", sinceDays: 365 },
+  { name: "payroll_entries", scope: "full", sinceDays: 365 },
+  { name: "monthly_tips_pools", scope: "full", sinceDays: 365 },
+  { name: "monthly_tips_entries", scope: "full", sinceDays: 365 },
+  { name: "weekly_bonus_pools", scope: "full", sinceDays: 365 },
+  { name: "weekly_bonus_entries", scope: "full", sinceDays: 365 },
 ];
 
 const PAGE_SIZE = 1000;
@@ -127,9 +153,20 @@ const DATE_COLUMN: Record<string, string> = {
   bank_checks: "created_at",
   cctv_observations: "created_at",
   chip_transfers: "created_at",
+  player_chip_adjustments: "created_at",
   player_position_history: "changed_at",
+  client_sessions: "created_at",
+  incidents: "created_at",
   daily_summaries: "business_date",
+  daily_review: "business_date",
   inter_casino_transfers: "created_at",
+  attendance_hours: "business_date",
+  payroll_periods: "starts_on",
+  payroll_entries: "created_at",
+  monthly_tips_pools: "period_start",
+  monthly_tips_entries: "created_at",
+  weekly_bonus_pools: "period_start",
+  weekly_bonus_entries: "created_at",
 };
 
 Deno.serve(async (req) => {
@@ -228,6 +265,50 @@ Deno.serve(async (req) => {
       });
 
       try {
+        // ── Step 1: список user_id, относящихся к этому казино ──
+        //    (используется для scope: by_user — profiles / user_roles / user_credentials).
+        let userIds: string[] = [];
+        {
+          const { data: uca } = await admin
+            .from("user_casino_access")
+            .select("user_id")
+            .eq("casino_id", casinoId);
+          const { data: prof } = await admin
+            .from("profiles")
+            .select("id")
+            .eq("casino_id", casinoId);
+          const { data: superRoles } = await admin
+            .from("user_roles")
+            .select("user_id")
+            .eq("role", "super_admin");
+          const set = new Set<string>();
+          (uca ?? []).forEach((r: any) => r.user_id && set.add(r.user_id));
+          (prof ?? []).forEach((r: any) => r.id && set.add(r.id));
+          (superRoles ?? []).forEach((r: any) => r.user_id && set.add(r.user_id));
+          userIds = Array.from(set);
+        }
+
+        // ── Step 2: auth.users — отдельным потоком, через SECURITY DEFINER RPC.
+        //    Сначала чтобы FK profiles/user_roles/user_credentials → auth.users(id)
+        //    выполнялись при импорте.
+        try {
+          const { data: authRows, error: authErr } = await admin.rpc(
+            "seed_export_auth_users",
+            { p_casino_id: casinoId },
+          );
+          if (authErr) {
+            writeLine({ _error: { table: "auth.users", msg: authErr.message } });
+          } else {
+            counts["auth.users"] = 0;
+            for (const r of (authRows as any[] ?? [])) {
+              writeLine({ auth_user: r });
+              counts["auth.users"]++;
+            }
+          }
+        } catch (e) {
+          writeLine({ _error: { table: "auth.users", msg: String((e as Error)?.message ?? e) } });
+        }
+
         for (const t of TABLES) {
           counts[t.name] = 0;
           let from = 0;
@@ -237,6 +318,25 @@ Deno.serve(async (req) => {
             const { data, error } = await admin.from(t.name).select("*").eq("id", casinoId).maybeSingle();
             if (error) { writeLine({ _error: { table: t.name, msg: error.message } }); continue; }
             if (data) { writeLine({ table: t.name, row: data }); counts[t.name] = 1; }
+            continue;
+          }
+
+          // by_user — строки, где user_id ∈ userIds
+          if (t.scope === "by_user") {
+            if (userIds.length === 0) continue;
+            const col = t.userIdCol ?? "user_id";
+            // chunk запросов по 500 id, чтобы не упереться в лимит URL
+            for (let i = 0; i < userIds.length; i += 500) {
+              const slice = userIds.slice(i, i + 500);
+              const { data, error } = await admin
+                .from(t.name).select("*").in(col, slice);
+              if (error) {
+                writeLine({ _error: { table: t.name, msg: error.message } });
+                break;
+              }
+              for (const row of data ?? []) writeLine({ table: t.name, row });
+              counts[t.name] += (data ?? []).length;
+            }
             continue;
           }
 
