@@ -190,18 +190,13 @@ async function pushPeer(peer) {
   const skipped  = new Set(Array.isArray(j.skipped)  ? j.skipped.map(Number)  : []);
   const rejected = Array.isArray(j.rejected) ? j.rejected : [];
 
-  // Cursor advances only through accepted ∪ skipped (rejected rows stay queued).
+  // Cursor advances through ALL rows the peer responded about — even rejected
+  // ones, because peer_apply_change is now self-healing (NULLs missing user-FKs
+  // and retries). Persistent rejects are recorded in sync_apply_errors and must
+  // not block forward progress; otherwise one bad row stalls the entire mesh.
   let safeMax = peer.last_push_cursor;
   for (const r of rows) {
-    if (accepted.has(r.id) || skipped.has(r.id)) {
-      if (r.id > safeMax) safeMax = r.id;
-    } else if (rejected.some((rr) => Number(rr.outbox_id) === r.id)) {
-      break; // stop at first rejected
-    } else if (accepted.size === rows.length) {
-      if (r.id > safeMax) safeMax = r.id;
-    } else {
-      break;
-    }
+    if (r.id > safeMax) safeMax = r.id;
   }
   // Record any rejected rows from peer
   for (const rr of rejected) {

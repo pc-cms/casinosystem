@@ -76,6 +76,10 @@ CREATE INDEX IF NOT EXISTS idx_player_position_history_casino_started
 CREATE INDEX IF NOT EXISTS idx_player_position_history_player_started
   ON public.player_position_history(player_id, started_at DESC);
 
+-- player_drop_split_lifetime: NEP split per player (Drop R = external new money,
+-- Drop Recycled = chips returned by previous cashouts). Until full NEP RPC is
+-- ported to on-prem, approximate: Drop R = total buy minus cashout, Drop Recycled
+-- = min(buy, cashout). Keeps "Drop result" non-zero in Player Statistics.
 CREATE OR REPLACE FUNCTION public.player_drop_split_lifetime(_player_id uuid)
 RETURNS TABLE (drop_r bigint, drop_recycled bigint)
 LANGUAGE sql
@@ -83,9 +87,16 @@ STABLE
 SECURITY INVOKER
 SET search_path = public
 AS $$
-  SELECT COALESCE(SUM(amount), 0)::bigint, 0::bigint
-  FROM public.transactions
-  WHERE player_id = _player_id AND type IN ('buy','in')
+  WITH s AS (
+    SELECT
+      COALESCE(SUM(CASE WHEN type IN ('buy','in')      THEN amount END), 0)::bigint AS buy,
+      COALESCE(SUM(CASE WHEN type IN ('cashout','out') THEN amount END), 0)::bigint AS cash
+    FROM public.transactions
+    WHERE player_id = _player_id
+  )
+  SELECT GREATEST(buy - cash, 0)::bigint AS drop_r,
+         LEAST(buy, cash)::bigint        AS drop_recycled
+  FROM s
 $$;
 
 DO $$
@@ -563,14 +574,21 @@ DECLARE
     'casinos','gaming_tables','chip_color_settings',
     'chip_initial_baseline','chip_baseline','chip_inventory','chip_snapshots',
     'financial_wallets','budget_categories','budget_periods','budget_items',
-    'dealers','staff_members','profiles','user_casino_access','user_module_permissions',
+    'dealers','staff_members','employees','employee_bank_accounts',
+    'profiles','user_casino_access','user_module_permissions',
     'players','player_cards','player_groups','group_members','player_tags','player_notes',
     'transactions','shifts','cage_transfers','expenses','wallet_transactions',
-    'chip_emissions','chip_transfers','casino_visits','breaklist','pit_rota','staff_rota',
-    'dealer_attendance','staff_attendance','table_tracker','table_daily_results',
+    'chip_emissions','chip_transfers','casino_visits',
+    'breaklist','breaklist_logs','pit_rota','staff_rota',
+    'dealer_attendance','staff_attendance','attendance_hours','attendance_holidays',
+    'table_tracker','table_daily_results',
     'business_day_closures','cash_counts','cash_count_snapshots','cashless_transactions',
     'bank_checks','cctv_observations','player_position_history','daily_summaries',
-    'inter_casino_transfers','activity_logs','daily_review','blacklist'
+    'inter_casino_transfers','activity_logs','daily_review','blacklist',
+    'client_sessions','incidents',
+    'payroll_settings','payroll_periods','payroll_entries',
+    'monthly_tips_pools','monthly_tips_entries',
+    'weekly_bonus_pools','weekly_bonus_entries'
   ];
 BEGIN
   FOREACH t IN ARRAY tables LOOP
@@ -642,6 +660,10 @@ DECLARE
   v_existing_updated_at timestamptz;
   v_incoming_updated_at timestamptz;
   v_id_type text;
+  v_payload jsonb := p_payload;
+  v_fk_col text;
+  v_retry boolean;
+  v_attempt int := 0;
 BEGIN
   IF p_table = 'casinos' THEN
     RETURN;
@@ -680,9 +702,9 @@ BEGIN
     RETURN;
   END IF;
 
-  IF p_payload ? 'updated_at' THEN
+  IF v_payload ? 'updated_at' THEN
     BEGIN
-      v_incoming_updated_at := (p_payload->>'updated_at')::timestamptz;
+      v_incoming_updated_at := (v_payload->>'updated_at')::timestamptz;
       IF v_id_type = 'uuid' THEN
         EXECUTE format('SELECT updated_at FROM public.%I WHERE id = $1::uuid', p_table)
           INTO v_existing_updated_at USING v_id;
@@ -700,37 +722,65 @@ BEGIN
     END;
   END IF;
 
-  SELECT array_agg(k) INTO v_cols
-  FROM jsonb_object_keys(p_payload) k
-  WHERE EXISTS (
-    SELECT 1
-    FROM information_schema.columns c
-    WHERE c.table_schema = 'public'
-      AND c.table_name = p_table
-      AND c.column_name = k
-  );
+  <<retry_loop>>
+  LOOP
+    v_attempt := v_attempt + 1;
+    EXIT WHEN v_attempt > 6;
 
-  IF v_cols IS NULL OR array_length(v_cols,1) = 0 THEN RETURN; END IF;
+    -- Build column list: only columns that exist AND are not GENERATED ALWAYS
+    SELECT array_agg(k) INTO v_cols
+    FROM jsonb_object_keys(v_payload) k
+    WHERE EXISTS (
+      SELECT 1
+      FROM information_schema.columns c
+      WHERE c.table_schema = 'public'
+        AND c.table_name = p_table
+        AND c.column_name = k
+        AND c.is_generated = 'NEVER'
+    );
 
-  SELECT string_agg(format('%I = EXCLUDED.%I', c, c), ', ')
-    INTO v_setlist
-    FROM unnest(v_cols) c
-    WHERE c <> 'id';
+    IF v_cols IS NULL OR array_length(v_cols,1) = 0 THEN RETURN; END IF;
 
-  v_sql := format(
-    'INSERT INTO public.%I (%s) SELECT %s FROM jsonb_populate_record(NULL::public.%I, $1) ON CONFLICT (id) DO UPDATE SET %s',
-    p_table,
-    (SELECT string_agg(format('%I', c), ',') FROM unnest(v_cols) c),
-    (SELECT string_agg(format('%I', c), ',') FROM unnest(v_cols) c),
-    p_table,
-    COALESCE(v_setlist, format('%I = EXCLUDED.%I', v_cols[1], v_cols[1]))
-  );
+    SELECT string_agg(format('%I = EXCLUDED.%I', c, c), ', ')
+      INTO v_setlist
+      FROM unnest(v_cols) c
+      WHERE c <> 'id';
 
-  BEGIN
-    EXECUTE v_sql USING p_payload;
-  EXCEPTION WHEN undefined_column OR datatype_mismatch OR invalid_text_representation THEN
-    RETURN;
-  END;
+    v_sql := format(
+      'INSERT INTO public.%I (%s) SELECT %s FROM jsonb_populate_record(NULL::public.%I, $1) ON CONFLICT (id) DO UPDATE SET %s',
+      p_table,
+      (SELECT string_agg(format('%I', c), ',') FROM unnest(v_cols) c),
+      (SELECT string_agg(format('%I', c), ',') FROM unnest(v_cols) c),
+      p_table,
+      COALESCE(v_setlist, format('%I = EXCLUDED.%I', v_cols[1], v_cols[1]))
+    );
+
+    v_retry := false;
+    BEGIN
+      EXECUTE v_sql USING v_payload;
+      RETURN;
+    EXCEPTION
+      WHEN undefined_column OR datatype_mismatch OR invalid_text_representation THEN
+        RETURN;
+      WHEN foreign_key_violation THEN
+        -- Try common user-FK columns in payload — if any is present and
+        -- non-null, NULL it and retry. Lets cross-environment rows land even
+        -- when the referenced auth.user / employee doesn't exist locally.
+        FOREACH v_fk_col IN ARRAY ARRAY[
+          'issued_by','operator_id','created_by','updated_by','locked_by',
+          'recorded_by','approved_by','closed_by','requested_by','confirmed_by',
+          'cancelled_by','received_by','sent_by','employee_id','dealer_id','staff_id'
+        ] LOOP
+          IF v_payload ? v_fk_col AND v_payload->>v_fk_col IS NOT NULL THEN
+            v_payload := v_payload || jsonb_build_object(v_fk_col, NULL);
+            v_retry := true;
+            EXIT;
+          END IF;
+        END LOOP;
+        IF NOT v_retry THEN RETURN; END IF;
+        CONTINUE retry_loop;
+    END;
+  END LOOP;
 END;
 $$;
 

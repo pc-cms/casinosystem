@@ -110,11 +110,10 @@ Deno.serve(async (req: Request) => {
           accepted.push(ch.id);
           continue;
         }
-        // Skip rows whose referenced auth user doesn't exist on this side.
-        // Happens both ways: local-only super_admin@local users pushed to Cloud,
-        // and Cloud-only users pulled into a fresh local node before the auth
-        // user has been provisioned. Accept so the outbox drains and the row
-        // will be re-applied on the next pass once the user exists.
+        // peer_apply_change now self-heals user-FK violations by NULLing the
+        // offending column and retrying, so most rows succeed without this
+        // pre-check. We still skip auth-tied rows when the user is clearly
+        // unknown so we don't pollute audit logs with retried FK errors.
         const USER_FK_TABLES = new Set([
           "profiles",
           "user_casino_access",
