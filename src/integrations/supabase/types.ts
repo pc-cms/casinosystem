@@ -5319,6 +5319,10 @@ export type Database = {
           table_name: string
         }[]
       }
+      sync_wipe_casino_data: {
+        Args: { p_casino_id: string; p_confirm_slug: string }
+        Returns: Json
+      }
       update_user_roles: {
         Args: {
           _roles: Database["public"]["Enums"]["app_role"][]

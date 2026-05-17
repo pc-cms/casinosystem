@@ -17,10 +17,10 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Trash2, Pause, Play, CheckCircle2, XCircle, Sparkles, Server, Cloud } from "lucide-react";
+import { Trash2, Pause, Play, CheckCircle2, XCircle, Sparkles, Server, Cloud, AlertTriangle } from "lucide-react";
 import { RecentExchangeActivity } from "./RecentExchangeActivity";
 
 type PeerStatus = "pending_outbound" | "pending_inbound" | "active" | "paused" | "rejected";
@@ -117,6 +117,9 @@ export const PeerLinksPanel = () => {
   const [secretReveal, setSecretReveal] = useState<{ name: string; secret: string } | null>(null);
   const [pairingCode, setPairingCode] = useState("");
   const [pairingCasinoId, setPairingCasinoId] = useState("");
+  const [wipeCasinoId, setWipeCasinoId] = useState("");
+  const [wipeConfirmSlug, setWipeConfirmSlug] = useState("");
+  const [wipeOpen, setWipeOpen] = useState(false);
 
   const updateStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: PeerStatus }) => {
@@ -199,6 +202,28 @@ export const PeerLinksPanel = () => {
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  const wipeCloudData = useMutation({
+    mutationFn: async () => {
+      if (!wipeCasinoId) throw new Error("Pick a casino");
+      const { data, error } = await supabase.rpc("sync_wipe_casino_data" as any, {
+        p_casino_id: wipeCasinoId,
+        p_confirm_slug: wipeConfirmSlug.trim(),
+      });
+      if (error) throw error;
+      return data as { total_rows_deleted: number; casino_slug: string };
+    },
+    onSuccess: (r) => {
+      toast.success(`Wiped ${r.total_rows_deleted} rows from "${r.casino_slug}"`);
+      setWipeOpen(false);
+      setWipeCasinoId("");
+      setWipeConfirmSlug("");
+      qc.invalidateQueries();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const wipeSelected = casinos.find((c) => c.id === wipeCasinoId);
 
   const NodeKindIcon = identity?.node_kind === "cloud" ? Cloud : Server;
 
@@ -414,6 +439,82 @@ export const PeerLinksPanel = () => {
         </table>
       </div>
 
+      {/* Danger zone: Reset Cloud Data — prerequisite for Case 2 (Local Primary first) */}
+      <div className="cms-panel p-4 space-y-3 border-destructive/30">
+        <div className="flex items-start gap-2">
+          <AlertTriangle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
+          <div>
+            <h3 className="text-sm font-semibold text-destructive">Reset Cloud Data</h3>
+            <p className="text-xs text-muted-foreground">
+              Wipes ALL operational rows (players, transactions, shifts, attendance, etc.) for one casino on Cloud.
+              Structural config (chip colors, wallets, gaming tables) is preserved.
+              Use ONLY before pairing a fresh Local Primary with <span className="font-mono">SKIP_SEED=1</span>,
+              then run Upload (Local → Cloud).
+            </p>
+          </div>
+        </div>
+        <Button
+          variant="destructive"
+          size="sm"
+          onClick={() => setWipeOpen(true)}
+          className="gap-1.5"
+        >
+          <Trash2 className="w-3.5 h-3.5" /> Reset Cloud Data…
+        </Button>
+      </div>
+
+      <Dialog open={wipeOpen} onOpenChange={setWipeOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-destructive flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4" /> Reset Cloud Data
+            </DialogTitle>
+            <DialogDescription>
+              This permanently deletes all operational rows for the selected casino on Cloud.
+              You must type the casino slug to confirm.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Select value={wipeCasinoId} onValueChange={(v) => { setWipeCasinoId(v); setWipeConfirmSlug(""); }}>
+              <SelectTrigger><SelectValue placeholder="Pick casino to wipe…" /></SelectTrigger>
+              <SelectContent>
+                {casinos.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>{c.name}{c.slug ? ` (${c.slug})` : ""}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {wipeSelected && (
+              <div className="space-y-1.5">
+                <p className="text-xs text-muted-foreground">
+                  Type <span className="font-mono font-bold text-destructive">{wipeSelected.slug}</span> to confirm:
+                </p>
+                <Input
+                  value={wipeConfirmSlug}
+                  onChange={(e) => setWipeConfirmSlug(e.target.value)}
+                  placeholder={wipeSelected.slug ?? ""}
+                  className="font-mono"
+                  autoFocus
+                />
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setWipeOpen(false)}>Cancel</Button>
+            <Button
+              variant="destructive"
+              onClick={() => wipeCloudData.mutate()}
+              disabled={
+                !wipeCasinoId ||
+                !wipeSelected ||
+                wipeConfirmSlug.trim().toLowerCase() !== (wipeSelected.slug ?? "").toLowerCase() ||
+                wipeCloudData.isPending
+              }
+            >
+              {wipeCloudData.isPending ? "Wiping…" : "Wipe Cloud Data"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Reveal secret once */}
       <Dialog open={!!secretReveal} onOpenChange={(o) => !o && setSecretReveal(null)}>
