@@ -141,6 +141,24 @@ Deno.serve(async (req: Request) => {
       return json(200, { accepted: rows.length });
     }
 
+    }
+
+    if (sub === "/probe") {
+      // Round-trip mirror verification. Local sends a probe row id; we stamp
+      // echoed_at and emit a sync_outbox event so it routes back to origin.
+      const probeId = body.probe_id;
+      if (!probeId) return json(400, { error: "probe_id required" });
+      const now = new Date().toISOString();
+      const { error: updErr } = await admin
+        .from("sync_probes")
+        .update({ echoed_at: now, status: "echoed" })
+        .eq("id", probeId);
+      if (updErr) return json(500, { error: updErr.message });
+      // The sync_outbox trigger on sync_probes will replicate the change back
+      // to the origin local node via the normal pull path.
+      return json(200, { ok: true, echoed_at: now });
+    }
+
     if (sub === "/pull") {
       const sinceId = Number(body.since_id ?? 0) || 0;
       const limit = Math.min(Number(body.limit ?? 500) || 500, 2000);
