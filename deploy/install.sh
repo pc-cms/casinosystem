@@ -50,7 +50,7 @@ trap 'rc=$?; ln="${BASH_LINENO[0]:-?}"; cmd="${BASH_COMMAND:-?}"; echo -e "${RED
 require_root() { [[ $EUID -eq 0 ]] || fail "Запустите от root: sudo ./deploy/install.sh"; }
 
 # ── CLI ──
-RESET=0; REBUILD=0; RECONFIGURE=0; WIPE=0; UPDATE=0; UPDATE_FRONT=0; MENU=0; REPAIR=0
+RESET=0; REBUILD=0; RECONFIGURE=0; WIPE=0; UPDATE=0; UPDATE_FRONT=0; MENU=0; REPAIR=0; VERIFY=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --reset)         RESET=1; shift ;;
@@ -60,6 +60,7 @@ while [[ $# -gt 0 ]]; do
     --update)        UPDATE=1; REBUILD=1; shift ;;
     --frontend-only|--update-frontend) UPDATE_FRONT=1; shift ;;
     --repair)        REPAIR=1; shift ;;
+    --verify-parity) VERIFY=1; shift ;;
     --menu)          MENU=1; shift ;;
     -h|--help)       sed -n '4,16p' "$0"; exit 0 ;;
     *) fail "Неизвестный аргумент: $1" ;;
@@ -69,7 +70,7 @@ done
 require_root
 
 # ── Interactive menu (default when запущен без флагов в TTY) ──
-if [[ $MENU -eq 0 && $RESET -eq 0 && $REBUILD -eq 0 && $RECONFIGURE -eq 0 && $WIPE -eq 0 && $UPDATE -eq 0 && $UPDATE_FRONT -eq 0 && $REPAIR -eq 0 ]]; then
+if [[ $MENU -eq 0 && $RESET -eq 0 && $REBUILD -eq 0 && $RECONFIGURE -eq 0 && $WIPE -eq 0 && $UPDATE -eq 0 && $UPDATE_FRONT -eq 0 && $REPAIR -eq 0 && $VERIFY -eq 0 ]]; then
   if [[ -t 0 || -e /dev/tty ]]; then MENU=1; fi
 fi
 
@@ -96,7 +97,8 @@ if [[ $MENU -eq 1 ]]; then
     echo -e "    ${BOLD}4${NC})  ${RED}Стереть всё${NC}              — удалить БД, .env, образы и поставить заново"
     echo -e "    ${BOLD}5${NC})  Статус и логи"
     echo -e "    ${BOLD}6${NC})  ${CYAN}Repair БД${NC}                 — починить схему (FKs, RPC) без пересборки/wipe"
-    echo -e "    ${BOLD}7${NC})  Выйти"
+    echo -e "    ${BOLD}7${NC})  ${CYAN}Verify parity${NC}             — сравнить локальную копию с Cloud (схема, данные, версия)"
+    echo -e "    ${BOLD}8${NC})  Выйти"
   else
     echo -e "    ${BOLD}1${NC})  ${GREEN}Установить${NC}      — чистая установка (БД и .env будут созданы)  ${YELLOW}(рекомендуется)${NC}"
     echo -e "    ${BOLD}2${NC})  ${RED}Стереть всё и поставить заново${NC}  — на всякий случай очистить остатки"
@@ -131,7 +133,8 @@ if [[ $MENU -eq 1 ]]; then
          exec docker compose logs --tail=100 -f
          ;;
       6) echo -e "${CYAN}▶ Запускаю: Repair БД${NC}"; REPAIR=1 ;;
-      7) echo "Выход."; exit 0 ;;
+      7) echo -e "${CYAN}▶ Запускаю: Verify parity${NC}"; VERIFY=1 ;;
+      8) echo "Выход."; exit 0 ;;
       *) fail "Неизвестный выбор: '${CHOICE}'" ;;
     esac
   else
@@ -197,7 +200,96 @@ if [[ $REPAIR -eq 1 ]]; then
   exit 0
 fi
 
-# ────────── 1. Система ──────────
+# ── Verify-parity fast path: сравнить локальную копию с Cloud ──────────────
+if [[ $VERIFY -eq 1 ]]; then
+  title "Verify parity (Local ↔ Cloud)"
+  cd "$SCRIPT_DIR"
+  [[ -f .env ]] || fail ".env не найден — verify-parity доступен только на установленной системе."
+  set -a; . ./.env; set +a
+  : "${CLOUD_URL:?CLOUD_URL не задан в .env}"
+  : "${CASINO_ID:?CASINO_ID не задан в .env}"
+  : "${SYNC_SECRET:?SYNC_SECRET не задан в .env — сервер ещё не спарен с Cloud}"
+  : "${CLOUD_ANON_KEY:?CLOUD_ANON_KEY не задан в .env}"
+
+  PG_RUN=(docker compose exec -T -e PGPASSWORD="${POSTGRES_PASSWORD}" postgres
+          psql -U "${POSTGRES_USER:-postgres}" -d "${POSTGRES_DB:-postgres}" -At -F'|')
+
+  TABLES=(players gaming_tables shifts daily_summaries employees casinos
+          transactions expenses casino_visits client_sessions
+          player_cards player_tags player_notes player_chip_adjustments
+          chips chip_emissions cage_shifts cash_count_entries
+          table_tracker table_daily_results business_day_closures
+          user_roles user_casino_access)
+
+  PASS=0; DIFF=0; MISS=0
+  printf "\n  ${BOLD}%-32s %12s %12s   %s${NC}\n" "Table" "Local" "Cloud" "Status"
+  printf "  %-32s %12s %12s   %s\n" "────────────────────────────────" "────────────" "────────────" "──────"
+
+  for T in "${TABLES[@]}"; do
+    LOC=$("${PG_RUN[@]}" -c "SELECT count(*) FROM public.${T} WHERE casino_id='${CASINO_ID}'" 2>/dev/null || echo "ERR")
+    if [[ "$LOC" == "ERR" || -z "$LOC" ]]; then
+      LOC=$("${PG_RUN[@]}" -c "SELECT count(*) FROM public.${T}" 2>/dev/null || echo "MISS")
+      HDR=$(curl -sk -D - -o /dev/null \
+        -H "apikey: ${CLOUD_ANON_KEY}" -H "Authorization: Bearer ${CLOUD_ANON_KEY}" \
+        -H "Range: 0-0" -H "Prefer: count=exact" \
+        "${CLOUD_URL}/rest/v1/${T}?select=*&limit=1")
+      CLD=$(echo "$HDR" | grep -i '^content-range:' | sed 's|.*/||' | tr -d '\r\n ')
+    else
+      HDR=$(curl -sk -D - -o /dev/null \
+        -H "apikey: ${CLOUD_ANON_KEY}" -H "Authorization: Bearer ${CLOUD_ANON_KEY}" \
+        -H "Range: 0-0" -H "Prefer: count=exact" \
+        "${CLOUD_URL}/rest/v1/${T}?casino_id=eq.${CASINO_ID}&select=*&limit=1")
+      CLD=$(echo "$HDR" | grep -i '^content-range:' | sed 's|.*/||' | tr -d '\r\n ')
+    fi
+    [[ -z "$CLD" || "$CLD" == "*" ]] && CLD="?"
+    if [[ "$LOC" == "MISS" ]]; then
+      printf "  %-32s %12s %12s   ${RED}%s${NC}\n" "$T" "—" "$CLD" "no table"
+      MISS=$((MISS+1))
+    elif [[ "$LOC" == "$CLD" ]]; then
+      printf "  %-32s %12s %12s   ${GREEN}%s${NC}\n" "$T" "$LOC" "$CLD" "OK"
+      PASS=$((PASS+1))
+    else
+      printf "  %-32s %12s %12s   ${YELLOW}%s${NC}\n" "$T" "$LOC" "$CLD" "DIFF"
+      DIFF=$((DIFF+1))
+    fi
+  done
+
+  echo
+  log "Frontend version:"
+  LOC_VER=$(grep -oE '"version"[[:space:]]*:[[:space:]]*"[^"]+"' "$SCRIPT_DIR/../package.json" 2>/dev/null | head -1 | sed -E 's/.*"([^"]+)"$/\1/')
+  REL_VER=$(curl -fsSL --max-time 8 https://api.github.com/repos/pc-cms/casinosystem/releases/latest 2>/dev/null | grep -oP '"tag_name"\s*:\s*"\K[^"]+' | head -1)
+  printf "  Local:  %s\n  Latest: %s\n" "${LOC_VER:-?}" "${REL_VER:-?}"
+  if [[ -n "$LOC_VER" && -n "$REL_VER" && "$LOC_VER" != "$REL_VER" && "v$LOC_VER" != "$REL_VER" ]]; then
+    warn "Frontend отстаёт от Cloud — запустите: curl -fsSL https://casinosystem.app/install | sudo bash -s -- --update"
+  fi
+
+  echo
+  log "Schema diff (cloud vs local, отсутствующие таблицы):"
+  CLOUD_TABLES=$(curl -sk --max-time 15 -H "x-sync-secret: ${SYNC_SECRET}" -H "x-casino-id: ${CASINO_ID}" \
+    "${CLOUD_URL}/functions/v1/cloud-schema-export" 2>/dev/null \
+    | grep -oP 'CREATE TABLE[^(]*public\.\K[a-z_]+' | sort -u)
+  LOCAL_TABLES=$("${PG_RUN[@]}" -c "SELECT tablename FROM pg_tables WHERE schemaname='public' ORDER BY 1" 2>/dev/null | sort -u)
+  if [[ -n "$CLOUD_TABLES" ]]; then
+    MISSING=$(comm -23 <(echo "$CLOUD_TABLES") <(echo "$LOCAL_TABLES"))
+    if [[ -z "$MISSING" ]]; then
+      ok "Все таблицы Cloud присутствуют локально."
+    else
+      warn "Локально отсутствуют таблицы:"
+      echo "$MISSING" | sed 's/^/    • /'
+      warn "→ Запустите: curl -fsSL https://casinosystem.app/install | sudo bash -s -- --repair"
+    fi
+  else
+    warn "Не удалось получить схему из Cloud (cloud-schema-export недоступен или не авторизован)."
+  fi
+
+  echo
+  hr
+  printf "  ${BOLD}Итог:${NC}  ${GREEN}OK: %d${NC}   ${YELLOW}DIFF: %d${NC}   ${RED}MISSING: %d${NC}\n" "$PASS" "$DIFF" "$MISS"
+  hr
+  exit 0
+fi
+
+
 title "1/5  Проверка системы"
 
 if ! command -v lsb_release &>/dev/null; then
@@ -690,8 +782,6 @@ else
     " &>/dev/null || warn "Не удалось привязать профиль super_admin (${SA_EMAIL})."
   ok "Super admin готов: ${SA_EMAIL} / ${SA_PASS}"
 fi
-
-
 # ── cms-status CLI (Ubuntu diagnostics, works even if frontend is down) ──
 CLI_SRC="${SCRIPT_DIR}/cli"
 CLI_DST="/opt/casino-system/cli"
