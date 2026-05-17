@@ -508,7 +508,7 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
 
   const sharedExtras = (
     <>
-      {blacklistDialog}
+      {sharedExtras}
       <PlayerPhotoLightbox
         open={lightboxOpen}
         onOpenChange={setLightboxOpen}
@@ -534,7 +534,7 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
             </DrawerFooter>
           </DrawerContent>
         </Drawer>
-        {blacklistDialog}
+        {sharedExtras}
       </>
     );
   }
@@ -552,7 +552,7 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      {blacklistDialog}
+      {sharedExtras}
     </>
   );
 };
