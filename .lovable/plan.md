@@ -1,126 +1,125 @@
+# Plan: One-shot installer with baked snapshot + auto-peer + verified mirror
 
-# Куда мы зашли и почему «оно не универсальное»
-
-Сейчас стек на самом деле почти весь правильный (Postgres + PostgREST + GoTrue + Realtime + Storage + Nginx + cms-sync + cms-updater + cms-monitor). Сломано не «много всего», а несколько ключевых точек, которые делают каждую установку штучной и хрупкой.
-
-## 1. Главная проблема: фронтенд знает свой IP на этапе сборки
-
-В `deploy/docker-compose.yml` фронт собирается с
-`VITE_SUPABASE_URL: https://${LOCAL_IP}/api`.
-Vite инлайнит это в бандл — значит:
-
-- бандл валиден только для одного IP/домена;
-- открыть тот же сервер по `https://arucms/` или `https://192.168.1.94/` нельзя без пересборки;
-- `runtime-config.json` теряет смысл — клиент Supabase всё равно ходит по «зашитому» URL;
-- именно из-за этого `runtime-config.json` показывает `casinoSlug=local` и админка пустая — фронт уже «прибит» к чужому конфигу.
-
-Это и есть корень того, что «суперадмин без интерфейса».
-
-## 2. Auth role = "" → 400 на каждом запросе
-
-Логи Cloud показывают:
-`DEPRECATION: GOTRUE_JWT_DEFAULT_GROUP_NAME not supported by Supabase's GoTrue`.
-Наш фикс через эту переменную работает локально, но это deprecated путь. Надёжный путь — гарантировать `auth.users.role='authenticated'` и `aud='authenticated'` в БД (heal-скрипт уже есть в `install.sh`, надо его сделать обязательным шагом, а переменную убрать).
-
-## 3. Установщик слишком «ручной»
-
-`env.template` требует, чтобы пользователь сам ввёл `CASINO_SLUG`, `CASINO_NAME`, `LOCAL_DOMAIN`. Если он этого не сделал — бутстрап БД и runtime-config расходятся, и фронт показывает «Local Casino / local». Нужно: один вопрос мастера → одно имя → всё остальное генерируется.
-
-## 4. Pairing разорван на три места
-
-- `deploy/sync/pair-cli.js` — CLI внутри контейнера
-- `cloud_connection` + `peer_links` — таблицы
-- Admin → Peers UI — пустой, потому что админка не грузится (проблема #1)
-
-То есть архитектурно peer-mesh готов (symmetric, HMAC, outbox/inbox, нет primary), но пользователь не может им воспользоваться, потому что не доходит до экрана.
+## Goal
+After running `curl … | sudo bash`, a fresh local server must:
+1. Boot Postgres with **real data** from a baked snapshot (no Cloud edge call required for cold start).
+2. **Auto-register** itself as a peer with Cloud (no Admin UI clicks).
+3. Begin **bi-directional sync** with Cloud within 60s and prove it with a measurable round-trip test.
+4. Surface Exchange Log on a **dedicated page**, with only a **10-row preview** on the Admin Peers tab.
 
 ---
 
-# План: универсальный сервер за один шаг
+## Part 1 — Variant B: Baked snapshot as default seed
 
-## Этап A. Сделать фронт по-настоящему универсальным (главный фикс)
+### 1.1 Snapshot artifact pipeline
+- New edge function `cloud-snapshot-build`: streams a full `pg_dump`-style export (using existing `cloud-seed-export` logic) into Supabase Storage bucket `installer-snapshots/latest.sql.zst`.
+- Manually invocable today; later wired to GitHub Action on each release.
+- Stores companion `latest.meta.json` (timestamp, schema_version, row counts per table).
 
-1. В `deploy/docker-compose.yml` для `cms-frontend` убрать `VITE_SUPABASE_URL`/`VITE_SUPABASE_PUBLISHABLE_KEY` из build-args. Заменить на:
-   - `VITE_SUPABASE_URL: /api`  (относительный путь — работает с любым хостом)
-   - `VITE_SUPABASE_PUBLISHABLE_KEY` — оставить, но строго равной `ANON_KEY` из `.env` (это безопасно, ключ публичный).
-2. В `src/integrations/supabase/client.ts` уже читается `import.meta.env.VITE_SUPABASE_URL`. После шага 1 при любом hostname (IP, `arucms`, `arusha.casinosystem.local`) клиент будет идти в свой же nginx по `/api`. Один билд — любая инсталляция.
-3. `runtime-config.json` остаётся источником истины только для `casinoId/casinoSlug/casinoName/localMode`. Никаких `supabaseUrl` там быть не должно (или он игнорируется).
-4. Убрать привязку nginx-сертификата к одному hostname: self-signed CA выпускает wildcard `*.local` + SAN со списком IP. Это уже частично есть в `install.sh` — надо просто добавить введённый `LOCAL_IP` в SAN и `*` как fallback.
+### 1.2 Installer changes (`deploy/install.sh` + `public/install`)
+- New step **6.6 — Seed from snapshot**:
+  - Download `https://casinosystem.app/snapshots/latest.sql.zst` (proxied to Storage public URL).
+  - `zstd -d | psql` into Postgres on first install only (guarded by marker file `/var/lib/postgresql/.seeded`).
+  - Fallback to live `cloud-seed-export` if snapshot URL unreachable (current behavior preserved).
+- Flag `--no-seed` keeps the current empty-DB behavior for testing.
 
-Результат: один Docker image `cms-frontend:<version>`, который Cloud-сборка может публиковать в GHCR, и `install.sh` его просто **pull**-ит, а не собирает. Это убирает 90% «починили — снова сломалось».
-
-## Этап B. Один honest установщик
-
-Один интерактивный вопрос в `install.sh`:
-
-```
-Casino name (e.g. Arusha): _
-```
-
-Из ответа автоматически:
-- `CASINO_SLUG = slugify(name)`  (arusha)
-- `CASINO_NAME = name`
-- `LOCAL_DOMAIN = ${slug}.cms.local`
-- `LOCAL_IP    = $(hostname -I | awk '{print $1}')`
-- `CASINO_ID   = gen_random_uuid()` (или placeholder, если pairing с Cloud потом)
-
-После старта контейнеров — обязательный шаг:
-```
-docker exec cms-postgres psql -c "
-  UPDATE public.casinos SET name=$1, slug=$2 WHERE id=$3;
-  -- heal auth.users role='authenticated', aud='authenticated'
-"
-```
-
-Убрать `GOTRUE_JWT_DEFAULT_GROUP_NAME` из compose. Heal-скрипт делает то же надёжнее.
-
-## Этап C. Pairing как один экран
-
-В Admin → Peers (`/admin/peers`) три кнопки:
-
-1. **Connect to Cloud** — вызывает `pair-cli.js start`, показывает 6-значный код, опрашивает каждые 5с, по approve в Cloud → сохраняет `cloud_connection.status='connected'` и запускает initial seed.
-2. **Connect to another casino** — вводишь URL соседа (`https://192.168.2.10`) и его 6-значный код (тот сгенерировал у себя). Симметричный HMAC handshake → строка в `peer_links` с обеих сторон.
-3. **Standalone** — ничего не делать, работать только локально.
-
-Никакого CLI для конечного юзера. CLI остаётся как fallback для саппорта.
-
-## Этап D. Cloud как «ещё один peer»
-
-В `cms-sync` Cloud уже трактуется как обычный peer (symmetric mesh). Надо лишь:
-- в Cloud завести edge function `peer-handshake` (если ещё нет) — отвечает HMAC по тому же протоколу что и локальный `sync/api.js`;
-- в Admin → Peers показывать Cloud отдельной строкой со статусом `connected/syncing/lagging`.
-
-## Этап E. Проверка end-to-end
-
-После реализации A+B+C ставим на чистую Ubuntu:
-```
-curl -fsSL https://casinosystem.app/install | sudo bash
-# 1 вопрос: имя казино
-# через 3 минуты: https://<IP>/ → логин → полная админка
-# Admin → Peers → Connect to Cloud → 6-значный код в Cloud → connected
-```
-
-И тот же образ, без пересборки, должен открываться по `https://arucms/`, `https://192.168.1.94/`, `https://arusha.cms.local/`.
+### 1.3 Updater changes (`deploy/update.sh`)
+- Never re-seeds — only schema repair. Already correct, just document it.
 
 ---
 
-# Что ломается сейчас — короткий список
+## Part 2 — Auto-peer registration (zero-click pairing)
 
-| # | Симптом | Причина | Где чинить |
-|---|---|---|---|
-| 1 | Пустая админка у superadmin | Бандл с чужим `VITE_SUPABASE_URL`, фронт ходит не туда | `docker-compose.yml` build-args |
-| 2 | `role "" does not exist` 400 | GoTrue не выставляет role в JWT | Heal в `install.sh` + убрать deprecated env |
-| 3 | `runtime-config.casinoSlug=local` | `.env` пустой, мастер не спрашивает | `install.sh` интерактив |
-| 4 | Pairing недоступен из UI | `/admin/peers` не грузится (см. #1) | После #1 автоматически решится |
-| 5 | Каждая установка = пересборка | Vite инлайн URL/key | Этап A |
+### 2.1 Pre-shared bootstrap secret
+- Already exists: `SYNC_SECRET` in `.env` written by installer.
+- Add `CLOUD_URL=https://rpehngjvwcnipvkouluu.supabase.co` and `CLOUD_CASINO_SLUG=<city>-cloud` to `.env` template — installer asks once, stores forever.
+
+### 2.2 Self-pair on first start
+- New step in `deploy/sync/index.js` boot sequence: if `peer_links` table has 0 rows AND `CLOUD_URL` is set, call `peer-mesh/pair` with `SYNC_SECRET`, `CASINO_ID`, `CASINO_SLUG`, host URL.
+- `peer-mesh` edge function:
+  - Validates `SYNC_SECRET` matches a row in `peer_bootstrap_tokens` table (new) OR matches the global `PEER_BOOTSTRAP_SECRET` env.
+  - Creates reciprocal rows in `peer_links` on both sides (Cloud → Local, Local → Cloud).
+  - Returns Cloud peer descriptor for local to store.
+- Installer prints **one** bootstrap token line that the operator pastes into `.env` once (or we make it fully zero-config by reusing `SYNC_SECRET` as the bootstrap).
+
+### 2.3 Heartbeat & retry
+- `cms-sync` already heartbeats every 30s. Confirm it pairs-then-heartbeats on cold start (currently only heartbeats if peer exists).
 
 ---
 
-# Технические детали (для разработчика)
+## Part 3 — Real mirror verification (not just UI)
 
-- Файлы: `deploy/docker-compose.yml` (build-args), `deploy/install.sh` (wizard + DB heal), `deploy/nginx/conf.d/*.conf` (SAN cert), `src/integrations/supabase/client.ts` (убедиться что fallback на `/api`), `src/lib/casino-context.tsx` (читать только slug/id из runtime-config).
-- Версия фронта публикуется в GHCR как `ghcr.io/<org>/cms-frontend:<semver>`. `install.sh --update` делает `docker pull` вместо `docker build`. Время апдейта падает с 8 минут до 30 секунд.
-- Sync-протокол не трогаем — он уже симметричный и правильный.
-- Cloud edge function `register-local-server` + `peer-handshake` остаются как есть, добавляем только UI-обвязку.
+### 3.1 New RPC `sync_roundtrip_probe(probe_id uuid)`
+- Inserts a row into `sync_probes` table (id, origin_casino, sent_at).
+- Cloud peer-mesh `/probe` endpoint forwards the probe back to origin via normal sync path.
+- When the row re-appears at origin with `received_at` set, round-trip is proven.
 
-После твоего одобрения иду по этапам A → B → C → D → E.
+### 3.2 Health check enhancement (`LocalServerWizard`)
+- Add **"Mirror round-trip"** stage:
+  - Sends probe → waits up to 90s → reports actual latency ms.
+  - Green = full bi-directional sync works. Red = breaks down which leg failed (push/pull/inbox apply).
+
+### 3.3 CLI fallback `deploy/sync/verify.js`
+- `docker compose exec cms-sync node /app/verify.js` → same probe from shell, exit code 0/1. For ops without UI.
+
+---
+
+## Part 4 — Exchange Log relocation
+
+### 4.1 New dedicated page `/admin/sync-log`
+- Full table view with filters (peer, event type, date range), pagination, CSV export.
+- Routed under `Admin → Sync Log` sidebar entry.
+
+### 4.2 Admin → Peers panel
+- Replace embedded `SyncExchangeLog` with compact **Recent Activity** card:
+  - Last 10 events only, no filters.
+  - "View all →" link to `/admin/sync-log`.
+- Keeps the Peers tab focused on peer config + the round-trip probe button.
+
+---
+
+## Technical details
+
+**New files:**
+- `supabase/functions/cloud-snapshot-build/index.ts`
+- `supabase/functions/cloud-snapshot-build/index.ts` companion meta writer
+- `src/pages/admin/SyncLogPage.tsx`
+- `src/components/admin/RecentExchangeActivity.tsx` (10-row compact)
+- `deploy/sync/verify.js`
+- Migration: `sync_probes` table + `sync_roundtrip_probe` RPC + `peer_bootstrap_tokens` table (RLS: service-role only).
+
+**Modified files:**
+- `deploy/install.sh` — step 6.6 snapshot seed
+- `deploy/update.sh` — document no-reseed
+- `deploy/sync/index.js` — auto-pair on cold start
+- `supabase/functions/peer-mesh/index.ts` — `/pair` and `/probe` endpoints
+- `src/components/admin/LocalServerWizard.tsx` — round-trip stage
+- `src/components/admin/PeerLinksPanel.tsx` — embed RecentExchangeActivity
+- `src/pages/Admin.tsx` — register `/admin/sync-log` route
+- `src/components/layout/AppSidebar.tsx` — Sync Log link
+
+**Migration (1 file):**
+```sql
+CREATE TABLE public.sync_probes (...);
+CREATE TABLE public.peer_bootstrap_tokens (...);
+CREATE FUNCTION public.sync_roundtrip_probe(...) ...;
+-- RLS: service_role only
+```
+
+**Version bump:** `package.json` → 1.3.47 (backend changes).
+
+---
+
+## Order of execution
+1. Migration (sync_probes, peer_bootstrap_tokens, RPC)
+2. Edge functions (`cloud-snapshot-build`, `peer-mesh` updates)
+3. Build & upload first snapshot to Storage
+4. Installer + sync auto-pair changes
+5. Frontend: SyncLogPage + RecentExchangeActivity + LocalServerWizard probe stage
+6. Update memory file `mem://architecture/sync-engine-impl` with auto-pair + probe contract.
+
+---
+
+## Out of scope (ask before doing)
+- GitHub Action to rebuild snapshot on every release — added as TODO, run manually for now.
+- Multi-region peer mesh (>2 nodes) — works but untested at 3+ locations.
