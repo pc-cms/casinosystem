@@ -99,6 +99,7 @@ Deno.serve(async (req: Request) => {
     if (sub === "/push") {
       const changes = Array.isArray(body.changes) ? body.changes : [];
       const accepted: number[] = [];
+      const rejected: Array<{ outbox_id: number; error_code: string; error_text: string }> = [];
       for (const ch of changes) {
         const { error } = await admin.rpc("peer_apply_change", {
           p_origin_node_id: ch.origin_node_id || peer.peer_node_id,
@@ -108,14 +109,37 @@ Deno.serve(async (req: Request) => {
           p_payload: ch.payload ?? {},
           p_changed_at: ch.changed_at ?? new Date().toISOString(),
         });
-        if (!error) accepted.push(ch.id);
-        else console.warn("peer-mesh.push.apply.fail", peer.display_name, ch.table, error.message);
+        if (!error) {
+          accepted.push(ch.id);
+        } else {
+          const errText = String(error.message ?? error).slice(0, 480);
+          const errCode = (error as any).code || "apply_failed";
+          rejected.push({ outbox_id: ch.id, error_code: errCode, error_text: errText });
+          console.warn("peer-mesh.push.apply.fail", peer.display_name, ch.table, errText);
+          // Hash payload for audit dedup
+          const payloadStr = JSON.stringify(ch.payload ?? {});
+          const buf = new TextEncoder().encode(payloadStr);
+          const hash = await crypto.subtle.digest("MD5" as any, buf).catch(() => null);
+          const payloadHash = hash
+            ? Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2,"0")).join("")
+            : String(payloadStr.length);
+          await admin.rpc("sync_record_apply_error", {
+            p_peer_link_id: peer.id,
+            p_source_outbox_id: ch.id ?? null,
+            p_table: ch.table ?? "unknown",
+            p_op: ch.op ?? null,
+            p_pk: ch.pk ?? {},
+            p_payload_hash: payloadHash,
+            p_error_code: errCode,
+            p_error_text: errText,
+          }).catch(() => {});
+        }
       }
       await admin.from("peer_links").update({
         last_seen_at: new Date().toISOString(),
-        last_push_error: null,
+        last_push_error: rejected.length ? `${rejected.length} rejected` : null,
       }).eq("id", peer.id);
-      return json(200, { accepted });
+      return json(200, { accepted, rejected });
     }
 
     if (sub === "/log") {
