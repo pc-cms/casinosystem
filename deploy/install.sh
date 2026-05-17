@@ -209,7 +209,7 @@ if [[ $VERIFY -eq 1 ]]; then
   : "${CLOUD_URL:?CLOUD_URL не задан в .env}"
   : "${CASINO_ID:?CASINO_ID не задан в .env}"
   : "${SYNC_SECRET:?SYNC_SECRET не задан в .env — сервер ещё не спарен с Cloud}"
-  : "${CLOUD_ANON_KEY:?CLOUD_ANON_KEY не задан в .env}"
+  # CLOUD_ANON_KEY больше не требуется — counts через cloud-parity-counts с service-role
 
   PG_RUN=(docker compose exec -T -e PGPASSWORD="${POSTGRES_PASSWORD}" postgres
           psql -U "${POSTGRES_USER:-postgres}" -d "${POSTGRES_DB:-postgres}" -At -F'|')
@@ -225,23 +225,30 @@ if [[ $VERIFY -eq 1 ]]; then
   printf "\n  ${BOLD}%-32s %12s %12s   %s${NC}\n" "Table" "Local" "Cloud" "Status"
   printf "  %-32s %12s %12s   %s\n" "────────────────────────────────" "────────────" "────────────" "──────"
 
+  # Fetch all Cloud counts in ONE call via cloud-parity-counts (uses service-role on Cloud,
+  # bypasses RLS). Requires SYNC_SECRET registered as peer/pending registration.
+  PARITY_JSON=$(curl -sk --max-time 20 \
+    -H "x-sync-secret: ${SYNC_SECRET}" -H "x-casino-id: ${CASINO_ID}" \
+    "${CLOUD_URL}/functions/v1/cloud-parity-counts" 2>/dev/null || echo "")
+  if [[ -z "$PARITY_JSON" || "$PARITY_JSON" == *'"error"'* ]]; then
+    warn "cloud-parity-counts недоступен или вернул ошибку:"
+    echo "    ${PARITY_JSON:0:200}"
+    warn "Проверьте что edge function задеплоена и SYNC_SECRET валиден."
+    PARITY_JSON='{"counts":{}}'
+  fi
+
+  get_cloud() {
+    echo "$PARITY_JSON" | grep -oE "\"$1\"[[:space:]]*:[[:space:]]*[0-9]+" | head -1 | grep -oE '[0-9]+$' || echo ""
+  }
+
   for T in "${TABLES[@]}"; do
-    LOC=$("${PG_RUN[@]}" -c "SELECT count(*) FROM public.${T} WHERE casino_id='${CASINO_ID}'" 2>/dev/null || echo "ERR")
-    if [[ "$LOC" == "ERR" || -z "$LOC" ]]; then
-      LOC=$("${PG_RUN[@]}" -c "SELECT count(*) FROM public.${T}" 2>/dev/null || echo "MISS")
-      HDR=$(curl -sk -D - -o /dev/null \
-        -H "apikey: ${CLOUD_ANON_KEY}" -H "Authorization: Bearer ${CLOUD_ANON_KEY}" \
-        -H "Range: 0-0" -H "Prefer: count=exact" \
-        "${CLOUD_URL}/rest/v1/${T}?select=*&limit=1")
-      CLD=$(echo "$HDR" | grep -i '^content-range:' | sed 's|.*/||' | tr -d '\r\n ')
-    else
-      HDR=$(curl -sk -D - -o /dev/null \
-        -H "apikey: ${CLOUD_ANON_KEY}" -H "Authorization: Bearer ${CLOUD_ANON_KEY}" \
-        -H "Range: 0-0" -H "Prefer: count=exact" \
-        "${CLOUD_URL}/rest/v1/${T}?casino_id=eq.${CASINO_ID}&select=*&limit=1")
-      CLD=$(echo "$HDR" | grep -i '^content-range:' | sed 's|.*/||' | tr -d '\r\n ')
+    LOC=$("${PG_RUN[@]}" -c "SELECT count(*) FROM public.${T} WHERE casino_id='${CASINO_ID}'" 2>/dev/null || true)
+    if [[ -z "$LOC" ]]; then
+      LOC=$("${PG_RUN[@]}" -c "SELECT count(*) FROM public.${T}" 2>/dev/null || true)
+      [[ -z "$LOC" ]] && LOC="MISS"
     fi
-    [[ -z "$CLD" || "$CLD" == "*" ]] && CLD="?"
+    CLD=$(get_cloud "$T")
+    [[ -z "$CLD" ]] && CLD="?"
     if [[ "$LOC" == "MISS" ]]; then
       printf "  %-32s %12s %12s   ${RED}%s${NC}\n" "$T" "—" "$CLD" "no table"
       MISS=$((MISS+1))

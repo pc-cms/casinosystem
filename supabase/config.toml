@@ -24,6 +24,10 @@ verify_jwt = false
 [functions.cloud-seed-export]
 verify_jwt = false
 
+# cloud-parity-counts: auth via x-sync-secret OR x-service-key (verify_jwt=false).
+[functions.cloud-parity-counts]
+verify_jwt = false
+
 # initial-sync-trigger: смешанная аутентификация (super_admin JWT для POST,
 # x-sync-secret для GET/PATCH от локального сервера).
 [functions.initial-sync-trigger]
