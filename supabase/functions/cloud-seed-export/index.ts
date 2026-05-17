@@ -75,10 +75,11 @@ const TABLES: Array<{ name: string; scope: "single" | "full" | "global" | "by_us
 
   // 4. Игроки и карты
   { name: "players", scope: "full" },
-  { name: "player_cards", scope: "full" },
+  // player_cards и player_tags не имеют casino_id — фильтруем через player_id ∈ players_of_casino
+  { name: "player_cards", scope: "by_player" },
   { name: "player_groups", scope: "full" },
   { name: "group_members", scope: "full" },
-  { name: "player_tags", scope: "full" },
+  { name: "player_tags", scope: "by_player" },
   { name: "player_notes", scope: "full" },
   { name: "player_economy", scope: "full" },
   { name: "player_session_stats", scope: "full", sinceDays: 365 },
