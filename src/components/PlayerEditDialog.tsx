@@ -457,8 +457,11 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
             )}
           </FormSection>
         )}
-      </FormGrid>
+          </FormGrid>
+        </div>
+      </div>
     </div>
+
   ) : null;
 
   const titleContent = (
