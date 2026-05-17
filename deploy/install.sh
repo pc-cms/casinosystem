@@ -209,7 +209,7 @@ if [[ $VERIFY -eq 1 ]]; then
   : "${CLOUD_URL:?CLOUD_URL не задан в .env}"
   : "${CASINO_ID:?CASINO_ID не задан в .env}"
   : "${SYNC_SECRET:?SYNC_SECRET не задан в .env — сервер ещё не спарен с Cloud}"
-  : "${CLOUD_ANON_KEY:?CLOUD_ANON_KEY не задан в .env}"
+  # CLOUD_ANON_KEY больше не требуется — counts через cloud-parity-counts с service-role
 
   PG_RUN=(docker compose exec -T -e PGPASSWORD="${POSTGRES_PASSWORD}" postgres
           psql -U "${POSTGRES_USER:-postgres}" -d "${POSTGRES_DB:-postgres}" -At -F'|')
