@@ -24,7 +24,8 @@ interface Row {
 }
 
 export function DataInventoryPanel() {
-  const { activeCasinoId, activeCasinoName } = useCasino();
+  const { activeCasinoId, activeCasino } = useCasino();
+  const activeCasinoName = activeCasino?.display_name ?? activeCasino?.slug ?? null;
   const [rows, setRows] = useState<Row[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [takenAt, setTakenAt] = useState<string | null>(null);
