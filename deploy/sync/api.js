@@ -366,6 +366,13 @@ async function peerPush(pool, res, body, peer) {
   try {
     for (const ch of changes) {
       try {
+        // Casino rows are environment-owned per node. Cloud and Local can have
+        // different display names/slugs for the same casino, and applying old
+        // casino row payloads can violate child-table FKs. Accept and advance.
+        if (ch.table === "casinos") {
+          accepted.push(ch.id);
+          continue;
+        }
         await client.query(
           `SELECT public.peer_apply_change($1::uuid, $2::text, $3::text, $4::jsonb, $5::jsonb, $6::timestamptz)`,
           [
