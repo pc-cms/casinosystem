@@ -654,6 +654,35 @@ else
   ok "Super admin готов: ${SA_EMAIL} / ${SA_PASS}"
 fi
 
+# ── Repair fast path: применить hotfix SQL и перезапустить postgrest ───────
+if [[ $REPAIR -eq 1 ]]; then
+  title "Repair БД (hotfix FKs + RPC)"
+  cd "$SCRIPT_DIR"
+  [[ -f .env ]] || fail ".env не найден — repair доступен только на установленной системе."
+  set -a; . ./.env; set +a
+  HOTFIX="${SCRIPT_DIR}/postgres/hotfix-fks-rpc.sql"
+  [[ -f "$HOTFIX" ]] || fail "Не найден $HOTFIX"
+  if ! docker compose ps postgres 2>/dev/null | grep -qE "Up|running"; then
+    log "Postgres не запущен — стартую..."
+    docker compose up -d postgres
+    for i in $(seq 1 30); do
+      docker compose exec -T postgres pg_isready -U "${POSTGRES_USER:-postgres}" &>/dev/null && break
+      sleep 2
+    done
+  fi
+  log "Копирую hotfix в контейнер postgres..."
+  docker compose cp "$HOTFIX" postgres:/tmp/hotfix-fks-rpc.sql
+  log "Применяю hotfix..."
+  docker compose exec -T -e PGPASSWORD="${POSTGRES_PASSWORD}" postgres \
+    psql -U "${POSTGRES_USER:-postgres}" -d "${POSTGRES_DB:-postgres}" \
+    -v ON_ERROR_STOP=1 -f /tmp/hotfix-fks-rpc.sql
+  ok "Hotfix применён."
+  log "Перезапускаю postgrest (обновление schema cache)..."
+  docker compose restart postgrest >/dev/null 2>&1 || warn "Не удалось перезапустить postgrest"
+  ok "Repair завершён. Очистите кэш браузера (Ctrl+Shift+R) на ${LOCAL_DOMAIN:-arusha.local}"
+  exit 0
+fi
+
 
 # ── cms-status CLI (Ubuntu diagnostics, works even if frontend is down) ──
 CLI_SRC="${SCRIPT_DIR}/cli"
