@@ -2494,6 +2494,42 @@ export type Database = {
           },
         ]
       }
+      node_commands: {
+        Row: {
+          action: string
+          completed_at: string | null
+          id: string
+          issued_at: string
+          issued_by: string | null
+          popped_at: string | null
+          result_text: string | null
+          status: string
+          target_node_id: string
+        }
+        Insert: {
+          action: string
+          completed_at?: string | null
+          id?: string
+          issued_at?: string
+          issued_by?: string | null
+          popped_at?: string | null
+          result_text?: string | null
+          status?: string
+          target_node_id: string
+        }
+        Update: {
+          action?: string
+          completed_at?: string | null
+          id?: string
+          issued_at?: string
+          issued_by?: string | null
+          popped_at?: string | null
+          result_text?: string | null
+          status?: string
+          target_node_id?: string
+        }
+        Relationships: []
+      }
       node_identity: {
         Row: {
           created_at: string

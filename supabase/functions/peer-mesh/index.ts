@@ -210,6 +210,39 @@ Deno.serve(async (req: Request) => {
       return json(200, { changes, next_since_id: next });
     }
 
+    if (sub === "/node/commands/pop") {
+      // Local node polls Cloud for queued remote-control commands.
+      const nodeId = body.node_id;
+      if (!nodeId) return json(400, { error: "node_id required" });
+      const { data: cmds } = await admin
+        .from("node_commands")
+        .select("id, action, issued_at")
+        .eq("target_node_id", nodeId)
+        .eq("status", "pending")
+        .order("issued_at", { ascending: true })
+        .limit(1);
+      const cmd = cmds?.[0];
+      if (!cmd) return json(200, { command: null });
+      await admin.from("node_commands")
+        .update({ status: "popped", popped_at: new Date().toISOString() })
+        .eq("id", cmd.id);
+      return json(200, { command: cmd });
+    }
+
+    if (sub === "/node/commands/ack") {
+      const cmdId = body.command_id;
+      const status = body.status === "done" ? "done" : "error";
+      if (!cmdId) return json(400, { error: "command_id required" });
+      await admin.from("node_commands")
+        .update({
+          status,
+          completed_at: new Date().toISOString(),
+          result_text: body.result_text ? String(body.result_text).slice(0, 1000) : null,
+        })
+        .eq("id", cmdId);
+      return json(200, { ok: true });
+    }
+
     return json(404, { error: "unknown peer route", path: sub });
   } catch (e) {
     return json(500, { error: String(e?.message ?? e) });
