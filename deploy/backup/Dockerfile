@@ -1,7 +1,10 @@
-FROM alpine:3.19
-RUN apk add --no-cache postgresql15-client zstd tar bash curl tzdata
+FROM debian:bookworm-slim
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      postgresql-client zstd tar curl tzdata cron ca-certificates bash \
+    && rm -rf /var/lib/apt/lists/*
 COPY backup.sh /usr/local/bin/backup.sh
-RUN chmod +x /usr/local/bin/backup.sh
-# cron: 04:30 ежедневно (Africa/Dar_es_Salaam = UTC+3 → 01:30 UTC)
-RUN echo "30 1 * * * /usr/local/bin/backup.sh >> /var/log/backup.log 2>&1" > /etc/crontabs/root
-CMD ["sh", "-c", "touch /var/log/backup.log && crond -f -l 8 & tail -F /var/log/backup.log"]
+RUN chmod +x /usr/local/bin/backup.sh \
+ && echo "30 1 * * * root /usr/local/bin/backup.sh >> /var/log/backup.log 2>&1" > /etc/cron.d/cms-backup \
+ && chmod 0644 /etc/cron.d/cms-backup
+# cron: 04:30 EAT (= 01:30 UTC) ежедневно, до бизнес-роллoвера 05:00
+CMD ["bash","-c","touch /var/log/backup.log && cron -f & tail -F /var/log/backup.log"]
