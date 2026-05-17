@@ -15,10 +15,6 @@ ALTER TYPE public.app_role ADD VALUE IF NOT EXISTS 'hr';
 ALTER TYPE public.app_role ADD VALUE IF NOT EXISTS 'floor_manager';
 
 DO $$ BEGIN
-  CREATE TYPE public.player_position AS ENUM ('table', 'hall', 'slots');
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
-DO $$ BEGIN
   CREATE TYPE public.day_horizon AS ENUM ('today','7d','30d','all');
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
@@ -62,10 +58,15 @@ CREATE TABLE IF NOT EXISTS public.player_position_history (
   player_id uuid NOT NULL,
   visit_id uuid,
   table_id uuid,
-  position public.player_position NOT NULL,
+  position text NOT NULL,
   started_at timestamptz NOT NULL DEFAULT now(),
   ended_at timestamptz,
-  duration_seconds integer,
+  duration_seconds integer GENERATED ALWAYS AS (
+    CASE WHEN ended_at IS NOT NULL
+      THEN GREATEST(0, EXTRACT(EPOCH FROM (ended_at - started_at))::int)
+      ELSE NULL
+    END
+  ) STORED,
   created_by uuid,
   created_at timestamptz NOT NULL DEFAULT now()
 );
