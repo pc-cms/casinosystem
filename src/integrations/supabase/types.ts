@@ -2602,6 +2602,41 @@ export type Database = {
         }
         Relationships: []
       }
+      node_modes: {
+        Row: {
+          casino_id: string
+          mode: string
+          notes: string | null
+          promoted_at: string | null
+          promoted_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          casino_id: string
+          mode?: string
+          notes?: string | null
+          promoted_at?: string | null
+          promoted_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          casino_id?: string
+          mode?: string
+          notes?: string | null
+          promoted_at?: string | null
+          promoted_by?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "node_modes_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: true
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payroll_audit_log: {
         Row: {
           action: string
@@ -5078,6 +5113,7 @@ export type Database = {
           total_failures_24h: number
         }[]
       }
+      demote_to_cloud_primary: { Args: { p_casino_id: string }; Returns: Json }
       edit_business_day_snapshot: {
         Args: { _closure_id: string; _patches: Json; _section: string }
         Returns: Json
@@ -5267,6 +5303,10 @@ export type Database = {
         Args: { _business_date: string; _casino_id: string; _user: string }
         Returns: number
       }
+      promote_to_local_primary: {
+        Args: { p_casino_id: string; p_force?: boolean }
+        Returns: Json
+      }
       recalc_shift_tables_result: {
         Args: { p_shift_id: string }
         Returns: number
@@ -5280,6 +5320,7 @@ export type Database = {
         Args: { _reason?: string; _shift_id: string }
         Returns: Json
       }
+      replication_readiness: { Args: { p_casino_id: string }; Returns: Json }
       rotate_local_server_secret: {
         Args: { _server_id: string }
         Returns: string
