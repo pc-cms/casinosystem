@@ -149,7 +149,24 @@ export const SyncMirrorPanel = () => {
                   {cloneStatus.data.current_table && ` · current: ${cloneStatus.data.current_table}`}
                 </div>
                 <div>Imported: {cloneTotal.toLocaleString()} rows across {Object.keys(cloneCounts).length} tables</div>
-                {cloneStatus.data.error && (
+                {cloneErrorTotal > 0 && (
+                  <div className="text-warning">
+                    Skipped: {cloneErrorTotal.toLocaleString()} rows
+                    {" — "}
+                    {Object.entries(cloneErrorsByTable)
+                      .sort((a, b) => Number(b[1]) - Number(a[1]))
+                      .slice(0, 4)
+                      .map(([t, n]) => `${t}:${n}`)
+                      .join(", ")}
+                    {Object.keys(cloneErrorsByTable).length > 4 && " …"}
+                  </div>
+                )}
+                {cloneErrorTotal > 0 && Object.entries(cloneErrorSamples).slice(0, 2).map(([t, samples]) => (
+                  <div key={t} className="text-[10px] text-muted-foreground/80 pl-2 break-words">
+                    {t}: {(samples as string[])[0]}
+                  </div>
+                ))}
+                {cloneStatus.data?.error && (
                   <div className="text-destructive break-words">{cloneStatus.data.error}</div>
                 )}
               </div>
