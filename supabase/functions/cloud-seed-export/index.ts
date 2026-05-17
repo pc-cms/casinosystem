@@ -130,6 +130,17 @@ const TABLES: Array<{ name: string; scope: "single" | "full" | "global" | "by_us
   { name: "monthly_tips_entries", scope: "full", sinceDays: 365 },
   { name: "weekly_bonus_pools", scope: "full", sinceDays: 365 },
   { name: "weekly_bonus_entries", scope: "full", sinceDays: 365 },
+
+  // 7. Audit & log tables (Clone берёт все строки в режиме days=all)
+  { name: "activity_logs", scope: "full", sinceDays: 90 },
+  { name: "activity_logs_archive", scope: "full", sinceDays: 365 },
+  { name: "breaklist_logs", scope: "full", sinceDays: 90 },
+  { name: "breaklist_logs_archive", scope: "full", sinceDays: 365 },
+  { name: "budget_logs", scope: "full", sinceDays: 365 },
+  { name: "casino_visits_archive", scope: "full", sinceDays: 365 },
+  { name: "client_sessions_archive", scope: "full", sinceDays: 365 },
+  { name: "incidents_audit", scope: "full", sinceDays: 365 },
+  { name: "payroll_audit_log", scope: "full", sinceDays: 365 },
 ];
 
 const PAGE_SIZE = 1000;
