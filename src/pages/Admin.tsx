@@ -158,6 +158,7 @@ const Admin = () => {
                 <ServersPanel />
                 <SyncStatusPanel />
                 <MirrorHealthPanel />
+                <DataInventoryPanel />
                 <ApplyErrorsPanel />
                 <LocalUpdaterPanel />
                 <PeerLinksPanel />
