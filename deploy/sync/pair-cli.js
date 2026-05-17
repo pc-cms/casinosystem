@@ -283,6 +283,9 @@ async function triggerSync() {
         try { obj = JSON.parse(line); } catch { continue; }
         if (obj._meta || obj._done || obj._error || obj._fatal) continue;
         if (!obj.table || !obj.row) continue;
+        // Strip GENERATED ALWAYS columns — Postgres rejects explicit inserts.
+        const STRIP = { player_position_history: ["duration_seconds"] };
+        for (const c of (STRIP[obj.table] || [])) delete obj.row[c];
         const cols = Object.keys(obj.row);
         if (cols.length === 0) continue;
         const placeholders = cols.map((_, i) => `$${i + 1}`).join(",");
