@@ -25,7 +25,13 @@ export const VersionIndicator = ({ collapsed = false }: Props) => {
   useEffect(() => {
     getRuntimeConfig()
       .then((cfg) => {
-        if (cfg.version) setVersion(cfg.version);
+        // Ignore placeholder "local" — show real build version instead,
+        // suffixed with "·local" so the operator still knows it's the on-prem build.
+        if (cfg.version && cfg.version !== "local") {
+          setVersion(cfg.version);
+        } else if (cfg.localMode) {
+          setVersion(`${BUILD_VERSION} · local`);
+        }
       })
       .catch(() => { /* keep build version */ });
   }, []);
