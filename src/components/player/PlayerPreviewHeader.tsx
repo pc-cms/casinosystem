@@ -212,13 +212,26 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
           <div className="shrink-0 flex flex-col justify-center items-center gap-2 pr-5 border-r border-border self-stretch">
             <span className="font-mono text-xs text-muted-foreground uppercase tracking-wide">Visits</span>
             <span className="text-foreground font-bold text-3xl tabular-nums leading-none">{visitsCount}</span>
-            <Button
-              size="sm"
-              onClick={() => nav(`/players/${player.id}`)}
-              className="gap-1 mt-1"
-            >
-              Profile <ExternalLink className="h-3.5 w-3.5" />
-            </Button>
+            <div className="flex gap-1.5 mt-1">
+              <Button
+                size="sm"
+                onClick={() => nav(`/players/${player.id}`)}
+                className="gap-1"
+              >
+                Profile <ExternalLink className="h-3.5 w-3.5" />
+              </Button>
+              {canEditProfile && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setEditOpen(true)}
+                  aria-label="Edit player profile"
+                  className="gap-1"
+                >
+                  <Pencil className="h-3.5 w-3.5" /> Edit
+                </Button>
+              )}
+            </div>
           </div>
 
           {/* Identity block: Name+Nick / Cash In + Result / Tags */}
