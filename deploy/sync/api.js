@@ -177,7 +177,8 @@ export function startApi({ pool }) {
           return send(res, 400, { error: `Cloud casino_id (${conn.casino_id}) ≠ local CASINO_ID (${cid})` });
         }
         // Stream + import (fire-and-forget; client polls /node/clone-from-cloud/status)
-        cloneFromCloud(pool, conn, cid).catch((e) => {
+        // Pass initiator userId so their auth row is never wiped mid-clone.
+        cloneFromCloud(pool, conn, cid, userId).catch((e) => {
           console.error("[clone] fatal", e);
         });
         return send(res, 202, { ok: true, message: "Clone started — poll /node/clone-from-cloud/status" });
