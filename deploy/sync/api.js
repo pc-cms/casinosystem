@@ -567,11 +567,17 @@ async function cloneFromCloud(pool, conn, casinoId, initiatorUserId) {
     //    push the freshly-imported rows back to Cloud.
     await client.query(`SELECT public.sync_reset_outbox($1::uuid, true)`, [casinoId]);
 
-    // 2) Wipe casino-scoped rows
+    // 2) Wipe casino-scoped rows. Some player child tables do not have casino_id;
+    // wipe them through players first so clone is a true replacement, not a merge.
+    const playerScopedTables = new Set(["player_cards", "player_tags", "group_members"]);
     for (const t of wipeTables) {
       try {
         await client.query("SAVEPOINT clone_wipe_table");
-        await client.query(`DELETE FROM public.${t} WHERE casino_id = $1::uuid`, [casinoId]);
+        if (playerScopedTables.has(t)) {
+          await client.query(`DELETE FROM public.${t} WHERE player_id IN (SELECT id FROM public.players WHERE casino_id = $1::uuid)`, [casinoId]);
+        } else {
+          await client.query(`DELETE FROM public.${t} WHERE casino_id = $1::uuid`, [casinoId]);
+        }
         await client.query("RELEASE SAVEPOINT clone_wipe_table");
       } catch (e) {
         await client.query("ROLLBACK TO SAVEPOINT clone_wipe_table").catch(() => {});
@@ -686,7 +692,9 @@ async function cloneFromCloud(pool, conn, casinoId, initiatorUserId) {
         }
 
         if (!obj.table || !obj.row) continue;
-        // Strip GENERATED ALWAYS columns — Postgres rejects explicit inserts.
+        // Skip derived views and strip GENERATED ALWAYS columns — Postgres rejects explicit inserts.
+        const SKIP_TABLES = new Set(["player_economy", "player_session_stats", "player_session_drops"]);
+        if (SKIP_TABLES.has(obj.table)) continue;
         const CLONE_STRIP = { player_position_history: ["duration_seconds"] };
         for (const c of (CLONE_STRIP[obj.table] || [])) delete obj.row[c];
         cloneState.current_table = obj.table;
@@ -709,6 +717,22 @@ async function cloneFromCloud(pool, conn, casinoId, initiatorUserId) {
         } catch (e) {
           await client.query("ROLLBACK TO SAVEPOINT clone_row").catch(() => {});
           await client.query("RELEASE SAVEPOINT clone_row").catch(() => {});
+          if (obj.table === "player_cards" && obj.row.card_number) {
+            try {
+              await client.query("SAVEPOINT clone_row_card_number");
+              const cardSetlist = cols.map(c => `"${c}" = EXCLUDED."${c}"`).join(",");
+              const cardSql = `INSERT INTO public."${obj.table}" (${cols.map(c => `"${c}"`).join(",")})
+                               VALUES (${placeholders})
+                               ON CONFLICT ON CONSTRAINT player_cards_card_number_unique DO UPDATE SET ${cardSetlist}`;
+              const rr = await client.query(cardSql, cols.map(c => obj.row[c]));
+              await client.query("RELEASE SAVEPOINT clone_row_card_number");
+              if (rr.rowCount > 0) cloneState.counts[obj.table] = (cloneState.counts[obj.table] || 0) + rr.rowCount;
+              continue;
+            } catch (eCard) {
+              await client.query("ROLLBACK TO SAVEPOINT clone_row_card_number").catch(() => {});
+              await client.query("RELEASE SAVEPOINT clone_row_card_number").catch(() => {});
+            }
+          }
           try {
             await client.query("SAVEPOINT clone_row_fallback");
             const rr = await client.query(fallbackSql, cols.map(c => obj.row[c]));

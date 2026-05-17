@@ -76,6 +76,63 @@ CREATE INDEX IF NOT EXISTS idx_player_position_history_casino_started
 CREATE INDEX IF NOT EXISTS idx_player_position_history_player_started
   ON public.player_position_history(player_id, started_at DESC);
 
+CREATE OR REPLACE FUNCTION public.player_drop_split_lifetime(_player_id uuid)
+RETURNS TABLE (drop_r bigint, drop_recycled bigint)
+LANGUAGE sql
+STABLE
+SECURITY INVOKER
+SET search_path = public
+AS $$
+  SELECT COALESCE(SUM(amount), 0)::bigint, 0::bigint
+  FROM public.transactions
+  WHERE player_id = _player_id AND type IN ('buy','in')
+$$;
+
+DO $$
+BEGIN
+  BEGIN
+    EXECUTE $ddl$
+      CREATE OR REPLACE VIEW public.player_economy AS
+      SELECT p.id AS player_id, p.casino_id, p.first_name, p.last_name, p.nickname, p.status,
+             COALESCE(buy.total, 0) AS total_drop,
+             COALESCE(cash.total, 0) AS total_cashout,
+             COALESCE(exp.total, 0) AS total_expenses,
+             COALESCE(split.drop_r, 0) AS total_drop_r,
+             COALESCE(split.drop_recycled, 0) AS total_drop_recycled,
+             COALESCE(cash.total, 0) - COALESCE(buy.total, 0) AS result,
+             COALESCE(cash.total, 0) - COALESCE(buy.total, 0) - COALESCE(exp.total, 0) AS total,
+             COALESCE(cash.total, 0) - COALESCE(buy.total, 0) - COALESCE(exp.total, 0) AS real_result
+      FROM public.players p
+      LEFT JOIN LATERAL (SELECT SUM(amount) AS total FROM public.transactions WHERE player_id = p.id AND type IN ('buy','in')) buy ON true
+      LEFT JOIN LATERAL (SELECT SUM(amount) AS total FROM public.transactions WHERE player_id = p.id AND type IN ('cashout','out')) cash ON true
+      LEFT JOIN LATERAL (SELECT SUM(amount) AS total FROM public.expenses WHERE player_id = p.id AND approved = true) exp ON true
+      LEFT JOIN LATERAL (SELECT * FROM public.player_drop_split_lifetime(p.id)) split ON true
+    $ddl$;
+    EXECUTE 'ALTER VIEW public.player_economy SET (security_invoker = true)';
+  EXCEPTION WHEN others THEN
+    RAISE NOTICE 'Skipped player_economy view repair: %', SQLERRM;
+  END;
+
+  BEGIN
+    EXECUTE $ddl$
+      CREATE OR REPLACE VIEW public.player_session_stats AS
+      SELECT s.casino_id, s.player_id, s.table_id,
+             COUNT(*) AS session_count,
+             COALESCE(SUM(s.hands_played), 0) AS hands,
+             COALESCE(SUM(s.duration_minutes), 0) AS minutes,
+             COALESCE(SUM(s.total_bet), 0) AS total_bet_sum,
+             COALESCE(SUM((s.avg_bet)::numeric * s.hands_played), 0) AS bet_sum_by_avg,
+             MIN(s.started_at) AS first_session_at,
+             MAX(COALESCE(s.stopped_at, s.started_at)) AS last_session_at
+      FROM public.client_sessions s
+      GROUP BY s.casino_id, s.player_id, s.table_id
+    $ddl$;
+    EXECUTE 'ALTER VIEW public.player_session_stats SET (security_invoker = true)';
+  EXCEPTION WHEN others THEN
+    RAISE NOTICE 'Skipped player_session_stats view repair: %', SQLERRM;
+  END;
+END $$;
+
 CREATE TABLE IF NOT EXISTS public.user_roles (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL,
