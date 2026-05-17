@@ -694,6 +694,95 @@ else
   ok "Super admin готов: ${SA_EMAIL} / ${SA_PASS}"
 fi
 
+# ── Verify-parity fast path: сравнить локальную копию с Cloud ──────────────
+if [[ $VERIFY -eq 1 ]]; then
+  title "Verify parity (Local ↔ Cloud)"
+  cd "$SCRIPT_DIR"
+  [[ -f .env ]] || fail ".env не найден — verify-parity доступен только на установленной системе."
+  set -a; . ./.env; set +a
+  : "${CLOUD_URL:?CLOUD_URL не задан в .env}"
+  : "${CASINO_ID:?CASINO_ID не задан в .env}"
+  : "${SYNC_SECRET:?SYNC_SECRET не задан в .env — сервер ещё не спарен с Cloud}"
+  : "${CLOUD_ANON_KEY:?CLOUD_ANON_KEY не задан в .env}"
+
+  PG_RUN=(docker compose exec -T -e PGPASSWORD="${POSTGRES_PASSWORD}" postgres
+          psql -U "${POSTGRES_USER:-postgres}" -d "${POSTGRES_DB:-postgres}" -At -F'|')
+
+  TABLES=(players gaming_tables shifts daily_summaries employees casinos
+          transactions expenses casino_visits client_sessions
+          player_cards player_tags player_notes player_chip_adjustments
+          chips chip_emissions cage_shifts cash_count_entries
+          table_tracker table_daily_results business_day_closures
+          user_roles user_casino_access)
+
+  PASS=0; DIFF=0; MISS=0
+  printf "\n  ${BOLD}%-32s %12s %12s   %s${NC}\n" "Table" "Local" "Cloud" "Status"
+  printf "  %-32s %12s %12s   %s\n" "────────────────────────────────" "────────────" "────────────" "──────"
+
+  for T in "${TABLES[@]}"; do
+    LOC=$("${PG_RUN[@]}" -c "SELECT count(*) FROM public.${T} WHERE casino_id='${CASINO_ID}'" 2>/dev/null || echo "ERR")
+    if [[ "$LOC" == "ERR" || -z "$LOC" ]]; then
+      # таблица без casino_id — пробуем без фильтра (casinos, user_roles и т.п.)
+      LOC=$("${PG_RUN[@]}" -c "SELECT count(*) FROM public.${T}" 2>/dev/null || echo "MISS")
+      CLD=$(curl -sk -o /dev/null -w "%{http_code}" \
+        -H "apikey: ${CLOUD_ANON_KEY}" -H "Authorization: Bearer ${CLOUD_ANON_KEY}" \
+        -H "Range: 0-0" -H "Prefer: count=exact" \
+        "${CLOUD_URL}/rest/v1/${T}?select=*&limit=1")
+      [[ "$CLD" =~ ^(200|206)$ ]] && CLD="?" || CLD="—"
+    else
+      HDR=$(curl -sk -D - -o /dev/null \
+        -H "apikey: ${CLOUD_ANON_KEY}" -H "Authorization: Bearer ${CLOUD_ANON_KEY}" \
+        -H "Range: 0-0" -H "Prefer: count=exact" \
+        "${CLOUD_URL}/rest/v1/${T}?casino_id=eq.${CASINO_ID}&select=*&limit=1")
+      CLD=$(echo "$HDR" | grep -i '^content-range:' | sed 's|.*/||' | tr -d '\r\n ')
+      [[ -z "$CLD" || "$CLD" == "*" ]] && CLD="?"
+    fi
+    if [[ "$LOC" == "MISS" ]]; then
+      printf "  %-32s %12s %12s   ${RED}%s${NC}\n" "$T" "—" "$CLD" "no table"
+      MISS=$((MISS+1))
+    elif [[ "$LOC" == "$CLD" ]]; then
+      printf "  %-32s %12s %12s   ${GREEN}%s${NC}\n" "$T" "$LOC" "$CLD" "OK"
+      PASS=$((PASS+1))
+    else
+      printf "  %-32s %12s %12s   ${YELLOW}%s${NC}\n" "$T" "$LOC" "$CLD" "DIFF"
+      DIFF=$((DIFF+1))
+    fi
+  done
+
+  echo
+  log "Frontend version:"
+  LOC_VER=$(grep -oE '"version"[[:space:]]*:[[:space:]]*"[^"]+"' "$SCRIPT_DIR/../package.json" 2>/dev/null | head -1 | sed -E 's/.*"([^"]+)"$/\1/')
+  [[ -z "$LOC_VER" ]] && LOC_VER=$(docker compose exec -T frontend cat /usr/share/nginx/html/runtime-config.json 2>/dev/null | grep -oE '"version"[[:space:]]*:[[:space:]]*"[^"]+"' | sed -E 's/.*"([^"]+)"$/\1/')
+  REL_VER=$(curl -fsSL --max-time 8 https://api.github.com/repos/pc-cms/casinosystem/releases/latest 2>/dev/null | grep -oP '"tag_name"\s*:\s*"\K[^"]+' | head -1)
+  printf "  Local:  %s\n  Latest: %s\n" "${LOC_VER:-?}" "${REL_VER:-?}"
+  [[ -n "$LOC_VER" && -n "$REL_VER" && "$LOC_VER" != "$REL_VER" && "v$LOC_VER" != "$REL_VER" ]] && warn "Frontend отстаёт от Cloud — запустите sudo casino-update --update"
+
+  echo
+  log "Schema diff (cloud vs local, отсутствующие таблицы):"
+  CLOUD_TABLES=$(curl -sk -H "x-sync-secret: ${SYNC_SECRET}" -H "x-casino-id: ${CASINO_ID}" \
+    "${CLOUD_URL}/functions/v1/cloud-schema-export" 2>/dev/null \
+    | grep -oP 'CREATE TABLE[^(]*public\.\K[a-z_]+' | sort -u)
+  LOCAL_TABLES=$("${PG_RUN[@]}" -c "SELECT tablename FROM pg_tables WHERE schemaname='public' ORDER BY 1" 2>/dev/null | sort -u)
+  if [[ -n "$CLOUD_TABLES" ]]; then
+    MISSING=$(comm -23 <(echo "$CLOUD_TABLES") <(echo "$LOCAL_TABLES"))
+    if [[ -z "$MISSING" ]]; then
+      ok "Все таблицы Cloud присутствуют локально."
+    else
+      warn "Локально отсутствуют таблицы:"
+      echo "$MISSING" | sed 's/^/    • /'
+      warn "→ Запустите sudo casino-update --repair для добавления."
+    fi
+  else
+    warn "Не удалось получить схему из Cloud (cloud-schema-export)."
+  fi
+
+  echo
+  hr
+  printf "  ${BOLD}Итог:${NC}  ${GREEN}OK: %d${NC}   ${YELLOW}DIFF: %d${NC}   ${RED}MISSING: %d${NC}\n" "$PASS" "$DIFF" "$MISS"
+  hr
+  exit 0
+fi
+
 
 # ── cms-status CLI (Ubuntu diagnostics, works even if frontend is down) ──
 CLI_SRC="${SCRIPT_DIR}/cli"
