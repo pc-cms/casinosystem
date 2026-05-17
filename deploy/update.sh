@@ -132,22 +132,27 @@ fi
 
 # 6b. Re-apply seed defaults (roles matrix, placeholder casino, wallets, chip colors).
 # Idempotent (ON CONFLICT DO NOTHING) — safe to run on existing installs.
-if docker compose ps postgres --status=running 2>/dev/null | grep -q postgres; then
-  PGPASSWORD_VALUE="$(read_env_key POSTGRES_PASSWORD)"
-  if [[ -f "${CMS_DIR}/deploy/postgres/init/20-seed-defaults.sql" ]]; then
-    log "Applying seed defaults (idempotent)..."
-    docker compose exec -T -e PGPASSWORD="$PGPASSWORD_VALUE" postgres psql -h 127.0.0.1 -U postgres -d postgres \
-      < "${CMS_DIR}/deploy/postgres/init/20-seed-defaults.sql" >/dev/null 2>&1 \
-      && log "Seed defaults applied." \
-      || warn "Seed defaults skipped (postgres not ready or already applied)."
+# Skipped entirely in --frontend-only mode.
+if [[ "$FRONTEND_ONLY" != "1" ]]; then
+  if docker compose ps postgres --status=running 2>/dev/null | grep -q postgres; then
+    PGPASSWORD_VALUE="$(read_env_key POSTGRES_PASSWORD)"
+    if [[ -f "${CMS_DIR}/deploy/postgres/init/20-seed-defaults.sql" ]]; then
+      log "Applying seed defaults (idempotent)..."
+      docker compose exec -T -e PGPASSWORD="$PGPASSWORD_VALUE" postgres psql -h 127.0.0.1 -U postgres -d postgres \
+        < "${CMS_DIR}/deploy/postgres/init/20-seed-defaults.sql" >/dev/null 2>&1 \
+        && log "Seed defaults applied." \
+        || warn "Seed defaults skipped (postgres not ready or already applied)."
+    fi
+    if [[ -f "${CMS_DIR}/deploy/postgres/repair-local-schema.sql" ]]; then
+      log "Applying local schema repair (idempotent)..."
+      docker compose exec -T -e PGPASSWORD="$PGPASSWORD_VALUE" postgres psql -h 127.0.0.1 -U postgres -d postgres -v ON_ERROR_STOP=1 \
+        < "${CMS_DIR}/deploy/postgres/repair-local-schema.sql" >/dev/null 2>&1 \
+        && log "Local schema repair applied." \
+        || warn "Local schema repair skipped (postgres not ready)."
+    fi
   fi
-  if [[ -f "${CMS_DIR}/deploy/postgres/repair-local-schema.sql" ]]; then
-    log "Applying local schema repair (idempotent)..."
-    docker compose exec -T -e PGPASSWORD="$PGPASSWORD_VALUE" postgres psql -h 127.0.0.1 -U postgres -d postgres -v ON_ERROR_STOP=1 \
-      < "${CMS_DIR}/deploy/postgres/repair-local-schema.sql" >/dev/null 2>&1 \
-      && log "Local schema repair applied." \
-      || warn "Local schema repair skipped (postgres not ready)."
-  fi
+else
+  log "FRONTEND_ONLY mode — skipping DB seed defaults and schema repair."
 fi
 
 # Frontend uses universal placeholder __CMS_ORIGIN_PLACEHOLDER__/api baked at build,
@@ -157,12 +162,20 @@ docker compose config 2>/dev/null | grep -q "VITE_SUPABASE_URL: ${EXPECTED_PLACE
   || die "docker-compose is not baking universal placeholder (${EXPECTED_PLACEHOLDER}) into cms-frontend"
 docker compose config 2>/dev/null | grep -q "supabase.co" \
   && die "Refusing to update: docker-compose contains a Cloud supabase.co URL for cms-frontend"
-log "Building cms-frontend (universal origin placeholder) + cms-sync (this may take 3-7 min)..."
-docker image ls --format '{{.Repository}}:{{.Tag}}' | grep '^cms-frontend:' | xargs -r docker image rm -f 2>/dev/null || true
-docker compose build --no-cache cms-frontend cms-sync
 
-log "Restarting frontend + nginx + cms-sync..."
-docker compose up -d cms-frontend nginx cms-sync
+docker image ls --format '{{.Repository}}:{{.Tag}}' | grep '^cms-frontend:' | xargs -r docker image rm -f 2>/dev/null || true
+
+if [[ "$FRONTEND_ONLY" == "1" ]]; then
+  log "Building cms-frontend ONLY (frontend-only mode, ~3-5 min)..."
+  docker compose build --no-cache cms-frontend
+  log "Restarting frontend + nginx..."
+  docker compose up -d --force-recreate cms-frontend nginx
+else
+  log "Building cms-frontend + cms-sync (this may take 3-7 min)..."
+  docker compose build --no-cache cms-frontend cms-sync
+  log "Restarting frontend + nginx + cms-sync..."
+  docker compose up -d cms-frontend nginx cms-sync
+fi
 
 # 7. Health check
 log "Waiting for frontend..."
