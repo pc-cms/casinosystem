@@ -265,6 +265,50 @@ Deno.serve(async (req) => {
       });
 
       try {
+        // ── Step 1: список user_id, относящихся к этому казино ──
+        //    (используется для scope: by_user — profiles / user_roles / user_credentials).
+        let userIds: string[] = [];
+        {
+          const { data: uca } = await admin
+            .from("user_casino_access")
+            .select("user_id")
+            .eq("casino_id", casinoId);
+          const { data: prof } = await admin
+            .from("profiles")
+            .select("id")
+            .eq("casino_id", casinoId);
+          const { data: superRoles } = await admin
+            .from("user_roles")
+            .select("user_id")
+            .eq("role", "super_admin");
+          const set = new Set<string>();
+          (uca ?? []).forEach((r: any) => r.user_id && set.add(r.user_id));
+          (prof ?? []).forEach((r: any) => r.id && set.add(r.id));
+          (superRoles ?? []).forEach((r: any) => r.user_id && set.add(r.user_id));
+          userIds = Array.from(set);
+        }
+
+        // ── Step 2: auth.users — отдельным потоком, через SECURITY DEFINER RPC.
+        //    Сначала чтобы FK profiles/user_roles/user_credentials → auth.users(id)
+        //    выполнялись при импорте.
+        try {
+          const { data: authRows, error: authErr } = await admin.rpc(
+            "seed_export_auth_users",
+            { p_casino_id: casinoId },
+          );
+          if (authErr) {
+            writeLine({ _error: { table: "auth.users", msg: authErr.message } });
+          } else {
+            counts["auth.users"] = 0;
+            for (const r of (authRows as any[] ?? [])) {
+              writeLine({ auth_user: r });
+              counts["auth.users"]++;
+            }
+          }
+        } catch (e) {
+          writeLine({ _error: { table: "auth.users", msg: String((e as Error)?.message ?? e) } });
+        }
+
         for (const t of TABLES) {
           counts[t.name] = 0;
           let from = 0;
@@ -274,6 +318,25 @@ Deno.serve(async (req) => {
             const { data, error } = await admin.from(t.name).select("*").eq("id", casinoId).maybeSingle();
             if (error) { writeLine({ _error: { table: t.name, msg: error.message } }); continue; }
             if (data) { writeLine({ table: t.name, row: data }); counts[t.name] = 1; }
+            continue;
+          }
+
+          // by_user — строки, где user_id ∈ userIds
+          if (t.scope === "by_user") {
+            if (userIds.length === 0) continue;
+            const col = t.userIdCol ?? "user_id";
+            // chunk запросов по 500 id, чтобы не упереться в лимит URL
+            for (let i = 0; i < userIds.length; i += 500) {
+              const slice = userIds.slice(i, i + 500);
+              const { data, error } = await admin
+                .from(t.name).select("*").in(col, slice);
+              if (error) {
+                writeLine({ _error: { table: t.name, msg: error.message } });
+                break;
+              }
+              for (const row of data ?? []) writeLine({ table: t.name, row });
+              counts[t.name] += (data ?? []).length;
+            }
             continue;
           }
 
