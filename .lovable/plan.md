@@ -1,120 +1,141 @@
-# План: рабочая схема репликации (Primary + Replicas) с диагностикой
+# Universal Installer (cms-installer)
 
-## Топология (внутри одного казино)
+Один скрипт, один curl. Никаких `CASINO=mwanza` в командной строке, никаких отдельных `pair.sh` / `update.sh` / `install.sh`. Всё через интерактивное меню.
 
-Жёсткая роль **Primary** на одну ноду. Остальные — **Replicas** (read-mostly зеркала). Cloud — всегда Replica, плюс точка доступа для удалённых пользователей.
+## Точка входа
 
-```text
-            ┌──────────────────┐
-            │   Cloud (Replica)│  ← удалённый доступ, бэкап
-            └────────┬─────────┘
-                     │ peer-mesh (HMAC)
-        ┌────────────┴────────────┐
-        │                         │
-┌───────▼──────┐          ┌───────▼──────┐
-│ Local A      │ ◄──────► │ Local B      │
-│ PRIMARY      │  mesh    │ REPLICA      │
-└──────────────┘          └──────────────┘
-       ▲                         ▲
-   браузеры LAN              (только чтение/бэкап,
-   пишут СЮДА                 пишут только если
-                              явно promote)
+```
+curl -fsSL https://casinosystem.app/cms | sudo bash
 ```
 
-Правила:
-- Кассир/пит/ресепшн **всегда пишет в локальный Primary**. UI определяет Primary по `casino_servers.role='primary'` (новое поле) и subdomain → server map.
-- Если Primary упал — Admin вручную делает **Promote Backup → Primary** (1 кнопка + пароль менеджера). Авто-failover не делаем (риск split-brain).
-- Cloud никогда не становится Primary автоматически; промоут только из админки супер-админом.
-- Mesh симметричный: каждая нода толкает свой outbox в каждого пира и тянет с каждого. Конфликты = last-write-wins по `updated_at` (уже работает в `peer_apply_change`).
-- 2 локальных без Cloud — работает (peer-mesh между ними по LAN). 2 локальных + Cloud — Cloud третий пир в той же сетке, но всегда Replica.
+Алиас на `public/cms-installer.sh`. Старые URL (`/install.sh`, `/pair.sh`, `/update.sh`) остаются как тонкие враппepы для обратной совместимости — внутри вызывают `cms-installer` с предзаполненным режимом.
 
-## Что ломает текущую схему (даже на пустых БД)
+## Главное меню
 
-1. `sync/index.js heartbeatLoop` спамит `sync_exchange_logs` каждые 30с → лог нечитаем.
-2. `apply_changes` молча дропает строки с неизвестными колонками/FK → "17k pulled, 0 visible".
-3. Курсор двигается даже через rejected rows → потерянные изменения не переотправляются.
-4. `verify.js` пишет в `sync_probes`, но `peer_apply_change` не реэмитит → echo не работает, "ничего за минуту" не диагностируется.
-5. Нет единого "здоров/болен" по пиру — статус разбросан.
+После запуска скрипт показывает состояние машины (есть/нет установка, версия, режим, sync-статус) и меню:
 
-## Скоуп v1.3.49
+```
+Casino Management System — Installer v2
 
-### A. БД (одна миграция)
+Detected: arusha-local, v1.3.51, Cloud-connected, mirror=ok, replica
 
-- `sync_peer_health` — по строке на peer_link: heartbeat, last push/pull/apply ok, lag, outbox depth, schema_version local/remote, state (`ok|degraded|broken|pairing|schema_mismatch|snapshot_required`), last_error.
-- `sync_apply_errors` — каждая отброшенная строка: `table`, `pk`, `payload_hash`, `error_code`, `error_text`, `source_outbox_id`, `peer_link_id`, `ts`, `resolved_at`.
-- `sync_probe_events` — round-trip: `id`, `direction`, `created_at`, `sent_at`, `ack_at`, `status`, `peer_link_id`, `latency_ms`.
-- `sync_snapshot_state` — `casino_id`, `snapshot_id`, `imported_at`, `table_counts jsonb`, `checksum`, `source`.
-- `casino_servers.role` enum `primary|replica` + uniq index `(casino_id) where role='primary'`.
-- RPC: `sync_promote_server(server_id, manager_password)`, `sync_record_apply_error(...)`, `sync_record_probe(...)`, `sync_record_health(...)`.
-- RLS: super_admin/manager read; service_role write.
+  1) Install              — set up a new server
+  2) Update               — upgrade code/containers, keep DB
+  3) Wipe & Reinstall     — destroy DB + reinstall (asks again)
+  4) Status / Diagnostics — version, sync, peers, logs
 
-### B. Sync runtime (`deploy/sync/`)
+  q) Quit
 
-- `index.js`: убрать heartbeat-запись в `sync_exchange_logs`, писать в `sync_peer_health` (UPSERT, без истории).
-- Apply loop: per-row try/catch → `accepted|skipped|rejected`, rejected → `sync_apply_errors`, **курсор двигается только до последней accepted/skipped**. Если N rejected подряд → state=`schema_mismatch`, остановка пулла этого пира.
-- Probe loop: каждые 60с генерит probe-row на своей стороне → outbox → второй пир видит и шлёт `/probe/ack`. Запись в `sync_probe_events`.
-- Logging: в `sync_exchange_logs` только реальные события (push с N>0, pull с N>0, ошибки, snapshot, pairing, promote, probe-результат). "Empty tick" не пишем.
+Choose [1-4]:
+```
 
-### C. Edge `peer-mesh`
+Меню — единственный способ запустить любое действие. Никаких флагов. Любая деструктивная операция спрашивает подтверждение фразой `WIPE`.
 
-- Новые роуты: `POST /probe/start`, `POST /probe/ack`, `POST /health/report`, `GET /health/:peer_link_id`.
-- `/push` возвращает структурный JSON: `{accepted, skipped, rejected: [{outbox_id, error_code}]}`.
-- Heartbeat больше не пишет в exchange log; обновляет `sync_peer_health`.
+## Режим 1 — Install
 
-### D. CLI `cms-status` (Ubuntu, full set)
+Подрежим:
 
-`/usr/local/bin/cms-status` (Node-скрипт в `deploy/cli/`, симлинк из install.sh):
+```
+  a) Cloud-connected   — sync with cloud, pick existing casino
+  b) Standalone offline — no cloud, optional snapshot restore
+```
 
-- `cms-status` — версия, контейнеры, Postgres, snapshot, pairing, outbox depth, последние 5 ошибок apply, last probe.
-- `cms-status mirror` — таблица по всем пирам: state, lag, last_push/pull_ok, schema_version.
-- `cms-status logs [N]` — хвост `sync_exchange_logs` (по умолчанию 20), фильтр по направлению.
-- `cms-status probe <peer>` — синхронный round-trip с выводом latency.
-- `cms-status repair pairing|snapshot|errors` — вызывает локальные RPC.
-- `cms-status restart sync|api|all` — `docker compose restart`.
-- `cms-status pull-cmd` — читает push-command из Cloud (`POST /node/commands/pop`) и исполняет один из whitelisted: `restart_sync`, `repair_pairing`, `retry_errors`, `rebuild_snapshot`, `promote_self`. Запускается systemd timer каждую минуту. Без SSH.
+### 1a — Cloud-connected (универсальный для Arusha / Mwanza / Dodoma / Mbeya)
 
-### E. Admin UI чистка + новый Mirror Health
+1. `docker compose up -d` (Postgres + frontend + cms-sync + cms-updater).
+2. Скрипт делает запрос к Cloud edge-функции `installer-list-casinos` (новая, public, возвращает `[{slug, display_name, subdomain, active}]` — только активные).
+3. Показывает нумерованный список:
+   ```
+   Available casinos in cloud:
+     1) Arusha   (arusha.casinosystem.app)
+     2) Mwanza   (mwanza.casinosystem.app)
+     3) Dodoma   (dodoma.casinosystem.app)
+     4) Mbeya    (mbeya.casinosystem.app)
+   Pick [1-4]:
+   ```
+4. Пользователь выбирает номер → `CASINO_SLUG` сохраняется в `/etc/cms/server.env`.
+5. Спрашивает Pair Token (одноразовый, генерится в Cloud Admin → Servers → "Add Server").
+6. Прогон `cloud-seed-export` → стрим в локальный Postgres → ждём `mirror=ok` (polling каждые 5с, прогресс-бар).
+7. Cloud остаётся primary. Локальный — replica. Конец установки.
+8. В UI Admin → Servers пользователь сам нажимает **Promote to Primary** когда хочет.
 
-Удаляем:
-- старый `PeerLinksPanel` ручной pairing (host/secret/casino_id) — pair.sh делает всё.
-- `BuildSnapshotButton` (snapshot собирается по cron + при install).
-- `LocalServerWizard` (legacy поток).
-- Heartbeat-строки в Exchange Log — переезжают в `sync_peer_health`.
+Этот сценарий покрывает оба исходных кейса (Arusha с полным сидом, Mwanza с почти пустым) — разница только в объёме данных, логика одна.
 
-Оставляем/чиним:
-- `Admin → Servers` (новая страница): список нод казино с ролью (Primary/Replica), state, lag, schema version. Кнопки: **Promote to Primary** (manager password), **Rebuild Snapshot**, **Re-pair**, **Retry Failed Rows**, **Run Probe**.
-- `Admin → Exchange Log` (переименовать в Mirror Activity): только осмысленные события, последние 50, фильтр по пиру/направлению/типу.
-- `Admin → Apply Errors` (новый таб): таблица rejected rows, кнопка Retry / Mark Resolved.
+### 1b — Standalone offline
 
-### F. install.sh / pair.sh
+1. `docker compose up -d`.
+2. Спрашивает: пустая БД или snapshot?
+3. Если snapshot — спрашивает источник: `local file path` или `URL`. Скачивает/читает, `pg_restore` в локальный Postgres.
+4. Создаётся локальный super_admin. Sync выключен (`CMS_SYNC_ENABLED=false`).
+5. Casino slug либо берётся из snapshot, либо запрашивается вручную (только в этом режиме допустим ручной ввод).
 
-- `pair.sh` — без изменений, уже zero-touch.
-- `install.sh` шаг 6.5 — после seed-import пишет `sync_snapshot_state`.
-- Новый шаг: установка `cms-status` + systemd timer для `pull-cmd`.
-- В Docker compose добавить `CMS_NODE_ROLE` (primary|replica) из `.env`, читается UI через runtime-config.json.
+## Режим 2 — Update
 
-### G. Версия
+1. `cms-updater` pull последнего тега из GitHub Releases.
+2. `docker compose pull && up -d`.
+3. БД не трогается. Миграции применяются автоматически (idempotent).
+4. Версия в `/etc/cms/version` обновляется.
 
-`package.json` → 1.3.49 (backend changes).
+## Режим 3 — Wipe & Reinstall
 
-## Технические детали
+1. Требует ввод `WIPE` в верхнем регистре.
+2. `docker compose down -v` (удаляет volume Postgres).
+3. Удаляет `/etc/cms/server.env` и pair-token.
+4. Возвращается в меню Install (1a или 1b).
 
-- Outbox payload неизменно сериализован JSONB; apply сравнивает `schema_version` (md5 по `information_schema.columns` ключевых таблиц) и до accept'а отбрасывает строки с unknown column в `sync_apply_errors` (state=schema_mismatch), не молча.
-- Probe round-trip ≤ 5с считаем `ok`, 5–30с `degraded`, >30с или нет ack 3 раза подряд → `broken`.
-- Promote: транзакция `UPDATE casino_servers SET role='replica' WHERE casino_id=$1; UPDATE … SET role='primary' WHERE id=$2;` + аудит запись. UI всех клиентов казино перечитывает `casino_servers` через realtime и перенаправляет writes.
-- Push-cmd безопасность: команды подписаны HMAC(`SYNC_SECRET`), TTL 5 мин, nonce, whitelist действий.
+## Режим 4 — Status / Diagnostics
 
-## Чего НЕ делаем сейчас
+Печатает:
+- Версия фронтенда + БД миграций
+- Режим (cloud / standalone), casino slug
+- Sync: cursor, outbox lag, последний обмен, peers
+- Контейнеры (docker ps)
+- Последние 50 строк логов cms-sync
 
-- SSH/Tailscale — отдельная задача.
-- Авто-failover.
-- Логическая репликация Postgres (на Lovable Cloud недоступна).
-- Multi-master с CRDT.
+Только чтение, ничего не меняет.
 
-## После имплементации — приёмка
+## Bootstrap super_admin — local-only
 
-1. `pair.sh` на чистом Local → видим snapshot_imported в `sync_snapshot_state`, peer_health=ok.
-2. Создаём игрока в Cloud → за ≤60с появляется в Local; `sync_probe_events` показывает round-trip < 5с.
-3. Ломаем колонку (добавляем на Cloud, нет на Local) → запись в `sync_apply_errors`, state=`schema_mismatch`, в UI красный бейдж + кнопка repair.
-4. `cms-status mirror` показывает корректную таблицу при выключенном фронте.
-5. Promote Replica → Primary за 1 клик; writes идут на новый Primary.
+Подтверждённое решение:
+
+- При **любой** установке создаётся локальный super_admin `admin@local` с паролем из `/etc/cms/server.env` (генерится случайно при первой установке, показывается один раз).
+- Этот пользователь **никогда** не реплицируется в Cloud. Триггер `cms_sync_outbox` исключает `auth.users` где `email LIKE '%@local'` и связанные `user_roles`.
+- При Cloud-connected установке Cloud-овский super_admin приходит через seed и работает параллельно.
+- Если интернет упал — `admin@local` всегда доступен на `http://<server>.local`.
+- При promotion to Primary локальный super_admin остаётся, Cloud-овский продолжает работать (они независимы).
+
+## Что нужно построить
+
+### Новое
+- `public/cms-installer.sh` — единый интерактивный скрипт (меню, цвета, подтверждения, polling).
+- Edge function `installer-list-casinos` — публичный список активных казино (slug, display_name, subdomain).
+- Edge function `installer-issue-pair-token` уже существует как часть `peer-mesh` — переиспользуем.
+- Кнопка **Add Server** в `ServersPanel.tsx` — генерит pair-token, копируется в буфер, показывается команда `curl ... | sudo bash`.
+
+### Изменения
+- `public/install.sh`, `public/pair.sh`, `public/update.sh` → тонкие враппepы, делают `exec curl .../cms` с переменной `CMS_PREFILL_MODE=install|pair|update` (только для backward compat; новые пользователи всегда видят меню).
+- `deploy/install.sh` → удаляется (логика переезжает в `cms-installer.sh`, который работает как из curl, так и локально).
+- Sync outbox trigger → добавить exclusion для `@local` super_admin.
+- `ServersPanel.tsx` → блокировка кнопки **Promote to Primary** пока `mirror_status != 'ok'` (уже обсуждалось, добавим в этом же подходе).
+
+### Удаляется
+- Логика `SKIP_SEED` и явный `Reset Cloud Data` flow из `pair.sh` — в новом скрипте Reset Cloud — это отдельная кнопка в Cloud Admin, не часть установщика. Standalone-режим заменяет необходимость в SKIP_SEED.
+
+## Безопасность
+
+- Pair-token одноразовый, TTL 1 час, привязан к выбранному casino_slug на стороне Cloud. Невозможно ошибиться казино — токен валиден только для одного.
+- `WIPE` подтверждение исключает случайный выбор пункта 3.
+- Локальный super_admin пароль показывается один раз при первой установке + сохраняется в `/etc/cms/server.env` (root-only, 0600).
+- Список казино публичный (slug + display_name + subdomain), без чувствительных данных.
+
+## Документация
+
+Один файл `deploy/INSTALL.md`:
+
+```
+# Установка
+curl -fsSL https://casinosystem.app/cms | sudo bash
+# Дальше следуй меню.
+```
+
+Всё. Никаких 25 шагов.
