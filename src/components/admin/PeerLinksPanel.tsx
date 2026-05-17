@@ -223,7 +223,7 @@ export const PeerLinksPanel = () => {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const wipeSelected = casinos.find((c) => c.id === wipeCasinoId);
+
 
   const NodeKindIcon = identity?.node_kind === "cloud" ? Cloud : Server;
 
