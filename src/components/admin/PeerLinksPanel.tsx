@@ -273,9 +273,6 @@ export const PeerLinksPanel = () => {
           >
             <Sparkles className="w-3.5 h-3.5" /> Clear Stale
           </Button>
-          <Button onClick={() => setShowAdd(true)} className="gap-1.5">
-            <Plus className="w-4 h-4" /> Add Peer
-          </Button>
         </div>
       </div>
 
