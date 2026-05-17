@@ -511,7 +511,7 @@ export const PeerLinksPanel = () => {
         </DialogContent>
       </Dialog>
 
-      <SyncExchangeLog />
+      <RecentExchangeActivity />
     </div>
   );
 };

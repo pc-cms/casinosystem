@@ -52,7 +52,7 @@ const SyncLogPage = () => {
     queryFn: async () => {
       const { data } = await supabase
         .from("peer_links" as any).select("id, display_name").order("display_name");
-      return (data ?? []) as { id: string; display_name: string }[];
+      return (data ?? []) as unknown as { id: string; display_name: string }[];
     },
   });
 
