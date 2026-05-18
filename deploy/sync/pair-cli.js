@@ -38,6 +38,42 @@ const cloudHeaders = {
   Authorization: `Bearer ${CLOUD_ANON_KEY}`,
 };
 
+async function importAuthUser(client, u, counts) {
+  await client.query(`
+    INSERT INTO auth.users
+      (instance_id, id, aud, role, email, encrypted_password,
+       email_confirmed_at, raw_app_meta_data, raw_user_meta_data,
+       created_at, updated_at, phone)
+    VALUES
+      ('00000000-0000-0000-0000-000000000000', $1,
+       COALESCE($2,'authenticated'), COALESCE($3,'authenticated'),
+       $4, $5, COALESCE($6, now()),
+       COALESCE($7::jsonb, '{"provider":"email","providers":["email"],"role":"authenticated"}'::jsonb),
+       COALESCE($8::jsonb, '{}'::jsonb), COALESCE($9, now()), now(), $10)
+    ON CONFLICT (id) DO UPDATE SET
+      email = EXCLUDED.email,
+      encrypted_password = EXCLUDED.encrypted_password,
+      email_confirmed_at = EXCLUDED.email_confirmed_at,
+      raw_app_meta_data = EXCLUDED.raw_app_meta_data,
+      raw_user_meta_data = EXCLUDED.raw_user_meta_data,
+      phone = EXCLUDED.phone,
+      aud = 'authenticated', role = 'authenticated', updated_at = now()
+  `, [
+    u.id, u.aud, u.role, u.email, u.encrypted_password, u.email_confirmed_at,
+    u.raw_app_meta_data ? JSON.stringify(u.raw_app_meta_data) : null,
+    u.raw_user_meta_data ? JSON.stringify(u.raw_user_meta_data) : null,
+    u.created_at, u.phone,
+  ]);
+  await client.query(`
+    INSERT INTO auth.identities (id, user_id, identity_data, provider, provider_id, last_sign_in_at, created_at, updated_at)
+    VALUES (gen_random_uuid(), $1,
+            jsonb_build_object('sub', $1::text, 'email', $2::text, 'email_verified', true),
+            'email', $1::text, now(), now(), now())
+    ON CONFLICT (provider, provider_id) DO NOTHING
+  `, [u.id, u.email]);
+  counts["auth.users"] = (counts["auth.users"] || 0) + 1;
+}
+
 async function getRow() {
   const { rows } = await pool.query(`SELECT * FROM public.cloud_connection WHERE id = 1`);
   return rows[0] || null;
@@ -282,6 +318,18 @@ async function triggerSync() {
         let obj;
         try { obj = JSON.parse(line); } catch { continue; }
         if (obj._meta || obj._done || obj._error || obj._fatal) continue;
+        if (obj.auth_user) {
+          try {
+            await client.query("SAVEPOINT seed_auth_user");
+            await importAuthUser(client, obj.auth_user, counts);
+            await client.query("RELEASE SAVEPOINT seed_auth_user");
+          } catch (e) {
+            await client.query("ROLLBACK TO SAVEPOINT seed_auth_user").catch(() => {});
+            await client.query("RELEASE SAVEPOINT seed_auth_user").catch(() => {});
+            console.error(`[seed] auth_user.fail ${obj.auth_user?.email || obj.auth_user?.id}: ${String(e?.message || e).slice(0, 160)}`);
+          }
+          continue;
+        }
         if (!obj.table || !obj.row) continue;
         // Skip derived views and strip GENERATED ALWAYS columns — Postgres rejects explicit inserts.
         const SKIP_TABLES = new Set(["player_economy", "player_session_stats", "player_session_drops"]);

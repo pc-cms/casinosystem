@@ -87,7 +87,7 @@ const TABLES: Array<{ name: string; scope: "single" | "full" | "global" | "by_us
   //    после обычных таблиц. Здесь — связанные с ними public-таблицы.
   { name: "user_casino_access", scope: "full" },
   { name: "user_module_permissions", scope: "full" },
-  { name: "profiles",         scope: "by_user", userIdCol: "id" },
+  { name: "profiles",         scope: "by_user", userIdCol: "user_id" },
   { name: "user_roles",       scope: "by_user", userIdCol: "user_id" },
   { name: "user_credentials", scope: "by_user", userIdCol: "user_id" },
 
@@ -149,11 +149,11 @@ const DATE_COLUMN: Record<string, string> = {
   shifts: "created_at",
   transactions: "created_at",
   casino_visits: "created_at",
-  breaklist: "business_date",
-  pit_rota: "rota_date",
-  staff_rota: "rota_date",
-  dealer_attendance: "business_date",
-  staff_attendance: "business_date",
+  breaklist: "date",
+  pit_rota: "date",
+  staff_rota: "date",
+  dealer_attendance: "date",
+  staff_attendance: "date",
   cage_transfers: "created_at",
   expenses: "business_date",
   wallet_transactions: "created_at",
@@ -170,7 +170,7 @@ const DATE_COLUMN: Record<string, string> = {
   cctv_observations: "created_at",
   chip_transfers: "created_at",
   player_chip_adjustments: "created_at",
-  player_position_history: "changed_at",
+  player_position_history: "created_at",
   client_sessions: "created_at",
   incidents: "created_at",
   daily_summaries: "business_date",
@@ -301,7 +301,7 @@ Deno.serve(async (req) => {
             .eq("casino_id", casinoId);
           const { data: prof } = await admin
             .from("profiles")
-            .select("id")
+            .select("user_id")
             .eq("casino_id", casinoId);
           const { data: superRoles } = await admin
             .from("user_roles")
@@ -309,7 +309,7 @@ Deno.serve(async (req) => {
             .eq("role", "super_admin");
           const set = new Set<string>();
           (uca ?? []).forEach((r: any) => r.user_id && set.add(r.user_id));
-          (prof ?? []).forEach((r: any) => r.id && set.add(r.id));
+          (prof ?? []).forEach((r: any) => r.user_id && set.add(r.user_id));
           (superRoles ?? []).forEach((r: any) => r.user_id && set.add(r.user_id));
           userIds = Array.from(set);
         }
