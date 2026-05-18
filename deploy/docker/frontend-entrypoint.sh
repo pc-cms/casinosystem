@@ -90,10 +90,10 @@ fi
 # ────────── 2. manifest-local.json (динамический) ──────────
 echo "[entrypoint] generating ${MANIFEST_FILE} for ${RUNTIME_CASINO_NAME} (${RUNTIME_CASINO_SLUG})"
 jq -n \
-  --arg name  "${RUNTIME_CASINO_NAME} LOCAL — Casino System" \
-  --arg short "${RUNTIME_CASINO_NAME} LAN" \
+  --arg name  "${RUNTIME_CASINO_NAME} — Casino System" \
+  --arg short "${RUNTIME_CASINO_NAME}" \
   --arg id    "/local-${RUNTIME_CASINO_SLUG}" \
-  --arg desc  "${RUNTIME_CASINO_NAME} — локальная (LAN) PWA. Работает офлайн через локальный сервер." \
+  --arg desc  "${RUNTIME_CASINO_NAME} — Casino Management System." \
   '{
     name: $name,
     short_name: $short,

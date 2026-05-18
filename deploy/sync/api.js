@@ -771,7 +771,7 @@ async function cloneFromCloud(pool, conn, casinoId, initiatorUserId) {
              WHERE u.id IN (
                SELECT user_id FROM public.user_casino_access WHERE casino_id = $1::uuid
                UNION
-               SELECT id      FROM public.profiles            WHERE casino_id = $1::uuid
+             SELECT user_id FROM public.profiles            WHERE casino_id = $1::uuid
              )
           )
           DELETE FROM auth.users

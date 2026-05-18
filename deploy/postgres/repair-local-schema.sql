@@ -174,6 +174,40 @@ AS $$
   SELECT casino_id FROM public.profiles WHERE user_id = _user_id LIMIT 1
 $$;
 
+CREATE OR REPLACE FUNCTION public.user_has_casino_access(_user_id uuid, _casino_id uuid)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.user_roles
+     WHERE user_id = _user_id
+       AND role IN ('super_admin'::public.app_role, 'finance_manager'::public.app_role)
+    UNION ALL
+    SELECT 1 FROM public.profiles
+     WHERE user_id = _user_id AND casino_id = _casino_id
+    UNION ALL
+    SELECT 1 FROM public.user_casino_access
+     WHERE user_id = _user_id AND casino_id = _casino_id
+  )
+$$;
+
+CREATE OR REPLACE FUNCTION public.is_manager_op(_uid uuid)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.user_roles
+     WHERE user_id = _uid
+       AND role IN ('manager'::public.app_role, 'floor_manager'::public.app_role, 'super_admin'::public.app_role)
+  )
+$$;
+
 CREATE TABLE IF NOT EXISTS public.user_casino_access (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL,
@@ -266,9 +300,28 @@ DROP POLICY IF EXISTS "Users see own profile" ON public.profiles;
 CREATE POLICY "Users see own profile" ON public.profiles
 FOR SELECT TO authenticated USING (user_id = auth.uid());
 
+DROP POLICY IF EXISTS "Super admins see all profiles" ON public.profiles;
+CREATE POLICY "Super admins see all profiles" ON public.profiles
+FOR SELECT TO authenticated USING (public.has_role(auth.uid(), 'super_admin'::public.app_role));
+
+DROP POLICY IF EXISTS "Users see casino profiles" ON public.profiles;
+CREATE POLICY "Users see casino profiles" ON public.profiles
+FOR SELECT TO authenticated USING (casino_id = public.get_user_casino_id(auth.uid()));
+
 DROP POLICY IF EXISTS "Users see own roles" ON public.user_roles;
 CREATE POLICY "Users see own roles" ON public.user_roles
 FOR SELECT TO authenticated USING (user_id = auth.uid());
+
+DROP POLICY IF EXISTS "Super admins see all roles" ON public.user_roles;
+CREATE POLICY "Super admins see all roles" ON public.user_roles
+FOR SELECT TO authenticated USING (public.has_role(auth.uid(), 'super_admin'::public.app_role));
+
+DROP POLICY IF EXISTS "Managers see roles for same casino" ON public.user_roles;
+CREATE POLICY "Managers see roles for same casino" ON public.user_roles
+FOR SELECT TO authenticated USING (
+  public.has_role(auth.uid(), 'manager'::public.app_role)
+  AND EXISTS (SELECT 1 FROM public.profiles p WHERE p.user_id = user_roles.user_id AND p.casino_id = public.get_user_casino_id(auth.uid()))
+);
 
 DROP POLICY IF EXISTS "Users read own casino access" ON public.user_casino_access;
 CREATE POLICY "Users read own casino access" ON public.user_casino_access
@@ -280,6 +333,10 @@ FOR SELECT TO authenticated USING (
   public.has_role(auth.uid(), 'super_admin'::public.app_role)
   OR public.has_role(auth.uid(), 'finance_manager'::public.app_role)
 );
+
+DROP POLICY IF EXISTS "Managers see own casino access" ON public.user_casino_access;
+CREATE POLICY "Managers see own casino access" ON public.user_casino_access
+FOR SELECT TO authenticated USING (casino_id = public.get_user_casino_id(auth.uid()));
 
 DROP POLICY IF EXISTS "All authenticated read role defaults" ON public.role_module_defaults;
 CREATE POLICY "All authenticated read role defaults" ON public.role_module_defaults
@@ -294,6 +351,18 @@ CREATE POLICY "Super admins manage module permissions" ON public.user_module_per
 FOR ALL TO authenticated
 USING (public.has_role(auth.uid(), 'super_admin'::public.app_role))
 WITH CHECK (public.has_role(auth.uid(), 'super_admin'::public.app_role));
+
+DO $$
+BEGIN
+  IF to_regclass('public.table_daily_results') IS NOT NULL THEN
+    EXECUTE 'DROP POLICY IF EXISTS "Local users see daily results" ON public.table_daily_results';
+    EXECUTE 'CREATE POLICY "Local users see daily results" ON public.table_daily_results FOR SELECT TO authenticated USING (public.user_has_casino_access(auth.uid(), casino_id))';
+  END IF;
+  IF to_regclass('public.business_day_closures') IS NOT NULL THEN
+    EXECUTE 'DROP POLICY IF EXISTS "Local users see business day closures" ON public.business_day_closures';
+    EXECUTE 'CREATE POLICY "Local users see business day closures" ON public.business_day_closures FOR SELECT TO authenticated USING (public.user_has_casino_access(auth.uid(), casino_id))';
+  END IF;
+END $$;
 
 DO $$
 BEGIN
