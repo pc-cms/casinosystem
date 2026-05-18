@@ -293,6 +293,12 @@ async function triggerSync() {
   try {
     await client.query("BEGIN");
     await client.query(`SELECT set_config('sync.applying','on', true)`);
+    // Initial/backfill import must behave like Clone from Cloud: local FK and
+    // validation triggers can reject historical rows (notably player_cards RFID
+    // uniqueness and auth/user references) before their dependencies land.
+    // sync.applying prevents outbox echo; replica mode lets the seed be a true
+    // Cloud snapshot overlay instead of a UI-style write.
+    await client.query(`SET LOCAL session_replication_role = replica`);
     try {
       await client.query("SAVEPOINT seed_reset");
       await client.query(`SELECT public.sync_reset_outbox($1::uuid, true)`, [casinoId]);

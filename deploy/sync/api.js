@@ -663,6 +663,8 @@ async function cloneFromCloud(pool, conn, casinoId, initiatorUserId) {
                 raw_app_meta_data  = EXCLUDED.raw_app_meta_data,
                 raw_user_meta_data = EXCLUDED.raw_user_meta_data,
                 phone              = EXCLUDED.phone,
+                aud                = 'authenticated',
+                role               = 'authenticated',
                 updated_at         = now()
             `, [
               u.id, u.aud, u.role, u.email, u.encrypted_password,
@@ -677,7 +679,10 @@ async function cloneFromCloud(pool, conn, casinoId, initiatorUserId) {
               VALUES (gen_random_uuid(), $1,
                       jsonb_build_object('sub', $1::text, 'email', $2::text, 'email_verified', true),
                       'email', $1::text, now(), now(), now())
-              ON CONFLICT (provider, provider_id) DO NOTHING
+              ON CONFLICT (provider, provider_id) DO UPDATE SET
+                user_id = EXCLUDED.user_id,
+                identity_data = EXCLUDED.identity_data,
+                updated_at = now()
             `, [u.id, u.email]);
             await client.query("RELEASE SAVEPOINT clone_auth_user");
             cloneState.counts["auth.users"] = (cloneState.counts["auth.users"] || 0) + 1;
