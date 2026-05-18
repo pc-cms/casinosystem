@@ -132,8 +132,13 @@ const OpeningDeltaConfirmDialog = ({ open, onClose, diff, expectedTotal, entered
             onChange={e => setReason(e.target.value)}
             placeholder="Explain why opening chips differ from the previous closing…"
             rows={2}
-            className="text-sm"
+            className={`text-sm ${!reason.trim() ? "border-destructive/60 focus-visible:ring-destructive/40" : ""}`}
           />
+          {!reason.trim() && (
+            <p className="text-[10px] font-medium text-destructive flex items-center gap-1">
+              <ShieldAlert className="w-3 h-3" /> Reason must be filled to open the shift
+            </p>
+          )}
         </div>
 
         <DialogFooter>
