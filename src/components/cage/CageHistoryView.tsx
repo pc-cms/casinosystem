@@ -213,6 +213,7 @@ const CageHistoryView = () => {
                     const t = (cc.denominations || {}).totals || {};
                     const diff = Number(t.difference ?? 0);
                     const balanced = !!t.balanced || diff === 0;
+                    const kindTag = t.is_opening ? "Opening" : t.is_closing ? "Closing" : null;
                     return (
                       <tr
                         key={cc.id}
@@ -222,7 +223,16 @@ const CageHistoryView = () => {
                         <td className="px-3 py-1.5 text-right font-mono text-[10px] text-muted-foreground">
                           {new Date(cc.created_at).toLocaleTimeString("en-GB", { timeZone: "Africa/Dar_es_Salaam", hour: "2-digit", minute: "2-digit" })}
                         </td>
-                        <td className="px-3 py-1.5">{cashierMap.get(cc.counted_by) || "—"}</td>
+                        <td className="px-3 py-1.5">
+                          <span className="flex items-center gap-1.5">
+                            <span>{cashierMap.get(cc.counted_by) || "—"}</span>
+                            {kindTag && (
+                              <span className={`cms-chip text-[9px] h-4 px-1.5 ${kindTag === "Opening" ? "bg-primary/15 text-primary" : "bg-amber-500/15 text-amber-600 dark:text-amber-400"}`}>
+                                {kindTag}
+                              </span>
+                            )}
+                          </span>
+                        </td>
                         <td className="px-3 py-1.5 text-right font-mono font-medium">{formatCurrency(Number(cc.total))}</td>
                         <td className={`px-3 py-1.5 text-right font-mono font-bold ${balanced ? "text-success" : "text-destructive"}`}>
                           {balanced ? "Balanced" : `${diff >= 0 ? "+" : ""}${formatCurrency(diff)}`}
