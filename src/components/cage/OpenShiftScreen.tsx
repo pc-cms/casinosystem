@@ -54,7 +54,9 @@ const OpenShiftScreen = ({ tables }: { tables: Tables<"gaming_tables">[] }) => {
       const normalized: Record<number, number> = {};
       Object.entries(prevClosing).forEach(([k, v]) => { normalized[Number(k)] = Number(v) || 0; });
       setClosingChips(normalized);
-      setOpeningChips(normalized);
+      // Opening chips stay empty: cashier must physically recount and enter
+      // every denom. The previous closing values are shown as grey placeholder
+      // hints inside the Opening Chips inputs.
       setClosingPrefilled(true);
     }
   }, [lastShift, closingPrefilled]);
