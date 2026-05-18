@@ -300,9 +300,28 @@ DROP POLICY IF EXISTS "Users see own profile" ON public.profiles;
 CREATE POLICY "Users see own profile" ON public.profiles
 FOR SELECT TO authenticated USING (user_id = auth.uid());
 
+DROP POLICY IF EXISTS "Super admins see all profiles" ON public.profiles;
+CREATE POLICY "Super admins see all profiles" ON public.profiles
+FOR SELECT TO authenticated USING (public.has_role(auth.uid(), 'super_admin'::public.app_role));
+
+DROP POLICY IF EXISTS "Users see casino profiles" ON public.profiles;
+CREATE POLICY "Users see casino profiles" ON public.profiles
+FOR SELECT TO authenticated USING (casino_id = public.get_user_casino_id(auth.uid()));
+
 DROP POLICY IF EXISTS "Users see own roles" ON public.user_roles;
 CREATE POLICY "Users see own roles" ON public.user_roles
 FOR SELECT TO authenticated USING (user_id = auth.uid());
+
+DROP POLICY IF EXISTS "Super admins see all roles" ON public.user_roles;
+CREATE POLICY "Super admins see all roles" ON public.user_roles
+FOR SELECT TO authenticated USING (public.has_role(auth.uid(), 'super_admin'::public.app_role));
+
+DROP POLICY IF EXISTS "Managers see roles for same casino" ON public.user_roles;
+CREATE POLICY "Managers see roles for same casino" ON public.user_roles
+FOR SELECT TO authenticated USING (
+  public.has_role(auth.uid(), 'manager'::public.app_role)
+  AND EXISTS (SELECT 1 FROM public.profiles p WHERE p.user_id = user_roles.user_id AND p.casino_id = public.get_user_casino_id(auth.uid()))
+);
 
 DROP POLICY IF EXISTS "Users read own casino access" ON public.user_casino_access;
 CREATE POLICY "Users read own casino access" ON public.user_casino_access
@@ -314,6 +333,10 @@ FOR SELECT TO authenticated USING (
   public.has_role(auth.uid(), 'super_admin'::public.app_role)
   OR public.has_role(auth.uid(), 'finance_manager'::public.app_role)
 );
+
+DROP POLICY IF EXISTS "Managers see own casino access" ON public.user_casino_access;
+CREATE POLICY "Managers see own casino access" ON public.user_casino_access
+FOR SELECT TO authenticated USING (casino_id = public.get_user_casino_id(auth.uid()));
 
 DROP POLICY IF EXISTS "All authenticated read role defaults" ON public.role_module_defaults;
 CREATE POLICY "All authenticated read role defaults" ON public.role_module_defaults
