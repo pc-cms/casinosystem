@@ -10,6 +10,8 @@
 #   sudo ./deploy/install.sh --rebuild         # пересобрать frontend (no-cache)
 #   sudo ./deploy/install.sh --reset           # сбросить .env (БД остаётся)
 #   sudo ./deploy/install.sh --wipe            # удалить ВСЁ (БД, образы) и поставить заново
+#   sudo ./deploy/install.sh --enable-remote   # включить Cloudflare Tunnel (см. REMOTE-ACCESS.md)
+#   sudo ./deploy/install.sh --disable-remote  # выключить Cloudflare Tunnel
 #   sudo ./deploy/install.sh --menu            # принудительно показать меню
 #
 set -euo pipefail
