@@ -73,6 +73,70 @@ done
 
 require_root
 
+# ── Standalone: --enable-remote / --disable-remote ──
+# Управляют только Cloudflare Tunnel — не трогают БД/frontend/sync.
+# Подробно: deploy/REMOTE-ACCESS.md
+if [[ $ENABLE_REMOTE -eq 1 || $DISABLE_REMOTE -eq 1 ]]; then
+  ENV_PATH="${SCRIPT_DIR}/.env"
+  [[ -f "$ENV_PATH" ]] || fail ".env не найден (${ENV_PATH}). Сначала установите систему."
+
+  set_env_var() {
+    local key="$1" val="$2" file="$3"
+    if grep -qE "^${key}=" "$file"; then
+      # in-place replace
+      sed -i.bak "s|^${key}=.*|${key}=${val}|" "$file" && rm -f "${file}.bak"
+    else
+      echo "${key}=${val}" >> "$file"
+    fi
+  }
+
+  if [[ $ENABLE_REMOTE -eq 1 ]]; then
+    title "Включаю удалённый доступ (Cloudflare Tunnel)"
+    TOKEN="${TUNNEL_TOKEN:-}"
+    if [[ -z "$TOKEN" ]]; then
+      if [[ -e /dev/tty ]]; then
+        echo
+        echo "Получите токен в Cloudflare Zero Trust:"
+        echo "  Networks → Tunnels → Create tunnel → Docker → скопируйте значение после --token"
+        echo
+        printf "TUNNEL_TOKEN: "
+        IFS= read -r TOKEN </dev/tty || true
+      fi
+    fi
+    TOKEN="${TOKEN//[[:space:]]/}"
+    [[ -n "$TOKEN" ]] || fail "TUNNEL_TOKEN не задан. Прерываю."
+
+    set_env_var "TUNNEL_TOKEN" "$TOKEN" "$ENV_PATH"
+    chmod 600 "$ENV_PATH"
+    ok "TUNNEL_TOKEN сохранён в .env"
+
+    log "Поднимаю контейнер cms-cloudflared..."
+    docker compose --profile with-tunnel up -d cloudflared
+    sleep 3
+    docker compose logs --tail=15 cloudflared || true
+    echo
+    ok "Удалённый доступ включён."
+    echo
+    echo "Дальше:"
+    echo "  1. В Cloudflare Zero Trust добавьте public hostname для туннеля:"
+    echo "     local-<slug>.casinosystem.app → http://nginx:80"
+    echo "  2. ОБЯЗАТЕЛЬНО создайте Access policy на этот hostname (email allowlist),"
+    echo "     иначе логин-страница казино торчит в открытый интернет."
+    echo "  3. Подробно: deploy/REMOTE-ACCESS.md"
+    exit 0
+  fi
+
+  if [[ $DISABLE_REMOTE -eq 1 ]]; then
+    title "Отключаю удалённый доступ"
+    log "Останавливаю контейнер cms-cloudflared..."
+    docker compose --profile with-tunnel rm -sf cloudflared 2>/dev/null || true
+    set_env_var "TUNNEL_TOKEN" "" "$ENV_PATH"
+    chmod 600 "$ENV_PATH"
+    ok "Удалённый доступ отключён. DNS-запись и Access policy в Cloudflare НЕ удалены — это вручную, если нужно."
+    exit 0
+  fi
+fi
+
 # ── Interactive menu (default when запущен без флагов в TTY) ──
 if [[ $MENU -eq 0 && $RESET -eq 0 && $REBUILD -eq 0 && $RECONFIGURE -eq 0 && $WIPE -eq 0 && $UPDATE -eq 0 && $UPDATE_FRONT -eq 0 && $REPAIR -eq 0 && $VERIFY -eq 0 && $BACKFILL -eq 0 ]]; then
   if [[ -t 0 || -e /dev/tty ]]; then MENU=1; fi
