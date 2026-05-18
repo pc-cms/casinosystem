@@ -10,6 +10,8 @@
 #   sudo ./deploy/install.sh --rebuild         # пересобрать frontend (no-cache)
 #   sudo ./deploy/install.sh --reset           # сбросить .env (БД остаётся)
 #   sudo ./deploy/install.sh --wipe            # удалить ВСЁ (БД, образы) и поставить заново
+#   sudo ./deploy/install.sh --enable-remote   # включить Cloudflare Tunnel (см. REMOTE-ACCESS.md)
+#   sudo ./deploy/install.sh --disable-remote  # выключить Cloudflare Tunnel
 #   sudo ./deploy/install.sh --menu            # принудительно показать меню
 #
 set -euo pipefail
@@ -51,6 +53,7 @@ require_root() { [[ $EUID -eq 0 ]] || fail "Запустите от root: sudo .
 
 # ── CLI ──
 RESET=0; REBUILD=0; RECONFIGURE=0; WIPE=0; UPDATE=0; UPDATE_FRONT=0; MENU=0; REPAIR=0; VERIFY=0; BACKFILL=0
+ENABLE_REMOTE=0; DISABLE_REMOTE=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --reset)         RESET=1; shift ;;
@@ -62,6 +65,8 @@ while [[ $# -gt 0 ]]; do
     --repair)        REPAIR=1; shift ;;
     --verify-parity) VERIFY=1; shift ;;
     --backfill)      BACKFILL=1; shift ;;
+    --enable-remote)  ENABLE_REMOTE=1; shift ;;
+    --disable-remote) DISABLE_REMOTE=1; shift ;;
     --menu)          MENU=1; shift ;;
     -h|--help)       sed -n '4,16p' "$0"; exit 0 ;;
     *) fail "Неизвестный аргумент: $1" ;;
@@ -69,6 +74,70 @@ while [[ $# -gt 0 ]]; do
 done
 
 require_root
+
+# ── Standalone: --enable-remote / --disable-remote ──
+# Управляют только Cloudflare Tunnel — не трогают БД/frontend/sync.
+# Подробно: deploy/REMOTE-ACCESS.md
+if [[ $ENABLE_REMOTE -eq 1 || $DISABLE_REMOTE -eq 1 ]]; then
+  ENV_PATH="${SCRIPT_DIR}/.env"
+  [[ -f "$ENV_PATH" ]] || fail ".env не найден (${ENV_PATH}). Сначала установите систему."
+
+  set_env_var() {
+    local key="$1" val="$2" file="$3"
+    if grep -qE "^${key}=" "$file"; then
+      # in-place replace
+      sed -i.bak "s|^${key}=.*|${key}=${val}|" "$file" && rm -f "${file}.bak"
+    else
+      echo "${key}=${val}" >> "$file"
+    fi
+  }
+
+  if [[ $ENABLE_REMOTE -eq 1 ]]; then
+    title "Включаю удалённый доступ (Cloudflare Tunnel)"
+    TOKEN="${TUNNEL_TOKEN:-}"
+    if [[ -z "$TOKEN" ]]; then
+      if [[ -e /dev/tty ]]; then
+        echo
+        echo "Получите токен в Cloudflare Zero Trust:"
+        echo "  Networks → Tunnels → Create tunnel → Docker → скопируйте значение после --token"
+        echo
+        printf "TUNNEL_TOKEN: "
+        IFS= read -r TOKEN </dev/tty || true
+      fi
+    fi
+    TOKEN="${TOKEN//[[:space:]]/}"
+    [[ -n "$TOKEN" ]] || fail "TUNNEL_TOKEN не задан. Прерываю."
+
+    set_env_var "TUNNEL_TOKEN" "$TOKEN" "$ENV_PATH"
+    chmod 600 "$ENV_PATH"
+    ok "TUNNEL_TOKEN сохранён в .env"
+
+    log "Поднимаю контейнер cms-cloudflared..."
+    docker compose --profile with-tunnel up -d cloudflared
+    sleep 3
+    docker compose logs --tail=15 cloudflared || true
+    echo
+    ok "Удалённый доступ включён."
+    echo
+    echo "Дальше:"
+    echo "  1. В Cloudflare Zero Trust добавьте public hostname для туннеля:"
+    echo "     local-<slug>.casinosystem.app → http://nginx:80"
+    echo "  2. ОБЯЗАТЕЛЬНО создайте Access policy на этот hostname (email allowlist),"
+    echo "     иначе логин-страница казино торчит в открытый интернет."
+    echo "  3. Подробно: deploy/REMOTE-ACCESS.md"
+    exit 0
+  fi
+
+  if [[ $DISABLE_REMOTE -eq 1 ]]; then
+    title "Отключаю удалённый доступ"
+    log "Останавливаю контейнер cms-cloudflared..."
+    docker compose --profile with-tunnel rm -sf cloudflared 2>/dev/null || true
+    set_env_var "TUNNEL_TOKEN" "" "$ENV_PATH"
+    chmod 600 "$ENV_PATH"
+    ok "Удалённый доступ отключён. DNS-запись и Access policy в Cloudflare НЕ удалены — это вручную, если нужно."
+    exit 0
+  fi
+fi
 
 # ── Interactive menu (default when запущен без флагов в TTY) ──
 if [[ $MENU -eq 0 && $RESET -eq 0 && $REBUILD -eq 0 && $RECONFIGURE -eq 0 && $WIPE -eq 0 && $UPDATE -eq 0 && $UPDATE_FRONT -eq 0 && $REPAIR -eq 0 && $VERIFY -eq 0 && $BACKFILL -eq 0 ]]; then
@@ -786,6 +855,18 @@ for i in $(seq 1 15); do
   docker compose exec -T cms-frontend curl -fsS http://localhost/ -o /dev/null 2>/dev/null && { ok "Frontend запущен"; break; }
   sleep 2
 done
+
+# ── Авто-подъём Cloudflare Tunnel если TUNNEL_TOKEN задан ──
+# Сервис в profiles=["with-tunnel"] не стартует при обычном `compose up -d`,
+# поэтому поднимаем его явно. При пустом токене — пропускаем.
+TUNNEL_TOKEN_VAL=""
+if [[ -f "${SCRIPT_DIR}/.env" ]]; then
+  TUNNEL_TOKEN_VAL=$(grep -E '^TUNNEL_TOKEN=' "${SCRIPT_DIR}/.env" | head -n1 | cut -d= -f2- | sed -e "s/^['\"]//" -e "s/['\"]$//")
+fi
+if [[ -n "${TUNNEL_TOKEN_VAL//[[:space:]]/}" ]]; then
+  log "TUNNEL_TOKEN задан — поднимаю cms-cloudflared..."
+  docker compose --profile with-tunnel up -d cloudflared || warn "cloudflared не стартовал — проверь токен"
+fi
 
 # ────────── 5.5. Super admin (idempotent) ──────────
 # Always ensure superadmin@cms.local exists with super_admin role + correct password.
