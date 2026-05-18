@@ -318,6 +318,18 @@ async function triggerSync() {
         let obj;
         try { obj = JSON.parse(line); } catch { continue; }
         if (obj._meta || obj._done || obj._error || obj._fatal) continue;
+        if (obj.auth_user) {
+          try {
+            await client.query("SAVEPOINT seed_auth_user");
+            await importAuthUser(client, obj.auth_user, counts);
+            await client.query("RELEASE SAVEPOINT seed_auth_user");
+          } catch (e) {
+            await client.query("ROLLBACK TO SAVEPOINT seed_auth_user").catch(() => {});
+            await client.query("RELEASE SAVEPOINT seed_auth_user").catch(() => {});
+            console.error(`[seed] auth_user.fail ${obj.auth_user?.email || obj.auth_user?.id}: ${String(e?.message || e).slice(0, 160)}`);
+          }
+          continue;
+        }
         if (!obj.table || !obj.row) continue;
         // Skip derived views and strip GENERATED ALWAYS columns — Postgres rejects explicit inserts.
         const SKIP_TABLES = new Set(["player_economy", "player_session_stats", "player_session_drops"]);
