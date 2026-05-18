@@ -32,8 +32,9 @@ export type DealerRow = {
 export const mapEmployeeToDealer = (e: any): DealerRow => {
   const split = splitFullName(e.full_name);
   const first = (e.first_name && String(e.first_name).trim()) || split.first;
-  // Show full_name as stored; user splits surname/name manually later.
-  const displayName = (e.full_name && String(e.full_name).trim()) || first;
+  // Show FIRST NAME only by default; disambiguation appends last-name initials
+  // when two people share the same first name (handled in disambiguateNames).
+  const displayName = first || (e.full_name && String(e.full_name).trim()) || "";
   return {
     id: e.id,
     casino_id: e.casino_id,
@@ -50,17 +51,17 @@ export const mapEmployeeToDealer = (e: any): DealerRow => {
   };
 };
 
-/** Apply duplicate-full-name disambiguation: identical "Berta" + "Berta" → "Berta K", "Berta M". */
+/** Apply duplicate-first-name disambiguation: identical "Berta" + "Berta" → "Berta K", "Berta M". */
 export const disambiguateNames = <T extends { id: string; name: string }>(
   rows: T[],
   raw: any[]
 ): T[] => {
   const inputs = raw.map((e) => {
     const split = splitFullName(e.full_name);
-    const fullDisplay = (e.full_name && String(e.full_name).trim()) || split.first;
+    const first = (e.first_name && String(e.first_name).trim()) || split.first || (e.full_name || "").trim();
     return {
       id: e.id,
-      first: fullDisplay,
+      first,
       last: (e.last_name && String(e.last_name).trim()) || split.last,
     };
   });
