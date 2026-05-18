@@ -221,7 +221,7 @@ const OpenShiftScreen = ({ tables }: { tables: Tables<"gaming_tables">[] }) => {
               )}
             </LockableSection>
             <LockableSection title="Opening Chips" locked={locks.openingChips} onToggleLock={() => toggleLock("openingChips")}>
-              <ChipDenomInput values={openingChips} onChange={setOpeningChips} showValue={false} />
+              <ChipDenomInput values={openingChips} onChange={setOpeningChips} showValue={false} placeholder={closingChips} />
             </LockableSection>
           </div>
 
