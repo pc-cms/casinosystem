@@ -52,6 +52,98 @@ ALTER TABLE public.profiles
 CREATE INDEX IF NOT EXISTS idx_profiles_user_id ON public.profiles(user_id);
 CREATE INDEX IF NOT EXISTS idx_profiles_disabled_at ON public.profiles(disabled_at);
 
+CREATE TABLE IF NOT EXISTS public.player_position_history (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  casino_id uuid NOT NULL,
+  player_id uuid NOT NULL,
+  visit_id uuid,
+  table_id uuid,
+  position text NOT NULL,
+  started_at timestamptz NOT NULL DEFAULT now(),
+  ended_at timestamptz,
+  duration_seconds integer GENERATED ALWAYS AS (
+    CASE WHEN ended_at IS NOT NULL
+      THEN GREATEST(0, EXTRACT(EPOCH FROM (ended_at - started_at))::int)
+      ELSE NULL
+    END
+  ) STORED,
+  created_by uuid,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_player_position_history_casino_started
+  ON public.player_position_history(casino_id, started_at DESC);
+CREATE INDEX IF NOT EXISTS idx_player_position_history_player_started
+  ON public.player_position_history(player_id, started_at DESC);
+
+-- player_drop_split_lifetime: NEP split per player (Drop R = external new money,
+-- Drop Recycled = chips returned by previous cashouts). Until full NEP RPC is
+-- ported to on-prem, approximate: Drop R = total buy minus cashout, Drop Recycled
+-- = min(buy, cashout). Keeps "Drop result" non-zero in Player Statistics.
+CREATE OR REPLACE FUNCTION public.player_drop_split_lifetime(_player_id uuid)
+RETURNS TABLE (drop_r bigint, drop_recycled bigint)
+LANGUAGE sql
+STABLE
+SECURITY INVOKER
+SET search_path = public
+AS $$
+  WITH s AS (
+    SELECT
+      COALESCE(SUM(CASE WHEN type IN ('buy','in')      THEN amount END), 0)::bigint AS buy,
+      COALESCE(SUM(CASE WHEN type IN ('cashout','out') THEN amount END), 0)::bigint AS cash
+    FROM public.transactions
+    WHERE player_id = _player_id
+  )
+  SELECT GREATEST(buy - cash, 0)::bigint AS drop_r,
+         LEAST(buy, cash)::bigint        AS drop_recycled
+  FROM s
+$$;
+
+DO $$
+BEGIN
+  BEGIN
+    EXECUTE $ddl$
+      CREATE OR REPLACE VIEW public.player_economy AS
+      SELECT p.id AS player_id, p.casino_id, p.first_name, p.last_name, p.nickname, p.status,
+             COALESCE(buy.total, 0) AS total_drop,
+             COALESCE(cash.total, 0) AS total_cashout,
+             COALESCE(exp.total, 0) AS total_expenses,
+             COALESCE(split.drop_r, 0) AS total_drop_r,
+             COALESCE(split.drop_recycled, 0) AS total_drop_recycled,
+             COALESCE(cash.total, 0) - COALESCE(buy.total, 0) AS result,
+             COALESCE(cash.total, 0) - COALESCE(buy.total, 0) - COALESCE(exp.total, 0) AS total,
+             COALESCE(cash.total, 0) - COALESCE(buy.total, 0) - COALESCE(exp.total, 0) AS real_result
+      FROM public.players p
+      LEFT JOIN LATERAL (SELECT SUM(amount) AS total FROM public.transactions WHERE player_id = p.id AND type IN ('buy','in')) buy ON true
+      LEFT JOIN LATERAL (SELECT SUM(amount) AS total FROM public.transactions WHERE player_id = p.id AND type IN ('cashout','out')) cash ON true
+      LEFT JOIN LATERAL (SELECT SUM(amount) AS total FROM public.expenses WHERE player_id = p.id AND approved = true) exp ON true
+      LEFT JOIN LATERAL (SELECT * FROM public.player_drop_split_lifetime(p.id)) split ON true
+    $ddl$;
+    EXECUTE 'ALTER VIEW public.player_economy SET (security_invoker = true)';
+  EXCEPTION WHEN others THEN
+    RAISE NOTICE 'Skipped player_economy view repair: %', SQLERRM;
+  END;
+
+  BEGIN
+    EXECUTE $ddl$
+      CREATE OR REPLACE VIEW public.player_session_stats AS
+      SELECT s.casino_id, s.player_id, s.table_id,
+             COUNT(*) AS session_count,
+             COALESCE(SUM(s.hands_played), 0) AS hands,
+             COALESCE(SUM(s.duration_minutes), 0) AS minutes,
+             COALESCE(SUM(s.total_bet), 0) AS total_bet_sum,
+             COALESCE(SUM((s.avg_bet)::numeric * s.hands_played), 0) AS bet_sum_by_avg,
+             MIN(s.started_at) AS first_session_at,
+             MAX(COALESCE(s.stopped_at, s.started_at)) AS last_session_at
+      FROM public.client_sessions s
+      GROUP BY s.casino_id, s.player_id, s.table_id
+    $ddl$;
+    EXECUTE 'ALTER VIEW public.player_session_stats SET (security_invoker = true)';
+  EXCEPTION WHEN others THEN
+    RAISE NOTICE 'Skipped player_session_stats view repair: %', SQLERRM;
+  END;
+END $$;
+
 CREATE TABLE IF NOT EXISTS public.user_roles (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL,
@@ -482,14 +574,21 @@ DECLARE
     'casinos','gaming_tables','chip_color_settings',
     'chip_initial_baseline','chip_baseline','chip_inventory','chip_snapshots',
     'financial_wallets','budget_categories','budget_periods','budget_items',
-    'dealers','staff_members','profiles','user_casino_access','user_module_permissions',
+    'dealers','staff_members','employees','employee_bank_accounts',
+    'profiles','user_casino_access','user_module_permissions',
     'players','player_cards','player_groups','group_members','player_tags','player_notes',
     'transactions','shifts','cage_transfers','expenses','wallet_transactions',
-    'chip_emissions','chip_transfers','casino_visits','breaklist','pit_rota','staff_rota',
-    'dealer_attendance','staff_attendance','table_tracker','table_daily_results',
+    'chip_emissions','chip_transfers','casino_visits',
+    'breaklist','breaklist_logs','pit_rota','staff_rota',
+    'dealer_attendance','staff_attendance','attendance_hours','attendance_holidays',
+    'table_tracker','table_daily_results',
     'business_day_closures','cash_counts','cash_count_snapshots','cashless_transactions',
     'bank_checks','cctv_observations','player_position_history','daily_summaries',
-    'inter_casino_transfers','activity_logs','daily_review','blacklist'
+    'inter_casino_transfers','activity_logs','daily_review','blacklist',
+    'client_sessions','incidents',
+    'payroll_settings','payroll_periods','payroll_entries',
+    'monthly_tips_pools','monthly_tips_entries',
+    'weekly_bonus_pools','weekly_bonus_entries'
   ];
 BEGIN
   FOREACH t IN ARRAY tables LOOP
@@ -561,7 +660,15 @@ DECLARE
   v_existing_updated_at timestamptz;
   v_incoming_updated_at timestamptz;
   v_id_type text;
+  v_payload jsonb := p_payload;
+  v_fk_col text;
+  v_retry boolean;
+  v_attempt int := 0;
 BEGIN
+  IF p_table = 'casinos' THEN
+    RETURN;
+  END IF;
+
   IF p_table !~ '^[a-z_][a-z0-9_]*$' THEN
     RAISE EXCEPTION 'invalid table name';
   END IF;
@@ -595,9 +702,9 @@ BEGIN
     RETURN;
   END IF;
 
-  IF p_payload ? 'updated_at' THEN
+  IF v_payload ? 'updated_at' THEN
     BEGIN
-      v_incoming_updated_at := (p_payload->>'updated_at')::timestamptz;
+      v_incoming_updated_at := (v_payload->>'updated_at')::timestamptz;
       IF v_id_type = 'uuid' THEN
         EXECUTE format('SELECT updated_at FROM public.%I WHERE id = $1::uuid', p_table)
           INTO v_existing_updated_at USING v_id;
@@ -615,37 +722,65 @@ BEGIN
     END;
   END IF;
 
-  SELECT array_agg(k) INTO v_cols
-  FROM jsonb_object_keys(p_payload) k
-  WHERE EXISTS (
-    SELECT 1
-    FROM information_schema.columns c
-    WHERE c.table_schema = 'public'
-      AND c.table_name = p_table
-      AND c.column_name = k
-  );
+  <<retry_loop>>
+  LOOP
+    v_attempt := v_attempt + 1;
+    EXIT WHEN v_attempt > 6;
 
-  IF v_cols IS NULL OR array_length(v_cols,1) = 0 THEN RETURN; END IF;
+    -- Build column list: only columns that exist AND are not GENERATED ALWAYS
+    SELECT array_agg(k) INTO v_cols
+    FROM jsonb_object_keys(v_payload) k
+    WHERE EXISTS (
+      SELECT 1
+      FROM information_schema.columns c
+      WHERE c.table_schema = 'public'
+        AND c.table_name = p_table
+        AND c.column_name = k
+        AND c.is_generated = 'NEVER'
+    );
 
-  SELECT string_agg(format('%I = EXCLUDED.%I', c, c), ', ')
-    INTO v_setlist
-    FROM unnest(v_cols) c
-    WHERE c <> 'id';
+    IF v_cols IS NULL OR array_length(v_cols,1) = 0 THEN RETURN; END IF;
 
-  v_sql := format(
-    'INSERT INTO public.%I (%s) SELECT %s FROM jsonb_populate_record(NULL::public.%I, $1) ON CONFLICT (id) DO UPDATE SET %s',
-    p_table,
-    (SELECT string_agg(format('%I', c), ',') FROM unnest(v_cols) c),
-    (SELECT string_agg(format('%I', c), ',') FROM unnest(v_cols) c),
-    p_table,
-    COALESCE(v_setlist, format('%I = EXCLUDED.%I', v_cols[1], v_cols[1]))
-  );
+    SELECT string_agg(format('%I = EXCLUDED.%I', c, c), ', ')
+      INTO v_setlist
+      FROM unnest(v_cols) c
+      WHERE c <> 'id';
 
-  BEGIN
-    EXECUTE v_sql USING p_payload;
-  EXCEPTION WHEN undefined_column OR datatype_mismatch OR invalid_text_representation THEN
-    RETURN;
-  END;
+    v_sql := format(
+      'INSERT INTO public.%I (%s) SELECT %s FROM jsonb_populate_record(NULL::public.%I, $1) ON CONFLICT (id) DO UPDATE SET %s',
+      p_table,
+      (SELECT string_agg(format('%I', c), ',') FROM unnest(v_cols) c),
+      (SELECT string_agg(format('%I', c), ',') FROM unnest(v_cols) c),
+      p_table,
+      COALESCE(v_setlist, format('%I = EXCLUDED.%I', v_cols[1], v_cols[1]))
+    );
+
+    v_retry := false;
+    BEGIN
+      EXECUTE v_sql USING v_payload;
+      RETURN;
+    EXCEPTION
+      WHEN undefined_column OR datatype_mismatch OR invalid_text_representation THEN
+        RETURN;
+      WHEN foreign_key_violation THEN
+        -- Try common user-FK columns in payload — if any is present and
+        -- non-null, NULL it and retry. Lets cross-environment rows land even
+        -- when the referenced auth.user / employee doesn't exist locally.
+        FOREACH v_fk_col IN ARRAY ARRAY[
+          'issued_by','operator_id','created_by','updated_by','locked_by',
+          'recorded_by','approved_by','closed_by','requested_by','confirmed_by',
+          'cancelled_by','received_by','sent_by','employee_id','dealer_id','staff_id'
+        ] LOOP
+          IF v_payload ? v_fk_col AND v_payload->>v_fk_col IS NOT NULL THEN
+            v_payload := v_payload || jsonb_build_object(v_fk_col, NULL);
+            v_retry := true;
+            EXIT;
+          END IF;
+        END LOOP;
+        IF NOT v_retry THEN RETURN; END IF;
+        CONTINUE retry_loop;
+    END;
+  END LOOP;
 END;
 $$;
 
@@ -653,3 +788,188 @@ REVOKE EXECUTE ON FUNCTION public.peer_apply_change(uuid,text,text,jsonb,jsonb,t
 GRANT EXECUTE ON FUNCTION public.peer_apply_change(uuid,text,text,jsonb,jsonb,timestamptz) TO service_role;
 
 NOTIFY pgrst, 'reload schema';
+-- ─────────────────────────────────────────────────────────────
+-- v1.3.49+ Mirror Health & Diagnostics (idempotent backfill)
+-- Local servers installed before these RPCs need them so cms-sync
+-- can record push/pull/apply outcomes without erroring.
+-- ─────────────────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS public.sync_peer_health (
+  peer_link_id uuid PRIMARY KEY,
+  peer_node_id uuid,
+  peer_name text,
+  state text NOT NULL DEFAULT 'pairing',
+  last_heartbeat_at timestamptz,
+  last_push_ok_at timestamptz,
+  last_pull_ok_at timestamptz,
+  last_apply_ok_at timestamptz,
+  last_probe_latency_ms integer,
+  last_probe_at timestamptz,
+  pending_outbox_count integer NOT NULL DEFAULT 0,
+  remote_lag_seconds integer,
+  schema_version_local text,
+  schema_version_remote text,
+  apply_errors_count integer NOT NULL DEFAULT 0,
+  last_error_code text,
+  last_error_text text,
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.sync_apply_errors (
+  id bigserial PRIMARY KEY,
+  peer_link_id uuid,
+  peer_name text,
+  source_outbox_id bigint,
+  table_name text NOT NULL,
+  op text,
+  pk jsonb,
+  payload_hash text,
+  error_code text NOT NULL,
+  error_text text,
+  attempts integer NOT NULL DEFAULT 1,
+  first_seen_at timestamptz NOT NULL DEFAULT now(),
+  last_seen_at  timestamptz NOT NULL DEFAULT now(),
+  resolved_at   timestamptz,
+  resolution    text
+);
+CREATE INDEX IF NOT EXISTS idx_apply_errors_unresolved
+  ON public.sync_apply_errors (resolved_at NULLS FIRST, last_seen_at DESC);
+
+CREATE TABLE IF NOT EXISTS public.sync_probe_events (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  peer_link_id uuid,
+  direction text NOT NULL,
+  sent_at timestamptz NOT NULL DEFAULT now(),
+  ack_at  timestamptz,
+  status  text NOT NULL DEFAULT 'pending',
+  latency_ms integer,
+  error_text text
+);
+
+CREATE OR REPLACE FUNCTION public.sync_record_health(
+  p_peer_link_id uuid,
+  p_state text,
+  p_heartbeat_at timestamptz DEFAULT now(),
+  p_pending_outbox integer DEFAULT NULL,
+  p_remote_lag_seconds integer DEFAULT NULL,
+  p_schema_version_local text DEFAULT NULL,
+  p_schema_version_remote text DEFAULT NULL,
+  p_last_error_code text DEFAULT NULL,
+  p_last_error_text text DEFAULT NULL
+)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE v_name text; v_node uuid;
+BEGIN
+  SELECT display_name, peer_node_id INTO v_name, v_node
+    FROM public.peer_links WHERE id = p_peer_link_id;
+  INSERT INTO public.sync_peer_health AS h
+    (peer_link_id, peer_node_id, peer_name, state, last_heartbeat_at,
+     pending_outbox_count, remote_lag_seconds,
+     schema_version_local, schema_version_remote,
+     last_error_code, last_error_text, updated_at)
+  VALUES
+    (p_peer_link_id, v_node, v_name, p_state, p_heartbeat_at,
+     COALESCE(p_pending_outbox,0), p_remote_lag_seconds,
+     p_schema_version_local, p_schema_version_remote,
+     p_last_error_code, p_last_error_text, now())
+  ON CONFLICT (peer_link_id) DO UPDATE SET
+    peer_node_id = COALESCE(EXCLUDED.peer_node_id, h.peer_node_id),
+    peer_name = COALESCE(EXCLUDED.peer_name, h.peer_name),
+    state = EXCLUDED.state,
+    last_heartbeat_at = EXCLUDED.last_heartbeat_at,
+    pending_outbox_count = COALESCE(EXCLUDED.pending_outbox_count, h.pending_outbox_count),
+    remote_lag_seconds = COALESCE(EXCLUDED.remote_lag_seconds, h.remote_lag_seconds),
+    schema_version_local = COALESCE(EXCLUDED.schema_version_local, h.schema_version_local),
+    schema_version_remote = COALESCE(EXCLUDED.schema_version_remote, h.schema_version_remote),
+    last_error_code = EXCLUDED.last_error_code,
+    last_error_text = EXCLUDED.last_error_text,
+    updated_at = now();
+END $$;
+
+CREATE OR REPLACE FUNCTION public.sync_record_apply_ok(p_peer_link_id uuid)
+RETURNS void LANGUAGE sql SECURITY DEFINER SET search_path = public AS $$
+  UPDATE public.sync_peer_health SET last_apply_ok_at = now(), updated_at = now()
+   WHERE peer_link_id = p_peer_link_id;
+$$;
+
+CREATE OR REPLACE FUNCTION public.sync_record_push_ok(p_peer_link_id uuid)
+RETURNS void LANGUAGE sql SECURITY DEFINER SET search_path = public AS $$
+  UPDATE public.sync_peer_health SET last_push_ok_at = now(), updated_at = now()
+   WHERE peer_link_id = p_peer_link_id;
+$$;
+
+CREATE OR REPLACE FUNCTION public.sync_record_pull_ok(p_peer_link_id uuid)
+RETURNS void LANGUAGE sql SECURITY DEFINER SET search_path = public AS $$
+  UPDATE public.sync_peer_health SET last_pull_ok_at = now(), updated_at = now()
+   WHERE peer_link_id = p_peer_link_id;
+$$;
+
+CREATE OR REPLACE FUNCTION public.sync_record_apply_error(
+  p_peer_link_id uuid,
+  p_source_outbox_id bigint,
+  p_table text,
+  p_op text,
+  p_pk jsonb,
+  p_payload_hash text,
+  p_error_code text,
+  p_error_text text
+)
+RETURNS bigint LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE v_id bigint; v_name text;
+BEGIN
+  SELECT display_name INTO v_name FROM public.peer_links WHERE id = p_peer_link_id;
+  INSERT INTO public.sync_apply_errors
+    (peer_link_id, peer_name, source_outbox_id, table_name, op, pk, payload_hash, error_code, error_text)
+  VALUES
+    (p_peer_link_id, v_name, p_source_outbox_id, p_table, p_op, p_pk, p_payload_hash, p_error_code, p_error_text)
+  RETURNING id INTO v_id;
+
+  UPDATE public.sync_peer_health
+     SET apply_errors_count = apply_errors_count + 1,
+         last_error_code = p_error_code,
+         last_error_text = p_error_text,
+         updated_at = now()
+   WHERE peer_link_id = p_peer_link_id;
+  RETURN v_id;
+END $$;
+
+CREATE OR REPLACE FUNCTION public.sync_record_probe_sent(
+  p_peer_link_id uuid, p_direction text DEFAULT 'out'
+) RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE v_id uuid;
+BEGIN
+  INSERT INTO public.sync_probe_events (peer_link_id, direction)
+  VALUES (p_peer_link_id, p_direction) RETURNING id INTO v_id;
+  RETURN v_id;
+END $$;
+
+CREATE OR REPLACE FUNCTION public.sync_record_probe_ack(
+  p_probe_id uuid, p_status text DEFAULT 'ok', p_error_text text DEFAULT NULL
+) RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE v_sent timestamptz; v_peer uuid; v_lat integer;
+BEGIN
+  SELECT sent_at, peer_link_id INTO v_sent, v_peer FROM public.sync_probe_events WHERE id = p_probe_id;
+  IF v_sent IS NULL THEN RETURN; END IF;
+  v_lat := GREATEST(0, EXTRACT(EPOCH FROM (now() - v_sent)) * 1000)::int;
+  UPDATE public.sync_probe_events
+     SET ack_at = now(), status = p_status, latency_ms = v_lat, error_text = p_error_text
+   WHERE id = p_probe_id;
+  UPDATE public.sync_peer_health
+     SET last_probe_at = now(), last_probe_latency_ms = v_lat, updated_at = now()
+   WHERE peer_link_id = v_peer;
+END $$;
+
+CREATE OR REPLACE FUNCTION public.sync_diagnostics_gc()
+RETURNS void LANGUAGE sql SECURITY DEFINER SET search_path = public AS $$
+  DELETE FROM public.sync_apply_errors WHERE last_seen_at < now() - interval '90 days';
+  DELETE FROM public.sync_probe_events  WHERE sent_at      < now() - interval '30 days';
+$$;
+
+GRANT EXECUTE ON FUNCTION public.sync_record_health(uuid,text,timestamptz,integer,integer,text,text,text,text) TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.sync_record_apply_error(uuid,bigint,text,text,jsonb,text,text,text) TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.sync_record_apply_ok(uuid) TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.sync_record_push_ok(uuid) TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.sync_record_pull_ok(uuid) TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.sync_record_probe_sent(uuid,text) TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.sync_record_probe_ack(uuid,text,text) TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.sync_diagnostics_gc() TO authenticated, service_role;
