@@ -14,6 +14,8 @@ import { getRuntimeConfig } from "@/lib/runtime-config";
 import { Server } from "lucide-react";
 
 export const LocalServerBadge = () => {
+  return null;
+
   const [info, setInfo] = useState<{ slug: string | null } | null>(null);
 
   useEffect(() => {
