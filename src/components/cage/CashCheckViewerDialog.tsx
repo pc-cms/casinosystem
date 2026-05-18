@@ -124,6 +124,9 @@ const CashCheckViewerDialog = ({
   const counted = Number(t.counted ?? Number(check.total));
   const diff = Number(t.difference ?? counted - expected);
   const balanced = !!t.balanced || diff === 0;
+  const isOpening = !!t.is_opening;
+  const isClosing = !!t.is_closing;
+  const kindTag = isOpening ? "Opening" : isClosing ? "Closing" : null;
 
   const stamp = new Date(check.created_at).toLocaleString("en-GB", {
     timeZone: "Africa/Dar_es_Salaam",
@@ -134,7 +137,7 @@ const CashCheckViewerDialog = ({
     <ResponsiveDialog
       open={open}
       onOpenChange={onOpenChange}
-      title={`Cash Check · ${stamp}`}
+      title={`Cash Check · ${stamp}${kindTag ? ` · ${kindTag}` : ""}`}
       description={cashierName}
       size="4xl"
     >

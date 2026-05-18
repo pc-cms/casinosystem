@@ -231,6 +231,39 @@ export const useCloseShift = () => {
         shift_id: input.shift_id,
         server_totals: rpcData,
       });
+
+      // Seed a "closing" cash check so the closing snapshot shows up in the
+      // cashier check history alongside the opening seed and mid-shift checks.
+      // Same shape as a manual check; marked with is_closing for the UI tag.
+      try {
+        const closing = (input.closing_count || {}) as Record<string, any>;
+        const totals = (closing.totals || {}) as Record<string, any>;
+        const closingTotal = Number(totals.total_tzs) || 0;
+        await supabase.from("cash_counts").insert({
+          casino_id: casinoId,
+          shift_id: input.shift_id,
+          count_type: "check" as any,
+          currency: "ALL",
+          denominations: {
+            chips: closing.chips || {},
+            cash: closing.cash || {},
+            bank: closing.bank || {},
+            mobile: closing.mobile || {},
+            totals: {
+              ...totals,
+              expected: closingTotal,
+              counted: closingTotal,
+              difference: 0,
+              balanced: true,
+              is_closing: true,
+            },
+          },
+          total: closingTotal,
+          counted_by: user.id,
+        } as any);
+      } catch (e) {
+        console.error("Failed to seed closing cash check", e);
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["active-shift"] });
