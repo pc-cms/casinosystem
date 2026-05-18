@@ -51,6 +51,7 @@ require_root() { [[ $EUID -eq 0 ]] || fail "Запустите от root: sudo .
 
 # ── CLI ──
 RESET=0; REBUILD=0; RECONFIGURE=0; WIPE=0; UPDATE=0; UPDATE_FRONT=0; MENU=0; REPAIR=0; VERIFY=0; BACKFILL=0
+ENABLE_REMOTE=0; DISABLE_REMOTE=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --reset)         RESET=1; shift ;;
@@ -62,6 +63,8 @@ while [[ $# -gt 0 ]]; do
     --repair)        REPAIR=1; shift ;;
     --verify-parity) VERIFY=1; shift ;;
     --backfill)      BACKFILL=1; shift ;;
+    --enable-remote)  ENABLE_REMOTE=1; shift ;;
+    --disable-remote) DISABLE_REMOTE=1; shift ;;
     --menu)          MENU=1; shift ;;
     -h|--help)       sed -n '4,16p' "$0"; exit 0 ;;
     *) fail "Неизвестный аргумент: $1" ;;
