@@ -391,6 +391,26 @@ services:
     networks:
       - cms-net
 
+  # ────────────────────────────────────────────────────────────────
+  # REMOTE ACCESS (Cloudflare Tunnel, опционально)
+  # ────────────────────────────────────────────────────────────────
+  # Поднимается ТОЛЬКО когда указан профиль `with-tunnel` (install.sh
+  # включает его автоматически если в .env задан TUNNEL_TOKEN).
+  # Туннель держит исходящее TLS-соединение к Cloudflare и публикует
+  # локальный nginx на public hostname вида `local-<slug>.casinosystem.app`.
+  # Доступ обязательно ограничивается Cloudflare Access policy.
+  # См. deploy/REMOTE-ACCESS.md.
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: cms-cloudflared
+    <<: [*restart_policy, *default_logging]
+    profiles: ["with-tunnel"]
+    depends_on:
+      - nginx
+    command: tunnel --no-autoupdate run --token ${TUNNEL_TOKEN}
+    networks:
+      - cms-net
+
 networks:
   cms-net:
     driver: bridge
