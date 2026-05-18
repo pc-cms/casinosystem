@@ -854,6 +854,18 @@ for i in $(seq 1 15); do
   sleep 2
 done
 
+# ── Авто-подъём Cloudflare Tunnel если TUNNEL_TOKEN задан ──
+# Сервис в profiles=["with-tunnel"] не стартует при обычном `compose up -d`,
+# поэтому поднимаем его явно. При пустом токене — пропускаем.
+TUNNEL_TOKEN_VAL=""
+if [[ -f "${SCRIPT_DIR}/.env" ]]; then
+  TUNNEL_TOKEN_VAL=$(grep -E '^TUNNEL_TOKEN=' "${SCRIPT_DIR}/.env" | head -n1 | cut -d= -f2- | sed -e "s/^['\"]//" -e "s/['\"]$//")
+fi
+if [[ -n "${TUNNEL_TOKEN_VAL//[[:space:]]/}" ]]; then
+  log "TUNNEL_TOKEN задан — поднимаю cms-cloudflared..."
+  docker compose --profile with-tunnel up -d cloudflared || warn "cloudflared не стартовал — проверь токен"
+fi
+
 # ────────── 5.5. Super admin (idempotent) ──────────
 # Always ensure superadmin@cms.local exists with super_admin role + correct password.
 title "Ensure Super Admin (superadmin@cms.local / superadmin)"
