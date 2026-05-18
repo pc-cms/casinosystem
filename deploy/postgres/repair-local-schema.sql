@@ -174,6 +174,40 @@ AS $$
   SELECT casino_id FROM public.profiles WHERE user_id = _user_id LIMIT 1
 $$;
 
+CREATE OR REPLACE FUNCTION public.user_has_casino_access(_user_id uuid, _casino_id uuid)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.user_roles
+     WHERE user_id = _user_id
+       AND role IN ('super_admin'::public.app_role, 'finance_manager'::public.app_role)
+    UNION ALL
+    SELECT 1 FROM public.profiles
+     WHERE user_id = _user_id AND casino_id = _casino_id
+    UNION ALL
+    SELECT 1 FROM public.user_casino_access
+     WHERE user_id = _user_id AND casino_id = _casino_id
+  )
+$$;
+
+CREATE OR REPLACE FUNCTION public.is_manager_op(_uid uuid)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.user_roles
+     WHERE user_id = _uid
+       AND role IN ('manager'::public.app_role, 'floor_manager'::public.app_role, 'super_admin'::public.app_role)
+  )
+$$;
+
 CREATE TABLE IF NOT EXISTS public.user_casino_access (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL,
