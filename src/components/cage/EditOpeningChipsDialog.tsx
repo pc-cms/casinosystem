@@ -186,8 +186,13 @@ const EditOpeningChipsDialog = ({ shift, open, onClose }: Props) => {
             onChange={e => setReason(e.target.value)}
             placeholder="Explain why opening chips need to be corrected…"
             rows={2}
-            className="text-sm"
+            className={`text-sm ${!reason.trim() ? "border-destructive/60 focus-visible:ring-destructive/40" : ""}`}
           />
+          {!reason.trim() && (
+            <p className="text-[10px] font-medium text-destructive flex items-center gap-1">
+              <ShieldAlert className="w-3 h-3" /> Reason must be filled to save
+            </p>
+          )}
         </div>
 
         <DialogFooter>
