@@ -354,6 +354,18 @@ WITH CHECK (public.has_role(auth.uid(), 'super_admin'::public.app_role));
 
 DO $$
 BEGIN
+  IF to_regclass('public.table_daily_results') IS NOT NULL THEN
+    EXECUTE 'DROP POLICY IF EXISTS "Local users see daily results" ON public.table_daily_results';
+    EXECUTE 'CREATE POLICY "Local users see daily results" ON public.table_daily_results FOR SELECT TO authenticated USING (public.user_has_casino_access(auth.uid(), casino_id))';
+  END IF;
+  IF to_regclass('public.business_day_closures') IS NOT NULL THEN
+    EXECUTE 'DROP POLICY IF EXISTS "Local users see business day closures" ON public.business_day_closures';
+    EXECUTE 'CREATE POLICY "Local users see business day closures" ON public.business_day_closures FOR SELECT TO authenticated USING (public.user_has_casino_access(auth.uid(), casino_id))';
+  END IF;
+END $$;
+
+DO $$
+BEGIN
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN
     GRANT USAGE ON SCHEMA public TO authenticated;
     GRANT SELECT ON public.casinos, public.profiles, public.user_roles, public.user_casino_access,
