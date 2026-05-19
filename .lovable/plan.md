@@ -1,103 +1,69 @@
+# Что нужно, чтобы всё заработало
 
-# План: удалённый доступ к локальному on-prem серверу через Cloudflare Tunnel
+Чтобы я смог реально чинить локальный сервер и видеть данные — нужны три блока. Первый делаете вы (один раз, ~10 минут), остальное беру на себя.
 
-## Цель
+---
 
-Дать Lovable/тебе возможность открывать `https://local-arusha.casinosystem.app` (и аналоги для других казино) и попадать на **физический сервер казино** — с реальными локальными данными, sync engine, server identity, updater, peer status. Cloud при этом не задет: продолжает работать как primary через свой существующий поддомен `arusha.casinosystem.app`.
+## Блок 1. Включить удалённый доступ к локальному серверу Arusha
+**Делаете вы, один раз.** Без этого я слепой к локальной базе и не могу проверить ни Breaklist, ни Player Statistics на реальных данных.
 
-После этого можно будет нормально диагностировать баги Breaklist и Player Statistics на реальной локальной БД.
+1. **Создать Cloudflare-туннель** (бесплатно)
+   - Зайти на `https://one.dash.cloudflare.com` → Networks → Tunnels → **Create a tunnel** → Cloudflared → имя `arusha-local` → Save.
+   - Тип Docker → скопировать **значение токена** (длинная base64-строка после `--token`).
+2. **Привязать поддомен**
+   - В том же мастере, шаг "Public Hostname": Subdomain `local-arusha`, Domain `casinosystem.app`, Type `HTTP`, URL `nginx:80` → Save.
+3. **Закрыть Access-политикой** (чтобы туннель не торчал в открытый интернет)
+   - Zero Trust → Access → Applications → **Add an application** → Self-hosted → Domain `local-arusha.casinosystem.app` → Policy `Emails` → ваш email → Save.
+4. **Запустить на сервере Arusha** (одна команда, под root):
+   ```
+   sudo casino-update --enable-remote
+   ```
+   Скрипт спросит токен из шага 1, запишет в `.env`, поднимет контейнер `cloudflared`. Через 30 секунд `https://local-arusha.casinosystem.app` уже работает (после логина через Cloudflare Access).
+5. **Прислать мне в чат подтверждение**: "туннель поднят" + один скриншот, что страница логина CMS открывается.
 
-## Архитектура
+---
 
-```text
-   Lovable / браузер
-         │
-         ▼  HTTPS
-   local-arusha.casinosystem.app   ◄── Cloudflare DNS (CNAME → tunnel)
-         │
-         ▼  Cloudflare Tunnel (исходящее TLS от on-prem)
-   cloudflared (Docker, on-prem)
-         │
-         ▼  http://cms-nginx:80
-   cms-nginx → cms-frontend / postgrest / gotrue / cms-sync
-         │
-         ▼
-   локальный Postgres (реальные данные казино)
-```
+## Блок 2. Дать мне минимальный доступ для диагностики
+После того как туннель работает — мне нужно:
+- **Тестовый аккаунт** на локальном сервере с ролью `super_admin` (логин + пароль в чат — пароль одноразовый, сразу после поменяете).
+- **Подтверждение**, что в локальной БД есть хотя бы одна смена с дилерами, расставленными по столам (для Breaklist) и хотя бы один игрок с историей bet/in/out (для Player Statistics). Если нет — я могу попросить вас за минуту сесть/встать тестового игрока за стол.
 
-Защита: Cloudflare Access (Zero Trust) — на домен `local-*.casinosystem.app` накидывается политика «email in allowlist». Без неё в публичный интернет торчит логин-страница локального казино — недопустимо.
+Без этих двух пунктов я могу только смотреть схему БД и код — но не воспроизвести баги на реальных данных.
 
-Никаких пробросов портов, белого IP, VPN — `cloudflared` держит исходящее соединение.
+---
 
-## Изменения в коде
+## Блок 3. Что я сделаю сам, как только Блоки 1–2 готовы
 
-### 1. `deploy/docker-compose.yml` — новый сервис `cloudflared`
-- Image: `cloudflare/cloudflared:latest`
-- Команда: `tunnel --no-autoupdate run --token ${TUNNEL_TOKEN}`
-- `restart: unless-stopped`, та же сеть `cms-net`
-- **Не стартует если `TUNNEL_TOKEN` пуст** — через профиль Compose `profiles: ["with-tunnel"]`, либо через условный запуск в install.sh.
-- depends_on: `nginx`
+### 3.1 Breaklist — отметки времени (где стоит дилер)
+- Проверю `BreaklistGrid.tsx` против реальных данных из `dealer_positions` / `pit_assignments`.
+- Уточню SQL-запрос источника: на Cloud (premier) данные есть, на Arusha — нет → значит проблема либо в sync, либо в RLS по `casino_id`, либо в самом хуке (`use-dealers.ts` / `use-pit-prefetch.ts`).
+- Чиню в одном месте → бамп `package.json` patch → один `sudo casino-update`, и Arusha получает фикс.
 
-### 2. `deploy/env.template` — новый блок
-```
-# ── REMOTE ACCESS (Cloudflare Tunnel, опционально) ──
-# Получить токен: Cloudflare Zero Trust → Networks → Tunnels → Create →
-# Docker → скопировать значение после `--token`.
-TUNNEL_TOKEN=
-```
+### 3.2 Player Statistics — bet/in/out не виден под super_admin
+- Проверю `PlayerStatistics.tsx` + хук `use-players.ts` / `use-visits.ts`.
+- Высокая вероятность: `canSeePlayerFinancials()` в `role-access.ts` либо `useBusinessDayFilter()` режут данные. Super_admin должен видеть всё — если режет, это регрессия.
+- Параллельно проверю, почему "нет других пользователей": скорее всего `user_roles` или `user_casino_access` на локальной БД пустые → значит sync seed не доехал или фильтр по `activeCasinoId` слишком жёсткий.
 
-### 3. `deploy/install.sh` — новый флаг `--enable-remote`
-- Спрашивает `TUNNEL_TOKEN` (или принимает через env)
-- Пишет в `.env`
-- При следующем `up` поднимает `cloudflared` через `--profile with-tunnel`
-- Зеркальный флаг `--disable-remote` (удаляет токен, останавливает контейнер)
-- В стандартном `--update` / `--rebuild` — туннель стартует автоматически если `TUNNEL_TOKEN` есть в `.env`, иначе пропускается
+### 3.3 Закрепить результат
+- Все фиксы — через миграции + bump версии, как требует core-правило.
+- Никаких ручных SQL/docker-команд вам — всё через `sudo casino-update`.
 
-### 4. `deploy/nginx/conf.d/casino.conf` — без изменений
-nginx уже слушает `server_name _` (default), любой Host проходит. Тунель будет ходить на `http://cms-nginx:80` (внутри Docker-сети, без TLS — TLS терминирует Cloudflare).
+---
 
-### 5. `src/lib/runtime-config.ts` и `casino-context` — без изменений
-Фронт продолжает читать `runtime-config.json` с `localMode: true`. Когда я открываю `local-arusha.casinosystem.app`, запросы идут в тот же origin → попадают в туннель → в локальный PostgREST/GoTrue. Никакой логики менять не надо.
+## Технические детали (для разработчика)
 
-### 6. `deploy/REMOTE-ACCESS.md` — новый файл
-Пошаговая инструкция для тебя:
-1. В Cloudflare Zero Trust создать tunnel `local-arusha`
-2. Public hostname: `local-arusha.casinosystem.app` → `http://cms-nginx:80`
-3. Скопировать токен
-4. На сервере: `sudo casino-update --enable-remote` → вставить токен
-5. Access policy: Applications → Self-hosted → `local-*.casinosystem.app` → emails: твой + lovable-service@…
-6. Открыть `https://local-arusha.casinosystem.app` → должен открыться локальный login
+- Туннель: `cloudflared` контейнер в `deploy/docker-compose.yml` под профилем `with-tunnel`, активируется через `--enable-remote` (уже реализовано в прошлой итерации, версия 1.3.86).
+- Сценарий доступа: Cloudflare Access → JWT → nginx → cms-frontend / postgrest (порт 80 внутри docker-сети `cms-net`).
+- Диагностика будет вестись через DevTools на `https://local-arusha.casinosystem.app` + чтение логов `docker compose logs cms-sync` (через тот же туннель/SSH при необходимости).
+- Бамп `package.json` patch обязателен на каждый backend-фикс (правило из памяти).
 
-### 7. `package.json` — bump patch версии
-По правилу [Auto Version Bump] любое изменение деплоя/sync → бамп. Тут меняем docker-compose + install.sh → бамп.
+---
 
-## Что НЕ меняется
+## TL;DR для вас
 
-- Cloud Supabase (никаких миграций, RLS, edge functions)
-- Frontend код (кроме версии в `package.json`)
-- Sync engine (cms-sync), updater, peer mesh
-- Существующий поддомен `arusha.casinosystem.app` (Cloud)
-- LAN-доступ кассиров на `arusha.local` — продолжает работать как раньше
+1. Создать Cloudflare-туннель + Access policy (~10 мин по инструкции выше).
+2. На сервере: `sudo casino-update --enable-remote`, ввести токен.
+3. Прислать мне: подтверждение работы туннеля + тестовый super_admin аккаунт на локальном сервере.
+4. Дальше я чиню Breaklist и Player Statistics сам, без вашего участия.
 
-## Безопасность
-
-- **Cloudflare Access обязателен**, не опционален. Без него — открытый интернет видит логин-страницу локального казино.
-- `TUNNEL_TOKEN` хранится только в `.env` локального сервера (chmod 600), никогда не коммитится.
-- Туннель — исходящее соединение, никаких входящих портов открывать не нужно.
-- По умолчанию `--enable-remote` выключено. Чтобы включить — явное действие на каждом сервере.
-
-## Ограничения
-
-- Latency через туннель ~50-150мс. Для диагностики и админских задач норм, для кассирской работы — нет (они продолжают `arusha.local`).
-- Cloudflare Tunnel + Access (до 50 пользователей) — бесплатно, лимиты не упрёмся.
-- Если интернет в казино упал — туннель недоступен (но локальная работа продолжается).
-
-## Раскатка
-
-После одобрения плана:
-1. Делаю все правки в Lovable, бамплю версию.
-2. Релиз доезжает на Arusha через `cms-updater` (или ты вручную: `sudo casino-update --update`).
-3. На Arusha запускаешь `sudo casino-update --enable-remote`, вставляешь токен из Cloudflare.
-4. Я подключаюсь к `local-arusha.casinosystem.app`, дальше уже диагностирую Breaklist и Player Statistics на живой локальной БД.
-
-Готов делать — нажми Implement.
+Если шаг 1 (Cloudflare-аккаунт / Access) звучит сложно — скажите, я распишу его пошагово со скриншотами того, куда кликать.
