@@ -1775,6 +1775,30 @@ export type Database = {
           },
         ]
       }
+      demo_seed_log: {
+        Row: {
+          casino_id: string
+          created_at: string
+          id: number
+          row_id: string
+          table_name: string
+        }
+        Insert: {
+          casino_id: string
+          created_at?: string
+          id?: number
+          row_id: string
+          table_name: string
+        }
+        Update: {
+          casino_id?: string
+          created_at?: string
+          id?: number
+          row_id?: string
+          table_name?: string
+        }
+        Relationships: []
+      }
       employee_bank_accounts: {
         Row: {
           account_number: string
@@ -5037,6 +5061,7 @@ export type Database = {
       cleanup_old_data: { Args: never; Returns: Json }
       clear_stale_peer_links: { Args: never; Returns: number }
       clear_stale_peer_requests: { Args: never; Returns: number }
+      clone_arusha_to_mbeya_demo: { Args: never; Returns: Json }
       close_business_day: {
         Args: {
           _casino_id: string
@@ -5307,6 +5332,7 @@ export type Database = {
         Args: { p_casino_id: string; p_force?: boolean }
         Returns: Json
       }
+      purge_mbeya_demo: { Args: never; Returns: Json }
       recalc_shift_tables_result: {
         Args: { p_shift_id: string }
         Returns: number
