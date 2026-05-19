@@ -1,69 +1,40 @@
-# Что нужно, чтобы всё заработало
+## Что не так сейчас
+В Мбее уже есть: 10 закрытых смен, 16 закрытий бизнес-дня, 105 игроков, 730 транзакций.
+**Не хватает**, поэтому экраны выглядят пустыми и кликать нечего:
+- 0 сотрудников (у Аруши — 65)
+- 0 Pit Rota / Staff Rota (у Аруши ~1038 / ~1249 строк)
+- 0 Dealer Attendance (у Аруши 690)
 
-Чтобы я смог реально чинить локальный сервер и видеть данные — нужны три блока. Первый делаете вы (один раз, ~10 минут), остальное беру на себя.
+Также Pasha — `manager`, и для полноценной кассы нужна роль `cashier` (касса = модуль Cage, требует cashier).
 
----
+## План
 
-## Блок 1. Включить удалённый доступ к локальному серверу Arusha
-**Делаете вы, один раз.** Без этого я слепой к локальной базе и не могу проверить ни Breaklist, ни Player Statistics на реальных данных.
+### 1. Расширить `clone_arusha_to_mbeya_demo()` — доклонировать
+- **employees** — все 65 сотрудников Аруши → Мбея (новые UUID, тот же набор полей, `casino_id = Mbeya`). Маппинг `arusha_emp_id → mbeya_emp_id` в temp table.
+- **employee_bank_accounts** — за компанию (через маппинг).
+- **pit_rota** — все записи Аруши за период 10–19 мая 2026 → Мбея, через маппинг сотрудников, `created_by = Pasha`.
+- **staff_rota** — то же самое за тот же период.
+- **dealer_attendance** — за тот же период через маппинг.
+- **attendance_hours / staff_attendance** — если есть данные у Аруши за период, тоже скопировать.
+- Всё пишется в `demo_seed_log` для аккуратного wipe.
 
-1. **Создать Cloudflare-туннель** (бесплатно)
-   - Зайти на `https://one.dash.cloudflare.com` → Networks → Tunnels → **Create a tunnel** → Cloudflared → имя `arusha-local` → Save.
-   - Тип Docker → скопировать **значение токена** (длинная base64-строка после `--token`).
-2. **Привязать поддомен**
-   - В том же мастере, шаг "Public Hostname": Subdomain `local-arusha`, Domain `casinosystem.app`, Type `HTTP`, URL `nginx:80` → Save.
-3. **Закрыть Access-политикой** (чтобы туннель не торчал в открытый интернет)
-   - Zero Trust → Access → Applications → **Add an application** → Self-hosted → Domain `local-arusha.casinosystem.app` → Policy `Emails` → ваш email → Save.
-4. **Запустить на сервере Arusha** (одна команда, под root):
-   ```
-   sudo casino-update --enable-remote
-   ```
-   Скрипт спросит токен из шага 1, запишет в `.env`, поднимет контейнер `cloudflared`. Через 30 секунд `https://local-arusha.casinosystem.app` уже работает (после логина через Cloudflare Access).
-5. **Прислать мне в чат подтверждение**: "туннель поднят" + один скриншот, что страница логина CMS открывается.
+### 2. Расширить роли Pasha
+Добавить `cashier` и `pit` к существующему `manager` → полноценно работает Cage (касса), Live Game, графики, закрытие дня.
 
----
+### 3. Расширить `purge_mbeya_demo()`
+Чтобы при удалении сносились также employees / rotas / attendance / bank_accounts по `demo_seed_log`.
 
-## Блок 2. Дать мне минимальный доступ для диагностики
-После того как туннель работает — мне нужно:
-- **Тестовый аккаунт** на локальном сервере с ролью `super_admin` (логин + пароль в чат — пароль одноразовый, сразу после поменяете).
-- **Подтверждение**, что в локальной БД есть хотя бы одна смена с дилерами, расставленными по столам (для Breaklist) и хотя бы один игрок с историей bet/in/out (для Player Statistics). Если нет — я могу попросить вас за минуту сесть/встать тестового игрока за стол.
+## Изоляция от Аруши — гарантии
+1. SQL только `SELECT … FROM <table> WHERE casino_id = Arusha` — **ни одного INSERT/UPDATE/DELETE по Аруше**.
+2. У всех вставляемых строк `casino_id = Mbeya` жёстко прописано.
+3. RLS и хуки фронта фильтруют по `useCasino().activeCasinoId` — Pasha залогинен только на `mbeya.casinosystem.app`, его токен в `user_casino_access` привязан **только к Mbeya**, физически не сможет писать в Арушу.
+4. Каждая вставленная строка логируется в `demo_seed_log` → `purge_mbeya_demo()` удалит ровно их по UUID, без шансов задеть чужое.
+5. После клика «Wipe» в Аруше сравнить counts до/после — они не изменятся.
 
-Без этих двух пунктов я могу только смотреть схему БД и код — но не воспроизвести баги на реальных данных.
+## Технические детали
+- `SET LOCAL session_replication_role = 'replica'` — чтобы триггеры не пересчитывали ничего при вставке клонов.
+- Период ротации/посещаемости: те же 2026-05-10 … 2026-05-19, что и смены.
+- `created_by` / `recorded_by` = id Pasha (вытащим через `auth.users` по email).
+- Если в Аруше нет каких-то записей за период (например, нет staff_attendance) — пропускаем без ошибки.
 
----
-
-## Блок 3. Что я сделаю сам, как только Блоки 1–2 готовы
-
-### 3.1 Breaklist — отметки времени (где стоит дилер)
-- Проверю `BreaklistGrid.tsx` против реальных данных из `dealer_positions` / `pit_assignments`.
-- Уточню SQL-запрос источника: на Cloud (premier) данные есть, на Arusha — нет → значит проблема либо в sync, либо в RLS по `casino_id`, либо в самом хуке (`use-dealers.ts` / `use-pit-prefetch.ts`).
-- Чиню в одном месте → бамп `package.json` patch → один `sudo casino-update`, и Arusha получает фикс.
-
-### 3.2 Player Statistics — bet/in/out не виден под super_admin
-- Проверю `PlayerStatistics.tsx` + хук `use-players.ts` / `use-visits.ts`.
-- Высокая вероятность: `canSeePlayerFinancials()` в `role-access.ts` либо `useBusinessDayFilter()` режут данные. Super_admin должен видеть всё — если режет, это регрессия.
-- Параллельно проверю, почему "нет других пользователей": скорее всего `user_roles` или `user_casino_access` на локальной БД пустые → значит sync seed не доехал или фильтр по `activeCasinoId` слишком жёсткий.
-
-### 3.3 Закрепить результат
-- Все фиксы — через миграции + bump версии, как требует core-правило.
-- Никаких ручных SQL/docker-команд вам — всё через `sudo casino-update`.
-
----
-
-## Технические детали (для разработчика)
-
-- Туннель: `cloudflared` контейнер в `deploy/docker-compose.yml` под профилем `with-tunnel`, активируется через `--enable-remote` (уже реализовано в прошлой итерации, версия 1.3.86).
-- Сценарий доступа: Cloudflare Access → JWT → nginx → cms-frontend / postgrest (порт 80 внутри docker-сети `cms-net`).
-- Диагностика будет вестись через DevTools на `https://local-arusha.casinosystem.app` + чтение логов `docker compose logs cms-sync` (через тот же туннель/SSH при необходимости).
-- Бамп `package.json` patch обязателен на каждый backend-фикс (правило из памяти).
-
----
-
-## TL;DR для вас
-
-1. Создать Cloudflare-туннель + Access policy (~10 мин по инструкции выше).
-2. На сервере: `sudo casino-update --enable-remote`, ввести токен.
-3. Прислать мне: подтверждение работы туннеля + тестовый super_admin аккаунт на локальном сервере.
-4. Дальше я чиню Breaklist и Player Statistics сам, без вашего участия.
-
-Если шаг 1 (Cloudflare-аккаунт / Access) звучит сложно — скажите, я распишу его пошагово со скриншотами того, куда кликать.
+После Implement → залогиниться `pasha@demo.local` / `Pasha26!` на `mbeya.casinosystem.app` → Personnel / Rota / Attendance / Cage заполнены, всё кликабельно.
