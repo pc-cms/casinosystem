@@ -608,7 +608,7 @@ const PlayerProfile = () => {
                             </td>
                           </tr>
                         )}
-                        </>
+                        </Fragment>
                       );
                     })}
                   </tbody>
