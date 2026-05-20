@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { ArrowLeft, Ban, User, Users as UsersIcon, BarChart3, Ticket, Trophy, History, MapPin, Gift, CalendarDays } from "lucide-react";
 
@@ -75,7 +75,7 @@ const PlayerProfile = () => {
   const { data: sessions = [] } = usePlayerSessions(id, range);
 
   const [editOpen, setEditOpen] = useState(false);
-  
+  const [expandedVisit, setExpandedVisit] = useState<string | null>(null);
   const [blacklistOpen, setBlacklistOpen] = useState(false);
 
   // Range bounds (apply to all tabs).
@@ -164,6 +164,26 @@ const PlayerProfile = () => {
     }
     return map;
   }, [visits, transactions, expenses]);
+
+  // Per-visit transactions list (for the expandable row showing every IN/OUT with time + table).
+  const visitTxs = useMemo(() => {
+    const map = new Map<string, any[]>();
+    for (const v of visits) map.set(v.id, []);
+    for (const t of transactions as any[]) {
+      if (t.type !== "buy" && t.type !== "in" && t.type !== "cashout" && t.type !== "out") continue;
+      const ts = new Date(t.created_at).getTime();
+      for (const v of visits) {
+        if (v.casino_id !== t.casino_id) continue;
+        const start = new Date(v.checked_in_at).getTime();
+        const end = v.checked_out_at ? new Date(v.checked_out_at).getTime() : start + 24 * 3600 * 1000;
+        if (ts >= start && ts <= end) { map.get(v.id)!.push(t); break; }
+      }
+    }
+    for (const list of map.values()) {
+      list.sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)));
+    }
+    return map;
+  }, [visits, transactions]);
 
   // Lifetime KPIs — perspective: PLAYER (positive = player won, negative = player lost).
   // result = cashout − drop  (clean play)
@@ -513,9 +533,20 @@ const PlayerProfile = () => {
                       const f = visitFinancials.get(v.id) || { totalIn: 0, cashout: 0, comps: 0, dropR: 0 };
                       const result = f.cashout - f.totalIn;
                       const total = result - f.comps;
+                      const colCount = 6 + (showFinancials ? 6 : 0);
+                      const isExpanded = expandedVisit === v.id;
+                      const txs = visitTxs.get(v.id) || [];
                       return (
-                        <tr key={v.id} className="border-t border-border">
-                          <td className="py-1.5 px-2 font-mono text-xs">{fmtDate(v.date)}</td>
+                        <Fragment key={v.id}>
+                        <tr
+                          key={v.id}
+                          className={`border-t border-border cursor-pointer hover:bg-muted/40 ${isExpanded ? "bg-muted/30" : ""}`}
+                          onClick={() => setExpandedVisit(isExpanded ? null : v.id)}
+                          title={`${txs.length} IN/OUT transactions — click to ${isExpanded ? "hide" : "show"}`}
+                        >
+                          <td className="py-1.5 px-2 font-mono text-xs">
+                            <span className="inline-block w-3 text-muted-foreground">{isExpanded ? "▾" : "▸"}</span> {fmtDate(v.date)}
+                          </td>
                           <td className="py-1.5 px-2">{v.casinos?.name || "—"}</td>
                           <td className="py-1.5 px-2 font-mono text-xs">{fmtDateTime(v.checked_in_at)}</td>
                           <td className="py-1.5 px-2 font-mono text-xs">{v.checked_out_at ? fmtDateTime(v.checked_out_at) : "—"}</td>
@@ -536,6 +567,48 @@ const PlayerProfile = () => {
                             </td>
                           )}
                         </tr>
+                        {isExpanded && (
+                          <tr className="bg-muted/20 border-t border-border">
+                            <td colSpan={colCount} className="px-4 py-2">
+                              {txs.length === 0 ? (
+                                <div className="text-xs text-muted-foreground py-1">No IN/OUT transactions during this visit.</div>
+                              ) : (
+                                <table className="w-full text-xs">
+                                  <thead>
+                                    <tr className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                                      <th className="text-left py-1 px-2 w-20">Time</th>
+                                      <th className="text-left py-1 px-2 w-16">Type</th>
+                                      <th className="text-left py-1 px-2">Table</th>
+                                      {showFinancials && <th className="text-right py-1 px-2 w-28">Amount</th>}
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {txs.map((t: any) => {
+                                      const isIn = t.type === "buy" || t.type === "in";
+                                      return (
+                                        <tr key={t.id} className="border-t border-border/40">
+                                          <td className="py-1 px-2 font-mono">{new Date(t.created_at).toLocaleTimeString("en-GB", { timeZone: "Africa/Dar_es_Salaam", hour: "2-digit", minute: "2-digit" })}</td>
+                                          <td className="py-1 px-2">
+                                            <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold ${isIn ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive"}`}>
+                                              {isIn ? "IN" : "OUT"}
+                                            </span>
+                                          </td>
+                                          <td className="py-1 px-2">{t.gaming_tables?.name || <span className="text-muted-foreground">—</span>}</td>
+                                          {showFinancials && (
+                                            <td className={`py-1 px-2 text-right font-mono font-semibold ${isIn ? "cms-amount-negative" : "cms-amount-positive"}`}>
+                                              {isIn ? "−" : "+"}{fmtMoney(Number(t.amount) || 0)}
+                                            </td>
+                                          )}
+                                        </tr>
+                                      );
+                                    })}
+                                  </tbody>
+                                </table>
+                              )}
+                            </td>
+                          </tr>
+                        )}
+                        </Fragment>
                       );
                     })}
                   </tbody>
