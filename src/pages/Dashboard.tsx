@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Landmark, Receipt, TrendingDown, LayoutDashboard, Filter, ArrowUpDown, Smartphone } from "lucide-react";
 import { CardSkeleton, PlayerListSkeleton } from "@/components/LoadingSkeletons";
-import { usePlayers, useTransactions, useGamingTables, useExpenses, useClientSessionsTotalBet, useTableTracker } from "@/hooks/use-casino-data";
+import { usePlayers, useTransactions, useGamingTables, useExpenses, useTableTracker } from "@/hooks/use-casino-data";
 import { useCashless } from "@/hooks/use-cashless";
 import { useChipSnapshots } from "@/hooks/use-chips";
 import { useChipBaseline, baselineToMap } from "@/hooks/use-table-lifecycle";
@@ -53,7 +53,6 @@ const Dashboard = () => {
   const { data: transactions = [], isLoading: loadingTx } = useTransactions(businessDate);
   const { data: tables = [] } = useGamingTables();
   const { data: expenses = [] } = useExpenses(businessDate);
-  const { data: sessionsTotalBet = 0 } = useClientSessionsTotalBet(businessDate);
   const { data: trackerData = [] } = useTableTracker(businessDate);
   const { data: snapshots = [] } = useChipSnapshots(businessDate);
   const { data: baseline = [] } = useChipBaseline();
@@ -63,7 +62,7 @@ const Dashboard = () => {
   const isInitialLoading = loadingPlayers && loadingTx;
   const showFinancials = canSeePlayerFinancials(roles);
   const buyInDrop = transactions.filter(t => (t.type === "buy" || t.type === "in")).reduce((s, t) => s + Number(t.amount), 0);
-  const totalDrop = buyInDrop + sessionsTotalBet;
+  const totalDrop = buyInDrop;
   const pendingExpenses = expenses.filter(e => !e.approved).length;
   const { data: cashless = [] } = useCashless(businessDate);
   const pendingCashless = cashless.filter((r: any) => r.status === "pending").length;
