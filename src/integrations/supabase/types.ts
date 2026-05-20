@@ -2661,6 +2661,109 @@ export type Database = {
           },
         ]
       }
+      onprem_channel_migrations: {
+        Row: {
+          applied_at: string
+          channel_id: string
+          error: string | null
+          id: string
+          ok: boolean
+          sql_hash: string
+          version: string
+        }
+        Insert: {
+          applied_at?: string
+          channel_id: string
+          error?: string | null
+          id?: string
+          ok?: boolean
+          sql_hash: string
+          version: string
+        }
+        Update: {
+          applied_at?: string
+          channel_id?: string
+          error?: string | null
+          id?: string
+          ok?: boolean
+          sql_hash?: string
+          version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "onprem_channel_migrations_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "onprem_channels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      onprem_channels: {
+        Row: {
+          casino_id: string
+          cf_tunnel_id: string | null
+          created_at: string
+          hmac_secret_hash: string
+          id: string
+          last_seen_at: string | null
+          outbox_lag: number | null
+          paired_at: string | null
+          paired_by: string | null
+          pairing_code: string | null
+          pairing_expires_at: string | null
+          slug: string
+          status: string
+          tunnel_hostname: string
+          updated_at: string
+          version: string | null
+        }
+        Insert: {
+          casino_id: string
+          cf_tunnel_id?: string | null
+          created_at?: string
+          hmac_secret_hash: string
+          id?: string
+          last_seen_at?: string | null
+          outbox_lag?: number | null
+          paired_at?: string | null
+          paired_by?: string | null
+          pairing_code?: string | null
+          pairing_expires_at?: string | null
+          slug: string
+          status?: string
+          tunnel_hostname: string
+          updated_at?: string
+          version?: string | null
+        }
+        Update: {
+          casino_id?: string
+          cf_tunnel_id?: string | null
+          created_at?: string
+          hmac_secret_hash?: string
+          id?: string
+          last_seen_at?: string | null
+          outbox_lag?: number | null
+          paired_at?: string | null
+          paired_by?: string | null
+          pairing_code?: string | null
+          pairing_expires_at?: string | null
+          slug?: string
+          status?: string
+          tunnel_hostname?: string
+          updated_at?: string
+          version?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "onprem_channels_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payroll_audit_log: {
         Row: {
           action: string
