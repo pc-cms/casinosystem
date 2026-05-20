@@ -75,7 +75,7 @@ const PlayerProfile = () => {
   const { data: sessions = [] } = usePlayerSessions(id, range);
 
   const [editOpen, setEditOpen] = useState(false);
-  
+  const [expandedVisit, setExpandedVisit] = useState<string | null>(null);
   const [blacklistOpen, setBlacklistOpen] = useState(false);
 
   // Range bounds (apply to all tabs).
