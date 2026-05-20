@@ -25,6 +25,11 @@
           var host = (window.location.hostname || "").toLowerCase();
           var label = host.split(".")[0];
 
+          // On-prem subdomains alias to canonical casino branding.
+          var ALIAS = { mwz: "mwanza", aru: "arusha", dod: "dodoma", mbi: "mbeya" };
+          var canonical = ALIAS[label] || label;
+          var isOnPrem = ALIAS.hasOwnProperty(label);
+
           var BRANCHES = {
             arusha:  { name: "Premier Arusha",  manifest: "/manifest-arusha.json"  },
             mwanza:  { name: "Premier Mwanza",  manifest: "/manifest-mwanza.json"  },
@@ -32,22 +37,22 @@
             mbeya:   { name: "Premier Mbeya",   manifest: "/manifest-mbeya.json"   },
             premier: { name: "Premier HQ",      manifest: "/manifest-premier.json" },
           };
-          var branch = BRANCHES[label] || null;
+          // On-prem variants get their own pinnable manifest so installed PWA stays distinct.
+          var ONPREM_MANIFEST = { mwz: "/manifest-mwz.json", aru: "/manifest-aru.json", dod: "/manifest-dod.json", mbi: "/manifest-mbi.json" };
+
+          var branch = BRANCHES[canonical] || null;
 
           if (branch) {
-            // Browser tab title
-            document.title = branch.name;
+            var displayName = isOnPrem ? (branch.name + " (Local)") : branch.name;
+            document.title = displayName;
 
-            // Swap manifest to per-branch static file (pinnable on install)
             var link = document.getElementById("app-manifest");
-            if (link) link.setAttribute("href", branch.manifest);
+            if (link) link.setAttribute("href", isOnPrem ? ONPREM_MANIFEST[label] : branch.manifest);
 
-            // Apple-specific title (used as home-screen label on iOS)
             var appleTitle = document.querySelector('meta[name="apple-mobile-web-app-title"]');
-            if (appleTitle) appleTitle.setAttribute("content", branch.name);
+            if (appleTitle) appleTitle.setAttribute("content", displayName);
 
-            // Arusha has its own brand asset for favicon + apple-touch
-            if (label === "arusha") {
+            if (canonical === "arusha") {
               var fav = document.querySelector('link[rel="icon"]');
               if (fav) fav.setAttribute("href", "/arusha-logo.png");
               var apple = document.querySelector('link[rel="apple-touch-icon"]');

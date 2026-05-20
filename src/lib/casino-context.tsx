@@ -53,6 +53,24 @@ export const getBaseDomain = (): string => {
   return "casinosystem.app"; // fallback
 };
 
+/**
+ * On-prem subdomain aliases.
+ * The 3-letter codes (mwz/aru/dod/mbi) are the public DNS names of LOCAL servers
+ * (e.g. mwz.casinosystem.app → physical box in Mwanza). They resolve to the same
+ * canonical casino as the Cloud subdomains (mwanza/arusha/dodoma/mbeya), so all
+ * existing data isolation, RLS and casino matching continue to work unchanged.
+ */
+export const ONPREM_SLUG_ALIASES: Record<string, string> = {
+  mwz: "mwanza",
+  aru: "arusha",
+  dod: "dodoma",
+  mbi: "mbeya",
+};
+
+/** Normalize a raw slug through the on-prem alias table. */
+export const resolveSlugAlias = (raw: string): string =>
+  ONPREM_SLUG_ALIASES[raw] ?? raw;
+
 /** Extract casino slug from current hostname */
 export const getSlugFromHostname = (): string | null => {
   // On-prem local install: runtime-config.json pins this server to ONE casino
@@ -60,18 +78,18 @@ export const getSlugFromHostname = (): string | null => {
   // Cloud builds get a placeholder which cleanValue() turns into null, so this
   // branch is silently skipped in production.
   const rc = getCachedRuntimeConfig();
-  if (rc?.casinoSlug) return rc.casinoSlug.toLowerCase();
+  if (rc?.casinoSlug) return resolveSlugAlias(rc.casinoSlug.toLowerCase());
 
   const hostname = window.location.hostname;
 
-  // Production: arusha.casinosystem.app / arusha.casinosystem.lovable.app / arusha.casinosystem.local
+  // Production: arusha.casinosystem.app / mwz.casinosystem.app / etc.
   const match = hostname.match(/^([a-z0-9-]+)\.(casinosystem\.app|casinosystem\.lovable\.app|casinosystem\.local)$/i);
   if (match) {
     const slug = match[1].toLowerCase();
     // Exclude known non-casino subdomains
     if (["www", "api", "admin"].includes(slug)) return null;
     if (slug === "premier") return "__premier__";
-    return slug;
+    return resolveSlugAlias(slug);
   }
 
   // Root domain (no subdomain) → landing page
@@ -82,10 +100,19 @@ export const getSlugFromHostname = (): string | null => {
   // Preview/dev: check query param ?casino=arusha as fallback
   const params = new URLSearchParams(window.location.search);
   const casinoParam = params.get("casino");
-  if (casinoParam) return casinoParam.toLowerCase();
+  if (casinoParam) return resolveSlugAlias(casinoParam.toLowerCase());
 
   // Localhost / IP — no subdomain, use user's primary casino
   return null;
+};
+
+/** Raw subdomain label (e.g. "mwz") before alias resolution — for UI badges only. */
+export const getRawSubdomainLabel = (): string | null => {
+  const rc = getCachedRuntimeConfig();
+  if (rc?.casinoSlug) return rc.casinoSlug.toLowerCase();
+  const hostname = window.location.hostname;
+  const match = hostname.match(/^([a-z0-9-]+)\.(casinosystem\.app|casinosystem\.lovable\.app|casinosystem\.local)$/i);
+  return match ? match[1].toLowerCase() : null;
 };
 
 export const CasinoProvider = ({ children }: { children: ReactNode }) => {
