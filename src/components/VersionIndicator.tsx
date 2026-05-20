@@ -25,12 +25,15 @@ export const VersionIndicator = ({ collapsed = false }: Props) => {
   useEffect(() => {
     getRuntimeConfig()
       .then((cfg) => {
-        // Ignore placeholder "local" — show real build version instead,
-        // suffixed with "·local" so the operator still knows it's the on-prem build.
+        const onpremSlug = cfg.casinoSlug && ["mwz", "aru", "dod", "mbi"].includes(cfg.casinoSlug.toLowerCase())
+          ? cfg.casinoSlug.toLowerCase()
+          : null;
+        const localTag = onpremSlug ? `local-${onpremSlug}` : "local";
+        // Ignore placeholder "local" version — show real build version instead.
         if (cfg.version && cfg.version !== "local") {
-          setVersion(cfg.version);
+          setVersion(cfg.localMode ? `${cfg.version} · ${localTag}` : cfg.version);
         } else if (cfg.localMode) {
-          setVersion(`${BUILD_VERSION} · local`);
+          setVersion(`${BUILD_VERSION} · ${localTag}`);
         }
       })
       .catch(() => { /* keep build version */ });
