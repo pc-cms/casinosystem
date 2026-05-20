@@ -537,7 +537,7 @@ const PlayerProfile = () => {
                       const isExpanded = expandedVisit === v.id;
                       const txs = visitTxs.get(v.id) || [];
                       return (
-                        <>
+                        <Fragment key={v.id}>
                         <tr
                           key={v.id}
                           className={`border-t border-border cursor-pointer hover:bg-muted/40 ${isExpanded ? "bg-muted/30" : ""}`}
