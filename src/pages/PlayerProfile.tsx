@@ -165,6 +165,26 @@ const PlayerProfile = () => {
     return map;
   }, [visits, transactions, expenses]);
 
+  // Per-visit transactions list (for the expandable row showing every IN/OUT with time + table).
+  const visitTxs = useMemo(() => {
+    const map = new Map<string, any[]>();
+    for (const v of visits) map.set(v.id, []);
+    for (const t of transactions as any[]) {
+      if (t.type !== "buy" && t.type !== "in" && t.type !== "cashout" && t.type !== "out") continue;
+      const ts = new Date(t.created_at).getTime();
+      for (const v of visits) {
+        if (v.casino_id !== t.casino_id) continue;
+        const start = new Date(v.checked_in_at).getTime();
+        const end = v.checked_out_at ? new Date(v.checked_out_at).getTime() : start + 24 * 3600 * 1000;
+        if (ts >= start && ts <= end) { map.get(v.id)!.push(t); break; }
+      }
+    }
+    for (const list of map.values()) {
+      list.sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)));
+    }
+    return map;
+  }, [visits, transactions]);
+
   // Lifetime KPIs — perspective: PLAYER (positive = player won, negative = player lost).
   // result = cashout − drop  (clean play)
   // total  = result − comps  (with comps/expenses)
