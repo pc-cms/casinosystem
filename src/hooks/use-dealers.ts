@@ -6,6 +6,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
+import { useCasino } from "@/lib/casino-context";
 import { logAction } from "@/lib/logging";
 import { offlineMutation } from "@/lib/offline-mutation";
 import { toast } from "sonner";
@@ -116,7 +117,7 @@ export const fetchBreaklistRows = (casinoId: string, date: string) =>
     .range(from, to));
 
 export const useDealers = () => {
-  const { casinoId } = useAuth();
+  const { activeCasinoId: casinoId } = useCasino();
   return useQuery({
     queryKey: ["dealers", casinoId],
     queryFn: async () => {
@@ -138,7 +139,7 @@ export const useDealers = () => {
 
 export const useCreateDealer = () => {
   const qc = useQueryClient();
-  const { casinoId } = useAuth();
+  const { activeCasinoId: casinoId } = useCasino();
   return useMutation({
     mutationFn: async ({ name, category, is_pit_boss }: { name: string; category: string; is_pit_boss: boolean }) => {
       if (!casinoId) throw new Error("No casino");
@@ -195,7 +196,7 @@ export const useDeleteDealer = () => {
 const aliasRotaRow = (r: any) => ({ ...r, dealer_id: r.employee_id });
 
 export const usePitRota = (date: string) => {
-  const { casinoId } = useAuth();
+  const { activeCasinoId: casinoId } = useCasino();
   return useQuery({
     queryKey: ["pit-rota", casinoId, date],
     queryFn: async () => {
@@ -207,7 +208,7 @@ export const usePitRota = (date: string) => {
 };
 
 export const usePitRotaRange = (startDate: string, endDate: string) => {
-  const { casinoId } = useAuth();
+  const { activeCasinoId: casinoId } = useCasino();
   return useQuery({
     queryKey: ["pit-rota-range", casinoId, startDate, endDate],
     queryFn: async () => {
@@ -220,7 +221,8 @@ export const usePitRotaRange = (startDate: string, endDate: string) => {
 
 export const useSetPitRota = () => {
   const qc = useQueryClient();
-  const { casinoId, user } = useAuth();
+  const { user } = useAuth();
+  const { activeCasinoId: casinoId } = useCasino();
   return useMutation({
     mutationFn: async (input: { dealer_id: string; date: string; shift: string }) => {
       if (!casinoId || !user) throw new Error("Not authenticated");
