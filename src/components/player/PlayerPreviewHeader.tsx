@@ -333,28 +333,35 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
           </div>
 
 
-          {/* Chip IN/OUT — bigger, centered */}
+          {/* Chip adjustment form — compact, uniform heights */}
           {canAdjust && (
-            <div className="shrink-0 flex flex-col justify-center gap-2.5 w-[460px] border-l border-border pl-5 self-stretch">
-              <div className="grid grid-cols-2 gap-3">
+            <form
+              onSubmit={(e) => { e.preventDefault(); submitAdj(); }}
+              className="shrink-0 flex flex-col justify-center gap-2 w-[380px] border-l border-border pl-5 self-stretch"
+              aria-label="Player chip adjustment"
+            >
+              <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-mono leading-none">
+                Chip Adjustment
+              </span>
+              <div className="grid grid-cols-2 gap-2">
                 <div className="relative">
-                  <ArrowDownToLine className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-success pointer-events-none" />
+                  <ArrowDownToLine className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-success pointer-events-none" />
                   <NumberInput
                     ariaLabel="Chip IN"
-                    placeholder="Chip IN (+)"
+                    placeholder="IN (+)"
                     value={chipIn}
                     onChange={setChipIn}
-                    className="pl-10"
+                    className="pl-8"
                   />
                 </div>
                 <div className="relative">
-                  <ArrowUpFromLine className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-destructive pointer-events-none" />
+                  <ArrowUpFromLine className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-destructive pointer-events-none" />
                   <NumberInput
                     ariaLabel="Chip OUT"
-                    placeholder="Chip OUT (−)"
+                    placeholder="OUT (−)"
                     value={chipOut}
                     onChange={setChipOut}
-                    className="pl-10"
+                    className="pl-8"
                   />
                 </div>
               </div>
@@ -363,19 +370,20 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
                   placeholder="Comment…"
                   value={note}
                   onChange={(e) => setNote(e.target.value.slice(0, 500))}
-                  onKeyDown={(e) => { if (e.key === "Enter") submitAdj(); }}
-                  className="flex-1 h-10"
+                  className="flex-1 h-9 text-sm"
                 />
                 <Button
-                  onClick={submitAdj}
+                  type="submit"
                   disabled={createAdj.isPending || (!chipIn && !chipOut)}
-                  className="gap-1 h-10 px-5"
+                  className="gap-1 h-9 px-4"
+                  size="sm"
                 >
                   <Check className="w-4 h-4" /> OK
                 </Button>
               </div>
-            </div>
+            </form>
           )}
+
 
           {/* Right-side: Close button only */}
           <div className="shrink-0 flex flex-col items-end justify-start py-0.5">
