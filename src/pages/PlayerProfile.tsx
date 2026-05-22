@@ -427,10 +427,8 @@ const PlayerProfile = () => {
             />
 
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-9 gap-2 pt-2">
-              <Kpi label="Visits" value={lifetime.visitCount.toString()} />
-              <Kpi label="Total time" value={fmtDuration(lifetime.totalMins)} />
-              <Kpi label="Avg session" value={lifetime.avgSession ? fmtDuration(lifetime.avgSession) : "—"} />
+            {/* KPIs: financials on row 1, time/visits on row 2 (5 cols on lg). */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 pt-2">
               {showFinancials && (
                 <>
                   <Kpi label="Drop" value={fmtMoney(lifetime.drop)} />
@@ -446,11 +444,16 @@ const PlayerProfile = () => {
                     value={fmtMoney(lifetime.total)}
                     valueClass={lifetime.total === 0 ? undefined : lifetime.total > 0 ? "cms-amount-positive" : "cms-amount-negative"}
                   />
-                  <Kpi
-                    label="Hold %"
-                    value={lifetime.hold === null ? "—" : `${lifetime.hold.toFixed(1)}%`}
-                  />
                 </>
+              )}
+              <Kpi label="Visits" value={lifetime.visitCount.toString()} />
+              <Kpi label="Total time" value={fmtDuration(lifetime.totalMins)} />
+              <Kpi label="Avg session" value={lifetime.avgSession ? fmtDuration(lifetime.avgSession) : "—"} />
+              {showFinancials && (
+                <Kpi
+                  label="Hold %"
+                  value={lifetime.hold === null ? "—" : `${lifetime.hold.toFixed(1)}%`}
+                />
               )}
             </div>
 
