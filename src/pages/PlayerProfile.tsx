@@ -12,7 +12,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { DateRangePresets, type DatePreset, presetRange } from "@/components/ui/date-range-presets";
 import CategoryBadge, { type PlayerCategory } from "@/components/player/CategoryBadge";
 import CasinoBadge from "@/components/player/CasinoBadge";
-import PlayerStatusTagsEditor from "@/components/player/PlayerStatusTagsEditor";
+import PlayerStatusTagsEditor, { LevelPicker } from "@/components/player/PlayerStatusTagsEditor";
 import PlayerEditDialog from "@/components/PlayerEditDialog";
 import { fmtDate, fmtDateTime } from "@/lib/format-date";
 import {
