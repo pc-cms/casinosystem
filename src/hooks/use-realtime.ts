@@ -110,17 +110,17 @@ export const useRealtimeSubscriptions = () => {
         .on(
           "postgres_changes",
           { event: "*", schema: "public", table: "table_tracker", filter: `casino_id=eq.${casinoId}` },
-          () => { qc.invalidateQueries({ queryKey: ["table-tracker"] }); }
+          () => { qc.invalidateQueries({ queryKey: ["table-tracker", casinoId] }); }
         )
         .on(
           "postgres_changes",
           { event: "*", schema: "public", table: "chip_snapshots", filter: `casino_id=eq.${casinoId}` },
-          () => { qc.invalidateQueries({ queryKey: ["chip-snapshots"] }); }
+          () => { qc.invalidateQueries({ queryKey: ["chip-snapshots", casinoId] }); }
         )
         .on(
           "postgres_changes",
           { event: "*", schema: "public", table: "pit_rota", filter: `casino_id=eq.${casinoId}` },
-          () => { qc.invalidateQueries({ queryKey: ["pit-rota"] }); }
+          () => { qc.invalidateQueries({ queryKey: ["pit-rota-range", casinoId] }); }
         )
         .on(
           "postgres_changes",
