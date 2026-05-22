@@ -406,7 +406,11 @@ const PlayerProfile = () => {
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <h1 className="text-2xl font-semibold text-card-foreground">{fullName}</h1>
-                  <CategoryBadge category={(player.category as PlayerCategory) || "normal"} size="md" />
+                  <LevelPicker
+                    value={(player.category as PlayerCategory) || "normal"}
+                    onPick={(v) => updateCategory.mutate({ player_id: player.id, category: v })}
+                    canEdit={canEditLevel}
+                  />
                   {player.status === "blacklist" && (
                     <span className="text-xs font-bold text-destructive border border-destructive rounded px-1.5 py-0.5">BL</span>
                   )}
