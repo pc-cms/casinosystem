@@ -380,7 +380,7 @@ export const useSetSingleTableResult = () => {
 // Reopen a single table (clear closing draft) — Manager Access required at UI level
 export const useReopenSingleTable = () => {
   const qc = useQueryClient();
-  const { casinoId } = useAuth();
+  const { activeCasinoId: casinoId } = useCasino();
   return useMutation({
     mutationFn: async (tableId: string) => {
       if (!casinoId) throw new Error("No casino");
@@ -406,7 +406,7 @@ export const useReopenSingleTable = () => {
 // Close all tables (Cashier action) — sets status to 'closed' (offline-aware)
 export const useCloseAllTables = () => {
   const qc = useQueryClient();
-  const { casinoId } = useAuth();
+  const { activeCasinoId: casinoId } = useCasino();
   return useMutation({
     mutationFn: async (tableIds: string[]) => {
       if (!casinoId) throw new Error("No casino");
