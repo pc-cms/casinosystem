@@ -1,4 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useCasino } from "@/lib/casino-context";
 import { useDealers, useBreaklistData, useSetBreaklistCell, useLockBreaklistCell, useGamingTables, usePitRotaRange, useSetDealerAttendance, useDealerAttendance } from "@/hooks/use-casino-data";
 import { useCasinoInfo } from "@/hooks/use-table-lifecycle";
 import { useAuth } from "@/lib/auth-context";
@@ -164,6 +166,8 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
 
   // Inline role picker state
   const [activeCell, setActiveCell] = useState<{ dealerId: string; timeSlot: string; dropUp: boolean } | null>(null);
+  const qc = useQueryClient();
+  const { activeCasinoId } = useCasino();
 
   const getCellData = (dealerId: string, timeSlot: string) =>
     breaklist.find(b => b.dealer_id === dealerId && b.time_slot === timeSlot);
@@ -180,6 +184,14 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
     const spaceBelow = window.innerHeight - rect.bottom;
     const dropUp = spaceBelow < 240;
     setActiveCell({ dealerId, timeSlot, dropUp });
+    // Force-refresh breaklist for this casino so the popup's "available tables"
+    // list reflects rows added by other operators since the page last refetched.
+    // Without this, off-screen assignments (e.g. Wilfred on AR1 at 20:00) may not
+    // be in cache, the popup would falsely offer AR1, and the DB trigger would
+    // then reject the click with a "slot already taken" error.
+    if (activeCasinoId) {
+      qc.invalidateQueries({ queryKey: ["breaklist", activeCasinoId] });
+    }
   };
 
   const handleRoleSelect = (role: string, tableId?: string) => {
