@@ -54,6 +54,8 @@ const PlayerProfile = () => {
   const navigate = useNavigate();
   const { roles, isManager } = useAuth();
   const showFinancials = canSeePlayerFinancials(roles);
+  const canEditLevel = roles.some((r) => ["super_admin", "manager", "floor_manager", "finance_manager"].includes(r));
+  const updateCategory = useUpdatePlayerCategory();
 
   const { data: player, isLoading } = usePlayer(id);
   const { data: visits = [] } = usePlayerVisits(id);
