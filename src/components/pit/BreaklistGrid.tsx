@@ -193,7 +193,6 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
       qc.invalidateQueries({ queryKey: ["breaklist", activeCasinoId] });
     }
   };
-  };
 
   const handleRoleSelect = (role: string, tableId?: string) => {
     if (!activeCell) return;
