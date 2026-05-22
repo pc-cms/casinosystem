@@ -241,8 +241,9 @@ export const useSetPitRota = () => {
       return { offline: result.offline };
     },
     onMutate: async (input) => {
-      await qc.cancelQueries({ queryKey: ["pit-rota-range"] });
-      const queries = qc.getQueriesData<any[]>({ queryKey: ["pit-rota-range"] });
+      await qc.cancelQueries({ queryKey: ["pit-rota-range", casinoId] });
+      const queries = qc.getQueriesData<any[]>({ queryKey: ["pit-rota-range"] })
+        .filter(([key]) => (key as any[])[1] === casinoId);
       queries.forEach(([key, data]) => {
         if (!data) return;
         const idx = data.findIndex((r: any) => r.dealer_id === input.dealer_id && r.date === input.date);
