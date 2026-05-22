@@ -241,8 +241,9 @@ export const useSetPitRota = () => {
       return { offline: result.offline };
     },
     onMutate: async (input) => {
-      await qc.cancelQueries({ queryKey: ["pit-rota-range"] });
-      const queries = qc.getQueriesData<any[]>({ queryKey: ["pit-rota-range"] });
+      await qc.cancelQueries({ queryKey: ["pit-rota-range", casinoId] });
+      const queries = qc.getQueriesData<any[]>({ queryKey: ["pit-rota-range"] })
+        .filter(([key]) => (key as any[])[1] === casinoId);
       queries.forEach(([key, data]) => {
         if (!data) return;
         const idx = data.findIndex((r: any) => r.dealer_id === input.dealer_id && r.date === input.date);
@@ -281,8 +282,9 @@ export const useDeletePitRota = () => {
       }
     },
     onMutate: async ({ dealer_id, date }) => {
-      await qc.cancelQueries({ queryKey: ["pit-rota-range"] });
-      const queries = qc.getQueriesData<any[]>({ queryKey: ["pit-rota-range"] });
+      await qc.cancelQueries({ queryKey: ["pit-rota-range", casinoId] });
+      const queries = qc.getQueriesData<any[]>({ queryKey: ["pit-rota-range"] })
+        .filter(([key]) => (key as any[])[1] === casinoId);
       queries.forEach(([key, data]) => {
         if (!data) return;
         qc.setQueryData(key, data.filter((r: any) => !(r.dealer_id === dealer_id && r.date === date)));
@@ -333,8 +335,9 @@ export const useSetDealerAttendance = () => {
       return { offline: result.offline };
     },
     onMutate: async (input) => {
-      await qc.cancelQueries({ queryKey: ["dealer-attendance-range"] });
-      const queries = qc.getQueriesData<any[]>({ queryKey: ["dealer-attendance-range"] });
+      await qc.cancelQueries({ queryKey: ["dealer-attendance-range", casinoId] });
+      const queries = qc.getQueriesData<any[]>({ queryKey: ["dealer-attendance-range"] })
+        .filter(([key]) => (key as any[])[1] === casinoId);
       queries.forEach(([key, data]) => {
         if (!data) return;
         const idx = data.findIndex((a: any) => a.dealer_id === input.dealer_id && a.date === input.date);
@@ -445,8 +448,12 @@ export const useSetBreaklistCell = () => {
       return { offline: result.offline };
     },
     onMutate: async (input) => {
-      await qc.cancelQueries({ queryKey: ["breaklist"] });
-      const queries = qc.getQueriesData<any[]>({ queryKey: ["breaklist"] });
+      await qc.cancelQueries({ queryKey: ["breaklist", casinoId] });
+      // Scope optimistic update to THIS casino only — otherwise a Mwanza edit
+      // would inject a fake cell into the Arusha breaklist cache and the Arusha
+      // grid would treat that slot as "occupied" and block the operator.
+      const queries = qc.getQueriesData<any[]>({ queryKey: ["breaklist"] })
+        .filter(([key]) => (key as any[])[1] === casinoId);
       queries.forEach(([key, data]) => {
         if (!data) return;
         const idx = data.findIndex((b: any) => b.dealer_id === input.dealer_id && b.time_slot === input.time_slot);
