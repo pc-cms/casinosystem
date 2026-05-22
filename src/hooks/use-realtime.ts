@@ -78,7 +78,16 @@ export const useRealtimeSubscriptions = () => {
         .on(
           "postgres_changes",
           { event: "*", schema: "public", table: "breaklist", filter: `casino_id=eq.${casinoId}` },
-          () => { qc.invalidateQueries({ queryKey: ["breaklist"] }); }
+          () => {
+            qc.invalidateQueries({ queryKey: ["breaklist", casinoId] });
+          }
+        )
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "dealer_attendance", filter: `casino_id=eq.${casinoId}` },
+          () => {
+            qc.invalidateQueries({ queryKey: ["dealer-attendance-range", casinoId] });
+          }
         )
         .on(
           "postgres_changes",
