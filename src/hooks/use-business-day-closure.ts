@@ -1,6 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/lib/auth-context";
 import { useCasino } from "@/lib/casino-context";
 import { getBusinessDate } from "@/lib/business-day";
 import { toast } from "sonner";
