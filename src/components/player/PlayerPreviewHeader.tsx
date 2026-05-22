@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import PlayerPhotoLightbox from "@/components/player/PlayerPhotoLightbox";
-import PlayerEditDialog from "@/components/PlayerEditDialog";
 import { useNavigate } from "react-router-dom";
-import { X, ExternalLink, User, ArrowDownToLine, ArrowUpFromLine, Check, Pencil } from "lucide-react";
+import { X, ExternalLink, User, ArrowDownToLine, ArrowUpFromLine, Check } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { usePlayer, usePlayerVisits, usePlayerNotes } from "@/hooks/use-player-profile";
@@ -137,17 +136,12 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
   const { roles } = useAuth();
   const showFinancials = canSeePlayerFinancials(roles || []);
   const canAdjust = (roles || []).some((r) => r === "pit" || r === "manager");
-  // Pit-only users get read-only PlayerEditDialog upstream; everyone else
-  // (reception, hr, surveillance, manager, finance, super_admin) may edit.
-  const isPitOnly = (roles || []).some((r) => r === "pit") && !(roles || []).some((r) => r === "manager" || r === "super_admin");
-  const canEditProfile = !isPitOnly;
 
   const [chipIn, setChipIn] = useState("");
   const [chipOut, setChipOut] = useState("");
   const [note, setNote] = useState("");
   const createAdj = useCreatePlayerChipAdjustment();
   const [photoOpen, setPhotoOpen] = useState(false);
-  const [editOpen, setEditOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
   // Expose header height as CSS var so downstream sticky elements (table headers,
@@ -219,12 +213,12 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
         </div>
       ) : (
         <div className="flex items-stretch gap-5">
-          {/* Photo — click opens lightbox */}
+          {/* Photo — click opens lightbox. Enlarged: fills the header vertically. */}
           <button
             type="button"
             onClick={() => setPhotoOpen(true)}
             aria-label="View photo"
-            className="h-32 w-32 rounded-2xl overflow-hidden bg-muted border border-border shrink-0 flex items-center justify-center hover:ring-2 hover:ring-primary/40 transition"
+            className="h-44 w-44 rounded-2xl overflow-hidden bg-muted border border-border shrink-0 flex items-center justify-center hover:ring-2 hover:ring-primary/40 transition"
           >
             {player.photo_url ? (
               <img
@@ -233,39 +227,13 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
                 className="h-full w-full object-cover"
               />
             ) : (
-              <User className="h-14 w-14 text-muted-foreground" />
+              <User className="h-20 w-20 text-muted-foreground" />
             )}
           </button>
 
-          {/* Visits + Open Profile (left of identity, with divider) */}
-          <div className="shrink-0 flex flex-col justify-center items-center gap-2 pr-5 border-r border-border self-stretch">
-            <span className="font-mono text-xs text-muted-foreground uppercase tracking-wide">Visits</span>
-            <span className="text-foreground font-bold text-3xl tabular-nums leading-none">{visitsCount}</span>
-            <div className="flex gap-1.5 mt-1">
-              <Button
-                size="sm"
-                onClick={() => nav(`/players/${player.id}`)}
-                className="gap-1"
-              >
-                Profile <ExternalLink className="h-3.5 w-3.5" />
-              </Button>
-              {canEditProfile && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setEditOpen(true)}
-                  aria-label="Edit player profile"
-                  className="gap-1"
-                >
-                  <Pencil className="h-3.5 w-3.5" /> Edit
-                </Button>
-              )}
-            </div>
-          </div>
-
-          {/* Identity block: Name+Nick / Cash In + Result / Tags */}
+          {/* Identity block: Name+Nick+Profile / Visits + Drop/CashIn/Result / Tags */}
           <div className="min-w-0 flex-1 flex flex-col justify-between gap-1.5 py-0.5">
-            {/* Row 1 — Name + Nick + Category */}
+            {/* Row 1 — Name + Nick + Category + Profile button */}
             <div className="flex items-center gap-2 flex-wrap min-w-0">
               <CategoryBadge category={(player.category as any) || "normal"} size="md" />
               <span className="text-2xl font-bold truncate">
@@ -289,26 +257,36 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
                   — {blacklistReason}
                 </span>
               )}
+              <Button
+                size="sm"
+                onClick={() => nav(`/players/${player.id}`)}
+                className="gap-1 ml-1"
+              >
+                Profile <ExternalLink className="h-3.5 w-3.5" />
+              </Button>
             </div>
 
-            {/* Row 2 — Drop / Cash In / Result for the active period */}
-            {showFinancials && (
-              <div className="flex items-stretch gap-2 flex-wrap">
-                <StatTile
-                  label={`Drop ${periodSuffix}`}
-                  value={formatCurrency(dropSplit?.dropR ?? 0)}
-                />
-                <StatTile
-                  label={`Cash In ${periodSuffix}`}
-                  value={formatCurrency(dayStats?.cashIn ?? 0)}
-                />
-                <StatTile
-                  label={`Result ${periodSuffix}`}
-                  value={`${result > 0 ? "+" : ""}${formatCurrency(result)}`}
-                  tone={result > 0 ? "positive" : result < 0 ? "negative" : "neutral"}
-                />
-              </div>
-            )}
+            {/* Row 2 — Visits + Drop / Cash In / Result for the active period */}
+            <div className="flex items-stretch gap-2 flex-wrap">
+              <StatTile label="Visits" value={String(visitsCount)} />
+              {showFinancials && (
+                <>
+                  <StatTile
+                    label={`Drop ${periodSuffix}`}
+                    value={formatCurrency(dropSplit?.dropR ?? 0)}
+                  />
+                  <StatTile
+                    label={`Cash In ${periodSuffix}`}
+                    value={formatCurrency(dayStats?.cashIn ?? 0)}
+                  />
+                  <StatTile
+                    label={`Result ${periodSuffix}`}
+                    value={`${result > 0 ? "+" : ""}${formatCurrency(result)}`}
+                    tone={result > 0 ? "positive" : result < 0 ? "negative" : "neutral"}
+                  />
+                </>
+              )}
+            </div>
 
             {/* Row 3 — Tags (floor + CCTV), wraps on narrow widths */}
 
@@ -403,11 +381,6 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
         onOpenChange={setPhotoOpen}
         src={player?.photo_url}
         alt={player ? `${player.first_name} ${player.last_name}` : undefined}
-      />
-      <PlayerEditDialog
-        player={player ? (player as any) : null}
-        open={editOpen}
-        onOpenChange={setEditOpen}
       />
     </div>
   );
