@@ -420,15 +420,8 @@ const PlayerProfile = () => {
               </div>
             </div>
 
-            <PlayerStatusTagsEditor
-              playerId={player.id}
-              category={(player.category as PlayerCategory) || "normal"}
-              tagRows={tagRows}
-            />
-
-
             {/* KPIs: financials on row 1, time/visits on row 2 (5 cols on lg). */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 pt-2">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
               {showFinancials && (
                 <>
                   <Kpi label="Drop" value={fmtMoney(lifetime.drop)} />
@@ -457,7 +450,7 @@ const PlayerProfile = () => {
               )}
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3 text-xs text-muted-foreground">
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 text-xs text-muted-foreground">
               <Field label="Phone" value={player.phone || "—"} />
               <Field label="Birth date" value={player.birth_date ? fmtDate(player.birth_date) : "—"} />
               <Field label="Player type" value={player.player_type || "—"} />
@@ -472,6 +465,13 @@ const PlayerProfile = () => {
                 value={lifetime.daysSinceLast === null ? "—" : `${lifetime.daysSinceLast}d`}
               />
             </div>
+
+            {/* Level + Tags moved to the bottom so KPIs use the full width above. */}
+            <PlayerStatusTagsEditor
+              playerId={player.id}
+              category={(player.category as PlayerCategory) || "normal"}
+              tagRows={tagRows}
+            />
           </div>
         </div>
       </PageSection>
@@ -522,7 +522,6 @@ const PlayerProfile = () => {
                       <th className="text-left py-2 px-2">Check-in</th>
                       <th className="text-left py-2 px-2">Check-out</th>
                       <th className="text-left py-2 px-2">Duration</th>
-                      <th className="text-left py-2 px-2">Position</th>
                       {showFinancials && <th className="text-right py-2 px-2" title="Drop — NEP-aware (external cash only)">Drop</th>}
                       {showFinancials && <th className="text-right py-2 px-2" title="Total cash in (all buy-ins)">Cash In</th>}
                       {showFinancials && <th className="text-right py-2 px-2">Cashout</th>}
@@ -536,7 +535,7 @@ const PlayerProfile = () => {
                       const f = visitFinancials.get(v.id) || { totalIn: 0, cashout: 0, comps: 0, dropR: 0 };
                       const result = f.cashout - f.totalIn;
                       const total = result - f.comps;
-                      const colCount = 6 + (showFinancials ? 6 : 0);
+                      const colCount = 5 + (showFinancials ? 6 : 0);
                       const isExpanded = expandedVisit === v.id;
                       const txs = visitTxs.get(v.id) || [];
                       return (
@@ -554,7 +553,7 @@ const PlayerProfile = () => {
                           <td className="py-1.5 px-2 font-mono text-xs">{fmtDateTime(v.checked_in_at)}</td>
                           <td className="py-1.5 px-2 font-mono text-xs">{v.checked_out_at ? fmtDateTime(v.checked_out_at) : "—"}</td>
                           <td className="py-1.5 px-2">{fmtDuration(visitDuration(v))}</td>
-                          <td className="py-1.5 px-2"><span className="inline-flex items-center gap-1 text-xs"><MapPin className="w-3 h-3" />{v.position}</span></td>
+                          
                           {showFinancials && <td className="py-1.5 px-2 font-mono text-xs text-right">{f.dropR ? fmtMoney(f.dropR) : dot()}</td>}
                           {showFinancials && <td className="py-1.5 px-2 font-mono text-xs text-right">{f.totalIn ? fmtMoney(f.totalIn) : dot()}</td>}
                           {showFinancials && <td className="py-1.5 px-2 font-mono text-xs text-right">{f.cashout ? fmtMoney(f.cashout) : dot()}</td>}
@@ -630,7 +629,6 @@ const PlayerProfile = () => {
                         <tr className="border-t-2 border-border font-semibold">
                           <td className="py-2 px-2 text-xs uppercase text-muted-foreground" colSpan={4}>Total (period)</td>
                           <td className="py-2 px-2">{fmtDuration(periodMins)}</td>
-                          <td className="py-2 px-2"></td>
                           {showFinancials && <td className="py-2 px-2 font-mono text-xs text-right">{fmtMoney(pDropR)}</td>}
                           {showFinancials && <td className="py-2 px-2 font-mono text-xs text-right">{fmtMoney(pIn)}</td>}
                           {showFinancials && <td className="py-2 px-2 font-mono text-xs text-right">{fmtMoney(pOut)}</td>}
