@@ -3,6 +3,7 @@ import { useNavigate, useParams, Link } from "react-router-dom";
 import { ArrowLeft, Ban, User, Users as UsersIcon, BarChart3, Ticket, Trophy, History, MapPin, Gift, CalendarDays } from "lucide-react";
 
 import BlacklistPlayerDialog from "@/components/player/BlacklistPlayerDialog";
+import { formatCardId } from "@/lib/card-number";
 import PlayerVisitsBreakdown from "@/components/player/PlayerVisitsBreakdown";
 import PlayerChipAdjustmentsLog from "@/components/player/PlayerChipAdjustmentsLog";
 import { canSeePlayerFinancials } from "@/lib/role-access";

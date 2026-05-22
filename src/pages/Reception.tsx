@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
+import { formatCardId } from "@/lib/card-number";
 import { usePlayers, useVisitsToday } from "@/hooks/use-casino-data";
 import { useLastVisitsByPlayers } from "@/hooks/use-last-visit";
 import { useDebouncedValue } from "@/hooks/use-debounce";

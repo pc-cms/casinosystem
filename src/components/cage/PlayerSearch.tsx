@@ -3,6 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Pencil } from "lucide-react";
 import { useSelectedPlayer } from "@/hooks/use-selected-player";
 import CasinoBadge from "@/components/player/CasinoBadge";
+import { formatCardId } from "@/lib/card-number";
 
 interface Player {
   id: string;
