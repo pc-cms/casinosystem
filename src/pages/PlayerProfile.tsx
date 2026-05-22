@@ -426,6 +426,9 @@ const PlayerProfile = () => {
               </div>
             </div>
 
+            {/* Tags moved up — right after name + level, in two columns. */}
+            <PlayerStatusTagsEditor playerId={player.id} tagRows={tagRows} />
+
             {/* KPIs: financials on row 1, time/visits on row 2 (5 cols on lg). */}
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
               {showFinancials && (
@@ -471,13 +474,6 @@ const PlayerProfile = () => {
                 value={lifetime.daysSinceLast === null ? "—" : `${lifetime.daysSinceLast}d`}
               />
             </div>
-
-            {/* Level + Tags moved to the bottom so KPIs use the full width above. */}
-            <PlayerStatusTagsEditor
-              playerId={player.id}
-              category={(player.category as PlayerCategory) || "normal"}
-              tagRows={tagRows}
-            />
           </div>
         </div>
       </PageSection>
