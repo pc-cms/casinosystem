@@ -293,25 +293,25 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
 
             {/* Row 2 — Drop / Cash In / Result for the active period */}
             {showFinancials && (
-              <div className="flex items-baseline gap-6 font-mono flex-wrap">
-                <span className="text-sm text-muted-foreground">
-                  Drop {periodSuffix}:{" "}
-                  <span className="text-foreground font-bold text-lg">{formatCurrency(dropSplit?.dropR ?? 0)}</span>
-                </span>
-                <span className="text-sm text-muted-foreground">
-                  Cash In {periodSuffix}:{" "}
-                  <span className="text-foreground font-bold text-lg">{formatCurrency(dayStats?.cashIn ?? 0)}</span>
-                </span>
-                <span className="text-sm text-muted-foreground">
-                  Result {periodSuffix}:{" "}
-                  <span className={cn("font-bold text-lg", result > 0 ? "cms-amount-positive" : result < 0 ? "cms-amount-negative" : "text-foreground")}>
-                    {result > 0 ? "+" : ""}{formatCurrency(result)}
-                  </span>
-                </span>
+              <div className="flex items-stretch gap-2 flex-wrap">
+                <StatTile
+                  label={`Drop ${periodSuffix}`}
+                  value={formatCurrency(dropSplit?.dropR ?? 0)}
+                />
+                <StatTile
+                  label={`Cash In ${periodSuffix}`}
+                  value={formatCurrency(dayStats?.cashIn ?? 0)}
+                />
+                <StatTile
+                  label={`Result ${periodSuffix}`}
+                  value={`${result > 0 ? "+" : ""}${formatCurrency(result)}`}
+                  tone={result > 0 ? "positive" : result < 0 ? "negative" : "neutral"}
+                />
               </div>
             )}
 
             {/* Row 3 — Tags (floor + CCTV), wraps on narrow widths */}
+
             <div className="flex flex-col gap-1">
               <div className="flex items-start gap-2 min-w-0">
                 <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-mono w-12 shrink-0 pt-1">Tags</span>
