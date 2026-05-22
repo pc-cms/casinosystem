@@ -207,25 +207,66 @@ const PlayerStatistics = () => {
     return m;
   }, [sessions]);
 
-  // Sum chip transfers per player for today
-  const chipByPlayer = useMemo(() => {
-    const m = new Map<string, { in: number; out: number }>();
-    for (const ct of chipTransfers as any[]) {
-      let cur = m.get(ct.player_id);
-      if (!cur) { cur = { in: 0, out: 0 }; m.set(ct.player_id, cur); }
-      if (ct.direction === "in") cur.in += Number(ct.amount) || 0;
-      else cur.out += Number(ct.amount) || 0;
+  // Per-visit attribution: bucket transactions/chip ops by the visit window they fall in.
+  // Prevents double-counting when a player has multiple visits in the selected range.
+  const visitsByPlayer = useMemo(() => {
+    const m = new Map<string, any[]>();
+    for (const v of visits as any[]) {
+      const arr = m.get(v.player_id) || [];
+      arr.push(v);
+      m.set(v.player_id, arr);
     }
-    for (const a of chipAdjustments as any[]) {
-      let cur = m.get(a.player_id);
-      if (!cur) { cur = { in: 0, out: 0 }; m.set(a.player_id, cur); }
-      cur.in += Number(a.chip_in) || 0;
-      cur.out += Number(a.chip_out) || 0;
+    for (const arr of m.values()) {
+      arr.sort((a, b) => new Date(a.checked_in_at).getTime() - new Date(b.checked_in_at).getTime());
     }
     return m;
-  }, [chipTransfers, chipAdjustments]);
+  }, [visits]);
 
-  // Build per-player day rows
+  const visitFin = useMemo(() => {
+    const findVisit = (playerId: string, ts: number) => {
+      const arr = visitsByPlayer.get(playerId);
+      if (!arr) return null;
+      for (const v of arr) {
+        const start = new Date(v.checked_in_at).getTime();
+        const end = v.checked_out_at ? new Date(v.checked_out_at).getTime() : start + 24 * 3600 * 1000;
+        if (ts >= start && ts <= end) return v;
+      }
+      return null;
+    };
+    const m = new Map<string, { inDrop: number; out: number; chipIn: number; chipOut: number; inCount: number; outCount: number }>();
+    for (const v of visits as any[]) {
+      m.set(v.id, { inDrop: 0, out: 0, chipIn: 0, chipOut: 0, inCount: 0, outCount: 0 });
+    }
+    for (const t of transactions as any[]) {
+      const v = findVisit(t.player_id, new Date(t.created_at).getTime());
+      if (!v) continue;
+      const f = m.get(v.id)!;
+      const amt = Number(t.amount) || 0;
+      if (t.type === "buy" || t.type === "in") { f.inDrop += amt; f.inCount += 1; }
+      else if (t.type === "cashout" || t.type === "out") { f.out += amt; f.outCount += 1; }
+    }
+    for (const ct of chipTransfers as any[]) {
+      const v = findVisit(ct.player_id, new Date(ct.created_at).getTime());
+      if (!v) continue;
+      const f = m.get(v.id)!;
+      const amt = Number(ct.amount) || 0;
+      if (ct.direction === "in") f.chipIn += amt; else f.chipOut += amt;
+    }
+    for (const a of chipAdjustments as any[]) {
+      // chipAdjustments query does not select created_at — attribute to player's latest visit as fallback.
+      const arr = visitsByPlayer.get(a.player_id);
+      const v = (a as any).created_at
+        ? findVisit(a.player_id, new Date((a as any).created_at).getTime())
+        : (arr && arr.length ? arr[arr.length - 1] : null);
+      if (!v) continue;
+      const f = m.get(v.id)!;
+      f.chipIn += Number(a.chip_in) || 0;
+      f.chipOut += Number(a.chip_out) || 0;
+    }
+    return m;
+  }, [visits, transactions, chipTransfers, chipAdjustments, visitsByPlayer]);
+
+  // Build per-visit rows
   const rows = useMemo(() => {
     const playerById: Record<string, any> = {};
     players.forEach(p => { playerById[p.id] = p; });
@@ -240,14 +281,10 @@ const PlayerStatistics = () => {
       if (!p) return null;
       const cat = ((p as any).category as PlayerCategory) || "normal";
 
-      const playerTx = transactions.filter((t: any) => t.player_id === v.player_id);
-      const inDrop = playerTx
-        .filter((t: any) => t.type === "buy" || t.type === "in")
-        .reduce((s: number, t: any) => s + Number(t.amount), 0);
-      const out = playerTx
-        .filter((t: any) => t.type === "cashout" || t.type === "out")
-        .reduce((s: number, t: any) => s + Number(t.amount), 0);
-      const chip = chipByPlayer.get(v.player_id) || { in: 0, out: 0 };
+      const f = visitFin.get(v.id) || { inDrop: 0, out: 0, chipIn: 0, chipOut: 0, inCount: 0, outCount: 0 };
+      const inDrop = f.inDrop;
+      const out = f.out;
+      const chip = { in: f.chipIn, out: f.chipOut };
       // Result = (cashout + chipOut) − (drop + chipIn). Always computed.
       // Player still at table without cashout → negative result (chips owed to casino on paper).
       const result = (out + chip.out) - (inDrop + chip.in);
@@ -276,8 +313,8 @@ const PlayerStatistics = () => {
         inDrop,
         out,
         dropR: playersDropSplit?.get(v.player_id)?.dropR ?? 0,
-        inCount: playerTx.filter((t: any) => t.type === "buy" || t.type === "in").length,
-        outCount: playerTx.filter((t: any) => t.type === "cashout" || t.type === "out").length,
+        inCount: f.inCount,
+        outCount: f.outCount,
         chipIn: chip.in,
         chipOut: chip.out,
         chipDelta: chip.in - chip.out,
@@ -285,7 +322,7 @@ const PlayerStatistics = () => {
         isPresent,
       };
     }).filter(Boolean) as Array<NonNullable<ReturnType<typeof Object>>>;
-  }, [visits, players, transactions, chipByPlayer, activeSessionByPlayer, tableNameById, playersDropSplit]);
+  }, [visits, players, visitFin, activeSessionByPlayer, tableNameById, playersDropSplit]);
 
   // For multi-day periods, group rows per player so the same player isn't repeated for each visit.
   const displayRows = useMemo(() => {
