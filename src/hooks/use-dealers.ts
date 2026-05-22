@@ -264,7 +264,7 @@ export const useSetPitRota = () => {
 
 export const useDeletePitRota = () => {
   const qc = useQueryClient();
-  const { casinoId } = useAuth();
+  const { activeCasinoId: casinoId } = useCasino();
   return useMutation({
     mutationFn: async ({ dealer_id, date }: { dealer_id: string; date: string }) => {
       if (!casinoId) throw new Error("No casino");
@@ -303,7 +303,7 @@ export const useDeletePitRota = () => {
 const aliasAttRow = (a: any) => ({ ...a, dealer_id: a.employee_id });
 
 export const useDealerAttendance = (date: string) => {
-  const { casinoId } = useAuth();
+  const { activeCasinoId: casinoId } = useCasino();
   return useQuery({
     queryKey: ["dealer-attendance", casinoId, date],
     queryFn: async () => {
@@ -316,7 +316,8 @@ export const useDealerAttendance = (date: string) => {
 
 export const useSetDealerAttendance = () => {
   const qc = useQueryClient();
-  const { casinoId, user } = useAuth();
+  const { user } = useAuth();
+  const { activeCasinoId: casinoId } = useCasino();
   return useMutation({
     mutationFn: async (input: { dealer_id: string; date: string; value: string }) => {
       if (!casinoId || !user) throw new Error("Not authenticated");
@@ -357,7 +358,7 @@ export const useSetDealerAttendance = () => {
 };
 
 export const useDealerAttendanceRange = (startDate: string, endDate: string) => {
-  const { casinoId } = useAuth();
+  const { activeCasinoId: casinoId } = useCasino();
   return useQuery({
     queryKey: ["dealer-attendance-range", casinoId, startDate, endDate],
     queryFn: async () => {
@@ -373,7 +374,7 @@ export const useDealerAttendanceRange = (startDate: string, endDate: string) => 
 const aliasBreaklistRow = (b: any) => ({ ...b, dealer_id: b.employee_id });
 
 export const useBreaklistData = (date: string) => {
-  const { casinoId } = useAuth();
+  const { activeCasinoId: casinoId } = useCasino();
   return useQuery({
     queryKey: ["breaklist", casinoId, date],
     queryFn: async () => {
