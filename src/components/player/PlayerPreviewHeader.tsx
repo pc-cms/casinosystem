@@ -77,10 +77,36 @@ const NumberInput = ({
         const raw = e.target.value.replace(/\D/g, "");
         onChange(raw);
       }}
-      className={cn("font-mono text-xl font-bold tabular-nums text-right h-12", className)}
+      className={cn("font-mono text-sm font-semibold tabular-nums text-right h-9", className)}
     />
   );
 };
+
+/** Compact stat tile used in the header — uniform across Drop / Cash In / Result. */
+const StatTile = ({
+  label,
+  value,
+  tone = "neutral",
+}: {
+  label: string;
+  value: string;
+  tone?: "neutral" | "positive" | "negative";
+}) => (
+  <div className="flex flex-col items-start justify-center min-w-[110px] px-3 py-1.5 rounded-md bg-background/40 border border-border/60">
+    <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-mono leading-none">
+      {label}
+    </span>
+    <span
+      className={cn(
+        "font-mono font-bold tabular-nums text-lg leading-tight mt-1 whitespace-nowrap",
+        tone === "positive" && "cms-amount-positive",
+        tone === "negative" && "cms-amount-negative",
+      )}
+    >
+      {value}
+    </span>
+  </div>
+);
 
 const LEVEL_TINT: Record<string, string> = {
   diamond: "bg-blue-100 dark:bg-[hsl(220_50%_18%)] border-blue-200 dark:border-blue-500/40",
@@ -88,6 +114,7 @@ const LEVEL_TINT: Record<string, string> = {
   gold: "bg-yellow-100 dark:bg-[hsl(45_50%_18%)] border-yellow-200 dark:border-yellow-500/40",
   normal: "bg-card border-border",
 };
+
 
 
 export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className, range }: Props) => {
@@ -266,25 +293,25 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
 
             {/* Row 2 — Drop / Cash In / Result for the active period */}
             {showFinancials && (
-              <div className="flex items-baseline gap-6 font-mono flex-wrap">
-                <span className="text-sm text-muted-foreground">
-                  Drop {periodSuffix}:{" "}
-                  <span className="text-foreground font-bold text-lg">{formatCurrency(dropSplit?.dropR ?? 0)}</span>
-                </span>
-                <span className="text-sm text-muted-foreground">
-                  Cash In {periodSuffix}:{" "}
-                  <span className="text-foreground font-bold text-lg">{formatCurrency(dayStats?.cashIn ?? 0)}</span>
-                </span>
-                <span className="text-sm text-muted-foreground">
-                  Result {periodSuffix}:{" "}
-                  <span className={cn("font-bold text-lg", result > 0 ? "cms-amount-positive" : result < 0 ? "cms-amount-negative" : "text-foreground")}>
-                    {result > 0 ? "+" : ""}{formatCurrency(result)}
-                  </span>
-                </span>
+              <div className="flex items-stretch gap-2 flex-wrap">
+                <StatTile
+                  label={`Drop ${periodSuffix}`}
+                  value={formatCurrency(dropSplit?.dropR ?? 0)}
+                />
+                <StatTile
+                  label={`Cash In ${periodSuffix}`}
+                  value={formatCurrency(dayStats?.cashIn ?? 0)}
+                />
+                <StatTile
+                  label={`Result ${periodSuffix}`}
+                  value={`${result > 0 ? "+" : ""}${formatCurrency(result)}`}
+                  tone={result > 0 ? "positive" : result < 0 ? "negative" : "neutral"}
+                />
               </div>
             )}
 
             {/* Row 3 — Tags (floor + CCTV), wraps on narrow widths */}
+
             <div className="flex flex-col gap-1">
               <div className="flex items-start gap-2 min-w-0">
                 <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-mono w-12 shrink-0 pt-1">Tags</span>
@@ -306,28 +333,35 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
           </div>
 
 
-          {/* Chip IN/OUT — bigger, centered */}
+          {/* Chip adjustment form — compact, uniform heights */}
           {canAdjust && (
-            <div className="shrink-0 flex flex-col justify-center gap-2.5 w-[460px] border-l border-border pl-5 self-stretch">
-              <div className="grid grid-cols-2 gap-3">
+            <form
+              onSubmit={(e) => { e.preventDefault(); submitAdj(); }}
+              className="shrink-0 flex flex-col justify-center gap-2 w-[380px] border-l border-border pl-5 self-stretch"
+              aria-label="Player chip adjustment"
+            >
+              <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-mono leading-none">
+                Chip Adjustment
+              </span>
+              <div className="grid grid-cols-2 gap-2">
                 <div className="relative">
-                  <ArrowDownToLine className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-success pointer-events-none" />
+                  <ArrowDownToLine className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-success pointer-events-none" />
                   <NumberInput
                     ariaLabel="Chip IN"
-                    placeholder="Chip IN (+)"
+                    placeholder="IN (+)"
                     value={chipIn}
                     onChange={setChipIn}
-                    className="pl-10"
+                    className="pl-8"
                   />
                 </div>
                 <div className="relative">
-                  <ArrowUpFromLine className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-destructive pointer-events-none" />
+                  <ArrowUpFromLine className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-destructive pointer-events-none" />
                   <NumberInput
                     ariaLabel="Chip OUT"
-                    placeholder="Chip OUT (−)"
+                    placeholder="OUT (−)"
                     value={chipOut}
                     onChange={setChipOut}
-                    className="pl-10"
+                    className="pl-8"
                   />
                 </div>
               </div>
@@ -336,19 +370,20 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
                   placeholder="Comment…"
                   value={note}
                   onChange={(e) => setNote(e.target.value.slice(0, 500))}
-                  onKeyDown={(e) => { if (e.key === "Enter") submitAdj(); }}
-                  className="flex-1 h-10"
+                  className="flex-1 h-9 text-sm"
                 />
                 <Button
-                  onClick={submitAdj}
+                  type="submit"
                   disabled={createAdj.isPending || (!chipIn && !chipOut)}
-                  className="gap-1 h-10 px-5"
+                  className="gap-1 h-9 px-4"
+                  size="sm"
                 >
                   <Check className="w-4 h-4" /> OK
                 </Button>
               </div>
-            </div>
+            </form>
           )}
+
 
           {/* Right-side: Close button only */}
           <div className="shrink-0 flex flex-col items-end justify-start py-0.5">
