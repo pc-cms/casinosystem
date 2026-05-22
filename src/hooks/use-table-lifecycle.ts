@@ -234,7 +234,7 @@ export const useCancelPendingSchedule = () => {
 // Open a single table (Pit action) — clears closing data
 export const useOpenTable = () => {
   const qc = useQueryClient();
-  const { casinoId } = useAuth();
+  const { activeCasinoId: casinoId } = useCasino();
   return useMutation({
     mutationFn: async (tableId: string) => {
       if (!casinoId) throw new Error("No casino");
@@ -255,7 +255,7 @@ export const useOpenTable = () => {
 // Open all closed tables at once
 export const useOpenAllTables = () => {
   const qc = useQueryClient();
-  const { casinoId } = useAuth();
+  const { activeCasinoId: casinoId } = useCasino();
   return useMutation({
     mutationFn: async (tableIds: string[]) => {
       if (!casinoId) throw new Error("No casino");
@@ -279,7 +279,7 @@ export const useOpenAllTables = () => {
 // Set result on tables (Pit action) — stores closing_chips + closing_result
 export const useSetTableResults = () => {
   const qc = useQueryClient();
-  const { casinoId } = useAuth();
+  const { activeCasinoId: casinoId } = useCasino();
   return useMutation({
     mutationFn: async (results: Array<{
       table_id: string;
@@ -313,7 +313,8 @@ export const useSetTableResults = () => {
 // Set result for a SINGLE table (Pit Close Table wizard) — offline-aware
 export const useSetSingleTableResult = () => {
   const qc = useQueryClient();
-  const { casinoId, user } = useAuth();
+  const { user } = useAuth();
+  const { activeCasinoId: casinoId } = useCasino();
   return useMutation({
     mutationFn: async (input: {
       table_id: string;
