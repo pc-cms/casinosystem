@@ -388,11 +388,6 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
         src={player?.photo_url}
         alt={player ? `${player.first_name} ${player.last_name}` : undefined}
       />
-      <PlayerEditDialog
-        player={player ? (player as any) : null}
-        open={editOpen}
-        onOpenChange={setEditOpen}
-      />
     </div>
   );
 };
