@@ -155,7 +155,7 @@ const PlayerStatistics = () => {
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir(d => d === "asc" ? "desc" : "asc");
-    else { setSortKey(key); setSortDir("desc"); }
+    else { setSortKey(key); setSortDir(key === "card" || key === "name" ? "asc" : "desc"); }
   };
 
   const showFinancials = canSeePlayerFinancials(roles);
