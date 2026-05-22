@@ -77,10 +77,36 @@ const NumberInput = ({
         const raw = e.target.value.replace(/\D/g, "");
         onChange(raw);
       }}
-      className={cn("font-mono text-xl font-bold tabular-nums text-right h-12", className)}
+      className={cn("font-mono text-sm font-semibold tabular-nums text-right h-9", className)}
     />
   );
 };
+
+/** Compact stat tile used in the header — uniform across Drop / Cash In / Result. */
+const StatTile = ({
+  label,
+  value,
+  tone = "neutral",
+}: {
+  label: string;
+  value: string;
+  tone?: "neutral" | "positive" | "negative";
+}) => (
+  <div className="flex flex-col items-start justify-center min-w-[110px] px-3 py-1.5 rounded-md bg-background/40 border border-border/60">
+    <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-mono leading-none">
+      {label}
+    </span>
+    <span
+      className={cn(
+        "font-mono font-bold tabular-nums text-lg leading-tight mt-1 whitespace-nowrap",
+        tone === "positive" && "cms-amount-positive",
+        tone === "negative" && "cms-amount-negative",
+      )}
+    >
+      {value}
+    </span>
+  </div>
+);
 
 const LEVEL_TINT: Record<string, string> = {
   diamond: "bg-blue-100 dark:bg-[hsl(220_50%_18%)] border-blue-200 dark:border-blue-500/40",
@@ -88,6 +114,7 @@ const LEVEL_TINT: Record<string, string> = {
   gold: "bg-yellow-100 dark:bg-[hsl(45_50%_18%)] border-yellow-200 dark:border-yellow-500/40",
   normal: "bg-card border-border",
 };
+
 
 
 export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className, range }: Props) => {
