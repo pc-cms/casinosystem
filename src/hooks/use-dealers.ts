@@ -387,7 +387,8 @@ export const useBreaklistData = (date: string) => {
 
 export const useSetBreaklistCell = () => {
   const qc = useQueryClient();
-  const { casinoId, user } = useAuth();
+  const { user } = useAuth();
+  const { activeCasinoId: casinoId } = useCasino();
   return useMutation({
     mutationFn: async (input: {
       date: string;
@@ -479,7 +480,8 @@ export const useSetBreaklistCell = () => {
 
 export const useLockBreaklistCell = () => {
   const qc = useQueryClient();
-  const { casinoId, user } = useAuth();
+  const { user } = useAuth();
+  const { activeCasinoId: casinoId } = useCasino();
   return useMutation({
     mutationFn: async ({ id, lock }: { id: string; lock: boolean }) => {
       if (!user) throw new Error("Not authenticated");
@@ -491,6 +493,6 @@ export const useLockBreaklistCell = () => {
       if (error) throw error;
       await logAction(casinoId!, "lock", lock ? "CELL_LOCKED" : "CELL_UNLOCKED", { breaklist_id: id });
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["breaklist"] }); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["breaklist", casinoId] }); },
   });
 };
