@@ -266,6 +266,20 @@ const PlayerStatistics = () => {
     return m;
   }, [visits, transactions, chipTransfers, chipAdjustments, visitsByPlayer]);
 
+  // Per-player sum of in-window inDrop, used to allocate the window-level
+  // NEP-aware Drop R proportionally across that player's visits in the period.
+  // Without this, every visit row would show the full player-window dropR,
+  // which then multiplies in TOTAL row and in multi-day grouping.
+  const playerInDropSum = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const v of visits as any[]) {
+      const f = visitFin.get(v.id);
+      if (!f) continue;
+      m.set(v.player_id, (m.get(v.player_id) || 0) + f.inDrop);
+    }
+    return m;
+  }, [visits, visitFin]);
+
   // Build per-visit rows
   const rows = useMemo(() => {
     const playerById: Record<string, any> = {};
@@ -285,13 +299,16 @@ const PlayerStatistics = () => {
       const inDrop = f.inDrop;
       const out = f.out;
       const chip = { in: f.chipIn, out: f.chipOut };
-      // Result = (cashout + chipOut) − (drop + chipIn). Always computed.
-      // Player still at table without cashout → negative result (chips owed to casino on paper).
       const result = (out + chip.out) - (inDrop + chip.in);
 
       const activeSession = activeSessionByPlayer[v.player_id];
       const isPresent = !v.checked_out_at;
       const tableName = activeSession?.table_id ? tableNameById[activeSession.table_id] : null;
+
+      // Allocate player-window dropR proportionally by this visit's inDrop.
+      const playerDropR = playersDropSplit?.get(v.player_id)?.dropR ?? 0;
+      const totalIn = playerInDropSum.get(v.player_id) || 0;
+      const visitDropR = totalIn > 0 ? playerDropR * (inDrop / totalIn) : 0;
 
       return {
         id: v.id,
@@ -312,7 +329,7 @@ const PlayerStatistics = () => {
         avgBet: activeSession ? Number(activeSession.avg_bet || 0) : 0,
         inDrop,
         out,
-        dropR: playersDropSplit?.get(v.player_id)?.dropR ?? 0,
+        dropR: visitDropR,
         inCount: f.inCount,
         outCount: f.outCount,
         chipIn: chip.in,
@@ -322,7 +339,7 @@ const PlayerStatistics = () => {
         isPresent,
       };
     }).filter(Boolean) as Array<NonNullable<ReturnType<typeof Object>>>;
-  }, [visits, players, visitFin, activeSessionByPlayer, tableNameById, playersDropSplit]);
+  }, [visits, players, visitFin, activeSessionByPlayer, tableNameById, playersDropSplit, playerInDropSum]);
 
   // For multi-day periods, group rows per player so the same player isn't repeated for each visit.
   const displayRows = useMemo(() => {
