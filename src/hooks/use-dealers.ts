@@ -445,8 +445,12 @@ export const useSetBreaklistCell = () => {
       return { offline: result.offline };
     },
     onMutate: async (input) => {
-      await qc.cancelQueries({ queryKey: ["breaklist"] });
-      const queries = qc.getQueriesData<any[]>({ queryKey: ["breaklist"] });
+      await qc.cancelQueries({ queryKey: ["breaklist", casinoId] });
+      // Scope optimistic update to THIS casino only — otherwise a Mwanza edit
+      // would inject a fake cell into the Arusha breaklist cache and the Arusha
+      // grid would treat that slot as "occupied" and block the operator.
+      const queries = qc.getQueriesData<any[]>({ queryKey: ["breaklist"] })
+        .filter(([key]) => (key as any[])[1] === casinoId);
       queries.forEach(([key, data]) => {
         if (!data) return;
         const idx = data.findIndex((b: any) => b.dealer_id === input.dealer_id && b.time_slot === input.time_slot);
