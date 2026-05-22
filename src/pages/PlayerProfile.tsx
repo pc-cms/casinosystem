@@ -420,15 +420,8 @@ const PlayerProfile = () => {
               </div>
             </div>
 
-            <PlayerStatusTagsEditor
-              playerId={player.id}
-              category={(player.category as PlayerCategory) || "normal"}
-              tagRows={tagRows}
-            />
-
-
             {/* KPIs: financials on row 1, time/visits on row 2 (5 cols on lg). */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 pt-2">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
               {showFinancials && (
                 <>
                   <Kpi label="Drop" value={fmtMoney(lifetime.drop)} />
@@ -457,7 +450,7 @@ const PlayerProfile = () => {
               )}
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3 text-xs text-muted-foreground">
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 text-xs text-muted-foreground">
               <Field label="Phone" value={player.phone || "—"} />
               <Field label="Birth date" value={player.birth_date ? fmtDate(player.birth_date) : "—"} />
               <Field label="Player type" value={player.player_type || "—"} />
@@ -472,6 +465,13 @@ const PlayerProfile = () => {
                 value={lifetime.daysSinceLast === null ? "—" : `${lifetime.daysSinceLast}d`}
               />
             </div>
+
+            {/* Level + Tags moved to the bottom so KPIs use the full width above. */}
+            <PlayerStatusTagsEditor
+              playerId={player.id}
+              category={(player.category as PlayerCategory) || "normal"}
+              tagRows={tagRows}
+            />
           </div>
         </div>
       </PageSection>
