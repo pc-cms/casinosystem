@@ -150,12 +150,12 @@ const PlayerStatistics = () => {
   );
   const [posFilter, setPosFilter] = useState<"mix" | "table" | "slots">("mix");
   
-  type SortKey = "name" | "position" | "entry" | "exit" | "avgBet" | "dropR" | "inDrop" | "out" | "chipIn" | "chipOut" | "result";
+  type SortKey = "card" | "name" | "position" | "entry" | "exit" | "avgBet" | "dropR" | "inDrop" | "out" | "chipIn" | "chipOut" | "result";
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir(d => d === "asc" ? "desc" : "asc");
-    else { setSortKey(key); setSortDir("desc"); }
+    else { setSortKey(key); setSortDir(key === "card" || key === "name" ? "asc" : "desc"); }
   };
 
   const showFinancials = canSeePlayerFinancials(roles);
@@ -260,6 +260,9 @@ const PlayerStatistics = () => {
         id: v.id,
         visitNumber: visitNumberById.get(v.id) ?? 0,
         playerId: v.player_id,
+        cardNo: ((p as any).player_cards || [])
+          .slice()
+          .sort((a: any, b: any) => (a.is_active === b.is_active ? 0 : a.is_active ? -1 : 1))[0]?.card_number || "",
         firstName: p.first_name,
         lastName: p.last_name,
         nickname: (p as any).nickname,
@@ -336,6 +339,7 @@ const PlayerStatistics = () => {
         const dir = sortDir === "asc" ? 1 : -1;
         const get = (r: any) => {
           switch (sortKey) {
+            case "card": return r.cardNo || "\uffff";
             case "name": return `${r.firstName} ${r.lastName}`.toLowerCase();
             case "position": return r.position === "table" ? (r.tableName ?? "zzz") : r.position;
             case "entry": return new Date(r.entryAt).getTime();
@@ -600,6 +604,7 @@ const PlayerStatistics = () => {
           </div>
         </div>
       </td>
+      <td className="px-2 py-1.5 font-mono text-[11px] text-muted-foreground whitespace-nowrap">{r.cardNo || "·"}</td>
       <td className="px-1 py-1.5 font-mono text-xs w-[44px] text-center">{formatTime(r.entryAt)}</td>
       <td className="px-1 py-1.5 font-mono text-xs w-[44px] text-center">{r.exitAt ? formatTime(r.exitAt) : "·"}</td>
       <td className="px-1 py-1.5 w-[64px]">{renderPositionCell(r)}</td>
@@ -784,6 +789,7 @@ const PlayerStatistics = () => {
                         <>
                           <th style={{ top: "var(--ppheader-h, 0px)" }} className="px-2 py-3 text-center sticky left-0 bg-zinc-900 text-white z-30 w-10 font-bold">№</th>
                           <H k="name" sticky="sticky left-10">Name</H>
+                          <H k="card" title="Player card number (registration ID)">Card</H>
                           <H k="entry">Entry</H>
                           <H k="exit">Left</H>
                           <H k="position">Pos</H>
@@ -809,6 +815,7 @@ const PlayerStatistics = () => {
                       <td style={{ top: "calc(var(--ppheader-h, 0px) + 38px)", boxShadow: "inset 0 -2px 0 0 hsl(45 90% 55% / 0.9)" }} className="px-2 py-2 text-left uppercase tracking-wider font-bold sticky left-10 bg-[#F5D061] dark:bg-[#6B5A1A] text-amber-950 dark:text-amber-50 z-30">
                         Total
                       </td>
+                      <td style={{ top: "calc(var(--ppheader-h, 0px) + 38px)", boxShadow: "inset 0 -2px 0 0 hsl(45 90% 55% / 0.9)" }} className="px-1 py-2 sticky bg-[#F5D061] dark:bg-[#6B5A1A] z-20"></td>
                       <td style={{ top: "calc(var(--ppheader-h, 0px) + 38px)", boxShadow: "inset 0 -2px 0 0 hsl(45 90% 55% / 0.9)" }} className="px-1 py-2 sticky bg-[#F5D061] dark:bg-[#6B5A1A] z-20"></td>
                       <td style={{ top: "calc(var(--ppheader-h, 0px) + 38px)", boxShadow: "inset 0 -2px 0 0 hsl(45 90% 55% / 0.9)" }} className="px-1 py-2 sticky bg-[#F5D061] dark:bg-[#6B5A1A] z-20"></td>
                       <td style={{ top: "calc(var(--ppheader-h, 0px) + 38px)", boxShadow: "inset 0 -2px 0 0 hsl(45 90% 55% / 0.9)" }} className="px-1 py-2 sticky bg-[#F5D061] dark:bg-[#6B5A1A] z-20"></td>
@@ -841,7 +848,7 @@ const PlayerStatistics = () => {
                 <tbody>
                   {filtered.length === 0 ? (
                     <tr>
-                      <td colSpan={5 + (showFinancials ? 7 : 0)} className="px-2 py-8 text-center text-muted-foreground text-xs">
+                      <td colSpan={6 + (showFinancials ? 7 : 0)} className="px-2 py-8 text-center text-muted-foreground text-xs">
                         No players to display
                       </td>
                     </tr>

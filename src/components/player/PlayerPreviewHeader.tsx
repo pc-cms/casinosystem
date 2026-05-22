@@ -156,6 +156,8 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
     : "";
   const tagRows = ((player as any)?.player_tags || []) as Array<{ tag: string; source?: string | null }>;
   const { floor: floorTags, cctv: cctvTags } = splitTagsBySource(tagRows);
+  const cards = ((player as any)?.player_cards || []) as Array<{ card_number: string; is_active?: boolean }>;
+  const activeCard = cards.find((c) => c.is_active)?.card_number || cards[0]?.card_number || "";
   const visitsCount = visits.length;
   const result = dayStats?.result ?? 0;
 
@@ -244,6 +246,11 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
               </span>
               {player.nickname && (
                 <span className="text-xl text-muted-foreground font-normal truncate">"{player.nickname}"</span>
+              )}
+              {activeCard && (
+                <span className="font-mono text-xs text-muted-foreground border border-border rounded px-1.5 py-0.5" title="Player card (registration ID)">
+                  #{activeCard}
+                </span>
               )}
               {isBlacklisted && (
                 <span className="text-xs uppercase tracking-wider px-2 py-0.5 rounded bg-destructive/10 text-destructive border border-destructive/30">
