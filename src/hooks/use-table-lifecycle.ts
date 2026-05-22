@@ -1,13 +1,14 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
+import { useCasino } from "@/lib/casino-context";
 import { logAction } from "@/lib/logging";
 import { offlineMutation } from "@/lib/offline-mutation";
 import { toast } from "sonner";
 
 // ============ CHIP BASELINE ============
 export const useChipBaseline = () => {
-  const { casinoId } = useAuth();
+  const { activeCasinoId: casinoId } = useCasino();
   return useQuery({
     queryKey: ["chip-baseline", casinoId],
     queryFn: async () => {
@@ -88,7 +89,7 @@ export const useUpsertBaseline = () => {
 
 // ============ CASINO INFO (float_locked) ============
 export const useCasinoInfo = () => {
-  const { casinoId } = useAuth();
+  const { activeCasinoId: casinoId } = useCasino();
   return useQuery({
     queryKey: ["casino-info", casinoId],
     queryFn: async () => {
