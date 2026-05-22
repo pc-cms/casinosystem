@@ -147,11 +147,17 @@ const CheckInTab = () => {
   const filtered = useMemo(() => {
     if (!debouncedQuery) return [];
     const q = debouncedQuery.toLowerCase();
+    const qDigits = debouncedQuery.replace(/\D/g, "");
     return players.filter(p =>
       p.first_name.toLowerCase().includes(q) ||
       p.last_name.toLowerCase().includes(q) ||
       p.nickname?.toLowerCase().includes(q) ||
-      p.player_cards?.some((c: any) => c.card_number.includes(debouncedQuery)) ||
+      p.player_cards?.some((c: any) => {
+        const raw = (c.card_number || "").toLowerCase();
+        if (raw.includes(q)) return true;
+        const digits = raw.replace(/\D/g, "");
+        return !!qDigits && digits.includes(qDigits);
+      }) ||
       p.player_cards?.some((c: any) => c.rfid_uid?.includes(debouncedQuery))
     ).slice(0, 20);
   }, [debouncedQuery, players]);
@@ -805,11 +811,17 @@ const UpdateDataTab = () => {
 
     if (query) {
       const q = query.toLowerCase();
+      const qDigits = query.replace(/\D/g, "");
       list = list.filter(p =>
         p.first_name?.toLowerCase().includes(q) ||
         p.last_name?.toLowerCase().includes(q) ||
         p.nickname?.toLowerCase().includes(q) ||
-        p.player_cards?.some((c: any) => c.card_number?.includes(query))
+        p.player_cards?.some((c: any) => {
+          const raw = (c.card_number || "").toLowerCase();
+          if (raw.includes(q)) return true;
+          const digits = raw.replace(/\D/g, "");
+          return !!qDigits && digits.includes(qDigits);
+        })
       );
     }
 
