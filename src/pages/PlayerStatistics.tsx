@@ -339,6 +339,7 @@ const PlayerStatistics = () => {
         const dir = sortDir === "asc" ? 1 : -1;
         const get = (r: any) => {
           switch (sortKey) {
+            case "card": return r.cardNo || "\uffff";
             case "name": return `${r.firstName} ${r.lastName}`.toLowerCase();
             case "position": return r.position === "table" ? (r.tableName ?? "zzz") : r.position;
             case "entry": return new Date(r.entryAt).getTime();
