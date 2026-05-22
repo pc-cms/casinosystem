@@ -12,13 +12,13 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { DateRangePresets, type DatePreset, presetRange } from "@/components/ui/date-range-presets";
 import CategoryBadge, { type PlayerCategory } from "@/components/player/CategoryBadge";
 import CasinoBadge from "@/components/player/CasinoBadge";
-import PlayerStatusTagsEditor from "@/components/player/PlayerStatusTagsEditor";
+import PlayerStatusTagsEditor, { LevelPicker } from "@/components/player/PlayerStatusTagsEditor";
 import PlayerEditDialog from "@/components/PlayerEditDialog";
 import { fmtDate, fmtDateTime } from "@/lib/format-date";
 import {
   usePlayer, usePlayerVisits, usePlayerSessions, usePlayerGroupHistory,
   usePlayerNotes, usePlayerTransactions, usePlayerEconomy, usePlayerExpenses,
-  useCreatePlayerNote,
+  useCreatePlayerNote, useUpdatePlayerCategory,
 } from "@/hooks/use-player-profile";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/lib/auth-context";
@@ -54,6 +54,8 @@ const PlayerProfile = () => {
   const navigate = useNavigate();
   const { roles, isManager } = useAuth();
   const showFinancials = canSeePlayerFinancials(roles);
+  const canEditLevel = roles.some((r) => ["super_admin", "manager", "floor_manager", "finance_manager"].includes(r));
+  const updateCategory = useUpdatePlayerCategory();
 
   const { data: player, isLoading } = usePlayer(id);
   const { data: visits = [] } = usePlayerVisits(id);
@@ -404,7 +406,11 @@ const PlayerProfile = () => {
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <h1 className="text-2xl font-semibold text-card-foreground">{fullName}</h1>
-                  <CategoryBadge category={(player.category as PlayerCategory) || "normal"} size="md" />
+                  <LevelPicker
+                    value={(player.category as PlayerCategory) || "normal"}
+                    onPick={(v) => updateCategory.mutate({ player_id: player.id, category: v })}
+                    canEdit={canEditLevel}
+                  />
                   {player.status === "blacklist" && (
                     <span className="text-xs font-bold text-destructive border border-destructive rounded px-1.5 py-0.5">BL</span>
                   )}
