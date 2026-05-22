@@ -80,7 +80,7 @@ const Popover = ({ onClose, children, anchorRef }: {
   );
 };
 
-const LevelPicker = ({ value, onPick, canEdit }: {
+export const LevelPicker = ({ value, onPick, canEdit }: {
   value: PlayerCategory;
   onPick: (v: PlayerCategory) => void;
   canEdit: boolean;
@@ -239,27 +239,15 @@ const TagsRow = ({ playerId, source, label, active, canEdit }: {
   );
 };
 
-const PlayerStatusTagsEditor = ({ playerId, category, tagRows }: Props) => {
-  const { canFloor, canCctv, canStatus } = useTagPermissions();
-  const updateCategory = useUpdatePlayerCategory();
+const PlayerStatusTagsEditor = ({ playerId, tagRows }: Props) => {
+  const { canFloor, canCctv } = useTagPermissions();
 
   const { floor, cctv } = useMemo(() => splitTagsBySource(tagRows), [tagRows]);
   const floorSet = useMemo(() => new Set(floor), [floor]);
   const cctvSet = useMemo(() => new Set(cctv), [cctv]);
 
   return (
-    <div className="space-y-1">
-      <div className="flex items-center gap-1.5 min-h-[20px]">
-        <span className="text-[9px] uppercase tracking-wider text-muted-foreground font-mono w-9 shrink-0">
-          Level
-        </span>
-        <LevelPicker
-          value={category}
-          onPick={(v) => updateCategory.mutate({ player_id: playerId, category: v })}
-          canEdit={canStatus}
-        />
-        <span className="text-[11px] capitalize text-muted-foreground">{category}</span>
-      </div>
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1">
       <TagsRow playerId={playerId} source="floor" label="Tags" active={floorSet} canEdit={canFloor} />
       <TagsRow playerId={playerId} source="cctv" label="CCTV" active={cctvSet} canEdit={canCctv} />
     </div>
