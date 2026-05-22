@@ -3,6 +3,7 @@ import { useNavigate, useParams, Link } from "react-router-dom";
 import { ArrowLeft, Ban, User, Users as UsersIcon, BarChart3, Ticket, Trophy, History, MapPin, Gift, CalendarDays } from "lucide-react";
 
 import BlacklistPlayerDialog from "@/components/player/BlacklistPlayerDialog";
+import { formatCardId } from "@/lib/card-number";
 import PlayerVisitsBreakdown from "@/components/player/PlayerVisitsBreakdown";
 import PlayerChipAdjustmentsLog from "@/components/player/PlayerChipAdjustmentsLog";
 import { canSeePlayerFinancials } from "@/lib/role-access";
@@ -421,8 +422,8 @@ const PlayerProfile = () => {
                 )}
               </div>
               <div className="font-mono text-xs text-muted-foreground text-right">
-                {activeCard && <div>Card: {activeCard}</div>}
-                {player.id_number && <div>ID: {player.id_number}</div>}
+                {activeCard && <div>{formatCardId(activeCard)}</div>}
+                {player.id_number && <div>Doc: {player.id_number}</div>}
               </div>
             </div>
 

@@ -3,6 +3,7 @@ import PlayerPhotoLightbox from "@/components/player/PlayerPhotoLightbox";
 import { useNavigate } from "react-router-dom";
 import { X, ExternalLink, User, ArrowDownToLine, ArrowUpFromLine, Check } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { formatCardId } from "@/lib/card-number";
 import { supabase } from "@/integrations/supabase/client";
 import { usePlayer, usePlayerVisits, usePlayerNotes } from "@/hooks/use-player-profile";
 import { useSelectedPlayer } from "@/hooks/use-selected-player";
@@ -244,7 +245,7 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
               )}
               {activeCard && (
                 <span className="font-mono text-xs text-muted-foreground border border-border rounded px-1.5 py-0.5" title="Player card (registration ID)">
-                  #{activeCard}
+                  {formatCardId(activeCard)}
                 </span>
               )}
               {isBlacklisted && (

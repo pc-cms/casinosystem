@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
+import { formatCardId } from "@/lib/card-number";
 import { usePlayers, useVisitsToday } from "@/hooks/use-casino-data";
 import { useLastVisitsByPlayers } from "@/hooks/use-last-visit";
 import { useDebouncedValue } from "@/hooks/use-debounce";
@@ -266,7 +267,7 @@ const CheckInTab = () => {
                     {p.nickname && <span className="text-muted-foreground ml-1">({p.nickname})</span>}
                   </p>
                   <p className="text-xs text-muted-foreground font-mono truncate">
-                    {p.player_cards?.[0]?.card_number || "No card"}
+                    {p.player_cards?.[0]?.card_number ? formatCardId(p.player_cards[0].card_number) : "No card"}
                     {(() => {
                       const lv = lastVisitMap?.get(p.id);
                       if (!lv) return null;
@@ -398,7 +399,7 @@ const PlayerConfirmCard = ({
                 <XCircle className="w-3 h-3" /> Not in casino
               </Badge>
             )}
-            <span className="text-xs text-muted-foreground">Card: {player.player_cards?.[0]?.card_number || "—"}</span>
+            <span className="text-xs text-muted-foreground">{player.player_cards?.[0]?.card_number ? formatCardId(player.player_cards[0].card_number) : "ID: —"}</span>
             <span className="text-xs text-muted-foreground">Phone: {player.phone || "—"}</span>
           </div>
 
