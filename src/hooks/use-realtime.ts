@@ -1,17 +1,23 @@
 import { useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/lib/auth-context";
+import { useCasino } from "@/lib/casino-context";
 import { toast } from "sonner";
 
 /**
  * Realtime subscriptions for wired LAN environment.
  * Always uses full Supabase realtime — no polling fallback needed.
  * Brief disconnections are handled by Supabase client reconnection.
+ *
+ * CRITICAL: filters use the ACTIVE casino (from subdomain), not the user's
+ * profile casino. Otherwise a user whose profile is in Mwanza but currently
+ * working on the Arusha subdomain would receive events for the wrong casino,
+ * and worse — invalidations from another casino could trigger refetches in
+ * the active one.
  */
 export const useRealtimeSubscriptions = () => {
   const qc = useQueryClient();
-  const { casinoId } = useAuth();
+  const { activeCasinoId: casinoId } = useCasino();
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const crossChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
@@ -72,7 +78,16 @@ export const useRealtimeSubscriptions = () => {
         .on(
           "postgres_changes",
           { event: "*", schema: "public", table: "breaklist", filter: `casino_id=eq.${casinoId}` },
-          () => { qc.invalidateQueries({ queryKey: ["breaklist"] }); }
+          () => {
+            qc.invalidateQueries({ queryKey: ["breaklist", casinoId] });
+          }
+        )
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "dealer_attendance", filter: `casino_id=eq.${casinoId}` },
+          () => {
+            qc.invalidateQueries({ queryKey: ["dealer-attendance-range", casinoId] });
+          }
         )
         .on(
           "postgres_changes",
@@ -95,17 +110,17 @@ export const useRealtimeSubscriptions = () => {
         .on(
           "postgres_changes",
           { event: "*", schema: "public", table: "table_tracker", filter: `casino_id=eq.${casinoId}` },
-          () => { qc.invalidateQueries({ queryKey: ["table-tracker"] }); }
+          () => { qc.invalidateQueries({ queryKey: ["table-tracker", casinoId] }); }
         )
         .on(
           "postgres_changes",
           { event: "*", schema: "public", table: "chip_snapshots", filter: `casino_id=eq.${casinoId}` },
-          () => { qc.invalidateQueries({ queryKey: ["chip-snapshots"] }); }
+          () => { qc.invalidateQueries({ queryKey: ["chip-snapshots", casinoId] }); }
         )
         .on(
           "postgres_changes",
           { event: "*", schema: "public", table: "pit_rota", filter: `casino_id=eq.${casinoId}` },
-          () => { qc.invalidateQueries({ queryKey: ["pit-rota"] }); }
+          () => { qc.invalidateQueries({ queryKey: ["pit-rota-range", casinoId] }); }
         )
         .on(
           "postgres_changes",
