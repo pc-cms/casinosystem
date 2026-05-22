@@ -247,6 +247,11 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
               {player.nickname && (
                 <span className="text-xl text-muted-foreground font-normal truncate">"{player.nickname}"</span>
               )}
+              {activeCard && (
+                <span className="font-mono text-xs text-muted-foreground border border-border rounded px-1.5 py-0.5" title="Player card (registration ID)">
+                  #{activeCard}
+                </span>
+              )}
               {isBlacklisted && (
                 <span className="text-xs uppercase tracking-wider px-2 py-0.5 rounded bg-destructive/10 text-destructive border border-destructive/30">
                   Blacklist
