@@ -1,17 +1,23 @@
 import { useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/lib/auth-context";
+import { useCasino } from "@/lib/casino-context";
 import { toast } from "sonner";
 
 /**
  * Realtime subscriptions for wired LAN environment.
  * Always uses full Supabase realtime — no polling fallback needed.
  * Brief disconnections are handled by Supabase client reconnection.
+ *
+ * CRITICAL: filters use the ACTIVE casino (from subdomain), not the user's
+ * profile casino. Otherwise a user whose profile is in Mwanza but currently
+ * working on the Arusha subdomain would receive events for the wrong casino,
+ * and worse — invalidations from another casino could trigger refetches in
+ * the active one.
  */
 export const useRealtimeSubscriptions = () => {
   const qc = useQueryClient();
-  const { casinoId } = useAuth();
+  const { activeCasinoId: casinoId } = useCasino();
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const crossChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
