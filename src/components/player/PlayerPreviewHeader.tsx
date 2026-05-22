@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import PlayerPhotoLightbox from "@/components/player/PlayerPhotoLightbox";
-import PlayerEditDialog from "@/components/PlayerEditDialog";
 import { useNavigate } from "react-router-dom";
-import { X, ExternalLink, User, ArrowDownToLine, ArrowUpFromLine, Check, Pencil } from "lucide-react";
+import { X, ExternalLink, User, ArrowDownToLine, ArrowUpFromLine, Check } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { usePlayer, usePlayerVisits, usePlayerNotes } from "@/hooks/use-player-profile";
