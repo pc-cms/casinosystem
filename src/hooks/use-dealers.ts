@@ -282,8 +282,9 @@ export const useDeletePitRota = () => {
       }
     },
     onMutate: async ({ dealer_id, date }) => {
-      await qc.cancelQueries({ queryKey: ["pit-rota-range"] });
-      const queries = qc.getQueriesData<any[]>({ queryKey: ["pit-rota-range"] });
+      await qc.cancelQueries({ queryKey: ["pit-rota-range", casinoId] });
+      const queries = qc.getQueriesData<any[]>({ queryKey: ["pit-rota-range"] })
+        .filter(([key]) => (key as any[])[1] === casinoId);
       queries.forEach(([key, data]) => {
         if (!data) return;
         qc.setQueryData(key, data.filter((r: any) => !(r.dealer_id === dealer_id && r.date === date)));
