@@ -244,7 +244,7 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
               )}
               {activeCard && (
                 <span className="font-mono text-xs text-muted-foreground border border-border rounded px-1.5 py-0.5" title="Player card (registration ID)">
-                  #{activeCard}
+                  {formatCardId(activeCard)}
                 </span>
               )}
               {isBlacklisted && (

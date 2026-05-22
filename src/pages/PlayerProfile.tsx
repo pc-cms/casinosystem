@@ -421,8 +421,8 @@ const PlayerProfile = () => {
                 )}
               </div>
               <div className="font-mono text-xs text-muted-foreground text-right">
-                {activeCard && <div>Card: {activeCard}</div>}
-                {player.id_number && <div>ID: {player.id_number}</div>}
+                {activeCard && <div>{formatCardId(activeCard)}</div>}
+                {player.id_number && <div>Doc: {player.id_number}</div>}
               </div>
             </div>
 

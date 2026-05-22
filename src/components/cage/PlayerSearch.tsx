@@ -108,7 +108,7 @@ const PlayerSearch = ({ players, value, onChange, placeholder = "Search playerâ€
                 <span className="text-[10px] font-mono text-muted-foreground flex items-center gap-1">
                   {p.casino_id && <CasinoBadge casinoId={p.casino_id} />}
                   {p.status === "blacklist" && <span className="text-destructive font-bold">BL</span>}
-                  {p.player_cards?.[0]?.card_number || ""}
+                  {formatCardId(p.player_cards?.[0]?.card_number)}
                 </span>
               </button>
               <button
