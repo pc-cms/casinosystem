@@ -25,7 +25,8 @@ import { cn } from "@/lib/utils";
 
 interface Props {
   playerId: string;
-  category: PlayerCategory;
+  /** Deprecated — Level is now edited next to the player name. Kept for backwards-compat callers. */
+  category?: PlayerCategory;
   tagRows: Array<{ tag: string; source?: string | null }>;
 }
 
