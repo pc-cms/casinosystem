@@ -260,6 +260,9 @@ const PlayerStatistics = () => {
         id: v.id,
         visitNumber: visitNumberById.get(v.id) ?? 0,
         playerId: v.player_id,
+        cardNo: ((p as any).player_cards || [])
+          .slice()
+          .sort((a: any, b: any) => (a.is_active === b.is_active ? 0 : a.is_active ? -1 : 1))[0]?.card_number || "",
         firstName: p.first_name,
         lastName: p.last_name,
         nickname: (p as any).nickname,
