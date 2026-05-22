@@ -1,13 +1,14 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
+import { useCasino } from "@/lib/casino-context";
 import { logAction } from "@/lib/logging";
 import { offlineMutation } from "@/lib/offline-mutation";
 import { toast } from "sonner";
 
 // ============ CHIP BASELINE ============
 export const useChipBaseline = () => {
-  const { casinoId } = useAuth();
+  const { activeCasinoId: casinoId } = useCasino();
   return useQuery({
     queryKey: ["chip-baseline", casinoId],
     queryFn: async () => {
@@ -25,7 +26,7 @@ export const useChipBaseline = () => {
 
 export const useUpsertBaseline = () => {
   const qc = useQueryClient();
-  const { casinoId } = useAuth();
+  const { activeCasinoId: casinoId } = useCasino();
   return useMutation({
     mutationFn: async (entries: Array<{
       location_type: string;
@@ -88,7 +89,7 @@ export const useUpsertBaseline = () => {
 
 // ============ CASINO INFO (float_locked) ============
 export const useCasinoInfo = () => {
-  const { casinoId } = useAuth();
+  const { activeCasinoId: casinoId } = useCasino();
   return useQuery({
     queryKey: ["casino-info", casinoId],
     queryFn: async () => {
@@ -115,7 +116,7 @@ export const useCasinoInfo = () => {
 
 export const useLockFloat = () => {
   const qc = useQueryClient();
-  const { casinoId } = useAuth();
+  const { activeCasinoId: casinoId } = useCasino();
   return useMutation({
     mutationFn: async () => {
       if (!casinoId) throw new Error("No casino");
@@ -144,7 +145,7 @@ export const useLockFloat = () => {
  */
 export const useUpdateCasinoSchedule = () => {
   const qc = useQueryClient();
-  const { casinoId } = useAuth();
+  const { activeCasinoId: casinoId } = useCasino();
   return useMutation({
     mutationFn: async (input: {
       shift_start: string;
@@ -207,7 +208,7 @@ export const useUpdateCasinoSchedule = () => {
 /** Cancel a previously-scheduled (pending) shift_end or breaklist_lock change. */
 export const useCancelPendingSchedule = () => {
   const qc = useQueryClient();
-  const { casinoId } = useAuth();
+  const { activeCasinoId: casinoId } = useCasino();
   return useMutation({
     mutationFn: async (field: "shift_end" | "breaklist_lock") => {
       if (!casinoId) throw new Error("No casino");
@@ -233,7 +234,7 @@ export const useCancelPendingSchedule = () => {
 // Open a single table (Pit action) — clears closing data
 export const useOpenTable = () => {
   const qc = useQueryClient();
-  const { casinoId } = useAuth();
+  const { activeCasinoId: casinoId } = useCasino();
   return useMutation({
     mutationFn: async (tableId: string) => {
       if (!casinoId) throw new Error("No casino");
@@ -254,7 +255,7 @@ export const useOpenTable = () => {
 // Open all closed tables at once
 export const useOpenAllTables = () => {
   const qc = useQueryClient();
-  const { casinoId } = useAuth();
+  const { activeCasinoId: casinoId } = useCasino();
   return useMutation({
     mutationFn: async (tableIds: string[]) => {
       if (!casinoId) throw new Error("No casino");
@@ -278,7 +279,7 @@ export const useOpenAllTables = () => {
 // Set result on tables (Pit action) — stores closing_chips + closing_result
 export const useSetTableResults = () => {
   const qc = useQueryClient();
-  const { casinoId } = useAuth();
+  const { activeCasinoId: casinoId } = useCasino();
   return useMutation({
     mutationFn: async (results: Array<{
       table_id: string;
@@ -312,7 +313,8 @@ export const useSetTableResults = () => {
 // Set result for a SINGLE table (Pit Close Table wizard) — offline-aware
 export const useSetSingleTableResult = () => {
   const qc = useQueryClient();
-  const { casinoId, user } = useAuth();
+  const { user } = useAuth();
+  const { activeCasinoId: casinoId } = useCasino();
   return useMutation({
     mutationFn: async (input: {
       table_id: string;
@@ -378,7 +380,7 @@ export const useSetSingleTableResult = () => {
 // Reopen a single table (clear closing draft) — Manager Access required at UI level
 export const useReopenSingleTable = () => {
   const qc = useQueryClient();
-  const { casinoId } = useAuth();
+  const { activeCasinoId: casinoId } = useCasino();
   return useMutation({
     mutationFn: async (tableId: string) => {
       if (!casinoId) throw new Error("No casino");
@@ -404,7 +406,7 @@ export const useReopenSingleTable = () => {
 // Close all tables (Cashier action) — sets status to 'closed' (offline-aware)
 export const useCloseAllTables = () => {
   const qc = useQueryClient();
-  const { casinoId } = useAuth();
+  const { activeCasinoId: casinoId } = useCasino();
   return useMutation({
     mutationFn: async (tableIds: string[]) => {
       if (!casinoId) throw new Error("No casino");

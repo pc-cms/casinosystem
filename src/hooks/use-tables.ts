@@ -1,12 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
+import { useCasino } from "@/lib/casino-context";
 import { logAction } from "@/lib/logging";
 import { offlineMutation } from "@/lib/offline-mutation";
 import { toast } from "sonner";
 
 export const useGamingTables = (includeArchived = false) => {
-  const { casinoId } = useAuth();
+  const { activeCasinoId: casinoId } = useCasino();
   return useQuery({
     queryKey: ["gaming-tables", casinoId, includeArchived],
     queryFn: async () => {
@@ -30,7 +31,8 @@ export const useGamingTables = (includeArchived = false) => {
 
 export const useArchiveTable = () => {
   const qc = useQueryClient();
-  const { casinoId, user } = useAuth();
+  const { user } = useAuth();
+  const { activeCasinoId: casinoId } = useCasino();
   return useMutation({
     mutationFn: async ({ tableId, archive }: { tableId: string; archive: boolean }) => {
       if (!casinoId || !user) throw new Error("Not authenticated");
@@ -51,7 +53,8 @@ export const useArchiveTable = () => {
 
 export const useRenameTable = () => {
   const qc = useQueryClient();
-  const { casinoId, user } = useAuth();
+  const { user } = useAuth();
+  const { activeCasinoId: casinoId } = useCasino();
   return useMutation({
     mutationFn: async ({ tableId, name }: { tableId: string; name: string }) => {
       if (!casinoId || !user) throw new Error("Not authenticated");
@@ -74,7 +77,8 @@ export const useRenameTable = () => {
 
 export const useCloseTable = () => {
   const qc = useQueryClient();
-  const { casinoId, user } = useAuth();
+  const { user } = useAuth();
+  const { activeCasinoId: casinoId } = useCasino();
   return useMutation({
     mutationFn: async (input: { table_id: string; closing_chips: Record<number, number> }) => {
       if (!casinoId || !user) throw new Error("Not authenticated");
@@ -92,7 +96,8 @@ export const useCloseTable = () => {
 
 export const useReopenTable = () => {
   const qc = useQueryClient();
-  const { casinoId, user } = useAuth();
+  const { user } = useAuth();
+  const { activeCasinoId: casinoId } = useCasino();
   return useMutation({
     mutationFn: async (tableId: string) => {
       if (!casinoId || !user) throw new Error("Not authenticated");
@@ -110,7 +115,7 @@ export const useReopenTable = () => {
 
 // ============ TABLE TRACKER ============
 export const useTableTracker = (date: string) => {
-  const { casinoId } = useAuth();
+  const { activeCasinoId: casinoId } = useCasino();
   return useQuery({
     queryKey: ["table-tracker", casinoId, date],
     queryFn: async () => {
@@ -129,7 +134,8 @@ export const useTableTracker = (date: string) => {
 
 export const useSetTableTrackerValue = () => {
   const qc = useQueryClient();
-  const { casinoId, user } = useAuth();
+  const { user } = useAuth();
+  const { activeCasinoId: casinoId } = useCasino();
   return useMutation({
     mutationFn: async (input: { table_id: string; date: string; time_slot: string; value: number }) => {
       if (!casinoId || !user) throw new Error("Not authenticated");
@@ -153,8 +159,9 @@ export const useSetTableTrackerValue = () => {
       return { offline: result.offline };
     },
     onMutate: async (input) => {
-      await qc.cancelQueries({ queryKey: ["table-tracker"] });
-      const queries = qc.getQueriesData<any[]>({ queryKey: ["table-tracker"] });
+      await qc.cancelQueries({ queryKey: ["table-tracker", casinoId] });
+      const queries = qc.getQueriesData<any[]>({ queryKey: ["table-tracker"] })
+        .filter(([key]) => (key as any[])[1] === casinoId);
       queries.forEach(([key, data]) => {
         if (!data) return;
         const idx = data.findIndex((t: any) => t.table_id === input.table_id && t.time_slot === input.time_slot);

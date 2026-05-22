@@ -6,6 +6,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
+import { useCasino } from "@/lib/casino-context";
 import { logAction } from "@/lib/logging";
 import { offlineMutation } from "@/lib/offline-mutation";
 import { toast } from "sonner";
@@ -116,7 +117,7 @@ export const fetchBreaklistRows = (casinoId: string, date: string) =>
     .range(from, to));
 
 export const useDealers = () => {
-  const { casinoId } = useAuth();
+  const { activeCasinoId: casinoId } = useCasino();
   return useQuery({
     queryKey: ["dealers", casinoId],
     queryFn: async () => {
@@ -138,7 +139,7 @@ export const useDealers = () => {
 
 export const useCreateDealer = () => {
   const qc = useQueryClient();
-  const { casinoId } = useAuth();
+  const { activeCasinoId: casinoId } = useCasino();
   return useMutation({
     mutationFn: async ({ name, category, is_pit_boss }: { name: string; category: string; is_pit_boss: boolean }) => {
       if (!casinoId) throw new Error("No casino");
@@ -195,7 +196,7 @@ export const useDeleteDealer = () => {
 const aliasRotaRow = (r: any) => ({ ...r, dealer_id: r.employee_id });
 
 export const usePitRota = (date: string) => {
-  const { casinoId } = useAuth();
+  const { activeCasinoId: casinoId } = useCasino();
   return useQuery({
     queryKey: ["pit-rota", casinoId, date],
     queryFn: async () => {
@@ -207,7 +208,7 @@ export const usePitRota = (date: string) => {
 };
 
 export const usePitRotaRange = (startDate: string, endDate: string) => {
-  const { casinoId } = useAuth();
+  const { activeCasinoId: casinoId } = useCasino();
   return useQuery({
     queryKey: ["pit-rota-range", casinoId, startDate, endDate],
     queryFn: async () => {
@@ -220,7 +221,8 @@ export const usePitRotaRange = (startDate: string, endDate: string) => {
 
 export const useSetPitRota = () => {
   const qc = useQueryClient();
-  const { casinoId, user } = useAuth();
+  const { user } = useAuth();
+  const { activeCasinoId: casinoId } = useCasino();
   return useMutation({
     mutationFn: async (input: { dealer_id: string; date: string; shift: string }) => {
       if (!casinoId || !user) throw new Error("Not authenticated");
@@ -262,7 +264,7 @@ export const useSetPitRota = () => {
 
 export const useDeletePitRota = () => {
   const qc = useQueryClient();
-  const { casinoId } = useAuth();
+  const { activeCasinoId: casinoId } = useCasino();
   return useMutation({
     mutationFn: async ({ dealer_id, date }: { dealer_id: string; date: string }) => {
       if (!casinoId) throw new Error("No casino");
@@ -301,7 +303,7 @@ export const useDeletePitRota = () => {
 const aliasAttRow = (a: any) => ({ ...a, dealer_id: a.employee_id });
 
 export const useDealerAttendance = (date: string) => {
-  const { casinoId } = useAuth();
+  const { activeCasinoId: casinoId } = useCasino();
   return useQuery({
     queryKey: ["dealer-attendance", casinoId, date],
     queryFn: async () => {
@@ -314,7 +316,8 @@ export const useDealerAttendance = (date: string) => {
 
 export const useSetDealerAttendance = () => {
   const qc = useQueryClient();
-  const { casinoId, user } = useAuth();
+  const { user } = useAuth();
+  const { activeCasinoId: casinoId } = useCasino();
   return useMutation({
     mutationFn: async (input: { dealer_id: string; date: string; value: string }) => {
       if (!casinoId || !user) throw new Error("Not authenticated");
@@ -355,7 +358,7 @@ export const useSetDealerAttendance = () => {
 };
 
 export const useDealerAttendanceRange = (startDate: string, endDate: string) => {
-  const { casinoId } = useAuth();
+  const { activeCasinoId: casinoId } = useCasino();
   return useQuery({
     queryKey: ["dealer-attendance-range", casinoId, startDate, endDate],
     queryFn: async () => {
@@ -371,7 +374,7 @@ export const useDealerAttendanceRange = (startDate: string, endDate: string) => 
 const aliasBreaklistRow = (b: any) => ({ ...b, dealer_id: b.employee_id });
 
 export const useBreaklistData = (date: string) => {
-  const { casinoId } = useAuth();
+  const { activeCasinoId: casinoId } = useCasino();
   return useQuery({
     queryKey: ["breaklist", casinoId, date],
     queryFn: async () => {
@@ -384,7 +387,8 @@ export const useBreaklistData = (date: string) => {
 
 export const useSetBreaklistCell = () => {
   const qc = useQueryClient();
-  const { casinoId, user } = useAuth();
+  const { user } = useAuth();
+  const { activeCasinoId: casinoId } = useCasino();
   return useMutation({
     mutationFn: async (input: {
       date: string;
@@ -476,7 +480,8 @@ export const useSetBreaklistCell = () => {
 
 export const useLockBreaklistCell = () => {
   const qc = useQueryClient();
-  const { casinoId, user } = useAuth();
+  const { user } = useAuth();
+  const { activeCasinoId: casinoId } = useCasino();
   return useMutation({
     mutationFn: async ({ id, lock }: { id: string; lock: boolean }) => {
       if (!user) throw new Error("Not authenticated");
@@ -488,6 +493,6 @@ export const useLockBreaklistCell = () => {
       if (error) throw error;
       await logAction(casinoId!, "lock", lock ? "CELL_LOCKED" : "CELL_UNLOCKED", { breaklist_id: id });
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["breaklist"] }); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["breaklist", casinoId] }); },
   });
 };

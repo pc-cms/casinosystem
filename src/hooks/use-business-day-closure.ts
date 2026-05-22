@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/lib/auth-context";
+import { useCasino } from "@/lib/casino-context";
 import { getBusinessDate } from "@/lib/business-day";
 import { toast } from "sonner";
 
@@ -10,7 +10,7 @@ import { toast } from "sonner";
  * 05:00-EAT calculation if the RPC is unavailable.
  */
 export function useEffectiveBusinessDate() {
-  const { casinoId } = useAuth();
+  const { activeCasinoId: casinoId } = useCasino();
   return useQuery({
     queryKey: ["effective-business-date", casinoId],
     queryFn: async (): Promise<string> => {
@@ -29,7 +29,7 @@ export function useEffectiveBusinessDate() {
 
 /** Most recent closure record (or null). */
 export function useLastBusinessDayClosure() {
-  const { casinoId } = useAuth();
+  const { activeCasinoId: casinoId } = useCasino();
   return useQuery({
     queryKey: ["last-business-day-closure", casinoId],
     queryFn: async () => {
@@ -52,7 +52,7 @@ export function useLastBusinessDayClosure() {
 /** Manual close. Authorized DB-side: Pit or Manager only. */
 export function useCloseBusinessDay() {
   const qc = useQueryClient();
-  const { casinoId } = useAuth();
+  const { activeCasinoId: casinoId } = useCasino();
   return useMutation({
     mutationFn: async () => {
       if (!casinoId) throw new Error("No casino");
@@ -85,7 +85,7 @@ export function useCloseBusinessDay() {
 
 /** Set of YYYY-MM-DD dates that have been closed for this casino in [from, to]. */
 export function useClosedBusinessDates(fromDate: string, toDate: string) {
-  const { casinoId } = useAuth();
+  const { activeCasinoId: casinoId } = useCasino();
   return useQuery({
     queryKey: ["closed-business-dates", casinoId, fromDate, toDate],
     queryFn: async (): Promise<Set<string>> => {
