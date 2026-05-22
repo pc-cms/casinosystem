@@ -38,10 +38,20 @@ const PlayerSearch = ({ players, value, onChange, placeholder = "Search playerâ€
   const filtered = useMemo(() => {
     if (!query) return players.slice(0, 20);
     const q = query.toLowerCase();
+    const qDigits = q.replace(/\D/g, "");
     return players.filter(p => {
       const name = `${p.first_name} ${p.last_name} ${p.nickname}`.toLowerCase();
-      const cards = p.player_cards?.map(c => c.card_number).join(" ") || "";
-      return name.includes(q) || cards.toLowerCase().includes(q);
+      if (name.includes(q)) return true;
+      const cards = p.player_cards || [];
+      for (const c of cards) {
+        const raw = (c.card_number || "").toLowerCase();
+        if (raw.includes(q)) return true;
+        const digits = raw.replace(/\D/g, "");
+        if (qDigits && digits.includes(qDigits)) return true;
+        // match without leading zeros too
+        if (qDigits && digits.replace(/^0+/, "").includes(qDigits.replace(/^0+/, ""))) return true;
+      }
+      return false;
     }).slice(0, 20);
   }, [query, players]);
 
