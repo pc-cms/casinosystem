@@ -18,7 +18,7 @@ import { fmtDate, fmtDateTime } from "@/lib/format-date";
 import {
   usePlayer, usePlayerVisits, usePlayerSessions, usePlayerGroupHistory,
   usePlayerNotes, usePlayerTransactions, usePlayerEconomy, usePlayerExpenses,
-  useCreatePlayerNote,
+  useCreatePlayerNote, useUpdatePlayerCategory,
 } from "@/hooks/use-player-profile";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/lib/auth-context";
