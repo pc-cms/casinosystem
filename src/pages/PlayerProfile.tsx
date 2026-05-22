@@ -990,9 +990,14 @@ const PlayerProfile = () => {
 };
 
 const Kpi = ({ label, value, valueClass }: { label: string; value: string; valueClass?: string }) => (
-  <div className="rounded-md border border-border bg-muted/30 px-3 py-2">
-    <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
-    <div className={`text-base font-semibold font-mono ${valueClass || "text-card-foreground"}`}>{value}</div>
+  <div className="rounded-md border border-border bg-muted/30 px-2.5 py-2 min-w-0 overflow-hidden">
+    <div className="text-[10px] uppercase tracking-wider text-muted-foreground whitespace-nowrap truncate">{label}</div>
+    <div
+      className={`mt-0.5 font-mono font-bold tabular-nums whitespace-nowrap leading-tight text-[clamp(11px,1.05vw,15px)] ${valueClass || "text-card-foreground"}`}
+      title={value}
+    >
+      {value}
+    </div>
   </div>
 );
 
