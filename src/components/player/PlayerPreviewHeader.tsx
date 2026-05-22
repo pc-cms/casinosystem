@@ -156,6 +156,8 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
     : "";
   const tagRows = ((player as any)?.player_tags || []) as Array<{ tag: string; source?: string | null }>;
   const { floor: floorTags, cctv: cctvTags } = splitTagsBySource(tagRows);
+  const cards = ((player as any)?.player_cards || []) as Array<{ card_number: string; is_active?: boolean }>;
+  const activeCard = cards.find((c) => c.is_active)?.card_number || cards[0]?.card_number || "";
   const visitsCount = visits.length;
   const result = dayStats?.result ?? 0;
 
