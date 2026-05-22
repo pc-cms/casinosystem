@@ -136,17 +136,12 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
   const { roles } = useAuth();
   const showFinancials = canSeePlayerFinancials(roles || []);
   const canAdjust = (roles || []).some((r) => r === "pit" || r === "manager");
-  // Pit-only users get read-only PlayerEditDialog upstream; everyone else
-  // (reception, hr, surveillance, manager, finance, super_admin) may edit.
-  const isPitOnly = (roles || []).some((r) => r === "pit") && !(roles || []).some((r) => r === "manager" || r === "super_admin");
-  const canEditProfile = !isPitOnly;
 
   const [chipIn, setChipIn] = useState("");
   const [chipOut, setChipOut] = useState("");
   const [note, setNote] = useState("");
   const createAdj = useCreatePlayerChipAdjustment();
   const [photoOpen, setPhotoOpen] = useState(false);
-  const [editOpen, setEditOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
   // Expose header height as CSS var so downstream sticky elements (table headers,
