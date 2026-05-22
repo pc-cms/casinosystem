@@ -335,8 +335,9 @@ export const useSetDealerAttendance = () => {
       return { offline: result.offline };
     },
     onMutate: async (input) => {
-      await qc.cancelQueries({ queryKey: ["dealer-attendance-range"] });
-      const queries = qc.getQueriesData<any[]>({ queryKey: ["dealer-attendance-range"] });
+      await qc.cancelQueries({ queryKey: ["dealer-attendance-range", casinoId] });
+      const queries = qc.getQueriesData<any[]>({ queryKey: ["dealer-attendance-range"] })
+        .filter(([key]) => (key as any[])[1] === casinoId);
       queries.forEach(([key, data]) => {
         if (!data) return;
         const idx = data.findIndex((a: any) => a.dealer_id === input.dealer_id && a.date === input.date);
