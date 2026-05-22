@@ -604,6 +604,7 @@ const PlayerStatistics = () => {
           </div>
         </div>
       </td>
+      <td className="px-2 py-1.5 font-mono text-[11px] text-muted-foreground whitespace-nowrap">{r.cardNo || "·"}</td>
       <td className="px-1 py-1.5 font-mono text-xs w-[44px] text-center">{formatTime(r.entryAt)}</td>
       <td className="px-1 py-1.5 font-mono text-xs w-[44px] text-center">{r.exitAt ? formatTime(r.exitAt) : "·"}</td>
       <td className="px-1 py-1.5 w-[64px]">{renderPositionCell(r)}</td>
