@@ -26,7 +26,7 @@ export const useChipBaseline = () => {
 
 export const useUpsertBaseline = () => {
   const qc = useQueryClient();
-  const { casinoId } = useAuth();
+  const { activeCasinoId: casinoId } = useCasino();
   return useMutation({
     mutationFn: async (entries: Array<{
       location_type: string;
@@ -116,7 +116,7 @@ export const useCasinoInfo = () => {
 
 export const useLockFloat = () => {
   const qc = useQueryClient();
-  const { casinoId } = useAuth();
+  const { activeCasinoId: casinoId } = useCasino();
   return useMutation({
     mutationFn: async () => {
       if (!casinoId) throw new Error("No casino");
@@ -145,7 +145,7 @@ export const useLockFloat = () => {
  */
 export const useUpdateCasinoSchedule = () => {
   const qc = useQueryClient();
-  const { casinoId } = useAuth();
+  const { activeCasinoId: casinoId } = useCasino();
   return useMutation({
     mutationFn: async (input: {
       shift_start: string;
@@ -208,7 +208,7 @@ export const useUpdateCasinoSchedule = () => {
 /** Cancel a previously-scheduled (pending) shift_end or breaklist_lock change. */
 export const useCancelPendingSchedule = () => {
   const qc = useQueryClient();
-  const { casinoId } = useAuth();
+  const { activeCasinoId: casinoId } = useCasino();
   return useMutation({
     mutationFn: async (field: "shift_end" | "breaklist_lock") => {
       if (!casinoId) throw new Error("No casino");
