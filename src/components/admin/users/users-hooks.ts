@@ -50,6 +50,56 @@ export type Profile = {
   casino_ids: string[];
 };
 
+export type AdminUserRow = {
+  user_id: string;
+  email: string;
+  login: string;
+  display_name: string | null;
+  casino_id: string | null;
+  casino_ids: string[];
+  disabled_at: string | null;
+  created_at?: string;
+  roles: string[];
+};
+
+/** Single batched call: returns enriched user list with login (email) + roles. */
+export const useAdminUsers = () =>
+  useQuery({
+    queryKey: ["admin-users:list-v2"],
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke("admin-list-users", { body: {} });
+      if (error) throw new Error(await readFunctionError(error));
+      if (data?.error) throw new Error(data.error);
+      return (data?.rows ?? []) as AdminUserRow[];
+    },
+  });
+
+/** Update display_name and/or login (email) of any user (scoped). */
+export const useUpdateUserProfile = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { userId: string; display_name?: string; login?: string }) => {
+      const { data, error } = await supabase.functions.invoke("admin-update-user", {
+        body: {
+          user_id: input.userId,
+          display_name: input.display_name,
+          login: input.login,
+        },
+      });
+      if (error) throw new Error(await readFunctionError(error));
+      if (data?.error) throw new Error(data.error);
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-users:list-v2"] });
+      qc.invalidateQueries({ queryKey: ["admin-users:profiles"] });
+      toast.success("User updated");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+};
+
+
 const readFunctionError = async (error: Error) => {
   let detail = error.message;
   try {
