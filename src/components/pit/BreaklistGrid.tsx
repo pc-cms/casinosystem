@@ -120,15 +120,14 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
 
   const breaklistDealers = useMemo(() => {
     const rotaDealerIds = new Set(rotaDealers.map(r => r.dealerId));
-    // Pit Bosses must NOT appear; absent dealers (A) must NOT appear either.
-    // If the rota/feed cache is temporarily out of sync, keep the grid usable by
-    // showing all active non-PB dealers so Pit can still enter cells immediately.
+    // STRICT: only dealers scheduled in the rota (M/N/E) for this date.
+    // Pit Bosses never appear; absent (A) dealers are hidden.
+    // No fallback to "all active dealers" — empty rota = empty grid (forces Pit to fill rota first).
     const filtered = activeDealers.filter(
       d => rotaDealerIds.has(d.id) && !(d as any).is_pit_boss && !absentDealerIds.has(d.id),
     );
-    const rows = filtered.length > 0
-      ? filtered
-      : activeDealers.filter(d => !(d as any).is_pit_boss && !absentDealerIds.has(d.id));
+    const rows = filtered;
+
     const shiftOrder: Record<string, number> = { M: 0, N: 1, E: 2 };
     const categoryOrder: Record<string, number> = { trainee: 0, dealer: 1, inspector: 2, expert: 3, pit_boss: 4 };
     if (sortBy === "name") {
