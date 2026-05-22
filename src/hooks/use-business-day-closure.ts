@@ -53,7 +53,7 @@ export function useLastBusinessDayClosure() {
 /** Manual close. Authorized DB-side: Pit or Manager only. */
 export function useCloseBusinessDay() {
   const qc = useQueryClient();
-  const { casinoId } = useAuth();
+  const { activeCasinoId: casinoId } = useCasino();
   return useMutation({
     mutationFn: async () => {
       if (!casinoId) throw new Error("No casino");
