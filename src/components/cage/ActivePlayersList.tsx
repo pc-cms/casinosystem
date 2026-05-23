@@ -58,7 +58,7 @@ const ActivePlayersList = ({ players, tables, onSelect }: Props) => {
         {activeRows.length === 0 ? (
           <div className="p-6 text-center text-sm text-muted-foreground">
             <Users className="w-10 h-10 mx-auto mb-2 opacity-30" />
-            No active players. Use search above to select one.
+            No checked-in players. Reception must check the player in first.
           </div>
         ) : (
           activeRows.map(({ session, player }) => {
