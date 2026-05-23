@@ -320,6 +320,49 @@ const CheckInTab = () => {
         </div>
       )}
 
+      {!query && !selectedPlayer && (() => {
+        const leftToday = visits
+          .filter((v: any) => v.checked_out_at && !visits.some((o: any) => o.player_id === v.player_id && !o.checked_out_at))
+          .sort((a: any, b: any) => new Date(b.checked_out_at).getTime() - new Date(a.checked_out_at).getTime())
+          .slice(0, 12);
+        if (leftToday.length === 0) return null;
+        return (
+          <div className="cms-panel">
+            <div className="px-3 py-2 text-xs font-medium text-muted-foreground border-b border-border">
+              Left today — tap to check in again
+            </div>
+            <div className="divide-y divide-border max-h-[50vh] overflow-y-auto">
+              {leftToday.map((v: any) => {
+                const p = v.players;
+                if (!p) return null;
+                return (
+                  <div key={v.id} className="flex items-center gap-2 px-3 py-2">
+                    <div className="w-8 h-8 rounded-full bg-muted overflow-hidden flex items-center justify-center shrink-0">
+                      {p.photo_url ? <img src={p.photo_url} className="w-full h-full object-cover" alt="" /> : <User className="w-4 h-4 text-muted-foreground" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{p.first_name} {p.last_name}</p>
+                      <p className="text-[10px] text-muted-foreground font-mono">
+                        Out {new Date(v.checked_out_at).toLocaleTimeString("en-GB", { timeZone: "Africa/Dar_es_Salaam", hour: "2-digit", minute: "2-digit" })}
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      className="h-8 gap-1 text-xs"
+                      onClick={() => checkIn.mutate(p.id)}
+                      disabled={checkIn.isPending || p.status === "blacklist"}
+                    >
+                      <LogIn className="w-3.5 h-3.5" /> Check In
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
+
+
       {selectedPlayer && (
         <>
           {incompleteWarning && incompleteWarning.length > 0 && (
