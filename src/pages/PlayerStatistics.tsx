@@ -151,7 +151,7 @@ const PlayerStatistics = () => {
   );
   const [posFilter, setPosFilter] = useState<"mix" | "table" | "slots">("mix");
   
-  type SortKey = "card" | "name" | "visits" | "position" | "entry" | "exit" | "avgBet" | "dropR" | "inDrop" | "out" | "chipIn" | "chipOut" | "result";
+  type SortKey = "card" | "name" | "level" | "visits" | "position" | "entry" | "exit" | "avgBet" | "dropR" | "inDrop" | "out" | "chipIn" | "chipOut" | "result";
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const toggleSort = (key: SortKey) => {
@@ -397,6 +397,10 @@ const PlayerStatistics = () => {
           switch (sortKey) {
             case "card": return r.cardNo || "\uffff";
             case "name": return `${r.firstName} ${r.lastName}`.toLowerCase();
+            case "level": {
+              const order: Record<string, number> = { diamond: 0, platinum: 1, gold: 2, normal: 3 };
+              return order[r.category] ?? 9;
+            }
             case "visits": return r.visits || 0;
             case "position": return r.position === "table" ? (r.tableName ?? "zzz") : r.position;
             case "entry": return new Date(r.entryAt).getTime();
@@ -845,7 +849,24 @@ const PlayerStatistics = () => {
                       return (
                         <>
                           <th style={{ top: "var(--ppheader-h, 0px)" }} onClick={() => toggleSort("card")} className="px-2 py-3 text-center sticky left-0 bg-zinc-900 text-white z-30 w-16 font-bold cursor-pointer select-none hover:text-primary whitespace-nowrap">Card<SortIcon k="card" /></th>
-                          <H k="name" sticky="sticky left-16">Name</H>
+                          <th
+                            style={{ top: "var(--ppheader-h, 0px)" }}
+                            className="px-2 py-3 sticky left-16 bg-zinc-900 text-white z-30 font-bold whitespace-nowrap text-left"
+                          >
+                            <span
+                              onClick={() => toggleSort("name")}
+                              className="cursor-pointer select-none hover:text-primary"
+                            >
+                              Name<SortIcon k="name" />
+                            </span>
+                            <span
+                              onClick={() => toggleSort("level")}
+                              title="Sort by level: D → P → G → N"
+                              className="ml-2 cursor-pointer select-none hover:text-primary text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded border border-white/30"
+                            >
+                              Lvl<SortIcon k="level" />
+                            </span>
+                          </th>
                           <H k="visits" align="left" title="Visits in selected period">Vis</H>
                           <H k="entry">Entry</H>
                           <H k="exit">Left</H>
