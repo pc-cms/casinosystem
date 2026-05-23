@@ -1,6 +1,7 @@
 /**
- * Format a stored card_number (e.g. "CMS000312+") for display as "ID: 000312".
- * Strips legacy "CMS" prefix and trailing "+".
+ * Player card IDs are now plain digit strings in DB (e.g. "000312").
+ * These helpers keep backward-compat for any legacy cached value that
+ * still has the old "CMS…+" wrapper (offline cache, sync log, etc).
  */
 export function formatCardNumber(raw?: string | null): string {
   if (!raw) return "";
