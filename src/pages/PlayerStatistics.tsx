@@ -27,6 +27,7 @@ import CategoryBadge, { type PlayerCategory } from "@/components/player/Category
 import CategoryFilter from "@/components/player/CategoryFilter";
 import FlagBadges from "@/components/player/FlagBadges";
 import { formatCurrency, formatNumberCompact } from "@/lib/currency";
+import { formatCardNumber } from "@/lib/card-number";
 import { offlineMutation } from "@/lib/offline-mutation";
 import { toast } from "sonner";
 
