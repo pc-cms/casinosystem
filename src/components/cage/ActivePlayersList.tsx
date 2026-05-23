@@ -5,8 +5,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
-import { Users, User, UserPlus } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Users, User } from "lucide-react";
 import CategoryBadge, { type PlayerCategory } from "@/components/player/CategoryBadge";
 import { LazyImage } from "@/components/LazyImage";
 import type { Tables } from "@/integrations/supabase/types";
@@ -21,7 +20,7 @@ interface Props {
 
 const ActivePlayersList = ({ players, tables, onSelect }: Props) => {
   const { casinoId } = useAuth();
-  const navigate = useNavigate();
+  
   const { data: serverBusinessDate } = useEffectiveBusinessDate();
   const today = serverBusinessDate || getBusinessDate();
   const windowStartUTC = businessDayHourUTC(today, 13);
@@ -51,23 +50,15 @@ const ActivePlayersList = ({ players, tables, onSelect }: Props) => {
 
   return (
     <div className="cms-panel h-full flex flex-col">
-      <div className="cms-header flex items-center justify-between gap-2">
-        <span className="flex items-center gap-2">
-          <Users className="w-3.5 h-3.5" />
-          Active Players ({activeRows.length})
-        </span>
-        <button
-          onClick={() => navigate("/players/register")}
-          className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline"
-        >
-          <UserPlus className="w-3 h-3" /> New Player
-        </button>
+      <div className="cms-header flex items-center gap-2">
+        <Users className="w-3.5 h-3.5" />
+        Active Players ({activeRows.length})
       </div>
       <div className="flex-1 overflow-y-auto divide-y divide-border min-h-0">
         {activeRows.length === 0 ? (
           <div className="p-6 text-center text-sm text-muted-foreground">
             <Users className="w-10 h-10 mx-auto mb-2 opacity-30" />
-            No active players. Use search above to select one.
+            No checked-in players. Reception must check the player in first.
           </div>
         ) : (
           activeRows.map(({ session, player }) => {

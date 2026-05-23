@@ -222,7 +222,7 @@ const ProtectedRoutes = () => {
           <Route path="/cage/close-shift" element={<RoleGuard path="/cage"><ErrorBoundary><CloseShiftPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/cage/closings" element={<RoleGuard path="/cage/closings"><ErrorBoundary><CageClosingsPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/cage/shift/:id/edit-opening" element={<RoleGuard path="/cage"><ErrorBoundary><EditOpeningChipsPage /></ErrorBoundary></RoleGuard>} />
-          <Route path="/players/register" element={<RoleGuard path="/cage"><ErrorBoundary><RegisterPlayerPage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/players/register" element={<RoleGuard path="/reception"><ErrorBoundary><RegisterPlayerPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/expenses/approvals" element={<RoleGuard path="/expenses/approvals"><ErrorBoundary><ExpensesApprovals /></ErrorBoundary></RoleGuard>} />
           <Route path="/reception" element={<RoleGuard path="/reception"><Reception /></RoleGuard>} />
           <Route path="/guests" element={<RoleGuard path="/guests"><Guests /></RoleGuard>} />
