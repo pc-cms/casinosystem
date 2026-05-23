@@ -164,7 +164,14 @@ const ActiveShiftView = ({ shift, players, tables }: {
   // Cancel dialog state
   const [cancelTarget, setCancelTarget] = useState<Tables<"transactions"> | null>(null);
   const { roles, managerOverride } = useAuth();
-  const canCancelTx = roles.includes("cashier") || roles.includes("super_admin") || managerOverride.active;
+  // Cancel TX is restricted to Cashier, Manager and Surveillance (CCTV).
+  // Super Admin and Manager Override also retain access.
+  const canCancelTx =
+    roles.includes("cashier") ||
+    roles.includes("manager") ||
+    roles.includes("surveillance") ||
+    roles.includes("super_admin") ||
+    managerOverride.active;
 
   const openingFloat = useMemo(() => {
     const of = shift.opening_float as Record<string, unknown> | null;
@@ -469,7 +476,7 @@ const InForm = ({ players, tables, exchangeRates, shiftId, onSubmit, loading, sh
       rightPanel={
         selectedPlayer
           ? <PlayerInfoCard player={selectedPlayer} tables={tables} shiftTransactions={shiftTransactions} />
-          : <ActivePlayersList players={players} tables={tables} onSelect={setPlayerId} />
+          : <ActivePlayersList players={players} tables={tables} onSelect={(pid, tid) => { setPlayerId(pid); if (tid) setTableId(tid); }} />
       }
     />
   );
