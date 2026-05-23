@@ -859,7 +859,7 @@ const PlayerStatistics = () => {
                             <span
                               onClick={() => toggleSort("level")}
                               title="Sort by level: D → P → G → N"
-                              className="mr-2 cursor-pointer select-none hover:text-primary text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded border border-white/30"
+                              className="mr-2 cursor-pointer select-none hover:text-primary"
                             >
                               L<SortIcon k="level" />
                             </span>
