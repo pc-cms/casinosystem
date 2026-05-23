@@ -42,7 +42,18 @@ const DEPT_STAFF_FILTER: Record<string, string[]> = {
 const VIOLATION_TYPES = ["procedural", "financial", "disciplinary", "technical", "other"];
 
 // Standing managers — always selectable, independent of rota.
-const STANDING_MANAGERS = ["Peter", "Taras", "Daniyar"];
+const STANDING_MANAGERS = [
+  "Bakha",
+  "Daniyar",
+  "Hussein",
+  "Oxana",
+  "Peter",
+  "Raushan",
+  "Sergey T",
+  "Sveta",
+  "Taras",
+  "Yurii",
+];
 
 // Standing CCTV observers — always selectable, independent of rota.
 const STANDING_CCTV = ["Andrew", "Alex", "Vladimir", "Vitalii"];
