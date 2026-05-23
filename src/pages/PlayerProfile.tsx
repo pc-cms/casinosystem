@@ -133,13 +133,24 @@ const PlayerProfile = () => {
       }
       return null;
     };
-    // NEP walk over all transactions chronologically (lifetime, all casinos combined).
+    // NEP walk over all transactions chronologically. NEP resets at the start
+    // of every business day (Africa/Dar_es_Salaam, 05:00 rollover) so each day
+    // stands alone — lifetime is the sum of per-day results.
     const sorted = [...transactions].sort((a: any, b: any) => String(a.created_at).localeCompare(String(b.created_at)));
+    const businessDateOf = (iso: string) => {
+      const d = new Date(iso);
+      // Africa/Dar_es_Salaam = UTC+3; subtract 5h to get business date
+      const eat = new Date(d.getTime() + 3 * 3600 * 1000 - 5 * 3600 * 1000);
+      return eat.toISOString().slice(0, 10);
+    };
     let nep = 0;
+    let prevBd: string | null = null;
     for (const t of sorted as any[]) {
       const amt = Number(t.amount) || 0;
       const ts = new Date(t.created_at).getTime();
       const v = findVisit(t.casino_id, ts);
+      const bd = businessDateOf(t.created_at);
+      if (bd !== prevBd) { nep = 0; prevBd = bd; }
       if (t.type === "buy" || t.type === "in") {
         const rec = nep < 0 ? Math.min(amt, -nep) : 0;
         const ext = amt - rec;
