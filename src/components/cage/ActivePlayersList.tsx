@@ -1,6 +1,7 @@
 /**
- * ActivePlayersList — compact list of currently active players for the cashier
- * to quickly select when no player is chosen.
+ * GuestsList — all players currently checked-in (in the hall), for the cashier
+ * to quickly pick. If a guest is seated at a table, that table is shown and
+ * selecting them also propagates the table to the parent form.
  */
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,16 +16,17 @@ import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
 interface Props {
   players: Tables<"players">[];
   tables: Tables<"gaming_tables">[];
-  onSelect: (playerId: string) => void;
+  onSelect: (playerId: string, tableId?: string | null) => void;
 }
 
-const ActivePlayersList = ({ players, tables, onSelect }: Props) => {
+const GuestsList = ({ players, tables, onSelect }: Props) => {
   const { casinoId } = useAuth();
-  
+
   const { data: serverBusinessDate } = useEffectiveBusinessDate();
   const today = serverBusinessDate || getBusinessDate();
   const windowStartUTC = businessDayHourUTC(today, 13);
 
+  // Active table sessions — used to know which table each guest is seated at.
   const { data: sessions = [] } = useQuery({
     queryKey: ["active-sessions-cage", casinoId, today],
     queryFn: async () => {
@@ -41,37 +43,47 @@ const ActivePlayersList = ({ players, tables, onSelect }: Props) => {
     refetchInterval: 30000,
   });
 
-  const playerMap = new Map(players.map(p => [p.id, p]));
   const tableMap = new Map(tables.map(t => [t.id, t]));
+  const seatedTableByPlayer = new Map<string, string>();
+  for (const s of sessions) {
+    if (s.table_id && !seatedTableByPlayer.has(s.player_id)) {
+      seatedTableByPlayer.set(s.player_id, s.table_id);
+    }
+  }
 
-  const activeRows = sessions
-    .map(s => ({ session: s, player: playerMap.get(s.player_id) }))
-    .filter(r => !!r.player);
+  // `players` is already pre-filtered to active + checked-in guests by the parent.
+  const rows = [...players].sort((a, b) => {
+    const ta = seatedTableByPlayer.get(a.id) ? 0 : 1;
+    const tb = seatedTableByPlayer.get(b.id) ? 0 : 1;
+    if (ta !== tb) return ta - tb;
+    return `${a.first_name} ${a.last_name}`.localeCompare(`${b.first_name} ${b.last_name}`);
+  });
 
   return (
     <div className="cms-panel h-full flex flex-col">
       <div className="cms-header flex items-center gap-2">
         <Users className="w-3.5 h-3.5" />
-        Active Players ({activeRows.length})
+        Guests ({rows.length})
       </div>
       <div className="flex-1 overflow-y-auto divide-y divide-border min-h-0">
-        {activeRows.length === 0 ? (
+        {rows.length === 0 ? (
           <div className="p-6 text-center text-sm text-muted-foreground">
             <Users className="w-10 h-10 mx-auto mb-2 opacity-30" />
             No checked-in players. Reception must check the player in first.
           </div>
         ) : (
-          activeRows.map(({ session, player }) => {
-            const table = session.table_id ? tableMap.get(session.table_id) : null;
+          rows.map(player => {
+            const tableId = seatedTableByPlayer.get(player.id) || null;
+            const table = tableId ? tableMap.get(tableId) : null;
             return (
               <button
-                key={session.player_id + session.started_at}
-                onClick={() => onSelect(player!.id)}
+                key={player.id}
+                onClick={() => onSelect(player.id, tableId)}
                 className="w-full flex items-center gap-3 px-3 py-2 hover:bg-muted/50 transition-colors text-left"
               >
                 <div className="w-10 h-10 rounded-full overflow-hidden bg-muted flex items-center justify-center shrink-0 ring-1 ring-border">
-                  {player!.photo_url ? (
-                    <LazyImage src={player!.photo_url} alt="" className="w-full h-full object-cover" />
+                  {player.photo_url ? (
+                    <LazyImage src={player.photo_url} alt="" className="w-full h-full object-cover" />
                   ) : (
                     <User className="w-5 h-5 text-muted-foreground" />
                   )}
@@ -79,12 +91,12 @@ const ActivePlayersList = ({ players, tables, onSelect }: Props) => {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5">
                     <span className="text-sm font-medium text-card-foreground truncate">
-                      {player!.first_name} {player!.last_name}
+                      {player.first_name} {player.last_name}
                     </span>
-                    <CategoryBadge category={(player!.category || "normal") as PlayerCategory} />
+                    <CategoryBadge category={(player.category || "normal") as PlayerCategory} />
                   </div>
-                  {player!.nickname && (
-                    <p className="text-[10px] text-muted-foreground truncate">"{player!.nickname}"</p>
+                  {player.nickname && (
+                    <p className="text-[10px] text-muted-foreground truncate">"{player.nickname}"</p>
                   )}
                 </div>
                 {table && (
@@ -97,9 +109,8 @@ const ActivePlayersList = ({ players, tables, onSelect }: Props) => {
           })
         )}
       </div>
-      
     </div>
   );
 };
 
-export default ActivePlayersList;
+export default GuestsList;
