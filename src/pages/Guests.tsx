@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
-import { UserCheck, Search, ArrowUp, ArrowDown, ArrowUpDown, LogOut, User, Eye, CheckCircle2, LogIn } from "lucide-react";
+import { UserCheck, Search, ArrowUp, ArrowDown, ArrowUpDown, LogOut, User, Eye, LogIn } from "lucide-react";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
@@ -30,12 +30,6 @@ const formatTime = (iso?: string | null) => {
   return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 };
 
-const TYPE_LABELS: Record<string, string> = { slots: "Slots", table: "Table", mix: "Mix" };
-const TYPE_CLASSES: Record<string, string> = {
-  slots: "bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-500/15 dark:text-blue-400 dark:border-blue-500/30",
-  table: "bg-emerald-100 text-emerald-700 border-emerald-300 dark:bg-emerald-500/15 dark:text-emerald-400 dark:border-emerald-500/30",
-  mix: "bg-amber-100 text-amber-700 border-amber-300 dark:bg-amber-500/15 dark:text-amber-400 dark:border-amber-500/30",
-};
 
 const Guests = () => {
   const { casinoId, user, roles } = useAuth();
@@ -46,7 +40,7 @@ const Guests = () => {
   const [tab, setTab] = useState<TabKey>("day");
   const [search, setSearch] = useState("");
   const [posFilter, setPosFilter] = useState<"all" | "table" | "slots" | "hall">("all");
-  const [typeFilter, setTypeFilter] = useState<"all" | "slots" | "table" | "mix">("all");
+  
   const [categoryFilter, setCategoryFilter] = useState<Set<PlayerCategory>>(
     new Set(["diamond", "platinum", "gold", "normal"])
   );
