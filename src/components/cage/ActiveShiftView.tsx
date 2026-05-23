@@ -476,7 +476,7 @@ const InForm = ({ players, tables, exchangeRates, shiftId, onSubmit, loading, sh
       rightPanel={
         selectedPlayer
           ? <PlayerInfoCard player={selectedPlayer} tables={tables} shiftTransactions={shiftTransactions} />
-          : <ActivePlayersList players={players} tables={tables} onSelect={setPlayerId} />
+          : <ActivePlayersList players={players} tables={tables} onSelect={(pid, tid) => { setPlayerId(pid); if (tid) setTableId(tid); }} />
       }
     />
   );
