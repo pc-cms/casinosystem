@@ -5220,6 +5220,7 @@ export type Database = {
         Args: { _business_date: string; _casino_id: string }
         Returns: Json
       }
+      business_date_of: { Args: { _ts: string }; Returns: string }
       cancel_transaction: {
         Args: { p_reason: string; p_transaction_id: string }
         Returns: undefined
