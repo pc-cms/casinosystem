@@ -857,17 +857,17 @@ const PlayerStatistics = () => {
                             className="px-2 py-3 sticky left-16 bg-zinc-900 text-white z-30 font-bold whitespace-nowrap text-left"
                           >
                             <span
+                              onClick={() => toggleSort("level")}
+                              title="Sort by level: D → P → G → N"
+                              className="mr-2 cursor-pointer select-none hover:text-primary text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded border border-white/30"
+                            >
+                              L<SortIcon k="level" />
+                            </span>
+                            <span
                               onClick={() => toggleSort("name")}
                               className="cursor-pointer select-none hover:text-primary"
                             >
                               Name<SortIcon k="name" />
-                            </span>
-                            <span
-                              onClick={() => toggleSort("level")}
-                              title="Sort by level: D → P → G → N"
-                              className="ml-2 cursor-pointer select-none hover:text-primary text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded border border-white/30"
-                            >
-                              Lvl<SortIcon k="level" />
                             </span>
                           </th>
                           <H k="visits" align="left" title="Visits in selected period">Vis</H>
