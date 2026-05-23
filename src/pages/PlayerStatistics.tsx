@@ -151,7 +151,7 @@ const PlayerStatistics = () => {
   );
   const [posFilter, setPosFilter] = useState<"mix" | "table" | "slots">("mix");
   
-  type SortKey = "card" | "name" | "position" | "entry" | "exit" | "avgBet" | "dropR" | "inDrop" | "out" | "chipIn" | "chipOut" | "result";
+  type SortKey = "card" | "name" | "visits" | "position" | "entry" | "exit" | "avgBet" | "dropR" | "inDrop" | "out" | "chipIn" | "chipOut" | "result";
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const toggleSort = (key: SortKey) => {
