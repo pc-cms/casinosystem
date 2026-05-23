@@ -137,8 +137,11 @@ const ActiveShiftView = ({ shift, players, tables }: {
   const isInTx = (t: string) => t === "buy" || t === "in";
   const isOutTx = (t: string) => t === "cashout" || t === "out";
 
-  const totalIns = useMemo(() => shiftTransactions.filter(t => isInTx(t.type)).reduce((s, t) => s + Number(t.amount), 0), [shiftTransactions]);
-  const totalOuts = useMemo(() => shiftTransactions.filter(t => isOutTx(t.type)).reduce((s, t) => s + Number(t.amount), 0), [shiftTransactions]);
+  // Cancelled transactions are visible but excluded from all totals
+  const activeShiftTransactions = useMemo(() => shiftTransactions.filter(t => !(t as any).cancelled_at), [shiftTransactions]);
+
+  const totalIns = useMemo(() => activeShiftTransactions.filter(t => isInTx(t.type)).reduce((s, t) => s + Number(t.amount), 0), [activeShiftTransactions]);
+  const totalOuts = useMemo(() => activeShiftTransactions.filter(t => isOutTx(t.type)).reduce((s, t) => s + Number(t.amount), 0), [activeShiftTransactions]);
   const totalExpenses = useMemo(() => shiftExpenses.reduce((s, e) => s + Number(e.amount), 0), [shiftExpenses]);
 
   // Cage transfer totals (cash-affecting only — Fill/Credit are chip-only)
@@ -146,6 +149,11 @@ const ActiveShiftView = ({ shift, players, tables }: {
   const totalCollection = useMemo(() => cageTransfers.filter(t => t.transfer_type === "collection").reduce((s, t) => s + Number(t.amount), 0), [cageTransfers]);
   const totalSlotsOut = useMemo(() => cageTransfers.filter(t => t.transfer_type === "slots_out").reduce((s, t) => s + Number(t.amount), 0), [cageTransfers]);
   const totalSlotsIn = useMemo(() => cageTransfers.filter(t => t.transfer_type === "slots_in").reduce((s, t) => s + Number(t.amount), 0), [cageTransfers]);
+
+  // Cancel dialog state
+  const [cancelTarget, setCancelTarget] = useState<Tables<"transactions"> | null>(null);
+  const { roles, managerOverride } = useAuth();
+  const canCancelTx = roles.includes("cashier") || roles.includes("super_admin") || managerOverride.active;
 
   const openingFloat = useMemo(() => {
     const of = shift.opening_float as Record<string, unknown> | null;
