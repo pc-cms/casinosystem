@@ -421,9 +421,9 @@ const PlayerProfile = () => {
                   <div className="text-sm text-muted-foreground mt-0.5">"{player.nickname}"</div>
                 )}
               </div>
-              <div className="font-mono text-xs text-muted-foreground text-right">
-                {activeCard && <div>{formatCardId(activeCard)}</div>}
-                {player.id_number && <div>Doc: {player.id_number}</div>}
+              <div className="text-right">
+                {activeCard && <div className="font-mono text-2xl font-bold text-foreground">{formatCardId(activeCard)}</div>}
+                {player.id_number && <div className="font-mono text-xs text-muted-foreground">Doc: {player.id_number}</div>}
               </div>
             </div>
 
