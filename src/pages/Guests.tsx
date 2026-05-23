@@ -377,7 +377,6 @@ const Guests = () => {
                         nickname: p.nickname,
                         photoUrl: p.photo_url,
                         category: (p.category as PlayerCategory) || "normal",
-                        playerType: p.player_type,
                         position: "hall",
                         entryAt: null,
                         exitAt: null,
@@ -389,7 +388,7 @@ const Guests = () => {
                     const combined = [...filtered, ...candidateRows];
                     if (combined.length === 0) {
                       return (
-                        <tr><td colSpan={10} className="px-2 py-8 text-center text-muted-foreground text-xs">No guests to display</td></tr>
+                        <tr><td colSpan={9} className="px-2 py-8 text-center text-muted-foreground text-xs">No guests to display</td></tr>
                       );
                     }
                     return combined.map((r, i) => renderRow(r, i));
