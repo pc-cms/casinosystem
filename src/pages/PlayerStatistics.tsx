@@ -637,7 +637,7 @@ const PlayerStatistics = () => {
     return <PositionPicker r={r} currentValue={currentValue} />;
   };
 
-  const { select: selectPlayer } = useSelectedPlayer();
+  const { playerId: selectedPlayerId, select: selectPlayer } = useSelectedPlayer();
 
   // Tint applied to the Name cell — matches CategoryBadge palette.
   const CATEGORY_NAME_TINT: Record<string, string> = {
@@ -647,64 +647,67 @@ const PlayerStatistics = () => {
     normal: "bg-muted/40",
   };
 
-  const renderRow = (r: any, idx: number) => (
-    <tr
-      key={r.id}
-      onClick={() => selectPlayer(r.playerId)}
-      className="border-b border-border hover:bg-muted/30 cursor-pointer transition-colors"
-    >
-      <td className="px-2 py-1.5 font-mono text-[11px] text-center text-muted-foreground sticky left-0 bg-card z-10 w-16 whitespace-nowrap">{formatCardNumber(r.cardNo) || "·"}</td>
-      <td className={`px-2 py-1.5 max-w-[200px] sticky left-16 z-10 ${CATEGORY_NAME_TINT[r.category] || "bg-card"}`}>
-        <div className="flex items-center gap-1.5 min-w-0">
-          <CategoryBadge category={r.category} />
-          <div className="min-w-0">
-            <p className="text-xs font-semibold text-card-foreground truncate">
-              {r.firstName} {r.lastName}
-            </p>
-            
+  const renderRow = (r: any, idx: number) => {
+    const isSelected = r.playerId === selectedPlayerId;
+    return (
+      <tr
+        key={r.id}
+        onClick={() => selectPlayer(r.playerId)}
+        className={`border-b border-border hover:bg-muted/30 cursor-pointer transition-colors ${isSelected ? "bg-primary/10" : ""}`}
+      >
+        <td className={`px-2 py-1.5 font-mono text-[11px] text-center text-muted-foreground sticky left-0 z-10 w-16 whitespace-nowrap ${isSelected ? "bg-primary/10" : "bg-card"}`}>{formatCardNumber(r.cardNo) || "·"}</td>
+        <td className={`px-2 py-1.5 max-w-[200px] sticky left-16 z-10 ${isSelected ? "bg-primary/10" : (CATEGORY_NAME_TINT[r.category] || "bg-card")}`}>
+          <div className="flex items-center gap-1.5 min-w-0">
+            <CategoryBadge category={r.category} />
+            <div className="min-w-0">
+              <p className="text-xs font-semibold text-card-foreground truncate">
+                {r.firstName} {r.lastName}
+              </p>
+
+            </div>
           </div>
-        </div>
-      </td>
-      <td className="px-2 py-1.5 font-mono text-[11px] text-center w-12">{r.visits || "·"}</td>
-      <td className="px-1 py-1.5 font-mono text-xs w-[44px] text-center">{formatTime(r.entryAt)}</td>
-      <td className="px-1 py-1.5 font-mono text-xs w-[44px] text-center">{r.exitAt ? formatTime(r.exitAt) : "·"}</td>
-      <td className="px-1 py-1.5 w-[64px]">{renderPositionCell(r)}</td>
-      {showFinancials && (() => {
-        const Money = ({ value, sign = false }: { value: number; sign?: boolean }) => {
-          if (!value) return <>·</>;
-          const prefix = sign && value > 0 ? "+" : "";
-          return <>{prefix}{formatCurrency(value)}</>;
-        };
-        return (
-          <>
-            <td className="px-2 py-1.5 font-mono text-sm text-right whitespace-nowrap min-w-[90px]">
-              <Money value={r.avgBet} />
-            </td>
-            <td className="px-2 py-1.5 font-mono text-sm text-right whitespace-nowrap min-w-[120px]" title="Drop — NEP-aware (external cash only)">
-              <Money value={r.dropR} />
-            </td>
-            <td className="px-2 py-1.5 font-mono text-sm text-right whitespace-nowrap min-w-[110px]">
-              <Money value={r.inDrop} />
-            </td>
-            <td className="px-2 py-1.5 font-mono text-sm text-right whitespace-nowrap min-w-[110px]">
-              <Money value={r.out} />
-            </td>
-            <td className="px-2 py-1.5 font-mono text-sm text-right text-success whitespace-nowrap min-w-[110px]">
-              <Money value={r.chipIn} />
-            </td>
-            <td className="px-2 py-1.5 font-mono text-sm text-right text-destructive whitespace-nowrap min-w-[110px]">
-              <Money value={r.chipOut} />
-            </td>
-            <td className={`px-2 py-1.5 font-mono text-sm text-right font-bold whitespace-nowrap min-w-[120px] ${
-              r.result > 0 ? "cms-amount-positive" : r.result < 0 ? "cms-amount-negative" : ""
-            }`}>
-              <Money value={r.result} sign />
-            </td>
-          </>
-        );
-      })()}
-    </tr>
-  );
+        </td>
+        <td className="px-2 py-1.5 font-mono text-[11px] text-center w-12">{r.visits || "·"}</td>
+        <td className="px-1 py-1.5 font-mono text-xs w-[44px] text-center">{formatTime(r.entryAt)}</td>
+        <td className="px-1 py-1.5 font-mono text-xs w-[44px] text-center">{r.exitAt ? formatTime(r.exitAt) : "·"}</td>
+        <td className="px-1 py-1.5 w-[64px]">{renderPositionCell(r)}</td>
+        {showFinancials && (() => {
+          const Money = ({ value, sign = false }: { value: number; sign?: boolean }) => {
+            if (!value) return <>·</>;
+            const prefix = sign && value > 0 ? "+" : "";
+            return <>{prefix}{formatCurrency(value)}</>;
+          };
+          return (
+            <>
+              <td className="px-2 py-1.5 font-mono text-sm text-right whitespace-nowrap min-w-[90px]">
+                <Money value={r.avgBet} />
+              </td>
+              <td className="px-2 py-1.5 font-mono text-sm text-right whitespace-nowrap min-w-[120px]" title="Drop — NEP-aware (external cash only)">
+                <Money value={r.dropR} />
+              </td>
+              <td className="px-2 py-1.5 font-mono text-sm text-right whitespace-nowrap min-w-[110px]">
+                <Money value={r.inDrop} />
+              </td>
+              <td className="px-2 py-1.5 font-mono text-sm text-right whitespace-nowrap min-w-[110px]">
+                <Money value={r.out} />
+              </td>
+              <td className="px-2 py-1.5 font-mono text-sm text-right text-success whitespace-nowrap min-w-[110px]">
+                <Money value={r.chipIn} />
+              </td>
+              <td className="px-2 py-1.5 font-mono text-sm text-right text-destructive whitespace-nowrap min-w-[110px]">
+                <Money value={r.chipOut} />
+              </td>
+              <td className={`px-2 py-1.5 font-mono text-sm text-right font-bold whitespace-nowrap min-w-[120px] ${
+                r.result > 0 ? "cms-amount-positive" : r.result < 0 ? "cms-amount-negative" : ""
+              }`}>
+                <Money value={r.result} sign />
+              </td>
+            </>
+          );
+        })()}
+      </tr>
+    );
+  };
 
   const presentPlayerIds = useMemo(
     () => new Set(rows.filter((r: any) => r.isPresent).map((r: any) => r.playerId)),
