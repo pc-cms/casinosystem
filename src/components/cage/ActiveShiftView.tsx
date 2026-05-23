@@ -298,6 +298,14 @@ const ActiveShiftView = ({ shift, players, tables }: {
         </DialogContent>
       </Dialog>
 
+      <CancelTransactionDialog
+        tx={cancelTarget}
+        open={!!cancelTarget}
+        onOpenChange={(v) => { if (!v) setCancelTarget(null); }}
+      />
+
+
+
 
     </PageShell>
   );
