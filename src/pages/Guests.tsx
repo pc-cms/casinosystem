@@ -335,21 +335,6 @@ const Guests = () => {
                 </button>
               ))}
             </div>
-            {/* Type filter */}
-            <div className="flex items-center rounded-md border border-border overflow-hidden h-8">
-              {(["all", "slots", "table", "mix"] as const).map(p => (
-                <button
-                  key={p}
-                  type="button"
-                  onClick={() => setTypeFilter(p)}
-                  className={`px-2.5 h-full text-[11px] uppercase tracking-wide transition-colors ${
-                    typeFilter === p ? "bg-primary/15 text-primary font-semibold" : "text-muted-foreground hover:bg-muted/40"
-                  }`}
-                >
-                  {p === "all" ? "Type" : TYPE_LABELS[p]}
-                </button>
-              ))}
-            </div>
             <CategoryFilter selected={categoryFilter} onChange={setCategoryFilter} />
             <div className="relative w-56">
               <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -374,7 +359,6 @@ const Guests = () => {
                     <th className="px-1 py-2 text-left w-[44px]">Lvl</th>
                     <H k="name">Player</H>
                     <th className="px-2 py-2 text-left min-w-[280px]">Tags</th>
-                    <H k="type">Type</H>
                     <H k="position">Position</H>
                     <H k="entry" align="center">Entry</H>
                     <H k="exit" align="center">Exit</H>
