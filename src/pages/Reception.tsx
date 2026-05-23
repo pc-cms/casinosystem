@@ -652,7 +652,7 @@ export const RegisterTab = ({ onRegistered }: { onRegistered?: () => void } = {}
       const { data: cardNum } = await supabase.rpc("generate_card_number" as any);
       await supabase.from("player_cards").insert({
         player_id: player.id,
-        card_number: cardNum || `CMS${Date.now().toString().slice(-6)}+`,
+        card_number: cardNum || Date.now().toString().slice(-6),
         card_type: "manual",
         issued_by: user.id,
       });

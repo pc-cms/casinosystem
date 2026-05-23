@@ -4541,10 +4541,63 @@ export type Database = {
         }
         Relationships: []
       }
+      transaction_cancellations: {
+        Row: {
+          amount: number
+          business_date: string | null
+          cancelled_at: string
+          cancelled_by: string
+          casino_id: string
+          id: string
+          player_id: string
+          reason: string
+          shift_id: string | null
+          transaction_id: string
+          tx_type: string
+        }
+        Insert: {
+          amount: number
+          business_date?: string | null
+          cancelled_at?: string
+          cancelled_by: string
+          casino_id: string
+          id?: string
+          player_id: string
+          reason: string
+          shift_id?: string | null
+          transaction_id: string
+          tx_type: string
+        }
+        Update: {
+          amount?: number
+          business_date?: string | null
+          cancelled_at?: string
+          cancelled_by?: string
+          casino_id?: string
+          id?: string
+          player_id?: string
+          reason?: string
+          shift_id?: string | null
+          transaction_id?: string
+          tx_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transaction_cancellations_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       transactions: {
         Row: {
           amount: number
           business_date: string | null
+          cancel_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
           casino_id: string
           chips: Json | null
           created_at: string
@@ -4558,6 +4611,9 @@ export type Database = {
         Insert: {
           amount: number
           business_date?: string | null
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           casino_id: string
           chips?: Json | null
           created_at?: string
@@ -4571,6 +4627,9 @@ export type Database = {
         Update: {
           amount?: number
           business_date?: string | null
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           casino_id?: string
           chips?: Json | null
           created_at?: string
@@ -5160,6 +5219,10 @@ export type Database = {
       build_business_day_snapshot: {
         Args: { _business_date: string; _casino_id: string }
         Returns: Json
+      }
+      cancel_transaction: {
+        Args: { p_reason: string; p_transaction_id: string }
+        Returns: undefined
       }
       cleanup_old_data: { Args: never; Returns: Json }
       clear_stale_peer_links: { Args: never; Returns: number }

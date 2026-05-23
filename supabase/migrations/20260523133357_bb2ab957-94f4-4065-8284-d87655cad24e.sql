@@ -1,0 +1,1 @@
+ALTER VIEW public.player_economy SET (security_invoker = true);
