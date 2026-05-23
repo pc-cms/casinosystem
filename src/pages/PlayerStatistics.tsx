@@ -637,7 +637,7 @@ const PlayerStatistics = () => {
     return <PositionPicker r={r} currentValue={currentValue} />;
   };
 
-  const { select: selectPlayer } = useSelectedPlayer();
+  const { playerId: selectedPlayerId, select: selectPlayer } = useSelectedPlayer();
 
   // Tint applied to the Name cell — matches CategoryBadge palette.
   const CATEGORY_NAME_TINT: Record<string, string> = {
