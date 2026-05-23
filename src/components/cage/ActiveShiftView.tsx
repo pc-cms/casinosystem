@@ -260,6 +260,8 @@ const ActiveShiftView = ({ shift, players, tables }: {
             transactions={shiftTransactions.filter(t => isInTx(t.type))}
             tableMap={tableMap}
             isInTx={isInTx}
+            canCancel={canCancelTx}
+            onCancel={setCancelTarget}
           />
         </TabsContent>
         <TabsContent value="out" className="space-y-3">
@@ -268,6 +270,8 @@ const ActiveShiftView = ({ shift, players, tables }: {
             transactions={shiftTransactions.filter(t => isOutTx(t.type))}
             tableMap={tableMap}
             isInTx={isInTx}
+            canCancel={canCancelTx}
+            onCancel={setCancelTarget}
           />
         </TabsContent>
         <TabsContent value="check" className="space-y-3">
@@ -276,6 +280,8 @@ const ActiveShiftView = ({ shift, players, tables }: {
             transactions={shiftTransactions}
             tableMap={tableMap}
             isInTx={isInTx}
+            canCancel={canCancelTx}
+            onCancel={setCancelTarget}
           />
         </TabsContent>
         <TabsContent value="transfers" className="space-y-3">
