@@ -22,7 +22,7 @@ import { PlayerPreviewHeader } from "@/components/player/PlayerPreviewHeader";
 import { useSelectedPlayer } from "@/hooks/use-selected-player";
 
 type TabKey = "day" | "present" | "left";
-type SortKey = "name" | "type" | "position" | "entry" | "exit";
+type SortKey = "name" | "position" | "entry" | "exit";
 
 const formatTime = (iso?: string | null) => {
   if (!iso) return "·";
@@ -90,7 +90,6 @@ const Guests = () => {
         nickname: p.nickname,
         photoUrl: p.photo_url,
         category: (p.category as PlayerCategory) || "normal",
-        playerType: p.player_type,
         position: (v.position as string) || "hall",
         entryAt: v.checked_in_at as string,
         exitAt: v.checked_out_at as string | null,
@@ -106,7 +105,6 @@ const Guests = () => {
     if (tab === "present") list = list.filter(r => r.isInside);
     if (tab === "left") list = list.filter(r => !r.isInside);
     if (posFilter !== "all") list = list.filter(r => r.position === posFilter);
-    if (typeFilter !== "all") list = list.filter(r => r.playerType === typeFilter);
     list = list.filter(r => categoryFilter.has(r.category));
     if (search) {
       const q = search.toLowerCase();
@@ -120,7 +118,6 @@ const Guests = () => {
         const get = (r: any) => {
           switch (sortKey) {
             case "name": return `${r.firstName} ${r.lastName}`.toLowerCase();
-            case "type": return r.playerType || "zzz";
             case "position": return r.position;
             case "entry": return new Date(r.entryAt).getTime();
             case "exit": return r.exitAt ? new Date(r.exitAt).getTime() : 0;
@@ -135,7 +132,7 @@ const Guests = () => {
       if (a.isInside !== b.isInside) return a.isInside ? -1 : 1;
       return new Date(b.entryAt).getTime() - new Date(a.entryAt).getTime();
     });
-  }, [rows, tab, posFilter, typeFilter, categoryFilter, search, sortKey, sortDir]);
+  }, [rows, tab, posFilter, categoryFilter, search, sortKey, sortDir]);
 
   const counts = useMemo(() => ({
     day: rows.length,
@@ -180,7 +177,7 @@ const Guests = () => {
       const q = debouncedSearch.trim().replace(/[%,]/g, " ");
       const { data } = await supabase
         .from("players")
-        .select("id, first_name, last_name, nickname, photo_url, status, player_type, phone, id_number, id_document_url, category")
+        .select("id, first_name, last_name, nickname, photo_url, status, phone, id_number, id_document_url, category")
         .eq("casino_id", casinoId)
         .or(`first_name.ilike.%${q}%,last_name.ilike.%${q}%,nickname.ilike.%${q}%`)
         .limit(50);
@@ -217,7 +214,7 @@ const Guests = () => {
     onError: (e: any) => toast.error(e.message),
   });
   const PositionBadge = ({ pos }: { pos: string }) => {
-    if (pos === "table") return <Badge variant="outline" className="text-[10px] gap-0.5"><CheckCircle2 className="w-2.5 h-2.5" />Table</Badge>;
+    if (pos === "table") return <Badge variant="outline" className="text-[10px] gap-1"><span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />Table</Badge>;
     if (pos === "slots") return <Badge className="text-[10px] bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30">Slots</Badge>;
     return <Badge variant="secondary" className="text-[10px]">Hall</Badge>;
   };
@@ -240,9 +237,6 @@ const Guests = () => {
       </td>
       <td className="px-2 py-1.5 min-w-[280px]">
         <span className="text-muted-foreground text-[10px]">·</span>
-      </td>
-      <td className="px-1 py-1.5 w-[70px]">
-        {r.playerType ? <Badge className={`${TYPE_CLASSES[r.playerType] || ""} text-[10px]`}>{TYPE_LABELS[r.playerType] || r.playerType}</Badge> : <span className="text-muted-foreground text-[10px]">·</span>}
       </td>
       <td className="px-1 py-1.5 w-[70px]">
         {r.isCandidate ? <span className="text-muted-foreground text-[10px]">·</span> : <PositionBadge pos={r.position} />}
