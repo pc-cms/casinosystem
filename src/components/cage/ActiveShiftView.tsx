@@ -12,7 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ArrowDownToLine, ArrowUpFromLine, Calculator, Square, CheckCircle2, Package, ArrowLeftRight, Landmark } from "lucide-react";
+import { ArrowDownToLine, ArrowUpFromLine, Calculator, Square, CheckCircle2, Package, ArrowLeftRight, Landmark, Ban } from "lucide-react";
+import CancelTransactionDialog from "@/components/cage/CancelTransactionDialog";
 import { useNavigate } from "react-router-dom";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -41,10 +42,12 @@ import {
 } from "@/components/cage/CageHelpers";
 import type { Tables } from "@/integrations/supabase/types";
 
-const TransactionsTable = ({ transactions, tableMap, isInTx }: {
+const TransactionsTable = ({ transactions, tableMap, isInTx, canCancel, onCancel }: {
   transactions: Tables<"transactions">[];
   tableMap: Map<string, Tables<"gaming_tables">>;
   isInTx: (t: string) => boolean;
+  canCancel: boolean;
+  onCancel: (tx: Tables<"transactions">) => void;
 }) => (
   <div className="cms-panel">
     <div className="cms-header">Transactions ({transactions.length})</div>
@@ -52,19 +55,24 @@ const TransactionsTable = ({ transactions, tableMap, isInTx }: {
       <table className="w-full">
         <thead className="sticky top-0 bg-card z-10">
           <tr className="border-b border-border">
-            {["Type", "Player", "Table", "Amount", "Time"].map(h => (
-              <th key={h} className={`text-xs font-medium text-muted-foreground uppercase px-3 py-1.5 ${h === "Amount" || h === "Time" ? "text-right" : "text-left"}`}>{h}</th>
+            {["Type", "Player", "Table", "Amount", "Time", ""].map((h, i) => (
+              <th key={i} className={`text-xs font-medium text-muted-foreground uppercase px-3 py-1.5 ${h === "Amount" || h === "Time" ? "text-right" : "text-left"}`}>{h}</th>
             ))}
           </tr>
         </thead>
         <tbody>
           {transactions.length === 0 ? (
-            <tr><td colSpan={5} className="text-center text-muted-foreground text-sm py-6">No transactions yet</td></tr>
+            <tr><td colSpan={6} className="text-center text-muted-foreground text-sm py-6">No transactions yet</td></tr>
           ) : transactions.map(tx => {
-            const txWithPlayer = tx as typeof tx & { players?: { first_name: string; last_name: string } };
+            const txWithPlayer = tx as typeof tx & { players?: { first_name: string; last_name: string }, cancelled_at?: string | null, cancel_reason?: string | null };
             const isIn = isInTx(tx.type);
+            const cancelled = !!txWithPlayer.cancelled_at;
             return (
-              <tr key={tx.id} className="border-b border-border last:border-0">
+              <tr
+                key={tx.id}
+                className={`border-b border-border last:border-0 ${cancelled ? "line-through opacity-50" : ""}`}
+                title={cancelled ? `CANCELLED — ${txWithPlayer.cancel_reason || ""}` : undefined}
+              >
                 <td className="px-3 py-1.5">
                   <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${isIn ? "bg-primary/10 text-primary" : "bg-accent/10 text-accent"}`}>
                     {isIn ? "IN" : "OUT"}
@@ -79,6 +87,19 @@ const TransactionsTable = ({ transactions, tableMap, isInTx }: {
                 </td>
                 <td className="px-3 py-1.5 text-right font-mono text-[10px] text-muted-foreground">
                   {new Date(tx.created_at).toLocaleTimeString("en-GB", { timeZone: "Africa/Dar_es_Salaam", hour: "2-digit", minute: "2-digit" })}
+                </td>
+                <td className="px-2 py-1 text-right no-underline">
+                  {canCancel && !cancelled && !String(tx.id).startsWith("optimistic-") && (
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7 text-destructive hover:bg-destructive/10 no-underline"
+                      onClick={(e) => { e.stopPropagation(); onCancel(tx); }}
+                      title="Cancel transaction"
+                    >
+                      <Ban className="w-3.5 h-3.5" />
+                    </Button>
+                  )}
                 </td>
               </tr>
             );
