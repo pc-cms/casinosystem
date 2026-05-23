@@ -844,9 +844,9 @@ const PlayerStatistics = () => {
                       );
                       return (
                         <>
-                          <th style={{ top: "var(--ppheader-h, 0px)" }} className="px-2 py-3 text-center sticky left-0 bg-zinc-900 text-white z-30 w-10 font-bold">№</th>
-                          <H k="name" sticky="sticky left-10">Name</H>
-                          <H k="card" title="Player card number (registration ID)">Card</H>
+                          <th style={{ top: "var(--ppheader-h, 0px)" }} onClick={() => toggleSort("card")} className="px-2 py-3 text-center sticky left-0 bg-zinc-900 text-white z-30 w-16 font-bold cursor-pointer select-none hover:text-primary whitespace-nowrap">Card<SortIcon k="card" /></th>
+                          <H k="name" sticky="sticky left-16">Name</H>
+                          <H k="visits" align="left" title="Visits in selected period">Vis</H>
                           <H k="entry">Entry</H>
                           <H k="exit">Left</H>
                           <H k="position">Pos</H>
