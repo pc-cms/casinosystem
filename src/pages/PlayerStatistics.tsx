@@ -27,6 +27,7 @@ import CategoryBadge, { type PlayerCategory } from "@/components/player/Category
 import CategoryFilter from "@/components/player/CategoryFilter";
 import FlagBadges from "@/components/player/FlagBadges";
 import { formatCurrency, formatNumberCompact } from "@/lib/currency";
+import { formatCardNumber } from "@/lib/card-number";
 import { offlineMutation } from "@/lib/offline-mutation";
 import { toast } from "sonner";
 
@@ -150,7 +151,7 @@ const PlayerStatistics = () => {
   );
   const [posFilter, setPosFilter] = useState<"mix" | "table" | "slots">("mix");
   
-  type SortKey = "card" | "name" | "position" | "entry" | "exit" | "avgBet" | "dropR" | "inDrop" | "out" | "chipIn" | "chipOut" | "result";
+  type SortKey = "card" | "name" | "visits" | "position" | "entry" | "exit" | "avgBet" | "dropR" | "inDrop" | "out" | "chipIn" | "chipOut" | "result";
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const toggleSort = (key: SortKey) => {
@@ -313,6 +314,7 @@ const PlayerStatistics = () => {
       return {
         id: v.id,
         visitNumber: visitNumberById.get(v.id) ?? 0,
+        visits: visitsByPlayer.get(v.player_id)?.length || 1,
         playerId: v.player_id,
         cardNo: ((p as any).player_cards || [])
           .slice()
@@ -395,6 +397,7 @@ const PlayerStatistics = () => {
           switch (sortKey) {
             case "card": return r.cardNo || "\uffff";
             case "name": return `${r.firstName} ${r.lastName}`.toLowerCase();
+            case "visits": return r.visits || 0;
             case "position": return r.position === "table" ? (r.tableName ?? "zzz") : r.position;
             case "entry": return new Date(r.entryAt).getTime();
             case "exit": return r.exitAt ? new Date(r.exitAt).getTime() : 0;
@@ -646,8 +649,8 @@ const PlayerStatistics = () => {
       onClick={() => selectPlayer(r.playerId)}
       className="border-b border-border hover:bg-muted/30 cursor-pointer transition-colors"
     >
-      <td className="px-2 py-1.5 font-mono text-[11px] text-center text-muted-foreground sticky left-0 bg-card z-10 w-10">{r.visitNumber || idx + 1}</td>
-      <td className={`px-2 py-1.5 max-w-[200px] sticky left-10 z-10 ${CATEGORY_NAME_TINT[r.category] || "bg-card"}`}>
+      <td className="px-2 py-1.5 font-mono text-[11px] text-center text-muted-foreground sticky left-0 bg-card z-10 w-16 whitespace-nowrap">{formatCardNumber(r.cardNo) || "·"}</td>
+      <td className={`px-2 py-1.5 max-w-[200px] sticky left-16 z-10 ${CATEGORY_NAME_TINT[r.category] || "bg-card"}`}>
         <div className="flex items-center gap-1.5 min-w-0">
           <CategoryBadge category={r.category} />
           <div className="min-w-0">
@@ -658,7 +661,7 @@ const PlayerStatistics = () => {
           </div>
         </div>
       </td>
-      <td className="px-2 py-1.5 font-mono text-[11px] text-muted-foreground whitespace-nowrap">{r.cardNo || "·"}</td>
+      <td className="px-2 py-1.5 font-mono text-[11px] text-center w-12">{r.visits || "·"}</td>
       <td className="px-1 py-1.5 font-mono text-xs w-[44px] text-center">{formatTime(r.entryAt)}</td>
       <td className="px-1 py-1.5 font-mono text-xs w-[44px] text-center">{r.exitAt ? formatTime(r.exitAt) : "·"}</td>
       <td className="px-1 py-1.5 w-[64px]">{renderPositionCell(r)}</td>
@@ -841,9 +844,9 @@ const PlayerStatistics = () => {
                       );
                       return (
                         <>
-                          <th style={{ top: "var(--ppheader-h, 0px)" }} className="px-2 py-3 text-center sticky left-0 bg-zinc-900 text-white z-30 w-10 font-bold">№</th>
-                          <H k="name" sticky="sticky left-10">Name</H>
-                          <H k="card" title="Player card number (registration ID)">Card</H>
+                          <th style={{ top: "var(--ppheader-h, 0px)" }} onClick={() => toggleSort("card")} className="px-2 py-3 text-center sticky left-0 bg-zinc-900 text-white z-30 w-16 font-bold cursor-pointer select-none hover:text-primary whitespace-nowrap">Card<SortIcon k="card" /></th>
+                          <H k="name" sticky="sticky left-16">Name</H>
+                          <H k="visits" align="left" title="Visits in selected period">Vis</H>
                           <H k="entry">Entry</H>
                           <H k="exit">Left</H>
                           <H k="position">Pos</H>
@@ -865,8 +868,8 @@ const PlayerStatistics = () => {
                   </tr>
                   {filtered.length > 0 && (
                     <tr className="text-sm bg-[#F5D061] dark:bg-[#6B5A1A] border-b-2 border-primary/40 font-mono text-amber-950 dark:text-amber-50">
-                      <td style={{ top: "calc(var(--ppheader-h, 0px) + 38px)", boxShadow: "inset 0 -2px 0 0 hsl(45 90% 55% / 0.9)" }} className="px-2 py-2 text-center sticky left-0 bg-[#F5D061] dark:bg-[#6B5A1A] text-amber-950 dark:text-amber-50 z-30 font-bold">{totals.count}</td>
-                      <td style={{ top: "calc(var(--ppheader-h, 0px) + 38px)", boxShadow: "inset 0 -2px 0 0 hsl(45 90% 55% / 0.9)" }} className="px-2 py-2 text-left uppercase tracking-wider font-bold sticky left-10 bg-[#F5D061] dark:bg-[#6B5A1A] text-amber-950 dark:text-amber-50 z-30">
+                      <td style={{ top: "calc(var(--ppheader-h, 0px) + 38px)", boxShadow: "inset 0 -2px 0 0 hsl(45 90% 55% / 0.9)" }} className="px-2 py-2 text-center sticky left-0 bg-[#F5D061] dark:bg-[#6B5A1A] text-amber-950 dark:text-amber-50 z-30 font-bold w-16">{totals.count}</td>
+                      <td style={{ top: "calc(var(--ppheader-h, 0px) + 38px)", boxShadow: "inset 0 -2px 0 0 hsl(45 90% 55% / 0.9)" }} className="px-2 py-2 text-left uppercase tracking-wider font-bold sticky left-16 bg-[#F5D061] dark:bg-[#6B5A1A] text-amber-950 dark:text-amber-50 z-30">
                         Total
                       </td>
                       <td style={{ top: "calc(var(--ppheader-h, 0px) + 38px)", boxShadow: "inset 0 -2px 0 0 hsl(45 90% 55% / 0.9)" }} className="px-1 py-2 sticky bg-[#F5D061] dark:bg-[#6B5A1A] z-20"></td>
