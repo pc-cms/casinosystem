@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export type DatePreset = "day" | "week" | "month" | "year" | "custom";
+export type DatePreset = "day" | "week" | "month" | "year" | "all" | "custom";
 
 const todayMinus = (days: number) => {
   const d = new Date();
@@ -17,12 +17,13 @@ export const presetRange = (p: DatePreset): { from: string; to: string } => {
     case "week": return { from: todayMinus(6), to: today };
     case "month": return { from: todayMinus(29), to: today };
     case "year": return { from: todayMinus(364), to: today };
+    case "all": return { from: "1970-01-01", to: today };
     default: return { from: todayMinus(29), to: today };
   }
 };
 
 const PRESET_LABELS: Record<Exclude<DatePreset, "custom">, string> = {
-  day: "Day", week: "Week", month: "Month", year: "Year",
+  day: "Day", week: "Week", month: "Month", year: "Year", all: "All",
 };
 
 interface DateRangePresetsProps {
