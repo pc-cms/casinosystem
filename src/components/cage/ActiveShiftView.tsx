@@ -27,6 +27,7 @@ import { greedyChipBreakdown, sumChips } from "@/hooks/use-chip-colors";
 import PlayerSearch from "@/components/cage/PlayerSearch";
 import PlayerInfoCard from "@/components/cage/PlayerInfoCard";
 import ActivePlayersList from "@/components/cage/ActivePlayersList";
+import { useVisitsToday } from "@/hooks/use-casino-data";
 import ChipDenomInput from "@/components/ChipDenomInput";
 import CashDenomInput, { cashSum } from "@/components/cage/CashDenomInput";
 import CashCountGrid from "@/components/cage/CashCountGrid";
