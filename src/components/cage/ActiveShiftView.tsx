@@ -127,7 +127,17 @@ const ActiveShiftView = ({ shift, players, tables }: {
   const [showCloseTables, setShowCloseTables] = useState(false);
   
 
-  const activePlayers = useMemo(() => players.filter(p => p.status === "active"), [players]);
+  // Cashier may only transact with players currently checked in (open visit today).
+  // Players not checked in via Reception are invisible in cage search.
+  const { data: todayVisits = [] } = useVisitsToday("player_id, checked_out_at") as { data: { player_id: string; checked_out_at: string | null }[] };
+  const checkedInIds = useMemo(
+    () => new Set(todayVisits.filter(v => !v.checked_out_at).map(v => v.player_id)),
+    [todayVisits]
+  );
+  const activePlayers = useMemo(
+    () => players.filter(p => p.status === "active" && checkedInIds.has(p.id)),
+    [players, checkedInIds]
+  );
   const openTables = useMemo(() => tables.filter(t => t.status === "open"), [tables]);
   const exchangeRates = (shift.exchange_rates || {}) as Record<string, number>;
 
