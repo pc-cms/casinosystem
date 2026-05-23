@@ -60,6 +60,7 @@ const ImportReports = lazy(() => import("@/pages/ImportReports"));
 const TableResults = lazy(() => import("@/pages/TableResults"));
 const BankChecks = lazy(() => import("@/pages/BankChecks"));
 const MissChips = lazy(() => import("@/pages/MissChips"));
+const CancelledTransactions = lazy(() => import("@/pages/CancelledTransactions"));
 const TableTracker = lazy(() => import("@/pages/TableTracker"));
 const TablesAnalytics = lazy(() => import("@/pages/TablesAnalytics"));
 const PlayerStatistics = lazy(() => import("@/pages/PlayerStatistics"));
@@ -277,6 +278,7 @@ const ProtectedRoutes = () => {
           <Route path="/table-results" element={<RoleGuard path="/table-results"><TableResults /></RoleGuard>} />
           <Route path="/bank-checks" element={<RoleGuard path="/bank-checks"><BankChecks /></RoleGuard>} />
           <Route path="/miss-chips" element={<RoleGuard path="/miss-chips"><MissChips /></RoleGuard>} />
+          <Route path="/cancelled-transactions" element={<RoleGuard path="/cancelled-transactions"><CancelledTransactions /></RoleGuard>} />
           <Route path="/business-days" element={<RoleGuard path="/business-days"><BusinessDays /></RoleGuard>} />
           <Route path="/weekly-bonus" element={<RoleGuard path="/weekly-bonus"><ErrorBoundary><WeeklyBonus /></ErrorBoundary></RoleGuard>} />
           <Route path="/monthly-tips" element={<RoleGuard path="/monthly-tips"><ErrorBoundary><MonthlyTips /></ErrorBoundary></RoleGuard>} />
