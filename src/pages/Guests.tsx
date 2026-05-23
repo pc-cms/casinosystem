@@ -269,6 +269,11 @@ const Guests = () => {
             <LogOut className="w-3 h-3" /> Check Out
           </Button>
         )}
+        {!r.isCandidate && !r.isInside && canCheckIn && !presentPlayerIds.has(r.playerId) && (
+          <Button variant="default" size="sm" className="h-7 ml-1 text-xs gap-1" onClick={() => checkIn.mutate(r.playerId)} disabled={checkIn.isPending} title="Player returned — check in again">
+            <LogIn className="w-3 h-3" /> Check In
+          </Button>
+        )}
       </td>
     </tr>
   );
