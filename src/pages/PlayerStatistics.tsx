@@ -397,6 +397,10 @@ const PlayerStatistics = () => {
           switch (sortKey) {
             case "card": return r.cardNo || "\uffff";
             case "name": return `${r.firstName} ${r.lastName}`.toLowerCase();
+            case "level": {
+              const order: Record<string, number> = { diamond: 0, platinum: 1, gold: 2, normal: 3 };
+              return order[r.category] ?? 9;
+            }
             case "visits": return r.visits || 0;
             case "position": return r.position === "table" ? (r.tableName ?? "zzz") : r.position;
             case "entry": return new Date(r.entryAt).getTime();
