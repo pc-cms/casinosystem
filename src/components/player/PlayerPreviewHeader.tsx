@@ -244,7 +244,7 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
                 <span className="text-xl text-muted-foreground font-normal truncate">"{player.nickname}"</span>
               )}
               {activeCard && (
-                <span className="font-mono text-2xl font-bold text-muted-foreground" title="Player card (registration ID)">
+                <span className="font-mono text-2xl font-bold text-foreground" title="Player card (registration ID)">
                   {formatCardId(activeCard)}
                 </span>
               )}
