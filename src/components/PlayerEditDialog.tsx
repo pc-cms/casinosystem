@@ -238,6 +238,7 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
         if (error) throw error;
       }
       queryClient.invalidateQueries({ queryKey: ["players"] });
+      queryClient.invalidateQueries({ queryKey: ["player", player.id] });
       queryClient.invalidateQueries({ queryKey: ["casino_visits"] });
       toast.success("Player updated");
       onOpenChange(false);
