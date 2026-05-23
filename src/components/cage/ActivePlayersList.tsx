@@ -20,7 +20,7 @@ interface Props {
 
 const ActivePlayersList = ({ players, tables, onSelect }: Props) => {
   const { casinoId } = useAuth();
-  const navigate = useNavigate();
+  
   const { data: serverBusinessDate } = useEffectiveBusinessDate();
   const today = serverBusinessDate || getBusinessDate();
   const windowStartUTC = businessDayHourUTC(today, 13);
