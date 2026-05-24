@@ -99,13 +99,17 @@ export default function WeeklyBonus() {
 
   // Local edit buffer for attendance cells (keyed by `${dealerId}|${date}`).
   const [attDraft, setAttDraft] = useState<Record<string, string>>({});
+  // Live edit buffers for Extra / Bonus — PTS updates as the user types,
+  // before the input blurs and the server round-trip completes.
+  const [extraDraft, setExtraDraft] = useState<Record<string, string>>({});
+  const [bonusDraft, setBonusDraft] = useState<Record<string, string>>({});
 
   useEffect(() => {
     setPoolInput(pool?.pool_amount ? String(pool.pool_amount) : "");
     setCalculated(!!pool?.is_calculated);
   }, [pool?.pool_amount, pool?.is_calculated, weekStart]);
 
-  useEffect(() => { setAttDraft({}); }, [weekStart]);
+  useEffect(() => { setAttDraft({}); setExtraDraft({}); setBonusDraft({}); }, [weekStart]);
 
   // Cashier's editable bill counts for payout preparation. Resets on recompute.
   const [payoutOverride, setPayoutOverride] = useState<Record<number, number> | null>(null);
