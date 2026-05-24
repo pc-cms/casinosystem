@@ -7,6 +7,7 @@ import { ShieldAlert, Key, CreditCard } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { logAction } from "@/lib/logging";
+import { cacheManagerCredentials, verifyOfflineManager } from "@/lib/offline-manager-auth";
 
 interface ManagerOverrideDialogProps {
   open: boolean;
@@ -55,8 +56,37 @@ const ManagerOverrideDialog = ({
     setLoading(true);
     setError("");
 
+    const email = login.includes("@") ? login : `${login.toLowerCase().trim()}@cms.local`;
+
+    // ── OFFLINE PATH ──────────────────────────────────────────────────────
+    // If the browser is offline, skip the network round-trip entirely and
+    // try the IndexedDB-cached PBKDF2 hash from a previous online verify
+    // (12 h TTL). This is what keeps shift close / overrides working when
+    // the line is down.
+    if (!navigator.onLine) {
+      const cached = await verifyOfflineManager(email, password);
+      if (!cached) {
+        setError("Offline — no cached credentials for this manager (verify online first within 12 h)");
+        setLoading(false);
+        return;
+      }
+      if (casinoId) {
+        await logAction(casinoId, "system", actionType, {
+          ...actionDetails,
+          manager_id: cached.manager_id,
+          manager_name: cached.display_name,
+          auth_method: "password_offline",
+          verified_offline: true,
+        });
+      }
+      setLogin("");
+      setPassword("");
+      onConfirm(cached.manager_id);
+      setLoading(false);
+      return;
+    }
+
     try {
-      const email = login.includes("@") ? login : `${login.toLowerCase().trim()}@cms.local`;
       const { data, error: fnError } = await supabase.functions.invoke("verify-manager", {
         body: { email, password },
       });
@@ -75,10 +105,42 @@ const ManagerOverrideDialog = ({
       }
 
       if (fnError || !data?.manager_id) {
+        // Network failure while marked online? Fall back to offline cache.
+        const looksLikeNetwork = !!fnError && (
+          fnError.message?.includes("Failed to fetch") ||
+          fnError.message?.includes("NetworkError") ||
+          fnError.message?.includes("network")
+        );
+        if (looksLikeNetwork) {
+          const cached = await verifyOfflineManager(email, password);
+          if (cached) {
+            if (casinoId) {
+              await logAction(casinoId, "system", actionType, {
+                ...actionDetails,
+                manager_id: cached.manager_id,
+                manager_name: cached.display_name,
+                auth_method: "password_offline_fallback",
+                verified_offline: true,
+              });
+            }
+            setLogin("");
+            setPassword("");
+            onConfirm(cached.manager_id);
+            return;
+          }
+        }
         setError(serverError || data?.error || fnError?.message || "Invalid credentials");
         setLoading(false);
         return;
       }
+
+      // Cache for offline use (best effort, never blocks the flow).
+      void cacheManagerCredentials({
+        login: email,
+        password,
+        manager_id: data.manager_id,
+        display_name: data.display_name,
+      });
 
       if (casinoId) {
         await logAction(casinoId, "system", actionType, {
