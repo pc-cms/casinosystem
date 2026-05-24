@@ -6,6 +6,7 @@ import { NumberInput } from "@/components/ui/number-input";
 import { Play, Settings2, ChevronRight, ChevronLeft, Landmark, Pencil, ShieldAlert } from "lucide-react";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { CloseBusinessDayButton } from "@/components/pit/CloseBusinessDayButton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
 import OpeningDeltaConfirmDialog from "@/components/cage/OpeningDeltaConfirmDialog";
