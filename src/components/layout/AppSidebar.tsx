@@ -379,11 +379,11 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
   // No hard-coded role whitelists — only super_admin bypass + the matrix.
   // Items without a module mapping (mk null) stay visible to everyone (they
   // are auxiliary entries that don't correspond to a gated module).
-  const hasCageFull = isSuper || roles.includes("cashier" as AppRole) || roles.includes("finance_manager" as AppRole);
   const hasExpensesApprovals = isSuper || roles.includes("manager" as AppRole) || roles.includes("floor_manager" as AppRole) || roles.includes("finance_manager" as AppRole);
   const visibleItems = NAV_ITEMS.filter(item => {
-    // Dedupe: hide read-only Cage when user has full Cage access
-    if (item.to === "/cage/view" && hasCageFull) return false;
+    // Cage and Cage View are separate top-level buttons, never parent/sub-items.
+    if (item.to === "/cage" && !isSuper && !roles.includes("cashier" as AppRole)) return false;
+    if (item.to === "/cage/view" && !isSuper && roles.includes("cashier" as AppRole)) return false;
     // Dedupe: hide raw Expenses when user has Approvals (which covers oversight)
     if (item.to === "/expenses" && hasExpensesApprovals) return false;
     if (isSuper) return true;
