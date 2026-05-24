@@ -49,18 +49,25 @@ export const AppLayout = () => {
     localStorage.setItem(STORAGE_KEY, collapsed ? "1" : "0");
   }, [collapsed]);
 
+  // Warm all lazy route chunks once a day so the app survives offline
+  // navigation to pages the user has never opened before.
+  useEffect(() => {
+    prefetchRouteChunks();
+  }, []);
+
   return (
     <div className="flex h-screen overflow-hidden">
-      
+
       {!isMobile && (
         <div className="no-print">
           <AppSidebar collapsed={collapsed} onToggle={() => setCollapsed((c) => !c)} />
         </div>
       )}
       <div className="flex-1 flex flex-col overflow-hidden relative">
+        <OfflineBanner />
         <PWAUpdateNotification />
         {isMobile && <div className="no-print"><MobileHeader /></div>}
-        
+
         <main className="flex-1 overflow-y-auto">
           {isFullWidth ? (
             <div className="p-3 sm:p-4 animate-fade-in h-full">
