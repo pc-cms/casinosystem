@@ -97,12 +97,23 @@ const queryClient = new QueryClient({
       staleTime: 1000 * 60 * 2, // 2 min — better for slow connections
       gcTime: 1000 * 60 * 60 * 24, // 24h — keep in cache for offline
       refetchOnWindowFocus: false, // avoid refetch storms on tab switch
-      refetchOnReconnect: true,
+      // M8: Do NOT auto-refetch every query on reconnect — that causes a
+      // request storm on flaky links and brings the UI down again. The
+      // offline sync engine triggers staggered refetches manually.
+      refetchOnReconnect: false,
       retry: 2,
       retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 15000),
+      // Network mode "offlineFirst" lets queries serve cached data without
+      // marking them as errored when the browser is offline — prevents
+      // every list/page from flashing red mid-outage.
+      networkMode: "offlineFirst",
+    },
+    mutations: {
+      networkMode: "offlineFirst",
     },
   },
 });
+
 
 const persister = createIDBPersister();
 
@@ -203,6 +214,25 @@ const ProtectedRoutes = () => {
 
   // Initialize offline sync engine on mount
   useEffect(() => { initSyncEngine(); }, []);
+
+  // M8: Staggered refetch after reconnect. The critical operational queries
+  // are invalidated one at a time (250ms apart) so a flaky link doesn't get
+  // hit by 30+ parallel requests the instant it comes back up.
+  useEffect(() => {
+    const KEYS = [
+      "shifts", "transactions", "cage-transfers", "cash-counts",
+      "visits", "active-players", "gaming_tables", "chip_counts",
+    ];
+    const onReconnect = async () => {
+      for (const k of KEYS) {
+        queryClient.invalidateQueries({ queryKey: [k] });
+        await new Promise((r) => setTimeout(r, 250));
+      }
+    };
+    window.addEventListener("cms:reconnected", onReconnect);
+    return () => window.removeEventListener("cms:reconnected", onReconnect);
+  }, []);
+
   if (loading) {
     return <FullScreenLoader />;
   }

@@ -149,8 +149,14 @@ export function initSyncEngine() {
 
   const handleOnline = () => {
     console.log("[Sync] Connection restored, starting sync...");
-    syncPendingActions();
+    syncPendingActions().then(() => {
+      // M8: Notify app to staggered-refetch critical data after reconnect,
+      // instead of React Query's all-at-once refetchOnReconnect (which
+      // DDoSes the API on flaky links).
+      window.dispatchEvent(new CustomEvent("cms:reconnected"));
+    });
   };
+
 
   const handleOffline = () => {
     console.log("[Sync] Connection lost");
