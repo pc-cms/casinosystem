@@ -5,9 +5,11 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { fmtDateTime } from "@/lib/format-date";
+import { fmtDateTime, fmtDateOnly } from "@/lib/format-date";
 import { useBusinessDayHistory } from "@/hooks/use-business-day-history";
 import { ClosureDetail } from "@/components/business-days/ClosureDetail";
+import CasinoBadge from "@/components/player/CasinoBadge";
+import { useCasino } from "@/lib/casino-context";
 
 const currentMonth = () => {
   const d = new Date();
