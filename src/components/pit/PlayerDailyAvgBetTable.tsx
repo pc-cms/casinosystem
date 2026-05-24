@@ -128,7 +128,7 @@ export function PlayerDailyAvgBetTable({ businessDate, players, visits, canEdit 
         };
       })
       .filter(Boolean) as any[];
-  }, [visits, businessDate, playerMap, betsByPlayer, visitNumByPlayer]);
+  }, [visits, businessDate, playerMap, betsByPlayer, lifetimeVisitsByPlayer]);
 
   const filteredRows = useMemo(() => {
     const q = search.trim().toLowerCase();
