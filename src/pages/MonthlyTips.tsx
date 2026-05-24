@@ -106,13 +106,16 @@ export default function MonthlyTips() {
 
   // Local edit buffer for attendance cells (keyed by `${dealerId}|${date}`).
   const [attDraft, setAttDraft] = useState<Record<string, string>>({});
+  // Live edit buffers for Extra / Bonus — PTS updates as the user types.
+  const [extraDraft, setExtraDraft] = useState<Record<string, string>>({});
+  const [bonusDraft, setBonusDraft] = useState<Record<string, string>>({});
 
   useEffect(() => {
     setPoolInput(pool?.pool_amount ? String(pool.pool_amount) : "");
     setCalculated(!!pool?.is_calculated);
   }, [pool?.pool_amount, pool?.is_calculated, periodStart]);
 
-  useEffect(() => { setAttDraft({}); }, [periodStart]);
+  useEffect(() => { setAttDraft({}); setExtraDraft({}); setBonusDraft({}); }, [periodStart]);
 
   // Cashier's editable bill counts for payout preparation. Resets on recompute.
   const [payoutOverride, setPayoutOverride] = useState<Record<number, number> | null>(null);
