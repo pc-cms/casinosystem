@@ -1,43 +1,21 @@
-## Tips dialogs — semantics, employee selector, colors
+## Проблема
 
-### 1. `TipsDialog` (`src/components/cage/TipsDialog.tsx`)
+`PageShell` использует `space-y-4` (margin-top на всех детях кроме первого). В `WeeklyBonus.tsx` и `MonthlyTips.tsx` первым ребёнком внутри `<PageShell>` стоит блок `<style>{`@media print { … }`}</style>`, поэтому `<PageHeader>` оказывается вторым ребёнком и получает лишний `margin-top: 1rem`. В Live / Floor / Club Poker такого `<style>` нет — `PageHeader` идёт первым и липнет к верху. Отсюда разная высота шапок между вкладками.
 
-**Employee selector for Tips Poker (new)**
-- Add `kind === "tips_poker"` branch that mounts `EmployeeCombobox` (see below).
-- Source: `useDealers()` → filter `is_active && !is_pit_boss` (includes dealer / inspector / trainee categories). Sort by name.
-- Same field `tips_recipient_employee_id` is written on submit. Submit disabled until selected.
+## Решение
 
-**Searchable Employee selector for Tips Poker AND Tips Floor**
-- Replace plain `<Select>` with a `Popover + Command` combobox (typeahead by first letters/digits, like player search). Single shared inline `EmployeeCombobox` component declared at top of `TipsDialog.tsx`:
-  - Props: `value`, `onChange`, `items: {id,name,sub?}[]`, `placeholder`.
-  - Renders selected name as trigger button; opens `Command` with `CommandInput` + `CommandList` + `CommandItem`s; filter on name (case-insensitive includes).
-- Tips Floor keeps its existing `useStaffMembers()` source.
-- Tips Live keeps no selector.
+Перенести `<style>`-блок так, чтобы он не был первым ребёнком `PageShell` и не сдвигал `PageHeader`. Самый чистый вариант — обернуть style в фрагмент после header, либо перенести его в нижнюю часть страницы (он применяется только к `@media print`, позиция в DOM не важна).
 
-**Tips Live — cash treated as income (chip→cash exchange, but cash is income)**
-- Keep current chip→cash semantics (`amount > 0`, chips JSONB), keep `Record Tip · Cash to Hand Out`.
-- Update subtitle to reflect: *"Chips → cash. Cash counted as income; goes into Monthly Tips pool."* (UI copy only — no DB trigger change needed; `tips_live` is already excluded from `cash_result`/`tables_result` triggers and is naturally surfaced as positive income in Monthly Tips).
+### Файлы и изменения
 
-**Tips Poker / Tips Floor — no balance impact (unchanged)**
-- Current code already excludes these types from balance triggers. Confirmed in migrations. No backend changes.
+1. **`src/pages/WeeklyBonus.tsx`** — переместить блок `<style>{@media print …}</style>` (строки ~225–246) из положения «сразу под `<PageShell>`» в положение «после `<PageHeader>`» (или в самый конец `PageShell`, перед закрывающим тегом). Поведение печати не меняется.
 
-**Submit guard**
-- `tips_poker` now also requires `employeeId`; mirror existing `tips_floor` check.
+2. **`src/pages/MonthlyTips.tsx`** — аналогично: переместить аналогичный `<style>`-блок ниже `<PageHeader>`.
 
-### 2. `ActiveShiftView.tsx` — colored buttons
+### Проверка
 
-Replace the three identical `variant="outline"` Tips buttons with semantic-token tinted variants (no raw colors):
-- **Tips Live** — emerald tint (`bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/25`).
-- **Tips Poker** — amber tint (`bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/40 hover:bg-amber-500/25`).
-- **Tips Floor** — sky tint (`bg-sky-500/15 text-sky-700 dark:text-sky-300 border-sky-500/40 hover:bg-sky-500/25`).
-- Keep `variant="outline" size="sm"` envelope so density/system rules still apply; tint added via `className`. Icons unchanged (`Gift` / `Coins` / `UserCheck`).
+После изменения визуально сверить отступ сверху у всех 5 вкладок Tips & Bonuses (Weekly Bonus, Monthly Tips, Live Game Tips, Floor Tips, Club Poker Tips) — должен быть одинаковый. Печать (Ctrl+P) на Weekly Bonus / Monthly Tips должна по-прежнему применять компактные print-стили.
 
-### Files touched
-- `src/components/cage/TipsDialog.tsx` — combobox component, poker selector, copy.
-- `src/components/cage/ActiveShiftView.tsx` — colored Tips buttons.
+### Bump
 
-### Out of scope
-- No DB / RLS / trigger / edge changes (no version bump).
-- No changes to Monthly Tips / Live Game Tips / Floor Tips / Club Poker Tips report tabs.
-- No `tips_recipient_employee_id` schema change (column already exists).
-- No change to balance / cash_result math.
+Чисто косметическая UI-правка — версию в `package.json` не бампим (правило Auto Version Bump касается только backend-изменений).
