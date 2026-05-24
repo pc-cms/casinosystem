@@ -69,7 +69,6 @@ const GATED_ROUTES = [
   "/tables/close",
   "/player-statistics",
   "/table-tracker",
-  "/tables/analytics",
   "/expenses",
   "/cashless",
   "/pit",
