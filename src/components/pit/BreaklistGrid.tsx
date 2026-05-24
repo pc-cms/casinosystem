@@ -174,6 +174,8 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
   // HR comment dialog state (opens after A/S/SP/LT to capture a short note)
   const [commentFor, setCommentFor] = useState<{ dealerId: string; dealerName: string; kind: "Absent" | "Sick" | "Suspend" | "Late"; label: string } | null>(null);
   const [commentText, setCommentText] = useState("");
+  // For Suspend: number of consecutive days (incl. today) to apply SP forward.
+  const [suspendDays, setSuspendDays] = useState<number>(1);
   const upsertWarningComment = useUpsertWarningCommentByKey();
   const qc = useQueryClient();
   const { activeCasinoId } = useCasino();
@@ -207,7 +209,38 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
   const openCommentDialog = (dealerId: string, kind: "Absent" | "Sick" | "Suspend" | "Late", label: string) => {
     const dealerName = activeDealers.find(d => d.id === dealerId)?.name || "Dealer";
     setCommentText("");
+    setSuspendDays(1);
     setCommentFor({ dealerId, dealerName, kind, label });
+  };
+
+  // Add N days to an ISO yyyy-mm-dd, returning the same shape.
+  const addDays = (iso: string, n: number) => {
+    const d = new Date(iso + "T12:00:00Z");
+    d.setUTCDate(d.getUTCDate() + n);
+    return d.toISOString().slice(0, 10);
+  };
+
+  // Save HR comment for the current dialog and, when Suspend with N>1 days,
+  // propagate SP attendance forward to the next (N-1) days.
+  const handleCommentSave = () => {
+    if (!commentFor) return;
+    if (commentFor.kind === "Suspend" && suspendDays > 1) {
+      for (let i = 1; i < suspendDays; i++) {
+        const d = addDays(date, i);
+        setAttendance.mutate({ dealer_id: commentFor.dealerId, date: d, value: "SP" });
+        // Also persist the same HR note on each forward day so warnings stay aligned.
+        if (commentText.trim()) {
+          upsertWarningComment.mutate({ employee_id: commentFor.dealerId, business_date: d, comment: commentText });
+        }
+      }
+      if (suspendDays > 1) {
+        toast.success(`Suspend applied for ${suspendDays} days`);
+      }
+    }
+    upsertWarningComment.mutate(
+      { employee_id: commentFor.dealerId, business_date: date, comment: commentText },
+      { onSuccess: () => setCommentFor(null) },
+    );
   };
 
   const handleRoleSelect = (role: string, tableId?: string) => {
@@ -586,6 +619,20 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
               <span className="text-muted-foreground text-sm font-normal">· {commentFor?.kind}</span>
             </DialogTitle>
           </DialogHeader>
+          {commentFor?.kind === "Suspend" && (
+            <div className="flex items-center gap-2 px-1">
+              <label className="text-xs text-muted-foreground">Apply Suspend for</label>
+              <input
+                type="number"
+                min={1}
+                max={60}
+                value={suspendDays}
+                onChange={(e) => setSuspendDays(Math.max(1, Math.min(60, Number(e.target.value) || 1)))}
+                className="w-16 h-7 px-2 text-sm font-mono rounded border border-border bg-background"
+              />
+              <span className="text-xs text-muted-foreground">consecutive day(s), starting today</span>
+            </div>
+          )}
           <Textarea
             value={commentText}
             onChange={(e) => setCommentText(e.target.value)}
@@ -596,10 +643,7 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
               if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
                 e.preventDefault();
                 if (!commentFor) return;
-                upsertWarningComment.mutate(
-                  { employee_id: commentFor.dealerId, business_date: date, comment: commentText },
-                  { onSuccess: () => setCommentFor(null) },
-                );
+                handleCommentSave();
               }
             }}
           />
@@ -607,13 +651,7 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
             <Button variant="ghost" onClick={() => setCommentFor(null)}>Skip</Button>
             <Button
               disabled={upsertWarningComment.isPending}
-              onClick={() => {
-                if (!commentFor) return;
-                upsertWarningComment.mutate(
-                  { employee_id: commentFor.dealerId, business_date: date, comment: commentText },
-                  { onSuccess: () => setCommentFor(null) },
-                );
-              }}
+              onClick={handleCommentSave}
             >
               Save
             </Button>

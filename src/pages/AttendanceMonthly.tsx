@@ -208,10 +208,24 @@ const AttendanceMonthly = () => {
                             code === "S" ? "S" :
                             "·";
                           let cls = "text-muted-foreground";
+                          let pillCls = "";
                           if (h > 0) cls = "text-foreground font-semibold";
-                          if (code === "A") cls = "text-rose-600 dark:text-rose-400";
-                          if (code === "SP") cls = "text-red-500 dark:text-red-400 font-extrabold";
-                          if (code === "L" || code === "S") cls = "text-amber-700 dark:text-amber-400";
+                          if (code === "A") {
+                            cls = "";
+                            pillCls = "inline-flex items-center justify-center min-w-[22px] px-1 rounded text-[11px] font-extrabold bg-rose-500 text-white shadow-sm";
+                          }
+                          if (code === "SP") {
+                            cls = "";
+                            pillCls = "inline-flex items-center justify-center min-w-[22px] px-1 rounded text-[11px] font-extrabold bg-red-600 text-white shadow-sm ring-1 ring-red-700";
+                          }
+                          if (code === "S") {
+                            cls = "";
+                            pillCls = "inline-flex items-center justify-center min-w-[22px] px-1 rounded text-[11px] font-extrabold bg-orange-500 text-white shadow-sm";
+                          }
+                          if (code === "L") {
+                            cls = "";
+                            pillCls = "inline-flex items-center justify-center min-w-[22px] px-1 rounded text-[11px] font-extrabold bg-amber-400 text-amber-950 dark:bg-amber-500 dark:text-amber-950 shadow-sm";
+                          }
                           const cellBg = hol ? "bg-amber-100/50 dark:bg-amber-900/20" : "";
                           return (
                             <td
@@ -229,7 +243,11 @@ const AttendanceMonthly = () => {
                               role={canEdit ? "button" : undefined}
                               style={canEdit ? { cursor: "pointer" } : undefined}
                             >
-                              <span className={cls}>{display}</span>
+                              {pillCls ? (
+                                <span className={pillCls}>{display}</span>
+                              ) : (
+                                <span className={cls}>{display}</span>
+                              )}
                             </td>
                           );
                         })}

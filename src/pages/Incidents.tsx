@@ -110,10 +110,16 @@ const Incidents = () => {
   const [form, setForm] = useState<IncidentInput>(emptyForm());
   const [uploading, setUploading] = useState(false);
   const [viewPhoto, setViewPhoto] = useState<string | null>(null);
+  // Journal view mode — "day" shows the selected business day, 7d/30d show a rolling window.
+  // The form.incident_date still controls the draft row date independently.
+  const [viewMode, setViewMode] = useState<"day" | "7d" | "30d">("day");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Business-day window 01:00 → 01:00 anchored on the selected date.
-  const { data: incidents = [], isLoading } = useIncidents(null, form.incident_date);
+  // Business-day window for "day", rolling N days for "7d"/"30d".
+  const { data: incidents = [], isLoading } = useIncidents(
+    viewMode === "day" ? null : viewMode === "7d" ? 7 : 30,
+    viewMode === "day" ? form.incident_date : null,
+  );
   const createMut = useCreateIncident();
 
   const { data: rota = [] } = usePitRota(form.incident_date);
@@ -256,10 +262,22 @@ const Incidents = () => {
         title="Incidents"
         subtitle={`Violation journal · ${filtered.length} entries · ${totalPts} pts`}
         centerSlot={
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <div className="inline-flex rounded-md border border-border overflow-hidden">
+              {(["day", "7d", "30d"] as const).map(m => (
+                <button
+                  key={m}
+                  onClick={() => setViewMode(m)}
+                  className={`px-2 h-7 text-[10px] font-mono uppercase ${viewMode === m ? "bg-primary text-primary-foreground" : "bg-background hover:bg-muted text-muted-foreground"}`}
+                >
+                  {m === "day" ? "Day" : m}
+                </button>
+              ))}
+            </div>
             <Button
               variant="ghost"
               size="icon-sm"
+              disabled={viewMode !== "day"}
               onClick={() => {
                 const d = new Date(form.incident_date + "T12:00:00Z");
                 d.setUTCDate(d.getUTCDate() - 1);
@@ -272,13 +290,14 @@ const Incidents = () => {
               type="date"
               value={form.incident_date}
               max={todayDate()}
+              disabled={viewMode !== "day"}
               onChange={(e) => e.target.value && setF("incident_date", e.target.value)}
               className="w-44 font-mono h-9"
             />
             <Button
               variant="ghost"
               size="icon-sm"
-              disabled={form.incident_date >= todayDate()}
+              disabled={viewMode !== "day" || form.incident_date >= todayDate()}
               onClick={() => {
                 const d = new Date(form.incident_date + "T12:00:00Z");
                 d.setUTCDate(d.getUTCDate() + 1);
@@ -288,7 +307,7 @@ const Incidents = () => {
             >
               <ChevronRight className="w-4 h-4" />
             </Button>
-            {form.incident_date !== todayDate() && (
+            {viewMode === "day" && form.incident_date !== todayDate() && (
               <Button variant="outline" size="sm" className="h-7 text-[10px]" onClick={() => setF("incident_date", todayDate())}>
                 Today
               </Button>
