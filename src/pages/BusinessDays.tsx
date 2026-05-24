@@ -62,7 +62,8 @@ const BusinessDays = () => {
                 >
                   <CardContent className="p-3 flex items-center gap-3">
                     {isOpen ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
-                    <div className="font-mono text-sm font-semibold w-28">{c.business_date}</div>
+                    <div className="font-mono text-sm font-semibold w-28">{fmtDateOnly(c.business_date)}</div>
+                    {isSummaryMode && <CasinoBadge casinoId={c.casino_id} />}
                     <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                       <Clock className="w-3 h-3" /> {fmtDateTime(c.closed_at)}
                     </div>
