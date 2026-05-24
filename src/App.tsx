@@ -321,6 +321,7 @@ const ProtectedRoutes = () => {
           <Route path="/reports/miss-chips" element={<Navigate to="/miss-chips" replace />} />
           <Route path="/reports/poker-tips" element={<RoleGuard path="/reports"><ErrorBoundary><PokerTipsReport /></ErrorBoundary></RoleGuard>} />
           <Route path="/reports/floor-tips" element={<RoleGuard path="/reports"><ErrorBoundary><FloorTipsReport /></ErrorBoundary></RoleGuard>} />
+          <Route path="/reports/tips" element={<RoleGuard path="/reports"><ErrorBoundary><TipsReport /></ErrorBoundary></RoleGuard>} />
           <Route path="/pitbook" element={<RoleGuard path="/pitbook"><ErrorBoundary><Pitbook /></ErrorBoundary></RoleGuard>} />
           <Route path="/incidents" element={<RoleGuard path="/incidents"><ErrorBoundary><Incidents /></ErrorBoundary></RoleGuard>} />
           <Route path="/staff/master" element={<RoleGuard path="/staff/master"><ErrorBoundary><StaffMaster /></ErrorBoundary></RoleGuard>} />
