@@ -174,6 +174,8 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
   // HR comment dialog state (opens after A/S/SP/LT to capture a short note)
   const [commentFor, setCommentFor] = useState<{ dealerId: string; dealerName: string; kind: "Absent" | "Sick" | "Suspend" | "Late"; label: string } | null>(null);
   const [commentText, setCommentText] = useState("");
+  // For Suspend: number of consecutive days (incl. today) to apply SP forward.
+  const [suspendDays, setSuspendDays] = useState<number>(1);
   const upsertWarningComment = useUpsertWarningCommentByKey();
   const qc = useQueryClient();
   const { activeCasinoId } = useCasino();
