@@ -896,7 +896,7 @@ const PlayerStatistics = () => {
                           <H k="visits" align="left" title="Visits in selected period">Vis</H>
                           <H k="entry">Entry</H>
                           <H k="exit">Left</H>
-                          <H k="position">Pos</H>
+                          
                           {showFinancials && (
                             <>
                               <H k="avgBet" align="right">Bet</H>
@@ -919,7 +919,6 @@ const PlayerStatistics = () => {
                       <td style={{ top: "calc(var(--ppheader-h, 0px) + 38px)", boxShadow: "inset 0 -2px 0 0 hsl(45 90% 55% / 0.9)" }} className="px-2 py-2 text-left uppercase tracking-wider font-bold sticky left-16 bg-[#F5D061] dark:bg-[#6B5A1A] text-amber-950 dark:text-amber-50 z-30">
                         Total
                       </td>
-                      <td style={{ top: "calc(var(--ppheader-h, 0px) + 38px)", boxShadow: "inset 0 -2px 0 0 hsl(45 90% 55% / 0.9)" }} className="px-1 py-2 sticky bg-[#F5D061] dark:bg-[#6B5A1A] z-20"></td>
                       <td style={{ top: "calc(var(--ppheader-h, 0px) + 38px)", boxShadow: "inset 0 -2px 0 0 hsl(45 90% 55% / 0.9)" }} className="px-1 py-2 sticky bg-[#F5D061] dark:bg-[#6B5A1A] z-20"></td>
                       <td style={{ top: "calc(var(--ppheader-h, 0px) + 38px)", boxShadow: "inset 0 -2px 0 0 hsl(45 90% 55% / 0.9)" }} className="px-1 py-2 sticky bg-[#F5D061] dark:bg-[#6B5A1A] z-20"></td>
                       <td style={{ top: "calc(var(--ppheader-h, 0px) + 38px)", boxShadow: "inset 0 -2px 0 0 hsl(45 90% 55% / 0.9)" }} className="px-1 py-2 sticky bg-[#F5D061] dark:bg-[#6B5A1A] z-20"></td>
@@ -952,7 +951,7 @@ const PlayerStatistics = () => {
                 <tbody>
                   {filtered.length === 0 ? (
                     <tr>
-                      <td colSpan={6 + (showFinancials ? 7 : 0)} className="px-2 py-8 text-center text-muted-foreground text-xs">
+                      <td colSpan={5 + (showFinancials ? 7 : 0)} className="px-2 py-8 text-center text-muted-foreground text-xs">
                         No players to display
                       </td>
                     </tr>
