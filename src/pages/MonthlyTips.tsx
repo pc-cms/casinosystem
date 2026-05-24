@@ -464,13 +464,14 @@ export default function MonthlyTips() {
                             setExtraDraft((d) => { const n = { ...d }; delete n[r.dealer.id]; return n; });
                             return;
                           }
-                          upsertEntry.mutate({
+                          void upsertEntry.mutateAsync({
                             dealer_id: r.dealer.id,
                             period_start: periodStart,
                             extra_override: next,
                             bonus_points: r.bonusPts,
-                          });
-                          setExtraDraft((d) => { const n = { ...d }; delete n[r.dealer.id]; return n; });
+                          }).then(() => {
+                            setExtraDraft((d) => { const n = { ...d }; delete n[r.dealer.id]; return n; });
+                          }).catch((error) => toast.error(error?.message || "Could not save extra points"));
                         }}
                         onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
                       />
@@ -495,13 +496,14 @@ export default function MonthlyTips() {
                             setBonusDraft((d) => { const n = { ...d }; delete n[r.dealer.id]; return n; });
                             return;
                           }
-                          upsertEntry.mutate({
+                          void upsertEntry.mutateAsync({
                             dealer_id: r.dealer.id,
                             period_start: periodStart,
                             extra_override: r.extra,
                             bonus_points: next,
-                          });
-                          setBonusDraft((d) => { const n = { ...d }; delete n[r.dealer.id]; return n; });
+                          }).then(() => {
+                            setBonusDraft((d) => { const n = { ...d }; delete n[r.dealer.id]; return n; });
+                          }).catch((error) => toast.error(error?.message || "Could not save bonus points"));
                         }}
                         onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
                       />
