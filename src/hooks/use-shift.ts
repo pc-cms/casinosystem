@@ -333,7 +333,7 @@ export const useCreateCashCount = () => {
       total: number;
     }) => {
       if (!casinoId || !user) throw new Error("Not authenticated");
-      const { error } = await supabase.from("cash_counts").insert({
+      const payload = {
         casino_id: casinoId,
         shift_id: input.shift_id,
         count_type: input.count_type as any,
@@ -341,13 +341,20 @@ export const useCreateCashCount = () => {
         denominations: input.denominations,
         total: input.total,
         counted_by: user.id,
-      } as any);
-      if (error) throw error;
+      };
+      const res = await offlineMutation({
+        table: "cash_counts",
+        operation: "insert",
+        payload,
+        meta: { kind: "CASH_COUNT", shift_id: input.shift_id },
+      });
+      if (res.error) throw new Error(res.error);
       await logAction(casinoId, "system", "CASH_COUNT", {
         shift_id: input.shift_id,
         type: input.count_type,
         currency: input.currency,
         total: input.total,
+        offline: res.offline,
       });
     },
     onSuccess: () => {
