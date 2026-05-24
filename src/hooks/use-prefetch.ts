@@ -86,22 +86,8 @@ export function usePrefetchCriticalData() {
       staleTime: 1000 * 60 * 2,
     });
 
-    // Reference data — almost never changes, keep forever in cache.
-    qc.prefetchQuery({
-      queryKey: ["chip-denoms", casinoId],
-      queryFn: queryFns.chipDenoms(casinoId),
-      staleTime: Infinity,
-    });
-    qc.prefetchQuery({
-      queryKey: ["expense-categories"],
-      queryFn: queryFns.expenseCategories(),
-      staleTime: Infinity,
-    });
-    qc.prefetchQuery({
-      queryKey: ["currencies"],
-      queryFn: queryFns.currencies(),
-      staleTime: Infinity,
-    });
+
+
 
     // Prefetch tables + current open shift for cage/pit roles
     if (roles.some(r => ["cashier", "pit", "manager", "finance_manager"].includes(r))) {
