@@ -12,7 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ArrowDownToLine, ArrowUpFromLine, Calculator, Square, CheckCircle2, Package, ArrowLeftRight, Landmark, Ban } from "lucide-react";
+import { ArrowDownToLine, ArrowUpFromLine, Calculator, Square, CheckCircle2, Package, ArrowLeftRight, Landmark, Ban, Gift, Coins, UserCheck } from "lucide-react";
+import TipsDialog, { type TipsKind } from "@/components/cage/TipsDialog";
 import CancelTransactionDialog from "@/components/cage/CancelTransactionDialog";
 import { useNavigate } from "react-router-dom";
 import { PageShell } from "@/components/layout/PageShell";
@@ -125,6 +126,8 @@ const ActiveShiftView = ({ shift, players, tables }: {
   const createTx = useCreateTransaction();
   const navigate = useNavigate();
   const [showCloseTables, setShowCloseTables] = useState(false);
+  const [tipsKind, setTipsKind] = useState<TipsKind | null>(null);
+  
   
 
   // Cashier may only transact with players currently checked in (open visit today).
@@ -219,6 +222,15 @@ const ActiveShiftView = ({ shift, players, tables }: {
         }
         date
       >
+        <Button variant="outline" size="sm" onClick={() => setTipsKind("tips_live")} className="gap-1.5">
+          <Gift className="w-3.5 h-3.5" /> Tips Live
+        </Button>
+        <Button variant="outline" size="sm" onClick={() => setTipsKind("tips_poker")} className="gap-1.5">
+          <Coins className="w-3.5 h-3.5" /> Tips Poker
+        </Button>
+        <Button variant="outline" size="sm" onClick={() => setTipsKind("tips_floor")} className="gap-1.5">
+          <UserCheck className="w-3.5 h-3.5" /> Tips Floor
+        </Button>
         <Button variant="outline" size="sm" onClick={() => setShowCloseTables(true)} className="gap-1.5">
           <Package className="w-3.5 h-3.5" /> Close Tables
         </Button>
