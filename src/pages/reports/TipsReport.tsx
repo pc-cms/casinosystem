@@ -34,10 +34,10 @@ const useShiftsByRange = (startIso: string, endIso: string) => {
       if (!casinoId) return [] as ShiftRow[];
       const { data, error } = await supabase
         .from("shifts")
-        .select("id, business_date, opened_at, closed_at, status")
+        .select("id, opened_at, closed_at, status")
         .eq("casino_id", casinoId)
-        .gte("business_date", startIso)
-        .lte("business_date", endIso)
+        .gte("opened_at", `${startIso}T00:00:00Z`)
+        .lte("opened_at", `${endIso}T23:59:59Z`)
         .order("opened_at", { ascending: false });
       if (error) throw error;
       return (data || []) as ShiftRow[];
