@@ -371,11 +371,14 @@ export default function WeeklyBonus() {
                     {r.cells.map((c, i) => {
                       const p = c.parsed;
                       const isStatus = p.kind === "absent" || p.kind === "sick";
+                      const isSuspend = p.kind === "suspend";
                       const isHours = p.kind === "hours";
                       const isHoursSick = p.kind === "hours-sick";
                       const isScheduled = !!c.shift;
                       const isEmpty = p.kind === "empty";
-                      const cellCls = isStatus
+                      const cellCls = isSuspend
+                        ? "bg-red-600/20 text-red-600 dark:text-red-400 font-extrabold ring-2 ring-red-500 ring-inset"
+                        : isStatus
                         ? cn(UNIFIED_ATT_COLORS[c.att], "ring-2 ring-red-500/80 dark:ring-red-400/80 ring-inset")
                         : isHoursSick
                           ? "bg-transparent text-card-foreground font-bold ring-2 ring-red-500/80 dark:ring-red-400/80 ring-inset"
