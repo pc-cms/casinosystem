@@ -926,7 +926,7 @@ const StaffAttendanceGrid = ({ month, monthLabel, groupKey = "floor", readOnly =
     const dateStr = `${month}-${String(day).padStart(2, "0")}`;
     const trimmed = val.trim().toUpperCase();
     if (trimmed === "") { setAttendance.mutate({ staff_id: staffId, date: dateStr, value: "" }); return; }
-    if (trimmed === "A" || trimmed === "S") { setAttendance.mutate({ staff_id: staffId, date: dateStr, value: trimmed }); return; }
+    if (trimmed === "A" || trimmed === "S" || trimmed === "SP") { setAttendance.mutate({ staff_id: staffId, date: dateStr, value: trimmed }); return; }
     const num = Number(trimmed);
     if (!isNaN(num) && num >= 0 && num <= 24) { setAttendance.mutate({ staff_id: staffId, date: dateStr, value: String(num) }); }
   };
