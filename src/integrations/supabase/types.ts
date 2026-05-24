@@ -4379,7 +4379,7 @@ export type Database = {
           close: number
           confirmed: boolean
           created_at: string
-          created_by: string
+          created_by: string | null
           credit: number
           date: string
           drop_amount: number
@@ -4396,7 +4396,7 @@ export type Database = {
           close?: number
           confirmed?: boolean
           created_at?: string
-          created_by: string
+          created_by?: string | null
           credit?: number
           date: string
           drop_amount?: number
@@ -4413,7 +4413,7 @@ export type Database = {
           close?: number
           confirmed?: boolean
           created_at?: string
-          created_by?: string
+          created_by?: string | null
           credit?: number
           date?: string
           drop_amount?: number
