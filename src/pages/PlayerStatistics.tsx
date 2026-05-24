@@ -196,6 +196,26 @@ const PlayerStatistics = () => {
     refetchInterval: isHistorical ? false : 15000,
   });
 
+  // Lifetime visit counts (all time, this casino) for players visible in current period.
+  const visitPlayerIds = useMemo(() => Array.from(new Set((visits as any[]).map(v => v.player_id))), [visits]);
+  const { data: lifetimeVisitsByPlayer = {} } = useQuery({
+    queryKey: ["player-lifetime-visits", casinoId, visitPlayerIds.sort().join(",")],
+    queryFn: async () => {
+      if (!casinoId || visitPlayerIds.length === 0) return {} as Record<string, number>;
+      const { data } = await supabase
+        .from("casino_visits")
+        .select("player_id")
+        .eq("casino_id", casinoId)
+        .in("player_id", visitPlayerIds);
+      const m: Record<string, number> = {};
+      for (const r of (data || []) as any[]) m[r.player_id] = (m[r.player_id] || 0) + 1;
+      return m;
+    },
+    enabled: !!casinoId && visitPlayerIds.length > 0,
+    staleTime: 60000,
+  });
+
+
   const { data: sessions = [] } = useQuery({
     queryKey: ["client_sessions", casinoId, fromDate, toDate],
     queryFn: async () => {
