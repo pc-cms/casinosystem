@@ -339,6 +339,9 @@ const ActiveShiftView = ({ shift, players, tables }: {
         <TabsContent value="transfers" className="space-y-3">
           <TransfersForm shiftId={shift.id} tables={openTables} />
         </TabsContent>
+        <TabsContent value="canceled" className="space-y-3">
+          <CanceledTxPanel shiftId={shift.id} />
+        </TabsContent>
       </Tabs>
 
       <Dialog open={showCloseTables} onOpenChange={setShowCloseTables}>
