@@ -47,8 +47,8 @@ const NAV_ITEMS: NavItem[] = [
   // OVERVIEW
   { to: "/", icon: LayoutDashboard, label: "Dashboard", roles: ["super_admin", "manager", "pit", "reception", "finance_manager", "surveillance"], section: "OVERVIEW" },
 
-  // Cage read-only viewer — manager / floor_manager / surveillance share the same module as CCTV
-  { to: "/cage/view", icon: Landmark, label: "Cage", roles: ["manager", "floor_manager", "surveillance"], section: "CASHIER" },
+  // Cage View — read-only transactions for manager / floor_manager / CCTV.
+  { to: "/cage/view", icon: Landmark, label: "Cage View", roles: ["super_admin", "manager", "floor_manager", "surveillance"], section: "CASHIER" },
 
   // PIT — Break List, Tables Tracking, trackers, Attendance (parent), Rota (parent). Surveillance: read-only access to all.
   { to: "/breaklist", icon: ListChecks, label: "Break List", roles: ["super_admin", "manager", "floor_manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
@@ -62,9 +62,9 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/pitbook", icon: MessageSquare, label: "Pitbook", roles: ["super_admin", "manager", "floor_manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
   { to: "/incidents", icon: AlertTriangle, label: "Incidents", roles: ["super_admin", "manager", "floor_manager", "finance_manager", "surveillance"], section: "PIT" },
 
-  // CASHIER — Cage operations. Manager/floor see only the read-only viewer above.
-  { to: "/cage", icon: Landmark, label: "Cage", roles: ["super_admin", "cashier", "finance_manager"], section: "CASHIER" },
-  { to: "/cage/closings", icon: Landmark, label: "Closings", roles: ["super_admin", "manager", "floor_manager", "finance_manager"], section: "CASHIER" },
+  // CASHIER — transactional Cage operations.
+  { to: "/cage", icon: Landmark, label: "Cage", roles: ["super_admin", "cashier"], section: "CASHIER" },
+  { to: "/cage/closings", icon: Landmark, label: "Closings", roles: ["super_admin", "finance_manager"], section: "CASHIER" },
   { to: "/expenses", icon: Receipt, label: "Expenses", roles: ["super_admin", "cashier"], section: "CASHIER" },
   { to: "/expenses/approvals", icon: CheckCircle2, label: "Approvals", roles: ["super_admin", "manager", "floor_manager", "finance_manager"], section: "CASHIER" },
   { to: "/cashless", icon: CreditCard, label: "Cashless", roles: ["super_admin", "manager", "floor_manager", "cashier", "finance_manager"], section: "CASHIER" },
@@ -165,6 +165,15 @@ const parseItemTo = (to: string) => {
   return { base, tab };
 };
 
+const EXACT_NAV_PATHS = new Set(["/cage", "/cage/view", "/cage/closings"]);
+
+const routeMatchesNavItem = (pathname: string, to: string) => {
+  const { base, tab } = parseItemTo(to);
+  if (tab !== null) return false;
+  if (base === "/") return pathname === "/";
+  return EXACT_NAV_PATHS.has(base) ? pathname === base : pathname.startsWith(base);
+};
+
 // ============ Collapsible sections (expanded sidebar) ============
 const SECTIONS_STORAGE_KEY = "cms.sidebar.openSections";
 const FLAT_SECTION: Section = "OVERVIEW";
@@ -205,7 +214,7 @@ const SidebarSections = ({
       const hit = items.some(it => {
         const base = it.to.split("?")[0];
         if (base === "/") return location.pathname === "/";
-        return location.pathname.startsWith(base);
+        return EXACT_NAV_PATHS.has(base) ? location.pathname === base : location.pathname.startsWith(base);
       });
       if (hit) return s;
     }
@@ -299,7 +308,7 @@ const SidebarSections = ({
       <div key={`${sectionCtx}:${item.to}`}>
         <NavLink
           to={item.to}
-          end={item.to === "/" || item.to === "/tables" || isTabAware}
+          end={item.to === "/" || item.to === "/tables" || EXACT_NAV_PATHS.has(itemBase) || isTabAware}
           onClick={onNavigate}
           className={({ isActive }) => {
             const active = isTabAware ? isTabAwareActive : isActive;
@@ -379,11 +388,11 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
   // No hard-coded role whitelists — only super_admin bypass + the matrix.
   // Items without a module mapping (mk null) stay visible to everyone (they
   // are auxiliary entries that don't correspond to a gated module).
-  const hasCageFull = isSuper || roles.includes("cashier" as AppRole) || roles.includes("finance_manager" as AppRole);
   const hasExpensesApprovals = isSuper || roles.includes("manager" as AppRole) || roles.includes("floor_manager" as AppRole) || roles.includes("finance_manager" as AppRole);
   const visibleItems = NAV_ITEMS.filter(item => {
-    // Dedupe: hide read-only Cage when user has full Cage access
-    if (item.to === "/cage/view" && hasCageFull) return false;
+    // Cage and Cage View are separate top-level buttons, never parent/sub-items.
+    if (item.to === "/cage" && !isSuper && !roles.includes("cashier" as AppRole)) return false;
+    if (item.to === "/cage/view" && !isSuper && roles.includes("cashier" as AppRole)) return false;
     // Dedupe: hide raw Expenses when user has Approvals (which covers oversight)
     if (item.to === "/expenses" && hasExpensesApprovals) return false;
     if (isSuper) return true;
@@ -449,7 +458,7 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
                   ? location.pathname === itemBase && currentTab === itemTab
                   : item.to === "/"
                     ? location.pathname === "/"
-                    : location.pathname.startsWith(itemBase);
+                    : EXACT_NAV_PATHS.has(itemBase) ? location.pathname === itemBase : location.pathname.startsWith(itemBase);
               return (
                 <Tooltip key={item.to}>
                   <TooltipTrigger asChild>
@@ -772,8 +781,7 @@ export const MobileHeader = () => {
     NAV_ITEMS.find(item => {
       const { base, tab } = parseItemTo(item.to);
       if (tab !== null) return false;
-      if (base === "/") return location.pathname === "/";
-      return location.pathname.startsWith(base);
+      return routeMatchesNavItem(location.pathname, item.to);
     });
   const pageTitle = currentItem?.label || "CMS";
 

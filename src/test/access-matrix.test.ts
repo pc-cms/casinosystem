@@ -23,8 +23,6 @@ const FLOOR_MANAGER_ALLOWED: ReadonlySet<ModuleKey> = new Set<ModuleKey>([
   "bank_checks",
   "blacklist",
   "business_days",
-  "cage",
-  "cage_closings",
   "cage_view",
   "cashless",
   "dashboard",
@@ -58,6 +56,7 @@ const GATED_ROUTES = [
   "/",
   "/players/:id",
   "/cage",
+  "/cage/view",
   "/cage/closings",
   "/cage/close-shift",
   "/cage/shift/abc/edit-opening",
@@ -180,7 +179,7 @@ describe("floor_manager (Taras) — sidebar & route gate match matrix", () => {
   it("permits operations + players + reports modules", () => {
     const allow = FLOOR_MANAGER_ALLOWED as ReadonlySet<string>;
     const permitted = [
-      "/", "/cage", "/cage/closings", "/reception", "/guests", "/blacklist",
+      "/", "/cage/view", "/reception", "/guests", "/blacklist",
       "/tables", "/table-tracker", "/player-statistics",
       "/players/abc", "/pit", "/pit?tab=breaklist", "/pit?tab=attendance",
       "/pit?tab=rota", "/staff", "/staff?tab=attendance",
