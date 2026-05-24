@@ -589,6 +589,20 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
               <span className="text-muted-foreground text-sm font-normal">· {commentFor?.kind}</span>
             </DialogTitle>
           </DialogHeader>
+          {commentFor?.kind === "Suspend" && (
+            <div className="flex items-center gap-2 px-1">
+              <label className="text-xs text-muted-foreground">Apply Suspend for</label>
+              <input
+                type="number"
+                min={1}
+                max={60}
+                value={suspendDays}
+                onChange={(e) => setSuspendDays(Math.max(1, Math.min(60, Number(e.target.value) || 1)))}
+                className="w-16 h-7 px-2 text-sm font-mono rounded border border-border bg-background"
+              />
+              <span className="text-xs text-muted-foreground">consecutive day(s), starting today</span>
+            </div>
+          )}
           <Textarea
             value={commentText}
             onChange={(e) => setCommentText(e.target.value)}
@@ -599,10 +613,7 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
               if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
                 e.preventDefault();
                 if (!commentFor) return;
-                upsertWarningComment.mutate(
-                  { employee_id: commentFor.dealerId, business_date: date, comment: commentText },
-                  { onSuccess: () => setCommentFor(null) },
-                );
+                handleCommentSave();
               }
             }}
           />
@@ -610,13 +621,7 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
             <Button variant="ghost" onClick={() => setCommentFor(null)}>Skip</Button>
             <Button
               disabled={upsertWarningComment.isPending}
-              onClick={() => {
-                if (!commentFor) return;
-                upsertWarningComment.mutate(
-                  { employee_id: commentFor.dealerId, business_date: date, comment: commentText },
-                  { onSuccess: () => setCommentFor(null) },
-                );
-              }}
+              onClick={handleCommentSave}
             >
               Save
             </Button>
