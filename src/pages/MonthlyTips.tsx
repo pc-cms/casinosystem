@@ -418,10 +418,13 @@ export default function MonthlyTips() {
                       <Input
                         type="text" inputMode="numeric"
                         className="w-12 h-7 text-center font-mono mx-auto px-1 text-xs"
-                        value={r.extra}
+                        defaultValue={r.extra}
+                        key={`extra-${r.dealer.id}-${periodStart}-${r.extra}`}
                         disabled={locked}
-                        onChange={(e) => {
-                          const v = parseInt(e.target.value, 10);
+                        onBlur={(e) => {
+                          const el = e.target as HTMLInputElement;
+                          if (el.value === el.defaultValue) return;
+                          const v = parseInt(el.value, 10);
                           setCalculated(false);
                           upsertEntry.mutate({
                             dealer_id: r.dealer.id,
@@ -430,17 +433,21 @@ export default function MonthlyTips() {
                             bonus_points: r.bonusPts,
                           });
                         }}
+                        onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
                       />
                     </td>
                     <td className="px-1 py-1 text-center no-print">
                       <Input
                         type="text" inputMode="numeric"
                         className="w-12 h-7 text-center font-mono mx-auto px-1 text-xs"
-                        value={r.bonusPts || ""}
+                        defaultValue={r.bonusPts || ""}
+                        key={`bonus-${r.dealer.id}-${periodStart}-${r.bonusPts}`}
                         placeholder="0"
                         disabled={locked}
-                        onChange={(e) => {
-                          const v = parseInt(e.target.value, 10);
+                        onBlur={(e) => {
+                          const el = e.target as HTMLInputElement;
+                          if (el.value === el.defaultValue) return;
+                          const v = parseInt(el.value, 10);
                           setCalculated(false);
                           upsertEntry.mutate({
                             dealer_id: r.dealer.id,
@@ -449,8 +456,10 @@ export default function MonthlyTips() {
                             bonus_points: isNaN(v) ? 0 : v,
                           });
                         }}
+                        onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
                       />
                     </td>
+
                     <td className="px-2 py-1 text-center font-mono font-bold text-[11px] no-print">
                       {r.points || ""}
                     </td>
