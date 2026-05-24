@@ -74,7 +74,7 @@ export const MODULES: ModuleDef[] = [
   { key: "pit_rota", label: "Live Rota", group: "Operations" },
   { key: "pit_breaklist", label: "Breaklist", group: "Operations" },
   { key: "pit_attendance", label: "Live Attendance", group: "Operations" },
-  { key: "pit_active_players", label: "Player Statistics", group: "Operations" },
+  { key: "pit_active_players", label: "Player Tracking", group: "Operations" },
   { key: "pit_dealers", label: "Live Game Dealers", group: "Operations" },
   { key: "cage", label: "Cage (Cashier)", group: "Operations" },
   { key: "cage_view", label: "Cage View (Read-only)", group: "Operations" },

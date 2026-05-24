@@ -3,7 +3,7 @@
  *  - Create new gaming tables
  *  - Toggle Active/Inactive (archive/restore)
  *  - Rename inline
- *  - Set Display Order (drives sorting across Dashboard, Live Tables, Tracker, etc.)
+ *  - Set Display Order (drives sorting across Dashboard, Tables Tracking, Tracker, etc.)
  */
 import { useState, useMemo } from "react";
 import { useGamingTables, useArchiveTable, useRenameTable } from "@/hooks/use-tables";
@@ -127,7 +127,7 @@ const TableManagement = () => {
             <LayoutGrid className="w-5 h-5" /> Gaming Tables
           </h2>
           <p className="text-xs text-muted-foreground">
-            Create, rename, set sort order, and toggle Active / Inactive. Display Order drives sorting across Dashboard, Live Tables, Tracker.
+            Create, rename, set sort order, and toggle Active / Inactive. Display Order drives sorting across Dashboard, Tables Tracking, Tracker.
           </p>
         </div>
         <div className="flex items-center gap-2">

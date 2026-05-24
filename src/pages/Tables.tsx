@@ -462,7 +462,7 @@ const Tables = () => {
     <PageShell>
       <PageHeader
         icon={LayoutGrid}
-        title="Live Tables"
+        title="Tables Tracking"
         subtitle="Float, Result & Seating"
       >
         {restrictedToToday ? (
