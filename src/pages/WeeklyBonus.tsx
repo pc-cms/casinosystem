@@ -418,7 +418,11 @@ export default function WeeklyBonus() {
                         key={`extra-${r.dealer.id}-${weekStart}-${r.extra}`}
                         disabled={locked}
                         onBlur={(e) => {
-                          const raw = e.target.value.trim();
+                          const el = e.target as HTMLInputElement;
+                          // Skip if the user did not actually edit the field (prevents
+                          // remount-induced blur from overwriting stored values with 0).
+                          if (el.value === el.defaultValue) return;
+                          const raw = el.value.trim();
                           const v = raw === "" ? 0 : parseInt(raw, 10);
                           const next = isNaN(v) ? 0 : v;
                           if (next === r.extra) return;
@@ -442,7 +446,9 @@ export default function WeeklyBonus() {
                         placeholder="0"
                         disabled={locked}
                         onBlur={(e) => {
-                          const raw = e.target.value.trim();
+                          const el = e.target as HTMLInputElement;
+                          if (el.value === el.defaultValue) return;
+                          const raw = el.value.trim();
                           const v = raw === "" ? 0 : parseInt(raw, 10);
                           const next = isNaN(v) ? 0 : v;
                           if (next === (r.bonusPts || 0)) return;
@@ -457,6 +463,7 @@ export default function WeeklyBonus() {
                         onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
                       />
                     </td>
+
 
                     <td className="px-2 py-1 text-center font-mono font-bold text-[11px] no-print">
                       {r.points || ""}
