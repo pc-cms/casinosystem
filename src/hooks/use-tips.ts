@@ -54,11 +54,14 @@ export const useTipsByRange = (
   });
 };
 
-/** Sum of dealer-pool tips (live + poker) per day within a period. */
+/** Sum of Live Game tips (tips_live only) per day within a period.
+ *  Drives the Monthly Tips "Collected" hint so the suggested pool matches the
+ *  Period Total shown in the Live Game Tips tab. Poker tips are excluded —
+ *  they belong to the Club Poker pool, not the dealer pool. */
 export const useTipsCollectedForPeriod = (startIso: string, endIso: string) => {
   const { casinoId } = useAuth();
   return useQuery({
-    queryKey: ["tips", "dealer-pool", casinoId, startIso, endIso],
+    queryKey: ["tips", "live-pool", casinoId, startIso, endIso],
     enabled: !!casinoId,
     queryFn: async () => {
       if (!casinoId) return { byDay: {} as Record<string, number>, total: 0 };
@@ -66,7 +69,7 @@ export const useTipsCollectedForPeriod = (startIso: string, endIso: string) => {
         .from("transactions")
         .select("amount, business_date, cancelled_at")
         .eq("casino_id", casinoId)
-        .in("type", ["tips_live", "tips_poker"] as any)
+        .in("type", ["tips_live"] as any)
         .gte("business_date", startIso)
         .lte("business_date", endIso);
       if (error) throw error;
