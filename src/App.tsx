@@ -214,6 +214,25 @@ const ProtectedRoutes = () => {
 
   // Initialize offline sync engine on mount
   useEffect(() => { initSyncEngine(); }, []);
+
+  // M8: Staggered refetch after reconnect. The critical operational queries
+  // are invalidated one at a time (250ms apart) so a flaky link doesn't get
+  // hit by 30+ parallel requests the instant it comes back up.
+  useEffect(() => {
+    const KEYS = [
+      "shifts", "transactions", "cage-transfers", "cash-counts",
+      "visits", "active-players", "gaming_tables", "chip_counts",
+    ];
+    const onReconnect = async () => {
+      for (const k of KEYS) {
+        queryClient.invalidateQueries({ queryKey: [k] });
+        await new Promise((r) => setTimeout(r, 250));
+      }
+    };
+    window.addEventListener("cms:reconnected", onReconnect);
+    return () => window.removeEventListener("cms:reconnected", onReconnect);
+  }, []);
+
   if (loading) {
     return <FullScreenLoader />;
   }
