@@ -47,8 +47,8 @@ const NAV_ITEMS: NavItem[] = [
   // OVERVIEW
   { to: "/", icon: LayoutDashboard, label: "Dashboard", roles: ["super_admin", "manager", "pit", "reception", "finance_manager", "surveillance"], section: "OVERVIEW" },
 
-  // Cage read-only viewer — manager / floor_manager / surveillance share the same module as CCTV
-  { to: "/cage/view", icon: Landmark, label: "Cage", roles: ["manager", "floor_manager", "surveillance"], section: "CASHIER" },
+  // Cage View — read-only transactions for manager / floor_manager / CCTV.
+  { to: "/cage/view", icon: Landmark, label: "Cage View", roles: ["super_admin", "manager", "floor_manager", "surveillance"], section: "CASHIER" },
 
   // PIT — Break List, Tables Tracking, trackers, Attendance (parent), Rota (parent). Surveillance: read-only access to all.
   { to: "/breaklist", icon: ListChecks, label: "Break List", roles: ["super_admin", "manager", "floor_manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
@@ -62,9 +62,9 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/pitbook", icon: MessageSquare, label: "Pitbook", roles: ["super_admin", "manager", "floor_manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
   { to: "/incidents", icon: AlertTriangle, label: "Incidents", roles: ["super_admin", "manager", "floor_manager", "finance_manager", "surveillance"], section: "PIT" },
 
-  // CASHIER — Cage operations. Manager/floor see only the read-only viewer above.
-  { to: "/cage", icon: Landmark, label: "Cage", roles: ["super_admin", "cashier", "finance_manager"], section: "CASHIER" },
-  { to: "/cage/closings", icon: Landmark, label: "Closings", roles: ["super_admin", "manager", "floor_manager", "finance_manager"], section: "CASHIER" },
+  // CASHIER — transactional Cage operations.
+  { to: "/cage", icon: Landmark, label: "Cage", roles: ["super_admin", "cashier"], section: "CASHIER" },
+  { to: "/cage/closings", icon: Landmark, label: "Closings", roles: ["super_admin", "finance_manager"], section: "CASHIER" },
   { to: "/expenses", icon: Receipt, label: "Expenses", roles: ["super_admin", "cashier"], section: "CASHIER" },
   { to: "/expenses/approvals", icon: CheckCircle2, label: "Approvals", roles: ["super_admin", "manager", "floor_manager", "finance_manager"], section: "CASHIER" },
   { to: "/cashless", icon: CreditCard, label: "Cashless", roles: ["super_admin", "manager", "floor_manager", "cashier", "finance_manager"], section: "CASHIER" },
