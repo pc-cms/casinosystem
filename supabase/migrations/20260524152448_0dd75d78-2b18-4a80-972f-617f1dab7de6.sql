@@ -1,0 +1,1 @@
+DELETE FROM public.role_module_defaults WHERE role = 'cashier' AND module_key IN ('reception', 'reception_register');
