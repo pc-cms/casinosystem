@@ -269,7 +269,7 @@ const ProtectedRoutes = () => {
           <Route path="/player-statistics" element={<RoleGuard path="/player-statistics"><PlayerStatistics /></RoleGuard>} />
           <Route path="/player-tracker" element={<Navigate to="/player-statistics" replace />} />
           <Route path="/table-tracker" element={<RoleGuard path="/table-tracker"><TableTracker /></RoleGuard>} />
-          <Route path="/tables/analytics" element={<RoleGuard path="/tables/analytics"><TablesAnalytics /></RoleGuard>} />
+          <Route path="/tables/analytics" element={<Navigate to="/table-tracker" replace />} />
           <Route path="/expenses" element={<RoleGuard path="/expenses"><Expenses /></RoleGuard>} />
           <Route path="/cashless" element={<RoleGuard path="/cashless"><Cashless /></RoleGuard>} />
           {/* Phase 2 flat URLs — Pit (Live Game) */}
