@@ -20,6 +20,7 @@ import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { CloseBusinessDayButton } from "@/components/pit/CloseBusinessDayButton";
 import TransfersForm from "@/components/cage/TransfersForm";
+import CanceledTxPanel from "@/components/cage/CanceledTxPanel";
 import { useCageTransfers } from "@/hooks/use-cage-transfers";
 import {
   CURRENCIES, FOREIGN_CURRENCIES, formatCurrency, formatNumberSpaces, CASH_DENOMS,
@@ -272,7 +273,7 @@ const ActiveShiftView = ({ shift, players, tables }: {
       </div>
 
       <Tabs defaultValue="in" className="space-y-3">
-        <TabsList className="w-full grid grid-cols-4 h-11">
+        <TabsList className="w-full grid grid-cols-5 h-11">
           <TabsTrigger
             value="in"
             className="gap-1.5 text-sm font-semibold data-[state=active]:bg-emerald-500/15 data-[state=active]:text-emerald-400 data-[state=active]:border data-[state=active]:border-emerald-500/40"
@@ -296,6 +297,12 @@ const ActiveShiftView = ({ shift, players, tables }: {
             className="gap-1.5 text-sm font-semibold data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:border data-[state=active]:border-primary/40"
           >
             <ArrowLeftRight className="w-4 h-4" /> Transfers
+          </TabsTrigger>
+          <TabsTrigger
+            value="canceled"
+            className="gap-1.5 text-sm font-semibold data-[state=active]:bg-destructive/15 data-[state=active]:text-destructive data-[state=active]:border data-[state=active]:border-destructive/40"
+          >
+            <Ban className="w-4 h-4" /> Canceled TX
           </TabsTrigger>
         </TabsList>
 
@@ -331,6 +338,9 @@ const ActiveShiftView = ({ shift, players, tables }: {
         </TabsContent>
         <TabsContent value="transfers" className="space-y-3">
           <TransfersForm shiftId={shift.id} tables={openTables} />
+        </TabsContent>
+        <TabsContent value="canceled" className="space-y-3">
+          <CanceledTxPanel shiftId={shift.id} />
         </TabsContent>
       </Tabs>
 
