@@ -10,6 +10,9 @@ import {
   type AvgBetGroup,
 } from "@/hooks/use-player-daily-avg-bets";
 import { useSelectedPlayer } from "@/hooks/use-selected-player";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useCasino } from "@/lib/casino-context";
 
 interface PlayerLite {
   id: string;
