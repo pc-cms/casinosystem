@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { getBusinessDate } from "@/lib/business-day";
 import { disambiguateNames, mapEmployeeToDealer } from "@/hooks/use-dealers";
+import { prefetchRouteChunks } from "@/lib/route-prefetch";
 
 // Shared query functions — must match the hooks in use-casino-data.ts exactly
 const queryFns = {
@@ -48,6 +49,17 @@ const queryFns = {
     const raw = data ?? [];
     return disambiguateNames(raw.map(mapEmployeeToDealer), raw);
   },
+  currentShift: (casinoId: string) => async () => {
+    const { data } = await supabase
+      .from("shifts")
+      .select("*")
+      .eq("casino_id", casinoId)
+      .is("closed_at", null)
+      .order("opened_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    return data ?? null;
+  },
 };
 
 export function usePrefetchCriticalData() {
@@ -57,6 +69,9 @@ export function usePrefetchCriticalData() {
   useEffect(() => {
     if (!casinoId || !user) return;
     const today = getBusinessDate();
+
+    // Warm lazy route chunks for offline navigation. Idempotent (24h throttle).
+    prefetchRouteChunks();
 
     // Always prefetch players and visits
     qc.prefetchQuery({
@@ -71,12 +86,20 @@ export function usePrefetchCriticalData() {
       staleTime: 1000 * 60 * 2,
     });
 
-    // Prefetch tables for cage/pit roles
+
+
+
+    // Prefetch tables + current open shift for cage/pit roles
     if (roles.some(r => ["cashier", "pit", "manager", "finance_manager"].includes(r))) {
       qc.prefetchQuery({
         queryKey: ["gaming-tables", casinoId],
         queryFn: queryFns.tables(casinoId),
         staleTime: 1000 * 60 * 5,
+      });
+      qc.prefetchQuery({
+        queryKey: ["current-shift", casinoId],
+        queryFn: queryFns.currentShift(casinoId),
+        staleTime: 1000 * 30,
       });
     }
 

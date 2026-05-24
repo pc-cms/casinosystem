@@ -4,10 +4,36 @@ import { useCasino } from "@/lib/casino-context";
 import { getBusinessDate } from "@/lib/business-day";
 import { toast } from "sonner";
 
+const BD_CACHE_KEY = (casinoId: string) => `cms.businessDate.${casinoId}`;
+
+function readBusinessDateCache(casinoId: string): string | null {
+  try {
+    const raw = localStorage.getItem(BD_CACHE_KEY(casinoId));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { value: string; ts: number };
+    return parsed?.value ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function writeBusinessDateCache(casinoId: string, value: string) {
+  try {
+    localStorage.setItem(BD_CACHE_KEY(casinoId), JSON.stringify({ value, ts: Date.now() }));
+  } catch {
+    /* ignore */
+  }
+}
+
 /**
- * Returns the currently OPEN business date for this casino, computed by
- * the server based on the latest closure record. Falls back to the legacy
- * 05:00-EAT calculation if the RPC is unavailable.
+ * Returns the currently OPEN business date for this casino.
+ *
+ * Resilient ordering (prevents infinite spinners during outages):
+ *  1. Seed with cached value from localStorage so first render never spins.
+ *  2. RPC call to `get_current_business_date`.
+ *  3. On RPC failure (network down, edge timeout): fall back to the cached
+ *     value if present, otherwise to the local 11:00-EAT calculation.
+ *  4. Never throw — callers always receive a date string.
  */
 export function useEffectiveBusinessDate() {
   const { activeCasinoId: casinoId } = useCasino();
@@ -15,15 +41,27 @@ export function useEffectiveBusinessDate() {
     queryKey: ["effective-business-date", casinoId],
     queryFn: async (): Promise<string> => {
       if (!casinoId) return getBusinessDate();
-      const { data, error } = await supabase.rpc("get_current_business_date", {
-        _casino_id: casinoId,
-      });
-      if (error || !data) return getBusinessDate();
-      return data as string;
+      try {
+        const { data, error } = await supabase.rpc("get_current_business_date", {
+          _casino_id: casinoId,
+        });
+        if (error || !data) {
+          return readBusinessDateCache(casinoId) ?? getBusinessDate();
+        }
+        const value = data as string;
+        writeBusinessDateCache(casinoId, value);
+        return value;
+      } catch {
+        return readBusinessDateCache(casinoId) ?? getBusinessDate();
+      }
     },
+    initialData: () =>
+      casinoId ? readBusinessDateCache(casinoId) ?? undefined : undefined,
     enabled: !!casinoId,
     staleTime: 60_000,
     refetchInterval: 60_000,
+    retry: (failureCount) => navigator.onLine && failureCount < 1,
+    networkMode: "always",
   });
 }
 

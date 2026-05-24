@@ -31,6 +31,26 @@ const looksLikeChunkError = (message: string | undefined): boolean => {
 };
 
 const recoverFromStaleCache = async () => {
+  // CRITICAL: if we're offline, DO NOT nuke caches and reload.
+  // The chunk failed because it was never loaded online (lazy route) —
+  // wiping SW caches here would destroy the entire offline shell and
+  // drop the user on Chrome's "no internet" dinosaur page.
+  // Instead, surface a friendly toast and let the user navigate elsewhere.
+  if (!navigator.onLine) {
+    console.warn("[ChunkRecovery] Chunk missing while offline — keeping caches intact.");
+    try {
+      // Fire a global event so a UI banner can react.
+      window.dispatchEvent(
+        new CustomEvent("cms:offline-chunk-missing", {
+          detail: { path: window.location.pathname },
+        }),
+      );
+    } catch {
+      /* ignore */
+    }
+    return;
+  }
+
   // Guard: only recover once per session, otherwise we may loop forever
   if (sessionStorage.getItem(RECOVERY_FLAG)) {
     console.warn("[ChunkRecovery] Already attempted recovery this session — giving up.");
