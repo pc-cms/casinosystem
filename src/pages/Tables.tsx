@@ -21,6 +21,7 @@ import { CloseBusinessDayButton } from "@/components/pit/CloseBusinessDayButton"
 import { liveTableResult, buildLatestTableSnapshot } from "@/lib/table-live-result";
 import { useShiftTableAdjustments } from "@/hooks/use-shift-table-adjustments";
 import TableSeatingDialog from "@/components/pit/TableSeatingDialog";
+import { ActiveSessionsAvgBetTable } from "@/components/pit/ActiveSessionsAvgBetTable";
 import type { FloorTable } from "@/components/pit/FloorTableCard";
 import type { SeatedPlayer } from "@/components/pit/SeatedPlayerChip";
 import type { PlayerCategory } from "@/components/player/CategoryBadge";
@@ -337,7 +338,7 @@ const Tables = () => {
 
   const gameTypeTotals = useMemo(() => {
     const totals: Record<string, { drop: number; result: number; label: string }> = {};
-    const gameLabels: Record<string, string> = { "American Roulette": "TOTAL ARs", "Poker": "TOTAL POKER", "Texas Holdem": "TOTAL POKER", "Omaha": "TOTAL POKER", "PLO": "TOTAL POKER", "Blackjack": "TOTAL BJ" };
+    const gameLabels: Record<string, string> = { "American Roulette": "TOTAL ARs", "Poker": "TOTAL POKER", "Texas Holdem": "TOTAL POKER", "Omaha": "TOTAL POKER", "PLO": "TOTAL POKER", "Club Poker": "TOTAL POKER", "Blackjack": "TOTAL BJ" };
     tables.forEach(t => {
       const label = gameLabels[t.game] || `Total ${t.game}`;
       if (!totals[label]) totals[label] = { drop: 0, result: 0, label };
@@ -351,9 +352,11 @@ const Tables = () => {
   const totalDrop = Object.values(tableStats).reduce((s, r) => s + r.drop, 0);
   const totalResult = Object.values(tableStats).reduce((s, r) => s + r.result, 0);
 
-  const pokerGames = ["Poker", "Texas Holdem", "Omaha", "PLO"];
-  const leftTables = tables.filter(t => !pokerGames.includes(t.game)).sort((a, b) => a.name.localeCompare(b.name));
-  const rightTables = tables.filter(t => pokerGames.includes(t.game)).sort((a, b) => a.name.localeCompare(b.name));
+  const pokerGames = ["Poker", "Texas Holdem", "Omaha", "PLO", "Club Poker"];
+  const byOrder = (a: any, b: any) =>
+    ((a.display_order ?? 0) - (b.display_order ?? 0)) || a.name.localeCompare(b.name);
+  const leftTables = tables.filter(t => !pokerGames.includes(t.game)).sort(byOrder);
+  const rightTables = tables.filter(t => pokerGames.includes(t.game)).sort(byOrder);
 
   const openTable = openTableId ? (tables.find(t => t.id === openTableId) as FloorTable | undefined) ?? null : null;
   const seatedHere = openTableId ? (seatedByTable[openTableId] || []) : [];
@@ -542,6 +545,16 @@ const Tables = () => {
         </div>
       </div>
       {tables.length === 0 && <p className="text-muted-foreground text-sm text-center py-8">No tables configured</p>}
+
+      <ActiveSessionsAvgBetTable
+        sessions={sessions as any}
+        players={players as any}
+        tables={tables as any}
+        canEdit={!isReadOnly}
+        onUpdateBet={(pid, bet) => updateAvgBet.mutate({ playerId: pid, avgBet: bet })}
+      />
+
+
 
 
       <TableSeatingDialog
