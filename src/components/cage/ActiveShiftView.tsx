@@ -334,6 +334,16 @@ const ActiveShiftView = ({ shift, players, tables }: {
         onOpenChange={(v) => { if (!v) setCancelTarget(null); }}
       />
 
+      {tipsKind && (
+        <TipsDialog
+          kind={tipsKind}
+          open={!!tipsKind}
+          onClose={() => setTipsKind(null)}
+          shiftId={shift.id}
+          tables={tables}
+        />
+      )}
+
 
 
 
