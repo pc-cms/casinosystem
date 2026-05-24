@@ -82,8 +82,6 @@ export function ActiveSessionsAvgBetTable({ sessions, players, tables, canEdit, 
       .sort((a, b) => new Date(b.session.started_at).getTime() - new Date(a.session.started_at).getTime());
   }, [sessions, players, tableMap]);
 
-  if (rows.length === 0) return null;
-
   return (
     <div className="cms-panel p-4 mb-6">
       <div className="flex items-center justify-between mb-3">
@@ -95,6 +93,12 @@ export function ActiveSessionsAvgBetTable({ sessions, players, tables, canEdit, 
         </div>
         <span className="text-[11px] font-mono text-muted-foreground">{rows.length} active</span>
       </div>
+
+      {rows.length === 0 ? (
+        <p className="text-xs text-muted-foreground text-center py-6">
+          No active player sessions. Seat players on tables to record average bets.
+        </p>
+      ) : (
 
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
@@ -144,6 +148,7 @@ export function ActiveSessionsAvgBetTable({ sessions, players, tables, canEdit, 
           </tbody>
         </table>
       </div>
+      )}
     </div>
   );
 }
