@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { ReactNode, useEffect, useMemo, useState } from "react";
 import { Gift, ChevronLeft, ChevronRight, Printer, Lock, Unlock, Calculator } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -71,7 +71,7 @@ const breakdown = (amt: number): Record<number, number> => {
   return out;
 };
 
-export default function WeeklyBonus() {
+export default function WeeklyBonus({ belowHeader }: { belowHeader?: ReactNode }) {
   const [weekStart, setWeekStart] = useState<string>(() => getWeekStartSunday(new Date()));
   const weekEnd = useMemo(() => addDaysIso(weekStart, 6), [weekStart]);
 
@@ -249,6 +249,7 @@ export default function WeeklyBonus() {
         icon={Gift}
         title="Weekly Bonus"
         subtitle="Distribute a bonus pool across Live Game staff (Sun – Sat)"
+        belowHeader={belowHeader}
       >
         <div className="flex items-center gap-2 print:hidden">
           <Button variant="outline" size="icon" onClick={() => navWeek(-1)} aria-label="Previous week">
@@ -445,13 +446,14 @@ export default function WeeklyBonus() {
                             setExtraDraft((d) => { const n = { ...d }; delete n[r.dealer.id]; return n; });
                             return;
                           }
-                          upsertEntry.mutate({
+                          void upsertEntry.mutateAsync({
                             dealer_id: r.dealer.id,
                             week_start: weekStart,
                             extra_override: next,
                             bonus_points: r.bonusPts,
-                          });
-                          setExtraDraft((d) => { const n = { ...d }; delete n[r.dealer.id]; return n; });
+                          }).then(() => {
+                            setExtraDraft((d) => { const n = { ...d }; delete n[r.dealer.id]; return n; });
+                          }).catch((error) => toast.error(error?.message || "Could not save extra points"));
                         }}
                         onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
                       />
@@ -476,13 +478,14 @@ export default function WeeklyBonus() {
                             setBonusDraft((d) => { const n = { ...d }; delete n[r.dealer.id]; return n; });
                             return;
                           }
-                          upsertEntry.mutate({
+                          void upsertEntry.mutateAsync({
                             dealer_id: r.dealer.id,
                             week_start: weekStart,
                             extra_override: r.extra,
                             bonus_points: next,
-                          });
-                          setBonusDraft((d) => { const n = { ...d }; delete n[r.dealer.id]; return n; });
+                          }).then(() => {
+                            setBonusDraft((d) => { const n = { ...d }; delete n[r.dealer.id]; return n; });
+                          }).catch((error) => toast.error(error?.message || "Could not save bonus points"));
                         }}
                         onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
                       />

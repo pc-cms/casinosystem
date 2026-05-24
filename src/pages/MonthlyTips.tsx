@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { ReactNode, useEffect, useMemo, useState } from "react";
 import { Coins, ChevronLeft, ChevronRight, Printer, Lock, Unlock, Calculator } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -13,7 +13,6 @@ import {
   getPeriodStart16, getPeriodEnd15, addMonthsPeriod, enumerateDays,
 } from "@/hooks/use-monthly-tips";
 import { useTipsCollectedForPeriod } from "@/hooks/use-tips";
-import { useDailyResults } from "@/hooks/use-import-reports";
 import { fmtDateOnly } from "@/lib/format-date";
 import { UNIFIED_ATT_COLORS, UNIFIED_SHIFT_TINTS } from "@/lib/shift-colors";
 import { cn } from "@/lib/utils";
@@ -77,7 +76,7 @@ const dowOf = (iso: string) => {
   return new Date(y, m - 1, d).getDay();
 };
 
-export default function MonthlyTips() {
+export default function MonthlyTips({ belowHeader }: { belowHeader?: ReactNode }) {
   const [periodStart, setPeriodStart] = useState<string>(() => getPeriodStart16(new Date()));
   const periodEnd = useMemo(() => getPeriodEnd15(periodStart), [periodStart]);
 
@@ -86,15 +85,7 @@ export default function MonthlyTips() {
   const { data: attendance = [] } = useDealerAttendanceRange(periodStart, periodEnd);
   const { data: entries = [] } = useMonthlyTipsEntries(periodStart);
   const { data: pool } = useMonthlyTipsPool(periodStart);
-  const { data: periodResults = [] } = useDailyResults(periodStart, periodEnd);
   const { data: collected } = useTipsCollectedForPeriod(periodStart, periodEnd);
-
-  // 1% of period tables result, rounded to nearest 1 000 TZS — placeholder hint.
-  const suggestedPool = useMemo(() => {
-    const total = (periodResults as any[]).reduce((s, r) => s + Number(r.result || 0), 0);
-    const onePct = total * 0.01;
-    return onePct > 0 ? Math.round(onePct / 1000) * 1000 : 0;
-  }, [periodResults]);
 
   const upsertEntry = useUpsertMonthlyTipsEntry();
   const upsertPool = useUpsertMonthlyTipsPool();
@@ -249,6 +240,7 @@ export default function MonthlyTips() {
         icon={Coins}
         title="Monthly Tips"
         subtitle="Distribute a tips pool across Live Game staff (16th – 15th)"
+        belowHeader={belowHeader}
       >
         <div className="flex items-center gap-2 print:hidden">
           <Button variant="outline" size="icon" onClick={() => navMonth(-1)} aria-label="Previous period">
@@ -270,21 +262,16 @@ export default function MonthlyTips() {
           <div className="flex flex-col gap-1">
             <label className="text-xs uppercase tracking-wider opacity-80">
               Tips Pool (TZS)
-              {(collected?.total ?? 0) > 0 && (
-                <span className="ml-2 normal-case opacity-90 font-mono" title="Auto-collected by cashier (Live + Poker tips)">
-                  cage: {fmtMoney(collected!.total)}
-                </span>
-              )}
-              {suggestedPool > 0 && (
-                <span className="ml-2 normal-case opacity-70 font-mono">{fmtMoney(suggestedPool)}</span>
-              )}
+              <span className="ml-2 normal-case opacity-90 font-mono" title="Auto-collected by cashier from Live Game tips for this period">
+                cage: {fmtMoney(collected?.total ?? 0)}
+              </span>
             </label>
             <Input
               type="text" inputMode="numeric"
               className="w-44 font-mono font-bold text-lg text-foreground bg-background placeholder:text-muted-foreground/60 placeholder:font-normal"
               value={poolInput ? fmtMoney(parseInt(poolInput.replace(/\D/g, ""), 10) || 0) : ""}
               onChange={(e) => { setPoolInput(e.target.value.replace(/\D/g, "")); setCalculated(false); }}
-              placeholder={collected?.total ? fmtMoney(collected.total) : (suggestedPool > 0 ? fmtMoney(suggestedPool) : "0")}
+              placeholder={fmtMoney(collected?.total ?? 0)}
               disabled={locked}
             />
             {(collected?.total ?? 0) > 0 && !locked && (
@@ -464,13 +451,14 @@ export default function MonthlyTips() {
                             setExtraDraft((d) => { const n = { ...d }; delete n[r.dealer.id]; return n; });
                             return;
                           }
-                          upsertEntry.mutate({
+                          void upsertEntry.mutateAsync({
                             dealer_id: r.dealer.id,
                             period_start: periodStart,
                             extra_override: next,
                             bonus_points: r.bonusPts,
-                          });
-                          setExtraDraft((d) => { const n = { ...d }; delete n[r.dealer.id]; return n; });
+                          }).then(() => {
+                            setExtraDraft((d) => { const n = { ...d }; delete n[r.dealer.id]; return n; });
+                          }).catch((error) => toast.error(error?.message || "Could not save extra points"));
                         }}
                         onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
                       />
@@ -495,13 +483,14 @@ export default function MonthlyTips() {
                             setBonusDraft((d) => { const n = { ...d }; delete n[r.dealer.id]; return n; });
                             return;
                           }
-                          upsertEntry.mutate({
+                          void upsertEntry.mutateAsync({
                             dealer_id: r.dealer.id,
                             period_start: periodStart,
                             extra_override: r.extra,
                             bonus_points: next,
-                          });
-                          setBonusDraft((d) => { const n = { ...d }; delete n[r.dealer.id]; return n; });
+                          }).then(() => {
+                            setBonusDraft((d) => { const n = { ...d }; delete n[r.dealer.id]; return n; });
+                          }).catch((error) => toast.error(error?.message || "Could not save bonus points"));
                         }}
                         onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
                       />

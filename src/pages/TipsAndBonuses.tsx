@@ -10,8 +10,6 @@
  */
 import { lazy, Suspense } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PageShell, PageSection } from "@/components/layout/PageShell";
-import { PageHeader } from "@/components/layout/PageHeader";
 import { Coins, Gift, UserCheck } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 
@@ -41,39 +39,24 @@ export default function TipsAndBonuses() {
     setParams(p, { replace: true });
   };
 
+  const renderTabMenu = () => (
+    <TabsList className="grid w-full grid-cols-2 gap-1 h-auto sm:grid-cols-5">
+      <TabsTrigger value="weekly" className="gap-1.5"><Gift className="w-3.5 h-3.5" />Weekly Bonus</TabsTrigger>
+      <TabsTrigger value="monthly" className="gap-1.5"><Coins className="w-3.5 h-3.5" />Monthly Tips</TabsTrigger>
+      <TabsTrigger value="live" className="gap-1.5"><Gift className="w-3.5 h-3.5" />Live Game Tips</TabsTrigger>
+      <TabsTrigger value="floor" className="gap-1.5"><UserCheck className="w-3.5 h-3.5" />Floor Tips</TabsTrigger>
+      <TabsTrigger value="poker" className="gap-1.5"><Coins className="w-3.5 h-3.5" />Club Poker Tips</TabsTrigger>
+    </TabsList>
+  );
+
   return (
     <Tabs value={tab} onValueChange={setTab} className="w-full">
-      <div className="px-4 pt-3 sm:px-6 sm:pt-4">
-        <TabsList className="grid grid-cols-2 sm:grid-cols-5 h-auto gap-1">
-          <TabsTrigger value="weekly" className="gap-1.5"><Gift className="w-3.5 h-3.5" />Weekly Bonus</TabsTrigger>
-          <TabsTrigger value="monthly" className="gap-1.5"><Coins className="w-3.5 h-3.5" />Monthly Tips</TabsTrigger>
-          <TabsTrigger value="live" className="gap-1.5"><Gift className="w-3.5 h-3.5" />Live Game Tips</TabsTrigger>
-          <TabsTrigger value="floor" className="gap-1.5"><UserCheck className="w-3.5 h-3.5" />Floor Tips</TabsTrigger>
-          <TabsTrigger value="poker" className="gap-1.5"><Coins className="w-3.5 h-3.5" />Club Poker Tips</TabsTrigger>
-        </TabsList>
-      </div>
-
       <Suspense fallback={<Loader />}>
-        <TabsContent value="weekly" className="mt-0"><WeeklyBonus /></TabsContent>
-        <TabsContent value="monthly" className="mt-0"><MonthlyTips /></TabsContent>
-        <TabsContent value="live" className="mt-0">
-          <PageShell>
-            <PageHeader icon={Gift} title="Live Game Tips" subtitle="Cashier-recorded chip tips · dealer pool" />
-            <PageSection card={false}><LiveGameTipsTab /></PageSection>
-          </PageShell>
-        </TabsContent>
-        <TabsContent value="floor" className="mt-0">
-          <PageShell>
-            <PageHeader icon={UserCheck} title="Floor Tips" subtitle="Per-employee floor staff tips" />
-            <PageSection card={false}><FloorTipsTab /></PageSection>
-          </PageShell>
-        </TabsContent>
-        <TabsContent value="poker" className="mt-0">
-          <PageShell>
-            <PageHeader icon={Coins} title="Club Poker Tips" subtitle="Daily totals from poker tables" />
-            <PageSection card={false}><ClubPokerTipsTab /></PageSection>
-          </PageShell>
-        </TabsContent>
+        <TabsContent value="weekly" className="mt-0"><WeeklyBonus belowHeader={renderTabMenu()} /></TabsContent>
+        <TabsContent value="monthly" className="mt-0"><MonthlyTips belowHeader={renderTabMenu()} /></TabsContent>
+        <TabsContent value="live" className="mt-0"><LiveGameTipsTab belowHeader={renderTabMenu()} /></TabsContent>
+        <TabsContent value="floor" className="mt-0"><FloorTipsTab belowHeader={renderTabMenu()} /></TabsContent>
+        <TabsContent value="poker" className="mt-0"><ClubPokerTipsTab belowHeader={renderTabMenu()} /></TabsContent>
       </Suspense>
     </Tabs>
   );

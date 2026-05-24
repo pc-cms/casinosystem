@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
+import { useCasino } from "@/lib/casino-context";
 
 /**
  * Weekly Bonus — Sun..Sat, manager-driven distribution of a cash pool
@@ -40,7 +41,7 @@ export interface BonusPool {
 
 // Phase 3: alias employee_id → dealer_id so consumers (Live-Game-keyed) stay unchanged.
 export const useWeeklyBonusEntries = (weekStart: string) => {
-  const { casinoId } = useAuth();
+  const { activeCasinoId: casinoId } = useCasino();
   return useQuery({
     queryKey: ["weekly-bonus-entries", casinoId, weekStart],
     queryFn: async () => {
@@ -58,7 +59,7 @@ export const useWeeklyBonusEntries = (weekStart: string) => {
 };
 
 export const useWeeklyBonusPool = (weekStart: string) => {
-  const { casinoId } = useAuth();
+  const { activeCasinoId: casinoId } = useCasino();
   return useQuery({
     queryKey: ["weekly-bonus-pool", casinoId, weekStart],
     queryFn: async () => {
@@ -78,7 +79,7 @@ export const useWeeklyBonusPool = (weekStart: string) => {
 
 export const useUpsertBonusEntry = () => {
   const qc = useQueryClient();
-  const { casinoId } = useAuth();
+  const { activeCasinoId: casinoId } = useCasino();
   return useMutation({
     mutationFn: async (input: { dealer_id: string; week_start: string; extra_override?: number | null; bonus_points?: number }) => {
       if (!casinoId) throw new Error("No casino");
@@ -125,7 +126,8 @@ export const useUpsertBonusEntry = () => {
 
 export const useUpsertBonusPool = () => {
   const qc = useQueryClient();
-  const { casinoId, user } = useAuth();
+  const { user } = useAuth();
+  const { activeCasinoId: casinoId } = useCasino();
   return useMutation({
     mutationFn: async (input: { week_start: string; pool_amount: number; currency?: string; calculate: boolean }) => {
       if (!casinoId) throw new Error("No casino");
