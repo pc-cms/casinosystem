@@ -575,7 +575,53 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
         </div>
       </div>
 
+      {/* HR comment dialog — opens after marking A / S / SP / LT so the
+          operator can attach a short note that lands in staff_warnings. */}
+      <Dialog open={!!commentFor} onOpenChange={(o) => { if (!o) setCommentFor(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <span className="inline-flex items-center justify-center min-w-[24px] h-5 px-1 rounded text-[10px] font-mono font-bold bg-muted">{commentFor?.label}</span>
+              <span>{commentFor?.dealerName}</span>
+              <span className="text-muted-foreground text-sm font-normal">· {commentFor?.kind}</span>
+            </DialogTitle>
+          </DialogHeader>
+          <Textarea
+            value={commentText}
+            onChange={(e) => setCommentText(e.target.value)}
+            placeholder="Short note for HR (optional)…"
+            rows={4}
+            autoFocus
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                e.preventDefault();
+                if (!commentFor) return;
+                upsertWarningComment.mutate(
+                  { employee_id: commentFor.dealerId, business_date: date, comment: commentText },
+                  { onSuccess: () => setCommentFor(null) },
+                );
+              }
+            }}
+          />
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setCommentFor(null)}>Skip</Button>
+            <Button
+              disabled={upsertWarningComment.isPending}
+              onClick={() => {
+                if (!commentFor) return;
+                upsertWarningComment.mutate(
+                  { employee_id: commentFor.dealerId, business_date: date, comment: commentText },
+                  { onSuccess: () => setCommentFor(null) },
+                );
+              }}
+            >
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
+
   );
 };
 
