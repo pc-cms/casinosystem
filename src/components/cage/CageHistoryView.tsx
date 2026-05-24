@@ -203,6 +203,57 @@ const CageHistoryView = () => {
           </div>
         </TabsContent>
 
+        {/* Canceled transactions — audit trail */}
+        <TabsContent value="canceled" className="space-y-3">
+          <div className="cms-panel">
+            <div className="cms-header flex items-center justify-between">
+              <span>Canceled Transactions ({canceledTx.length})</span>
+              <Badge variant="outline" className="text-[10px] border-destructive/40 text-destructive">Audit only</Badge>
+            </div>
+            <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
+              <table className="w-full text-xs">
+                <thead className="sticky top-0 bg-card z-10">
+                  <tr className="border-b border-border">
+                    {["Dir", "Player", "Table", "Amount", "Reason", "Canceled", "Time"].map(h => (
+                      <th key={h} className={`px-3 py-1.5 font-medium text-muted-foreground uppercase ${["Amount","Time","Canceled"].includes(h) ? "text-right" : "text-left"}`}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {canceledTx.length === 0 ? (
+                    <tr><td colSpan={7} className="text-center text-muted-foreground py-6">No canceled transactions</td></tr>
+                  ) : canceledTx.map((tx: any) => {
+                    const isIn = isInTx(tx.type);
+                    return (
+                      <tr key={tx.id} className="border-b border-border last:border-0 line-through opacity-70">
+                        <td className="px-3 py-1.5">
+                          <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${isIn ? "bg-primary/10 text-primary" : "bg-accent/10 text-accent"}`}>
+                            {isIn ? "IN" : "OUT"}
+                          </span>
+                        </td>
+                        <td className="px-3 py-1.5">{tx.players?.first_name} {tx.players?.last_name}</td>
+                        <td className="px-3 py-1.5 font-mono text-muted-foreground">{tx.table_id ? tableMap.get(tx.table_id)?.name || "—" : "—"}</td>
+                        <td className={`px-3 py-1.5 text-right font-mono font-medium ${isIn ? "cms-amount-positive" : "cms-amount-negative"}`}>
+                          {isIn ? "+" : "−"}{formatCurrency(Number(tx.amount))}
+                        </td>
+                        <td className="px-3 py-1.5 text-muted-foreground truncate max-w-xs no-underline">{tx.cancel_reason || "—"}</td>
+                        <td className="px-3 py-1.5 text-right font-mono text-[10px] text-destructive no-underline">
+                          {tx.cancelled_at ? new Date(tx.cancelled_at).toLocaleTimeString("en-GB", { timeZone: "Africa/Dar_es_Salaam", hour: "2-digit", minute: "2-digit" }) : "—"}
+                        </td>
+                        <td className="px-3 py-1.5 text-right font-mono text-[10px] text-muted-foreground">
+                          {new Date(tx.created_at).toLocaleTimeString("en-GB", { timeZone: "Africa/Dar_es_Salaam", hour: "2-digit", minute: "2-digit" })}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </TabsContent>
+
+
+
         {/* Cashier checks */}
         <TabsContent value="checks" className="space-y-3">
           <div className="cms-panel">
