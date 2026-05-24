@@ -6,11 +6,55 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatCurrency } from "@/lib/currency";
 import { Badge } from "@/components/ui/badge";
-import { BarChart3, Table2, Users, Receipt, Grid3X3, Landmark, UsersRound, FileBarChart } from "lucide-react";
+import { BarChart3, Table2, Users, Receipt, Grid3X3, Landmark, UsersRound, FileBarChart, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { fmtDate } from "@/lib/format-date";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
+
+// ----------- Sortable column helper -----------
+type SortDir = "asc" | "desc";
+type SortState = { key: string; dir: SortDir };
+
+function useSorted<T extends Record<string, any>>(items: T[], initial: SortState): { sorted: T[]; sort: SortState; toggle: (k: string) => void } {
+  const [sort, setSort] = useState<SortState>(initial);
+  const sorted = useMemo(() => {
+    const arr = [...items];
+    arr.sort((a, b) => {
+      const va = a[sort.key];
+      const vb = b[sort.key];
+      if (va == null && vb == null) return 0;
+      if (va == null) return 1;
+      if (vb == null) return -1;
+      if (typeof va === "number" && typeof vb === "number") return sort.dir === "asc" ? va - vb : vb - va;
+      const sa = String(va);
+      const sb = String(vb);
+      return sort.dir === "asc" ? sa.localeCompare(sb) : sb.localeCompare(sa);
+    });
+    return arr;
+  }, [items, sort]);
+  const toggle = (key: string) =>
+    setSort(s => (s.key === key ? { key, dir: s.dir === "asc" ? "desc" : "asc" } : { key, dir: "desc" }));
+  return { sorted, sort, toggle };
+}
+
+const SortTh = ({
+  label, k, sort, toggle, align = "left", className = "",
+}: { label: string; k: string; sort: SortState; toggle: (k: string) => void; align?: "left" | "right" | "center"; className?: string }) => {
+  const active = sort.key === k;
+  const Icon = !active ? ArrowUpDown : sort.dir === "asc" ? ArrowUp : ArrowDown;
+  return (
+    <th
+      onClick={() => toggle(k)}
+      className={`text-xs font-medium uppercase px-3 py-2 cursor-pointer select-none hover:text-foreground ${active ? "text-foreground" : "text-muted-foreground"} ${align === "right" ? "text-right" : align === "center" ? "text-center" : "text-left"} ${className}`}
+    >
+      <span className={`inline-flex items-center gap-1 ${align === "right" ? "flex-row-reverse" : ""}`}>
+        {label}
+        <Icon className="w-3 h-3 opacity-70" />
+      </span>
+    </th>
+  );
+};
 
 // Hook: fetch all shifts
 const useShifts = () => {
@@ -111,9 +155,22 @@ const ShiftReport = ({ from, to }: { from: string; to: string }) => {
       // Balance = real cash change − expected cash change. 0 = perfect.
       const balance = cashChange != null ? cashChange - totalCash : null;
 
-      return { ...s, expTotal, tablesResult, slotsResult, result, missTotal, totalCash, balance };
+      return {
+        ...s,
+        opened_date: s.opened_at.split("T")[0],
+        expTotal,
+        tablesResult,
+        slotsResult,
+        result,
+        missTotal,
+        totalCash,
+        balance: balance ?? 0,
+        balanceRaw: balance,
+      };
     });
   }, [filtered, expenses]);
+
+  const { sorted: shiftSorted, sort, toggle } = useSorted(shiftData, { key: "opened_date", dir: "desc" });
 
   const totals = useMemo(() => ({
     tables: shiftData.reduce((s, d) => s + d.tablesResult, 0),
@@ -149,15 +206,21 @@ const ShiftReport = ({ from, to }: { from: string; to: string }) => {
         <table className="w-full">
           <thead>
             <tr className="border-b border-border">
-              {["Date", "Status", "Tables", "Slots", "Result", "Expenses", "Miss Chips", "Total Cash", "Balance"].map(h => (
-                <th key={h} className={`text-xs font-medium text-muted-foreground uppercase px-3 py-2 ${["Date", "Status"].includes(h) ? "text-left" : "text-right"}`}>{h}</th>
-              ))}
+              <SortTh label="Date" k="opened_date" sort={sort} toggle={toggle} />
+              <SortTh label="Status" k="status" sort={sort} toggle={toggle} />
+              <SortTh label="Tables" k="tablesResult" sort={sort} toggle={toggle} align="right" />
+              <SortTh label="Slots" k="slotsResult" sort={sort} toggle={toggle} align="right" />
+              <SortTh label="Result" k="result" sort={sort} toggle={toggle} align="right" />
+              <SortTh label="Expenses" k="expTotal" sort={sort} toggle={toggle} align="right" />
+              <SortTh label="Miss Chips" k="missTotal" sort={sort} toggle={toggle} align="right" />
+              <SortTh label="Total Cash" k="totalCash" sort={sort} toggle={toggle} align="right" />
+              <SortTh label="Balance" k="balance" sort={sort} toggle={toggle} align="right" />
             </tr>
           </thead>
           <tbody>
-            {shiftData.length === 0 ? (
+            {shiftSorted.length === 0 ? (
               <tr><td colSpan={9} className="text-center text-muted-foreground text-sm py-6">No shifts in range</td></tr>
-            ) : shiftData.map(s => (
+            ) : shiftSorted.map(s => (
               <tr key={s.id} className="border-b border-border last:border-0 hover:bg-muted/30">
                 <td className="px-3 py-2 text-xs font-mono text-card-foreground">{fmtDate(s.opened_at)}</td>
                 <td className="px-3 py-2">
@@ -171,8 +234,8 @@ const ShiftReport = ({ from, to }: { from: string; to: string }) => {
                 <td className="px-3 py-2 text-right font-mono text-xs text-warning">{formatCurrency(s.expTotal)}</td>
                 <td className="px-3 py-2 text-right font-mono text-xs text-warning">{formatCurrency(s.missTotal)}</td>
                 <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${signCls(s.totalCash)}`}>{formatCurrency(s.totalCash)}</td>
-                <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${s.balance == null ? "text-muted-foreground" : s.balance === 0 ? "text-success" : "text-destructive"}`}>
-                  {s.balance != null ? `${s.balance >= 0 ? "+" : ""}${formatCurrency(s.balance)}` : "—"}
+                <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${s.balanceRaw == null ? "text-muted-foreground" : s.balanceRaw === 0 ? "text-success" : "text-destructive"}`}>
+                  {s.balanceRaw != null ? `${s.balanceRaw >= 0 ? "+" : ""}${formatCurrency(s.balanceRaw)}` : "—"}
                 </td>
               </tr>
             ))}
@@ -197,28 +260,34 @@ const TableReport = ({ from, to }: { from: string; to: string }) => {
       const tTx = filtered.filter(t => t.table_id === table.id);
       const drop = tTx.filter(t => (t.type === "buy" || t.type === "in")).reduce((s, t) => s + Number(t.amount), 0);
       const cashout = tTx.filter(t => (t.type === "cashout" || t.type === "out")).reduce((s, t) => s + Number(t.amount), 0);
-      return { ...table, drop, cashout, result: cashout - drop, txCount: tTx.length };
-    }).filter(t => t.txCount > 0).sort((a, b) => b.drop - a.drop);
+      return { ...table, float_amount_num: Number(table.float_amount), drop, cashout, result: cashout - drop, txCount: tTx.length };
+    }).filter(t => t.txCount > 0);
   }, [tables, transactions, from, to]);
+
+  const { sorted, sort, toggle } = useSorted(tableData, { key: "drop", dir: "desc" });
 
   return (
     <div className="cms-panel overflow-x-auto">
       <table className="w-full">
         <thead>
           <tr className="border-b border-border">
-            {["Table", "Game", "Float", "Drop", "Cashout", "Result", "Txns"].map(h => (
-              <th key={h} className={`text-xs font-medium text-muted-foreground uppercase px-3 py-2 ${["Table", "Game"].includes(h) ? "text-left" : "text-right"}`}>{h}</th>
-            ))}
+            <SortTh label="Table" k="name" sort={sort} toggle={toggle} />
+            <SortTh label="Game" k="game" sort={sort} toggle={toggle} />
+            <SortTh label="Float" k="float_amount_num" sort={sort} toggle={toggle} align="right" />
+            <SortTh label="Drop" k="drop" sort={sort} toggle={toggle} align="right" />
+            <SortTh label="Cashout" k="cashout" sort={sort} toggle={toggle} align="right" />
+            <SortTh label="Result" k="result" sort={sort} toggle={toggle} align="right" />
+            <SortTh label="Txns" k="txCount" sort={sort} toggle={toggle} align="right" />
           </tr>
         </thead>
         <tbody>
-          {tableData.length === 0 ? (
+          {sorted.length === 0 ? (
             <tr><td colSpan={7} className="text-center text-muted-foreground text-sm py-6">No table data</td></tr>
-          ) : tableData.map(t => (
+          ) : sorted.map(t => (
             <tr key={t.id} className="border-b border-border last:border-0 hover:bg-muted/30">
               <td className="px-3 py-2 text-sm font-medium text-card-foreground">{t.name}</td>
               <td className="px-3 py-2 text-xs text-muted-foreground">{t.game}</td>
-              <td className="px-3 py-2 text-right font-mono text-xs text-card-foreground">{formatCurrency(Number(t.float_amount))}</td>
+              <td className="px-3 py-2 text-right font-mono text-xs text-card-foreground">{formatCurrency(t.float_amount_num)}</td>
               <td className="px-3 py-2 text-right font-mono text-xs text-card-foreground">{formatCurrency(t.drop)}</td>
               <td className="px-3 py-2 text-right font-mono text-xs text-card-foreground">{formatCurrency(t.cashout)}</td>
               <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${t.result >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
@@ -227,15 +296,15 @@ const TableReport = ({ from, to }: { from: string; to: string }) => {
               <td className="px-3 py-2 text-right font-mono text-xs text-muted-foreground">{t.txCount}</td>
             </tr>
           ))}
-          {tableData.length > 0 && (
+          {sorted.length > 0 && (
             <tr className="border-t-2 border-primary/30 bg-muted/30">
               <td colSpan={3} className="px-3 py-2 text-xs font-bold text-card-foreground uppercase">Totals</td>
-              <td className="px-3 py-2 text-right font-mono text-xs font-bold text-card-foreground">{formatCurrency(tableData.reduce((s, t) => s + t.drop, 0))}</td>
-              <td className="px-3 py-2 text-right font-mono text-xs font-bold text-card-foreground">{formatCurrency(tableData.reduce((s, t) => s + t.cashout, 0))}</td>
-              <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${tableData.reduce((s, t) => s + t.result, 0) >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
-                {formatCurrency(tableData.reduce((s, t) => s + t.result, 0))}
+              <td className="px-3 py-2 text-right font-mono text-xs font-bold text-card-foreground">{formatCurrency(sorted.reduce((s, t) => s + t.drop, 0))}</td>
+              <td className="px-3 py-2 text-right font-mono text-xs font-bold text-card-foreground">{formatCurrency(sorted.reduce((s, t) => s + t.cashout, 0))}</td>
+              <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${sorted.reduce((s, t) => s + t.result, 0) >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
+                {formatCurrency(sorted.reduce((s, t) => s + t.result, 0))}
               </td>
-              <td className="px-3 py-2 text-right font-mono text-xs font-bold text-muted-foreground">{tableData.reduce((s, t) => s + t.txCount, 0)}</td>
+              <td className="px-3 py-2 text-right font-mono text-xs font-bold text-muted-foreground">{sorted.reduce((s, t) => s + t.txCount, 0)}</td>
             </tr>
           )}
         </tbody>
@@ -268,24 +337,34 @@ const PlayerReport = ({ from, to }: { from: string; to: string }) => {
       const expTotal = pExp.reduce((s: number, e: any) => s + Number(e.amount), 0);
       const result = cashout - drop;
       const realResult = result - expTotal;
-      return { ...p, drop, cashout, expTotal, result, realResult, txCount: pTx.length };
-    }).filter(p => p.txCount > 0).sort((a, b) => b.drop - a.drop);
+      return {
+        ...p,
+        player_name: `${p.first_name} ${p.last_name}`,
+        drop, cashout, expTotal, result, realResult, txCount: pTx.length,
+      };
+    }).filter(p => p.txCount > 0);
   }, [players, transactions, expenses, from, to]);
+
+  const { sorted, sort, toggle } = useSorted(playerData, { key: "drop", dir: "desc" });
 
   return (
     <div className="cms-panel overflow-x-auto">
       <table className="w-full">
         <thead>
           <tr className="border-b border-border">
-            {["Player", "Drop", "Cashout", "Result", "Expenses", "Real Result", "Txns"].map(h => (
-              <th key={h} className={`text-xs font-medium text-muted-foreground uppercase px-3 py-2 ${h === "Player" ? "text-left" : "text-right"}`}>{h}</th>
-            ))}
+            <SortTh label="Player" k="player_name" sort={sort} toggle={toggle} />
+            <SortTh label="Drop" k="drop" sort={sort} toggle={toggle} align="right" />
+            <SortTh label="Cashout" k="cashout" sort={sort} toggle={toggle} align="right" />
+            <SortTh label="Result" k="result" sort={sort} toggle={toggle} align="right" />
+            <SortTh label="Expenses" k="expTotal" sort={sort} toggle={toggle} align="right" />
+            <SortTh label="Real Result" k="realResult" sort={sort} toggle={toggle} align="right" />
+            <SortTh label="Txns" k="txCount" sort={sort} toggle={toggle} align="right" />
           </tr>
         </thead>
         <tbody>
-          {playerData.length === 0 ? (
+          {sorted.length === 0 ? (
             <tr><td colSpan={7} className="text-center text-muted-foreground text-sm py-6">No player data</td></tr>
-          ) : playerData.map(p => (
+          ) : sorted.map(p => (
             <tr key={p.id} className="border-b border-border last:border-0 hover:bg-muted/30">
               <td className="px-3 py-2">
                 <span className="text-sm font-medium text-card-foreground">{p.first_name} {p.last_name}</span>
@@ -303,19 +382,19 @@ const PlayerReport = ({ from, to }: { from: string; to: string }) => {
               <td className="px-3 py-2 text-right font-mono text-xs text-muted-foreground">{p.txCount}</td>
             </tr>
           ))}
-          {playerData.length > 0 && (
+          {sorted.length > 0 && (
             <tr className="border-t-2 border-primary/30 bg-muted/30">
-              <td className="px-3 py-2 text-xs font-bold text-card-foreground uppercase">Totals ({playerData.length} players)</td>
-              <td className="px-3 py-2 text-right font-mono text-xs font-bold text-card-foreground">{formatCurrency(playerData.reduce((s, p) => s + p.drop, 0))}</td>
-              <td className="px-3 py-2 text-right font-mono text-xs font-bold text-card-foreground">{formatCurrency(playerData.reduce((s, p) => s + p.cashout, 0))}</td>
-              <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${playerData.reduce((s, p) => s + p.result, 0) >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
-                {formatCurrency(playerData.reduce((s, p) => s + p.result, 0))}
+              <td className="px-3 py-2 text-xs font-bold text-card-foreground uppercase">Totals ({sorted.length} players)</td>
+              <td className="px-3 py-2 text-right font-mono text-xs font-bold text-card-foreground">{formatCurrency(sorted.reduce((s, p) => s + p.drop, 0))}</td>
+              <td className="px-3 py-2 text-right font-mono text-xs font-bold text-card-foreground">{formatCurrency(sorted.reduce((s, p) => s + p.cashout, 0))}</td>
+              <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${sorted.reduce((s, p) => s + p.result, 0) >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
+                {formatCurrency(sorted.reduce((s, p) => s + p.result, 0))}
               </td>
-              <td className="px-3 py-2 text-right font-mono text-xs font-bold text-warning">{formatCurrency(playerData.reduce((s, p) => s + p.expTotal, 0))}</td>
-              <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${playerData.reduce((s, p) => s + p.realResult, 0) >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
-                {formatCurrency(playerData.reduce((s, p) => s + p.realResult, 0))}
+              <td className="px-3 py-2 text-right font-mono text-xs font-bold text-warning">{formatCurrency(sorted.reduce((s, p) => s + p.expTotal, 0))}</td>
+              <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${sorted.reduce((s, p) => s + p.realResult, 0) >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
+                {formatCurrency(sorted.reduce((s, p) => s + p.realResult, 0))}
               </td>
-              <td className="px-3 py-2 text-right font-mono text-xs font-bold text-muted-foreground">{playerData.reduce((s, p) => s + p.txCount, 0)}</td>
+              <td className="px-3 py-2 text-right font-mono text-xs font-bold text-muted-foreground">{sorted.reduce((s, p) => s + p.txCount, 0)}</td>
             </tr>
           )}
         </tbody>
@@ -354,25 +433,31 @@ const GroupReport = ({ from, to }: { from: string; to: string }) => {
       const drop = gTx.filter(t => (t.type === "buy" || t.type === "in")).reduce((s, t) => s + Number(t.amount), 0);
       const cashout = gTx.filter(t => (t.type === "cashout" || t.type === "out")).reduce((s, t) => s + Number(t.amount), 0);
       const expTotal = gExp.reduce((s: number, e: any) => s + Number(e.amount), 0);
-      return { name: g.name, members: memberIds.length, drop, cashout, result: cashout - drop, realResult: cashout - drop - expTotal, expTotal };
+      return { id: g.id, name: g.name, members: memberIds.length, drop, cashout, result: cashout - drop, realResult: cashout - drop - expTotal, expTotal };
     }).filter(g => g.members > 0);
   }, [groups, transactions, expenses, from, to]);
+
+  const { sorted, sort, toggle } = useSorted(groupData, { key: "drop", dir: "desc" });
 
   return (
     <div className="cms-panel overflow-x-auto">
       <table className="w-full">
         <thead>
           <tr className="border-b border-border">
-            {["Group", "Members", "Drop", "Cashout", "Result", "Expenses", "Real Result"].map(h => (
-              <th key={h} className={`text-xs font-medium text-muted-foreground uppercase px-3 py-2 ${["Group"].includes(h) ? "text-left" : "text-right"}`}>{h}</th>
-            ))}
+            <SortTh label="Group" k="name" sort={sort} toggle={toggle} />
+            <SortTh label="Members" k="members" sort={sort} toggle={toggle} align="right" />
+            <SortTh label="Drop" k="drop" sort={sort} toggle={toggle} align="right" />
+            <SortTh label="Cashout" k="cashout" sort={sort} toggle={toggle} align="right" />
+            <SortTh label="Result" k="result" sort={sort} toggle={toggle} align="right" />
+            <SortTh label="Expenses" k="expTotal" sort={sort} toggle={toggle} align="right" />
+            <SortTh label="Real Result" k="realResult" sort={sort} toggle={toggle} align="right" />
           </tr>
         </thead>
         <tbody>
-          {groupData.length === 0 ? (
+          {sorted.length === 0 ? (
             <tr><td colSpan={7} className="text-center text-muted-foreground text-sm py-6">No group data</td></tr>
-          ) : groupData.map((g, i) => (
-            <tr key={i} className="border-b border-border last:border-0 hover:bg-muted/30">
+          ) : sorted.map((g) => (
+            <tr key={g.id} className="border-b border-border last:border-0 hover:bg-muted/30">
               <td className="px-3 py-2 text-sm font-medium text-card-foreground">{g.name}</td>
               <td className="px-3 py-2 text-right font-mono text-xs text-muted-foreground">{g.members}</td>
               <td className="px-3 py-2 text-right font-mono text-xs text-card-foreground">{formatCurrency(g.drop)}</td>
@@ -421,8 +506,14 @@ const ExpenseReport = ({ from, to }: { from: string; to: string }) => {
     const approved = filtered.filter((e: any) => e.approved).reduce((s: number, e: any) => s + Number(e.amount), 0);
     const pending = total - approved;
 
-    return { total, approved, pending, count: filtered.length, byCategory, byPlayer: Object.entries(byPlayer).sort((a, b) => b[1].total - a[1].total) };
+    const catList = Object.entries(byCategory).map(([category, v]) => ({ category, total: v.total, count: v.count }));
+    const playerList = Object.entries(byPlayer).map(([id, v]) => ({ id, name: v.name, total: v.total, count: v.count }));
+
+    return { total, approved, pending, count: filtered.length, catList, playerList };
   }, [expenses, from, to]);
+
+  const catSort = useSorted(data.catList, { key: "total", dir: "desc" });
+  const playerSort = useSorted(data.playerList, { key: "total", dir: "desc" });
 
   return (
     <div className="space-y-3">
@@ -434,37 +525,55 @@ const ExpenseReport = ({ from, to }: { from: string; to: string }) => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {/* By Category */}
-        <div className="cms-panel">
+        <div className="cms-panel overflow-x-auto">
           <div className="cms-header text-xs">By Category</div>
-          <div className="divide-y divide-border">
-            {Object.entries(data.byCategory).sort((a, b) => b[1].total - a[1].total).map(([cat, v]) => (
-              <div key={cat} className="px-3 py-2 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="text-[10px] font-mono capitalize">{cat}</Badge>
-                  <span className="text-[10px] text-muted-foreground">×{v.count}</span>
-                </div>
-                <span className="font-mono text-xs font-medium text-card-foreground">{formatCurrency(v.total)}</span>
-              </div>
-            ))}
-            {Object.keys(data.byCategory).length === 0 && <p className="text-center text-muted-foreground text-xs py-4">No expenses</p>}
-          </div>
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-border">
+                <SortTh label="Category" k="category" sort={catSort.sort} toggle={catSort.toggle} />
+                <SortTh label="Count" k="count" sort={catSort.sort} toggle={catSort.toggle} align="right" />
+                <SortTh label="Total" k="total" sort={catSort.sort} toggle={catSort.toggle} align="right" />
+              </tr>
+            </thead>
+            <tbody>
+              {catSort.sorted.length === 0 ? (
+                <tr><td colSpan={3} className="text-center text-muted-foreground text-xs py-4">No expenses</td></tr>
+              ) : catSort.sorted.map(c => (
+                <tr key={c.category} className="border-b border-border last:border-0 hover:bg-muted/30">
+                  <td className="px-3 py-2">
+                    <Badge variant="outline" className="text-[10px] font-mono capitalize">{c.category}</Badge>
+                  </td>
+                  <td className="px-3 py-2 text-right font-mono text-xs text-muted-foreground">×{c.count}</td>
+                  <td className="px-3 py-2 text-right font-mono text-xs font-medium text-card-foreground">{formatCurrency(c.total)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
 
         {/* By Player */}
-        <div className="cms-panel">
+        <div className="cms-panel overflow-x-auto">
           <div className="cms-header text-xs">By Player</div>
-          <div className="divide-y divide-border">
-            {data.byPlayer.slice(0, 15).map(([id, v]) => (
-              <div key={id} className="px-3 py-2 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-card-foreground">{v.name}</span>
-                  <span className="text-[10px] text-muted-foreground">×{v.count}</span>
-                </div>
-                <span className="font-mono text-xs font-medium text-card-foreground">{formatCurrency(v.total)}</span>
-              </div>
-            ))}
-            {data.byPlayer.length === 0 && <p className="text-center text-muted-foreground text-xs py-4">No player-linked expenses</p>}
-          </div>
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-border">
+                <SortTh label="Player" k="name" sort={playerSort.sort} toggle={playerSort.toggle} />
+                <SortTh label="Count" k="count" sort={playerSort.sort} toggle={playerSort.toggle} align="right" />
+                <SortTh label="Total" k="total" sort={playerSort.sort} toggle={playerSort.toggle} align="right" />
+              </tr>
+            </thead>
+            <tbody>
+              {playerSort.sorted.length === 0 ? (
+                <tr><td colSpan={3} className="text-center text-muted-foreground text-xs py-4">No player-linked expenses</td></tr>
+              ) : playerSort.sorted.map(p => (
+                <tr key={p.id} className="border-b border-border last:border-0 hover:bg-muted/30">
+                  <td className="px-3 py-2 text-xs text-card-foreground">{p.name}</td>
+                  <td className="px-3 py-2 text-right font-mono text-xs text-muted-foreground">×{p.count}</td>
+                  <td className="px-3 py-2 text-right font-mono text-xs font-medium text-card-foreground">{formatCurrency(p.total)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
@@ -487,6 +596,8 @@ const TrackerReport = ({ from, to }: { from: string; to: string }) => {
     enabled: !!casinoId,
   });
 
+  const openTables = useMemo(() => tables.filter(t => t.status === "open"), [tables]);
+
   const byDate = useMemo(() => {
     const map: Record<string, { date: string; total: number; byTable: Record<string, number> }> = {};
     trackerData.forEach(t => {
@@ -494,15 +605,22 @@ const TrackerReport = ({ from, to }: { from: string; to: string }) => {
       map[t.date].total += Number(t.value);
       map[t.date].byTable[t.table_id] = (map[t.date].byTable[t.table_id] || 0) + Number(t.value);
     });
-    return Object.values(map).sort((a, b) => a.date.localeCompare(b.date));
-  }, [trackerData]);
+    // Build flat objects for sorting that include each table column as a sortable key
+    return Object.values(map).map(row => {
+      const out: any = { date: row.date, total: row.total, byTable: row.byTable };
+      for (const t of openTables) out[`t_${t.id}`] = row.byTable[t.id] || 0;
+      return out;
+    });
+  }, [trackerData, openTables]);
+
+  const { sorted, sort, toggle } = useSorted(byDate, { key: "date", dir: "asc" });
 
   const grandTotal = trackerData.reduce((s, t) => s + Number(t.value), 0);
 
   return (
     <div className="space-y-3">
       <div className="cms-panel p-2 flex items-center justify-between">
-        <span className="text-xs text-muted-foreground">{byDate.length} days tracked</span>
+        <span className="text-xs text-muted-foreground">{sorted.length} days tracked</span>
         <span className="font-mono text-sm font-bold text-primary">{formatCurrency(grandTotal)}</span>
       </div>
 
@@ -510,20 +628,20 @@ const TrackerReport = ({ from, to }: { from: string; to: string }) => {
         <table className="w-full">
           <thead>
             <tr className="border-b border-border">
-              <th className="text-left text-xs font-medium text-muted-foreground uppercase px-3 py-2">Date</th>
-              {tables.filter(t => t.status === "open").map(t => (
-                <th key={t.id} className="text-right text-xs font-medium text-muted-foreground uppercase px-3 py-2">{t.name}</th>
+              <SortTh label="Date" k="date" sort={sort} toggle={toggle} />
+              {openTables.map(t => (
+                <SortTh key={t.id} label={t.name} k={`t_${t.id}`} sort={sort} toggle={toggle} align="right" />
               ))}
-              <th className="text-right text-xs font-medium text-muted-foreground uppercase px-3 py-2">Total</th>
+              <SortTh label="Total" k="total" sort={sort} toggle={toggle} align="right" />
             </tr>
           </thead>
           <tbody>
-            {byDate.length === 0 ? (
-              <tr><td colSpan={tables.length + 2} className="text-center text-muted-foreground text-sm py-6">No tracker data</td></tr>
-            ) : byDate.map(d => (
+            {sorted.length === 0 ? (
+              <tr><td colSpan={openTables.length + 2} className="text-center text-muted-foreground text-sm py-6">No tracker data</td></tr>
+            ) : sorted.map(d => (
               <tr key={d.date} className="border-b border-border last:border-0 hover:bg-muted/30">
                 <td className="px-3 py-2 text-xs font-mono text-card-foreground">{d.date}</td>
-                {tables.filter(t => t.status === "open").map(t => (
+                {openTables.map(t => (
                   <td key={t.id} className="px-3 py-2 text-right font-mono text-xs text-card-foreground">
                     {d.byTable[t.id] ? formatCurrency(d.byTable[t.id]) : "—"}
                   </td>
