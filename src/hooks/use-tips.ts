@@ -17,6 +17,7 @@ export interface TipsRow {
   amount: number;
   business_date: string;
   created_at: string;
+  shift_id: string | null;
   table_id: string | null;
   tips_recipient_employee_id: string | null;
   cancelled_at: string | null;
