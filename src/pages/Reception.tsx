@@ -192,14 +192,36 @@ const CheckInTab = () => {
         }
       }
 
-      const { error } = await supabase.from("casino_visits").insert({
-        casino_id: casinoId,
-        player_id: playerId,
-        date: today,
-        checked_in_by: user.id,
-        position: "hall",
-      });
-      if (error) throw error;
+      // If player already has a visit today (e.g. checked out earlier and is
+      // returning), REOPEN that same visit instead of creating a duplicate.
+      // Drop/result then aggregate naturally over the whole business day.
+      const { data: existing } = await supabase
+        .from("casino_visits")
+        .select("id, checked_out_at")
+        .eq("casino_id", casinoId)
+        .eq("player_id", playerId)
+        .eq("date", today)
+        .order("checked_in_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (existing?.id) {
+        if (!existing.checked_out_at) throw new Error("Player already checked in");
+        const { error } = await supabase
+          .from("casino_visits")
+          .update({ checked_out_at: null, position: "hall", checked_in_by: user.id })
+          .eq("id", existing.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("casino_visits").insert({
+          casino_id: casinoId,
+          player_id: playerId,
+          date: today,
+          checked_in_by: user.id,
+          position: "hall",
+        });
+        if (error) throw error;
+      }
       await logAction(casinoId, "player", "PLAYER_CHECKED_IN", { player_id: playerId });
     },
     onSuccess: () => {
