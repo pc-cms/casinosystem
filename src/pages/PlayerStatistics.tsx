@@ -90,6 +90,7 @@ const PlayerStatistics = () => {
         .from("transactions")
         .select("*, players(first_name, last_name, nickname), gaming_tables(name)")
         .eq("casino_id", casinoId)
+        .is("cancelled_at", null)
         .gte("created_at", windowStartUTC)
         .lt("created_at", windowEndUTC)
         .order("created_at", { ascending: false })
