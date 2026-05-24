@@ -19,7 +19,7 @@ export type ModuleKey =
   | "cage_view"
   | "cage_closings"
   | "tables"
-  | "tables_analytics"
+  
   | "table_tracker"
   | "table_results"
   | "players"
