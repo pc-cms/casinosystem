@@ -10,6 +10,9 @@ import {
   type AvgBetGroup,
 } from "@/hooks/use-player-daily-avg-bets";
 import { useSelectedPlayer } from "@/hooks/use-selected-player";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useCasino } from "@/lib/casino-context";
 
 interface PlayerLite {
   id: string;
@@ -74,14 +77,28 @@ export function PlayerDailyAvgBetTable({ businessDate, players, visits, canEdit 
     return m;
   }, [bets]);
 
-  const visitNumByPlayer = useMemo(() => {
-    const order = [...visits]
-      .filter(v => v.date === businessDate)
-      .sort((a, b) => new Date(a.checked_in_at).getTime() - new Date(b.checked_in_at).getTime());
-    const count = new Map<string, number>();
-    order.forEach(v => count.set(v.player_id, (count.get(v.player_id) || 0) + 1));
-    return count;
-  }, [visits, businessDate]);
+  // Lifetime visit count per player at this casino (all-time, not limited to businessDate).
+  const { activeCasinoId } = useCasino();
+  const visiblePlayerIds = useMemo(
+    () => Array.from(new Set(visits.filter(v => v.date === businessDate).map(v => v.player_id))),
+    [visits, businessDate],
+  );
+  const { data: lifetimeVisitsByPlayer = {} } = useQuery({
+    queryKey: ["player-lifetime-visits", activeCasinoId, visiblePlayerIds.slice().sort().join(",")],
+    queryFn: async () => {
+      if (!activeCasinoId || visiblePlayerIds.length === 0) return {} as Record<string, number>;
+      const { data } = await supabase
+        .from("casino_visits")
+        .select("player_id")
+        .eq("casino_id", activeCasinoId)
+        .in("player_id", visiblePlayerIds);
+      const m: Record<string, number> = {};
+      for (const r of (data || []) as any[]) m[r.player_id] = (m[r.player_id] || 0) + 1;
+      return m;
+    },
+    enabled: !!activeCasinoId && visiblePlayerIds.length > 0,
+    staleTime: 60000,
+  });
 
   const rows = useMemo(() => {
     return visits
@@ -101,7 +118,7 @@ export function PlayerDailyAvgBetTable({ businessDate, players, visits, canEdit 
           category: ((p.category as PlayerCategory) || "normal") as PlayerCategory,
           firstName: p.first_name || "",
           lastName: p.last_name || "",
-          visits: visitNumByPlayer.get(v.player_id) || 1,
+          visits: lifetimeVisitsByPlayer[v.player_id] ?? 0,
           entryAt: v.checked_in_at,
           exitAt: v.checked_out_at,
           isPresent: !v.checked_out_at,
@@ -111,7 +128,7 @@ export function PlayerDailyAvgBetTable({ businessDate, players, visits, canEdit 
         };
       })
       .filter(Boolean) as any[];
-  }, [visits, businessDate, playerMap, betsByPlayer, visitNumByPlayer]);
+  }, [visits, businessDate, playerMap, betsByPlayer, lifetimeVisitsByPlayer]);
 
   const filteredRows = useMemo(() => {
     const q = search.trim().toLowerCase();
