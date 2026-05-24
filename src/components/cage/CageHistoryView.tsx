@@ -9,7 +9,7 @@
  */
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Landmark, ArrowDownToLine, CreditCard, ArrowLeftRight, Coins, Calculator } from "lucide-react";
+import { Landmark, ArrowDownToLine, CreditCard, ArrowLeftRight, Coins, Calculator, Ban } from "lucide-react";
 import { DateNavigator } from "@/components/ui/date-navigator";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
