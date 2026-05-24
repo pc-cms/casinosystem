@@ -209,6 +209,7 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
   const openCommentDialog = (dealerId: string, kind: "Absent" | "Sick" | "Suspend" | "Late", label: string) => {
     const dealerName = activeDealers.find(d => d.id === dealerId)?.name || "Dealer";
     setCommentText("");
+    setSuspendDays(1);
     setCommentFor({ dealerId, dealerName, kind, label });
   };
 
