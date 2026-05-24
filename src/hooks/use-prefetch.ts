@@ -49,6 +49,32 @@ const queryFns = {
     const raw = data ?? [];
     return disambiguateNames(raw.map(mapEmployeeToDealer), raw);
   },
+  chipDenoms: (casinoId: string) => async () => {
+    const { data } = await supabase
+      .from("chip_denoms")
+      .select("*")
+      .eq("casino_id", casinoId);
+    return data ?? [];
+  },
+  expenseCategories: () => async () => {
+    const { data } = await supabase.from("expense_categories").select("*");
+    return data ?? [];
+  },
+  currencies: () => async () => {
+    const { data } = await supabase.from("currencies").select("*");
+    return data ?? [];
+  },
+  currentShift: (casinoId: string) => async () => {
+    const { data } = await supabase
+      .from("shifts")
+      .select("*")
+      .eq("casino_id", casinoId)
+      .is("closed_at", null)
+      .order("opened_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    return data ?? null;
+  },
 };
 
 export function usePrefetchCriticalData() {
@@ -75,12 +101,34 @@ export function usePrefetchCriticalData() {
       staleTime: 1000 * 60 * 2,
     });
 
-    // Prefetch tables for cage/pit roles
+    // Reference data — almost never changes, keep forever in cache.
+    qc.prefetchQuery({
+      queryKey: ["chip-denoms", casinoId],
+      queryFn: queryFns.chipDenoms(casinoId),
+      staleTime: Infinity,
+    });
+    qc.prefetchQuery({
+      queryKey: ["expense-categories"],
+      queryFn: queryFns.expenseCategories(),
+      staleTime: Infinity,
+    });
+    qc.prefetchQuery({
+      queryKey: ["currencies"],
+      queryFn: queryFns.currencies(),
+      staleTime: Infinity,
+    });
+
+    // Prefetch tables + current open shift for cage/pit roles
     if (roles.some(r => ["cashier", "pit", "manager", "finance_manager"].includes(r))) {
       qc.prefetchQuery({
         queryKey: ["gaming-tables", casinoId],
         queryFn: queryFns.tables(casinoId),
         staleTime: 1000 * 60 * 5,
+      });
+      qc.prefetchQuery({
+        queryKey: ["current-shift", casinoId],
+        queryFn: queryFns.currentShift(casinoId),
+        staleTime: 1000 * 30,
       });
     }
 
