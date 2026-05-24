@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { WifiOff, RefreshCw, AlertTriangle } from "lucide-react";
 import { useNetworkStatus } from "@/hooks/use-network-status";
+import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
 
 /**
