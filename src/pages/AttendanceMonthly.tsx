@@ -203,12 +203,14 @@ const AttendanceMonthly = () => {
                             cell?.manual_hours != null ? fmtNum(Number(cell.manual_hours)) :
                             h > 0 ? fmtNum(h) :
                             code === "A" ? "A" :
+                            code === "SP" ? "SP" :
                             code === "L" ? "L" :
                             code === "S" ? "S" :
                             "·";
                           let cls = "text-muted-foreground";
                           if (h > 0) cls = "text-foreground font-semibold";
                           if (code === "A") cls = "text-rose-600 dark:text-rose-400";
+                          if (code === "SP") cls = "text-red-500 dark:text-red-400 font-extrabold";
                           if (code === "L" || code === "S") cls = "text-amber-700 dark:text-amber-400";
                           const cellBg = hol ? "bg-amber-100/50 dark:bg-amber-900/20" : "";
                           return (
