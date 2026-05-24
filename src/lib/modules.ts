@@ -46,6 +46,8 @@ export type ModuleKey =
   | "business_days"
   | "weekly_bonus"
   | "monthly_tips"
+  | "tips_and_bonuses"
+  | "hr_warnings"
   | "incidents"
   | "pitbook"
   | "groups"
@@ -85,6 +87,8 @@ export const MODULES: ModuleDef[] = [
   { key: "pitbook", label: "Pitbook", group: "Operations" },
   { key: "weekly_bonus", label: "Weekly Bonus", group: "Operations" },
   { key: "monthly_tips", label: "Monthly Tips", group: "Operations" },
+  { key: "tips_and_bonuses", label: "Tips & Bonuses", group: "Operations" },
+  { key: "hr_warnings", label: "HR Warnings", group: "System" },
   { key: "business_days", label: "Business Days", group: "Reports" },
   { key: "cashless", label: "Cashless", group: "Operations" },
   { key: "expenses_approvals", label: "Expenses Approvals", group: "Finance" },
