@@ -26,7 +26,7 @@ const FULL_WIDTH_ROUTES = [
   "/player-statistics",
   "/incidents",
   "/table-tracker",
-  "/tables/analytics",
+  
   "/business-days",
   "/logs",
   "/bank-checks",
