@@ -20,6 +20,7 @@ import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { CloseBusinessDayButton } from "@/components/pit/CloseBusinessDayButton";
 import TransfersForm from "@/components/cage/TransfersForm";
+import CanceledTxPanel from "@/components/cage/CanceledTxPanel";
 import { useCageTransfers } from "@/hooks/use-cage-transfers";
 import {
   CURRENCIES, FOREIGN_CURRENCIES, formatCurrency, formatNumberSpaces, CASH_DENOMS,
