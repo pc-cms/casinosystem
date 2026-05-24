@@ -21,6 +21,7 @@ import { CloseBusinessDayButton } from "@/components/pit/CloseBusinessDayButton"
 import { liveTableResult, buildLatestTableSnapshot } from "@/lib/table-live-result";
 import { useShiftTableAdjustments } from "@/hooks/use-shift-table-adjustments";
 import TableSeatingDialog from "@/components/pit/TableSeatingDialog";
+import { ActiveSessionsAvgBetTable } from "@/components/pit/ActiveSessionsAvgBetTable";
 import type { FloorTable } from "@/components/pit/FloorTableCard";
 import type { SeatedPlayer } from "@/components/pit/SeatedPlayerChip";
 import type { PlayerCategory } from "@/components/player/CategoryBadge";
