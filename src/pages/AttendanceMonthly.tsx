@@ -233,11 +233,16 @@ const AttendanceMonthly = () => {
                               key={d}
                               className={`text-center border-l border-border px-0.5 py-0.5 ${cellBg}`}
                               onClick={canEdit ? () => {
-                                const v = prompt(`Hours for ${displayName(e)} on ${d} ${MONTHS[cursor.getMonth()]} (current ${display}):`, h ? String(h) : "");
+                                const v = prompt(`Hours OR code (A/S/SP/L) for ${displayName(e)} on ${d} ${MONTHS[cursor.getMonth()]} (current ${display}):`, h ? String(h) : code || "");
                                 if (v === null) return;
-                                const n = Number(v);
+                                const trimmed = v.trim().toUpperCase();
+                                const dateStr = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+                                if (trimmed === "" || trimmed === "A" || trimmed === "S" || trimmed === "SP" || trimmed === "L") {
+                                  setCode.mutate({ employee_id: e.meta.employee_id, date: dateStr, department: e.meta.department, value: trimmed });
+                                  return;
+                                }
+                                const n = Number(trimmed);
                                 if (Number.isFinite(n) && n >= 0 && n <= 24) {
-                                  const dateStr = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
                                   setHours.mutate({ employee_id: e.meta.employee_id, date: dateStr, hours: n });
                                 }
                               } : undefined}
