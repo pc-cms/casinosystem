@@ -81,7 +81,7 @@ const ShiftClosingReport = ({
               .eq("casino_id", casinoId).eq("date", businessDate)
           : Promise.resolve({ data: [] as any[] } as any),
         supabase.from("transactions").select("table_id, type, amount")
-          .eq("shift_id", shift.id).in("type", ["buy", "in"]),
+          .eq("shift_id", shift.id).in("type", ["buy", "in"]).is("cancelled_at", null),
         // Pit's Chip Count snapshots for this shift's business day. Result =
         // (latest snapshot.actual − chip_baseline.expected) × denom per table.
         businessDate

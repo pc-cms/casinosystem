@@ -45,6 +45,7 @@ const usePeriodPlayerStats = (
         .from("transactions")
         .select("type, amount")
         .eq("player_id", playerId)
+        .is("cancelled_at", null)
         .gte("created_at", start)
         .lt("created_at", end)
         .in("type", ["buy", "in", "cashout", "out"]);

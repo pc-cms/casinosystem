@@ -159,6 +159,7 @@ export const usePlayerEconomyRange = (range: { from: string; to: string }) => {
           .select("player_id, type, amount, created_at")
           .eq("casino_id", casinoId)
           .in("type", ["buy", "cashout"])
+          .is("cancelled_at", null)
           .gte("created_at", fromIso)
           .lte("created_at", toIso)
           .limit(50000),
