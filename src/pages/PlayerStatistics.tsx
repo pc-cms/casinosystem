@@ -688,7 +688,7 @@ const PlayerStatistics = () => {
         <td className="px-2 py-1.5 font-mono text-[11px] text-center w-12">{r.visits || "·"}</td>
         <td className="px-1 py-1.5 font-mono text-xs w-[44px] text-center">{formatTime(r.entryAt)}</td>
         <td className="px-1 py-1.5 font-mono text-xs w-[44px] text-center">{r.exitAt ? formatTime(r.exitAt) : "·"}</td>
-        <td className="px-1 py-1.5 w-[64px]">{renderPositionCell(r)}</td>
+        
         {showFinancials && (() => {
           const Money = ({ value, sign = false }: { value: number; sign?: boolean }) => {
             if (!value) return <>·</>;
@@ -697,8 +697,13 @@ const PlayerStatistics = () => {
           };
           return (
             <>
-              <td className="px-2 py-1.5 font-mono text-sm text-right whitespace-nowrap min-w-[90px]">
-                <Money value={r.avgBet} />
+              <td className="px-2 py-1.5 font-mono text-sm text-right whitespace-nowrap min-w-[90px]" onClick={(e) => e.stopPropagation()}>
+                <AvgBetPopover
+                  playerId={r.playerId}
+                  isSingleDay={isSingleDay}
+                  bets={dailyAvgBetByPlayer.get(r.playerId)}
+                  fallback={r.avgBet}
+                />
               </td>
               <td className="px-2 py-1.5 font-mono text-sm text-right whitespace-nowrap min-w-[120px]" title="Drop — NEP-aware (external cash only)">
                 <Money value={r.dropR} />
