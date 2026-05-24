@@ -59,7 +59,7 @@ const Dashboard = () => {
   const { data: staffMembers = [] } = useStaffMembers();
   const { data: staffRota = [] } = useStaffRotaRange(businessDate, businessDate);
 
-  // NEP-aware Drop R for the current business day window — same source of truth as Player Statistics.
+  // NEP-aware Drop R for the current business day window — same source of truth as Player Tracking.
   // Raw sum of buy/in transactions double-counts returned winnings; Drop R excludes recycled cash.
   const dropWindowStart = businessDayHourUTC(businessDate, 11);
   const dropWindowEnd = businessDayHourUTC(businessDate, 11 + 24);

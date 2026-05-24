@@ -787,7 +787,7 @@ const PlayerStatistics = () => {
     <PageShell>
       <PageHeader
         icon={BarChart3}
-        title="Player Statistics"
+        title="Player Tracking"
         subtitle={subtitleText}
         centerSlot={dateControl}
         date={!canBrowseHistory}

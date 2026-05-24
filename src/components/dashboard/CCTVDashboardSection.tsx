@@ -163,7 +163,7 @@ export const CCTVDashboardSection = () => {
           <div className="cms-header flex items-center justify-between">
             <span className="flex items-center gap-2">
               <Layers className="w-3.5 h-3.5" />
-              Live Tables
+              Tables Tracking
             </span>
             <Link to="/tables" className="text-xs text-primary hover:underline">View all</Link>
           </div>
