@@ -49,7 +49,7 @@ const FLOOR_MANAGER_ALLOWED: ReadonlySet<ModuleKey> = new Set<ModuleKey>([
   "table_results",
   "table_tracker",
   "tables",
-  "tables_analytics",
+  
   "tips_and_bonuses",
 ]);
 
@@ -69,7 +69,6 @@ const GATED_ROUTES = [
   "/tables/close",
   "/player-statistics",
   "/table-tracker",
-  "/tables/analytics",
   "/expenses",
   "/cashless",
   "/pit",
@@ -182,7 +181,7 @@ describe("floor_manager (Taras) — sidebar & route gate match matrix", () => {
     const allow = FLOOR_MANAGER_ALLOWED as ReadonlySet<string>;
     const permitted = [
       "/", "/cage", "/cage/closings", "/reception", "/guests", "/blacklist",
-      "/tables", "/tables/analytics", "/table-tracker", "/player-statistics",
+      "/tables", "/table-tracker", "/player-statistics",
       "/players/abc", "/pit", "/pit?tab=breaklist", "/pit?tab=attendance",
       "/pit?tab=rota", "/staff", "/staff?tab=attendance",
       "/breaklist", "/rota/live", "/attendance/live",

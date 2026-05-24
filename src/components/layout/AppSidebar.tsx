@@ -55,7 +55,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/tables", icon: Table2, label: "Tables Tracking", roles: ["super_admin", "manager", "floor_manager", "finance_manager", "surveillance"], section: "PIT" },
   { to: "/player-statistics", icon: Users, label: "Player Tracking", roles: ["super_admin", "manager", "floor_manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
   { to: "/table-tracker", icon: Target, label: "Table Check", roles: ["super_admin", "manager", "floor_manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
-  { to: "/tables/analytics", icon: Target, label: "Table Analytics", roles: ["super_admin", "manager", "floor_manager", "finance_manager", "pit", "surveillance"], section: "PIT" },
+  
   { to: "__attendance__", icon: ClipboardPen, label: "Attendance", roles: ["super_admin", "manager", "floor_manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
   { to: "__rota__", icon: CalendarDays, label: "Rota", roles: ["super_admin", "manager", "floor_manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
   { to: "/tips-and-bonuses", icon: Gift, label: "Tips & Bonuses", roles: ["super_admin", "manager", "floor_manager", "finance_manager", "surveillance"], section: "PIT" },

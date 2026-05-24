@@ -61,7 +61,7 @@ export const moduleKeyForRoute = (to: string, label?: string): ModuleKey | null 
   // ============= TABLES & TRACKERS =============
   if (base === "/tables") return "tables";
   if (base === "/tables/close") return "tables";
-  if (base === "/tables/analytics") return "tables_analytics";
+  if (base === "/tables/analytics") return "table_tracker";
   if (base === "/table-tracker") return "table_tracker";
   if (base === "/table-results") return "table_results";
 
