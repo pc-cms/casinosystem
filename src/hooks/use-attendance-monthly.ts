@@ -166,6 +166,61 @@ export const useSetAttendanceHours = () => {
   });
 };
 
+/**
+ * Set an attendance CODE (A / S / SP / L / "") for an employee on a date.
+ * Routes to dealer_attendance for Pit department and staff_attendance for
+ * everyone else, mirroring the Pit/Staff pages so raw_value in the monthly
+ * RPC reflects the change immediately.
+ */
+export const useSetAttendanceCode = () => {
+  const qc = useQueryClient();
+  const { activeCasinoId } = useCasino();
+  const { user } = useAuth();
+  return useMutation({
+    mutationFn: async (input: { employee_id: string; date: string; department: string; value: string }) => {
+      if (!activeCasinoId || !user) throw new Error("Not authenticated");
+      const table = input.department === "Pit" ? "dealer_attendance" : "staff_attendance";
+      const { error } = await supabase
+        .from(table as any)
+        .upsert(
+          {
+            casino_id: activeCasinoId,
+            employee_id: input.employee_id,
+            date: input.date,
+            value: input.value,
+            recorded_by: user.id,
+          },
+          { onConflict: "casino_id,employee_id,date" }
+        );
+      if (error) throw error;
+    },
+    onMutate: async (input) => {
+      await qc.cancelQueries({ queryKey: ["monthly_attendance"] });
+      const snapshots: Array<[unknown, unknown]> = [];
+      const matches = qc.getQueriesData<any[]>({ queryKey: ["monthly_attendance"] });
+      for (const [key, data] of matches) {
+        snapshots.push([key, data]);
+        if (!Array.isArray(data)) continue;
+        const next = data.map((r: any) => {
+          if (r.employee_id !== input.employee_id || r.d !== input.date) return r;
+          return { ...r, raw_value: input.value, manual_hours: null, effective_hours: 0 };
+        });
+        qc.setQueryData(key, next);
+      }
+      return { snapshots };
+    },
+    onError: (err: Error, _input, ctx) => {
+      if (ctx?.snapshots) {
+        for (const [key, data] of ctx.snapshots) qc.setQueryData(key as any, data);
+      }
+      toast.error(err.message);
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: ["monthly_attendance"] }),
+  });
+};
+
+
+
 
 export const useRefreshPayrollPeriod = () => {
   const qc = useQueryClient();
