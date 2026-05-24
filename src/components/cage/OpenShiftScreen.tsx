@@ -6,6 +6,7 @@ import { NumberInput } from "@/components/ui/number-input";
 import { Play, Settings2, ChevronRight, ChevronLeft, Landmark, Pencil, ShieldAlert } from "lucide-react";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { CloseBusinessDayButton } from "@/components/pit/CloseBusinessDayButton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
 import OpeningDeltaConfirmDialog from "@/components/cage/OpeningDeltaConfirmDialog";
@@ -178,6 +179,7 @@ const OpenShiftScreen = ({ tables }: { tables: Tables<"gaming_tables">[] }) => {
         <Button variant="outline" size="sm" onClick={() => setShowRates(true)} className="gap-1.5">
           <Settings2 className="w-3.5 h-3.5" /> Rates
         </Button>
+        <CloseBusinessDayButton />
       </PageHeader>
 
       <div className="flex items-center gap-1.5 mb-3">
