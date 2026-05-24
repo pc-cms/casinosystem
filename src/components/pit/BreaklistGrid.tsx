@@ -511,11 +511,17 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
                                   className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold transition-colors ${ROLE_COLORS["S"] || "bg-muted text-muted-foreground"} hover:opacity-80`}>
                                   S
                                 </button>
+                                <button onClick={() => handleRoleSelect("SP")}
+                                  title="Suspend — hides dealer from grid for the day"
+                                  className="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold transition-colors bg-red-500/20 text-red-600 dark:text-red-300 ring-1 ring-red-500/40 hover:opacity-80">
+                                  SP
+                                </button>
                                 <button onClick={() => handleRoleSelect("LT")}
                                   title="Late — each slot deducts 20 min from shift"
                                   className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold transition-colors ${ROLE_COLORS["LT"] || "bg-muted text-muted-foreground"} hover:opacity-80`}>
                                   LT
                                 </button>
+
                               </div>
                               {openTables.length > 0 && (
                                 <div className="border-t border-border pt-1 space-y-0.5">
