@@ -7,7 +7,7 @@
  */
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/lib/auth-context";
+import { useCasino } from "@/lib/casino-context";
 
 export type TipsKind = "tips_live" | "tips_poker" | "tips_floor";
 
@@ -32,7 +32,7 @@ export const useTipsByRange = (
   endIso: string,
   enabled = true,
 ) => {
-  const { casinoId } = useAuth();
+  const { activeCasinoId: casinoId } = useCasino();
   const kinds = Array.isArray(kind) ? kind : [kind];
   return useQuery({
     queryKey: ["tips", casinoId, kinds.join(","), startIso, endIso],
@@ -59,7 +59,7 @@ export const useTipsByRange = (
  *  Period Total shown in the Live Game Tips tab. Poker tips are excluded —
  *  they belong to the Club Poker pool, not the dealer pool. */
 export const useTipsCollectedForPeriod = (startIso: string, endIso: string) => {
-  const { casinoId } = useAuth();
+  const { activeCasinoId: casinoId } = useCasino();
   return useQuery({
     queryKey: ["tips", "live-pool", casinoId, startIso, endIso],
     enabled: !!casinoId,
