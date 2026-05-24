@@ -10,6 +10,11 @@ import { ALL_ROLES, ROLE_COLORS, TABLE_ROLES } from "@/lib/currency";
 import { getTableCellClasses } from "@/lib/table-colors";
 import { isAfterBreaklistLock, nowEAT } from "@/lib/business-day";
 import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { useUpsertWarningCommentByKey } from "@/hooks/use-staff-warnings";
+
 const CATEGORY_LABELS: Record<string, string> = {
   trainee: "T",
   dealer: "D",
@@ -166,8 +171,13 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
 
   // Inline role picker state
   const [activeCell, setActiveCell] = useState<{ dealerId: string; timeSlot: string; dropUp: boolean } | null>(null);
+  // HR comment dialog state (opens after A/S/SP/LT to capture a short note)
+  const [commentFor, setCommentFor] = useState<{ dealerId: string; dealerName: string; kind: "Absent" | "Sick" | "Suspend" | "Late"; label: string } | null>(null);
+  const [commentText, setCommentText] = useState("");
+  const upsertWarningComment = useUpsertWarningCommentByKey();
   const qc = useQueryClient();
   const { activeCasinoId } = useCasino();
+
 
   const getCellData = (dealerId: string, timeSlot: string) =>
     breaklist.find(b => b.dealer_id === dealerId && b.time_slot === timeSlot);
@@ -194,22 +204,41 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
     }
   };
 
+  const openCommentDialog = (dealerId: string, kind: "Absent" | "Sick" | "Suspend" | "Late", label: string) => {
+    const dealerName = activeDealers.find(d => d.id === dealerId)?.name || "Dealer";
+    setCommentText("");
+    setCommentFor({ dealerId, dealerName, kind, label });
+  };
+
   const handleRoleSelect = (role: string, tableId?: string) => {
     if (!activeCell) return;
+
+    // SP = Suspend: no breaklist cell, just sets attendance to "SP".
+    // The dealer is then hidden from the grid (see absentDealerIds memo).
+    // Triggers HR comment dialog so the operator can leave a short note.
+    if (role === "SP") {
+      const dealerId = activeCell.dealerId;
+      setAttendance.mutate({ dealer_id: dealerId, date, value: "SP" });
+      toast.success("Marked Suspend — dealer hidden from grid");
+      setActiveCell(null);
+      openCommentDialog(dealerId, "Suspend", "SP");
+      return;
+    }
 
     // LT = Late: marks a single slot as Late and recomputes attendance.
     // Each LT slot = 20 min late. Worked hours = max(0, 9 - ceil(LTcount * 20 / 60)).
     if (role === "LT") {
+      const dealerId = activeCell.dealerId;
       setCell.mutate({
         date,
-        dealer_id: activeCell.dealerId,
+        dealer_id: dealerId,
         time_slot: activeCell.timeSlot,
         role: "LT",
         table_id: null,
       });
       // Recompute LT count INCLUDING this new cell (in case it didn't exist before)
       const existingLT = breaklist.filter(
-        (b: any) => b.dealer_id === activeCell.dealerId && b.role === "LT"
+        (b: any) => b.dealer_id === dealerId && b.role === "LT"
       );
       const alreadyHadThisSlot = existingLT.some((b: any) => b.time_slot === activeCell.timeSlot);
       const ltCount = existingLT.length + (alreadyHadThisSlot ? 0 : 1);
@@ -217,11 +246,14 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
       const lateHours = Math.ceil(lateMinutes / 60);
       const workedH = Math.max(0, 9 - lateHours);
       const attValue = workedH > 0 ? `${workedH}L` : "L";
-      setAttendance.mutate({ dealer_id: activeCell.dealerId, date, value: attValue });
+      setAttendance.mutate({ dealer_id: dealerId, date, value: attValue });
       toast.success(`Late: ${ltCount} slot${ltCount === 1 ? "" : "s"} (~${lateHours}h), shift = ${workedH}h`);
       setActiveCell(null);
+      // Open comment dialog only on the FIRST LT mark of the day (no prior LT cells).
+      if (existingLT.length === 0) openCommentDialog(dealerId, "Late", "LT");
       return;
     }
+
 
     // S = Sick: fill all slots from current one until end of shift with S.
     // No table assignment, no per-table conflict checks (S overrides everything for this dealer).
@@ -278,9 +310,12 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
       setAttendance.mutate({ dealer_id: activeCell.dealerId, date, value: attValue });
       toast.success(`Marked Sick: ${hoursWorked}h worked (shift ${dealerShift || "?"}), ${slotsToFill.length} slots ahead`);
 
+      const sickDealerId = activeCell.dealerId;
       setActiveCell(null);
+      openCommentDialog(sickDealerId, "Sick", "S");
       return;
     }
+
 
     // Per-table role exclusivity:
     //   - Dealer slot   (P / BJ / AR)
@@ -476,11 +511,17 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
                                   className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold transition-colors ${ROLE_COLORS["S"] || "bg-muted text-muted-foreground"} hover:opacity-80`}>
                                   S
                                 </button>
+                                <button onClick={() => handleRoleSelect("SP")}
+                                  title="Suspend — hides dealer from grid for the day"
+                                  className="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold transition-colors bg-red-500/20 text-red-600 dark:text-red-300 ring-1 ring-red-500/40 hover:opacity-80">
+                                  SP
+                                </button>
                                 <button onClick={() => handleRoleSelect("LT")}
                                   title="Late — each slot deducts 20 min from shift"
                                   className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold transition-colors ${ROLE_COLORS["LT"] || "bg-muted text-muted-foreground"} hover:opacity-80`}>
                                   LT
                                 </button>
+
                               </div>
                               {openTables.length > 0 && (
                                 <div className="border-t border-border pt-1 space-y-0.5">
@@ -534,7 +575,53 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
         </div>
       </div>
 
+      {/* HR comment dialog — opens after marking A / S / SP / LT so the
+          operator can attach a short note that lands in staff_warnings. */}
+      <Dialog open={!!commentFor} onOpenChange={(o) => { if (!o) setCommentFor(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <span className="inline-flex items-center justify-center min-w-[24px] h-5 px-1 rounded text-[10px] font-mono font-bold bg-muted">{commentFor?.label}</span>
+              <span>{commentFor?.dealerName}</span>
+              <span className="text-muted-foreground text-sm font-normal">· {commentFor?.kind}</span>
+            </DialogTitle>
+          </DialogHeader>
+          <Textarea
+            value={commentText}
+            onChange={(e) => setCommentText(e.target.value)}
+            placeholder="Short note for HR (optional)…"
+            rows={4}
+            autoFocus
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                e.preventDefault();
+                if (!commentFor) return;
+                upsertWarningComment.mutate(
+                  { employee_id: commentFor.dealerId, business_date: date, comment: commentText },
+                  { onSuccess: () => setCommentFor(null) },
+                );
+              }
+            }}
+          />
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setCommentFor(null)}>Skip</Button>
+            <Button
+              disabled={upsertWarningComment.isPending}
+              onClick={() => {
+                if (!commentFor) return;
+                upsertWarningComment.mutate(
+                  { employee_id: commentFor.dealerId, business_date: date, comment: commentText },
+                  { onSuccess: () => setCommentFor(null) },
+                );
+              }}
+            >
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
+
   );
 };
 
