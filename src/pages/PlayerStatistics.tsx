@@ -139,6 +139,23 @@ const PlayerStatistics = () => {
   });
   const { data: playersDropSplit } = usePlayersDropSplit(windowStartUTC, windowEndUTC);
 
+  // Daily avg bet (manual entry). Single-day only — for multi-day periods we don't show breakdown.
+  const isSingleDay = fromDate === toDate;
+  const { data: dailyAvgBets = [] } = usePlayerDailyAvgBets(isSingleDay ? fromDate : undefined);
+  const dailyAvgBetByPlayer = useMemo(() => {
+    const m = new Map<string, { ar: number | null; bg: number | null; poker: number | null }>();
+    dailyAvgBets.forEach(b => m.set(b.player_id, {
+      ar: b.avg_bet_ar, bg: b.avg_bet_bg, poker: b.avg_bet_poker,
+    }));
+    return m;
+  }, [dailyAvgBets]);
+  const summaryAvgBet = (pid: string): number => {
+    const b = dailyAvgBetByPlayer.get(pid);
+    if (!b) return 0;
+    const vals = [b.ar, b.bg, b.poker].filter((v): v is number => v != null && v > 0);
+    return vals.length ? Math.max(...vals) : 0;
+  };
+
   const shiftDate = (delta: number) => {
     const next = subDays(date, delta);
     if (next < minDate || next > today) return;
