@@ -337,7 +337,7 @@ const Tables = () => {
 
   const gameTypeTotals = useMemo(() => {
     const totals: Record<string, { drop: number; result: number; label: string }> = {};
-    const gameLabels: Record<string, string> = { "American Roulette": "TOTAL ARs", "Poker": "TOTAL POKER", "Texas Holdem": "TOTAL POKER", "Omaha": "TOTAL POKER", "PLO": "TOTAL POKER", "Blackjack": "TOTAL BJ" };
+    const gameLabels: Record<string, string> = { "American Roulette": "TOTAL ARs", "Poker": "TOTAL POKER", "Texas Holdem": "TOTAL POKER", "Omaha": "TOTAL POKER", "PLO": "TOTAL POKER", "Club Poker": "TOTAL POKER", "Blackjack": "TOTAL BJ" };
     tables.forEach(t => {
       const label = gameLabels[t.game] || `Total ${t.game}`;
       if (!totals[label]) totals[label] = { drop: 0, result: 0, label };
