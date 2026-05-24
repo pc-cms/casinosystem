@@ -19,7 +19,6 @@ import { fmtDateOnly, fmtDateTime } from "@/lib/format-date";
 
 interface ShiftRow {
   id: string;
-  business_date: string;
   opened_at: string;
   closed_at: string | null;
   status: string;
