@@ -16,7 +16,8 @@ export const useGamingTables = (includeArchived = false) => {
         .from("gaming_tables")
         .select("*")
         .eq("casino_id", casinoId)
-        .order("name");
+        .order("display_order", { ascending: true })
+        .order("name", { ascending: true });
       if (!includeArchived) {
         query = query.eq("is_archived", false);
       }
