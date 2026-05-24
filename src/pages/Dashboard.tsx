@@ -59,10 +59,20 @@ const Dashboard = () => {
   const { data: staffMembers = [] } = useStaffMembers();
   const { data: staffRota = [] } = useStaffRotaRange(businessDate, businessDate);
 
+  // NEP-aware Drop R for the current business day window — same source of truth as Player Statistics.
+  // Raw sum of buy/in transactions double-counts returned winnings; Drop R excludes recycled cash.
+  const dropWindowStart = businessDayHourUTC(businessDate, 11);
+  const dropWindowEnd = businessDayHourUTC(businessDate, 11 + 24);
+  const { data: tablesDropSplit } = useTablesDropSplit(dropWindowStart, dropWindowEnd);
+
   const isInitialLoading = loadingPlayers && loadingTx;
   const showFinancials = canSeePlayerFinancials(roles);
-  const buyInDrop = transactions.filter(t => (t.type === "buy" || t.type === "in")).reduce((s, t) => s + Number(t.amount), 0);
-  const totalDrop = buyInDrop;
+  const totalDrop = useMemo(() => {
+    if (!tablesDropSplit) return 0;
+    let s = 0;
+    tablesDropSplit.forEach(v => { s += v.dropR || 0; });
+    return s;
+  }, [tablesDropSplit]);
   const pendingExpenses = expenses.filter(e => !e.approved).length;
   const { data: cashless = [] } = useCashless(businessDate);
   const pendingCashless = cashless.filter((r: any) => r.status === "pending").length;
