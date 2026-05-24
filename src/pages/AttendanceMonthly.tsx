@@ -182,7 +182,7 @@ const AttendanceMonthly = () => {
                     </tr>
                   );
                   for (const e of list) {
-                    const t = computeTotals(e.byDay);
+                    const t = totalsByEmployee.get(e.meta.employee_id) ?? { hours: 0, dWorked: 0, leave: 0, holH: 0, otH: 0 };
                     rowsOut.push(
                       <tr key={e.meta.employee_id} className="border-t border-border hover:bg-muted/20">
                         <td className="sticky left-0 z-10 bg-card px-2 py-0.5 font-sans">
