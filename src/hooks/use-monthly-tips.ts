@@ -124,7 +124,29 @@ export const useUpsertMonthlyTipsEntry = () => {
         );
       if (error) throw error;
     },
-    onSuccess: (_d, vars) => {
+    // Optimistic: PTS column updates instantly.
+    onMutate: async (input) => {
+      const key = ["monthly-tips-entries", casinoId, input.period_start];
+      await qc.cancelQueries({ queryKey: key });
+      const prev = qc.getQueryData<any[]>(key);
+      const list = prev ? [...prev] : [];
+      const idx = list.findIndex((e: any) => (e.dealer_id ?? e.employee_id) === input.dealer_id);
+      const patched: any = {
+        dealer_id: input.dealer_id,
+        employee_id: input.dealer_id,
+        period_start: input.period_start,
+        extra_override: input.extra_override ?? null,
+        bonus_points: input.bonus_points ?? 0,
+      };
+      if (idx >= 0) list[idx] = { ...list[idx], ...patched };
+      else list.push(patched);
+      qc.setQueryData(key, list);
+      return { prev, key };
+    },
+    onError: (_e, _v, ctx: any) => {
+      if (ctx?.prev !== undefined) qc.setQueryData(ctx.key, ctx.prev);
+    },
+    onSettled: (_d, _e, vars) => {
       qc.invalidateQueries({ queryKey: ["monthly-tips-entries", casinoId, vars.period_start] });
     },
   });
