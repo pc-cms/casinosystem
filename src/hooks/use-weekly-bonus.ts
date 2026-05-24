@@ -82,7 +82,6 @@ export const useUpsertBonusEntry = () => {
   return useMutation({
     mutationFn: async (input: { dealer_id: string; week_start: string; extra_override?: number | null; bonus_points?: number }) => {
       if (!casinoId) throw new Error("No casino");
-      // Phase 3: input.dealer_id is employees.id; write employee_id, trigger fills legacy dealer_id.
       const { error } = await supabase
         .from("weekly_bonus_entries" as any)
         .upsert(
@@ -97,7 +96,28 @@ export const useUpsertBonusEntry = () => {
         );
       if (error) throw error;
     },
-    onSuccess: (_d, vars) => {
+    // Optimistic: PTS column updates instantly without waiting for refetch.
+    onMutate: async (input) => {
+      const key = ["weekly-bonus-entries", casinoId, input.week_start];
+      await qc.cancelQueries({ queryKey: key });
+      const prev = qc.getQueryData<BonusEntry[]>(key);
+      const list = prev ? [...prev] : [];
+      const idx = list.findIndex((e) => e.dealer_id === input.dealer_id);
+      const patched: BonusEntry = {
+        dealer_id: input.dealer_id,
+        week_start: input.week_start,
+        extra_override: input.extra_override ?? null,
+        bonus_points: input.bonus_points ?? 0,
+      };
+      if (idx >= 0) list[idx] = { ...list[idx], ...patched };
+      else list.push(patched);
+      qc.setQueryData(key, list);
+      return { prev, key };
+    },
+    onError: (_e, _v, ctx) => {
+      if (ctx?.prev !== undefined) qc.setQueryData(ctx.key, ctx.prev);
+    },
+    onSettled: (_d, _e, vars) => {
       qc.invalidateQueries({ queryKey: ["weekly-bonus-entries", casinoId, vars.week_start] });
     },
   });
