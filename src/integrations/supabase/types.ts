@@ -2105,6 +2105,7 @@ export type Database = {
           closing_result: number | null
           created_at: string
           denominations: number[]
+          display_order: number
           float_amount: number
           game: string
           id: string
@@ -2118,6 +2119,7 @@ export type Database = {
           closing_result?: number | null
           created_at?: string
           denominations?: number[]
+          display_order?: number
           float_amount?: number
           game: string
           id?: string
@@ -2131,6 +2133,7 @@ export type Database = {
           closing_result?: number | null
           created_at?: string
           denominations?: number[]
+          display_order?: number
           float_amount?: number
           game?: string
           id?: string
