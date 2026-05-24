@@ -39,7 +39,7 @@ export default function TipsAndBonuses() {
     setParams(p, { replace: true });
   };
 
-  const tabMenu = (
+  const renderTabMenu = () => (
     <TabsList className="grid w-full grid-cols-2 gap-1 h-auto sm:grid-cols-5">
       <TabsTrigger value="weekly" className="gap-1.5"><Gift className="w-3.5 h-3.5" />Weekly Bonus</TabsTrigger>
       <TabsTrigger value="monthly" className="gap-1.5"><Coins className="w-3.5 h-3.5" />Monthly Tips</TabsTrigger>
@@ -52,11 +52,11 @@ export default function TipsAndBonuses() {
   return (
     <Tabs value={tab} onValueChange={setTab} className="w-full">
       <Suspense fallback={<Loader />}>
-        <TabsContent value="weekly" className="mt-0"><WeeklyBonus belowHeader={tabMenu} /></TabsContent>
-        <TabsContent value="monthly" className="mt-0"><MonthlyTips belowHeader={tabMenu} /></TabsContent>
-        <TabsContent value="live" className="mt-0"><LiveGameTipsTab belowHeader={tabMenu} /></TabsContent>
-        <TabsContent value="floor" className="mt-0"><FloorTipsTab belowHeader={tabMenu} /></TabsContent>
-        <TabsContent value="poker" className="mt-0"><ClubPokerTipsTab belowHeader={tabMenu} /></TabsContent>
+        <TabsContent value="weekly" className="mt-0"><WeeklyBonus belowHeader={renderTabMenu()} /></TabsContent>
+        <TabsContent value="monthly" className="mt-0"><MonthlyTips belowHeader={renderTabMenu()} /></TabsContent>
+        <TabsContent value="live" className="mt-0"><LiveGameTipsTab belowHeader={renderTabMenu()} /></TabsContent>
+        <TabsContent value="floor" className="mt-0"><FloorTipsTab belowHeader={renderTabMenu()} /></TabsContent>
+        <TabsContent value="poker" className="mt-0"><ClubPokerTipsTab belowHeader={renderTabMenu()} /></TabsContent>
       </Suspense>
     </Tabs>
   );
