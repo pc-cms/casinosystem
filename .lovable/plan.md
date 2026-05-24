@@ -1,69 +1,97 @@
-# Plan: Display Order для столов + Avg Bet таблица на Live Game
 
-## Что уже есть (не трогаем)
-- `gaming_tables.name` — это и есть short name (AR1, BG1). Title display name (American Roulette 1) **пропускаем** — пользователь подтвердил, уже есть через `game` поле или не нужно.
-- `client_sessions.avg_bet` + `bet_changed_at` уже хранят среднюю ставку на сессию игрока за столом. Pit/Reception/Manager уже редактируют.
-- Добавление столов в Admin уже работает.
+# Tips & Bonuses, Suspend code, HR Warnings inbox
 
-## Что делаем
+Three independent changes.
 
-### 1. Сортировка столов: `display_order` (миграция)
-- Добавить колонку `gaming_tables.display_order INTEGER NOT NULL DEFAULT 0`.
-- Бэкфилл: проставить порядок исходя из текущей группировки по `game` (AR → BG → Poker), внутри — alphanumeric по `name`.
-- Индекс `(casino_id, is_archived, display_order)`.
-- Все хуки/запросы, читающие `gaming_tables`, переводим на `.order('display_order').order('name')`. Затронуты Dashboard, Live Game grid, Tracker, Chip Count, Breaklist, отчёты.
+---
 
-### 2. Admin → Tables: редактирование порядка
-- В существующей форме добавления/редактирования стола поле **Display Order** (number input, default = max+1).
-- В списке столов в админке — компактная inline-редакция числа + кнопки ↑/↓ (опционально). Доступ: Manager/Super Admin.
-- Floor Manager — read-only.
+## 1. Sidebar — `Tips & Bonuses` (single entry with 5 tabs)
 
-### 3. Поддержка нового типа игры "Poker" / "Club Poker"
-- Тип игры `Texas Holdem` уже есть в БД. Добавление "Club Poker" не требует кода — Manager заведёт через Admin с `game='Poker'` (или таким `game`, как нужно). Дашборд и Live Game уже группируют по `game`. С `display_order` он автоматически встанет туда, куда задаст Manager (под Blackjack в Dashboard, под BG1 в Live Game).
+Visible to: `manager`, `floor_manager`, `super_admin`, `surveillance`, `finance_manager`.
+Hidden for: `cashier`, `reception`, `hr`, `pit`.
+Cashier keeps the existing "Tips" buttons in the cage header — entry flow does not change.
 
-### 4. Avg Bet таблица под сеткой Live Game (новый компонент)
-**Расположение:** `src/pages/LiveGame.tsx` (или эквивалент), под существующей сеткой столов.
+Remove from sidebar (replaced by tabs inside the new page):
+- `Weekly Bonus` (`/weekly-bonus`)
+- `Monthly Tips` (`/monthly-tips`)
+- `Poker Tips` (`/reports/poker-tips`)
+- `Floor Tips` (`/reports/floor-tips`)
 
-**Источник данных:** активные `client_sessions` где `stopped_at IS NULL` за текущий business day, scope = `useCasino().activeCasinoId`.
+New route: `/tips-and-bonuses` with shadcn `Tabs`:
 
-**Структура (как Player Statistics, но компактнее):**
+| Tab | Source / behavior |
+|---|---|
+| Weekly Bonus | Reuses existing `WeeklyBonus` page body unchanged (week navigator stays). |
+| Monthly Tips | Reuses existing `MonthlyTips` page body unchanged (16→15 period navigator). |
+| Live Game Tips | Read-only list of `transactions.type = 'tips_live'`. Columns: **Date · Time · Amount · chip breakdown by denomination**. Grouped by day with day subtotal; period total at top. Period selector = month (1–end of month). |
+| Floor Tips | List of `transactions.type = 'tips_floor'`, grouped by business day. Each day expands to per-recipient lines (uses `tips_recipient_employee_id`) like Player Statistics day groups. Month selector. |
+| Club Poker Tips | List of `transactions.type = 'tips_poker'` — one row per day with day total; period total. Month selector. |
 
-```text
-| Player         | AR avg | BG avg | Poker avg | Session start | Duration |
-|----------------|--------|--------|-----------|---------------|----------|
-| Ivan Petrov    | 100    | ·      | ·         | 19:42         | 1h 18m   |
-| Anna Smith     | ·      | 50     | ·         | 20:15         | 0h 45m   |
-```
+Old routes (`/weekly-bonus`, `/monthly-tips`, `/reports/poker-tips`, `/reports/floor-tips`) redirect to `/tips-and-bonuses?tab=<id>` so external links/bookmarks still work.
 
-- Каждая строка = одна открытая сессия (а не игрок). Если игрок одновременно сидит за двумя — две строки (но `uniq_client_sessions_open_per_player` это запрещает, так что де-факто одна).
-- Колонка avg заполняется только в той, что соответствует `gaming_tables.game` сессии; остальные — `·` placeholder.
-- `Duration` = `now() - started_at`, обновляется каждые 30 сек (realtime + interval).
-- Pit/Manager/Floor Manager могут inline-редактировать avg (тот же механизм что в Player Tracker, через mutation, optimistic update) — это уже работает в существующем коде.
+---
 
-**Сортировка:** по `started_at DESC` (свежие сверху).
+## 2. Suspend (SP) in Break List & Attendance
 
-**Mobile:** на узких экранах — карточная вёрстка (Drawer-friendly, без горизонтального скролла).
+New attendance code `SP` everywhere `A`/`S`/`L` are accepted:
 
-### 5. Player Profile → Statistics: Avg Per Day (без backend изменений)
-- В существующем блоке Player Statistics добавить строку **Avg Bet (per day)** = SUM(avg_bet всех сессий за день) / COUNT(сессий за день), агрегировано по дням. Lifetime = среднее этих daily-средних.
-- Чисто клиентский расчёт по `client_sessions` игрока. Раздельно по game (AR/BG/Poker).
+- Database/value layer
+  - Add `SP` to attendance string parser (`parseValue`) and normalizer (`normalizeAttInput`) in **WeeklyBonus**, **MonthlyTips**, **AttendanceMonthly**, **BreaklistGrid**, plus `useDealerAttendance`/`useSetDealerAttendance` consumers.
+  - SP = 0 hours, treated identically to `A` in all calculations (payroll, attendance auto-fill, bonus pool eligibility) — purely a separate marker for HR tracking.
+- Break List grid (`BreaklistGrid`)
+  - When a dealer's attendance for the day is `SP`, the entire row disappears from the grid for that day (same as Absent currently — verify and align).
+  - Clicking a dealer's name (or new dropdown) lets pit set `A` / `S` / `L` / **SP**. Selecting `S`, `L`, or `SP` opens a small inline hint popover: textarea + OK; clicking again re-opens with prior text for editing.
+- Attendance Monthly + Weekly/Monthly Tips grids
+  - Display `SP` in a **bright red ("toxic")** style (new `text-red-500 font-bold` class added next to existing `A` styling).
+  - Cell editor accepts `SP`.
 
-## Что НЕ делаем
-- Не переименовываем `name` → `short_name` (пропускаем по ответу пользователя).
-- Не добавляем `title_name` (пропускаем).
-- Не меняем модель `client_sessions` — она уже подходит.
-- Никакого автосчёта total_bet/duration на сервере сверх того, что уже есть.
+---
 
-## Версия
-- Backend изменение (миграция + новая колонка) → bump `package.json` patch.
+## 3. HR Warnings inbox
 
-## Файлы
-- **Миграция:** `display_order` колонка + бэкфилл + индекс.
-- **Edited:**
-  - `src/hooks/use-gaming-tables.ts` (или эквивалент) — `.order('display_order')`.
-  - Admin форма стола — поле Display Order.
-  - `src/pages/LiveGame.tsx` — встройка `<AvgBetSessionsTable />`.
-  - Player Statistics компонент — Avg Per Day строка.
-- **Created:**
-  - `src/components/live-game/AvgBetSessionsTable.tsx`.
-  - `src/hooks/use-active-sessions-avg.ts`.
+New table `staff_warnings`:
+- `id`, `casino_id`, `employee_id`, `business_date`, `kind` (`absent` | `suspend` | `sick` | `late`), `comment text`, `created_by`, `created_at`, `updated_at`.
+- Unique `(casino_id, employee_id, business_date, kind)` so re-toggling updates the same row.
+- RLS: read for `hr`, `manager`, `floor_manager`, `super_admin`, `finance_manager`; insert/update for `pit`, `manager`, `floor_manager`, `super_admin`, `hr`.
+
+DB trigger on `dealer_attendance` (and floor staff attendance table):
+- When raw_value becomes `A`/`SP`/`S`/`L` → upsert `staff_warnings` row (comment stays whatever HR/pit entered via hint, default empty for `A`).
+- When value cleared/changed to working hours → delete corresponding warning row.
+
+Sidebar (HR section): new entry **Warnings** at `/hr/warnings` — visible to `hr`, `manager`, `super_admin`.
+
+Page `/hr/warnings`:
+- Month carousel (reuse `MonthCarousel`).
+- Table grouped by day: Date · Time · Employee (name + dept) · Kind badge (color-coded: SP red, A red-muted, S amber, L orange) · Comment (inline-editable for HR).
+- Filter chips: kind, department.
+- Comments edited here also sync back to the attendance hint.
+
+---
+
+## Technical details
+
+### Files touched
+- **Sidebar**: `src/components/layout/AppSidebar.tsx` — remove 4 entries, add `Tips & Bonuses` + `Warnings`.
+- **Routes**: `src/App.tsx` — add `/tips-and-bonuses`, `/hr/warnings`, plus redirects for old routes.
+- **New pages**:
+  - `src/pages/TipsAndBonuses.tsx` (tab host, lazy-loads existing components).
+  - `src/pages/tips/LiveGameTipsTab.tsx`, `FloorTipsTab.tsx`, `ClubPokerTipsTab.tsx` (Floor/Poker tabs mostly wrap existing `FloorTipsReport`/`PokerTipsReport` content).
+  - `src/pages/hr/Warnings.tsx`.
+- **Hooks**: extend `use-tips.ts` with `useTipsByRange` chip-breakdown helper; new `use-staff-warnings.ts`.
+- **Attendance parsers**: WeeklyBonus, MonthlyTips, AttendanceMonthly, BreaklistGrid — add `SP`.
+- **Breaklist hint popover**: new small component reused for `S`/`L`/`SP`.
+
+### Migrations
+1. `create table public.staff_warnings` + RLS + indexes + unique constraint.
+2. Trigger function `tg_sync_staff_warnings()` on `dealer_attendance` (and equivalent for floor staff attendance, if separate table).
+3. Update `dealer_attendance` value CHECK (if present) to allow `SP`.
+4. Update `role_module_defaults`: remove `weekly_bonus`, `monthly_tips`, `reports_poker_tips`, `reports_floor_tips` for affected roles; insert `tips_and_bonuses` for manager/floor_manager/super_admin/surveillance/finance_manager; insert `hr_warnings` for hr/manager/super_admin.
+
+### Out of scope
+- Cashier tip entry UI (untouched).
+- Payroll logic — SP behaves identically to A, no recalculations needed.
+- Mobile drawer styling beyond default `Tabs` responsiveness.
+
+### Risks / verifications
+- Need to confirm whether floor-staff attendance lives in same `dealer_attendance` table or a separate one before writing the warnings trigger.
+- Old bookmarks: redirects keep working but module-permissions table must keep legacy keys or we add a runtime alias in `route-module-map`.
