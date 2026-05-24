@@ -131,10 +131,41 @@ export const useSetAttendanceHours = () => {
         );
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["monthly_attendance"] }),
-    onError: (e: Error) => toast.error(e.message),
+    // Optimistic update — flip the cell instantly so the user does not wait
+    // for the refetch round-trip. The background invalidation in onSettled
+    // reconciles with server-computed effective_hours / holiday flags.
+    onMutate: async (input) => {
+      await qc.cancelQueries({ queryKey: ["monthly_attendance"] });
+      const snapshots: Array<[unknown, unknown]> = [];
+      const matches = qc.getQueriesData<any[]>({ queryKey: ["monthly_attendance"] });
+      for (const [key, data] of matches) {
+        snapshots.push([key, data]);
+        if (!Array.isArray(data)) continue;
+        const next = data.map((r: any) => {
+          if (r.employee_id !== input.employee_id || r.d !== input.date) return r;
+          return {
+            ...r,
+            manual_hours: input.hours,
+            // Best-effort: treat manual hours as effective until server returns.
+            effective_hours: input.hours,
+            raw_value: input.hours > 0 ? String(input.hours) : "",
+          };
+        });
+        qc.setQueryData(key, next);
+      }
+      return { snapshots };
+    },
+    onError: (err: Error, _input, ctx) => {
+      // Rollback on failure so the cell does not stay in a wrong state.
+      if (ctx?.snapshots) {
+        for (const [key, data] of ctx.snapshots) qc.setQueryData(key as any, data);
+      }
+      toast.error(err.message);
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: ["monthly_attendance"] }),
   });
 };
+
 
 export const useRefreshPayrollPeriod = () => {
   const qc = useQueryClient();

@@ -88,19 +88,26 @@ const AttendanceMonthly = () => {
     return m;
   }, [holidays]);
 
-  const computeTotals = (byDay: Map<number, MonthlyAttendanceRow>) => {
-    let hours = 0, dWorked = 0, leave = 0, holH = 0, otH = 0;
-    for (const [dayNum, r] of byDay) {
-      const h = r.effective_hours || 0;
-      const code = (r.raw_value || "").toUpperCase();
-      hours += h;
-      if (h > 0) dWorked += 1;
-      if (code === "L" || code === "S") leave += 1;
-      if (r.is_holiday) holH += h;
-      if (h > 9) otH += h - 9;
+  // Per-employee totals memoized against `rows` — without this every keystroke
+  // (or click) re-runs the totals math for every employee × every day.
+  const totalsByEmployee = useMemo(() => {
+    const out = new Map<string, { hours: number; dWorked: number; leave: number; holH: number; otH: number }>();
+    for (const e of employees) {
+      let hours = 0, dWorked = 0, leave = 0, holH = 0, otH = 0;
+      for (const [, r] of e.byDay) {
+        const h = r.effective_hours || 0;
+        const code = (r.raw_value || "").toUpperCase();
+        hours += h;
+        if (h > 0) dWorked += 1;
+        if (code === "L" || code === "S") leave += 1;
+        if (r.is_holiday) holH += h;
+        if (h > 9) otH += h - 9;
+      }
+      out.set(e.meta.employee_id, { hours, dWorked, leave, holH, otH });
     }
-    return { hours, dWorked, leave, holH, otH };
-  };
+    return out;
+  }, [employees]);
+
 
   return (
     <PageShell>
@@ -175,7 +182,7 @@ const AttendanceMonthly = () => {
                     </tr>
                   );
                   for (const e of list) {
-                    const t = computeTotals(e.byDay);
+                    const t = totalsByEmployee.get(e.meta.employee_id) ?? { hours: 0, dWorked: 0, leave: 0, holH: 0, otH: 0 };
                     rowsOut.push(
                       <tr key={e.meta.employee_id} className="border-t border-border hover:bg-muted/20">
                         <td className="sticky left-0 z-10 bg-card px-2 py-0.5 font-sans">
