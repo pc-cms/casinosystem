@@ -46,6 +46,7 @@ const AttendanceMonthly = () => {
   const { data: rows = [], isLoading } = useMonthlyAttendance(monthStr);
   const { data: holidays = [] } = useHolidays(monthStr);
   const setHours = useSetAttendanceHours();
+  const setCode = useSetAttendanceCode();
 
   const [holidayOpen, setHolidayOpen] = useState(false);
 
