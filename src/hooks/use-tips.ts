@@ -41,7 +41,7 @@ export const useTipsByRange = (
       if (!casinoId) return [] as TipsRow[];
       const { data, error } = await supabase
         .from("transactions")
-        .select("id, type, amount, business_date, created_at, table_id, tips_recipient_employee_id, cancelled_at, gaming_tables(name), employees:tips_recipient_employee_id(full_name)")
+        .select("id, type, amount, business_date, created_at, shift_id, table_id, tips_recipient_employee_id, cancelled_at, gaming_tables(name), employees:tips_recipient_employee_id(full_name)")
         .eq("casino_id", casinoId)
         .in("type", kinds as any)
         .gte("business_date", startIso)
