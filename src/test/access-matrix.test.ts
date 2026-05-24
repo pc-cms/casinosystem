@@ -49,7 +49,7 @@ const FLOOR_MANAGER_ALLOWED: ReadonlySet<ModuleKey> = new Set<ModuleKey>([
   "table_results",
   "table_tracker",
   "tables",
-  "tables_analytics",
+  
   "tips_and_bonuses",
 ]);
 
