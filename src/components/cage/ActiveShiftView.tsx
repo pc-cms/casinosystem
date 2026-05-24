@@ -376,7 +376,12 @@ const TwoColumnLayout = ({
 }) => (
   <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-3 items-stretch">
     <div className="cms-panel p-4">{form}</div>
-    <div className="min-h-[400px]">{rightPanel}</div>
+    {/* Right column must not push the row taller than the form. On lg+ we
+        zero out the column's intrinsic height and let an absolutely-positioned
+        child fill the stretched row — list scrolls internally instead. */}
+    <div className="min-h-[400px] lg:min-h-0 lg:relative">
+      <div className="lg:absolute lg:inset-0">{rightPanel}</div>
+    </div>
   </div>
 );
 
