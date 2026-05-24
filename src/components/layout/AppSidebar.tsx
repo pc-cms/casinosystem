@@ -59,7 +59,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: "__attendance__", icon: ClipboardPen, label: "Attendance", roles: ["super_admin", "manager", "floor_manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
   { to: "__rota__", icon: CalendarDays, label: "Rota", roles: ["super_admin", "manager", "floor_manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
   { to: "/weekly-bonus", icon: Gift, label: "Weekly Bonus", roles: ["super_admin", "manager", "floor_manager", "finance_manager"], section: "PIT" },
-  { to: "/monthly-tips", icon: Coins, label: "Monthly Tips", roles: ["super_admin", "manager", "floor_manager", "finance_manager"], section: "PIT" },
+  { to: "/reports/tips", icon: Coins, label: "Tips", roles: ["super_admin", "manager", "floor_manager", "finance_manager", "surveillance"], section: "PIT" },
   { to: "/pitbook", icon: MessageSquare, label: "Pitbook", roles: ["super_admin", "manager", "floor_manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
   { to: "/incidents", icon: AlertTriangle, label: "Incidents", roles: ["super_admin", "manager", "floor_manager", "finance_manager", "surveillance"], section: "PIT" },
 
