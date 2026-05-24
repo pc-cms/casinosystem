@@ -165,6 +165,15 @@ const parseItemTo = (to: string) => {
   return { base, tab };
 };
 
+const EXACT_NAV_PATHS = new Set(["/cage", "/cage/view", "/cage/closings"]);
+
+const routeMatchesNavItem = (pathname: string, to: string) => {
+  const { base, tab } = parseItemTo(to);
+  if (tab !== null) return false;
+  if (base === "/") return pathname === "/";
+  return EXACT_NAV_PATHS.has(base) ? pathname === base : pathname.startsWith(base);
+};
+
 // ============ Collapsible sections (expanded sidebar) ============
 const SECTIONS_STORAGE_KEY = "cms.sidebar.openSections";
 const FLAT_SECTION: Section = "OVERVIEW";
@@ -205,7 +214,7 @@ const SidebarSections = ({
       const hit = items.some(it => {
         const base = it.to.split("?")[0];
         if (base === "/") return location.pathname === "/";
-        return location.pathname.startsWith(base);
+        return EXACT_NAV_PATHS.has(base) ? location.pathname === base : location.pathname.startsWith(base);
       });
       if (hit) return s;
     }
@@ -299,7 +308,7 @@ const SidebarSections = ({
       <div key={`${sectionCtx}:${item.to}`}>
         <NavLink
           to={item.to}
-          end={item.to === "/" || item.to === "/tables" || isTabAware}
+          end={item.to === "/" || item.to === "/tables" || EXACT_NAV_PATHS.has(itemBase) || isTabAware}
           onClick={onNavigate}
           className={({ isActive }) => {
             const active = isTabAware ? isTabAwareActive : isActive;
