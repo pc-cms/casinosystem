@@ -1,139 +1,105 @@
+# Full Offline Shift — что строим
 
-## Вводные (зафиксированы)
+Цель: при пропаже интернета на 5–60 минут смена продолжается без «динозавра» и без потери данных. Все действия кассы / Pit / Reception либо выполняются локально, либо встают в очередь и применяются после восстановления связи, **включая Close Shift и Manager password**.
 
-- Пилот — **MWZ** (Mwanza on-prem железо), новый поддомен `mwz.casinosystem.app`.
-- Существующие `arusha/mwanza/dodoma/mbeya.casinosystem.app` — **не трогаем**, остаются Cloud.
-- NS-делегация `casinosystem.app` на Cloudflare — **OK** (вы подтвердили).
-- Cloudflare-аккаунт — **уже есть**.
-- Tailscale — **пропускаем**. Единственный канал Lovable↔сервер = **Cloudflare Tunnel** (HTTPS).
-- MWZ-железо готово, есть SSH для одной команды.
+## Почему сейчас падает (диагноз)
 
-## Опыт оператора (всё, что физически делает человек)
+1. **«Динозавр»** = браузер не получил `/index.html`. SW либо не зарегистрирован (открыли как обычную вкладку, не PWA), либо precache не содержит этот маршрут. После hard-refresh во время outage страница умирает.
+2. **Lazy-чанки** (`React.lazy` на 60+ страницах) кэшируются только когда хоть раз были загружены онлайн. Любая первая навигация во время outage = ChunkLoadError → `installChunkRecovery` делает reload → «динозавр».
+3. **`useEffectiveBusinessDate`** дергает RPC `get_current_business_date` на каждом монтировании. Без сети — бесконечный спиннер на всех экранах кассы/pit, даже если данные есть в IndexedDB.
+4. **Manager password** = edge function `verify-manager` → offline = невозможно подтвердить ни override, ни Close Shift, ни Close Business Day.
+5. **Close Shift, Open Visit, Chip Count, Cash Count** идут прямыми вызовами Supabase (не через `offlineMutation`) → во время outage просто крутят спиннер и валятся по таймауту, а данные кассира уходят в /dev/null.
+6. **React Query persister хранит кэш, но `staleTime: 2 min`** + `refetchOnReconnect: true` → при возврате связи запускается шторм рефетчей, который роняет UI на слабых каналах.
 
-### Один раз в терминале
-```bash
-curl -fsSL https://casinosystem.app/install | sudo bash -s -- --slug=mwz
+## План
+
+### M1. SW, который выживает offline-навигацию
+
+- `vite.config.ts`: добавить **все lazy-чанки** в `globPatterns` (уже стоит `**/*.{js,css,...}` — проверить, что `manualChunks` не выкидывает route-chunks из precache), включить `navigationPreload`, и для `request.mode === "navigate"` поменять `NetworkFirst` с `networkTimeoutSeconds: 3` на **`NetworkFirst` с фолбэком на `/index.html` из precache** (сейчас фолбэк не сработает, если SW не нашёл URL в кэше — поправим через `navigateFallback` + явный handler).
+- В `pwa-register.ts` добавить **проактивный `registration.update()` при `online`** и **prefetch всех известных route-chunks** через манифест `__VITE_PRELOAD__` сразу после первого успешного логина (один раз в сутки).
+- Добавить badge «App not installed — install for offline» в шапке (Sidebar) если `display-mode: browser`. Сильно снижает шанс «динозавра», т.к. установленная PWA имеет более надёжный SW lifecycle.
+- Гарантия: после первого онлайн-входа все маршруты, попавшие в роутер, отдаются offline.
+
+### M2. Источник правды для business date без сети
+
+- `useEffectiveBusinessDate`: после первого успешного ответа писать `business_date` + `closed_at` в `localStorage` (`cms.businessDate.cache`).
+- Если RPC падает (`!navigator.onLine` или fetch error) — возвращать кэш + локальный fallback `getBusinessDate()` (он уже считает rollover 11:00 EAT клиентски). Никаких бесконечных спиннеров.
+- На баннер «Offline» вешать пометку `business date from local cache` чтобы оператор видел источник.
+
+### M3. Read-cache всех справочников при логине
+
+В `usePrefetchCriticalData` догружать (если ещё не в кэше React Query / IDB):
+- `gaming_tables`, `chip_denoms`, `chip_locations`, `profiles` (своё казино), `dealers`, `players` (только активные за 7 дней + blacklist), `user_roles`, `wallets`, текущий `shifts` + `cash_counts` + `chip_counts` за business day, `expense_categories`, `currencies`.
+
+С `staleTime: Infinity` для справочников и `staleTime: 30s` для оперативных. После outage первая страница уже отрисована из IDB, без сетки.
+
+### M4. Все мутации через `offlineMutation`
+
+Аудит и обёртка прямых `supabase.from(...).insert/update`:
+- **Cage**: `cage_transactions` (buy-in, cash-out, expense, transfer, collection), `bank_checks`, `add_float`, `cancel`.
+- **Pit**: `visits`, `player_sessions`, `player_position_history`, `chip_adjustments`, `table_tracker`.
+- **Reception**: `players` update (контакты, фото), `card_assignments`.
+- **Tables**: `chip_counts` (snapshot), `gaming_tables.closing_result`, `table_lifecycle`.
+- **Attendance/Rota**: bulk paste, ячейки.
+
+Каждая обёртка добавляет в payload `client_op_id` (uuid v4 на устройстве) и `client_ts` (EAT). Server-side trigger делает idempotent-upsert по `(client_op_id)` → исключает дубликаты после ретраев.
+
+### M5. Manager password offline
+
+- При успешном онлайн-вводе manager-пароля сохранять `bcrypt(password)` + `manager_user_id` + `expires_at = now + 12h` в IndexedDB (encrypted by webcrypto + device key из `localStorage`).
+- В `ManagerOverrideDialog`: если offline → `bcrypt.compare` локально против кэшированного хэша. Доступ выдаётся только тем менеджерам, которые **за последние 12 ч** хотя бы раз подтверждали пароль на этом устройстве.
+- Каждое offline-подтверждение пишется в `manager_overrides` (через очередь) с флагом `verified_offline = true`. После онлайна edge-function `verify-manager` пере-валидирует и при несовпадении помечает событие `disputed`.
+
+### M6. Close Shift offline
+
+- Текущий `CloseShiftPage` собирает: chip count, cash count, bank, mobile, miss → один `UPDATE shifts` + insert `cash_counts` seed.
+- Делаем то же через очередь:
+  - `chip_counts` insert (snapshot, attempt N)
+  - `cash_counts` insert (closing seed)
+  - `shifts` update с `client_op_id`, `closing_state = 'pending_sync'`
+  - `activity_logs` insert (`SHIFT_CLOSE_ATTEMPT` + `SHIFT_CLOSED_OFFLINE`)
+- В UI закрытие проходит, показывается значок `Pending sync · awaiting server validation`. Новая смена открывается тут же (открытие смены тоже идёт в очередь с зависимостью «после close-shift синка»).
+- DB-триггер на `shifts` валидирует баланс **только при синке** и, если суммы не сходятся, помечает строку `requires_review = true` + создаёт `activity_logs.SHIFT_OFFLINE_DISCREPANCY` для менеджера. Никаких «тихих» откатов как в инциденте с Даниярaem.
+
+### M7. Сеть-индикатор и UX
+
+- Жирный баннер сверху на всю ширину при offline (красный) и при «syncing N pending» (янтарный) с кнопкой «View queue».
+- Страница `/admin/sync-queue` (для manager/super_admin): список pending, failed_permanently, retry-кнопка, удаление с подтверждением (только super_admin).
+- Toast «Saved offline — will sync» уже есть, оставляем.
+
+### M8. Защита от refetch-шторма
+
+- `App.tsx`: `refetchOnReconnect: 'always' → false` для тяжёлых query keys (`players`, `visits`, `cage_transactions`). Делаем ручной staggered refetch внутри `sync-engine` после успешного drain очереди (по 3 запроса в секунду).
+- `staleTime` справочников = `Infinity`, инвалидация только по realtime-событию или явному pull-to-refresh.
+
+### M9. Тесты + проверки
+
+- Cypress / Playwright сценарий: логин → выключить network (`page.context().setOffline(true)`) → перейти на /cage → buy-in → close shift → включить network → проверить, что в БД ровно один `cage_transactions` и одна закрытая смена.
+- Ручной чек-лист в `docs/OFFLINE-CHECKLIST.md` для тестирования каждой роли при выключенном Wi-Fi.
+
+## Технические детали
+
+```text
+Layer                  | Online              | Offline (new)
+-----------------------+---------------------+---------------------------------
+HTML / route chunks    | network             | SW precache (all chunks warmed)
+Reference data         | Supabase + cache    | React Query IDB cache
+Business date          | RPC                 | localStorage cache + EAT calc
+Reads (live)           | Supabase            | last cached snapshot + banner
+Writes                 | direct supabase     | offline-queue (IDB) + dedupe key
+Manager password       | edge fn             | local bcrypt hash (12h TTL)
+Close shift            | direct UPDATE       | queued ops, server validates on sync
+Sync trigger           | manual              | online + visibility + 30s timer
 ```
-Скрипт ставит docker, cloudflared, поднимает контейнеры, печатает URL вида `http://192.168.x.x:8088/setup` + 8-значный pairing-код. Дальше — **ноль вопросов в терминале**.
 
-### Браузер, 3 экрана визарда (≈3 мин)
+Версия пакета поднимется автоматически (migrations + SW изменения).
 
-**Экран 1 — Pairing.** Логин super_admin → выпадающий список локаций → «Mwanza» → **Approve**. (Это уже работает сегодня в `Admin → Network → Pending`, только под новым slug `mwz`.)
+## Риски
 
-**Экран 2 — Public domain (Cloudflare Tunnel).** «Domain: `mwz.casinosystem.app`». Одна кнопка **Connect via Cloudflare**. Открывается `cloudflared tunnel login` во всплывающем окне → ваш CF-аккаунт → Authorize. Под капотом визард создаёт tunnel, DNS-запись `mwz.casinosystem.app → <tunnel>.cfargotunnel.com`, systemd unit `cloudflared.service`. Через ~30 сек экран зеленеет: `mwz.casinosystem.app → online`.
+- **Расхождение Close Shift при синке**: смягчается флагом `requires_review` + `SHIFT_OFFLINE_DISCREPANCY` в логах — finance/manager увидят и решат через `business-days` редактор. Без авто-перезаписи.
+- **Двойные операции**: убираются `client_op_id` + uniq-индекс.
+- **Offline manager password**: 12-часовое окно может быть использовано уволенным менеджером, если устройство не разлогинено. Можно ужать до 4 ч и привязать к `user_casino_access` revoke (но revoke тоже нужен онлайн). Это compromise, который должен подтвердить владелец.
 
-**Экран 3 — Done.** Зелёные галки: Postgres, Sync, Cloud pairing, Public domain. Кнопка **Open casino** ведёт на `https://mwz.casinosystem.app`.
+## Объём
 
-Никакого ручного редактирования `.env`, `docker-compose.yml`, `cloudflared/config.yml`.
-
-## Что Lovable получает после визарда
-
-Единый Cloud-side edge function `node-control(slug, action, payload)` подписывает HMAC и проксирует через `https://mwz.casinosystem.app/api/admin/*`:
-
-| Action | Что делает |
-|---|---|
-| `status` | версия фронта/sync, длина outbox, аптайм |
-| `query` | read-only SQL (тимаут 10s, `SET TRANSACTION READ ONLY`) — для дебага данных |
-| `migrate` | накатить SQL-миграцию идемпотентно, лог в `schema_migrations_local` |
-| `update` | дёрнуть локальный cms-updater сразу (без ожидания 5-мин polling) |
-| `restart` | `docker compose restart <service>` через sync-контейнер |
-
-Я **никогда** не вижу HMAC-секрет — он хранится только в Cloud (`onprem_channels.hmac_secret_hash`) и подписывает запросы за меня. Slug в каждом запросе валидируется на Cloud-стороне — я физически не могу гонять SQL не в тот сервер.
-
-Если Cloudflare Tunnel умер (редко, но бывает) — клиенты в LAN продолжают работать через `nginx` напрямую, PWA — оффлайн. Я в этот момент теряю только удалённый доступ; ничего в казино не ломается.
-
-## Цикл разработки и обновлений (как живём дальше)
-
-1. Я меняю код в Lovable → коммит в `pc-cms/casinosystem`.
-2. CI (`release-onprem.yml`, уже есть) собирает релиз: tarball исходников + копирует `supabase/migrations/*.sql` → `deploy/postgres/migrations/`.
-3. На сервере **cms-updater** (уже есть, memory: «Auto-Updater») раз в 5 мин опрашивает GitHub Releases. С `AUTO_APPLY=true` (по умолчанию для пилота): сам качает, применяет миграции, перезапускает контейнеры, делает rollback при провале health-check.
-4. Для срочных hotfix-ов — `node-control(slug:'mwz', action:'update')`. Апдейт прилетает за минуту, не ждём polling.
-5. Если совсем сломалось — я смотрю `node-control(action:'query', ...)` логи `sync_log`/`schema_migrations_local`, фикс, новый релиз, polling/`update` подтягивает.
-
-**Оператор в нормальном режиме не открывает терминал.** В `Admin → Server` есть кнопки «Check for updates / Restart services», статус, версия — всё.
-
-## Cloudflare: пошаговая инструкция (один раз, ~15 мин)
-
-1. `dash.cloudflare.com` (ваш существующий аккаунт) → **Add a site** → `casinosystem.app` → Free plan.
-2. Cloudflare покажет 2 nameserver'а (типа `xena.ns.cloudflare.com`).
-3. У регистратора `casinosystem.app` поменять NS на эти два. Существующие A/CNAME (`arusha/mwanza/dodoma/mbeya/premier/www/@`) Cloudflare **импортирует автоматически** — Cloud-инстансы продолжат работать без простоя. Сверить импорт глазами в Cloudflare DNS перед сменой NS.
-4. Cloudflare → **Zero Trust** → создать team-name (бесплатно) → **Networks → Tunnels** — просто открыть раздел (создавать ничего руками не надо).
-5. Готово. Дальше всё делает визард на Шаге 2.
-
-Бэкап-вариант, если NS-перенос вдруг отложится: subzone `onprem.casinosystem.app` отдельной NS-делегацией → домены станут `mwz.onprem.casinosystem.app`. В коде уже учтено флагом `CASINO_TUNNEL_PARENT`.
-
-## Почему я уверен на 1000%, что это правильная схема
-
-1. **Cloudflare Tunnel — стандарт 2026** для доступа к серверу за NAT/CGNAT: без открытых портов, без статических IP, бесплатно (~50 GB/мес ≫ нашего трафика), HTTPS-сертификат и его ротация автоматические.
-2. **Падение туннеля ≠ падение казино.** LAN-клиенты ходят на локальный `nginx` по IP — это уже сделано. Туннель нужен только мне + для push в Cloud.
-3. **cms-updater уже работает** — не изобретаем велосипед, добавляем только один endpoint для мгновенного апдейта.
-4. **Cloud остаётся source of truth для схемы.** Текущий workflow миграций не ломается, добавляется только канал доставки на on-prem.
-5. **HMAC + slug-валидация** = я не могу случайно отправить SQL не в тот сервер.
-6. **Откатываемость одной командой.** `sudo casino-update --unregister-channel` сносит tunnel + запись в Cloud → сервер возвращается к «обычной on-prem инсталляции без удалёнки».
-7. Соответствует существующему правилу из memory: «On-prem deployment ALWAYS via `curl … | sudo bash -s -- <flags>`. НИКОГДА не давать ручные docker/psql-команды».
-
-## Технические детали (для меня)
-
-**Frontend (`src/lib/casino-context.tsx`, `runtime-config.ts`, `App.tsx`)**
-- Распознавать slug `mwz` → canonical `mwanza` (как `aru→arusha` потом).
-- Новый роут `/setup` (рендерится только если `localMode && !runtime.paired`). 3-шаговый wizard через существующий `WizardShell`.
-- `public/manifest-mwz.json` (копия `manifest-mwanza.json` с именем «Premier Mwanza Local»).
-- `VersionIndicator`: суффикс `· local-mwz`.
-
-**Cloud migration**
-```sql
-create table public.onprem_channels (
-  id uuid primary key default gen_random_uuid(),
-  casino_id uuid not null references casinos(id),
-  slug text not null unique,
-  tunnel_hostname text not null,           -- mwz.casinosystem.app
-  cf_tunnel_id text,                       -- UUID туннеля в CF
-  hmac_secret_hash text not null,          -- bcrypt
-  last_seen_at timestamptz,
-  version text,
-  outbox_lag int,
-  status text default 'pending',           -- pending|online|offline|disabled
-  created_at timestamptz default now()
-);
-alter table public.onprem_channels enable row level security;
-create policy "super_admin manages channels" on public.onprem_channels
-  for all using (has_role(auth.uid(),'super_admin'));
-```
-+ edge functions:
-- `register-onprem-channel` (визард → Cloud, обмен pairing-кода на HMAC)
-- `node-control` (Lovable/Admin → Cloud → подписывает → HTTPS в tunnel)
-
-**cms-sync (`deploy/sync/api.js`)** — новые endpoints под HMAC:
-- `POST /api/admin/migrate` — идемпотентно через `schema_migrations_local(version, hash, applied_at)`.
-- `POST /api/admin/query` — read-only транзакция, тимаут 10 s.
-- `POST /api/admin/update` — дёргает cms-updater.
-- `POST /api/admin/restart` — `docker compose restart <svc>`.
-- `GET  /api/admin/status` — версия, outbox lag, peers.
-- Подпись: `X-Signature: hex(hmac_sha256(secret, ts + "." + body))`, окно 60 с, nonce от replay.
-
-**install.sh / public/install.sh** — новые флаги (неинтерактивно, для визарда):
-- `--slug=mwz` — пропускает TTY-вопросы.
-- `--setup-wizard` — поднимает `/setup` HTTP-сервер на :8088 вместо CLI-флоу.
-- `--cf-tunnel-init` — `cloudflared tunnel login` (через визард) + создание tunnel + DNS + systemd. Вызывается визардом.
-- `--register-channel` — POST в `register-onprem-channel`, сохраняет HMAC локально (chmod 600 root).
-- `--unregister-channel` — обратная операция, rollback.
-
-**Cloud secret** (попрошу через `add_secret` на этапе 2):
-- `ONPREM_REGISTER_SECRET` — bootstrap-секрет для первичной регистрации канала.
-
-## Этапы (каждый откатываем по одному)
-
-1. **Frontend**: распознавание `mwz` slug + PWA manifest + skeleton роута `/setup` (косметика, безопасно).
-2. **Cloud**: миграция `onprem_channels` + edge function `register-onprem-channel` + secret `ONPREM_REGISTER_SECRET`.
-3. **cms-sync**: `/api/admin/*` endpoints с HMAC + `schema_migrations_local`.
-4. **install.sh**: флаги `--slug`, `--setup-wizard`, `--cf-tunnel-init`, `--register-channel`, `--unregister-channel`.
-5. **Wizard `/setup`** — 3 экрана собираем в едином потоке (использует существующие компоненты).
-6. **Edge function `node-control`** + панель `Admin → Network → On-Prem Channels` (статус, ручной update/restart, rollback).
-7. **Пилот на MWZ.** Smoke-тесты: status / query / migrate (no-op) / update (no-op) / open `https://mwz.casinosystem.app`.
-8. **Стабилизация 1–2 недели**, после чего тем же путём поднимем `aru/dod/mbi`.
-
-## Что от вас понадобится во время реализации
-
-- На этапе 2 — нажать **Allow** на запрос `ONPREM_REGISTER_SECRET` (я сгенерирую значение).
-- На этапе 7 — выполнить одну команду на MWZ-сервере и пройти 3 экрана визарда, авторизовавшись в Cloudflare во всплывающем окне.
-- На этапе 7 — короткая обратная связь по smoke-тестам (что работает, что нет).
+Большой: ~25 файлов, 3 миграции (idempotency unique-индексы, `shifts.closing_state`, `shifts.requires_review`), новый раздел `/admin/sync-queue`, SW переработка, edge-function `verify-manager` бэк-валидация. Рекомендую дробить на 3 PR-эквивалента: **M1+M2+M3** (читалка не падает), **M4+M7+M8** (запись + UX), **M5+M6+M9** (manager + close-shift + тесты).
