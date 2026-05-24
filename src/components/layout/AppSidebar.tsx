@@ -59,7 +59,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: "__attendance__", icon: ClipboardPen, label: "Attendance", roles: ["super_admin", "manager", "floor_manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
   { to: "__rota__", icon: CalendarDays, label: "Rota", roles: ["super_admin", "manager", "floor_manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
   { to: "/weekly-bonus", icon: Gift, label: "Weekly Bonus", roles: ["super_admin", "manager", "floor_manager", "finance_manager"], section: "PIT" },
-  { to: "/reports/tips", icon: Coins, label: "Tips", roles: ["super_admin", "manager", "floor_manager", "finance_manager", "surveillance"], section: "PIT" },
+  { to: "/monthly-tips", icon: Coins, label: "Monthly Tips", roles: ["super_admin", "manager", "floor_manager", "finance_manager"], section: "PIT" },
   { to: "/pitbook", icon: MessageSquare, label: "Pitbook", roles: ["super_admin", "manager", "floor_manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
   { to: "/incidents", icon: AlertTriangle, label: "Incidents", roles: ["super_admin", "manager", "floor_manager", "finance_manager", "surveillance"], section: "PIT" },
 
@@ -84,6 +84,8 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/finance/dashboard", icon: Wallet, label: "Dashboard", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
   { to: "/finance/payments", icon: Receipt, label: "Payments", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
   { to: "/miss-chips", icon: Coins, label: "Miss Chips", roles: ["super_admin", "manager", "floor_manager", "finance_manager"], section: "FINANCE" },
+  { to: "/reports/poker-tips", icon: Coins, label: "Poker Tips", roles: ["super_admin", "manager", "floor_manager", "finance_manager"], section: "ANALYTICS" },
+  { to: "/reports/floor-tips", icon: UserCheck, label: "Floor Tips", roles: ["super_admin", "manager", "floor_manager", "finance_manager", "hr"], section: "ANALYTICS" },
   { to: "/finance/summary", icon: FileBarChart, label: "Summary", roles: ["super_admin", "finance_manager"], section: "FINANCE" },
   { to: "/finance/transfers", icon: Upload, label: "Transfers", roles: ["super_admin", "finance_manager"], section: "FINANCE" },
   { to: "/finance/wallets", icon: Wallet, label: "Wallets", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
