@@ -213,6 +213,36 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
     setCommentFor({ dealerId, dealerName, kind, label });
   };
 
+  // Add N days to an ISO yyyy-mm-dd, returning the same shape.
+  const addDays = (iso: string, n: number) => {
+    const d = new Date(iso + "T12:00:00Z");
+    d.setUTCDate(d.getUTCDate() + n);
+    return d.toISOString().slice(0, 10);
+  };
+
+  // Save HR comment for the current dialog and, when Suspend with N>1 days,
+  // propagate SP attendance forward to the next (N-1) days.
+  const handleCommentSave = () => {
+    if (!commentFor) return;
+    if (commentFor.kind === "Suspend" && suspendDays > 1) {
+      for (let i = 1; i < suspendDays; i++) {
+        const d = addDays(date, i);
+        setAttendance.mutate({ dealer_id: commentFor.dealerId, date: d, value: "SP" });
+        // Also persist the same HR note on each forward day so warnings stay aligned.
+        if (commentText.trim()) {
+          upsertWarningComment.mutate({ employee_id: commentFor.dealerId, business_date: d, comment: commentText });
+        }
+      }
+      if (suspendDays > 1) {
+        toast.success(`Suspend applied for ${suspendDays} days`);
+      }
+    }
+    upsertWarningComment.mutate(
+      { employee_id: commentFor.dealerId, business_date: date, comment: commentText },
+      { onSuccess: () => setCommentFor(null) },
+    );
+  };
+
   const handleRoleSelect = (role: string, tableId?: string) => {
     if (!activeCell) return;
 
