@@ -414,39 +414,50 @@ export default function WeeklyBonus() {
                       <Input
                         type="text" inputMode="numeric"
                         className="w-14 h-7 text-center font-mono mx-auto px-1 text-xs"
-                        value={r.extra}
+                        defaultValue={r.extra}
+                        key={`extra-${r.dealer.id}-${weekStart}-${r.extra}`}
                         disabled={locked}
-                        onChange={(e) => {
-                          const v = parseInt(e.target.value, 10);
+                        onBlur={(e) => {
+                          const raw = e.target.value.trim();
+                          const v = raw === "" ? 0 : parseInt(raw, 10);
+                          const next = isNaN(v) ? 0 : v;
+                          if (next === r.extra) return;
                           setCalculated(false);
                           upsertEntry.mutate({
                             dealer_id: r.dealer.id,
                             week_start: weekStart,
-                            extra_override: isNaN(v) ? 0 : v,
+                            extra_override: next,
                             bonus_points: r.bonusPts,
                           });
                         }}
+                        onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
                       />
                     </td>
                     <td className="px-1 py-1 text-center no-print">
                       <Input
                         type="text" inputMode="numeric"
                         className="w-14 h-7 text-center font-mono mx-auto px-1 text-xs"
-                        value={r.bonusPts || ""}
+                        defaultValue={r.bonusPts || ""}
+                        key={`bonus-${r.dealer.id}-${weekStart}-${r.bonusPts}`}
                         placeholder="0"
                         disabled={locked}
-                        onChange={(e) => {
-                          const v = parseInt(e.target.value, 10);
+                        onBlur={(e) => {
+                          const raw = e.target.value.trim();
+                          const v = raw === "" ? 0 : parseInt(raw, 10);
+                          const next = isNaN(v) ? 0 : v;
+                          if (next === (r.bonusPts || 0)) return;
                           setCalculated(false);
                           upsertEntry.mutate({
                             dealer_id: r.dealer.id,
                             week_start: weekStart,
                             extra_override: r.extra,
-                            bonus_points: isNaN(v) ? 0 : v,
+                            bonus_points: next,
                           });
                         }}
+                        onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
                       />
                     </td>
+
                     <td className="px-2 py-1 text-center font-mono font-bold text-[11px] no-print">
                       {r.points || ""}
                     </td>
