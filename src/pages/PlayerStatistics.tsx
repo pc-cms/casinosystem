@@ -981,7 +981,7 @@ function AvgBetPopover({
   const bg = bets?.bg ?? null;
   const poker = bets?.poker ?? null;
   const vals = [ar, bg, poker].filter((v): v is number => v != null && v > 0);
-  const display = vals.length ? Math.max(...vals) : fallback;
+  const display = vals.length ? Math.round(vals.reduce((s, v) => s + v, 0) / vals.length) : fallback;
   if (!isSingleDay) {
     return display ? <span>{formatCurrency(display)}</span> : <span>·</span>;
   }
