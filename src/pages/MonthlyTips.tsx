@@ -40,6 +40,7 @@ const DENOMS = [10000, 5000, 2000, 1000];
 const parseValue = (val: string | null | undefined) => {
   if (!val) return { kind: "empty" as const, hours: 0 };
   if (val === "A") return { kind: "absent" as const, hours: 0 };
+  if (val === "SP") return { kind: "suspend" as const, hours: 0 };
   if (val === "S") return { kind: "sick" as const, hours: 0 };
   const m = /^(\d+)(S?)$/.exec(val);
   if (m) {
@@ -52,7 +53,7 @@ const parseValue = (val: string | null | undefined) => {
 const normalizeAttInput = (raw: string): string => {
   const v = raw.trim().toUpperCase();
   if (!v) return "";
-  if (v === "A" || v === "S") return v;
+  if (v === "A" || v === "S" || v === "SP") return v;
   const m = /^(\d{1,2})(S?)$/.exec(v);
   if (m) return `${parseInt(m[1], 10)}${m[2]}`;
   return v;

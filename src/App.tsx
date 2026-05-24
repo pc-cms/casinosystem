@@ -85,6 +85,8 @@ const SyncLogPage = lazy(() => import("@/pages/admin/SyncLogPage"));
 const SyncQueuePage = lazy(() => import("@/pages/admin/SyncQueuePage"));
 const WeeklyBonus = lazy(() => import("@/pages/WeeklyBonus"));
 const MonthlyTips = lazy(() => import("@/pages/MonthlyTips"));
+const TipsAndBonuses = lazy(() => import("@/pages/TipsAndBonuses"));
+const HrWarnings = lazy(() => import("@/pages/hr/Warnings"));
 const StaffMaster = lazy(() => import("@/pages/StaffMaster"));
 const AttendanceMonthly = lazy(() => import("@/pages/AttendanceMonthly"));
 const Payroll = lazy(() => import("@/pages/Payroll"));
@@ -314,12 +316,14 @@ const ProtectedRoutes = () => {
           <Route path="/miss-chips" element={<RoleGuard path="/miss-chips"><MissChips /></RoleGuard>} />
           <Route path="/cancelled-transactions" element={<RoleGuard path="/cancelled-transactions"><CancelledTransactions /></RoleGuard>} />
           <Route path="/business-days" element={<RoleGuard path="/business-days"><BusinessDays /></RoleGuard>} />
-          <Route path="/weekly-bonus" element={<RoleGuard path="/weekly-bonus"><ErrorBoundary><WeeklyBonus /></ErrorBoundary></RoleGuard>} />
-          <Route path="/monthly-tips" element={<RoleGuard path="/monthly-tips"><ErrorBoundary><MonthlyTips /></ErrorBoundary></RoleGuard>} />
-          
+          <Route path="/weekly-bonus" element={<Navigate to="/tips-and-bonuses?tab=weekly" replace />} />
+          <Route path="/monthly-tips" element={<Navigate to="/tips-and-bonuses?tab=monthly" replace />} />
+          <Route path="/tips-and-bonuses" element={<RoleGuard path="/tips-and-bonuses"><ErrorBoundary><TipsAndBonuses /></ErrorBoundary></RoleGuard>} />
+          <Route path="/hr/warnings" element={<RoleGuard path="/hr/warnings"><ErrorBoundary><HrWarnings /></ErrorBoundary></RoleGuard>} />
+
           <Route path="/reports/miss-chips" element={<Navigate to="/miss-chips" replace />} />
-          <Route path="/reports/poker-tips" element={<RoleGuard path="/reports"><ErrorBoundary><PokerTipsReport /></ErrorBoundary></RoleGuard>} />
-          <Route path="/reports/floor-tips" element={<RoleGuard path="/reports"><ErrorBoundary><FloorTipsReport /></ErrorBoundary></RoleGuard>} />
+          <Route path="/reports/poker-tips" element={<Navigate to="/tips-and-bonuses?tab=poker" replace />} />
+          <Route path="/reports/floor-tips" element={<Navigate to="/tips-and-bonuses?tab=floor" replace />} />
           <Route path="/pitbook" element={<RoleGuard path="/pitbook"><ErrorBoundary><Pitbook /></ErrorBoundary></RoleGuard>} />
           <Route path="/incidents" element={<RoleGuard path="/incidents"><ErrorBoundary><Incidents /></ErrorBoundary></RoleGuard>} />
           <Route path="/staff/master" element={<RoleGuard path="/staff/master"><ErrorBoundary><StaffMaster /></ErrorBoundary></RoleGuard>} />

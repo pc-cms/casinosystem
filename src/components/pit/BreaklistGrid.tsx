@@ -103,13 +103,14 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
       .map((r: any) => ({ dealerId: r.dealer_id, shift: r.shift as string }));
   }, [rota]);
 
-  // Absent / Sick dealer set — attendance value "A" or "S" hides them from the grid entirely.
+  // Absent / Sick / Suspend dealer set — attendance value "A", "S" or "SP"
+  // hides them from the grid entirely.
   // ("{n}S" — worked n hours then went sick mid-shift — does NOT hide; they were physically present.)
   const absentDealerIds = useMemo(() => {
     const s = new Set<string>();
     (attendance as any[]).forEach((a: any) => {
       const v = (a.value ?? "").toString().trim().toUpperCase();
-      if (v === "A" || v === "S") s.add(a.dealer_id);
+      if (v === "A" || v === "S" || v === "SP") s.add(a.dealer_id);
     });
     return s;
   }, [attendance]);

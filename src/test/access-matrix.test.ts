@@ -50,7 +50,7 @@ const FLOOR_MANAGER_ALLOWED: ReadonlySet<ModuleKey> = new Set<ModuleKey>([
   "table_tracker",
   "tables",
   "tables_analytics",
-  "weekly_bonus",
+  "tips_and_bonuses",
 ]);
 
 // Routes that MUST be gated (have a module mapping). Mirrors App.tsx route table.
@@ -112,7 +112,7 @@ const GATED_ROUTES = [
   "/bank-checks",
   "/miss-chips",
   "/business-days",
-  "/weekly-bonus",
+  "/tips-and-bonuses",
   "/pitbook",
   "/incidents",
 ];
@@ -187,7 +187,7 @@ describe("floor_manager (Taras) — sidebar & route gate match matrix", () => {
       "/pit?tab=rota", "/staff", "/staff?tab=attendance",
       "/breaklist", "/rota/live", "/attendance/live",
       "/rota/floor", "/attendance/floor", "/staff/employees",
-      "/reports", "/table-results", "/business-days", "/weekly-bonus",
+      "/reports", "/table-results", "/business-days", "/tips-and-bonuses",
       "/miss-chips", "/pitbook", "/incidents",
     ];
     for (const r of permitted) {

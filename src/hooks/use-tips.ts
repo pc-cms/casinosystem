@@ -20,6 +20,7 @@ export interface TipsRow {
   table_id: string | null;
   tips_recipient_employee_id: string | null;
   cancelled_at: string | null;
+  chips: Record<string, number> | null;
   gaming_tables?: { name: string } | null;
   employees?: { full_name: string } | null;
 }
@@ -40,7 +41,7 @@ export const useTipsByRange = (
       if (!casinoId) return [] as TipsRow[];
       const { data, error } = await supabase
         .from("transactions")
-        .select("id, type, amount, business_date, created_at, table_id, tips_recipient_employee_id, cancelled_at, gaming_tables(name), employees:tips_recipient_employee_id(full_name)")
+        .select("id, type, amount, business_date, created_at, table_id, tips_recipient_employee_id, cancelled_at, chips, gaming_tables(name), employees:tips_recipient_employee_id(full_name)")
         .eq("casino_id", casinoId)
         .in("type", kinds as any)
         .gte("business_date", startIso)
