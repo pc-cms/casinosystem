@@ -204,22 +204,41 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
     }
   };
 
+  const openCommentDialog = (dealerId: string, kind: "Absent" | "Sick" | "Suspend" | "Late", label: string) => {
+    const dealerName = activeDealers.find(d => d.id === dealerId)?.name || "Dealer";
+    setCommentText("");
+    setCommentFor({ dealerId, dealerName, kind, label });
+  };
+
   const handleRoleSelect = (role: string, tableId?: string) => {
     if (!activeCell) return;
+
+    // SP = Suspend: no breaklist cell, just sets attendance to "SP".
+    // The dealer is then hidden from the grid (see absentDealerIds memo).
+    // Triggers HR comment dialog so the operator can leave a short note.
+    if (role === "SP") {
+      const dealerId = activeCell.dealerId;
+      setAttendance.mutate({ dealer_id: dealerId, date, value: "SP" });
+      toast.success("Marked Suspend — dealer hidden from grid");
+      setActiveCell(null);
+      openCommentDialog(dealerId, "Suspend", "SP");
+      return;
+    }
 
     // LT = Late: marks a single slot as Late and recomputes attendance.
     // Each LT slot = 20 min late. Worked hours = max(0, 9 - ceil(LTcount * 20 / 60)).
     if (role === "LT") {
+      const dealerId = activeCell.dealerId;
       setCell.mutate({
         date,
-        dealer_id: activeCell.dealerId,
+        dealer_id: dealerId,
         time_slot: activeCell.timeSlot,
         role: "LT",
         table_id: null,
       });
       // Recompute LT count INCLUDING this new cell (in case it didn't exist before)
       const existingLT = breaklist.filter(
-        (b: any) => b.dealer_id === activeCell.dealerId && b.role === "LT"
+        (b: any) => b.dealer_id === dealerId && b.role === "LT"
       );
       const alreadyHadThisSlot = existingLT.some((b: any) => b.time_slot === activeCell.timeSlot);
       const ltCount = existingLT.length + (alreadyHadThisSlot ? 0 : 1);
@@ -227,11 +246,14 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
       const lateHours = Math.ceil(lateMinutes / 60);
       const workedH = Math.max(0, 9 - lateHours);
       const attValue = workedH > 0 ? `${workedH}L` : "L";
-      setAttendance.mutate({ dealer_id: activeCell.dealerId, date, value: attValue });
+      setAttendance.mutate({ dealer_id: dealerId, date, value: attValue });
       toast.success(`Late: ${ltCount} slot${ltCount === 1 ? "" : "s"} (~${lateHours}h), shift = ${workedH}h`);
       setActiveCell(null);
+      // Open comment dialog only on the FIRST LT mark of the day (no prior LT cells).
+      if (existingLT.length === 0) openCommentDialog(dealerId, "Late", "LT");
       return;
     }
+
 
     // S = Sick: fill all slots from current one until end of shift with S.
     // No table assignment, no per-table conflict checks (S overrides everything for this dealer).
