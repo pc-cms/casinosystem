@@ -1,17 +1,17 @@
 /**
  * LiveGameTipsTab — read-only list of Live Game tips collected by cashier.
  * Records: date · time · chip breakdown by denomination · amount.
- * Grouped by day with subtotals, month period total at top.
+ * Grouped by day with subtotals. Period = 16th of previous month → 15th of
+ * current month (same window as Monthly Tips), so the Monthly Tips "collected"
+ * hint matches the Period Total shown here.
  */
 import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/currency";
-import { fmtDate } from "@/lib/format-date";
-import { format, startOfMonth, endOfMonth, subMonths, addMonths } from "date-fns";
+import { fmtDate, fmtDateOnly } from "@/lib/format-date";
 import { useTipsByRange } from "@/hooks/use-tips";
-
-const DENOM_ORDER = [10000, 5000, 2000, 1000, 500, 200, 100, 50, 20, 10, 5];
+import { getPeriodStart16, getPeriodEnd15, addMonthsPeriod } from "@/hooks/use-monthly-tips";
 
 const fmtTime = (iso: string) => {
   const d = new Date(iso);
@@ -20,18 +20,16 @@ const fmtTime = (iso: string) => {
 
 const chipsToCells = (chips: Record<string, number> | null): { denom: number; count: number }[] => {
   if (!chips) return [];
-  const entries = Object.entries(chips)
+  return Object.entries(chips)
     .map(([d, c]) => ({ denom: Number(d), count: Number(c) || 0 }))
     .filter(x => x.count > 0)
     .sort((a, b) => b.denom - a.denom);
-  return entries;
 };
 
 export default function LiveGameTipsTab() {
-  const [anchor, setAnchor] = useState<Date>(new Date());
-  const monthStart = useMemo(() => format(startOfMonth(anchor), "yyyy-MM-dd"), [anchor]);
-  const monthEnd = useMemo(() => format(endOfMonth(anchor), "yyyy-MM-dd"), [anchor]);
-  const { data: rows = [] } = useTipsByRange("tips_live", monthStart, monthEnd);
+  const [periodStart, setPeriodStart] = useState<string>(() => getPeriodStart16(new Date()));
+  const periodEnd = useMemo(() => getPeriodEnd15(periodStart), [periodStart]);
+  const { data: rows = [] } = useTipsByRange("tips_live", periodStart, periodEnd);
 
   const byDay = useMemo(() => {
     const m = new Map<string, { total: number; items: typeof rows }>();
@@ -47,30 +45,30 @@ export default function LiveGameTipsTab() {
       .sort((a, b) => b.date.localeCompare(a.date));
   }, [rows]);
 
-  const monthTotal = byDay.reduce((s, d) => s + d.total, 0);
+  const periodTotal = byDay.reduce((s, d) => s + d.total, 0);
 
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1">
-          <Button variant="outline" size="icon" onClick={() => setAnchor(d => subMonths(d, 1))}>
+          <Button variant="outline" size="icon" onClick={() => setPeriodStart(p => addMonthsPeriod(p, -1))}>
             <ChevronLeft className="w-4 h-4" />
           </Button>
-          <div className="px-3 py-1 rounded-md bg-muted/50 font-semibold tabular-nums min-w-[160px] text-center">
-            {format(anchor, "MMMM yyyy")}
+          <div className="px-3 py-1 rounded-md bg-muted/50 font-semibold tabular-nums min-w-[220px] text-center font-mono text-sm">
+            {fmtDateOnly(periodStart)} – {fmtDateOnly(periodEnd)}
           </div>
-          <Button variant="outline" size="icon" onClick={() => setAnchor(d => addMonths(d, 1))}>
+          <Button variant="outline" size="icon" onClick={() => setPeriodStart(p => addMonthsPeriod(p, 1))}>
             <ChevronRight className="w-4 h-4" />
           </Button>
         </div>
         <div className="cms-panel px-4 py-2 flex items-center gap-4">
-          <span className="text-xs text-muted-foreground uppercase tracking-wider">Month Total</span>
-          <span className="font-mono text-lg font-bold">{formatCurrency(monthTotal)}</span>
+          <span className="text-xs text-muted-foreground uppercase tracking-wider">Period Total</span>
+          <span className="font-mono text-lg font-bold">{formatCurrency(periodTotal)}</span>
         </div>
       </div>
 
       {byDay.length === 0 ? (
-        <div className="cms-panel p-8 text-center text-muted-foreground">No Live Game tips this month</div>
+        <div className="cms-panel p-8 text-center text-muted-foreground">No Live Game tips this period</div>
       ) : byDay.map(day => (
         <div key={day.date} className="cms-panel">
           <div className="cms-header flex items-center justify-between">
