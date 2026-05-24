@@ -353,7 +353,7 @@ const PlayerStatistics = () => {
       return {
         id: v.id,
         visitNumber: visitNumberById.get(v.id) ?? 0,
-        visits: visitsByPlayer.get(v.player_id)?.length || 1,
+        visits: lifetimeVisitsByPlayer[v.player_id] ?? (visitsByPlayer.get(v.player_id)?.length || 1),
         playerId: v.player_id,
         cardNo: ((p as any).player_cards || [])
           .slice()
