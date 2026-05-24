@@ -310,9 +310,12 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
       setAttendance.mutate({ dealer_id: activeCell.dealerId, date, value: attValue });
       toast.success(`Marked Sick: ${hoursWorked}h worked (shift ${dealerShift || "?"}), ${slotsToFill.length} slots ahead`);
 
+      const sickDealerId = activeCell.dealerId;
       setActiveCell(null);
+      openCommentDialog(sickDealerId, "Sick", "S");
       return;
     }
+
 
     // Per-table role exclusivity:
     //   - Dealer slot   (P / BJ / AR)
