@@ -30,6 +30,7 @@ import { formatCurrency, formatNumberCompact } from "@/lib/currency";
 import { formatCardNumber } from "@/lib/card-number";
 import { offlineMutation } from "@/lib/offline-mutation";
 import { toast } from "sonner";
+import { usePlayerDailyAvgBets } from "@/hooks/use-player-daily-avg-bets";
 
 type TabKey = "day" | "present" | "left";
 
