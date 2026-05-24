@@ -49,21 +49,6 @@ const queryFns = {
     const raw = data ?? [];
     return disambiguateNames(raw.map(mapEmployeeToDealer), raw);
   },
-  chipDenoms: (casinoId: string) => async () => {
-    const { data } = await supabase
-      .from("chip_denoms")
-      .select("*")
-      .eq("casino_id", casinoId);
-    return data ?? [];
-  },
-  expenseCategories: () => async () => {
-    const { data } = await supabase.from("expense_categories").select("*");
-    return data ?? [];
-  },
-  currencies: () => async () => {
-    const { data } = await supabase.from("currencies").select("*");
-    return data ?? [];
-  },
   currentShift: (casinoId: string) => async () => {
     const { data } = await supabase
       .from("shifts")
