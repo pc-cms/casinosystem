@@ -221,8 +221,6 @@ const CASHIER_ALLOWED: ReadonlySet<ModuleKey> = new Set<ModuleKey>([
   "cage",
   "players",
   "blacklist",
-  "reception",          // page-level access (route gate)
-  "reception_register", // only this tab inside Reception
   "in_casino",
   "tables",
   "table_tracker",
