@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { getBusinessDate } from "@/lib/business-day";
 import { disambiguateNames, mapEmployeeToDealer } from "@/hooks/use-dealers";
+import { prefetchRouteChunks } from "@/lib/route-prefetch";
 
 // Shared query functions — must match the hooks in use-casino-data.ts exactly
 const queryFns = {
