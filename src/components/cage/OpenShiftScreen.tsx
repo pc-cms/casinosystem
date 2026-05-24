@@ -179,6 +179,7 @@ const OpenShiftScreen = ({ tables }: { tables: Tables<"gaming_tables">[] }) => {
         <Button variant="outline" size="sm" onClick={() => setShowRates(true)} className="gap-1.5">
           <Settings2 className="w-3.5 h-3.5" /> Rates
         </Button>
+        <CloseBusinessDayButton />
       </PageHeader>
 
       <div className="flex items-center gap-1.5 mb-3">
