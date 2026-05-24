@@ -449,20 +449,28 @@ export default function MonthlyTips() {
                       <Input
                         type="text" inputMode="numeric"
                         className="w-12 h-7 text-center font-mono mx-auto px-1 text-xs"
-                        defaultValue={r.extra}
-                        key={`extra-${r.dealer.id}-${periodStart}-${r.extra}`}
+                        value={extraDraft[r.dealer.id] ?? String(r.storedExtra)}
                         disabled={locked}
-                        onBlur={(e) => {
-                          const el = e.target as HTMLInputElement;
-                          if (el.value === el.defaultValue) return;
-                          const v = parseInt(el.value, 10);
+                        onChange={(e) => {
+                          const v = e.target.value.replace(/[^0-9]/g, "");
+                          setExtraDraft((d) => ({ ...d, [r.dealer.id]: v }));
                           setCalculated(false);
+                        }}
+                        onBlur={() => {
+                          const raw = extraDraft[r.dealer.id];
+                          if (raw === undefined) return;
+                          const next = raw.trim() === "" ? 0 : (parseInt(raw, 10) || 0);
+                          if (next === r.storedExtra) {
+                            setExtraDraft((d) => { const n = { ...d }; delete n[r.dealer.id]; return n; });
+                            return;
+                          }
                           upsertEntry.mutate({
                             dealer_id: r.dealer.id,
                             period_start: periodStart,
-                            extra_override: isNaN(v) ? 0 : v,
+                            extra_override: next,
                             bonus_points: r.bonusPts,
                           });
+                          setExtraDraft((d) => { const n = { ...d }; delete n[r.dealer.id]; return n; });
                         }}
                         onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
                       />
@@ -471,21 +479,29 @@ export default function MonthlyTips() {
                       <Input
                         type="text" inputMode="numeric"
                         className="w-12 h-7 text-center font-mono mx-auto px-1 text-xs"
-                        defaultValue={r.bonusPts || ""}
-                        key={`bonus-${r.dealer.id}-${periodStart}-${r.bonusPts}`}
+                        value={bonusDraft[r.dealer.id] ?? (r.storedBonus ? String(r.storedBonus) : "")}
                         placeholder="0"
                         disabled={locked}
-                        onBlur={(e) => {
-                          const el = e.target as HTMLInputElement;
-                          if (el.value === el.defaultValue) return;
-                          const v = parseInt(el.value, 10);
+                        onChange={(e) => {
+                          const v = e.target.value.replace(/[^0-9]/g, "");
+                          setBonusDraft((d) => ({ ...d, [r.dealer.id]: v }));
                           setCalculated(false);
+                        }}
+                        onBlur={() => {
+                          const raw = bonusDraft[r.dealer.id];
+                          if (raw === undefined) return;
+                          const next = raw.trim() === "" ? 0 : (parseInt(raw, 10) || 0);
+                          if (next === r.storedBonus) {
+                            setBonusDraft((d) => { const n = { ...d }; delete n[r.dealer.id]; return n; });
+                            return;
+                          }
                           upsertEntry.mutate({
                             dealer_id: r.dealer.id,
                             period_start: periodStart,
                             extra_override: r.extra,
-                            bonus_points: isNaN(v) ? 0 : v,
+                            bonus_points: next,
                           });
+                          setBonusDraft((d) => { const n = { ...d }; delete n[r.dealer.id]; return n; });
                         }}
                         onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
                       />
