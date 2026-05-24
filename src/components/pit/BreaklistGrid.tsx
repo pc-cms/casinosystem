@@ -171,8 +171,13 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
 
   // Inline role picker state
   const [activeCell, setActiveCell] = useState<{ dealerId: string; timeSlot: string; dropUp: boolean } | null>(null);
+  // HR comment dialog state (opens after A/S/SP/LT to capture a short note)
+  const [commentFor, setCommentFor] = useState<{ dealerId: string; dealerName: string; kind: "Absent" | "Sick" | "Suspend" | "Late"; label: string } | null>(null);
+  const [commentText, setCommentText] = useState("");
+  const upsertWarningComment = useUpsertWarningCommentByKey();
   const qc = useQueryClient();
   const { activeCasinoId } = useCasino();
+
 
   const getCellData = (dealerId: string, timeSlot: string) =>
     breaklist.find(b => b.dealer_id === dealerId && b.time_slot === timeSlot);
