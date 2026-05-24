@@ -59,6 +59,9 @@ export function usePrefetchCriticalData() {
     if (!casinoId || !user) return;
     const today = getBusinessDate();
 
+    // Warm lazy route chunks for offline navigation. Idempotent (24h throttle).
+    prefetchRouteChunks();
+
     // Always prefetch players and visits
     qc.prefetchQuery({
       queryKey: ["players", casinoId],
