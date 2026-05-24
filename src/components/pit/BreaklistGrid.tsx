@@ -10,6 +10,11 @@ import { ALL_ROLES, ROLE_COLORS, TABLE_ROLES } from "@/lib/currency";
 import { getTableCellClasses } from "@/lib/table-colors";
 import { isAfterBreaklistLock, nowEAT } from "@/lib/business-day";
 import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { useUpsertWarningCommentByKey } from "@/hooks/use-staff-warnings";
+
 const CATEGORY_LABELS: Record<string, string> = {
   trainee: "T",
   dealer: "D",
