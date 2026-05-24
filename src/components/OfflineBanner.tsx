@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { WifiOff, RefreshCw, AlertTriangle } from "lucide-react";
 import { useNetworkStatus } from "@/hooks/use-network-status";
+import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
 
 /**
@@ -13,6 +15,8 @@ import { cn } from "@/lib/utils";
  */
 export const OfflineBanner = () => {
   const { status, pendingCount } = useNetworkStatus();
+  const { roles } = useAuth();
+  const canViewQueue = roles.includes("manager" as any) || roles.includes("super_admin" as any);
   const [chunkMissing, setChunkMissing] = useState(false);
 
   useEffect(() => {
@@ -42,6 +46,8 @@ export const OfflineBanner = () => {
     ? "This screen was never loaded online — go back and try another page until you're back online"
     : `Syncing ${pendingCount} pending action${pendingCount === 1 ? "" : "s"}…`;
 
+  const showQueueLink = canViewQueue && pendingCount > 0;
+
   return (
     <div
       className={cn(
@@ -52,6 +58,14 @@ export const OfflineBanner = () => {
     >
       <Icon className={cn("w-3.5 h-3.5 shrink-0", isSyncing && "animate-spin")} />
       <span className="truncate">{label}</span>
+      {showQueueLink && (
+        <Link
+          to="/admin/sync-queue"
+          className="ml-2 underline underline-offset-2 hover:no-underline shrink-0"
+        >
+          View queue
+        </Link>
+      )}
     </div>
   );
 };
