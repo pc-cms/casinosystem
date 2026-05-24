@@ -346,7 +346,7 @@ const PlayerStatistics = () => {
         exitAt: v.checked_out_at as string | null,
         position: v.position as string,
         tableName,
-        avgBet: activeSession ? Number(activeSession.avg_bet || 0) : 0,
+        avgBet: summaryAvgBet(v.player_id) || (activeSession ? Number(activeSession.avg_bet || 0) : 0),
         inDrop,
         out,
         dropR: visitDropR,
@@ -359,7 +359,7 @@ const PlayerStatistics = () => {
         isPresent,
       };
     }).filter(Boolean) as Array<NonNullable<ReturnType<typeof Object>>>;
-  }, [visits, players, visitFin, activeSessionByPlayer, tableNameById, playersDropSplit, playerInDropSum]);
+  }, [visits, players, visitFin, activeSessionByPlayer, tableNameById, playersDropSplit, playerInDropSum, dailyAvgBetByPlayer]);
 
   // For multi-day periods, group rows per player so the same player isn't repeated for each visit.
   const displayRows = useMemo(() => {
