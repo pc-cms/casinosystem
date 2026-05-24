@@ -50,7 +50,7 @@ export async function offlineMutation(opts: OfflineMutationOptions): Promise<{ o
   if (navigator.onLine) {
     try {
       const table = opts.table as any;
-      let req: Promise<any>;
+      let req: PromiseLike<any>;
 
       if (opts.operation === "insert") {
         req = supabase.from(table).insert(opts.payload);
@@ -65,18 +65,17 @@ export async function offlineMutation(opts: OfflineMutationOptions): Promise<{ o
         for (const [k, v] of Object.entries(_match as Record<string, any>)) {
           q = v === null || v === undefined ? q.is(k, null) : q.eq(k, v);
         }
-        req = Promise.resolve(q);
+        req = q;
       } else {
         return { offline: false, error: `unknown operation ${opts.operation}` };
       }
 
-      const raced = await withTimeout(req, timeoutMs);
+      const raced = await withTimeout(Promise.resolve(req), timeoutMs);
 
       if (raced.timedOut) {
         // Network hung — fall through to enqueue. Don't trust subsequent resolution.
-        // Fall through below.
       } else {
-        const result: any = raced.value;
+        const result: any = (raced as { timedOut: false; value: any }).value;
         if (result?.error) {
           if (isNetworkError(result.error.message)) {
             // Fall through to enqueue
