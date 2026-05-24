@@ -968,4 +968,55 @@ const PlayerStatistics = () => {
   );
 };
 
+function AvgBetPopover({
+  playerId, isSingleDay, bets, fallback,
+}: {
+  playerId: string;
+  isSingleDay: boolean;
+  bets: { ar: number | null; bg: number | null; poker: number | null } | undefined;
+  fallback: number;
+}) {
+  const ar = bets?.ar ?? null;
+  const bg = bets?.bg ?? null;
+  const poker = bets?.poker ?? null;
+  const vals = [ar, bg, poker].filter((v): v is number => v != null && v > 0);
+  const display = vals.length ? Math.max(...vals) : fallback;
+  if (!isSingleDay) {
+    return display ? <span>{formatCurrency(display)}</span> : <span>·</span>;
+  }
+  if (!display) {
+    return <span className="text-muted-foreground">·</span>;
+  }
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="font-mono hover:text-primary cursor-pointer"
+          title="Click to see AR / BG / Poker breakdown"
+        >
+          {formatCurrency(display)}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-44 p-2">
+        <p className="text-[10px] uppercase text-muted-foreground tracking-wider mb-1.5 px-1">Avg Bet by Game</p>
+        <div className="space-y-1">
+          {[
+            { label: "AR", value: ar },
+            { label: "BG", value: bg },
+            { label: "Poker", value: poker },
+          ].map(g => (
+            <div key={g.label} className="flex items-center justify-between px-1.5 py-1 rounded hover:bg-muted/40">
+              <span className="text-xs font-semibold text-muted-foreground">{g.label}</span>
+              <span className={`font-mono text-sm ${g.value == null ? "text-muted-foreground/40" : "text-card-foreground"}`}>
+                {g.value == null ? "·" : formatCurrency(g.value)}
+              </span>
+            </div>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 export default PlayerStatistics;
