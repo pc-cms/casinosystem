@@ -430,25 +430,28 @@ export default function WeeklyBonus() {
                       <Input
                         type="text" inputMode="numeric"
                         className="w-14 h-7 text-center font-mono mx-auto px-1 text-xs"
-                        defaultValue={r.extra}
-                        key={`extra-${r.dealer.id}-${weekStart}-${r.extra}`}
+                        value={extraDraft[r.dealer.id] ?? String(r.storedExtra)}
                         disabled={locked}
-                        onBlur={(e) => {
-                          const el = e.target as HTMLInputElement;
-                          // Skip if the user did not actually edit the field (prevents
-                          // remount-induced blur from overwriting stored values with 0).
-                          if (el.value === el.defaultValue) return;
-                          const raw = el.value.trim();
-                          const v = raw === "" ? 0 : parseInt(raw, 10);
-                          const next = isNaN(v) ? 0 : v;
-                          if (next === r.extra) return;
+                        onChange={(e) => {
+                          const v = e.target.value.replace(/[^0-9]/g, "");
+                          setExtraDraft((d) => ({ ...d, [r.dealer.id]: v }));
                           setCalculated(false);
+                        }}
+                        onBlur={() => {
+                          const raw = extraDraft[r.dealer.id];
+                          if (raw === undefined) return;
+                          const next = raw.trim() === "" ? 0 : (parseInt(raw, 10) || 0);
+                          if (next === r.storedExtra) {
+                            setExtraDraft((d) => { const n = { ...d }; delete n[r.dealer.id]; return n; });
+                            return;
+                          }
                           upsertEntry.mutate({
                             dealer_id: r.dealer.id,
                             week_start: weekStart,
                             extra_override: next,
                             bonus_points: r.bonusPts,
                           });
+                          setExtraDraft((d) => { const n = { ...d }; delete n[r.dealer.id]; return n; });
                         }}
                         onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
                       />
@@ -457,24 +460,29 @@ export default function WeeklyBonus() {
                       <Input
                         type="text" inputMode="numeric"
                         className="w-14 h-7 text-center font-mono mx-auto px-1 text-xs"
-                        defaultValue={r.bonusPts || ""}
-                        key={`bonus-${r.dealer.id}-${weekStart}-${r.bonusPts}`}
+                        value={bonusDraft[r.dealer.id] ?? (r.storedBonus ? String(r.storedBonus) : "")}
                         placeholder="0"
                         disabled={locked}
-                        onBlur={(e) => {
-                          const el = e.target as HTMLInputElement;
-                          if (el.value === el.defaultValue) return;
-                          const raw = el.value.trim();
-                          const v = raw === "" ? 0 : parseInt(raw, 10);
-                          const next = isNaN(v) ? 0 : v;
-                          if (next === (r.bonusPts || 0)) return;
+                        onChange={(e) => {
+                          const v = e.target.value.replace(/[^0-9]/g, "");
+                          setBonusDraft((d) => ({ ...d, [r.dealer.id]: v }));
                           setCalculated(false);
+                        }}
+                        onBlur={() => {
+                          const raw = bonusDraft[r.dealer.id];
+                          if (raw === undefined) return;
+                          const next = raw.trim() === "" ? 0 : (parseInt(raw, 10) || 0);
+                          if (next === r.storedBonus) {
+                            setBonusDraft((d) => { const n = { ...d }; delete n[r.dealer.id]; return n; });
+                            return;
+                          }
                           upsertEntry.mutate({
                             dealer_id: r.dealer.id,
                             week_start: weekStart,
                             extra_override: r.extra,
                             bonus_points: next,
                           });
+                          setBonusDraft((d) => { const n = { ...d }; delete n[r.dealer.id]; return n; });
                         }}
                         onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
                       />
