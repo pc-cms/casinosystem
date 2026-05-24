@@ -3931,6 +3931,60 @@ export type Database = {
           },
         ]
       }
+      staff_warnings: {
+        Row: {
+          business_date: string
+          casino_id: string
+          comment: string
+          created_at: string
+          created_by: string | null
+          employee_id: string
+          id: string
+          kind: string
+          source_table: string
+          updated_at: string
+        }
+        Insert: {
+          business_date: string
+          casino_id: string
+          comment?: string
+          created_at?: string
+          created_by?: string | null
+          employee_id: string
+          id?: string
+          kind: string
+          source_table?: string
+          updated_at?: string
+        }
+        Update: {
+          business_date?: string
+          casino_id?: string
+          comment?: string
+          created_at?: string
+          created_by?: string | null
+          employee_id?: string
+          id?: string
+          kind?: string
+          source_table?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_warnings_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_warnings_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sync_apply_errors: {
         Row: {
           attempts: number
