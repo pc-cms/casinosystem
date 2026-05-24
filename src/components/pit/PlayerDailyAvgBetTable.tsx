@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect } from "react";
+import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { formatNumberSpaces } from "@/lib/currency";
 import { formatCardNumber } from "@/lib/card-number";
@@ -44,6 +45,7 @@ export function PlayerDailyAvgBetTable({ businessDate, players, visits, canEdit 
   const { data: bets = [] } = usePlayerDailyAvgBets(businessDate);
   const setBet = useSetPlayerDailyAvgBet();
   const { select: selectPlayer, playerId: selectedPlayerId } = useSelectedPlayer();
+  const [search, setSearch] = useState("");
 
   const playerMap = useMemo(() => {
     const m = new Map<string, PlayerLite>();
@@ -58,7 +60,6 @@ export function PlayerDailyAvgBetTable({ businessDate, players, visits, canEdit 
   }, [bets]);
 
   const rows = useMemo(() => {
-    // One row per visit on the business date; sort: present first, then by entry desc.
     return visits
       .filter(v => v.date === businessDate)
       .map(v => {
@@ -90,7 +91,14 @@ export function PlayerDailyAvgBetTable({ businessDate, players, visits, canEdit 
       });
   }, [visits, businessDate, playerMap, betsByPlayer]);
 
-  // Compute visit-number per player (1, 2, ...) for the day
+  const filteredRows = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return rows;
+    return (rows as any[]).filter(r =>
+      `${r.firstName} ${r.lastName} ${r.nickname} ${r.card}`.toLowerCase().includes(q),
+    );
+  }, [rows, search]);
+
   const visitNumByPlayer = useMemo(() => {
     const order = [...visits]
       .filter(v => v.date === businessDate)
@@ -106,38 +114,61 @@ export function PlayerDailyAvgBetTable({ businessDate, players, visits, canEdit 
 
   return (
     <div className="cms-panel p-4 mb-6">
-      <div className="flex items-center justify-between mb-3">
-        <div>
-          <h3 className="text-sm font-semibold text-card-foreground">Daily Average Bet — by Player</h3>
-          <p className="text-[11px] text-muted-foreground">
-            Manual entry by Pit / Manager / Floor Manager. Each player can have AR / BG / Poker average bet for the business day. Finalized to a single value per group at day close.
+      <div className="flex items-center justify-between gap-4 mb-3 flex-wrap">
+        <div className="min-w-0">
+          <h3 className="text-base font-semibold text-card-foreground">Daily Average Bet — by Player</h3>
+          <p className="text-sm text-muted-foreground">
+            Manual entry by Pit / Manager / Floor Manager. Each player has AR / BG / Poker average bet for the business day. Finalized to a single value per group at day close.
           </p>
         </div>
-        <span className="text-[11px] font-mono text-muted-foreground">{rows.length} players</span>
+        <div className="flex items-center gap-2">
+          <div className="relative w-64">
+            <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Search players..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="pl-8"
+            />
+          </div>
+          <span className="text-sm font-mono text-muted-foreground whitespace-nowrap">
+            {filteredRows.length} / {rows.length}
+          </span>
+        </div>
       </div>
 
       {rows.length === 0 ? (
-        <p className="text-xs text-muted-foreground text-center py-6">
+        <p className="text-sm text-muted-foreground text-center py-6">
           No players visited the casino today yet.
         </p>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border text-[10px] uppercase text-muted-foreground">
-                <th className="text-center px-2 py-2 w-14">Card</th>
-                <th className="text-left px-2 py-2 w-8">L</th>
-                <th className="text-left px-2 py-2">Name</th>
-                <th className="text-center px-2 py-2 w-12">Vis</th>
-                <th className="text-center px-2 py-2 w-14">Entry</th>
-                <th className="text-center px-2 py-2 w-14">Left</th>
-                <th className="text-right px-2 py-2 w-[110px]">AR</th>
-                <th className="text-right px-2 py-2 w-[110px]">BG</th>
-                <th className="text-right px-2 py-2 w-[110px]">Poker</th>
+          <table className="w-full text-base">
+            <thead className="bg-zinc-900">
+              <tr className="text-sm uppercase tracking-wider text-white">
+                {[
+                  { l: "Card", cls: "text-center w-16" },
+                  { l: "L",    cls: "text-left w-10" },
+                  { l: "Name", cls: "text-left max-w-[200px]" },
+                  { l: "Vis",  cls: "text-center w-14" },
+                  { l: "Entry",cls: "text-center w-16" },
+                  { l: "Left", cls: "text-center w-16" },
+                  { l: "AR",    cls: "text-right min-w-[160px]" },
+                  { l: "BG",    cls: "text-right min-w-[160px]" },
+                  { l: "Poker", cls: "text-right min-w-[160px]" },
+                ].map(h => (
+                  <th
+                    key={h.l}
+                    style={{ top: "var(--ppheader-h, 0px)" }}
+                    className={`px-2 py-3 font-bold sticky bg-zinc-900 text-white z-20 whitespace-nowrap ${h.cls}`}
+                  >
+                    {h.l}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>
-              {rows.map((r: any) => {
+              {filteredRows.map((r: any) => {
                 const isSelected = r.playerId === selectedPlayerId;
                 return (
                   <tr
@@ -147,23 +178,22 @@ export function PlayerDailyAvgBetTable({ businessDate, players, visits, canEdit 
                       isSelected ? "bg-primary/10" : ""
                     } ${r.isPresent ? "" : "opacity-60"}`}
                   >
-                    <td className="px-2 py-1.5 font-mono text-[11px] text-center font-bold">
+                    <td className="px-2 py-2 font-mono text-sm text-center font-bold">
                       {formatCardNumber(r.card) || "·"}
                     </td>
-                    <td className="px-2 py-1.5">
+                    <td className="px-2 py-2">
                       <CategoryBadge category={r.category} />
                     </td>
-                    <td className="px-2 py-1.5 font-medium text-card-foreground truncate">
+                    <td className="px-2 py-2 max-w-[200px] font-medium text-card-foreground truncate">
                       {r.firstName} {r.lastName}
-                      {r.nickname && <span className="text-muted-foreground ml-1">"{r.nickname}"</span>}
                     </td>
-                    <td className="px-2 py-1.5 font-mono text-[11px] text-center">
+                    <td className="px-2 py-2 font-mono text-sm text-center">
                       {visitNumByPlayer.get(r.playerId) || 1}
                     </td>
-                    <td className="px-1 py-1.5 font-mono text-xs text-center">{fmtClock(r.entryAt)}</td>
-                    <td className="px-1 py-1.5 font-mono text-xs text-center">{r.exitAt ? fmtClock(r.exitAt) : "·"}</td>
+                    <td className="px-1 py-2 font-mono text-sm text-center">{fmtClock(r.entryAt)}</td>
+                    <td className="px-1 py-2 font-mono text-sm text-center">{r.exitAt ? fmtClock(r.exitAt) : "·"}</td>
                     {(["ar", "bg", "poker"] as AvgBetGroup[]).map(g => (
-                      <td key={g} className="px-2 py-1.5 text-right" onClick={(e) => e.stopPropagation()}>
+                      <td key={g} className="px-2 py-2 text-right" onClick={(e) => e.stopPropagation()}>
                         <BetCell
                           value={(r as any)[g]}
                           canEdit={canEdit}
@@ -183,35 +213,37 @@ export function PlayerDailyAvgBetTable({ businessDate, players, visits, canEdit 
 }
 
 function BetCell({ value, canEdit, onCommit }: { value: number | null; canEdit: boolean; onCommit: (v: number | null) => void }) {
+  // Default-zero policy: untouched cells display "0" and behave editable.
+  const displayValue = value ?? 0;
   const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(value == null ? "" : String(value));
+  const [draft, setDraft] = useState(String(displayValue));
 
-  useEffect(() => { setDraft(value == null ? "" : String(value)); }, [value]);
+  useEffect(() => { setDraft(String(value ?? 0)); }, [value]);
 
   if (!canEdit) {
-    return value == null
-      ? <span className="font-mono text-xs text-muted-foreground/40">·</span>
-      : <span className="font-mono text-sm">{formatNumberSpaces(value)}</span>;
+    return <span className="font-mono text-base">{formatNumberSpaces(displayValue)}</span>;
   }
   if (editing) {
     return (
       <Input
         autoFocus
         type="number"
+        inputMode="numeric"
         value={draft}
         onChange={e => setDraft(e.target.value)}
+        onFocus={e => e.currentTarget.select()}
         onBlur={() => {
           setEditing(false);
           const trimmed = draft.trim();
-          const n = trimmed === "" ? null : Number(trimmed);
-          if (trimmed !== "" && !Number.isFinite(n)) return;
-          if (n !== value) onCommit(n);
+          const n = trimmed === "" ? 0 : Number(trimmed);
+          if (!Number.isFinite(n)) return;
+          if (n !== (value ?? 0)) onCommit(n === 0 ? null : n);
         }}
         onKeyDown={e => {
           if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-          if (e.key === "Escape") { setDraft(value == null ? "" : String(value)); setEditing(false); }
+          if (e.key === "Escape") { setDraft(String(value ?? 0)); setEditing(false); }
         }}
-        className="h-7 w-[100px] ml-auto text-right font-mono text-sm"
+        className="no-spin h-9 w-[150px] ml-auto text-right font-mono text-base"
       />
     );
   }
@@ -219,10 +251,10 @@ function BetCell({ value, canEdit, onCommit }: { value: number | null; canEdit: 
     <button
       type="button"
       onClick={() => setEditing(true)}
-      className={`font-mono text-sm hover:text-primary ${value == null ? "text-muted-foreground/40" : "text-card-foreground"}`}
+      className={`font-mono text-base hover:text-primary ${value == null ? "text-muted-foreground/60" : "text-card-foreground"}`}
       title="Click to edit"
     >
-      {value == null ? "·" : formatNumberSpaces(value)}
+      {formatNumberSpaces(displayValue)}
     </button>
   );
 }
