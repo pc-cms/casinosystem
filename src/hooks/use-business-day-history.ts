@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
+import { useCasino } from "@/lib/casino-context";
 import { toast } from "sonner";
 
 export type BusinessDayClosure = {
@@ -40,12 +41,13 @@ export const canEditSection = (
 };
 
 export function useBusinessDayHistory(month: string /* YYYY-MM */) {
-  const { casinoId, roles } = useAuth();
+  const { roles } = useAuth();
+  const { activeCasinoId, isSummaryMode } = useCasino();
   const isSuper = roles.includes("super_admin");
   const canSee = roles.includes("manager") || roles.includes("finance_manager") || isSuper;
 
   return useQuery({
-    queryKey: ["business-day-history", casinoId, month, isSuper],
+    queryKey: ["business-day-history", activeCasinoId ?? "__all__", month, isSummaryMode],
     queryFn: async (): Promise<BusinessDayClosure[]> => {
       if (!canSee) return [];
       const start = `${month}-01`;
@@ -57,13 +59,15 @@ export function useBusinessDayHistory(month: string /* YYYY-MM */) {
         .select("*")
         .gte("business_date", start)
         .lt("business_date", end)
-        .order("business_date", { ascending: false });
-      if (!isSuper && casinoId) q = q.eq("casino_id", casinoId);
+        .order("business_date", { ascending: false })
+        .order("closed_at", { ascending: false });
+      // Per Core rule: scope strictly by current subdomain casino. Only premier (isSummaryMode) sees all.
+      if (!isSummaryMode && activeCasinoId) q = q.eq("casino_id", activeCasinoId);
       const { data, error } = await q;
       if (error) throw error;
       return (data || []) as BusinessDayClosure[];
     },
-    enabled: canSee,
+    enabled: canSee && (isSummaryMode || !!activeCasinoId),
   });
 }
 
