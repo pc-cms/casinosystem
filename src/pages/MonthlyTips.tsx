@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { ReactNode, useEffect, useMemo, useState } from "react";
 import { Coins, ChevronLeft, ChevronRight, Printer, Lock, Unlock, Calculator } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -77,7 +77,7 @@ const dowOf = (iso: string) => {
   return new Date(y, m - 1, d).getDay();
 };
 
-export default function MonthlyTips() {
+export default function MonthlyTips({ belowHeader }: { belowHeader?: ReactNode }) {
   const [periodStart, setPeriodStart] = useState<string>(() => getPeriodStart16(new Date()));
   const periodEnd = useMemo(() => getPeriodEnd15(periodStart), [periodStart]);
 
@@ -249,6 +249,7 @@ export default function MonthlyTips() {
         icon={Coins}
         title="Monthly Tips"
         subtitle="Distribute a tips pool across Live Game staff (16th – 15th)"
+        belowHeader={belowHeader}
       >
         <div className="flex items-center gap-2 print:hidden">
           <Button variant="outline" size="icon" onClick={() => navMonth(-1)} aria-label="Previous period">
