@@ -38,15 +38,16 @@ export const useCreateTransaction = () => {
   const { casinoId, user } = useAuth();
   return useMutation({
     mutationFn: async (input: {
-      player_id: string;
+      player_id: string | null;
       table_id: string | null;
-      type: "buy" | "cashout" | "in" | "out";
+      type: "buy" | "cashout" | "in" | "out" | "tips_live" | "tips_poker" | "tips_floor";
       amount: number;
       chips?: Record<string, number>;
       shift_id?: string;
+      tips_recipient_employee_id?: string | null;
     }) => {
       if (!casinoId || !user) throw new Error("Not authenticated");
-      const payload: SafeTransactionInsert = {
+      const payload: SafeTransactionInsert & { tips_recipient_employee_id?: string | null } = {
         casino_id: casinoId,
         player_id: input.player_id,
         table_id: input.table_id,
@@ -55,6 +56,7 @@ export const useCreateTransaction = () => {
         chips: input.chips || null,
         operator_id: user.id,
         shift_id: input.shift_id || null,
+        tips_recipient_employee_id: input.tips_recipient_employee_id ?? null,
       };
 
       const result = await offlineMutation({
@@ -83,12 +85,18 @@ export const useCreateTransaction = () => {
         chips: vars.chips || null,
         operator_id: user?.id,
         shift_id: vars.shift_id || null,
+        tips_recipient_employee_id: vars.tips_recipient_employee_id ?? null,
         created_at: new Date().toISOString(),
         _optimistic: true,
       };
 
       qc.setQueryData(["transactions", casinoId, today], (old: any[] = []) => [optimisticTx, ...old]);
-      const label = vars.type === "buy" || vars.type === "in" ? "IN" : "OUT";
+      const label =
+        vars.type === "buy" || vars.type === "in" ? "IN" :
+        vars.type === "tips_live"  ? "TIPS · Live Game" :
+        vars.type === "tips_poker" ? "TIPS · Club Poker" :
+        vars.type === "tips_floor" ? "TIPS · Floor" :
+        "OUT";
       toast.success(`${label} recorded: TZS ${formatNumberSpaces(vars.amount)}`);
       return { prevTxs, today };
     },
@@ -101,6 +109,7 @@ export const useCreateTransaction = () => {
     onSettled: () => {
       qc.invalidateQueries({ queryKey: ["transactions"] });
       qc.invalidateQueries({ queryKey: ["player-economy"] });
+      qc.invalidateQueries({ queryKey: ["tips"] });
     },
   });
 };
