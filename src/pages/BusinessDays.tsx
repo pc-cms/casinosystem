@@ -20,6 +20,7 @@ const BusinessDays = () => {
   const [month, setMonth] = useState(currentMonth());
   const [openId, setOpenId] = useState<string | null>(null);
   const { data: closures = [], isLoading } = useBusinessDayHistory(month);
+  const { isSummaryMode } = useCasino();
 
   return (
     <PageShell>
