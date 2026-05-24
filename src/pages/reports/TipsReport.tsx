@@ -7,9 +7,8 @@
 import { useMemo, useState } from "react";
 import { addMonths, format, startOfMonth, endOfMonth } from "date-fns";
 import { Coins, ChevronLeft, ChevronRight } from "lucide-react";
-import { PageShell } from "@/components/layout/PageShell";
-import { PageHeader } from "@/components/layout/PageHeader";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { useTipsByRange } from "@/hooks/use-tips";
 import { supabase } from "@/integrations/supabase/client";
