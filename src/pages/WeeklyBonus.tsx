@@ -138,11 +138,19 @@ export default function WeeklyBonus() {
         return { att, shift, parsed: p, key, day };
       });
       const entry = entryMap.get(d.id);
-      const extra = entry?.extra_override ?? extraComputed;
-      const bonusPts = entry?.bonus_points ?? 0;
+      const storedExtra = entry?.extra_override ?? extraComputed;
+      const storedBonus = entry?.bonus_points ?? 0;
+      const eDraft = extraDraft[d.id];
+      const bDraft = bonusDraft[d.id];
+      const extra = eDraft !== undefined
+        ? (eDraft.trim() === "" ? 0 : (parseInt(eDraft, 10) || 0))
+        : storedExtra;
+      const bonusPts = bDraft !== undefined
+        ? (bDraft.trim() === "" ? 0 : (parseInt(bDraft, 10) || 0))
+        : storedBonus;
       const points = hours + extra + bonusPts;
       const cat = d.is_pit_boss ? "pit_boss" : (d.category || "dealer");
-      return { dealer: d, cells, hours, extraComputed, extra, bonusPts, points, cat };
+      return { dealer: d, cells, hours, extraComputed, extra, bonusPts, storedExtra, storedBonus, points, cat };
     });
 
     return out.sort((a, b) => {
@@ -150,7 +158,7 @@ export default function WeeklyBonus() {
       if (c !== 0) return c;
       return a.dealer.name.localeCompare(b.dealer.name);
     });
-  }, [dealers, attendance, rota, entries, days, attDraft]);
+  }, [dealers, attendance, rota, entries, days, attDraft, extraDraft, bonusDraft]);
 
   const totalPoints = rows.reduce((s, r) => s + r.points, 0);
   const poolAmount = calculated ? (parseInt(poolInput.replace(/\s/g, ""), 10) || 0) : 0;
