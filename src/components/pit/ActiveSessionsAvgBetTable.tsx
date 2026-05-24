@@ -148,6 +148,7 @@ export function ActiveSessionsAvgBetTable({ sessions, players, tables, canEdit, 
           </tbody>
         </table>
       </div>
+      )}
     </div>
   );
 }
