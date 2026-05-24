@@ -110,10 +110,16 @@ const Incidents = () => {
   const [form, setForm] = useState<IncidentInput>(emptyForm());
   const [uploading, setUploading] = useState(false);
   const [viewPhoto, setViewPhoto] = useState<string | null>(null);
+  // Journal view mode — "day" shows the selected business day, 7d/30d show a rolling window.
+  // The form.incident_date still controls the draft row date independently.
+  const [viewMode, setViewMode] = useState<"day" | "7d" | "30d">("day");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Business-day window 01:00 → 01:00 anchored on the selected date.
-  const { data: incidents = [], isLoading } = useIncidents(null, form.incident_date);
+  // Business-day window for "day", rolling N days for "7d"/"30d".
+  const { data: incidents = [], isLoading } = useIncidents(
+    viewMode === "day" ? null : viewMode === "7d" ? 7 : 30,
+    viewMode === "day" ? form.incident_date : null,
+  );
   const createMut = useCreateIncident();
 
   const { data: rota = [] } = usePitRota(form.incident_date);
