@@ -80,6 +80,7 @@ const CloseTablesPage = lazy(() => import("@/pages/tables/CloseTablesPage"));
 const UserNewPage = lazy(() => import("@/pages/admin/UserNewPage"));
 const UserEditPage = lazy(() => import("@/pages/admin/UserEditPage"));
 const SyncLogPage = lazy(() => import("@/pages/admin/SyncLogPage"));
+const SyncQueuePage = lazy(() => import("@/pages/admin/SyncQueuePage"));
 const WeeklyBonus = lazy(() => import("@/pages/WeeklyBonus"));
 const MonthlyTips = lazy(() => import("@/pages/MonthlyTips"));
 const StaffMaster = lazy(() => import("@/pages/StaffMaster"));
