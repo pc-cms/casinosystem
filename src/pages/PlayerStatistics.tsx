@@ -30,6 +30,7 @@ import { formatCurrency, formatNumberCompact } from "@/lib/currency";
 import { formatCardNumber } from "@/lib/card-number";
 import { offlineMutation } from "@/lib/offline-mutation";
 import { toast } from "sonner";
+import { usePlayerDailyAvgBets } from "@/hooks/use-player-daily-avg-bets";
 
 type TabKey = "day" | "present" | "left";
 
@@ -137,6 +138,23 @@ const PlayerStatistics = () => {
     refetchInterval: isHistorical ? false : 30_000,
   });
   const { data: playersDropSplit } = usePlayersDropSplit(windowStartUTC, windowEndUTC);
+
+  // Daily avg bet (manual entry). Single-day only — for multi-day periods we don't show breakdown.
+  const isSingleDay = fromDate === toDate;
+  const { data: dailyAvgBets = [] } = usePlayerDailyAvgBets(isSingleDay ? fromDate : undefined);
+  const dailyAvgBetByPlayer = useMemo(() => {
+    const m = new Map<string, { ar: number | null; bg: number | null; poker: number | null }>();
+    dailyAvgBets.forEach(b => m.set(b.player_id, {
+      ar: b.avg_bet_ar, bg: b.avg_bet_bg, poker: b.avg_bet_poker,
+    }));
+    return m;
+  }, [dailyAvgBets]);
+  const summaryAvgBet = (pid: string): number => {
+    const b = dailyAvgBetByPlayer.get(pid);
+    if (!b) return 0;
+    const vals = [b.ar, b.bg, b.poker].filter((v): v is number => v != null && v > 0);
+    return vals.length ? Math.max(...vals) : 0;
+  };
 
   const shiftDate = (delta: number) => {
     const next = subDays(date, delta);
@@ -328,7 +346,7 @@ const PlayerStatistics = () => {
         exitAt: v.checked_out_at as string | null,
         position: v.position as string,
         tableName,
-        avgBet: activeSession ? Number(activeSession.avg_bet || 0) : 0,
+        avgBet: summaryAvgBet(v.player_id) || (activeSession ? Number(activeSession.avg_bet || 0) : 0),
         inDrop,
         out,
         dropR: visitDropR,
@@ -341,7 +359,7 @@ const PlayerStatistics = () => {
         isPresent,
       };
     }).filter(Boolean) as Array<NonNullable<ReturnType<typeof Object>>>;
-  }, [visits, players, visitFin, activeSessionByPlayer, tableNameById, playersDropSplit, playerInDropSum]);
+  }, [visits, players, visitFin, activeSessionByPlayer, tableNameById, playersDropSplit, playerInDropSum, dailyAvgBetByPlayer]);
 
   // For multi-day periods, group rows per player so the same player isn't repeated for each visit.
   const displayRows = useMemo(() => {
@@ -670,7 +688,7 @@ const PlayerStatistics = () => {
         <td className="px-2 py-1.5 font-mono text-[11px] text-center w-12">{r.visits || "·"}</td>
         <td className="px-1 py-1.5 font-mono text-xs w-[44px] text-center">{formatTime(r.entryAt)}</td>
         <td className="px-1 py-1.5 font-mono text-xs w-[44px] text-center">{r.exitAt ? formatTime(r.exitAt) : "·"}</td>
-        <td className="px-1 py-1.5 w-[64px]">{renderPositionCell(r)}</td>
+        
         {showFinancials && (() => {
           const Money = ({ value, sign = false }: { value: number; sign?: boolean }) => {
             if (!value) return <>·</>;
@@ -679,8 +697,13 @@ const PlayerStatistics = () => {
           };
           return (
             <>
-              <td className="px-2 py-1.5 font-mono text-sm text-right whitespace-nowrap min-w-[90px]">
-                <Money value={r.avgBet} />
+              <td className="px-2 py-1.5 font-mono text-sm text-right whitespace-nowrap min-w-[90px]" onClick={(e) => e.stopPropagation()}>
+                <AvgBetPopover
+                  playerId={r.playerId}
+                  isSingleDay={isSingleDay}
+                  bets={dailyAvgBetByPlayer.get(r.playerId)}
+                  fallback={r.avgBet}
+                />
               </td>
               <td className="px-2 py-1.5 font-mono text-sm text-right whitespace-nowrap min-w-[120px]" title="Drop — NEP-aware (external cash only)">
                 <Money value={r.dropR} />
@@ -873,7 +896,7 @@ const PlayerStatistics = () => {
                           <H k="visits" align="left" title="Visits in selected period">Vis</H>
                           <H k="entry">Entry</H>
                           <H k="exit">Left</H>
-                          <H k="position">Pos</H>
+                          
                           {showFinancials && (
                             <>
                               <H k="avgBet" align="right">Bet</H>
@@ -896,7 +919,6 @@ const PlayerStatistics = () => {
                       <td style={{ top: "calc(var(--ppheader-h, 0px) + 38px)", boxShadow: "inset 0 -2px 0 0 hsl(45 90% 55% / 0.9)" }} className="px-2 py-2 text-left uppercase tracking-wider font-bold sticky left-16 bg-[#F5D061] dark:bg-[#6B5A1A] text-amber-950 dark:text-amber-50 z-30">
                         Total
                       </td>
-                      <td style={{ top: "calc(var(--ppheader-h, 0px) + 38px)", boxShadow: "inset 0 -2px 0 0 hsl(45 90% 55% / 0.9)" }} className="px-1 py-2 sticky bg-[#F5D061] dark:bg-[#6B5A1A] z-20"></td>
                       <td style={{ top: "calc(var(--ppheader-h, 0px) + 38px)", boxShadow: "inset 0 -2px 0 0 hsl(45 90% 55% / 0.9)" }} className="px-1 py-2 sticky bg-[#F5D061] dark:bg-[#6B5A1A] z-20"></td>
                       <td style={{ top: "calc(var(--ppheader-h, 0px) + 38px)", boxShadow: "inset 0 -2px 0 0 hsl(45 90% 55% / 0.9)" }} className="px-1 py-2 sticky bg-[#F5D061] dark:bg-[#6B5A1A] z-20"></td>
                       <td style={{ top: "calc(var(--ppheader-h, 0px) + 38px)", boxShadow: "inset 0 -2px 0 0 hsl(45 90% 55% / 0.9)" }} className="px-1 py-2 sticky bg-[#F5D061] dark:bg-[#6B5A1A] z-20"></td>
@@ -929,7 +951,7 @@ const PlayerStatistics = () => {
                 <tbody>
                   {filtered.length === 0 ? (
                     <tr>
-                      <td colSpan={6 + (showFinancials ? 7 : 0)} className="px-2 py-8 text-center text-muted-foreground text-xs">
+                      <td colSpan={5 + (showFinancials ? 7 : 0)} className="px-2 py-8 text-center text-muted-foreground text-xs">
                         No players to display
                       </td>
                     </tr>
@@ -945,5 +967,56 @@ const PlayerStatistics = () => {
     </PageShell>
   );
 };
+
+function AvgBetPopover({
+  playerId, isSingleDay, bets, fallback,
+}: {
+  playerId: string;
+  isSingleDay: boolean;
+  bets: { ar: number | null; bg: number | null; poker: number | null } | undefined;
+  fallback: number;
+}) {
+  const ar = bets?.ar ?? null;
+  const bg = bets?.bg ?? null;
+  const poker = bets?.poker ?? null;
+  const vals = [ar, bg, poker].filter((v): v is number => v != null && v > 0);
+  const display = vals.length ? Math.max(...vals) : fallback;
+  if (!isSingleDay) {
+    return display ? <span>{formatCurrency(display)}</span> : <span>·</span>;
+  }
+  if (!display) {
+    return <span className="text-muted-foreground">·</span>;
+  }
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="font-mono hover:text-primary cursor-pointer"
+          title="Click to see AR / BG / Poker breakdown"
+        >
+          {formatCurrency(display)}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-44 p-2">
+        <p className="text-[10px] uppercase text-muted-foreground tracking-wider mb-1.5 px-1">Avg Bet by Game</p>
+        <div className="space-y-1">
+          {[
+            { label: "AR", value: ar },
+            { label: "BG", value: bg },
+            { label: "Poker", value: poker },
+          ].map(g => (
+            <div key={g.label} className="flex items-center justify-between px-1.5 py-1 rounded hover:bg-muted/40">
+              <span className="text-xs font-semibold text-muted-foreground">{g.label}</span>
+              <span className={`font-mono text-sm ${g.value == null ? "text-muted-foreground/40" : "text-card-foreground"}`}>
+                {g.value == null ? "·" : formatCurrency(g.value)}
+              </span>
+            </div>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 export default PlayerStatistics;

@@ -3430,6 +3430,122 @@ export type Database = {
           },
         ]
       }
+      player_daily_avg_bet_changes: {
+        Row: {
+          business_date: string
+          casino_id: string
+          changed_at: string
+          changed_by: string | null
+          game_group: string
+          id: string
+          player_id: string
+          value: number
+        }
+        Insert: {
+          business_date: string
+          casino_id: string
+          changed_at?: string
+          changed_by?: string | null
+          game_group: string
+          id?: string
+          player_id: string
+          value: number
+        }
+        Update: {
+          business_date?: string
+          casino_id?: string
+          changed_at?: string
+          changed_by?: string | null
+          game_group?: string
+          id?: string
+          player_id?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "player_daily_avg_bet_changes_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "player_daily_avg_bet_changes_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "player_economy"
+            referencedColumns: ["player_id"]
+          },
+          {
+            foreignKeyName: "player_daily_avg_bet_changes_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      player_daily_avg_bets: {
+        Row: {
+          avg_bet_ar: number | null
+          avg_bet_bg: number | null
+          avg_bet_poker: number | null
+          business_date: string
+          casino_id: string
+          created_at: string
+          id: string
+          player_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          avg_bet_ar?: number | null
+          avg_bet_bg?: number | null
+          avg_bet_poker?: number | null
+          business_date: string
+          casino_id: string
+          created_at?: string
+          id?: string
+          player_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          avg_bet_ar?: number | null
+          avg_bet_bg?: number | null
+          avg_bet_poker?: number | null
+          business_date?: string
+          casino_id?: string
+          created_at?: string
+          id?: string
+          player_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "player_daily_avg_bets_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "player_daily_avg_bets_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "player_economy"
+            referencedColumns: ["player_id"]
+          },
+          {
+            foreignKeyName: "player_daily_avg_bets_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       player_groups: {
         Row: {
           casino_id: string
@@ -5390,6 +5506,10 @@ export type Database = {
       finalize_open_cycles_for_close: {
         Args: { _casino_id: string; _user: string }
         Returns: Json
+      }
+      finalize_player_daily_avg_bets: {
+        Args: { p_business_date: string; p_casino_id: string }
+        Returns: number
       }
       gc_pending_server_registrations: { Args: never; Returns: undefined }
       generate_card_number: { Args: never; Returns: string }
