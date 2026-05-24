@@ -15,6 +15,8 @@ import { cn } from "@/lib/utils";
  */
 export const OfflineBanner = () => {
   const { status, pendingCount } = useNetworkStatus();
+  const { roles } = useAuth();
+  const canViewQueue = roles.includes("manager" as any) || roles.includes("super_admin" as any);
   const [chunkMissing, setChunkMissing] = useState(false);
 
   useEffect(() => {
