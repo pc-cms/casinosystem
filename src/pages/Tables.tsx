@@ -546,6 +546,16 @@ const Tables = () => {
       </div>
       {tables.length === 0 && <p className="text-muted-foreground text-sm text-center py-8">No tables configured</p>}
 
+      <ActiveSessionsAvgBetTable
+        sessions={sessions as any}
+        players={players as any}
+        tables={tables as any}
+        canEdit={!isReadOnly}
+        onUpdateBet={(pid, bet) => updateAvgBet.mutate({ playerId: pid, avgBet: bet })}
+      />
+
+
+
 
       <TableSeatingDialog
         open={!!openTableId}
