@@ -5781,7 +5781,14 @@ export type Database = {
         | "driver"
         | "reception"
       table_status: "open" | "closed"
-      transaction_type: "buy" | "cashout" | "in" | "out"
+      transaction_type:
+        | "buy"
+        | "cashout"
+        | "in"
+        | "out"
+        | "tips_live"
+        | "tips_poker"
+        | "tips_floor"
       wallet_tx_type:
         | "transfer"
         | "allocate_reserve"
@@ -6013,7 +6020,15 @@ export const Constants = {
         "reception",
       ],
       table_status: ["open", "closed"],
-      transaction_type: ["buy", "cashout", "in", "out"],
+      transaction_type: [
+        "buy",
+        "cashout",
+        "in",
+        "out",
+        "tips_live",
+        "tips_poker",
+        "tips_floor",
+      ],
       wallet_tx_type: [
         "transfer",
         "allocate_reserve",
