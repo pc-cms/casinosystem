@@ -118,7 +118,7 @@ export function PlayerDailyAvgBetTable({ businessDate, players, visits, canEdit 
           category: ((p.category as PlayerCategory) || "normal") as PlayerCategory,
           firstName: p.first_name || "",
           lastName: p.last_name || "",
-          visits: visitNumByPlayer.get(v.player_id) || 1,
+          visits: lifetimeVisitsByPlayer[v.player_id] ?? 0,
           entryAt: v.checked_in_at,
           exitAt: v.checked_out_at,
           isPresent: !v.checked_out_at,
