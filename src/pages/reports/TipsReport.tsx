@@ -9,7 +9,7 @@ import { addMonths, format, startOfMonth, endOfMonth } from "date-fns";
 import { Coins, ChevronLeft, ChevronRight } from "lucide-react";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { PageSection } from "@/components/layout/PageSection";
+import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { Button } from "@/components/ui/button";
 import { useTipsByRange } from "@/hooks/use-tips";
 import { supabase } from "@/integrations/supabase/client";
