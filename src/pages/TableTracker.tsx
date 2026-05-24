@@ -277,6 +277,10 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
           </p>
         )}
       </PageSection>
+
+      <PageSection card title="Per-table result · 30-min slots (18:00 → 05:00)">
+        <TableAnalyticsChart date={date} />
+      </PageSection>
       </>
       )}
     </Wrapper>
