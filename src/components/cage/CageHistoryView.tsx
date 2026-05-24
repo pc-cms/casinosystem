@@ -126,8 +126,10 @@ const CageHistoryView = () => {
   );
 
   const isInTx = (t: string) => t === "buy" || t === "in";
-  const ins = transactions.filter((t: any) => isInTx(t.type));
-  const outs = transactions.filter((t: any) => !isInTx(t.type));
+  const liveTx = transactions.filter((t: any) => !t.cancelled_at);
+  const canceledTx = transactions.filter((t: any) => !!t.cancelled_at);
+  const ins = liveTx.filter((t: any) => isInTx(t.type));
+  const outs = liveTx.filter((t: any) => !isInTx(t.type));
 
   const shiftDate = (delta: number) => {
     const next = subDays(date, delta);
