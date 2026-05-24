@@ -64,7 +64,7 @@ const PokerTipsReport = lazy(() => import("@/pages/reports/PokerTipsReport"));
 const FloorTipsReport = lazy(() => import("@/pages/reports/FloorTipsReport"));
 const CancelledTransactions = lazy(() => import("@/pages/CancelledTransactions"));
 const TableTracker = lazy(() => import("@/pages/TableTracker"));
-const TablesAnalytics = lazy(() => import("@/pages/TablesAnalytics"));
+
 const PlayerStatistics = lazy(() => import("@/pages/PlayerStatistics"));
 const Cashless = lazy(() => import("@/pages/Cashless"));
 const BusinessDays = lazy(() => import("@/pages/BusinessDays"));
