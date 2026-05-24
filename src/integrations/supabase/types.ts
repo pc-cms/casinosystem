@@ -4609,6 +4609,7 @@ export type Database = {
           player_id: string
           shift_id: string | null
           table_id: string | null
+          tips_recipient_employee_id: string | null
           type: Database["public"]["Enums"]["transaction_type"]
         }
         Insert: {
@@ -4625,6 +4626,7 @@ export type Database = {
           player_id: string
           shift_id?: string | null
           table_id?: string | null
+          tips_recipient_employee_id?: string | null
           type: Database["public"]["Enums"]["transaction_type"]
         }
         Update: {
@@ -4641,6 +4643,7 @@ export type Database = {
           player_id?: string
           shift_id?: string | null
           table_id?: string | null
+          tips_recipient_employee_id?: string | null
           type?: Database["public"]["Enums"]["transaction_type"]
         }
         Relationships: [
@@ -4677,6 +4680,13 @@ export type Database = {
             columns: ["table_id"]
             isOneToOne: false
             referencedRelation: "gaming_tables"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_tips_recipient_employee_id_fkey"
+            columns: ["tips_recipient_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
             referencedColumns: ["id"]
           },
         ]
