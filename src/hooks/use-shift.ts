@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { logAction } from "@/lib/logging";
 import { toast } from "sonner";
+import { offlineMutation } from "@/lib/offline-mutation";
 
 // ============ LAST CLOSED SHIFT (for carrying over rates) ============
 export const useLastClosedShift = () => {
@@ -180,25 +181,54 @@ export const useCloseShift = () => {
         cash: (input.closing_count as any)?.cash,
         mobile: (input.closing_count as any)?.mobile,
         bank: (input.closing_count as any)?.bank,
+        offline: !navigator.onLine,
       });
+
+      const closingNotes = navigator.onLine
+        ? input.notes
+        : `[OFFLINE CLOSE — pending server reconciliation]\n${input.notes}`;
+
+      const updatePayload = {
+        status: "closed" as const,
+        closed_at: new Date().toISOString(),
+        closed_by: user.id,
+        closing_count: {
+          ...input.closing_count,
+          ...(navigator.onLine ? {} : { requires_review: true, closed_offline: true }),
+        },
+        closing_cash: {
+          ...input.closing_cash,
+          cash_result: cashResultFinal,
+          shift_result: tablesResultFinal,
+        },
+        notes: closingNotes,
+        cash_result: cashResultFinal,
+        miss_total: missTotalFinal,
+        shift_result: tablesResultFinal,
+      };
+
+      // OFFLINE PATH — queue the UPDATE; DB trigger will reconcile on sync.
+      // We deliberately skip compute_shift_close RPC (server-side balance
+      // verification) until the row actually reaches the database.
+      if (!navigator.onLine) {
+        const res = await offlineMutation({
+          table: "shifts",
+          operation: "update",
+          payload: { ...updatePayload, _match: { id: input.shift_id } },
+          meta: { kind: "SHIFT_CLOSE", shift_id: input.shift_id },
+        });
+        if (res.error) throw new Error(res.error);
+        await logAction(casinoId, "system", "SHIFT_CLOSED_OFFLINE", {
+          shift_id: input.shift_id,
+          queued: true,
+          requires_review: true,
+        });
+        return;
+      }
 
       const { error } = await supabase
         .from("shifts")
-        .update({
-          status: "closed",
-          closed_at: new Date().toISOString(),
-          closed_by: user.id,
-          closing_count: input.closing_count,
-          closing_cash: {
-            ...input.closing_cash,
-            cash_result: cashResultFinal,
-            shift_result: tablesResultFinal,
-          },
-          notes: input.notes,
-          cash_result: cashResultFinal,
-          miss_total: missTotalFinal,
-          shift_result: tablesResultFinal,
-        } as any)
+        .update(updatePayload as any)
         .eq("id", input.shift_id);
       if (error) {
         await logAction(casinoId, "system", "SHIFT_CLOSE_FAILED", {
@@ -267,7 +297,7 @@ export const useCloseShift = () => {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["active-shift"] });
-      toast.success("Shift closed");
+      toast.success(navigator.onLine ? "Shift closed" : "Shift queued for sync — requires manager review on reconnect");
     },
     onError: (e) => toast.error(e.message),
   });
