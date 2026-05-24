@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
+import { useCasino } from "@/lib/casino-context";
 
 /**
  * Monthly Tips — mirror of Weekly Bonus, but period is always
@@ -68,7 +69,7 @@ export interface MonthlyTipsPool {
 }
 
 export const useMonthlyTipsEntries = (periodStart: string) => {
-  const { casinoId } = useAuth();
+  const { activeCasinoId: casinoId } = useCasino();
   return useQuery({
     queryKey: ["monthly-tips-entries", casinoId, periodStart],
     queryFn: async () => {
@@ -86,7 +87,7 @@ export const useMonthlyTipsEntries = (periodStart: string) => {
 };
 
 export const useMonthlyTipsPool = (periodStart: string) => {
-  const { casinoId } = useAuth();
+  const { activeCasinoId: casinoId } = useCasino();
   return useQuery({
     queryKey: ["monthly-tips-pool", casinoId, periodStart],
     queryFn: async () => {
@@ -106,7 +107,7 @@ export const useMonthlyTipsPool = (periodStart: string) => {
 
 export const useUpsertMonthlyTipsEntry = () => {
   const qc = useQueryClient();
-  const { casinoId } = useAuth();
+  const { activeCasinoId: casinoId } = useCasino();
   return useMutation({
     mutationFn: async (input: { dealer_id: string; period_start: string; extra_override?: number | null; bonus_points?: number }) => {
       if (!casinoId) throw new Error("No casino");
@@ -154,7 +155,8 @@ export const useUpsertMonthlyTipsEntry = () => {
 
 export const useUpsertMonthlyTipsPool = () => {
   const qc = useQueryClient();
-  const { casinoId, user } = useAuth();
+  const { user } = useAuth();
+  const { activeCasinoId: casinoId } = useCasino();
   return useMutation({
     mutationFn: async (input: { period_start: string; pool_amount: number; currency?: string; calculate: boolean }) => {
       if (!casinoId) throw new Error("No casino");
