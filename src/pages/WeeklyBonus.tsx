@@ -221,31 +221,8 @@ export default function WeeklyBonus({ belowHeader }: { belowHeader?: ReactNode }
 
   return (
     <PageShell>
-      {/* Print sizing: fit one A4 landscape page. Uses global .print-target + .no-print system from index.css */}
-      <style>{`
-        @media print {
-          @page { size: A4 landscape; margin: 5mm; }
-          html, body { margin: 0 !important; padding: 0 !important; background: #fff !important; }
-          body * { visibility: hidden !important; }
-          .wb-print-target, .wb-print-target * { visibility: visible !important; }
-          .wb-print-target {
-            position: absolute !important;
-            left: 0 !important; top: 0 !important; right: 0 !important;
-            margin: 0 !important; padding: 0 !important;
-            border: 0 !important; background: #fff !important;
-            font-size: 9pt !important;
-          }
-          .wb-print-target table { font-size: 8.5pt !important; table-layout: fixed; width: 100% !important; }
-          .wb-print-target th, .wb-print-target td { padding: 0px 2px !important; border: 0.5px solid #999 !important; }
-          .wb-print-target thead th { height: 11px !important; }
-          .wb-print-target tbody tr { height: 10px !important; }
-          .wb-print-target .wb-cell { height: 9px !important; padding: 0 !important; }
-          .wb-print-target input { font-size: 8.5pt !important; height: 9px !important; line-height: 9px !important; }
-          .wb-sign-cell { min-width: 90px; border-bottom: 0.5px solid #000 !important; }
-        }
-      `}</style>
-
       <PageHeader
+
         icon={Gift}
         title="Weekly Bonus"
         subtitle="Distribute a bonus pool across Live Game staff (Sun – Sat)"
@@ -568,6 +545,31 @@ export default function WeeklyBonus({ belowHeader }: { belowHeader?: ReactNode }
         )}
         </div>
       </PageSection>
+
+      {/* Print sizing: fit one A4 landscape page. Uses global .print-target + .no-print system from index.css */}
+      <style>{`
+        @media print {
+          @page { size: A4 landscape; margin: 5mm; }
+          html, body { margin: 0 !important; padding: 0 !important; background: #fff !important; }
+          body * { visibility: hidden !important; }
+          .wb-print-target, .wb-print-target * { visibility: visible !important; }
+          .wb-print-target {
+            position: absolute !important;
+            left: 0 !important; top: 0 !important; right: 0 !important;
+            margin: 0 !important; padding: 0 !important;
+            border: 0 !important; background: #fff !important;
+            font-size: 9pt !important;
+          }
+          .wb-print-target table { font-size: 8.5pt !important; table-layout: fixed; width: 100% !important; }
+          .wb-print-target th, .wb-print-target td { padding: 0px 2px !important; border: 0.5px solid #999 !important; }
+          .wb-print-target thead th { height: 11px !important; }
+          .wb-print-target tbody tr { height: 10px !important; }
+          .wb-print-target .wb-cell { height: 9px !important; padding: 0 !important; }
+          .wb-print-target input { font-size: 8.5pt !important; height: 9px !important; line-height: 9px !important; }
+          .wb-sign-cell { min-width: 90px; border-bottom: 0.5px solid #000 !important; }
+        }
+      `}</style>
     </PageShell>
+
   );
 }

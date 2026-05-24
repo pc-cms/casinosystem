@@ -215,28 +215,8 @@ export default function MonthlyTips({ belowHeader }: { belowHeader?: ReactNode }
 
   return (
     <PageShell>
-      <style>{`
-        @media print {
-          @page { size: A4 landscape; margin: 8mm; }
-          html, body { margin: 0 !important; padding: 0 !important; background: #fff !important; }
-          body * { visibility: hidden !important; }
-          .mt-print-target, .mt-print-target * { visibility: visible !important; }
-          .mt-print-target {
-            position: absolute !important;
-            left: 0 !important; top: 0 !important; right: 0 !important;
-            margin: 0 !important; padding: 0 !important;
-            border: 0 !important; background: #fff !important;
-            font-size: 10pt !important;
-          }
-          .mt-print-target table { font-size: 10pt !important; table-layout: fixed; width: 100% !important; }
-          .mt-print-target th, .mt-print-target td { padding: 2px 4px !important; border: 0.5px solid #666 !important; }
-          .mt-print-target thead th { height: 18px !important; background: #eee !important; color: #000 !important; }
-          .mt-print-target tbody tr { height: 22px !important; }
-          .mt-sign-cell { min-width: 140px; border-bottom: 0.5px solid #000 !important; }
-        }
-      `}</style>
-
       <PageHeader
+
         icon={Coins}
         title="Monthly Tips"
         subtitle="Distribute a tips pool across Live Game staff (16th – 15th)"
@@ -572,6 +552,28 @@ export default function MonthlyTips({ belowHeader }: { belowHeader?: ReactNode }
         )}
         </div>
       </PageSection>
+
+      <style>{`
+        @media print {
+          @page { size: A4 landscape; margin: 8mm; }
+          html, body { margin: 0 !important; padding: 0 !important; background: #fff !important; }
+          body * { visibility: hidden !important; }
+          .mt-print-target, .mt-print-target * { visibility: visible !important; }
+          .mt-print-target {
+            position: absolute !important;
+            left: 0 !important; top: 0 !important; right: 0 !important;
+            margin: 0 !important; padding: 0 !important;
+            border: 0 !important; background: #fff !important;
+            font-size: 10pt !important;
+          }
+          .mt-print-target table { font-size: 10pt !important; table-layout: fixed; width: 100% !important; }
+          .mt-print-target th, .mt-print-target td { padding: 2px 4px !important; border: 0.5px solid #666 !important; }
+          .mt-print-target thead th { height: 18px !important; background: #eee !important; color: #000 !important; }
+          .mt-print-target tbody tr { height: 22px !important; }
+          .mt-sign-cell { min-width: 140px; border-bottom: 0.5px solid #000 !important; }
+        }
+      `}</style>
     </PageShell>
+
   );
 }
