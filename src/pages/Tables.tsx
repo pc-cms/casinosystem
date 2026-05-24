@@ -351,9 +351,11 @@ const Tables = () => {
   const totalDrop = Object.values(tableStats).reduce((s, r) => s + r.drop, 0);
   const totalResult = Object.values(tableStats).reduce((s, r) => s + r.result, 0);
 
-  const pokerGames = ["Poker", "Texas Holdem", "Omaha", "PLO"];
-  const leftTables = tables.filter(t => !pokerGames.includes(t.game)).sort((a, b) => a.name.localeCompare(b.name));
-  const rightTables = tables.filter(t => pokerGames.includes(t.game)).sort((a, b) => a.name.localeCompare(b.name));
+  const pokerGames = ["Poker", "Texas Holdem", "Omaha", "PLO", "Club Poker"];
+  const byOrder = (a: any, b: any) =>
+    ((a.display_order ?? 0) - (b.display_order ?? 0)) || a.name.localeCompare(b.name);
+  const leftTables = tables.filter(t => !pokerGames.includes(t.game)).sort(byOrder);
+  const rightTables = tables.filter(t => pokerGames.includes(t.game)).sort(byOrder);
 
   const openTable = openTableId ? (tables.find(t => t.id === openTableId) as FloorTable | undefined) ?? null : null;
   const seatedHere = openTableId ? (seatedByTable[openTableId] || []) : [];
