@@ -102,7 +102,7 @@ const NAV_ITEMS: NavItem[] = [
 
   { to: "/table-results", icon: FileText, label: "Table Results", roles: ["super_admin", "manager", "floor_manager", "finance_manager", "surveillance"], section: "ANALYTICS" },
   { to: "/business-days", icon: CalendarDays, label: "Business Days", roles: ["super_admin", "manager", "floor_manager", "finance_manager"], section: "ANALYTICS" },
-  { to: "/cancelled-transactions", icon: Ban, label: "Cancelled Tx", roles: ["super_admin", "manager", "floor_manager", "finance_manager", "surveillance", "cashier"], section: "ANALYTICS" },
+  
   
 
   // SYSTEM — admin/system tools
