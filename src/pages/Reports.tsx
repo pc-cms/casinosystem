@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatCurrency } from "@/lib/currency";
 import { Badge } from "@/components/ui/badge";
-import { BarChart3, Table2, Users, Receipt, Grid3X3, Landmark, UsersRound, FileBarChart, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
+import { BarChart3, Table2, Users, Receipt, Grid3X3, Landmark, UsersRound, FileBarChart, ArrowUp, ArrowDown, ArrowUpDown, Coins } from "lucide-react";
+import MissChips from "@/pages/MissChips";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { fmtDate } from "@/lib/format-date";
 import { supabase } from "@/integrations/supabase/client";
@@ -106,6 +107,7 @@ const Reports = () => {
           <TabsTrigger value="groups" className="gap-1 text-xs"><UsersRound className="w-3.5 h-3.5" /> Groups</TabsTrigger>
           <TabsTrigger value="expenses" className="gap-1 text-xs"><Receipt className="w-3.5 h-3.5" /> Expenses</TabsTrigger>
           <TabsTrigger value="tracker" className="gap-1 text-xs"><Grid3X3 className="w-3.5 h-3.5" /> Tracker</TabsTrigger>
+          <TabsTrigger value="miss-chips" className="gap-1 text-xs"><Coins className="w-3.5 h-3.5" /> Miss Chips</TabsTrigger>
         </TabsList>
 
         <TabsContent value="shifts"><ShiftReport from={from} to={to} /></TabsContent>
@@ -114,6 +116,7 @@ const Reports = () => {
         <TabsContent value="groups"><GroupReport from={from} to={to} /></TabsContent>
         <TabsContent value="expenses"><ExpenseReport from={from} to={to} /></TabsContent>
         <TabsContent value="tracker"><TrackerReport from={from} to={to} /></TabsContent>
+        <TabsContent value="miss-chips"><MissChips /></TabsContent>
       </Tabs>
     </div>
   );
