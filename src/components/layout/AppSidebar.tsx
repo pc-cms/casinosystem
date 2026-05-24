@@ -458,7 +458,7 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
                   ? location.pathname === itemBase && currentTab === itemTab
                   : item.to === "/"
                     ? location.pathname === "/"
-                    : location.pathname.startsWith(itemBase);
+                    : EXACT_NAV_PATHS.has(itemBase) ? location.pathname === itemBase : location.pathname.startsWith(itemBase);
               return (
                 <Tooltip key={item.to}>
                   <TooltipTrigger asChild>
@@ -781,8 +781,7 @@ export const MobileHeader = () => {
     NAV_ITEMS.find(item => {
       const { base, tab } = parseItemTo(item.to);
       if (tab !== null) return false;
-      if (base === "/") return location.pathname === "/";
-      return location.pathname.startsWith(base);
+      return routeMatchesNavItem(location.pathname, item.to);
     });
   const pageTitle = currentItem?.label || "CMS";
 
