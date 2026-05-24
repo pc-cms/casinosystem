@@ -169,9 +169,17 @@ const CageHistoryView = () => {
       </PageHeader>
 
       <Tabs defaultValue="inout" className="space-y-3">
-        <TabsList className="w-full grid grid-cols-5 h-11">
+        <TabsList className="w-full grid grid-cols-6 h-11">
           <TabsTrigger value="inout" className="gap-1.5 text-sm font-semibold">
             <ArrowDownToLine className="w-4 h-4" /> IN / OUT
+          </TabsTrigger>
+          <TabsTrigger value="canceled" className="gap-1.5 text-sm font-semibold">
+            <Ban className="w-4 h-4" /> Canceled TX
+            {canceledTx.length > 0 && (
+              <Badge variant="outline" className="ml-1 h-4 px-1 text-[9px] border-destructive/40 text-destructive">
+                {canceledTx.length}
+              </Badge>
+            )}
           </TabsTrigger>
           <TabsTrigger value="checks" className="gap-1.5 text-sm font-semibold">
             <Calculator className="w-4 h-4" /> Checks
