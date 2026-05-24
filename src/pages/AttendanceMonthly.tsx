@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useAuth } from "@/lib/auth-context";
 import {
-  useMonthlyAttendance, useHolidays, useUpsertHoliday, useDeleteHoliday, useSetAttendanceHours,
+  useMonthlyAttendance, useHolidays, useUpsertHoliday, useDeleteHoliday, useSetAttendanceHours, useSetAttendanceCode,
   type MonthlyAttendanceRow,
 } from "@/hooks/use-attendance-monthly";
 import { buildDisplayNames, splitFullName } from "@/lib/display-name";
