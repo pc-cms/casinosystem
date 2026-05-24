@@ -47,7 +47,7 @@ const routeLoaders: Loader[] = [
   () => import("@/pages/MissChips"),
   () => import("@/pages/CancelledTransactions"),
   () => import("@/pages/TableTracker"),
-  () => import("@/pages/TablesAnalytics"),
+  
   () => import("@/pages/PlayerStatistics"),
   () => import("@/pages/Cashless"),
   () => import("@/pages/BusinessDays"),
