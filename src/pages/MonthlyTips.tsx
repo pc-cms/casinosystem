@@ -106,13 +106,16 @@ export default function MonthlyTips() {
 
   // Local edit buffer for attendance cells (keyed by `${dealerId}|${date}`).
   const [attDraft, setAttDraft] = useState<Record<string, string>>({});
+  // Live edit buffers for Extra / Bonus — PTS updates as the user types.
+  const [extraDraft, setExtraDraft] = useState<Record<string, string>>({});
+  const [bonusDraft, setBonusDraft] = useState<Record<string, string>>({});
 
   useEffect(() => {
     setPoolInput(pool?.pool_amount ? String(pool.pool_amount) : "");
     setCalculated(!!pool?.is_calculated);
   }, [pool?.pool_amount, pool?.is_calculated, periodStart]);
 
-  useEffect(() => { setAttDraft({}); }, [periodStart]);
+  useEffect(() => { setAttDraft({}); setExtraDraft({}); setBonusDraft({}); }, [periodStart]);
 
   // Cashier's editable bill counts for payout preparation. Resets on recompute.
   const [payoutOverride, setPayoutOverride] = useState<Record<number, number> | null>(null);
@@ -141,11 +144,19 @@ export default function MonthlyTips() {
         return { att, shift, parsed: p, key, day };
       });
       const entry = entryMap.get(d.id);
-      const extra = entry?.extra_override ?? extraComputed;
-      const bonusPts = entry?.bonus_points ?? 0;
+      const storedExtra = entry?.extra_override ?? extraComputed;
+      const storedBonus = entry?.bonus_points ?? 0;
+      const eDraft = extraDraft[d.id];
+      const bDraft = bonusDraft[d.id];
+      const extra = eDraft !== undefined
+        ? (eDraft.trim() === "" ? 0 : (parseInt(eDraft, 10) || 0))
+        : storedExtra;
+      const bonusPts = bDraft !== undefined
+        ? (bDraft.trim() === "" ? 0 : (parseInt(bDraft, 10) || 0))
+        : storedBonus;
       const points = hours + extra + bonusPts;
       const cat = d.is_pit_boss ? "pit_boss" : (d.category || "dealer");
-      return { dealer: d, cells, hours, extraComputed, extra, bonusPts, points, cat };
+      return { dealer: d, cells, hours, extraComputed, extra, bonusPts, storedExtra, storedBonus, points, cat };
     });
 
     return out.sort((a, b) => {
@@ -153,7 +164,7 @@ export default function MonthlyTips() {
       if (c !== 0) return c;
       return a.dealer.name.localeCompare(b.dealer.name);
     });
-  }, [dealers, attendance, rota, entries, days, attDraft]);
+  }, [dealers, attendance, rota, entries, days, attDraft, extraDraft, bonusDraft]);
 
   const totalPoints = rows.reduce((s, r) => s + r.points, 0);
   const poolAmount = calculated ? (parseInt(poolInput.replace(/\s/g, ""), 10) || 0) : 0;
@@ -438,20 +449,28 @@ export default function MonthlyTips() {
                       <Input
                         type="text" inputMode="numeric"
                         className="w-12 h-7 text-center font-mono mx-auto px-1 text-xs"
-                        defaultValue={r.extra}
-                        key={`extra-${r.dealer.id}-${periodStart}-${r.extra}`}
+                        value={extraDraft[r.dealer.id] ?? String(r.storedExtra)}
                         disabled={locked}
-                        onBlur={(e) => {
-                          const el = e.target as HTMLInputElement;
-                          if (el.value === el.defaultValue) return;
-                          const v = parseInt(el.value, 10);
+                        onChange={(e) => {
+                          const v = e.target.value.replace(/[^0-9]/g, "");
+                          setExtraDraft((d) => ({ ...d, [r.dealer.id]: v }));
                           setCalculated(false);
+                        }}
+                        onBlur={() => {
+                          const raw = extraDraft[r.dealer.id];
+                          if (raw === undefined) return;
+                          const next = raw.trim() === "" ? 0 : (parseInt(raw, 10) || 0);
+                          if (next === r.storedExtra) {
+                            setExtraDraft((d) => { const n = { ...d }; delete n[r.dealer.id]; return n; });
+                            return;
+                          }
                           upsertEntry.mutate({
                             dealer_id: r.dealer.id,
                             period_start: periodStart,
-                            extra_override: isNaN(v) ? 0 : v,
+                            extra_override: next,
                             bonus_points: r.bonusPts,
                           });
+                          setExtraDraft((d) => { const n = { ...d }; delete n[r.dealer.id]; return n; });
                         }}
                         onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
                       />
@@ -460,21 +479,29 @@ export default function MonthlyTips() {
                       <Input
                         type="text" inputMode="numeric"
                         className="w-12 h-7 text-center font-mono mx-auto px-1 text-xs"
-                        defaultValue={r.bonusPts || ""}
-                        key={`bonus-${r.dealer.id}-${periodStart}-${r.bonusPts}`}
+                        value={bonusDraft[r.dealer.id] ?? (r.storedBonus ? String(r.storedBonus) : "")}
                         placeholder="0"
                         disabled={locked}
-                        onBlur={(e) => {
-                          const el = e.target as HTMLInputElement;
-                          if (el.value === el.defaultValue) return;
-                          const v = parseInt(el.value, 10);
+                        onChange={(e) => {
+                          const v = e.target.value.replace(/[^0-9]/g, "");
+                          setBonusDraft((d) => ({ ...d, [r.dealer.id]: v }));
                           setCalculated(false);
+                        }}
+                        onBlur={() => {
+                          const raw = bonusDraft[r.dealer.id];
+                          if (raw === undefined) return;
+                          const next = raw.trim() === "" ? 0 : (parseInt(raw, 10) || 0);
+                          if (next === r.storedBonus) {
+                            setBonusDraft((d) => { const n = { ...d }; delete n[r.dealer.id]; return n; });
+                            return;
+                          }
                           upsertEntry.mutate({
                             dealer_id: r.dealer.id,
                             period_start: periodStart,
                             extra_override: r.extra,
-                            bonus_points: isNaN(v) ? 0 : v,
+                            bonus_points: next,
                           });
+                          setBonusDraft((d) => { const n = { ...d }; delete n[r.dealer.id]; return n; });
                         }}
                         onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
                       />
