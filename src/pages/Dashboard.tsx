@@ -117,6 +117,7 @@ const Dashboard = () => {
       "Texas Holdem": "TOTAL POKER",
       "Omaha": "TOTAL POKER",
       "PLO": "TOTAL POKER",
+      "Club Poker": "TOTAL POKER",
       "Blackjack": "TOTAL BJ",
     };
     tables.forEach(t => {
