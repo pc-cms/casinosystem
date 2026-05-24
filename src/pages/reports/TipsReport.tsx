@@ -145,7 +145,7 @@ export default function TipsReport() {
                 const total = (agg!.live + agg!.poker + agg!.floor);
                 return (
                   <tr key={shift.id} className="border-t">
-                    <td className="px-3 py-2">{fmtDateOnly(shift.business_date)}</td>
+                    <td className="px-3 py-2">{fmtDateOnly(shift.opened_at)}</td>
                     <td className="px-3 py-2 text-xs text-muted-foreground">
                       {fmtDateTime(shift.opened_at)}
                       {shift.closed_at ? ` → ${fmtDateTime(shift.closed_at)}` : " · open"}
