@@ -664,15 +664,25 @@ title "2/4  Параметры локации (auto)"
 : "${CASINO_ID:=00000000-0000-0000-0000-0000000000ca}"
 : "${CASINO_NAME:=Local Casino}"
 : "${CASINO_SLUG:=local}"
+if [[ -n "$PRESET_CASINO_SLUG" ]]; then
+  CASINO_SLUG="$PRESET_CASINO_SLUG"
+  case "$PRESET_CASINO_SLUG" in
+    arusha) CASINO_NAME="Arusha Cloud" ;;
+    premier) CASINO_NAME="Premier Cloud" ;;
+    *) CASINO_NAME="${CASINO_NAME:-$PRESET_CASINO_SLUG}" ;;
+  esac
+fi
 : "${LOCAL_IP:=$(hostname -I 2>/dev/null | awk '{print $1}')}"
 : "${LOCAL_IP:=127.0.0.1}"
 : "${LOCAL_DOMAIN:=casino.local}"
 update_env CASINO_ID     "$CASINO_ID"
 update_env CASINO_NAME   "$CASINO_NAME"
 update_env CASINO_SLUG   "$CASINO_SLUG"
+[[ -n "$PRESET_NODE_ID" ]] && update_env NODE_ID "$PRESET_NODE_ID"
 update_env LOCAL_IP      "$LOCAL_IP"
 update_env LOCAL_DOMAIN  "$LOCAL_DOMAIN"
 ok "Casino: ${CASINO_NAME} (${CASINO_SLUG}) @ ${LOCAL_IP} / ${LOCAL_DOMAIN}"
+[[ -n "$LEGACY_ROLE" || "$LEGACY_SEED" -eq 1 ]] && warn "Флаги --role/--seed приняты для совместимости; режим сервера задаётся через Cloud pairing."
 ok "Поменять можно после установки в Admin → Peers → Server Identity"
 
 normalize_env_file
