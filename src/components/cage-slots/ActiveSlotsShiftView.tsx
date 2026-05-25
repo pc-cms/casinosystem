@@ -306,7 +306,9 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
           <TabsTrigger value="closing">Shift Result</TabsTrigger>
           <TabsTrigger value="cashless">Cashless ({cashless.length})</TabsTrigger>
           <TabsTrigger value="transfers">Transfers</TabsTrigger>
+          <TabsTrigger value="expenses">Expenses ({slotsExpenses.length})</TabsTrigger>
         </TabsList>
+
 
         <TabsContent value="closing" className="space-y-2">
           {/* Combined: Sys Result + Cards on one compact strip, then full cash grid. */}
