@@ -146,6 +146,10 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
 
   // Mid-shift cash check (persists banks + mobile + cash in JSONB so they hydrate on next mount)
   const recordMidCheck = () => {
+    // Expected cash at this moment = opening + system result so far + cashless net (IN−OUT).
+    // Counted = what the cashier physically has right now (closingTotalTzs incl. cards & FX).
+    const expectedNow = openingTotalTzs + systemResult + cashlessNetTzs;
+    const diffNow = closingTotalTzs - expectedNow;
     saveCheck.mutate({
       shift_id: shift.id,
       count_type: "check",
@@ -159,6 +163,10 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
           total_tzs: closingTotalTzs,
           bank_tzs: bankTotalTzs(closingBanks, rateMap),
           mobile_tzs: mobileTotal(closingMobile),
+          expected: expectedNow,
+          counted: closingTotalTzs,
+          difference: diffNow,
+          balanced: diffNow === 0,
         },
       },
       total_tzs: closingTotalTzs,
