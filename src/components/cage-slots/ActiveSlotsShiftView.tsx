@@ -291,9 +291,9 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
             </Button>
           </>
         )}
-        {isReadyForReview && canManage && (
+        {isReadyForReview && (
           <Button onClick={() => setShowApprove(true)} size="sm" className="gap-1.5 h-8" disabled={approve.isPending}>
-            <Save className="w-3.5 h-3.5" /> Approve & Close
+            <Save className="w-3.5 h-3.5" /> Close Shift
           </Button>
         )}
         <Button variant="outline" size="sm" onClick={() => navigate(`/cage-slots/report/${shift.id}`)} className="gap-1.5 h-8">
