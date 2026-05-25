@@ -409,7 +409,11 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
                     kind === "Review"  ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" :
                                          "bg-muted text-muted-foreground";
                   return (
-                    <tr key={c.id} className="border-b border-border/50">
+                    <tr
+                      key={c.id}
+                      onClick={() => setViewerCheck({ ...(c as any), total: (c as any).total_tzs } as Tables<"cash_counts">)}
+                      className="border-b border-border/50 cursor-pointer hover:bg-accent/30 transition-colors"
+                    >
                       <td className="py-1.5 font-mono text-[10px] text-muted-foreground">{fmtDateTime(c.created_at)}</td>
                       <td><span className={`cms-chip text-[9px] h-4 px-1.5 uppercase ${cls}`}>{kind}</span></td>
                       <td className="text-right font-mono">{formatNumberSpaces(Number(c.total_tzs))}</td>
@@ -420,6 +424,11 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
               </tbody>
             </table>
           </PageSection>
+          <CashCheckViewerDialog
+            open={!!viewerCheck}
+            onOpenChange={(o) => { if (!o) setViewerCheck(null); }}
+            check={viewerCheck}
+          />
         </TabsContent>
 
         <TabsContent value="cashless">
