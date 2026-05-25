@@ -38,9 +38,9 @@ const TYPE_OPTIONS: Array<{
     tone: { bg: "bg-amber-500/10", text: "text-amber-400", border: "border-amber-500/30", activeBg: "bg-amber-500/15", activeBorder: "border-amber-500/50" } },
   { value: "credit", label: "Credit (from Table)", icon: ArrowDownLeft, description: "Chips IN from table", needsOverride: false, direction: "in",
     tone: { bg: "bg-sky-500/10", text: "text-sky-400", border: "border-sky-500/30", activeBg: "bg-sky-500/15", activeBorder: "border-sky-500/50" } },
-  { value: "slots_out", label: "Slots Cage Out", icon: Dice5, description: "Cash OUT to slots cashier", needsOverride: false, direction: "out",
+  { value: "slots_out", label: "Cage Slots OUT", icon: Dice5, description: "Cash OUT to slots cashier", needsOverride: false, direction: "out",
     tone: { bg: "bg-orange-500/10", text: "text-orange-400", border: "border-orange-500/30", activeBg: "bg-orange-500/15", activeBorder: "border-orange-500/50" } },
-  { value: "slots_in", label: "Slots Cage In", icon: Coins, description: "Cash IN from slots cashier", needsOverride: false, direction: "in",
+  { value: "slots_in", label: "Cage Slots IN", icon: Coins, description: "Cash IN from slots cashier", needsOverride: false, direction: "in",
     tone: { bg: "bg-teal-500/10", text: "text-teal-400", border: "border-teal-500/30", activeBg: "bg-teal-500/15", activeBorder: "border-teal-500/50" } },
 ];
 
