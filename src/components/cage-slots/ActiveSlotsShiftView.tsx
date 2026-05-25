@@ -1,7 +1,9 @@
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Coins, Send, RotateCcw, Printer, FileText, CreditCard, Save, ArrowLeftRight } from "lucide-react";
+import { Coins, Send, RotateCcw, Printer, FileText, CreditCard, Save, ArrowLeftRight, Receipt } from "lucide-react";
 import SlotsTransfersForm from "./SlotsTransfersForm";
+import { useSlotsExpenses, useCreateSlotsExpense } from "@/hooks/use-expenses";
+
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -46,6 +48,9 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
   const { data: checks = [] } = useSlotsCashCounts(shift.id);
   const { data: cashless = [] } = useSlotsCashless(shift.id);
   const { data: comments = [] } = useSlotsComments(shift.id);
+  const { data: slotsExpenses = [] } = useSlotsExpenses(shift.id);
+  const createExpense = useCreateSlotsExpense();
+
 
   const setSystem = useUpdateSlotsSystemResult();
   const upsertInv = useUpsertSlotsInventory();
@@ -201,6 +206,16 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
   const [clName, setClName] = useState("");
   const [clRef, setClRef] = useState("");
 
+  // Per-provider net totals (signed: IN positive, OUT negative) for current shift cashless rows.
+  const cashlessByProvider = useMemo(() => {
+    const m: Record<string, number> = {};
+    cashless.forEach((t: any) => {
+      const sign = t.direction === "IN" ? 1 : -1;
+      m[t.provider] = (m[t.provider] || 0) + sign * Number(t.amount || 0);
+    });
+    return m;
+  }, [cashless]);
+
   const submitCashless = () => {
     if (!clAmount || !clName.trim()) return;
     createCashless.mutate({
@@ -211,7 +226,27 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
     setClAmount(0); setClName(""); setClRef("");
   };
 
+  // Expense entry
+  const [expCategory, setExpCategory] = useState<string>("other");
+  const [expAmount, setExpAmount] = useState<number>(0);
+  const [expDesc, setExpDesc] = useState("");
+  const submitExpense = () => {
+    if (!expAmount || !expDesc.trim()) return;
+    createExpense.mutate({
+      slots_shift_id: shift.id,
+      category: expCategory,
+      amount: expAmount,
+      description: expDesc,
+    });
+    setExpAmount(0); setExpDesc("");
+  };
+  const totalSlotsExpenses = useMemo(
+    () => slotsExpenses.reduce((s: number, e: any) => s + Number(e.amount || 0), 0),
+    [slotsExpenses],
+  );
+
   const isReadyForReview = shift.status === "ready_for_review";
+
 
   return (
     <PageShell>
@@ -271,7 +306,9 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
           <TabsTrigger value="closing">Shift Result</TabsTrigger>
           <TabsTrigger value="cashless">Cashless ({cashless.length})</TabsTrigger>
           <TabsTrigger value="transfers">Transfers</TabsTrigger>
+          <TabsTrigger value="expenses">Expenses ({slotsExpenses.length})</TabsTrigger>
         </TabsList>
+
 
         <TabsContent value="closing" className="space-y-2">
           {/* Combined: Sys Result + Cards on one compact strip, then full cash grid. */}
@@ -385,6 +422,20 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
 
         <TabsContent value="cashless">
           <PageSection title="Cashless Transactions for this Shift">
+            {/* Grey per-provider hint: signed net totals already recorded in this shift. */}
+            {Object.keys(cashlessByProvider).length > 0 && (
+              <div className="mb-2 text-[11px] text-muted-foreground font-mono flex flex-wrap gap-x-3 gap-y-1">
+                {(["MPESA","AIRTEL","TIGO","HALOTEL"] as const).map(p => {
+                  const v = cashlessByProvider[p];
+                  if (!v) return null;
+                  return (
+                    <span key={p}>
+                      {p}: <span className={v < 0 ? "cms-amount-negative" : ""}>{v < 0 ? "−" : ""}{formatNumberSpaces(Math.abs(v))}</span>
+                    </span>
+                  );
+                })}
+              </div>
+            )}
             <div className="grid grid-cols-1 md:grid-cols-6 gap-2 mb-3 items-end">
               <select value={clDirection} onChange={e => setClDirection(e.target.value as any)} className="h-9 rounded border border-border bg-background px-2 text-sm">
                 <option value="IN">IN</option>
@@ -426,8 +477,48 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
           <SlotsTransfersForm shiftId={shift.id} />
         </TabsContent>
 
+        <TabsContent value="expenses">
+          <PageSection title={`Slots Cage Expenses · Total ${formatNumberSpaces(totalSlotsExpenses)} TZS`}>
+            <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_2fr_auto] gap-2 mb-3 items-end">
+              <select value={expCategory} onChange={e => setExpCategory(e.target.value)} className="h-9 rounded border border-border bg-background px-2 text-sm">
+                <option value="utilities">Utilities</option>
+                <option value="maintenance">Maintenance</option>
+                <option value="supplies">Supplies</option>
+                <option value="salary">Salary</option>
+                <option value="other">Other</option>
+              </select>
+              <NumberInput placeholder="Amount" value={expAmount || ""} onChange={v => setExpAmount(Number(v) || 0)} className="no-spin h-9 text-right font-mono" />
+              <Input placeholder="Description" value={expDesc} onChange={e => setExpDesc(e.target.value)} className="h-9" />
+              <Button onClick={submitExpense} size="sm" className="h-9 gap-1.5" disabled={createExpense.isPending}>
+                <Receipt className="w-3.5 h-3.5" /> Add Expense
+              </Button>
+            </div>
+            <table className="w-full text-xs">
+              <thead className="text-muted-foreground border-b border-border">
+                <tr><th className="text-left py-1.5">When</th><th className="text-left">Category</th><th className="text-left">Description</th><th className="text-right">Amount</th><th>Status</th></tr>
+              </thead>
+              <tbody>
+                {slotsExpenses.length === 0 && <tr><td colSpan={5} className="text-center text-muted-foreground py-3">·</td></tr>}
+                {slotsExpenses.map((e: any) => (
+                  <tr key={e.id} className="border-b border-border/50">
+                    <td className="py-1.5 font-mono text-[10px] text-muted-foreground">{fmtDateTime(e.created_at)}</td>
+                    <td className="uppercase text-[10px]">{e.category}</td>
+                    <td>{e.description}</td>
+                    <td className="text-right font-mono">{formatNumberSpaces(Number(e.amount))}</td>
+                    <td className="text-center">
+                      <Badge variant={e.approved ? "default" : "outline"} className="text-[10px]">
+                        {e.approved ? "Approved" : "Pending"}
+                      </Badge>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </PageSection>
+        </TabsContent>
 
       </Tabs>
+
 
       {comments.length > 0 && (
         <PageSection title="Comments & Reversals">
