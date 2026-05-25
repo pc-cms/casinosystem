@@ -653,6 +653,7 @@ DECLARE
     'table_tracker','table_daily_results',
     'business_day_closures','cash_counts','cash_count_snapshots','cashless_transactions',
     'bank_checks','cctv_observations','player_position_history','daily_summaries',
+    'staff_warnings','transaction_cancellations','player_daily_avg_bets','player_daily_avg_bet_changes',
     'inter_casino_transfers','activity_logs','daily_review','blacklist',
     'client_sessions','incidents',
     'payroll_settings','payroll_periods','payroll_entries',
@@ -1033,6 +1034,171 @@ RETURNS void LANGUAGE sql SECURITY DEFINER SET search_path = public AS $$
   DELETE FROM public.sync_apply_errors WHERE last_seen_at < now() - interval '90 days';
   DELETE FROM public.sync_probe_events  WHERE sent_at      < now() - interval '30 days';
 $$;
+
+-- ─────────────────────────────────────────────────────────────
+-- v1.3.120+ Operational tables added after early on-prem installs.
+-- Keep this block FK-light so old local nodes can repair schema before backfill.
+-- ─────────────────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS public.staff_warnings (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  casino_id uuid NOT NULL,
+  employee_id uuid NOT NULL,
+  business_date date NOT NULL,
+  kind text NOT NULL CHECK (kind IN ('absent','suspend','sick','late')),
+  comment text DEFAULT '' NOT NULL,
+  source_table text NOT NULL DEFAULT 'dealer_attendance',
+  created_by uuid,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (casino_id, employee_id, business_date)
+);
+CREATE INDEX IF NOT EXISTS idx_staff_warnings_casino_date ON public.staff_warnings (casino_id, business_date DESC);
+CREATE INDEX IF NOT EXISTS idx_staff_warnings_employee ON public.staff_warnings (casino_id, employee_id, business_date DESC);
+
+CREATE TABLE IF NOT EXISTS public.transaction_cancellations (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  transaction_id uuid NOT NULL,
+  casino_id uuid NOT NULL,
+  player_id uuid NOT NULL,
+  shift_id uuid,
+  business_date date,
+  tx_type text NOT NULL,
+  amount numeric(14,2) NOT NULL,
+  reason text NOT NULL,
+  cancelled_by uuid NOT NULL,
+  cancelled_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_tx_cancel_casino_date ON public.transaction_cancellations (casino_id, business_date DESC);
+CREATE INDEX IF NOT EXISTS idx_tx_cancel_cashier ON public.transaction_cancellations (cancelled_by, cancelled_at DESC);
+
+CREATE TABLE IF NOT EXISTS public.player_daily_avg_bets (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  casino_id uuid NOT NULL,
+  player_id uuid NOT NULL,
+  business_date date NOT NULL,
+  avg_bet_ar numeric,
+  avg_bet_bg numeric,
+  avg_bet_poker numeric,
+  updated_by uuid,
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (casino_id, player_id, business_date)
+);
+CREATE INDEX IF NOT EXISTS idx_player_daily_avg_bets_casino_date ON public.player_daily_avg_bets(casino_id, business_date);
+CREATE INDEX IF NOT EXISTS idx_player_daily_avg_bets_player ON public.player_daily_avg_bets(player_id, business_date);
+
+CREATE TABLE IF NOT EXISTS public.player_daily_avg_bet_changes (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  casino_id uuid NOT NULL,
+  player_id uuid NOT NULL,
+  business_date date NOT NULL,
+  game_group text NOT NULL CHECK (game_group IN ('ar','bg','poker')),
+  value numeric NOT NULL,
+  changed_by uuid,
+  changed_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_player_daily_avg_bet_changes_lookup ON public.player_daily_avg_bet_changes(casino_id, business_date, player_id, game_group);
+
+CREATE TABLE IF NOT EXISTS public.cutover_sessions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  casino_id uuid NOT NULL,
+  initiated_by uuid,
+  started_at timestamptz NOT NULL DEFAULT now(),
+  completed_at timestamptz,
+  state text NOT NULL DEFAULT 'seeding' CHECK (state IN ('seeding','catching_up','freezing','draining','promoting','dns_swap','done','rolled_back','failed')),
+  source_node_id text,
+  target_node_id text,
+  seed_rows bigint NOT NULL DEFAULT 0,
+  delta_rows bigint NOT NULL DEFAULT 0,
+  drain_ms integer,
+  rollback_window_until timestamptz,
+  notes text,
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_cutover_sessions_casino ON public.cutover_sessions(casino_id, started_at DESC);
+
+CREATE TABLE IF NOT EXISTS public.onprem_channels (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  casino_id uuid NOT NULL,
+  slug text NOT NULL UNIQUE,
+  tunnel_hostname text NOT NULL,
+  cf_tunnel_id text,
+  hmac_secret_hash text NOT NULL,
+  pairing_code text,
+  pairing_expires_at timestamptz,
+  paired_at timestamptz,
+  paired_by uuid,
+  last_seen_at timestamptz,
+  version text,
+  outbox_lag int,
+  status text NOT NULL DEFAULT 'pending',
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_onprem_channels_status ON public.onprem_channels(status);
+CREATE INDEX IF NOT EXISTS idx_onprem_channels_casino ON public.onprem_channels(casino_id);
+
+CREATE TABLE IF NOT EXISTS public.onprem_channel_migrations (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  channel_id uuid NOT NULL,
+  version text NOT NULL,
+  sql_hash text NOT NULL,
+  applied_at timestamptz NOT NULL DEFAULT now(),
+  ok boolean NOT NULL DEFAULT true,
+  error text,
+  UNIQUE(channel_id, version)
+);
+
+CREATE TABLE IF NOT EXISTS public.demo_seed_log (
+  id bigserial PRIMARY KEY,
+  table_name text NOT NULL,
+  row_id uuid NOT NULL,
+  casino_id uuid NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.staff_warnings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.transaction_cancellations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.player_daily_avg_bets ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.player_daily_avg_bet_changes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.cutover_sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.onprem_channels ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.onprem_channel_migrations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.demo_seed_log ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "repair authenticated read staff_warnings" ON public.staff_warnings;
+CREATE POLICY "repair authenticated read staff_warnings" ON public.staff_warnings FOR SELECT TO authenticated USING (public.user_has_casino_access(auth.uid(), casino_id));
+DROP POLICY IF EXISTS "repair authenticated read tx_cancellations" ON public.transaction_cancellations;
+CREATE POLICY "repair authenticated read tx_cancellations" ON public.transaction_cancellations FOR SELECT TO authenticated USING (public.user_has_casino_access(auth.uid(), casino_id));
+DROP POLICY IF EXISTS "repair authenticated read pdab" ON public.player_daily_avg_bets;
+CREATE POLICY "repair authenticated read pdab" ON public.player_daily_avg_bets FOR SELECT TO authenticated USING (public.user_has_casino_access(auth.uid(), casino_id));
+DROP POLICY IF EXISTS "repair authenticated read pdab_changes" ON public.player_daily_avg_bet_changes;
+CREATE POLICY "repair authenticated read pdab_changes" ON public.player_daily_avg_bet_changes FOR SELECT TO authenticated USING (public.user_has_casino_access(auth.uid(), casino_id));
+DROP POLICY IF EXISTS "repair super_admin cutover" ON public.cutover_sessions;
+CREATE POLICY "repair super_admin cutover" ON public.cutover_sessions FOR ALL TO authenticated USING (public.has_role(auth.uid(), 'super_admin'::public.app_role)) WITH CHECK (public.has_role(auth.uid(), 'super_admin'::public.app_role));
+DROP POLICY IF EXISTS "repair super_admin onprem" ON public.onprem_channels;
+CREATE POLICY "repair super_admin onprem" ON public.onprem_channels FOR ALL TO authenticated USING (public.has_role(auth.uid(), 'super_admin'::public.app_role)) WITH CHECK (public.has_role(auth.uid(), 'super_admin'::public.app_role));
+DROP POLICY IF EXISTS "repair super_admin onprem_migrations" ON public.onprem_channel_migrations;
+CREATE POLICY "repair super_admin onprem_migrations" ON public.onprem_channel_migrations FOR ALL TO authenticated USING (public.has_role(auth.uid(), 'super_admin'::public.app_role)) WITH CHECK (public.has_role(auth.uid(), 'super_admin'::public.app_role));
+DROP POLICY IF EXISTS "demo_seed_log no access" ON public.demo_seed_log;
+CREATE POLICY "demo_seed_log no access" ON public.demo_seed_log FOR ALL USING (false);
+
+DO $$
+DECLARE
+  t text;
+  tables text[] := ARRAY[
+    'staff_warnings','transaction_cancellations','player_daily_avg_bets','player_daily_avg_bet_changes'
+  ];
+BEGIN
+  FOREACH t IN ARRAY tables LOOP
+    BEGIN
+      PERFORM public.sync_attach(format('public.%I', t)::regclass);
+    EXCEPTION WHEN undefined_table THEN
+      NULL;
+    END;
+  END LOOP;
+END $$;
 
 GRANT EXECUTE ON FUNCTION public.sync_record_health(uuid,text,timestamptz,integer,integer,text,text,text,text) TO authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.sync_record_apply_error(uuid,bigint,text,text,jsonb,text,text,text) TO authenticated, service_role;

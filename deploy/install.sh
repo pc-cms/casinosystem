@@ -16,7 +16,7 @@
 #
 set -euo pipefail
 
-INSTALLER_VERSION="2.1.2"
+INSTALLER_VERSION="2.1.3"
 
 # Resolve script directory robustly. Falls back when piped through
 # `curl ... | bash` (no BASH_SOURCE) — then we look for an installed
@@ -54,6 +54,7 @@ require_root() { [[ $EUID -eq 0 ]] || fail "Запустите от root: sudo .
 # ── CLI ──
 RESET=0; REBUILD=0; RECONFIGURE=0; WIPE=0; UPDATE=0; UPDATE_FRONT=0; MENU=0; REPAIR=0; VERIFY=0; BACKFILL=0
 ENABLE_REMOTE=0; DISABLE_REMOTE=0
+PRESET_CASINO_SLUG=""; PRESET_NODE_ID=""; LEGACY_ROLE=""; LEGACY_SEED=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --reset)         RESET=1; shift ;;
@@ -67,6 +68,10 @@ while [[ $# -gt 0 ]]; do
     --backfill)      BACKFILL=1; shift ;;
     --enable-remote)  ENABLE_REMOTE=1; shift ;;
     --disable-remote) DISABLE_REMOTE=1; shift ;;
+    --role)          [[ $# -ge 2 ]] || fail "--role требует значение"; LEGACY_ROLE="$2"; shift 2 ;;
+    --casino)        [[ $# -ge 2 ]] || fail "--casino требует slug"; PRESET_CASINO_SLUG="$2"; shift 2 ;;
+    --node-id)       [[ $# -ge 2 ]] || fail "--node-id требует значение"; PRESET_NODE_ID="$2"; shift 2 ;;
+    --seed)          LEGACY_SEED=1; shift ;;
     --menu)          MENU=1; shift ;;
     -h|--help)       sed -n '4,16p' "$0"; exit 0 ;;
     *) fail "Неизвестный аргумент: $1" ;;
@@ -243,7 +248,7 @@ fi
 
 # ── Repair fast path: применить hotfix SQL и перезапустить postgrest ───────
 if [[ $REPAIR -eq 1 ]]; then
-  title "Repair БД (hotfix FKs + RPC + Cloud schema sync)"
+  title "Repair БД (полная локальная схема + sync worker)"
   cd "$SCRIPT_DIR"
   [[ -f .env ]] || fail ".env не найден — repair доступен только на установленной системе."
   set -a; . ./.env; set +a
@@ -264,6 +269,17 @@ if [[ $REPAIR -eq 1 ]]; then
     psql -U "${POSTGRES_USER:-postgres}" -d "${POSTGRES_DB:-postgres}" \
     -v ON_ERROR_STOP=1 -f /tmp/hotfix-fks-rpc.sql
   ok "Hotfix применён."
+
+  REPAIR_SQL="${SCRIPT_DIR}/postgres/repair-local-schema.sql"
+  if [[ -f "$REPAIR_SQL" ]]; then
+    log "Применяю полный local schema repair (новые таблицы/RPC/триггеры)..."
+    docker compose exec -T -e PGPASSWORD="${POSTGRES_PASSWORD}" postgres \
+      psql -h 127.0.0.1 -U "${POSTGRES_USER:-postgres}" -d "${POSTGRES_DB:-postgres}" \
+      -v ON_ERROR_STOP=1 < "$REPAIR_SQL"
+    ok "Local schema repair применён."
+  else
+    warn "repair-local-schema.sql не найден — пропускаю полный repair."
+  fi
 
   # ── Pull missing tables from Cloud schema ───────────────────────────────
   if [[ -n "${CLOUD_URL:-}" && -n "${SYNC_SECRET:-}" && -n "${CASINO_ID:-}" ]]; then
@@ -291,6 +307,9 @@ if [[ $REPAIR -eq 1 ]]; then
 
   log "Перезапускаю postgrest (обновление schema cache)..."
   docker compose restart postgrest >/dev/null 2>&1 || warn "Не удалось перезапустить postgrest"
+  log "Пересобираю cms-sync, чтобы repair/backfill использовали новый код..."
+  docker compose build cms-sync >/dev/null
+  docker compose up -d cms-sync >/dev/null
   ok "Repair завершён. Очистите кэш браузера (Ctrl+Shift+R) на ${LOCAL_DOMAIN:-arusha.local}"
   exit 0
 fi
@@ -303,6 +322,10 @@ if [[ $BACKFILL -eq 1 ]]; then
   set -a; . ./.env; set +a
   : "${CASINO_ID:?CASINO_ID не задан в .env}"
   : "${SYNC_SECRET:?SYNC_SECRET не задан — сервер ещё не спарен с Cloud}"
+
+  log "Обновляю cms-sync перед импортом, чтобы использовать текущий pair-cli.js..."
+  docker compose build cms-sync >/dev/null
+  docker compose up -d cms-sync >/dev/null
 
   log "Запускаю pair-cli.js sync (стрим cloud-seed-export, ON CONFLICT DO UPDATE)…"
   if ! docker compose exec -T cms-sync node /app/pair-cli.js sync; then
@@ -659,15 +682,25 @@ title "2/4  Параметры локации (auto)"
 : "${CASINO_ID:=00000000-0000-0000-0000-0000000000ca}"
 : "${CASINO_NAME:=Local Casino}"
 : "${CASINO_SLUG:=local}"
+if [[ -n "$PRESET_CASINO_SLUG" ]]; then
+  CASINO_SLUG="$PRESET_CASINO_SLUG"
+  case "$PRESET_CASINO_SLUG" in
+    arusha) CASINO_NAME="Arusha Cloud" ;;
+    premier) CASINO_NAME="Premier Cloud" ;;
+    *) CASINO_NAME="${CASINO_NAME:-$PRESET_CASINO_SLUG}" ;;
+  esac
+fi
 : "${LOCAL_IP:=$(hostname -I 2>/dev/null | awk '{print $1}')}"
 : "${LOCAL_IP:=127.0.0.1}"
 : "${LOCAL_DOMAIN:=casino.local}"
 update_env CASINO_ID     "$CASINO_ID"
 update_env CASINO_NAME   "$CASINO_NAME"
 update_env CASINO_SLUG   "$CASINO_SLUG"
+[[ -n "$PRESET_NODE_ID" ]] && update_env NODE_ID "$PRESET_NODE_ID"
 update_env LOCAL_IP      "$LOCAL_IP"
 update_env LOCAL_DOMAIN  "$LOCAL_DOMAIN"
 ok "Casino: ${CASINO_NAME} (${CASINO_SLUG}) @ ${LOCAL_IP} / ${LOCAL_DOMAIN}"
+[[ -n "$LEGACY_ROLE" || "$LEGACY_SEED" -eq 1 ]] && warn "Флаги --role/--seed приняты для совместимости; режим сервера задаётся через Cloud pairing."
 ok "Поменять можно после установки в Admin → Peers → Server Identity"
 
 normalize_env_file
