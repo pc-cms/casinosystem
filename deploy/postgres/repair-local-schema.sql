@@ -653,6 +653,7 @@ DECLARE
     'table_tracker','table_daily_results',
     'business_day_closures','cash_counts','cash_count_snapshots','cashless_transactions',
     'bank_checks','cctv_observations','player_position_history','daily_summaries',
+    'staff_warnings','transaction_cancellations','player_daily_avg_bets','player_daily_avg_bet_changes',
     'inter_casino_transfers','activity_logs','daily_review','blacklist',
     'client_sessions','incidents',
     'payroll_settings','payroll_periods','payroll_entries',
