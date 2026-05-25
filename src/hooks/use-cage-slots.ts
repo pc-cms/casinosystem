@@ -287,14 +287,17 @@ export const useOpenSlotsShift = () => {
         await supabase.from("cage_slots_cash_counts").insert({
           cage_slots_shift_id: shift.id,
           casino_id: casinoId,
-          count_type: "opening" as SlotsCountType,
+          count_type: "check" as SlotsCountType,
           counted_by: user.id,
           denominations: {
             cash: input.opening_cash,
             cards: { count: input.opening_card_count, value_tzs: input.card_deposit_value_tzs },
+            rateMap: input.exchange_rates,
+            totals: { total_tzs: openingTotal, is_opening: true },
             is_opening: true,
           } as any,
           total_tzs: openingTotal,
+          note: "Opening snapshot",
         } as any);
       } catch (e) {
         console.error("seed opening check failed", e);
