@@ -227,9 +227,25 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
         }
       >
         {shift.status === "open" && (
-          <Button onClick={handleSubmit} size="sm" className="gap-1.5 h-8" disabled={submit.isPending}>
-            <Send className="w-3.5 h-3.5" /> Submit for Review
-          </Button>
+          <>
+            <Button
+              onClick={recordMidCheck}
+              size="sm"
+              variant="outline"
+              className="gap-1.5 h-8 border-amber-500/60 text-amber-600 hover:bg-amber-500/10 dark:text-amber-400"
+              disabled={saveCheck.isPending}
+            >
+              <FileText className="w-3.5 h-3.5" /> Check
+            </Button>
+            <Button
+              onClick={handleSubmit}
+              size="sm"
+              className="gap-1.5 h-8 bg-emerald-600 hover:bg-emerald-700 text-white"
+              disabled={submit.isPending}
+            >
+              <Send className="w-3.5 h-3.5" /> Closing
+            </Button>
+          </>
         )}
         {isReadyForReview && canManage && (
           <Button onClick={() => setShowApprove(true)} size="sm" className="gap-1.5 h-8" disabled={approve.isPending}>
