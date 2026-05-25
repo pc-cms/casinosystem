@@ -445,14 +445,20 @@ export const useSubmitSlotsForReview = () => {
       cashier_note?: string;
     }) => {
       if (!casinoId || !user) throw new Error("Not authenticated");
-      // Persist closing snapshot
+      // Persist closing snapshot as a "check" so it appears in cash checks history
+      const closingTotal = Number(input.closing_total_tzs) || 0;
       await supabase.from("cage_slots_cash_counts").insert({
         cage_slots_shift_id: input.shift_id,
         casino_id: casinoId,
-        count_type: "closing" as SlotsCountType,
-        denominations: { ...input.closing_denominations, is_closing: true } as any,
-        total_tzs: input.closing_total_tzs,
+        count_type: "check" as SlotsCountType,
+        denominations: {
+          ...input.closing_denominations,
+          is_closing: true,
+          totals: { ...(input.closing_denominations.totals || {}), total_tzs: closingTotal, is_closing: true },
+        } as any,
+        total_tzs: closingTotal,
         counted_by: user.id,
+        note: "Closing snapshot",
       } as any);
 
       const { error } = await supabase
