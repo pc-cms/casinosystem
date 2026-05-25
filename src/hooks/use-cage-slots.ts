@@ -280,9 +280,39 @@ export const useOpenSlotsShift = () => {
         if (error) throw error;
       }
 
-      // Opening cash check snapshot (seed)
+      // Carry-over banks/mobile from the previous slots shift's last check.
+      // These balances persist physically across shifts; if we don't capture
+      // them as opening baseline, every mid-shift check reports a false
+      // +balance equal to whatever sits on bank/mobile accounts.
+      let carryBanks: any = { tzs: 0, usd: 0 };
+      let carryMobile: any = {};
+      try {
+        const { data: prev } = await supabase
+          .from("cage_slots_cash_counts")
+          .select("denominations")
+          .eq("casino_id", casinoId)
+          .neq("cage_slots_shift_id", shift.id)
+          .order("created_at", { ascending: false })
+          .limit(20);
+        const last = (prev || []).find((r: any) => {
+          const d = r.denominations || {};
+          return d.bank || d.mobile;
+        }) as any;
+        if (last) {
+          carryBanks = last.denominations?.bank || carryBanks;
+          carryMobile = last.denominations?.mobile || carryMobile;
+        }
+      } catch { /* non-fatal */ }
+
+      const carryBanksTzs = (Number(carryBanks?.tzs) || 0)
+        + (Number(carryBanks?.usd) || 0) * (input.exchange_rates["USD"] || 0);
+      const carryMobileTzs = Object.values(carryMobile || {})
+        .reduce((s: number, v: any) => s + (Number(v) || 0), 0);
+
+      // Opening cash check snapshot (seed) — now includes carry-over bank/mobile.
       const openingTotal = invRows.reduce((s, r) => s + r.denomination * r.quantity * r.rate_to_tzs, 0)
-        + input.opening_card_count * input.card_deposit_value_tzs;
+        + input.opening_card_count * input.card_deposit_value_tzs
+        + carryBanksTzs + carryMobileTzs;
       try {
         await supabase.from("cage_slots_cash_counts").insert({
           cage_slots_shift_id: shift.id,
@@ -292,6 +322,8 @@ export const useOpenSlotsShift = () => {
           denominations: {
             cash: input.opening_cash,
             cards: { count: input.opening_card_count, value_tzs: input.card_deposit_value_tzs },
+            bank: carryBanks,
+            mobile: carryMobile,
             rateMap: input.exchange_rates,
             totals: { total_tzs: openingTotal, is_opening: true },
             is_opening: true,
