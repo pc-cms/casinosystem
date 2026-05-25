@@ -1068,45 +1068,140 @@ export type Database = {
           },
         ]
       }
-      cage_transfers: {
+      cage_slots_transfers: {
         Row: {
           amount: number
+          approved_at: string | null
           approved_by: string
+          approved_by_user: string | null
+          cage_slots_shift_id: string
           casino_id: string
-          chips: Json | null
+          counterpart_lg_shift_id: string | null
+          counterpart_lg_transfer_id: string | null
           created_at: string
           direction: string
           id: string
           note: string
           operator_id: string
+          requires_approval: boolean
+          transfer_type: string
+        }
+        Insert: {
+          amount: number
+          approved_at?: string | null
+          approved_by: string
+          approved_by_user?: string | null
+          cage_slots_shift_id: string
+          casino_id: string
+          counterpart_lg_shift_id?: string | null
+          counterpart_lg_transfer_id?: string | null
+          created_at?: string
+          direction: string
+          id?: string
+          note?: string
+          operator_id: string
+          requires_approval?: boolean
+          transfer_type: string
+        }
+        Update: {
+          amount?: number
+          approved_at?: string | null
+          approved_by?: string
+          approved_by_user?: string | null
+          cage_slots_shift_id?: string
+          casino_id?: string
+          counterpart_lg_shift_id?: string | null
+          counterpart_lg_transfer_id?: string | null
+          created_at?: string
+          direction?: string
+          id?: string
+          note?: string
+          operator_id?: string
+          requires_approval?: boolean
+          transfer_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cage_slots_transfers_cage_slots_shift_id_fkey"
+            columns: ["cage_slots_shift_id"]
+            isOneToOne: false
+            referencedRelation: "cage_slots_shifts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cage_slots_transfers_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cage_slots_transfers_counterpart_lg_shift_id_fkey"
+            columns: ["counterpart_lg_shift_id"]
+            isOneToOne: false
+            referencedRelation: "shifts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cage_slots_transfers_counterpart_lg_transfer_id_fkey"
+            columns: ["counterpart_lg_transfer_id"]
+            isOneToOne: false
+            referencedRelation: "cage_transfers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cage_transfers: {
+        Row: {
+          amount: number
+          approved_at: string | null
+          approved_by: string
+          approved_by_user: string | null
+          casino_id: string
+          chips: Json | null
+          counterpart_slots_transfer_id: string | null
+          created_at: string
+          direction: string
+          id: string
+          note: string
+          operator_id: string
+          requires_approval: boolean
           shift_id: string
           table_id: string | null
           transfer_type: string
         }
         Insert: {
           amount: number
+          approved_at?: string | null
           approved_by: string
+          approved_by_user?: string | null
           casino_id: string
           chips?: Json | null
+          counterpart_slots_transfer_id?: string | null
           created_at?: string
           direction: string
           id?: string
           note?: string
           operator_id: string
+          requires_approval?: boolean
           shift_id: string
           table_id?: string | null
           transfer_type: string
         }
         Update: {
           amount?: number
+          approved_at?: string | null
           approved_by?: string
+          approved_by_user?: string | null
           casino_id?: string
           chips?: Json | null
+          counterpart_slots_transfer_id?: string | null
           created_at?: string
           direction?: string
           id?: string
           note?: string
           operator_id?: string
+          requires_approval?: boolean
           shift_id?: string
           table_id?: string | null
           transfer_type?: string
@@ -1117,6 +1212,13 @@ export type Database = {
             columns: ["casino_id"]
             isOneToOne: false
             referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cage_transfers_counterpart_slots_transfer_id_fkey"
+            columns: ["counterpart_slots_transfer_id"]
+            isOneToOne: false
+            referencedRelation: "cage_slots_transfers"
             referencedColumns: ["id"]
           },
           {

@@ -3,10 +3,11 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { NumberInput } from "@/components/ui/number-input";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeftRight, Banknote, HandCoins, ArrowUpRight, ArrowDownLeft, Dice5, Coins } from "lucide-react";
+import { ArrowLeftRight, Banknote, HandCoins, ArrowUpRight, ArrowDownLeft, Dice5, Coins, Check, Clock } from "lucide-react";
 import ChipDenomInput from "@/components/ChipDenomInput";
 import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
 import { useCreateCageTransfer, useCageTransfers, type CageTransferType, cageTransferLabel } from "@/hooks/use-cage-transfers";
+import { useApproveSlotsTransfer } from "@/hooks/use-cage-slots-transfers";
 import { useAuth } from "@/lib/auth-context";
 import { sumChips } from "@/hooks/use-chip-colors";
 import { formatCurrency, formatNumberSpaces } from "@/lib/currency";
@@ -238,6 +239,9 @@ const TransfersForm = ({ shiftId, tables }: Props) => {
                 const opt = TYPE_MAP.get(t);
                 const positive = opt?.direction === "in";
                 const tone = opt?.tone;
+                const anyTr = tr as any;
+                const needsApprove = !!anyTr.requires_approval && !anyTr.approved_at;
+                const approved = !!anyTr.approved_at;
                 return (
                   <tr key={tr.id} className={`border-b border-border last:border-0 ${positive ? "bg-emerald-500/5" : "bg-red-500/5"}`}>
                     <td className="px-3 py-2">
@@ -251,7 +255,17 @@ const TransfersForm = ({ shiftId, tables }: Props) => {
                     <td className={`px-3 py-2 text-right font-mono text-sm font-bold ${positive ? "cms-amount-positive" : "cms-amount-negative"}`}>
                       {positive ? "+" : "−"}{formatNumberSpaces(Number(tr.amount))}
                     </td>
-                    <td className="px-3 py-2 text-xs text-muted-foreground truncate max-w-[160px]">{tr.note || "—"}</td>
+                    <td className="px-3 py-2 text-xs text-muted-foreground truncate max-w-[180px]">
+                      {needsApprove ? (
+                        <ApproveSlotsLinkedButton transferId={tr.id} counterpartId={anyTr.counterpart_slots_transfer_id} />
+                      ) : approved ? (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-500">
+                          <Check className="w-3 h-3" /> Approved
+                        </span>
+                      ) : (
+                        <span>{tr.note || "—"}</span>
+                      )}
+                    </td>
                     <td className="px-3 py-2 text-right font-mono text-xs text-muted-foreground">
                       {new Date(tr.created_at).toLocaleTimeString("en-GB", { timeZone: "Africa/Dar_es_Salaam", hour: "2-digit", minute: "2-digit" })}
                     </td>
@@ -273,6 +287,38 @@ const TransfersForm = ({ shiftId, tables }: Props) => {
         actionDetails={{ amount: finalAmount, note }}
       />
     </div>
+  );
+};
+
+const ApproveSlotsLinkedButton = ({ transferId, counterpartId }: { transferId: string; counterpartId: string | null }) => {
+  const [open, setOpen] = useState(false);
+  const approve = useApproveSlotsTransfer();
+  return (
+    <>
+      <Button
+        size="sm"
+        variant="outline"
+        className="h-6 px-2 gap-1 text-[10px] font-bold border-amber-500/50 text-amber-500 hover:bg-amber-500/15"
+        onClick={() => setOpen(true)}
+        disabled={approve.isPending}
+      >
+        <Clock className="w-3 h-3" /> Approve
+      </Button>
+      <ManagerOverrideDialog
+        open={open}
+        onClose={() => setOpen(false)}
+        onConfirm={() => {
+          // counterpartId is the slots-side row; we approve both sides.
+          if (counterpartId) {
+            approve.mutate({ id: counterpartId, counterpart_lg_id: transferId });
+          }
+          setOpen(false);
+        }}
+        title="Approve Slots Transfer"
+        description="Confirm that the cash from the slots cashier has been received."
+        actionType="CAGE_TRANSFER_APPROVE"
+      />
+    </>
   );
 };
 
