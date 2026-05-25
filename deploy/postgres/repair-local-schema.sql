@@ -1184,6 +1184,22 @@ CREATE POLICY "repair super_admin onprem_migrations" ON public.onprem_channel_mi
 DROP POLICY IF EXISTS "demo_seed_log no access" ON public.demo_seed_log;
 CREATE POLICY "demo_seed_log no access" ON public.demo_seed_log FOR ALL USING (false);
 
+DO $$
+DECLARE
+  t text;
+  tables text[] := ARRAY[
+    'staff_warnings','transaction_cancellations','player_daily_avg_bets','player_daily_avg_bet_changes'
+  ];
+BEGIN
+  FOREACH t IN ARRAY tables LOOP
+    BEGIN
+      PERFORM public.sync_attach(format('public.%I', t)::regclass);
+    EXCEPTION WHEN undefined_table THEN
+      NULL;
+    END;
+  END LOOP;
+END $$;
+
 GRANT EXECUTE ON FUNCTION public.sync_record_health(uuid,text,timestamptz,integer,integer,text,text,text,text) TO authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.sync_record_apply_error(uuid,bigint,text,text,jsonb,text,text,text) TO authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.sync_record_apply_ok(uuid) TO authenticated, service_role;
