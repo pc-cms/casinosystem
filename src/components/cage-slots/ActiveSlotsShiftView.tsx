@@ -282,7 +282,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
               <FileText className="w-3.5 h-3.5" /> Check
             </Button>
             <Button
-              onClick={handleSubmit}
+              onClick={openClosingPreview}
               size="sm"
               className="gap-1.5 h-8 bg-emerald-600 hover:bg-emerald-700 text-white"
               disabled={submit.isPending}
