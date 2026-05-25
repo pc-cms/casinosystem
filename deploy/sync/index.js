@@ -163,13 +163,14 @@ async function handshakePeer(peer) {
   await pool.query(
     `UPDATE public.peer_links
         SET peer_node_id = $1, schema_version = $2, status = 'active',
+            peer_node_kind = COALESCE(NULLIF($4,''), peer_node_kind),
             last_seen_at = now(), last_push_error = NULL
       WHERE id = $3`,
-    [j.node_id ?? null, j.schema_version ?? null, peer.id]
+    [j.node_id ?? null, j.schema_version ?? null, peer.id, j.node_kind ?? ""]
   );
-  log("info", "peer.handshake.ok", { peer: peer.display_name, peer_node_id: j.node_id });
-  bufferExchange(peer, { direction: "handshake", status: "ok", row_count: 0, meta: { peer_node_id: j.node_id } });
-  await recordHealth({ ...peer, peer_node_id: j.node_id, schema_version: j.schema_version }, "ok");
+  log("info", "peer.handshake.ok", { peer: peer.display_name, peer_node_id: j.node_id, peer_node_kind: j.node_kind });
+  bufferExchange(peer, { direction: "handshake", status: "ok", row_count: 0, meta: { peer_node_id: j.node_id, peer_node_kind: j.node_kind } });
+  await recordHealth({ ...peer, peer_node_id: j.node_id, peer_node_kind: j.node_kind, schema_version: j.schema_version }, "ok");
 }
 
 // ─────────── PUSH ───────────
