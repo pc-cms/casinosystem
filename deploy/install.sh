@@ -270,6 +270,17 @@ if [[ $REPAIR -eq 1 ]]; then
     -v ON_ERROR_STOP=1 -f /tmp/hotfix-fks-rpc.sql
   ok "Hotfix применён."
 
+  REPAIR_SQL="${SCRIPT_DIR}/postgres/repair-local-schema.sql"
+  if [[ -f "$REPAIR_SQL" ]]; then
+    log "Применяю полный local schema repair (новые таблицы/RPC/триггеры)..."
+    docker compose exec -T -e PGPASSWORD="${POSTGRES_PASSWORD}" postgres \
+      psql -h 127.0.0.1 -U "${POSTGRES_USER:-postgres}" -d "${POSTGRES_DB:-postgres}" \
+      -v ON_ERROR_STOP=1 < "$REPAIR_SQL"
+    ok "Local schema repair применён."
+  else
+    warn "repair-local-schema.sql не найден — пропускаю полный repair."
+  fi
+
   # ── Pull missing tables from Cloud schema ───────────────────────────────
   if [[ -n "${CLOUD_URL:-}" && -n "${SYNC_SECRET:-}" && -n "${CASINO_ID:-}" ]]; then
     log "Скачиваю актуальную схему из Cloud (cloud-schema-export)..."
