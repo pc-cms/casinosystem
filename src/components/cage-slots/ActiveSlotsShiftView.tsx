@@ -136,21 +136,28 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
     });
   };
 
-  // Mid-shift cash check
+  // Mid-shift cash check (persists banks + mobile + cash in JSONB so they hydrate on next mount)
   const recordMidCheck = () => {
     saveCheck.mutate({
       shift_id: shift.id,
       count_type: "check",
       denominations: {
         cash: closingCash,
+        bank: closingBanks,
+        mobile: closingMobile,
         cards: { count: closingCards, value_tzs: cardDepositTzs },
         rateMap,
-        totals: { total_tzs: closingTotalTzs },
+        totals: {
+          total_tzs: closingTotalTzs,
+          bank_tzs: bankTotalTzs(closingBanks, rateMap),
+          mobile_tzs: mobileTotal(closingMobile),
+        },
       },
       total_tzs: closingTotalTzs,
       note: "Mid-shift check",
     });
   };
+
 
   const handleSubmit = () => {
     if (!systemResultInput.trim()) {
