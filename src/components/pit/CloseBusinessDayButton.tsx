@@ -30,7 +30,7 @@ export function CloseBusinessDayButton() {
   const [askPassword, setAskPassword] = useState(false);
 
   const canSee = roles.some(r =>
-    ["cashier", "manager", "pit", "finance_manager", "super_admin"].includes(r)
+    ["cashier", "cashier_slots", "manager", "pit", "finance_manager", "super_admin"].includes(r)
   );
 
   if (!canSee) return null;
