@@ -71,10 +71,13 @@
 |---|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
 | Cage `/cage` | ✅ (R) | ✅ (R) | ✅ (R) | — | ✅ **write** | — | R | — |
 | Closings `/cage/closings` | ✅ | ✅ | ✅ | — | — | — | — | — |
+| Cage Slots `/cage-slots` | 🔒 per-user | 🔒 per-user | 🔒 per-user | 🔒 per-user | 🔒 per-user | — | — | — |
 | Expenses `/expenses` | ✅ | ✅ | ✅ | — | ✅ | — | — | — |
 | Cashless `/cashless` | ✅ | ✅ | ✅ | — | ✅ | — | — | — |
 
 > **Правило:** Cage **write** — только cashier. Все остальные видят историю в read‑only. Surveillance видит Cage, но не Closings (см. вопрос 6.2).
+>
+> **Cage Slots:** доступа по роли НЕТ ни у кого. Модуль выдаётся только адресно через Admin → Users → Permissions (на текущий момент — только пользователю `Slots`).
 
 ### RECEPTION
 
