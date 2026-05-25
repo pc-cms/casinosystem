@@ -248,7 +248,7 @@ fi
 
 # ── Repair fast path: применить hotfix SQL и перезапустить postgrest ───────
 if [[ $REPAIR -eq 1 ]]; then
-  title "Repair БД (hotfix FKs + RPC + Cloud schema sync)"
+  title "Repair БД (полная локальная схема + sync worker)"
   cd "$SCRIPT_DIR"
   [[ -f .env ]] || fail ".env не найден — repair доступен только на установленной системе."
   set -a; . ./.env; set +a
@@ -307,6 +307,9 @@ if [[ $REPAIR -eq 1 ]]; then
 
   log "Перезапускаю postgrest (обновление schema cache)..."
   docker compose restart postgrest >/dev/null 2>&1 || warn "Не удалось перезапустить postgrest"
+  log "Пересобираю cms-sync, чтобы repair/backfill использовали новый код..."
+  docker compose build cms-sync >/dev/null
+  docker compose up -d cms-sync >/dev/null
   ok "Repair завершён. Очистите кэш браузера (Ctrl+Shift+R) на ${LOCAL_DOMAIN:-arusha.local}"
   exit 0
 fi
@@ -319,6 +322,10 @@ if [[ $BACKFILL -eq 1 ]]; then
   set -a; . ./.env; set +a
   : "${CASINO_ID:?CASINO_ID не задан в .env}"
   : "${SYNC_SECRET:?SYNC_SECRET не задан — сервер ещё не спарен с Cloud}"
+
+  log "Обновляю cms-sync перед импортом, чтобы использовать текущий pair-cli.js..."
+  docker compose build cms-sync >/dev/null
+  docker compose up -d cms-sync >/dev/null
 
   log "Запускаю pair-cli.js sync (стрим cloud-seed-export, ON CONFLICT DO UPDATE)…"
   if ! docker compose exec -T cms-sync node /app/pair-cli.js sync; then
