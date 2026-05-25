@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Coins, Send, RotateCcw, Printer, FileText, CreditCard, Save, ArrowLeftRight, Receipt } from "lucide-react";
 import SlotsTransfersForm from "./SlotsTransfersForm";
+import { useSlotsTransfers } from "@/hooks/use-cage-slots-transfers";
 import { useSlotsExpenses, useCreateSlotsExpense } from "@/hooks/use-expenses";
 
 import { PageShell, PageSection } from "@/components/layout/PageShell";
