@@ -1,25 +1,41 @@
-import { useState, useMemo } from "react";
-import { Coins, Play, ChevronRight, ChevronLeft, CreditCard } from "lucide-react";
+import { useState, useMemo, useEffect } from "react";
+import { Coins, Play, ChevronRight, ChevronLeft, CreditCard, Settings2 } from "lucide-react";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { PageSection } from "@/components/layout/PageShell";
 import { Button } from "@/components/ui/button";
 import { NumberInput } from "@/components/ui/number-input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import CashDenomInput, { cashSum } from "@/components/cage/CashDenomInput";
 import {
   CURRENCIES, FOREIGN_CURRENCIES, CASH_DENOMS,
   DEFAULT_EXCHANGE_RATES, formatNumberSpaces, formatCurrency,
 } from "@/lib/currency";
 import { useOpenSlotsShift, useCageSlotsSettings, type SlotsShiftType } from "@/hooks/use-cage-slots";
+import { useLastClosedShift } from "@/hooks/use-shift";
 
 const OpenSlotsShiftScreen = () => {
   const open = useOpenSlotsShift();
   const { data: settings } = useCageSlotsSettings();
+  const { data: lastShift } = useLastClosedShift();
   const cardDepositTzs = Number(settings?.card_deposit_value_tzs || 5000);
 
   const [step, setStep] = useState<1 | 2>(1);
   const [shiftType, setShiftType] = useState<SlotsShiftType>("day");
   const [rates, setRates] = useState<Record<string, number>>({ ...DEFAULT_EXCHANGE_RATES });
+  const [ratesPrefilled, setRatesPrefilled] = useState(false);
+  const [showRates, setShowRates] = useState(false);
+
+  // Slots cage uses the SAME FX rates as Live Game cage — prefill from last closed live shift.
+  useEffect(() => {
+    if (ratesPrefilled) return;
+    const prev = (lastShift?.exchange_rates || {}) as Record<string, number>;
+    if (prev && Object.keys(prev).length > 0) {
+      setRates(r => ({ ...r, ...prev }));
+      setRatesPrefilled(true);
+    }
+  }, [lastShift, ratesPrefilled]);
+
   const [openingCash, setOpeningCash] = useState<Record<string, Record<number, number>>>(
     Object.fromEntries(CURRENCIES.map(c => [c, {}]))
   );
