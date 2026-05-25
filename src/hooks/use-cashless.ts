@@ -38,6 +38,7 @@ export const useCashless = (date?: string) => {
         .from("cashless_transactions")
         .select("*, players(first_name, last_name)")
         .eq("casino_id", casinoId)
+        .eq("cage_type", "live_game")
         .order("created_at", { ascending: false });
       if (date) q = q.eq("business_date", date);
       else q = q.limit(200);
@@ -49,6 +50,7 @@ export const useCashless = (date?: string) => {
     staleTime: 1000 * 60,
   });
 };
+
 
 export const useCreateCashless = () => {
   const qc = useQueryClient();
