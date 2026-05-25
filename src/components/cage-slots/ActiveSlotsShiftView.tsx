@@ -10,6 +10,11 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import CashDenomInput, { cashSum } from "@/components/cage/CashDenomInput";
+import CashCountGrid from "@/components/cage/CashCountGrid";
+import {
+  emptyBanks, emptyMobile, mobileTotal, bankTotalTzs,
+  type Banks, type MobileProviders,
+} from "@/components/cage/CageHelpers";
 import {
   CURRENCIES, FOREIGN_CURRENCIES, CASH_DENOMS,
   formatNumberSpaces, formatCurrency,
