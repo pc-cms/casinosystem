@@ -7,6 +7,8 @@ import { ArrowLeftRight, Banknote, HandCoins, ArrowUpRight, ArrowDownLeft, Dice5
 import ChipDenomInput from "@/components/ChipDenomInput";
 import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
 import { useCreateCageTransfer, useCageTransfers, type CageTransferType, cageTransferLabel } from "@/hooks/use-cage-transfers";
+import { useApproveSlotsTransfer } from "@/hooks/use-cage-slots-transfers";
+import { Check, Clock } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { sumChips } from "@/hooks/use-chip-colors";
 import { formatCurrency, formatNumberSpaces } from "@/lib/currency";
