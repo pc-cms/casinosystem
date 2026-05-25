@@ -333,6 +333,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
     );
   }
 
+  return (
     <PageShell>
       <PageHeader
         icon={Coins}
