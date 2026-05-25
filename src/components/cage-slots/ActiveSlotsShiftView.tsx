@@ -10,6 +10,11 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import CashDenomInput, { cashSum } from "@/components/cage/CashDenomInput";
+import CashCountGrid from "@/components/cage/CashCountGrid";
+import {
+  emptyBanks, emptyMobile, mobileTotal, bankTotalTzs,
+  type Banks, type MobileProviders,
+} from "@/components/cage/CageHelpers";
 import {
   CURRENCIES, FOREIGN_CURRENCIES, CASH_DENOMS,
   formatNumberSpaces, formatCurrency,
@@ -75,6 +80,8 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
   const [closingCash, setClosingCash] = useState<Record<string, Record<number, number>>>(
     Object.fromEntries(CURRENCIES.map(c => [c, {}]))
   );
+  const [closingBanks, setClosingBanks] = useState<Banks>(emptyBanks());
+  const [closingMobile, setClosingMobile] = useState<MobileProviders>(emptyMobile());
   const [closingCards, setClosingCards] = useState<number>(cards?.closing_card_count ?? 0);
   const [systemResultInput, setSystemResultInput] = useState<string>(
     shift.system_shift_result?.toString() ?? "",
@@ -93,6 +100,15 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
   useEffect(() => {
     if (cards?.closing_card_count != null) setClosingCards(cards.closing_card_count);
   }, [cards?.closing_card_count]);
+
+  // Hydrate banks + mobile from the latest cash check (denominations JSONB).
+  useEffect(() => {
+    const last = checks[0];
+    const d = (last?.denominations || {}) as Record<string, unknown>;
+    if (d.bank) setClosingBanks(d.bank as Banks);
+    if (d.mobile) setClosingMobile(d.mobile as MobileProviders);
+  }, [checks]);
+
 
   const closingTzsTotal = useMemo(() => cashSum(closingCash["TZS"] || {}), [closingCash]);
   const closingFxTzs = useMemo(() => FOREIGN_CURRENCIES.reduce(
@@ -120,21 +136,28 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
     });
   };
 
-  // Mid-shift cash check
+  // Mid-shift cash check (persists banks + mobile + cash in JSONB so they hydrate on next mount)
   const recordMidCheck = () => {
     saveCheck.mutate({
       shift_id: shift.id,
       count_type: "check",
       denominations: {
         cash: closingCash,
+        bank: closingBanks,
+        mobile: closingMobile,
         cards: { count: closingCards, value_tzs: cardDepositTzs },
         rateMap,
-        totals: { total_tzs: closingTotalTzs },
+        totals: {
+          total_tzs: closingTotalTzs,
+          bank_tzs: bankTotalTzs(closingBanks, rateMap),
+          mobile_tzs: mobileTotal(closingMobile),
+        },
       },
       total_tzs: closingTotalTzs,
       note: "Mid-shift check",
     });
   };
+
 
   const handleSubmit = () => {
     if (!systemResultInput.trim()) {
@@ -265,43 +288,33 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
         </TabsContent>
 
         <TabsContent value="closing">
-          {/* Live-Game cage style: 3 columns — TZS | USD+KES | EUR+GBP */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 items-stretch">
-            <PageSection title="TZS Closing Cash">
-              <ClosingCashEditor
-                currency="TZS"
-                values={closingCash["TZS"] || {}}
-                opening={opening["TZS"] || {}}
-                onChange={v => setClosingCash(c => ({ ...c, TZS: v }))}
-                onPersist={persistClosingCash}
-              />
-            </PageSection>
-            <div className="flex flex-col gap-2">
-              {(["USD", "KES"] as const).map(cur => (
-                <PageSection key={cur} title={`${cur} Closing Cash`}>
-                  <ClosingCashEditor
-                    currency={cur}
-                    values={closingCash[cur] || {}}
-                    opening={opening[cur] || {}}
-                    onChange={v => setClosingCash(c => ({ ...c, [cur]: v }))}
-                    onPersist={persistClosingCash}
-                  />
-                </PageSection>
-              ))}
-            </div>
-            <div className="flex flex-col gap-2">
-              {(["EUR", "GBP"] as const).map(cur => (
-                <PageSection key={cur} title={`${cur} Closing Cash`}>
-                  <ClosingCashEditor
-                    currency={cur}
-                    values={closingCash[cur] || {}}
-                    opening={opening[cur] || {}}
-                    onChange={v => setClosingCash(c => ({ ...c, [cur]: v }))}
-                    onPersist={persistClosingCash}
-                  />
-                </PageSection>
-              ))}
-            </div>
+          {/* Same grid as Live Game cage: TZS Cash + Mobile + Banks | USD+KES | EUR+GBP. */}
+          <div className="cms-panel p-4">
+            <CashCountGrid
+              chips={{}}
+              onChipsChange={() => { /* slots cage has no chips */ }}
+              cash={closingCash}
+              onCashChange={(cur, next) => {
+                const prev = closingCash[cur] || {};
+                setClosingCash(c => ({ ...c, [cur]: next }));
+                // Persist per-denom diffs to cage_slots_cash_inventory (closing).
+                const denoms = CASH_DENOMS[cur] || [];
+                for (const d of denoms) {
+                  if ((next[d] || 0) !== (prev[d] || 0)) {
+                    persistClosingCash(cur, d, next[d] || 0);
+                  }
+                }
+              }}
+              banks={closingBanks}
+              onBanksChange={setClosingBanks}
+              mobile={closingMobile}
+              onMobileChange={setClosingMobile}
+              rates={rateMap}
+              hideChips
+            />
+            <p className="mt-2 text-[10px] text-muted-foreground">
+              Banks &amp; Mobile balances are saved into the next mid-shift check (use the button below).
+            </p>
           </div>
           <div className="flex justify-end mt-2">
             <Button variant="outline" size="sm" onClick={recordMidCheck} className="gap-1.5">
@@ -309,6 +322,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
             </Button>
           </div>
         </TabsContent>
+
 
 
         <TabsContent value="cards">
