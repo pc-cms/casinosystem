@@ -123,7 +123,7 @@ export function PlayerDailyAvgBetTable({ businessDate, players, visits, canEdit 
           exitAt: v.checked_out_at,
           isPresent: !v.checked_out_at,
           ar: b?.avg_bet_ar ?? null,
-          bj: b?.avg_bet_bg ?? null,
+          bj: b?.avg_bet_bj ?? null,
           poker: b?.avg_bet_poker ?? null,
         };
       })
@@ -340,7 +340,7 @@ export function PlayerDailyAvgBetTable({ businessDate, players, visits, canEdit 
                         <BetCell
                           value={(r as any)[g]}
                           canEdit={canEdit}
-                          onCommit={(v) => handleSave(r.playerId, g === "bj" ? "bg" : g, v)}
+                          onCommit={(v) => handleSave(r.playerId, g, v)}
                         />
                       </td>
                     ))}
