@@ -185,7 +185,7 @@ const RoleGuard = ({ path, children }: { path: string; children: React.ReactNode
   if (isLoading || allowedModules === undefined) return <FullScreenLoader />;
 
   if (!allowedModules.has(moduleKey)) {
-    const fallback = roles.includes("cashier") ? "/cage" : "/";
+    const fallback = roles.includes("cashier") ? "/cage" : roles.includes("cashier_slots") ? "/cage-slots" : "/";
     const target = path === "/" ? fallback : "/";
     // Prevent infinite redirect loop when the fallback itself is not allowed
     // (e.g. user lacks Dashboard module → "/" → "/" → replaceState storm).
