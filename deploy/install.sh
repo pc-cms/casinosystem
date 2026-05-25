@@ -68,9 +68,9 @@ while [[ $# -gt 0 ]]; do
     --backfill)      BACKFILL=1; shift ;;
     --enable-remote)  ENABLE_REMOTE=1; shift ;;
     --disable-remote) DISABLE_REMOTE=1; shift ;;
-    --role)          LEGACY_ROLE="${2:-}"; shift 2 ;;
-    --casino)        PRESET_CASINO_SLUG="${2:-}"; shift 2 ;;
-    --node-id)       PRESET_NODE_ID="${2:-}"; shift 2 ;;
+    --role)          [[ $# -ge 2 ]] || fail "--role требует значение"; LEGACY_ROLE="$2"; shift 2 ;;
+    --casino)        [[ $# -ge 2 ]] || fail "--casino требует slug"; PRESET_CASINO_SLUG="$2"; shift 2 ;;
+    --node-id)       [[ $# -ge 2 ]] || fail "--node-id требует значение"; PRESET_NODE_ID="$2"; shift 2 ;;
     --seed)          LEGACY_SEED=1; shift ;;
     --menu)          MENU=1; shift ;;
     -h|--help)       sed -n '4,16p' "$0"; exit 0 ;;
