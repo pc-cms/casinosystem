@@ -1,25 +1,41 @@
-import { useState, useMemo } from "react";
-import { Coins, Play, ChevronRight, ChevronLeft, CreditCard } from "lucide-react";
+import { useState, useMemo, useEffect } from "react";
+import { Coins, Play, ChevronRight, ChevronLeft, CreditCard, Settings2 } from "lucide-react";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { PageSection } from "@/components/layout/PageShell";
 import { Button } from "@/components/ui/button";
 import { NumberInput } from "@/components/ui/number-input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import CashDenomInput, { cashSum } from "@/components/cage/CashDenomInput";
 import {
   CURRENCIES, FOREIGN_CURRENCIES, CASH_DENOMS,
   DEFAULT_EXCHANGE_RATES, formatNumberSpaces, formatCurrency,
 } from "@/lib/currency";
 import { useOpenSlotsShift, useCageSlotsSettings, type SlotsShiftType } from "@/hooks/use-cage-slots";
+import { useLastClosedShift } from "@/hooks/use-shift";
 
 const OpenSlotsShiftScreen = () => {
   const open = useOpenSlotsShift();
   const { data: settings } = useCageSlotsSettings();
+  const { data: lastShift } = useLastClosedShift();
   const cardDepositTzs = Number(settings?.card_deposit_value_tzs || 5000);
 
   const [step, setStep] = useState<1 | 2>(1);
   const [shiftType, setShiftType] = useState<SlotsShiftType>("day");
   const [rates, setRates] = useState<Record<string, number>>({ ...DEFAULT_EXCHANGE_RATES });
+  const [ratesPrefilled, setRatesPrefilled] = useState(false);
+  const [showRates, setShowRates] = useState(false);
+
+  // Slots cage uses the SAME FX rates as Live Game cage — prefill from last closed live shift.
+  useEffect(() => {
+    if (ratesPrefilled) return;
+    const prev = (lastShift?.exchange_rates || {}) as Record<string, number>;
+    if (prev && Object.keys(prev).length > 0) {
+      setRates(r => ({ ...r, ...prev }));
+      setRatesPrefilled(true);
+    }
+  }, [lastShift, ratesPrefilled]);
+
   const [openingCash, setOpeningCash] = useState<Record<string, Record<number, number>>>(
     Object.fromEntries(CURRENCIES.map(c => [c, {}]))
   );
@@ -62,20 +78,20 @@ const OpenSlotsShiftScreen = () => {
         subtitle={`Open shift · Step ${step} of 2`}
         date
         centerSlot={
-          <div className="flex items-center gap-3 flex-wrap justify-center">
+          <div className="flex items-center gap-4 flex-wrap justify-center">
             {FOREIGN_CURRENCIES.map(c => (
-              <label key={c} className="flex items-center gap-1">
-                <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">{c}</span>
-                <NumberInput
-                  value={rates[c] || ""}
-                  onChange={v => setRates(r => ({ ...r, [c]: Number(v) || 0 }))}
-                  className="no-spin h-7 w-20 text-right font-mono text-xs"
-                />
-              </label>
+              <span key={c} className="text-base font-semibold font-mono tabular-nums text-foreground">
+                <span className="text-muted-foreground text-xs font-medium uppercase mr-1">{c}</span>
+                {formatNumberSpaces(rates[c] || 0)}
+              </span>
             ))}
           </div>
         }
-      />
+      >
+        <Button variant="outline" size="sm" onClick={() => setShowRates(true)} className="gap-1.5">
+          <Settings2 className="w-3.5 h-3.5" /> Rates
+        </Button>
+      </PageHeader>
 
       <div className="flex items-center gap-2 mb-2">
         <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Shift</span>
@@ -179,6 +195,25 @@ const OpenSlotsShiftScreen = () => {
           </div>
         </div>
       )}
+
+      <Dialog open={showRates} onOpenChange={setShowRates}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader><DialogTitle>Exchange Rates</DialogTitle></DialogHeader>
+          <p className="text-xs text-muted-foreground mb-3">Set how many TZS per 1 unit of foreign currency. Pre-filled from the last Live Game cage shift.</p>
+          <div className="space-y-3">
+            {FOREIGN_CURRENCIES.map(c => (
+              <div key={c} className="flex items-center gap-3">
+                <span className="text-sm font-mono font-bold text-card-foreground w-10">{c}</span>
+                <NumberInput value={rates[c] || ""} onChange={v => setRates(r => ({ ...r, [c]: Number(v) || 0 }))} placeholder="0" className="flex-1" />
+                <span className="text-xs text-muted-foreground font-mono">TZS</span>
+              </div>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setShowRates(false)} className="w-full">Done</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </PageShell>
   );
 };
