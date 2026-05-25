@@ -64,6 +64,7 @@ const NAV_ITEMS: NavItem[] = [
 
   // CASHIER — transactional Cage operations.
   { to: "/cage", icon: Landmark, label: "Cage", roles: ["super_admin", "cashier"], section: "CASHIER" },
+  { to: "/cage-slots", icon: Coins, label: "Cage Slots", roles: ["super_admin", "cashier", "manager", "floor_manager", "finance_manager", "pit"], section: "CASHIER" },
   { to: "/cage/closings", icon: Landmark, label: "Closings", roles: ["super_admin", "finance_manager"], section: "CASHIER" },
   { to: "/expenses", icon: Receipt, label: "Expenses", roles: ["super_admin", "cashier"], section: "CASHIER" },
   { to: "/expenses/approvals", icon: CheckCircle2, label: "Approvals", roles: ["super_admin", "manager", "floor_manager", "finance_manager"], section: "CASHIER" },
