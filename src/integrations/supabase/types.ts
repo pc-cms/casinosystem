@@ -1351,6 +1351,7 @@ export type Database = {
           approved_by: string | null
           business_date: string
           cage_slots_shift_id: string | null
+          cage_type: string
           casino_id: string
           created_at: string
           currency: string
@@ -1371,6 +1372,7 @@ export type Database = {
           approved_by?: string | null
           business_date: string
           cage_slots_shift_id?: string | null
+          cage_type?: string
           casino_id: string
           created_at?: string
           currency?: string
@@ -1391,6 +1393,7 @@ export type Database = {
           approved_by?: string | null
           business_date?: string
           cage_slots_shift_id?: string | null
+          cage_type?: string
           casino_id?: string
           created_at?: string
           currency?: string
@@ -2548,6 +2551,7 @@ export type Database = {
           approved_at: string | null
           approved_by: string | null
           business_date: string | null
+          cage_type: string
           casino_id: string
           category: Database["public"]["Enums"]["expense_category"]
           created_at: string
@@ -2564,6 +2568,7 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           business_date?: string | null
+          cage_type?: string
           casino_id: string
           category: Database["public"]["Enums"]["expense_category"]
           created_at?: string
@@ -2580,6 +2585,7 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           business_date?: string | null
+          cage_type?: string
           casino_id?: string
           category?: Database["public"]["Enums"]["expense_category"]
           created_at?: string
