@@ -439,13 +439,44 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
         </div>
       )}
 
-      {/* Summary strip */}
+      {/* Summary strip — Opening / Cards Open / System (input) / Cards Closing (input) / Cage Result */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-2">
         <SummaryCard label="Opening (TZS)" value={openingTotalTzs} />
-        <SummaryCard label="Closing (TZS)" value={closingTotalTzs} />
-        <SummaryCard label="Cashless Net" value={cashlessNetTzs} signed />
-        <SummaryCard label="Actual Cage Result" value={actualCageResult} signed />
-        <SummaryCard label="Difference" value={difference} signed emphasize />
+        <div className="cms-panel p-3">
+          <p className="text-[10px] uppercase text-muted-foreground tracking-wider mb-1">Cards Opening</p>
+          <p className="font-mono text-xl font-bold tabular-nums">{cards?.opening_card_count ?? 0}</p>
+          <p className="text-[10px] text-muted-foreground mt-0.5">× TZS {formatNumberSpaces(cardDepositTzs)}</p>
+        </div>
+        <div className="cms-panel p-3">
+          <p className="text-[10px] uppercase text-muted-foreground tracking-wider mb-1">System Result (TZS)</p>
+          <NumberInput
+            value={systemResultInput}
+            onChange={v => setSystemResultInput(String(v))}
+            onBlur={() => setSystem.mutate({ shift_id: shift.id, system_shift_result: Number(systemResultInput) || 0 })}
+            className="no-spin h-9 w-full text-right font-mono text-base"
+            placeholder="0"
+            disabled={shift.status !== "open"}
+          />
+        </div>
+        <div className="cms-panel p-3">
+          <p className="text-[10px] uppercase text-muted-foreground tracking-wider mb-1">Cards Closing</p>
+          <NumberInput
+            value={closingCards || ""}
+            onChange={v => setClosingCards(Number(v) || 0)}
+            onBlur={() => updateCards.mutate({ shift_id: shift.id, closing_card_count: closingCards })}
+            className="no-spin h-9 w-full text-right font-mono text-base"
+            disabled={shift.status !== "open"}
+          />
+          <p className="text-[10px] text-muted-foreground mt-0.5">
+            Miss: {(cards?.miss_card_count ?? (closingCards - (cards?.opening_card_count ?? 0)))}
+          </p>
+        </div>
+        <SummaryCard
+          label="Cage Result (TZS)"
+          value={systemResult + cashlessNetTzs + transfersNetTzs + ((cards?.opening_card_count ?? 0) - closingCards) * cardDepositTzs}
+          signed
+          emphasize
+        />
       </div>
 
       <Tabs defaultValue="closing" className="space-y-2">
@@ -458,50 +489,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
 
 
         <TabsContent value="closing" className="space-y-2">
-          {/* Combined: Sys Result + Cards on one compact strip, then full cash grid. */}
-          <PageSection title="System Result · Cards">
-            <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_1fr_2fr] gap-3 items-end">
-              <div>
-                <p className="text-[10px] uppercase text-muted-foreground tracking-wider mb-1">System Result (TZS)</p>
-                <NumberInput
-                  value={systemResultInput}
-                  onChange={v => setSystemResultInput(String(v))}
-                  onBlur={() => setSystem.mutate({ shift_id: shift.id, system_shift_result: Number(systemResultInput) || 0 })}
-                  className="no-spin h-9 w-full text-right font-mono text-base"
-                  placeholder="0"
-                />
-              </div>
-              <Stat label={`Cards Open (× TZS ${formatNumberSpaces(cardDepositTzs)})`} value={cards?.opening_card_count ?? 0} />
-              <div>
-                <p className="text-[10px] uppercase text-muted-foreground tracking-wider mb-1">Cards Closing</p>
-                <NumberInput
-                  value={closingCards || ""}
-                  onChange={v => setClosingCards(Number(v) || 0)}
-                  onBlur={() => updateCards.mutate({ shift_id: shift.id, closing_card_count: closingCards })}
-                  className="no-spin h-9 w-full text-right font-mono"
-                />
-              </div>
-              <div>
-                <p className="text-[10px] uppercase text-muted-foreground tracking-wider mb-1">Cards Miss</p>
-                <p className={`font-mono font-bold text-base ${(cards?.miss_card_count ?? (closingCards - (cards?.opening_card_count ?? 0))) < 0 ? "cms-amount-negative" : ""}`}>
-                  {(cards?.miss_card_count ?? (closingCards - (cards?.opening_card_count ?? 0)))} ·&nbsp;
-                  <span className="text-muted-foreground text-sm">
-                    TZS {formatNumberSpaces(((cards?.miss_card_count ?? (closingCards - (cards?.opening_card_count ?? 0)))) * cardDepositTzs)}
-                  </span>
-                </p>
-              </div>
-            </div>
-            <div className="mt-2">
-              <p className="text-[10px] uppercase text-muted-foreground tracking-wider mb-1">Cashier note (optional)</p>
-              <Textarea
-                value={cashierNote}
-                onChange={e => setCashierNote(e.target.value)}
-                className="text-sm"
-                rows={2}
-                placeholder="Anything the manager should know about this shift…"
-              />
-            </div>
-          </PageSection>
+
 
           {/* Same grid as Live Game cage, scaled down ~30% for compactness. */}
           <div className="cms-panel p-3">
