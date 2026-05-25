@@ -217,8 +217,11 @@ const getDefaultRoute = (roles: string[]) => {
   if (roles.includes("reception") && !roles.some(r => ["manager", "pit", "cashier", "finance_manager", "surveillance", "super_admin", "hr"].includes(r))) {
     return "/reception";
   }
-  if (roles.includes("cashier") && !roles.some(r => ["manager", "pit", "reception", "finance_manager", "surveillance", "super_admin", "hr"].includes(r))) {
+  if (roles.includes("cashier") && !roles.some(r => ["manager", "pit", "reception", "finance_manager", "surveillance", "super_admin", "hr", "cashier_slots"].includes(r))) {
     return "/cage";
+  }
+  if (roles.includes("cashier_slots") && !roles.some(r => ["manager", "pit", "reception", "finance_manager", "surveillance", "super_admin", "hr", "cashier"].includes(r))) {
+    return "/cage-slots";
   }
   return "/";
 };
