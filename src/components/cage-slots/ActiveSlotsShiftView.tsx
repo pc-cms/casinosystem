@@ -836,6 +836,16 @@ const ClosingCashEditor = ({ currency, values, opening, onChange, onPersist }: {
   );
 };
 
+const TileCard = ({ label, sub, emphasize, valueClass, children }: {
+  label: string; sub?: string; emphasize?: boolean; valueClass?: string; children: React.ReactNode;
+}) => (
+  <div className={`rounded-md border ${emphasize ? "border-primary/50 bg-primary/5" : "border-border bg-card"} px-3 py-2 h-[88px] flex flex-col justify-between`}>
+    <p className="text-xs uppercase font-bold tracking-wider text-muted-foreground text-center">{label}</p>
+    <div className={`flex-1 flex items-center justify-center ${valueClass || ""}`}>{children}</div>
+    {sub ? <p className="text-[10px] text-muted-foreground text-center">{sub}</p> : <span className="h-[14px]" />}
+  </div>
+);
+
 const SummaryCard = ({ label, value, signed, emphasize }: {
   label: string; value: number; signed?: boolean; emphasize?: boolean;
 }) => {
