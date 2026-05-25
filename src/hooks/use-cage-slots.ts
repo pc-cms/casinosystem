@@ -306,8 +306,8 @@ export const useOpenSlotsShift = () => {
 
       const carryBanksTzs = (Number(carryBanks?.tzs) || 0)
         + (Number(carryBanks?.usd) || 0) * (input.exchange_rates["USD"] || 0);
-      const carryMobileTzs = Object.values(carryMobile || {})
-        .reduce((s: number, v: any) => s + (Number(v) || 0), 0);
+      const carryMobileTzs: number = Object.values(carryMobile || {})
+        .reduce<number>((s, v) => s + (Number(v) || 0), 0);
 
       // Opening cash check snapshot (seed) — now includes carry-over bank/mobile.
       const openingTotal = invRows.reduce((s, r) => s + r.denomination * r.quantity * r.rate_to_tzs, 0)
