@@ -392,18 +392,31 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
           <PageSection title="Cash Checks">
             <table className="w-full text-xs">
               <thead className="text-muted-foreground border-b border-border">
-                <tr><th className="text-left py-1.5">When</th><th>Type</th><th className="text-right">Total (TZS)</th><th className="text-left">Note</th></tr>
+                <tr><th className="text-left py-1.5">When</th><th className="text-left">Kind</th><th className="text-right">Total (TZS)</th><th className="text-left">Note</th></tr>
               </thead>
               <tbody>
                 {checks.length === 0 && <tr><td colSpan={4} className="text-center text-muted-foreground py-3">·</td></tr>}
-                {checks.map(c => (
-                  <tr key={c.id} className="border-b border-border/50">
-                    <td className="py-1.5">{fmtDateTime(c.created_at)}</td>
-                    <td className="text-center"><Badge variant="outline" className="text-[10px] uppercase">{c.count_type}</Badge></td>
-                    <td className="text-right font-mono">{formatNumberSpaces(Number(c.total_tzs))}</td>
-                    <td className="text-muted-foreground">{c.note || "·"}</td>
-                  </tr>
-                ))}
+                {checks.map(c => {
+                  const d: any = c.denominations || {};
+                  const t: any = d.totals || {};
+                  const isOpening = !!(d.is_opening || t.is_opening);
+                  const isClosing = !!(d.is_closing || t.is_closing);
+                  const isReview = !!(d.is_review || t.is_review);
+                  const kind = isOpening ? "Opening" : isClosing ? "Closing" : isReview ? "Review" : "Check";
+                  const cls =
+                    kind === "Opening" ? "bg-primary/15 text-primary" :
+                    kind === "Closing" ? "bg-amber-500/15 text-amber-600 dark:text-amber-400" :
+                    kind === "Review"  ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" :
+                                         "bg-muted text-muted-foreground";
+                  return (
+                    <tr key={c.id} className="border-b border-border/50">
+                      <td className="py-1.5 font-mono text-[10px] text-muted-foreground">{fmtDateTime(c.created_at)}</td>
+                      <td><span className={`cms-chip text-[9px] h-4 px-1.5 uppercase ${cls}`}>{kind}</span></td>
+                      <td className="text-right font-mono">{formatNumberSpaces(Number(c.total_tzs))}</td>
+                      <td className="text-muted-foreground">{c.note || "·"}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </PageSection>
