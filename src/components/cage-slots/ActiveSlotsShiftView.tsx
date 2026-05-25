@@ -474,10 +474,9 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
         </TileCard>
         {(() => {
           const cageVal = systemResult + cashlessNetTzs + transfersNetTzs + ((cards?.opening_card_count ?? 0) - closingCards) * cardDepositTzs;
-          const cls = cageVal < 0 ? "cms-amount-negative" : cageVal > 0 ? "cms-amount-positive" : "";
           return (
             <TileCard label="Cage Result (TZS)" emphasize>
-              <p className={`font-mono text-2xl font-bold tabular-nums text-center ${cls}`}>
+              <p className="font-mono text-2xl font-bold tabular-nums text-center text-muted-foreground">
                 {cageVal > 0 ? "+" : ""}{formatNumberSpaces(cageVal)}
               </p>
             </TileCard>
