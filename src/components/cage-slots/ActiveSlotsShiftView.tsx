@@ -80,6 +80,8 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
   const [closingCash, setClosingCash] = useState<Record<string, Record<number, number>>>(
     Object.fromEntries(CURRENCIES.map(c => [c, {}]))
   );
+  const [closingBanks, setClosingBanks] = useState<Banks>(emptyBanks());
+  const [closingMobile, setClosingMobile] = useState<MobileProviders>(emptyMobile());
   const [closingCards, setClosingCards] = useState<number>(cards?.closing_card_count ?? 0);
   const [systemResultInput, setSystemResultInput] = useState<string>(
     shift.system_shift_result?.toString() ?? "",
@@ -98,6 +100,15 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
   useEffect(() => {
     if (cards?.closing_card_count != null) setClosingCards(cards.closing_card_count);
   }, [cards?.closing_card_count]);
+
+  // Hydrate banks + mobile from the latest cash check (denominations JSONB).
+  useEffect(() => {
+    const last = checks[0];
+    const d = (last?.denominations || {}) as Record<string, unknown>;
+    if (d.bank) setClosingBanks(d.bank as Banks);
+    if (d.mobile) setClosingMobile(d.mobile as MobileProviders);
+  }, [checks]);
+
 
   const closingTzsTotal = useMemo(() => cashSum(closingCash["TZS"] || {}), [closingCash]);
   const closingFxTzs = useMemo(() => FOREIGN_CURRENCIES.reduce(
