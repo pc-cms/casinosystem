@@ -186,7 +186,21 @@ const RoleGuard = ({ path, children }: { path: string; children: React.ReactNode
 
   if (!allowedModules.has(moduleKey)) {
     const fallback = roles.includes("cashier") ? "/cage" : "/";
-    return <Navigate to={path === "/" ? fallback : "/"} replace />;
+    const target = path === "/" ? fallback : "/";
+    // Prevent infinite redirect loop when the fallback itself is not allowed
+    // (e.g. user lacks Dashboard module → "/" → "/" → replaceState storm).
+    if (target === path) {
+      return (
+        <div className="min-h-[60vh] flex flex-col items-center justify-center p-6 text-center gap-2">
+          <h2 className="text-lg font-bold">No access</h2>
+          <p className="text-sm text-muted-foreground max-w-md">
+            Your account does not have permission to view any module on this casino.
+            Please contact a manager.
+          </p>
+        </div>
+      );
+    }
+    return <Navigate to={target} replace />;
   }
   return <>{children}</>;
 };
