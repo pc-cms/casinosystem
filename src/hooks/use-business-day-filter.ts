@@ -20,6 +20,7 @@ export function useBusinessDayFilter() {
   const isOperational =
     roles.includes("pit") ||
     roles.includes("cashier") ||
+    roles.includes("cashier_slots") ||
     roles.includes("reception");
 
   const isPrivileged =
