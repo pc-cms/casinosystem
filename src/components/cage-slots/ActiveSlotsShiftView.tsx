@@ -150,7 +150,9 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
   const computeExpectedCashNow = (currentCards: number) =>
     openingTotalTzs + systemResult + cashlessNetTzs + transfersNetTzs +
     (openingCardsCount - currentCards) * cardDepositTzs;
-  const countedCashNow = closingTzsTotal + closingFxTzs; // exclude cards from Counted
+  const countedCashNow = closingTzsTotal + closingFxTzs
+    + bankTotalTzs(closingBanks, rateMap)
+    + mobileTotal(closingMobile); // cash (all currencies) + banks + mobile money
 
   const persistClosingCash = async (currency: string, denom: number, qty: number) => {
     await upsertInv.mutateAsync({
