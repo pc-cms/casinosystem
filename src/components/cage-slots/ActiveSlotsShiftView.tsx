@@ -415,9 +415,9 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
           </PageSection>
         </TabsContent>
 
-        <TabsContent value="audit">
+
+        {comments.length > 0 && (
           <PageSection title="Comments & Reversals">
-            {comments.length === 0 && <p className="text-xs text-muted-foreground">No comments yet.</p>}
             <ul className="space-y-2">
               {comments.map(c => (
                 <li key={c.id} className="text-xs border-l-2 border-primary/50 pl-2">
@@ -430,7 +430,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
               ))}
             </ul>
           </PageSection>
-        </TabsContent>
+        )}
       </Tabs>
 
       {/* Approve modal */}
