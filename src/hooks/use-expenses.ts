@@ -6,20 +6,20 @@ import { offlineMutation } from "@/lib/offline-mutation";
 import { toast } from "sonner";
 import type { SafeExpenseInsert } from "@/lib/safe-inserts";
 
-export const useExpenses = (date?: string) => {
+export const useExpenses = (date?: string, cageType: "live_game" | "slots" = "live_game") => {
   const { casinoId } = useAuth();
   return useQuery({
-    queryKey: ["expenses", casinoId, date],
+    queryKey: ["expenses", casinoId, date, cageType],
     queryFn: async () => {
       if (!casinoId) return [];
       let query = supabase
         .from("expenses")
         .select("*, players(first_name, last_name)")
         .eq("casino_id", casinoId)
+        .eq("cage_type", cageType)
         .order("created_at", { ascending: false });
       
       if (date) {
-        // Business day window: D 11:00 EAT → D+1 11:00 EAT (matches transactions/chip transfers).
         const { businessDayHourUTC } = await import("@/lib/business-day");
         query = query.gte("created_at", businessDayHourUTC(date, 11)).lt("created_at", businessDayHourUTC(date, 11 + 24));
       } else {
@@ -34,6 +34,66 @@ export const useExpenses = (date?: string) => {
     staleTime: 1000 * 60 * 2,
   });
 };
+
+/** Slots cage expenses scoped to a single slots shift. */
+export const useSlotsExpenses = (slotsShiftId: string | undefined) => {
+  const { casinoId } = useAuth();
+  return useQuery({
+    queryKey: ["expenses-slots", casinoId, slotsShiftId],
+    queryFn: async () => {
+      if (!casinoId || !slotsShiftId) return [];
+      const { data, error } = await supabase
+        .from("expenses")
+        .select("*, players(first_name, last_name)")
+        .eq("casino_id", casinoId)
+        .eq("cage_slots_shift_id", slotsShiftId)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!casinoId && !!slotsShiftId,
+    staleTime: 1000 * 60,
+  });
+};
+
+export const useCreateSlotsExpense = () => {
+  const qc = useQueryClient();
+  const { casinoId, user } = useAuth();
+  return useMutation({
+    mutationFn: async (input: {
+      slots_shift_id: string;
+      category: string;
+      amount: number;
+      description: string;
+      player_id?: string | null;
+      player_name?: string;
+    }) => {
+      if (!casinoId || !user) throw new Error("Not authenticated");
+      const { error } = await (supabase as any).from("expenses").insert({
+        casino_id: casinoId,
+        category: input.category,
+        amount: input.amount,
+        description: input.description,
+        player_id: input.player_id ?? null,
+        player_name: input.player_name || "",
+        cage_slots_shift_id: input.slots_shift_id,
+        created_by: user.id,
+      });
+      if (error) throw error;
+      await logAction(casinoId, "expense", "CAGE_SLOTS_EXPENSE_CREATED", {
+        slots_shift_id: input.slots_shift_id, category: input.category, amount: input.amount,
+      });
+    },
+    onSuccess: (_, vars) => {
+      qc.invalidateQueries({ queryKey: ["expenses-slots"] });
+      qc.invalidateQueries({ queryKey: ["expenses"] });
+      qc.invalidateQueries({ queryKey: ["cage-slots-shift", vars.slots_shift_id] });
+      toast.success("Expense recorded");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+};
+
 
 export const useCreateExpense = () => {
   const qc = useQueryClient();
