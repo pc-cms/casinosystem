@@ -20,7 +20,6 @@ import { DataInventoryPanel } from "@/components/admin/DataInventoryPanel";
 import { MirrorCutoverPanel } from "@/components/admin/MirrorCutoverPanel";
 import { CutoverWizardPanel } from "@/components/admin/CutoverWizardPanel";
 import { ApplyErrorsPanel } from "@/components/admin/ApplyErrorsPanel";
-import { ServersPanel } from "@/components/admin/ServersPanel";
 import { resetPWACache } from "@/lib/pwa-register";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { toast } from "sonner";
@@ -157,7 +156,6 @@ const Admin = () => {
             <TabsContent value="peers">
               <div className="space-y-4">
                 <ServerIdentityPanel />
-                <ServersPanel />
                 <SyncStatusPanel />
                 <MirrorHealthPanel />
                 <CutoverWizardPanel />
