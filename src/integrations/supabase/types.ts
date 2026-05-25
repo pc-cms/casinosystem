@@ -3165,6 +3165,7 @@ export type Database = {
           last_push_error: string | null
           last_seen_at: string | null
           peer_node_id: string | null
+          peer_node_kind: string | null
           peer_url: string
           schema_version: string | null
           status: string
@@ -3181,6 +3182,7 @@ export type Database = {
           last_push_error?: string | null
           last_seen_at?: string | null
           peer_node_id?: string | null
+          peer_node_kind?: string | null
           peer_url: string
           schema_version?: string | null
           status?: string
@@ -3197,6 +3199,7 @@ export type Database = {
           last_push_error?: string | null
           last_seen_at?: string | null
           peer_node_id?: string | null
+          peer_node_kind?: string | null
           peer_url?: string
           schema_version?: string | null
           status?: string
