@@ -18,6 +18,7 @@ export type ModuleKey =
   | "cage"
   | "cage_view"
   | "cage_closings"
+  | "cage_slots"
   | "tables"
   
   | "table_tracker"
@@ -79,6 +80,7 @@ export const MODULES: ModuleDef[] = [
   { key: "cage", label: "Cage (Cashier)", group: "Operations" },
   { key: "cage_view", label: "Cage View (Read-only)", group: "Operations" },
   { key: "cage_closings", label: "Cage Closings", group: "Operations" },
+  { key: "cage_slots", label: "Cage Slots", group: "Operations" },
   { key: "tables", label: "Tables", group: "Operations" },
   
   { key: "table_tracker", label: "Table Check", group: "Operations" },
