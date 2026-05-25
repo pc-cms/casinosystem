@@ -1671,6 +1671,65 @@ export type Database = {
         }
         Relationships: []
       }
+      cutover_sessions: {
+        Row: {
+          casino_id: string
+          completed_at: string | null
+          delta_rows: number
+          drain_ms: number | null
+          id: string
+          initiated_by: string | null
+          notes: string | null
+          rollback_window_until: string | null
+          seed_rows: number
+          source_node_id: string | null
+          started_at: string
+          state: string
+          target_node_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          casino_id: string
+          completed_at?: string | null
+          delta_rows?: number
+          drain_ms?: number | null
+          id?: string
+          initiated_by?: string | null
+          notes?: string | null
+          rollback_window_until?: string | null
+          seed_rows?: number
+          source_node_id?: string | null
+          started_at?: string
+          state?: string
+          target_node_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          casino_id?: string
+          completed_at?: string | null
+          delta_rows?: number
+          drain_ms?: number | null
+          id?: string
+          initiated_by?: string | null
+          notes?: string | null
+          rollback_window_until?: string | null
+          seed_rows?: number
+          source_node_id?: string | null
+          started_at?: string
+          state?: string
+          target_node_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cutover_sessions_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       daily_summaries: {
         Row: {
           casino_id: string
@@ -5493,6 +5552,17 @@ export type Database = {
           schedule: string
           total_failures_24h: number
         }[]
+      }
+      cutover_begin: {
+        Args: { p_casino: string; p_target_node: string }
+        Returns: string
+      }
+      cutover_freeze_cloud: { Args: { p_casino: string }; Returns: number }
+      cutover_promote_local: { Args: { p_casino: string }; Returns: undefined }
+      cutover_rollback: { Args: { p_session: string }; Returns: undefined }
+      cutover_set_state: {
+        Args: { p_notes?: string; p_session: string; p_state: string }
+        Returns: undefined
       }
       demote_to_cloud_primary: { Args: { p_casino_id: string }; Returns: Json }
       edit_business_day_snapshot: {
