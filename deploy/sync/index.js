@@ -174,15 +174,36 @@ async function handshakePeer(peer) {
 }
 
 // ─────────── PUSH ───────────
+// Premier-hub fan-out rules (sync_role on each outbox row):
+//   • local  → cloud  : push everything (full operational consolidation to Premier)
+//   • cloud  → local  : push ONLY 'bidir_global' rows (players, blacklist, etc.)
+//   • local  → local  : skip entirely (locals must not peer with each other)
+//   • cloud  → cloud  : skip entirely
+function pushRoleFilterSql(myKind, peerKind) {
+  if (myKind === "local" && peerKind === "cloud") return null; // no extra filter
+  if (myKind === "cloud" && peerKind === "local") return "bidir_global";
+  return "SKIP";
+}
+
 async function pushPeer(peer) {
+  const myKind   = IDENTITY?.node_kind ?? "local";
+  const peerKind = peer.peer_node_kind ?? (myKind === "local" ? "cloud" : "local"); // legacy default
+  const filter   = pushRoleFilterSql(myKind, peerKind);
+  if (filter === "SKIP") return 0;
+
+  const params = [peer.last_push_cursor, peer.peer_node_id, BATCH];
+  let roleClause = "";
+  if (filter) { params.push(filter); roleClause = `AND sync_role = $4`; }
+
   const { rows } = await pool.query(
-    `SELECT id, casino_id, table_name AS table, op, pk, payload, changed_at, origin_node_id
+    `SELECT id, casino_id, table_name AS table, op, pk, payload, changed_at, origin_node_id, sync_role
        FROM public.sync_outbox
       WHERE id > $1
         AND (origin_node_id IS NULL OR origin_node_id <> $2)
+        ${roleClause}
       ORDER BY id ASC
       LIMIT $3`,
-    [peer.last_push_cursor, peer.peer_node_id, BATCH]
+    params
   );
   if (rows.length === 0) return 0;
 
@@ -215,7 +236,7 @@ async function pushPeer(peer) {
     direction: "push",
     status: rejected.length ? "warn" : "ok",
     row_count: accepted.size,
-    meta: { attempted: rows.length, rejected: rejected.length, cursor: safeMax },
+    meta: { attempted: rows.length, rejected: rejected.length, cursor: safeMax, filter: filter ?? "all" },
   });
   return rows.length;
 }
