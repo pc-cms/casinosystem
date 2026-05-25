@@ -40,7 +40,7 @@ const CageSlotsReport = () => {
   const diff = Number(shift.difference_amount ?? (actualResult - systemResult));
 
   return (
-    <PageShell>
+    <PageShell className="print-target">
       <PageHeader
         icon={Coins}
         title="Cage Slots · Shift Report"
