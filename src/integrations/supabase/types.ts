@@ -685,6 +685,389 @@ export type Database = {
           },
         ]
       }
+      cage_slots_cards: {
+        Row: {
+          cage_slots_shift_id: string
+          card_balance_effect_tzs: number | null
+          card_deposit_value_tzs: number
+          casino_id: string
+          closing_card_count: number | null
+          created_at: string
+          id: string
+          miss_card_count: number | null
+          opening_card_count: number
+          updated_at: string
+        }
+        Insert: {
+          cage_slots_shift_id: string
+          card_balance_effect_tzs?: number | null
+          card_deposit_value_tzs?: number
+          casino_id: string
+          closing_card_count?: number | null
+          created_at?: string
+          id?: string
+          miss_card_count?: number | null
+          opening_card_count?: number
+          updated_at?: string
+        }
+        Update: {
+          cage_slots_shift_id?: string
+          card_balance_effect_tzs?: number | null
+          card_deposit_value_tzs?: number
+          casino_id?: string
+          closing_card_count?: number | null
+          created_at?: string
+          id?: string
+          miss_card_count?: number | null
+          opening_card_count?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cage_slots_cards_cage_slots_shift_id_fkey"
+            columns: ["cage_slots_shift_id"]
+            isOneToOne: true
+            referencedRelation: "cage_slots_shifts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cage_slots_cards_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cage_slots_cash_counts: {
+        Row: {
+          cage_slots_shift_id: string
+          casino_id: string
+          count_type: Database["public"]["Enums"]["cage_slots_count_type"]
+          counted_by: string
+          created_at: string
+          denominations: Json
+          id: string
+          note: string | null
+          total_tzs: number
+        }
+        Insert: {
+          cage_slots_shift_id: string
+          casino_id: string
+          count_type: Database["public"]["Enums"]["cage_slots_count_type"]
+          counted_by: string
+          created_at?: string
+          denominations?: Json
+          id?: string
+          note?: string | null
+          total_tzs?: number
+        }
+        Update: {
+          cage_slots_shift_id?: string
+          casino_id?: string
+          count_type?: Database["public"]["Enums"]["cage_slots_count_type"]
+          counted_by?: string
+          created_at?: string
+          denominations?: Json
+          id?: string
+          note?: string | null
+          total_tzs?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cage_slots_cash_counts_cage_slots_shift_id_fkey"
+            columns: ["cage_slots_shift_id"]
+            isOneToOne: false
+            referencedRelation: "cage_slots_shifts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cage_slots_cash_counts_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cage_slots_cash_inventory: {
+        Row: {
+          cage_slots_shift_id: string
+          casino_id: string
+          created_at: string
+          created_by: string | null
+          currency_code: string
+          denomination: number
+          id: string
+          inventory_type: Database["public"]["Enums"]["cage_slots_inventory_type"]
+          quantity: number
+          rate_to_tzs: number
+          total_currency: number
+          total_tzs: number
+          updated_at: string
+        }
+        Insert: {
+          cage_slots_shift_id: string
+          casino_id: string
+          created_at?: string
+          created_by?: string | null
+          currency_code: string
+          denomination: number
+          id?: string
+          inventory_type: Database["public"]["Enums"]["cage_slots_inventory_type"]
+          quantity?: number
+          rate_to_tzs?: number
+          total_currency?: number
+          total_tzs?: number
+          updated_at?: string
+        }
+        Update: {
+          cage_slots_shift_id?: string
+          casino_id?: string
+          created_at?: string
+          created_by?: string | null
+          currency_code?: string
+          denomination?: number
+          id?: string
+          inventory_type?: Database["public"]["Enums"]["cage_slots_inventory_type"]
+          quantity?: number
+          rate_to_tzs?: number
+          total_currency?: number
+          total_tzs?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cage_slots_cash_inventory_cage_slots_shift_id_fkey"
+            columns: ["cage_slots_shift_id"]
+            isOneToOne: false
+            referencedRelation: "cage_slots_shifts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cage_slots_cash_inventory_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cage_slots_comments: {
+        Row: {
+          cage_slots_shift_id: string
+          casino_id: string
+          comment_text: string
+          comment_type: Database["public"]["Enums"]["cage_slots_comment_type"]
+          created_at: string
+          created_by: string
+          id: string
+        }
+        Insert: {
+          cage_slots_shift_id: string
+          casino_id: string
+          comment_text: string
+          comment_type: Database["public"]["Enums"]["cage_slots_comment_type"]
+          created_at?: string
+          created_by: string
+          id?: string
+        }
+        Update: {
+          cage_slots_shift_id?: string
+          casino_id?: string
+          comment_text?: string
+          comment_type?: Database["public"]["Enums"]["cage_slots_comment_type"]
+          created_at?: string
+          created_by?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cage_slots_comments_cage_slots_shift_id_fkey"
+            columns: ["cage_slots_shift_id"]
+            isOneToOne: false
+            referencedRelation: "cage_slots_shifts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cage_slots_comments_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cage_slots_exchange_rates: {
+        Row: {
+          cage_slots_shift_id: string
+          casino_id: string
+          created_at: string
+          currency_code: string
+          id: string
+          rate_to_tzs: number
+          updated_at: string
+        }
+        Insert: {
+          cage_slots_shift_id: string
+          casino_id: string
+          created_at?: string
+          currency_code: string
+          id?: string
+          rate_to_tzs: number
+          updated_at?: string
+        }
+        Update: {
+          cage_slots_shift_id?: string
+          casino_id?: string
+          created_at?: string
+          currency_code?: string
+          id?: string
+          rate_to_tzs?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cage_slots_exchange_rates_cage_slots_shift_id_fkey"
+            columns: ["cage_slots_shift_id"]
+            isOneToOne: false
+            referencedRelation: "cage_slots_shifts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cage_slots_exchange_rates_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cage_slots_settings: {
+        Row: {
+          card_deposit_value_tzs: number
+          casino_id: string
+          created_at: string
+          id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          card_deposit_value_tzs?: number
+          casino_id: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          card_deposit_value_tzs?: number
+          casino_id?: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cage_slots_settings_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: true
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cage_slots_shifts: {
+        Row: {
+          actual_cage_result: number | null
+          business_date: string
+          cashier_id: string
+          cashier_note: string | null
+          casino_id: string
+          client_uuid: string | null
+          closed_at: string | null
+          closed_by: string | null
+          created_at: string
+          difference_amount: number | null
+          id: string
+          manager_comment: string | null
+          opened_at: string
+          opened_by: string
+          reverses_id: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          shift_type: Database["public"]["Enums"]["cage_slots_shift_type"]
+          status: Database["public"]["Enums"]["cage_slots_status"]
+          submitted_at: string | null
+          system_shift_result: number | null
+          updated_at: string
+        }
+        Insert: {
+          actual_cage_result?: number | null
+          business_date: string
+          cashier_id: string
+          cashier_note?: string | null
+          casino_id: string
+          client_uuid?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
+          created_at?: string
+          difference_amount?: number | null
+          id?: string
+          manager_comment?: string | null
+          opened_at?: string
+          opened_by: string
+          reverses_id?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          shift_type: Database["public"]["Enums"]["cage_slots_shift_type"]
+          status?: Database["public"]["Enums"]["cage_slots_status"]
+          submitted_at?: string | null
+          system_shift_result?: number | null
+          updated_at?: string
+        }
+        Update: {
+          actual_cage_result?: number | null
+          business_date?: string
+          cashier_id?: string
+          cashier_note?: string | null
+          casino_id?: string
+          client_uuid?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
+          created_at?: string
+          difference_amount?: number | null
+          id?: string
+          manager_comment?: string | null
+          opened_at?: string
+          opened_by?: string
+          reverses_id?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          shift_type?: Database["public"]["Enums"]["cage_slots_shift_type"]
+          status?: Database["public"]["Enums"]["cage_slots_status"]
+          submitted_at?: string | null
+          system_shift_result?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cage_slots_shifts_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cage_slots_shifts_reverses_id_fkey"
+            columns: ["reverses_id"]
+            isOneToOne: false
+            referencedRelation: "cage_slots_shifts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cage_transfers: {
         Row: {
           amount: number
@@ -865,6 +1248,7 @@ export type Database = {
           approved_at: string | null
           approved_by: string | null
           business_date: string
+          cage_slots_shift_id: string | null
           casino_id: string
           created_at: string
           currency: string
@@ -876,6 +1260,7 @@ export type Database = {
           player_name: string
           provider: string
           reference: string
+          source_module: string | null
           status: string
         }
         Insert: {
@@ -883,6 +1268,7 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           business_date: string
+          cage_slots_shift_id?: string | null
           casino_id: string
           created_at?: string
           currency?: string
@@ -894,6 +1280,7 @@ export type Database = {
           player_name?: string
           provider: string
           reference?: string
+          source_module?: string | null
           status?: string
         }
         Update: {
@@ -901,6 +1288,7 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           business_date?: string
+          cage_slots_shift_id?: string | null
           casino_id?: string
           created_at?: string
           currency?: string
@@ -912,9 +1300,18 @@ export type Database = {
           player_name?: string
           provider?: string
           reference?: string
+          source_module?: string | null
           status?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "cashless_transactions_cage_slots_shift_id_fkey"
+            columns: ["cage_slots_shift_id"]
+            isOneToOne: false
+            referencedRelation: "cage_slots_shifts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       casino_servers: {
         Row: {
@@ -5486,6 +5883,10 @@ export type Database = {
         Returns: Json
       }
       close_open_sessions_5am: { Args: never; Returns: Json }
+      compute_cage_slots_balance: {
+        Args: { p_shift_id: string }
+        Returns: Json
+      }
       compute_paye_for_amount: {
         Args: { _amount: number; _at: string }
         Returns: number
@@ -5553,6 +5954,9 @@ export type Database = {
           total_failures_24h: number
         }[]
       }
+      cs_can_approve: { Args: { _casino: string }; Returns: boolean }
+      cs_can_view: { Args: { _casino: string }; Returns: boolean }
+      cs_can_write: { Args: { _casino: string }; Returns: boolean }
       cutover_begin: {
         Args: { p_casino: string; p_target_node: string }
         Returns: string
@@ -5963,6 +6367,20 @@ export type Database = {
         | "super_admin"
         | "hr"
         | "floor_manager"
+      cage_slots_comment_type:
+        | "cashier_note"
+        | "manager_comment"
+        | "reversal_reason"
+      cage_slots_count_type: "opening" | "check" | "closing"
+      cage_slots_inventory_type: "opening" | "closing"
+      cage_slots_shift_type: "day" | "night"
+      cage_slots_status:
+        | "draft"
+        | "open"
+        | "ready_for_review"
+        | "approved"
+        | "closed"
+        | "reversed"
       card_type: "manual" | "rfid"
       casino_server_role: "primary" | "replica"
       day_horizon: "today" | "7d" | "30d" | "all"
@@ -6208,6 +6626,22 @@ export const Constants = {
         "super_admin",
         "hr",
         "floor_manager",
+      ],
+      cage_slots_comment_type: [
+        "cashier_note",
+        "manager_comment",
+        "reversal_reason",
+      ],
+      cage_slots_count_type: ["opening", "check", "closing"],
+      cage_slots_inventory_type: ["opening", "closing"],
+      cage_slots_shift_type: ["day", "night"],
+      cage_slots_status: [
+        "draft",
+        "open",
+        "ready_for_review",
+        "approved",
+        "closed",
+        "reversed",
       ],
       card_type: ["manual", "rfid"],
       casino_server_role: ["primary", "replica"],
