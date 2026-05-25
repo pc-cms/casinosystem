@@ -2551,6 +2551,7 @@ export type Database = {
           approved_at: string | null
           approved_by: string | null
           business_date: string | null
+          cage_slots_shift_id: string | null
           cage_type: string
           casino_id: string
           category: Database["public"]["Enums"]["expense_category"]
@@ -2568,6 +2569,7 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           business_date?: string | null
+          cage_slots_shift_id?: string | null
           cage_type?: string
           casino_id: string
           category: Database["public"]["Enums"]["expense_category"]
@@ -2585,6 +2587,7 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           business_date?: string | null
+          cage_slots_shift_id?: string | null
           cage_type?: string
           casino_id?: string
           category?: Database["public"]["Enums"]["expense_category"]
@@ -2597,6 +2600,13 @@ export type Database = {
           shift_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "expenses_cage_slots_shift_id_fkey"
+            columns: ["cage_slots_shift_id"]
+            isOneToOne: false
+            referencedRelation: "cage_slots_shifts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "expenses_casino_id_fkey"
             columns: ["casino_id"]
