@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Coins, Send, RotateCcw, Printer, FileText, CreditCard, Save } from "lucide-react";
+import { Coins, Send, RotateCcw, Printer, FileText, CreditCard, Save, ArrowLeftRight } from "lucide-react";
+import SlotsTransfersForm from "./SlotsTransfersForm";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -249,45 +250,60 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
         <SummaryCard label="Difference" value={difference} signed emphasize />
       </div>
 
-      <Tabs defaultValue="result" className="space-y-2">
+      <Tabs defaultValue="closing" className="space-y-2">
         <TabsList>
-          <TabsTrigger value="result">System Result</TabsTrigger>
-          <TabsTrigger value="closing">Closing Cash</TabsTrigger>
-          <TabsTrigger value="cards">Cards</TabsTrigger>
+          <TabsTrigger value="closing">Closing</TabsTrigger>
+          <TabsTrigger value="transfers">Transfers</TabsTrigger>
           <TabsTrigger value="cashless">Cashless ({cashless.length})</TabsTrigger>
           <TabsTrigger value="checks">Checks ({checks.length})</TabsTrigger>
-          <TabsTrigger value="audit">Audit</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="result">
-          <PageSection title="System Shift Result">
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground">Result reported by slots system (can be negative):</span>
+        <TabsContent value="closing" className="space-y-2">
+          {/* Combined: Sys Result + Cards on one compact strip, then full cash grid. */}
+          <PageSection title="System Result · Cards">
+            <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_1fr_2fr] gap-3 items-end">
+              <div>
+                <p className="text-[10px] uppercase text-muted-foreground tracking-wider mb-1">System Result (TZS)</p>
                 <NumberInput
                   value={systemResultInput}
                   onChange={v => setSystemResultInput(String(v))}
                   onBlur={() => setSystem.mutate({ shift_id: shift.id, system_shift_result: Number(systemResultInput) || 0 })}
-                  className="no-spin h-9 w-40 text-right font-mono text-base"
+                  className="no-spin h-9 w-full text-right font-mono text-base"
                   placeholder="0"
                 />
-                <span className="text-sm font-mono text-muted-foreground">TZS</span>
               </div>
-              <div className="text-xs text-muted-foreground">
-                Cashier note (optional):
-                <Textarea
-                  value={cashierNote}
-                  onChange={e => setCashierNote(e.target.value)}
-                  className="mt-1 text-sm"
-                  rows={2}
-                  placeholder="Anything the manager should know about this shift…"
+              <Stat label={`Cards Open (× TZS ${formatNumberSpaces(cardDepositTzs)})`} value={cards?.opening_card_count ?? 0} />
+              <div>
+                <p className="text-[10px] uppercase text-muted-foreground tracking-wider mb-1">Cards Closing</p>
+                <NumberInput
+                  value={closingCards || ""}
+                  onChange={v => setClosingCards(Number(v) || 0)}
+                  onBlur={() => updateCards.mutate({ shift_id: shift.id, closing_card_count: closingCards })}
+                  className="no-spin h-9 w-full text-right font-mono"
                 />
               </div>
+              <div>
+                <p className="text-[10px] uppercase text-muted-foreground tracking-wider mb-1">Cards Miss</p>
+                <p className={`font-mono font-bold text-base ${(cards?.miss_card_count ?? (closingCards - (cards?.opening_card_count ?? 0))) < 0 ? "cms-amount-negative" : ""}`}>
+                  {(cards?.miss_card_count ?? (closingCards - (cards?.opening_card_count ?? 0)))} ·&nbsp;
+                  <span className="text-muted-foreground text-sm">
+                    TZS {formatNumberSpaces(((cards?.miss_card_count ?? (closingCards - (cards?.opening_card_count ?? 0)))) * cardDepositTzs)}
+                  </span>
+                </p>
+              </div>
+            </div>
+            <div className="mt-2">
+              <p className="text-[10px] uppercase text-muted-foreground tracking-wider mb-1">Cashier note (optional)</p>
+              <Textarea
+                value={cashierNote}
+                onChange={e => setCashierNote(e.target.value)}
+                className="text-sm"
+                rows={2}
+                placeholder="Anything the manager should know about this shift…"
+              />
             </div>
           </PageSection>
-        </TabsContent>
 
-        <TabsContent value="closing">
           {/* Same grid as Live Game cage: TZS Cash + Mobile + Banks | USD+KES | EUR+GBP. */}
           <div className="cms-panel p-4">
             <CashCountGrid
@@ -297,7 +313,6 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
               onCashChange={(cur, next) => {
                 const prev = closingCash[cur] || {};
                 setClosingCash(c => ({ ...c, [cur]: next }));
-                // Persist per-denom diffs to cage_slots_cash_inventory (closing).
                 const denoms = CASH_DENOMS[cur] || [];
                 for (const d of denoms) {
                   if ((next[d] || 0) !== (prev[d] || 0)) {
@@ -316,37 +331,15 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
               Banks &amp; Mobile balances are saved into the next mid-shift check (use the button below).
             </p>
           </div>
-          <div className="flex justify-end mt-2">
+          <div className="flex justify-end">
             <Button variant="outline" size="sm" onClick={recordMidCheck} className="gap-1.5">
               <FileText className="w-3.5 h-3.5" /> Save Mid-shift Check
             </Button>
           </div>
         </TabsContent>
 
-
-
-        <TabsContent value="cards">
-          <PageSection title="Plastic Cards">
-            <div className="grid grid-cols-3 gap-4 max-w-xl">
-              <Stat label="Opening" value={cards?.opening_card_count ?? 0} />
-              <div>
-                <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Closing</p>
-                <NumberInput
-                  value={closingCards || ""}
-                  onChange={v => setClosingCards(Number(v) || 0)}
-                  onBlur={() => updateCards.mutate({ shift_id: shift.id, closing_card_count: closingCards })}
-                  className="no-spin h-9 w-32 text-right font-mono"
-                />
-              </div>
-              <Stat label="Miss" value={cards?.miss_card_count ?? (closingCards - (cards?.opening_card_count ?? 0))} signed />
-            </div>
-            <p className="text-xs text-muted-foreground mt-3">
-              Each card = TZS {formatNumberSpaces(cardDepositTzs)}. Miss value:&nbsp;
-              <span className="font-mono font-semibold">
-                TZS {formatNumberSpaces(((cards?.miss_card_count ?? (closingCards - (cards?.opening_card_count ?? 0)))) * cardDepositTzs)}
-              </span>
-            </p>
-          </PageSection>
+        <TabsContent value="transfers">
+          <SlotsTransfersForm shiftId={shift.id} />
         </TabsContent>
 
         <TabsContent value="cashless">
