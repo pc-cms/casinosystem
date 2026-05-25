@@ -160,6 +160,7 @@ const Admin = () => {
                 <ServersPanel />
                 <SyncStatusPanel />
                 <MirrorHealthPanel />
+                <CutoverWizardPanel />
                 <MirrorCutoverPanel />
                 <DataInventoryPanel />
                 <ApplyErrorsPanel />
