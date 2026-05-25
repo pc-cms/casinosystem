@@ -1,0 +1,1 @@
+ALTER TABLE public.player_daily_avg_bets RENAME COLUMN avg_bet_bg TO avg_bet_bj;

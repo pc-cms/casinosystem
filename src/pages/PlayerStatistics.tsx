@@ -144,16 +144,16 @@ const PlayerStatistics = () => {
   const isSingleDay = fromDate === toDate;
   const { data: dailyAvgBets = [] } = usePlayerDailyAvgBets(isSingleDay ? fromDate : undefined);
   const dailyAvgBetByPlayer = useMemo(() => {
-    const m = new Map<string, { ar: number | null; bg: number | null; poker: number | null }>();
+    const m = new Map<string, { ar: number | null; bj: number | null; poker: number | null }>();
     dailyAvgBets.forEach(b => m.set(b.player_id, {
-      ar: b.avg_bet_ar, bg: b.avg_bet_bg, poker: b.avg_bet_poker,
+      ar: b.avg_bet_ar, bj: b.avg_bet_bj, poker: b.avg_bet_poker,
     }));
     return m;
   }, [dailyAvgBets]);
   const summaryAvgBet = (pid: string): number => {
     const b = dailyAvgBetByPlayer.get(pid);
     if (!b) return 0;
-    const vals = [b.ar, b.bg, b.poker].filter((v): v is number => v != null && v > 0);
+    const vals = [b.ar, b.bj, b.poker].filter((v): v is number => v != null && v > 0);
     return vals.length ? Math.max(...vals) : 0;
   };
 
@@ -994,13 +994,13 @@ function AvgBetPopover({
 }: {
   playerId: string;
   isSingleDay: boolean;
-  bets: { ar: number | null; bg: number | null; poker: number | null } | undefined;
+  bets: { ar: number | null; bj: number | null; poker: number | null } | undefined;
   fallback: number;
 }) {
   const ar = bets?.ar ?? null;
-  const bg = bets?.bg ?? null;
+  const bj = bets?.bj ?? null;
   const poker = bets?.poker ?? null;
-  const vals = [ar, bg, poker].filter((v): v is number => v != null && v > 0);
+  const vals = [ar, bj, poker].filter((v): v is number => v != null && v > 0);
   const display = vals.length ? Math.round(vals.reduce((s, v) => s + v, 0) / vals.length) : fallback;
   if (!isSingleDay) {
     return display ? <span>{formatCurrency(display)}</span> : <span>·</span>;
@@ -1014,7 +1014,7 @@ function AvgBetPopover({
         <button
           type="button"
           className="font-mono hover:text-primary cursor-pointer"
-          title="Click to see AR / BG / Poker breakdown"
+          title="Click to see AR / BJ / Poker breakdown"
         >
           {formatCurrency(display)}
         </button>
@@ -1024,7 +1024,7 @@ function AvgBetPopover({
         <div className="space-y-1">
           {[
             { label: "AR", value: ar },
-            { label: "BG", value: bg },
+            { label: "BJ", value: bj },
             { label: "Poker", value: poker },
           ].map(g => (
             <div key={g.label} className="flex items-center justify-between px-1.5 py-1 rounded hover:bg-muted/40">

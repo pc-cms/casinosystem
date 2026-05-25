@@ -4049,7 +4049,7 @@ export type Database = {
       player_daily_avg_bets: {
         Row: {
           avg_bet_ar: number | null
-          avg_bet_bg: number | null
+          avg_bet_bj: number | null
           avg_bet_poker: number | null
           business_date: string
           casino_id: string
@@ -4061,7 +4061,7 @@ export type Database = {
         }
         Insert: {
           avg_bet_ar?: number | null
-          avg_bet_bg?: number | null
+          avg_bet_bj?: number | null
           avg_bet_poker?: number | null
           business_date: string
           casino_id: string
@@ -4073,7 +4073,7 @@ export type Database = {
         }
         Update: {
           avg_bet_ar?: number | null
-          avg_bet_bg?: number | null
+          avg_bet_bj?: number | null
           avg_bet_poker?: number | null
           business_date?: string
           casino_id?: string
