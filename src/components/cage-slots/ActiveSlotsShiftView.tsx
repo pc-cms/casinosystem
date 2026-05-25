@@ -188,6 +188,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
   // Manager approve
   const [showApprove, setShowApprove] = useState(false);
   const [managerComment, setManagerComment] = useState("");
+  const [viewerCheck, setViewerCheck] = useState<Tables<"cash_counts"> | null>(null);
   const needsComment = Math.abs(difference) > 0;
 
   const doApprove = (managerId: string) => {
