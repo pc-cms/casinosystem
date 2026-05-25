@@ -415,23 +415,23 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
           </PageSection>
         </TabsContent>
 
-
-        {comments.length > 0 && (
-          <PageSection title="Comments & Reversals">
-            <ul className="space-y-2">
-              {comments.map(c => (
-                <li key={c.id} className="text-xs border-l-2 border-primary/50 pl-2">
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Badge variant="outline" className="text-[10px] uppercase">{c.comment_type.replace("_", " ")}</Badge>
-                    <span>{fmtDateTime(c.created_at)}</span>
-                  </div>
-                  <p className="text-foreground mt-0.5">{c.comment_text}</p>
-                </li>
-              ))}
-            </ul>
-          </PageSection>
-        )}
       </Tabs>
+
+      {comments.length > 0 && (
+        <PageSection title="Comments & Reversals">
+          <ul className="space-y-2">
+            {comments.map(c => (
+              <li key={c.id} className="text-xs border-l-2 border-primary/50 pl-2">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Badge variant="outline" className="text-[10px] uppercase">{c.comment_type.replace("_", " ")}</Badge>
+                  <span>{fmtDateTime(c.created_at)}</span>
+                </div>
+                <p className="text-foreground mt-0.5">{c.comment_text}</p>
+              </li>
+            ))}
+          </ul>
+        </PageSection>
+      )}
 
       {/* Approve modal */}
       {showApprove && (
