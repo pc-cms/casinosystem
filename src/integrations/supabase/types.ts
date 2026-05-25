@@ -6485,6 +6485,7 @@ export type Database = {
         | "super_admin"
         | "hr"
         | "floor_manager"
+        | "cashier_slots"
       cage_slots_comment_type:
         | "cashier_note"
         | "manager_comment"
@@ -6744,6 +6745,7 @@ export const Constants = {
         "super_admin",
         "hr",
         "floor_manager",
+        "cashier_slots",
       ],
       cage_slots_comment_type: [
         "cashier_note",

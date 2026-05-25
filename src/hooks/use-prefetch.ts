@@ -90,7 +90,7 @@ export function usePrefetchCriticalData() {
 
 
     // Prefetch tables + current open shift for cage/pit roles
-    if (roles.some(r => ["cashier", "pit", "manager", "finance_manager"].includes(r))) {
+    if (roles.some(r => ["cashier", "cashier_slots", "pit", "manager", "finance_manager"].includes(r))) {
       qc.prefetchQuery({
         queryKey: ["gaming-tables", casinoId],
         queryFn: queryFns.tables(casinoId),

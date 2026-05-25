@@ -20,6 +20,7 @@ export function useBusinessDayFilter() {
   const isOperational =
     roles.includes("pit") ||
     roles.includes("cashier") ||
+    roles.includes("cashier_slots") ||
     roles.includes("reception");
 
   const isPrivileged =
@@ -52,7 +53,7 @@ export function useHidePlayerFinancials(): boolean {
   const { roles } = useAuth();
 
   const isCashierOrReception =
-    roles.includes("cashier") || roles.includes("reception");
+    roles.includes("cashier") || roles.includes("cashier_slots") || roles.includes("reception");
 
   const isPrivileged =
     roles.includes("manager") ||

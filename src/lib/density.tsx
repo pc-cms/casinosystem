@@ -26,7 +26,7 @@ const isCoarsePointer = () =>
 
 const roleDefault = (roles: string[]): DensityEffective => {
   if (isCoarsePointer()) return "touch";
-  if (roles.includes("cashier") || roles.includes("pit")) return "compact";
+  if (roles.includes("cashier") || roles.includes("cashier_slots") || roles.includes("pit")) return "compact";
   return "comfort";
 };
 

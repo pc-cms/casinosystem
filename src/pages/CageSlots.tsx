@@ -13,7 +13,7 @@ const CageSlots = () => {
   const isReadOnly = useReadOnlyMode();
   const { roles, managerOverride } = useAuth();
   const canTransact =
-    roles.includes("cashier") ||
+    roles.includes("cashier_slots") ||
     roles.includes("super_admin") ||
     managerOverride.active;
 

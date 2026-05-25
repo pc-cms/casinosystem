@@ -1,75 +1,70 @@
-## Цель
+## Goal
 
-Разделить Cage Slots и Cage Live Game на **две независимые кассы** с раздельными балансами, отдельными Expenses и Cashless. Между ними остаются только трансферы (уже есть `cage_slots_in`/`cage_slots_out` / `cage_lg_in`/`cage_lg_out`), которые фиксируются в отчёте каждой кассы.
+Strict separation of two cashier desks:
 
-Дополнительно: глобально, при вводе транзакции в кассе (Live Game и Slots) рядом с полем оператора Cashless показывать **серую подсказку** с суммой уже записанных транзакций по этому оператору за смену.
+- **`cashier`** (existing) = Live Game cashier. Keeps current Cage access, **loses** Cage Slots.
+- **`cashier_slots`** (new) = Slots cashier. Sees **only** Cage Slots + Expenses. No Live Cage, no Cashless, no Reception.
 
----
+Two roles, two people, two modules. The enum value `cashier` stays as the alias for live game (no mass rename), only a new value is added.
 
-## Изменения
+## Module access matrix (after change)
 
-### 1. Раздельность Cashless (Slots vs Live Game)
-- Добавить колонку `cage_type` в `cashless_transactions` со значениями `'live_game' | 'slots'` (default `'live_game'`, NOT NULL после backfill).
-- Backfill: если `shift_id` указывает на `cage_slots_shifts` → `'slots'`, иначе `'live_game'`.
-- Trigger при INSERT: автоматически выставлять `cage_type` по таблице смены (если не передано явно).
-- Хуки:
-  - `use-cashless.ts` → фильтр по `cage_type='live_game'` на странице Live Game и в Live Game cage.
-  - `use-cage-slots.ts` (`useCageSlotsCashless`) → фильтр `cage_type='slots'`.
-- Страница `/cashless` (Live Game) показывает только LG. Добавить новую вкладку/страницу `/cage-slots/cashless` или таб внутри Slots — оставить отдельно по аналогии.
+| Module      | cashier (live) | cashier_slots | manager | finance_manager | surveillance |
+|-------------|:--------------:|:-------------:|:-------:|:---------------:|:------------:|
+| `cage`      | write (today)  | —             | read    | read            | read         |
+| `cage_slots`| **— (removed)**| **write (today)** | read | read         | read         |
+| `cashless`  | write          | —             | write   | read            | —            |
+| `expenses`  | write          | **write**     | write   | write           | —            |
 
-### 2. Раздельность Expenses (Slots vs Live Game)
-- Добавить колонку `cage_type` в `expenses` (`'live_game' | 'slots'`, default `'live_game'`).
-- Trigger: при INSERT с `shift_id` на cage_slots_shifts → `'slots'`.
-- Хук `useExpenses(date)` принимает опционально `cage_type` фильтр.
-- Страница `/expenses` остаётся для Live Game (фильтр `live_game`).
-- В **Cage Slots** добавить кнопку «Expense» в шапке `ActiveSlotsShiftView`: открывает тот же диалог что и в Live Game cage, но создаёт расход с `cage_type='slots'` и `shift_id` слотовой смены.
-- Sub-page истории расходов Slots — компактный список в табе «Expenses» Slots-кассы.
+Other cashier defaults (none beyond the above) remain unchanged. `super_admin` keeps full access automatically.
 
-### 3. Раздельные балансы и закрытие
-- Уже сейчас Slots-смена закрывается отдельно (`cage_slots_shifts`). Подтверждаем:
-  - Баланс Live Game считается только по транзакциям/expenses/cashless с `cage_type='live_game'`.
-  - Баланс Slots — только по `cage_type='slots'`.
-- Трансферы между кассами (`cage_slots_in/out`, `cage_lg_in/out`) уже зеркальные → продолжают учитываться в Cash Flow обеих смен и в Shift Closing Report соответствующей кассы (добавим отдельный блок «Inter-Cage Transfers» в отчётах обеих сторон).
+## Technical changes
 
-### 4. Серая подсказка по оператору Cashless в кассе
-- Хук `useCashlessTotalsByOperator(shiftId, cageType)` — `SUM(amount) GROUP BY operator` для текущей смены.
-- В компоненте `CashlessForm` (Live Game и Slots) под полем «Operator» / рядом со списком операторов отрисовать `text-muted-foreground` подсказку: `Mpesa: 1 250 000 · Tigo: 320 000 · ...`. Только записанные операторы.
-- Подсказка обновляется реактивно через invalidation после успешной записи.
+### 1. DB migration
 
-### 5. Shift Closing Report
-- В отчёте Live Game: добавить строку «Cage Slots IN / OUT» в Cash Flow панели и в Summary (как отдельный сумматор Inter-Cage Transfers).
-- В отчёте Cage Slots: симметрично «Cage LG IN / OUT».
+```sql
+-- New enum value
+ALTER TYPE app_role ADD VALUE IF NOT EXISTS 'cashier_slots';
 
----
+-- Remove cage_slots from live cashier defaults
+DELETE FROM role_module_defaults
+ WHERE role = 'cashier' AND module_key = 'cage_slots';
 
-## Файлы (ориентировочно)
+-- Seed defaults for cashier_slots
+INSERT INTO role_module_defaults (role, module_key, can_view, can_write, day_horizon) VALUES
+  ('cashier_slots', 'cage_slots', true, true,  'today'),
+  ('cashier_slots', 'expenses',   true, true,  'today')
+ON CONFLICT (role, module_key) DO UPDATE
+  SET can_view = EXCLUDED.can_view,
+      can_write = EXCLUDED.can_write,
+      day_horizon = EXCLUDED.day_horizon,
+      updated_at = now();
+```
 
-**Миграция (одна):**
-- `cashless_transactions.cage_type` + backfill + trigger + index
-- `expenses.cage_type` + backfill + trigger + index
+No RLS rewrites needed — existing policies that allow `has_role(uid,'cashier')` for cage stay as-is. For cage_slots, audit policies that gate on `'cashier'` and add `'cashier_slots'` alongside.
 
-**Хуки:**
-- `src/hooks/use-cashless.ts` — фильтр по `cage_type`
-- `src/hooks/use-expenses.ts` — фильтр по `cage_type`
-- `src/hooks/use-cage-slots.ts` — выставлять `cage_type='slots'` при insert cashless
-- новый `src/hooks/use-cashless-operator-totals.ts`
+### 2. RLS audit for slots tables
 
-**Компоненты:**
-- `src/components/cage/CashlessForm.tsx` — серая подсказка
-- `src/components/cage-slots/SlotsCashlessForm.tsx` (или общий) — серая подсказка
-- `src/components/cage-slots/ActiveSlotsShiftView.tsx` — кнопка Expense + диалог
-- `src/components/cage-slots/SlotsExpensesForm.tsx` (новый) — диалог/таб
-- `src/components/cage/ShiftClosingReport.tsx` — блок Inter-Cage Transfers
-- `src/pages/CageSlotsReport.tsx` — блок Inter-Cage Transfers
-- `src/pages/Expenses.tsx` — фильтр LG only
+Inspect every policy on `cage_slots_*` tables. Wherever a write/view policy currently checks `has_role(uid,'cashier')`, replace with `has_role(uid,'cashier') OR has_role(uid,'cashier_slots')` (or just `cashier_slots` if write must move fully). Strict reading: writes on `cage_slots_*` should be limited to `cashier_slots`, `manager`, `super_admin`; live `cashier` loses write on those tables to match the menu hiding.
 
-**Без изменений:** структура смен, role-access, RLS-логика (только добавление колонок).
+### 3. Frontend code
 
----
+- `src/pages/CageSlots.tsx` — `canTransact` switches from `cashier` to `cashier_slots`.
+- `src/pages/Cage.tsx`, `src/components/cage/ActiveShiftView.tsx` — no change (still `cashier`).
+- `src/lib/role-access.ts`, `src/lib/auth-context.tsx`, `src/lib/density.tsx`, `src/components/admin/users/users-hooks.ts`, `src/components/admin/FloatManagement.tsx`, `src/components/layout/AppSidebar.tsx`, `src/components/pit/CloseBusinessDayButton.tsx`, `src/hooks/use-business-day-filter.ts`, `src/hooks/use-prefetch.ts`, `src/hooks/use-staff.ts`, `src/pages/Incidents.tsx`, `src/App.tsx` — add `cashier_slots` to role lists where appropriate (default route, density=compact, business-day filter, sidebar visibility, business-day close button, staff cashier filter). `cashier_slots` should behave like `cashier` for: density compact, today-only horizon, no access to lifetime player financials, ability to close business day from Cage Slots screen.
+- `getDefaultRoute()` in `App.tsx` — add branch: `cashier_slots`-only user → `/cage-slots`.
+- Admin user editor — new role appears automatically once enum is updated and types regenerated.
 
-## Что НЕ делаем
-- Не объединяем балансы.
-- Не трогаем существующие зеркальные трансферы (логика IN→зеркальный OUT уже работает).
-- Не меняем закрытие Live Game.
+### 4. Memory
 
-Подтвердишь — запускаю миграцию и правки.
+Update `mem://features/cage-operations` and the Core block in `mem://index.md`: "Cage is `cashier` only (Live Game). Cage Slots is `cashier_slots` only. Managers/Finance/Surveillance read-only on both."
+
+### 5. Version bump
+
+Patch-bump `package.json` (backend change).
+
+## Out of scope
+
+- No rename of existing `cashier` enum value.
+- No data migration of existing 5 cashier users — they stay Live Game cashiers. Slots cashiers must be created fresh in Admin → Users.
+- No UI rename of the "Cashier" label to "Cashier Live Game" (can be done later if desired).
