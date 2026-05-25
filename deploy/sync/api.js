@@ -340,9 +340,10 @@ async function peerHandshake(pool, req, res, body, peer) {
     await pool.query(
       `UPDATE public.peer_links
           SET peer_node_id = $1, schema_version = $2, last_seen_at = now(), status = $3,
-              display_name = COALESCE(NULLIF($4,''), display_name)
+              display_name = COALESCE(NULLIF($4,''), display_name),
+              peer_node_kind = COALESCE(NULLIF($6,''), peer_node_kind)
         WHERE id = $5`,
-      [my_node_id, my_schema_version ?? null, newStatus, my_display_name ?? "", peer.id]
+      [my_node_id, my_schema_version ?? null, newStatus, my_display_name ?? "", peer.id, my_node_kind ?? ""]
     );
   } else {
     // shouldn't happen — authenticatePeer for handshake matched a row.
