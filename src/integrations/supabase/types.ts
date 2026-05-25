@@ -4258,6 +4258,7 @@ export type Database = {
           origin_node_id: string | null
           payload: Json | null
           pk: Json
+          sync_role: string
           table_name: string
         }
         Insert: {
@@ -4268,6 +4269,7 @@ export type Database = {
           origin_node_id?: string | null
           payload?: Json | null
           pk: Json
+          sync_role?: string
           table_name: string
         }
         Update: {
@@ -4278,6 +4280,7 @@ export type Database = {
           origin_node_id?: string | null
           payload?: Json | null
           pk?: Json
+          sync_role?: string
           table_name?: string
         }
         Relationships: []
@@ -5839,6 +5842,7 @@ export type Database = {
         Args: { p_id: number; p_resolution: string }
         Returns: undefined
       }
+      sync_role_for_table: { Args: { p_table: string }; Returns: string }
       sync_roundtrip_probe: {
         Args: { p_origin_casino_id: string; p_origin_slug: string }
         Returns: string
