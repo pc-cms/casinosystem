@@ -195,6 +195,25 @@ const OpenSlotsShiftScreen = () => {
           </div>
         </div>
       )}
+
+      <Dialog open={showRates} onOpenChange={setShowRates}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader><DialogTitle>Exchange Rates</DialogTitle></DialogHeader>
+          <p className="text-xs text-muted-foreground mb-3">Set how many TZS per 1 unit of foreign currency. Pre-filled from the last Live Game cage shift.</p>
+          <div className="space-y-3">
+            {FOREIGN_CURRENCIES.map(c => (
+              <div key={c} className="flex items-center gap-3">
+                <span className="text-sm font-mono font-bold text-card-foreground w-10">{c}</span>
+                <NumberInput value={rates[c] || ""} onChange={v => setRates(r => ({ ...r, [c]: Number(v) || 0 }))} placeholder="0" className="flex-1" />
+                <span className="text-xs text-muted-foreground font-mono">TZS</span>
+              </div>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setShowRates(false)} className="w-full">Done</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </PageShell>
   );
 };
