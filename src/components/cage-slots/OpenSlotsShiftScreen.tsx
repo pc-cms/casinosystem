@@ -155,7 +155,7 @@ const OpenSlotsShiftScreen = () => {
       {step === 2 && (
         <div className="space-y-2">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
-            {(["USD", "EUR"] as const).map(cur => (
+            {(["EUR", "USD"] as const).map(cur => (
               <PageSection key={cur} title={`${cur} Cash`}>
                 <CashDenomInput
                   values={openingCash[cur] || {}}
