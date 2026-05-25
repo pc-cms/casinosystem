@@ -291,15 +291,44 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
             </Button>
           </>
         )}
-        {isReadyForReview && canManage && (
+        {isReadyForReview && (
           <Button onClick={() => setShowApprove(true)} size="sm" className="gap-1.5 h-8" disabled={approve.isPending}>
-            <Save className="w-3.5 h-3.5" /> Approve & Close
+            <Save className="w-3.5 h-3.5" /> Close Shift
           </Button>
         )}
         <Button variant="outline" size="sm" onClick={() => navigate(`/cage-slots/report/${shift.id}`)} className="gap-1.5 h-8">
           <Printer className="w-3.5 h-3.5" /> Report
         </Button>
       </PageHeader>
+
+      {/* Manager review banner — shown after cashier submits for review */}
+      {isReadyForReview && (
+        <div className="mb-3 rounded-md border-2 border-amber-500/60 bg-amber-500/10 p-4">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+            <div>
+              <p className="text-sm font-bold text-amber-700 dark:text-amber-300 uppercase tracking-wider">
+                Shift Submitted · Awaiting Manager
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Cashier has submitted the closing. A manager must authenticate to close this shift.
+              </p>
+              <div className="grid grid-cols-3 gap-3 mt-3 max-w-md">
+                <Stat label="Actual" value={actualCageResult} signed />
+                <Stat label="System" value={systemResult} signed />
+                <Stat label="Difference" value={difference} signed emphasize />
+              </div>
+            </div>
+            <Button
+              onClick={() => setShowApprove(true)}
+              size="lg"
+              className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold whitespace-nowrap"
+              disabled={approve.isPending}
+            >
+              <Save className="w-5 h-5" /> Close Shift (Manager)
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Summary strip */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-2">
