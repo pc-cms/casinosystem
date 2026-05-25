@@ -166,11 +166,18 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
   };
 
 
-  const handleSubmit = () => {
+  // Closing preview dialog (Live Game-style: review before submit-for-review).
+  const [showClosingPreview, setShowClosingPreview] = useState(false);
+
+  const openClosingPreview = () => {
     if (!systemResultInput.trim()) {
-      alert("Enter the System Result before submitting for review.");
+      alert("Enter the System Result before previewing the closing.");
       return;
     }
+    setShowClosingPreview(true);
+  };
+
+  const confirmSubmitForReview = () => {
     setSystem.mutate({ shift_id: shift.id, system_shift_result: Number(systemResultInput) || 0 });
     updateCards.mutate({ shift_id: shift.id, closing_card_count: closingCards });
     submit.mutate({
@@ -182,7 +189,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
         rateMap,
       },
       cashier_note: cashierNote,
-    });
+    }, { onSuccess: () => setShowClosingPreview(false) });
   };
 
   // Manager approve
