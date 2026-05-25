@@ -227,9 +227,25 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
         }
       >
         {shift.status === "open" && (
-          <Button onClick={handleSubmit} size="sm" className="gap-1.5 h-8" disabled={submit.isPending}>
-            <Send className="w-3.5 h-3.5" /> Submit for Review
-          </Button>
+          <>
+            <Button
+              onClick={recordMidCheck}
+              size="sm"
+              variant="outline"
+              className="gap-1.5 h-8 border-amber-500/60 text-amber-600 hover:bg-amber-500/10 dark:text-amber-400"
+              disabled={saveCheck.isPending}
+            >
+              <FileText className="w-3.5 h-3.5" /> Check
+            </Button>
+            <Button
+              onClick={handleSubmit}
+              size="sm"
+              className="gap-1.5 h-8 bg-emerald-600 hover:bg-emerald-700 text-white"
+              disabled={submit.isPending}
+            >
+              <Send className="w-3.5 h-3.5" /> Closing
+            </Button>
+          </>
         )}
         {isReadyForReview && canManage && (
           <Button onClick={() => setShowApprove(true)} size="sm" className="gap-1.5 h-8" disabled={approve.isPending}>
@@ -252,10 +268,9 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
 
       <Tabs defaultValue="closing" className="space-y-2">
         <TabsList>
-          <TabsTrigger value="closing">Closing</TabsTrigger>
-          <TabsTrigger value="transfers">Transfers</TabsTrigger>
+          <TabsTrigger value="closing">Shift Result</TabsTrigger>
           <TabsTrigger value="cashless">Cashless ({cashless.length})</TabsTrigger>
-          <TabsTrigger value="checks">Checks ({checks.length})</TabsTrigger>
+          <TabsTrigger value="transfers">Transfers</TabsTrigger>
         </TabsList>
 
         <TabsContent value="closing" className="space-y-2">
@@ -304,42 +319,68 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
             </div>
           </PageSection>
 
-          {/* Same grid as Live Game cage: TZS Cash + Mobile + Banks | USD+KES | EUR+GBP. */}
-          <div className="cms-panel p-4">
-            <CashCountGrid
-              chips={{}}
-              onChipsChange={() => { /* slots cage has no chips */ }}
-              cash={closingCash}
-              onCashChange={(cur, next) => {
-                const prev = closingCash[cur] || {};
-                setClosingCash(c => ({ ...c, [cur]: next }));
-                const denoms = CASH_DENOMS[cur] || [];
-                for (const d of denoms) {
-                  if ((next[d] || 0) !== (prev[d] || 0)) {
-                    persistClosingCash(cur, d, next[d] || 0);
+          {/* Same grid as Live Game cage, scaled down ~30% for compactness. */}
+          <div className="cms-panel p-3">
+            <div style={{ zoom: 0.7 }}>
+              <CashCountGrid
+                chips={{}}
+                onChipsChange={() => { /* slots cage has no chips */ }}
+                cash={closingCash}
+                onCashChange={(cur, next) => {
+                  const prev = closingCash[cur] || {};
+                  setClosingCash(c => ({ ...c, [cur]: next }));
+                  const denoms = CASH_DENOMS[cur] || [];
+                  for (const d of denoms) {
+                    if ((next[d] || 0) !== (prev[d] || 0)) {
+                      persistClosingCash(cur, d, next[d] || 0);
+                    }
                   }
-                }
-              }}
-              banks={closingBanks}
-              onBanksChange={setClosingBanks}
-              mobile={closingMobile}
-              onMobileChange={setClosingMobile}
-              rates={rateMap}
-              hideChips
-            />
+                }}
+                banks={closingBanks}
+                onBanksChange={setClosingBanks}
+                mobile={closingMobile}
+                onMobileChange={setClosingMobile}
+                rates={rateMap}
+                hideChips
+              />
+            </div>
             <p className="mt-2 text-[10px] text-muted-foreground">
-              Banks &amp; Mobile balances are saved into the next mid-shift check (use the button below).
+              Banks &amp; Mobile balances are saved into the next Check (use the Check button at the top).
             </p>
           </div>
-          <div className="flex justify-end">
-            <Button variant="outline" size="sm" onClick={recordMidCheck} className="gap-1.5">
-              <FileText className="w-3.5 h-3.5" /> Save Mid-shift Check
-            </Button>
-          </div>
-        </TabsContent>
 
-        <TabsContent value="transfers">
-          <SlotsTransfersForm shiftId={shift.id} />
+          {/* Checks history (was a separate tab) */}
+          <PageSection title={`Checks (${checks.length})`}>
+            <table className="w-full text-xs">
+              <thead className="text-muted-foreground border-b border-border">
+                <tr><th className="text-left py-1.5">When</th><th className="text-left">Kind</th><th className="text-right">Total (TZS)</th><th className="text-left">Note</th></tr>
+              </thead>
+              <tbody>
+                {checks.length === 0 && <tr><td colSpan={4} className="text-center text-muted-foreground py-3">·</td></tr>}
+                {checks.map(c => {
+                  const d: any = c.denominations || {};
+                  const t: any = d.totals || {};
+                  const isOpening = !!(d.is_opening || t.is_opening);
+                  const isClosing = !!(d.is_closing || t.is_closing);
+                  const isReview = !!(d.is_review || t.is_review);
+                  const kind = isOpening ? "Opening" : isClosing ? "Closing" : isReview ? "Review" : "Check";
+                  const cls =
+                    kind === "Opening" ? "bg-primary/15 text-primary" :
+                    kind === "Closing" ? "bg-amber-500/15 text-amber-600 dark:text-amber-400" :
+                    kind === "Review"  ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" :
+                                         "bg-muted text-muted-foreground";
+                  return (
+                    <tr key={c.id} className="border-b border-border/50">
+                      <td className="py-1.5 font-mono text-[10px] text-muted-foreground">{fmtDateTime(c.created_at)}</td>
+                      <td><span className={`cms-chip text-[9px] h-4 px-1.5 uppercase ${cls}`}>{kind}</span></td>
+                      <td className="text-right font-mono">{formatNumberSpaces(Number(c.total_tzs))}</td>
+                      <td className="text-muted-foreground">{c.note || "·"}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </PageSection>
         </TabsContent>
 
         <TabsContent value="cashless">
@@ -381,39 +422,10 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
           </PageSection>
         </TabsContent>
 
-        <TabsContent value="checks">
-          <PageSection title="Cash Checks">
-            <table className="w-full text-xs">
-              <thead className="text-muted-foreground border-b border-border">
-                <tr><th className="text-left py-1.5">When</th><th className="text-left">Kind</th><th className="text-right">Total (TZS)</th><th className="text-left">Note</th></tr>
-              </thead>
-              <tbody>
-                {checks.length === 0 && <tr><td colSpan={4} className="text-center text-muted-foreground py-3">·</td></tr>}
-                {checks.map(c => {
-                  const d: any = c.denominations || {};
-                  const t: any = d.totals || {};
-                  const isOpening = !!(d.is_opening || t.is_opening);
-                  const isClosing = !!(d.is_closing || t.is_closing);
-                  const isReview = !!(d.is_review || t.is_review);
-                  const kind = isOpening ? "Opening" : isClosing ? "Closing" : isReview ? "Review" : "Check";
-                  const cls =
-                    kind === "Opening" ? "bg-primary/15 text-primary" :
-                    kind === "Closing" ? "bg-amber-500/15 text-amber-600 dark:text-amber-400" :
-                    kind === "Review"  ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" :
-                                         "bg-muted text-muted-foreground";
-                  return (
-                    <tr key={c.id} className="border-b border-border/50">
-                      <td className="py-1.5 font-mono text-[10px] text-muted-foreground">{fmtDateTime(c.created_at)}</td>
-                      <td><span className={`cms-chip text-[9px] h-4 px-1.5 uppercase ${cls}`}>{kind}</span></td>
-                      <td className="text-right font-mono">{formatNumberSpaces(Number(c.total_tzs))}</td>
-                      <td className="text-muted-foreground">{c.note || "·"}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </PageSection>
+        <TabsContent value="transfers">
+          <SlotsTransfersForm shiftId={shift.id} />
         </TabsContent>
+
 
       </Tabs>
 

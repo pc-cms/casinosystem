@@ -22,11 +22,12 @@ const CageSlotsReport = () => {
 
   if (!shift) {
     return (
-      <PageShell>
+      <PageShell className="print-target">
         <PageHeader icon={Coins} title="Cage Slots · Report" subtitle="Loading…" />
       </PageShell>
     );
   }
+
 
   const openingTotal = inventory.filter(r => r.inventory_type === "opening").reduce((s, r) => s + Number(r.total_tzs || 0), 0);
   const closingTotal = inventory.filter(r => r.inventory_type === "closing").reduce((s, r) => s + Number(r.total_tzs || 0), 0);
@@ -39,7 +40,7 @@ const CageSlotsReport = () => {
   const diff = Number(shift.difference_amount ?? (actualResult - systemResult));
 
   return (
-    <PageShell>
+    <PageShell className="print-target">
       <PageHeader
         icon={Coins}
         title="Cage Slots · Shift Report"
