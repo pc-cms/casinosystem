@@ -287,14 +287,17 @@ export const useOpenSlotsShift = () => {
         await supabase.from("cage_slots_cash_counts").insert({
           cage_slots_shift_id: shift.id,
           casino_id: casinoId,
-          count_type: "opening" as SlotsCountType,
+          count_type: "check" as SlotsCountType,
           counted_by: user.id,
           denominations: {
             cash: input.opening_cash,
             cards: { count: input.opening_card_count, value_tzs: input.card_deposit_value_tzs },
+            rateMap: input.exchange_rates,
+            totals: { total_tzs: openingTotal, is_opening: true },
             is_opening: true,
           } as any,
           total_tzs: openingTotal,
+          note: "Opening snapshot",
         } as any);
       } catch (e) {
         console.error("seed opening check failed", e);
@@ -442,14 +445,20 @@ export const useSubmitSlotsForReview = () => {
       cashier_note?: string;
     }) => {
       if (!casinoId || !user) throw new Error("Not authenticated");
-      // Persist closing snapshot
+      // Persist closing snapshot as a "check" so it appears in cash checks history
+      const closingTotal = Number(input.closing_total_tzs) || 0;
       await supabase.from("cage_slots_cash_counts").insert({
         cage_slots_shift_id: input.shift_id,
         casino_id: casinoId,
-        count_type: "closing" as SlotsCountType,
-        denominations: { ...input.closing_denominations, is_closing: true } as any,
-        total_tzs: input.closing_total_tzs,
+        count_type: "check" as SlotsCountType,
+        denominations: {
+          ...input.closing_denominations,
+          is_closing: true,
+          totals: { ...(input.closing_denominations.totals || {}), total_tzs: closingTotal, is_closing: true },
+        } as any,
+        total_tzs: closingTotal,
         counted_by: user.id,
+        note: "Closing snapshot",
       } as any);
 
       const { error } = await supabase
@@ -506,6 +515,37 @@ export const useApproveSlotsShift = () => {
         } as any)
         .eq("id", input.shift_id);
       if (error) throw error;
+
+      // Seed a "review" snapshot mirroring the latest closing check so it appears in history
+      try {
+        const { data: lastCheck } = await supabase
+          .from("cage_slots_cash_counts")
+          .select("denominations,total_tzs")
+          .eq("cage_slots_shift_id", input.shift_id)
+          .eq("count_type", "check")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        const denoms: any = (lastCheck?.denominations as any) || {};
+        await supabase.from("cage_slots_cash_counts").insert({
+          cage_slots_shift_id: input.shift_id,
+          casino_id: casinoId,
+          count_type: "check" as SlotsCountType,
+          counted_by: input.manager_id,
+          denominations: {
+            ...denoms,
+            is_review: true,
+            is_opening: false,
+            is_closing: false,
+            totals: { ...(denoms.totals || {}), is_review: true },
+          } as any,
+          total_tzs: Number(lastCheck?.total_tzs) || 0,
+          note: input.manager_comment ? `Manager review: ${input.manager_comment}` : "Manager review",
+        } as any);
+      } catch (e) {
+        console.error("seed review check failed", e);
+      }
+
       await logAction(casinoId, "system", "CAGE_SLOTS_SHIFT_CLOSED", {
         shift_id: input.shift_id, manager_id: input.manager_id,
       });
