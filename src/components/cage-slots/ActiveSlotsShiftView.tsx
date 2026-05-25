@@ -441,42 +441,48 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
 
       {/* Summary strip — Opening / Cards Open / System (input) / Cards Closing (input) / Cage Result */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-2">
-        <SummaryCard label="Opening (TZS)" value={openingTotalTzs} />
-        <div className="cms-panel p-3">
-          <p className="text-[10px] uppercase text-muted-foreground tracking-wider mb-1">Cards Opening</p>
-          <p className="font-mono text-xl font-bold tabular-nums">{cards?.opening_card_count ?? 0}</p>
-          <p className="text-[10px] text-muted-foreground mt-0.5">× TZS {formatNumberSpaces(cardDepositTzs)}</p>
-        </div>
-        <div className="cms-panel p-3">
-          <p className="text-[10px] uppercase text-muted-foreground tracking-wider mb-1">System Result (TZS)</p>
+        <TileCard label="Opening (TZS)">
+          <p className="font-mono text-2xl font-bold tabular-nums text-center">{formatNumberSpaces(openingTotalTzs)}</p>
+        </TileCard>
+        <TileCard label="Cards Opening" sub={`× TZS ${formatNumberSpaces(cardDepositTzs)}`}>
+          <p className="font-mono text-2xl font-bold tabular-nums text-center">{cards?.opening_card_count ?? 0}</p>
+        </TileCard>
+        <TileCard
+          label="System Result (TZS)"
+          valueClass={systemResult < 0 ? "cms-amount-negative" : systemResult > 0 ? "cms-amount-positive" : ""}
+        >
           <NumberInput
             value={systemResultInput}
             onChange={v => setSystemResultInput(String(v))}
             onBlur={() => setSystem.mutate({ shift_id: shift.id, system_shift_result: Number(systemResultInput) || 0 })}
-            className="no-spin h-9 w-full text-right font-mono text-base"
+            className={`no-spin h-9 w-full text-center font-mono text-2xl font-bold tabular-nums ${systemResult < 0 ? "cms-amount-negative" : systemResult > 0 ? "cms-amount-positive" : ""}`}
             placeholder="0"
             disabled={shift.status !== "open"}
           />
-        </div>
-        <div className="cms-panel p-3">
-          <p className="text-[10px] uppercase text-muted-foreground tracking-wider mb-1">Cards Closing</p>
+        </TileCard>
+        <TileCard
+          label="Cards Closing"
+          sub={`Miss: ${cards?.miss_card_count ?? (closingCards - (cards?.opening_card_count ?? 0))}`}
+        >
           <NumberInput
             value={closingCards || ""}
             onChange={v => setClosingCards(Number(v) || 0)}
             onBlur={() => updateCards.mutate({ shift_id: shift.id, closing_card_count: closingCards })}
-            className="no-spin h-9 w-full text-right font-mono text-base"
+            className="no-spin h-9 w-full text-center font-mono text-2xl font-bold tabular-nums"
             disabled={shift.status !== "open"}
           />
-          <p className="text-[10px] text-muted-foreground mt-0.5">
-            Miss: {(cards?.miss_card_count ?? (closingCards - (cards?.opening_card_count ?? 0)))}
-          </p>
-        </div>
-        <SummaryCard
-          label="Cage Result (TZS)"
-          value={systemResult + cashlessNetTzs + transfersNetTzs + ((cards?.opening_card_count ?? 0) - closingCards) * cardDepositTzs}
-          signed
-          emphasize
-        />
+        </TileCard>
+        {(() => {
+          const cageVal = systemResult + cashlessNetTzs + transfersNetTzs + ((cards?.opening_card_count ?? 0) - closingCards) * cardDepositTzs;
+          const cls = cageVal < 0 ? "cms-amount-negative" : cageVal > 0 ? "cms-amount-positive" : "";
+          return (
+            <TileCard label="Cage Result (TZS)" emphasize>
+              <p className={`font-mono text-2xl font-bold tabular-nums text-center ${cls}`}>
+                {cageVal > 0 ? "+" : ""}{formatNumberSpaces(cageVal)}
+              </p>
+            </TileCard>
+          );
+        })()}
       </div>
 
       <Tabs defaultValue="closing" className="space-y-2">
