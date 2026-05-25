@@ -483,6 +483,30 @@ export const useSubmitSlotsForReview = () => {
   });
 };
 
+// ============ Mutation: cancel submit (manager reopens for cashier edits) ============
+export const useReopenSlotsShift = () => {
+  const qc = useQueryClient();
+  const { casinoId, user } = useAuth();
+  return useMutation({
+    mutationFn: async (input: { shift_id: string }) => {
+      if (!casinoId || !user) throw new Error("Not authenticated");
+      const { error } = await supabase
+        .from("cage_slots_shifts")
+        .update({ status: "open", submitted_at: null } as any)
+        .eq("id", input.shift_id);
+      if (error) throw error;
+      await logAction(casinoId, "system", "CAGE_SLOTS_SHIFT_REOPENED", { shift_id: input.shift_id });
+    },
+    onSuccess: (_, vars) => {
+      qc.invalidateQueries({ queryKey: ["cage-slots-active-shift"] });
+      qc.invalidateQueries({ queryKey: ["cage-slots-shift", vars.shift_id] });
+      toast.success("Returned to cashier for edits");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+};
+
+
 // ============ Mutation: manager approve & close ============
 export const useApproveSlotsShift = () => {
   const qc = useQueryClient();
