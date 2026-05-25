@@ -28,7 +28,7 @@ import {
   useSlotsCashless, useSlotsComments,
   useUpdateSlotsSystemResult, useUpsertSlotsInventory, useUpdateSlotsCards,
   useCreateSlotsCashCount, useSubmitSlotsForReview, useApproveSlotsShift,
-  useCreateSlotsCashless,
+  useCreateSlotsCashless, useReopenSlotsShift,
 } from "@/hooks/use-cage-slots";
 import { useAuth } from "@/lib/auth-context";
 import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
