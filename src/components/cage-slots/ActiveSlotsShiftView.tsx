@@ -196,6 +196,13 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
         cash: closingCash,
         cards: { count: closingCards, value_tzs: cardDepositTzs },
         rateMap,
+        totals: {
+          total_tzs: closingTotalTzs,
+          expected: openingTotalTzs + systemResult + cashlessNetTzs,
+          counted: closingTotalTzs,
+          difference,
+          balanced: difference === 0,
+        },
       },
       cashier_note: cashierNote,
     }, { onSuccess: () => setShowClosingPreview(false) });
