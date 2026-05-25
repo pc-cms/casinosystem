@@ -78,20 +78,20 @@ const OpenSlotsShiftScreen = () => {
         subtitle={`Open shift · Step ${step} of 2`}
         date
         centerSlot={
-          <div className="flex items-center gap-3 flex-wrap justify-center">
+          <div className="flex items-center gap-4 flex-wrap justify-center">
             {FOREIGN_CURRENCIES.map(c => (
-              <label key={c} className="flex items-center gap-1">
-                <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">{c}</span>
-                <NumberInput
-                  value={rates[c] || ""}
-                  onChange={v => setRates(r => ({ ...r, [c]: Number(v) || 0 }))}
-                  className="no-spin h-7 w-20 text-right font-mono text-xs"
-                />
-              </label>
+              <span key={c} className="text-base font-semibold font-mono tabular-nums text-foreground">
+                <span className="text-muted-foreground text-xs font-medium uppercase mr-1">{c}</span>
+                {formatNumberSpaces(rates[c] || 0)}
+              </span>
             ))}
           </div>
         }
-      />
+      >
+        <Button variant="outline" size="sm" onClick={() => setShowRates(true)} className="gap-1.5">
+          <Settings2 className="w-3.5 h-3.5" /> Rates
+        </Button>
+      </PageHeader>
 
       <div className="flex items-center gap-2 mb-2">
         <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Shift</span>
