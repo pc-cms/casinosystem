@@ -554,6 +554,73 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
         </PageSection>
       )}
 
+      {/* Closing preview modal — Live Game-style review before submit-for-review */}
+      {showClosingPreview && (
+        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowClosingPreview(false)}>
+          <div className="bg-card border border-border rounded-md shadow-lg p-5 max-w-2xl w-full space-y-4 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-lg">Closing Preview · Shift {shift.shift_type.toUpperCase()}</h3>
+              <Badge variant="outline" className="text-[10px]">REVIEW BEFORE SUBMIT</Badge>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-xs">
+              <Stat label="Opening (TZS)" value={openingTotalTzs} />
+              <Stat label="Closing (TZS)" value={closingTotalTzs} />
+              <Stat label="Cash Movement" value={cashMovementTzs} signed />
+              <Stat label="Cashless Net" value={cashlessNetTzs} signed />
+              <Stat label="System Result" value={systemResult} signed />
+              <Stat label="Actual Cage Result" value={actualCageResult} signed />
+            </div>
+
+            <div className="rounded-md border border-primary/40 bg-primary/5 p-3">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] uppercase text-muted-foreground tracking-wider">Difference (Actual − System)</span>
+                <span className={`font-mono font-bold text-lg ${difference < 0 ? "cms-amount-negative" : difference > 0 ? "cms-amount-positive" : ""}`}>
+                  {difference > 0 ? "+" : ""}{formatNumberSpaces(difference)}
+                </span>
+              </div>
+              {Math.abs(difference) > 0 && (
+                <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1">
+                  Non-zero difference — manager will need to approve with a comment.
+                </p>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 text-xs">
+              <div className="rounded-md border border-border p-2">
+                <p className="text-[10px] uppercase text-muted-foreground tracking-wider mb-1">Cards</p>
+                <p className="font-mono">Open: {cards?.opening_card_count ?? 0} · Close: {closingCards}</p>
+              </div>
+              <div className="rounded-md border border-border p-2">
+                <p className="text-[10px] uppercase text-muted-foreground tracking-wider mb-1">Cashless / Expenses</p>
+                <p className="font-mono">{cashless.length} cashless · {slotsExpenses.length} expenses</p>
+              </div>
+            </div>
+
+            {cashierNote && (
+              <div>
+                <p className="text-[10px] uppercase text-muted-foreground tracking-wider mb-1">Cashier note</p>
+                <p className="text-xs whitespace-pre-wrap border border-border rounded p-2 bg-muted/30">{cashierNote}</p>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-border">
+              <Button variant="outline" size="sm" onClick={() => setShowClosingPreview(false)}>
+                <ArrowLeftRight className="w-3.5 h-3.5 mr-1.5" /> Back to Edit
+              </Button>
+              <Button
+                size="sm"
+                onClick={confirmSubmitForReview}
+                disabled={submit.isPending}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+              >
+                <Send className="w-3.5 h-3.5 mr-1.5" /> Submit for Review
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Approve modal */}
       {showApprove && (
         <>
