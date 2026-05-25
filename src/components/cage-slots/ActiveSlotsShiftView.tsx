@@ -257,8 +257,82 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
 
   const isReadyForReview = shift.status === "ready_for_review";
 
+  // ============ Manager Review Screen ============
+  // When cashier has submitted, show ONLY a clean review panel — no tabs, no editing.
+  if (isReadyForReview) {
+    return (
+      <PageShell>
+        <PageHeader
+          icon={Coins}
+          title="Cage Slots · Manager Review"
+          subtitle={`Shift ${shift.shift_type.toUpperCase()} · Submitted ${shift.submitted_at ? fmtDateTime(shift.submitted_at) : "—"}`}
+          date
+          context={<Badge className="uppercase text-[10px]">Awaiting Manager</Badge>}
+        />
 
-  return (
+        <div className="max-w-2xl mx-auto w-full space-y-3">
+          {/* Cash on hand */}
+          <PageSection title="Cash on Hand (Closing)">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              <Stat label="TZS Cash" value={closingTzsTotal} />
+              <Stat label="Foreign (TZS)" value={closingFxTzs} />
+              <Stat label={`Cards × ${formatNumberSpaces(cardDepositTzs)}`} value={closingCardsTzs} />
+              <Stat label="Total Closing" value={closingTotalTzs} emphasize />
+            </div>
+            <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
+              <Stat label="Opening" value={openingTotalTzs} />
+              <Stat label="Cash Movement" value={cashMovementTzs} signed />
+            </div>
+          </PageSection>
+
+          {/* Entered result */}
+          <PageSection title="Shift Result">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+              <Stat label="System Result (entered)" value={systemResult} signed />
+              <Stat label="Cashless Net" value={cashlessNetTzs} signed />
+              <Stat label="Actual Cage Result" value={actualCageResult} signed />
+            </div>
+            <div className="mt-3 rounded-md border-2 border-primary/40 bg-primary/5 p-3 flex items-center justify-between">
+              <span className="text-xs uppercase text-muted-foreground tracking-wider font-bold">Balance (Actual − System)</span>
+              <span className={`font-mono font-bold text-2xl ${difference < 0 ? "cms-amount-negative" : difference > 0 ? "cms-amount-positive" : "text-emerald-500"}`}>
+                {difference === 0 ? "BALANCED · 0" : `${difference > 0 ? "+" : ""}${formatNumberSpaces(difference)}`}
+              </span>
+            </div>
+            {cashierNote && (
+              <div className="mt-3">
+                <p className="text-[10px] uppercase text-muted-foreground tracking-wider mb-1">Cashier note</p>
+                <p className="text-xs whitespace-pre-wrap border border-border rounded p-2 bg-muted/30">{cashierNote}</p>
+              </div>
+            )}
+            {Math.abs(difference) > 0 && (
+              <div className="mt-3">
+                <p className="text-xs text-destructive font-semibold mb-1">Non-zero balance — manager comment required.</p>
+                <Textarea value={managerComment} onChange={e => setManagerComment(e.target.value)} rows={2} placeholder="Reason / explanation…" />
+              </div>
+            )}
+          </PageSection>
+
+          {/* Two buttons */}
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={() => reopen.mutate({ shift_id: shift.id })}
+              disabled={reopen.isPending}
+            >
+              Cancel
+            </Button>
+            <ConfirmApproveButton
+              needsComment={needsComment}
+              hasComment={!!managerComment.trim()}
+              onConfirm={(managerId) => doApprove(managerId)}
+            />
+          </div>
+        </div>
+      </PageShell>
+    );
+  }
+
     <PageShell>
       <PageHeader
         icon={Coins}
