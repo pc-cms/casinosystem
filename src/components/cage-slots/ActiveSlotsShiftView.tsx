@@ -1,0 +1,497 @@
+import { useState, useMemo, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { Coins, Send, RotateCcw, Printer, FileText, CreditCard, Save } from "lucide-react";
+import { PageShell, PageSection } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { NumberInput } from "@/components/ui/number-input";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import CashDenomInput, { cashSum } from "@/components/cage/CashDenomInput";
+import {
+  CURRENCIES, FOREIGN_CURRENCIES, CASH_DENOMS,
+  formatNumberSpaces, formatCurrency,
+} from "@/lib/currency";
+import { fmtDateTime } from "@/lib/format-date";
+import {
+  useSlotsRates, useSlotsInventory, useSlotsCards, useSlotsCashCounts,
+  useSlotsCashless, useSlotsComments,
+  useUpdateSlotsSystemResult, useUpsertSlotsInventory, useUpdateSlotsCards,
+  useCreateSlotsCashCount, useSubmitSlotsForReview, useApproveSlotsShift,
+  useCreateSlotsCashless,
+} from "@/hooks/use-cage-slots";
+import { useAuth } from "@/lib/auth-context";
+import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
+import type { Tables } from "@/integrations/supabase/types";
+
+type Shift = Tables<"cage_slots_shifts">;
+
+const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
+  const navigate = useNavigate();
+  const { roles, managerOverride } = useAuth();
+  const canManage =
+    roles.includes("manager") || roles.includes("super_admin") || managerOverride.active;
+
+  const { data: rates = [] } = useSlotsRates(shift.id);
+  const { data: inventory = [] } = useSlotsInventory(shift.id);
+  const { data: cards } = useSlotsCards(shift.id);
+  const { data: checks = [] } = useSlotsCashCounts(shift.id);
+  const { data: cashless = [] } = useSlotsCashless(shift.id);
+  const { data: comments = [] } = useSlotsComments(shift.id);
+
+  const setSystem = useUpdateSlotsSystemResult();
+  const upsertInv = useUpsertSlotsInventory();
+  const updateCards = useUpdateSlotsCards();
+  const saveCheck = useCreateSlotsCashCount();
+  const submit = useSubmitSlotsForReview();
+  const approve = useApproveSlotsShift();
+  const createCashless = useCreateSlotsCashless();
+
+  const rateMap = useMemo(() => {
+    const m: Record<string, number> = { TZS: 1 };
+    rates.forEach(r => { m[r.currency_code] = Number(r.rate_to_tzs); });
+    return m;
+  }, [rates]);
+
+  // Opening totals
+  const opening = useMemo(() => {
+    const byCur: Record<string, Record<number, number>> = Object.fromEntries(CURRENCIES.map(c => [c, {}]));
+    inventory.filter(r => r.inventory_type === "opening").forEach(r => {
+      byCur[r.currency_code] = byCur[r.currency_code] || {};
+      byCur[r.currency_code][r.denomination] = r.quantity;
+    });
+    return byCur;
+  }, [inventory]);
+
+  const openingTotalTzs = useMemo(() =>
+    inventory.filter(r => r.inventory_type === "opening")
+      .reduce((s, r) => s + Number(r.total_tzs || 0), 0),
+    [inventory],
+  );
+
+  // Closing entry state (controlled locally, persisted on save)
+  const [closingCash, setClosingCash] = useState<Record<string, Record<number, number>>>(
+    Object.fromEntries(CURRENCIES.map(c => [c, {}]))
+  );
+  const [closingCards, setClosingCards] = useState<number>(cards?.closing_card_count ?? 0);
+  const [systemResultInput, setSystemResultInput] = useState<string>(
+    shift.system_shift_result?.toString() ?? "",
+  );
+  const [cashierNote, setCashierNote] = useState<string>(shift.cashier_note || "");
+
+  // Hydrate closing from persisted closing inventory + cards
+  useEffect(() => {
+    const byCur: Record<string, Record<number, number>> = Object.fromEntries(CURRENCIES.map(c => [c, {}]));
+    inventory.filter(r => r.inventory_type === "closing").forEach(r => {
+      byCur[r.currency_code] = byCur[r.currency_code] || {};
+      byCur[r.currency_code][r.denomination] = r.quantity;
+    });
+    setClosingCash(byCur);
+  }, [inventory]);
+  useEffect(() => {
+    if (cards?.closing_card_count != null) setClosingCards(cards.closing_card_count);
+  }, [cards?.closing_card_count]);
+
+  const closingTzsTotal = useMemo(() => cashSum(closingCash["TZS"] || {}), [closingCash]);
+  const closingFxTzs = useMemo(() => FOREIGN_CURRENCIES.reduce(
+    (s, c) => s + cashSum(closingCash[c] || {}) * (rateMap[c] || 0), 0,
+  ), [closingCash, rateMap]);
+  const cardDepositTzs = Number(cards?.card_deposit_value_tzs || 5000);
+  const closingCardsTzs = closingCards * cardDepositTzs;
+  const closingTotalTzs = closingTzsTotal + closingFxTzs + closingCardsTzs;
+
+  const cashMovementTzs = closingTotalTzs - openingTotalTzs;
+  const cashlessNetTzs = useMemo(() =>
+    cashless.reduce((s, t: any) => s + (t.direction === "IN" ? Number(t.amount) : -Number(t.amount)), 0),
+    [cashless],
+  );
+  const actualCageResult = cashMovementTzs - cashlessNetTzs;
+  const systemResult = Number(systemResultInput) || Number(shift.system_shift_result || 0);
+  const difference = actualCageResult - systemResult;
+
+  const persistClosingCash = async (currency: string, denom: number, qty: number) => {
+    await upsertInv.mutateAsync({
+      shift_id: shift.id,
+      inventory_type: "closing",
+      currency, denomination: denom, quantity: qty,
+      rate_to_tzs: rateMap[currency] || (currency === "TZS" ? 1 : 0),
+    });
+  };
+
+  // Mid-shift cash check
+  const recordMidCheck = () => {
+    saveCheck.mutate({
+      shift_id: shift.id,
+      count_type: "check",
+      denominations: {
+        cash: closingCash,
+        cards: { count: closingCards, value_tzs: cardDepositTzs },
+        rateMap,
+        totals: { total_tzs: closingTotalTzs },
+      },
+      total_tzs: closingTotalTzs,
+      note: "Mid-shift check",
+    });
+  };
+
+  const handleSubmit = () => {
+    if (!systemResultInput.trim()) {
+      alert("Enter the System Result before submitting for review.");
+      return;
+    }
+    setSystem.mutate({ shift_id: shift.id, system_shift_result: Number(systemResultInput) || 0 });
+    updateCards.mutate({ shift_id: shift.id, closing_card_count: closingCards });
+    submit.mutate({
+      shift_id: shift.id,
+      closing_total_tzs: closingTotalTzs,
+      closing_denominations: {
+        cash: closingCash,
+        cards: { count: closingCards, value_tzs: cardDepositTzs },
+        rateMap,
+      },
+      cashier_note: cashierNote,
+    });
+  };
+
+  // Manager approve
+  const [showApprove, setShowApprove] = useState(false);
+  const [managerComment, setManagerComment] = useState("");
+  const needsComment = Math.abs(difference) > 0;
+
+  const doApprove = (managerId: string) => {
+    approve.mutate({
+      shift_id: shift.id,
+      manager_id: managerId,
+      manager_comment: managerComment || (needsComment ? "" : "Approved with zero difference"),
+    });
+    setShowApprove(false);
+    setManagerComment("");
+  };
+
+  // Cashless entry
+  const [clProvider, setClProvider] = useState<"AIRTEL" | "MPESA" | "TIGO" | "HALOTEL">("MPESA");
+  const [clDirection, setClDirection] = useState<"IN" | "OUT">("IN");
+  const [clAmount, setClAmount] = useState<number>(0);
+  const [clName, setClName] = useState("");
+  const [clRef, setClRef] = useState("");
+
+  const submitCashless = () => {
+    if (!clAmount || !clName.trim()) return;
+    createCashless.mutate({
+      shift_id: shift.id,
+      direction: clDirection, provider: clProvider,
+      amount: clAmount, player_name: clName, reference: clRef,
+    });
+    setClAmount(0); setClName(""); setClRef("");
+  };
+
+  const isReadyForReview = shift.status === "ready_for_review";
+
+  return (
+    <PageShell>
+      <PageHeader
+        icon={Coins}
+        title="Cage Slots"
+        subtitle={`Shift ${shift.shift_type.toUpperCase()} · Opened ${fmtDateTime(shift.opened_at)}`}
+        date
+        context={
+          <Badge variant={isReadyForReview ? "default" : "outline"} className="uppercase text-[10px]">
+            {shift.status.replace("_", " ")}
+          </Badge>
+        }
+      >
+        {shift.status === "open" && (
+          <Button onClick={handleSubmit} size="sm" className="gap-1.5 h-8" disabled={submit.isPending}>
+            <Send className="w-3.5 h-3.5" /> Submit for Review
+          </Button>
+        )}
+        {isReadyForReview && canManage && (
+          <Button onClick={() => setShowApprove(true)} size="sm" className="gap-1.5 h-8" disabled={approve.isPending}>
+            <Save className="w-3.5 h-3.5" /> Approve & Close
+          </Button>
+        )}
+        <Button variant="outline" size="sm" onClick={() => navigate(`/cage-slots/report/${shift.id}`)} className="gap-1.5 h-8">
+          <Printer className="w-3.5 h-3.5" /> Report
+        </Button>
+      </PageHeader>
+
+      {/* Summary strip */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-2">
+        <SummaryCard label="Opening (TZS)" value={openingTotalTzs} />
+        <SummaryCard label="Closing (TZS)" value={closingTotalTzs} />
+        <SummaryCard label="Cashless Net" value={cashlessNetTzs} signed />
+        <SummaryCard label="Actual Cage Result" value={actualCageResult} signed />
+        <SummaryCard label="Difference" value={difference} signed emphasize />
+      </div>
+
+      <Tabs defaultValue="result" className="space-y-2">
+        <TabsList>
+          <TabsTrigger value="result">System Result</TabsTrigger>
+          <TabsTrigger value="closing">Closing Cash</TabsTrigger>
+          <TabsTrigger value="cards">Cards</TabsTrigger>
+          <TabsTrigger value="cashless">Cashless ({cashless.length})</TabsTrigger>
+          <TabsTrigger value="checks">Checks ({checks.length})</TabsTrigger>
+          <TabsTrigger value="audit">Audit</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="result">
+          <PageSection title="System Shift Result">
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">Result reported by slots system (can be negative):</span>
+                <NumberInput
+                  value={systemResultInput}
+                  onChange={v => setSystemResultInput(String(v))}
+                  onBlur={() => setSystem.mutate({ shift_id: shift.id, system_shift_result: Number(systemResultInput) || 0 })}
+                  className="no-spin h-9 w-40 text-right font-mono text-base"
+                  placeholder="0"
+                />
+                <span className="text-sm font-mono text-muted-foreground">TZS</span>
+              </div>
+              <div className="text-xs text-muted-foreground">
+                Cashier note (optional):
+                <Textarea
+                  value={cashierNote}
+                  onChange={e => setCashierNote(e.target.value)}
+                  className="mt-1 text-sm"
+                  rows={2}
+                  placeholder="Anything the manager should know about this shift…"
+                />
+              </div>
+            </div>
+          </PageSection>
+        </TabsContent>
+
+        <TabsContent value="closing">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
+            {CURRENCIES.map(cur => (
+              <PageSection key={cur} title={`${cur} Closing Cash`}>
+                <ClosingCashEditor
+                  currency={cur}
+                  values={closingCash[cur] || {}}
+                  opening={opening[cur] || {}}
+                  onChange={v => setClosingCash(c => ({ ...c, [cur]: v }))}
+                  onPersist={persistClosingCash}
+                />
+              </PageSection>
+            ))}
+          </div>
+          <div className="flex justify-end mt-2">
+            <Button variant="outline" size="sm" onClick={recordMidCheck} className="gap-1.5">
+              <FileText className="w-3.5 h-3.5" /> Save Mid-shift Check
+            </Button>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="cards">
+          <PageSection title="Plastic Cards">
+            <div className="grid grid-cols-3 gap-4 max-w-xl">
+              <Stat label="Opening" value={cards?.opening_card_count ?? 0} />
+              <div>
+                <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Closing</p>
+                <NumberInput
+                  value={closingCards || ""}
+                  onChange={v => setClosingCards(Number(v) || 0)}
+                  onBlur={() => updateCards.mutate({ shift_id: shift.id, closing_card_count: closingCards })}
+                  className="no-spin h-9 w-32 text-right font-mono"
+                />
+              </div>
+              <Stat label="Miss" value={cards?.miss_card_count ?? (closingCards - (cards?.opening_card_count ?? 0))} signed />
+            </div>
+            <p className="text-xs text-muted-foreground mt-3">
+              Each card = TZS {formatNumberSpaces(cardDepositTzs)}. Miss value:&nbsp;
+              <span className="font-mono font-semibold">
+                TZS {formatNumberSpaces(((cards?.miss_card_count ?? (closingCards - (cards?.opening_card_count ?? 0)))) * cardDepositTzs)}
+              </span>
+            </p>
+          </PageSection>
+        </TabsContent>
+
+        <TabsContent value="cashless">
+          <PageSection title="Cashless Transactions for this Shift">
+            <div className="grid grid-cols-1 md:grid-cols-6 gap-2 mb-3 items-end">
+              <select value={clDirection} onChange={e => setClDirection(e.target.value as any)} className="h-9 rounded border border-border bg-background px-2 text-sm">
+                <option value="IN">IN</option>
+                <option value="OUT">OUT</option>
+              </select>
+              <select value={clProvider} onChange={e => setClProvider(e.target.value as any)} className="h-9 rounded border border-border bg-background px-2 text-sm">
+                <option value="MPESA">MPESA</option>
+                <option value="AIRTEL">AIRTEL</option>
+                <option value="TIGO">TIGO</option>
+                <option value="HALOTEL">HALOTEL</option>
+              </select>
+              <Input placeholder="Player / name" value={clName} onChange={e => setClName(e.target.value)} className="h-9" />
+              <NumberInput placeholder="Amount" value={clAmount || ""} onChange={v => setClAmount(Number(v) || 0)} className="no-spin h-9 text-right font-mono" />
+              <Input placeholder="Ref" value={clRef} onChange={e => setClRef(e.target.value)} className="h-9" />
+              <Button onClick={submitCashless} size="sm" className="h-9">Add</Button>
+            </div>
+            <table className="w-full text-xs">
+              <thead className="text-muted-foreground border-b border-border">
+                <tr><th className="text-left py-1.5">When</th><th>Dir</th><th>Provider</th><th className="text-left">Player</th><th className="text-right">Amount</th><th>Ref</th></tr>
+              </thead>
+              <tbody>
+                {cashless.length === 0 && <tr><td colSpan={6} className="text-center text-muted-foreground py-3">·</td></tr>}
+                {cashless.map((t: any) => (
+                  <tr key={t.id} className="border-b border-border/50">
+                    <td className="py-1.5">{fmtDateTime(t.created_at)}</td>
+                    <td className="text-center"><Badge variant={t.direction === "IN" ? "default" : "secondary"}>{t.direction}</Badge></td>
+                    <td className="text-center">{t.provider}</td>
+                    <td>{t.player_name}</td>
+                    <td className="text-right font-mono">{formatNumberSpaces(t.amount)}</td>
+                    <td className="text-center text-muted-foreground">{t.reference || "·"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </PageSection>
+        </TabsContent>
+
+        <TabsContent value="checks">
+          <PageSection title="Cash Checks">
+            <table className="w-full text-xs">
+              <thead className="text-muted-foreground border-b border-border">
+                <tr><th className="text-left py-1.5">When</th><th>Type</th><th className="text-right">Total (TZS)</th><th className="text-left">Note</th></tr>
+              </thead>
+              <tbody>
+                {checks.length === 0 && <tr><td colSpan={4} className="text-center text-muted-foreground py-3">·</td></tr>}
+                {checks.map(c => (
+                  <tr key={c.id} className="border-b border-border/50">
+                    <td className="py-1.5">{fmtDateTime(c.created_at)}</td>
+                    <td className="text-center"><Badge variant="outline" className="text-[10px] uppercase">{c.count_type}</Badge></td>
+                    <td className="text-right font-mono">{formatNumberSpaces(Number(c.total_tzs))}</td>
+                    <td className="text-muted-foreground">{c.note || "·"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </PageSection>
+        </TabsContent>
+
+        <TabsContent value="audit">
+          <PageSection title="Comments & Reversals">
+            {comments.length === 0 && <p className="text-xs text-muted-foreground">No comments yet.</p>}
+            <ul className="space-y-2">
+              {comments.map(c => (
+                <li key={c.id} className="text-xs border-l-2 border-primary/50 pl-2">
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Badge variant="outline" className="text-[10px] uppercase">{c.comment_type.replace("_", " ")}</Badge>
+                    <span>{fmtDateTime(c.created_at)}</span>
+                  </div>
+                  <p className="text-foreground mt-0.5">{c.comment_text}</p>
+                </li>
+              ))}
+            </ul>
+          </PageSection>
+        </TabsContent>
+      </Tabs>
+
+      {/* Approve modal */}
+      {showApprove && (
+        <>
+          <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowApprove(false)}>
+            <div className="bg-card border border-border rounded-md shadow-lg p-4 max-w-md w-full space-y-3" onClick={e => e.stopPropagation()}>
+              <h3 className="font-semibold">Approve & Close Slots Shift</h3>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <Stat label="Actual" value={actualCageResult} signed />
+                <Stat label="System" value={systemResult} signed />
+                <Stat label="Difference" value={difference} signed emphasize />
+              </div>
+              {needsComment && (
+                <div>
+                  <p className="text-xs text-destructive font-semibold mb-1">Difference is non-zero — manager comment is required.</p>
+                  <Textarea value={managerComment} onChange={e => setManagerComment(e.target.value)} rows={3} placeholder="Reason / explanation…" />
+                </div>
+              )}
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" size="sm" onClick={() => setShowApprove(false)}>Cancel</Button>
+                <ConfirmApproveButton needsComment={needsComment} hasComment={!!managerComment.trim()} onConfirm={doApprove} />
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+    </PageShell>
+  );
+};
+
+const ConfirmApproveButton = ({ needsComment, hasComment, onConfirm }: {
+  needsComment: boolean; hasComment: boolean; onConfirm: (managerId: string) => void;
+}) => {
+  const [show, setShow] = useState(false);
+  const disabled = needsComment && !hasComment;
+  return (
+    <>
+      <Button size="sm" disabled={disabled} onClick={() => setShow(true)}>Authorize & Close</Button>
+      <ManagerOverrideDialog
+        open={show}
+        onClose={() => setShow(false)}
+        onConfirm={(managerId) => { setShow(false); onConfirm(managerId); }}
+        title="Approve Slots Shift"
+        description="Manager authentication is required to close this shift."
+        actionType="CAGE_SLOTS_CLOSE"
+      />
+    </>
+  );
+};
+
+const ClosingCashEditor = ({ currency, values, opening, onChange, onPersist }: {
+  currency: string;
+  values: Record<number, number>;
+  opening: Record<number, number>;
+  onChange: (v: Record<number, number>) => void;
+  onPersist: (currency: string, denom: number, qty: number) => void;
+}) => {
+  const denoms = CASH_DENOMS[currency] || [];
+  return (
+    <div className="space-y-2">
+      <CashDenomInput
+        values={values}
+        onChange={(next) => {
+          onChange(next);
+          // persist only changed denom
+          for (const d of denoms) {
+            if ((next[d] || 0) !== (values[d] || 0)) {
+              onPersist(currency, d, next[d] || 0);
+            }
+          }
+        }}
+        denoms={denoms}
+        currency={currency}
+      />
+      <div className="text-[10px] text-muted-foreground flex items-center justify-between border-t border-border pt-1">
+        <span>Opening:</span>
+        <span className="font-mono">
+          {currency} {formatNumberSpaces(denoms.reduce((s, d) => s + d * (opening[d] || 0), 0))}
+        </span>
+      </div>
+    </div>
+  );
+};
+
+const SummaryCard = ({ label, value, signed, emphasize }: {
+  label: string; value: number; signed?: boolean; emphasize?: boolean;
+}) => {
+  const isNeg = value < 0;
+  const colorCls = !signed ? "" : (isNeg ? "cms-amount-negative" : value > 0 ? "cms-amount-positive" : "");
+  return (
+    <div className={`rounded-md border ${emphasize ? "border-primary/50 bg-primary/5" : "border-border bg-card"} px-3 py-2`}>
+      <p className="text-[9px] uppercase text-muted-foreground tracking-wider">{label}</p>
+      <p className={`text-base font-mono font-bold ${colorCls}`}>
+        {signed && value > 0 ? "+" : ""}{formatNumberSpaces(value)}
+      </p>
+    </div>
+  );
+};
+
+const Stat = ({ label, value, signed, emphasize }: { label: string; value: number; signed?: boolean; emphasize?: boolean }) => (
+  <div>
+    <p className="text-[10px] uppercase text-muted-foreground tracking-wider">{label}</p>
+    <p className={`font-mono font-bold ${emphasize ? "text-base" : "text-sm"} ${signed && value < 0 ? "cms-amount-negative" : signed && value > 0 ? "cms-amount-positive" : ""}`}>
+      {signed && value > 0 ? "+" : ""}{formatNumberSpaces(value)}
+    </p>
+  </div>
+);
+
+export default ActiveSlotsShiftView;

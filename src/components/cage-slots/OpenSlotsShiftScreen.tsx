@@ -1,0 +1,186 @@
+import { useState, useMemo } from "react";
+import { Coins, Play, ChevronRight, ChevronLeft, CreditCard } from "lucide-react";
+import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { PageSection } from "@/components/layout/PageShell";
+import { Button } from "@/components/ui/button";
+import { NumberInput } from "@/components/ui/number-input";
+import CashDenomInput, { cashSum } from "@/components/cage/CashDenomInput";
+import {
+  CURRENCIES, FOREIGN_CURRENCIES, CASH_DENOMS,
+  DEFAULT_EXCHANGE_RATES, formatNumberSpaces, formatCurrency,
+} from "@/lib/currency";
+import { useOpenSlotsShift, useCageSlotsSettings, type SlotsShiftType } from "@/hooks/use-cage-slots";
+
+const OpenSlotsShiftScreen = () => {
+  const open = useOpenSlotsShift();
+  const { data: settings } = useCageSlotsSettings();
+  const cardDepositTzs = Number(settings?.card_deposit_value_tzs || 5000);
+
+  const [step, setStep] = useState<1 | 2>(1);
+  const [shiftType, setShiftType] = useState<SlotsShiftType>("day");
+  const [rates, setRates] = useState<Record<string, number>>({ ...DEFAULT_EXCHANGE_RATES });
+  const [openingCash, setOpeningCash] = useState<Record<string, Record<number, number>>>(
+    Object.fromEntries(CURRENCIES.map(c => [c, {}]))
+  );
+  const [openingCards, setOpeningCards] = useState<number>(0);
+
+  const tzsTotal = useMemo(() => cashSum(openingCash["TZS"] || {}), [openingCash]);
+  const fxTotalTzs = useMemo(() => FOREIGN_CURRENCIES.reduce(
+    (s, c) => s + cashSum(openingCash[c] || {}) * (rates[c] || 0),
+    0,
+  ), [openingCash, rates]);
+  const cardsTzs = openingCards * cardDepositTzs;
+  const grandTotal = tzsTotal + fxTotalTzs + cardsTzs;
+
+  const submit = () => {
+    if (FOREIGN_CURRENCIES.some(c => !(rates[c] > 0))) {
+      return;
+    }
+    const flatCash: { currency: string; denomination: number; quantity: number }[] = [];
+    for (const c of CURRENCIES) {
+      const denoms = CASH_DENOMS[c] || [];
+      for (const d of denoms) {
+        const q = Number((openingCash[c] || {})[d] || 0);
+        if (q > 0) flatCash.push({ currency: c, denomination: d, quantity: q });
+      }
+    }
+    open.mutate({
+      shift_type: shiftType,
+      exchange_rates: rates,
+      opening_cash: flatCash,
+      opening_card_count: openingCards,
+      card_deposit_value_tzs: cardDepositTzs,
+    });
+  };
+
+  return (
+    <PageShell>
+      <PageHeader
+        icon={Coins}
+        title="Cage Slots"
+        subtitle={`Open shift · Step ${step} of 2`}
+        date
+        centerSlot={
+          <div className="flex items-center gap-3 flex-wrap justify-center">
+            {FOREIGN_CURRENCIES.map(c => (
+              <label key={c} className="flex items-center gap-1">
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">{c}</span>
+                <NumberInput
+                  value={rates[c] || ""}
+                  onChange={v => setRates(r => ({ ...r, [c]: Number(v) || 0 }))}
+                  className="no-spin h-7 w-20 text-right font-mono text-xs"
+                />
+              </label>
+            ))}
+          </div>
+        }
+      />
+
+      <div className="flex items-center gap-2 mb-2">
+        <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Shift</span>
+        {(["day", "night"] as SlotsShiftType[]).map(t => (
+          <button
+            key={t}
+            type="button"
+            onClick={() => setShiftType(t)}
+            className={`px-2 py-1 rounded text-[11px] font-semibold uppercase transition-colors ${
+              shiftType === t ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/70"
+            }`}
+          >
+            {t}
+          </button>
+        ))}
+      </div>
+
+      {step === 1 && (
+        <div className="space-y-2">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
+            <PageSection title="TZS Cash">
+              <CashDenomInput
+                values={openingCash["TZS"] || {}}
+                onChange={v => setOpeningCash(c => ({ ...c, TZS: v }))}
+                denoms={CASH_DENOMS["TZS"] || []}
+                currency="TZS"
+              />
+            </PageSection>
+            <PageSection title="Plastic Cards (Opening)">
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center gap-2">
+                  <CreditCard className="w-4 h-4 text-muted-foreground" />
+                  <NumberInput
+                    value={openingCards || ""}
+                    onChange={v => setOpeningCards(Number(v) || 0)}
+                    className="no-spin h-9 w-32 text-right font-mono"
+                    placeholder="0"
+                  />
+                  <span className="text-xs text-muted-foreground">cards × TZS {formatNumberSpaces(cardDepositTzs)}</span>
+                </div>
+                <div className="text-xs text-muted-foreground border-t border-border pt-2">
+                  Value:&nbsp;
+                  <span className="font-mono font-bold text-foreground">TZS {formatNumberSpaces(cardsTzs)}</span>
+                </div>
+              </div>
+            </PageSection>
+          </div>
+
+          <div className="cms-panel px-3 py-2 flex items-center justify-between">
+            <div>
+              <p className="text-[9px] uppercase text-muted-foreground tracking-wider">Step 1 Subtotal (TZS)</p>
+              <p className="text-lg font-mono font-bold">{formatCurrency(tzsTotal + cardsTzs)}</p>
+            </div>
+            <Button onClick={() => setStep(2)} size="sm" className="gap-1 h-8 px-4">
+              Next <ChevronRight className="w-3.5 h-3.5" />
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {step === 2 && (
+        <div className="space-y-2">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
+            {(["USD", "EUR"] as const).map(cur => (
+              <PageSection key={cur} title={`${cur} Cash`}>
+                <CashDenomInput
+                  values={openingCash[cur] || {}}
+                  onChange={v => setOpeningCash(c => ({ ...c, [cur]: v }))}
+                  denoms={CASH_DENOMS[cur] || []}
+                  currency={cur}
+                />
+              </PageSection>
+            ))}
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
+            {(["GBP", "KES"] as const).map(cur => (
+              <PageSection key={cur} title={`${cur} Cash`}>
+                <CashDenomInput
+                  values={openingCash[cur] || {}}
+                  onChange={v => setOpeningCash(c => ({ ...c, [cur]: v }))}
+                  denoms={CASH_DENOMS[cur] || []}
+                  currency={cur}
+                />
+              </PageSection>
+            ))}
+          </div>
+
+          <div className="cms-panel px-3 py-2 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Button variant="outline" size="sm" onClick={() => setStep(1)} className="gap-1 h-8">
+                <ChevronLeft className="w-3.5 h-3.5" /> Back
+              </Button>
+              <div>
+                <p className="text-[9px] uppercase text-muted-foreground tracking-wider">Grand Total (TZS)</p>
+                <p className="text-xl font-mono font-bold">{formatCurrency(grandTotal)}</p>
+              </div>
+            </div>
+            <Button onClick={submit} disabled={open.isPending} className="gap-1 h-9 px-6" size="sm">
+              <Play className="w-3.5 h-3.5" /> {open.isPending ? "Opening…" : "Open Slots Shift"}
+            </Button>
+          </div>
+        </div>
+      )}
+    </PageShell>
+  );
+};
+
+export default OpenSlotsShiftScreen;
