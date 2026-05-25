@@ -268,10 +268,9 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
 
       <Tabs defaultValue="closing" className="space-y-2">
         <TabsList>
-          <TabsTrigger value="closing">Closing</TabsTrigger>
-          <TabsTrigger value="transfers">Transfers</TabsTrigger>
+          <TabsTrigger value="closing">Shift Result</TabsTrigger>
           <TabsTrigger value="cashless">Cashless ({cashless.length})</TabsTrigger>
-          <TabsTrigger value="checks">Checks ({checks.length})</TabsTrigger>
+          <TabsTrigger value="transfers">Transfers</TabsTrigger>
         </TabsList>
 
         <TabsContent value="closing" className="space-y-2">
