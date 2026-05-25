@@ -142,14 +142,25 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
   const systemResult = Number(systemResultInput) || Number(shift.system_shift_result || 0);
   const difference = actualCageResult - systemResult;
 
+  // Opening banks/mobile carry-over (captured into the seed snapshot at shift open).
+  const openingSeed = useMemo(
+    () => checks.find((c: any) => (c?.denominations as any)?.is_opening) as any,
+    [checks],
+  );
+  const openingBanks = (openingSeed?.denominations?.bank || { tzs: 0, usd: 0 }) as Banks;
+  const openingMobile = (openingSeed?.denominations?.mobile || {}) as MobileProviders;
+  const openingBanksTzs = bankTotalTzs(openingBanks, rateMap);
+  const openingMobileTzs = mobileTotal(openingMobile);
+
   // Expected cash on hand (excl. cards) at any moment:
-  //   Opening cash + System Result + Cashless(IN−OUT) + Transfers(IN−OUT)
-  //   + (Opening Cards − Current Cards) × Card Value
+  //   Opening cash + Opening banks/mobile + System Result + Cashless(IN−OUT)
+  //   + Transfers(IN−OUT) + (Opening Cards − Current Cards) × Card Value
   // (Cards given out → cash in; cards returned → cash out.)
   const openingCardsCount = Number(cards?.opening_card_count || 0);
   const computeExpectedCashNow = (currentCards: number) =>
-    openingTotalTzs + systemResult + cashlessNetTzs + transfersNetTzs +
-    (openingCardsCount - currentCards) * cardDepositTzs;
+    openingTotalTzs + openingBanksTzs + openingMobileTzs
+    + systemResult + cashlessNetTzs + transfersNetTzs
+    + (openingCardsCount - currentCards) * cardDepositTzs;
   const countedCashNow = closingTzsTotal + closingFxTzs
     + bankTotalTzs(closingBanks, rateMap)
     + mobileTotal(closingMobile); // cash (all currencies) + banks + mobile money
