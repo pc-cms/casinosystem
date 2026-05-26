@@ -3,7 +3,7 @@ import { Landmark, Receipt, TrendingDown, LayoutDashboard, Filter, ArrowUpDown, 
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { CardSkeleton, PlayerListSkeleton } from "@/components/LoadingSkeletons";
-import { usePlayers, useTransactions, useGamingTables, useExpenses, useTableTracker } from "@/hooks/use-casino-data";
+import { usePlayers, useTransactions, useGamingTables, useTableTracker } from "@/hooks/use-casino-data";
 import { useCashless } from "@/hooks/use-cashless";
 import { useChipSnapshots } from "@/hooks/use-chips";
 import { useChipBaseline, baselineToMap } from "@/hooks/use-table-lifecycle";
