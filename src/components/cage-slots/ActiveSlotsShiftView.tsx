@@ -680,30 +680,28 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
 
         <TabsContent value="expenses">
           <PageSection title={`Slots Cage Expenses · Total ${formatNumberSpaces(totalSlotsExpenses)} TZS`}>
-            <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_2fr_auto] gap-2 mb-3 items-end">
-              <select value={expCategory} onChange={e => setExpCategory(e.target.value)} className="h-9 rounded border border-border bg-background px-2 text-sm">
-                <option value="utilities">Utilities</option>
-                <option value="maintenance">Maintenance</option>
-                <option value="supplies">Supplies</option>
-                <option value="salary">Salary</option>
-                <option value="other">Other</option>
-              </select>
-              <NumberInput placeholder="Amount" value={expAmount || ""} onChange={v => setExpAmount(Number(v) || 0)} className="no-spin h-9 text-right font-mono" />
-              <Input placeholder="Description" value={expDesc} onChange={e => setExpDesc(e.target.value)} className="h-9" />
-              <Button onClick={submitExpense} size="sm" className="h-9 gap-1.5" disabled={createExpense.isPending}>
-                <Receipt className="w-3.5 h-3.5" /> Add Expense
-              </Button>
+            <div className="flex justify-end mb-2">
+              <SlotsExpenseDialog slotsShiftId={shift.id} disabled={shift.status !== "open"} />
             </div>
             <table className="w-full text-xs">
               <thead className="text-muted-foreground border-b border-border">
-                <tr><th className="text-left py-1.5">When</th><th className="text-left">Category</th><th className="text-left">Description</th><th className="text-right">Amount</th><th>Status</th></tr>
+                <tr>
+                  <th className="text-left py-1.5">When</th>
+                  <th className="text-left">Category</th>
+                  <th className="text-left">Target</th>
+                  <th className="text-left">Description</th>
+                  <th className="text-right">Amount</th>
+                  <th className="text-center">Status</th>
+                  {canManage && <th className="text-center">Action</th>}
+                </tr>
               </thead>
               <tbody>
-                {slotsExpenses.length === 0 && <tr><td colSpan={5} className="text-center text-muted-foreground py-3">·</td></tr>}
+                {slotsExpenses.length === 0 && <tr><td colSpan={canManage ? 7 : 6} className="text-center text-muted-foreground py-3">·</td></tr>}
                 {slotsExpenses.map((e: any) => (
                   <tr key={e.id} className="border-b border-border/50">
                     <td className="py-1.5 font-mono text-[10px] text-muted-foreground">{fmtDateTime(e.created_at)}</td>
                     <td className="uppercase text-[10px]">{e.category}</td>
+                    <td className="text-muted-foreground">{e.players ? `${e.players.first_name} ${e.players.last_name}` : (e.player_name || "Casino")}</td>
                     <td>{e.description}</td>
                     <td className="text-right font-mono">{formatNumberSpaces(Number(e.amount))}</td>
                     <td className="text-center">
@@ -711,12 +709,22 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
                         {e.approved ? "Approved" : "Pending"}
                       </Badge>
                     </td>
+                    {canManage && (
+                      <td className="text-center">
+                        {!e.approved && (
+                          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => approveExpense.mutate(e.id)} disabled={approveExpense.isPending}>
+                            Approve
+                          </Button>
+                        )}
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
             </table>
           </PageSection>
         </TabsContent>
+
 
       </Tabs>
 
