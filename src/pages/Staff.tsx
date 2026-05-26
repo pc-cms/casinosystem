@@ -25,6 +25,8 @@ const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "Ju
 import { UNIFIED_ATT_COLORS, UNIFIED_SHIFT_TINTS } from "@/lib/shift-colors";
 import { useClosedBusinessDates, useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
 import { CellPicker } from "@/components/grids/CellPicker";
+import { useRotaLock, type RotaScope } from "@/hooks/use-rota-lock";
+import RotaLockButton from "@/components/rota/RotaLockButton";
 const ATT_COLORS = UNIFIED_ATT_COLORS;
 
 const DEPT_BADGE_COLORS: Record<string, string> = {
