@@ -728,24 +728,24 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-xs">
-              <Stat label="Opening (TZS)" value={openingTotalTzs} />
-              <Stat label="Closing (TZS)" value={closingTotalTzs} />
-              <Stat label="Cash Movement" value={cashMovementTzs} signed />
-              <Stat label="Cashless Net" value={cashlessNetTzs} signed />
-              <Stat label="System Result" value={systemResult} signed />
-              <Stat label="Actual Cage Result" value={actualCageResult} signed />
+              <Stat label="Opening Cash" value={openingCashTzs} />
+              <Stat label="Closing Cash" value={closingCashTzs} />
+              <Stat label="ΔCash" value={deltaCash} signed />
+              <Stat label="Cash Desk Result" value={cashDeskResult} signed />
+              <Stat label="Slots Result" value={systemResult} signed />
+              <Stat label="Cards Miss" value={cardsMiss} signed />
             </div>
 
             <div className="rounded-md border border-primary/40 bg-primary/5 p-3">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] uppercase text-muted-foreground tracking-wider">Difference (Actual − System)</span>
-                <span className={`font-mono font-bold text-lg ${difference < 0 ? "cms-amount-negative" : difference > 0 ? "cms-amount-positive" : ""}`}>
-                  {difference > 0 ? "+" : ""}{formatNumberSpaces(difference)}
+                <span className="text-[11px] uppercase text-muted-foreground tracking-wider">Balance (CDR − Slots − CardsMiss)</span>
+                <span className={`font-mono font-bold text-lg ${shiftBalance < 0 ? "cms-amount-negative" : shiftBalance > 0 ? "cms-amount-positive" : ""}`}>
+                  {shiftBalance > 0 ? "+" : ""}{formatNumberSpaces(shiftBalance)}
                 </span>
               </div>
-              {Math.abs(difference) > 0 && (
+              {Math.abs(shiftBalance) > 0 && (
                 <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1">
-                  Non-zero difference — manager will need to approve with a comment.
+                  Non-zero balance — manager will need to approve with a comment.
                 </p>
               )}
             </div>
