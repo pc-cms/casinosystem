@@ -139,7 +139,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
 
   // Transfers grouped by type
   const transfersAgg = useMemo(() => {
-    const agg = { add_float: 0, collection: 0, lg_in: 0, lg_out: 0 };
+    const agg = { fill: 0, collection: 0, lg_in: 0, lg_out: 0 };
     transfers.forEach((t: any) => {
       const k = t.transfer_type as keyof typeof agg;
       if (k in agg) agg[k] += Number(t.amount || 0);
