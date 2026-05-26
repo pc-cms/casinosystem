@@ -4,7 +4,7 @@ import { Coins, Send, RotateCcw, Printer, FileText, CreditCard, Save, ArrowLeftR
 import SlotsTransfersForm from "./SlotsTransfersForm";
 import SlotsExpenseDialog from "./SlotsExpenseDialog";
 import { useSlotsTransfers } from "@/hooks/use-cage-slots-transfers";
-import { useSlotsExpenses, useCreateSlotsExpense } from "@/hooks/use-expenses";
+import { useSlotsExpenses } from "@/hooks/use-expenses";
 import { useApproveExpense } from "@/hooks/use-casino-data";
 
 import { PageShell, PageSection } from "@/components/layout/PageShell";
