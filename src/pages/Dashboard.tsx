@@ -75,7 +75,30 @@ const Dashboard = () => {
     tablesDropSplit.forEach(v => { s += v.dropR || 0; });
     return s;
   }, [tablesDropSplit]);
-  const pendingExpenses = expenses.filter(e => !e.approved).length;
+  // Pending expenses across BOTH cages (Live Game + Slots) — drives the
+  // Approvals tile for manager / floor_manager / finance_manager / super_admin.
+  const { casinoId } = useAuth();
+  const { data: pendingExpensesAll = 0 } = useQuery({
+    queryKey: ["expenses-approvals-count", casinoId],
+    queryFn: async () => {
+      if (!casinoId) return 0;
+      const { count, error } = await supabase
+        .from("expenses")
+        .select("id", { count: "exact", head: true })
+        .eq("casino_id", casinoId)
+        .eq("approved", false);
+      if (error) throw error;
+      return count ?? 0;
+    },
+    enabled: !!casinoId,
+    staleTime: 1000 * 20,
+  });
+  const pendingExpenses = pendingExpensesAll;
+  const canApproveExpenses =
+    roles.includes("manager") ||
+    roles.includes("floor_manager") ||
+    roles.includes("finance_manager") ||
+    roles.includes("super_admin");
   const { data: cashless = [] } = useCashless(businessDate);
   const pendingCashless = cashless.filter((r: any) => r.status === "pending").length;
 
