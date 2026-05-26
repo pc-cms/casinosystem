@@ -19,23 +19,76 @@ const TABS: TabDef[] = [
 
 export const ClosureDetail = ({ closure }: { closure: BusinessDayClosure }) => {
   const snap = closure.snapshot || {};
+  const daily = (snap as any).daily_result as {
+    tables_total?: number;
+    slots_total?: number;
+    chip_miss_total?: number;
+    cards_miss_total?: number;
+    expenses_total?: number;
+    net_result?: number;
+  } | undefined;
+
   return (
-    <Tabs defaultValue="cash_counts" className="w-full">
-      <TabsList className="flex flex-wrap h-auto">
+    <div className="space-y-3">
+      {daily && (
+        <DailyResultBlock daily={daily} />
+      )}
+      <Tabs defaultValue="cash_counts" className="w-full">
+        <TabsList className="flex flex-wrap h-auto">
+          {TABS.map(t => (
+            <TabsTrigger key={t.key} value={t.key} className="text-xs">
+              {t.label}
+              <span className="ml-1.5 text-[10px] text-muted-foreground">
+                {Array.isArray(snap[t.key]) ? snap[t.key].length : 0}
+              </span>
+            </TabsTrigger>
+          ))}
+        </TabsList>
         {TABS.map(t => (
-          <TabsTrigger key={t.key} value={t.key} className="text-xs">
-            {t.label}
-            <span className="ml-1.5 text-[10px] text-muted-foreground">
-              {Array.isArray(snap[t.key]) ? snap[t.key].length : 0}
-            </span>
-          </TabsTrigger>
+          <TabsContent key={t.key} value={t.key} className="mt-3">
+            {t.render(Array.isArray(snap[t.key]) ? snap[t.key] : [], closure.business_date, closure.casino_id)}
+          </TabsContent>
         ))}
-      </TabsList>
-      {TABS.map(t => (
-        <TabsContent key={t.key} value={t.key} className="mt-3">
-          {t.render(Array.isArray(snap[t.key]) ? snap[t.key] : [], closure.business_date, closure.casino_id)}
-        </TabsContent>
-      ))}
-    </Tabs>
+      </Tabs>
+    </div>
+  );
+};
+
+const fmt = (n: number) => {
+  const v = Math.round(Number(n || 0));
+  const sign = v < 0 ? "−" : v > 0 ? "+" : "";
+  return `${sign}${Math.abs(v).toLocaleString("en-US").replace(/,/g, " ")}`;
+};
+
+const DailyResultBlock = ({ daily }: { daily: any }) => {
+  const net = Number(daily.net_result || 0);
+  const cls = net < 0 ? "cms-amount-negative" : net > 0 ? "cms-amount-positive" : "";
+  return (
+    <div className="rounded-md border-2 border-primary/40 bg-primary/5 p-4">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-bold uppercase tracking-wider">Daily Result</h3>
+        <span className={`font-mono text-2xl font-bold ${cls}`}>{fmt(net)}</span>
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-xs">
+        <Cell label="Tables"      value={Number(daily.tables_total || 0)}      signed />
+        <Cell label="+ Slots"     value={Number(daily.slots_total || 0)}       signed />
+        <Cell label="− Chip Miss" value={-Number(daily.chip_miss_total || 0)}  signed />
+        <Cell label="− Cards Miss" value={-Number(daily.cards_miss_total || 0)} signed />
+        <Cell label="− Expenses"  value={-Number(daily.expenses_total || 0)}   signed />
+      </div>
+      <p className="mt-2 text-[10px] text-muted-foreground">
+        Net = Tables + Slots − Chip Miss − Cards Miss − Expenses. Internal transfers (Collections, Fills, Slots↔Live) are excluded.
+      </p>
+    </div>
+  );
+};
+
+const Cell = ({ label, value, signed }: { label: string; value: number; signed?: boolean }) => {
+  const cls = !signed ? "" : value < 0 ? "cms-amount-negative" : value > 0 ? "cms-amount-positive" : "";
+  return (
+    <div className="rounded border border-border bg-card px-2 py-1.5">
+      <p className="text-[9px] uppercase text-muted-foreground tracking-wider">{label}</p>
+      <p className={`font-mono font-bold text-sm ${cls}`}>{fmt(value)}</p>
+    </div>
   );
 };

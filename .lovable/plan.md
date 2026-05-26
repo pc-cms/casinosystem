@@ -1,70 +1,129 @@
-## Goal
+## Cage Slots — формула закрытия по аналогии с Live Game + дневной итог казино
 
-Strict separation of two cashier desks:
+### Основная идея
 
-- **`cashier`** (existing) = Live Game cashier. Keeps current Cage access, **loses** Cage Slots.
-- **`cashier_slots`** (new) = Slots cashier. Sees **only** Cage Slots + Expenses. No Live Cage, no Cashless, no Reception.
+Slots должна работать как Live Game: канонические результаты считаются в БД триггером, хранятся в столбцах смены, и при закрытии бизнес-дня агрегируются в один итог казино.
 
-Two roles, two people, two modules. The enum value `cashier` stays as the alias for live game (no mass rename), only a new value is added.
+### Каноническая формула смены (slots)
 
-## Module access matrix (after change)
+```
+ΔCash            = ClosingCash − OpeningCash
+                   (cash all currencies → TZS + banks → TZS + mobile total)
 
-| Module      | cashier (live) | cashier_slots | manager | finance_manager | surveillance |
-|-------------|:--------------:|:-------------:|:-------:|:---------------:|:------------:|
-| `cage`      | write (today)  | —             | read    | read            | read         |
-| `cage_slots`| **— (removed)**| **write (today)** | read | read         | read         |
-| `cashless`  | write          | —             | write   | read            | —            |
-| `expenses`  | write          | **write**     | write   | write           | —            |
+Cash Desk Result = ΔCash
+                 + Expenses                  (approved этой смены)
+                 + Collection                (transfers OUT to safe)
+                 − AddFloat                  (transfers IN from safe)
+                 + LG_Out − LG_In            (slots ↔ live)
+                 + CashlessOut − CashlessIn
+                 (no Miss, no Cards)
 
-Other cashier defaults (none beyond the above) remain unchanged. `super_admin` keeps full access automatically.
+Cards Miss       = (OpeningCards − ClosingCards) × CardValue
+                   (минус = недостача карт)
 
-## Technical changes
+Slots Result     = SystemResult              (заявленный результат системой)
 
-### 1. DB migration
-
-```sql
--- New enum value
-ALTER TYPE app_role ADD VALUE IF NOT EXISTS 'cashier_slots';
-
--- Remove cage_slots from live cashier defaults
-DELETE FROM role_module_defaults
- WHERE role = 'cashier' AND module_key = 'cage_slots';
-
--- Seed defaults for cashier_slots
-INSERT INTO role_module_defaults (role, module_key, can_view, can_write, day_horizon) VALUES
-  ('cashier_slots', 'cage_slots', true, true,  'today'),
-  ('cashier_slots', 'expenses',   true, true,  'today')
-ON CONFLICT (role, module_key) DO UPDATE
-  SET can_view = EXCLUDED.can_view,
-      can_write = EXCLUDED.can_write,
-      day_horizon = EXCLUDED.day_horizon,
-      updated_at = now();
+Balance          = Cash Desk Result − Slots Result − Cards Miss   (= 0 идеально)
 ```
 
-No RLS rewrites needed — existing policies that allow `has_role(uid,'cashier')` for cage stay as-is. For cage_slots, audit policies that gate on `'cashier'` and add `'cashier_slots'` alongside.
+Expected Cash удаляется полностью.
 
-### 2. RLS audit for slots tables
+### Дневной итог казино (новое)
 
-Inspect every policy on `cage_slots_*` tables. Wherever a write/view policy currently checks `has_role(uid,'cashier')`, replace with `has_role(uid,'cashier') OR has_role(uid,'cashier_slots')` (or just `cashier_slots` if write must move fully). Strict reading: writes on `cage_slots_*` should be limited to `cashier_slots`, `manager`, `super_admin`; live `cashier` loses write on those tables to match the menu hiding.
+```
+Daily Result = Σ shifts.tables_result            (Live Game за день)
+             + Σ cage_slots_shifts.slots_result  (Slots за день)
+             − Σ shifts.miss_total               (Chip Miss live)
+             − Σ cage_slots_shifts.cards_miss    (Cards Miss slots)
+             − Σ expenses (approved, не Collection/Fill — это внутренние)
+```
 
-### 3. Frontend code
+Collections, Fills (AddFloat), LG↔Slots transfers — **внутренние перемещения**, в дневной итог НЕ входят. Только реальные расходы.
 
-- `src/pages/CageSlots.tsx` — `canTransact` switches from `cashier` to `cashier_slots`.
-- `src/pages/Cage.tsx`, `src/components/cage/ActiveShiftView.tsx` — no change (still `cashier`).
-- `src/lib/role-access.ts`, `src/lib/auth-context.tsx`, `src/lib/density.tsx`, `src/components/admin/users/users-hooks.ts`, `src/components/admin/FloatManagement.tsx`, `src/components/layout/AppSidebar.tsx`, `src/components/pit/CloseBusinessDayButton.tsx`, `src/hooks/use-business-day-filter.ts`, `src/hooks/use-prefetch.ts`, `src/hooks/use-staff.ts`, `src/pages/Incidents.tsx`, `src/App.tsx` — add `cashier_slots` to role lists where appropriate (default route, density=compact, business-day filter, sidebar visibility, business-day close button, staff cashier filter). `cashier_slots` should behave like `cashier` for: density compact, today-only horizon, no access to lifetime player financials, ability to close business day from Cage Slots screen.
-- `getDefaultRoute()` in `App.tsx` — add branch: `cashier_slots`-only user → `/cage-slots`.
-- Admin user editor — new role appears automatically once enum is updated and types regenerated.
+### План работ
 
-### 4. Memory
+**M1 — Миграция: новые поля в `cage_slots_shifts`**
 
-Update `mem://features/cage-operations` and the Core block in `mem://index.md`: "Cage is `cashier` only (Live Game). Cage Slots is `cashier_slots` only. Managers/Finance/Surveillance read-only on both."
+```sql
+ALTER TABLE cage_slots_shifts
+  ADD COLUMN IF NOT EXISTS cash_desk_result bigint,
+  ADD COLUMN IF NOT EXISTS cards_miss       bigint,
+  ADD COLUMN IF NOT EXISTS slots_result     bigint,  -- = system_shift_result, канон
+  ADD COLUMN IF NOT EXISTS balance          bigint;
+```
 
-### 5. Version bump
+`actual_cage_result` / `difference_amount` остаются как legacy, не используются.
 
-Patch-bump `package.json` (backend change).
+**M2 — Триггер `compute_slots_shift_balance`**
 
-## Out of scope
+Аналог триггера для live `shifts`. Срабатывает на UPDATE при `status='ready_for_review'` или `'approved'`. Считает:
+- ΔCash из последнего `cage_slots_cash_counts` где `is_closing=true` минус opening seed.
+- Expenses approved из `expenses WHERE cage_slots_shift_id = NEW.id AND approved`.
+- Transfers (collection/add_float/lg_in/lg_out) из `cage_slots_transfers`.
+- Cashless из `cashless_transactions WHERE cage_slots_shift_id = NEW.id`.
+- Cards Miss из `cage_slots_cards`.
+- Записывает в `cash_desk_result`, `cards_miss`, `slots_result`, `balance`.
 
-- No rename of existing `cashier` enum value.
-- No data migration of existing 5 cashier users — they stay Live Game cashiers. Slots cashiers must be created fresh in Admin → Users.
-- No UI rename of the "Cashier" label to "Cashier Live Game" (can be done later if desired).
+UI больше не передаёт расчётные поля — DB единственный источник истины.
+
+**M3 — Расширить `build_business_day_snapshot`**
+
+Добавить новые секции в snapshot:
+
+```jsonb
+{
+  ...existing,
+  "slots_shifts": [ {id, shift_type, slots_result, cards_miss, cash_desk_result, balance, ...} ],
+  "live_shifts":  [ {id, tables_result, miss_total, cash_desk_result, balance, ...} ],
+  "daily_result": {
+    "tables_total":   <Σ shifts.tables_result>,
+    "slots_total":    <Σ cage_slots_shifts.slots_result>,
+    "chip_miss_total":<Σ shifts.miss_total>,
+    "cards_miss_total":<Σ cage_slots_shifts.cards_miss>,
+    "expenses_total": <Σ approved expenses (live + slots), без internal transfers>,
+    "net_result":     <tables + slots − chip_miss − cards_miss − expenses>
+  }
+}
+```
+
+**M4 — UI `ActiveSlotsShiftView.tsx`** (только отображение, расчёт остаётся как preview):
+
+- Удалить `computeExpectedCashNow`, `countedCashNow`, `closingCardsTzs`.
+- Локально вычислять preview по той же формуле через новый helper `computeSlotsShiftBalance` в `src/lib/cage-balance.ts`.
+- Закрытие/Check показывает: ΔCash · Cash Desk Result · Slots Result (system) · Cards Miss · **Balance**.
+- Удалить блок "Expected vs Counted".
+- Mid-shift Check сохраняет в `denominations.totals` поля: `cash_desk_result, cards_miss, balance` (без expected).
+- При `submit_for_review` в `closing_denominations` — те же поля. Триггер пересчитает и впишет в столбцы при апруве.
+
+**M5 — UI Manager Review** — те же 5 KPI, без expected.
+
+**M6 — UI Business Days History** (`src/pages/BusinessDays.tsx` / `ClosureDetail.tsx`):
+
+- Добавить блок "Daily Result" вверху страницы закрытия: Tables · Slots · −Chip Miss · −Cards Miss · −Expenses · **Net**.
+- Использовать `snapshot.daily_result`.
+
+**M7 — Версия:** bump patch в `package.json`.
+
+### Что НЕ трогаем
+- Live Game Cage — без изменений.
+- `cage_slots_shifts.system_shift_result` остаётся вводимым полем; `slots_result` дублирует его через триггер как канон (как `tables_result` vs `shift_result` в live).
+- Открытие смены и opening seed snapshot (carry-over banks/mobile) — без изменений.
+- Approve flow, expense entry, transfer entry, cashless entry — без изменений.
+- Существующие закрытые смены: миграция оставляет новые поля NULL; одноразовый бэкфилл — отдельной задачей при необходимости.
+
+### Файлы
+
+**Миграции (новая)**:
+- ALTER `cage_slots_shifts` + триггер `compute_slots_shift_balance` + замена `build_business_day_snapshot`.
+
+**Frontend**:
+- `src/lib/cage-balance.ts` — добавить `computeSlotsShiftBalance`.
+- `src/components/cage-slots/ActiveSlotsShiftView.tsx` — переписать расчёты + UI Shift Result + Mid-check + Manager Review.
+- `src/components/business-days/ClosureDetail.tsx` (или `ReportPanels.tsx`) — блок Daily Result.
+- `package.json` — bump patch.
+
+### Подтверждённые соглашения
+- Cards Miss = (OpeningCards − ClosingCards) × CardValue.
+- Cashless и Slots transfers входят в CDR по полной аналогии с live.
+- Internal transfers (Collection, AddFloat, LG↔Slots) НЕ вычитаются из дневного итога казино.
+- Дневной итог = Tables + Slots − ChipMiss − CardsMiss − Expenses(approved).

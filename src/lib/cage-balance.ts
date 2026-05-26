@@ -38,3 +38,48 @@ export const computeShiftBalance = (i: CageBalanceInputs): CageBalanceResult => 
   const shiftBalance = cashDeskResult - i.tablesResult - i.miss;
   return { deltaCash, cashDeskResult, shiftBalance };
 };
+
+/**
+ * Cage Slots Cash Desk Formula (mirrors live game, with Cards Miss in place of
+ * Chip Miss). Source of truth = DB trigger `compute_slots_shift_balance_from_row`.
+ *
+ *   Cash Desk Result = ΔCash + Expenses + Collection − AddFloat
+ *                    + LG_Out − LG_In + CashlessOut − CashlessIn
+ *   Cards Miss       = (OpeningCards − ClosingCards) × CardValue   (− = shortage)
+ *   Slots Result     = SystemResult  (what slot system reported)
+ *   Balance          = Cash Desk Result − Slots Result − Cards Miss
+ */
+export type SlotsBalanceInputs = {
+  openingCash: number;
+  closingCash: number;
+  expenses: number;
+  collection: number;
+  addFloat: number;
+  lgIn: number;
+  lgOut: number;
+  cashlessIn: number;
+  cashlessOut: number;
+  openingCards: number;
+  closingCards: number;
+  cardValue: number;
+  systemResult: number;
+};
+
+export type SlotsBalanceResult = {
+  deltaCash: number;
+  cashDeskResult: number;
+  cardsMiss: number;
+  slotsResult: number;
+  balance: number;
+};
+
+export const computeSlotsShiftBalance = (i: SlotsBalanceInputs): SlotsBalanceResult => {
+  const deltaCash = i.closingCash - i.openingCash;
+  const cashDeskResult =
+    deltaCash + i.expenses + i.collection - i.addFloat
+    + i.lgOut - i.lgIn + i.cashlessOut - i.cashlessIn;
+  const cardsMiss = (i.openingCards - i.closingCards) * i.cardValue;
+  const slotsResult = i.systemResult;
+  const balance = cashDeskResult - slotsResult - cardsMiss;
+  return { deltaCash, cashDeskResult, cardsMiss, slotsResult, balance };
+};

@@ -35,6 +35,7 @@ import { useAuth } from "@/lib/auth-context";
 import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
 import type { Tables } from "@/integrations/supabase/types";
 import CashCheckViewerDialog from "@/components/cage/CashCheckViewerDialog";
+import { computeSlotsShiftBalance } from "@/lib/cage-balance";
 
 type Shift = Tables<"cage_slots_shifts">;
 
@@ -125,22 +126,32 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
     (s, c) => s + cashSum(closingCash[c] || {}) * (rateMap[c] || 0), 0,
   ), [closingCash, rateMap]);
   const cardDepositTzs = Number(cards?.card_deposit_value_tzs || 5000);
-  const closingCardsTzs = closingCards * cardDepositTzs;
-  const closingTotalTzs = closingTzsTotal + closingFxTzs + closingCardsTzs;
 
-  const cashMovementTzs = closingTotalTzs - openingTotalTzs;
-  const cashlessNetTzs = useMemo(() =>
-    cashless.reduce((s, t: any) => s + (t.direction === "IN" ? Number(t.amount) : -Number(t.amount)), 0),
+  // Cashless IN/OUT (current shift)
+  const cashlessIn = useMemo(() =>
+    cashless.filter((t: any) => t.direction === "IN").reduce((s, t: any) => s + Number(t.amount), 0),
     [cashless],
   );
-  // Transfers net (Fill + LG_IN are IN, Collection + LG_OUT are OUT).
-  const transfersNetTzs = useMemo(() =>
-    transfers.reduce((s, t: any) => s + (t.direction === "in" ? Number(t.amount) : -Number(t.amount)), 0),
-    [transfers],
+  const cashlessOut = useMemo(() =>
+    cashless.filter((t: any) => t.direction === "OUT").reduce((s, t: any) => s + Number(t.amount), 0),
+    [cashless],
   );
-  const actualCageResult = cashMovementTzs - cashlessNetTzs;
-  const systemResult = Number(systemResultInput) || Number(shift.system_shift_result || 0);
-  const difference = actualCageResult - systemResult;
+
+  // Transfers grouped by type
+  const transfersAgg = useMemo(() => {
+    const agg = { add_float: 0, collection: 0, lg_in: 0, lg_out: 0 };
+    transfers.forEach((t: any) => {
+      const k = t.transfer_type as keyof typeof agg;
+      if (k in agg) agg[k] += Number(t.amount || 0);
+    });
+    return agg;
+  }, [transfers]);
+
+  // Approved expenses for this slots shift
+  const expensesApproved = useMemo(() =>
+    slotsExpenses.filter((e: any) => e.approved).reduce((s: number, e: any) => s + Number(e.amount || 0), 0),
+    [slotsExpenses],
+  );
 
   // Opening banks/mobile carry-over (captured into the seed snapshot at shift open).
   const openingSeed = useMemo(
@@ -152,18 +163,32 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
   const openingBanksTzs = bankTotalTzs(openingBanks, rateMap);
   const openingMobileTzs = mobileTotal(openingMobile);
 
-  // Expected cash on hand (excl. cards) at any moment:
-  //   Opening cash + Opening banks/mobile + System Result + Cashless(IN−OUT)
-  //   + Transfers(IN−OUT) + (Opening Cards − Current Cards) × Card Value
-  // (Cards given out → cash in; cards returned → cash out.)
+  // ΔCash uses cash (all currencies) + banks + mobile — NO cards.
+  const openingCashTzs = openingTotalTzs + openingBanksTzs + openingMobileTzs;
+  const closingCashTzs = closingTzsTotal + closingFxTzs
+    + bankTotalTzs(closingBanks, rateMap) + mobileTotal(closingMobile);
+
   const openingCardsCount = Number(cards?.opening_card_count || 0);
-  const computeExpectedCashNow = (currentCards: number) =>
-    openingTotalTzs + openingBanksTzs + openingMobileTzs
-    + systemResult + cashlessNetTzs + transfersNetTzs
-    + (openingCardsCount - currentCards) * cardDepositTzs;
-  const countedCashNow = closingTzsTotal + closingFxTzs
-    + bankTotalTzs(closingBanks, rateMap)
-    + mobileTotal(closingMobile); // cash (all currencies) + banks + mobile money
+  const systemResult = Number(systemResultInput) || Number(shift.system_shift_result || 0);
+
+  const balance = useMemo(() => computeSlotsShiftBalance({
+    openingCash: openingCashTzs,
+    closingCash: closingCashTzs,
+    expenses: expensesApproved,
+    collection: transfersAgg.collection,
+    addFloat: transfersAgg.add_float,
+    lgIn: transfersAgg.lg_in,
+    lgOut: transfersAgg.lg_out,
+    cashlessIn,
+    cashlessOut,
+    openingCards: openingCardsCount,
+    closingCards,
+    cardValue: cardDepositTzs,
+    systemResult,
+  }), [openingCashTzs, closingCashTzs, expensesApproved, transfersAgg, cashlessIn, cashlessOut, openingCardsCount, closingCards, cardDepositTzs, systemResult]);
+
+  const { deltaCash, cashDeskResult, cardsMiss, balance: shiftBalance } = balance;
+
 
   const persistClosingCash = async (currency: string, denom: number, qty: number) => {
     await upsertInv.mutateAsync({
@@ -174,10 +199,8 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
     });
   };
 
-  // Mid-shift cash check
+  // Mid-shift cash check — snapshot of canonical balance fields
   const recordMidCheck = () => {
-    const expectedNow = computeExpectedCashNow(closingCards);
-    const diffNow = countedCashNow - expectedNow;
     saveCheck.mutate({
       shift_id: shift.id,
       count_type: "check",
@@ -188,16 +211,17 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
         cards: { count: closingCards, value_tzs: cardDepositTzs },
         rateMap,
         totals: {
-          total_tzs: closingTotalTzs,
+          total_tzs: closingCashTzs,
           bank_tzs: bankTotalTzs(closingBanks, rateMap),
           mobile_tzs: mobileTotal(closingMobile),
-          expected: expectedNow,
-          counted: countedCashNow,
-          difference: diffNow,
-          balanced: diffNow === 0,
+          delta_cash: deltaCash,
+          cash_desk_result: cashDeskResult,
+          cards_miss: cardsMiss,
+          slots_result: systemResult,
+          balance: shiftBalance,
         },
       },
-      total_tzs: closingTotalTzs,
+      total_tzs: closingCashTzs,
       note: "Mid-shift check",
     });
   };
@@ -220,17 +244,20 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
     updateCards.mutate({ shift_id: shift.id, closing_card_count: closingCards });
     submit.mutate({
       shift_id: shift.id,
-      closing_total_tzs: closingTotalTzs,
+      closing_total_tzs: closingCashTzs,
       closing_denominations: {
         cash: closingCash,
+        bank: closingBanks,
+        mobile: closingMobile,
         cards: { count: closingCards, value_tzs: cardDepositTzs },
         rateMap,
         totals: {
-          total_tzs: closingTotalTzs,
-          expected: computeExpectedCashNow(closingCards),
-          counted: countedCashNow,
-          difference: countedCashNow - computeExpectedCashNow(closingCards),
-          balanced: countedCashNow - computeExpectedCashNow(closingCards) === 0,
+          total_tzs: closingCashTzs,
+          delta_cash: deltaCash,
+          cash_desk_result: cashDeskResult,
+          cards_miss: cardsMiss,
+          slots_result: systemResult,
+          balance: shiftBalance,
         },
       },
       cashier_note: cashierNote,
@@ -241,7 +268,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
   const [showApprove, setShowApprove] = useState(false);
   const [managerComment, setManagerComment] = useState("");
   const [viewerCheck, setViewerCheck] = useState<Tables<"cash_counts"> | null>(null);
-  const needsComment = Math.abs(difference) > 0;
+  const needsComment = Math.abs(shiftBalance) > 0;
 
   const doApprove = (managerId: string) => {
     approve.mutate({
@@ -320,26 +347,26 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
               <Stat label="TZS Cash" value={closingTzsTotal} />
               <Stat label="Foreign (TZS)" value={closingFxTzs} />
-              <Stat label={`Cards × ${formatNumberSpaces(cardDepositTzs)}`} value={closingCardsTzs} />
-              <Stat label="Total Closing" value={closingTotalTzs} emphasize />
+              <Stat label="Banks + Mobile" value={bankTotalTzs(closingBanks, rateMap) + mobileTotal(closingMobile)} />
+              <Stat label="Total Closing Cash" value={closingCashTzs} emphasize />
             </div>
             <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
-              <Stat label="Opening" value={openingTotalTzs} />
-              <Stat label="Cash Movement" value={cashMovementTzs} signed />
+              <Stat label="Opening Cash" value={openingCashTzs} />
+              <Stat label="ΔCash" value={deltaCash} signed />
             </div>
           </PageSection>
 
-          {/* Entered result */}
+          {/* Canonical Shift Result (mirrors Live Game) */}
           <PageSection title="Shift Result">
             <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-              <Stat label="System Result (entered)" value={systemResult} signed />
-              <Stat label="Cashless Net" value={cashlessNetTzs} signed />
-              <Stat label="Actual Cage Result" value={actualCageResult} signed />
+              <Stat label="Cash Desk Result" value={cashDeskResult} signed />
+              <Stat label="Slots Result (system)" value={systemResult} signed />
+              <Stat label="Cards Miss" value={cardsMiss} signed />
             </div>
             <div className="mt-3 rounded-md border-2 border-primary/40 bg-primary/5 p-3 flex items-center justify-between">
-              <span className="text-xs uppercase text-muted-foreground tracking-wider font-bold">Balance (Actual − System)</span>
-              <span className={`font-mono font-bold text-2xl ${difference < 0 ? "cms-amount-negative" : difference > 0 ? "cms-amount-positive" : "text-emerald-500"}`}>
-                {difference === 0 ? "BALANCED · 0" : `${difference > 0 ? "+" : ""}${formatNumberSpaces(difference)}`}
+              <span className="text-xs uppercase text-muted-foreground tracking-wider font-bold">Balance (CDR − Slots − CardsMiss)</span>
+              <span className={`font-mono font-bold text-2xl ${shiftBalance < 0 ? "cms-amount-negative" : shiftBalance > 0 ? "cms-amount-positive" : "text-emerald-500"}`}>
+                {shiftBalance === 0 ? "BALANCED · 0" : `${shiftBalance > 0 ? "+" : ""}${formatNumberSpaces(shiftBalance)}`}
               </span>
             </div>
             {cashierNote && (
@@ -348,7 +375,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
                 <p className="text-xs whitespace-pre-wrap border border-border rounded p-2 bg-muted/30">{cashierNote}</p>
               </div>
             )}
-            {Math.abs(difference) > 0 && (
+            {Math.abs(shiftBalance) > 0 && (
               <div className="mt-3">
                 <p className="text-xs text-destructive font-semibold mb-1">Non-zero balance — manager comment required.</p>
                 <Textarea value={managerComment} onChange={e => setManagerComment(e.target.value)} rows={2} placeholder="Reason / explanation…" />
@@ -433,9 +460,9 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
                 Cashier has submitted the closing. A manager must authenticate to close this shift.
               </p>
               <div className="grid grid-cols-3 gap-3 mt-3 max-w-md">
-                <Stat label="Actual" value={actualCageResult} signed />
-                <Stat label="System" value={systemResult} signed />
-                <Stat label="Difference" value={difference} signed emphasize />
+                <Stat label="Cash Desk" value={cashDeskResult} signed />
+                <Stat label="Slots" value={systemResult} signed />
+                <Stat label="Balance" value={shiftBalance} signed emphasize />
               </div>
             </div>
             <Button
@@ -483,16 +510,11 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
             disabled={shift.status !== "open"}
           />
         </TileCard>
-        {(() => {
-          const cageVal = systemResult + cashlessNetTzs + transfersNetTzs + ((cards?.opening_card_count ?? 0) - closingCards) * cardDepositTzs;
-          return (
-            <TileCard label="Cage Result (TZS)" emphasize>
-              <p className="font-mono text-2xl font-bold tabular-nums text-center text-muted-foreground">
-                {cageVal > 0 ? "+" : ""}{formatNumberSpaces(cageVal)}
-              </p>
-            </TileCard>
-          );
-        })()}
+        <TileCard label="Balance (TZS)" emphasize>
+          <p className={`font-mono text-2xl font-bold tabular-nums text-center ${shiftBalance < 0 ? "cms-amount-negative" : shiftBalance > 0 ? "cms-amount-positive" : ""}`}>
+            {shiftBalance > 0 ? "+" : ""}{formatNumberSpaces(shiftBalance)}
+          </p>
+        </TileCard>
       </div>
 
       <Tabs defaultValue="closing" className="space-y-2">
@@ -706,24 +728,24 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-xs">
-              <Stat label="Opening (TZS)" value={openingTotalTzs} />
-              <Stat label="Closing (TZS)" value={closingTotalTzs} />
-              <Stat label="Cash Movement" value={cashMovementTzs} signed />
-              <Stat label="Cashless Net" value={cashlessNetTzs} signed />
-              <Stat label="System Result" value={systemResult} signed />
-              <Stat label="Actual Cage Result" value={actualCageResult} signed />
+              <Stat label="Opening Cash" value={openingCashTzs} />
+              <Stat label="Closing Cash" value={closingCashTzs} />
+              <Stat label="ΔCash" value={deltaCash} signed />
+              <Stat label="Cash Desk Result" value={cashDeskResult} signed />
+              <Stat label="Slots Result" value={systemResult} signed />
+              <Stat label="Cards Miss" value={cardsMiss} signed />
             </div>
 
             <div className="rounded-md border border-primary/40 bg-primary/5 p-3">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] uppercase text-muted-foreground tracking-wider">Difference (Actual − System)</span>
-                <span className={`font-mono font-bold text-lg ${difference < 0 ? "cms-amount-negative" : difference > 0 ? "cms-amount-positive" : ""}`}>
-                  {difference > 0 ? "+" : ""}{formatNumberSpaces(difference)}
+                <span className="text-[11px] uppercase text-muted-foreground tracking-wider">Balance (CDR − Slots − CardsMiss)</span>
+                <span className={`font-mono font-bold text-lg ${shiftBalance < 0 ? "cms-amount-negative" : shiftBalance > 0 ? "cms-amount-positive" : ""}`}>
+                  {shiftBalance > 0 ? "+" : ""}{formatNumberSpaces(shiftBalance)}
                 </span>
               </div>
-              {Math.abs(difference) > 0 && (
+              {Math.abs(shiftBalance) > 0 && (
                 <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1">
-                  Non-zero difference — manager will need to approve with a comment.
+                  Non-zero balance — manager will need to approve with a comment.
                 </p>
               )}
             </div>
@@ -769,10 +791,10 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
           <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowApprove(false)}>
             <div className="bg-card border border-border rounded-md shadow-lg p-4 max-w-md w-full space-y-3" onClick={e => e.stopPropagation()}>
               <h3 className="font-semibold">Approve & Close Slots Shift</h3>
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <Stat label="Actual" value={actualCageResult} signed />
-                <Stat label="System" value={systemResult} signed />
-                <Stat label="Difference" value={difference} signed emphasize />
+              <div className="grid grid-cols-3 gap-2 text-xs">
+                <Stat label="Cash Desk" value={cashDeskResult} signed />
+                <Stat label="Slots" value={systemResult} signed />
+                <Stat label="Balance" value={shiftBalance} signed emphasize />
               </div>
               {needsComment && (
                 <div>
