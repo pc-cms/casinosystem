@@ -1,56 +1,101 @@
+## Что делаем
 
-## Slot Cage — приведение опенинга к канонической формуле
+Единая система **планирования и блокировки** для всех четырёх рот: Pit (Live Game), Floor, Security, Office.
 
-### Целевые формулы
+Три задачи в одном:
+1. **Планирование на следующий месяц** — кнопка навигации «next month» во всех ротах (сейчас работает только в Pit).
+2. **Lock / Unlock на месяц** — Manager / HR / Super Admin могут залочить/разлочить целый месяц. Когда залочено — все правки запрещены на уровне БД.
+3. **Роль на момент даты** — если Abraham был Inspector в мае и стал Pit Boss с 1 июня, в майской роте он показан в секции Inspector, в июньской — в секции Pit Boss. История роли ведётся автоматически.
+
+---
+
+## Схема БД (1 миграция)
+
+### 1. `employee_role_history` — история ролей
+```sql
+employee_id, effective_from (date), department, position, dealer_category, is_pit_boss
+PRIMARY KEY (employee_id, effective_from)
 ```
-ΔCash             = ClosingCash − OpeningCash       (CASH + MOBILE + BANK, БЕЗ карточек)
-Slots Desk Result = ΔCash + Expenses + Collection − AddFloat + LiveGameOut − LiveGameIn
-                    (Miss Card НЕ входит)
-Slots Result      = вводится вручную (system_result)
-Miss Card         = (CardOpening − CardClosing) × 5000
-                    + если карты ушли (продали) → касса в плюсе
-                    − если карты пришли (выкупили) → касса в минусе
-Shift Balance     = Cash Desk Result − Slots Result − Miss Card    (идеал = 0)
+- Триггер на `employees` UPDATE: если изменилось `department / position / dealer_category / is_pit_boss` — пишем новую строку с `effective_from = CURRENT_DATE`.
+- Seed: одна строка на каждого текущего сотрудника с `effective_from = COALESCE(onboarding_date, employment_date, created_at::date)`.
+
+### 2. Функция `employee_role_at(employee_id, on_date)`
+Возвращает `(department, position, dealer_category, is_pit_boss)` — последняя запись истории с `effective_from <= on_date`.
+
+### 3. `rota_locks` — блокировки месяца
+```sql
+casino_id, scope ('pit' | 'floor' | 'security' | 'office'),
+month (date, всегда первое число),
+locked_by, locked_at
+PRIMARY KEY (casino_id, scope, month)
 ```
-Карточки — **только счётчик пластика**, не деньги в опенинге. Цена 5 000 TZS/шт используется только для расчёта Miss Card.
+- Запись = месяц залочен. Удаление = разлочен. История lock/unlock пишется отдельно в `operational_logs`.
+
+### 4. Триггер-страж на `pit_rota` / `staff_rota`
+BEFORE INSERT/UPDATE/DELETE: если для `(casino_id, scope, date_trunc('month', NEW.date))` есть строка в `rota_locks` — `RAISE EXCEPTION 'Rota is locked for this month'`. Scope для `pit_rota` всегда `'pit'`; для `staff_rota` определяется по `employee.department / position` (через mapping floor / security / office).
+
+### 5. RLS на `rota_locks`
+- SELECT: все авторизованные пользователи casino.
+- INSERT / DELETE: только `manager`, `hr`, `super_admin` (через `has_role`).
 
 ---
 
-### Что менять
+## Фронт
 
-**1. `src/components/cage-slots/OpenSlotsShiftScreen.tsx`**
-- Строка 50: убрать `+ cardsTzs` → `grandTotal = tzsTotal + fxTotalTzs`.
-- Строка 147 (Step-1 Subtotal): убрать `+ cardsTzs`.
-- В секции «Plastic Cards (Opening)» убрать подпись `× TZS …` и нижнюю строку с TZS-итогом — оставить только поле количества и пояснение что цена 5 000 TZS используется для Miss Card на закрытии.
-- `opening_card_count` и `card_deposit_value_tzs=5000` продолжаем писать в `cage_slots_cards` (нужны для Miss Card).
+### Хуки (`src/hooks/use-rota-lock.ts`)
+- `useRotaLock(scope, month)` → `{ isLocked, lockedBy, lockedAt }`
+- `useLockRota()` / `useUnlockRota()` мутации.
 
-**2. `src/hooks/use-cage-slots.ts`**
-- В `useOpenSlotsShift` (строка ~314) убрать `+ input.opening_card_count * input.card_deposit_value_tzs` из `total_opening_tzs`. Snapshot `cards.{count,value_tzs}` в snapshot-payload остаётся (для аудита).
+### Компонент `<RotaLockButton scope month />`
+Размещается в шапке рота-вкладки рядом с навигацией месяца:
+- Незалочено → бейдж `Unlocked` + кнопка `Lock month` (видна только manager / hr / super_admin).
+- Залочено → бейдж `🔒 Locked by {name} · DD/MM/YYYY` + кнопка `Unlock` (только те же роли). Для остальных — просто бейдж.
 
-**3. `src/lib/cage-balance.ts`**
-- **НЕ ТРОГАЕМ** знак: `cardsMiss = (openingCards − closingCards) × cardValue` уже соответствует требованию (+ ушли / − пришли).
-- Обновить только JSDoc сверху, чтобы текст соответствовал согласованной семантике знака.
+### Поведение грида
+- Когда `isLocked === true` → весь грид рендерится с `readOnly={true}` (уже поддерживается в Pit; добавим в Staff). Клавиатура, paste, click — всё игнорируется. Гард на мутациях тоже сработает (двойная защита).
+- Кнопка `Next month` доступна для **текущего + следующего месяца** (как уже сделано в Pit). Применим то же правило в Staff rota (сейчас отсутствует).
 
-**4. БД-триггер `compute_slots_shift_balance_from_row`**
-- Проверить через миграцию: `cards_miss = (opening_card_count − closing_card_count) × card_deposit_value_tzs`. Если уже так — миграция не нужна; если иначе — выровнять.
-- Убедиться, что в `cash_desk_result` карты не входят (только ΔCash + Expenses + Collection − AddFloat + LG_Out − LG_In).
-- Если потребуется правка триггера → bump `package.json` patch.
+### Группировка по роли-на-дату
+В `RotaGrid` (Pit) и в группах Floor/Security/Office:
+- Сортируем сотрудников не по `employees.department/position` напрямую, а через `employee_role_at(id, month_start)`.
+- Дозагрузка: один запрос `SELECT employee_id, department, position, dealer_category, is_pit_boss FROM employee_role_at_bulk(:casino_id, :month_start)` (SQL-функция возвращает таблицу).
+- Pit-роте: секции Dealer / Inspector / Trainee / Pit Boss формируются по `position` на 1-е число месяца.
+- Staff-ротам: группа (Floor / Security / Office) определяется тем же способом.
+- Сотрудник, ещё не нанятый на 1-е число → скрыт.
+- Сотрудник, уволенный (`payroll_status='inactive'`) до 1-го числа → скрыт.
 
-**5. `src/components/cage-slots/ActiveSlotsShiftView.tsx`**
-- TileCard «Cards Closing» подпись `Miss: …` — отображает `openingCards − closingCards` (для согласованности со знаком Miss Card).
-- Лейблы Cards Miss / Balance оставить как есть — `Stat … signed` уже подкрасит + зелёным / − красным.
-
----
-
-### Что НЕ трогаем
-- Схему таблиц `cage_slots_cards` / `cage_slots_shifts`.
-- Логику Expenses / Collection / AddFloat / LG transfers / Cashless — формула CDR уже совпадает.
-- UI инвентаря, истории, печать.
+### Где применяется
+- `src/pages/Pit.tsx` — RotaGrid (Live Game).
+- `src/pages/Staff.tsx` — три rota-вкладки (Floor / Security / Office).
+- Добавить `<RotaLockButton>` в шапку каждой rota-вкладки.
 
 ---
 
-### Проверка после деплоя
-1. Опенинг: ввели N карт × 5 000 → `Grand Total` не содержит этой суммы; карты показаны отдельным счётчиком.
-2. Закрытие c меньшим числом карт (продали) → `Cards Miss` положительный (зелёный), Balance соответствует.
-3. Закрытие с бо́льшим числом карт (выкупили) → `Cards Miss` отрицательный (красный).
-4. Значения `cards_miss` в `cage_slots_shifts` (БД) совпадают с UI.
+## Технические детали
+
+```text
+employees ──UPDATE trigger──> employee_role_history
+                                       │
+rota grids ──employee_role_at(id, m)──┘  ← группировка/секции
+
+pit_rota / staff_rota ──BEFORE trigger──> rota_locks (block writes)
+
+UI: <RotaLockButton scope month> ──insert/delete──> rota_locks
+                                                       │
+                                              грид перерендерится readOnly
+```
+
+**Scope mapping для staff_rota guard-триггера:**
+- department=`Security` → `security`
+- department=`Office` → `office`
+- иначе (`Floor`) → `floor`
+
+**Версия:** автобамп `package.json` (миграция + триггеры).
+
+---
+
+## Что НЕ делаем
+- Lock по неделям/диапазону дней — только целый месяц (по решению).
+- Доступ к месяцам дальше +1 — только следующий.
+- HR role-edit интерфейс не меняем; история заполняется автоматом при изменении должности через существующий Staff Master.
+- Manager password при unlock не запрашиваем (можно добавить позже, если попросите).

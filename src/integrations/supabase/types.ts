@@ -2413,6 +2413,47 @@ export type Database = {
           },
         ]
       }
+      employee_role_history: {
+        Row: {
+          created_at: string
+          dealer_category: string | null
+          department: string
+          effective_from: string
+          employee_id: string
+          id: string
+          is_pit_boss: boolean
+          position: string
+        }
+        Insert: {
+          created_at?: string
+          dealer_category?: string | null
+          department?: string
+          effective_from: string
+          employee_id: string
+          id?: string
+          is_pit_boss?: boolean
+          position?: string
+        }
+        Update: {
+          created_at?: string
+          dealer_category?: string | null
+          department?: string
+          effective_from?: string
+          employee_id?: string
+          id?: string
+          is_pit_boss?: boolean
+          position?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_role_history_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employees: {
         Row: {
           annual_leave_earned: number
@@ -4469,6 +4510,38 @@ export type Database = {
         }
         Relationships: []
       }
+      rota_locks: {
+        Row: {
+          casino_id: string
+          locked_at: string
+          locked_by: string
+          month: string
+          scope: string
+        }
+        Insert: {
+          casino_id: string
+          locked_at?: string
+          locked_by: string
+          month: string
+          scope: string
+        }
+        Update: {
+          casino_id?: string
+          locked_at?: string
+          locked_by?: string
+          month?: string
+          scope?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rota_locks_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shifts: {
         Row: {
           balance: number | null
@@ -6124,6 +6197,16 @@ export type Database = {
           module_key: string
         }[]
       }
+      employee_roles_at: {
+        Args: { _casino_id: string; _on_date: string }
+        Returns: {
+          dealer_category: string
+          department: string
+          employee_id: string
+          is_pit_boss: boolean
+          job_position: string
+        }[]
+      }
       export_full_schema_ddl: { Args: never; Returns: string }
       finalize_open_cycles_for_close: {
         Args: { _casino_id: string; _user: string }
@@ -6354,6 +6437,7 @@ export type Database = {
         Args: { _closing_count: Json }
         Returns: number
       }
+      staff_rota_scope: { Args: { _employee_id: string }; Returns: string }
       sync_apply_remote: {
         Args: {
           p_casino_id: string

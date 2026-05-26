@@ -25,6 +25,8 @@ const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "Ju
 import { UNIFIED_ATT_COLORS, UNIFIED_SHIFT_TINTS } from "@/lib/shift-colors";
 import { useClosedBusinessDates, useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
 import { CellPicker } from "@/components/grids/CellPicker";
+import { useRotaLock, type RotaScope } from "@/hooks/use-rota-lock";
+import RotaLockButton from "@/components/rota/RotaLockButton";
 const ATT_COLORS = UNIFIED_ATT_COLORS;
 
 const DEPT_BADGE_COLORS: Record<string, string> = {
@@ -120,6 +122,11 @@ const Staff = ({ forcedTab, forcedGroup }: StaffProps = {}) => {
   const rotaGroupKey = isRotaTab ? activeTab.replace("rota_", "") as RotaGroupKey : null;
   const rotaGroup = rotaGroupKey ? ROTA_GROUPS[rotaGroupKey] : null;
 
+  // Map staff rota group → rota_locks scope
+  const lockScope: RotaScope | null = rotaGroupKey === "floor" ? "floor" : rotaGroupKey === "security" ? "security" : rotaGroupKey === "office" ? "office" : null;
+  const { data: groupLock } = useRotaLock(lockScope ?? "floor", month);
+  const isLocked = isRotaTab && !!groupLock;
+
   // Attendance is scoped to a group (mirrors Rota grouping). Default: floor.
   const attGroupParam = (forcedGroup || searchParams.get("group") || "floor") as RotaGroupKey;
   const attGroupKey: RotaGroupKey = (ROTA_GROUPS as any)[attGroupParam] ? attGroupParam : "floor";
@@ -164,6 +171,7 @@ const Staff = ({ forcedTab, forcedGroup }: StaffProps = {}) => {
                 </Button>
               </div>
             )}
+            {isRotaTab && lockScope && <RotaLockButton scope={lockScope} month={month} />}
             {isRotaTab && rotaGroup && (
               <div className="flex items-center gap-1.5 flex-nowrap whitespace-nowrap overflow-x-auto py-0.5">
                 {rotaGroup.shifts.map(s => (
@@ -200,7 +208,7 @@ const Staff = ({ forcedTab, forcedGroup }: StaffProps = {}) => {
       </PageHeader>
 
       {activeTab === "employee" && <EmployeeList />}
-      {isRotaTab && rotaGroupKey && <StaffRotaGrid month={month} groupKey={rotaGroupKey} monthLabel={monthLabel} readOnly={(isPast && !isMgr) || !canManagePersonnel} />}
+      {isRotaTab && rotaGroupKey && <StaffRotaGrid month={month} groupKey={rotaGroupKey} monthLabel={monthLabel} readOnly={(isPast && !isMgr) || !canManagePersonnel || isLocked} />}
       {activeTab === "attendance" && <StaffAttendanceGrid month={month} monthLabel={monthLabel} groupKey={attGroupKey} readOnly={(isPast && !isMgr) || !canManagePersonnel} />}
     </div>
   );
