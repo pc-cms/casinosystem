@@ -77,7 +77,6 @@ const Dashboard = () => {
   }, [tablesDropSplit]);
   // Pending expenses across BOTH cages (Live Game + Slots) — drives the
   // Approvals tile for manager / floor_manager / finance_manager / super_admin.
-  const { casinoId } = useAuth();
   const { data: pendingExpensesAll = 0 } = useQuery({
     queryKey: ["expenses-approvals-count", casinoId],
     queryFn: async () => {
