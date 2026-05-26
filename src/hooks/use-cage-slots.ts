@@ -309,9 +309,9 @@ export const useOpenSlotsShift = () => {
       const carryMobileTzs: number = Object.values(carryMobile || {})
         .reduce<number>((s, v) => s + (Number(v) || 0), 0);
 
-      // Opening cash check snapshot (seed) — now includes carry-over bank/mobile.
+      // Opening cash check snapshot (seed) — cash + carry-over bank/mobile.
+      // Cards are a plastic counter, NOT money — excluded from opening TZS total.
       const openingTotal = invRows.reduce((s, r) => s + r.denomination * r.quantity * r.rate_to_tzs, 0)
-        + input.opening_card_count * input.card_deposit_value_tzs
         + carryBanksTzs + carryMobileTzs;
       try {
         await supabase.from("cage_slots_cash_counts").insert({
