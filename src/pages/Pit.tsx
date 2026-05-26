@@ -21,6 +21,8 @@ import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { PitShell } from "@/components/pit/PitShell";
 import { CellPicker, type CellPickerRow } from "@/components/grids/CellPicker";
+import { useRotaLock, useRolesAtDate } from "@/hooks/use-rota-lock";
+import RotaLockButton from "@/components/rota/RotaLockButton";
 
 
 const ROTA_SHIFTS = ["M", "N", "L", "E", "O"] as const;
