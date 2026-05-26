@@ -347,26 +347,26 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
               <Stat label="TZS Cash" value={closingTzsTotal} />
               <Stat label="Foreign (TZS)" value={closingFxTzs} />
-              <Stat label={`Cards × ${formatNumberSpaces(cardDepositTzs)}`} value={closingCardsTzs} />
-              <Stat label="Total Closing" value={closingTotalTzs} emphasize />
+              <Stat label="Banks + Mobile" value={bankTotalTzs(closingBanks, rateMap) + mobileTotal(closingMobile)} />
+              <Stat label="Total Closing Cash" value={closingCashTzs} emphasize />
             </div>
             <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
-              <Stat label="Opening" value={openingTotalTzs} />
-              <Stat label="Cash Movement" value={cashMovementTzs} signed />
+              <Stat label="Opening Cash" value={openingCashTzs} />
+              <Stat label="ΔCash" value={deltaCash} signed />
             </div>
           </PageSection>
 
-          {/* Entered result */}
+          {/* Canonical Shift Result (mirrors Live Game) */}
           <PageSection title="Shift Result">
             <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-              <Stat label="System Result (entered)" value={systemResult} signed />
-              <Stat label="Cashless Net" value={cashlessNetTzs} signed />
-              <Stat label="Actual Cage Result" value={actualCageResult} signed />
+              <Stat label="Cash Desk Result" value={cashDeskResult} signed />
+              <Stat label="Slots Result (system)" value={systemResult} signed />
+              <Stat label="Cards Miss" value={cardsMiss} signed />
             </div>
             <div className="mt-3 rounded-md border-2 border-primary/40 bg-primary/5 p-3 flex items-center justify-between">
-              <span className="text-xs uppercase text-muted-foreground tracking-wider font-bold">Balance (Actual − System)</span>
-              <span className={`font-mono font-bold text-2xl ${difference < 0 ? "cms-amount-negative" : difference > 0 ? "cms-amount-positive" : "text-emerald-500"}`}>
-                {difference === 0 ? "BALANCED · 0" : `${difference > 0 ? "+" : ""}${formatNumberSpaces(difference)}`}
+              <span className="text-xs uppercase text-muted-foreground tracking-wider font-bold">Balance (CDR − Slots − CardsMiss)</span>
+              <span className={`font-mono font-bold text-2xl ${shiftBalance < 0 ? "cms-amount-negative" : shiftBalance > 0 ? "cms-amount-positive" : "text-emerald-500"}`}>
+                {shiftBalance === 0 ? "BALANCED · 0" : `${shiftBalance > 0 ? "+" : ""}${formatNumberSpaces(shiftBalance)}`}
               </span>
             </div>
             {cashierNote && (
@@ -375,7 +375,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
                 <p className="text-xs whitespace-pre-wrap border border-border rounded p-2 bg-muted/30">{cashierNote}</p>
               </div>
             )}
-            {Math.abs(difference) > 0 && (
+            {Math.abs(shiftBalance) > 0 && (
               <div className="mt-3">
                 <p className="text-xs text-destructive font-semibold mb-1">Non-zero balance — manager comment required.</p>
                 <Textarea value={managerComment} onChange={e => setManagerComment(e.target.value)} rows={2} placeholder="Reason / explanation…" />
