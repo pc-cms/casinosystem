@@ -189,18 +189,12 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
 
   const { deltaCash, cashDeskResult, cardsMiss, balance: shiftBalance } = balance;
 
-  // "Balance" tile shows the value from the LAST NON-EMPTY check snapshot — not live.
-  // Skips empty checks (counted=0, no banks, no mobile) so a stray click doesn't
-  // overwrite a real previous reading. Falls back to 0 until first real check.
+  // "Balance" tile shows the value from the LATEST check snapshot — not live.
+  // Empty till (closing cash = 0) is a valid state and yields a negative balance.
   const lastCheckBalance = useMemo(() => {
     for (const c of checks) {
       const d: any = c?.denominations || {};
       const t: any = d?.totals || {};
-      const isEmpty =
-        Number(t.total_tzs || 0) === 0 &&
-        Number(t.bank_tzs || 0) === 0 &&
-        Number(t.mobile_tzs || 0) === 0;
-      if (isEmpty) continue;
       if (typeof t.balance === "number") return t.balance as number;
     }
     return 0;
