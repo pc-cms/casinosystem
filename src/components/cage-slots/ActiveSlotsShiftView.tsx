@@ -435,6 +435,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
       >
         {shift.status === "open" && (
           <>
+            <SlotsExpenseDialog slotsShiftId={shift.id} />
             <Button
               onClick={recordMidCheck}
               size="sm"
