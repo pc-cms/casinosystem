@@ -166,11 +166,12 @@ const OpenShiftScreen = ({ tables }: { tables: Tables<"gaming_tables">[] }) => {
         title="Cage"
         subtitle={`Open shift · Step ${step} of 2`}
         centerSlot={
-          <div className="flex items-center gap-4 flex-wrap justify-center">
-            {FOREIGN_CURRENCIES.map(c => (
-              <span key={c} className="text-base font-semibold font-mono tabular-nums text-foreground">
-                <span className="text-muted-foreground text-xs font-medium uppercase mr-1">{c}</span>
-                {formatNumberSpaces(rates[c] || 0)}
+          <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-muted/40 border border-border/50 whitespace-nowrap overflow-x-auto max-w-full">
+            {FOREIGN_CURRENCIES.map((c, i) => (
+              <span key={c} className="inline-flex items-center gap-1 text-[11px] font-mono tabular-nums text-foreground">
+                {i > 0 && <span className="text-muted-foreground/60 mx-0.5">·</span>}
+                <span className="text-muted-foreground text-[9px] font-semibold uppercase tracking-wider">{c}</span>
+                <span className="font-semibold">{formatNumberSpaces(rates[c] || 0)}</span>
               </span>
             ))}
           </div>
