@@ -248,8 +248,8 @@ const Dashboard = () => {
               </Link>
             )}
             {!isSurveillance && showFinancials && (
-              isManager ? (
-                <StatCard label="Pending Expenses" value={pendingExpenses} icon={Receipt} href="/expenses" />
+              canApproveExpenses ? (
+                <StatCard label="Pending Expenses" value={pendingExpenses} icon={Receipt} href="/expenses/approvals" />
               ) : (
                 <div className="cms-panel p-5 opacity-75">
                   <div className="flex items-center gap-2 text-muted-foreground">
