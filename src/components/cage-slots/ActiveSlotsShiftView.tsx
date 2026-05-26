@@ -1,11 +1,9 @@
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Coins, Send, RotateCcw, Printer, FileText, CreditCard, Save, ArrowLeftRight, Receipt } from "lucide-react";
+import { Coins, Send, RotateCcw, Printer, FileText, CreditCard, Save, ArrowLeftRight } from "lucide-react";
 import SlotsTransfersForm from "./SlotsTransfersForm";
-import SlotsExpenseDialog from "./SlotsExpenseDialog";
 import { useSlotsTransfers } from "@/hooks/use-cage-slots-transfers";
 import { useSlotsExpenses } from "@/hooks/use-expenses";
-import { useApproveExpense } from "@/hooks/use-casino-data";
 
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -56,7 +54,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
   const { data: slotsExpenses = [] } = useSlotsExpenses(shift.id);
   
   const { data: transfers = [] } = useSlotsTransfers(shift.id);
-  const approveExpense = useApproveExpense();
+
 
 
 
@@ -328,12 +326,8 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
     setClAmount(0); setClName(""); setClRef("");
   };
 
-  // Expense entry is handled via SlotsExpenseDialog (button in header / tab).
 
-  const totalSlotsExpenses = useMemo(
-    () => slotsExpenses.reduce((s: number, e: any) => s + Number(e.amount || 0), 0),
-    [slotsExpenses],
-  );
+
 
   const isReadyForReview = shift.status === "ready_for_review";
 
@@ -428,7 +422,6 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
       >
         {shift.status === "open" && (
           <>
-            <SlotsExpenseDialog slotsShiftId={shift.id} />
             <Button
               onClick={recordMidCheck}
               size="sm"
@@ -532,7 +525,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
           <TabsTrigger value="closing">Shift Result</TabsTrigger>
           <TabsTrigger value="cashless">Cashless ({cashless.length})</TabsTrigger>
           <TabsTrigger value="transfers">Transfers</TabsTrigger>
-          <TabsTrigger value="expenses">Expenses ({slotsExpenses.length})</TabsTrigger>
+
         </TabsList>
 
 
@@ -669,52 +662,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
           <SlotsTransfersForm shiftId={shift.id} />
         </TabsContent>
 
-        <TabsContent value="expenses">
-          <PageSection title={`Slots Cage Expenses · Total ${formatNumberSpaces(totalSlotsExpenses)} TZS`}>
-            <div className="flex justify-end mb-2">
-              <SlotsExpenseDialog slotsShiftId={shift.id} disabled={shift.status !== "open"} />
-            </div>
-            <table className="w-full text-xs">
-              <thead className="text-muted-foreground border-b border-border">
-                <tr>
-                  <th className="text-left py-1.5">When</th>
-                  <th className="text-left">Category</th>
-                  <th className="text-left">Target</th>
-                  <th className="text-left">Description</th>
-                  <th className="text-right">Amount</th>
-                  <th className="text-center">Status</th>
-                  {canManage && <th className="text-center">Action</th>}
-                </tr>
-              </thead>
-              <tbody>
-                {slotsExpenses.length === 0 && <tr><td colSpan={canManage ? 7 : 6} className="text-center text-muted-foreground py-3">·</td></tr>}
-                {slotsExpenses.map((e: any) => (
-                  <tr key={e.id} className="border-b border-border/50">
-                    <td className="py-1.5 font-mono text-[10px] text-muted-foreground">{fmtDateTime(e.created_at)}</td>
-                    <td className="uppercase text-[10px]">{e.category}</td>
-                    <td className="text-muted-foreground">{e.players ? `${e.players.first_name} ${e.players.last_name}` : (e.player_name || "Casino")}</td>
-                    <td>{e.description}</td>
-                    <td className="text-right font-mono">{formatNumberSpaces(Number(e.amount))}</td>
-                    <td className="text-center">
-                      <Badge variant={e.approved ? "default" : "outline"} className="text-[10px]">
-                        {e.approved ? "Approved" : "Pending"}
-                      </Badge>
-                    </td>
-                    {canManage && (
-                      <td className="text-center">
-                        {!e.approved && (
-                          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => approveExpense.mutate(e.id)} disabled={approveExpense.isPending}>
-                            Approve
-                          </Button>
-                        )}
-                      </td>
-                    )}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </PageSection>
-        </TabsContent>
+
 
 
       </Tabs>
