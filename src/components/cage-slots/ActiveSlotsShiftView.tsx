@@ -176,7 +176,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
     closingCash: closingCashTzs,
     expenses: expensesApproved,
     collection: transfersAgg.collection,
-    addFloat: transfersAgg.add_float,
+    addFloat: transfersAgg.fill,
     lgIn: transfersAgg.lg_in,
     lgOut: transfersAgg.lg_out,
     cashlessIn,
