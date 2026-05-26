@@ -78,6 +78,7 @@ const CageClosingsPage = lazy(() => import("@/pages/cage/CageClosingsPage"));
 const CageViewPage = lazy(() => import("@/pages/cage/CageViewPage"));
 const CageSlots = lazy(() => import("@/pages/CageSlots"));
 const CageSlotsReport = lazy(() => import("@/pages/CageSlotsReport"));
+const SlotsExpenses = lazy(() => import("@/pages/SlotsExpenses"));
 const ExpensesApprovals = lazy(() => import("@/pages/ExpensesApprovals"));
 const CloseTablesPage = lazy(() => import("@/pages/tables/CloseTablesPage"));
 
@@ -277,6 +278,7 @@ const ProtectedRoutes = () => {
           <Route path="/cage/closings" element={<RoleGuard path="/cage/closings"><ErrorBoundary><CageClosingsPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/cage/shift/:id/edit-opening" element={<RoleGuard path="/cage"><ErrorBoundary><EditOpeningChipsPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/cage-slots" element={<RoleGuard path="/cage-slots"><ErrorBoundary><CageSlots /></ErrorBoundary></RoleGuard>} />
+          <Route path="/cage-slots/expenses" element={<RoleGuard path="/cage-slots/expenses"><ErrorBoundary><SlotsExpenses /></ErrorBoundary></RoleGuard>} />
           <Route path="/cage-slots/report/:id" element={<RoleGuard path="/cage-slots"><ErrorBoundary><CageSlotsReport /></ErrorBoundary></RoleGuard>} />
           <Route path="/players/register" element={<RoleGuard path="/reception"><ErrorBoundary><RegisterPlayerPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/expenses/approvals" element={<RoleGuard path="/expenses/approvals"><ErrorBoundary><ExpensesApprovals /></ErrorBoundary></RoleGuard>} />
