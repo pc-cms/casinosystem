@@ -189,6 +189,19 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
 
   const { deltaCash, cashDeskResult, cardsMiss, balance: shiftBalance } = balance;
 
+  // "Balance" tile shows the value from the LAST check snapshot — not live.
+  // Falls back to 0 until the cashier records the first check.
+  const lastCheckBalance = useMemo(() => {
+    for (const c of checks) {
+      const d: any = c?.denominations || {};
+      const t: any = d?.totals || {};
+      if (typeof t.balance === "number") return t.balance as number;
+    }
+    return 0;
+  }, [checks]);
+
+
+
 
   const persistClosingCash = async (currency: string, denom: number, qty: number) => {
     await upsertInv.mutateAsync({
