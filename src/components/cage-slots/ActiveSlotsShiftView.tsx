@@ -199,10 +199,8 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
     });
   };
 
-  // Mid-shift cash check
+  // Mid-shift cash check — snapshot of canonical balance fields
   const recordMidCheck = () => {
-    const expectedNow = computeExpectedCashNow(closingCards);
-    const diffNow = countedCashNow - expectedNow;
     saveCheck.mutate({
       shift_id: shift.id,
       count_type: "check",
@@ -213,16 +211,17 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
         cards: { count: closingCards, value_tzs: cardDepositTzs },
         rateMap,
         totals: {
-          total_tzs: closingTotalTzs,
+          total_tzs: closingCashTzs,
           bank_tzs: bankTotalTzs(closingBanks, rateMap),
           mobile_tzs: mobileTotal(closingMobile),
-          expected: expectedNow,
-          counted: countedCashNow,
-          difference: diffNow,
-          balanced: diffNow === 0,
+          delta_cash: deltaCash,
+          cash_desk_result: cashDeskResult,
+          cards_miss: cardsMiss,
+          slots_result: systemResult,
+          balance: shiftBalance,
         },
       },
-      total_tzs: closingTotalTzs,
+      total_tzs: closingCashTzs,
       note: "Mid-shift check",
     });
   };
@@ -245,17 +244,20 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
     updateCards.mutate({ shift_id: shift.id, closing_card_count: closingCards });
     submit.mutate({
       shift_id: shift.id,
-      closing_total_tzs: closingTotalTzs,
+      closing_total_tzs: closingCashTzs,
       closing_denominations: {
         cash: closingCash,
+        bank: closingBanks,
+        mobile: closingMobile,
         cards: { count: closingCards, value_tzs: cardDepositTzs },
         rateMap,
         totals: {
-          total_tzs: closingTotalTzs,
-          expected: computeExpectedCashNow(closingCards),
-          counted: countedCashNow,
-          difference: countedCashNow - computeExpectedCashNow(closingCards),
-          balanced: countedCashNow - computeExpectedCashNow(closingCards) === 0,
+          total_tzs: closingCashTzs,
+          delta_cash: deltaCash,
+          cash_desk_result: cashDeskResult,
+          cards_miss: cardsMiss,
+          slots_result: systemResult,
+          balance: shiftBalance,
         },
       },
       cashier_note: cashierNote,
@@ -266,7 +268,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
   const [showApprove, setShowApprove] = useState(false);
   const [managerComment, setManagerComment] = useState("");
   const [viewerCheck, setViewerCheck] = useState<Tables<"cash_counts"> | null>(null);
-  const needsComment = Math.abs(difference) > 0;
+  const needsComment = Math.abs(shiftBalance) > 0;
 
   const doApprove = (managerId: string) => {
     approve.mutate({
