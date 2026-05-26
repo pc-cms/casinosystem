@@ -48,7 +48,7 @@ const StatCard = ({ label, value, icon: Icon, href }: {
 const ALL_SHIFTS = ["D", "M", "N", "G", "E", "L", "O"] as const;
 
 const Dashboard = () => {
-  const { displayName, roles, isManager } = useAuth();
+  const { displayName, roles, isManager, casinoId } = useAuth();
   const { data: serverBusinessDate } = useEffectiveBusinessDate();
   const businessDate = serverBusinessDate || getBusinessDate();
   const { data: players = [], isLoading: loadingPlayers } = usePlayers();
