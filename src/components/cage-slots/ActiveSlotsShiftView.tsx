@@ -189,6 +189,19 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
 
   const { deltaCash, cashDeskResult, cardsMiss, balance: shiftBalance } = balance;
 
+  // "Balance" tile shows the value from the LAST check snapshot — not live.
+  // Falls back to 0 until the cashier records the first check.
+  const lastCheckBalance = useMemo(() => {
+    for (const c of checks) {
+      const d: any = c?.denominations || {};
+      const t: any = d?.totals || {};
+      if (typeof t.balance === "number") return t.balance as number;
+    }
+    return 0;
+  }, [checks]);
+
+
+
 
   const persistClosingCash = async (currency: string, denom: number, qty: number) => {
     await upsertInv.mutateAsync({
@@ -510,9 +523,9 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
             disabled={shift.status !== "open"}
           />
         </TileCard>
-        <TileCard label="Balance (TZS)" emphasize>
-          <p className={`font-mono text-2xl font-bold tabular-nums text-center ${shiftBalance < 0 ? "cms-amount-negative" : shiftBalance > 0 ? "cms-amount-positive" : ""}`}>
-            {shiftBalance > 0 ? "+" : ""}{formatNumberSpaces(shiftBalance)}
+        <TileCard label="Balance (TZS)" sub="Last Check" emphasize>
+          <p className={`font-mono text-2xl font-bold tabular-nums text-center ${lastCheckBalance < 0 ? "cms-amount-negative" : lastCheckBalance > 0 ? "cms-amount-positive" : ""}`}>
+            {lastCheckBalance > 0 ? "+" : ""}{formatNumberSpaces(lastCheckBalance)}
           </p>
         </TileCard>
       </div>

@@ -6319,6 +6319,10 @@ export type Database = {
         Returns: Json
       }
       replication_readiness: { Args: { p_casino_id: string }; Returns: Json }
+      reset_operational_dashboards: {
+        Args: { _casino_id: string }
+        Returns: Json
+      }
       rotate_local_server_secret: {
         Args: { _server_id: string }
         Returns: string
