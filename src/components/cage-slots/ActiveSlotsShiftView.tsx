@@ -213,16 +213,10 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
   };
 
   // Mid-shift cash check — snapshot of canonical balance fields.
-  // Guard: refuse to save if cashier has not entered any closing values
-  // (prevents accidental "all zero" snapshots that pollute the Balance tile).
+  // Empty till is a valid state (negative balance reflects the shortage).
   const recordMidCheck = () => {
     const bankTzs = bankTotalTzs(closingBanks, rateMap);
     const mobileTzs = mobileTotal(closingMobile);
-    const isEmpty = closingCashTzs === 0 && bankTzs === 0 && mobileTzs === 0;
-    if (isEmpty) {
-      alert("Enter closing cash, bank or mobile values before saving a Check.");
-      return;
-    }
     saveCheck.mutate({
       shift_id: shift.id,
       count_type: "check",
