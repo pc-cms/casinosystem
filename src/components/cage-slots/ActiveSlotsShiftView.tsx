@@ -126,22 +126,32 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
     (s, c) => s + cashSum(closingCash[c] || {}) * (rateMap[c] || 0), 0,
   ), [closingCash, rateMap]);
   const cardDepositTzs = Number(cards?.card_deposit_value_tzs || 5000);
-  const closingCardsTzs = closingCards * cardDepositTzs;
-  const closingTotalTzs = closingTzsTotal + closingFxTzs + closingCardsTzs;
 
-  const cashMovementTzs = closingTotalTzs - openingTotalTzs;
-  const cashlessNetTzs = useMemo(() =>
-    cashless.reduce((s, t: any) => s + (t.direction === "IN" ? Number(t.amount) : -Number(t.amount)), 0),
+  // Cashless IN/OUT (current shift)
+  const cashlessIn = useMemo(() =>
+    cashless.filter((t: any) => t.direction === "IN").reduce((s, t: any) => s + Number(t.amount), 0),
     [cashless],
   );
-  // Transfers net (Fill + LG_IN are IN, Collection + LG_OUT are OUT).
-  const transfersNetTzs = useMemo(() =>
-    transfers.reduce((s, t: any) => s + (t.direction === "in" ? Number(t.amount) : -Number(t.amount)), 0),
-    [transfers],
+  const cashlessOut = useMemo(() =>
+    cashless.filter((t: any) => t.direction === "OUT").reduce((s, t: any) => s + Number(t.amount), 0),
+    [cashless],
   );
-  const actualCageResult = cashMovementTzs - cashlessNetTzs;
-  const systemResult = Number(systemResultInput) || Number(shift.system_shift_result || 0);
-  const difference = actualCageResult - systemResult;
+
+  // Transfers grouped by type
+  const transfersAgg = useMemo(() => {
+    const agg = { add_float: 0, collection: 0, lg_in: 0, lg_out: 0 };
+    transfers.forEach((t: any) => {
+      const k = t.transfer_type as keyof typeof agg;
+      if (k in agg) agg[k] += Number(t.amount || 0);
+    });
+    return agg;
+  }, [transfers]);
+
+  // Approved expenses for this slots shift
+  const expensesApproved = useMemo(() =>
+    slotsExpenses.filter((e: any) => e.approved).reduce((s: number, e: any) => s + Number(e.amount || 0), 0),
+    [slotsExpenses],
+  );
 
   // Opening banks/mobile carry-over (captured into the seed snapshot at shift open).
   const openingSeed = useMemo(
@@ -153,18 +163,32 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
   const openingBanksTzs = bankTotalTzs(openingBanks, rateMap);
   const openingMobileTzs = mobileTotal(openingMobile);
 
-  // Expected cash on hand (excl. cards) at any moment:
-  //   Opening cash + Opening banks/mobile + System Result + Cashless(IN−OUT)
-  //   + Transfers(IN−OUT) + (Opening Cards − Current Cards) × Card Value
-  // (Cards given out → cash in; cards returned → cash out.)
+  // ΔCash uses cash (all currencies) + banks + mobile — NO cards.
+  const openingCashTzs = openingTotalTzs + openingBanksTzs + openingMobileTzs;
+  const closingCashTzs = closingTzsTotal + closingFxTzs
+    + bankTotalTzs(closingBanks, rateMap) + mobileTotal(closingMobile);
+
   const openingCardsCount = Number(cards?.opening_card_count || 0);
-  const computeExpectedCashNow = (currentCards: number) =>
-    openingTotalTzs + openingBanksTzs + openingMobileTzs
-    + systemResult + cashlessNetTzs + transfersNetTzs
-    + (openingCardsCount - currentCards) * cardDepositTzs;
-  const countedCashNow = closingTzsTotal + closingFxTzs
-    + bankTotalTzs(closingBanks, rateMap)
-    + mobileTotal(closingMobile); // cash (all currencies) + banks + mobile money
+  const systemResult = Number(systemResultInput) || Number(shift.system_shift_result || 0);
+
+  const balance = useMemo(() => computeSlotsShiftBalance({
+    openingCash: openingCashTzs,
+    closingCash: closingCashTzs,
+    expenses: expensesApproved,
+    collection: transfersAgg.collection,
+    addFloat: transfersAgg.add_float,
+    lgIn: transfersAgg.lg_in,
+    lgOut: transfersAgg.lg_out,
+    cashlessIn,
+    cashlessOut,
+    openingCards: openingCardsCount,
+    closingCards,
+    cardValue: cardDepositTzs,
+    systemResult,
+  }), [openingCashTzs, closingCashTzs, expensesApproved, transfersAgg, cashlessIn, cashlessOut, openingCardsCount, closingCards, cardDepositTzs, systemResult]);
+
+  const { deltaCash, cashDeskResult, cardsMiss, balance: shiftBalance } = balance;
+
 
   const persistClosingCash = async (currency: string, denom: number, qty: number) => {
     await upsertInv.mutateAsync({
