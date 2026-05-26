@@ -234,7 +234,7 @@ const Pit = ({ forcedTab }: PitProps = {}) => {
 
       <Suspense fallback={<><CardSkeleton count={2} /><TableSkeleton rows={5} cols={4} /></>}>
         {activeTab === "employee" && <DealerEmployeeList />}
-        {activeTab === "rota" && <RotaGrid month={month} readOnly={isPast && !isManager} />}
+        {activeTab === "rota" && <RotaGrid month={month} readOnly={(isPast && !isManager) || !!pitLock} />}
         {activeTab === "attendance" && <AttendanceGrid month={month} readOnly={isPast && !isManager} />}
         {activeTab === "breaklist" && (
           <BreaklistGrid
@@ -524,14 +524,33 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
   const { data: dealers = [] } = useDealers();
   const { data: rota = [] } = usePitRotaRange(startDate, endDate);
   const { data: monthAttendance = [] } = useDealerAttendanceRange(startDate, endDate);
+  const { data: rolesAtMonth } = useRolesAtDate(startDate);
   const setRotaRaw = useSetPitRota();
   const deleteRotaRaw = useDeletePitRota();
-  const guard = () => { if (readOnly) { toast.error("Manager Access required to edit past months"); return false; } return true; };
+  const guard = () => { if (readOnly) { toast.error("Rota is locked or read-only"); return false; } return true; };
   const setRota = { mutate: (v: any) => { if (guard()) setRotaRaw.mutate(v); } };
   const deleteRota = { mutate: (v: any) => { if (guard()) deleteRotaRaw.mutate(v); } };
 
-  const activeDealers = dealers.filter((d: any) => d.is_active && !d.is_pit_boss);
-  const pitBosses = dealers.filter((d: any) => d.is_active && d.is_pit_boss);
+  // Apply role-at-date overrides: re-categorize each dealer by the role that
+  // was effective at the FIRST DAY of the displayed month. This keeps a past
+  // month showing Abraham under "Inspector" even after he becomes a Pit Boss.
+  const dealersForMonth = useMemo(() => {
+    if (!rolesAtMonth) return dealers;
+    return dealers.map((d: any) => {
+      const r = rolesAtMonth.get(d.id);
+      if (!r) return d;
+      // Only override if role record actually covers the month start
+      // (employee may have been hired mid-month — then keep current view).
+      return {
+        ...d,
+        is_pit_boss: r.is_pit_boss,
+        category: r.is_pit_boss ? "pit_boss" : ((r.dealer_category as any) ?? d.category),
+      };
+    });
+  }, [dealers, rolesAtMonth]);
+
+  const activeDealers = dealersForMonth.filter((d: any) => d.is_active && !d.is_pit_boss);
+  const pitBosses = dealersForMonth.filter((d: any) => d.is_active && d.is_pit_boss);
 
   const today = new Date();
   const todayDay = today.getDate();
