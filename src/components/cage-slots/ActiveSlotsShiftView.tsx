@@ -189,18 +189,12 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
 
   const { deltaCash, cashDeskResult, cardsMiss, balance: shiftBalance } = balance;
 
-  // "Balance" tile shows the value from the LAST NON-EMPTY check snapshot — not live.
-  // Skips empty checks (counted=0, no banks, no mobile) so a stray click doesn't
-  // overwrite a real previous reading. Falls back to 0 until first real check.
+  // "Balance" tile shows the value from the LATEST check snapshot — not live.
+  // Empty till (closing cash = 0) is a valid state and yields a negative balance.
   const lastCheckBalance = useMemo(() => {
     for (const c of checks) {
       const d: any = c?.denominations || {};
       const t: any = d?.totals || {};
-      const isEmpty =
-        Number(t.total_tzs || 0) === 0 &&
-        Number(t.bank_tzs || 0) === 0 &&
-        Number(t.mobile_tzs || 0) === 0;
-      if (isEmpty) continue;
       if (typeof t.balance === "number") return t.balance as number;
     }
     return 0;
@@ -219,16 +213,10 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
   };
 
   // Mid-shift cash check — snapshot of canonical balance fields.
-  // Guard: refuse to save if cashier has not entered any closing values
-  // (prevents accidental "all zero" snapshots that pollute the Balance tile).
+  // Empty till is a valid state (negative balance reflects the shortage).
   const recordMidCheck = () => {
     const bankTzs = bankTotalTzs(closingBanks, rateMap);
     const mobileTzs = mobileTotal(closingMobile);
-    const isEmpty = closingCashTzs === 0 && bankTzs === 0 && mobileTzs === 0;
-    if (isEmpty) {
-      alert("Enter closing cash, bank or mobile values before saving a Check.");
-      return;
-    }
     saveCheck.mutate({
       shift_id: shift.id,
       count_type: "check",
