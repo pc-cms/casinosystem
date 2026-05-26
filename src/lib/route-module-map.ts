@@ -81,6 +81,7 @@ export const moduleKeyForRoute = (to: string, label?: string): ModuleKey | null 
   if (base === "/cage/closings") return "cage_closings";
   if (base === "/cage/close-shift") return "cage";
   if (base.startsWith("/cage/shift/")) return "cage";
+  if (base === "/cage-slots/expenses") return "expenses";
   if (base === "/cage-slots" || base.startsWith("/cage-slots/")) return "cage_slots";
 
   // ============= EXPENSES / CASHLESS =============
