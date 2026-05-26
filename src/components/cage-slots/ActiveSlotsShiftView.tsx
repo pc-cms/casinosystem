@@ -523,9 +523,9 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
             disabled={shift.status !== "open"}
           />
         </TileCard>
-        <TileCard label="Balance (TZS)" emphasize>
-          <p className={`font-mono text-2xl font-bold tabular-nums text-center ${shiftBalance < 0 ? "cms-amount-negative" : shiftBalance > 0 ? "cms-amount-positive" : ""}`}>
-            {shiftBalance > 0 ? "+" : ""}{formatNumberSpaces(shiftBalance)}
+        <TileCard label="Balance (TZS)" sub="Last Check" emphasize>
+          <p className={`font-mono text-2xl font-bold tabular-nums text-center ${lastCheckBalance < 0 ? "cms-amount-negative" : lastCheckBalance > 0 ? "cms-amount-positive" : ""}`}>
+            {lastCheckBalance > 0 ? "+" : ""}{formatNumberSpaces(lastCheckBalance)}
           </p>
         </TileCard>
       </div>
