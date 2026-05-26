@@ -54,7 +54,7 @@ const Dashboard = () => {
   const { data: players = [], isLoading: loadingPlayers } = usePlayers();
   const { data: transactions = [], isLoading: loadingTx } = useTransactions(businessDate);
   const { data: tables = [] } = useGamingTables();
-  const { data: expenses = [] } = useExpenses(businessDate);
+  // (live-game expenses fetched separately via pending count query below)
   const { data: trackerData = [] } = useTableTracker(businessDate);
   const { data: snapshots = [] } = useChipSnapshots(businessDate);
   const { data: baseline = [] } = useChipBaseline();
