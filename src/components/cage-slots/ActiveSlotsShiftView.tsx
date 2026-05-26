@@ -328,20 +328,8 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
     setClAmount(0); setClName(""); setClRef("");
   };
 
-  // Expense entry
-  const [expCategory, setExpCategory] = useState<string>("other");
-  const [expAmount, setExpAmount] = useState<number>(0);
-  const [expDesc, setExpDesc] = useState("");
-  const submitExpense = () => {
-    if (!expAmount || !expDesc.trim()) return;
-    createExpense.mutate({
-      slots_shift_id: shift.id,
-      category: expCategory,
-      amount: expAmount,
-      description: expDesc,
-    });
-    setExpAmount(0); setExpDesc("");
-  };
+  // Expense entry is handled via SlotsExpenseDialog (button in header / tab).
+
   const totalSlotsExpenses = useMemo(
     () => slotsExpenses.reduce((s: number, e: any) => s + Number(e.amount || 0), 0),
     [slotsExpenses],
