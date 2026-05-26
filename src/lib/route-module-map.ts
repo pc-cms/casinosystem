@@ -81,7 +81,9 @@ export const moduleKeyForRoute = (to: string, label?: string): ModuleKey | null 
   if (base === "/cage/closings") return "cage_closings";
   if (base === "/cage/close-shift") return "cage";
   if (base.startsWith("/cage/shift/")) return "cage";
-  if (base === "/cage-slots/expenses") return "expenses";
+  // Slots Expenses lives inside the Cage Slots surface and must follow the
+  // same gating — independent of the generic `expenses` module override.
+  if (base === "/cage-slots/expenses") return "cage_slots";
   if (base === "/cage-slots" || base.startsWith("/cage-slots/")) return "cage_slots";
 
   // ============= EXPENSES / CASHLESS =============
