@@ -1,101 +1,69 @@
+# Chip Count → Number Count: перенос моста в БД
+
+## Цель
+Любая запись `chip_snapshots` (с любого UI, оффлайн-sync, Close Shift, прямой insert) должна автоматически попадать в нужный часовой слот `table_tracker`. Сейчас мост живёт только в `ChipCountPanel.handleSave` и пропускает все остальные потоки — поэтому чек 21:58 не дошёл до слота 22:00.
+
 ## Что делаем
 
-Единая система **планирования и блокировки** для всех четырёх рот: Pit (Live Game), Floor, Security, Office.
+### 1. Statement-level AFTER INSERT триггер на `chip_snapshots`
+Statement-level (не row-level), чтобы один батч из ~30 строк создавал ровно один upsert на стол, а не 30.
 
-Три задачи в одном:
-1. **Планирование на следующий месяц** — кнопка навигации «next month» во всех ротах (сейчас работает только в Pit).
-2. **Lock / Unlock на месяц** — Manager / HR / Super Admin могут залочить/разлочить целый месяц. Когда залочено — все правки запрещены на уровне БД.
-3. **Роль на момент даты** — если Abraham был Inspector в мае и стал Pit Boss с 1 июня, в майской роте он показан в секции Inspector, в июньской — в секции Pit Boss. История роли ведётся автоматически.
+Функция `public.bridge_chip_snapshot_to_tracker()`:
 
----
+1. Берёт из `new_table` (transition table) только строки `location_type='table'`, новейший `created_at` на стол.
+2. По времени снепшота в `Africa/Dar_es_Salaam` считает целевой слот по той же логике, что в `slotForChipCount` (`src/components/tables/ChipCountPanel.tsx:24-40`):
+   - `04:50–07:59` → `05:00` (Final), всегда пишет
+   - `m ≥ 50` → `HH+1:00`, всегда пишет
+   - `m ≤ 10` → `HH:00`, всегда пишет
+   - `m 11–49` → `HH:00`, пишет **только если слот пуст** (fallback)
+   - Разрешённые слоты: `19:00–23:00` и `00:00–04:00` (+ `05:00` через Final-ветку)
+3. Считает `result` для стола: `Σ ((actual − baseline.expected) × denomination)` по последнему батчу снепшотов этого стола в этот `business_date`. Берём baseline из `chip_baselines` (или из самого snapshot.expected_quantity, что эквивалентно).
+4. `business_date` = поле `date` из `chip_snapshots` (уже бизнес-день).
+5. `time_slot` пишем в существующее уникальное (table_id, date, time_slot) через `INSERT … ON CONFLICT DO UPDATE`. Для fallback-ветки добавляем `WHERE table_tracker.value IS NULL`.
+6. `recorded_by` = `NEW.recorded_by` из снепшота.
 
-## Схема БД (1 миграция)
+### 2. Backfill для 21:58 сегодня
+Один разовый `INSERT … ON CONFLICT DO NOTHING` для слота `22:00` на `2026-05-26`, чтобы дозалить пропущенные значения от снепшота 21:58 EAT (тех таблиц, у которых `22:00` сейчас пуст). Это часть той же миграции, выполняется один раз.
 
-### 1. `employee_role_history` — история ролей
-```sql
-employee_id, effective_from (date), department, position, dealer_category, is_pit_boss
-PRIMARY KEY (employee_id, effective_from)
-```
-- Триггер на `employees` UPDATE: если изменилось `department / position / dealer_category / is_pit_boss` — пишем новую строку с `effective_from = CURRENT_DATE`.
-- Seed: одна строка на каждого текущего сотрудника с `effective_from = COALESCE(onboarding_date, employment_date, created_at::date)`.
-
-### 2. Функция `employee_role_at(employee_id, on_date)`
-Возвращает `(department, position, dealer_category, is_pit_boss)` — последняя запись истории с `effective_from <= on_date`.
-
-### 3. `rota_locks` — блокировки месяца
-```sql
-casino_id, scope ('pit' | 'floor' | 'security' | 'office'),
-month (date, всегда первое число),
-locked_by, locked_at
-PRIMARY KEY (casino_id, scope, month)
-```
-- Запись = месяц залочен. Удаление = разлочен. История lock/unlock пишется отдельно в `operational_logs`.
-
-### 4. Триггер-страж на `pit_rota` / `staff_rota`
-BEFORE INSERT/UPDATE/DELETE: если для `(casino_id, scope, date_trunc('month', NEW.date))` есть строка в `rota_locks` — `RAISE EXCEPTION 'Rota is locked for this month'`. Scope для `pit_rota` всегда `'pit'`; для `staff_rota` определяется по `employee.department / position` (через mapping floor / security / office).
-
-### 5. RLS на `rota_locks`
-- SELECT: все авторизованные пользователи casino.
-- INSERT / DELETE: только `manager`, `hr`, `super_admin` (через `has_role`).
-
----
-
-## Фронт
-
-### Хуки (`src/hooks/use-rota-lock.ts`)
-- `useRotaLock(scope, month)` → `{ isLocked, lockedBy, lockedAt }`
-- `useLockRota()` / `useUnlockRota()` мутации.
-
-### Компонент `<RotaLockButton scope month />`
-Размещается в шапке рота-вкладки рядом с навигацией месяца:
-- Незалочено → бейдж `Unlocked` + кнопка `Lock month` (видна только manager / hr / super_admin).
-- Залочено → бейдж `🔒 Locked by {name} · DD/MM/YYYY` + кнопка `Unlock` (только те же роли). Для остальных — просто бейдж.
-
-### Поведение грида
-- Когда `isLocked === true` → весь грид рендерится с `readOnly={true}` (уже поддерживается в Pit; добавим в Staff). Клавиатура, paste, click — всё игнорируется. Гард на мутациях тоже сработает (двойная защита).
-- Кнопка `Next month` доступна для **текущего + следующего месяца** (как уже сделано в Pit). Применим то же правило в Staff rota (сейчас отсутствует).
-
-### Группировка по роли-на-дату
-В `RotaGrid` (Pit) и в группах Floor/Security/Office:
-- Сортируем сотрудников не по `employees.department/position` напрямую, а через `employee_role_at(id, month_start)`.
-- Дозагрузка: один запрос `SELECT employee_id, department, position, dealer_category, is_pit_boss FROM employee_role_at_bulk(:casino_id, :month_start)` (SQL-функция возвращает таблицу).
-- Pit-роте: секции Dealer / Inspector / Trainee / Pit Boss формируются по `position` на 1-е число месяца.
-- Staff-ротам: группа (Floor / Security / Office) определяется тем же способом.
-- Сотрудник, ещё не нанятый на 1-е число → скрыт.
-- Сотрудник, уволенный (`payroll_status='inactive'`) до 1-го числа → скрыт.
-
-### Где применяется
-- `src/pages/Pit.tsx` — RotaGrid (Live Game).
-- `src/pages/Staff.tsx` — три rota-вкладки (Floor / Security / Office).
-- Добавить `<RotaLockButton>` в шапку каждой rota-вкладки.
-
----
+### 3. Что НЕ трогаем
+- Клиентский мост в `ChipCountPanel.handleSave` — оставляем, он даёт мгновенный optimistic-апдейт в UI. Триггер идемпотентен (тот же ключ конфликта), повторная запись с теми же значениями безопасна.
+- `chip_baselines`, `gaming_tables`, `table_tracker` — структура без изменений.
+- Никаких изменений в UI/коде фронтенда.
 
 ## Технические детали
 
+### Имена и сигнатуры
 ```text
-employees ──UPDATE trigger──> employee_role_history
-                                       │
-rota grids ──employee_role_at(id, m)──┘  ← группировка/секции
-
-pit_rota / staff_rota ──BEFORE trigger──> rota_locks (block writes)
-
-UI: <RotaLockButton scope month> ──insert/delete──> rota_locks
-                                                       │
-                                              грид перерендерится readOnly
+public.bridge_chip_snapshot_to_tracker()  -- trigger fn, SECURITY DEFINER, search_path=public
+trg_bridge_chip_snapshot_to_tracker        -- AFTER INSERT ON chip_snapshots
+                                              REFERENCING NEW TABLE AS new_rows
+                                              FOR EACH STATEMENT
 ```
 
-**Scope mapping для staff_rota guard-триггера:**
-- department=`Security` → `security`
-- department=`Office` → `office`
-- иначе (`Floor`) → `floor`
+### Логика слота (SQL)
+```text
+ts_eat := created_at AT TIME ZONE 'Africa/Dar_es_Salaam'
+h := extract(hour from ts_eat); m := extract(minute from ts_eat)
+final_window := (h=4 AND m>=50) OR h IN (5,6,7)
+target_h := CASE
+  WHEN final_window THEN 5
+  WHEN m >= 50      THEN (h+1) % 24
+  ELSE h
+END
+only_if_empty := (NOT final_window) AND m BETWEEN 11 AND 49
+allowed := target_h BETWEEN 19 AND 23 OR target_h BETWEEN 0 AND 4
+          OR final_window  -- 05:00
+```
 
-**Версия:** автобамп `package.json` (миграция + триггеры).
+### Идемпотентность и порядок
+- `recalc_shift_tables_on_snapshot` уже AFTER INSERT — новый триггер тоже AFTER, порядок неважен (разные таблицы).
+- `sync_capture_change` поймает upsert в `table_tracker` сам — реплика на on-prem узлы пойдёт штатно.
+- Замечание про replication mode: добавим в начале функции `IF current_setting('cms.applying_sync', true) = 'true' THEN RETURN NULL; END IF;`, чтобы при применении входящего sync-патча из `chip_snapshots` не плодить локальные `table_tracker` upsert'ы (они приедут отдельной записью outbox с источника).
 
----
+### Bump версии
+`package.json` patch+1 в этом же коммите (правило Auto Version Bump).
 
-## Что НЕ делаем
-- Lock по неделям/диапазону дней — только целый месяц (по решению).
-- Доступ к месяцам дальше +1 — только следующий.
-- HR role-edit интерфейс не меняем; история заполняется автоматом при изменении должности через существующий Staff Master.
-- Manager password при unlock не запрашиваем (можно добавить позже, если попросите).
+## Проверка после миграции
+1. `SELECT * FROM table_tracker WHERE date='2026-05-26' AND time_slot='22:00'` — должны появиться значения для всех столов из снепшота 21:58.
+2. Симуляция: вставить тестовый `chip_snapshots` через RPC/UI — убедиться, что соответствующий `table_tracker` upsert произошёл с правильным слотом.
+3. `chip_count_panel` save проверить: значение всё ещё мгновенно появляется в Numbers (клиентская ветка), и БД-триггер не создаёт дубль (тот же `(table_id, date, time_slot)`).
