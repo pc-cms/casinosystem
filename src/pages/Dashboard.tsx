@@ -1,7 +1,9 @@
 import { useMemo, useState } from "react";
 import { Landmark, Receipt, TrendingDown, LayoutDashboard, Filter, ArrowUpDown, Smartphone } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { CardSkeleton, PlayerListSkeleton } from "@/components/LoadingSkeletons";
-import { usePlayers, useTransactions, useGamingTables, useExpenses, useTableTracker } from "@/hooks/use-casino-data";
+import { usePlayers, useTransactions, useGamingTables, useTableTracker } from "@/hooks/use-casino-data";
 import { useCashless } from "@/hooks/use-cashless";
 import { useChipSnapshots } from "@/hooks/use-chips";
 import { useChipBaseline, baselineToMap } from "@/hooks/use-table-lifecycle";
@@ -46,13 +48,13 @@ const StatCard = ({ label, value, icon: Icon, href }: {
 const ALL_SHIFTS = ["D", "M", "N", "G", "E", "L", "O"] as const;
 
 const Dashboard = () => {
-  const { displayName, roles, isManager } = useAuth();
+  const { displayName, roles, isManager, casinoId } = useAuth();
   const { data: serverBusinessDate } = useEffectiveBusinessDate();
   const businessDate = serverBusinessDate || getBusinessDate();
   const { data: players = [], isLoading: loadingPlayers } = usePlayers();
   const { data: transactions = [], isLoading: loadingTx } = useTransactions(businessDate);
   const { data: tables = [] } = useGamingTables();
-  const { data: expenses = [] } = useExpenses(businessDate);
+  // (live-game expenses fetched separately via pending count query below)
   const { data: trackerData = [] } = useTableTracker(businessDate);
   const { data: snapshots = [] } = useChipSnapshots(businessDate);
   const { data: baseline = [] } = useChipBaseline();
@@ -73,7 +75,29 @@ const Dashboard = () => {
     tablesDropSplit.forEach(v => { s += v.dropR || 0; });
     return s;
   }, [tablesDropSplit]);
-  const pendingExpenses = expenses.filter(e => !e.approved).length;
+  // Pending expenses across BOTH cages (Live Game + Slots) — drives the
+  // Approvals tile for manager / floor_manager / finance_manager / super_admin.
+  const { data: pendingExpensesAll = 0 } = useQuery({
+    queryKey: ["expenses-approvals-count", casinoId],
+    queryFn: async () => {
+      if (!casinoId) return 0;
+      const { count, error } = await supabase
+        .from("expenses")
+        .select("id", { count: "exact", head: true })
+        .eq("casino_id", casinoId)
+        .eq("approved", false);
+      if (error) throw error;
+      return count ?? 0;
+    },
+    enabled: !!casinoId,
+    staleTime: 1000 * 20,
+  });
+  const pendingExpenses = pendingExpensesAll;
+  const canApproveExpenses =
+    roles.includes("manager") ||
+    roles.includes("floor_manager") ||
+    roles.includes("finance_manager") ||
+    roles.includes("super_admin");
   const { data: cashless = [] } = useCashless(businessDate);
   const pendingCashless = cashless.filter((r: any) => r.status === "pending").length;
 
@@ -224,8 +248,8 @@ const Dashboard = () => {
               </Link>
             )}
             {!isSurveillance && showFinancials && (
-              isManager ? (
-                <StatCard label="Pending Expenses" value={pendingExpenses} icon={Receipt} href="/expenses" />
+              canApproveExpenses ? (
+                <StatCard label="Pending Expenses" value={pendingExpenses} icon={Receipt} href="/expenses/approvals" />
               ) : (
                 <div className="cms-panel p-5 opacity-75">
                   <div className="flex items-center gap-2 text-muted-foreground">
