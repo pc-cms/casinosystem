@@ -170,18 +170,43 @@ export const useDeleteExpense = () => {
 
 export const useApproveExpense = () => {
   const qc = useQueryClient();
-  const { casinoId, user } = useAuth();
+  const { casinoId, user, roles, managerOverride } = useAuth();
   return useMutation({
     mutationFn: async (id: string) => {
       if (!user) throw new Error("Not authenticated");
-      const { error } = await supabase.from("expenses").update({
-        approved: true,
-        approved_by: user.id,
-        approved_at: new Date().toISOString(),
-      }).eq("id", id);
-      if (error) throw error;
-      await logAction(casinoId!, "expense", "EXPENSE_APPROVED", { expense_id: id });
+      const isRoleManager =
+        roles.includes("manager") ||
+        roles.includes("floor_manager") ||
+        roles.includes("super_admin");
+
+      if (isRoleManager) {
+        const { error } = await supabase.from("expenses").update({
+          approved: true,
+          approved_by: user.id,
+          approved_at: new Date().toISOString(),
+        }).eq("id", id);
+        if (error) throw error;
+      } else if (managerOverride.active && managerOverride.managerId) {
+        const { error } = await (supabase as any).rpc("approve_expense_as_manager", {
+          p_expense_id: id,
+          p_manager_id: managerOverride.managerId,
+        });
+        if (error) throw error;
+      } else {
+        throw new Error("Manager access required to approve expenses");
+      }
+      await logAction(casinoId!, "expense", "EXPENSE_APPROVED", {
+        expense_id: id,
+        via_override: !isRoleManager,
+        manager_id: isRoleManager ? user.id : managerOverride.managerId,
+      });
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["expenses"] }); toast.success("Expense approved"); },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["expenses"] });
+      qc.invalidateQueries({ queryKey: ["expenses-slots"] });
+      qc.invalidateQueries({ queryKey: ["expenses-approvals"] });
+      toast.success("Expense approved");
+    },
+    onError: (e: any) => toast.error(e?.message || "Failed to approve"),
   });
 };

@@ -5989,6 +5989,10 @@ export type Database = {
       }
       activity_logs_purge: { Args: { p_days?: number }; Returns: number }
       apply_cage_shift_closing: { Args: { _shift_id: string }; Returns: Json }
+      approve_expense_as_manager: {
+        Args: { p_expense_id: string; p_manager_id: string }
+        Returns: undefined
+      }
       auto_close_business_day: { Args: never; Returns: Json }
       auto_close_forgotten_business_days: { Args: never; Returns: undefined }
       build_business_day_snapshot: {
