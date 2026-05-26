@@ -981,7 +981,10 @@ export type Database = {
       cage_slots_shifts: {
         Row: {
           actual_cage_result: number | null
+          balance: number | null
           business_date: string
+          cards_miss: number | null
+          cash_desk_result: number | null
           cashier_id: string
           cashier_note: string | null
           casino_id: string
@@ -998,6 +1001,7 @@ export type Database = {
           reviewed_at: string | null
           reviewed_by: string | null
           shift_type: Database["public"]["Enums"]["cage_slots_shift_type"]
+          slots_result: number | null
           status: Database["public"]["Enums"]["cage_slots_status"]
           submitted_at: string | null
           system_shift_result: number | null
@@ -1005,7 +1009,10 @@ export type Database = {
         }
         Insert: {
           actual_cage_result?: number | null
+          balance?: number | null
           business_date: string
+          cards_miss?: number | null
+          cash_desk_result?: number | null
           cashier_id: string
           cashier_note?: string | null
           casino_id: string
@@ -1022,6 +1029,7 @@ export type Database = {
           reviewed_at?: string | null
           reviewed_by?: string | null
           shift_type: Database["public"]["Enums"]["cage_slots_shift_type"]
+          slots_result?: number | null
           status?: Database["public"]["Enums"]["cage_slots_status"]
           submitted_at?: string | null
           system_shift_result?: number | null
@@ -1029,7 +1037,10 @@ export type Database = {
         }
         Update: {
           actual_cage_result?: number | null
+          balance?: number | null
           business_date?: string
+          cards_miss?: number | null
+          cash_desk_result?: number | null
           cashier_id?: string
           cashier_note?: string | null
           casino_id?: string
@@ -1046,6 +1057,7 @@ export type Database = {
           reviewed_at?: string | null
           reviewed_by?: string | null
           shift_type?: Database["public"]["Enums"]["cage_slots_shift_type"]
+          slots_result?: number | null
           status?: Database["public"]["Enums"]["cage_slots_status"]
           submitted_at?: string | null
           system_shift_result?: number | null
@@ -6040,6 +6052,14 @@ export type Database = {
       compute_shift_tables_result_total: {
         Args: { p_shift_id: string }
         Returns: number
+      }
+      compute_slots_shift_balance: {
+        Args: { _shift_id: string }
+        Returns: Json
+      }
+      compute_slots_shift_balance_from_row: {
+        Args: { s: Database["public"]["Tables"]["cage_slots_shifts"]["Row"] }
+        Returns: Json
       }
       compute_tables_drop_split: {
         Args: { _casino_id: string; _from: string; _to: string }
