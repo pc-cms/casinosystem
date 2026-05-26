@@ -60,7 +60,7 @@ const fmt = (n: number) => {
   return `${sign}${Math.abs(v).toLocaleString("en-US").replace(/,/g, " ")}`;
 };
 
-const DailyResultBlock = ({ daily }: { daily: NonNullable<Parameters<typeof DailyResultBlock>[0]["daily"]> } & { daily: any }) => {
+const DailyResultBlock = ({ daily }: { daily: any }) => {
   const net = Number(daily.net_result || 0);
   const cls = net < 0 ? "cms-amount-negative" : net > 0 ? "cms-amount-positive" : "";
   return (
