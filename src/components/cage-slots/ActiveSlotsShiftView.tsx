@@ -460,9 +460,9 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
                 Cashier has submitted the closing. A manager must authenticate to close this shift.
               </p>
               <div className="grid grid-cols-3 gap-3 mt-3 max-w-md">
-                <Stat label="Actual" value={actualCageResult} signed />
-                <Stat label="System" value={systemResult} signed />
-                <Stat label="Difference" value={difference} signed emphasize />
+                <Stat label="Cash Desk" value={cashDeskResult} signed />
+                <Stat label="Slots" value={systemResult} signed />
+                <Stat label="Balance" value={shiftBalance} signed emphasize />
               </div>
             </div>
             <Button
