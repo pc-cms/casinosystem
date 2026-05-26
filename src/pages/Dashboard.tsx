@@ -1,5 +1,7 @@
 import { useMemo, useState } from "react";
 import { Landmark, Receipt, TrendingDown, LayoutDashboard, Filter, ArrowUpDown, Smartphone } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { CardSkeleton, PlayerListSkeleton } from "@/components/LoadingSkeletons";
 import { usePlayers, useTransactions, useGamingTables, useExpenses, useTableTracker } from "@/hooks/use-casino-data";
 import { useCashless } from "@/hooks/use-cashless";
