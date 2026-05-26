@@ -46,8 +46,7 @@ const OpenSlotsShiftScreen = () => {
     (s, c) => s + cashSum(openingCash[c] || {}) * (rates[c] || 0),
     0,
   ), [openingCash, rates]);
-  const cardsTzs = openingCards * cardDepositTzs;
-  const grandTotal = tzsTotal + fxTotalTzs + cardsTzs;
+  const grandTotal = tzsTotal + fxTotalTzs;
 
   const submit = () => {
     if (FOREIGN_CURRENCIES.some(c => !(rates[c] > 0))) {
@@ -122,7 +121,7 @@ const OpenSlotsShiftScreen = () => {
               />
             </PageSection>
             <PageSection title="Plastic Cards (Opening)">
-              <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-2">
                 <div className="flex items-center gap-2">
                   <CreditCard className="w-4 h-4 text-muted-foreground" />
                   <NumberInput
@@ -131,12 +130,11 @@ const OpenSlotsShiftScreen = () => {
                     className="no-spin h-9 w-32 text-right font-mono"
                     placeholder="0"
                   />
-                  <span className="text-xs text-muted-foreground">cards × TZS {formatNumberSpaces(cardDepositTzs)}</span>
+                  <span className="text-xs text-muted-foreground">cards</span>
                 </div>
-                <div className="text-xs text-muted-foreground border-t border-border pt-2">
-                  Value:&nbsp;
-                  <span className="font-mono font-bold text-foreground">TZS {formatNumberSpaces(cardsTzs)}</span>
-                </div>
+                <p className="text-[10px] text-muted-foreground leading-snug">
+                  Counter only — not money. Card price TZS {formatNumberSpaces(cardDepositTzs)} is used at close to compute Cards Miss.
+                </p>
               </div>
             </PageSection>
           </div>
@@ -144,7 +142,7 @@ const OpenSlotsShiftScreen = () => {
           <div className="cms-panel px-3 py-2 flex items-center justify-between">
             <div>
               <p className="text-[9px] uppercase text-muted-foreground tracking-wider">Step 1 Subtotal (TZS)</p>
-              <p className="text-lg font-mono font-bold">{formatCurrency(tzsTotal + cardsTzs)}</p>
+              <p className="text-lg font-mono font-bold">{formatCurrency(tzsTotal)}</p>
             </div>
             <Button onClick={() => setStep(2)} size="sm" className="gap-1 h-8 px-4">
               Next <ChevronRight className="w-3.5 h-3.5" />
