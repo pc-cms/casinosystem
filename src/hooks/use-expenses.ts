@@ -77,6 +77,7 @@ export const useCreateSlotsExpense = () => {
         player_id: input.player_id ?? null,
         player_name: input.player_name || "",
         cage_slots_shift_id: input.slots_shift_id,
+        cage_type: "slots",
         created_by: user.id,
       });
       if (error) throw error;
