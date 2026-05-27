@@ -689,18 +689,18 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
               <Badge variant="outline" className="text-[10px]">REVIEW BEFORE SUBMIT</Badge>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-xs">
-              <Stat label="Opening" value={openingCashTzs} />
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+              <Stat label="Opening Cash" value={openingCashTzs} />
+              <Stat label="Closing Cash" value={closingCashTzs} />
+              <Stat label="ΔCash" value={deltaCash} signed />
+              <Stat label="Cash Desk Result" value={cashDeskResult} signed emphasize />
               <Stat label="System Result" value={systemResult} signed />
-              <Stat label="Count Cash" value={closingCashTzs} />
-              <Stat label="Adjustments" value={adjustmentsTotal} signed />
-              <Stat label="Balance Before Cards" value={difference} signed />
               <Stat label="Cards Miss" value={cardsMiss} signed />
             </div>
 
             <div className="rounded-md border border-primary/40 bg-primary/5 p-3">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] uppercase text-muted-foreground tracking-wider">Balance = Count Cash + Adjustments − Opening − System − Cards Miss</span>
+                <span className="text-[11px] uppercase text-muted-foreground tracking-wider">Shift Balance = Cash Desk Result − System Result − Cards Miss</span>
                 <span className={`font-mono font-bold text-lg ${shiftBalance < 0 ? "cms-amount-negative" : shiftBalance > 0 ? "cms-amount-positive" : ""}`}>
                   {shiftBalance > 0 ? "+" : ""}{formatNumberSpaces(shiftBalance)}
                 </span>
