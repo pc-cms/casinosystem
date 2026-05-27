@@ -487,8 +487,8 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
         </div>
       )}
 
-      {/* Summary strip — Opening / Cards Open / System (input) / Cards Closing (input) / Cage Result */}
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-2 mb-2">
+      {/* Summary strip — Opening / Cards Open / System (input) / Cards Closing (input) / Slots Result */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-2">
         <TileCard label="Opening (TZS)">
           <p className="font-mono text-2xl font-bold tabular-nums text-center">{formatNumberSpaces(openingTotalTzs)}</p>
         </TileCard>
@@ -517,21 +517,6 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
             onChange={v => setClosingCards(Number(v) || 0)}
             onBlur={() => updateCards.mutate({ shift_id: shift.id, closing_card_count: closingCards })}
             className="no-spin h-9 w-full text-center font-mono text-2xl font-bold tabular-nums"
-            disabled={shift.status !== "open"}
-          />
-        </TileCard>
-        <TileCard label="Cashless Final (TZS)" sub="Manual · print only · not used in calculations">
-          <NumberInput
-            value={cashlessFinalInput}
-            onChange={v => setCashlessFinalInput(String(v))}
-            onBlur={async () => {
-              await supabase
-                .from("cage_slots_shifts")
-                .update({ cashless_final: Number(cashlessFinalInput) || 0 } as any)
-                .eq("id", shift.id);
-            }}
-            className="no-spin h-9 w-full text-center font-mono text-2xl font-bold tabular-nums"
-            placeholder="0"
             disabled={shift.status !== "open"}
           />
         </TileCard>
