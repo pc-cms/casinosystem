@@ -177,18 +177,25 @@ const CashCheckViewerDialog = ({
       <div className="space-y-4">
         {/* Totals strip */}
         {balanceMode === "slots" ? (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 cms-panel p-4">
-            <SlotsStat label="Cash Count" value={slotsCashCount} emphasize />
-            <SlotsStat label="System Result" value={slotsSystem} signed />
-            <SlotsStat label="Slot Result" value={slotsDerived} signed />
-            <div className="text-center rounded-md border-2 border-primary/40 bg-primary/5 p-2">
-              <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Shift Balance</p>
-              <p className={`font-mono text-2xl font-bold whitespace-nowrap ${slotsBalance < 0 ? "text-destructive" : slotsBalance > 0 ? "text-success" : "text-card-foreground"}`}>
-                {slotsBalance > 0 ? "+" : ""}{formatCurrency(slotsBalance)}
-              </p>
-              <p className="text-[9px] text-muted-foreground mt-0.5">CDR − Slot Result − Cards Miss</p>
+          <>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 cms-panel p-4">
+              <SlotsStat label="Cash Count" value={slotsCashCount} emphasize />
+              <SlotsStat label="System Result" value={slotsSystem} signed />
+              <SlotsStat label="Slot Result" value={slotsDerived} signed />
+              <div className="text-center rounded-md border-2 border-primary/40 bg-primary/5 p-2">
+                <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Shift Balance</p>
+                <p className={`font-mono text-2xl font-bold whitespace-nowrap ${slotsBalance < 0 ? "text-destructive" : slotsBalance > 0 ? "text-success" : "text-card-foreground"}`}>
+                  {slotsBalance > 0 ? "+" : ""}{formatCurrency(slotsBalance)}
+                </p>
+                <p className="text-[9px] text-muted-foreground mt-0.5">CDR − Slot Result − Cards Miss</p>
+              </div>
             </div>
-          </div>
+            <div className="grid grid-cols-3 gap-2 cms-panel p-3">
+              <SlotsStat label="Cashless IN" value={slotsCashlessIn} />
+              <SlotsStat label="Cashless OUT" value={slotsCashlessOut} />
+              <SlotsStat label="Cashless Balance" value={slotsCashlessBalance} signed />
+            </div>
+          </>
         ) : (
           <div className="grid grid-cols-3 gap-2 cms-panel p-4">
             <div className="text-center">
