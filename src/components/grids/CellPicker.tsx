@@ -66,13 +66,22 @@ export const CellPicker: React.FC<CellPickerProps> = ({
 
   const handleOpen = () => {
     if (disabled) return;
-    const rect = btnRef.current?.getBoundingClientRect();
-    if (rect) {
-      const spaceBelow = window.innerHeight - rect.bottom;
-      setDropUp(spaceBelow < 180);
-    }
+    setDropUp(false);
     setOpen(o => !o);
   };
+
+  // Measure actual popup after render and flip if it overflows viewport bottom.
+  useLayoutEffect(() => {
+    if (!open) return;
+    const btn = btnRef.current;
+    const pop = popRef.current;
+    if (!btn || !pop) return;
+    const btnRect = btn.getBoundingClientRect();
+    const popH = pop.offsetHeight;
+    const spaceBelow = window.innerHeight - btnRect.bottom - 8;
+    const spaceAbove = btnRect.top - 8;
+    if (popH > spaceBelow && spaceAbove > spaceBelow) setDropUp(true);
+  }, [open]);
 
   const choose = (v: string | null) => {
     onSelect(v);
