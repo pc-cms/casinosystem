@@ -247,17 +247,19 @@ const CashCheckViewerDialog = ({
                 <KeyValRow label="USD" value={formatNumberSpaces(bank.usd || 0)} muted={!bank.usd} />
               </div>
             </Section>
-            <Section title="Mobile Money" isEmpty={sumRecord(mobile) === 0}>
-              <div className="space-y-1">
-                {MOBILE_PROVIDERS.map(p => (
-                  <KeyValRow key={p} label={p} value={formatNumberSpaces(mobile[p] || 0)} muted={!mobile[p]} />
-                ))}
-                <div className="flex items-center justify-between pt-1 mt-1 border-t border-border">
-                  <span className="text-[10px] uppercase text-muted-foreground">Total</span>
-                  <span className="font-mono text-xs font-bold text-card-foreground">TZS {formatNumberSpaces(sumRecord(mobile))}</span>
+            {balanceMode !== "slots" && (
+              <Section title="Mobile Money" isEmpty={sumRecord(mobile) === 0}>
+                <div className="space-y-1">
+                  {MOBILE_PROVIDERS.map(p => (
+                    <KeyValRow key={p} label={p} value={formatNumberSpaces(mobile[p] || 0)} muted={!mobile[p]} />
+                  ))}
+                  <div className="flex items-center justify-between pt-1 mt-1 border-t border-border">
+                    <span className="text-[10px] uppercase text-muted-foreground">Total</span>
+                    <span className="font-mono text-xs font-bold text-card-foreground">TZS {formatNumberSpaces(sumRecord(mobile))}</span>
+                  </div>
                 </div>
-              </div>
-            </Section>
+              </Section>
+            )}
           </div>
         </div>
       </div>
