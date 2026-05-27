@@ -188,13 +188,14 @@ const CashCheckViewerDialog = ({
                 <p className={`font-mono text-2xl font-bold whitespace-nowrap ${slotsBalance < 0 ? "text-destructive" : slotsBalance > 0 ? "text-success" : "text-card-foreground"}`}>
                   {slotsBalance > 0 ? "+" : ""}{formatCurrency(slotsBalance)}
                 </p>
-                <p className="text-[9px] text-muted-foreground mt-0.5">CDR − Slot Result − Cards Miss</p>
+                <p className="text-[9px] text-muted-foreground mt-0.5">(CDR + Ace Fill) − (System − Opening) − Cards Miss</p>
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-2 cms-panel p-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 cms-panel p-3">
               <SlotsStat label="Cashless IN" value={slotsCashlessIn} />
               <SlotsStat label="Cashless OUT" value={slotsCashlessOut} />
-              <SlotsStat label="Cashless Balance" value={slotsCashlessBalance} signed />
+              <SlotsStat label="Cashless Balance (IN−OUT)" value={slotsCashlessBalance} signed />
+              <SlotsStat label="Cashless Final (print only)" value={slotsCashlessFinal} />
             </div>
           </>
         ) : (
