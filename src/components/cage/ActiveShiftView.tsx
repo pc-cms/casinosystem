@@ -214,9 +214,9 @@ const ActiveShiftView = ({ shift, players, tables }: {
         centerSlot={
           <div className="flex items-center gap-4 flex-wrap justify-center">
             {FOREIGN_CURRENCIES.map(c => (
-              <span key={c} className="text-base font-semibold font-mono tabular-nums text-foreground">
+              <span key={c} className="text-base font-semibold font-mono tabular-nums text-foreground whitespace-nowrap">
                 <span className="text-muted-foreground text-xs font-medium uppercase mr-1">{c}</span>
-                {formatNumberSpaces(exchangeRates[c] || 0)}
+                {formatNumberSpaces(exchangeRates[c] || 0).replace(/ /g, "\u00a0")}
               </span>
             ))}
           </div>
