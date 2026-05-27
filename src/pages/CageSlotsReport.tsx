@@ -22,6 +22,8 @@ const CageSlotsReport = () => {
   const { data: comments = [] } = useSlotsComments(id);
   const { data: rates = [] } = useSlotsRates(id);
   const { data: checks = [] } = useSlotsCashCounts(id);
+  const { data: transfers = [] } = useSlotsTransfers(id);
+  const { data: expenses = [] } = useSlotsExpenses(id);
 
   if (!shift) {
     return (
