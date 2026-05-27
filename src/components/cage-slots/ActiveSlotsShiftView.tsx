@@ -764,7 +764,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
               </div>
               {needsComment && (
                 <div>
-                  <p className="text-xs text-destructive font-semibold mb-1">Difference is non-zero — manager comment is required.</p>
+                  <p className="text-xs text-destructive font-semibold mb-1">Balance is non-zero — manager comment is required.</p>
                   <Textarea value={managerComment} onChange={e => setManagerComment(e.target.value)} rows={3} placeholder="Reason / explanation…" />
                 </div>
               )}
