@@ -43,13 +43,11 @@ const SlotsTransfersForm = ({ shiftId }: Props) => {
   const { data: lgShift } = useActiveShift();
   const { data: transfers = [] } = useSlotsTransfers(shiftId);
   const create = useCreateSlotsTransfer();
-  const approve = useApproveSlotsTransfer();
 
   const [type, setType] = useState<SlotsTransferType>("fill");
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
   const [showOverride, setShowOverride] = useState(false);
-  const [approveOpen, setApproveOpen] = useState<null | { id: string; counterpart: string | null }>(null);
 
   const cfg = TYPE_OPTIONS.find(t => t.value === type)!;
   const finalAmount = Number(amount) || 0;
@@ -75,10 +73,6 @@ const SlotsTransfersForm = ({ shiftId }: Props) => {
     else submit(user.id);
   };
 
-  const pendingIncoming = useMemo(
-    () => transfers.filter(t => t.requires_approval && !t.approved_at && t.transfer_type === "lg_in").length,
-    [transfers],
-  );
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-3 items-stretch">
