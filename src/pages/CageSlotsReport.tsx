@@ -131,20 +131,28 @@ const CageSlotsReport = () => {
           </tbody>
         </table>
         <div className="text-right text-xs mt-1 font-mono">
-          Net: <span className={cashlessNet < 0 ? "cms-amount-negative" : "cms-amount-positive"}>{cashlessNet > 0 ? "+" : ""}{formatNumberSpaces(cashlessNet)}</span>
+          IN: <span className="cms-amount-positive">+{formatNumberSpaces(cashlessIn)}</span>
+          {" · "}
+          OUT: <span className="cms-amount-negative">−{formatNumberSpaces(cashlessOut)}</span>
         </div>
       </PageSection>
 
       <PageSection title="Balance Calculation">
         <div className="grid grid-cols-2 gap-3 text-sm font-mono">
-          <Field label="Opening (TZS)" value={formatNumberSpaces(openingTotal)} />
-          <Field label="System Result" value={(systemResult >= 0 ? "+" : "") + formatNumberSpaces(systemResult)} />
-          <Field label="Count Cash" value={formatNumberSpaces(countCash)} />
-          <Field label="Adjustments" value={(adjustments >= 0 ? "+" : "") + formatNumberSpaces(adjustments)} />
-          <Field label="Cashless Net" value={(cashlessNet >= 0 ? "+" : "") + formatNumberSpaces(cashlessNet)} />
-          <Field label="Balance Before Cards" value={(diff >= 0 ? "+" : "") + formatNumberSpaces(diff)} />
-          <Field label="Cards Miss" value={(cardsMiss >= 0 ? "+" : "") + formatNumberSpaces(cardsMiss)} />
-          <Field label="Balance" value={(balance >= 0 ? "+" : "") + formatNumberSpaces(balance)} emphasize />
+          <Field label="Opening Cash" value={formatNumberSpaces(openingTotal)} />
+          <Field label="Closing Cash" value={formatNumberSpaces(closingCash)} />
+          <Field label="ΔCash" value={(deltaCash >= 0 ? "+" : "") + formatNumberSpaces(deltaCash)} />
+          <Field label="+ Expenses" value={formatNumberSpaces(expensesTotal)} />
+          <Field label="+ Collection" value={formatNumberSpaces(txAgg.collection)} />
+          <Field label="− AddFloat (Fill)" value={formatNumberSpaces(txAgg.fill)} />
+          <Field label="+ LG Out" value={formatNumberSpaces(txAgg.lg_out)} />
+          <Field label="− LG In" value={formatNumberSpaces(txAgg.lg_in)} />
+          <Field label="+ Cashless Out" value={formatNumberSpaces(cashlessOut)} />
+          <Field label="− Cashless In" value={formatNumberSpaces(cashlessIn)} />
+          <Field label="= Cash Desk Result" value={(cashDeskResult >= 0 ? "+" : "") + formatNumberSpaces(cashDeskResult)} emphasize />
+          <Field label="− System Result" value={(systemResult >= 0 ? "+" : "") + formatNumberSpaces(systemResult)} />
+          <Field label="− Cards Miss" value={(cardsMiss >= 0 ? "+" : "") + formatNumberSpaces(cardsMiss)} />
+          <Field label="= Shift Balance" value={(balance >= 0 ? "+" : "") + formatNumberSpaces(balance)} emphasize />
         </div>
       </PageSection>
 
