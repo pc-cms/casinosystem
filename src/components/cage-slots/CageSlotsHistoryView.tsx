@@ -31,6 +31,7 @@ const CageSlotsHistoryView = () => {
               <th>Opened</th>
               <th>Closed</th>
               <th className="text-right">System</th>
+              <th className="text-right">Slots Result</th>
               <th className="text-right">Cash Desk Result</th>
               <th className="text-right">Cards Miss</th>
               <th className="text-right">Balance</th>
@@ -39,12 +40,14 @@ const CageSlotsHistoryView = () => {
           </thead>
           <tbody>
             {shifts.length === 0 && !isLoading && (
-              <tr><td colSpan={10} className="text-center text-muted-foreground py-4">·</td></tr>
+              <tr><td colSpan={11} className="text-center text-muted-foreground py-4">·</td></tr>
             )}
             {shifts.map(s => {
               const balance = Number(s.balance || 0);
               const cdr = Number(s.cash_desk_result ?? s.actual_cage_result ?? 0);
               const cMiss = Number(s.cards_miss || 0);
+              const sysRes = Number(s.system_shift_result || 0);
+              const slotsRes = Number(s.slots_result || 0);
               return (
                 <tr key={s.id} className="border-b border-border/50 hover:bg-accent/30">
                   <td className="py-1.5">{fmtDate(s.business_date)}</td>
@@ -52,7 +55,10 @@ const CageSlotsHistoryView = () => {
                   <td className="text-center"><Badge variant="outline" className="text-[10px] uppercase">{s.status.replace("_", " ")}</Badge></td>
                   <td className="text-center text-muted-foreground">{fmtDateTime(s.opened_at)}</td>
                   <td className="text-center text-muted-foreground">{s.closed_at ? fmtDateTime(s.closed_at) : "·"}</td>
-                  <td className="text-right font-mono">{formatNumberSpaces(Number(s.system_shift_result || 0))}</td>
+                  <td className="text-right font-mono">{formatNumberSpaces(sysRes)}</td>
+                  <td className={`text-right font-mono ${slotsRes < 0 ? "cms-amount-negative" : slotsRes > 0 ? "cms-amount-positive" : ""}`}>
+                    {slotsRes > 0 ? "+" : ""}{formatNumberSpaces(slotsRes)}
+                  </td>
                   <td className={`text-right font-mono ${cdr < 0 ? "cms-amount-negative" : cdr > 0 ? "cms-amount-positive" : ""}`}>
                     {cdr > 0 ? "+" : ""}{formatNumberSpaces(cdr)}
                   </td>
