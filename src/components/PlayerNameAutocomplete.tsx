@@ -68,6 +68,18 @@ export const PlayerNameAutocomplete = ({ value, onChange, placeholder, disabled,
     return () => document.removeEventListener("mousedown", onDoc);
   }, [value, allLabels, onChange]);
 
+  useLayoutEffect(() => {
+    if (!open) { setDropUp(false); return; }
+    const anchor = wrapRef.current;
+    const pop = dropRef.current;
+    if (!anchor || !pop) return;
+    const r = anchor.getBoundingClientRect();
+    const popH = pop.offsetHeight;
+    const spaceBelow = window.innerHeight - r.bottom - 8;
+    const spaceAbove = r.top - 8;
+    setDropUp(popH > spaceBelow && spaceAbove > spaceBelow);
+  }, [open, suggestions.length]);
+
   const pick = (label: string) => {
     onChange(label);
     setOpen(false);
