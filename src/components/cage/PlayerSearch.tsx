@@ -115,7 +115,8 @@ const PlayerSearch = ({ players, value, onChange, placeholder = "Search playerâ€
         />
       )}
       {open && filtered.length > 0 && (
-        <div className="absolute z-50 w-full mt-1 max-h-48 overflow-y-auto rounded-md border border-border bg-popover shadow-lg">
+        <div ref={dropRef} className={`absolute z-50 w-full max-h-48 overflow-y-auto rounded-md border border-border bg-popover shadow-lg ${dropUp ? "bottom-full mb-1" : "mt-1"}`}>
+
           {filtered.map((p, i) => (
             <div
               key={p.id}
