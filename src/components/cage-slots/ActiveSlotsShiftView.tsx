@@ -574,6 +574,42 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
             </p>
           </div>
 
+          {/* Cashless manual entry — three provider blocks (IN / OUT / FINAL). */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <CashlessProvidersBlock
+              title="Cashless IN"
+              tone="in"
+              values={cashlessInProviders}
+              onChange={setCashlessInProviders}
+              disabled={shift.status !== "open"}
+            />
+            <CashlessProvidersBlock
+              title="Cashless OUT"
+              tone="out"
+              values={cashlessOutProviders}
+              onChange={setCashlessOutProviders}
+              disabled={shift.status !== "open"}
+            />
+            <CashlessProvidersBlock
+              title="Cashless FINAL · print only"
+              tone="final"
+              values={cashlessFinalProviders}
+              onChange={(v) => {
+                setCashlessFinalProviders(v);
+                const total = mobileTotal(v);
+                setCashlessFinalInput(String(total));
+              }}
+              onBlur={async () => {
+                await supabase
+                  .from("cage_slots_shifts")
+                  .update({ cashless_final: Number(cashlessFinalInput) || 0 } as any)
+                  .eq("id", shift.id);
+              }}
+              disabled={shift.status !== "open"}
+            />
+          </div>
+
+
           {/* Checks history (was a separate tab) */}
           <PageSection title={`Checks (${checks.length})`}>
             <table className="w-full text-xs">
