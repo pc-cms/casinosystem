@@ -40,14 +40,15 @@ export const computeShiftBalance = (i: CageBalanceInputs): CageBalanceResult => 
 };
 
 /**
- * Cage Slots Cash Desk Formula (mirrors live game, with Cards Miss in place of
- * Chip Miss). Source of truth = DB trigger `compute_slots_shift_balance_from_row`.
+ * Cage Slots balance formula. Source of truth = DB trigger
+ * `compute_slots_shift_balance_from_row`.
  *
- *   Cash Desk Result = ΔCash + Expenses + Collection − AddFloat
- *                    + LG_Out − LG_In + CashlessOut − CashlessIn
- *   Cards Miss       = (OpeningCards − ClosingCards) × CardValue   (− = shortage)
- *   Slots Result     = SystemResult  (what slot system reported)
- *   Balance          = Cash Desk Result − Slots Result − Cards Miss
+ *   Expected   = OpeningCash + SystemResult
+ *   Counted    = ClosingCash + Expenses + Collection − AddFloat
+ *              + LG_Out − LG_In + CashlessOut − CashlessIn
+ *   Difference = Counted − Expected
+ *   Cards Miss = (OpeningCards − ClosingCards) × CardValue
+ *   Balance    = Difference − CardsMiss
  */
 export type SlotsBalanceInputs = {
   openingCash: number;
@@ -70,16 +71,21 @@ export type SlotsBalanceResult = {
   cashDeskResult: number;
   cardsMiss: number;
   slotsResult: number;
+  expected: number;
+  counted: number;
+  difference: number;
   balance: number;
 };
 
 export const computeSlotsShiftBalance = (i: SlotsBalanceInputs): SlotsBalanceResult => {
   const deltaCash = i.closingCash - i.openingCash;
-  const cashDeskResult =
-    deltaCash + i.expenses + i.collection - i.addFloat
+  const slotsResult = i.systemResult;
+  const expected = i.openingCash + slotsResult;
+  const counted =
+    i.closingCash + i.expenses + i.collection - i.addFloat
     + i.lgOut - i.lgIn + i.cashlessOut - i.cashlessIn;
   const cardsMiss = (i.openingCards - i.closingCards) * i.cardValue;
-  const slotsResult = i.systemResult;
-  const balance = cashDeskResult - slotsResult - cardsMiss;
-  return { deltaCash, cashDeskResult, cardsMiss, slotsResult, balance };
+  const difference = counted - expected;
+  const balance = difference - cardsMiss;
+  return { deltaCash, cashDeskResult: counted, cardsMiss, slotsResult, expected, counted, difference, balance };
 };
