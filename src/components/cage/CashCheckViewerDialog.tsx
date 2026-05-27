@@ -107,11 +107,13 @@ const CashCheckViewerDialog = ({
   onOpenChange,
   check,
   cashierName,
+  balanceMode = "default",
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   check: Tables<"cash_counts"> | null;
   cashierName?: string;
+  balanceMode?: "default" | "slots";
 }) => {
   if (!check) return null;
   const d = (check.denominations || {}) as Denoms;
@@ -123,6 +125,9 @@ const CashCheckViewerDialog = ({
   const expected = Number(t.expected ?? 0);
   const counted = Number(t.counted ?? Number(check.total));
   const diff = Number(t.difference ?? counted - expected);
+  const physicalCount = Number(check.total ?? t.total_tzs ?? 0);
+  const adjustments = counted - physicalCount;
+  const slotsBalance = Number(t.balance ?? diff);
   const balanced = !!t.balanced || diff === 0;
   const isOpening = !!t.is_opening;
   const isClosing = !!t.is_closing;
@@ -144,6 +149,27 @@ const CashCheckViewerDialog = ({
       <div className="space-y-4">
         {/* Totals strip */}
         <div className="grid grid-cols-3 gap-2 cms-panel p-4">
+          {balanceMode === "slots" ? (
+            <>
+              <div className="text-center">
+                <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Count Cash</p>
+                <p className="font-mono text-2xl font-bold text-card-foreground whitespace-nowrap">{formatCurrency(physicalCount)}</p>
+              </div>
+              <div className="text-center">
+                <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Adjustments</p>
+                <p className={`font-mono text-2xl font-bold whitespace-nowrap ${adjustments < 0 ? "text-destructive" : adjustments > 0 ? "text-success" : "text-card-foreground"}`}>
+                  {adjustments > 0 ? "+" : ""}{formatCurrency(adjustments)}
+                </p>
+              </div>
+              <div className="text-center">
+                <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Balance</p>
+                <p className={`font-mono text-2xl font-bold whitespace-nowrap ${slotsBalance < 0 ? "text-destructive" : slotsBalance > 0 ? "text-success" : "text-card-foreground"}`}>
+                  {slotsBalance > 0 ? "+" : ""}{formatCurrency(slotsBalance)}
+                </p>
+              </div>
+            </>
+          ) : (
+            <>
           <div className="text-center">
             <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Expected</p>
             <p className="font-mono text-2xl font-bold text-card-foreground whitespace-nowrap">{formatCurrency(expected)}</p>
@@ -158,6 +184,8 @@ const CashCheckViewerDialog = ({
               {balanced ? "Balanced" : `${diff >= 0 ? "+" : ""}${formatCurrency(diff)}`}
             </p>
           </div>
+            </>
+          )}
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
