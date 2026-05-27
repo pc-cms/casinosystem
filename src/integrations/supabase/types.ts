@@ -2639,6 +2639,36 @@ export type Database = {
           },
         ]
       }
+      endpoint_health_checks: {
+        Row: {
+          checked_at: string
+          duration_ms: number | null
+          endpoint: string
+          error: string | null
+          http_code: number | null
+          id: string
+          status: string
+        }
+        Insert: {
+          checked_at?: string
+          duration_ms?: number | null
+          endpoint: string
+          error?: string | null
+          http_code?: number | null
+          id?: string
+          status: string
+        }
+        Update: {
+          checked_at?: string
+          duration_ms?: number | null
+          endpoint?: string
+          error?: string | null
+          http_code?: number | null
+          id?: string
+          status?: string
+        }
+        Relationships: []
+      }
       expenses: {
         Row: {
           amount: number
@@ -6461,6 +6491,7 @@ export type Database = {
         Args: { p_casino_id: string; p_force?: boolean }
         Returns: Json
       }
+      purge_endpoint_health_checks: { Args: never; Returns: undefined }
       purge_mbeya_demo: { Args: never; Returns: Json }
       recalc_shift_tables_result: {
         Args: { p_shift_id: string }
