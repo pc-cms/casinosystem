@@ -167,13 +167,14 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
 
   // Slots balance is shown as explicit manual formula parts in the UI.
   const openingCashTzs = openingTotalTzs;
-  // Manual Cashless IN/OUT blocks participate in Closing Cash:
-  //   Closing Cash += (Cashless IN − Cashless OUT)
+  // Mobile Money is derived from manual Cashless blocks:
+  //   Mobile Money = Cashless IN − Cashless OUT
+  //   Closing Cash = TZS + FX + Banks + Mobile Money
   const cashlessInManualTzs = useMemo(() => mobileTotal(cashlessInProviders), [cashlessInProviders]);
   const cashlessOutManualTzs = useMemo(() => mobileTotal(cashlessOutProviders), [cashlessOutProviders]);
+  const mobileMoneyTzs = cashlessInManualTzs - cashlessOutManualTzs;
   const closingCashTzs = closingTzsTotal + closingFxTzs
-    + bankTotalTzs(closingBanks, rateMap) + mobileTotal(closingMobile)
-    + cashlessInManualTzs - cashlessOutManualTzs;
+    + bankTotalTzs(closingBanks, rateMap) + mobileMoneyTzs;
 
   const openingCardsCount = Number(cards?.opening_card_count || 0);
   const systemResult = Number(systemResultInput) || Number(shift.system_shift_result || 0);
