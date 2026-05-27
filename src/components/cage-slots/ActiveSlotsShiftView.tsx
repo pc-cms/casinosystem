@@ -36,6 +36,7 @@ import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
 import type { Tables } from "@/integrations/supabase/types";
 import CashCheckViewerDialog from "@/components/cage/CashCheckViewerDialog";
 import { computeSlotsShiftBalance } from "@/lib/cage-balance";
+import { supabase } from "@/integrations/supabase/client";
 
 type Shift = Tables<"cage_slots_shifts">;
 
