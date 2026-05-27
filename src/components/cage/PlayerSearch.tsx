@@ -149,7 +149,7 @@ const PlayerSearch = ({ players, value, onChange, placeholder = "Search playerâ€
         </div>
       )}
       {open && filtered.length === 0 && query && (
-        <div className="absolute z-50 w-full mt-1 rounded-md border border-border bg-popover p-3 text-center text-xs text-muted-foreground">
+        <div className={`absolute z-50 w-full rounded-md border border-border bg-popover p-3 text-center text-xs text-muted-foreground ${dropUp ? "bottom-full mb-1" : "mt-1"}`}>
           No players found
         </div>
       )}
