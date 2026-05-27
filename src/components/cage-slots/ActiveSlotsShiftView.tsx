@@ -17,6 +17,7 @@ import CashDenomInput, { cashSum } from "@/components/cage/CashDenomInput";
 import CashCountGrid from "@/components/cage/CashCountGrid";
 import {
   emptyBanks, emptyMobile, mobileTotal, bankTotalTzs,
+  MOBILE_PROVIDERS,
   type Banks, type MobileProviders,
 } from "@/components/cage/CageHelpers";
 import {
@@ -104,6 +105,10 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
   const [cashlessFinalInput, setCashlessFinalInput] = useState<string>(
     (shift as any).cashless_final?.toString() ?? "",
   );
+  // Cashless manual entry blocks (IN / OUT / FINAL) — providers, not auto-populated from Cashless page.
+  const [cashlessInProviders, setCashlessInProviders] = useState<MobileProviders>(emptyMobile());
+  const [cashlessOutProviders, setCashlessOutProviders] = useState<MobileProviders>(emptyMobile());
+  const [cashlessFinalProviders, setCashlessFinalProviders] = useState<MobileProviders>(emptyMobile());
   const [cashierNote, setCashierNote] = useState<string>(shift.cashier_note || "");
 
   // Hydrate closing from persisted closing inventory + cards
@@ -487,8 +492,8 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
         </div>
       )}
 
-      {/* Summary strip — Opening / Cards Open / System (input) / Cards Closing (input) / Cage Result */}
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-2 mb-2">
+      {/* Summary strip — Opening / Cards Open / System (input) / Cards Closing (input) / Slots Result */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-2">
         <TileCard label="Opening (TZS)">
           <p className="font-mono text-2xl font-bold tabular-nums text-center">{formatNumberSpaces(openingTotalTzs)}</p>
         </TileCard>
@@ -517,21 +522,6 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
             onChange={v => setClosingCards(Number(v) || 0)}
             onBlur={() => updateCards.mutate({ shift_id: shift.id, closing_card_count: closingCards })}
             className="no-spin h-9 w-full text-center font-mono text-2xl font-bold tabular-nums"
-            disabled={shift.status !== "open"}
-          />
-        </TileCard>
-        <TileCard label="Cashless Final (TZS)" sub="Manual · print only · not used in calculations">
-          <NumberInput
-            value={cashlessFinalInput}
-            onChange={v => setCashlessFinalInput(String(v))}
-            onBlur={async () => {
-              await supabase
-                .from("cage_slots_shifts")
-                .update({ cashless_final: Number(cashlessFinalInput) || 0 } as any)
-                .eq("id", shift.id);
-            }}
-            className="no-spin h-9 w-full text-center font-mono text-2xl font-bold tabular-nums"
-            placeholder="0"
             disabled={shift.status !== "open"}
           />
         </TileCard>
@@ -583,6 +573,42 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
               Banks &amp; Mobile balances are saved into the next Check (use the Check button at the top).
             </p>
           </div>
+
+          {/* Cashless manual entry — three provider blocks (IN / OUT / FINAL). */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <CashlessProvidersBlock
+              title="Cashless IN"
+              tone="in"
+              values={cashlessInProviders}
+              onChange={setCashlessInProviders}
+              disabled={shift.status !== "open"}
+            />
+            <CashlessProvidersBlock
+              title="Cashless OUT"
+              tone="out"
+              values={cashlessOutProviders}
+              onChange={setCashlessOutProviders}
+              disabled={shift.status !== "open"}
+            />
+            <CashlessProvidersBlock
+              title="Cashless FINAL · print only"
+              tone="final"
+              values={cashlessFinalProviders}
+              onChange={(v) => {
+                setCashlessFinalProviders(v);
+                const total = mobileTotal(v);
+                setCashlessFinalInput(String(total));
+              }}
+              onBlur={async () => {
+                await supabase
+                  .from("cage_slots_shifts")
+                  .update({ cashless_final: Number(cashlessFinalInput) || 0 } as any)
+                  .eq("id", shift.id);
+              }}
+              disabled={shift.status !== "open"}
+            />
+          </div>
+
 
           {/* Checks history (was a separate tab) */}
           <PageSection title={`Checks (${checks.length})`}>
@@ -895,5 +921,50 @@ const Stat = ({ label, value, signed, emphasize }: { label: string; value: numbe
     </p>
   </div>
 );
+
+const CashlessProvidersBlock = ({
+  title, values, onChange, disabled, onBlur, tone = "default",
+}: {
+  title: string;
+  values: MobileProviders;
+  onChange: (v: MobileProviders) => void;
+  disabled?: boolean;
+  onBlur?: () => void;
+  tone?: "default" | "in" | "out" | "final";
+}) => {
+  const total = mobileTotal(values);
+  const toneCls =
+    tone === "in"    ? "border-emerald-500/40" :
+    tone === "out"   ? "border-rose-500/40"    :
+    tone === "final" ? "border-primary/50 bg-primary/5" :
+                       "border-border";
+  const row = "flex items-center gap-2";
+  const chip = "cms-chip text-[10px] bg-muted text-foreground h-7 w-16 shrink-0 justify-center";
+  const input = "no-spin font-mono text-sm h-8 w-24 flex-1 min-w-0 rounded border border-border bg-background px-2 text-right text-foreground focus:outline-none focus:ring-1 focus:ring-primary";
+  return (
+    <section className={`rounded-xl border ${toneCls} bg-background/40 p-3 flex flex-col`}>
+      <p className="text-xs font-bold text-foreground uppercase tracking-[0.22em] mb-2">{title}</p>
+      <div className="space-y-1">
+        {MOBILE_PROVIDERS.map(provider => (
+          <div key={provider} className={row}>
+            <span className={chip}>{provider}</span>
+            <NumberInput
+              value={values[provider] || ""}
+              onChange={v => onChange({ ...values, [provider]: Number(v) || 0 })}
+              onBlur={onBlur}
+              className={input}
+              placeholder="0"
+              disabled={disabled}
+            />
+          </div>
+        ))}
+      </div>
+      <div className="flex items-center justify-between gap-2 pt-2 mt-2 border-t border-border">
+        <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Total</span>
+        <span className="font-mono text-sm font-bold text-card-foreground whitespace-nowrap">TZS {formatNumberSpaces(total)}</span>
+      </div>
+    </section>
+  );
+};
 
 export default ActiveSlotsShiftView;
