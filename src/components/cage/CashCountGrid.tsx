@@ -66,26 +66,28 @@ const CashCountGrid = ({
           <CashDenomInput values={cash["TZS"] || {}} onChange={v => onCashChange("TZS", v)} denoms={CASH_DENOMS["TZS"] || []} currency="TZS" size="lg" />
         </section>
 
-        <section className={sectionCls}>
-          <p className={titleCls}>Mobile Money</p>
-          <div className="space-y-1">
-            {MOBILE_PROVIDERS.map(provider => (
-              <div key={provider} className={mdRow}>
-                <span className={mdChip}>{provider}</span>
-                <NumberInput
-                  value={mobile[provider] || ""}
-                  onChange={v => onMobileChange({ ...mobile, [provider]: Number(v) || 0 })}
-                  className={mdInput}
-                  placeholder="0"
-                />
-              </div>
-            ))}
-          </div>
-          <div className="flex items-center justify-between gap-2 pt-2 mt-2 border-t border-border">
-            <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Total</span>
-            <span className="font-mono text-sm font-bold text-card-foreground whitespace-nowrap">TZS {formatNumberSpaces(mobTotal)}</span>
-          </div>
-        </section>
+        {!hideMobile && (
+          <section className={sectionCls}>
+            <p className={titleCls}>Mobile Money</p>
+            <div className="space-y-1">
+              {MOBILE_PROVIDERS.map(provider => (
+                <div key={provider} className={mdRow}>
+                  <span className={mdChip}>{provider}</span>
+                  <NumberInput
+                    value={mobile[provider] || ""}
+                    onChange={v => onMobileChange({ ...mobile, [provider]: Number(v) || 0 })}
+                    className={mdInput}
+                    placeholder="0"
+                  />
+                </div>
+              ))}
+            </div>
+            <div className="flex items-center justify-between gap-2 pt-2 mt-2 border-t border-border">
+              <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Total</span>
+              <span className="font-mono text-sm font-bold text-card-foreground whitespace-nowrap">TZS {formatNumberSpaces(mobTotal)}</span>
+            </div>
+          </section>
+        )}
 
         <section className={sectionCls}>
           <p className={titleCls}>Banks</p>
