@@ -290,7 +290,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
     approve.mutate({
       shift_id: shift.id,
       manager_id: managerId,
-      manager_comment: managerComment || (needsComment ? "" : "Approved with zero difference"),
+      manager_comment: managerComment || (needsComment ? "" : "Approved with zero balance"),
     });
     setShowApprove(false);
     setManagerComment("");
