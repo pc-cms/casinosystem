@@ -1428,6 +1428,20 @@ export type Database = {
             referencedRelation: "cage_slots_shifts"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "cashless_transactions_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "player_economy"
+            referencedColumns: ["player_id"]
+          },
+          {
+            foreignKeyName: "cashless_transactions_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
         ]
       }
       casino_servers: {
