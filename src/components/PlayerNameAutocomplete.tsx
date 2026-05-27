@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, useEffect } from "react";
+import { useMemo, useRef, useState, useEffect, useLayoutEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { usePlayers } from "@/hooks/use-players";
 import { cn } from "@/lib/utils";
