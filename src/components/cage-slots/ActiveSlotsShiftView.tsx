@@ -361,10 +361,11 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
         <div className="max-w-2xl mx-auto w-full space-y-3">
           {/* Cash on hand */}
           <PageSection title="Cash on Hand (Closing)">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
               <Stat label="TZS Cash" value={closingTzsTotal} />
               <Stat label="Foreign (TZS)" value={closingFxTzs} />
-              <Stat label="Banks + Mobile" value={bankTotalTzs(closingBanks, rateMap) + mobileTotal(closingMobile)} />
+              <Stat label="Banks" value={bankTotalTzs(closingBanks, rateMap)} />
+              <Stat label="Mobile (IN−OUT)" value={mobileMoneyTzs} signed />
               <Stat label="Total Closing Cash" value={closingCashTzs} emphasize />
             </div>
             <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
