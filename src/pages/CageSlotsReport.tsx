@@ -58,12 +58,20 @@ const CageSlotsReport = () => {
   const slotsResult = Number(shift.slots_result ?? latestTotals.slots_result_derived ?? (systemResult - openingTotal - txAgg.fill));
   const deltaCash = closingCash - openingTotal;
   const cardsMiss = Number(shift.cards_miss ?? ((Number(cards?.opening_card_count || 0) - Number(cards?.closing_card_count || 0)) * cardDepositTzs));
-  // New simplified CDR/Balance: only Closing + Ace Fill on the cashier side.
-  const cashDeskResult = Number(shift.cash_desk_result ?? latestTotals.cash_desk_result ?? (closingCash + txAgg.fill));
+  // CDR (Slots) = ΔCash + Expenses + Collection + LG_Out − LG_In
+  const cashDeskResult = Number(
+    shift.cash_desk_result ?? latestTotals.cash_desk_result ??
+    (deltaCash + expensesTotal + txAgg.collection + txAgg.lg_out - txAgg.lg_in),
+  );
   const expected = systemResult - openingTotal;
-  const balance = Number(shift.balance ?? latestTotals.shift_balance ?? latestTotals.balance ?? (cashDeskResult - expected - cardsMiss));
-  // Cashless Balance is the manual entry on the shift (printed only).
-  const cashlessBalance = Number((shift as any).cashless_balance_manual ?? latestTotals.cashless_balance ?? 0);
+  // Shift Balance = (CDR + Ace Fill) − (System − Opening) − Cards Miss
+  const balance = Number(
+    shift.balance ?? latestTotals.shift_balance ?? latestTotals.balance ??
+    ((cashDeskResult + txAgg.fill) - expected - cardsMiss),
+  );
+  // Cashless Balance = IN − OUT (derived). Cashless Final = manual, print only.
+  const cashlessBalance = cashlessIn - cashlessOut;
+  const cashlessFinal = Number((shift as any).cashless_final ?? latestTotals.cashless_final ?? 0);
 
   return (
     <PageShell className="print-target">
