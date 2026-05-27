@@ -352,10 +352,11 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
               <Stat label="ΔCash" value={deltaCash} signed />
               <Stat label="Cash Desk Result" value={cashDeskResult} signed emphasize />
               <Stat label="System Result" value={systemResult} signed />
+              <Stat label="Slots Result" value={slotsResult} signed />
               <Stat label="Cards Miss" value={cardsMiss} signed />
             </div>
             <div className="mt-3 rounded-md border-2 border-primary/40 bg-primary/5 p-3 flex items-center justify-between">
-              <span className="text-xs uppercase text-muted-foreground tracking-wider font-bold">Shift Balance = Cash Desk Result − System Result − Cards Miss</span>
+              <span className="text-xs uppercase text-muted-foreground tracking-wider font-bold">Shift Balance = Cash Desk Result − Slots Result − Cards Miss</span>
               <span className={`font-mono font-bold text-2xl ${shiftBalance < 0 ? "cms-amount-negative" : shiftBalance > 0 ? "cms-amount-positive" : "text-emerald-500"}`}>
                 {shiftBalance === 0 ? "BALANCED · 0" : `${shiftBalance > 0 ? "+" : ""}${formatNumberSpaces(shiftBalance)}`}
               </span>
