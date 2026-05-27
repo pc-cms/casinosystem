@@ -145,10 +145,14 @@ const CageSlotsReport = () => {
             OUT: <span className="cms-amount-negative">−{formatNumberSpaces(cashlessOut)}</span>
           </div>
           <div>
-            Cashless Balance (manual):{" "}
+            Cashless Balance (IN−OUT):{" "}
             <span className={cashlessBalance < 0 ? "cms-amount-negative" : cashlessBalance > 0 ? "cms-amount-positive" : ""}>
               {cashlessBalance > 0 ? "+" : ""}{formatNumberSpaces(cashlessBalance)}
             </span>
+          </div>
+          <div className="text-muted-foreground">
+            Cashless Final (manual · print only):{" "}
+            <span className="text-card-foreground">{formatNumberSpaces(cashlessFinal)}</span>
           </div>
         </div>
       </PageSection>
