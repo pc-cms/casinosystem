@@ -130,10 +130,18 @@ const CageSlotsReport = () => {
             ))}
           </tbody>
         </table>
-        <div className="text-right text-xs mt-1 font-mono">
-          IN: <span className="cms-amount-positive">+{formatNumberSpaces(cashlessIn)}</span>
-          {" · "}
-          OUT: <span className="cms-amount-negative">−{formatNumberSpaces(cashlessOut)}</span>
+        <div className="text-right text-xs mt-1 font-mono space-y-0.5">
+          <div>
+            IN: <span className="cms-amount-positive">+{formatNumberSpaces(cashlessIn)}</span>
+            {" · "}
+            OUT: <span className="cms-amount-negative">−{formatNumberSpaces(cashlessOut)}</span>
+          </div>
+          <div>
+            Cashless Balance (manual):{" "}
+            <span className={cashlessBalance < 0 ? "cms-amount-negative" : cashlessBalance > 0 ? "cms-amount-positive" : ""}>
+              {cashlessBalance > 0 ? "+" : ""}{formatNumberSpaces(cashlessBalance)}
+            </span>
+          </div>
         </div>
       </PageSection>
 
@@ -141,16 +149,11 @@ const CageSlotsReport = () => {
         <div className="grid grid-cols-2 gap-3 text-sm font-mono">
           <Field label="Opening Cash" value={formatNumberSpaces(openingTotal)} />
           <Field label="Closing Cash" value={formatNumberSpaces(closingCash)} />
-          <Field label="ΔCash" value={(deltaCash >= 0 ? "+" : "") + formatNumberSpaces(deltaCash)} />
-          <Field label="+ Expenses" value={formatNumberSpaces(expensesTotal)} />
-          <Field label="+ Collection" value={formatNumberSpaces(txAgg.collection)} />
-          <Field label="− AddFloat (Fill)" value={formatNumberSpaces(txAgg.fill)} />
-          <Field label="+ LG Out" value={formatNumberSpaces(txAgg.lg_out)} />
-          <Field label="− LG In" value={formatNumberSpaces(txAgg.lg_in)} />
-          <Field label="+ Cashless Out" value={formatNumberSpaces(cashlessOut)} />
-          <Field label="− Cashless In" value={formatNumberSpaces(cashlessIn)} />
+          <Field label="+ Ace Fill (ACE System Fill)" value={formatNumberSpaces(txAgg.fill)} />
           <Field label="= Cash Desk Result" value={(cashDeskResult >= 0 ? "+" : "") + formatNumberSpaces(cashDeskResult)} emphasize />
-          <Field label="− System Result" value={(systemResult >= 0 ? "+" : "") + formatNumberSpaces(systemResult)} />
+          <Field label="System Result" value={(systemResult >= 0 ? "+" : "") + formatNumberSpaces(systemResult)} />
+          <Field label="− (System − Opening)" value={(expected >= 0 ? "+" : "") + formatNumberSpaces(expected)} />
+          <Field label="Slots Result" value={(slotsResult >= 0 ? "+" : "") + formatNumberSpaces(slotsResult)} />
           <Field label="− Cards Miss" value={(cardsMiss >= 0 ? "+" : "") + formatNumberSpaces(cardsMiss)} />
           <Field label="= Shift Balance" value={(balance >= 0 ? "+" : "") + formatNumberSpaces(balance)} emphasize />
         </div>
