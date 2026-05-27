@@ -10,6 +10,8 @@ import {
   useCageSlotsShift, useSlotsInventory, useSlotsCards,
   useSlotsCashless, useSlotsComments, useSlotsRates, useSlotsCashCounts,
 } from "@/hooks/use-cage-slots";
+import { useSlotsTransfers } from "@/hooks/use-cage-slots-transfers";
+import { useSlotsExpenses } from "@/hooks/use-expenses";
 
 const CageSlotsReport = () => {
   const { id } = useParams<{ id: string }>();
