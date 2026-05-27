@@ -196,7 +196,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
     closingCards,
     cardValue: cardDepositTzs,
     systemResult,
-  }), [openingCashTzs, closingCashTzs, expensesApproved, transfersAgg, cashlessIn, cashlessOut, cashlessFinal, openingCardsCount, closingCards, cardDepositTzs, systemResult]);
+  }), [openingCashTzs, closingCashTzs, expensesApproved, transfersAgg, cashlessInManualTzs, cashlessOutManualTzs, cashlessFinal, openingCardsCount, closingCards, cardDepositTzs, systemResult]);
 
   const { deltaCash, cashDeskResult, cardsMiss, slotsResult, cashlessBalance, shiftBalance } = balance;
 
