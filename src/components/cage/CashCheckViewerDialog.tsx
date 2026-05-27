@@ -127,11 +127,8 @@ const CashCheckViewerDialog = ({
   const diff = Number(t.difference ?? counted - expected);
 
   // Slots canonical fields
-  const deltaCash = Number(t.delta_cash ?? 0);
-  const cashDeskResult = Number(t.cash_desk_result ?? 0);
   const slotsSystem = Number(t.system_result ?? t.slots_result ?? 0);
   const slotsDerived = Number(t.slots_result_derived ?? t.slots_result ?? 0);
-  const slotsCardsMiss = Number(t.cards_miss ?? 0);
   const slotsBalance = Number(t.shift_balance ?? t.balance ?? 0);
   const slotsCashCount = Number(t.total_tzs ?? counted);
 
