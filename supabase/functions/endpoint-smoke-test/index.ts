@@ -53,11 +53,14 @@ async function runCheck(c: Check) {
   const t0 = performance.now();
   try {
     const r = await fetch(`${SUPABASE_URL}/rest/v1/${c.path}`, {
+      method: c.method ?? "GET",
       headers: {
         apikey: SERVICE_KEY,
         Authorization: `Bearer ${SERVICE_KEY}`,
         Accept: "application/json",
+        ...(c.body ? { "Content-Type": "application/json" } : {}),
       },
+      ...(c.body ? { body: c.body } : {}),
     });
     const duration_ms = Math.round(performance.now() - t0);
     const ok = r.ok;
