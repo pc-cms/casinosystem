@@ -156,18 +156,8 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
     [slotsExpenses],
   );
 
-  // Opening banks/mobile carry-over (captured into the seed snapshot at shift open).
-  const openingSeed = useMemo(
-    () => checks.find((c: any) => (c?.denominations as any)?.is_opening) as any,
-    [checks],
-  );
-  const openingBanks = (openingSeed?.denominations?.bank || { tzs: 0, usd: 0 }) as Banks;
-  const openingMobile = (openingSeed?.denominations?.mobile || {}) as MobileProviders;
-  const openingBanksTzs = bankTotalTzs(openingBanks, rateMap);
-  const openingMobileTzs = mobileTotal(openingMobile);
-
-  // ΔCash uses cash (all currencies) + banks + mobile — NO cards.
-  const openingCashTzs = openingTotalTzs + openingBanksTzs + openingMobileTzs;
+  // Slots expected starts from the manual opening balance only.
+  const openingCashTzs = openingTotalTzs;
   const closingCashTzs = closingTzsTotal + closingFxTzs
     + bankTotalTzs(closingBanks, rateMap) + mobileTotal(closingMobile);
 
@@ -190,7 +180,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
     systemResult,
   }), [openingCashTzs, closingCashTzs, expensesApproved, transfersAgg, cashlessIn, cashlessOut, openingCardsCount, closingCards, cardDepositTzs, systemResult]);
 
-  const { deltaCash, cashDeskResult, cardsMiss, balance: shiftBalance } = balance;
+  const { deltaCash, cashDeskResult, cardsMiss, expected, counted, difference, balance: shiftBalance } = balance;
 
   // "Balance" tile shows the value from the LATEST check snapshot — not live.
   // Empty till (closing cash = 0) is a valid state and yields a negative balance.
@@ -233,6 +223,9 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
           total_tzs: closingCashTzs,
           bank_tzs: bankTzs,
           mobile_tzs: mobileTzs,
+            expected,
+            counted,
+            difference,
           delta_cash: deltaCash,
           cash_desk_result: cashDeskResult,
           cards_miss: cardsMiss,
@@ -272,6 +265,9 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
         rateMap,
         totals: {
           total_tzs: closingCashTzs,
+            expected,
+            counted,
+            difference,
           delta_cash: deltaCash,
           cash_desk_result: cashDeskResult,
           cards_miss: cardsMiss,
@@ -359,15 +355,16 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
             </div>
           </PageSection>
 
-          {/* Canonical Shift Result (mirrors Live Game) */}
+          {/* Canonical Shift Result */}
           <PageSection title="Shift Result">
             <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-              <Stat label="Cash Desk Result" value={cashDeskResult} signed />
-              <Stat label="Slots Result (system)" value={systemResult} signed />
+              <Stat label="Expected" value={expected} />
+              <Stat label="Count" value={counted} />
+              <Stat label="Difference" value={difference} signed />
               <Stat label="Cards Miss" value={cardsMiss} signed />
             </div>
             <div className="mt-3 rounded-md border-2 border-primary/40 bg-primary/5 p-3 flex items-center justify-between">
-              <span className="text-xs uppercase text-muted-foreground tracking-wider font-bold">Balance (CDR − Slots − CardsMiss)</span>
+              <span className="text-xs uppercase text-muted-foreground tracking-wider font-bold">Balance (Difference − Cards Miss)</span>
               <span className={`font-mono font-bold text-2xl ${shiftBalance < 0 ? "cms-amount-negative" : shiftBalance > 0 ? "cms-amount-positive" : "text-emerald-500"}`}>
                 {shiftBalance === 0 ? "BALANCED · 0" : `${shiftBalance > 0 ? "+" : ""}${formatNumberSpaces(shiftBalance)}`}
               </span>
@@ -463,7 +460,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
                 Cashier has submitted the closing. A manager must authenticate to close this shift.
               </p>
               <div className="grid grid-cols-3 gap-3 mt-3 max-w-md">
-                <Stat label="Cash Desk" value={cashDeskResult} signed />
+                <Stat label="Count" value={counted} />
                 <Stat label="Slots" value={systemResult} signed />
                 <Stat label="Balance" value={shiftBalance} signed emphasize />
               </div>
@@ -694,17 +691,17 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-xs">
-              <Stat label="Opening Cash" value={openingCashTzs} />
-              <Stat label="Closing Cash" value={closingCashTzs} />
-              <Stat label="ΔCash" value={deltaCash} signed />
-              <Stat label="Cash Desk Result" value={cashDeskResult} signed />
-              <Stat label="Slots Result" value={systemResult} signed />
+              <Stat label="Opening" value={openingCashTzs} />
+              <Stat label="System Result" value={systemResult} signed />
+              <Stat label="Expected" value={expected} />
+              <Stat label="Count" value={counted} />
+              <Stat label="Difference" value={difference} signed />
               <Stat label="Cards Miss" value={cardsMiss} signed />
             </div>
 
             <div className="rounded-md border border-primary/40 bg-primary/5 p-3">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] uppercase text-muted-foreground tracking-wider">Balance (CDR − Slots − CardsMiss)</span>
+                <span className="text-[11px] uppercase text-muted-foreground tracking-wider">Balance (Difference − Cards Miss)</span>
                 <span className={`font-mono font-bold text-lg ${shiftBalance < 0 ? "cms-amount-negative" : shiftBalance > 0 ? "cms-amount-positive" : ""}`}>
                   {shiftBalance > 0 ? "+" : ""}{formatNumberSpaces(shiftBalance)}
                 </span>
@@ -758,7 +755,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
             <div className="bg-card border border-border rounded-md shadow-lg p-4 max-w-md w-full space-y-3" onClick={e => e.stopPropagation()}>
               <h3 className="font-semibold">Approve & Close Slots Shift</h3>
               <div className="grid grid-cols-3 gap-2 text-xs">
-                <Stat label="Cash Desk" value={cashDeskResult} signed />
+                <Stat label="Count" value={counted} />
                 <Stat label="Slots" value={systemResult} signed />
                 <Stat label="Balance" value={shiftBalance} signed emphasize />
               </div>
