@@ -8,7 +8,7 @@ import { formatNumberSpaces, CURRENCIES } from "@/lib/currency";
 import { fmtDate, fmtDateTime } from "@/lib/format-date";
 import {
   useCageSlotsShift, useSlotsInventory, useSlotsCards,
-  useSlotsCashless, useSlotsComments, useSlotsRates,
+  useSlotsCashless, useSlotsComments, useSlotsRates, useSlotsCashCounts,
 } from "@/hooks/use-cage-slots";
 
 const CageSlotsReport = () => {
@@ -19,6 +19,7 @@ const CageSlotsReport = () => {
   const { data: cashless = [] } = useSlotsCashless(id);
   const { data: comments = [] } = useSlotsComments(id);
   const { data: rates = [] } = useSlotsRates(id);
+  const { data: checks = [] } = useSlotsCashCounts(id);
 
   if (!shift) {
     return (
@@ -35,9 +36,14 @@ const CageSlotsReport = () => {
   const cardsOpeningTzs = Number(cards?.opening_card_count || 0) * cardDepositTzs;
   const cardsClosingTzs = Number(cards?.closing_card_count || 0) * cardDepositTzs;
   const cashlessNet = cashless.reduce((s, t: any) => s + (t.direction === "IN" ? Number(t.amount) : -Number(t.amount)), 0);
-  const actualResult = Number(shift.actual_cage_result || ((closingTotal + cardsClosingTzs) - (openingTotal + cardsOpeningTzs) - cashlessNet));
-  const systemResult = Number(shift.system_shift_result || 0);
-  const diff = Number(shift.difference_amount ?? (actualResult - systemResult));
+  const latestCheck = checks.find((c: any) => !(c.denominations as any)?.is_opening);
+  const latestTotals = ((latestCheck?.denominations as any)?.totals || {}) as Record<string, number>;
+  const systemResult = Number(shift.slots_result ?? shift.system_shift_result ?? 0);
+  const expected = Number(latestTotals.expected ?? (openingTotal + systemResult));
+  const counted = Number(shift.actual_cage_result ?? latestTotals.counted ?? closingTotal);
+  const diff = Number(shift.difference_amount ?? latestTotals.difference ?? (counted - expected));
+  const cardsMiss = Number(shift.cards_miss ?? ((Number(cards?.opening_card_count || 0) - Number(cards?.closing_card_count || 0)) * cardDepositTzs));
+  const balance = Number(shift.balance ?? latestTotals.balance ?? (diff - cardsMiss));
 
   return (
     <PageShell className="print-target">
@@ -111,12 +117,14 @@ const CageSlotsReport = () => {
 
       <PageSection title="Balance Calculation">
         <div className="grid grid-cols-2 gap-3 text-sm font-mono">
-          <Field label="Opening Total (TZS)" value={formatNumberSpaces(openingTotal + cardsOpeningTzs)} />
-          <Field label="Closing Total (TZS)" value={formatNumberSpaces(closingTotal + cardsClosingTzs)} />
+          <Field label="Opening (TZS)" value={formatNumberSpaces(openingTotal)} />
+          <Field label="Expected" value={formatNumberSpaces(expected)} />
+          <Field label="Count" value={formatNumberSpaces(counted)} />
           <Field label="Cashless Net" value={(cashlessNet >= 0 ? "+" : "") + formatNumberSpaces(cashlessNet)} />
-          <Field label="Actual Cage Result" value={(actualResult >= 0 ? "+" : "") + formatNumberSpaces(actualResult)} />
           <Field label="System Result" value={(systemResult >= 0 ? "+" : "") + formatNumberSpaces(systemResult)} />
-          <Field label="Difference" value={(diff >= 0 ? "+" : "") + formatNumberSpaces(diff)} emphasize />
+          <Field label="Difference" value={(diff >= 0 ? "+" : "") + formatNumberSpaces(diff)} />
+          <Field label="Cards Miss" value={(cardsMiss >= 0 ? "+" : "") + formatNumberSpaces(cardsMiss)} />
+          <Field label="Balance" value={(balance >= 0 ? "+" : "") + formatNumberSpaces(balance)} emphasize />
         </div>
       </PageSection>
 
