@@ -12,6 +12,7 @@ const CashCountGrid = ({
   chipPlaceholder,
   rates,
   hideChips = false,
+  hideMobile = false,
 }: {
   chips: Record<number, number>;
   onChipsChange: (v: Record<number, number>) => void;
@@ -25,6 +26,8 @@ const CashCountGrid = ({
   rates?: Record<string, number>;
   /** Hide the TZS Chips column when chips are entered elsewhere (e.g. Close Shift). */
   hideChips?: boolean;
+  /** Hide the Mobile Money block (e.g. Cage Slots derives it from Cashless IN/OUT). */
+  hideMobile?: boolean;
 }) => {
   const mobTotal = mobileTotal(mobile);
   const banksTzsTotal = (banks.tzs || 0) + (banks.usd || 0) * (rates?.["USD"] || 0);
