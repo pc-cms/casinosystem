@@ -24,7 +24,8 @@ export const useLastClosedShift = () => {
       return data;
     },
     enabled: !!casinoId,
-    staleTime: 60_000,
+    staleTime: 0,
+    refetchOnMount: "always",
   });
 };
 
@@ -297,6 +298,7 @@ export const useCloseShift = () => {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["active-shift"] });
+      qc.invalidateQueries({ queryKey: ["last-closed-shift"] });
       toast.success(navigator.onLine ? "Shift closed" : "Shift queued for sync — requires manager review on reconnect");
     },
     onError: (e) => toast.error(e.message),
