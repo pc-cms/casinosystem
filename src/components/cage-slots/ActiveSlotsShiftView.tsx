@@ -180,8 +180,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
     systemResult,
   }), [openingCashTzs, closingCashTzs, expensesApproved, transfersAgg, cashlessIn, cashlessOut, openingCardsCount, closingCards, cardDepositTzs, systemResult]);
 
-  const { deltaCash, cashDeskResult, cardsMiss, expected, counted, difference, balance: shiftBalance } = balance;
-  const adjustmentsTotal = cashDeskResult - closingCashTzs;
+  const { deltaCash, cashDeskResult, cardsMiss, shiftBalance } = balance;
 
   // "Balance" tile shows the value from the LATEST check snapshot — not live.
   // Empty till (closing cash = 0) is a valid state and yields a negative balance.
