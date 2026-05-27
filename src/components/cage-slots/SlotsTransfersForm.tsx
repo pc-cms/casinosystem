@@ -1,12 +1,12 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { NumberInput } from "@/components/ui/number-input";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeftRight, Banknote, HandCoins, ArrowDownLeft, ArrowUpRight, Check, Clock } from "lucide-react";
+import { ArrowLeftRight, Banknote, HandCoins, ArrowDownLeft, ArrowUpRight } from "lucide-react";
 import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
 import {
-  useSlotsTransfers, useCreateSlotsTransfer, useApproveSlotsTransfer,
+  useSlotsTransfers, useCreateSlotsTransfer,
   SLOTS_TRANSFER_LABEL, type SlotsTransferType,
 } from "@/hooks/use-cage-slots-transfers";
 import { useActiveShift } from "@/hooks/use-shift";
