@@ -39,12 +39,13 @@ const CageSlotsReport = () => {
   const latestCheck = checks.find((c: any) => !(c.denominations as any)?.is_opening);
   const latestTotals = ((latestCheck?.denominations as any)?.totals || {}) as Record<string, number>;
   const systemResult = Number(shift.slots_result ?? shift.system_shift_result ?? 0);
+  const countCash = Number((latestCheck as any)?.total_tzs ?? latestTotals.total_tzs ?? closingTotal);
   const expected = Number(latestTotals.expected ?? (openingTotal + systemResult));
   const counted = Number(shift.actual_cage_result ?? latestTotals.counted ?? closingTotal);
   const diff = Number(shift.difference_amount ?? latestTotals.difference ?? (counted - expected));
   const cardsMiss = Number(shift.cards_miss ?? ((Number(cards?.opening_card_count || 0) - Number(cards?.closing_card_count || 0)) * cardDepositTzs));
   const balance = Number(shift.balance ?? latestTotals.balance ?? (diff - cardsMiss));
-  const adjustments = counted - closingTotal;
+  const adjustments = counted - countCash;
 
   return (
     <PageShell className="print-target">
@@ -120,7 +121,7 @@ const CageSlotsReport = () => {
         <div className="grid grid-cols-2 gap-3 text-sm font-mono">
           <Field label="Opening (TZS)" value={formatNumberSpaces(openingTotal)} />
           <Field label="System Result" value={(systemResult >= 0 ? "+" : "") + formatNumberSpaces(systemResult)} />
-          <Field label="Count Cash" value={formatNumberSpaces(closingTotal)} />
+          <Field label="Count Cash" value={formatNumberSpaces(countCash)} />
           <Field label="Adjustments" value={(adjustments >= 0 ? "+" : "") + formatNumberSpaces(adjustments)} />
           <Field label="Cashless Net" value={(cashlessNet >= 0 ? "+" : "") + formatNumberSpaces(cashlessNet)} />
           <Field label="Balance Before Cards" value={(diff >= 0 ? "+" : "") + formatNumberSpaces(diff)} />
