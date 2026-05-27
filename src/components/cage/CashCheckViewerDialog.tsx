@@ -125,9 +125,14 @@ const CashCheckViewerDialog = ({
   const expected = Number(t.expected ?? 0);
   const counted = Number(t.counted ?? Number(check.total));
   const diff = Number(t.difference ?? counted - expected);
-  const physicalCount = Number(check.total ?? t.total_tzs ?? 0);
-  const adjustments = counted - physicalCount;
-  const slotsBalance = Number(t.balance ?? diff);
+
+  // Slots canonical fields
+  const deltaCash = Number(t.delta_cash ?? 0);
+  const cashDeskResult = Number(t.cash_desk_result ?? 0);
+  const slotsSystem = Number(t.slots_result ?? 0);
+  const slotsCardsMiss = Number(t.cards_miss ?? 0);
+  const slotsBalance = Number(t.shift_balance ?? t.balance ?? 0);
+
   const balanced = !!t.balanced || diff === 0;
   const isOpening = !!t.is_opening;
   const isClosing = !!t.is_closing;
@@ -137,6 +142,18 @@ const CashCheckViewerDialog = ({
     timeZone: "Africa/Dar_es_Salaam",
     day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit",
   });
+
+  const SlotsStat = ({ label, value, signed, emphasize }: { label: string; value: number; signed?: boolean; emphasize?: boolean }) => {
+    const cls = value < 0 ? "text-destructive" : value > 0 && signed ? "text-success" : "text-card-foreground";
+    return (
+      <div className="text-center">
+        <p className="text-[10px] uppercase text-muted-foreground tracking-wider">{label}</p>
+        <p className={`font-mono ${emphasize ? "text-2xl font-bold" : "text-base font-semibold"} ${cls} whitespace-nowrap`}>
+          {signed && value > 0 ? "+" : ""}{formatCurrency(value)}
+        </p>
+      </div>
+    );
+  };
 
   return (
     <ResponsiveDialog
@@ -148,45 +165,38 @@ const CashCheckViewerDialog = ({
     >
       <div className="space-y-4">
         {/* Totals strip */}
-        <div className="grid grid-cols-3 gap-2 cms-panel p-4">
-          {balanceMode === "slots" ? (
-            <>
-              <div className="text-center">
-                <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Count Cash</p>
-                <p className="font-mono text-2xl font-bold text-card-foreground whitespace-nowrap">{formatCurrency(physicalCount)}</p>
-              </div>
-              <div className="text-center">
-                <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Adjustments</p>
-                <p className={`font-mono text-2xl font-bold whitespace-nowrap ${adjustments < 0 ? "text-destructive" : adjustments > 0 ? "text-success" : "text-card-foreground"}`}>
-                  {adjustments > 0 ? "+" : ""}{formatCurrency(adjustments)}
-                </p>
-              </div>
-              <div className="text-center">
-                <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Balance</p>
-                <p className={`font-mono text-2xl font-bold whitespace-nowrap ${slotsBalance < 0 ? "text-destructive" : slotsBalance > 0 ? "text-success" : "text-card-foreground"}`}>
-                  {slotsBalance > 0 ? "+" : ""}{formatCurrency(slotsBalance)}
-                </p>
-              </div>
-            </>
-          ) : (
-            <>
-          <div className="text-center">
-            <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Expected</p>
-            <p className="font-mono text-2xl font-bold text-card-foreground whitespace-nowrap">{formatCurrency(expected)}</p>
+        {balanceMode === "slots" ? (
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-2 cms-panel p-4">
+            <SlotsStat label="ΔCash" value={deltaCash} signed />
+            <SlotsStat label="Cash Desk Result" value={cashDeskResult} signed emphasize />
+            <SlotsStat label="System Result" value={slotsSystem} signed />
+            <SlotsStat label="Cards Miss" value={slotsCardsMiss} signed />
+            <div className="md:col-span-2 text-center rounded-md border-2 border-primary/40 bg-primary/5 p-2">
+              <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Shift Balance</p>
+              <p className={`font-mono text-2xl font-bold whitespace-nowrap ${slotsBalance < 0 ? "text-destructive" : slotsBalance > 0 ? "text-success" : "text-card-foreground"}`}>
+                {slotsBalance > 0 ? "+" : ""}{formatCurrency(slotsBalance)}
+              </p>
+              <p className="text-[9px] text-muted-foreground mt-0.5">CDR − System − Cards Miss</p>
+            </div>
           </div>
-          <div className="text-center">
-            <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Counted</p>
-            <p className="font-mono text-2xl font-bold text-card-foreground whitespace-nowrap">{formatCurrency(counted)}</p>
+        ) : (
+          <div className="grid grid-cols-3 gap-2 cms-panel p-4">
+            <div className="text-center">
+              <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Expected</p>
+              <p className="font-mono text-2xl font-bold text-card-foreground whitespace-nowrap">{formatCurrency(expected)}</p>
+            </div>
+            <div className="text-center">
+              <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Counted</p>
+              <p className="font-mono text-2xl font-bold text-card-foreground whitespace-nowrap">{formatCurrency(counted)}</p>
+            </div>
+            <div className="text-center">
+              <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Diff</p>
+              <p className={`font-mono text-2xl font-bold whitespace-nowrap ${balanced ? "text-success" : "text-destructive"}`}>
+                {balanced ? "Balanced" : `${diff >= 0 ? "+" : ""}${formatCurrency(diff)}`}
+              </p>
+            </div>
           </div>
-          <div className="text-center">
-            <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Diff</p>
-            <p className={`font-mono text-2xl font-bold whitespace-nowrap ${balanced ? "text-success" : "text-destructive"}`}>
-              {balanced ? "Balanced" : `${diff >= 0 ? "+" : ""}${formatCurrency(diff)}`}
-            </p>
-          </div>
-            </>
-          )}
-        </div>
+        )}
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
           {/* Column 1: TZS Chips + TZS Cash */}
