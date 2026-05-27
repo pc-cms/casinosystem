@@ -239,9 +239,6 @@ const TransfersForm = ({ shiftId, tables }: Props) => {
                 const opt = TYPE_MAP.get(t);
                 const positive = opt?.direction === "in";
                 const tone = opt?.tone;
-                const anyTr = tr as any;
-                const needsApprove = !!anyTr.requires_approval && !anyTr.approved_at;
-                const approved = !!anyTr.approved_at;
                 return (
                   <tr key={tr.id} className={`border-b border-border last:border-0 ${positive ? "bg-emerald-500/5" : "bg-red-500/5"}`}>
                     <td className="px-3 py-2">
@@ -256,15 +253,7 @@ const TransfersForm = ({ shiftId, tables }: Props) => {
                       {positive ? "+" : "−"}{formatNumberSpaces(Number(tr.amount))}
                     </td>
                     <td className="px-3 py-2 text-xs text-muted-foreground truncate max-w-[180px]">
-                      {needsApprove ? (
-                        <ApproveSlotsLinkedButton transferId={tr.id} counterpartId={anyTr.counterpart_slots_transfer_id} />
-                      ) : approved ? (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-500">
-                          <Check className="w-3 h-3" /> Approved
-                        </span>
-                      ) : (
-                        <span>{tr.note || "—"}</span>
-                      )}
+                      {tr.note || "—"}
                     </td>
                     <td className="px-3 py-2 text-right font-mono text-xs text-muted-foreground">
                       {new Date(tr.created_at).toLocaleTimeString("en-GB", { timeZone: "Africa/Dar_es_Salaam", hour: "2-digit", minute: "2-digit" })}
