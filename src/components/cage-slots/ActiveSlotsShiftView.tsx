@@ -460,7 +460,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
                 Cashier has submitted the closing. A manager must authenticate to close this shift.
               </p>
               <div className="grid grid-cols-3 gap-3 mt-3 max-w-md">
-                <Stat label="Cash Desk" value={cashDeskResult} signed />
+                <Stat label="Count" value={counted} />
                 <Stat label="Slots" value={systemResult} signed />
                 <Stat label="Balance" value={shiftBalance} signed emphasize />
               </div>
@@ -755,7 +755,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
             <div className="bg-card border border-border rounded-md shadow-lg p-4 max-w-md w-full space-y-3" onClick={e => e.stopPropagation()}>
               <h3 className="font-semibold">Approve & Close Slots Shift</h3>
               <div className="grid grid-cols-3 gap-2 text-xs">
-                <Stat label="Cash Desk" value={cashDeskResult} signed />
+                <Stat label="Count" value={counted} />
                 <Stat label="Slots" value={systemResult} signed />
                 <Stat label="Balance" value={shiftBalance} signed emphasize />
               </div>
