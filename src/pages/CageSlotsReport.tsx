@@ -39,17 +39,31 @@ const CageSlotsReport = () => {
   const cardDepositTzs = Number(cards?.card_deposit_value_tzs || 5000);
   const cardsOpeningTzs = Number(cards?.opening_card_count || 0) * cardDepositTzs;
   const cardsClosingTzs = Number(cards?.closing_card_count || 0) * cardDepositTzs;
-  const cashlessNet = cashless.reduce((s, t: any) => s + (t.direction === "IN" ? Number(t.amount) : -Number(t.amount)), 0);
+  const cashlessIn = cashless.reduce((s, t: any) => s + (t.direction === "IN" ? Number(t.amount) : 0), 0);
+  const cashlessOut = cashless.reduce((s, t: any) => s + (t.direction === "OUT" ? Number(t.amount) : 0), 0);
   const latestCheck = checks.find((c: any) => !(c.denominations as any)?.is_opening);
   const latestTotals = ((latestCheck?.denominations as any)?.totals || {}) as Record<string, number>;
+
+  // Pull closing cash from latest check (includes banks + mobile), else inventory.
+  const closingCash = Number(latestTotals.total_tzs ?? closingTotal);
+
+  // Transfers + expenses (canonical Live Game inputs)
+  const txAgg = transfers.reduce((acc: any, t: any) => {
+    acc[t.transfer_type] = (acc[t.transfer_type] || 0) + Number(t.amount || 0);
+    return acc;
+  }, { fill: 0, collection: 0, lg_in: 0, lg_out: 0 } as Record<string, number>);
+  const expensesTotal = expenses.filter((e: any) => e.approved).reduce((s: number, e: any) => s + Number(e.amount || 0), 0);
+
   const systemResult = Number(shift.slots_result ?? shift.system_shift_result ?? 0);
-  const countCash = Number((latestCheck as any)?.total_tzs ?? latestTotals.total_tzs ?? closingTotal);
-  const expected = Number(latestTotals.expected ?? (openingTotal + systemResult));
-  const counted = Number(shift.actual_cage_result ?? latestTotals.counted ?? closingTotal);
-  const diff = Number(shift.difference_amount ?? latestTotals.difference ?? (counted - expected));
+  const deltaCash = closingCash - openingTotal;
+  const cashDeskResult = Number(
+    shift.cash_desk_result
+    ?? latestTotals.cash_desk_result
+    ?? (deltaCash + expensesTotal + txAgg.collection - txAgg.fill
+        + txAgg.lg_out - txAgg.lg_in + cashlessOut - cashlessIn)
+  );
   const cardsMiss = Number(shift.cards_miss ?? ((Number(cards?.opening_card_count || 0) - Number(cards?.closing_card_count || 0)) * cardDepositTzs));
-  const balance = Number(shift.balance ?? latestTotals.balance ?? (diff - cardsMiss));
-  const adjustments = counted - countCash;
+  const balance = Number(shift.balance ?? latestTotals.shift_balance ?? latestTotals.balance ?? (cashDeskResult - systemResult - cardsMiss));
 
   return (
     <PageShell className="print-target">
