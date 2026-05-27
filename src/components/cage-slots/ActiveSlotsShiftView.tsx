@@ -104,6 +104,10 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
   const [cashlessFinalInput, setCashlessFinalInput] = useState<string>(
     (shift as any).cashless_final?.toString() ?? "",
   );
+  // Cashless manual entry blocks (IN / OUT / FINAL) — providers, not auto-populated from Cashless page.
+  const [cashlessInProviders, setCashlessInProviders] = useState<MobileProviders>(emptyMobile());
+  const [cashlessOutProviders, setCashlessOutProviders] = useState<MobileProviders>(emptyMobile());
+  const [cashlessFinalProviders, setCashlessFinalProviders] = useState<MobileProviders>(emptyMobile());
   const [cashierNote, setCashierNote] = useState<string>(shift.cashier_note || "");
 
   // Hydrate closing from persisted closing inventory + cards
