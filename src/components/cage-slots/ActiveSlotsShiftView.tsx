@@ -17,6 +17,7 @@ import CashDenomInput, { cashSum } from "@/components/cage/CashDenomInput";
 import CashCountGrid from "@/components/cage/CashCountGrid";
 import {
   emptyBanks, emptyMobile, mobileTotal, bankTotalTzs,
+  MOBILE_PROVIDERS,
   type Banks, type MobileProviders,
 } from "@/components/cage/CageHelpers";
 import {
