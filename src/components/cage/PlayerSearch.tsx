@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect, useMemo, useLayoutEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Pencil } from "lucide-react";
 import { useSelectedPlayer } from "@/hooks/use-selected-player";
