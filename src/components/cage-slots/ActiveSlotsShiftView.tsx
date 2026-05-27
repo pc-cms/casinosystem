@@ -886,4 +886,49 @@ const Stat = ({ label, value, signed, emphasize }: { label: string; value: numbe
   </div>
 );
 
+const CashlessProvidersBlock = ({
+  title, values, onChange, disabled, onBlur, tone = "default",
+}: {
+  title: string;
+  values: MobileProviders;
+  onChange: (v: MobileProviders) => void;
+  disabled?: boolean;
+  onBlur?: () => void;
+  tone?: "default" | "in" | "out" | "final";
+}) => {
+  const total = mobileTotal(values);
+  const toneCls =
+    tone === "in"    ? "border-emerald-500/40" :
+    tone === "out"   ? "border-rose-500/40"    :
+    tone === "final" ? "border-primary/50 bg-primary/5" :
+                       "border-border";
+  const row = "flex items-center gap-2";
+  const chip = "cms-chip text-[10px] bg-muted text-foreground h-7 w-16 shrink-0 justify-center";
+  const input = "no-spin font-mono text-sm h-8 w-24 flex-1 min-w-0 rounded border border-border bg-background px-2 text-right text-foreground focus:outline-none focus:ring-1 focus:ring-primary";
+  return (
+    <section className={`rounded-xl border ${toneCls} bg-background/40 p-3 flex flex-col`}>
+      <p className="text-xs font-bold text-foreground uppercase tracking-[0.22em] mb-2">{title}</p>
+      <div className="space-y-1">
+        {MOBILE_PROVIDERS.map(provider => (
+          <div key={provider} className={row}>
+            <span className={chip}>{provider}</span>
+            <NumberInput
+              value={values[provider] || ""}
+              onChange={v => onChange({ ...values, [provider]: Number(v) || 0 })}
+              onBlur={onBlur}
+              className={input}
+              placeholder="0"
+              disabled={disabled}
+            />
+          </div>
+        ))}
+      </div>
+      <div className="flex items-center justify-between gap-2 pt-2 mt-2 border-t border-border">
+        <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Total</span>
+        <span className="font-mono text-sm font-bold text-card-foreground whitespace-nowrap">TZS {formatNumberSpaces(total)}</span>
+      </div>
+    </section>
+  );
+};
+
 export default ActiveSlotsShiftView;
