@@ -39,7 +39,7 @@ const CHECKS: Check[] = [
   // ── Business day ──────────────────────────────────────────────────────
   { name: "business_day_closures.list",      path: "business_day_closures?select=id,business_date&limit=1" },
   // ── RPCs (the ones the UI calls constantly) ───────────────────────────
-  { name: "rpc.get_current_business_date",   path: "rpc/get_current_business_date", method: "POST", body: "{}" },
+  { name: "rpc.get_current_business_date",   path: "rpc/get_current_business_date", method: "POST", body: '{"_casino_id":"00000000-0000-0000-0000-000000000000"}' },
   // ── Auth-side surfaces ────────────────────────────────────────────────
   { name: "profiles.list",                   path: "profiles?select=id,display_name&limit=1" },
   { name: "user_roles.list",                 path: "user_roles?select=id,role&limit=1" },
