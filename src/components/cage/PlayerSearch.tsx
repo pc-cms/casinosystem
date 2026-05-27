@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect, useMemo, useLayoutEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Pencil } from "lucide-react";
 import { useSelectedPlayer } from "@/hooks/use-selected-player";
@@ -30,6 +30,8 @@ const PlayerSearch = ({ players, value, onChange, placeholder = "Search playerâ€
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const dropRef = useRef<HTMLDivElement>(null);
+  const [dropUp, setDropUp] = useState(false);
   const [highlightIdx, setHighlightIdx] = useState(0);
   const { select: selectPlayer } = useSelectedPlayer();
 
@@ -64,6 +66,18 @@ const PlayerSearch = ({ players, value, onChange, placeholder = "Search playerâ€
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
+
+  useLayoutEffect(() => {
+    if (!open) { setDropUp(false); return; }
+    const anchor = ref.current;
+    const pop = dropRef.current;
+    if (!anchor || !pop) return;
+    const r = anchor.getBoundingClientRect();
+    const popH = pop.offsetHeight;
+    const spaceBelow = window.innerHeight - r.bottom - 8;
+    const spaceAbove = r.top - 8;
+    setDropUp(popH > spaceBelow && spaceAbove > spaceBelow);
+  }, [open, filtered.length]);
 
   const handleSelect = (id: string) => {
     onChange(id);
@@ -101,7 +115,8 @@ const PlayerSearch = ({ players, value, onChange, placeholder = "Search playerâ€
         />
       )}
       {open && filtered.length > 0 && (
-        <div className="absolute z-50 w-full mt-1 max-h-48 overflow-y-auto rounded-md border border-border bg-popover shadow-lg">
+        <div ref={dropRef} className={`absolute z-50 w-full max-h-48 overflow-y-auto rounded-md border border-border bg-popover shadow-lg ${dropUp ? "bottom-full mb-1" : "mt-1"}`}>
+
           {filtered.map((p, i) => (
             <div
               key={p.id}
@@ -134,7 +149,7 @@ const PlayerSearch = ({ players, value, onChange, placeholder = "Search playerâ€
         </div>
       )}
       {open && filtered.length === 0 && query && (
-        <div className="absolute z-50 w-full mt-1 rounded-md border border-border bg-popover p-3 text-center text-xs text-muted-foreground">
+        <div className={`absolute z-50 w-full rounded-md border border-border bg-popover p-3 text-center text-xs text-muted-foreground ${dropUp ? "bottom-full mb-1" : "mt-1"}`}>
           No players found
         </div>
       )}

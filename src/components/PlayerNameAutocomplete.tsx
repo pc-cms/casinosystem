@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, useEffect } from "react";
+import { useMemo, useRef, useState, useEffect, useLayoutEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { usePlayers } from "@/hooks/use-players";
 import { cn } from "@/lib/utils";
@@ -22,6 +22,8 @@ export const PlayerNameAutocomplete = ({ value, onChange, placeholder, disabled,
   const [open, setOpen] = useState(false);
   const [activeIdx, setActiveIdx] = useState(0);
   const wrapRef = useRef<HTMLDivElement>(null);
+  const dropRef = useRef<HTMLDivElement>(null);
+  const [dropUp, setDropUp] = useState(false);
 
   // Build canonical labels for every player in the base
   const allLabels = useMemo(() => {
@@ -66,6 +68,18 @@ export const PlayerNameAutocomplete = ({ value, onChange, placeholder, disabled,
     return () => document.removeEventListener("mousedown", onDoc);
   }, [value, allLabels, onChange]);
 
+  useLayoutEffect(() => {
+    if (!open) { setDropUp(false); return; }
+    const anchor = wrapRef.current;
+    const pop = dropRef.current;
+    if (!anchor || !pop) return;
+    const r = anchor.getBoundingClientRect();
+    const popH = pop.offsetHeight;
+    const spaceBelow = window.innerHeight - r.bottom - 8;
+    const spaceAbove = r.top - 8;
+    setDropUp(popH > spaceBelow && spaceAbove > spaceBelow);
+  }, [open, suggestions.length]);
+
   const pick = (label: string) => {
     onChange(label);
     setOpen(false);
@@ -95,7 +109,7 @@ export const PlayerNameAutocomplete = ({ value, onChange, placeholder, disabled,
         )}
       />
       {open && !disabled && (
-        <div className="absolute z-50 left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-lg max-h-60 overflow-auto">
+        <div ref={dropRef} className={`absolute z-50 left-0 right-0 bg-popover border border-border rounded-md shadow-lg max-h-60 overflow-auto ${dropUp ? "bottom-full mb-1" : "mt-1"}`}>
           {suggestions.length === 0 ? (
             <div className="px-2.5 py-2 text-xs text-muted-foreground italic">No matching players in database</div>
           ) : suggestions.map((s, i) => (
