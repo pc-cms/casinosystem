@@ -58,12 +58,20 @@ const CageSlotsReport = () => {
   const slotsResult = Number(shift.slots_result ?? latestTotals.slots_result_derived ?? (systemResult - openingTotal - txAgg.fill));
   const deltaCash = closingCash - openingTotal;
   const cardsMiss = Number(shift.cards_miss ?? ((Number(cards?.opening_card_count || 0) - Number(cards?.closing_card_count || 0)) * cardDepositTzs));
-  // New simplified CDR/Balance: only Closing + Ace Fill on the cashier side.
-  const cashDeskResult = Number(shift.cash_desk_result ?? latestTotals.cash_desk_result ?? (closingCash + txAgg.fill));
+  // CDR (Slots) = ΔCash + Expenses + Collection + LG_Out − LG_In
+  const cashDeskResult = Number(
+    shift.cash_desk_result ?? latestTotals.cash_desk_result ??
+    (deltaCash + expensesTotal + txAgg.collection + txAgg.lg_out - txAgg.lg_in),
+  );
   const expected = systemResult - openingTotal;
-  const balance = Number(shift.balance ?? latestTotals.shift_balance ?? latestTotals.balance ?? (cashDeskResult - expected - cardsMiss));
-  // Cashless Balance is the manual entry on the shift (printed only).
-  const cashlessBalance = Number((shift as any).cashless_balance_manual ?? latestTotals.cashless_balance ?? 0);
+  // Shift Balance = (CDR + Ace Fill) − (System − Opening) − Cards Miss
+  const balance = Number(
+    shift.balance ?? latestTotals.shift_balance ?? latestTotals.balance ??
+    ((cashDeskResult + txAgg.fill) - expected - cardsMiss),
+  );
+  // Cashless Balance = IN − OUT (derived). Cashless Final = manual, print only.
+  const cashlessBalance = cashlessIn - cashlessOut;
+  const cashlessFinal = Number((shift as any).cashless_final ?? latestTotals.cashless_final ?? 0);
 
   return (
     <PageShell className="print-target">
@@ -137,10 +145,14 @@ const CageSlotsReport = () => {
             OUT: <span className="cms-amount-negative">−{formatNumberSpaces(cashlessOut)}</span>
           </div>
           <div>
-            Cashless Balance (manual):{" "}
+            Cashless Balance (IN−OUT):{" "}
             <span className={cashlessBalance < 0 ? "cms-amount-negative" : cashlessBalance > 0 ? "cms-amount-positive" : ""}>
               {cashlessBalance > 0 ? "+" : ""}{formatNumberSpaces(cashlessBalance)}
             </span>
+          </div>
+          <div className="text-muted-foreground">
+            Cashless Final (manual · print only):{" "}
+            <span className="text-card-foreground">{formatNumberSpaces(cashlessFinal)}</span>
           </div>
         </div>
       </PageSection>
@@ -149,11 +161,16 @@ const CageSlotsReport = () => {
         <div className="grid grid-cols-2 gap-3 text-sm font-mono">
           <Field label="Opening Cash" value={formatNumberSpaces(openingTotal)} />
           <Field label="Closing Cash" value={formatNumberSpaces(closingCash)} />
-          <Field label="+ Ace Fill (ACE System Fill)" value={formatNumberSpaces(txAgg.fill)} />
+          <Field label="ΔCash (Closing − Opening)" value={(deltaCash >= 0 ? "+" : "") + formatNumberSpaces(deltaCash)} />
+          <Field label="+ Expenses" value={formatNumberSpaces(expensesTotal)} />
+          <Field label="+ Collection" value={formatNumberSpaces(txAgg.collection)} />
+          <Field label="+ LG Out" value={formatNumberSpaces(txAgg.lg_out)} />
+          <Field label="− LG In" value={formatNumberSpaces(txAgg.lg_in)} />
           <Field label="= Cash Desk Result" value={(cashDeskResult >= 0 ? "+" : "") + formatNumberSpaces(cashDeskResult)} emphasize />
+          <Field label="+ Ace Fill (ACE System Fill)" value={formatNumberSpaces(txAgg.fill)} />
           <Field label="System Result" value={(systemResult >= 0 ? "+" : "") + formatNumberSpaces(systemResult)} />
           <Field label="− (System − Opening)" value={(expected >= 0 ? "+" : "") + formatNumberSpaces(expected)} />
-          <Field label="Slots Result" value={(slotsResult >= 0 ? "+" : "") + formatNumberSpaces(slotsResult)} />
+          <Field label="Slots Result (System − Opening − Ace Fill)" value={(slotsResult >= 0 ? "+" : "") + formatNumberSpaces(slotsResult)} />
           <Field label="− Cards Miss" value={(cardsMiss >= 0 ? "+" : "") + formatNumberSpaces(cardsMiss)} />
           <Field label="= Shift Balance" value={(balance >= 0 ? "+" : "") + formatNumberSpaces(balance)} emphasize />
         </div>

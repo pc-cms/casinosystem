@@ -33,30 +33,35 @@ export const computeShiftBalance = (i: CageBalanceInputs): CageBalanceResult => 
 };
 
 /**
- * Cage Slots balance — canonical (simplified) formula.
+ * Cage Slots balance — canonical formula (mirrors DB
+ * `compute_slots_shift_balance_from_row`).
  *
- *   ΔCash             = ClosingCash − OpeningCash
- *   Cash Desk Result  = ClosingCash + Ace Fill         ← what the cashier actually has
- *   Cards Miss        = (OpeningCards − ClosingCards) × CardValue
- *   Slots Result      = System Result − OpeningCash − Ace Fill   ← derived P&L
+ *   ΔCash            = ClosingCash − OpeningCash
+ *   Cash Desk Result = ΔCash + Expenses + Collection + LG_Out − LG_In
+ *   Cards Miss       = (OpeningCards − ClosingCards) × CardValue
+ *   Slots Result     = System Result − OpeningCash − Ace Fill
  *
- *   Shift Balance     = (ClosingCash + Ace Fill)
- *                     − (System Result − OpeningCash)
- *                     − Cards Miss
+ *   Shift Balance    = (Cash Desk Result + Ace Fill)
+ *                    − (System Result − OpeningCash)
+ *                    − Cards Miss
  *
- *   Cashless Balance  = manual entry on the shift, printed on the check only.
- *                       Cashless IN / OUT are informational.
+ *   Cashless Balance = Cashless IN − Cashless OUT   (derived, display only)
+ *   Cashless Final   = manual entry, PRINT ONLY — never used in any formula.
  *
  * `systemResult` is entered MANUALLY by the slots cashier (raw system readout).
- * Expenses / Collection / LG transfers do NOT affect the slots shift balance.
+ * `addFloat` = Ace Fill (ACE System Fill).
  */
 export type SlotsBalanceInputs = {
   openingCash: number;
   closingCash: number;
+  expenses: number;
+  collection: number;
   addFloat: number;        // Ace Fill (ACE System Fill)
-  cashlessIn: number;      // display only
-  cashlessOut: number;     // display only
-  cashlessBalanceManual: number; // manual entry, printed on check
+  lgIn: number;
+  lgOut: number;
+  cashlessIn: number;
+  cashlessOut: number;
+  cashlessFinal: number;   // manual entry, print only — not used in calcs
   openingCards: number;
   closingCards: number;
   cardValue: number;
@@ -65,28 +70,32 @@ export type SlotsBalanceInputs = {
 
 export type SlotsBalanceResult = {
   deltaCash: number;
-  cashDeskResult: number;  // ClosingCash + Ace Fill
+  cashDeskResult: number;  // ΔCash + Expenses + Collection + LG_Out − LG_In
   cardsMiss: number;
   slotsResult: number;     // derived: systemResult − openingCash − addFloat
   systemResult: number;    // raw manual entry (passthrough)
-  cashlessBalance: number; // manual entry passthrough (display only)
+  cashlessBalance: number; // derived: IN − OUT (display)
+  cashlessFinal: number;   // manual passthrough (print only)
+  expected: number;        // systemResult − openingCash
   shiftBalance: number;
 };
 
 export const computeSlotsShiftBalance = (i: SlotsBalanceInputs): SlotsBalanceResult => {
   const deltaCash = i.closingCash - i.openingCash;
-  const cashDeskResult = i.closingCash + i.addFloat;
+  const cashDeskResult = deltaCash + i.expenses + i.collection + i.lgOut - i.lgIn;
   const cardsMiss = (i.openingCards - i.closingCards) * i.cardValue;
   const slotsResult = i.systemResult - i.openingCash - i.addFloat;
   const expected = i.systemResult - i.openingCash;
-  const shiftBalance = cashDeskResult - expected - cardsMiss;
+  const shiftBalance = (cashDeskResult + i.addFloat) - expected - cardsMiss;
   return {
     deltaCash,
     cashDeskResult,
     cardsMiss,
     slotsResult,
     systemResult: i.systemResult,
-    cashlessBalance: i.cashlessBalanceManual,
+    cashlessBalance: i.cashlessIn - i.cashlessOut,
+    cashlessFinal: i.cashlessFinal,
+    expected,
     shiftBalance,
   };
 };
