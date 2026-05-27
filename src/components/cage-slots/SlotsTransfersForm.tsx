@@ -133,31 +133,22 @@ const SlotsTransfersForm = ({ shiftId }: Props) => {
       <div className="cms-panel">
         <div className="cms-header text-sm font-bold flex items-center justify-between">
           <span>Transfers ({transfers.length})</span>
-          {pendingIncoming > 0 && (
-            <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-500">
-              {pendingIncoming} to approve
-            </span>
-          )}
         </div>
         <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
           <table className="w-full">
             <thead className="sticky top-0 bg-card z-10">
               <tr className="border-b border-border">
-                {["Type", "Amount", "Status", "Note", "Time"].map(h => (
+                {["Type", "Amount", "Note", "Time"].map(h => (
                   <th key={h} className={`text-xs font-bold text-foreground uppercase px-3 py-2 ${h === "Amount" || h === "Time" ? "text-right" : "text-left"}`}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {transfers.length === 0 ? (
-                <tr><td colSpan={5} className="text-center text-muted-foreground text-sm py-6">No transfers yet</td></tr>
+                <tr><td colSpan={4} className="text-center text-muted-foreground text-sm py-6">No transfers yet</td></tr>
               ) : transfers.map(tr => {
                 const opt = TYPE_MAP.get(tr.transfer_type)!;
                 const positive = tr.direction === "in";
-                const pending = tr.requires_approval && !tr.approved_at;
-                // Only "lg_in" (we receive from LG) on slots side needs OUR approval after LG sent.
-                // Wait — slots cashier created the request; in our model the counterpart approves.
-                // So pending here means counterpart (LG) hasn't approved yet → show "Waiting LG".
                 return (
                   <tr key={tr.id} className={`border-b border-border last:border-0 ${positive ? "bg-emerald-500/5" : "bg-red-500/5"}`}>
                     <td className="px-3 py-2">
@@ -167,21 +158,6 @@ const SlotsTransfersForm = ({ shiftId }: Props) => {
                     </td>
                     <td className={`px-3 py-2 text-right font-mono text-sm font-bold ${positive ? "cms-amount-positive" : "cms-amount-negative"}`}>
                       {positive ? "+" : "−"}{formatNumberSpaces(Number(tr.amount))}
-                    </td>
-                    <td className="px-3 py-2 text-left">
-                      {tr.requires_approval ? (
-                        tr.approved_at ? (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-500">
-                            <Check className="w-3 h-3" /> Approved
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-500">
-                            <Clock className="w-3 h-3" /> Waiting LG
-                          </span>
-                        )
-                      ) : (
-                        <span className="text-[10px] text-muted-foreground">—</span>
-                      )}
                     </td>
                     <td className="px-3 py-2 text-xs text-muted-foreground truncate max-w-[160px]">{tr.note || "—"}</td>
                     <td className="px-3 py-2 text-right font-mono text-xs text-muted-foreground">
