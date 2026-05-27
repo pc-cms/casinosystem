@@ -987,7 +987,7 @@ export type Database = {
           cash_desk_result: number | null
           cashier_id: string
           cashier_note: string | null
-          cashless_balance_manual: number
+          cashless_final: number
           casino_id: string
           client_uuid: string | null
           closed_at: string | null
@@ -1016,7 +1016,7 @@ export type Database = {
           cash_desk_result?: number | null
           cashier_id: string
           cashier_note?: string | null
-          cashless_balance_manual?: number
+          cashless_final?: number
           casino_id: string
           client_uuid?: string | null
           closed_at?: string | null
@@ -1045,7 +1045,7 @@ export type Database = {
           cash_desk_result?: number | null
           cashier_id?: string
           cashier_note?: string | null
-          cashless_balance_manual?: number
+          cashless_final?: number
           casino_id?: string
           client_uuid?: string | null
           closed_at?: string | null
