@@ -278,36 +278,5 @@ const TransfersForm = ({ shiftId, tables }: Props) => {
   );
 };
 
-const ApproveSlotsLinkedButton = ({ transferId, counterpartId }: { transferId: string; counterpartId: string | null }) => {
-  const [open, setOpen] = useState(false);
-  const approve = useApproveSlotsTransfer();
-  return (
-    <>
-      <Button
-        size="sm"
-        variant="outline"
-        className="h-6 px-2 gap-1 text-[10px] font-bold border-amber-500/50 text-amber-500 hover:bg-amber-500/15"
-        onClick={() => setOpen(true)}
-        disabled={approve.isPending}
-      >
-        <Clock className="w-3 h-3" /> Approve
-      </Button>
-      <ManagerOverrideDialog
-        open={open}
-        onClose={() => setOpen(false)}
-        onConfirm={() => {
-          // counterpartId is the slots-side row; we approve both sides.
-          if (counterpartId) {
-            approve.mutate({ id: counterpartId, counterpart_lg_id: transferId });
-          }
-          setOpen(false);
-        }}
-        title="Approve Slots Transfer"
-        description="Confirm that the cash from the slots cashier has been received."
-        actionType="CAGE_TRANSFER_APPROVE"
-      />
-    </>
-  );
-};
 
 export default TransfersForm;
