@@ -161,24 +161,32 @@ const CashCheckViewerDialog = ({
     <ResponsiveDialog
       open={open}
       onOpenChange={onOpenChange}
-      title={`Cash Check · ${stamp}${kindTag ? ` · ${kindTag}` : ""}`}
+      title={
+        <span className="flex items-center gap-3">
+          <span>{`Cash Check · ${stamp}${kindTag ? ` · ${kindTag}` : ""}`}</span>
+          {balanceMode === "slots" && (
+            <span className={`font-mono text-xs tabular-nums ${slotsBalance === 0 ? "text-success" : slotsBalance < 0 ? "text-destructive" : "text-success"}`}>
+              {slotsBalance === 0 ? "· Balanced" : `· ${slotsBalance > 0 ? "+" : ""}${formatCurrency(slotsBalance)}`}
+            </span>
+          )}
+        </span>
+      }
       description={cashierName}
       size="4xl"
     >
       <div className="space-y-4">
         {/* Totals strip */}
         {balanceMode === "slots" ? (
-          <div className="grid grid-cols-2 md:grid-cols-6 gap-2 cms-panel p-4">
-            <SlotsStat label="ΔCash" value={deltaCash} signed />
-            <SlotsStat label="Cash Desk Result" value={cashDeskResult} signed emphasize />
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 cms-panel p-4">
+            <SlotsStat label="Cash Count" value={slotsCashCount} emphasize />
             <SlotsStat label="System Result" value={slotsSystem} signed />
-            <SlotsStat label="Cards Miss" value={slotsCardsMiss} signed />
-            <div className="md:col-span-2 text-center rounded-md border-2 border-primary/40 bg-primary/5 p-2">
+            <SlotsStat label="Slot Result" value={slotsDerived} signed />
+            <div className="text-center rounded-md border-2 border-primary/40 bg-primary/5 p-2">
               <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Shift Balance</p>
               <p className={`font-mono text-2xl font-bold whitespace-nowrap ${slotsBalance < 0 ? "text-destructive" : slotsBalance > 0 ? "text-success" : "text-card-foreground"}`}>
                 {slotsBalance > 0 ? "+" : ""}{formatCurrency(slotsBalance)}
               </p>
-              <p className="text-[9px] text-muted-foreground mt-0.5">CDR − System − Cards Miss</p>
+              <p className="text-[9px] text-muted-foreground mt-0.5">CDR − Slot Result − Cards Miss</p>
             </div>
           </div>
         ) : (
@@ -201,11 +209,13 @@ const CashCheckViewerDialog = ({
         )}
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-          {/* Column 1: TZS Chips + TZS Cash */}
+          {/* Column 1: TZS Chips (Live Game only) + TZS Cash */}
           <div className="grid gap-4 content-start">
-            <Section title="TZS Chips" isEmpty={sumValue(chips) === 0}>
-              <ChipsView chips={chips} />
-            </Section>
+            {balanceMode !== "slots" && (
+              <Section title="TZS Chips" isEmpty={sumValue(chips) === 0}>
+                <ChipsView chips={chips} />
+              </Section>
+            )}
             <Section title="TZS Cash" isEmpty={sumValue(cash["TZS"] || {}) === 0}>
               <CashView values={cash["TZS"] || {}} denoms={CASH_DENOMS["TZS"] || []} currency="TZS" />
             </Section>
