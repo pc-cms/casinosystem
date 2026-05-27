@@ -100,6 +100,9 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
   const [systemResultInput, setSystemResultInput] = useState<string>(
     shift.system_shift_result?.toString() ?? "",
   );
+  const [cashlessBalanceInput, setCashlessBalanceInput] = useState<string>(
+    (shift as any).cashless_balance_manual?.toString() ?? "",
+  );
   const [cashierNote, setCashierNote] = useState<string>(shift.cashier_note || "");
 
   // Hydrate closing from persisted closing inventory + cards
