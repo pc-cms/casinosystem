@@ -520,14 +520,14 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
             disabled={shift.status !== "open"}
           />
         </TileCard>
-        <TileCard label="Cashless Balance (TZS)" sub="Manual · print only">
+        <TileCard label="Cashless Final (TZS)" sub="Manual · print only · not used in calculations">
           <NumberInput
-            value={cashlessBalanceInput}
-            onChange={v => setCashlessBalanceInput(String(v))}
+            value={cashlessFinalInput}
+            onChange={v => setCashlessFinalInput(String(v))}
             onBlur={async () => {
               await supabase
                 .from("cage_slots_shifts")
-                .update({ cashless_balance_manual: Number(cashlessBalanceInput) || 0 } as any)
+                .update({ cashless_final: Number(cashlessFinalInput) || 0 } as any)
                 .eq("id", shift.id);
             }}
             className="no-spin h-9 w-full text-center font-mono text-2xl font-bold tabular-nums"
