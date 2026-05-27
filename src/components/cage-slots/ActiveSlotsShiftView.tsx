@@ -758,8 +758,8 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
               <Stat label="System Result" value={systemResult} signed />
               <Stat label="Slots Result" value={slotsResult} signed />
               <Stat label="Cards Miss" value={cardsMiss} signed />
-              <Stat label="Cashless IN" value={cashlessIn} />
-              <Stat label="Cashless OUT" value={cashlessOut} />
+              <Stat label="Cashless IN" value={cashlessInManualTzs} />
+              <Stat label="Cashless OUT" value={cashlessOutManualTzs} />
               <Stat label="Cashless Balance (IN−OUT)" value={cashlessBalance} signed />
               <Stat label="Cashless Final (print only)" value={cashlessFinal} />
             </div>
