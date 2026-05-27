@@ -24,7 +24,8 @@ export const useLastClosedShift = () => {
       return data;
     },
     enabled: !!casinoId,
-    staleTime: 60_000,
+    staleTime: 0,
+    refetchOnMount: "always",
   });
 };
 
