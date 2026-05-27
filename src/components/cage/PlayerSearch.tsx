@@ -67,6 +67,18 @@ const PlayerSearch = ({ players, value, onChange, placeholder = "Search playerâ€
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
+  useLayoutEffect(() => {
+    if (!open) { setDropUp(false); return; }
+    const anchor = ref.current;
+    const pop = dropRef.current;
+    if (!anchor || !pop) return;
+    const r = anchor.getBoundingClientRect();
+    const popH = pop.offsetHeight;
+    const spaceBelow = window.innerHeight - r.bottom - 8;
+    const spaceAbove = r.top - 8;
+    setDropUp(popH > spaceBelow && spaceAbove > spaceBelow);
+  }, [open, filtered.length]);
+
   const handleSelect = (id: string) => {
     onChange(id);
     setOpen(false);
