@@ -29,7 +29,7 @@ export type SlotsTransferRow = {
 };
 
 export const SLOTS_TRANSFER_LABEL: Record<SlotsTransferType, string> = {
-  fill: "Fill",
+  fill: "Ace Fill",
   collection: "Collect",
   lg_in: "Cage LG IN",
   lg_out: "Cage LG OUT",
@@ -78,7 +78,9 @@ export const useCreateSlotsTransfer = () => {
       if (!casinoId || !user) throw new Error("Not authenticated");
 
       const isCross = input.transfer_type === "lg_in" || input.transfer_type === "lg_out";
-      const requiresApproval = isCross && !!input.counterpart_lg_shift_id;
+      // Cross-cage transfers no longer require approval — they are recorded immediately on both sides.
+      const requiresApproval = false;
+      const nowIso = new Date().toISOString();
 
       // 1) Insert slots-side transfer
       const { data: slotsRow, error } = await (supabase as any)
@@ -94,6 +96,8 @@ export const useCreateSlotsTransfer = () => {
           approved_by: input.approved_by,
           counterpart_lg_shift_id: input.counterpart_lg_shift_id ?? null,
           requires_approval: requiresApproval,
+          approved_at: nowIso,
+          approved_by_user: user.id,
         })
         .select()
         .single();
@@ -117,7 +121,9 @@ export const useCreateSlotsTransfer = () => {
             note: input.note ?? "",
             operator_id: user.id,
             approved_by: input.approved_by,
-            requires_approval: true,
+            requires_approval: false,
+            approved_at: nowIso,
+            approved_by_user: user.id,
             counterpart_slots_transfer_id: slotsRow.id,
           })
           .select()

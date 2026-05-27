@@ -1,12 +1,12 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { NumberInput } from "@/components/ui/number-input";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeftRight, Banknote, HandCoins, ArrowDownLeft, ArrowUpRight, Check, Clock } from "lucide-react";
+import { ArrowLeftRight, Banknote, HandCoins, ArrowDownLeft, ArrowUpRight } from "lucide-react";
 import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
 import {
-  useSlotsTransfers, useCreateSlotsTransfer, useApproveSlotsTransfer,
+  useSlotsTransfers, useCreateSlotsTransfer,
   SLOTS_TRANSFER_LABEL, type SlotsTransferType,
 } from "@/hooks/use-cage-slots-transfers";
 import { useActiveShift } from "@/hooks/use-shift";
@@ -22,16 +22,16 @@ const TYPE_OPTIONS: Array<{
   value: SlotsTransferType; label: string; icon: typeof Banknote;
   description: string; needsOverride: boolean; isCross: boolean; tone: Tone;
 }> = [
-  { value: "fill", label: "Fill", icon: Banknote, description: "Cash IN from manager safe",
+  { value: "fill", label: "Ace Fill", icon: Banknote, description: "ACE System Fill — cash IN from manager safe",
     needsOverride: false, isCross: false,
     tone: { bg: "bg-emerald-500/10", text: "text-emerald-400", border: "border-emerald-500/30", activeBg: "bg-emerald-500/15", activeBorder: "border-emerald-500/50" } },
   { value: "collection", label: "Collect", icon: HandCoins, description: "Cash OUT to manager safe",
     needsOverride: true, isCross: false,
     tone: { bg: "bg-red-500/10", text: "text-red-400", border: "border-red-500/30", activeBg: "bg-red-500/15", activeBorder: "border-red-500/50" } },
-  { value: "lg_in", label: "Cage LG IN", icon: ArrowDownLeft, description: "Cash IN from Live Game cage (needs LG approve)",
+  { value: "lg_in", label: "Cage LG IN", icon: ArrowDownLeft, description: "Cash IN from Live Game cage",
     needsOverride: false, isCross: true,
     tone: { bg: "bg-teal-500/10", text: "text-teal-400", border: "border-teal-500/30", activeBg: "bg-teal-500/15", activeBorder: "border-teal-500/50" } },
-  { value: "lg_out", label: "Cage LG OUT", icon: ArrowUpRight, description: "Cash OUT to Live Game cage (needs LG approve)",
+  { value: "lg_out", label: "Cage LG OUT", icon: ArrowUpRight, description: "Cash OUT to Live Game cage",
     needsOverride: false, isCross: true,
     tone: { bg: "bg-orange-500/10", text: "text-orange-400", border: "border-orange-500/30", activeBg: "bg-orange-500/15", activeBorder: "border-orange-500/50" } },
 ];
@@ -43,13 +43,11 @@ const SlotsTransfersForm = ({ shiftId }: Props) => {
   const { data: lgShift } = useActiveShift();
   const { data: transfers = [] } = useSlotsTransfers(shiftId);
   const create = useCreateSlotsTransfer();
-  const approve = useApproveSlotsTransfer();
 
   const [type, setType] = useState<SlotsTransferType>("fill");
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
   const [showOverride, setShowOverride] = useState(false);
-  const [approveOpen, setApproveOpen] = useState<null | { id: string; counterpart: string | null }>(null);
 
   const cfg = TYPE_OPTIONS.find(t => t.value === type)!;
   const finalAmount = Number(amount) || 0;
@@ -75,10 +73,6 @@ const SlotsTransfersForm = ({ shiftId }: Props) => {
     else submit(user.id);
   };
 
-  const pendingIncoming = useMemo(
-    () => transfers.filter(t => t.requires_approval && !t.approved_at && t.transfer_type === "lg_in").length,
-    [transfers],
-  );
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-3 items-stretch">
@@ -126,38 +120,29 @@ const SlotsTransfersForm = ({ shiftId }: Props) => {
 
         {cfg.needsOverride && <p className="text-xs text-warning text-center font-semibold">Manager Override required for {cfg.label}</p>}
         {cfg.isCross && !lgShift && <p className="text-xs text-destructive text-center font-semibold">No open Live Game shift — can't pair</p>}
-        {cfg.isCross && lgShift && <p className="text-[10px] text-muted-foreground text-center">Live Game cashier will need to approve this transfer.</p>}
+        {cfg.isCross && lgShift && <p className="text-[10px] text-muted-foreground text-center">Mirrored automatically to the Live Game cage.</p>}
       </div>
 
       {/* RIGHT — list */}
       <div className="cms-panel">
         <div className="cms-header text-sm font-bold flex items-center justify-between">
           <span>Transfers ({transfers.length})</span>
-          {pendingIncoming > 0 && (
-            <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-500">
-              {pendingIncoming} to approve
-            </span>
-          )}
         </div>
         <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
           <table className="w-full">
             <thead className="sticky top-0 bg-card z-10">
               <tr className="border-b border-border">
-                {["Type", "Amount", "Status", "Note", "Time"].map(h => (
+                {["Type", "Amount", "Note", "Time"].map(h => (
                   <th key={h} className={`text-xs font-bold text-foreground uppercase px-3 py-2 ${h === "Amount" || h === "Time" ? "text-right" : "text-left"}`}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {transfers.length === 0 ? (
-                <tr><td colSpan={5} className="text-center text-muted-foreground text-sm py-6">No transfers yet</td></tr>
+                <tr><td colSpan={4} className="text-center text-muted-foreground text-sm py-6">No transfers yet</td></tr>
               ) : transfers.map(tr => {
                 const opt = TYPE_MAP.get(tr.transfer_type)!;
                 const positive = tr.direction === "in";
-                const pending = tr.requires_approval && !tr.approved_at;
-                // Only "lg_in" (we receive from LG) on slots side needs OUR approval after LG sent.
-                // Wait — slots cashier created the request; in our model the counterpart approves.
-                // So pending here means counterpart (LG) hasn't approved yet → show "Waiting LG".
                 return (
                   <tr key={tr.id} className={`border-b border-border last:border-0 ${positive ? "bg-emerald-500/5" : "bg-red-500/5"}`}>
                     <td className="px-3 py-2">
@@ -167,21 +152,6 @@ const SlotsTransfersForm = ({ shiftId }: Props) => {
                     </td>
                     <td className={`px-3 py-2 text-right font-mono text-sm font-bold ${positive ? "cms-amount-positive" : "cms-amount-negative"}`}>
                       {positive ? "+" : "−"}{formatNumberSpaces(Number(tr.amount))}
-                    </td>
-                    <td className="px-3 py-2 text-left">
-                      {tr.requires_approval ? (
-                        tr.approved_at ? (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-500">
-                            <Check className="w-3 h-3" /> Approved
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-500">
-                            <Clock className="w-3 h-3" /> Waiting LG
-                          </span>
-                        )
-                      ) : (
-                        <span className="text-[10px] text-muted-foreground">—</span>
-                      )}
                     </td>
                     <td className="px-3 py-2 text-xs text-muted-foreground truncate max-w-[160px]">{tr.note || "—"}</td>
                     <td className="px-3 py-2 text-right font-mono text-xs text-muted-foreground">

@@ -180,7 +180,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
     systemResult,
   }), [openingCashTzs, closingCashTzs, expensesApproved, transfersAgg, cashlessIn, cashlessOut, openingCardsCount, closingCards, cardDepositTzs, systemResult]);
 
-  const { deltaCash, cashDeskResult, cardsMiss, slotsResult, shiftBalance } = balance;
+  const { deltaCash, cashDeskResult, cardsMiss, slotsResult, cashlessBalance, shiftBalance } = balance;
 
 
 
@@ -218,6 +218,9 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
           system_result: systemResult,
           slots_result: slotsResult,
           slots_result_derived: slotsResult,
+          cashless_in: cashlessIn,
+          cashless_out: cashlessOut,
+          cashless_balance: cashlessBalance,
           shift_balance: shiftBalance,
           balance: shiftBalance,
         },
@@ -502,7 +505,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
             disabled={shift.status !== "open"}
           />
         </TileCard>
-        <TileCard label="Slots Result (TZS)" sub="System − Opening − Fill" emphasize>
+        <TileCard label="Slots Result (TZS)" sub="System − Opening − Ace Fill" emphasize>
           <p className={`font-mono text-2xl font-bold tabular-nums text-center ${slotsResult < 0 ? "cms-amount-negative" : slotsResult > 0 ? "cms-amount-positive" : ""}`}>
             {slotsResult > 0 ? "+" : ""}{formatNumberSpaces(slotsResult)}
           </p>
@@ -691,6 +694,9 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
               <Stat label="System Result" value={systemResult} signed />
               <Stat label="Slots Result" value={slotsResult} signed />
               <Stat label="Cards Miss" value={cardsMiss} signed />
+              <Stat label="Cashless IN" value={cashlessIn} />
+              <Stat label="Cashless OUT" value={cashlessOut} />
+              <Stat label="Cashless Balance" value={cashlessBalance} signed />
             </div>
 
             <div className="rounded-md border border-primary/40 bg-primary/5 p-3">
