@@ -573,10 +573,11 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
                 onMobileChange={setClosingMobile}
                 rates={rateMap}
                 hideChips
+                hideMobile
               />
             </div>
             <p className="mt-2 text-[10px] text-muted-foreground">
-              Banks &amp; Mobile balances are saved into the next Check (use the Check button at the top).
+              Bank balances are saved into the next Check (use the Check button at the top). Mobile Money is derived from Cashless IN − OUT below.
             </p>
           </div>
 
