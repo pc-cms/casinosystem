@@ -1,45 +1,53 @@
-## Goal
+## Изменения формулы Cage Slots
 
-Use the **exact** Live Game Cash Desk formula in Cage Slots. Only operational difference: **System Result is entered manually** by the slots cashier (no chip derivation).
+### Новая каноническая формула
 
 ```text
 ΔCash            = ClosingCash − OpeningCash
-Cash Desk Result = ΔCash + Expenses + Collection − AddFloat
+Cash Desk Result = ΔCash + Expenses + Collection − AddFloat (Fill)
                  + LG_Out − LG_In + Cashless_Out − Cashless_In
-Shift Balance    = Cash Desk Result − System Result − Cards Miss
+Cards Miss       = (OpeningCards − ClosingCards) × CardValue
+Slots Result     = System Result − OpeningCash − AddFloat (Fill)   ← НОВОЕ
+Shift Balance    = Cash Desk Result − Slots Result − Cards Miss
 ```
 
-No more "Expected / Counted / Adjustments / Difference" terminology — only the canonical: **ΔCash, Cash Desk Result, System Result, Cards Miss, Shift Balance**.
+`Slots Result` — производная величина (нормально может быть отрицательной), отдельно от введённого вручную `System Result`.
 
-## Status
+---
 
-- DB migration: **already applied** (`compute_slots_shift_balance_from_row`, triggers, all existing shifts recalculated).
-- Code changes below need build mode.
-
-## Code changes
+## Что меняем
 
 ### 1. `src/lib/cage-balance.ts`
-Rewrite `computeSlotsShiftBalance` to return canonical shape `{ deltaCash, cashDeskResult, cardsMiss, slotsResult, shiftBalance }` — drop `expected`/`counted`/`difference`/`balance`/`cardsMiss-as-secondary`. Formula = canonical above.
+- В `SlotsBalanceResult` добавить `slotsResultDerived: number`.
+- Считать `slotsResultDerived = systemResult − openingCash − addFloat`.
+- `shiftBalance = cashDeskResult − slotsResultDerived − cardsMiss`.
+- Поле `slotsResult` оставить = `systemResult` для обратной совместимости снапшотов.
 
-### 2. `src/components/cage-slots/ActiveSlotsShiftView.tsx`
-Replace dashboard / preview / approve tiles to show canonical fields:
-- **Opening Cash · Closing Cash · ΔCash**
-- **Expenses, Collection, AddFloat, LG In/Out, Cashless In/Out** (compact strip)
-- **Cash Desk Result** (= computed)
-- **System Result** (manual input — already a NumberInput)
-- **Cards Miss**
-- **Shift Balance** (highlighted) with label `Cash Desk Result − System Result − Cards Miss`
+### 2. `src/components/cage-slots/ActiveSlotsShiftView.tsx` — плитка на «дашборде» смены
+- В верхнем strip (строка из 5 плиток) заменить **Balance (TZS) · Last Check** на **Slots Result (TZS)**:
+  - значение = `slotsResultDerived`, может быть отрицательным;
+  - стили `cms-amount-negative` / `cms-amount-positive`;
+  - подпись `System − Opening − Fill`.
+- Удалить логику `lastCheckBalance` (больше не используется).
+- В Closing Preview и Manager Review добавить строку **Slots Result** рядом с System Result.
+- В снапшоты `totals` (mid-check и closing) писать `slots_result_derived` дополнительно к существующим полям.
 
-Update `recordMidCheck` and `confirmSubmitForReview` snapshot payloads to write only canonical keys (`delta_cash`, `cash_desk_result`, `slots_result`, `cards_miss`, `shift_balance`). Drop `expected/counted/difference`.
-
-### 3. `src/components/cage/CashCheckViewerDialog.tsx`
-When `balanceMode="slots"`, replace the 3-tile strip (Count Cash / Adjustments / Balance) with the canonical Live-Game-style breakdown: **ΔCash, Cash Desk Result, System Result, Cards Miss, Shift Balance**. Read from `totals.cash_desk_result`, `totals.slots_result`, `totals.cards_miss`, `totals.shift_balance` (fallback to `totals.balance`).
+### 3. `src/components/cage/CashCheckViewerDialog.tsx` — режим `balanceMode="slots"`
+- Заменить текущий 6-stat strip на 4 плитки: **Cash Count** · **System Result** · **Slot Result** · **Shift Balance**.
+  - Cash Count = `totals.total_tzs` (наличка).
+  - System Result = `totals.slots_result` (введённое).
+  - Slot Result = `totals.slots_result_derived` (новое).
+  - Shift Balance = `totals.shift_balance` (выделить рамкой, как сейчас).
+- Скрыть секцию **TZS Chips** полностью, когда `balanceMode === "slots"` (в slots cage чипов нет).
+- В компактной шапке диалога рядом со временем выводить `Balance: ±N` (либо `Balanced`, либо знаковая разница) — это и есть «в строке пишем Balance или разницу».
 
 ### 4. `src/components/cage-slots/CageSlotsHistoryView.tsx`
-Columns: **System** · **Cash Desk Result** · **Cards Miss** · **Balance** (drop "Count + Adj").
+- Добавить колонку **Slots Result** (после «System»), стилизованную знаково. Колонки «Cash Desk Result», «Cards Miss», «Balance» оставить.
 
-### 5. `src/pages/CageSlotsReport.tsx`
-Balance Calculation block: list canonical rows only — Opening, Closing, ΔCash, Expenses, Collection, AddFloat, LG In/Out, Cashless In/Out, Cash Desk Result, System Result, Cards Miss, **Shift Balance**.
+### 5. Без изменений
+- DB-триггер `compute_slots_shift_balance_from_row` уже считает `shift_balance = CDR − slots_result − cards_miss`. Поскольку клиент будет писать `slots_result_derived` в `shifts.slots_result`, формула на сервере останется корректной. *(Подтверждаем при реализации: миграция не требуется — клиент закрывает смену с уже вычисленным `slots_result = systemResult − openingCash − fill`.)*
 
-### 6. `package.json`
-Patch bump (1.3.151 → 1.3.152) — backend change.
+### Технические детали
+- Тип `SlotsBalanceResult` расширяется одним полем — все вызовы хука получат его автоматически через destructure.
+- В JSONB `cash_counts.denominations.totals` добавляем ключ `slots_result_derived`; старые чеки без этого ключа графятся как `0` (graceful fallback).
+- Чисто UI/presentation-изменения, никаких миграций БД и edge-функций. `package.json` патч-бамп НЕ нужен (по правилу: backend без изменений).

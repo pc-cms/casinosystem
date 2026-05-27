@@ -33,13 +33,17 @@ export const computeShiftBalance = (i: CageBalanceInputs): CageBalanceResult => 
 };
 
 /**
- * Cage Slots balance — IDENTICAL canonical Live Game formula. Only difference:
- * `systemResult` is entered MANUALLY by the slots cashier (not chip-derived).
+ * Cage Slots balance — canonical formula.
  *
- *   ΔCash            = ClosingCash − OpeningCash
- *   Cash Desk Result = ΔCash + Expenses + Collection − AddFloat
- *                    + LG_Out − LG_In + Cashless_Out − Cashless_In
- *   Shift Balance    = Cash Desk Result − System Result − Cards Miss
+ *   ΔCash             = ClosingCash − OpeningCash
+ *   Cash Desk Result  = ΔCash + Expenses + Collection − AddFloat (Fill)
+ *                     + LG_Out − LG_In + Cashless_Out − Cashless_In
+ *   Cards Miss        = (OpeningCards − ClosingCards) × CardValue
+ *   Slots Result      = System Result − OpeningCash − AddFloat (Fill)   ← derived P&L
+ *   Shift Balance     = Cash Desk Result − Slots Result − Cards Miss
+ *
+ * `systemResult` is entered MANUALLY by the slots cashier (raw system readout).
+ * `slotsResult` is the derived P&L (can be negative — normal).
  */
 export type SlotsBalanceInputs = {
   openingCash: number;
@@ -61,7 +65,8 @@ export type SlotsBalanceResult = {
   deltaCash: number;
   cashDeskResult: number;
   cardsMiss: number;
-  slotsResult: number;
+  slotsResult: number;   // derived: systemResult − openingCash − addFloat
+  systemResult: number;  // raw manual entry (passthrough)
   shiftBalance: number;
 };
 
@@ -71,7 +76,7 @@ export const computeSlotsShiftBalance = (i: SlotsBalanceInputs): SlotsBalanceRes
     deltaCash + i.expenses + i.collection - i.addFloat
     + i.lgOut - i.lgIn + i.cashlessOut - i.cashlessIn;
   const cardsMiss = (i.openingCards - i.closingCards) * i.cardValue;
-  const slotsResult = i.systemResult;
+  const slotsResult = i.systemResult - i.openingCash - i.addFloat;
   const shiftBalance = cashDeskResult - slotsResult - cardsMiss;
-  return { deltaCash, cashDeskResult, cardsMiss, slotsResult, shiftBalance };
+  return { deltaCash, cashDeskResult, cardsMiss, slotsResult, systemResult: i.systemResult, shiftBalance };
 };

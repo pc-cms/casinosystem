@@ -180,18 +180,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
     systemResult,
   }), [openingCashTzs, closingCashTzs, expensesApproved, transfersAgg, cashlessIn, cashlessOut, openingCardsCount, closingCards, cardDepositTzs, systemResult]);
 
-  const { deltaCash, cashDeskResult, cardsMiss, shiftBalance } = balance;
-
-  // "Balance" tile shows the value from the LATEST check snapshot — not live.
-  // Empty till (closing cash = 0) is a valid state and yields a negative balance.
-  const lastCheckBalance = useMemo(() => {
-    for (const c of checks) {
-      const d: any = c?.denominations || {};
-      const t: any = d?.totals || {};
-      if (typeof t.balance === "number") return t.balance as number;
-    }
-    return 0;
-  }, [checks]);
+  const { deltaCash, cashDeskResult, cardsMiss, slotsResult, shiftBalance } = balance;
 
 
 
@@ -226,7 +215,9 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
           delta_cash: deltaCash,
           cash_desk_result: cashDeskResult,
           cards_miss: cardsMiss,
-          slots_result: systemResult,
+          system_result: systemResult,
+          slots_result: slotsResult,
+          slots_result_derived: slotsResult,
           shift_balance: shiftBalance,
           balance: shiftBalance,
         },
@@ -266,7 +257,9 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
           delta_cash: deltaCash,
           cash_desk_result: cashDeskResult,
           cards_miss: cardsMiss,
-          slots_result: systemResult,
+          system_result: systemResult,
+          slots_result: slotsResult,
+          slots_result_derived: slotsResult,
           shift_balance: shiftBalance,
           balance: shiftBalance,
         },
@@ -359,10 +352,11 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
               <Stat label="ΔCash" value={deltaCash} signed />
               <Stat label="Cash Desk Result" value={cashDeskResult} signed emphasize />
               <Stat label="System Result" value={systemResult} signed />
+              <Stat label="Slots Result" value={slotsResult} signed />
               <Stat label="Cards Miss" value={cardsMiss} signed />
             </div>
             <div className="mt-3 rounded-md border-2 border-primary/40 bg-primary/5 p-3 flex items-center justify-between">
-              <span className="text-xs uppercase text-muted-foreground tracking-wider font-bold">Shift Balance = Cash Desk Result − System Result − Cards Miss</span>
+              <span className="text-xs uppercase text-muted-foreground tracking-wider font-bold">Shift Balance = Cash Desk Result − Slots Result − Cards Miss</span>
               <span className={`font-mono font-bold text-2xl ${shiftBalance < 0 ? "cms-amount-negative" : shiftBalance > 0 ? "cms-amount-positive" : "text-emerald-500"}`}>
                 {shiftBalance === 0 ? "BALANCED · 0" : `${shiftBalance > 0 ? "+" : ""}${formatNumberSpaces(shiftBalance)}`}
               </span>
@@ -459,7 +453,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
               </p>
               <div className="grid grid-cols-3 gap-3 mt-3 max-w-md">
                 <Stat label="Count Cash" value={closingCashTzs} />
-                <Stat label="Slots" value={systemResult} signed />
+                <Stat label="Slots Result" value={slotsResult} signed />
                 <Stat label="Balance" value={shiftBalance} signed emphasize />
               </div>
             </div>
@@ -508,9 +502,9 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
             disabled={shift.status !== "open"}
           />
         </TileCard>
-        <TileCard label="Balance (TZS)" sub="Last Check" emphasize>
-          <p className={`font-mono text-2xl font-bold tabular-nums text-center ${lastCheckBalance < 0 ? "cms-amount-negative" : lastCheckBalance > 0 ? "cms-amount-positive" : ""}`}>
-            {lastCheckBalance > 0 ? "+" : ""}{formatNumberSpaces(lastCheckBalance)}
+        <TileCard label="Slots Result (TZS)" sub="System − Opening − Fill" emphasize>
+          <p className={`font-mono text-2xl font-bold tabular-nums text-center ${slotsResult < 0 ? "cms-amount-negative" : slotsResult > 0 ? "cms-amount-positive" : ""}`}>
+            {slotsResult > 0 ? "+" : ""}{formatNumberSpaces(slotsResult)}
           </p>
         </TileCard>
       </div>
@@ -695,12 +689,13 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
               <Stat label="ΔCash" value={deltaCash} signed />
               <Stat label="Cash Desk Result" value={cashDeskResult} signed emphasize />
               <Stat label="System Result" value={systemResult} signed />
+              <Stat label="Slots Result" value={slotsResult} signed />
               <Stat label="Cards Miss" value={cardsMiss} signed />
             </div>
 
             <div className="rounded-md border border-primary/40 bg-primary/5 p-3">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] uppercase text-muted-foreground tracking-wider">Shift Balance = Cash Desk Result − System Result − Cards Miss</span>
+                <span className="text-[11px] uppercase text-muted-foreground tracking-wider">Shift Balance = Cash Desk Result − Slots Result − Cards Miss</span>
                 <span className={`font-mono font-bold text-lg ${shiftBalance < 0 ? "cms-amount-negative" : shiftBalance > 0 ? "cms-amount-positive" : ""}`}>
                   {shiftBalance > 0 ? "+" : ""}{formatNumberSpaces(shiftBalance)}
                 </span>
@@ -755,7 +750,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
               <h3 className="font-semibold">Approve & Close Slots Shift</h3>
               <div className="grid grid-cols-3 gap-2 text-xs">
                 <Stat label="Count Cash" value={closingCashTzs} />
-                <Stat label="Slots" value={systemResult} signed />
+                <Stat label="Slots Result" value={slotsResult} signed />
                 <Stat label="Balance" value={shiftBalance} signed emphasize />
               </div>
               {needsComment && (
