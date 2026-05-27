@@ -726,12 +726,13 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
               <Stat label="Cards Miss" value={cardsMiss} signed />
               <Stat label="Cashless IN" value={cashlessIn} />
               <Stat label="Cashless OUT" value={cashlessOut} />
-              <Stat label="Cashless Balance" value={cashlessBalance} signed />
+              <Stat label="Cashless Balance (IN−OUT)" value={cashlessBalance} signed />
+              <Stat label="Cashless Final (print only)" value={cashlessFinal} />
             </div>
 
             <div className="rounded-md border border-primary/40 bg-primary/5 p-3">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] uppercase text-muted-foreground tracking-wider">Shift Balance = (Closing + Ace Fill) − (System − Opening) − Cards Miss</span>
+                <span className="text-[11px] uppercase text-muted-foreground tracking-wider">Shift Balance = (CDR + Ace Fill) − (System − Opening) − Cards Miss</span>
                 <span className={`font-mono font-bold text-lg ${shiftBalance < 0 ? "cms-amount-negative" : shiftBalance > 0 ? "cms-amount-positive" : ""}`}>
                   {shiftBalance > 0 ? "+" : ""}{formatNumberSpaces(shiftBalance)}
                 </span>
