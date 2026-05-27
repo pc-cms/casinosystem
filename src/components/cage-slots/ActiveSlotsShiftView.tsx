@@ -750,7 +750,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
               <h3 className="font-semibold">Approve & Close Slots Shift</h3>
               <div className="grid grid-cols-3 gap-2 text-xs">
                 <Stat label="Count Cash" value={closingCashTzs} />
-                <Stat label="Slots" value={systemResult} signed />
+                <Stat label="Slots Result" value={slotsResult} signed />
                 <Stat label="Balance" value={shiftBalance} signed emphasize />
               </div>
               {needsComment && (
