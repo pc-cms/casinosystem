@@ -156,18 +156,8 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
     [slotsExpenses],
   );
 
-  // Opening banks/mobile carry-over (captured into the seed snapshot at shift open).
-  const openingSeed = useMemo(
-    () => checks.find((c: any) => (c?.denominations as any)?.is_opening) as any,
-    [checks],
-  );
-  const openingBanks = (openingSeed?.denominations?.bank || { tzs: 0, usd: 0 }) as Banks;
-  const openingMobile = (openingSeed?.denominations?.mobile || {}) as MobileProviders;
-  const openingBanksTzs = bankTotalTzs(openingBanks, rateMap);
-  const openingMobileTzs = mobileTotal(openingMobile);
-
-  // ΔCash uses cash (all currencies) + banks + mobile — NO cards.
-  const openingCashTzs = openingTotalTzs + openingBanksTzs + openingMobileTzs;
+  // Slots expected starts from the manual opening balance only.
+  const openingCashTzs = openingTotalTzs;
   const closingCashTzs = closingTzsTotal + closingFxTzs
     + bankTotalTzs(closingBanks, rateMap) + mobileTotal(closingMobile);
 
@@ -190,7 +180,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
     systemResult,
   }), [openingCashTzs, closingCashTzs, expensesApproved, transfersAgg, cashlessIn, cashlessOut, openingCardsCount, closingCards, cardDepositTzs, systemResult]);
 
-  const { deltaCash, cashDeskResult, cardsMiss, balance: shiftBalance } = balance;
+  const { deltaCash, cashDeskResult, cardsMiss, expected, counted, difference, balance: shiftBalance } = balance;
 
   // "Balance" tile shows the value from the LATEST check snapshot — not live.
   // Empty till (closing cash = 0) is a valid state and yields a negative balance.
@@ -233,6 +223,9 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
           total_tzs: closingCashTzs,
           bank_tzs: bankTzs,
           mobile_tzs: mobileTzs,
+            expected,
+            counted,
+            difference,
           delta_cash: deltaCash,
           cash_desk_result: cashDeskResult,
           cards_miss: cardsMiss,
@@ -272,6 +265,9 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
         rateMap,
         totals: {
           total_tzs: closingCashTzs,
+            expected,
+            counted,
+            difference,
           delta_cash: deltaCash,
           cash_desk_result: cashDeskResult,
           cards_miss: cardsMiss,
