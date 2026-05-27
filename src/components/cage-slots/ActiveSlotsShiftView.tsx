@@ -36,6 +36,7 @@ import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
 import type { Tables } from "@/integrations/supabase/types";
 import CashCheckViewerDialog from "@/components/cage/CashCheckViewerDialog";
 import { computeSlotsShiftBalance } from "@/lib/cage-balance";
+import { supabase } from "@/integrations/supabase/client";
 
 type Shift = Tables<"cage_slots_shifts">;
 
@@ -99,6 +100,9 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
   const [closingCards, setClosingCards] = useState<number>(cards?.closing_card_count ?? 0);
   const [systemResultInput, setSystemResultInput] = useState<string>(
     shift.system_shift_result?.toString() ?? "",
+  );
+  const [cashlessBalanceInput, setCashlessBalanceInput] = useState<string>(
+    (shift as any).cashless_balance_manual?.toString() ?? "",
   );
   const [cashierNote, setCashierNote] = useState<string>(shift.cashier_note || "");
 
@@ -164,21 +168,20 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
   const openingCardsCount = Number(cards?.opening_card_count || 0);
   const systemResult = Number(systemResultInput) || Number(shift.system_shift_result || 0);
 
+  const cashlessBalanceManual = Number(cashlessBalanceInput) || 0;
+
   const balance = useMemo(() => computeSlotsShiftBalance({
     openingCash: openingCashTzs,
     closingCash: closingCashTzs,
-    expenses: expensesApproved,
-    collection: transfersAgg.collection,
     addFloat: transfersAgg.fill,
-    lgIn: transfersAgg.lg_in,
-    lgOut: transfersAgg.lg_out,
     cashlessIn,
     cashlessOut,
+    cashlessBalanceManual,
     openingCards: openingCardsCount,
     closingCards,
     cardValue: cardDepositTzs,
     systemResult,
-  }), [openingCashTzs, closingCashTzs, expensesApproved, transfersAgg, cashlessIn, cashlessOut, openingCardsCount, closingCards, cardDepositTzs, systemResult]);
+  }), [openingCashTzs, closingCashTzs, transfersAgg.fill, cashlessIn, cashlessOut, cashlessBalanceManual, openingCardsCount, closingCards, cardDepositTzs, systemResult]);
 
   const { deltaCash, cashDeskResult, cardsMiss, slotsResult, cashlessBalance, shiftBalance } = balance;
 
@@ -243,7 +246,11 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
     setShowClosingPreview(true);
   };
 
-  const confirmSubmitForReview = () => {
+  const confirmSubmitForReview = async () => {
+    await supabase
+      .from("cage_slots_shifts")
+      .update({ cashless_balance_manual: cashlessBalanceManual } as any)
+      .eq("id", shift.id);
     setSystem.mutate({ shift_id: shift.id, system_shift_result: Number(systemResultInput) || 0 });
     updateCards.mutate({ shift_id: shift.id, closing_card_count: closingCards });
     submit.mutate({
@@ -263,6 +270,9 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
           system_result: systemResult,
           slots_result: slotsResult,
           slots_result_derived: slotsResult,
+          cashless_in: cashlessIn,
+          cashless_out: cashlessOut,
+          cashless_balance: cashlessBalanceManual,
           shift_balance: shiftBalance,
           balance: shiftBalance,
         },
@@ -473,7 +483,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
       )}
 
       {/* Summary strip — Opening / Cards Open / System (input) / Cards Closing (input) / Cage Result */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-2">
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-2 mb-2">
         <TileCard label="Opening (TZS)">
           <p className="font-mono text-2xl font-bold tabular-nums text-center">{formatNumberSpaces(openingTotalTzs)}</p>
         </TileCard>
@@ -502,6 +512,21 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
             onChange={v => setClosingCards(Number(v) || 0)}
             onBlur={() => updateCards.mutate({ shift_id: shift.id, closing_card_count: closingCards })}
             className="no-spin h-9 w-full text-center font-mono text-2xl font-bold tabular-nums"
+            disabled={shift.status !== "open"}
+          />
+        </TileCard>
+        <TileCard label="Cashless Balance (TZS)" sub="Manual · print only">
+          <NumberInput
+            value={cashlessBalanceInput}
+            onChange={v => setCashlessBalanceInput(String(v))}
+            onBlur={async () => {
+              await supabase
+                .from("cage_slots_shifts")
+                .update({ cashless_balance_manual: Number(cashlessBalanceInput) || 0 } as any)
+                .eq("id", shift.id);
+            }}
+            className="no-spin h-9 w-full text-center font-mono text-2xl font-bold tabular-nums"
+            placeholder="0"
             disabled={shift.status !== "open"}
           />
         </TileCard>
@@ -701,7 +726,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
 
             <div className="rounded-md border border-primary/40 bg-primary/5 p-3">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] uppercase text-muted-foreground tracking-wider">Shift Balance = Cash Desk Result − Slots Result − Cards Miss</span>
+                <span className="text-[11px] uppercase text-muted-foreground tracking-wider">Shift Balance = (Closing + Ace Fill) − (System − Opening) − Cards Miss</span>
                 <span className={`font-mono font-bold text-lg ${shiftBalance < 0 ? "cms-amount-negative" : shiftBalance > 0 ? "cms-amount-positive" : ""}`}>
                   {shiftBalance > 0 ? "+" : ""}{formatNumberSpaces(shiftBalance)}
                 </span>
