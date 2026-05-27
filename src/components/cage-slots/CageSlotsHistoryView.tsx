@@ -31,8 +31,8 @@ const CageSlotsHistoryView = () => {
               <th>Opened</th>
               <th>Closed</th>
               <th className="text-right">System</th>
-              <th className="text-right">Actual</th>
-              <th className="text-right">Difference</th>
+              <th className="text-right">Count + Adj</th>
+              <th className="text-right">Balance</th>
               <th />
             </tr>
           </thead>
@@ -41,7 +41,7 @@ const CageSlotsHistoryView = () => {
               <tr><td colSpan={9} className="text-center text-muted-foreground py-4">·</td></tr>
             )}
             {shifts.map(s => {
-              const diff = Number(s.difference_amount || 0);
+              const balance = Number(s.balance || 0);
               return (
                 <tr key={s.id} className="border-b border-border/50 hover:bg-accent/30">
                   <td className="py-1.5">{fmtDate(s.business_date)}</td>
@@ -51,8 +51,8 @@ const CageSlotsHistoryView = () => {
                   <td className="text-center text-muted-foreground">{s.closed_at ? fmtDateTime(s.closed_at) : "·"}</td>
                   <td className="text-right font-mono">{formatNumberSpaces(Number(s.system_shift_result || 0))}</td>
                   <td className="text-right font-mono">{formatNumberSpaces(Number(s.actual_cage_result || 0))}</td>
-                  <td className={`text-right font-mono ${diff < 0 ? "cms-amount-negative" : diff > 0 ? "cms-amount-positive" : ""}`}>
-                    {diff > 0 ? "+" : ""}{formatNumberSpaces(diff)}
+                  <td className={`text-right font-mono ${balance < 0 ? "cms-amount-negative" : balance > 0 ? "cms-amount-positive" : ""}`}>
+                    {balance > 0 ? "+" : ""}{formatNumberSpaces(balance)}
                   </td>
                   <td className="text-right">
                     <Button variant="ghost" size="sm" onClick={() => navigate(`/cage-slots/report/${s.id}`)} className="gap-1 h-7">
