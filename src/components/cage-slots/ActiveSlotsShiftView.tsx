@@ -189,14 +189,14 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
     addFloat: transfersAgg.fill,
     lgIn: transfersAgg.lg_in,
     lgOut: transfersAgg.lg_out,
-    cashlessIn,
-    cashlessOut,
+    cashlessIn: cashlessInManualTzs,
+    cashlessOut: cashlessOutManualTzs,
     cashlessFinal,
     openingCards: openingCardsCount,
     closingCards,
     cardValue: cardDepositTzs,
     systemResult,
-  }), [openingCashTzs, closingCashTzs, expensesApproved, transfersAgg, cashlessIn, cashlessOut, cashlessFinal, openingCardsCount, closingCards, cardDepositTzs, systemResult]);
+  }), [openingCashTzs, closingCashTzs, expensesApproved, transfersAgg, cashlessInManualTzs, cashlessOutManualTzs, cashlessFinal, openingCardsCount, closingCards, cardDepositTzs, systemResult]);
 
   const { deltaCash, cashDeskResult, cardsMiss, slotsResult, cashlessBalance, shiftBalance } = balance;
 
@@ -236,8 +236,8 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
           system_result: systemResult,
           slots_result: slotsResult,
           slots_result_derived: slotsResult,
-          cashless_in: cashlessIn,
-          cashless_out: cashlessOut,
+          cashless_in: cashlessInManualTzs,
+          cashless_out: cashlessOutManualTzs,
           cashless_balance: cashlessBalance,
           shift_balance: shiftBalance,
           balance: shiftBalance,
@@ -285,8 +285,8 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
           system_result: systemResult,
           slots_result: slotsResult,
           slots_result_derived: slotsResult,
-          cashless_in: cashlessIn,
-          cashless_out: cashlessOut,
+          cashless_in: cashlessInManualTzs,
+          cashless_out: cashlessOutManualTzs,
           cashless_balance: cashlessBalance,
           cashless_final: cashlessFinal,
           shift_balance: shiftBalance,
@@ -758,8 +758,8 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
               <Stat label="System Result" value={systemResult} signed />
               <Stat label="Slots Result" value={slotsResult} signed />
               <Stat label="Cards Miss" value={cardsMiss} signed />
-              <Stat label="Cashless IN" value={cashlessIn} />
-              <Stat label="Cashless OUT" value={cashlessOut} />
+              <Stat label="Cashless IN" value={cashlessInManualTzs} />
+              <Stat label="Cashless OUT" value={cashlessOutManualTzs} />
               <Stat label="Cashless Balance (IN−OUT)" value={cashlessBalance} signed />
               <Stat label="Cashless Final (print only)" value={cashlessFinal} />
             </div>
