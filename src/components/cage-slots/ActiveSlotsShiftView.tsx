@@ -601,6 +601,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
             open={!!viewerCheck}
             onOpenChange={(o) => { if (!o) setViewerCheck(null); }}
             check={viewerCheck}
+            balanceMode="slots"
           />
         </TabsContent>
 
