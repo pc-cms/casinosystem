@@ -22,16 +22,16 @@ const TYPE_OPTIONS: Array<{
   value: SlotsTransferType; label: string; icon: typeof Banknote;
   description: string; needsOverride: boolean; isCross: boolean; tone: Tone;
 }> = [
-  { value: "fill", label: "Fill", icon: Banknote, description: "Cash IN from manager safe",
+  { value: "fill", label: "Ace Fill", icon: Banknote, description: "ACE System Fill — cash IN from manager safe",
     needsOverride: false, isCross: false,
     tone: { bg: "bg-emerald-500/10", text: "text-emerald-400", border: "border-emerald-500/30", activeBg: "bg-emerald-500/15", activeBorder: "border-emerald-500/50" } },
   { value: "collection", label: "Collect", icon: HandCoins, description: "Cash OUT to manager safe",
     needsOverride: true, isCross: false,
     tone: { bg: "bg-red-500/10", text: "text-red-400", border: "border-red-500/30", activeBg: "bg-red-500/15", activeBorder: "border-red-500/50" } },
-  { value: "lg_in", label: "Cage LG IN", icon: ArrowDownLeft, description: "Cash IN from Live Game cage (needs LG approve)",
+  { value: "lg_in", label: "Cage LG IN", icon: ArrowDownLeft, description: "Cash IN from Live Game cage",
     needsOverride: false, isCross: true,
     tone: { bg: "bg-teal-500/10", text: "text-teal-400", border: "border-teal-500/30", activeBg: "bg-teal-500/15", activeBorder: "border-teal-500/50" } },
-  { value: "lg_out", label: "Cage LG OUT", icon: ArrowUpRight, description: "Cash OUT to Live Game cage (needs LG approve)",
+  { value: "lg_out", label: "Cage LG OUT", icon: ArrowUpRight, description: "Cash OUT to Live Game cage",
     needsOverride: false, isCross: true,
     tone: { bg: "bg-orange-500/10", text: "text-orange-400", border: "border-orange-500/30", activeBg: "bg-orange-500/15", activeBorder: "border-orange-500/50" } },
 ];
