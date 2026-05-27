@@ -44,6 +44,7 @@ const CageSlotsReport = () => {
   const diff = Number(shift.difference_amount ?? latestTotals.difference ?? (counted - expected));
   const cardsMiss = Number(shift.cards_miss ?? ((Number(cards?.opening_card_count || 0) - Number(cards?.closing_card_count || 0)) * cardDepositTzs));
   const balance = Number(shift.balance ?? latestTotals.balance ?? (diff - cardsMiss));
+  const adjustments = counted - closingTotal;
 
   return (
     <PageShell className="print-target">
@@ -118,11 +119,11 @@ const CageSlotsReport = () => {
       <PageSection title="Balance Calculation">
         <div className="grid grid-cols-2 gap-3 text-sm font-mono">
           <Field label="Opening (TZS)" value={formatNumberSpaces(openingTotal)} />
-          <Field label="Expected" value={formatNumberSpaces(expected)} />
-          <Field label="Count" value={formatNumberSpaces(counted)} />
-          <Field label="Cashless Net" value={(cashlessNet >= 0 ? "+" : "") + formatNumberSpaces(cashlessNet)} />
           <Field label="System Result" value={(systemResult >= 0 ? "+" : "") + formatNumberSpaces(systemResult)} />
-          <Field label="Difference" value={(diff >= 0 ? "+" : "") + formatNumberSpaces(diff)} />
+          <Field label="Count Cash" value={formatNumberSpaces(closingTotal)} />
+          <Field label="Adjustments" value={(adjustments >= 0 ? "+" : "") + formatNumberSpaces(adjustments)} />
+          <Field label="Cashless Net" value={(cashlessNet >= 0 ? "+" : "") + formatNumberSpaces(cashlessNet)} />
+          <Field label="Balance Before Cards" value={(diff >= 0 ? "+" : "") + formatNumberSpaces(diff)} />
           <Field label="Cards Miss" value={(cardsMiss >= 0 ? "+" : "") + formatNumberSpaces(cardsMiss)} />
           <Field label="Balance" value={(balance >= 0 ? "+" : "") + formatNumberSpaces(balance)} emphasize />
         </div>
