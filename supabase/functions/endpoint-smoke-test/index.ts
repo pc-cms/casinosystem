@@ -101,7 +101,7 @@ Deno.serve(async (req) => {
     .insert(results);
 
   // Opportunistic purge (cheap, idempotent)
-  await admin.rpc("purge_endpoint_health_checks").catch(() => {});
+  try { await admin.rpc("purge_endpoint_health_checks"); } catch { /* ignore */ }
 
   const failed = results.filter((r) => r.status === "fail");
 
