@@ -126,7 +126,7 @@ const SlotsTransfersForm = ({ shiftId }: Props) => {
 
         {cfg.needsOverride && <p className="text-xs text-warning text-center font-semibold">Manager Override required for {cfg.label}</p>}
         {cfg.isCross && !lgShift && <p className="text-xs text-destructive text-center font-semibold">No open Live Game shift — can't pair</p>}
-        {cfg.isCross && lgShift && <p className="text-[10px] text-muted-foreground text-center">Live Game cashier will need to approve this transfer.</p>}
+        {cfg.isCross && lgShift && <p className="text-[10px] text-muted-foreground text-center">Mirrored automatically to the Live Game cage.</p>}
       </div>
 
       {/* RIGHT — list */}
