@@ -109,7 +109,7 @@ export const PlayerNameAutocomplete = ({ value, onChange, placeholder, disabled,
         )}
       />
       {open && !disabled && (
-        <div className="absolute z-50 left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-lg max-h-60 overflow-auto">
+        <div ref={dropRef} className={`absolute z-50 left-0 right-0 bg-popover border border-border rounded-md shadow-lg max-h-60 overflow-auto ${dropUp ? "bottom-full mb-1" : "mt-1"}`}>
           {suggestions.length === 0 ? (
             <div className="px-2.5 py-2 text-xs text-muted-foreground italic">No matching players in database</div>
           ) : suggestions.map((s, i) => (
