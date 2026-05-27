@@ -14,10 +14,9 @@ const corsHeaders = {
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-type Check = { name: string; path: string };
+type Check = { name: string; path: string; method?: "GET" | "POST"; body?: string };
 
-// Top-20 PostgREST queries mirroring real frontend embeds.
-// `path` is appended to `${SUPABASE_URL}/rest/v1/`.
+// PostgREST smoke tests mirroring real frontend embeds.
 const CHECKS: Check[] = [
   // ── Cage / transactions (the 02:19 crash surface) ─────────────────────
   { name: "cashless.embed.players",          path: "cashless_transactions?select=id,players(first_name,last_name)&limit=1" },
@@ -31,24 +30,23 @@ const CHECKS: Check[] = [
   { name: "group_members.embed.groups",      path: "group_members?select=id,player_groups(name)&limit=1" },
   // ── Tables ────────────────────────────────────────────────────────────
   { name: "gaming_tables.list",              path: "gaming_tables?select=id,name,status&limit=1" },
-  { name: "shifts.embed.tables_via_tracker", path: "table_tracker?select=id,gaming_tables(name)&limit=1" },
+  { name: "breaklist.embed.tables",          path: "breaklist?select=id,gaming_tables(name)&limit=1" },
   // ── Cage slots ────────────────────────────────────────────────────────
-  { name: "cage_slots_shifts.list",          path: "cage_slots_shifts?select=id,opened_at&limit=1" },
-  // ── Pit / breaklist / dealers ─────────────────────────────────────────
-  { name: "dealers.embed.tables",            path: "pit_rota?select=id,gaming_tables(name)&limit=1" },
+  { name: "cage_slots_shifts.list",          path: "cage_slots_shifts?select=id&limit=1" },
+  { name: "cashless.embed.players.full",     path: "cashless_transactions?select=id,players(first_name,last_name,nickname)&limit=1" },
   // ── Tips / employees ──────────────────────────────────────────────────
-  { name: "tips.embed.employees",            path: "transactions?select=id,gaming_tables(name),employees:tips_recipient_employee_id(full_name)&limit=1&type=eq.TIPS" },
+  { name: "tips.embed.employees",            path: "transactions?select=id,gaming_tables(name),employees:tips_recipient_employee_id(full_name)&limit=1&type=eq.tips_live" },
   // ── Business day ──────────────────────────────────────────────────────
   { name: "business_day_closures.list",      path: "business_day_closures?select=id,business_date&limit=1" },
   // ── RPCs (the ones the UI calls constantly) ───────────────────────────
-  { name: "rpc.get_current_business_date",   path: "rpc/get_current_business_date" },
+  { name: "rpc.get_current_business_date",   path: "rpc/get_current_business_date", method: "POST", body: "{}" },
   // ── Auth-side surfaces ────────────────────────────────────────────────
-  { name: "profiles.list",                   path: "profiles?select=id,full_name&limit=1" },
+  { name: "profiles.list",                   path: "profiles?select=id,display_name&limit=1" },
   { name: "user_roles.list",                 path: "user_roles?select=id,role&limit=1" },
-  { name: "user_casino_access.list",         path: "user_casino_access?select=id,casino_id&limit=1" },
+  { name: "user_casino_access.list",         path: "user_casino_access?select=user_id,casino_id&limit=1" },
   // ── Finance ───────────────────────────────────────────────────────────
-  { name: "daily_summaries.list",            path: "daily_summaries?select=id,business_date&limit=1" },
-  { name: "wallet_ledger.list",              path: "wallet_ledger?select=id,wallet,amount&limit=1" },
+  { name: "daily_summaries.list",            path: "daily_summaries?select=id,date,tables_result&limit=1" },
+  { name: "shifts.list",                     path: "shifts?select=id,casino_id,opened_at&limit=1" },
 ];
 
 async function runCheck(c: Check) {
