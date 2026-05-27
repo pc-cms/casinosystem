@@ -355,15 +355,16 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
             </div>
           </PageSection>
 
-          {/* Canonical Shift Result (mirrors Live Game) */}
+          {/* Canonical Shift Result */}
           <PageSection title="Shift Result">
             <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-              <Stat label="Cash Desk Result" value={cashDeskResult} signed />
-              <Stat label="Slots Result (system)" value={systemResult} signed />
+              <Stat label="Expected" value={expected} />
+              <Stat label="Count" value={counted} />
+              <Stat label="Difference" value={difference} signed />
               <Stat label="Cards Miss" value={cardsMiss} signed />
             </div>
             <div className="mt-3 rounded-md border-2 border-primary/40 bg-primary/5 p-3 flex items-center justify-between">
-              <span className="text-xs uppercase text-muted-foreground tracking-wider font-bold">Balance (CDR − Slots − CardsMiss)</span>
+              <span className="text-xs uppercase text-muted-foreground tracking-wider font-bold">Balance (Difference − Cards Miss)</span>
               <span className={`font-mono font-bold text-2xl ${shiftBalance < 0 ? "cms-amount-negative" : shiftBalance > 0 ? "cms-amount-positive" : "text-emerald-500"}`}>
                 {shiftBalance === 0 ? "BALANCED · 0" : `${shiftBalance > 0 ? "+" : ""}${formatNumberSpaces(shiftBalance)}`}
               </span>
@@ -690,17 +691,17 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-xs">
-              <Stat label="Opening Cash" value={openingCashTzs} />
-              <Stat label="Closing Cash" value={closingCashTzs} />
-              <Stat label="ΔCash" value={deltaCash} signed />
-              <Stat label="Cash Desk Result" value={cashDeskResult} signed />
-              <Stat label="Slots Result" value={systemResult} signed />
+              <Stat label="Opening" value={openingCashTzs} />
+              <Stat label="System Result" value={systemResult} signed />
+              <Stat label="Expected" value={expected} />
+              <Stat label="Count" value={counted} />
+              <Stat label="Difference" value={difference} signed />
               <Stat label="Cards Miss" value={cardsMiss} signed />
             </div>
 
             <div className="rounded-md border border-primary/40 bg-primary/5 p-3">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] uppercase text-muted-foreground tracking-wider">Balance (CDR − Slots − CardsMiss)</span>
+                <span className="text-[11px] uppercase text-muted-foreground tracking-wider">Balance (Difference − Cards Miss)</span>
                 <span className={`font-mono font-bold text-lg ${shiftBalance < 0 ? "cms-amount-negative" : shiftBalance > 0 ? "cms-amount-positive" : ""}`}>
                   {shiftBalance > 0 ? "+" : ""}{formatNumberSpaces(shiftBalance)}
                 </span>
