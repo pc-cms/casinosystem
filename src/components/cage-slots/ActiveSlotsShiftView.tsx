@@ -168,20 +168,24 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
   const openingCardsCount = Number(cards?.opening_card_count || 0);
   const systemResult = Number(systemResultInput) || Number(shift.system_shift_result || 0);
 
-  const cashlessBalanceManual = Number(cashlessBalanceInput) || 0;
+  const cashlessFinal = Number(cashlessFinalInput) || 0;
 
   const balance = useMemo(() => computeSlotsShiftBalance({
     openingCash: openingCashTzs,
     closingCash: closingCashTzs,
+    expenses: expensesApproved,
+    collection: transfersAgg.collection,
     addFloat: transfersAgg.fill,
+    lgIn: transfersAgg.lg_in,
+    lgOut: transfersAgg.lg_out,
     cashlessIn,
     cashlessOut,
-    cashlessBalanceManual,
+    cashlessFinal,
     openingCards: openingCardsCount,
     closingCards,
     cardValue: cardDepositTzs,
     systemResult,
-  }), [openingCashTzs, closingCashTzs, transfersAgg.fill, cashlessIn, cashlessOut, cashlessBalanceManual, openingCardsCount, closingCards, cardDepositTzs, systemResult]);
+  }), [openingCashTzs, closingCashTzs, expensesApproved, transfersAgg, cashlessIn, cashlessOut, cashlessFinal, openingCardsCount, closingCards, cardDepositTzs, systemResult]);
 
   const { deltaCash, cashDeskResult, cardsMiss, slotsResult, cashlessBalance, shiftBalance } = balance;
 
