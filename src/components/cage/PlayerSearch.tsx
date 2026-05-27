@@ -30,6 +30,8 @@ const PlayerSearch = ({ players, value, onChange, placeholder = "Search playerâ€
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const dropRef = useRef<HTMLDivElement>(null);
+  const [dropUp, setDropUp] = useState(false);
   const [highlightIdx, setHighlightIdx] = useState(0);
   const { select: selectPlayer } = useSelectedPlayer();
 
