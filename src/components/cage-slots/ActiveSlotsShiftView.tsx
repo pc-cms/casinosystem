@@ -246,7 +246,11 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
     setShowClosingPreview(true);
   };
 
-  const confirmSubmitForReview = () => {
+  const confirmSubmitForReview = async () => {
+    await supabase
+      .from("cage_slots_shifts")
+      .update({ cashless_balance_manual: cashlessBalanceManual } as any)
+      .eq("id", shift.id);
     setSystem.mutate({ shift_id: shift.id, system_shift_result: Number(systemResultInput) || 0 });
     updateCards.mutate({ shift_id: shift.id, closing_card_count: closingCards });
     submit.mutate({
