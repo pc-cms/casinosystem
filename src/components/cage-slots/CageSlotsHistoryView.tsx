@@ -62,7 +62,7 @@ const CageSlotsHistoryView = () => {
               const clOut = cl?.out || 0;
               const clNet = cl?.net || 0;
               return (
-                <>
+                <Fragment key={s.id}>
                 <tr key={s.id} className="border-b border-border/50 hover:bg-accent/30">
                   <td className="py-1.5">{fmtDate(s.business_date)}</td>
                   <td className="text-center uppercase">{s.shift_type}</td>
@@ -123,7 +123,7 @@ const CageSlotsHistoryView = () => {
                     </td>
                   </tr>
                 )}
-                </>
+                </Fragment>
               );
             })}
           </tbody>
