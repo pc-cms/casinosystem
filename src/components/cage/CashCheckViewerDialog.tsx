@@ -14,8 +14,12 @@ type Denoms = {
   cash?: Record<string, Record<number, number>>;
   bank?: { tzs: number; usd: number };
   mobile?: Record<string, number>;
+  cashless_in_providers?: Record<string, number>;
+  cashless_out_providers?: Record<string, number>;
   totals?: Record<string, any>;
 };
+
+const SLOTS_PROVIDERS = ["MPESA", "TIGO", "HALOTEL", "AIRTEL"] as const;
 
 const sumRecord = (r?: Record<string | number, number>) =>
   r ? Object.values(r).reduce((s, v) => s + (Number(v) || 0), 0) : 0;
