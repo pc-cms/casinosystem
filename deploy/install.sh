@@ -16,7 +16,7 @@
 #
 set -euo pipefail
 
-INSTALLER_VERSION="2.1.4"
+INSTALLER_VERSION="2.1.5"
 
 # Resolve script directory robustly. Falls back when piped through
 # `curl ... | bash` (no BASH_SOURCE) — then we look for an installed
@@ -915,7 +915,7 @@ done
 # поэтому поднимаем его явно. При пустом токене — пропускаем.
 TUNNEL_TOKEN_VAL=""
 if [[ -f "${SCRIPT_DIR}/.env" ]]; then
-  TUNNEL_TOKEN_VAL=$(grep -E '^TUNNEL_TOKEN=' "${SCRIPT_DIR}/.env" | head -n1 | cut -d= -f2- | sed -e "s/^['\"]//" -e "s/['\"]$//")
+  TUNNEL_TOKEN_VAL=$(grep -E '^TUNNEL_TOKEN=' "${SCRIPT_DIR}/.env" 2>/dev/null | head -n1 | cut -d= -f2- | sed -e "s/^['\"]//" -e "s/['\"]$//" || true)
 fi
 if [[ -n "${TUNNEL_TOKEN_VAL//[[:space:]]/}" ]]; then
   log "TUNNEL_TOKEN задан — поднимаю cms-cloudflared..."
