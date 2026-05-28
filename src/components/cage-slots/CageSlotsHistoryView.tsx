@@ -1,6 +1,6 @@
-import { Fragment } from "react";
+import { Fragment, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Coins, Eye } from "lucide-react";
+import { Coins, Eye, Printer } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { formatNumberSpaces } from "@/lib/currency";
 import { fmtDate, fmtDateTime } from "@/lib/format-date";
 import { useCageSlotsHistory, useSlotsCashlessAggByShift } from "@/hooks/use-cage-slots";
+import PrintSlotsShiftDialog from "./PrintSlotsShiftDialog";
 
 const PROVIDERS = ["MPESA", "TIGO", "HALOTEL", "AIRTEL"] as const;
 
@@ -16,6 +17,7 @@ const CageSlotsHistoryView = () => {
   const { data: shifts = [], isLoading } = useCageSlotsHistory(60);
   const shiftIds = shifts.map(s => s.id);
   const { data: cashlessAgg = {} } = useSlotsCashlessAggByShift(shiftIds);
+  const [printShiftId, setPrintShiftId] = useState<string | null>(null);
 
   return (
     <PageShell>
@@ -91,9 +93,12 @@ const CageSlotsHistoryView = () => {
                   <td className={`text-right font-mono ${balance < 0 ? "cms-amount-negative" : balance > 0 ? "cms-amount-positive" : ""}`}>
                     {balance > 0 ? "+" : ""}{formatNumberSpaces(balance)}
                   </td>
-                  <td className="text-right">
+                  <td className="text-right whitespace-nowrap">
                     <Button variant="ghost" size="sm" onClick={() => navigate(`/cage-slots/report/${s.id}`)} className="gap-1 h-7">
                       <Eye className="w-3.5 h-3.5" /> View
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => setPrintShiftId(s.id)} className="gap-1 h-7">
+                      <Printer className="w-3.5 h-3.5" /> Print
                     </Button>
                   </td>
                 </tr>
@@ -130,6 +135,13 @@ const CageSlotsHistoryView = () => {
         </table>
         </div>
       </PageSection>
+      {printShiftId && (
+        <PrintSlotsShiftDialog
+          open
+          shiftId={printShiftId}
+          onClose={() => setPrintShiftId(null)}
+        />
+      )}
     </PageShell>
   );
 };
