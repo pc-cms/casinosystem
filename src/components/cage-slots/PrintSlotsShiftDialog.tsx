@@ -165,7 +165,14 @@ const PrintSlotsShiftDialog = ({ open, onClose, shiftId }: Props) => {
       missCards: -Math.abs(missCardCount),  // shown as negative like paper
       casinoExpenses,
       tipsCollection: 0,
-      aceBalance: Number(shift.balance || 0),
+      // Shift Balance is stored in the closing check totals; fallback chain:
+      // shifts.balance (rarely populated) → closing check totals.shift_balance → totals.balance → 0
+      aceBalance: Number(
+        shift.balance ??
+        (closingCheck?.denominations as any)?.totals?.shift_balance ??
+        (closingCheck?.denominations as any)?.totals?.balance ??
+        0
+      ),
       cashlessDepositByProvider: deposit,
       cashlessWithdrawByProvider: withdraw,
     };
