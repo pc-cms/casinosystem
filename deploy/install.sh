@@ -16,7 +16,7 @@
 #
 set -euo pipefail
 
-INSTALLER_VERSION="2.1.4"
+INSTALLER_VERSION="2.1.5"
 
 # Resolve script directory robustly. Falls back when piped through
 # `curl ... | bash` (no BASH_SOURCE) — then we look for an installed
