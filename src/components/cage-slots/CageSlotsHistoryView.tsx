@@ -7,16 +7,26 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatNumberSpaces } from "@/lib/currency";
 import { fmtDate, fmtDateTime } from "@/lib/format-date";
-import { useCageSlotsHistory, useSlotsCashlessAggByShift } from "@/hooks/use-cage-slots";
+import { useCageSlotsHistory, useSlotsCashlessAggByShift, useSlotsClosingTotalsByShift } from "@/hooks/use-cage-slots";
 import PrintSlotsShiftDialog from "./PrintSlotsShiftDialog";
 
 const PROVIDERS = ["MPESA", "TIGO", "HALOTEL", "AIRTEL"] as const;
+
+const NORMALIZE_PROVIDER = (k: string): string | null => {
+  const v = String(k || "").toLowerCase();
+  if (v.includes("mpesa") || v === "m_pesa") return "MPESA";
+  if (v.includes("tigo") || v === "t_pesa") return "TIGO";
+  if (v.includes("halo") || v === "h_pesa") return "HALOTEL";
+  if (v.includes("airtel")) return "AIRTEL";
+  return null;
+};
 
 const CageSlotsHistoryView = () => {
   const navigate = useNavigate();
   const { data: shifts = [], isLoading } = useCageSlotsHistory(60);
   const shiftIds = shifts.map(s => s.id);
   const { data: cashlessAgg = {} } = useSlotsCashlessAggByShift(shiftIds);
+  const { data: closingTotals = {} } = useSlotsClosingTotalsByShift(shiftIds);
   const [printShiftId, setPrintShiftId] = useState<string | null>(null);
 
   return (
@@ -54,15 +64,38 @@ const CageSlotsHistoryView = () => {
               <tr><td colSpan={14} className="text-center text-muted-foreground py-4">·</td></tr>
             )}
             {shifts.map(s => {
-              const balance = Number(s.balance || 0);
+              const ct = closingTotals[s.id];
+              const balance = Number(s.balance ?? ct?.shift_balance ?? 0);
               const cdr = Number(s.cash_desk_result ?? s.actual_cage_result ?? 0);
               const cMiss = Number(s.cards_miss || 0);
               const sysRes = Number(s.system_shift_result || 0);
               const slotsRes = Number(s.slots_result || 0);
-              const cl = cashlessAgg[s.id];
-              const clIn = cl?.in || 0;
-              const clOut = cl?.out || 0;
-              const clNet = cl?.net || 0;
+              // Build per-provider fallback from shift columns (Mpesa/Tigo/Halo/AirTel)
+              const providersFromShift: Record<string, { in: number; out: number }> = {};
+              const addProv = (raw: Record<string, any> | null | undefined, dir: "in" | "out") => {
+                if (!raw || typeof raw !== "object") return;
+                Object.entries(raw).forEach(([k, v]) => {
+                  const norm = NORMALIZE_PROVIDER(k);
+                  if (!norm) return;
+                  const pv = (providersFromShift[norm] ||= { in: 0, out: 0 });
+                  pv[dir] += Number(v || 0);
+                });
+              };
+              addProv((s as any).cashless_in_providers, "in");
+              addProv((s as any).cashless_out_providers, "out");
+              const shiftClIn = Object.values(providersFromShift).reduce((a, p) => a + p.in, 0);
+              const shiftClOut = Object.values(providersFromShift).reduce((a, p) => a + p.out, 0);
+
+              const txAgg = cashlessAgg[s.id];
+              const txIn = txAgg?.in || 0;
+              const txOut = txAgg?.out || 0;
+
+              // Prefer live tx aggregation; fall back to shift columns; final fallback closing totals
+              const clIn = txIn || shiftClIn || (ct?.cashless_in ?? 0);
+              const clOut = txOut || shiftClOut || (ct?.cashless_out ?? 0);
+              const clNet = clIn - clOut;
+              const providers = (txAgg && (txIn || txOut)) ? txAgg.providers : providersFromShift;
+              const hasProviders = Object.values(providers).some(p => p.in || p.out);
               return (
                 <Fragment key={s.id}>
                 <tr className="border-b border-border/50 hover:bg-accent/30">
@@ -102,7 +135,7 @@ const CageSlotsHistoryView = () => {
                     </Button>
                   </td>
                 </tr>
-                {cl && (clIn || clOut) && (
+                {hasProviders && (clIn || clOut) && (
                   <tr className="border-b border-border/50 bg-muted/20">
                     <td colSpan={9} className="text-right text-[10px] uppercase tracking-wider text-muted-foreground py-1 pr-2">
                       By provider
@@ -110,7 +143,7 @@ const CageSlotsHistoryView = () => {
                     <td colSpan={5} className="py-1">
                       <div className="flex flex-wrap gap-2 text-[10px] font-mono justify-end">
                         {PROVIDERS.map(p => {
-                          const pv = cl.providers[p];
+                          const pv = providers[p];
                           if (!pv || (!pv.in && !pv.out)) return null;
                           const net = pv.in - pv.out;
                           return (
