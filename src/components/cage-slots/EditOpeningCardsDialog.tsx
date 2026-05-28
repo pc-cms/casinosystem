@@ -25,7 +25,7 @@ interface Props {
  * already-open slots cage shift. Records before/after to activity_logs.
  * Analog of EditOpeningChipsDialog for Live Game cage chips.
  */
-const EditOpeningCardsDialog = ({ shift, currentValue, open, onClose }: Props) => {
+const EditOpeningCardsDialog = ({ shift, currentValue, cardDepositValue, open, onClose }: Props) => {
   const { casinoId } = useAuth();
   const qc = useQueryClient();
 
