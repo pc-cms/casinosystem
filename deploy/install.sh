@@ -73,6 +73,7 @@ while [[ $# -gt 0 ]]; do
     --node-id)       [[ $# -ge 2 ]] || fail "--node-id требует значение"; PRESET_NODE_ID="$2"; shift 2 ;;
     --seed)          LEGACY_SEED=1; shift ;;
     --menu)          MENU=1; shift ;;
+    --skip-net-check|--offline) SKIP_NET_CHECK=1; shift ;;
     -h|--help)       sed -n '4,16p' "$0"; exit 0 ;;
     *) fail "Неизвестный аргумент: $1" ;;
   esac
