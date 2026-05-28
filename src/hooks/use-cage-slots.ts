@@ -148,6 +148,47 @@ export const useSlotsCards = (shiftId: string | undefined) => {
   });
 };
 
+// ============ Carry-over: last closed slots shift's closing card count ============
+// Used to prefill opening cards when opening a new slots shift, analog of
+// chip carry-over in Live Game cage.
+export const useLastClosedSlotsCards = () => {
+  const { casinoId } = useAuth();
+  return useQuery({
+    queryKey: ["cage-slots-last-closed-cards", casinoId],
+    queryFn: async () => {
+      if (!casinoId) return null;
+      const { data: lastShifts, error: e1 } = await supabase
+        .from("cage_slots_shifts")
+        .select("id, closed_at, opened_at")
+        .eq("casino_id", casinoId)
+        .in("status", ["closed", "approved", "ready_for_review"])
+        .order("closed_at", { ascending: false, nullsFirst: false })
+        .order("opened_at", { ascending: false })
+        .limit(5);
+      if (e1) throw e1;
+      const ids = (lastShifts || []).map((s: any) => s.id);
+      if (!ids.length) return null;
+      const { data: cardsRows, error: e2 } = await supabase
+        .from("cage_slots_cards")
+        .select("cage_slots_shift_id, closing_card_count, card_deposit_value_tzs")
+        .in("cage_slots_shift_id", ids);
+      if (e2) throw e2;
+      for (const s of (lastShifts || [])) {
+        const c = (cardsRows || []).find((r: any) => r.cage_slots_shift_id === s.id);
+        if (c && c.closing_card_count != null) {
+          return {
+            closing_card_count: Number(c.closing_card_count) || 0,
+            card_deposit_value_tzs: Number(c.card_deposit_value_tzs) || 0,
+          };
+        }
+      }
+      return null;
+    },
+    enabled: !!casinoId,
+    staleTime: 30_000,
+  });
+};
+
 // ============ Children: cash counts ============
 export const useSlotsCashCounts = (shiftId: string | undefined) => {
   return useQuery({
