@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
-import { Coins, Play, ChevronRight, ChevronLeft, CreditCard, Settings2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Coins, Play, ChevronRight, ChevronLeft, CreditCard, Settings2, History } from "lucide-react";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { PageSection } from "@/components/layout/PageShell";
@@ -13,8 +14,15 @@ import {
 } from "@/lib/currency";
 import { useOpenSlotsShift, useCageSlotsSettings, type SlotsShiftType } from "@/hooks/use-cage-slots";
 import { useLastClosedShift } from "@/hooks/use-shift";
+import { useAuth } from "@/lib/auth-context";
 
 const OpenSlotsShiftScreen = () => {
+  const navigate = useNavigate();
+  const { roles, managerOverride } = useAuth();
+  const canManage =
+    roles.includes("manager") || roles.includes("super_admin") ||
+    roles.includes("finance_manager") || roles.includes("floor_manager") ||
+    roles.includes("pit") || roles.includes("surveillance") || managerOverride.active;
   const open = useOpenSlotsShift();
   const { data: settings } = useCageSlotsSettings();
   const { data: lastShift } = useLastClosedShift();
@@ -91,6 +99,11 @@ const OpenSlotsShiftScreen = () => {
         <Button variant="outline" size="sm" onClick={() => setShowRates(true)} className="gap-1.5">
           <Settings2 className="w-3.5 h-3.5" /> Rates
         </Button>
+        {canManage && (
+          <Button variant="outline" size="sm" onClick={() => navigate("/cage-slots?view=history")} className="gap-1.5">
+            <History className="w-3.5 h-3.5" /> History
+          </Button>
+        )}
       </PageHeader>
 
       <div className="flex items-center gap-2 mb-2">

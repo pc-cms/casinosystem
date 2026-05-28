@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Coins, Send, RotateCcw, Printer, FileText, CreditCard, Save, ArrowLeftRight } from "lucide-react";
+import { Coins, Send, RotateCcw, Printer, FileText, CreditCard, Save, ArrowLeftRight, History } from "lucide-react";
 import SlotsTransfersForm from "./SlotsTransfersForm";
 import { useSlotsTransfers } from "@/hooks/use-cage-slots-transfers";
 import { useSlotsExpenses } from "@/hooks/use-expenses";
@@ -485,6 +485,11 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
         <Button variant="outline" size="sm" onClick={() => navigate(`/cage-slots/report/${shift.id}`)} className="gap-1.5 h-8">
           <Printer className="w-3.5 h-3.5" /> Report
         </Button>
+        {canManage && (
+          <Button variant="outline" size="sm" onClick={() => navigate("/cage-slots?view=history")} className="gap-1.5 h-8">
+            <History className="w-3.5 h-3.5" /> History
+          </Button>
+        )}
       </PageHeader>
 
       {/* Manager review banner — shown after cashier submits for review */}
