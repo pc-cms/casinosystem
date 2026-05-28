@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { Coins, Printer } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
@@ -12,6 +13,7 @@ import {
 } from "@/hooks/use-cage-slots";
 import { useSlotsTransfers } from "@/hooks/use-cage-slots-transfers";
 import { useSlotsExpenses } from "@/hooks/use-expenses";
+import PrintSlotsShiftDialog from "@/components/cage-slots/PrintSlotsShiftDialog";
 
 const CageSlotsReport = () => {
   const { id } = useParams<{ id: string }>();
