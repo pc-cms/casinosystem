@@ -135,7 +135,7 @@ const CageSlotsHistoryView = () => {
                     </Button>
                   </td>
                 </tr>
-                {cl && (clIn || clOut) && (
+                {hasProviders && (clIn || clOut) && (
                   <tr className="border-b border-border/50 bg-muted/20">
                     <td colSpan={9} className="text-right text-[10px] uppercase tracking-wider text-muted-foreground py-1 pr-2">
                       By provider
@@ -143,7 +143,7 @@ const CageSlotsHistoryView = () => {
                     <td colSpan={5} className="py-1">
                       <div className="flex flex-wrap gap-2 text-[10px] font-mono justify-end">
                         {PROVIDERS.map(p => {
-                          const pv = cl.providers[p];
+                          const pv = providers[p];
                           if (!pv || (!pv.in && !pv.out)) return null;
                           const net = pv.in - pv.out;
                           return (
