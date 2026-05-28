@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Coins, Send, RotateCcw, Printer, FileText, CreditCard, Save, ArrowLeftRight } from "lucide-react";
+import { Coins, Send, RotateCcw, Printer, FileText, CreditCard, Save, ArrowLeftRight, History } from "lucide-react";
 import SlotsTransfersForm from "./SlotsTransfersForm";
 import { useSlotsTransfers } from "@/hooks/use-cage-slots-transfers";
 import { useSlotsExpenses } from "@/hooks/use-expenses";
