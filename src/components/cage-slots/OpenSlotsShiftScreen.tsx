@@ -26,6 +26,7 @@ const OpenSlotsShiftScreen = () => {
   const open = useOpenSlotsShift();
   const { data: settings } = useCageSlotsSettings();
   const { data: lastShift } = useLastClosedShift();
+  const { data: lastCards } = useLastClosedSlotsCards();
   const cardDepositTzs = Number(settings?.card_deposit_value_tzs || 5000);
 
   const [step, setStep] = useState<1 | 2>(1);
