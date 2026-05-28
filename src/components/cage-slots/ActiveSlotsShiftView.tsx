@@ -294,13 +294,20 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
       .eq("id", shift.id);
     setSystem.mutate({ shift_id: shift.id, system_shift_result: Number(systemResultInput) || 0 });
     updateCards.mutate({ shift_id: shift.id, closing_card_count: closingCards });
+    // Mirror recordMidCheck: derive mobile block from current cashless providers.
+    const closingMobileBlock: MobileProviders = { ...emptyMobile() };
+    MOBILE_PROVIDERS.forEach(p => {
+      closingMobileBlock[p] = Number(cashlessInProviders[p] || 0) - Number(cashlessOutProviders[p] || 0);
+    });
     submit.mutate({
       shift_id: shift.id,
       closing_total_tzs: closingCashTzs,
       closing_denominations: {
         cash: closingCash,
         bank: closingBanks,
-        mobile: closingMobile,
+        mobile: closingMobileBlock,
+        cashless_in_providers: cashlessInProviders,
+        cashless_out_providers: cashlessOutProviders,
         cards: { count: closingCards, value_tzs: cardDepositTzs },
         rateMap,
         totals: {
@@ -322,6 +329,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
       cashier_note: cashierNote,
     }, { onSuccess: () => setShowClosingPreview(false) });
   };
+
 
   // Manager approve
   const [showApprove, setShowApprove] = useState(false);
