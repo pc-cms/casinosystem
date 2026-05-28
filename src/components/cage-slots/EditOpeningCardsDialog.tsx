@@ -61,11 +61,18 @@ const EditOpeningCardsDialog = ({ shift, currentValue, open, onClose }: Props) =
     if (!reason.trim()) { toast.error("Please provide a reason"); return; }
     setSaving(true);
     try {
-      const { error } = await supabase
+      // Use .select() to verify the row was actually updated — without it,
+      // RLS-filtered or no-match updates return success with 0 rows and the
+      // UI silently shows stale data.
+      const { data: updated, error } = await supabase
         .from("cage_slots_cards")
         .update({ opening_card_count: newCount } as any)
-        .eq("cage_slots_shift_id", shift.id);
+        .eq("cage_slots_shift_id", shift.id)
+        .select("opening_card_count");
       if (error) throw error;
+      if (!updated || updated.length === 0) {
+        throw new Error("No card row matched this shift — check shift status / permissions");
+      }
 
       await logAction(casinoId, "edit", "SLOTS_OPENING_CARDS_EDITED", {
         shift_id: shift.id,
@@ -76,10 +83,12 @@ const EditOpeningCardsDialog = ({ shift, currentValue, open, onClose }: Props) =
         delta,
       });
 
-      qc.invalidateQueries({ queryKey: ["cage-slots-cards", shift.id] });
-      qc.invalidateQueries({ queryKey: ["cage-slots-active-shift"] });
-      qc.invalidateQueries({ queryKey: ["cage-slots-shift", shift.id] });
-      toast.success("Opening cards updated");
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["cage-slots-cards", shift.id], refetchType: "active" }),
+        qc.invalidateQueries({ queryKey: ["cage-slots-active-shift"], refetchType: "active" }),
+        qc.invalidateQueries({ queryKey: ["cage-slots-shift", shift.id], refetchType: "active" }),
+      ]);
+      toast.success(`Opening cards updated to ${updated[0].opening_card_count}`);
       handleOpenChange(false);
     } catch (e: any) {
       toast.error(e.message || "Failed to update");
