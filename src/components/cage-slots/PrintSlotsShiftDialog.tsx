@@ -182,9 +182,15 @@ const PrintSlotsShiftDialog = ({ open, onClose, shiftId }: Props) => {
     if (!open) return;
     document.body.classList.add("reprint-shift-open");
     document.body.classList.add("slots-print-open");
+    // Inject portrait @page override (named @page is unreliable across browsers).
+    const styleEl = document.createElement("style");
+    styleEl.setAttribute("data-slots-print", "1");
+    styleEl.textContent = "@media print { @page { size: A4 portrait !important; margin: 8mm !important; } }";
+    document.head.appendChild(styleEl);
     return () => {
       document.body.classList.remove("reprint-shift-open");
       document.body.classList.remove("slots-print-open");
+      if (styleEl.parentNode) styleEl.parentNode.removeChild(styleEl);
     };
   }, [open]);
 
