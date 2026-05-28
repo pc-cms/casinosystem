@@ -135,6 +135,13 @@ const CageSlotsHistoryView = () => {
         </table>
         </div>
       </PageSection>
+      {printShiftId && (
+        <PrintSlotsShiftDialog
+          open
+          shiftId={printShiftId}
+          onClose={() => setPrintShiftId(null)}
+        />
+      )}
     </PageShell>
   );
 };
