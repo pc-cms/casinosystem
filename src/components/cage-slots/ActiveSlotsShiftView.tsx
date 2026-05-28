@@ -606,6 +606,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
               tone="in"
               values={cashlessInProviders}
               onChange={setCashlessInProviders}
+              onBlur={() => saveCashlessProviders("cashless_in_providers", cashlessInProviders)}
               disabled={shift.status !== "open"}
             />
             <CashlessProvidersBlock
@@ -613,6 +614,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
               tone="out"
               values={cashlessOutProviders}
               onChange={setCashlessOutProviders}
+              onBlur={() => saveCashlessProviders("cashless_out_providers", cashlessOutProviders)}
               disabled={shift.status !== "open"}
             />
             <CashlessProvidersBlock
@@ -625,6 +627,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
                 setCashlessFinalInput(String(total));
               }}
               onBlur={async () => {
+                await saveCashlessProviders("cashless_final_providers", cashlessFinalProviders);
                 await supabase
                   .from("cage_slots_shifts")
                   .update({ cashless_final: Number(cashlessFinalInput) || 0 } as any)
