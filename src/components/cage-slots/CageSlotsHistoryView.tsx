@@ -7,10 +7,19 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatNumberSpaces } from "@/lib/currency";
 import { fmtDate, fmtDateTime } from "@/lib/format-date";
-import { useCageSlotsHistory, useSlotsCashlessAggByShift } from "@/hooks/use-cage-slots";
+import { useCageSlotsHistory, useSlotsCashlessAggByShift, useSlotsClosingTotalsByShift } from "@/hooks/use-cage-slots";
 import PrintSlotsShiftDialog from "./PrintSlotsShiftDialog";
 
 const PROVIDERS = ["MPESA", "TIGO", "HALOTEL", "AIRTEL"] as const;
+
+const NORMALIZE_PROVIDER = (k: string): string | null => {
+  const v = String(k || "").toLowerCase();
+  if (v.includes("mpesa") || v === "m_pesa") return "MPESA";
+  if (v.includes("tigo") || v === "t_pesa") return "TIGO";
+  if (v.includes("halo") || v === "h_pesa") return "HALOTEL";
+  if (v.includes("airtel")) return "AIRTEL";
+  return null;
+};
 
 const CageSlotsHistoryView = () => {
   const navigate = useNavigate();
