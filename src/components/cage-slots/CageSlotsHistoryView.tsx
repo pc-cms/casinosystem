@@ -1,6 +1,5 @@
 import { Fragment, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Coins, Eye, Printer } from "lucide-react";
+import { ChevronDown, ChevronRight, Coins, Printer } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +8,7 @@ import { formatNumberSpaces } from "@/lib/currency";
 import { fmtDate, fmtDateTime } from "@/lib/format-date";
 import { useCageSlotsHistory, useSlotsCashlessAggByShift, useSlotsClosingTotalsByShift } from "@/hooks/use-cage-slots";
 import PrintSlotsShiftDialog from "./PrintSlotsShiftDialog";
+import SlotsShiftReportBody from "./SlotsShiftReportBody";
 
 const PROVIDERS = ["MPESA", "TIGO", "HALOTEL", "AIRTEL"] as const;
 
