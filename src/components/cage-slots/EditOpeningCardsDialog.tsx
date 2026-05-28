@@ -15,6 +15,7 @@ import type { Tables } from "@/integrations/supabase/types";
 interface Props {
   shift: Tables<"cage_slots_shifts">;
   currentValue: number;
+  cardDepositValue?: number;
   open: boolean;
   onClose: () => void;
 }
