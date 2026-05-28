@@ -63,7 +63,7 @@ const CageSlotsHistoryView = () => {
               const clNet = cl?.net || 0;
               return (
                 <Fragment key={s.id}>
-                <tr key={s.id} className="border-b border-border/50 hover:bg-accent/30">
+                <tr className="border-b border-border/50 hover:bg-accent/30">
                   <td className="py-1.5">{fmtDate(s.business_date)}</td>
                   <td className="text-center uppercase">{s.shift_type}</td>
                   <td className="text-center"><Badge variant="outline" className="text-[10px] uppercase">{s.status.replace("_", " ")}</Badge></td>
@@ -98,7 +98,7 @@ const CageSlotsHistoryView = () => {
                   </td>
                 </tr>
                 {cl && (clIn || clOut) && (
-                  <tr key={s.id + "-prov"} className="border-b border-border/50 bg-muted/20">
+                  <tr className="border-b border-border/50 bg-muted/20">
                     <td colSpan={9} className="text-right text-[10px] uppercase tracking-wider text-muted-foreground py-1 pr-2">
                       By provider
                     </td>
