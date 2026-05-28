@@ -105,11 +105,28 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
   const [cashlessFinalInput, setCashlessFinalInput] = useState<string>(
     (shift as any).cashless_final?.toString() ?? "",
   );
-  // Cashless manual entry blocks (IN / OUT / FINAL) — providers, not auto-populated from Cashless page.
-  const [cashlessInProviders, setCashlessInProviders] = useState<MobileProviders>(emptyMobile());
-  const [cashlessOutProviders, setCashlessOutProviders] = useState<MobileProviders>(emptyMobile());
-  const [cashlessFinalProviders, setCashlessFinalProviders] = useState<MobileProviders>(emptyMobile());
+  // Cashless manual entry blocks (IN / OUT / FINAL) — providers, persisted on the shift row.
+  const [cashlessInProviders, setCashlessInProviders] = useState<MobileProviders>(
+    { ...emptyMobile(), ...((shift as any).cashless_in_providers || {}) },
+  );
+  const [cashlessOutProviders, setCashlessOutProviders] = useState<MobileProviders>(
+    { ...emptyMobile(), ...((shift as any).cashless_out_providers || {}) },
+  );
+  const [cashlessFinalProviders, setCashlessFinalProviders] = useState<MobileProviders>(
+    { ...emptyMobile(), ...((shift as any).cashless_final_providers || {}) },
+  );
   const [cashierNote, setCashierNote] = useState<string>(shift.cashier_note || "");
+
+  // Persist cashless provider blocks (onBlur from the inputs).
+  const saveCashlessProviders = async (
+    field: "cashless_in_providers" | "cashless_out_providers" | "cashless_final_providers",
+    value: MobileProviders,
+  ) => {
+    await supabase
+      .from("cage_slots_shifts")
+      .update({ [field]: value } as any)
+      .eq("id", shift.id);
+  };
 
   // Hydrate closing from persisted closing inventory + cards
   useEffect(() => {
@@ -589,6 +606,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
               tone="in"
               values={cashlessInProviders}
               onChange={setCashlessInProviders}
+              onBlur={() => saveCashlessProviders("cashless_in_providers", cashlessInProviders)}
               disabled={shift.status !== "open"}
             />
             <CashlessProvidersBlock
@@ -596,6 +614,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
               tone="out"
               values={cashlessOutProviders}
               onChange={setCashlessOutProviders}
+              onBlur={() => saveCashlessProviders("cashless_out_providers", cashlessOutProviders)}
               disabled={shift.status !== "open"}
             />
             <CashlessProvidersBlock
@@ -608,6 +627,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
                 setCashlessFinalInput(String(total));
               }}
               onBlur={async () => {
+                await saveCashlessProviders("cashless_final_providers", cashlessFinalProviders);
                 await supabase
                   .from("cage_slots_shifts")
                   .update({ cashless_final: Number(cashlessFinalInput) || 0 } as any)
