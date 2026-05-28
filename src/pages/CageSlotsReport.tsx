@@ -84,10 +84,18 @@ const CageSlotsReport = () => {
         subtitle={`${fmtDate(shift.business_date)} · ${shift.shift_type.toUpperCase()}`}
         context={<Badge variant="outline" className="uppercase text-[10px]">{shift.status.replace("_", " ")}</Badge>}
       >
-        <Button onClick={() => window.print()} size="sm" variant="outline" className="gap-1.5 h-8 print:hidden">
+        <Button onClick={() => setPrintOpen(true)} size="sm" variant="outline" className="gap-1.5 h-8 print:hidden">
           <Printer className="w-3.5 h-3.5" /> Print
         </Button>
       </PageHeader>
+
+      {id && (
+        <PrintSlotsShiftDialog
+          open={printOpen}
+          shiftId={id}
+          onClose={() => setPrintOpen(false)}
+        />
+      )}
 
       <PageSection title="Header">
         <dl className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
