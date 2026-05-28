@@ -202,6 +202,41 @@ export const useSlotsCashless = (shiftId: string | undefined) => {
   });
 };
 
+// ============ Cashless aggregation across many slots shifts (for History) ============
+export type SlotsCashlessAgg = {
+  in: number; out: number; net: number;
+  providers: Record<string, { in: number; out: number }>;
+};
+export const useSlotsCashlessAggByShift = (shiftIds: string[]) => {
+  const key = shiftIds.slice().sort().join(",");
+  return useQuery({
+    queryKey: ["cage-slots-cashless-agg", key],
+    queryFn: async () => {
+      const out: Record<string, SlotsCashlessAgg> = {};
+      if (!shiftIds.length) return out;
+      const { data, error } = await (supabase as any)
+        .from("cashless_transactions")
+        .select("cage_slots_shift_id, direction, provider, amount")
+        .in("cage_slots_shift_id", shiftIds);
+      if (error) throw error;
+      (data || []).forEach((t: any) => {
+        const sid = t.cage_slots_shift_id;
+        if (!sid) return;
+        const a = (out[sid] ||= { in: 0, out: 0, net: 0, providers: {} });
+        const p = String(t.provider || "").toUpperCase();
+        const amt = Number(t.amount || 0);
+        const pv = (a.providers[p] ||= { in: 0, out: 0 });
+        if (t.direction === "IN") { a.in += amt; pv.in += amt; }
+        else if (t.direction === "OUT") { a.out += amt; pv.out += amt; }
+      });
+      Object.values(out).forEach(a => { a.net = a.in - a.out; });
+      return out;
+    },
+    enabled: shiftIds.length > 0,
+    staleTime: 30_000,
+  });
+};
+
 // ============ Mutation: open shift ============
 export const useOpenSlotsShift = () => {
   const qc = useQueryClient();
