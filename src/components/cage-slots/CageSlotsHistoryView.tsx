@@ -1,4 +1,4 @@
-import { Fragment, useState } from "react";
+import { Fragment, KeyboardEvent, useState } from "react";
 import { ChevronDown, ChevronRight, Coins, Printer } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -10,13 +10,11 @@ import { useCageSlotsHistory, useSlotsCashlessAggByShift, useSlotsClosingTotalsB
 import PrintSlotsShiftDialog from "./PrintSlotsShiftDialog";
 import SlotsShiftReportBody from "./SlotsShiftReportBody";
 
-const PROVIDERS = ["MPESA", "TIGO", "HALOTEL", "AIRTEL"] as const;
-
 const NORMALIZE_PROVIDER = (k: string): string | null => {
-  const v = String(k || "").toLowerCase();
-  if (v.includes("mpesa") || v === "m_pesa") return "MPESA";
-  if (v.includes("tigo") || v === "t_pesa") return "TIGO";
-  if (v.includes("halo") || v === "h_pesa") return "HALOTEL";
+  const v = String(k || "").toLowerCase().replace(/[\s_-]+/g, "");
+  if (v.includes("mpesa")) return "MPESA";
+  if (v.includes("tigo") || v.includes("tpesa")) return "TIGO";
+  if (v.includes("halo") || v.includes("hpesa")) return "HALOTEL";
   if (v.includes("airtel")) return "AIRTEL";
   return null;
 };
@@ -94,14 +92,23 @@ const CageSlotsHistoryView = () => {
               const clIn = txIn || shiftClIn || (ct?.cashless_in ?? 0);
               const clOut = txOut || shiftClOut || (ct?.cashless_out ?? 0);
               const clNet = clIn - clOut;
-              const providers = (txAgg && (txIn || txOut)) ? txAgg.providers : providersFromShift;
-              const hasProviders = Object.values(providers).some(p => p.in || p.out);
               const isExpanded = expandedId === s.id;
+              const toggleExpanded = () => setExpandedId(isExpanded ? null : s.id);
+              const onRowKeyDown = (event: KeyboardEvent<HTMLTableRowElement>) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  toggleExpanded();
+                }
+              };
               return (
                 <Fragment key={s.id}>
                 <tr
-                  className="border-b border-border/50 hover:bg-accent/30 cursor-pointer"
-                  onClick={() => setExpandedId(isExpanded ? null : s.id)}
+                  className={`border-b border-border/50 hover:bg-accent/30 cursor-pointer ${isExpanded ? "bg-accent/20" : ""}`}
+                  onClick={toggleExpanded}
+                  onKeyDown={onRowKeyDown}
+                  tabIndex={0}
+                  role="button"
+                  aria-expanded={isExpanded}
                 >
                   <td className="py-1.5">
                     <span className="inline-flex items-center gap-1">
@@ -143,32 +150,6 @@ const CageSlotsHistoryView = () => {
                     </Button>
                   </td>
                 </tr>
-                {!isExpanded && hasProviders && (clIn || clOut) && (
-                  <tr className="border-b border-border/50 bg-muted/20">
-                    <td colSpan={9} className="text-right text-[10px] uppercase tracking-wider text-muted-foreground py-1 pr-2">
-                      By provider
-                    </td>
-                    <td colSpan={5} className="py-1">
-                      <div className="flex flex-wrap gap-2 text-[10px] font-mono justify-end">
-                        {PROVIDERS.map(p => {
-                          const pv = providers[p];
-                          if (!pv || (!pv.in && !pv.out)) return null;
-                          const net = pv.in - pv.out;
-                          return (
-                            <span key={p} className="px-1.5 py-0.5 rounded bg-background border border-border">
-                              <span className="text-muted-foreground mr-1">{p}</span>
-                              {pv.in > 0 && <span className="cms-amount-positive mr-1">+{formatNumberSpaces(pv.in)}</span>}
-                              {pv.out > 0 && <span className="cms-amount-negative mr-1">−{formatNumberSpaces(pv.out)}</span>}
-                              <span className={net < 0 ? "cms-amount-negative" : net > 0 ? "cms-amount-positive" : ""}>
-                                ({net > 0 ? "+" : ""}{formatNumberSpaces(net)})
-                              </span>
-                            </span>
-                          );
-                        })}
-                      </div>
-                    </td>
-                  </tr>
-                )}
                 {isExpanded && (
                   <tr className="bg-muted/10 border-b border-border">
                     <td colSpan={14} className="p-3">
