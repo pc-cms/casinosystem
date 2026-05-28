@@ -181,7 +181,11 @@ const PrintSlotsShiftDialog = ({ open, onClose, shiftId }: Props) => {
   useEffect(() => {
     if (!open) return;
     document.body.classList.add("reprint-shift-open");
-    return () => document.body.classList.remove("reprint-shift-open");
+    document.body.classList.add("slots-print-open");
+    return () => {
+      document.body.classList.remove("reprint-shift-open");
+      document.body.classList.remove("slots-print-open");
+    };
   }, [open]);
 
   return (
