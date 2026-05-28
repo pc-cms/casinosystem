@@ -46,7 +46,7 @@ const ensureSlotsPortraitPrintStyle = () => {
   styleEl.textContent = `
     @media print {
       @page { size: 210mm 297mm !important; margin: 8mm !important; }
-      .slots-print-area { width: 210mm !important; min-height: 297mm !important; }
+      .slots-print-area { width: 194mm !important; min-height: 281mm !important; }
     }
   `;
   if (!existing) document.head.appendChild(styleEl);
@@ -73,7 +73,10 @@ const PrintSlotsShiftDialog = ({ open, onClose, shiftId }: Props) => {
       .join("\n");
     document.body.appendChild(iframe);
     const doc = iframe.contentDocument;
-    if (!doc) return;
+    if (!doc) {
+      if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
+      return;
+    }
     doc.open();
     doc.write(`<!doctype html><html><head>${styles}<style>@media print { @page { size: 210mm 297mm !important; margin: 8mm !important; } html, body { margin: 0 !important; background: white !important; } .slots-print-area { display: block !important; width: 194mm !important; min-height: 281mm !important; } }</style></head><body>${source.innerHTML}</body></html>`);
     doc.close();
@@ -82,16 +85,18 @@ const PrintSlotsShiftDialog = ({ open, onClose, shiftId }: Props) => {
         if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
       }, 500);
     };
-    iframe.onload = () => {
-      iframe.contentWindow?.focus();
-      iframe.contentWindow?.print();
-      cleanup();
+    let didPrint = false;
+    const runPrint = () => {
+      if (didPrint) return;
+      didPrint = true;
+      requestAnimationFrame(() => {
+        iframe.contentWindow?.focus();
+        iframe.contentWindow?.print();
+        cleanup();
+      });
     };
-    setTimeout(() => {
-      iframe.contentWindow?.focus();
-      iframe.contentWindow?.print();
-      cleanup();
-    }, 250);
+    iframe.onload = runPrint;
+    setTimeout(runPrint, 250);
   };
 
   const { data, isLoading } = useQuery({
