@@ -15,6 +15,7 @@ import type { Tables } from "@/integrations/supabase/types";
 interface Props {
   shift: Tables<"cage_slots_shifts">;
   currentValue: number;
+  cardDepositValue?: number;
   open: boolean;
   onClose: () => void;
 }
@@ -24,7 +25,7 @@ interface Props {
  * already-open slots cage shift. Records before/after to activity_logs.
  * Analog of EditOpeningChipsDialog for Live Game cage chips.
  */
-const EditOpeningCardsDialog = ({ shift, currentValue, open, onClose }: Props) => {
+const EditOpeningCardsDialog = ({ shift, currentValue, cardDepositValue, open, onClose }: Props) => {
   const { casinoId } = useAuth();
   const qc = useQueryClient();
 
@@ -61,17 +62,24 @@ const EditOpeningCardsDialog = ({ shift, currentValue, open, onClose }: Props) =
     if (!reason.trim()) { toast.error("Please provide a reason"); return; }
     setSaving(true);
     try {
-      // Use .select() to verify the row was actually updated — without it,
-      // RLS-filtered or no-match updates return success with 0 rows and the
-      // UI silently shows stale data.
-      const { data: updated, error } = await supabase
+      // Upsert — if no card row exists for this shift (rare, but possible if
+      // the row was never created at shift open), insert it; otherwise update.
+      const depositValue = Number(cardDepositValue || 5000);
+      const { data: upserted, error } = await supabase
         .from("cage_slots_cards")
-        .update({ opening_card_count: newCount } as any)
-        .eq("cage_slots_shift_id", shift.id)
+        .upsert(
+          {
+            cage_slots_shift_id: shift.id,
+            casino_id: (shift as any).casino_id,
+            opening_card_count: newCount,
+            card_deposit_value_tzs: depositValue,
+          } as any,
+          { onConflict: "cage_slots_shift_id" }
+        )
         .select("opening_card_count");
       if (error) throw error;
-      if (!updated || updated.length === 0) {
-        throw new Error("No card row matched this shift — check shift status / permissions");
+      if (!upserted || upserted.length === 0) {
+        throw new Error("Upsert returned no rows — check RLS / permissions");
       }
 
       await logAction(casinoId, "edit", "SLOTS_OPENING_CARDS_EDITED", {
@@ -88,7 +96,7 @@ const EditOpeningCardsDialog = ({ shift, currentValue, open, onClose }: Props) =
         qc.invalidateQueries({ queryKey: ["cage-slots-active-shift"], refetchType: "active" }),
         qc.invalidateQueries({ queryKey: ["cage-slots-shift", shift.id], refetchType: "active" }),
       ]);
-      toast.success(`Opening cards updated to ${updated[0].opening_card_count}`);
+      toast.success(`Opening cards updated to ${upserted[0].opening_card_count}`);
       handleOpenChange(false);
     } catch (e: any) {
       toast.error(e.message || "Failed to update");
