@@ -1,4 +1,5 @@
 import { Coins } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { CardSkeleton } from "@/components/LoadingSkeletons";
@@ -12,12 +13,16 @@ import CageSlotsHistoryView from "@/components/cage-slots/CageSlotsHistoryView";
 const CageSlots = () => {
   const isReadOnly = useReadOnlyMode();
   const { roles, managerOverride } = useAuth();
+  const [params] = useSearchParams();
   const canTransact =
     roles.includes("cashier_slots") ||
     roles.includes("super_admin") ||
     managerOverride.active;
 
   const { data: shift, isLoading } = useActiveCageSlotsShift();
+
+  // Explicit history view via ?view=history — available to anyone with access to this page
+  if (params.get("view") === "history") return <CageSlotsHistoryView />;
 
   if (isReadOnly || !canTransact) return <CageSlotsHistoryView />;
 
