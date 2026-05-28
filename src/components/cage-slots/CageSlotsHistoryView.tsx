@@ -96,10 +96,21 @@ const CageSlotsHistoryView = () => {
               const clNet = clIn - clOut;
               const providers = (txAgg && (txIn || txOut)) ? txAgg.providers : providersFromShift;
               const hasProviders = Object.values(providers).some(p => p.in || p.out);
+              const isExpanded = expandedId === s.id;
               return (
                 <Fragment key={s.id}>
-                <tr className="border-b border-border/50 hover:bg-accent/30">
-                  <td className="py-1.5">{fmtDate(s.business_date)}</td>
+                <tr
+                  className="border-b border-border/50 hover:bg-accent/30 cursor-pointer"
+                  onClick={() => setExpandedId(isExpanded ? null : s.id)}
+                >
+                  <td className="py-1.5">
+                    <span className="inline-flex items-center gap-1">
+                      {isExpanded
+                        ? <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
+                        : <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />}
+                      {fmtDate(s.business_date)}
+                    </span>
+                  </td>
                   <td className="text-center uppercase">{s.shift_type}</td>
                   <td className="text-center"><Badge variant="outline" className="text-[10px] uppercase">{s.status.replace("_", " ")}</Badge></td>
                   <td className="text-center text-muted-foreground">{fmtDateTime(s.opened_at)}</td>
@@ -126,16 +137,13 @@ const CageSlotsHistoryView = () => {
                   <td className={`text-right font-mono ${balance < 0 ? "cms-amount-negative" : balance > 0 ? "cms-amount-positive" : ""}`}>
                     {balance > 0 ? "+" : ""}{formatNumberSpaces(balance)}
                   </td>
-                  <td className="text-right whitespace-nowrap">
-                    <Button variant="ghost" size="sm" onClick={() => navigate(`/cage-slots/report/${s.id}`)} className="gap-1 h-7">
-                      <Eye className="w-3.5 h-3.5" /> View
-                    </Button>
+                  <td className="text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                     <Button variant="ghost" size="sm" onClick={() => setPrintShiftId(s.id)} className="gap-1 h-7">
                       <Printer className="w-3.5 h-3.5" /> Print
                     </Button>
                   </td>
                 </tr>
-                {hasProviders && (clIn || clOut) && (
+                {!isExpanded && hasProviders && (clIn || clOut) && (
                   <tr className="border-b border-border/50 bg-muted/20">
                     <td colSpan={9} className="text-right text-[10px] uppercase tracking-wider text-muted-foreground py-1 pr-2">
                       By provider
@@ -158,6 +166,13 @@ const CageSlotsHistoryView = () => {
                           );
                         })}
                       </div>
+                    </td>
+                  </tr>
+                )}
+                {isExpanded && (
+                  <tr className="bg-muted/10 border-b border-border">
+                    <td colSpan={14} className="p-3">
+                      <SlotsShiftReportBody id={s.id} showHeader={false} compact />
                     </td>
                   </tr>
                 )}
