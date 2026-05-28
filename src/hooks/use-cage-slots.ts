@@ -195,15 +195,19 @@ export const useSlotsCashCounts = (shiftId: string | undefined) => {
     queryKey: ["cage-slots-cash-counts", shiftId],
     queryFn: async () => {
       if (!shiftId) return [];
+      // Limit to the most recent 50 snapshots — UI only ever needs the latest
+      // few; unbounded fetch dragged Cage Slots open by seconds on cold cache.
       const { data, error } = await supabase
         .from("cage_slots_cash_counts")
         .select("*")
         .eq("cage_slots_shift_id", shiftId)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .limit(50);
       if (error) throw error;
       return data || [];
     },
     enabled: !!shiftId,
+    staleTime: 5_000,
   });
 };
 
