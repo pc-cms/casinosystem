@@ -546,7 +546,20 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
           <p className="font-mono text-2xl font-bold tabular-nums text-center">{formatNumberSpaces(openingTotalTzs)}</p>
         </TileCard>
         <TileCard label="Cards Opening" sub={`× TZS ${formatNumberSpaces(cardDepositTzs)}`}>
-          <p className="font-mono text-2xl font-bold tabular-nums text-center">{cards?.opening_card_count ?? 0}</p>
+          <div className="relative">
+            <p className="font-mono text-2xl font-bold tabular-nums text-center">{cards?.opening_card_count ?? 0}</p>
+            {canManage && shift.status === "open" && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowEditOpeningCards(true)}
+                className="absolute -top-1 -right-1 h-6 w-6 text-muted-foreground hover:text-primary"
+                title="Edit opening cards (manager)"
+              >
+                <Pencil className="w-3.5 h-3.5" />
+              </Button>
+            )}
+          </div>
         </TileCard>
         <TileCard
           label="System Result (TZS)"
