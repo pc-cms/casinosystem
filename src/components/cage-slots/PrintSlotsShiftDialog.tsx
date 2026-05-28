@@ -202,7 +202,7 @@ const PrintSlotsShiftDialog = ({ open, onClose, shiftId }: Props) => {
             </div>
 
             <PrintPortal>
-              <div className="hidden print:block">
+              <div className="slots-print-area hidden print:block">
                 <SlotsConsolidatedReport {...props} />
               </div>
             </PrintPortal>
