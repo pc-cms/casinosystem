@@ -510,4 +510,15 @@
     page-break-before: auto;
     page-break-inside: avoid;
   }
+
+  /* Slots Consolidated Report — A4 portrait */
+  @page slots {
+    size: A4 portrait;
+    margin: 8mm;
+  }
+  .slots-print-area {
+    page: slots;
+    page-break-after: always;
+    break-after: page;
+  }
 }
