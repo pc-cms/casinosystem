@@ -12,7 +12,7 @@ import {
   CURRENCIES, FOREIGN_CURRENCIES, CASH_DENOMS,
   DEFAULT_EXCHANGE_RATES, formatNumberSpaces, formatCurrency,
 } from "@/lib/currency";
-import { useOpenSlotsShift, useCageSlotsSettings, type SlotsShiftType } from "@/hooks/use-cage-slots";
+import { useOpenSlotsShift, useCageSlotsSettings, useLastClosedSlotsCards, type SlotsShiftType } from "@/hooks/use-cage-slots";
 import { useLastClosedShift } from "@/hooks/use-shift";
 import { useAuth } from "@/lib/auth-context";
 
