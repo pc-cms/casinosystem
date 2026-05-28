@@ -168,7 +168,7 @@ const SlotsConsolidatedReport = ({
           <tr>
             <td className="border border-black px-2 py-1">Cash Desk Cards FILL</td>
             <td className="border border-black px-2 py-1 text-right">{cashDeskCardsFill ? formatNumberSpaces(cashDeskCardsFill) : ""}</td>
-            <td className="border border-black bg-gray-200 px-2 py-1 font-semibold">ACE Balance</td>
+            <td className="border border-black bg-gray-200 px-2 py-1 font-semibold">Shift Balance</td>
             <td className="border border-black px-2 py-1 text-right font-bold">{formatNumberSpaces(aceBalance)}</td>
           </tr>
           <tr>
