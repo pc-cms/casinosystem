@@ -160,6 +160,11 @@ const OpenSlotsShiftScreen = () => {
                 <p className="text-[10px] text-muted-foreground leading-snug">
                   Counter only — not money. Card price TZS {formatNumberSpaces(cardDepositTzs)} is used at close to compute Cards Miss.
                 </p>
+                {cardsPrefilled && lastCards?.closing_card_count != null && (
+                  <p className="text-[10px] text-primary/80 font-medium leading-snug">
+                    Carried from previous shift closing: {lastCards.closing_card_count}
+                  </p>
+                )}
               </div>
             </PageSection>
           </div>
