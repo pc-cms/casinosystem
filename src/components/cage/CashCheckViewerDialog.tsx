@@ -14,8 +14,12 @@ type Denoms = {
   cash?: Record<string, Record<number, number>>;
   bank?: { tzs: number; usd: number };
   mobile?: Record<string, number>;
+  cashless_in_providers?: Record<string, number>;
+  cashless_out_providers?: Record<string, number>;
   totals?: Record<string, any>;
 };
+
+const SLOTS_PROVIDERS = ["MPESA", "TIGO", "HALOTEL", "AIRTEL"] as const;
 
 const sumRecord = (r?: Record<string | number, number>) =>
   r ? Object.values(r).reduce((s, v) => s + (Number(v) || 0), 0) : 0;
@@ -197,6 +201,87 @@ const CashCheckViewerDialog = ({
               <SlotsStat label="Cashless Balance (IN−OUT)" value={slotsCashlessBalance} signed />
               <SlotsStat label="Cashless Final (print only)" value={slotsCashlessFinal} />
             </div>
+
+            {/* Per-provider breakdown: shows EXACTLY which provider contributes how much
+                to the mobile_total_tzs in the saved snapshot. */}
+            {(() => {
+              const inP = d.cashless_in_providers || {};
+              const outP = d.cashless_out_providers || {};
+              const mob = mobile || {};
+              const anyData = SLOTS_PROVIDERS.some(p =>
+                Number(inP[p] || 0) || Number(outP[p] || 0) || Number(mob[p] || 0)
+              );
+              if (!anyData) return null;
+              const totalIn = SLOTS_PROVIDERS.reduce((s, p) => s + Number(inP[p] || 0), 0);
+              const totalOut = SLOTS_PROVIDERS.reduce((s, p) => s + Number(outP[p] || 0), 0);
+              const totalNet = totalIn - totalOut;
+              const mobileTzs = Number(t.mobile_tzs ?? sumRecord(mob) ?? totalNet);
+              return (
+                <section className="rounded-xl border border-border bg-background/40 p-4 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.22em]">
+                      Mobile Providers · IN − OUT = NET
+                    </p>
+                    <span className="text-[10px] font-mono text-muted-foreground">
+                      Σ NET → mobile_total_tzs
+                    </span>
+                  </div>
+                  <table className="w-full text-xs font-mono">
+                    <thead className="text-muted-foreground border-b border-border">
+                      <tr>
+                        <th className="text-left py-1">Provider</th>
+                        <th className="text-right">IN</th>
+                        <th className="text-right">OUT</th>
+                        <th className="text-right">NET (IN−OUT)</th>
+                        <th className="text-right">Snapshot mobile</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {SLOTS_PROVIDERS.map(p => {
+                        const i = Number(inP[p] || 0);
+                        const o = Number(outP[p] || 0);
+                        const n = i - o;
+                        const snap = Number(mob[p] || 0);
+                        if (!i && !o && !snap) return null;
+                        return (
+                          <tr key={p} className="border-b border-border/50">
+                            <td className="py-1">{p}</td>
+                            <td className={`text-right ${i ? "text-success" : "text-muted-foreground/40"}`}>
+                              {i ? "+" + formatNumberSpaces(i) : "·"}
+                            </td>
+                            <td className={`text-right ${o ? "text-destructive" : "text-muted-foreground/40"}`}>
+                              {o ? "−" + formatNumberSpaces(o) : "·"}
+                            </td>
+                            <td className={`text-right font-bold ${n < 0 ? "text-destructive" : n > 0 ? "text-success" : "text-muted-foreground/40"}`}>
+                              {n !== 0 ? (n > 0 ? "+" : "") + formatNumberSpaces(n) : "·"}
+                            </td>
+                            <td className={`text-right ${snap ? "text-card-foreground" : "text-muted-foreground/40"}`}>
+                              {snap ? formatNumberSpaces(snap) : "·"}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                      <tr className="font-bold border-t border-border">
+                        <td className="py-1">TOTAL</td>
+                        <td className="text-right text-success">+{formatNumberSpaces(totalIn)}</td>
+                        <td className="text-right text-destructive">−{formatNumberSpaces(totalOut)}</td>
+                        <td className={`text-right ${totalNet < 0 ? "text-destructive" : "text-success"}`}>
+                          {totalNet > 0 ? "+" : ""}{formatNumberSpaces(totalNet)}
+                        </td>
+                        <td className="text-right">{formatNumberSpaces(mobileTzs)}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                  <p className="text-[10px] text-muted-foreground">
+                    mobile_total_tzs в этом чеке = <span className="font-mono">{formatNumberSpaces(mobileTzs)}</span>,
+                    Σ NET = <span className="font-mono">{(totalNet >= 0 ? "+" : "") + formatNumberSpaces(totalNet)}</span>
+                    {Math.abs(mobileTzs - totalNet) > 0 && (
+                      <span className="text-destructive ml-1">· расхождение {formatNumberSpaces(mobileTzs - totalNet)}</span>
+                    )}
+                  </p>
+                </section>
+              );
+            })()}
           </>
         ) : (
           <div className="grid grid-cols-3 gap-2 cms-panel p-4">
