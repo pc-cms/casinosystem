@@ -49,6 +49,17 @@ const OpenSlotsShiftScreen = () => {
     Object.fromEntries(CURRENCIES.map(c => [c, {}]))
   );
   const [openingCards, setOpeningCards] = useState<number>(0);
+  const [cardsPrefilled, setCardsPrefilled] = useState(false);
+
+  // Carry over closing card count from the previous slots shift, analog of
+  // chip carry-over in Live Game cage.
+  useEffect(() => {
+    if (cardsPrefilled) return;
+    if (lastCards && lastCards.closing_card_count != null && openingCards === 0) {
+      setOpeningCards(Number(lastCards.closing_card_count) || 0);
+      setCardsPrefilled(true);
+    }
+  }, [lastCards, cardsPrefilled, openingCards]);
 
   const tzsTotal = useMemo(() => cashSum(openingCash["TZS"] || {}), [openingCash]);
   const fxTotalTzs = useMemo(() => FOREIGN_CURRENCIES.reduce(
