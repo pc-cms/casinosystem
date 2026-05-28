@@ -56,6 +56,44 @@ const ensureSlotsPortraitPrintStyle = () => {
 const PrintSlotsShiftDialog = ({ open, onClose, shiftId }: Props) => {
   const { activeCasino } = useCasino();
 
+  const printSlotsReport = () => {
+    const source = document.querySelector<HTMLElement>(".slots-print-area");
+    if (!source) return;
+    ensureSlotsPortraitPrintStyle();
+    const iframe = document.createElement("iframe");
+    iframe.setAttribute("aria-hidden", "true");
+    iframe.style.position = "fixed";
+    iframe.style.right = "0";
+    iframe.style.bottom = "0";
+    iframe.style.width = "0";
+    iframe.style.height = "0";
+    iframe.style.border = "0";
+    const styles = Array.from(document.querySelectorAll<HTMLStyleElement | HTMLLinkElement>('style, link[rel="stylesheet"]'))
+      .map((node) => node.outerHTML)
+      .join("\n");
+    document.body.appendChild(iframe);
+    const doc = iframe.contentDocument;
+    if (!doc) return;
+    doc.open();
+    doc.write(`<!doctype html><html><head>${styles}<style>@media print { @page { size: 210mm 297mm !important; margin: 8mm !important; } html, body { margin: 0 !important; background: white !important; } .slots-print-area { display: block !important; width: 194mm !important; min-height: 281mm !important; } }</style></head><body>${source.innerHTML}</body></html>`);
+    doc.close();
+    const cleanup = () => {
+      setTimeout(() => {
+        if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
+      }, 500);
+    };
+    iframe.onload = () => {
+      iframe.contentWindow?.focus();
+      iframe.contentWindow?.print();
+      cleanup();
+    };
+    setTimeout(() => {
+      iframe.contentWindow?.focus();
+      iframe.contentWindow?.print();
+      cleanup();
+    }, 250);
+  };
+
   const { data, isLoading } = useQuery({
     queryKey: ["print-slots-shift", shiftId],
     enabled: open && !!shiftId,
@@ -247,11 +285,7 @@ const PrintSlotsShiftDialog = ({ open, onClose, shiftId }: Props) => {
               <Button variant="outline" onClick={onClose} className="gap-1.5">
                 <X className="w-4 h-4" /> Close
               </Button>
-              <Button onClick={() => {
-                ensureSlotsPortraitPrintStyle();
-                document.body.classList.add("slots-print-open");
-                requestAnimationFrame(() => requestAnimationFrame(() => window.print()));
-              }} className="gap-1.5">
+              <Button onClick={printSlotsReport} className="gap-1.5">
                 <Printer className="w-4 h-4" /> Print
               </Button>
             </DialogFooter>
