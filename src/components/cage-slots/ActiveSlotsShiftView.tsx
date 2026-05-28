@@ -895,6 +895,15 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
           </div>
         </>
       )}
+
+      {showEditOpeningCards && (
+        <EditOpeningCardsDialog
+          shift={shift}
+          currentValue={Number(cards?.opening_card_count ?? 0)}
+          open={showEditOpeningCards}
+          onClose={() => setShowEditOpeningCards(false)}
+        />
+      )}
     </PageShell>
   );
 };
