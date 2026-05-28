@@ -17,6 +17,7 @@ import PrintSlotsShiftDialog from "@/components/cage-slots/PrintSlotsShiftDialog
 
 const CageSlotsReport = () => {
   const { id } = useParams<{ id: string }>();
+  const [printOpen, setPrintOpen] = useState(false);
   const { data: shift } = useCageSlotsShift(id);
   const { data: inventory = [] } = useSlotsInventory(id);
   const { data: cards } = useSlotsCards(id);
