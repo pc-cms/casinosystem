@@ -231,16 +231,24 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
 
   // Mid-shift cash check — snapshot of canonical balance fields.
   // Empty till is a valid state (negative balance reflects the shortage).
+  // Mobile block is derived from the CURRENT cashless providers (IN − OUT) so
+  // the saved check matches what's actually visible on screen — never stale.
   const recordMidCheck = () => {
     const bankTzs = bankTotalTzs(closingBanks, rateMap);
-    const mobileTzs = mobileTotal(closingMobile);
+    const mobileBlock: MobileProviders = { ...emptyMobile() };
+    MOBILE_PROVIDERS.forEach(p => {
+      mobileBlock[p] = Number(cashlessInProviders[p] || 0) - Number(cashlessOutProviders[p] || 0);
+    });
+    const mobileTzs = mobileTotal(mobileBlock);
     saveCheck.mutate({
       shift_id: shift.id,
       count_type: "check",
       denominations: {
         cash: closingCash,
         bank: closingBanks,
-        mobile: closingMobile,
+        mobile: mobileBlock,
+        cashless_in_providers: cashlessInProviders,
+        cashless_out_providers: cashlessOutProviders,
         cards: { count: closingCards, value_tzs: cardDepositTzs },
         rateMap,
         totals: {
@@ -264,6 +272,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
       note: "Mid-shift check",
     });
   };
+
 
 
 
