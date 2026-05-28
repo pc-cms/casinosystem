@@ -237,6 +237,47 @@ export const useSlotsCashlessAggByShift = (shiftIds: string[]) => {
   });
 };
 
+// ============ Closing totals across many shifts (for History fallbacks) ============
+export type SlotsClosingTotals = {
+  shift_balance: number | null;
+  cashless_in: number;
+  cashless_out: number;
+};
+export const useSlotsClosingTotalsByShift = (shiftIds: string[]) => {
+  const key = shiftIds.slice().sort().join(",");
+  return useQuery({
+    queryKey: ["cage-slots-closing-totals", key],
+    queryFn: async () => {
+      const out: Record<string, SlotsClosingTotals> = {};
+      if (!shiftIds.length) return out;
+      const { data, error } = await supabase
+        .from("cage_slots_cash_counts")
+        .select("cage_slots_shift_id, denominations, created_at")
+        .in("cage_slots_shift_id", shiftIds)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      // Pick latest non-opening (closing/review) per shift
+      const seen = new Set<string>();
+      (data || []).forEach((r: any) => {
+        const sid = r.cage_slots_shift_id;
+        if (!sid || seen.has(sid)) return;
+        const d = (r.denominations as any) || {};
+        if (d.is_opening) return;
+        const t = (d.totals as any) || {};
+        seen.add(sid);
+        out[sid] = {
+          shift_balance: t.shift_balance ?? t.balance ?? null,
+          cashless_in: Number(t.cashless_in || 0),
+          cashless_out: Number(t.cashless_out || 0),
+        };
+      });
+      return out;
+    },
+    enabled: shiftIds.length > 0,
+    staleTime: 30_000,
+  });
+};
+
 // ============ Mutation: open shift ============
 export const useOpenSlotsShift = () => {
   const qc = useQueryClient();
