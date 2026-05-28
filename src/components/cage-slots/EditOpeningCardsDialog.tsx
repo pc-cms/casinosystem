@@ -96,7 +96,7 @@ const EditOpeningCardsDialog = ({ shift, currentValue, cardDepositValue, open, o
         qc.invalidateQueries({ queryKey: ["cage-slots-active-shift"], refetchType: "active" }),
         qc.invalidateQueries({ queryKey: ["cage-slots-shift", shift.id], refetchType: "active" }),
       ]);
-      toast.success(`Opening cards updated to ${updated[0].opening_card_count}`);
+      toast.success(`Opening cards updated to ${upserted[0].opening_card_count}`);
       handleOpenChange(false);
     } catch (e: any) {
       toast.error(e.message || "Failed to update");
