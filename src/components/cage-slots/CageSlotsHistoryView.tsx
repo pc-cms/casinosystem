@@ -22,12 +22,12 @@ const NORMALIZE_PROVIDER = (k: string): string | null => {
 };
 
 const CageSlotsHistoryView = () => {
-  const navigate = useNavigate();
   const { data: shifts = [], isLoading } = useCageSlotsHistory(60);
   const shiftIds = shifts.map(s => s.id);
   const { data: cashlessAgg = {} } = useSlotsCashlessAggByShift(shiftIds);
   const { data: closingTotals = {} } = useSlotsClosingTotalsByShift(shiftIds);
   const [printShiftId, setPrintShiftId] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   return (
     <PageShell>
