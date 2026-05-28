@@ -1,0 +1,1 @@
+DELETE FROM public.expenses WHERE id = '89fe4800-d5c8-465d-81d7-db65af064f5e';
