@@ -1,53 +1,55 @@
-## Изменения формулы Cage Slots
+## Goal
 
-### Новая каноническая формула
+Make Cage Slots **opening cards** behave like Live Game opening chips:
 
-```text
-ΔCash            = ClosingCash − OpeningCash
-Cash Desk Result = ΔCash + Expenses + Collection − AddFloat (Fill)
-                 + LG_Out − LG_In + Cashless_Out − Cashless_In
-Cards Miss       = (OpeningCards − ClosingCards) × CardValue
-Slots Result     = System Result − OpeningCash − AddFloat (Fill)   ← НОВОЕ
-Shift Balance    = Cash Desk Result − Slots Result − Cards Miss
-```
+1. **Carry over** — when a new slots shift is opened, the *opening card count* is pre-filled from the **closing card count** of the previous slots shift (currently the field defaults to 0 / requires manual entry).
+2. **Mid-shift edit** — manager can correct the *opening card count* on an already-open slots shift, with manager override + audit log (analog of `EditOpeningChipsDialog`).
 
-`Slots Result` — производная величина (нормально может быть отрицательной), отдельно от введённого вручную `System Result`.
+No DB schema changes, no business-logic recalc changes — `cards_miss`, `slots_result`, `shift_balance` already derive from `opening_card_count`, so editing the value automatically flows through.
 
 ---
 
-## Что меняем
+## Changes
 
-### 1. `src/lib/cage-balance.ts`
-- В `SlotsBalanceResult` добавить `slotsResultDerived: number`.
-- Считать `slotsResultDerived = systemResult − openingCash − addFloat`.
-- `shiftBalance = cashDeskResult − slotsResultDerived − cardsMiss`.
-- Поле `slotsResult` оставить = `systemResult` для обратной совместимости снапшотов.
+### 1. Carry-over of opening cards (open-shift flow)
 
-### 2. `src/components/cage-slots/ActiveSlotsShiftView.tsx` — плитка на «дашборде» смены
-- В верхнем strip (строка из 5 плиток) заменить **Balance (TZS) · Last Check** на **Slots Result (TZS)**:
-  - значение = `slotsResultDerived`, может быть отрицательным;
-  - стили `cms-amount-negative` / `cms-amount-positive`;
-  - подпись `System − Opening − Fill`.
-- Удалить логику `lastCheckBalance` (больше не используется).
-- В Closing Preview и Manager Review добавить строку **Slots Result** рядом с System Result.
-- В снапшоты `totals` (mid-check и closing) писать `slots_result_derived` дополнительно к существующим полям.
+**`src/hooks/use-cage-slots.ts` — `useOpenSlotsShift`**
+- Before insert, fetch the most recent previous slots shift for the casino (status `closed`/`approved`/`ready_for_review`) and read its `cage_slots_cards.closing_card_count`.
+- Expose it as part of the query (or fetch directly in the screen). Cleanest: add a new hook `useLastClosedSlotsCards()` returning `{ closing_card_count, card_deposit_value_tzs }` from the most recent prior slots shift.
 
-### 3. `src/components/cage/CashCheckViewerDialog.tsx` — режим `balanceMode="slots"`
-- Заменить текущий 6-stat strip на 4 плитки: **Cash Count** · **System Result** · **Slot Result** · **Shift Balance**.
-  - Cash Count = `totals.total_tzs` (наличка).
-  - System Result = `totals.slots_result` (введённое).
-  - Slot Result = `totals.slots_result_derived` (новое).
-  - Shift Balance = `totals.shift_balance` (выделить рамкой, как сейчас).
-- Скрыть секцию **TZS Chips** полностью, когда `balanceMode === "slots"` (в slots cage чипов нет).
-- В компактной шапке диалога рядом со временем выводить `Balance: ±N` (либо `Balanced`, либо знаковая разница) — это и есть «в строке пишем Balance или разницу».
+**`src/components/cage-slots/OpenSlotsShiftScreen.tsx`**
+- Use `useLastClosedSlotsCards()`; on first load, if `openingCards === 0` and a previous closing count exists, set `openingCards` to that value (one-shot, guarded by a `prefilled` flag — mirrors the existing FX-rates prefill pattern).
+- Show a small hint under the cards input: `Carried from previous shift closing: N` (only when prefilled).
 
-### 4. `src/components/cage-slots/CageSlotsHistoryView.tsx`
-- Добавить колонку **Slots Result** (после «System»), стилизованную знаково. Колонки «Cash Desk Result», «Cards Miss», «Balance» оставить.
+### 2. Manager edit of opening cards during shift
 
-### 5. Без изменений
-- DB-триггер `compute_slots_shift_balance_from_row` уже считает `shift_balance = CDR − slots_result − cards_miss`. Поскольку клиент будет писать `slots_result_derived` в `shifts.slots_result`, формула на сервере останется корректной. *(Подтверждаем при реализации: миграция не требуется — клиент закрывает смену с уже вычисленным `slots_result = systemResult − openingCash − fill`.)*
+**New file `src/components/cage-slots/EditOpeningCardsDialog.tsx`** — direct analog of `src/components/cage/EditOpeningChipsDialog.tsx`:
+- Props: `shift: Tables<"cage_slots_shifts">`, `open`, `onClose`.
+- Gated by `ManagerOverrideDialog` (`actionType: "SLOTS_OPENING_CARDS_EDIT_REQUESTED"`).
+- After unlock: shows old value, NumberInput for new value, Δ chip, required Reason textarea.
+- On save:
+  - `update cage_slots_cards set opening_card_count = :new where cage_slots_shift_id = :shift.id`
+  - `logAction(casinoId, "edit", "SLOTS_OPENING_CARDS_EDITED", { shift_id, manager_id, reason, old, new, delta })`
+  - Invalidate `["cage-slots-cards", shift.id]` and `["cage-slots-active-shift"]`.
 
-### Технические детали
-- Тип `SlotsBalanceResult` расширяется одним полем — все вызовы хука получат его автоматически через destructure.
-- В JSONB `cash_counts.denominations.totals` добавляем ключ `slots_result_derived`; старые чеки без этого ключа графятся как `0` (graceful fallback).
-- Чисто UI/presentation-изменения, никаких миграций БД и edge-функций. `package.json` патч-бамп НЕ нужен (по правилу: backend без изменений).
+**`src/components/cage-slots/ActiveSlotsShiftView.tsx`**
+- In the section that displays opening cards (header strip / opening summary), add a small `Pencil` button visible only to `manager / super_admin / managerOverride.active` that opens `EditOpeningCardsDialog`.
+- Mirror existing Live Game placement (small ghost icon button next to the opening-cards value).
+
+### 3. Version bump
+
+Bump `package.json` patch (auto-version policy for backend-touching change: new hook query + RPC-equivalent UPDATE on `cage_slots_cards` + audit log).
+
+---
+
+## Out of scope
+
+- No changes to closing logic, balance formula, or card pricing.
+- No schema migrations — `cage_slots_cards.opening_card_count` and `closing_card_count` already exist.
+- No edits to cash/bank/mobile carry-over (already handled by existing seed snapshot).
+
+## Verification
+
+- Open a new slots shift after a previously-closed one → opening cards field arrives pre-filled with previous shift's closing count; hint visible.
+- During an open shift, manager clicks Pencil → enters override → changes count → reason → save. UI immediately reflects new value; `cards_miss` / `shift_balance` recompute. Audit row appears in Logs with `SLOTS_OPENING_CARDS_EDITED`.
+- Non-manager cashier does not see the Pencil button.

@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Coins, Send, RotateCcw, Printer, FileText, CreditCard, Save, ArrowLeftRight, History } from "lucide-react";
+import { Coins, Send, RotateCcw, Printer, FileText, CreditCard, Save, ArrowLeftRight, History, Pencil } from "lucide-react";
+import EditOpeningCardsDialog from "./EditOpeningCardsDialog";
 import SlotsTransfersForm from "./SlotsTransfersForm";
 import { useSlotsTransfers } from "@/hooks/use-cage-slots-transfers";
 import { useSlotsExpenses } from "@/hooks/use-expenses";
@@ -278,6 +279,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
 
   // Closing preview dialog (Live Game-style: review before submit-for-review).
   const [showClosingPreview, setShowClosingPreview] = useState(false);
+  const [showEditOpeningCards, setShowEditOpeningCards] = useState(false);
 
   const openClosingPreview = () => {
     if (!systemResultInput.trim()) {
@@ -544,7 +546,20 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
           <p className="font-mono text-2xl font-bold tabular-nums text-center">{formatNumberSpaces(openingTotalTzs)}</p>
         </TileCard>
         <TileCard label="Cards Opening" sub={`× TZS ${formatNumberSpaces(cardDepositTzs)}`}>
-          <p className="font-mono text-2xl font-bold tabular-nums text-center">{cards?.opening_card_count ?? 0}</p>
+          <div className="relative">
+            <p className="font-mono text-2xl font-bold tabular-nums text-center">{cards?.opening_card_count ?? 0}</p>
+            {canManage && shift.status === "open" && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowEditOpeningCards(true)}
+                className="absolute -top-1 -right-1 h-6 w-6 text-muted-foreground hover:text-primary"
+                title="Edit opening cards (manager)"
+              >
+                <Pencil className="w-3.5 h-3.5" />
+              </Button>
+            )}
+          </div>
         </TileCard>
         <TileCard
           label="System Result (TZS)"
@@ -879,6 +894,15 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
             </div>
           </div>
         </>
+      )}
+
+      {showEditOpeningCards && (
+        <EditOpeningCardsDialog
+          shift={shift}
+          currentValue={Number(cards?.opening_card_count ?? 0)}
+          open={showEditOpeningCards}
+          onClose={() => setShowEditOpeningCards(false)}
+        />
       )}
     </PageShell>
   );

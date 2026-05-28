@@ -12,7 +12,7 @@ import {
   CURRENCIES, FOREIGN_CURRENCIES, CASH_DENOMS,
   DEFAULT_EXCHANGE_RATES, formatNumberSpaces, formatCurrency,
 } from "@/lib/currency";
-import { useOpenSlotsShift, useCageSlotsSettings, type SlotsShiftType } from "@/hooks/use-cage-slots";
+import { useOpenSlotsShift, useCageSlotsSettings, useLastClosedSlotsCards, type SlotsShiftType } from "@/hooks/use-cage-slots";
 import { useLastClosedShift } from "@/hooks/use-shift";
 import { useAuth } from "@/lib/auth-context";
 
@@ -26,6 +26,7 @@ const OpenSlotsShiftScreen = () => {
   const open = useOpenSlotsShift();
   const { data: settings } = useCageSlotsSettings();
   const { data: lastShift } = useLastClosedShift();
+  const { data: lastCards } = useLastClosedSlotsCards();
   const cardDepositTzs = Number(settings?.card_deposit_value_tzs || 5000);
 
   const [step, setStep] = useState<1 | 2>(1);
@@ -48,6 +49,17 @@ const OpenSlotsShiftScreen = () => {
     Object.fromEntries(CURRENCIES.map(c => [c, {}]))
   );
   const [openingCards, setOpeningCards] = useState<number>(0);
+  const [cardsPrefilled, setCardsPrefilled] = useState(false);
+
+  // Carry over closing card count from the previous slots shift, analog of
+  // chip carry-over in Live Game cage.
+  useEffect(() => {
+    if (cardsPrefilled) return;
+    if (lastCards && lastCards.closing_card_count != null && openingCards === 0) {
+      setOpeningCards(Number(lastCards.closing_card_count) || 0);
+      setCardsPrefilled(true);
+    }
+  }, [lastCards, cardsPrefilled, openingCards]);
 
   const tzsTotal = useMemo(() => cashSum(openingCash["TZS"] || {}), [openingCash]);
   const fxTotalTzs = useMemo(() => FOREIGN_CURRENCIES.reduce(
@@ -148,6 +160,11 @@ const OpenSlotsShiftScreen = () => {
                 <p className="text-[10px] text-muted-foreground leading-snug">
                   Counter only — not money. Card price TZS {formatNumberSpaces(cardDepositTzs)} is used at close to compute Cards Miss.
                 </p>
+                {cardsPrefilled && lastCards?.closing_card_count != null && (
+                  <p className="text-[10px] text-primary/80 font-medium leading-snug">
+                    Carried from previous shift closing: {lastCards.closing_card_count}
+                  </p>
+                )}
               </div>
             </PageSection>
           </div>
