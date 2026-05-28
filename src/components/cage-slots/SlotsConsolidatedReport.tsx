@@ -182,29 +182,37 @@ const SlotsConsolidatedReport = ({
       {/* ============ CASH LESS SHIFT TRANSACTIONS ============ */}
       <table className="w-full border-collapse mb-1">
         <thead>
-          <tr><th colSpan={3} className="border border-black bg-gray-200 px-2 py-1 text-left">Cash Less Shift Transactions</th></tr>
+          <tr><th colSpan={4} className="border border-black bg-gray-200 px-2 py-1 text-left">Cash Less Shift Transactions · IN − OUT = NET</th></tr>
           <tr>
             <th className="border border-black px-2 py-1 text-left w-1/3">Provider</th>
-            <th className="border border-black px-2 py-1 text-right">Cash Less Deposit</th>
-            <th className="border border-black px-2 py-1 text-right">Cash Less Withdraw</th>
+            <th className="border border-black px-2 py-1 text-right">Cash Less Deposit (IN)</th>
+            <th className="border border-black px-2 py-1 text-right">Cash Less Withdraw (OUT)</th>
+            <th className="border border-black px-2 py-1 text-right">NET (IN − OUT)</th>
           </tr>
         </thead>
         <tbody>
-          {PROVIDERS.map(p => (
-            <tr key={p.key}>
-              <td className="border border-black px-2 py-1">{p.label}</td>
-              <td className="border border-black px-2 py-1 text-right">
-                {Number(cashlessDepositByProvider[p.key] || 0) ? formatNumberSpaces(Number(cashlessDepositByProvider[p.key])) : ""}
-              </td>
-              <td className="border border-black px-2 py-1 text-right">
-                {Number(cashlessWithdrawByProvider[p.key] || 0) ? formatNumberSpaces(Number(cashlessWithdrawByProvider[p.key])) : ""}
-              </td>
-            </tr>
-          ))}
+          {PROVIDERS.map(p => {
+            const i = Number(cashlessDepositByProvider[p.key] || 0);
+            const o = Number(cashlessWithdrawByProvider[p.key] || 0);
+            const n = i - o;
+            return (
+              <tr key={p.key}>
+                <td className="border border-black px-2 py-1">{p.label}</td>
+                <td className="border border-black px-2 py-1 text-right">{i ? formatNumberSpaces(i) : ""}</td>
+                <td className="border border-black px-2 py-1 text-right">{o ? formatNumberSpaces(o) : ""}</td>
+                <td className="border border-black px-2 py-1 text-right font-semibold">
+                  {n !== 0 ? (n > 0 ? "+" : "") + formatNumberSpaces(n) : ""}
+                </td>
+              </tr>
+            );
+          })}
           <tr>
             <td className="border border-black px-2 py-1 font-bold bg-gray-100">Total</td>
             <td className="border border-black px-2 py-1 text-right font-bold bg-gray-100">{formatNumberSpaces(depositTotal)}</td>
             <td className="border border-black px-2 py-1 text-right font-bold bg-gray-100">{formatNumberSpaces(withdrawTotal)}</td>
+            <td className="border border-black px-2 py-1 text-right font-bold bg-gray-100">
+              {(depositTotal - withdrawTotal) > 0 ? "+" : ""}{formatNumberSpaces(depositTotal - withdrawTotal)}
+            </td>
           </tr>
         </tbody>
       </table>
