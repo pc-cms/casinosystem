@@ -75,7 +75,8 @@ const SlotsShiftReportBody = ({ id, showHeader = true, compact = false }: Props)
   const cashlessIn = cashless.reduce((s, t: any) => s + (t.direction === "IN" ? Number(t.amount) : 0), 0);
   const cashlessOut = cashless.reduce((s, t: any) => s + (t.direction === "OUT" ? Number(t.amount) : 0), 0);
   const latestCheck = checks.find((c: any) => !(c.denominations as any)?.is_opening);
-  const latestTotals = ((latestCheck?.denominations as any)?.totals || {}) as Record<string, number>;
+  const latestDenominations = ((latestCheck?.denominations as any) || {}) as Record<string, any>;
+  const latestTotals = (latestDenominations.totals || {}) as Record<string, number>;
 
   const closingCash = Number(latestTotals.total_tzs ?? closingTotal);
 
@@ -104,10 +105,10 @@ const SlotsShiftReportBody = ({ id, showHeader = true, compact = false }: Props)
   // Provider breakdown — prefer live transactions; fallback to shift JSON columns
   const PROVIDERS = ["MPESA", "TIGO", "HALOTEL", "AIRTEL"] as const;
   const NORM = (k: string): string | null => {
-    const v = String(k || "").toLowerCase();
-    if (v.includes("mpesa") || v === "m_pesa") return "MPESA";
-    if (v.includes("tigo") || v === "t_pesa") return "TIGO";
-    if (v.includes("halo") || v === "h_pesa") return "HALOTEL";
+    const v = String(k || "").toLowerCase().replace(/[\s_-]+/g, "");
+    if (v.includes("mpesa")) return "MPESA";
+    if (v.includes("tigo") || v.includes("tpesa")) return "TIGO";
+    if (v.includes("halo") || v.includes("hpesa")) return "HALOTEL";
     if (v.includes("airtel")) return "AIRTEL";
     return null;
   };
@@ -121,13 +122,15 @@ const SlotsShiftReportBody = ({ id, showHeader = true, compact = false }: Props)
       else if (t.direction === "OUT") byProv[p].out += Number(t.amount || 0);
     });
   } else {
-    const sip = (shift as any).cashless_in_providers || {};
-    const sop = (shift as any).cashless_out_providers || {};
+    const sip = (shift as any).cashless_in_providers || latestDenominations.cashless_in_providers || {};
+    const sop = (shift as any).cashless_out_providers || latestDenominations.cashless_out_providers || {};
     Object.entries(sip).forEach(([k, v]) => { const p = NORM(k); if (p) byProv[p].in += Number(v || 0); });
     Object.entries(sop).forEach(([k, v]) => { const p = NORM(k); if (p) byProv[p].out += Number(v || 0); });
   }
-  const dispCashlessIn = cashless.length > 0 ? cashlessIn : Object.values(byProv).reduce((s, p) => s + p.in, 0);
-  const dispCashlessOut = cashless.length > 0 ? cashlessOut : Object.values(byProv).reduce((s, p) => s + p.out, 0);
+  const providerCashlessIn = Object.values(byProv).reduce((s, p) => s + p.in, 0);
+  const providerCashlessOut = Object.values(byProv).reduce((s, p) => s + p.out, 0);
+  const dispCashlessIn = cashless.length > 0 ? cashlessIn : providerCashlessIn || Number(latestTotals.cashless_in || 0);
+  const dispCashlessOut = cashless.length > 0 ? cashlessOut : providerCashlessOut || Number(latestTotals.cashless_out || 0);
   const dispCashlessBalance = dispCashlessIn - dispCashlessOut;
 
   const wrap = compact ? "space-y-2" : "space-y-4";

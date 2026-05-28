@@ -42,6 +42,9 @@ export type SlotsConsolidatedProps = {
   /** Per-provider IN / OUT transaction totals for the shift. */
   cashlessDepositByProvider: Record<string, number>;
   cashlessWithdrawByProvider: Record<string, number>;
+  /** Fallback totals from the closing snapshot when provider detail is not stored. */
+  cashlessDepositTotalTzs?: number;
+  cashlessWithdrawTotalTzs?: number;
 };
 
 const Cell = ({ value, align = "right", emphasize = false }: { value: number | string; align?: "left" | "right" | "center"; emphasize?: boolean }) => {
@@ -71,15 +74,18 @@ const SlotsConsolidatedReport = ({
   cashFlowFill, cashFlowCredit, cashDeskCardsFill, cashDeskCardsCredit,
   missCards, casinoExpenses, tipsCollection, aceBalance,
   cashlessDepositByProvider, cashlessWithdrawByProvider,
+  cashlessDepositTotalTzs, cashlessWithdrawTotalTzs,
 }: SlotsConsolidatedProps) => {
   const shiftLabel = shiftType.toUpperCase() === "DAY" ? "Day Shift" : "Night Shift";
-  const depositTotal = Object.values(cashlessDepositByProvider).reduce((s, v) => s + Number(v || 0), 0);
-  const withdrawTotal = Object.values(cashlessWithdrawByProvider).reduce((s, v) => s + Number(v || 0), 0);
+  const providerDepositTotal = Object.values(cashlessDepositByProvider).reduce((s, v) => s + Number(v || 0), 0);
+  const providerWithdrawTotal = Object.values(cashlessWithdrawByProvider).reduce((s, v) => s + Number(v || 0), 0);
+  const depositTotal = providerDepositTotal || Number(cashlessDepositTotalTzs || 0);
+  const withdrawTotal = providerWithdrawTotal || Number(cashlessWithdrawTotalTzs || 0);
   const openerTotal = openerCashTotalTzs + openerCashlessTotalTzs;
   const closerTotal = closerCashTotalTzs + closerCashlessTotalTzs;
 
   return (
-    <div className="bg-white text-black p-4" style={{ fontFamily: "Arial, sans-serif", fontSize: "11px", width: "210mm", minHeight: "297mm", boxSizing: "border-box" }}>
+    <div className="bg-white text-black p-4" style={{ fontFamily: "Arial, sans-serif", fontSize: "11px", width: "194mm", minHeight: "281mm", boxSizing: "border-box" }}>
       {/* ============ TITLE ROW ============ */}
       <table className="w-full border-collapse mb-1">
         <tbody>

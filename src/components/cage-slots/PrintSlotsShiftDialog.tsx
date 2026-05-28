@@ -31,16 +31,73 @@ const PROVIDER_NORMALIZE = (raw: string) => {
 };
 
 const PROV_KEY_FROM_SNAPSHOT_KEY = (k: string): string | null => {
-  const v = k.toLowerCase();
-  if (v.includes("mpesa") || v === "m_pesa" || v === "m pesa") return "MPESA";
-  if (v.includes("tigo")  || v === "t_pesa" || v === "t pesa") return "TIGO";
-  if (v.includes("halo")  || v === "h_pesa" || v === "h pesa") return "HALOTEL";
+  const v = String(k || "").toLowerCase().replace(/[\s_-]+/g, "");
+  if (v.includes("mpesa")) return "MPESA";
+  if (v.includes("tigo") || v.includes("tpesa")) return "TIGO";
+  if (v.includes("halo") || v.includes("hpesa")) return "HALOTEL";
   if (v.includes("airtel")) return "AIRTEL";
   return null;
 };
 
+const ensureSlotsPortraitPrintStyle = () => {
+  const existing = document.head.querySelector<HTMLStyleElement>('style[data-slots-print="1"]');
+  const styleEl = existing || document.createElement("style");
+  styleEl.setAttribute("data-slots-print", "1");
+  styleEl.textContent = `
+    @media print {
+      @page { size: 210mm 297mm !important; margin: 8mm !important; }
+      .slots-print-area { width: 194mm !important; min-height: 281mm !important; }
+    }
+  `;
+  if (!existing) document.head.appendChild(styleEl);
+  return styleEl;
+};
+
 const PrintSlotsShiftDialog = ({ open, onClose, shiftId }: Props) => {
   const { activeCasino } = useCasino();
+
+  const printSlotsReport = () => {
+    const source = document.querySelector<HTMLElement>(".slots-print-area");
+    if (!source) return;
+    ensureSlotsPortraitPrintStyle();
+    const iframe = document.createElement("iframe");
+    iframe.setAttribute("aria-hidden", "true");
+    iframe.style.position = "fixed";
+    iframe.style.right = "0";
+    iframe.style.bottom = "0";
+    iframe.style.width = "0";
+    iframe.style.height = "0";
+    iframe.style.border = "0";
+    const styles = Array.from(document.querySelectorAll<HTMLStyleElement | HTMLLinkElement>('style, link[rel="stylesheet"]'))
+      .map((node) => node.outerHTML)
+      .join("\n");
+    document.body.appendChild(iframe);
+    const doc = iframe.contentDocument;
+    if (!doc) {
+      if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
+      return;
+    }
+    doc.open();
+    doc.write(`<!doctype html><html><head>${styles}<style>@media print { @page { size: 210mm 297mm !important; margin: 8mm !important; } html, body { margin: 0 !important; background: white !important; } .slots-print-area { display: block !important; width: 194mm !important; min-height: 281mm !important; } }</style></head><body>${source.innerHTML}</body></html>`);
+    doc.close();
+    const cleanup = () => {
+      setTimeout(() => {
+        if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
+      }, 500);
+    };
+    let didPrint = false;
+    const runPrint = () => {
+      if (didPrint) return;
+      didPrint = true;
+      requestAnimationFrame(() => {
+        iframe.contentWindow?.focus();
+        iframe.contentWindow?.print();
+        cleanup();
+      });
+    };
+    iframe.onload = runPrint;
+    setTimeout(runPrint, 250);
+  };
 
   const { data, isLoading } = useQuery({
     queryKey: ["print-slots-shift", shiftId],
@@ -120,6 +177,13 @@ const PrintSlotsShiftDialog = ({ open, onClose, shiftId }: Props) => {
     // Cashless deposit/withdraw (per-provider) for the shift
     const deposit: Record<string, number> = { MPESA: 0, TIGO: 0, HALOTEL: 0, AIRTEL: 0 };
     const withdraw: Record<string, number> = { MPESA: 0, TIGO: 0, HALOTEL: 0, AIRTEL: 0 };
+    const addProviders = (target: Record<string, number>, raw: any) => {
+      if (!raw || typeof raw !== "object") return;
+      Object.entries(raw).forEach(([key, value]) => {
+        const normalized = PROV_KEY_FROM_SNAPSHOT_KEY(key);
+        if (normalized && normalized in target) target[normalized] += Number(value || 0);
+      });
+    };
     cashless.forEach((t: any) => {
       const k = PROVIDER_NORMALIZE(t.provider);
       const amt = Number(t.amount || 0);
@@ -127,6 +191,13 @@ const PrintSlotsShiftDialog = ({ open, onClose, shiftId }: Props) => {
       if (t.direction === "IN") deposit[k] += amt;
       else if (t.direction === "OUT") withdraw[k] += amt;
     });
+    const hasCashlessTransactions = Object.values(deposit).some(Boolean) || Object.values(withdraw).some(Boolean);
+    if (!hasCashlessTransactions) {
+      addProviders(deposit, (shift as any).cashless_in_providers || (closingCheck?.denominations as any)?.cashless_in_providers);
+      addProviders(withdraw, (shift as any).cashless_out_providers || (closingCheck?.denominations as any)?.cashless_out_providers);
+    }
+    const fallbackCashlessIn = Number((closingCheck?.denominations as any)?.totals?.cashless_in || 0);
+    const fallbackCashlessOut = Number((closingCheck?.denominations as any)?.totals?.cashless_out || 0);
 
     // Transfers
     const tx = { fill: 0, collection: 0, lg_in: 0, lg_out: 0 } as Record<string, number>;
@@ -175,6 +246,8 @@ const PrintSlotsShiftDialog = ({ open, onClose, shiftId }: Props) => {
       ),
       cashlessDepositByProvider: deposit,
       cashlessWithdrawByProvider: withdraw,
+      cashlessDepositTotalTzs: Object.values(deposit).reduce((sum, value) => sum + Number(value || 0), 0) || fallbackCashlessIn,
+      cashlessWithdrawTotalTzs: Object.values(withdraw).reduce((sum, value) => sum + Number(value || 0), 0) || fallbackCashlessOut,
     };
   }, [data, activeCasino]);
 
@@ -182,11 +255,7 @@ const PrintSlotsShiftDialog = ({ open, onClose, shiftId }: Props) => {
     if (!open) return;
     document.body.classList.add("reprint-shift-open");
     document.body.classList.add("slots-print-open");
-    // Inject portrait @page override (named @page is unreliable across browsers).
-    const styleEl = document.createElement("style");
-    styleEl.setAttribute("data-slots-print", "1");
-    styleEl.textContent = "@media print { @page { size: A4 portrait !important; margin: 8mm !important; } }";
-    document.head.appendChild(styleEl);
+    const styleEl = ensureSlotsPortraitPrintStyle();
     return () => {
       document.body.classList.remove("reprint-shift-open");
       document.body.classList.remove("slots-print-open");
@@ -221,7 +290,7 @@ const PrintSlotsShiftDialog = ({ open, onClose, shiftId }: Props) => {
               <Button variant="outline" onClick={onClose} className="gap-1.5">
                 <X className="w-4 h-4" /> Close
               </Button>
-              <Button onClick={() => window.print()} className="gap-1.5">
+              <Button onClick={printSlotsReport} className="gap-1.5">
                 <Printer className="w-4 h-4" /> Print
               </Button>
             </DialogFooter>
