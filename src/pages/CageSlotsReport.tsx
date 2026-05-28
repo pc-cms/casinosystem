@@ -121,39 +121,77 @@ const CageSlotsReport = () => {
       </PageSection>
 
       <PageSection title="Cashless">
-        <table className="w-full text-xs">
-          <thead className="text-muted-foreground border-b border-border">
-            <tr><th className="text-left py-1.5">When</th><th>Dir</th><th>Provider</th><th className="text-left">Player</th><th className="text-right">Amount</th></tr>
-          </thead>
-          <tbody>
-            {cashless.length === 0 && <tr><td colSpan={5} className="text-center text-muted-foreground py-2">·</td></tr>}
-            {cashless.map((t: any) => (
-              <tr key={t.id} className="border-b border-border/50">
-                <td className="py-1">{fmtDateTime(t.created_at)}</td>
-                <td className="text-center">{t.direction}</td>
-                <td className="text-center">{t.provider}</td>
-                <td>{t.player_name}</td>
-                <td className="text-right font-mono">{formatNumberSpaces(Number(t.amount))}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <div className="text-right text-xs mt-1 font-mono space-y-0.5">
-          <div>
-            IN: <span className="cms-amount-positive">+{formatNumberSpaces(cashlessIn)}</span>
-            {" · "}
-            OUT: <span className="cms-amount-negative">−{formatNumberSpaces(cashlessOut)}</span>
-          </div>
-          <div>
-            Cashless Balance (IN−OUT):{" "}
-            <span className={cashlessBalance < 0 ? "cms-amount-negative" : cashlessBalance > 0 ? "cms-amount-positive" : ""}>
-              {cashlessBalance > 0 ? "+" : ""}{formatNumberSpaces(cashlessBalance)}
-            </span>
-          </div>
-          <div className="text-muted-foreground">
-            Cashless Final (manual · print only):{" "}
-            <span className="text-card-foreground">{formatNumberSpaces(cashlessFinal)}</span>
-          </div>
+        {(() => {
+          const PROVIDERS = ["MPESA", "TIGO", "HALOTEL", "AIRTEL"] as const;
+          const byProv: Record<string, { in: number; out: number }> = {};
+          PROVIDERS.forEach(p => { byProv[p] = { in: 0, out: 0 }; });
+          cashless.forEach((t: any) => {
+            const p = String(t.provider || "").toUpperCase();
+            if (!byProv[p]) byProv[p] = { in: 0, out: 0 };
+            if (t.direction === "IN") byProv[p].in += Number(t.amount || 0);
+            else if (t.direction === "OUT") byProv[p].out += Number(t.amount || 0);
+          });
+          return (
+            <table className="w-full text-xs font-mono mb-2">
+              <thead className="text-muted-foreground border-b border-border">
+                <tr>
+                  <th className="text-left py-1.5">Provider</th>
+                  <th className="text-right">IN</th>
+                  <th className="text-right">OUT</th>
+                  <th className="text-right">NET (IN−OUT)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Object.entries(byProv).map(([p, v]) => {
+                  const net = v.in - v.out;
+                  return (
+                    <tr key={p} className="border-b border-border/50">
+                      <td className="py-1">{p}</td>
+                      <td className="text-right cms-amount-positive">{v.in ? "+" + formatNumberSpaces(v.in) : "·"}</td>
+                      <td className="text-right cms-amount-negative">{v.out ? "−" + formatNumberSpaces(v.out) : "·"}</td>
+                      <td className={`text-right ${net < 0 ? "cms-amount-negative" : net > 0 ? "cms-amount-positive" : ""}`}>
+                        {net !== 0 ? (net > 0 ? "+" : "") + formatNumberSpaces(net) : "·"}
+                      </td>
+                    </tr>
+                  );
+                })}
+                <tr className="font-bold border-t border-border">
+                  <td className="py-1">TOTAL</td>
+                  <td className="text-right cms-amount-positive">+{formatNumberSpaces(cashlessIn)}</td>
+                  <td className="text-right cms-amount-negative">−{formatNumberSpaces(cashlessOut)}</td>
+                  <td className={`text-right ${cashlessBalance < 0 ? "cms-amount-negative" : cashlessBalance > 0 ? "cms-amount-positive" : ""}`}>
+                    {cashlessBalance > 0 ? "+" : ""}{formatNumberSpaces(cashlessBalance)}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          );
+        })()}
+
+        <details className="text-xs">
+          <summary className="cursor-pointer text-muted-foreground hover:text-foreground">Transactions ({cashless.length})</summary>
+          <table className="w-full text-xs mt-2">
+            <thead className="text-muted-foreground border-b border-border">
+              <tr><th className="text-left py-1.5">When</th><th>Dir</th><th>Provider</th><th className="text-left">Player</th><th className="text-right">Amount</th></tr>
+            </thead>
+            <tbody>
+              {cashless.length === 0 && <tr><td colSpan={5} className="text-center text-muted-foreground py-2">·</td></tr>}
+              {cashless.map((t: any) => (
+                <tr key={t.id} className="border-b border-border/50">
+                  <td className="py-1">{fmtDateTime(t.created_at)}</td>
+                  <td className="text-center">{t.direction}</td>
+                  <td className="text-center">{t.provider}</td>
+                  <td>{t.player_name}</td>
+                  <td className="text-right font-mono">{formatNumberSpaces(Number(t.amount))}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </details>
+
+        <div className="text-right text-xs mt-2 font-mono text-muted-foreground">
+          Cashless Final (manual · print only):{" "}
+          <span className="text-card-foreground">{formatNumberSpaces(cashlessFinal)}</span>
         </div>
       </PageSection>
 
