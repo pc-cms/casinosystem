@@ -93,9 +93,12 @@ const CageSlotsHistoryView = () => {
                   <td className={`text-right font-mono ${balance < 0 ? "cms-amount-negative" : balance > 0 ? "cms-amount-positive" : ""}`}>
                     {balance > 0 ? "+" : ""}{formatNumberSpaces(balance)}
                   </td>
-                  <td className="text-right">
+                  <td className="text-right whitespace-nowrap">
                     <Button variant="ghost" size="sm" onClick={() => navigate(`/cage-slots/report/${s.id}`)} className="gap-1 h-7">
                       <Eye className="w-3.5 h-3.5" /> View
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => setPrintShiftId(s.id)} className="gap-1 h-7">
+                      <Printer className="w-3.5 h-3.5" /> Print
                     </Button>
                   </td>
                 </tr>
