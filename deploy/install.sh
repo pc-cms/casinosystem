@@ -488,11 +488,31 @@ else
   ok "Docker: $(docker --version | awk '{print $3}' | tr -d ',')"
 fi
 
-# Проверка интернета
-if ! curl -fsS --max-time 8 -o /dev/null https://1.1.1.1 2>/dev/null; then
-  fail "Нет интернета. На сервере должен быть доступ к Cloud (хотя бы на момент установки)."
+# Проверка интернета — пробуем несколько endpoint'ов (Cloud, GitHub, DNS).
+# Многие провайдеры/firewall режут 1.1.1.1, но GitHub/Cloud работают.
+if [[ $SKIP_NET_CHECK -eq 1 ]]; then
+  warn "Проверка интернета пропущена (--skip-net-check)"
+else
+  NET_OK=0
+  for url in \
+    "https://rpehngjvwcnipvkouluu.supabase.co/auth/v1/health" \
+    "https://api.github.com" \
+    "https://casinosystem.app/install" \
+    "https://1.1.1.1" \
+    "https://8.8.8.8"; do
+    if curl -fsS --max-time 6 -o /dev/null "$url" 2>/dev/null; then
+      NET_OK=1
+      ok "Интернет доступен (через $(echo "$url" | awk -F/ '{print $3}'))"
+      break
+    fi
+  done
+  if [[ $NET_OK -eq 0 ]]; then
+    warn "Не удалось достучаться до Cloud/GitHub/DNS за 6с каждый."
+    warn "Если сервер всё-таки имеет доступ к https://rpehngjvwcnipvkouluu.supabase.co,"
+    warn "запустите с флагом: sudo casino-update --update --skip-net-check"
+    fail "Нет интернета. На сервере должен быть доступ к Cloud (хотя бы на момент установки)."
+  fi
 fi
-ok "Интернет доступен"
 
 # ────────── helper ──────────
 update_env() {
