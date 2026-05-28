@@ -83,10 +83,12 @@ const EditOpeningCardsDialog = ({ shift, currentValue, open, onClose }: Props) =
         delta,
       });
 
-      qc.invalidateQueries({ queryKey: ["cage-slots-cards", shift.id] });
-      qc.invalidateQueries({ queryKey: ["cage-slots-active-shift"] });
-      qc.invalidateQueries({ queryKey: ["cage-slots-shift", shift.id] });
-      toast.success("Opening cards updated");
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["cage-slots-cards", shift.id], refetchType: "active" }),
+        qc.invalidateQueries({ queryKey: ["cage-slots-active-shift"], refetchType: "active" }),
+        qc.invalidateQueries({ queryKey: ["cage-slots-shift", shift.id], refetchType: "active" }),
+      ]);
+      toast.success(`Opening cards updated to ${updated[0].opening_card_count}`);
       handleOpenChange(false);
     } catch (e: any) {
       toast.error(e.message || "Failed to update");
