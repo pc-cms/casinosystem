@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { formatNumberSpaces } from "@/lib/currency";
 import { fmtDateTime } from "@/lib/format-date";
 import { useSlotsTipsCd, useCreateSlotsTipsCd } from "@/hooks/use-slots-tips-cd";
+import { tipsBucketOf, TIPS_BUCKET_LABEL, type TipsBucket } from "@/lib/slots-tips-bucket";
 
 interface Props {
   open: boolean;
@@ -25,7 +26,11 @@ const SlotsTipsCdDialog = ({ open, onOpenChange, shiftId, readOnly }: Props) => 
   const [amount, setAmount] = useState<string>("");
   const [note, setNote] = useState<string>("");
 
-  const total = tips.reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+  const tipsWithBucket = tips.map((t: any) => ({ ...t, bucket: tipsBucketOf(t.created_at) as TipsBucket }));
+  const sumBy = (b: TipsBucket) => tipsWithBucket.filter((t: any) => t.bucket === b).reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+  const totalDay = sumBy("day");
+  const totalEvening = sumBy("evening");
+  const total = totalDay + totalEvening;
 
   const submit = async () => {
     const amt = Number(amount) || 0;
@@ -40,7 +45,7 @@ const SlotsTipsCdDialog = ({ open, onOpenChange, shiftId, readOnly }: Props) => 
       open={open}
       onOpenChange={onOpenChange}
       title="Tips CD · Cash Desk Tips"
-      description="Recorded separately for the printed report. Not part of the shift balance."
+      description="Split into Day (13:00–21:10) and Evening (21:11–05:00) for separate cashier payout. Not part of the shift balance."
       size="lg"
     >
       <div className="space-y-4">
@@ -60,36 +65,48 @@ const SlotsTipsCdDialog = ({ open, onOpenChange, shiftId, readOnly }: Props) => 
           </div>
         )}
 
-        <div className="cms-panel p-0 overflow-hidden">
-          <table className="w-full text-xs">
-            <thead className="text-muted-foreground border-b border-border">
-              <tr>
-                <th className="text-left px-3 py-1.5">When</th>
-                <th className="text-right px-3 py-1.5">Amount (TZS)</th>
-                <th className="text-left px-3 py-1.5">Note</th>
-              </tr>
-            </thead>
-            <tbody>
-              {tips.length === 0 && (
-                <tr><td colSpan={3} className="text-center text-muted-foreground py-4">·</td></tr>
-              )}
-              {tips.map((t: any) => (
-                <tr key={t.id} className="border-b border-border/50">
-                  <td className="px-3 py-1.5 font-mono text-[10px] text-muted-foreground">{fmtDateTime(t.created_at)}</td>
-                  <td className="px-3 py-1.5 text-right font-mono">{formatNumberSpaces(Number(t.amount))}</td>
-                  <td className="px-3 py-1.5 text-muted-foreground">{t.note || "·"}</td>
-                </tr>
-              ))}
-              {tips.length > 0 && (
-                <tr className="font-bold border-t-2 border-border">
-                  <td className="px-3 py-2">Total</td>
-                  <td className="px-3 py-2 text-right font-mono">{formatNumberSpaces(total)}</td>
-                  <td />
-                </tr>
-              )}
-            </tbody>
-          </table>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {(["day", "evening"] as TipsBucket[]).map((bucket) => {
+            const rows = tipsWithBucket.filter((t: any) => t.bucket === bucket);
+            const subtotal = bucket === "day" ? totalDay : totalEvening;
+            return (
+              <div key={bucket} className="cms-panel p-0 overflow-hidden">
+                <div className="px-3 py-1.5 text-[11px] uppercase tracking-wider font-semibold border-b border-border bg-muted/40 flex items-center justify-between">
+                  <span>{TIPS_BUCKET_LABEL[bucket]}</span>
+                  <span className="font-mono">{formatNumberSpaces(subtotal)}</span>
+                </div>
+                <table className="w-full text-xs">
+                  <thead className="text-muted-foreground border-b border-border">
+                    <tr>
+                      <th className="text-left px-3 py-1.5">When</th>
+                      <th className="text-right px-3 py-1.5">TZS</th>
+                      <th className="text-left px-3 py-1.5">Note</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.length === 0 && (
+                      <tr><td colSpan={3} className="text-center text-muted-foreground py-4">·</td></tr>
+                    )}
+                    {rows.map((t: any) => (
+                      <tr key={t.id} className="border-b border-border/50">
+                        <td className="px-3 py-1.5 font-mono text-[10px] text-muted-foreground">{fmtDateTime(t.created_at)}</td>
+                        <td className="px-3 py-1.5 text-right font-mono">{formatNumberSpaces(Number(t.amount))}</td>
+                        <td className="px-3 py-1.5 text-muted-foreground">{t.note || "·"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            );
+          })}
         </div>
+
+        {total > 0 && (
+          <div className="cms-panel p-3 flex items-center justify-between text-sm font-bold">
+            <span>Total Tips CD</span>
+            <span className="font-mono">{formatNumberSpaces(total)} TZS</span>
+          </div>
+        )}
       </div>
     </ResponsiveDialog>
   );

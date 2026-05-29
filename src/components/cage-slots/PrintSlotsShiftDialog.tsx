@@ -14,6 +14,7 @@ import { Printer, X } from "lucide-react";
 import PrintPortal from "@/components/cage/PrintPortal";
 import SlotsConsolidatedReport from "./SlotsConsolidatedReport";
 import { useCasino } from "@/lib/casino-context";
+import { tipsBucketOf } from "@/lib/slots-tips-bucket";
 
 interface Props {
   open: boolean;
@@ -112,7 +113,7 @@ const PrintSlotsShiftDialog = ({ open, onClose, shiftId }: Props) => {
         (supabase as any).from("cashless_transactions").select("direction, provider, amount").eq("cage_slots_shift_id", shiftId),
         (supabase as any).from("cage_slots_transfers").select("transfer_type, amount").eq("cage_slots_shift_id", shiftId),
         supabase.from("expenses").select("amount, approved").eq("cage_slots_shift_id", shiftId),
-        (supabase as any).from("cage_slots_tips_cd").select("amount").eq("cage_slots_shift_id", shiftId),
+        (supabase as any).from("cage_slots_tips_cd").select("amount, created_at").eq("cage_slots_shift_id", shiftId),
       ]);
       return {
         shift: shiftR.data,
@@ -253,6 +254,8 @@ const PrintSlotsShiftDialog = ({ open, onClose, shiftId }: Props) => {
       missCards: -Math.abs(missCardCount),  // shown as negative like paper
       casinoExpenses,
       tipsCollection: (tipsCd || []).reduce((s: number, t: any) => s + Number(t.amount || 0), 0),
+      tipsCollectionDay: (tipsCd || []).filter((t: any) => tipsBucketOf(t.created_at) === "day").reduce((s: number, t: any) => s + Number(t.amount || 0), 0),
+      tipsCollectionEvening: (tipsCd || []).filter((t: any) => tipsBucketOf(t.created_at) === "evening").reduce((s: number, t: any) => s + Number(t.amount || 0), 0),
       // Shift Balance is stored in the closing check totals; fallback chain:
       // shifts.balance (rarely populated) → closing check totals.shift_balance → totals.balance → 0
       aceBalance: Number(

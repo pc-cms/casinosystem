@@ -44,6 +44,8 @@ export type SlotsConsolidatedProps = {
   missCards: number;             // count units, negative possible
   casinoExpenses: number;
   tipsCollection: number;
+  tipsCollectionDay?: number;
+  tipsCollectionEvening?: number;
   aceBalance: number;
   /** Per-provider IN / OUT transaction totals for the shift. */
   cashlessDepositByProvider: Record<string, number>;
@@ -80,7 +82,7 @@ const SlotsConsolidatedReport = ({
   closerBankTzs = 0, closerBankUsd = 0, closerBankTotalTzs = 0,
   openerCashlessByProvider, closerCashlessByProvider, openerCashlessTotalTzs, closerCashlessTotalTzs,
   cashFlowFill, cashFlowCredit, cashDeskCardsFill, cashDeskCardsCredit,
-  missCards, casinoExpenses, tipsCollection, aceBalance,
+  missCards, casinoExpenses, tipsCollection, tipsCollectionDay = 0, tipsCollectionEvening = 0, aceBalance,
   cashlessDepositByProvider, cashlessWithdrawByProvider,
   cashlessDepositTotalTzs, cashlessWithdrawTotalTzs,
 }: SlotsConsolidatedProps) => {
@@ -176,25 +178,26 @@ const SlotsConsolidatedReport = ({
           <tr>
             <td className="border border-black px-2 py-1.5">Cash Flow FILL</td>
             <td className="border border-black px-2 py-1 text-right">{cashFlowFill ? formatNumberSpaces(cashFlowFill) : ""}</td>
-            <td className="border border-black px-2 py-1.5">Tips CD</td>
-            <td className="border border-black px-2 py-1 text-right">{tipsCollection ? formatNumberSpaces(tipsCollection) : ""}</td>
+            <td className="border border-black px-2 py-1.5">Tips CD · Day (13:00–21:10)</td>
+            <td className="border border-black px-2 py-1 text-right">{tipsCollectionDay ? formatNumberSpaces(tipsCollectionDay) : ""}</td>
           </tr>
           <tr>
             <td className="border border-black px-2 py-1.5">Cash Flow CREDIT</td>
             <td className="border border-black px-2 py-1 text-right">{cashFlowCredit ? formatNumberSpaces(cashFlowCredit) : ""}</td>
-            <td className="border border-black px-2 py-1.5">Miss Cards</td>
-            <td className="border border-black px-2 py-1 text-right">{missCards !== 0 ? missCards : ""}</td>
+            <td className="border border-black px-2 py-1.5">Tips CD · Evening (21:11–05:00)</td>
+            <td className="border border-black px-2 py-1 text-right">{tipsCollectionEvening ? formatNumberSpaces(tipsCollectionEvening) : ""}</td>
           </tr>
           <tr>
             <td className="border border-black px-2 py-1.5">Cash Desk Cards FILL</td>
             <td className="border border-black px-2 py-1 text-right">{cashDeskCardsFill ? formatNumberSpaces(cashDeskCardsFill) : ""}</td>
-            <td className="border border-black bg-gray-200 px-2 py-1 font-semibold">Shift Balance</td>
-            <td className="border border-black px-2 py-1 text-right font-bold">{formatNumberSpaces(aceBalance)}</td>
+            <td className="border border-black px-2 py-1.5">Miss Cards</td>
+            <td className="border border-black px-2 py-1 text-right">{missCards !== 0 ? missCards : ""}</td>
           </tr>
           <tr>
             <td className="border border-black px-2 py-1.5">Cash Desk Cards CREDIT</td>
             <td className="border border-black px-2 py-1 text-right">{cashDeskCardsCredit ? formatNumberSpaces(cashDeskCardsCredit) : ""}</td>
-            <td className="border border-black px-2 py-1.5" colSpan={2}></td>
+            <td className="border border-black bg-gray-200 px-2 py-1 font-semibold">Shift Balance</td>
+            <td className="border border-black px-2 py-1 text-right font-bold">{formatNumberSpaces(aceBalance)}</td>
           </tr>
         </tbody>
       </table>
