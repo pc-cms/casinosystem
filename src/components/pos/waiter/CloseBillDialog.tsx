@@ -11,9 +11,10 @@ interface Props {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   tab: PosTab | null;
+  onClosed?: () => void;
 }
 
-export const CloseBillDialog = ({ open, onOpenChange, tab }: Props) => {
+export const CloseBillDialog = ({ open, onOpenChange, tab, onClosed }: Props) => {
   const closeMut = useClosePosTab();
   const [cash, setCash] = useState("0");
   const [card, setCard] = useState("0");
