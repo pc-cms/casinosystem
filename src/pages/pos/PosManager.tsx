@@ -39,6 +39,13 @@ const cards = [
     enabled: true,
   },
   {
+    to: "/pos/manager/shift-reconciliation",
+    title: "Shift reconciliation",
+    desc: "Sales vs cash vs stock variance per shift",
+    icon: ScaleIcon,
+    enabled: true,
+  },
+  {
     to: "/pos/reports",
     title: "Reports",
     desc: "Sales by waiter, top items, payment mix",
