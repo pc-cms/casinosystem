@@ -128,7 +128,7 @@ export function usePosReport(casinoId: string | null, range: PosReportRange) {
         .eq("casino_id", casinoId!)
         .gte("business_date", range.from)
         .lte("business_date", range.to)
-        .neq("status", "voided");
+        .neq("status", "void");
 
       const orderIds = (orders ?? []).map(o => o.id);
       let topItems: TopItemRow[] = [];
