@@ -31,6 +31,13 @@ const cards = [
     enabled: true,
   },
   {
+    to: "/pos/manager/stock-counts",
+    title: "Stock variance",
+    desc: "Bartender shelf counts vs system stock",
+    icon: ClipboardCheck,
+    enabled: true,
+  },
+  {
     to: "/pos/reports",
     title: "Reports",
     desc: "Sales by waiter, top items, payment mix",
