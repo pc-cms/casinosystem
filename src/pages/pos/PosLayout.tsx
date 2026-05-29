@@ -43,8 +43,7 @@ export const PosLayout = () => {
     roles.includes("pos_manager") ||
     roles.includes("super_admin") ||
     roles.includes("manager") ||
-    roles.includes("finance_manager") ||
-    roles.includes("surveillance");
+    roles.includes("finance_manager");
 
   const linkCls = ({ isActive }: { isActive: boolean }) =>
     `flex-1 flex flex-col items-center justify-center gap-1 py-3 text-xs font-medium ${
