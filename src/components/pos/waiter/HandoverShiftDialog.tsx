@@ -136,12 +136,15 @@ export const HandoverShiftDialog = ({
     [preview, closingCash],
   );
 
+  const countedItems = Object.keys(counts).length;
   const canSubmit =
     openTabsCount === 0 &&
     !!shift &&
     !!preview &&
     !!newWaiterId &&
-    !handoverMut.isPending;
+    countedItems > 0 &&
+    !handoverMut.isPending &&
+    !saveCountMut.isPending;
 
   const handle = async () => {
     if (!shift) return;
@@ -153,7 +156,18 @@ export const HandoverShiftDialog = ({
       toast({ title: "Select the incoming bartender", variant: "destructive" });
       return;
     }
+    if (countedItems === 0) {
+      toast({ title: "Stock count required", description: "Enter at least one counted item.", variant: "destructive" });
+      return;
+    }
     try {
+      // 1. Save stock count first — if it fails we never hand over.
+      await saveCountMut.mutateAsync({
+        shift_id: shift.id,
+        count_type: "handover",
+        items: Object.entries(counts).map(([item_id, counted_qty]) => ({ item_id, counted_qty })),
+      });
+      // 2. Hand over the shift.
       await handoverMut.mutateAsync({
         closing_shift_id: shift.id,
         new_waiter_user_id: newWaiterId,
