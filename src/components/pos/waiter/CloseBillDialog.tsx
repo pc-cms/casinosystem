@@ -11,9 +11,10 @@ interface Props {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   tab: PosTab | null;
+  onClosed?: () => void;
 }
 
-export const CloseBillDialog = ({ open, onOpenChange, tab }: Props) => {
+export const CloseBillDialog = ({ open, onOpenChange, tab, onClosed }: Props) => {
   const closeMut = useClosePosTab();
   const [cash, setCash] = useState("0");
   const [card, setCard] = useState("0");
@@ -60,6 +61,7 @@ export const CloseBillDialog = ({ open, onOpenChange, tab }: Props) => {
       await closeMut.mutateAsync({ tab_id: tab.id, total_tzs: total, payment_split: split });
       toast({ title: "Bill closed" });
       onOpenChange(false);
+      onClosed?.();
     } catch (e: any) {
       toast({ title: "Failed to close", description: e?.message, variant: "destructive" });
     }

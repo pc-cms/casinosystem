@@ -124,7 +124,7 @@ export default function PosWaiter() {
             <MenuPanel casinoId={activeCasinoId} shiftId={shift.id} tabId={activeTabId} userId={user!.id} />
           </TabsContent>
           <TabsContent value="active" className="flex-1 m-0">
-            <ActiveTabPanel tab={activeTab} />
+            <ActiveTabPanel tab={activeTab} casinoId={activeCasinoId} shiftId={shift.id} userId={user!.id} />
           </TabsContent>
         </Tabs>
         <NewTabDialog
@@ -157,7 +157,7 @@ export default function PosWaiter() {
           <MenuPanel casinoId={activeCasinoId} shiftId={shift.id} tabId={activeTabId} userId={user!.id} />
         </div>
         <div className="col-span-4 min-h-0">
-          <ActiveTabPanel tab={activeTab} />
+          <ActiveTabPanel tab={activeTab} casinoId={activeCasinoId} shiftId={shift.id} userId={user!.id} />
         </div>
       </div>
       <NewTabDialog

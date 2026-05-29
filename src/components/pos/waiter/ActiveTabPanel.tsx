@@ -1,17 +1,27 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { X, Receipt } from "lucide-react";
+import { X, Receipt, CreditCard, Printer } from "lucide-react";
 import { formatNumberSpaces } from "@/lib/currency";
 import { fmtDateTime } from "@/lib/format-date";
-import { usePosTabOrders, useVoidPosOrder, type PosOrderStatus } from "@/hooks/use-pos-orders";
+import {
+  usePosTabOrders,
+  useVoidPosOrder,
+  type PosOrderStatus,
+  type PosOrderWithItems,
+} from "@/hooks/use-pos-orders";
 import type { PosTab } from "@/hooks/use-pos-tabs";
 import { toast } from "@/hooks/use-toast";
 import CloseBillDialog from "./CloseBillDialog";
+import PayNowDialog from "./PayNowDialog";
+import ReceiptDialog from "./ReceiptDialog";
 import { cn } from "@/lib/utils";
 
 interface Props {
   tab: PosTab | null;
+  casinoId: string;
+  shiftId: string;
+  userId: string;
 }
 
 const STATUS_CHIP: Record<PosOrderStatus, { label: string; cls: string }> = {
@@ -22,10 +32,12 @@ const STATUS_CHIP: Record<PosOrderStatus, { label: string; cls: string }> = {
   void: { label: "Void", cls: "bg-cms-amount-negative/15 text-cms-amount-negative line-through" },
 };
 
-export const ActiveTabPanel = ({ tab }: Props) => {
+export const ActiveTabPanel = ({ tab, casinoId, shiftId, userId }: Props) => {
   const { data: orders = [], isLoading } = usePosTabOrders(tab?.id ?? null);
   const voidOrder = useVoidPosOrder();
   const [closeDialog, setCloseDialog] = useState(false);
+  const [receiptOpen, setReceiptOpen] = useState(false);
+  const [payNowOrder, setPayNowOrder] = useState<PosOrderWithItems | null>(null);
 
   if (!tab) {
     return (
@@ -74,6 +86,7 @@ export const ActiveTabPanel = ({ tab }: Props) => {
             {orders.map((o) => {
               const chip = STATUS_CHIP[o.status];
               const canVoid = o.status === "pending" || o.status === "preparing";
+              const canPayNow = canVoid && o.total_tzs > 0;
               return (
                 <li key={o.id} className="p-3">
                   <div className="flex items-start justify-between gap-2">
@@ -91,17 +104,28 @@ export const ActiveTabPanel = ({ tab }: Props) => {
                         <span className="text-[11px] text-muted-foreground">{fmtDateTime(o.created_at)}</span>
                       </div>
                     </div>
-                    {canVoid && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleVoid(o.id)}
-                        title="Void"
-                        className="shrink-0"
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    )}
+                    <div className="flex items-center gap-1 shrink-0">
+                      {canPayNow && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setPayNowOrder(o)}
+                          title="Pay now"
+                        >
+                          <CreditCard className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {canVoid && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleVoid(o.id)}
+                          title="Void"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </li>
               );
@@ -110,9 +134,17 @@ export const ActiveTabPanel = ({ tab }: Props) => {
         )}
       </div>
 
-      <div className="p-3 border-t border-border">
+      <div className="p-3 border-t border-border flex gap-2">
         <Button
-          className="w-full h-12 text-base"
+          variant="outline"
+          className="h-12"
+          onClick={() => setReceiptOpen(true)}
+          title="Preview / print receipt"
+        >
+          <Printer className="h-4 w-4" />
+        </Button>
+        <Button
+          className="flex-1 h-12 text-base"
           disabled={tab.total_tzs <= 0}
           onClick={() => setCloseDialog(true)}
         >
@@ -120,7 +152,22 @@ export const ActiveTabPanel = ({ tab }: Props) => {
         </Button>
       </div>
 
-      <CloseBillDialog open={closeDialog} onOpenChange={setCloseDialog} tab={tab} />
+      <CloseBillDialog
+        open={closeDialog}
+        onOpenChange={setCloseDialog}
+        tab={tab}
+        onClosed={() => setReceiptOpen(true)}
+      />
+      <ReceiptDialog open={receiptOpen} onOpenChange={setReceiptOpen} tab={tab} />
+      <PayNowDialog
+        open={!!payNowOrder}
+        onOpenChange={(o) => { if (!o) setPayNowOrder(null); }}
+        parentTab={tab}
+        order={payNowOrder}
+        casinoId={casinoId}
+        shiftId={shiftId}
+        userId={userId}
+      />
     </div>
   );
 };
