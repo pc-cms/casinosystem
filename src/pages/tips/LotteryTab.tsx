@@ -139,7 +139,7 @@ export default function LotteryTab({ belowHeader }: { belowHeader?: ReactNode })
                   <tr key={r.id} className="border-t hover:bg-muted/30">
                     <td className="px-3 py-2 text-muted-foreground font-mono">{i + 1}</td>
                     <td className="px-3 py-2 font-medium">{r.name}</td>
-                    <td className="px-3 py-2 text-right font-mono cms-amount-positive">{formatNumberSpaces(r.result)}</td>
+                    <td className={`px-3 py-2 text-right font-mono ${r.result < 0 ? "cms-amount-negative" : "cms-amount-positive"}`}>{formatNumberSpaces(r.result)}</td>
                     <td className="px-3 py-2 text-right font-mono font-bold">{r.tickets}</td>
                   </tr>
                 ))}
