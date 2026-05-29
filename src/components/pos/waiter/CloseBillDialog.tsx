@@ -210,8 +210,58 @@ export const CloseBillDialog = ({ open, onOpenChange, tab, onClosed }: Props) =>
           </Button>
         </ResponsiveDialogFooter>
       </div>
+
+      <ResponsiveDialog
+        open={overridePromptOpen}
+        onOpenChange={setOverridePromptOpen}
+        title="Comp budget exceeded"
+        description="Closing this bill would exceed the monthly house-comp budget. A manager must approve and a reason is required."
+        size="md"
+      >
+        <div className="space-y-3">
+          <div className="rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-xs text-destructive font-mono whitespace-pre-wrap break-words">
+            {overrideErrorMsg}
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="cb_reason">Reason (required, min 3 chars)</Label>
+            <Input
+              id="cb_reason"
+              value={overrideReason}
+              onChange={(e) => setOverrideReason(e.target.value)}
+              placeholder="VIP retention, owner approval, etc."
+            />
+          </div>
+          <ResponsiveDialogFooter>
+            <Button variant="outline" onClick={() => setOverridePromptOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={overrideReason.trim().length < 3}
+              onClick={() => setMgrDialogOpen(true)}
+            >
+              Request manager override
+            </Button>
+          </ResponsiveDialogFooter>
+        </div>
+      </ResponsiveDialog>
+
+      <ManagerOverrideDialog
+        open={mgrDialogOpen}
+        onClose={() => setMgrDialogOpen(false)}
+        onConfirm={handleManagerConfirmed}
+        title="Approve comp budget override"
+        description={`House-comp ${formatNumberSpaces(Math.round(Number(compHouse) || 0))} TZS over monthly limit.`}
+        actionType="POS_COMP_BUDGET_OVERRIDE"
+        actionDetails={{
+          tab_id: tab?.id,
+          amount_tzs: Math.round(Number(compHouse) || 0),
+          reason: overrideReason,
+        }}
+      />
     </ResponsiveDialog>
   );
 };
+
 
 export default CloseBillDialog;
