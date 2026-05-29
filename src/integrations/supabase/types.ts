@@ -4594,6 +4594,7 @@ export type Database = {
       pos_menu_items: {
         Row: {
           avg_cost_tzs: number
+          bottle_size_ml: number | null
           casino_id: string
           category_id: string
           created_at: string
@@ -4603,12 +4604,15 @@ export type Database = {
           last_purchase_cost_tzs: number | null
           low_threshold: number | null
           name: string
+          price_round_step_tzs: number
           price_tzs: number
+          serving_size_ml: number | null
           stock_qty: number | null
           updated_at: string
         }
         Insert: {
           avg_cost_tzs?: number
+          bottle_size_ml?: number | null
           casino_id: string
           category_id: string
           created_at?: string
@@ -4618,12 +4622,15 @@ export type Database = {
           last_purchase_cost_tzs?: number | null
           low_threshold?: number | null
           name: string
+          price_round_step_tzs?: number
           price_tzs: number
+          serving_size_ml?: number | null
           stock_qty?: number | null
           updated_at?: string
         }
         Update: {
           avg_cost_tzs?: number
+          bottle_size_ml?: number | null
           casino_id?: string
           category_id?: string
           created_at?: string
@@ -4633,7 +4640,9 @@ export type Database = {
           last_purchase_cost_tzs?: number | null
           low_threshold?: number | null
           name?: string
+          price_round_step_tzs?: number
           price_tzs?: number
+          serving_size_ml?: number | null
           stock_qty?: number | null
           updated_at?: string
         }
@@ -7089,6 +7098,7 @@ export type Database = {
       }
       pos_compute_z_report: { Args: { _shift_id: string }; Returns: Json }
       pos_create_purchase: { Args: { _payload: Json }; Returns: string }
+      pos_suggested_price: { Args: { _item_id: string }; Returns: number }
       pos_tabs_recompute_total: {
         Args: { _tab_id: string }
         Returns: undefined

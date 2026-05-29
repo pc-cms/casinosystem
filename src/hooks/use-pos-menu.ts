@@ -27,6 +27,12 @@ export type PosMenuItem = {
   stock_qty: number | null;
   low_threshold: number | null;
   is_active: boolean;
+  avg_cost_tzs: number;
+  last_purchase_cost_tzs: number | null;
+  last_purchase_at: string | null;
+  bottle_size_ml: number | null;
+  serving_size_ml: number | null;
+  price_round_step_tzs: number;
   created_at: string;
   updated_at: string;
 };
@@ -161,36 +167,58 @@ export function useUpsertPosMenuItem() {
       stock_qty: number | null;
       low_threshold: number | null;
       is_active: boolean;
+      bottle_size_ml?: number | null;
+      serving_size_ml?: number | null;
+      price_round_step_tzs?: number;
     }) => {
+      const payload: Record<string, unknown> = {
+        category_id: input.category_id,
+        name: input.name,
+        price_tzs: input.price_tzs,
+        stock_qty: input.stock_qty,
+        low_threshold: input.low_threshold,
+        is_active: input.is_active,
+      };
+      if (input.bottle_size_ml !== undefined) payload.bottle_size_ml = input.bottle_size_ml;
+      if (input.serving_size_ml !== undefined) payload.serving_size_ml = input.serving_size_ml;
+      if (input.price_round_step_tzs !== undefined) payload.price_round_step_tzs = input.price_round_step_tzs;
+
       if (input.id) {
         const { error } = await supabase
           .from("pos_menu_items")
-          .update({
-            category_id: input.category_id,
-            name: input.name,
-            price_tzs: input.price_tzs,
-            stock_qty: input.stock_qty,
-            low_threshold: input.low_threshold,
-            is_active: input.is_active,
-          })
+          .update(payload as any)
           .eq("id", input.id);
         if (error) throw error;
       } else {
         const { error } = await supabase.from("pos_menu_items").insert({
           casino_id: input.casino_id,
-          category_id: input.category_id,
-          name: input.name,
-          price_tzs: input.price_tzs,
-          stock_qty: input.stock_qty,
-          low_threshold: input.low_threshold,
-          is_active: input.is_active,
-        });
+          ...payload,
+        } as any);
         if (error) throw error;
       }
     },
     onSuccess: (_d, vars) => {
       qc.invalidateQueries({ queryKey: kItems(vars.casino_id) });
       if (vars.id) qc.invalidateQueries({ queryKey: kHistory(vars.id) });
+    },
+  });
+}
+
+/** Apply suggested price (per-serving from moving avg) to multiple items. */
+export function useApplySuggestedPrices() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { casino_id: string; updates: Array<{ id: string; price_tzs: number }> }) => {
+      for (const u of input.updates) {
+        const { error } = await supabase
+          .from("pos_menu_items")
+          .update({ price_tzs: u.price_tzs })
+          .eq("id", u.id);
+        if (error) throw error;
+      }
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: kItems(vars.casino_id) });
     },
   });
 }
