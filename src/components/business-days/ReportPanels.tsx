@@ -270,7 +270,7 @@ export const ChipCountPanel = ({ rows, casinoId }: PanelProps) => {
         <TableHeader>
           <TableRow>
             <TableHead className="text-xs">Location</TableHead>
-            {denoms.map(d => <TableHead key={d} className="text-xs text-right font-mono">{formatChipLabel(d)}</TableHead>)}
+            {denoms.map(d => <TableHead key={d} className="text-xs text-right font-mono"><div className="flex justify-end"><ChipToken denom={d} /></div></TableHead>)}
             <TableHead className="text-xs text-right font-semibold">Value</TableHead>
           </TableRow>
         </TableHeader>
