@@ -4,7 +4,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
-export type PosShiftType = "day" | "evening" | "night";
+export type PosShiftType = "day" | "night";
 
 export type PosShift = {
   id: string;
@@ -23,10 +23,9 @@ export type PosShift = {
 
 /**
  * Suggest a shift segment from current EAT wall-clock.
- * Casino opens late afternoon; bartender handover typically:
- *  - day:     06:00 – 15:59
- *  - evening: 16:00 – 22:59
- *  - night:   23:00 – 05:59
+ * Only two shift types: Day & Night. The "evening" moment is a HANDOVER (not a shift).
+ *  - day:   06:00 – 17:59 (opens in morning, handover in evening)
+ *  - night: 18:00 – 05:59 (opens at evening handover, closes in morning)
  */
 export function suggestShiftType(): PosShiftType {
   const h = parseInt(
@@ -37,8 +36,7 @@ export function suggestShiftType(): PosShiftType {
     }),
     10,
   );
-  if (h >= 6 && h < 16) return "day";
-  if (h >= 16 && h < 23) return "evening";
+  if (h >= 6 && h < 18) return "day";
   return "night";
 }
 

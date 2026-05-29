@@ -49,7 +49,6 @@ interface Props {
 
 const SEGMENTS: { value: PosShiftType; label: string }[] = [
   { value: "day", label: "Day" },
-  { value: "evening", label: "Evening" },
   { value: "night", label: "Night" },
 ];
 
@@ -216,7 +215,7 @@ export const HandoverShiftDialog = ({
           </FormField>
           <FormField span={4} label="Incoming segment">
             <Tabs value={newShiftType} onValueChange={(v) => setNewShiftType(v as PosShiftType)}>
-              <TabsList className="grid grid-cols-3 w-full">
+              <TabsList className="grid grid-cols-2 w-full">
                 {SEGMENTS.map((s) => (
                   <TabsTrigger key={s.value} value={s.value}>{s.label}</TabsTrigger>
                 ))}
