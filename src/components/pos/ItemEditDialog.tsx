@@ -42,6 +42,9 @@ export const ItemEditDialog = ({
   const [stockQty, setStockQty] = useState<string>("");
   const [lowThreshold, setLowThreshold] = useState<string>("");
   const [isActive, setIsActive] = useState(true);
+  const [bottleMl, setBottleMl] = useState<string>("");
+  const [servingMl, setServingMl] = useState<string>("");
+  const [roundStep, setRoundStep] = useState<string>("500");
 
   useEffect(() => {
     if (open) {
@@ -51,6 +54,9 @@ export const ItemEditDialog = ({
       setStockQty(item?.stock_qty != null ? String(item.stock_qty) : "");
       setLowThreshold(item?.low_threshold != null ? String(item.low_threshold) : "");
       setIsActive(item?.is_active ?? true);
+      setBottleMl(item?.bottle_size_ml != null ? String(item.bottle_size_ml) : "");
+      setServingMl(item?.serving_size_ml != null ? String(item.serving_size_ml) : "");
+      setRoundStep(item?.price_round_step_tzs != null ? String(item.price_round_step_tzs) : "500");
     }
   }, [open, item, categories, defaultCategoryId]);
 
@@ -88,6 +94,9 @@ export const ItemEditDialog = ({
         stock_qty: stockNum,
         low_threshold: lowNum,
         is_active: isActive,
+        bottle_size_ml: bottleMl.trim() === "" ? null : Number(bottleMl),
+        serving_size_ml: servingMl.trim() === "" ? null : Number(servingMl),
+        price_round_step_tzs: Math.max(1, Math.round(Number(roundStep) || 500)),
       });
       toast({ title: item ? "Item updated" : "Item created" });
       onOpenChange(false);
@@ -146,6 +155,32 @@ export const ItemEditDialog = ({
             inputMode="numeric"
             value={lowThreshold}
             onChange={(e) => setLowThreshold(e.target.value)}
+          />
+        </FormField>
+        <FormField span={4} label="Bottle size (ml)" hint="For per-serving pricing">
+          <Input
+            type="number"
+            inputMode="numeric"
+            value={bottleMl}
+            onChange={(e) => setBottleMl(e.target.value)}
+            placeholder="e.g. 750"
+          />
+        </FormField>
+        <FormField span={4} label="Serving size (ml)" hint="Pour size">
+          <Input
+            type="number"
+            inputMode="numeric"
+            value={servingMl}
+            onChange={(e) => setServingMl(e.target.value)}
+            placeholder="e.g. 50"
+          />
+        </FormField>
+        <FormField span={4} label="Round step (TZS)" hint="Suggested price rounds up to this">
+          <Input
+            type="number"
+            inputMode="numeric"
+            value={roundStep}
+            onChange={(e) => setRoundStep(e.target.value)}
           />
         </FormField>
       </FormGrid>
