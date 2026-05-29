@@ -4564,6 +4564,54 @@ export type Database = {
           },
         ]
       }
+      pos_comp_budget_overrides: {
+        Row: {
+          amount_tzs: number
+          casino_id: string
+          created_at: string
+          id: string
+          manager_user_id: string
+          month_start: string
+          reason: string
+          tab_id: string
+        }
+        Insert: {
+          amount_tzs: number
+          casino_id: string
+          created_at?: string
+          id?: string
+          manager_user_id: string
+          month_start: string
+          reason: string
+          tab_id: string
+        }
+        Update: {
+          amount_tzs?: number
+          casino_id?: string
+          created_at?: string
+          id?: string
+          manager_user_id?: string
+          month_start?: string
+          reason?: string
+          tab_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_comp_budget_overrides_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_comp_budget_overrides_tab_id_fkey"
+            columns: ["tab_id"]
+            isOneToOne: false
+            referencedRelation: "pos_tabs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pos_comp_budgets: {
         Row: {
           casino_id: string
@@ -5223,6 +5271,7 @@ export type Database = {
           casino_id: string
           closed_at: string | null
           closed_by_user_id: string | null
+          comp_override_id: string | null
           created_at: string
           expense_id: string | null
           id: string
@@ -5243,6 +5292,7 @@ export type Database = {
           casino_id: string
           closed_at?: string | null
           closed_by_user_id?: string | null
+          comp_override_id?: string | null
           created_at?: string
           expense_id?: string | null
           id?: string
@@ -5263,6 +5313,7 @@ export type Database = {
           casino_id?: string
           closed_at?: string | null
           closed_by_user_id?: string | null
+          comp_override_id?: string | null
           created_at?: string
           expense_id?: string | null
           id?: string
@@ -5284,6 +5335,13 @@ export type Database = {
             columns: ["casino_id"]
             isOneToOne: false
             referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_tabs_comp_override_id_fkey"
+            columns: ["comp_override_id"]
+            isOneToOne: false
+            referencedRelation: "pos_comp_budget_overrides"
             referencedColumns: ["id"]
           },
           {
