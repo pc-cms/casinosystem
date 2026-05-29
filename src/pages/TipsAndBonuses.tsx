@@ -10,7 +10,7 @@
  */
 import { lazy, Suspense } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Coins, Gift, UserCheck } from "lucide-react";
+import { Coins, Gift, UserCheck, Ticket } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 
 const WeeklyBonus = lazy(() => import("@/pages/WeeklyBonus"));
@@ -18,8 +18,9 @@ const MonthlyTips = lazy(() => import("@/pages/MonthlyTips"));
 const LiveGameTipsTab = lazy(() => import("@/pages/tips/LiveGameTipsTab"));
 const FloorTipsTab = lazy(() => import("@/pages/tips/FloorTipsTab"));
 const ClubPokerTipsTab = lazy(() => import("@/pages/tips/ClubPokerTipsTab"));
+const LotteryTab = lazy(() => import("@/pages/tips/LotteryTab"));
 
-const TAB_VALUES = ["weekly", "monthly", "live", "floor", "poker"] as const;
+const TAB_VALUES = ["weekly", "monthly", "live", "floor", "poker", "lottery"] as const;
 type TabValue = typeof TAB_VALUES[number];
 
 const Loader = () => (
@@ -40,12 +41,13 @@ export default function TipsAndBonuses() {
   };
 
   const renderTabMenu = () => (
-    <TabsList className="grid w-full grid-cols-2 gap-1 h-auto sm:grid-cols-5">
+    <TabsList className="grid w-full grid-cols-2 gap-1 h-auto sm:grid-cols-6">
       <TabsTrigger value="weekly" className="gap-1.5"><Gift className="w-3.5 h-3.5" />Weekly Bonus</TabsTrigger>
       <TabsTrigger value="monthly" className="gap-1.5"><Coins className="w-3.5 h-3.5" />Monthly Tips</TabsTrigger>
       <TabsTrigger value="live" className="gap-1.5"><Gift className="w-3.5 h-3.5" />Live Game Tips</TabsTrigger>
       <TabsTrigger value="floor" className="gap-1.5"><UserCheck className="w-3.5 h-3.5" />Floor Tips</TabsTrigger>
       <TabsTrigger value="poker" className="gap-1.5"><Coins className="w-3.5 h-3.5" />Club Poker Tips</TabsTrigger>
+      <TabsTrigger value="lottery" className="gap-1.5"><Ticket className="w-3.5 h-3.5" />Lottery</TabsTrigger>
     </TabsList>
   );
 
@@ -57,6 +59,7 @@ export default function TipsAndBonuses() {
         <TabsContent value="live" className="mt-0"><LiveGameTipsTab belowHeader={renderTabMenu()} /></TabsContent>
         <TabsContent value="floor" className="mt-0"><FloorTipsTab belowHeader={renderTabMenu()} /></TabsContent>
         <TabsContent value="poker" className="mt-0"><ClubPokerTipsTab belowHeader={renderTabMenu()} /></TabsContent>
+        <TabsContent value="lottery" className="mt-0"><LotteryTab belowHeader={renderTabMenu()} /></TabsContent>
       </Suspense>
     </Tabs>
   );
