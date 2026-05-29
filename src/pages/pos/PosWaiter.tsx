@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useCasino } from "@/lib/casino-context";
-import { usePosCurrentShift } from "@/hooks/use-pos-shift";
+import { usePosCurrentShift, type PosZReport } from "@/hooks/use-pos-shift";
 import { usePosOpenTabs } from "@/hooks/use-pos-tabs";
 import { fmtDateTime } from "@/lib/format-date";
 import { formatNumberSpaces } from "@/lib/currency";
@@ -10,7 +10,10 @@ import TabsPanel from "@/components/pos/waiter/TabsPanel";
 import MenuPanel from "@/components/pos/waiter/MenuPanel";
 import ActiveTabPanel from "@/components/pos/waiter/ActiveTabPanel";
 import NewTabDialog from "@/components/pos/waiter/NewTabDialog";
+import CloseShiftDialog from "@/components/pos/waiter/CloseShiftDialog";
+import ZReportView from "@/components/pos/waiter/ZReportView";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 export default function PosWaiter() {
@@ -23,6 +26,8 @@ export default function PosWaiter() {
 
   const [activeTabId, setActiveTabId] = useState<string | null>(null);
   const [newTabOpen, setNewTabOpen] = useState(false);
+  const [closeShiftOpen, setCloseShiftOpen] = useState(false);
+  const [lastZ, setLastZ] = useState<PosZReport | null>(null);
   const [mobileView, setMobileView] = useState<"tabs" | "menu" | "active">("tabs");
 
   if (!activeCasinoId) {
@@ -37,7 +42,16 @@ export default function PosWaiter() {
   }
   if (!shift) {
     return (
-      <div className="p-4">
+      <div className="p-4 space-y-4">
+        {lastZ && (
+          <div className="max-w-2xl mx-auto rounded-md border border-border bg-card p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold">Last shift · Z-report</h2>
+              <Button variant="ghost" size="sm" onClick={() => setLastZ(null)}>Dismiss</Button>
+            </div>
+            <ZReportView z={lastZ} />
+          </div>
+        )}
         <OpenShiftCard casinoId={activeCasinoId} userId={user!.id} />
       </div>
     );
@@ -63,10 +77,28 @@ export default function PosWaiter() {
           Shift opened {fmtDateTime(shift.opened_at)}
         </span>
       </div>
-      <div className="text-muted-foreground">
-        Opening cash: <span className="font-mono tabular-nums">{formatNumberSpaces(shift.opening_cash)}</span>
+      <div className="flex items-center gap-3">
+        <span className="text-muted-foreground">
+          Opening cash: <span className="font-mono tabular-nums">{formatNumberSpaces(shift.opening_cash)}</span>
+        </span>
+        <Button size="sm" variant="outline" onClick={() => setCloseShiftOpen(true)}>
+          Close shift
+        </Button>
       </div>
     </div>
+  );
+
+  const closeShiftDialog = (
+    <CloseShiftDialog
+      open={closeShiftOpen}
+      onOpenChange={setCloseShiftOpen}
+      shift={shift}
+      openTabsCount={tabs.length}
+      onClosed={(z) => {
+        setLastZ(z);
+        setActiveTabId(null);
+      }}
+    />
   );
 
   if (isMobile) {
@@ -103,6 +135,7 @@ export default function PosWaiter() {
           userId={user!.id}
           onCreated={handleNewCreated}
         />
+        {closeShiftDialog}
       </div>
     );
   }
@@ -135,6 +168,7 @@ export default function PosWaiter() {
         userId={user!.id}
         onCreated={handleNewCreated}
       />
+      {closeShiftDialog}
     </div>
   );
 }
