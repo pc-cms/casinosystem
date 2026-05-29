@@ -87,18 +87,19 @@ const SlotsShiftReportBody = ({ id, showHeader = true, compact = false }: Props)
   const expensesTotal = expenses.filter((e: any) => e.approved).reduce((s: number, e: any) => s + Number(e.amount || 0), 0);
 
   const systemResult = Number(shift.system_shift_result ?? latestTotals.system_result ?? 0);
-  const slotsResult = Number(shift.slots_result ?? latestTotals.slots_result_derived ?? (systemResult - openingTotal - txAgg.fill));
+  const slotsResult = Number(shift.slots_result ?? latestTotals.slots_result_derived ?? systemResult);
   const deltaCash = closingCash - openingTotal;
   const cardsMiss = Number(shift.cards_miss ?? ((Number(cards?.opening_card_count || 0) - Number(cards?.closing_card_count || 0)) * cardDepositTzs));
   const cashDeskResult = Number(
     shift.cash_desk_result ?? latestTotals.cash_desk_result ??
-    (deltaCash + expensesTotal + txAgg.collection + txAgg.lg_out - txAgg.lg_in),
+    (closingCash + expensesTotal - txAgg.fill + txAgg.collection + txAgg.lg_out - txAgg.lg_in),
   );
-  const expected = systemResult - openingTotal;
+  const expected = systemResult;
   const balance = Number(
     shift.balance ?? latestTotals.shift_balance ?? latestTotals.balance ??
-    ((cashDeskResult + txAgg.fill) - expected - cardsMiss),
+    (cashDeskResult - systemResult - cardsMiss),
   );
+
   const cashlessBalance = cashlessIn - cashlessOut;
   const cashlessFinal = Number((shift as any).cashless_final ?? latestTotals.cashless_final ?? 0);
 
@@ -240,22 +241,20 @@ const SlotsShiftReportBody = ({ id, showHeader = true, compact = false }: Props)
 
       <PageSection title="Balance Calculation">
         <div className="grid grid-cols-2 gap-3 text-sm font-mono">
-          <Field label="Opening Cash" value={formatNumberSpaces(openingTotal)} />
           <Field label="Closing Cash" value={formatNumberSpaces(closingCash)} />
-          <Field label="ΔCash (Closing − Opening)" value={(deltaCash >= 0 ? "+" : "") + formatNumberSpaces(deltaCash)} />
           <Field label="+ Expenses" value={formatNumberSpaces(expensesTotal)} />
+          <Field label="− Ace Fill" value={formatNumberSpaces(txAgg.fill)} />
           <Field label="+ Collection" value={formatNumberSpaces(txAgg.collection)} />
           <Field label="+ LG Out" value={formatNumberSpaces(txAgg.lg_out)} />
           <Field label="− LG In" value={formatNumberSpaces(txAgg.lg_in)} />
           <Field label="= Cash Desk Result" value={(cashDeskResult >= 0 ? "+" : "") + formatNumberSpaces(cashDeskResult)} emphasize />
-          <Field label="+ Ace Fill (ACE System Fill)" value={formatNumberSpaces(txAgg.fill)} />
           <Field label="System Result" value={(systemResult >= 0 ? "+" : "") + formatNumberSpaces(systemResult)} />
-          <Field label="− (System − Opening)" value={(expected >= 0 ? "+" : "") + formatNumberSpaces(expected)} />
-          <Field label="Slots Result (System − Opening − Ace Fill)" value={(slotsResult >= 0 ? "+" : "") + formatNumberSpaces(slotsResult)} />
+          <Field label="Slots Result (= System Result)" value={(slotsResult >= 0 ? "+" : "") + formatNumberSpaces(slotsResult)} />
           <Field label="− Cards Miss" value={(cardsMiss >= 0 ? "+" : "") + formatNumberSpaces(cardsMiss)} />
           <Field label="= Shift Balance" value={(balance >= 0 ? "+" : "") + formatNumberSpaces(balance)} emphasize />
         </div>
       </PageSection>
+
 
       {(shift.cashier_note || shift.manager_comment || comments.length > 0) && (
         <PageSection title="Notes & Comments">

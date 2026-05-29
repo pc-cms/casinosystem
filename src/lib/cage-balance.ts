@@ -34,16 +34,16 @@ export const computeShiftBalance = (i: CageBalanceInputs): CageBalanceResult => 
 
 /**
  * Cage Slots balance — canonical formula (mirrors DB
- * `compute_slots_shift_balance_from_row`).
+ * `compute_slots_shift_balance_from_row`). Updated 29 May 2026.
  *
- *   ΔCash            = ClosingCash − OpeningCash
- *   Cash Desk Result = ΔCash + Expenses + Collection + LG_Out − LG_In
+ *   ΔCash            = ClosingCash − OpeningCash               (display only)
+ *   Cash Desk Result = ClosingCash + Expenses − Ace Fill
+ *                    + Collection + LG_Out − LG_In
  *   Cards Miss       = (OpeningCards − ClosingCards) × CardValue
- *   Slots Result     = System Result − OpeningCash − Ace Fill
+ *   Slots Result     = System Result
+ *   Expected         = System Result
  *
- *   Shift Balance    = (Cash Desk Result + Ace Fill)
- *                    − (System Result − OpeningCash)
- *                    − Cards Miss
+ *   Shift Balance    = Cash Desk Result − System Result − Cards Miss
  *
  *   Cashless Balance = Cashless IN − Cashless OUT   (derived, display only)
  *   Cashless Final   = manual entry, PRINT ONLY — never used in any formula.
@@ -70,23 +70,24 @@ export type SlotsBalanceInputs = {
 
 export type SlotsBalanceResult = {
   deltaCash: number;
-  cashDeskResult: number;  // ΔCash + Expenses + Collection + LG_Out − LG_In
+  cashDeskResult: number;
   cardsMiss: number;
-  slotsResult: number;     // derived: systemResult − openingCash − addFloat
-  systemResult: number;    // raw manual entry (passthrough)
+  slotsResult: number;     // = systemResult
+  systemResult: number;
   cashlessBalance: number; // derived: IN − OUT (display)
   cashlessFinal: number;   // manual passthrough (print only)
-  expected: number;        // systemResult − openingCash
+  expected: number;        // = systemResult
   shiftBalance: number;
 };
 
 export const computeSlotsShiftBalance = (i: SlotsBalanceInputs): SlotsBalanceResult => {
   const deltaCash = i.closingCash - i.openingCash;
-  const cashDeskResult = deltaCash + i.expenses + i.collection + i.lgOut - i.lgIn;
+  const cashDeskResult =
+    i.closingCash + i.expenses - i.addFloat + i.collection + i.lgOut - i.lgIn;
   const cardsMiss = (i.openingCards - i.closingCards) * i.cardValue;
-  const slotsResult = i.systemResult - i.openingCash - i.addFloat;
-  const expected = i.systemResult - i.openingCash;
-  const shiftBalance = (cashDeskResult + i.addFloat) - expected - cardsMiss;
+  const slotsResult = i.systemResult;
+  const expected = i.systemResult;
+  const shiftBalance = cashDeskResult - i.systemResult - cardsMiss;
   return {
     deltaCash,
     cashDeskResult,
@@ -99,3 +100,4 @@ export const computeSlotsShiftBalance = (i: SlotsBalanceInputs): SlotsBalanceRes
     shiftBalance,
   };
 };
+
