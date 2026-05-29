@@ -107,6 +107,15 @@ export default function PosWaiter() {
     />
   );
 
+  const historyDialog = (
+    <ClosedTabsDialog
+      open={historyOpen}
+      onOpenChange={setHistoryOpen}
+      casinoId={activeCasinoId}
+      shiftId={shift.id}
+    />
+  );
+
   if (isMobile) {
     return (
       <div className="h-full flex flex-col">
