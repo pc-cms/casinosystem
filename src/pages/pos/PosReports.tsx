@@ -26,7 +26,8 @@ const KPI = ({ label, value, sub }: { label: string; value: string; sub?: string
 
 export default function PosReports() {
   const { activeCasinoId } = useCasino();
-  const today = useEffectiveBusinessDate();
+  const todayQ = useEffectiveBusinessDate();
+  const today = todayQ.data ?? format(new Date(), "yyyy-MM-dd");
   const [from, setFrom] = useState<string>(today);
   const [to, setTo] = useState<string>(today);
 
