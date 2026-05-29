@@ -186,14 +186,14 @@ export function useUpsertPosMenuItem() {
       if (input.id) {
         const { error } = await supabase
           .from("pos_menu_items")
-          .update(payload)
+          .update(payload as any)
           .eq("id", input.id);
         if (error) throw error;
       } else {
         const { error } = await supabase.from("pos_menu_items").insert({
           casino_id: input.casino_id,
           ...payload,
-        });
+        } as any);
         if (error) throw error;
       }
     },
