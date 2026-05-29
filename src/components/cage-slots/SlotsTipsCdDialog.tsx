@@ -45,7 +45,7 @@ const SlotsTipsCdDialog = ({ open, onOpenChange, shiftId, readOnly }: Props) => 
       open={open}
       onOpenChange={onOpenChange}
       title="Tips CD · Cash Desk Tips"
-      description="Recorded separately for the printed report. Not part of the shift balance."
+      description="Split into Day (13:00–21:10) and Evening (21:11–05:00) for separate cashier payout. Not part of the shift balance."
       size="lg"
     >
       <div className="space-y-4">
