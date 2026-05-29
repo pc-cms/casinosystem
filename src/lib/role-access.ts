@@ -46,6 +46,7 @@ export const canSeeAllTimeData = (roles: string[]): boolean => {
 const ROLE_PRIORITY: AppRole[] = [
   "super_admin", "finance_manager", "manager", "floor_manager", "hr",
   "pit", "cashier", "cashier_slots", "reception", "surveillance",
+  "pos_manager", "pos_bartender", "pos_waiter",
 ];
 
 const ROLE_LABELS: Record<AppRole, string> = {
@@ -59,6 +60,9 @@ const ROLE_LABELS: Record<AppRole, string> = {
   cashier_slots: "Cashier Slots",
   reception: "Reception",
   surveillance: "Surveillance",
+  pos_manager: "Bar Manager",
+  pos_bartender: "Bartender",
+  pos_waiter: "Waiter",
 };
 
 export const getPrimaryRole = (roles: string[]): AppRole | null => {
