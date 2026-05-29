@@ -935,6 +935,12 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
           onClose={() => setShowEditOpeningCards(false)}
         />
       )}
+      <SlotsTipsCdDialog
+        open={showTipsCd}
+        onOpenChange={setShowTipsCd}
+        shiftId={shift.id}
+        readOnly={shift.status !== "open"}
+      />
     </PageShell>
   );
 };
