@@ -14,6 +14,7 @@ import { Printer, X } from "lucide-react";
 import PrintPortal from "@/components/cage/PrintPortal";
 import SlotsConsolidatedReport from "./SlotsConsolidatedReport";
 import { useCasino } from "@/lib/casino-context";
+import { tipsBucketOf } from "@/lib/slots-tips-bucket";
 
 interface Props {
   open: boolean;
