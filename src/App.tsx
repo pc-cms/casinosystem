@@ -415,6 +415,7 @@ const AppRoutes = () => {
           <Route path="manager/inventory" element={<PosManagerInventory />} />
           <Route path="manager/pricing" element={<PosManagerPricing />} />
           <Route path="manager/stock-counts" element={<PosManagerStockCounts />} />
+          <Route path="manager/shift-reconciliation" element={<PosShiftReconciliation />} />
           <Route path="manager/player-analytics" element={<PosPlayerAnalytics />} />
           <Route path="reports" element={<PosReports />} />
           <Route path="charges" element={<PosCharges />} />
