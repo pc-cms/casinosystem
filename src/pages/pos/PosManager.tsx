@@ -22,6 +22,7 @@ const cards = [
     desc: "Record bar bulk / single-bottle purchases",
     icon: ShoppingCart,
     enabled: true,
+  },
   {
     to: "/pos/reports",
     title: "Reports",
