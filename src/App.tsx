@@ -212,6 +212,14 @@ const RoleGuard = ({ path, children }: { path: string; children: React.ReactNode
 };
 
 const getDefaultRoute = (roles: string[]) => {
+  // POS-only users go straight to the POS app
+  const isPosOnly = (roles.includes("pos_waiter") || roles.includes("pos_bartender") || roles.includes("pos_manager"))
+    && !roles.some(r => ["manager","pit","cashier","reception","finance_manager","surveillance","super_admin","hr","floor_manager","cashier_slots"].includes(r));
+  if (isPosOnly) {
+    if (roles.includes("pos_bartender") && !roles.includes("pos_waiter")) return "/pos/bar";
+    if (roles.includes("pos_manager") && !roles.includes("pos_waiter")) return "/pos/manager";
+    return "/pos/waiter";
+  }
   if (roles.includes("super_admin")) return "/admin";
   // Security-only users on premier will be handled by CCTV mode, but default route still needed
   if (roles.includes("surveillance") && !roles.some(r => ["manager", "pit", "cashier", "reception", "finance_manager", "super_admin", "hr"].includes(r))) {
