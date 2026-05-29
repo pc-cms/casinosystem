@@ -10,14 +10,18 @@ import { Label } from "@/components/ui/label";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import { Progress } from "@/components/ui/progress";
 import { useCasino } from "@/lib/casino-context";
-import { usePosCompBudgetStatus, useSetPosCompBudget } from "@/hooks/use-pos-comp-budget";
+import { usePosCompBudgetStatus, useSetPosCompBudget, usePosCompBudgetOverrides } from "@/hooks/use-pos-comp-budget";
+import { fmtDateTime } from "@/lib/format-date";
+
 import { formatNumberSpaces } from "@/lib/currency";
 import { useToast } from "@/hooks/use-toast";
 
 export default function CompBudgetCard() {
   const { activeCasinoId } = useCasino();
   const { data: status } = usePosCompBudgetStatus(activeCasinoId);
+  const { data: overrides } = usePosCompBudgetOverrides(activeCasinoId, status?.month_start ?? null);
   const setBudget = useSetPosCompBudget();
+
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState("");
@@ -91,6 +95,39 @@ export default function CompBudgetCard() {
           <span className="font-mono">{formatNumberSpaces(status.used_player_tzs)}</span> TZS (player).
         </p>
       )}
+
+      {overrides && overrides.length > 0 && (
+        <div className="mt-4 border-t border-border pt-3">
+          <div className="flex items-center justify-between mb-2">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              Recent overrides
+            </h4>
+            <span className="font-mono text-[10px] text-muted-foreground">
+              {overrides.length} this month
+            </span>
+          </div>
+          <ul className="space-y-1.5 max-h-48 overflow-auto">
+            {overrides.slice(0, 10).map((o) => (
+              <li
+                key={o.id}
+                className="rounded border border-border bg-background/60 px-2 py-1.5 text-[11px]"
+              >
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className="font-medium truncate">{o.manager_name || "—"}</span>
+                  <span className="font-mono cms-amount-negative">
+                    +{formatNumberSpaces(o.amount_tzs)}
+                  </span>
+                </div>
+                <div className="flex items-baseline justify-between gap-2 text-muted-foreground">
+                  <span className="truncate italic">"{o.reason}"</span>
+                  <span className="font-mono shrink-0">{fmtDateTime(o.created_at)}</span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
 
       <ResponsiveDialog
         open={open}

@@ -125,19 +125,65 @@ export function useOpenPosTab() {
 export function useClosePosTab() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { tab_id: string; total_tzs: number; payment_split: PaymentSplit }) => {
+    mutationFn: async (input: {
+      tab_id: string;
+      total_tzs: number;
+      payment_split: PaymentSplit;
+      comp_override_id?: string | null;
+    }) => {
+      const patch: Record<string, any> = {
+        status: "closed",
+        payment_split: input.payment_split as any,
+      };
+      if (input.comp_override_id) patch.comp_override_id = input.comp_override_id;
       const { error } = await supabase
         .from("pos_tabs")
-        .update({
-          status: "closed",
-          payment_split: input.payment_split as any,
-        })
+        .update(patch as any)
         .eq("id", input.tab_id);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["pos-tabs"] }),
   });
 }
+
+/**
+ * Create a comp-budget override row that authorizes a tab close which would
+ * otherwise be blocked by the monthly house-comp budget trigger. Returns the
+ * new override id, ready to pass into useClosePosTab.
+ */
+export function useCreateCompBudgetOverride() {
+  return useMutation({
+    mutationFn: async (input: {
+      casino_id: string;
+      tab_id: string;
+      month_start: string; // YYYY-MM-01
+      amount_tzs: number;
+      manager_user_id: string;
+      reason: string;
+    }): Promise<string> => {
+      const { data, error } = await supabase
+        .from("pos_comp_budget_overrides")
+        .insert({
+          casino_id: input.casino_id,
+          tab_id: input.tab_id,
+          month_start: input.month_start,
+          amount_tzs: input.amount_tzs,
+          manager_user_id: input.manager_user_id,
+          reason: input.reason,
+        })
+        .select("id")
+        .single();
+      if (error) throw error;
+      return (data as any).id as string;
+    },
+  });
+}
+
+export const COMP_BUDGET_EXCEEDED = "COMP_BUDGET_EXCEEDED";
+export const isCompBudgetExceeded = (err: unknown): boolean =>
+  typeof (err as any)?.message === "string" &&
+  (err as any).message.includes(COMP_BUDGET_EXCEEDED);
+
 
 export function useVoidPosTab() {
   const qc = useQueryClient();

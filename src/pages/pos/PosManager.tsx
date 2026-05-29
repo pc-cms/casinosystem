@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { UtensilsCrossed, Receipt, Boxes, BarChart3, ReceiptText, ShoppingCart, Tag, ClipboardCheck, Users } from "lucide-react";
+import { UtensilsCrossed, Receipt, Boxes, BarChart3, ReceiptText, ShoppingCart, Tag, ClipboardCheck, Users, ScaleIcon } from "lucide-react";
 import CompBudgetCard from "@/components/pos/manager/CompBudgetCard";
 
 const cards = [
@@ -36,6 +36,13 @@ const cards = [
     title: "Stock variance",
     desc: "Bartender shelf counts vs system stock",
     icon: ClipboardCheck,
+    enabled: true,
+  },
+  {
+    to: "/pos/manager/shift-reconciliation",
+    title: "Shift reconciliation",
+    desc: "Sales vs cash vs stock variance per shift",
+    icon: ScaleIcon,
     enabled: true,
   },
   {
