@@ -182,7 +182,7 @@ export const PitQuickOrderDialog = ({ open, onOpenChange, playerId, playerName }
           <ScrollArea className="h-[320px] pr-2">
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {filtered.map((it) => {
-                const status = stockStatus(it);
+                const status = stockStatus(it.stock_qty, it.low_threshold);
                 const isOut = status === "out";
                 const qty = cart[it.id] ?? 0;
                 return (
