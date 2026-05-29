@@ -158,6 +158,15 @@ const PrintSlotsShiftDialog = ({ open, onClose, shiftId }: Props) => {
     const openingCheck = checks.find((c: any) => (c.denominations as any)?.is_opening);
     const closingCheck = [...checks].reverse().find((c: any) => !(c.denominations as any)?.is_opening) || null;
 
+    const readBank = (raw: any) => {
+      const tzs = Number(raw?.tzs || 0);
+      const usd = Number(raw?.usd || 0);
+      const totalTzs = tzs + usd * Number(rateMap.USD || 0);
+      return { tzs, usd, totalTzs };
+    };
+    const openerBank = readBank((openingCheck?.denominations as any)?.bank);
+    const closerBank = readBank((closingCheck?.denominations as any)?.bank);
+
     const collectProviderSnap = (raw: any): Record<string, number> => {
       const out: Record<string, number> = { MPESA: 0, TIGO: 0, HALOTEL: 0, AIRTEL: 0 };
       if (!raw || typeof raw !== "object") return out;
@@ -225,6 +234,12 @@ const PrintSlotsShiftDialog = ({ open, onClose, shiftId }: Props) => {
       closerByCurrency,
       openerCashTotalTzs,
       closerCashTotalTzs,
+      openerBankTzs: openerBank.tzs,
+      openerBankUsd: openerBank.usd,
+      openerBankTotalTzs: openerBank.totalTzs,
+      closerBankTzs: closerBank.tzs,
+      closerBankUsd: closerBank.usd,
+      closerBankTotalTzs: closerBank.totalTzs,
       openerCashlessByProvider,
       closerCashlessByProvider,
       openerCashlessTotalTzs,

@@ -27,6 +27,12 @@ export type SlotsConsolidatedProps = {
   closerByCurrency: Record<string, number>;
   openerCashTotalTzs: number;
   closerCashTotalTzs: number;
+  openerBankTzs?: number;          // native TZS in bank account
+  openerBankUsd?: number;          // native USD in bank account
+  openerBankTotalTzs?: number;     // bank TZS+USD converted to TZS
+  closerBankTzs?: number;
+  closerBankUsd?: number;
+  closerBankTotalTzs?: number;
   openerCashlessByProvider: Record<string, number>;   // {MPESA, TIGO, HALOTEL, AIRTEL}
   closerCashlessByProvider: Record<string, number>;
   openerCashlessTotalTzs: number;
@@ -70,6 +76,8 @@ const SlotsConsolidatedReport = ({
   casinoName, businessDate, shiftType,
   cardsOpener, cardsCloser, systemShiftResult,
   openerByCurrency, closerByCurrency, openerCashTotalTzs, closerCashTotalTzs,
+  openerBankTzs = 0, openerBankUsd = 0, openerBankTotalTzs = 0,
+  closerBankTzs = 0, closerBankUsd = 0, closerBankTotalTzs = 0,
   openerCashlessByProvider, closerCashlessByProvider, openerCashlessTotalTzs, closerCashlessTotalTzs,
   cashFlowFill, cashFlowCredit, cashDeskCardsFill, cashDeskCardsCredit,
   missCards, casinoExpenses, tipsCollection, aceBalance,
@@ -81,8 +89,8 @@ const SlotsConsolidatedReport = ({
   const providerWithdrawTotal = Object.values(cashlessWithdrawByProvider).reduce((s, v) => s + Number(v || 0), 0);
   const depositTotal = providerDepositTotal || Number(cashlessDepositTotalTzs || 0);
   const withdrawTotal = providerWithdrawTotal || Number(cashlessWithdrawTotalTzs || 0);
-  const openerTotal = openerCashTotalTzs + openerCashlessTotalTzs;
-  const closerTotal = closerCashTotalTzs + closerCashlessTotalTzs;
+  const openerTotal = openerCashTotalTzs + openerCashlessTotalTzs + openerBankTotalTzs;
+  const closerTotal = closerCashTotalTzs + closerCashlessTotalTzs + closerBankTotalTzs;
 
   return (
     <div className="bg-white text-black p-4" style={{ fontFamily: "Arial, sans-serif", fontSize: "11px", width: "194mm", minHeight: "281mm", boxSizing: "border-box" }}>
@@ -118,6 +126,9 @@ const SlotsConsolidatedReport = ({
             {CURRENCIES.map(c => <Row key={c} label={c} value={Number(openerByCurrency[c] || 0)} />)}
             <Row label="Other in TZS" value={Number(openerByCurrency.OTHER_TZS || 0)} />
             <Row label="Total Cash" value={openerCashTotalTzs} bold />
+            <Row label="Bank TZS" value={openerBankTzs} />
+            <Row label="Bank USD" value={openerBankUsd} />
+            <Row label="Total Bank (TZS)" value={openerBankTotalTzs} bold />
             {PROVIDERS.map(p => <Row key={p.key} label={p.label} value={Number(openerCashlessByProvider[p.key] || 0)} />)}
             <Row label="Total Cashless" value={openerCashlessTotalTzs} bold />
           </tbody>
@@ -138,6 +149,9 @@ const SlotsConsolidatedReport = ({
             {CURRENCIES.map(c => <Row key={c} label={c} value={Number(closerByCurrency[c] || 0)} />)}
             <Row label="Other in TZS" value={Number(closerByCurrency.OTHER_TZS || 0)} />
             <Row label="Total Cash" value={closerCashTotalTzs} bold />
+            <Row label="Bank TZS" value={closerBankTzs} />
+            <Row label="Bank USD" value={closerBankUsd} />
+            <Row label="Total Bank (TZS)" value={closerBankTotalTzs} bold />
             {PROVIDERS.map(p => <Row key={p.key} label={p.label} value={Number(closerCashlessByProvider[p.key] || 0)} />)}
             <Row label="Total Cashless" value={closerCashlessTotalTzs} bold />
           </tbody>
@@ -219,6 +233,30 @@ const SlotsConsolidatedReport = ({
             <td className="border border-black px-2 py-1 text-right font-bold bg-gray-100">
               {(depositTotal - withdrawTotal) > 0 ? "+" : ""}{formatNumberSpaces(depositTotal - withdrawTotal)}
             </td>
+          </tr>
+        </tbody>
+      </table>
+
+      {/* ============ END-OF-DAY MOBILE MONEY BALANCES (manual snapshot) ============ */}
+      <table className="w-full border-collapse mb-1">
+        <thead>
+          <tr><th colSpan={4} className="border border-black bg-gray-200 px-2 py-1 text-left">End-of-Day Mobile Money Balances</th></tr>
+          <tr>
+            {PROVIDERS.map(p => (
+              <th key={p.key} className="border border-black px-2 py-1 text-center w-1/4">{p.label}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            {PROVIDERS.map(p => {
+              const v = Number(closerCashlessByProvider[p.key] || 0);
+              return (
+                <td key={p.key} className="border border-black px-2 py-2 text-right font-mono">
+                  {v ? formatNumberSpaces(v) : ""}
+                </td>
+              );
+            })}
           </tr>
         </tbody>
       </table>
