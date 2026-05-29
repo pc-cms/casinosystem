@@ -27,6 +27,7 @@ const PosManagerMenu = lazy(() => import("@/pages/pos/PosManagerMenu"));
 const PosManagerInventory = lazy(() => import("@/pages/pos/PosManagerInventory"));
 const PosReports = lazy(() => import("@/pages/pos/PosReports"));
 const PosCharges = lazy(() => import("@/pages/pos/PosCharges"));
+const PosPurchases = lazy(() => import("@/pages/pos/PosPurchases"));
 
 // Lazy-loaded pages — each becomes a separate chunk
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
@@ -410,6 +411,7 @@ const AppRoutes = () => {
           <Route path="manager/inventory" element={<PosManagerInventory />} />
           <Route path="reports" element={<PosReports />} />
           <Route path="charges" element={<PosCharges />} />
+          <Route path="purchases" element={<PosPurchases />} />
         </Route>
         <Route path="/login" element={user ? <Navigate to={defaultRoute} replace /> : <Login />} />
         <Route path="/*" element={<ProtectedRoutes />} />

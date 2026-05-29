@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { UtensilsCrossed, Receipt, Boxes, BarChart3, ReceiptText } from "lucide-react";
+import { UtensilsCrossed, Receipt, Boxes, BarChart3, ReceiptText, ShoppingCart } from "lucide-react";
 
 const cards = [
   {
@@ -16,6 +16,12 @@ const cards = [
     icon: Boxes,
     enabled: true,
   },
+  {
+    to: "/pos/purchases",
+    title: "Purchases",
+    desc: "Record bar bulk / single-bottle purchases",
+    icon: ShoppingCart,
+    enabled: true,
   {
     to: "/pos/reports",
     title: "Reports",
