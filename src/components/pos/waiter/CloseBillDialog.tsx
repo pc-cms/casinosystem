@@ -1,11 +1,20 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { FormGrid, FormField } from "@/components/ui/form-grid";
 import { ResponsiveDialog, ResponsiveDialogFooter } from "@/components/ui/responsive-dialog";
 import { toast } from "@/hooks/use-toast";
 import { formatNumberSpaces } from "@/lib/currency";
-import { useClosePosTab, type PaymentSplit, type PosTab } from "@/hooks/use-pos-tabs";
+import {
+  useClosePosTab,
+  useCreateCompBudgetOverride,
+  isCompBudgetExceeded,
+  type PaymentSplit,
+  type PosTab,
+} from "@/hooks/use-pos-tabs";
+import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
+
 
 interface Props {
   open: boolean;
