@@ -1,10 +1,71 @@
+import { Link } from "react-router-dom";
+import { UtensilsCrossed, Receipt, Boxes, BarChart3 } from "lucide-react";
+
+const cards = [
+  {
+    to: "/pos/manager/menu",
+    title: "Menu",
+    desc: "Categories, items, prices & stock",
+    icon: UtensilsCrossed,
+    enabled: true,
+  },
+  {
+    to: "/pos/manager",
+    title: "Shifts & Z-reports",
+    desc: "Coming in M4",
+    icon: Receipt,
+    enabled: false,
+  },
+  {
+    to: "/pos/manager",
+    title: "Inventory",
+    desc: "Coming in M5",
+    icon: Boxes,
+    enabled: false,
+  },
+  {
+    to: "/pos/manager",
+    title: "Reports",
+    desc: "Coming in M7",
+    icon: BarChart3,
+    enabled: false,
+  },
+];
+
 export default function PosManager() {
   return (
-    <div className="p-6">
-      <h1 className="text-xl font-semibold mb-2">POS Manager</h1>
-      <p className="text-muted-foreground text-sm">
-        Menu CRUD, shift Z-reports, inventory and reports — coming in milestones M1, M4, M5, M7.
-      </p>
+    <div className="p-6 space-y-4">
+      <div>
+        <h1 className="text-xl font-semibold">POS Manager</h1>
+        <p className="text-muted-foreground text-sm">
+          Manage menu, shifts, inventory and reports.
+        </p>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {cards.map((c) => {
+          const Icon = c.icon;
+          const inner = (
+            <div
+              className={`flex items-start gap-3 rounded-md border border-border bg-card p-4 transition-colors ${
+                c.enabled ? "hover:bg-accent/40 cursor-pointer" : "opacity-60 cursor-not-allowed"
+              }`}
+            >
+              <div className="w-10 h-10 rounded-md bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                <Icon className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <div className="font-semibold">{c.title}</div>
+                <div className="text-xs text-muted-foreground">{c.desc}</div>
+              </div>
+            </div>
+          );
+          return c.enabled ? (
+            <Link key={c.title} to={c.to} className="block">{inner}</Link>
+          ) : (
+            <div key={c.title}>{inner}</div>
+          );
+        })}
+      </div>
     </div>
   );
 }
