@@ -55,7 +55,7 @@ const SlotsTipsCdDialog = ({ open, onOpenChange, shiftId, readOnly }: Props) => 
                 <p className="text-[10px] uppercase text-muted-foreground tracking-wider mb-1">Note (optional)</p>
                 <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. table 5 dealer pool" />
               </div>
-              <Button onClick={submit} disabled={!amount || create.isPending}>Add</Button>
+              <Button onClick={submit} disabled={!Number(amount) || create.isPending}>Add</Button>
             </div>
           </div>
         )}
