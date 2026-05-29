@@ -165,16 +165,19 @@ const SlotsTransfersForm = ({ shiftId }: Props) => {
                 <tr><td colSpan={4} className="text-center text-muted-foreground text-sm py-6">No transfers yet</td></tr>
               ) : transfers.map(tr => {
                 const opt = TYPE_MAP.get(tr.transfer_type)!;
-                const positive = tr.direction === "in";
+                const amt = Number(tr.amount);
+                // Net effect on the cage: 'in' adds, 'out' subtracts. Negative amounts flip the sign.
+                const signed = (tr.direction === "in" ? 1 : -1) * amt;
+                const positive = signed >= 0;
                 return (
                   <tr key={tr.id} className={`border-b border-border last:border-0 ${positive ? "bg-emerald-500/5" : "bg-red-500/5"}`}>
                     <td className="px-3 py-2">
                       <span className={`text-xs font-bold font-mono px-2 py-0.5 rounded border ${opt.tone.bg} ${opt.tone.text} ${opt.tone.border}`}>
-                        {SLOTS_TRANSFER_LABEL[tr.transfer_type]}
+                        {SLOTS_TRANSFER_LABEL[tr.transfer_type]}{amt < 0 ? " ⟲" : ""}
                       </span>
                     </td>
                     <td className={`px-3 py-2 text-right font-mono text-sm font-bold ${positive ? "cms-amount-positive" : "cms-amount-negative"}`}>
-                      {positive ? "+" : "−"}{formatNumberSpaces(Number(tr.amount))}
+                      {positive ? "+" : "−"}{formatNumberSpaces(Math.abs(signed))}
                     </td>
                     <td className="px-3 py-2 text-xs text-muted-foreground truncate max-w-[160px]">{tr.note || "—"}</td>
                     <td className="px-3 py-2 text-right font-mono text-xs text-muted-foreground">
