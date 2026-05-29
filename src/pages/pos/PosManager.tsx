@@ -17,11 +17,11 @@ const cards = [
     enabled: false,
   },
   {
-    to: "/pos/manager",
+    to: "/pos/manager/inventory",
     title: "Inventory",
-    desc: "Coming in M5",
+    desc: "Stock levels & movements",
     icon: Boxes,
-    enabled: false,
+    enabled: true,
   },
   {
     to: "/pos/manager",
