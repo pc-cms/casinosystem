@@ -262,7 +262,7 @@ const SlotsConsolidatedReport = ({
       </table>
 
       {/* ============ SIGNATURES ============ */}
-      <table className="w-full border-collapse mt-6">
+      <table className="w-full border-collapse mt-auto pt-6">
         <tbody>
           <tr>
             <td className="px-2 py-1 w-1/2">
