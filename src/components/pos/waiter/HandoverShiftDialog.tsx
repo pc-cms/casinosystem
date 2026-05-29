@@ -254,12 +254,28 @@ export const HandoverShiftDialog = ({
         {isLoading && <div className="text-sm text-muted-foreground">Computing report…</div>}
         {previewWithCash && <ZReportView z={previewWithCash} />}
 
+        <div className="space-y-2">
+          <div className="flex items-baseline justify-between">
+            <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground font-semibold">
+              Stock count · handover
+            </p>
+            <span className="text-[10px] text-muted-foreground">
+              Enter actual shelf qty per item. Expected qty is hidden — variance goes to manager report.
+            </span>
+          </div>
+          <StockCountPanel value={counts} onChange={setCounts} />
+        </div>
+
         <ResponsiveDialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
           <Button onClick={handle} disabled={!canSubmit}>
-            {handoverMut.isPending ? "Handing over…" : "Confirm handover"}
+            {saveCountMut.isPending
+              ? "Saving count…"
+              : handoverMut.isPending
+                ? "Handing over…"
+                : "Confirm handover"}
           </Button>
         </ResponsiveDialogFooter>
       </div>
