@@ -77,10 +77,7 @@ export default function PosWaiter() {
     if (isMobile) setMobileView("menu");
   };
 
-  const segLabel =
-    shift.shift_type === "day" ? "Day"
-    : shift.shift_type === "evening" ? "Evening"
-    : "Night";
+  const segLabel = shift.shift_type === "day" ? "Day" : "Night";
 
   const ShiftBar = (
     <div className="flex items-center justify-between gap-3 px-3 py-2 border-b border-border bg-card text-xs">
