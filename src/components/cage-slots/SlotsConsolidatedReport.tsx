@@ -82,7 +82,7 @@ const SlotsConsolidatedReport = ({
   closerBankTzs = 0, closerBankUsd = 0, closerBankTotalTzs = 0,
   openerCashlessByProvider, closerCashlessByProvider, openerCashlessTotalTzs, closerCashlessTotalTzs,
   cashFlowFill, cashFlowCredit, cashDeskCardsFill, cashDeskCardsCredit,
-  missCards, casinoExpenses, tipsCollection, aceBalance,
+  missCards, casinoExpenses, tipsCollection, tipsCollectionDay = 0, tipsCollectionEvening = 0, aceBalance,
   cashlessDepositByProvider, cashlessWithdrawByProvider,
   cashlessDepositTotalTzs, cashlessWithdrawTotalTzs,
 }: SlotsConsolidatedProps) => {
