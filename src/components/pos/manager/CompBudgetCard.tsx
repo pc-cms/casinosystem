@@ -10,7 +10,9 @@ import { Label } from "@/components/ui/label";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import { Progress } from "@/components/ui/progress";
 import { useCasino } from "@/lib/casino-context";
-import { usePosCompBudgetStatus, useSetPosCompBudget } from "@/hooks/use-pos-comp-budget";
+import { usePosCompBudgetStatus, useSetPosCompBudget, usePosCompBudgetOverrides } from "@/hooks/use-pos-comp-budget";
+import { fmtDateTime } from "@/lib/format-date";
+
 import { formatNumberSpaces } from "@/lib/currency";
 import { useToast } from "@/hooks/use-toast";
 
