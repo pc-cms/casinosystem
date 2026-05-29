@@ -106,10 +106,10 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/business-days", icon: CalendarDays, label: "Business Days", roles: ["super_admin", "manager", "floor_manager", "finance_manager"], section: "ANALYTICS" },
   
   // BAR / POS — visible only to super_admin and dedicated POS roles.
-  { to: "/pos/manager", icon: Coffee, label: "Bar Manager", roles: ["super_admin", "pos_manager"], section: "BAR" },
-  { to: "/pos/reports", icon: FileBarChart, label: "Bar Reports", roles: ["super_admin", "pos_manager"], section: "BAR" },
-  { to: "/pos/manager/player-analytics", icon: Users, label: "Bar · Player Analytics", roles: ["super_admin", "pos_manager"], section: "BAR" },
-  { to: "/pos/manager/stock-counts", icon: ClipboardList, label: "Bar · Stock Counts", roles: ["super_admin", "pos_manager"], section: "BAR" },
+  { to: "/pos/manager", icon: Coffee, label: "Bar Manager", roles: ["super_admin", "pos_manager" as AppRole], section: "BAR" },
+  { to: "/pos/reports", icon: FileBarChart, label: "Bar Reports", roles: ["super_admin", "pos_manager" as AppRole], section: "BAR" },
+  { to: "/pos/manager/player-analytics", icon: Users, label: "Bar · Player Analytics", roles: ["super_admin", "pos_manager" as AppRole], section: "BAR" },
+  { to: "/pos/manager/stock-counts", icon: ClipboardList, label: "Bar · Stock Counts", roles: ["super_admin", "pos_manager" as AppRole], section: "BAR" },
 
   // SYSTEM — admin/system tools
   { to: "/import-reports", icon: Upload, label: "Import Reports", roles: ["super_admin", "manager"], section: "SYSTEM" },
