@@ -29,6 +29,7 @@ const PosReports = lazy(() => import("@/pages/pos/PosReports"));
 const PosCharges = lazy(() => import("@/pages/pos/PosCharges"));
 const PosPurchases = lazy(() => import("@/pages/pos/PosPurchases"));
 const PosManagerPricing = lazy(() => import("@/pages/pos/PosManagerPricing"));
+const PosManagerStockCounts = lazy(() => import("@/pages/pos/PosManagerStockCounts"));
 
 // Lazy-loaded pages — each becomes a separate chunk
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
