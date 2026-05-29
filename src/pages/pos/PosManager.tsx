@@ -77,6 +77,7 @@ export default function PosManager() {
           Manage menu, shifts, inventory and reports.
         </p>
       </div>
+      <CompBudgetCard />
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {cards.map((c) => {
           const Icon = c.icon;
