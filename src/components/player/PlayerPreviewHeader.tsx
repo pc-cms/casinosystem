@@ -268,6 +268,17 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
               >
                 Profile <ExternalLink className="h-3.5 w-3.5" />
               </Button>
+              {canAdjust && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setPosOpen(true)}
+                  className="gap-1"
+                  title="Send F&B order to bar"
+                >
+                  <UtensilsCrossed className="h-3.5 w-3.5" /> F&B
+                </Button>
+              )}
             </div>
 
             {/* Row 2 — Visits + Drop / Cash In / Result for the active period */}
