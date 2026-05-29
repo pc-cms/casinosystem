@@ -120,6 +120,7 @@ export const HandoverShiftDialog = ({
     if (open) {
       setNewShiftType(suggestShiftType());
       setNewWaiterId("");
+      setCounts({});
     }
   }, [open]);
 
