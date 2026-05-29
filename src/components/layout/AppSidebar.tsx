@@ -105,11 +105,11 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/table-results", icon: FileText, label: "Table Results", roles: ["super_admin", "manager", "floor_manager", "finance_manager", "surveillance"], section: "ANALYTICS" },
   { to: "/business-days", icon: CalendarDays, label: "Business Days", roles: ["super_admin", "manager", "floor_manager", "finance_manager"], section: "ANALYTICS" },
   
-  // BAR / POS — cross-role read-write surfaces for casino managers & finance.
-  { to: "/pos/manager", icon: Coffee, label: "Bar Manager", roles: ["super_admin", "manager", "finance_manager"], section: "BAR" },
-  { to: "/pos/reports", icon: FileBarChart, label: "Bar Reports", roles: ["super_admin", "manager", "finance_manager"], section: "BAR" },
-  { to: "/pos/manager/player-analytics", icon: Users, label: "Bar · Player Analytics", roles: ["super_admin", "manager", "finance_manager"], section: "BAR" },
-  { to: "/pos/manager/stock-counts", icon: ClipboardList, label: "Bar · Stock Counts", roles: ["super_admin", "manager", "finance_manager"], section: "BAR" },
+  // BAR / POS — visible only to super_admin and dedicated POS roles.
+  { to: "/pos/manager", icon: Coffee, label: "Bar Manager", roles: ["super_admin", "pos_manager" as AppRole], section: "BAR" },
+  { to: "/pos/reports", icon: FileBarChart, label: "Bar Reports", roles: ["super_admin", "pos_manager" as AppRole], section: "BAR" },
+  { to: "/pos/manager/player-analytics", icon: Users, label: "Bar · Player Analytics", roles: ["super_admin", "pos_manager" as AppRole], section: "BAR" },
+  { to: "/pos/manager/stock-counts", icon: ClipboardList, label: "Bar · Stock Counts", roles: ["super_admin", "pos_manager" as AppRole], section: "BAR" },
 
   // SYSTEM — admin/system tools
   { to: "/import-reports", icon: Upload, label: "Import Reports", roles: ["super_admin", "manager"], section: "SYSTEM" },
