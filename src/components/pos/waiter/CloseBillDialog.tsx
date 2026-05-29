@@ -25,11 +25,18 @@ interface Props {
 
 export const CloseBillDialog = ({ open, onOpenChange, tab, onClosed }: Props) => {
   const closeMut = useClosePosTab();
+  const createOverride = useCreateCompBudgetOverride();
   const [cash, setCash] = useState("0");
   const [card, setCard] = useState("0");
   const [compPlayer, setCompPlayer] = useState("0");
   const [compHouse, setCompHouse] = useState("0");
   const [playerCharge, setPlayerCharge] = useState("0");
+
+  // Comp-budget override flow state
+  const [overridePromptOpen, setOverridePromptOpen] = useState(false);
+  const [overrideReason, setOverrideReason] = useState("");
+  const [mgrDialogOpen, setMgrDialogOpen] = useState(false);
+  const [overrideErrorMsg, setOverrideErrorMsg] = useState("");
 
   const total = tab?.total_tzs ?? 0;
   const hasPlayer = !!tab?.player_id;
@@ -41,6 +48,10 @@ export const CloseBillDialog = ({ open, onOpenChange, tab, onClosed }: Props) =>
       setCompPlayer("0");
       setCompHouse("0");
       setPlayerCharge("0");
+      setOverridePromptOpen(false);
+      setMgrDialogOpen(false);
+      setOverrideReason("");
+      setOverrideErrorMsg("");
     }
   }, [open, tab, total]);
 
@@ -53,19 +64,31 @@ export const CloseBillDialog = ({ open, onOpenChange, tab, onClosed }: Props) =>
   const delta = sum - total;
   const valid = delta === 0 && total > 0;
 
+  const buildSplit = (): PaymentSplit => ({
+    cash: Math.round(Number(cash) || 0),
+    card: Math.round(Number(card) || 0),
+    comp_player: Math.round(Number(compPlayer) || 0),
+    comp_house: Math.round(Number(compHouse) || 0),
+    player_charge: Math.round(Number(playerCharge) || 0),
+  });
+
+  const monthStart = (): string => {
+    // Local Africa/Dar_es_Salaam first-of-month YYYY-MM-01
+    const fmt = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Africa/Dar_es_Salaam",
+      year: "numeric",
+      month: "2-digit",
+    }).format(new Date());
+    return `${fmt}-01`;
+  };
+
   const handle = async () => {
     if (!tab) return;
     if (!valid) {
       toast({ title: "Split must sum to total", variant: "destructive" });
       return;
     }
-    const split: PaymentSplit = {
-      cash: Math.round(Number(cash) || 0),
-      card: Math.round(Number(card) || 0),
-      comp_player: Math.round(Number(compPlayer) || 0),
-      comp_house: Math.round(Number(compHouse) || 0),
-      player_charge: Math.round(Number(playerCharge) || 0),
-    };
+    const split = buildSplit();
     if ((split.comp_player ?? 0) > 0 && !hasPlayer) {
       toast({ title: "Comp player not available for walk-in tabs", variant: "destructive" });
       return;
@@ -80,9 +103,43 @@ export const CloseBillDialog = ({ open, onOpenChange, tab, onClosed }: Props) =>
       onOpenChange(false);
       onClosed?.();
     } catch (e: any) {
+      if (isCompBudgetExceeded(e)) {
+        setOverrideErrorMsg(e?.message || "Monthly house-comp budget would be exceeded");
+        setOverridePromptOpen(true);
+        return;
+      }
       toast({ title: "Failed to close", description: e?.message, variant: "destructive" });
     }
   };
+
+  const handleManagerConfirmed = async (managerId: string) => {
+    setMgrDialogOpen(false);
+    if (!tab) return;
+    const split = buildSplit();
+    try {
+      const overrideId = await createOverride.mutateAsync({
+        casino_id: tab.casino_id,
+        tab_id: tab.id,
+        month_start: monthStart(),
+        amount_tzs: split.comp_house ?? 0,
+        manager_user_id: managerId,
+        reason: overrideReason.trim(),
+      });
+      await closeMut.mutateAsync({
+        tab_id: tab.id,
+        total_tzs: total,
+        payment_split: split,
+        comp_override_id: overrideId,
+      });
+      toast({ title: "Bill closed with manager override" });
+      setOverridePromptOpen(false);
+      onOpenChange(false);
+      onClosed?.();
+    } catch (e: any) {
+      toast({ title: "Override failed", description: e?.message, variant: "destructive" });
+    }
+  };
+
 
   const fillCharge = () => {
     if (!hasPlayer) return;
