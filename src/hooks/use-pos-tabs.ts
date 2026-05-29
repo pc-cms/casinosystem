@@ -138,7 +138,7 @@ export function useClosePosTab() {
       if (input.comp_override_id) patch.comp_override_id = input.comp_override_id;
       const { error } = await supabase
         .from("pos_tabs")
-        .update(patch)
+        .update(patch as any)
         .eq("id", input.tab_id);
       if (error) throw error;
     },
