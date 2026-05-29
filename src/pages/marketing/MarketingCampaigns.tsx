@@ -188,7 +188,7 @@ function NewCampaignDialog({
         ends_on: endsOn || null,
         budget_tzs: Number(budget.replace(/\s/g, "")) || 0,
         description: description.trim() || null,
-        created_by: null,
+
       });
       toast({ title: "Campaign created" });
       onCreated(id);
