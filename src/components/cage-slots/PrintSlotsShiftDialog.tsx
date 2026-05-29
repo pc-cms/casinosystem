@@ -103,7 +103,7 @@ const PrintSlotsShiftDialog = ({ open, onClose, shiftId }: Props) => {
     queryKey: ["print-slots-shift", shiftId],
     enabled: open && !!shiftId,
     queryFn: async () => {
-      const [shiftR, invR, cardsR, ratesR, checksR, cashlessR, transfersR, expensesR] = await Promise.all([
+      const [shiftR, invR, cardsR, ratesR, checksR, cashlessR, transfersR, expensesR, tipsCdR] = await Promise.all([
         supabase.from("cage_slots_shifts").select("*").eq("id", shiftId).maybeSingle(),
         supabase.from("cage_slots_cash_inventory").select("*").eq("cage_slots_shift_id", shiftId),
         supabase.from("cage_slots_cards").select("*").eq("cage_slots_shift_id", shiftId).maybeSingle(),
@@ -112,6 +112,7 @@ const PrintSlotsShiftDialog = ({ open, onClose, shiftId }: Props) => {
         (supabase as any).from("cashless_transactions").select("direction, provider, amount").eq("cage_slots_shift_id", shiftId),
         (supabase as any).from("cage_slots_transfers").select("transfer_type, amount").eq("cage_slots_shift_id", shiftId),
         supabase.from("expenses").select("amount, approved").eq("cage_slots_shift_id", shiftId),
+        (supabase as any).from("cage_slots_tips_cd").select("amount").eq("cage_slots_shift_id", shiftId),
       ]);
       return {
         shift: shiftR.data,
@@ -122,6 +123,7 @@ const PrintSlotsShiftDialog = ({ open, onClose, shiftId }: Props) => {
         cashless: cashlessR.data || [],
         transfers: transfersR.data || [],
         expenses: expensesR.data || [],
+        tipsCd: tipsCdR.data || [],
       };
     },
   });
