@@ -495,7 +495,7 @@ export const CashPanel = ({ rows, businessDate, casinoId }: PanelProps) => {
             <TableBody>
               {[...missChips].sort((a: any, b: any) => num(b.denomination) - num(a.denomination)).map((m: any, i) => (
                 <TableRow key={i}>
-                  <TableCell className="text-xs py-1 font-mono">{formatChipLabel(num(m.denomination))}</TableCell>
+                  <TableCell className="text-xs py-1 font-mono"><ChipToken denom={num(m.denomination)} /></TableCell>
                   <TableCell className="text-xs py-1 text-right font-mono">{num(m.quantity)}</TableCell>
                   <TableCell className="text-xs py-1 text-right font-mono">{formatNumberSpaces(num(m.total_value_tzs))}</TableCell>
                 </TableRow>
