@@ -102,13 +102,12 @@ export default function PosPurchases() {
         icon={ShoppingCart}
         title="Bar purchases"
         subtitle="Single bottles or bulk lists. Generates pending expense at slots cage."
-        actions={
-          <Button onClick={() => setOpen(true)} disabled={!activeCasinoId}>
-            <Plus className="w-4 h-4 mr-1" />
-            New purchase
-          </Button>
-        }
-      />
+      >
+        <Button onClick={() => setOpen(true)} disabled={!activeCasinoId}>
+          <Plus className="w-4 h-4 mr-1" />
+          New purchase
+        </Button>
+      </PageHeader>
 
       <PageSection>
         {isLoading ? (
