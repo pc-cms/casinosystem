@@ -4593,11 +4593,14 @@ export type Database = {
       }
       pos_menu_items: {
         Row: {
+          avg_cost_tzs: number
           casino_id: string
           category_id: string
           created_at: string
           id: string
           is_active: boolean
+          last_purchase_at: string | null
+          last_purchase_cost_tzs: number | null
           low_threshold: number | null
           name: string
           price_tzs: number
@@ -4605,11 +4608,14 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          avg_cost_tzs?: number
           casino_id: string
           category_id: string
           created_at?: string
           id?: string
           is_active?: boolean
+          last_purchase_at?: string | null
+          last_purchase_cost_tzs?: number | null
           low_threshold?: number | null
           name: string
           price_tzs: number
@@ -4617,11 +4623,14 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          avg_cost_tzs?: number
           casino_id?: string
           category_id?: string
           created_at?: string
           id?: string
           is_active?: boolean
+          last_purchase_at?: string | null
+          last_purchase_cost_tzs?: number | null
           low_threshold?: number | null
           name?: string
           price_tzs?: number
@@ -4866,6 +4875,105 @@ export type Database = {
             columns: ["tab_id"]
             isOneToOne: true
             referencedRelation: "pos_tabs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pos_purchase_items: {
+        Row: {
+          created_at: string
+          id: string
+          item_id: string
+          line_total_tzs: number
+          purchase_id: string
+          qty: number
+          unit_cost_tzs: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_id: string
+          line_total_tzs: number
+          purchase_id: string
+          qty: number
+          unit_cost_tzs: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_id?: string
+          line_total_tzs?: number
+          purchase_id?: string
+          qty?: number
+          unit_cost_tzs?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_purchase_items_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "pos_menu_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_purchase_items_purchase_id_fkey"
+            columns: ["purchase_id"]
+            isOneToOne: false
+            referencedRelation: "pos_purchases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pos_purchases: {
+        Row: {
+          bartender_user_id: string
+          business_date: string | null
+          casino_id: string
+          created_at: string
+          expense_id: string | null
+          id: string
+          notes: string
+          purchase_type: string
+          supplier: string | null
+          total_tzs: number
+        }
+        Insert: {
+          bartender_user_id: string
+          business_date?: string | null
+          casino_id: string
+          created_at?: string
+          expense_id?: string | null
+          id?: string
+          notes?: string
+          purchase_type: string
+          supplier?: string | null
+          total_tzs?: number
+        }
+        Update: {
+          bartender_user_id?: string
+          business_date?: string | null
+          casino_id?: string
+          created_at?: string
+          expense_id?: string | null
+          id?: string
+          notes?: string
+          purchase_type?: string
+          supplier?: string | null
+          total_tzs?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_purchases_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_purchases_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
             referencedColumns: ["id"]
           },
         ]
@@ -6980,6 +7088,7 @@ export type Database = {
         Returns: Json
       }
       pos_compute_z_report: { Args: { _shift_id: string }; Returns: Json }
+      pos_create_purchase: { Args: { _payload: Json }; Returns: string }
       pos_tabs_recompute_total: {
         Args: { _tab_id: string }
         Returns: undefined
