@@ -700,7 +700,7 @@ const CloseShiftDialog = ({
                 const colorCls = mq > 0 ? "cms-amount-positive" : mq < 0 ? "cms-amount-negative" : "text-foreground";
                 return (
                   <tr key={d} className="border-b border-border/30">
-                    <td className="px-2 py-1.5 text-foreground font-semibold">{formatChipLabel(d)}</td>
+                    <td className="px-2 py-1.5 text-foreground font-semibold"><ChipToken denom={d} /></td>
                     <td className="px-2 py-1.5 text-right text-foreground">{op || "·"}</td>
                     <td className="px-2 py-1.5 text-right">
                       <input
