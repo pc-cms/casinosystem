@@ -77,12 +77,21 @@ export default function PosWaiter() {
     if (isMobile) setMobileView("menu");
   };
 
+  const segLabel =
+    shift.shift_type === "day" ? "Day"
+    : shift.shift_type === "evening" ? "Evening"
+    : "Night";
+
   const ShiftBar = (
     <div className="flex items-center justify-between gap-3 px-3 py-2 border-b border-border bg-card text-xs">
       <div className="flex items-center gap-3 min-w-0">
         <span className="font-semibold">{activeCasino?.name ?? ""}</span>
+        <Badge variant="outline" className="font-medium">{segLabel} shift</Badge>
+        {shift.handover_from_shift_id && (
+          <Badge variant="secondary" className="font-medium">handover</Badge>
+        )}
         <span className="text-muted-foreground truncate">
-          Shift opened {fmtDateTime(shift.opened_at)}
+          Opened {fmtDateTime(shift.opened_at)}
         </span>
       </div>
       <div className="flex items-center gap-3">
@@ -91,6 +100,9 @@ export default function PosWaiter() {
         </span>
         <Button size="sm" variant="outline" onClick={() => setHistoryOpen(true)} className="gap-1">
           <History className="h-4 w-4" /> History
+        </Button>
+        <Button size="sm" variant="outline" onClick={() => setHandoverOpen(true)} className="gap-1">
+          <ArrowLeftRight className="h-4 w-4" /> Handover
         </Button>
         <Button size="sm" variant="outline" onClick={() => setCloseShiftOpen(true)}>
           Close shift
@@ -111,6 +123,17 @@ export default function PosWaiter() {
       }}
     />
   );
+
+  const handoverDialog = (
+    <HandoverShiftDialog
+      open={handoverOpen}
+      onOpenChange={setHandoverOpen}
+      shift={shift}
+      openTabsCount={tabs.length}
+      casinoId={activeCasinoId}
+    />
+  );
+
 
   const historyDialog = (
     <ClosedTabsDialog
