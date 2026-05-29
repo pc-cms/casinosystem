@@ -65,36 +65,48 @@ const SlotsTipsCdDialog = ({ open, onOpenChange, shiftId, readOnly }: Props) => 
           </div>
         )}
 
-        <div className="cms-panel p-0 overflow-hidden">
-          <table className="w-full text-xs">
-            <thead className="text-muted-foreground border-b border-border">
-              <tr>
-                <th className="text-left px-3 py-1.5">When</th>
-                <th className="text-right px-3 py-1.5">Amount (TZS)</th>
-                <th className="text-left px-3 py-1.5">Note</th>
-              </tr>
-            </thead>
-            <tbody>
-              {tips.length === 0 && (
-                <tr><td colSpan={3} className="text-center text-muted-foreground py-4">·</td></tr>
-              )}
-              {tips.map((t: any) => (
-                <tr key={t.id} className="border-b border-border/50">
-                  <td className="px-3 py-1.5 font-mono text-[10px] text-muted-foreground">{fmtDateTime(t.created_at)}</td>
-                  <td className="px-3 py-1.5 text-right font-mono">{formatNumberSpaces(Number(t.amount))}</td>
-                  <td className="px-3 py-1.5 text-muted-foreground">{t.note || "·"}</td>
-                </tr>
-              ))}
-              {tips.length > 0 && (
-                <tr className="font-bold border-t-2 border-border">
-                  <td className="px-3 py-2">Total</td>
-                  <td className="px-3 py-2 text-right font-mono">{formatNumberSpaces(total)}</td>
-                  <td />
-                </tr>
-              )}
-            </tbody>
-          </table>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {(["day", "evening"] as TipsBucket[]).map((bucket) => {
+            const rows = tipsWithBucket.filter((t: any) => t.bucket === bucket);
+            const subtotal = bucket === "day" ? totalDay : totalEvening;
+            return (
+              <div key={bucket} className="cms-panel p-0 overflow-hidden">
+                <div className="px-3 py-1.5 text-[11px] uppercase tracking-wider font-semibold border-b border-border bg-muted/40 flex items-center justify-between">
+                  <span>{TIPS_BUCKET_LABEL[bucket]}</span>
+                  <span className="font-mono">{formatNumberSpaces(subtotal)}</span>
+                </div>
+                <table className="w-full text-xs">
+                  <thead className="text-muted-foreground border-b border-border">
+                    <tr>
+                      <th className="text-left px-3 py-1.5">When</th>
+                      <th className="text-right px-3 py-1.5">TZS</th>
+                      <th className="text-left px-3 py-1.5">Note</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.length === 0 && (
+                      <tr><td colSpan={3} className="text-center text-muted-foreground py-4">·</td></tr>
+                    )}
+                    {rows.map((t: any) => (
+                      <tr key={t.id} className="border-b border-border/50">
+                        <td className="px-3 py-1.5 font-mono text-[10px] text-muted-foreground">{fmtDateTime(t.created_at)}</td>
+                        <td className="px-3 py-1.5 text-right font-mono">{formatNumberSpaces(Number(t.amount))}</td>
+                        <td className="px-3 py-1.5 text-muted-foreground">{t.note || "·"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            );
+          })}
         </div>
+
+        {total > 0 && (
+          <div className="cms-panel p-3 flex items-center justify-between text-sm font-bold">
+            <span>Total Tips CD</span>
+            <span className="font-mono">{formatNumberSpaces(total)} TZS</span>
+          </div>
+        )}
       </div>
     </ResponsiveDialog>
   );
