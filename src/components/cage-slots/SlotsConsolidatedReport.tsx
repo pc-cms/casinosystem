@@ -174,27 +174,27 @@ const SlotsConsolidatedReport = ({
             <td className="border border-black px-2 py-1 text-right">{formatNumberSpaces(casinoExpenses)}</td>
           </tr>
           <tr>
-            <td className="border border-black px-2 py-1">Cash Flow FILL</td>
+            <td className="border border-black px-2 py-1.5">Cash Flow FILL</td>
             <td className="border border-black px-2 py-1 text-right">{cashFlowFill ? formatNumberSpaces(cashFlowFill) : ""}</td>
-            <td className="border border-black px-2 py-1">Tips Collection</td>
+            <td className="border border-black px-2 py-1.5">Tips Collection</td>
             <td className="border border-black px-2 py-1 text-right">{tipsCollection ? formatNumberSpaces(tipsCollection) : ""}</td>
           </tr>
           <tr>
-            <td className="border border-black px-2 py-1">Cash Flow CREDIT</td>
+            <td className="border border-black px-2 py-1.5">Cash Flow CREDIT</td>
             <td className="border border-black px-2 py-1 text-right">{cashFlowCredit ? formatNumberSpaces(cashFlowCredit) : ""}</td>
-            <td className="border border-black px-2 py-1">Miss Cards</td>
+            <td className="border border-black px-2 py-1.5">Miss Cards</td>
             <td className="border border-black px-2 py-1 text-right">{missCards !== 0 ? missCards : ""}</td>
           </tr>
           <tr>
-            <td className="border border-black px-2 py-1">Cash Desk Cards FILL</td>
+            <td className="border border-black px-2 py-1.5">Cash Desk Cards FILL</td>
             <td className="border border-black px-2 py-1 text-right">{cashDeskCardsFill ? formatNumberSpaces(cashDeskCardsFill) : ""}</td>
             <td className="border border-black bg-gray-200 px-2 py-1 font-semibold">Shift Balance</td>
             <td className="border border-black px-2 py-1 text-right font-bold">{formatNumberSpaces(aceBalance)}</td>
           </tr>
           <tr>
-            <td className="border border-black px-2 py-1">Cash Desk Cards CREDIT</td>
+            <td className="border border-black px-2 py-1.5">Cash Desk Cards CREDIT</td>
             <td className="border border-black px-2 py-1 text-right">{cashDeskCardsCredit ? formatNumberSpaces(cashDeskCardsCredit) : ""}</td>
-            <td className="border border-black px-2 py-1" colSpan={2}></td>
+            <td className="border border-black px-2 py-1.5" colSpan={2}></td>
           </tr>
         </tbody>
       </table>
@@ -217,7 +217,7 @@ const SlotsConsolidatedReport = ({
             const n = i - o;
             return (
               <tr key={p.key}>
-                <td className="border border-black px-2 py-1">{p.label}</td>
+                <td className="border border-black px-2 py-1.5">{p.label}</td>
                 <td className="border border-black px-2 py-1 text-right">{i ? formatNumberSpaces(i) : ""}</td>
                 <td className="border border-black px-2 py-1 text-right">{o ? formatNumberSpaces(o) : ""}</td>
                 <td className="border border-black px-2 py-1 text-right font-semibold">
@@ -252,7 +252,7 @@ const SlotsConsolidatedReport = ({
             {PROVIDERS.map(p => {
               const v = Number(closerCashlessByProvider[p.key] || 0);
               return (
-                <td key={p.key} className="border border-black px-2 py-2 text-right font-mono">
+                <td key={p.key} className="border border-black px-2 py-3 text-right font-mono">
                   {v ? formatNumberSpaces(v) : ""}
                 </td>
               );
