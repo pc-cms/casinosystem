@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import PlayerPhotoLightbox from "@/components/player/PlayerPhotoLightbox";
 import { useNavigate } from "react-router-dom";
-import { X, ExternalLink, User, ArrowDownToLine, ArrowUpFromLine, Check } from "lucide-react";
+import { X, ExternalLink, User, ArrowDownToLine, ArrowUpFromLine, Check, UtensilsCrossed } from "lucide-react";
+import { PitQuickOrderDialog } from "@/components/pos/PitQuickOrderDialog";
 import { useQuery } from "@tanstack/react-query";
 import { formatCardId } from "@/lib/card-number";
 import { supabase } from "@/integrations/supabase/client";
@@ -144,6 +145,7 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
   const [note, setNote] = useState("");
   const createAdj = useCreatePlayerChipAdjustment();
   const [photoOpen, setPhotoOpen] = useState(false);
+  const [posOpen, setPosOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
   // Expose header height as CSS var so downstream sticky elements (table headers,
@@ -266,6 +268,17 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
               >
                 Profile <ExternalLink className="h-3.5 w-3.5" />
               </Button>
+              {canAdjust && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setPosOpen(true)}
+                  className="gap-1"
+                  title="Send F&B order to bar"
+                >
+                  <UtensilsCrossed className="h-3.5 w-3.5" /> F&B
+                </Button>
+              )}
             </div>
 
             {/* Row 2 — Visits + Drop / Cash In / Result for the active period */}
@@ -384,6 +397,14 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
         src={player?.photo_url}
         alt={player ? `${player.first_name} ${player.last_name}` : undefined}
       />
+      {player && (
+        <PitQuickOrderDialog
+          open={posOpen}
+          onOpenChange={setPosOpen}
+          playerId={player.id}
+          playerName={`${player.first_name} ${player.last_name}`.trim()}
+        />
+      )}
     </div>
   );
 };
