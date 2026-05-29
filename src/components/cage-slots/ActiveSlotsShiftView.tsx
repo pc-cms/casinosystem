@@ -679,7 +679,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
           <PageSection title={`Checks (${checks.length})`}>
             <table className="w-full text-xs">
               <thead className="text-muted-foreground border-b border-border">
-                <tr><th className="text-left py-1.5">When</th><th className="text-left">Kind</th><th className="text-right">Total (TZS)</th><th className="text-left">Note</th></tr>
+                <tr><th className="text-left py-1.5">When</th><th className="text-left">Kind</th><th className="text-right">Balance (TZS)</th><th className="text-left">Note</th></tr>
               </thead>
               <tbody>
                 {checks.length === 0 && <tr><td colSpan={4} className="text-center text-muted-foreground py-3">·</td></tr>}
@@ -695,6 +695,16 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
                     kind === "Closing" ? "bg-amber-500/15 text-amber-600 dark:text-amber-400" :
                     kind === "Review"  ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" :
                                          "bg-muted text-muted-foreground";
+                  const balanceRaw = t.balance ?? t.shift_balance;
+                  const hasBalance = balanceRaw !== undefined && balanceRaw !== null && !isOpening;
+                  const balanceNum = Number(balanceRaw || 0);
+                  const balanceCls = !hasBalance
+                    ? "text-muted-foreground"
+                    : balanceNum > 0
+                      ? "cms-amount-positive"
+                      : balanceNum < 0
+                        ? "cms-amount-negative"
+                        : "";
                   return (
                     <tr
                       key={c.id}
@@ -703,7 +713,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
                     >
                       <td className="py-1.5 font-mono text-[10px] text-muted-foreground">{fmtDateTime(c.created_at)}</td>
                       <td><span className={`cms-chip text-[9px] h-4 px-1.5 uppercase ${cls}`}>{kind}</span></td>
-                      <td className="text-right font-mono">{formatNumberSpaces(Number(c.total_tzs))}</td>
+                      <td className={`text-right font-mono ${balanceCls}`}>{hasBalance ? formatNumberSpaces(balanceNum) : "·"}</td>
                       <td className="text-muted-foreground">{c.note || "·"}</td>
                     </tr>
                   );
