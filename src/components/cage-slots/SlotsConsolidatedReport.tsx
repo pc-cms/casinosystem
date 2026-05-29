@@ -44,6 +44,8 @@ export type SlotsConsolidatedProps = {
   missCards: number;             // count units, negative possible
   casinoExpenses: number;
   tipsCollection: number;
+  tipsCollectionDay?: number;
+  tipsCollectionEvening?: number;
   aceBalance: number;
   /** Per-provider IN / OUT transaction totals for the shift. */
   cashlessDepositByProvider: Record<string, number>;
