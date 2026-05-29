@@ -18,6 +18,11 @@ import { useRealtimeSubscriptions } from "@/hooks/use-realtime";
 import { initSyncEngine } from "@/lib/sync-engine";
 import Login from "@/pages/Login";
 const Landing = lazy(() => import("@/pages/Landing"));
+const PosLayout = lazy(() => import("@/pages/pos/PosLayout"));
+const PosLogin = lazy(() => import("@/pages/pos/PosLogin"));
+const PosWaiter = lazy(() => import("@/pages/pos/PosWaiter"));
+const PosBar = lazy(() => import("@/pages/pos/PosBar"));
+const PosManager = lazy(() => import("@/pages/pos/PosManager"));
 
 // Lazy-loaded pages — each becomes a separate chunk
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
@@ -207,6 +212,14 @@ const RoleGuard = ({ path, children }: { path: string; children: React.ReactNode
 };
 
 const getDefaultRoute = (roles: string[]) => {
+  // POS-only users go straight to the POS app
+  const isPosOnly = (roles.includes("pos_waiter") || roles.includes("pos_bartender") || roles.includes("pos_manager"))
+    && !roles.some(r => ["manager","pit","cashier","reception","finance_manager","surveillance","super_admin","hr","floor_manager","cashier_slots"].includes(r));
+  if (isPosOnly) {
+    if (roles.includes("pos_bartender") && !roles.includes("pos_waiter")) return "/pos/bar";
+    if (roles.includes("pos_manager") && !roles.includes("pos_waiter")) return "/pos/manager";
+    return "/pos/waiter";
+  }
   if (roles.includes("super_admin")) return "/admin";
   // Security-only users on premier will be handled by CCTV mode, but default route still needed
   if (roles.includes("surveillance") && !roles.some(r => ["manager", "pit", "cashier", "reception", "finance_manager", "super_admin", "hr"].includes(r))) {
@@ -381,10 +394,19 @@ const AppRoutes = () => {
   if (loading) return <FullScreenLoader label="Restoring session..." />;
   const defaultRoute = user ? getDefaultRoute(roles) : "/";
   return (
-    <Routes>
-      <Route path="/login" element={user ? <Navigate to={defaultRoute} replace /> : <Login />} />
-      <Route path="/*" element={<ProtectedRoutes />} />
-    </Routes>
+    <Suspense fallback={<PageLoader />}>
+      <Routes>
+        <Route path="/pos/login" element={<PosLogin />} />
+        <Route path="/pos" element={<PosLayout />}>
+          <Route index element={<Navigate to="/pos/waiter" replace />} />
+          <Route path="waiter" element={<PosWaiter />} />
+          <Route path="bar" element={<PosBar />} />
+          <Route path="manager" element={<PosManager />} />
+        </Route>
+        <Route path="/login" element={user ? <Navigate to={defaultRoute} replace /> : <Login />} />
+        <Route path="/*" element={<ProtectedRoutes />} />
+      </Routes>
+    </Suspense>
   );
 };
 

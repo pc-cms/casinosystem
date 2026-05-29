@@ -4526,6 +4526,320 @@ export type Database = {
           },
         ]
       }
+      pos_inventory_movements: {
+        Row: {
+          created_at: string
+          delta: number
+          id: string
+          item_id: string
+          reason: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          delta: number
+          id?: string
+          item_id: string
+          reason: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          delta?: number
+          id?: string
+          item_id?: string
+          reason?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_inventory_movements_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "pos_menu_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pos_menu_categories: {
+        Row: {
+          casino_id: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          casino_id: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          casino_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      pos_menu_items: {
+        Row: {
+          casino_id: string
+          category_id: string
+          created_at: string
+          id: string
+          is_active: boolean
+          low_threshold: number | null
+          name: string
+          price_tzs: number
+          stock_qty: number | null
+          updated_at: string
+        }
+        Insert: {
+          casino_id: string
+          category_id: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          low_threshold?: number | null
+          name: string
+          price_tzs: number
+          stock_qty?: number | null
+          updated_at?: string
+        }
+        Update: {
+          casino_id?: string
+          category_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          low_threshold?: number | null
+          name?: string
+          price_tzs?: number
+          stock_qty?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_menu_items_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "pos_menu_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pos_menu_price_history: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          id: string
+          item_id: string
+          new_price_tzs: number
+          old_price_tzs: number | null
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          id?: string
+          item_id: string
+          new_price_tzs: number
+          old_price_tzs?: number | null
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          id?: string
+          item_id?: string
+          new_price_tzs?: number
+          old_price_tzs?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_menu_price_history_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "pos_menu_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pos_order_items: {
+        Row: {
+          created_at: string
+          id: string
+          item_id: string
+          item_name: string
+          line_total_tzs: number
+          order_id: string
+          qty: number
+          unit_price_tzs: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_id: string
+          item_name: string
+          line_total_tzs: number
+          order_id: string
+          qty: number
+          unit_price_tzs: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_id?: string
+          item_name?: string
+          line_total_tzs?: number
+          order_id?: string
+          qty?: number
+          unit_price_tzs?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_order_items_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "pos_menu_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "pos_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pos_orders: {
+        Row: {
+          business_date: string | null
+          casino_id: string
+          comp_reason: string | null
+          created_at: string
+          expense_id: string | null
+          id: string
+          payment_mode: Database["public"]["Enums"]["pos_payment_mode"]
+          player_id: string | null
+          player_name: string | null
+          ready_at: string | null
+          served_at: string | null
+          shift_id: string | null
+          source: string
+          status: Database["public"]["Enums"]["pos_order_status"]
+          table_id: string | null
+          table_label: string | null
+          total_tzs: number
+          void_reason: string | null
+          voided_at: string | null
+          voided_by: string | null
+          waiter_user_id: string
+        }
+        Insert: {
+          business_date?: string | null
+          casino_id: string
+          comp_reason?: string | null
+          created_at?: string
+          expense_id?: string | null
+          id?: string
+          payment_mode: Database["public"]["Enums"]["pos_payment_mode"]
+          player_id?: string | null
+          player_name?: string | null
+          ready_at?: string | null
+          served_at?: string | null
+          shift_id?: string | null
+          source?: string
+          status?: Database["public"]["Enums"]["pos_order_status"]
+          table_id?: string | null
+          table_label?: string | null
+          total_tzs?: number
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+          waiter_user_id: string
+        }
+        Update: {
+          business_date?: string | null
+          casino_id?: string
+          comp_reason?: string | null
+          created_at?: string
+          expense_id?: string | null
+          id?: string
+          payment_mode?: Database["public"]["Enums"]["pos_payment_mode"]
+          player_id?: string | null
+          player_name?: string | null
+          ready_at?: string | null
+          served_at?: string | null
+          shift_id?: string | null
+          source?: string
+          status?: Database["public"]["Enums"]["pos_order_status"]
+          table_id?: string | null
+          table_label?: string | null
+          total_tzs?: number
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+          waiter_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_orders_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "pos_shifts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pos_shifts: {
+        Row: {
+          business_date: string | null
+          casino_id: string
+          closed_at: string | null
+          closing_cash: number | null
+          created_at: string
+          id: string
+          opened_at: string
+          opening_cash: number
+          waiter_user_id: string
+          z_report: Json | null
+        }
+        Insert: {
+          business_date?: string | null
+          casino_id: string
+          closed_at?: string | null
+          closing_cash?: number | null
+          created_at?: string
+          id?: string
+          opened_at?: string
+          opening_cash?: number
+          waiter_user_id: string
+          z_report?: Json | null
+        }
+        Update: {
+          business_date?: string | null
+          casino_id?: string
+          closed_at?: string | null
+          closing_cash?: number | null
+          created_at?: string
+          id?: string
+          opened_at?: string
+          opening_cash?: number
+          waiter_user_id?: string
+          z_report?: Json | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           casino_id: string
@@ -6384,6 +6698,7 @@ export type Database = {
         }[]
       }
       get_user_casino_id: { Args: { _user_id: string }; Returns: string }
+      has_any_pos_role: { Args: { _user: string }; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -6685,6 +7000,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      user_can_see_casino: {
+        Args: { _casino: string; _user: string }
+        Returns: boolean
+      }
       user_has_casino_access: {
         Args: { _casino_id: string; _user_id: string }
         Returns: boolean
@@ -6711,6 +7030,9 @@ export type Database = {
         | "hr"
         | "floor_manager"
         | "cashier_slots"
+        | "pos_waiter"
+        | "pos_bartender"
+        | "pos_manager"
       cage_slots_comment_type:
         | "cashier_note"
         | "manager_comment"
@@ -6758,6 +7080,7 @@ export type Database = {
         | "hotel"
         | "flight"
         | "other"
+        | "pos_comp"
       log_category:
         | "transaction"
         | "edit"
@@ -6791,6 +7114,8 @@ export type Database = {
       player_category: "diamond" | "platinum" | "gold" | "normal"
       player_status: "active" | "blacklist"
       player_type: "slots" | "table" | "mix"
+      pos_order_status: "pending" | "preparing" | "ready" | "served" | "void"
+      pos_payment_mode: "cash" | "card" | "comp_player" | "comp_house"
       shift_type: "M" | "N" | "A" | "S" | "E" | "L"
       staff_department:
         | "security"
@@ -6971,6 +7296,9 @@ export const Constants = {
         "hr",
         "floor_manager",
         "cashier_slots",
+        "pos_waiter",
+        "pos_bartender",
+        "pos_manager",
       ],
       cage_slots_comment_type: [
         "cashier_note",
@@ -7010,7 +7338,15 @@ export const Constants = {
         "CLS",
         "LT",
       ],
-      expense_category: ["food", "alcohol", "taxi", "hotel", "flight", "other"],
+      expense_category: [
+        "food",
+        "alcohol",
+        "taxi",
+        "hotel",
+        "flight",
+        "other",
+        "pos_comp",
+      ],
       log_category: [
         "transaction",
         "edit",
@@ -7046,6 +7382,8 @@ export const Constants = {
       player_category: ["diamond", "platinum", "gold", "normal"],
       player_status: ["active", "blacklist"],
       player_type: ["slots", "table", "mix"],
+      pos_order_status: ["pending", "preparing", "ready", "served", "void"],
+      pos_payment_mode: ["cash", "card", "comp_player", "comp_house"],
       shift_type: ["M", "N", "A", "S", "E", "L"],
       staff_department: [
         "security",
