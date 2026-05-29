@@ -98,6 +98,7 @@ export const HandoverShiftDialog = ({
   casinoId,
 }: Props) => {
   const handoverMut = useHandoverShift();
+  const saveCountMut = useSavePosStockCount();
   const { data: preview, isLoading } = usePosZReportPreview(shift?.id ?? null, open);
   const { data: candidates = [], isLoading: candLoading } = useWaiterCandidates(
     casinoId,
@@ -107,6 +108,7 @@ export const HandoverShiftDialog = ({
   const [closingCash, setClosingCash] = useState("0");
   const [newWaiterId, setNewWaiterId] = useState<string>("");
   const [newShiftType, setNewShiftType] = useState<PosShiftType>(suggestShiftType());
+  const [counts, setCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
     if (open && preview) {
