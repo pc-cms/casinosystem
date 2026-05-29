@@ -76,7 +76,8 @@ const SlotsConsolidatedReport = ({
   casinoName, businessDate, shiftType,
   cardsOpener, cardsCloser, systemShiftResult,
   openerByCurrency, closerByCurrency, openerCashTotalTzs, closerCashTotalTzs,
-  openerBankTzs = 0, openerBankUsd = 0, closerBankTzs = 0, closerBankUsd = 0,
+  openerBankTzs = 0, openerBankUsd = 0, openerBankTotalTzs = 0,
+  closerBankTzs = 0, closerBankUsd = 0, closerBankTotalTzs = 0,
   openerCashlessByProvider, closerCashlessByProvider, openerCashlessTotalTzs, closerCashlessTotalTzs,
   cashFlowFill, cashFlowCredit, cashDeskCardsFill, cashDeskCardsCredit,
   missCards, casinoExpenses, tipsCollection, aceBalance,
@@ -88,8 +89,8 @@ const SlotsConsolidatedReport = ({
   const providerWithdrawTotal = Object.values(cashlessWithdrawByProvider).reduce((s, v) => s + Number(v || 0), 0);
   const depositTotal = providerDepositTotal || Number(cashlessDepositTotalTzs || 0);
   const withdrawTotal = providerWithdrawTotal || Number(cashlessWithdrawTotalTzs || 0);
-  const openerTotal = openerCashTotalTzs + openerCashlessTotalTzs + openerBankTzs + openerBankUsd;
-  const closerTotal = closerCashTotalTzs + closerCashlessTotalTzs + closerBankTzs + closerBankUsd;
+  const openerTotal = openerCashTotalTzs + openerCashlessTotalTzs + openerBankTotalTzs;
+  const closerTotal = closerCashTotalTzs + closerCashlessTotalTzs + closerBankTotalTzs;
 
   return (
     <div className="bg-white text-black p-4" style={{ fontFamily: "Arial, sans-serif", fontSize: "11px", width: "194mm", minHeight: "281mm", boxSizing: "border-box" }}>
