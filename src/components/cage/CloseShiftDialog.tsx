@@ -6,6 +6,7 @@ import ShiftClosingReport from "@/components/cage/ShiftClosingReport";
 import ChipMovementReport from "@/components/cage/ChipMovementReport";
 import PrintPortal from "@/components/cage/PrintPortal";
 import { CHIP_DENOMS, formatCurrency, formatChipLabel, formatNumberSpaces, formatCashDenomLabel, CURRENCIES, CASH_DENOMS, CURRENCY_SYMBOLS } from "@/lib/currency";
+import ChipToken from "@/components/ChipToken";
 import { cashSum } from "@/components/cage/CashDenomInput";
 import CashCountGrid from "@/components/cage/CashCountGrid";
 import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
@@ -306,7 +307,7 @@ const CloseShiftDialog = ({
                     const val = qty * d;
                     return (
                       <div key={d} className="flex items-center justify-between border-b border-border/40 py-1.5">
-                        <span className="cms-chip text-[10px] bg-muted text-foreground w-14 justify-center shrink-0">{formatChipLabel(d)}</span>
+                        <ChipToken denom={d} className="shrink-0" />
                         <div className="text-right">
                           <div className="text-card-foreground font-semibold">× {qty}</div>
                           <div className="text-[10px] text-muted-foreground">
@@ -699,7 +700,7 @@ const CloseShiftDialog = ({
                 const colorCls = mq > 0 ? "cms-amount-positive" : mq < 0 ? "cms-amount-negative" : "text-foreground";
                 return (
                   <tr key={d} className="border-b border-border/30">
-                    <td className="px-2 py-1.5 text-foreground font-semibold">{formatChipLabel(d)}</td>
+                    <td className="px-2 py-1.5 text-foreground font-semibold"><ChipToken denom={d} /></td>
                     <td className="px-2 py-1.5 text-right text-foreground">{op || "·"}</td>
                     <td className="px-2 py-1.5 text-right">
                       <input

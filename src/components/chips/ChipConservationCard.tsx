@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { useChipConservation } from "@/hooks/use-chip-conservation";
 import { useChipConservationMode } from "@/hooks/use-chip-conservation-mode";
 import { formatNumberSpaces, formatChipLabel } from "@/lib/currency";
+import ChipToken from "@/components/ChipToken";
 import { CheckCircle2, AlertTriangle, Coins, Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -79,7 +80,7 @@ export const ChipConservationCard = ({ compact = false }: { compact?: boolean })
               <tbody>
                 {rows.map((r) => (
                   <tr key={r.denomination} className="border-b border-border/40">
-                    <td className="py-1">{formatChipLabel(r.denomination)}</td>
+                    <td className="py-1"><ChipToken denom={r.denomination} /></td>
                     <td className="text-right py-1">{formatNumberSpaces(r.initial_quantity)}</td>
                     <td className="text-right py-1">{formatNumberSpaces(r.in_locations)}</td>
                     <td className={cn("text-right py-1", r.live_floor > 0 && "text-amber-500", r.live_floor < 0 && "text-cms-amount-negative")}>

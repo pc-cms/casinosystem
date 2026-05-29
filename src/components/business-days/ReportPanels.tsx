@@ -8,6 +8,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell, TableFooter } from "@/components/ui/table";
 import { formatNumberSpaces, formatChipLabel, CASH_DENOMS, CHIP_DENOMS } from "@/lib/currency";
+import ChipToken from "@/components/ChipToken";
 import { CATEGORY_LABELS } from "@/hooks/use-finance";
 import BreaklistGrid from "@/components/pit/BreaklistGrid";
 
@@ -269,7 +270,7 @@ export const ChipCountPanel = ({ rows, casinoId }: PanelProps) => {
         <TableHeader>
           <TableRow>
             <TableHead className="text-xs">Location</TableHead>
-            {denoms.map(d => <TableHead key={d} className="text-xs text-right font-mono">{formatChipLabel(d)}</TableHead>)}
+            {denoms.map(d => <TableHead key={d} className="text-xs text-right font-mono"><div className="flex justify-end"><ChipToken denom={d} /></div></TableHead>)}
             <TableHead className="text-xs text-right font-semibold">Value</TableHead>
           </TableRow>
         </TableHeader>
@@ -462,7 +463,7 @@ export const CashPanel = ({ rows, businessDate, casinoId }: PanelProps) => {
                   if (!q) return null;
                   return (
                     <TableRow key={d}>
-                      <TableCell className="text-xs py-1 font-mono">{ccy === "TZS" ? formatChipLabel(d) : d}</TableCell>
+                      <TableCell className="text-xs py-1 font-mono">{ccy === "TZS" ? <ChipToken denom={d} /> : d}</TableCell>
                       <TableCell className="text-xs py-1 text-right font-mono">{q}</TableCell>
                       <TableCell className="text-xs py-1 text-right font-mono">{formatNumberSpaces(d * q)}</TableCell>
                     </TableRow>
@@ -494,7 +495,7 @@ export const CashPanel = ({ rows, businessDate, casinoId }: PanelProps) => {
             <TableBody>
               {[...missChips].sort((a: any, b: any) => num(b.denomination) - num(a.denomination)).map((m: any, i) => (
                 <TableRow key={i}>
-                  <TableCell className="text-xs py-1 font-mono">{formatChipLabel(num(m.denomination))}</TableCell>
+                  <TableCell className="text-xs py-1 font-mono"><ChipToken denom={num(m.denomination)} /></TableCell>
                   <TableCell className="text-xs py-1 text-right font-mono">{num(m.quantity)}</TableCell>
                   <TableCell className="text-xs py-1 text-right font-mono">{formatNumberSpaces(num(m.total_value_tzs))}</TableCell>
                 </TableRow>

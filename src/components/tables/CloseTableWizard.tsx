@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Check, Lock, ChevronLeft, ChevronRight, ShieldAlert, X } from "lucide-react";
 import { formatChipLabel, formatCurrency } from "@/lib/currency";
+import ChipToken from "@/components/ChipToken";
 import { useChipColors, resolveChipColor } from "@/hooks/use-chip-colors";
 import { useChipBaseline, useSetSingleTableResult, useReopenSingleTable, useCloseAllTables, baselineToMap } from "@/hooks/use-table-lifecycle";
 import { useChipSnapshots } from "@/hooks/use-chips";
@@ -298,11 +299,7 @@ export const CloseTableWizard = ({ open, onClose, tables, date, readOnly = false
                 return (
                   <tr key={d} className="border-b border-border/50 last:border-0">
                     <td className="py-2 px-1 w-px whitespace-nowrap">
-                      {(() => { const c = resolveChipColor(d, chipColorOverrides); return (
-                        <span className="cms-chip text-sm h-8 min-w-[52px] px-3" style={{ backgroundColor: c.bg, color: c.text }}>
-                          {formatChipLabel(d)}
-                        </span>
-                      ); })()}
+                      <ChipToken denom={d} size="lg" />
                     </td>
                     <td className="py-2 px-1 text-center font-mono text-xl text-muted-foreground w-px whitespace-nowrap tabular-nums">
                       {expected}
