@@ -106,8 +106,27 @@ const SlotsTransfersForm = ({ shiftId }: Props) => {
 
         <div>
           <label className="text-xs font-bold text-foreground uppercase tracking-wider mb-1.5 block">2. Amount (TZS)</label>
-          <NumberInput value={amount} onChange={setAmount} className="text-xl h-12" placeholder="0"
-            onKeyDown={e => e.key === "Enter" && handleSubmit()} />
+          <div className="flex gap-2">
+            <div className="flex rounded-md border border-input overflow-hidden">
+              <button type="button" onClick={() => setSign(1)}
+                className={`px-3 h-12 flex items-center justify-center transition-colors ${sign === 1 ? "bg-emerald-500/20 text-emerald-400" : "text-muted-foreground hover:bg-muted"}`}
+                title="Positive (normal)">
+                <Plus className="w-4 h-4" />
+              </button>
+              <button type="button" onClick={() => setSign(-1)}
+                className={`px-3 h-12 flex items-center justify-center transition-colors border-l border-input ${sign === -1 ? "bg-red-500/20 text-red-400" : "text-muted-foreground hover:bg-muted"}`}
+                title="Negative (reverse / correction)">
+                <Minus className="w-4 h-4" />
+              </button>
+            </div>
+            <NumberInput value={amount} onChange={setAmount} className="text-xl h-12 flex-1" placeholder="0"
+              onKeyDown={e => e.key === "Enter" && handleSubmit()} />
+          </div>
+          {sign === -1 && (
+            <p className="text-[11px] text-red-400 mt-1.5 font-semibold">
+              Reverse transfer — will be recorded as a negative amount. Manager override required.
+            </p>
+          )}
         </div>
 
         <div>
@@ -116,10 +135,10 @@ const SlotsTransfersForm = ({ shiftId }: Props) => {
             placeholder="Reason / context…" className="text-sm resize-none" />
         </div>
 
-        <Button onClick={handleSubmit} disabled={finalAmount <= 0 || create.isPending}
+        <Button onClick={handleSubmit} disabled={absAmount <= 0 || create.isPending}
           className={`w-full gap-1.5 h-12 text-base font-bold ${cfg.tone.activeBg} ${cfg.tone.text} ${cfg.tone.activeBorder} border hover:brightness-110`}>
           <ArrowLeftRight className="w-4 h-4" />
-          {create.isPending ? "Recording…" : cfg.label} {finalAmount > 0 && `· ${formatCurrency(finalAmount)}`}
+          {create.isPending ? "Recording…" : cfg.label} {absAmount > 0 && `· ${sign === -1 ? "−" : ""}${formatCurrency(absAmount)}`}
         </Button>
 
         {cfg.needsOverride && <p className="text-xs text-warning text-center font-semibold">Manager Override required for {cfg.label}</p>}
