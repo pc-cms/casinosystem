@@ -35,7 +35,9 @@ import {
   type PosShift,
   type PosShiftType,
 } from "@/hooks/use-pos-shift";
+import { useSavePosStockCount } from "@/hooks/use-pos-stock-counts";
 import ZReportView from "./ZReportView";
+import StockCountPanel from "./StockCountPanel";
 
 interface Props {
   open: boolean;
@@ -96,6 +98,7 @@ export const HandoverShiftDialog = ({
   casinoId,
 }: Props) => {
   const handoverMut = useHandoverShift();
+  const saveCountMut = useSavePosStockCount();
   const { data: preview, isLoading } = usePosZReportPreview(shift?.id ?? null, open);
   const { data: candidates = [], isLoading: candLoading } = useWaiterCandidates(
     casinoId,
@@ -105,6 +108,7 @@ export const HandoverShiftDialog = ({
   const [closingCash, setClosingCash] = useState("0");
   const [newWaiterId, setNewWaiterId] = useState<string>("");
   const [newShiftType, setNewShiftType] = useState<PosShiftType>(suggestShiftType());
+  const [counts, setCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
     if (open && preview) {
@@ -116,6 +120,7 @@ export const HandoverShiftDialog = ({
     if (open) {
       setNewShiftType(suggestShiftType());
       setNewWaiterId("");
+      setCounts({});
     }
   }, [open]);
 
@@ -131,12 +136,15 @@ export const HandoverShiftDialog = ({
     [preview, closingCash],
   );
 
+  const countedItems = Object.keys(counts).length;
   const canSubmit =
     openTabsCount === 0 &&
     !!shift &&
     !!preview &&
     !!newWaiterId &&
-    !handoverMut.isPending;
+    countedItems > 0 &&
+    !handoverMut.isPending &&
+    !saveCountMut.isPending;
 
   const handle = async () => {
     if (!shift) return;
@@ -148,7 +156,18 @@ export const HandoverShiftDialog = ({
       toast({ title: "Select the incoming bartender", variant: "destructive" });
       return;
     }
+    if (countedItems === 0) {
+      toast({ title: "Stock count required", description: "Enter at least one counted item.", variant: "destructive" });
+      return;
+    }
     try {
+      // 1. Save stock count first — if it fails we never hand over.
+      await saveCountMut.mutateAsync({
+        shift_id: shift.id,
+        count_type: "handover",
+        items: Object.entries(counts).map(([item_id, counted_qty]) => ({ item_id, counted_qty })),
+      });
+      // 2. Hand over the shift.
       await handoverMut.mutateAsync({
         closing_shift_id: shift.id,
         new_waiter_user_id: newWaiterId,
@@ -235,12 +254,28 @@ export const HandoverShiftDialog = ({
         {isLoading && <div className="text-sm text-muted-foreground">Computing report…</div>}
         {previewWithCash && <ZReportView z={previewWithCash} />}
 
+        <div className="space-y-2">
+          <div className="flex items-baseline justify-between">
+            <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground font-semibold">
+              Stock count · handover
+            </p>
+            <span className="text-[10px] text-muted-foreground">
+              Enter actual shelf qty per item. Expected qty is hidden — variance goes to manager report.
+            </span>
+          </div>
+          <StockCountPanel value={counts} onChange={setCounts} />
+        </div>
+
         <ResponsiveDialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
           <Button onClick={handle} disabled={!canSubmit}>
-            {handoverMut.isPending ? "Handing over…" : "Confirm handover"}
+            {saveCountMut.isPending
+              ? "Saving count…"
+              : handoverMut.isPending
+                ? "Handing over…"
+                : "Confirm handover"}
           </Button>
         </ResponsiveDialogFooter>
       </div>

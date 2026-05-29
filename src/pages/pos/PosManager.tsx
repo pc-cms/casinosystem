@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { UtensilsCrossed, Receipt, Boxes, BarChart3, ReceiptText, ShoppingCart, Tag } from "lucide-react";
+import { UtensilsCrossed, Receipt, Boxes, BarChart3, ReceiptText, ShoppingCart, Tag, ClipboardCheck } from "lucide-react";
 
 const cards = [
   {
@@ -28,6 +28,13 @@ const cards = [
     title: "Pricing review",
     desc: "Suggested prices from moving-average cost",
     icon: Tag,
+    enabled: true,
+  },
+  {
+    to: "/pos/manager/stock-counts",
+    title: "Stock variance",
+    desc: "Bartender shelf counts vs system stock",
+    icon: ClipboardCheck,
     enabled: true,
   },
   {
