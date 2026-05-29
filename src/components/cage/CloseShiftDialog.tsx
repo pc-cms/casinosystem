@@ -307,7 +307,7 @@ const CloseShiftDialog = ({
                     const val = qty * d;
                     return (
                       <div key={d} className="flex items-center justify-between border-b border-border/40 py-1.5">
-                        <span className="cms-chip text-[10px] bg-muted text-foreground w-14 justify-center shrink-0">{formatChipLabel(d)}</span>
+                        <ChipToken denom={d} className="shrink-0" />
                         <div className="text-right">
                           <div className="text-card-foreground font-semibold">× {qty}</div>
                           <div className="text-[10px] text-muted-foreground">
