@@ -25,6 +25,9 @@ export const ALL_ROLES = [
   "finance_manager",
   "surveillance",
   "hr",
+  "pos_manager",
+  "pos_bartender",
+  "pos_waiter",
 ] as const;
 
 export const NON_SUPER_ROLES = ALL_ROLES.filter(r => r !== "super_admin") as readonly string[];
@@ -40,6 +43,9 @@ export const ROLE_LABELS: Record<string, string> = {
   finance_manager: "Finance",
   surveillance: "Surveillance",
   hr: "HR",
+  pos_manager: "Bar Manager",
+  pos_bartender: "Bartender",
+  pos_waiter: "Waiter",
 };
 
 export type Profile = {
