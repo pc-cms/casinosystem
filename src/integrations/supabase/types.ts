@@ -6711,6 +6711,9 @@ export type Database = {
         | "hr"
         | "floor_manager"
         | "cashier_slots"
+        | "pos_waiter"
+        | "pos_bartender"
+        | "pos_manager"
       cage_slots_comment_type:
         | "cashier_note"
         | "manager_comment"
@@ -6758,6 +6761,7 @@ export type Database = {
         | "hotel"
         | "flight"
         | "other"
+        | "pos_comp"
       log_category:
         | "transaction"
         | "edit"
@@ -6791,6 +6795,8 @@ export type Database = {
       player_category: "diamond" | "platinum" | "gold" | "normal"
       player_status: "active" | "blacklist"
       player_type: "slots" | "table" | "mix"
+      pos_order_status: "pending" | "preparing" | "ready" | "served" | "void"
+      pos_payment_mode: "cash" | "card" | "comp_player" | "comp_house"
       shift_type: "M" | "N" | "A" | "S" | "E" | "L"
       staff_department:
         | "security"
@@ -6971,6 +6977,9 @@ export const Constants = {
         "hr",
         "floor_manager",
         "cashier_slots",
+        "pos_waiter",
+        "pos_bartender",
+        "pos_manager",
       ],
       cage_slots_comment_type: [
         "cashier_note",
@@ -7010,7 +7019,15 @@ export const Constants = {
         "CLS",
         "LT",
       ],
-      expense_category: ["food", "alcohol", "taxi", "hotel", "flight", "other"],
+      expense_category: [
+        "food",
+        "alcohol",
+        "taxi",
+        "hotel",
+        "flight",
+        "other",
+        "pos_comp",
+      ],
       log_category: [
         "transaction",
         "edit",
@@ -7046,6 +7063,8 @@ export const Constants = {
       player_category: ["diamond", "platinum", "gold", "normal"],
       player_status: ["active", "blacklist"],
       player_type: ["slots", "table", "mix"],
+      pos_order_status: ["pending", "preparing", "ready", "served", "void"],
+      pos_payment_mode: ["cash", "card", "comp_player", "comp_house"],
       shift_type: ["M", "N", "A", "S", "E", "L"],
       staff_department: [
         "security",
