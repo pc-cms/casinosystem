@@ -12,8 +12,10 @@ import ActiveTabPanel from "@/components/pos/waiter/ActiveTabPanel";
 import NewTabDialog from "@/components/pos/waiter/NewTabDialog";
 import CloseShiftDialog from "@/components/pos/waiter/CloseShiftDialog";
 import ZReportView from "@/components/pos/waiter/ZReportView";
+import ClosedTabsDialog from "@/components/pos/waiter/ClosedTabsDialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
+import { History } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 export default function PosWaiter() {
@@ -27,6 +29,7 @@ export default function PosWaiter() {
   const [activeTabId, setActiveTabId] = useState<string | null>(null);
   const [newTabOpen, setNewTabOpen] = useState(false);
   const [closeShiftOpen, setCloseShiftOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [lastZ, setLastZ] = useState<PosZReport | null>(null);
   const [mobileView, setMobileView] = useState<"tabs" | "menu" | "active">("tabs");
 
@@ -81,6 +84,9 @@ export default function PosWaiter() {
         <span className="text-muted-foreground">
           Opening cash: <span className="font-mono tabular-nums">{formatNumberSpaces(shift.opening_cash)}</span>
         </span>
+        <Button size="sm" variant="outline" onClick={() => setHistoryOpen(true)} className="gap-1">
+          <History className="h-4 w-4" /> History
+        </Button>
         <Button size="sm" variant="outline" onClick={() => setCloseShiftOpen(true)}>
           Close shift
         </Button>
@@ -98,6 +104,15 @@ export default function PosWaiter() {
         setLastZ(z);
         setActiveTabId(null);
       }}
+    />
+  );
+
+  const historyDialog = (
+    <ClosedTabsDialog
+      open={historyOpen}
+      onOpenChange={setHistoryOpen}
+      casinoId={activeCasinoId}
+      shiftId={shift.id}
     />
   );
 
@@ -136,6 +151,7 @@ export default function PosWaiter() {
           onCreated={handleNewCreated}
         />
         {closeShiftDialog}
+        {historyDialog}
       </div>
     );
   }
@@ -169,6 +185,7 @@ export default function PosWaiter() {
         onCreated={handleNewCreated}
       />
       {closeShiftDialog}
+        {historyDialog}
     </div>
   );
 }
