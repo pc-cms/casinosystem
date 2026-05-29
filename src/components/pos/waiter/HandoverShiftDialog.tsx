@@ -49,7 +49,6 @@ interface Props {
 
 const SEGMENTS: { value: PosShiftType; label: string }[] = [
   { value: "day", label: "Day" },
-  { value: "evening", label: "Evening" },
   { value: "night", label: "Night" },
 ];
 
