@@ -21,6 +21,7 @@ import { formatCurrency, formatNumberSpaces } from "@/lib/currency";
 import { cn } from "@/lib/utils";
 import { useCreatePlayerChipAdjustment } from "@/hooks/use-player-chip-adjustments";
 import { usePlayerDropSplit } from "@/hooks/use-drop-split";
+import { usePosPlayerOutstanding } from "@/hooks/use-pos-player-outstanding";
 
 interface Props {
   playerId?: string | null;
