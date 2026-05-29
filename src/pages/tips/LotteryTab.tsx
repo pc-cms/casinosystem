@@ -38,10 +38,13 @@ const addDays = (iso: string, n: number): string => {
 };
 
 const ticketsForResult = (result: number): number => {
-  if (result <= 0) return 0;
-  const full = Math.floor(result / TICKET_UNIT);
-  const remainder = result - full * TICKET_UNIT;
-  return full + (remainder >= ROUNDUP_THRESHOLD ? 1 : 0);
+  const abs = Math.abs(result);
+  if (abs === 0) return 0;
+  const full = Math.floor(abs / TICKET_UNIT);
+  const remainder = abs - full * TICKET_UNIT;
+  const base = full + (remainder >= ROUNDUP_THRESHOLD ? 1 : 0);
+  // Losers get double tickets (compensation rule): −500 000 = 2 tickets.
+  return result < 0 ? base * 2 : base;
 };
 
 const playerName = (p: any) => {
@@ -84,7 +87,7 @@ export default function LotteryTab({ belowHeader }: { belowHeader?: ReactNode })
       <PageHeader
         icon={Ticket}
         title="Lottery"
-        subtitle="Weekly player draw · 1 ticket per 500 000 result (round up from 270 000)"
+        subtitle="Weekly player draw · 1 ticket per 500 000 result (round up from 270 000) · losers get 2× tickets"
         centerSlot={
           <div className="flex items-center gap-6 text-center">
             <div>
@@ -136,7 +139,7 @@ export default function LotteryTab({ belowHeader }: { belowHeader?: ReactNode })
                   <tr key={r.id} className="border-t hover:bg-muted/30">
                     <td className="px-3 py-2 text-muted-foreground font-mono">{i + 1}</td>
                     <td className="px-3 py-2 font-medium">{r.name}</td>
-                    <td className="px-3 py-2 text-right font-mono cms-amount-positive">{formatNumberSpaces(r.result)}</td>
+                    <td className={`px-3 py-2 text-right font-mono ${r.result < 0 ? "cms-amount-negative" : "cms-amount-positive"}`}>{formatNumberSpaces(r.result)}</td>
                     <td className="px-3 py-2 text-right font-mono font-bold">{r.tickets}</td>
                   </tr>
                 ))}
