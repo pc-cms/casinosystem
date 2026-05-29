@@ -158,7 +158,7 @@ export const usePlayerEconomyRange = (range: { from: string; to: string }) => {
           .from("transactions")
           .select("player_id, type, amount, created_at")
           .eq("casino_id", casinoId)
-          .in("type", ["buy", "cashout"])
+          .in("type", ["buy", "cashout", "in", "out"])
           .is("cancelled_at", null)
           .gte("created_at", fromIso)
           .lte("created_at", toIso)
@@ -193,8 +193,8 @@ export const usePlayerEconomyRange = (range: { from: string; to: string }) => {
         if (!t.player_id) continue;
         const cur = get(t.player_id);
         const amt = Number(t.amount) || 0;
-        if (t.type === "buy") cur.drop += amt;
-        else if (t.type === "cashout") cur.cashout += amt;
+        if (t.type === "buy" || t.type === "in") cur.drop += amt;
+        else if (t.type === "cashout" || t.type === "out") cur.cashout += amt;
       }
       for (const e of expRes.data || []) {
         if (!e.player_id) continue;
