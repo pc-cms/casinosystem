@@ -1,0 +1,141 @@
+/**
+ * POS Orders hooks — orders of a tab + add/void.
+ * Adding an order also inserts a single pos_order_items row; DB triggers
+ * compute order total and tab total.
+ */
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+
+export type PosOrderStatus = "pending" | "preparing" | "ready" | "served" | "void";
+
+export type PosOrder = {
+  id: string;
+  casino_id: string;
+  shift_id: string | null;
+  tab_id: string;
+  waiter_user_id: string;
+  status: PosOrderStatus;
+  total_tzs: number;
+  created_at: string;
+  ready_at: string | null;
+  served_at: string | null;
+  voided_at: string | null;
+  voided_reason: string | null;
+  business_date: string | null;
+  source: string;
+};
+
+export type PosOrderItem = {
+  id: string;
+  order_id: string;
+  item_id: string;
+  item_name: string;
+  qty: number;
+  unit_price_tzs: number;
+  line_total_tzs: number;
+};
+
+export type PosOrderWithItems = PosOrder & { items: PosOrderItem[] };
+
+const kOrders = (tabId: string | null) => ["pos-orders", tabId] as const;
+
+export function usePosTabOrders(tabId: string | null) {
+  const qc = useQueryClient();
+  const q = useQuery({
+    queryKey: kOrders(tabId),
+    enabled: !!tabId,
+    queryFn: async (): Promise<PosOrderWithItems[]> => {
+      const { data, error } = await supabase
+        .from("pos_orders")
+        .select("*, items:pos_order_items(*)")
+        .eq("tab_id", tabId!)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as unknown as PosOrderWithItems[];
+    },
+  });
+
+  useEffect(() => {
+    if (!tabId) return;
+    const channel = supabase
+      .channel(`pos-orders-${tabId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "pos_orders", filter: `tab_id=eq.${tabId}` },
+        () => qc.invalidateQueries({ queryKey: kOrders(tabId) }),
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [tabId, qc]);
+
+  return q;
+}
+
+export function useAddPosOrder() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      casino_id: string;
+      shift_id: string;
+      tab_id: string;
+      waiter_user_id: string;
+      item_id: string;
+      item_name: string;
+      unit_price_tzs: number;
+      qty: number;
+    }) => {
+      // Insert order shell — total_tzs computed by trigger after order_items insert
+      const { data: order, error: oErr } = await supabase
+        .from("pos_orders")
+        .insert({
+          casino_id: input.casino_id,
+          shift_id: input.shift_id,
+          tab_id: input.tab_id,
+          waiter_user_id: input.waiter_user_id,
+          status: "pending",
+        })
+        .select("id")
+        .single();
+      if (oErr) throw oErr;
+
+      const lineTotal = input.unit_price_tzs * input.qty;
+      const { error: iErr } = await supabase.from("pos_order_items").insert({
+        order_id: order.id,
+        item_id: input.item_id,
+        item_name: input.item_name,
+        qty: input.qty,
+        unit_price_tzs: input.unit_price_tzs,
+        line_total_tzs: lineTotal,
+      });
+      if (iErr) throw iErr;
+      return order.id as string;
+    },
+    onSuccess: (_d, v) => {
+      qc.invalidateQueries({ queryKey: kOrders(v.tab_id) });
+      qc.invalidateQueries({ queryKey: ["pos-tabs"] });
+      qc.invalidateQueries({ queryKey: ["pos-menu", "items"] });
+    },
+  });
+}
+
+export function useVoidPosOrder() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { order_id: string; reason?: string }) => {
+      const { error } = await supabase
+        .from("pos_orders")
+        .update({
+          status: "void",
+          voided_at: new Date().toISOString(),
+          voided_reason: input.reason ?? null,
+        })
+        .eq("id", input.order_id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["pos-orders"] });
+      qc.invalidateQueries({ queryKey: ["pos-tabs"] });
+    },
+  });
+}

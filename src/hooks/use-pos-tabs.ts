@@ -1,0 +1,132 @@
+/**
+ * POS Tabs hooks — open tabs of the shift + close/void.
+ */
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+
+export type PosTab = {
+  id: string;
+  casino_id: string;
+  shift_id: string;
+  opened_by_user_id: string;
+  opened_at: string;
+  closed_at: string | null;
+  closed_by_user_id: string | null;
+  player_id: string | null;
+  player_name: string | null;
+  walkin_label: string | null;
+  status: "open" | "closed" | "voided";
+  total_tzs: number;
+  payment_split: PaymentSplit | null;
+  expense_id: string | null;
+  void_reason: string | null;
+  business_date: string | null;
+};
+
+export type PaymentSplit = {
+  cash?: number;
+  card?: number;
+  comp_player?: number;
+  comp_house?: number;
+};
+
+const kOpen = (casinoId: string | null, shiftId: string | null) =>
+  ["pos-tabs", "open", casinoId, shiftId] as const;
+
+export function usePosOpenTabs(casinoId: string | null, shiftId: string | null) {
+  const qc = useQueryClient();
+  const q = useQuery({
+    queryKey: kOpen(casinoId, shiftId),
+    enabled: !!casinoId && !!shiftId,
+    queryFn: async (): Promise<PosTab[]> => {
+      const { data, error } = await supabase
+        .from("pos_tabs")
+        .select("*")
+        .eq("casino_id", casinoId!)
+        .eq("shift_id", shiftId!)
+        .eq("status", "open")
+        .order("opened_at", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as unknown as PosTab[];
+    },
+  });
+
+  useEffect(() => {
+    if (!casinoId || !shiftId) return;
+    const channel = supabase
+      .channel(`pos-tabs-${shiftId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "pos_tabs", filter: `shift_id=eq.${shiftId}` },
+        () => qc.invalidateQueries({ queryKey: kOpen(casinoId, shiftId) }),
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [casinoId, shiftId, qc]);
+
+  return q;
+}
+
+export function useOpenPosTab() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      casino_id: string;
+      shift_id: string;
+      opened_by_user_id: string;
+      player_id?: string | null;
+      player_name?: string | null;
+      walkin_label?: string | null;
+    }) => {
+      const { data, error } = await supabase
+        .from("pos_tabs")
+        .insert({
+          casino_id: input.casino_id,
+          shift_id: input.shift_id,
+          opened_by_user_id: input.opened_by_user_id,
+          player_id: input.player_id ?? null,
+          player_name: input.player_name ?? null,
+          walkin_label: input.walkin_label ?? null,
+        })
+        .select("*")
+        .single();
+      if (error) throw error;
+      return data as unknown as PosTab;
+    },
+    onSuccess: (_d, v) => {
+      qc.invalidateQueries({ queryKey: kOpen(v.casino_id, v.shift_id) });
+    },
+  });
+}
+
+export function useClosePosTab() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { tab_id: string; total_tzs: number; payment_split: PaymentSplit }) => {
+      const { error } = await supabase
+        .from("pos_tabs")
+        .update({
+          status: "closed",
+          payment_split: input.payment_split as any,
+        })
+        .eq("id", input.tab_id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["pos-tabs"] }),
+  });
+}
+
+export function useVoidPosTab() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { tab_id: string; reason: string }) => {
+      const { error } = await supabase
+        .from("pos_tabs")
+        .update({ status: "voided", void_reason: input.reason })
+        .eq("id", input.tab_id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["pos-tabs"] }),
+  });
+}
