@@ -29,6 +29,7 @@ export default function PosWaiter() {
   const [activeTabId, setActiveTabId] = useState<string | null>(null);
   const [newTabOpen, setNewTabOpen] = useState(false);
   const [closeShiftOpen, setCloseShiftOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [lastZ, setLastZ] = useState<PosZReport | null>(null);
   const [mobileView, setMobileView] = useState<"tabs" | "menu" | "active">("tabs");
 
