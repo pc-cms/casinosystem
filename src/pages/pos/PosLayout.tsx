@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { LogOut, Coffee, Monitor, Settings } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
-const isPosRole = (roles: string[]) =>
+const isPosRole = (roles: readonly string[]) =>
   roles.includes("pos_waiter") ||
   roles.includes("pos_bartender") ||
   roles.includes("pos_manager") ||
