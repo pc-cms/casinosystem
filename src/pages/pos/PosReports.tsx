@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useCasino } from "@/lib/casino-context";
-import { useEffectiveBusinessDate } from "@/hooks/use-effective-business-date";
+import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
 import { usePosReport } from "@/hooks/use-pos-reports";
 import { formatNumberSpaces } from "@/lib/currency";
 import { fmtDateOnly } from "@/lib/format-date";

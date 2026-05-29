@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { UtensilsCrossed, Receipt, Boxes, BarChart3 } from "lucide-react";
+import { UtensilsCrossed, Receipt, Boxes, BarChart3, ReceiptText } from "lucide-react";
 
 const cards = [
   {
@@ -10,13 +10,6 @@ const cards = [
     enabled: true,
   },
   {
-    to: "/pos/manager",
-    title: "Shifts & Z-reports",
-    desc: "Coming in M4",
-    icon: Receipt,
-    enabled: false,
-  },
-  {
     to: "/pos/manager/inventory",
     title: "Inventory",
     desc: "Stock levels & movements",
@@ -24,10 +17,24 @@ const cards = [
     enabled: true,
   },
   {
-    to: "/pos/manager",
+    to: "/pos/reports",
     title: "Reports",
-    desc: "Coming in M7",
+    desc: "Sales by waiter, top items, payment mix",
     icon: BarChart3,
+    enabled: true,
+  },
+  {
+    to: "/pos/charges",
+    title: "Player charges",
+    desc: "Outstanding postpaid F&B tabs",
+    icon: ReceiptText,
+    enabled: true,
+  },
+  {
+    to: "/pos/manager",
+    title: "Shifts & Z-reports",
+    desc: "Per-waiter via shift close",
+    icon: Receipt,
     enabled: false,
   },
 ];
