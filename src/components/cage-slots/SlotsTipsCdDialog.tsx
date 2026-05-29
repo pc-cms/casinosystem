@@ -22,7 +22,7 @@ interface Props {
 const SlotsTipsCdDialog = ({ open, onOpenChange, shiftId, readOnly }: Props) => {
   const { data: tips = [] } = useSlotsTipsCd(open ? shiftId : undefined);
   const create = useCreateSlotsTipsCd();
-  const [amount, setAmount] = useState<number>(0);
+  const [amount, setAmount] = useState<string>("");
   const [note, setNote] = useState<string>("");
 
   const total = tips.reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
