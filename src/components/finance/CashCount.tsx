@@ -13,7 +13,7 @@ import { MobileMoneySection, type MobileMoneyState, emptyMobileMoney, getMobileT
 import { BankSection, type BankState, emptyBankState, getBankTotalTzs, BANK_FIELDS } from "./cash-count/BankSection";
 import { HistoryView } from "./cash-count/HistoryView";
 
-const COUNTABLE_WALLETS: WalletType[] = ["main_cash", "office_safe"];
+const COUNTABLE_WALLETS: WalletType[] = ["main_cash", "office_safe", "bar_cash"];
 
 export const CashCount = () => {
   const { data: wallets = [], isLoading } = useWallets();
