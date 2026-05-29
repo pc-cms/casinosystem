@@ -103,7 +103,7 @@ const PrintSlotsShiftDialog = ({ open, onClose, shiftId }: Props) => {
     queryKey: ["print-slots-shift", shiftId],
     enabled: open && !!shiftId,
     queryFn: async () => {
-      const [shiftR, invR, cardsR, ratesR, checksR, cashlessR, transfersR, expensesR] = await Promise.all([
+      const [shiftR, invR, cardsR, ratesR, checksR, cashlessR, transfersR, expensesR, tipsCdR] = await Promise.all([
         supabase.from("cage_slots_shifts").select("*").eq("id", shiftId).maybeSingle(),
         supabase.from("cage_slots_cash_inventory").select("*").eq("cage_slots_shift_id", shiftId),
         supabase.from("cage_slots_cards").select("*").eq("cage_slots_shift_id", shiftId).maybeSingle(),
@@ -112,6 +112,7 @@ const PrintSlotsShiftDialog = ({ open, onClose, shiftId }: Props) => {
         (supabase as any).from("cashless_transactions").select("direction, provider, amount").eq("cage_slots_shift_id", shiftId),
         (supabase as any).from("cage_slots_transfers").select("transfer_type, amount").eq("cage_slots_shift_id", shiftId),
         supabase.from("expenses").select("amount, approved").eq("cage_slots_shift_id", shiftId),
+        (supabase as any).from("cage_slots_tips_cd").select("amount").eq("cage_slots_shift_id", shiftId),
       ]);
       return {
         shift: shiftR.data,
@@ -122,13 +123,14 @@ const PrintSlotsShiftDialog = ({ open, onClose, shiftId }: Props) => {
         cashless: cashlessR.data || [],
         transfers: transfersR.data || [],
         expenses: expensesR.data || [],
+        tipsCd: tipsCdR.data || [],
       };
     },
   });
 
   const props = useMemo(() => {
     if (!data?.shift) return null;
-    const { shift, inventory, cards, rates, checks, cashless, transfers, expenses } = data;
+    const { shift, inventory, cards, rates, checks, cashless, transfers, expenses, tipsCd } = data as any;
 
     // Rates map
     const rateMap: Record<string, number> = { TZS: 1 };
@@ -250,7 +252,7 @@ const PrintSlotsShiftDialog = ({ open, onClose, shiftId }: Props) => {
       cashDeskCardsCredit: 0,
       missCards: -Math.abs(missCardCount),  // shown as negative like paper
       casinoExpenses,
-      tipsCollection: 0,
+      tipsCollection: (tipsCd || []).reduce((s: number, t: any) => s + Number(t.amount || 0), 0),
       // Shift Balance is stored in the closing check totals; fallback chain:
       // shifts.balance (rarely populated) → closing check totals.shift_balance → totals.balance → 0
       aceBalance: Number(

@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Coins, Send, RotateCcw, Printer, FileText, CreditCard, Save, ArrowLeftRight, History, Pencil } from "lucide-react";
+import { Coins, Send, RotateCcw, Printer, FileText, CreditCard, Save, ArrowLeftRight, History, Pencil, Gift } from "lucide-react";
+import SlotsTipsCdDialog from "./SlotsTipsCdDialog";
 import EditOpeningCardsDialog from "./EditOpeningCardsDialog";
 import SlotsTransfersForm from "./SlotsTransfersForm";
 import { useSlotsTransfers } from "@/hooks/use-cage-slots-transfers";
@@ -285,6 +286,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
   // Closing preview dialog (Live Game-style: review before submit-for-review).
   const [showClosingPreview, setShowClosingPreview] = useState(false);
   const [showEditOpeningCards, setShowEditOpeningCards] = useState(false);
+  const [showTipsCd, setShowTipsCd] = useState(false);
 
   const openClosingPreview = () => {
     if (!systemResultInput.trim()) {
@@ -495,6 +497,14 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
               disabled={saveCheck.isPending}
             >
               <FileText className="w-3.5 h-3.5" /> Check
+            </Button>
+            <Button
+              onClick={() => setShowTipsCd(true)}
+              size="sm"
+              variant="outline"
+              className="gap-1.5 h-8 border-pink-500/60 text-pink-600 hover:bg-pink-500/10 dark:text-pink-400"
+            >
+              <Gift className="w-3.5 h-3.5" /> Tips CD
             </Button>
             <Button
               onClick={openClosingPreview}
@@ -925,6 +935,12 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
           onClose={() => setShowEditOpeningCards(false)}
         />
       )}
+      <SlotsTipsCdDialog
+        open={showTipsCd}
+        onOpenChange={setShowTipsCd}
+        shiftId={shift.id}
+        readOnly={shift.status !== "open"}
+      />
     </PageShell>
   );
 };
