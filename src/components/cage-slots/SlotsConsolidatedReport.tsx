@@ -98,7 +98,7 @@ const SlotsConsolidatedReport = ({
       <table className="w-full border-collapse mb-1">
         <tbody>
           <tr>
-            <td className="border border-black px-2 py-1 font-bold text-sm" colSpan={4}>
+            <td className="border border-black px-2 py-1 font-bold text-base" colSpan={4}>
               {casinoName} ACE Slots Consolidating Cash Desk Report
             </td>
             <td className="border border-black px-2 py-1 font-semibold text-center w-24">Date</td>
