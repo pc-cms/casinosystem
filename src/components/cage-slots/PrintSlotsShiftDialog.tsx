@@ -112,7 +112,7 @@ const PrintSlotsShiftDialog = ({ open, onClose, shiftId }: Props) => {
         (supabase as any).from("cashless_transactions").select("direction, provider, amount").eq("cage_slots_shift_id", shiftId),
         (supabase as any).from("cage_slots_transfers").select("transfer_type, amount").eq("cage_slots_shift_id", shiftId),
         supabase.from("expenses").select("amount, approved").eq("cage_slots_shift_id", shiftId),
-        (supabase as any).from("cage_slots_tips_cd").select("amount").eq("cage_slots_shift_id", shiftId),
+        (supabase as any).from("cage_slots_tips_cd").select("amount, created_at").eq("cage_slots_shift_id", shiftId),
       ]);
       return {
         shift: shiftR.data,
