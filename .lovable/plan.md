@@ -1,43 +1,61 @@
-## Диагноз
+## Cage Slots — обновление формул
 
-Печать слотового отчёта (`PrintSlotsShiftDialog` → кнопка **Print**) выходит белой/пустой страницей из‑за конфликта глобальных `@media print` правил в `src/index.css`.
+### Новые формулы
 
-Что происходит:
+```
+ΔCash            = closingCash − openingCash            (оставляем для отображения)
+Cash Desk Result = closingCash + Expenses − Ace Fill + Collection + LG_Out − LG_In
+Cards Miss       = (openingCards − closingCards) × cardValue   (без изменений)
+Slots Result     = systemResult
+Expected         = systemResult
+Shift Balance    = Cash Desk Result − systemResult − Cards Miss
+```
 
-1. `printSlotsReport()` создаёт скрытый `<iframe>`, копирует в него **все** стили основного приложения (`<style>` + `<link rel="stylesheet">`) и записывает `source.innerHTML` (то есть содержимое `.slots-print-area`, **без самого враппера**).
-2. Среди скопированных стилей действует глобальное правило (index.css:319):
-   ```css
-   @media print {
-     body * { visibility: hidden; }
-     .print-target, .cms-print-root, #shift-print-area, #chip-print-area,
-     .print-target *, .cms-print-root *, #shift-print-area *, #chip-print-area * {
-       visibility: visible !important;
-     }
-   }
-   ```
-3. В whitelist'е **отсутствует `.slots-print-area`**, и сам враппер не попал в body iframe → ни один селектор не матчится → всё `visibility: hidden` → **бумага белая**.
+`Cashless Balance` / `Cashless Final` — без изменений.
 
-Этим же объясняется, почему обычный Ctrl+P из диалога ещё как‑то работает (там содержимое внутри `.cms-print-root` через `PrintPortal`), а наша кнопка Print через iframe — нет.
+### Что меняется в коде
 
-## План правки
+**1. `src/lib/cage-balance.ts` → `computeSlotsShiftBalance`**
+- `cashDeskResult = closingCash + expenses − addFloat + collection + lgOut − lgIn`
+- `slotsResult = systemResult`
+- `expected = systemResult`
+- `shiftBalance = cashDeskResult − systemResult − cardsMiss`
+- Обновить JSDoc-комментарии в шапке файла.
 
-Чисто фронтенд, без миграций и без бэкенда.
+**2. DB RPC `compute_slots_shift_balance_from_row`** (миграция)
+- Привести к тем же формулам, чтобы записи в `cage_slots_shifts.cash_desk_result`, `slots_result`, `balance` совпадали с live preview.
 
-1. **`src/index.css`** — добавить `.slots-print-area, .slots-print-area *` в whitelist видимости внутри `@media print` (рядом со `.cms-print-root`, `#shift-print-area` и т.д.). Это починит и системный Ctrl+P, и iframe‑путь.
+**3. `src/components/cage-slots/SlotsShiftReportBody.tsx` — секция Balance Calculation**
+Новый порядок строк:
+```
+Closing Cash
++ Expenses
+− Ace Fill
++ Collection
++ LG Out
+− LG In
+= Cash Desk Result          (emphasize)
+System Result
+Slots Result (= System Result)
+− Cards Miss
+= Shift Balance             (emphasize)
+```
+- Убрать строки `Opening Cash`, `ΔCash`, `− (System − Opening)` из этой секции (Opening/Closing уже есть в Inventory выше).
+- Подпись `Slots Result` поменять с `(System − Opening − Ace Fill)` на `(= System Result)`.
+- Fallback-вычисления внутри компонента (когда `shift.*` пустой) переписать под новые формулы.
 
-2. **`src/components/cage-slots/PrintSlotsShiftDialog.tsx`** — в `printSlotsReport()`:
-   - обернуть содержимое iframe в `<div class="slots-print-area cms-print-root">…</div>`, чтобы whitelist гарантированно сматчился независимо от порядка стилей;
-   - в инлайновый `<style>` iframe добавить страховку `@media print { body, body * { visibility: visible !important; } }` — на случай других визибилити-правил;
-   - убедиться, что `@page slots { size: A4 portrait; margin: 8mm }` объявлен в iframe (сейчас задаём `@page` без имени — селектор `.slots-print-area { page: slots }` ссылается на несуществующее в iframe имя). Заменим на безымянный `@page { size: 210mm 297mm; margin: 8mm }` и уберём `page: slots` через override.
+**4. Печатный отчёт `PrintSlotsShiftDialog.tsx` / `SlotsConsolidatedReport.tsx`**
+- Синхронизировать ту же секцию Balance Calculation с новым порядком и подписями.
+- Bank-строки и EOD MPESA-блок, добавленные в прошлом шаге, не трогаем.
 
-3. Версия (`package.json`) **не** трогаем — правка чисто UI/CSS, без backend изменений.
+**5. Версия**
+- Bump patch в `package.json` (миграция + изменение бизнес-логики).
 
-## Проверка после фикса
+### Чего НЕ меняем
+- Ввод полей (`openingCash`, `closingCash`, `systemResult`, `addFloat`/Ace Fill, expenses, collection, LG in/out, cards) — без изменений.
+- Cashless секция и Cashless Final — без изменений.
+- Inventory (Opening/Closing Cash таблицы) и все остальные секции отчёта — без изменений.
 
-- Открыть Cage Slots · History → ряд за 28 мая → Print → в превью видно отчёт → нажать Print → в системном print‑preview должна быть видна одна A4 страница с отчётом, не белая.
-- Проверить второй путь: `/cage-slots/report/:id` → Print → тот же результат.
-- Проверить обычный Ctrl+P в открытом диалоге — тоже не должен быть белым.
-
-## Технические детали (необязательно к прочтению)
-
-Глобальный visibility‑gate — стандартный приём «печатать только нужный блок». Все остальные «печатные» зоны (`.print-target`, `.cms-print-root`, `#shift-print-area`, `#chip-print-area`) уже в whitelist'е. `.slots-print-area` добавили позже и забыли в него вписать — это и есть единственный корневой дефект; всё остальное в `SlotsConsolidatedReport` и `PrintSlotsShiftDialog` корректно (`bg-white text-black`, mm‑размеры, `@page A4 portrait`).
+### Проверка после внедрения
+- Открыть смену из истории, сверить значения в Balance Calculation вручную по новой формуле.
+- Сверить, что DB-записанные `cash_desk_result` / `slots_result` / `balance` совпадают с UI.
