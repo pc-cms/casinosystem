@@ -126,6 +126,9 @@ const SlotsConsolidatedReport = ({
             {CURRENCIES.map(c => <Row key={c} label={c} value={Number(openerByCurrency[c] || 0)} />)}
             <Row label="Other in TZS" value={Number(openerByCurrency.OTHER_TZS || 0)} />
             <Row label="Total Cash" value={openerCashTotalTzs} bold />
+            <Row label="Bank TZS" value={openerBankTzs} />
+            <Row label="Bank USD" value={openerBankUsd} />
+            <Row label="Total Bank (TZS)" value={openerBankTotalTzs} bold />
             {PROVIDERS.map(p => <Row key={p.key} label={p.label} value={Number(openerCashlessByProvider[p.key] || 0)} />)}
             <Row label="Total Cashless" value={openerCashlessTotalTzs} bold />
           </tbody>
@@ -146,6 +149,9 @@ const SlotsConsolidatedReport = ({
             {CURRENCIES.map(c => <Row key={c} label={c} value={Number(closerByCurrency[c] || 0)} />)}
             <Row label="Other in TZS" value={Number(closerByCurrency.OTHER_TZS || 0)} />
             <Row label="Total Cash" value={closerCashTotalTzs} bold />
+            <Row label="Bank TZS" value={closerBankTzs} />
+            <Row label="Bank USD" value={closerBankUsd} />
+            <Row label="Total Bank (TZS)" value={closerBankTotalTzs} bold />
             {PROVIDERS.map(p => <Row key={p.key} label={p.label} value={Number(closerCashlessByProvider[p.key] || 0)} />)}
             <Row label="Total Cashless" value={closerCashlessTotalTzs} bold />
           </tbody>
