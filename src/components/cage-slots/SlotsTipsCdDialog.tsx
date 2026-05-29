@@ -28,9 +28,10 @@ const SlotsTipsCdDialog = ({ open, onOpenChange, shiftId, readOnly }: Props) => 
   const total = tips.reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
 
   const submit = async () => {
-    if (!amount || amount <= 0) return;
-    await create.mutateAsync({ shift_id: shiftId, amount, note });
-    setAmount(0);
+    const amt = Number(amount) || 0;
+    if (amt <= 0) return;
+    await create.mutateAsync({ shift_id: shiftId, amount: amt, note });
+    setAmount("");
     setNote("");
   };
 
