@@ -81,11 +81,17 @@ export const MenuPanel = ({ casinoId, shiftId, tabId, userId }: Props) => {
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
             {filtered.map((it) => {
               const outOfStock = it.stock_qty != null && it.stock_qty <= 0;
+              const isLow =
+                !outOfStock &&
+                it.stock_qty != null &&
+                it.low_threshold != null &&
+                it.stock_qty <= it.low_threshold;
               return (
                 <ItemTile
                   key={it.id}
                   item={it}
                   outOfStock={outOfStock}
+                  isLow={isLow}
                   disabled={!tabId || outOfStock || addOrder.isPending}
                   onAdd={(qty) => handleAdd(it, qty)}
                 />
@@ -101,22 +107,29 @@ export const MenuPanel = ({ casinoId, shiftId, tabId, userId }: Props) => {
 const ItemTile = ({
   item,
   outOfStock,
+  isLow,
   disabled,
   onAdd,
 }: {
   item: PosMenuItem;
   outOfStock: boolean;
+  isLow: boolean;
   disabled: boolean;
   onAdd: (qty: number) => void;
 }) => {
-  const [expanded, setExpanded] = useState(false);
   return (
     <div
       className={cn(
-        "relative rounded-md border border-border bg-card flex flex-col overflow-hidden",
+        "relative rounded-md border bg-card flex flex-col overflow-hidden",
+        isLow ? "border-cms-amount-negative/40" : "border-border",
         disabled && "opacity-50",
       )}
     >
+      {isLow && (
+        <span className="absolute top-1 right-1 text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-cms-amount-negative/15 text-cms-amount-negative">
+          Low
+        </span>
+      )}
       <button
         type="button"
         onClick={() => !disabled && onAdd(1)}
