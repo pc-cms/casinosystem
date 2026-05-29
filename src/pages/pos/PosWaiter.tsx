@@ -11,12 +11,15 @@ import MenuPanel from "@/components/pos/waiter/MenuPanel";
 import ActiveTabPanel from "@/components/pos/waiter/ActiveTabPanel";
 import NewTabDialog from "@/components/pos/waiter/NewTabDialog";
 import CloseShiftDialog from "@/components/pos/waiter/CloseShiftDialog";
+import HandoverShiftDialog from "@/components/pos/waiter/HandoverShiftDialog";
 import ZReportView from "@/components/pos/waiter/ZReportView";
 import ClosedTabsDialog from "@/components/pos/waiter/ClosedTabsDialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { History } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { History, ArrowLeftRight } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
+
 
 export default function PosWaiter() {
   const { user } = useAuth();
