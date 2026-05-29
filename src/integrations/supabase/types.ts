@@ -5078,6 +5078,104 @@ export type Database = {
           },
         ]
       }
+      pos_stock_count_items: {
+        Row: {
+          count_id: string
+          counted_qty: number
+          created_at: string
+          expected_qty: number
+          id: string
+          item_id: string
+          unit_cost_tzs: number
+          variance_qty: number | null
+          variance_value_tzs: number
+        }
+        Insert: {
+          count_id: string
+          counted_qty: number
+          created_at?: string
+          expected_qty: number
+          id?: string
+          item_id: string
+          unit_cost_tzs?: number
+          variance_qty?: number | null
+          variance_value_tzs?: number
+        }
+        Update: {
+          count_id?: string
+          counted_qty?: number
+          created_at?: string
+          expected_qty?: number
+          id?: string
+          item_id?: string
+          unit_cost_tzs?: number
+          variance_qty?: number | null
+          variance_value_tzs?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_stock_count_items_count_id_fkey"
+            columns: ["count_id"]
+            isOneToOne: false
+            referencedRelation: "pos_stock_counts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_stock_count_items_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "pos_menu_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pos_stock_counts: {
+        Row: {
+          casino_id: string
+          count_type: string
+          counted_by: string
+          counted_by_name: string | null
+          created_at: string
+          id: string
+          items_count: number
+          notes: string | null
+          shift_id: string | null
+          total_variance_value_tzs: number
+        }
+        Insert: {
+          casino_id: string
+          count_type: string
+          counted_by: string
+          counted_by_name?: string | null
+          created_at?: string
+          id?: string
+          items_count?: number
+          notes?: string | null
+          shift_id?: string | null
+          total_variance_value_tzs?: number
+        }
+        Update: {
+          casino_id?: string
+          count_type?: string
+          counted_by?: string
+          counted_by_name?: string | null
+          created_at?: string
+          id?: string
+          items_count?: number
+          notes?: string | null
+          shift_id?: string | null
+          total_variance_value_tzs?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_stock_counts_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "pos_shifts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pos_tabs: {
         Row: {
           business_date: string | null
@@ -7158,6 +7256,15 @@ export type Database = {
           _new_waiter_user_id: string
         }
         Returns: Json
+      }
+      pos_save_stock_count: {
+        Args: {
+          _count_type: string
+          _items: Json
+          _notes?: string
+          _shift_id: string
+        }
+        Returns: string
       }
       pos_suggested_price: { Args: { _item_id: string }; Returns: number }
       pos_tabs_recompute_total: {
