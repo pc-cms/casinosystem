@@ -5408,6 +5408,136 @@ export type Database = {
           },
         ]
       }
+      promo_campaign_expenses: {
+        Row: {
+          amount_tzs: number
+          campaign_id: string
+          casino_id: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          spent_on: string
+          vendor: string | null
+        }
+        Insert: {
+          amount_tzs: number
+          campaign_id: string
+          casino_id: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          spent_on?: string
+          vendor?: string | null
+        }
+        Update: {
+          amount_tzs?: number
+          campaign_id?: string
+          casino_id?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          spent_on?: string
+          vendor?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "promo_campaign_expenses_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "promo_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      promo_campaign_players: {
+        Row: {
+          attributed_on: string
+          campaign_id: string
+          casino_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          note: string | null
+          player_id: string
+        }
+        Insert: {
+          attributed_on?: string
+          campaign_id: string
+          casino_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          note?: string | null
+          player_id: string
+        }
+        Update: {
+          attributed_on?: string
+          campaign_id?: string
+          casino_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          note?: string | null
+          player_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "promo_campaign_players_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "promo_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      promo_campaigns: {
+        Row: {
+          budget_tzs: number
+          campaign_type: Database["public"]["Enums"]["promo_campaign_type"]
+          casino_id: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          ends_on: string | null
+          id: string
+          name: string
+          starts_on: string
+          status: Database["public"]["Enums"]["promo_campaign_status"]
+          updated_at: string
+        }
+        Insert: {
+          budget_tzs?: number
+          campaign_type?: Database["public"]["Enums"]["promo_campaign_type"]
+          casino_id: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          ends_on?: string | null
+          id?: string
+          name: string
+          starts_on: string
+          status?: Database["public"]["Enums"]["promo_campaign_status"]
+          updated_at?: string
+        }
+        Update: {
+          budget_tzs?: number
+          campaign_type?: Database["public"]["Enums"]["promo_campaign_type"]
+          casino_id?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          ends_on?: string | null
+          id?: string
+          name?: string
+          starts_on?: string
+          status?: Database["public"]["Enums"]["promo_campaign_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       role_module_defaults: {
         Row: {
           can_view: boolean
@@ -7399,6 +7529,7 @@ export type Database = {
         Args: { _tab_id: string }
         Returns: undefined
       }
+      promo_campaign_kpi: { Args: { _campaign_id: string }; Returns: Json }
       promote_to_local_primary: {
         Args: { p_casino_id: string; p_force?: boolean }
         Returns: Json
@@ -7702,6 +7833,13 @@ export type Database = {
       player_type: "slots" | "table" | "mix"
       pos_order_status: "pending" | "preparing" | "ready" | "served" | "void"
       pos_payment_mode: "cash" | "card" | "comp_player" | "comp_house"
+      promo_campaign_status: "planned" | "active" | "completed" | "cancelled"
+      promo_campaign_type:
+        | "event"
+        | "bonus"
+        | "advertising"
+        | "sponsorship"
+        | "other"
       shift_type: "M" | "N" | "A" | "S" | "E" | "L"
       staff_department:
         | "security"
@@ -7973,6 +8111,14 @@ export const Constants = {
       player_type: ["slots", "table", "mix"],
       pos_order_status: ["pending", "preparing", "ready", "served", "void"],
       pos_payment_mode: ["cash", "card", "comp_player", "comp_house"],
+      promo_campaign_status: ["planned", "active", "completed", "cancelled"],
+      promo_campaign_type: [
+        "event",
+        "bonus",
+        "advertising",
+        "sponsorship",
+        "other",
+      ],
       shift_type: ["M", "N", "A", "S", "E", "L"],
       staff_department: [
         "security",
