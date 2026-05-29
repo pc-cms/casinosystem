@@ -136,6 +136,7 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
     fromDate ? businessDayHourUTC(fromDate, 13) : undefined,
     toDate ? businessDayHourUTC(toDate, 13 + 24) : undefined,
   );
+  const { data: barOwed = 0 } = usePosPlayerOutstanding(playerId);
   const nav = useNavigate();
   const { roles } = useAuth();
   const showFinancials = canSeePlayerFinancials(roles || []);
