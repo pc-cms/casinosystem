@@ -352,10 +352,14 @@ export const CashCount = () => {
           {/* ── TOTAL REAL MONEY ── */}
           <Card className="border-2 border-primary/30">
             <CardContent className="p-4">
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-xs mb-3">
+              <div className="grid grid-cols-2 md:grid-cols-6 gap-3 text-xs mb-3">
                 <div className="text-center">
                   <span className="text-muted-foreground block">Main Cash</span>
                   <span className="font-mono font-semibold text-foreground">TZS {formatNumberSpaces(mainCashTzs)}</span>
+                </div>
+                <div className="text-center">
+                  <span className="text-muted-foreground block">Bar Cash</span>
+                  <span className="font-mono font-semibold text-foreground">TZS {formatNumberSpaces(barCashTzs)}</span>
                 </div>
                 <div className="text-center">
                   <span className="text-muted-foreground block">Cage Safe</span>
