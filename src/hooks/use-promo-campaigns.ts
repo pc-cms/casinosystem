@@ -177,16 +177,23 @@ export function usePromoPlayers(campaignId: string | null) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("promo_campaign_players")
-        .select("*, players:player_id(id, first_name, last_name, nickname)")
+        .select("*")
         .eq("campaign_id", campaignId!)
         .order("attributed_on", { ascending: false });
       if (error) throw error;
-      return (data ?? []) as Array<PromoPlayer & {
-        players: { id: string; first_name: string; last_name: string; nickname: string } | null;
-      }>;
+      const rows = (data ?? []) as PromoPlayer[];
+      if (rows.length === 0) return [] as Array<PromoPlayer & { player: { id: string; first_name: string; last_name: string; nickname: string } | null }>;
+      const ids = Array.from(new Set(rows.map((r) => r.player_id)));
+      const { data: players } = await supabase
+        .from("players")
+        .select("id, first_name, last_name, nickname")
+        .in("id", ids);
+      const byId = new Map((players ?? []).map((p: any) => [p.id, p]));
+      return rows.map((r) => ({ ...r, player: byId.get(r.player_id) ?? null }));
     },
   });
 }
+
 
 export function useAttributePromoPlayer() {
   const qc = useQueryClient();
