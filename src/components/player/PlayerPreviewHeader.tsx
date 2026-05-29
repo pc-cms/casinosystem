@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import PlayerPhotoLightbox from "@/components/player/PlayerPhotoLightbox";
 import { useNavigate } from "react-router-dom";
-import { X, ExternalLink, User, ArrowDownToLine, ArrowUpFromLine, Check } from "lucide-react";
+import { X, ExternalLink, User, ArrowDownToLine, ArrowUpFromLine, Check, UtensilsCrossed } from "lucide-react";
+import { PitQuickOrderDialog } from "@/components/pos/PitQuickOrderDialog";
 import { useQuery } from "@tanstack/react-query";
 import { formatCardId } from "@/lib/card-number";
 import { supabase } from "@/integrations/supabase/client";
