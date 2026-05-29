@@ -10,7 +10,7 @@
  */
 import { lazy, Suspense } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Coins, Gift, UserCheck } from "lucide-react";
+import { Coins, Gift, UserCheck, Ticket } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 
 const WeeklyBonus = lazy(() => import("@/pages/WeeklyBonus"));
@@ -18,8 +18,9 @@ const MonthlyTips = lazy(() => import("@/pages/MonthlyTips"));
 const LiveGameTipsTab = lazy(() => import("@/pages/tips/LiveGameTipsTab"));
 const FloorTipsTab = lazy(() => import("@/pages/tips/FloorTipsTab"));
 const ClubPokerTipsTab = lazy(() => import("@/pages/tips/ClubPokerTipsTab"));
+const LotteryTab = lazy(() => import("@/pages/tips/LotteryTab"));
 
-const TAB_VALUES = ["weekly", "monthly", "live", "floor", "poker"] as const;
+const TAB_VALUES = ["weekly", "monthly", "live", "floor", "poker", "lottery"] as const;
 type TabValue = typeof TAB_VALUES[number];
 
 const Loader = () => (
