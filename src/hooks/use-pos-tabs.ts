@@ -29,6 +29,8 @@ export type PaymentSplit = {
   card?: number;
   comp_player?: number;
   comp_house?: number;
+  /** Postpaid: charged to the player's account, settled later in Cage. Requires player_id. */
+  player_charge?: number;
 };
 
 const kOpen = (casinoId: string | null, shiftId: string | null) =>

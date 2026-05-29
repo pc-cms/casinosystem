@@ -20,23 +20,26 @@ export const CloseBillDialog = ({ open, onOpenChange, tab, onClosed }: Props) =>
   const [card, setCard] = useState("0");
   const [compPlayer, setCompPlayer] = useState("0");
   const [compHouse, setCompHouse] = useState("0");
+  const [playerCharge, setPlayerCharge] = useState("0");
 
   const total = tab?.total_tzs ?? 0;
   const hasPlayer = !!tab?.player_id;
 
   useEffect(() => {
     if (open && tab) {
-      // Default: full cash
       setCash(String(total));
       setCard("0");
       setCompPlayer("0");
       setCompHouse("0");
+      setPlayerCharge("0");
     }
   }, [open, tab, total]);
 
   const sum = useMemo(() => {
-    return (Number(cash) || 0) + (Number(card) || 0) + (Number(compPlayer) || 0) + (Number(compHouse) || 0);
-  }, [cash, card, compPlayer, compHouse]);
+    return (Number(cash) || 0) + (Number(card) || 0)
+      + (Number(compPlayer) || 0) + (Number(compHouse) || 0)
+      + (Number(playerCharge) || 0);
+  }, [cash, card, compPlayer, compHouse, playerCharge]);
 
   const delta = sum - total;
   const valid = delta === 0 && total > 0;
@@ -52,9 +55,14 @@ export const CloseBillDialog = ({ open, onOpenChange, tab, onClosed }: Props) =>
       card: Math.round(Number(card) || 0),
       comp_player: Math.round(Number(compPlayer) || 0),
       comp_house: Math.round(Number(compHouse) || 0),
+      player_charge: Math.round(Number(playerCharge) || 0),
     };
     if ((split.comp_player ?? 0) > 0 && !hasPlayer) {
       toast({ title: "Comp player not available for walk-in tabs", variant: "destructive" });
+      return;
+    }
+    if ((split.player_charge ?? 0) > 0 && !hasPlayer) {
+      toast({ title: "Charge to tab requires a player tab", variant: "destructive" });
       return;
     }
     try {
@@ -65,6 +73,12 @@ export const CloseBillDialog = ({ open, onOpenChange, tab, onClosed }: Props) =>
     } catch (e: any) {
       toast({ title: "Failed to close", description: e?.message, variant: "destructive" });
     }
+  };
+
+  const fillCharge = () => {
+    if (!hasPlayer) return;
+    setCash("0"); setCard("0"); setCompPlayer("0"); setCompHouse("0");
+    setPlayerCharge(String(total));
   };
 
   return (
@@ -79,45 +93,36 @@ export const CloseBillDialog = ({ open, onOpenChange, tab, onClosed }: Props) =>
 
         <FormGrid>
           <FormField span={6} label="Cash">
-            <Input
-              type="number"
-              inputMode="numeric"
-              value={cash}
-              onChange={(e) => setCash(e.target.value)}
-              className="text-lg"
-            />
+            <Input type="number" inputMode="numeric" value={cash}
+              onChange={(e) => setCash(e.target.value)} className="text-lg" />
           </FormField>
           <FormField span={6} label="Card">
-            <Input
-              type="number"
-              inputMode="numeric"
-              value={card}
-              onChange={(e) => setCard(e.target.value)}
-              className="text-lg"
-            />
+            <Input type="number" inputMode="numeric" value={card}
+              onChange={(e) => setCard(e.target.value)} className="text-lg" />
           </FormField>
-          <FormField
-            span={6}
-            label="Comp · player"
-            hint={!hasPlayer ? "Only available for player tabs" : undefined}
-          >
-            <Input
-              type="number"
-              inputMode="numeric"
-              value={compPlayer}
+          <FormField span={6} label="Comp · player"
+            hint={!hasPlayer ? "Only available for player tabs" : undefined}>
+            <Input type="number" inputMode="numeric" value={compPlayer}
               onChange={(e) => setCompPlayer(e.target.value)}
-              disabled={!hasPlayer}
-              className="text-lg"
-            />
+              disabled={!hasPlayer} className="text-lg" />
           </FormField>
           <FormField span={6} label="Comp · house">
-            <Input
-              type="number"
-              inputMode="numeric"
-              value={compHouse}
-              onChange={(e) => setCompHouse(e.target.value)}
-              className="text-lg"
-            />
+            <Input type="number" inputMode="numeric" value={compHouse}
+              onChange={(e) => setCompHouse(e.target.value)} className="text-lg" />
+          </FormField>
+          <FormField
+            span={12}
+            label="Charge to player tab"
+            hint={!hasPlayer ? "Walk-in tabs cannot be charged" : "Postpaid — settled later in Cage"}
+          >
+            <div className="flex gap-2">
+              <Input type="number" inputMode="numeric" value={playerCharge}
+                onChange={(e) => setPlayerCharge(e.target.value)}
+                disabled={!hasPlayer} className="text-lg" />
+              <Button type="button" variant="outline" disabled={!hasPlayer} onClick={fillCharge}>
+                Full
+              </Button>
+            </div>
           </FormField>
         </FormGrid>
 
