@@ -1,0 +1,128 @@
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { X, Receipt } from "lucide-react";
+import { formatNumberSpaces } from "@/lib/currency";
+import { fmtDateTime } from "@/lib/format-date";
+import { usePosTabOrders, useVoidPosOrder, type PosOrderStatus } from "@/hooks/use-pos-orders";
+import type { PosTab } from "@/hooks/use-pos-tabs";
+import { toast } from "@/hooks/use-toast";
+import CloseBillDialog from "./CloseBillDialog";
+import { cn } from "@/lib/utils";
+
+interface Props {
+  tab: PosTab | null;
+}
+
+const STATUS_CHIP: Record<PosOrderStatus, { label: string; cls: string }> = {
+  pending: { label: "Pending", cls: "bg-muted text-muted-foreground" },
+  preparing: { label: "Preparing", cls: "bg-sky-500/15 text-sky-700 dark:text-sky-300" },
+  ready: { label: "Ready", cls: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300" },
+  served: { label: "Served", cls: "bg-muted/60 text-muted-foreground" },
+  void: { label: "Void", cls: "bg-cms-amount-negative/15 text-cms-amount-negative line-through" },
+};
+
+export const ActiveTabPanel = ({ tab }: Props) => {
+  const { data: orders = [], isLoading } = usePosTabOrders(tab?.id ?? null);
+  const voidOrder = useVoidPosOrder();
+  const [closeDialog, setCloseDialog] = useState(false);
+
+  if (!tab) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center text-center text-muted-foreground p-6">
+        <Receipt className="h-10 w-10 mb-3 opacity-40" />
+        <p className="text-sm">Select a tab or open a new one to start.</p>
+      </div>
+    );
+  }
+
+  const label = tab.player_id ? tab.player_name || "Player" : `Walk-in · ${tab.walkin_label}`;
+
+  const handleVoid = async (orderId: string) => {
+    try {
+      await voidOrder.mutateAsync({ order_id: orderId });
+      toast({ title: "Order voided" });
+    } catch (e: any) {
+      toast({ title: "Cannot void", description: e?.message, variant: "destructive" });
+    }
+  };
+
+  return (
+    <div className="h-full flex flex-col">
+      <div className="p-3 border-b border-border">
+        <div className="flex items-baseline justify-between gap-2">
+          <div className="min-w-0">
+            <div className="font-semibold truncate">{label}</div>
+            <div className="text-xs text-muted-foreground">Opened {fmtDateTime(tab.opened_at)}</div>
+          </div>
+          <div className="text-right shrink-0">
+            <div className="text-[10px] uppercase text-muted-foreground tracking-wider">Total</div>
+            <div className="text-2xl font-bold font-mono tabular-nums">
+              {formatNumberSpaces(tab.total_tzs)}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto">
+        {isLoading ? (
+          <div className="p-4 text-center text-sm text-muted-foreground">Loading…</div>
+        ) : orders.length === 0 ? (
+          <div className="p-4 text-center text-sm text-muted-foreground">No items yet. Tap menu to add.</div>
+        ) : (
+          <ul className="divide-y divide-border">
+            {orders.map((o) => {
+              const chip = STATUS_CHIP[o.status];
+              const canVoid = o.status === "pending" || o.status === "preparing";
+              return (
+                <li key={o.id} className="p-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      {o.items.map((it) => (
+                        <div key={it.id} className="flex items-baseline justify-between gap-2 text-sm">
+                          <span className={cn("truncate", o.status === "void" && "line-through opacity-60")}>
+                            {it.item_name} <span className="text-muted-foreground">×{it.qty}</span>
+                          </span>
+                          <span className="font-mono tabular-nums">{formatNumberSpaces(it.line_total_tzs)}</span>
+                        </div>
+                      ))}
+                      <div className="mt-1 flex items-center gap-2">
+                        <Badge className={chip.cls} variant="secondary">{chip.label}</Badge>
+                        <span className="text-[11px] text-muted-foreground">{fmtDateTime(o.created_at)}</span>
+                      </div>
+                    </div>
+                    {canVoid && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleVoid(o.id)}
+                        title="Void"
+                        className="shrink-0"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+
+      <div className="p-3 border-t border-border">
+        <Button
+          className="w-full h-12 text-base"
+          disabled={tab.total_tzs <= 0}
+          onClick={() => setCloseDialog(true)}
+        >
+          Close bill · {formatNumberSpaces(tab.total_tzs)} TZS
+        </Button>
+      </div>
+
+      <CloseBillDialog open={closeDialog} onOpenChange={setCloseDialog} tab={tab} />
+    </div>
+  );
+};
+
+export default ActiveTabPanel;

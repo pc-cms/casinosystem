@@ -4725,70 +4725,55 @@ export type Database = {
         Row: {
           business_date: string | null
           casino_id: string
-          comp_reason: string | null
           created_at: string
-          expense_id: string | null
           id: string
-          payment_mode: Database["public"]["Enums"]["pos_payment_mode"]
-          player_id: string | null
-          player_name: string | null
           ready_at: string | null
           served_at: string | null
           shift_id: string | null
           source: string
           status: Database["public"]["Enums"]["pos_order_status"]
-          table_id: string | null
-          table_label: string | null
+          tab_id: string
           total_tzs: number
           void_reason: string | null
           voided_at: string | null
           voided_by: string | null
+          voided_reason: string | null
           waiter_user_id: string
         }
         Insert: {
           business_date?: string | null
           casino_id: string
-          comp_reason?: string | null
           created_at?: string
-          expense_id?: string | null
           id?: string
-          payment_mode: Database["public"]["Enums"]["pos_payment_mode"]
-          player_id?: string | null
-          player_name?: string | null
           ready_at?: string | null
           served_at?: string | null
           shift_id?: string | null
           source?: string
           status?: Database["public"]["Enums"]["pos_order_status"]
-          table_id?: string | null
-          table_label?: string | null
+          tab_id: string
           total_tzs?: number
           void_reason?: string | null
           voided_at?: string | null
           voided_by?: string | null
+          voided_reason?: string | null
           waiter_user_id: string
         }
         Update: {
           business_date?: string | null
           casino_id?: string
-          comp_reason?: string | null
           created_at?: string
-          expense_id?: string | null
           id?: string
-          payment_mode?: Database["public"]["Enums"]["pos_payment_mode"]
-          player_id?: string | null
-          player_name?: string | null
           ready_at?: string | null
           served_at?: string | null
           shift_id?: string | null
           source?: string
           status?: Database["public"]["Enums"]["pos_order_status"]
-          table_id?: string | null
-          table_label?: string | null
+          tab_id?: string
           total_tzs?: number
           void_reason?: string | null
           voided_at?: string | null
           voided_by?: string | null
+          voided_reason?: string | null
           waiter_user_id?: string
         }
         Relationships: [
@@ -4797,6 +4782,13 @@ export type Database = {
             columns: ["shift_id"]
             isOneToOne: false
             referencedRelation: "pos_shifts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_orders_tab_id_fkey"
+            columns: ["tab_id"]
+            isOneToOne: false
+            referencedRelation: "pos_tabs"
             referencedColumns: ["id"]
           },
         ]
@@ -4839,6 +4831,98 @@ export type Database = {
           z_report?: Json | null
         }
         Relationships: []
+      }
+      pos_tabs: {
+        Row: {
+          business_date: string | null
+          casino_id: string
+          closed_at: string | null
+          closed_by_user_id: string | null
+          created_at: string
+          expense_id: string | null
+          id: string
+          opened_at: string
+          opened_by_user_id: string
+          payment_split: Json | null
+          player_id: string | null
+          player_name: string | null
+          shift_id: string
+          status: string
+          total_tzs: number
+          updated_at: string
+          void_reason: string | null
+          walkin_label: string | null
+        }
+        Insert: {
+          business_date?: string | null
+          casino_id: string
+          closed_at?: string | null
+          closed_by_user_id?: string | null
+          created_at?: string
+          expense_id?: string | null
+          id?: string
+          opened_at?: string
+          opened_by_user_id: string
+          payment_split?: Json | null
+          player_id?: string | null
+          player_name?: string | null
+          shift_id: string
+          status?: string
+          total_tzs?: number
+          updated_at?: string
+          void_reason?: string | null
+          walkin_label?: string | null
+        }
+        Update: {
+          business_date?: string | null
+          casino_id?: string
+          closed_at?: string | null
+          closed_by_user_id?: string | null
+          created_at?: string
+          expense_id?: string | null
+          id?: string
+          opened_at?: string
+          opened_by_user_id?: string
+          payment_split?: Json | null
+          player_id?: string | null
+          player_name?: string | null
+          shift_id?: string
+          status?: string
+          total_tzs?: number
+          updated_at?: string
+          void_reason?: string | null
+          walkin_label?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_tabs_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_tabs_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "player_economy"
+            referencedColumns: ["player_id"]
+          },
+          {
+            foreignKeyName: "pos_tabs_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_tabs_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "pos_shifts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -6813,6 +6897,10 @@ export type Database = {
       populate_table_daily_results_for_day: {
         Args: { _business_date: string; _casino_id: string; _user: string }
         Returns: number
+      }
+      pos_tabs_recompute_total: {
+        Args: { _tab_id: string }
+        Returns: undefined
       }
       promote_to_local_primary: {
         Args: { p_casino_id: string; p_force?: boolean }
