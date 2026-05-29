@@ -68,6 +68,26 @@ export function usePosOpenTabs(casinoId: string | null, shiftId: string | null) 
   return q;
 }
 
+/** Closed + voided tabs of a shift, newest first. Used for receipt reprint history. */
+export function usePosShiftClosedTabs(casinoId: string | null, shiftId: string | null) {
+  return useQuery({
+    queryKey: ["pos-tabs", "closed", casinoId, shiftId],
+    enabled: !!casinoId && !!shiftId,
+    queryFn: async (): Promise<PosTab[]> => {
+      const { data, error } = await supabase
+        .from("pos_tabs")
+        .select("*")
+        .eq("casino_id", casinoId!)
+        .eq("shift_id", shiftId!)
+        .in("status", ["closed", "voided"])
+        .order("opened_at", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as unknown as PosTab[];
+    },
+    staleTime: 10_000,
+  });
+}
+
 export function useOpenPosTab() {
   const qc = useQueryClient();
   return useMutation({
