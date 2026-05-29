@@ -102,6 +102,27 @@ export function useOpenPosShift() {
   });
 }
 
+/** Any open POS shift in a casino (used by Pit quick-order). */
+export function usePosAnyOpenShift(casinoId: string | null) {
+  return useQuery({
+    queryKey: ["pos-shift", "any-open", casinoId],
+    enabled: !!casinoId,
+    queryFn: async (): Promise<PosShift | null> => {
+      const { data, error } = await supabase
+        .from("pos_shifts")
+        .select("*")
+        .eq("casino_id", casinoId!)
+        .is("closed_at", null)
+        .order("opened_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return (data ?? null) as unknown as PosShift | null;
+    },
+    staleTime: 15_000,
+  });
+}
+
 /** Preview Z-report for an OPEN shift (closing_cash treated as 0 until close). Read-only. */
 export function usePosZReportPreview(shiftId: string | null, enabled = true) {
   return useQuery({
