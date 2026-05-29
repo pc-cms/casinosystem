@@ -397,6 +397,14 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
         src={player?.photo_url}
         alt={player ? `${player.first_name} ${player.last_name}` : undefined}
       />
+      {player && (
+        <PitQuickOrderDialog
+          open={posOpen}
+          onOpenChange={setPosOpen}
+          playerId={player.id}
+          playerName={`${player.first_name} ${player.last_name}`.trim()}
+        />
+      )}
     </div>
   );
 };
