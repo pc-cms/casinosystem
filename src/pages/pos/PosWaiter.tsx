@@ -11,12 +11,15 @@ import MenuPanel from "@/components/pos/waiter/MenuPanel";
 import ActiveTabPanel from "@/components/pos/waiter/ActiveTabPanel";
 import NewTabDialog from "@/components/pos/waiter/NewTabDialog";
 import CloseShiftDialog from "@/components/pos/waiter/CloseShiftDialog";
+import HandoverShiftDialog from "@/components/pos/waiter/HandoverShiftDialog";
 import ZReportView from "@/components/pos/waiter/ZReportView";
 import ClosedTabsDialog from "@/components/pos/waiter/ClosedTabsDialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { History } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { History, ArrowLeftRight } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
+
 
 export default function PosWaiter() {
   const { user } = useAuth();
@@ -29,9 +32,11 @@ export default function PosWaiter() {
   const [activeTabId, setActiveTabId] = useState<string | null>(null);
   const [newTabOpen, setNewTabOpen] = useState(false);
   const [closeShiftOpen, setCloseShiftOpen] = useState(false);
+  const [handoverOpen, setHandoverOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [lastZ, setLastZ] = useState<PosZReport | null>(null);
   const [mobileView, setMobileView] = useState<"tabs" | "menu" | "active">("tabs");
+
 
   if (!activeCasinoId) {
     return (
@@ -72,12 +77,21 @@ export default function PosWaiter() {
     if (isMobile) setMobileView("menu");
   };
 
+  const segLabel =
+    shift.shift_type === "day" ? "Day"
+    : shift.shift_type === "evening" ? "Evening"
+    : "Night";
+
   const ShiftBar = (
     <div className="flex items-center justify-between gap-3 px-3 py-2 border-b border-border bg-card text-xs">
       <div className="flex items-center gap-3 min-w-0">
         <span className="font-semibold">{activeCasino?.name ?? ""}</span>
+        <Badge variant="outline" className="font-medium">{segLabel} shift</Badge>
+        {shift.handover_from_shift_id && (
+          <Badge variant="secondary" className="font-medium">handover</Badge>
+        )}
         <span className="text-muted-foreground truncate">
-          Shift opened {fmtDateTime(shift.opened_at)}
+          Opened {fmtDateTime(shift.opened_at)}
         </span>
       </div>
       <div className="flex items-center gap-3">
@@ -86,6 +100,9 @@ export default function PosWaiter() {
         </span>
         <Button size="sm" variant="outline" onClick={() => setHistoryOpen(true)} className="gap-1">
           <History className="h-4 w-4" /> History
+        </Button>
+        <Button size="sm" variant="outline" onClick={() => setHandoverOpen(true)} className="gap-1">
+          <ArrowLeftRight className="h-4 w-4" /> Handover
         </Button>
         <Button size="sm" variant="outline" onClick={() => setCloseShiftOpen(true)}>
           Close shift
@@ -106,6 +123,17 @@ export default function PosWaiter() {
       }}
     />
   );
+
+  const handoverDialog = (
+    <HandoverShiftDialog
+      open={handoverOpen}
+      onOpenChange={setHandoverOpen}
+      shift={shift}
+      openTabsCount={tabs.length}
+      casinoId={activeCasinoId}
+    />
+  );
+
 
   const historyDialog = (
     <ClosedTabsDialog
@@ -151,7 +179,9 @@ export default function PosWaiter() {
           onCreated={handleNewCreated}
         />
         {closeShiftDialog}
+        {handoverDialog}
         {historyDialog}
+
       </div>
     );
   }
@@ -185,7 +215,9 @@ export default function PosWaiter() {
         onCreated={handleNewCreated}
       />
       {closeShiftDialog}
-        {historyDialog}
+      {handoverDialog}
+      {historyDialog}
+
     </div>
   );
 }

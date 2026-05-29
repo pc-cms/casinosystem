@@ -4994,9 +4994,11 @@ export type Database = {
           closed_at: string | null
           closing_cash: number | null
           created_at: string
+          handover_from_shift_id: string | null
           id: string
           opened_at: string
           opening_cash: number
+          shift_type: string
           waiter_user_id: string
           z_report: Json | null
         }
@@ -5006,9 +5008,11 @@ export type Database = {
           closed_at?: string | null
           closing_cash?: number | null
           created_at?: string
+          handover_from_shift_id?: string | null
           id?: string
           opened_at?: string
           opening_cash?: number
+          shift_type?: string
           waiter_user_id: string
           z_report?: Json | null
         }
@@ -5018,13 +5022,23 @@ export type Database = {
           closed_at?: string | null
           closing_cash?: number | null
           created_at?: string
+          handover_from_shift_id?: string | null
           id?: string
           opened_at?: string
           opening_cash?: number
+          shift_type?: string
           waiter_user_id?: string
           z_report?: Json | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "pos_shifts_handover_from_shift_id_fkey"
+            columns: ["handover_from_shift_id"]
+            isOneToOne: false
+            referencedRelation: "pos_shifts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       pos_tabs: {
         Row: {
@@ -7098,6 +7112,15 @@ export type Database = {
       }
       pos_compute_z_report: { Args: { _shift_id: string }; Returns: Json }
       pos_create_purchase: { Args: { _payload: Json }; Returns: string }
+      pos_handover_shift: {
+        Args: {
+          _closing_cash: number
+          _closing_shift_id: string
+          _new_shift_type: string
+          _new_waiter_user_id: string
+        }
+        Returns: Json
+      }
       pos_suggested_price: { Args: { _item_id: string }; Returns: number }
       pos_tabs_recompute_total: {
         Args: { _tab_id: string }
