@@ -27,10 +27,12 @@ export type SlotsConsolidatedProps = {
   closerByCurrency: Record<string, number>;
   openerCashTotalTzs: number;
   closerCashTotalTzs: number;
-  openerBankTzs?: number;
-  openerBankUsd?: number;
+  openerBankTzs?: number;          // native TZS in bank account
+  openerBankUsd?: number;          // native USD in bank account
+  openerBankTotalTzs?: number;     // bank TZS+USD converted to TZS
   closerBankTzs?: number;
   closerBankUsd?: number;
+  closerBankTotalTzs?: number;
   openerCashlessByProvider: Record<string, number>;   // {MPESA, TIGO, HALOTEL, AIRTEL}
   closerCashlessByProvider: Record<string, number>;
   openerCashlessTotalTzs: number;
