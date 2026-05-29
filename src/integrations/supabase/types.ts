@@ -6898,6 +6898,11 @@ export type Database = {
         Args: { _business_date: string; _casino_id: string; _user: string }
         Returns: number
       }
+      pos_close_shift: {
+        Args: { _closing_cash: number; _shift_id: string }
+        Returns: Json
+      }
+      pos_compute_z_report: { Args: { _shift_id: string }; Returns: Json }
       pos_tabs_recompute_total: {
         Args: { _tab_id: string }
         Returns: undefined
