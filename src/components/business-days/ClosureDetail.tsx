@@ -28,6 +28,7 @@ export const ClosureDetail = ({ closure }: { closure: BusinessDayClosure }) => {
     chip_miss_total?: number;
     cards_miss_total?: number;
     expenses_total?: number;
+    bar_pl?: number;
     net_result?: number;
   } | undefined;
   const bar = (snap as any).bar_totals as {
@@ -37,6 +38,8 @@ export const ClosureDetail = ({ closure }: { closure: BusinessDayClosure }) => {
     comp_house_tzs?: number;
     comp_player_tzs?: number;
     player_charge_tzs?: number;
+    cogs_tzs?: number;
+    pl_tzs?: number;
     bills_count?: number;
   } | undefined;
 
