@@ -179,7 +179,9 @@ export default function PosWaiter() {
           onCreated={handleNewCreated}
         />
         {closeShiftDialog}
+        {handoverDialog}
         {historyDialog}
+
       </div>
     );
   }
