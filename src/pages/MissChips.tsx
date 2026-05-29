@@ -172,7 +172,7 @@ const MissChips = () => {
                 <th className="text-left px-3 py-2 whitespace-nowrap border-r">Date</th>
                 {DENOMS_DESC.map((d) => (
                   <th key={d} className="px-2 py-2 whitespace-nowrap border-r text-center">
-                    {formatChipLabel(d)}
+                    <div className="flex justify-center"><ChipToken denom={d} /></div>
                   </th>
                 ))}
                 <th className="text-right px-3 py-2 whitespace-nowrap bg-muted/60">Total TZS</th>
