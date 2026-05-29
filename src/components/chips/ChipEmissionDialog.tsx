@@ -98,7 +98,7 @@ export const ChipEmissionDialog = ({ trigger }: { trigger?: React.ReactNode }) =
                   {history.slice(0, 20).map((h) => (
                     <tr key={h.id} className="border-b border-border/40">
                       <td className="px-2 py-1">{new Date(h.created_at).toLocaleString("en-GB", { timeZone: "Africa/Dar_es_Salaam", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</td>
-                      <td className="px-2 py-1">{formatChipLabel(h.denomination)}</td>
+                      <td className="px-2 py-1"><ChipToken denom={h.denomination} /></td>
                       <td className="px-2 py-1 text-right">+{formatNumberSpaces(h.quantity_added)}</td>
                       <td className="px-2 py-1 text-muted-foreground truncate max-w-[180px]">{h.reason}</td>
                     </tr>
