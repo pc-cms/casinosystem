@@ -11,7 +11,8 @@ const isPosRole = (roles: readonly string[]) =>
   roles.includes("super_admin");
 
 export const PosLayout = () => {
-  const { user, loading, roles } = useAuth();
+  const { user, loading, roles: typedRoles } = useAuth();
+  const roles = typedRoles as readonly string[];
   const navigate = useNavigate();
 
   if (loading) return null;
