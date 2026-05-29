@@ -1,7 +1,7 @@
 // Role-based data visibility configuration
 // Controls what financial/sensitive data each role can see
 
-type AppRole = "cashier" | "cashier_slots" | "pit" | "manager" | "floor_manager" | "reception" | "finance_manager" | "surveillance" | "super_admin" | "hr";
+type AppRole = "cashier" | "cashier_slots" | "pit" | "manager" | "floor_manager" | "reception" | "finance_manager" | "surveillance" | "super_admin" | "hr" | "pos_waiter" | "pos_bartender" | "pos_manager";
 
 export type FinancialScope = "all" | "shift" | "none";
 
