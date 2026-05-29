@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { NumberInput } from "@/components/ui/number-input";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeftRight, Banknote, HandCoins, ArrowDownLeft, ArrowUpRight } from "lucide-react";
+import { ArrowLeftRight, Banknote, HandCoins, ArrowDownLeft, ArrowUpRight, Minus, Plus } from "lucide-react";
 import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
 import {
   useSlotsTransfers, useCreateSlotsTransfer,
@@ -46,13 +46,15 @@ const SlotsTransfersForm = ({ shiftId }: Props) => {
 
   const [type, setType] = useState<SlotsTransferType>("fill");
   const [amount, setAmount] = useState("");
+  const [sign, setSign] = useState<1 | -1>(1);
   const [note, setNote] = useState("");
   const [showOverride, setShowOverride] = useState(false);
 
   const cfg = TYPE_OPTIONS.find(t => t.value === type)!;
-  const finalAmount = Number(amount) || 0;
+  const absAmount = Number(amount) || 0;
+  const finalAmount = absAmount * sign;
 
-  const reset = () => { setAmount(""); setNote(""); };
+  const reset = () => { setAmount(""); setNote(""); setSign(1); };
 
   const submit = (managerId: string) => {
     create.mutate({
@@ -66,10 +68,12 @@ const SlotsTransfersForm = ({ shiftId }: Props) => {
   };
 
   const handleSubmit = () => {
-    if (finalAmount <= 0) { toast.error("Amount must be greater than zero"); return; }
+    if (absAmount <= 0) { toast.error("Amount must be greater than zero"); return; }
+    if (sign === -1 && !note.trim()) { toast.error("Note is required for a reverse (negative) transfer"); return; }
     if (cfg.isCross && !lgShift) { toast.error("No open Live Game shift to pair with"); return; }
     if (!user) return;
-    if (cfg.needsOverride) setShowOverride(true);
+    // Negative (reverse) transfers always require manager override — they undo prior money movement.
+    if (cfg.needsOverride || sign === -1) setShowOverride(true);
     else submit(user.id);
   };
 
@@ -102,8 +106,27 @@ const SlotsTransfersForm = ({ shiftId }: Props) => {
 
         <div>
           <label className="text-xs font-bold text-foreground uppercase tracking-wider mb-1.5 block">2. Amount (TZS)</label>
-          <NumberInput value={amount} onChange={setAmount} className="text-xl h-12" placeholder="0"
-            onKeyDown={e => e.key === "Enter" && handleSubmit()} />
+          <div className="flex gap-2">
+            <div className="flex rounded-md border border-input overflow-hidden">
+              <button type="button" onClick={() => setSign(1)}
+                className={`px-3 h-12 flex items-center justify-center transition-colors ${sign === 1 ? "bg-emerald-500/20 text-emerald-400" : "text-muted-foreground hover:bg-muted"}`}
+                title="Positive (normal)">
+                <Plus className="w-4 h-4" />
+              </button>
+              <button type="button" onClick={() => setSign(-1)}
+                className={`px-3 h-12 flex items-center justify-center transition-colors border-l border-input ${sign === -1 ? "bg-red-500/20 text-red-400" : "text-muted-foreground hover:bg-muted"}`}
+                title="Negative (reverse / correction)">
+                <Minus className="w-4 h-4" />
+              </button>
+            </div>
+            <NumberInput value={amount} onChange={setAmount} className="text-xl h-12 flex-1" placeholder="0"
+              onKeyDown={e => e.key === "Enter" && handleSubmit()} />
+          </div>
+          {sign === -1 && (
+            <p className="text-[11px] text-red-400 mt-1.5 font-semibold">
+              Reverse transfer — will be recorded as a negative amount. Manager override required.
+            </p>
+          )}
         </div>
 
         <div>
@@ -112,10 +135,10 @@ const SlotsTransfersForm = ({ shiftId }: Props) => {
             placeholder="Reason / context…" className="text-sm resize-none" />
         </div>
 
-        <Button onClick={handleSubmit} disabled={finalAmount <= 0 || create.isPending}
+        <Button onClick={handleSubmit} disabled={absAmount <= 0 || create.isPending}
           className={`w-full gap-1.5 h-12 text-base font-bold ${cfg.tone.activeBg} ${cfg.tone.text} ${cfg.tone.activeBorder} border hover:brightness-110`}>
           <ArrowLeftRight className="w-4 h-4" />
-          {create.isPending ? "Recording…" : cfg.label} {finalAmount > 0 && `· ${formatCurrency(finalAmount)}`}
+          {create.isPending ? "Recording…" : cfg.label} {absAmount > 0 && `· ${sign === -1 ? "−" : ""}${formatCurrency(absAmount)}`}
         </Button>
 
         {cfg.needsOverride && <p className="text-xs text-warning text-center font-semibold">Manager Override required for {cfg.label}</p>}
@@ -142,16 +165,19 @@ const SlotsTransfersForm = ({ shiftId }: Props) => {
                 <tr><td colSpan={4} className="text-center text-muted-foreground text-sm py-6">No transfers yet</td></tr>
               ) : transfers.map(tr => {
                 const opt = TYPE_MAP.get(tr.transfer_type)!;
-                const positive = tr.direction === "in";
+                const amt = Number(tr.amount);
+                // Net effect on the cage: 'in' adds, 'out' subtracts. Negative amounts flip the sign.
+                const signed = (tr.direction === "in" ? 1 : -1) * amt;
+                const positive = signed >= 0;
                 return (
                   <tr key={tr.id} className={`border-b border-border last:border-0 ${positive ? "bg-emerald-500/5" : "bg-red-500/5"}`}>
                     <td className="px-3 py-2">
                       <span className={`text-xs font-bold font-mono px-2 py-0.5 rounded border ${opt.tone.bg} ${opt.tone.text} ${opt.tone.border}`}>
-                        {SLOTS_TRANSFER_LABEL[tr.transfer_type]}
+                        {SLOTS_TRANSFER_LABEL[tr.transfer_type]}{amt < 0 ? " ⟲" : ""}
                       </span>
                     </td>
                     <td className={`px-3 py-2 text-right font-mono text-sm font-bold ${positive ? "cms-amount-positive" : "cms-amount-negative"}`}>
-                      {positive ? "+" : "−"}{formatNumberSpaces(Number(tr.amount))}
+                      {positive ? "+" : "−"}{formatNumberSpaces(Math.abs(signed))}
                     </td>
                     <td className="px-3 py-2 text-xs text-muted-foreground truncate max-w-[160px]">{tr.note || "—"}</td>
                     <td className="px-3 py-2 text-right font-mono text-xs text-muted-foreground">
