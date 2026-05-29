@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { UtensilsCrossed, Receipt, Boxes, BarChart3, ReceiptText, ShoppingCart, Tag, ClipboardCheck, Users } from "lucide-react";
+import CompBudgetCard from "@/components/pos/manager/CompBudgetCard";
 
 const cards = [
   {
