@@ -301,6 +301,13 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
                     value={`${result > 0 ? "+" : ""}${formatCurrency(result)}`}
                     tone={result > 0 ? "positive" : result < 0 ? "negative" : "neutral"}
                   />
+                  {barOwed > 0 && (
+                    <StatTile
+                      label="F&B Owed"
+                      value={formatCurrency(barOwed)}
+                      tone="negative"
+                    />
+                  )}
                 </>
               )}
             </div>
