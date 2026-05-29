@@ -13,7 +13,7 @@ import { MobileMoneySection, type MobileMoneyState, emptyMobileMoney, getMobileT
 import { BankSection, type BankState, emptyBankState, getBankTotalTzs, BANK_FIELDS } from "./cash-count/BankSection";
 import { HistoryView } from "./cash-count/HistoryView";
 
-const COUNTABLE_WALLETS: WalletType[] = ["main_cash", "office_safe"];
+const COUNTABLE_WALLETS: WalletType[] = ["main_cash", "office_safe", "bar_cash"];
 
 export const CashCount = () => {
   const { data: wallets = [], isLoading } = useWallets();
@@ -113,9 +113,10 @@ export const CashCount = () => {
   }, [quantities]);
 
   const mainCashTzs = useMemo(() =>
-    COUNTABLE_WALLETS.reduce((sum, wt) => sum + (walletTotals[wt]?.totalTzs || 0), 0),
+    (["main_cash", "office_safe"] as WalletType[]).reduce((sum, wt) => sum + (walletTotals[wt]?.totalTzs || 0), 0),
     [walletTotals]
   );
+  const barCashTzs = walletTotals["bar_cash"]?.totalTzs || 0;
 
   const cageSlotTotal = getCageSlotTotal(cageSafe);
   const cageTableTotal = getCageTableTotal(cageSafe);
@@ -123,7 +124,7 @@ export const CashCount = () => {
   const mobileTotal = getMobileTotal(mobile);
   const bankTotalTzs = getBankTotalTzs(banks);
 
-  const totalRealMoney = mainCashTzs + cageTotal + mobileTotal + bankTotalTzs;
+  const totalRealMoney = mainCashTzs + barCashTzs + cageTotal + mobileTotal + bankTotalTzs;
 
   const grandExpected = useMemo(() => {
     const allWallets: WalletType[] = [...COUNTABLE_WALLETS, "cage_slot", "cage_table", "mobile_money", "bank_account"];
@@ -351,10 +352,14 @@ export const CashCount = () => {
           {/* ── TOTAL REAL MONEY ── */}
           <Card className="border-2 border-primary/30">
             <CardContent className="p-4">
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-xs mb-3">
+              <div className="grid grid-cols-2 md:grid-cols-6 gap-3 text-xs mb-3">
                 <div className="text-center">
                   <span className="text-muted-foreground block">Main Cash</span>
                   <span className="font-mono font-semibold text-foreground">TZS {formatNumberSpaces(mainCashTzs)}</span>
+                </div>
+                <div className="text-center">
+                  <span className="text-muted-foreground block">Bar Cash</span>
+                  <span className="font-mono font-semibold text-foreground">TZS {formatNumberSpaces(barCashTzs)}</span>
                 </div>
                 <div className="text-center">
                   <span className="text-muted-foreground block">Cage Safe</span>

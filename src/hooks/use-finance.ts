@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import type { SafeWalletTxInsert } from "@/lib/safe-inserts";
 
 // Types matching DB enums
-export type WalletType = "main_cash" | "office_safe" | "rent_reserve" | "license_reserve" | "tax_reserve" | "other_reserve" | "cage_slot" | "cage_table" | "mobile_money" | "bank_account";
+export type WalletType = "main_cash" | "office_safe" | "rent_reserve" | "license_reserve" | "tax_reserve" | "other_reserve" | "cage_slot" | "cage_table" | "mobile_money" | "bank_account" | "bar_cash";
 export type WalletTxType = "transfer" | "allocate_reserve" | "use_reserve" | "manual_expense" | "daily_result" | "initial_balance" | "collection" | "adjustment" | "external_income";
 export type OfficeExpenseCategory =
   | "salary" | "bonus" | "fuel" | "transport" | "repairs" | "internet_it" | "security_expense" | "cleaning"
@@ -42,6 +42,7 @@ export const WALLET_LABELS: Record<WalletType, string> = {
   cage_table: "Cage Table",
   mobile_money: "Mobile Money",
   bank_account: "Bank Account",
+  bar_cash: "Bar Cash",
 };
 
 export interface Wallet {
@@ -105,7 +106,7 @@ export function useInitializeWallets() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      const walletTypes: WalletType[] = ["main_cash", "office_safe", "rent_reserve", "license_reserve", "tax_reserve", "other_reserve", "cage_slot", "cage_table", "mobile_money", "bank_account"];
+      const walletTypes: WalletType[] = ["main_cash", "office_safe", "rent_reserve", "license_reserve", "tax_reserve", "other_reserve", "cage_slot", "cage_table", "mobile_money", "bank_account", "bar_cash"];
       const wallets = walletTypes.map(wt => ({
         casino_id: casinoId,
         wallet_type: wt,
