@@ -87,18 +87,19 @@ const SlotsShiftReportBody = ({ id, showHeader = true, compact = false }: Props)
   const expensesTotal = expenses.filter((e: any) => e.approved).reduce((s: number, e: any) => s + Number(e.amount || 0), 0);
 
   const systemResult = Number(shift.system_shift_result ?? latestTotals.system_result ?? 0);
-  const slotsResult = Number(shift.slots_result ?? latestTotals.slots_result_derived ?? (systemResult - openingTotal - txAgg.fill));
+  const slotsResult = Number(shift.slots_result ?? latestTotals.slots_result_derived ?? systemResult);
   const deltaCash = closingCash - openingTotal;
   const cardsMiss = Number(shift.cards_miss ?? ((Number(cards?.opening_card_count || 0) - Number(cards?.closing_card_count || 0)) * cardDepositTzs));
   const cashDeskResult = Number(
     shift.cash_desk_result ?? latestTotals.cash_desk_result ??
-    (deltaCash + expensesTotal + txAgg.collection + txAgg.lg_out - txAgg.lg_in),
+    (closingCash + expensesTotal - txAgg.fill + txAgg.collection + txAgg.lg_out - txAgg.lg_in),
   );
-  const expected = systemResult - openingTotal;
+  const expected = systemResult;
   const balance = Number(
     shift.balance ?? latestTotals.shift_balance ?? latestTotals.balance ??
-    ((cashDeskResult + txAgg.fill) - expected - cardsMiss),
+    (cashDeskResult - systemResult - cardsMiss),
   );
+
   const cashlessBalance = cashlessIn - cashlessOut;
   const cashlessFinal = Number((shift as any).cashless_final ?? latestTotals.cashless_final ?? 0);
 
