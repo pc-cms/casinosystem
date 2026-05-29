@@ -237,6 +237,30 @@ const SlotsConsolidatedReport = ({
         </tbody>
       </table>
 
+      {/* ============ END-OF-DAY MOBILE MONEY BALANCES (manual snapshot) ============ */}
+      <table className="w-full border-collapse mb-1">
+        <thead>
+          <tr><th colSpan={4} className="border border-black bg-gray-200 px-2 py-1 text-left">End-of-Day Mobile Money Balances</th></tr>
+          <tr>
+            {PROVIDERS.map(p => (
+              <th key={p.key} className="border border-black px-2 py-1 text-center w-1/4">{p.label}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            {PROVIDERS.map(p => {
+              const v = Number(closerCashlessByProvider[p.key] || 0);
+              return (
+                <td key={p.key} className="border border-black px-2 py-2 text-right font-mono">
+                  {v ? formatNumberSpaces(v) : ""}
+                </td>
+              );
+            })}
+          </tr>
+        </tbody>
+      </table>
+
       {/* ============ SIGNATURES ============ */}
       <table className="w-full border-collapse mt-6">
         <tbody>
