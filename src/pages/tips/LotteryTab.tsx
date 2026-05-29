@@ -87,7 +87,7 @@ export default function LotteryTab({ belowHeader }: { belowHeader?: ReactNode })
       <PageHeader
         icon={Ticket}
         title="Lottery"
-        subtitle="Weekly player draw · 1 ticket per 500 000 result (round up from 270 000)"
+        subtitle="Weekly player draw · 1 ticket per 500 000 result (round up from 270 000) · losers get 2× tickets"
         centerSlot={
           <div className="flex items-center gap-6 text-center">
             <div>
