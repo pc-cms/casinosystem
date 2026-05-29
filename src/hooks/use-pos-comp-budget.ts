@@ -53,3 +53,46 @@ export function useSetPosCompBudget() {
     },
   });
 }
+
+export type CompBudgetOverride = {
+  id: string;
+  casino_id: string;
+  tab_id: string;
+  month_start: string;
+  amount_tzs: number;
+  manager_user_id: string;
+  reason: string;
+  created_at: string;
+  manager_name?: string | null;
+};
+
+export function usePosCompBudgetOverrides(casinoId: string | null, monthStart?: string | null) {
+  return useQuery({
+    queryKey: ["pos-comp-budget-overrides", casinoId, monthStart ?? "current"],
+    enabled: !!casinoId,
+    staleTime: 30_000,
+    queryFn: async (): Promise<CompBudgetOverride[]> => {
+      let q = supabase
+        .from("pos_comp_budget_overrides")
+        .select("*")
+        .eq("casino_id", casinoId!)
+        .order("created_at", { ascending: false })
+        .limit(50);
+      if (monthStart) q = q.eq("month_start", monthStart);
+      const { data, error } = await q;
+      if (error) throw error;
+      const rows = (data ?? []) as CompBudgetOverride[];
+      const ids = Array.from(new Set(rows.map((r) => r.manager_user_id))).filter(Boolean);
+      const names = new Map<string, string>();
+      if (ids.length > 0) {
+        const { data: profs } = await supabase
+          .from("profiles")
+          .select("user_id, display_name")
+          .in("user_id", ids);
+        (profs ?? []).forEach((p: any) => names.set(p.user_id, p.display_name ?? ""));
+      }
+      return rows.map((r) => ({ ...r, manager_name: names.get(r.manager_user_id) ?? null }));
+    },
+  });
+}
+
