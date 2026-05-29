@@ -8,7 +8,7 @@ import {
   Building2, UserCheck, ClipboardPen, ShieldCheck, ShieldOff,
   Wallet, DoorOpen, ShieldAlert, Menu, Upload, FileText,
   ChevronsLeft, ChevronsRight, CreditCard, CalendarDays, ChevronDown, ChevronRight, Coins, Briefcase,
-  RefreshCw, MessageSquare, AlertTriangle, User as UserIcon, Rows3, Rows2, Gift, CheckCircle2,
+  RefreshCw, MessageSquare, AlertTriangle, User as UserIcon, Rows3, Rows2, Gift, CheckCircle2, Coffee,
 } from "lucide-react";
 import { UserProfileDialog } from "@/components/UserProfileDialog";
 import { resetPWACache } from "@/lib/pwa-register";
@@ -33,7 +33,7 @@ import arushaLogo from "@/assets/arusha-logo.png";
 type AppRole = "cashier" | "cashier_slots" | "pit" | "manager" | "floor_manager" | "reception" | "finance_manager" | "surveillance" | "super_admin" | "hr";
 
 // Section labels for the hybrid grouping (roles + shared ANALYTICS)
-type Section = "OVERVIEW" | "PIT" | "CASHIER" | "RECEPTION" | "FINANCE" | "HR" | "ANALYTICS" | "SYSTEM";
+type Section = "OVERVIEW" | "PIT" | "CASHIER" | "RECEPTION" | "FINANCE" | "HR" | "ANALYTICS" | "BAR" | "SYSTEM";
 
 type NavItem = {
   to: string;
@@ -105,7 +105,11 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/table-results", icon: FileText, label: "Table Results", roles: ["super_admin", "manager", "floor_manager", "finance_manager", "surveillance"], section: "ANALYTICS" },
   { to: "/business-days", icon: CalendarDays, label: "Business Days", roles: ["super_admin", "manager", "floor_manager", "finance_manager"], section: "ANALYTICS" },
   
-  
+  // BAR / POS — cross-role read-write surfaces for casino managers & finance.
+  { to: "/pos/manager", icon: Coffee, label: "Bar Manager", roles: ["super_admin", "manager", "finance_manager"], section: "BAR" },
+  { to: "/pos/reports", icon: FileBarChart, label: "Bar Reports", roles: ["super_admin", "manager", "finance_manager"], section: "BAR" },
+  { to: "/pos/manager/player-analytics", icon: Users, label: "Bar · Player Analytics", roles: ["super_admin", "manager", "finance_manager"], section: "BAR" },
+  { to: "/pos/manager/stock-counts", icon: ClipboardList, label: "Bar · Stock Counts", roles: ["super_admin", "manager", "finance_manager"], section: "BAR" },
 
   // SYSTEM — admin/system tools
   { to: "/import-reports", icon: Upload, label: "Import Reports", roles: ["super_admin", "manager"], section: "SYSTEM" },
@@ -204,7 +208,7 @@ const SidebarSections = ({
     (acc[item.section] ||= []).push(item);
     return acc;
   }, {});
-  const sectionOrder: Section[] = ["OVERVIEW", "PIT", "CASHIER", "RECEPTION", "FINANCE", "HR", "ANALYTICS", "SYSTEM"];
+  const sectionOrder: Section[] = ["OVERVIEW", "PIT", "CASHIER", "RECEPTION", "FINANCE", "HR", "ANALYTICS", "BAR", "SYSTEM"];
   const sections = sectionOrder.filter(s => grouped[s]?.length || (s === "SYSTEM" && isManager));
 
   // Find which section contains the active route

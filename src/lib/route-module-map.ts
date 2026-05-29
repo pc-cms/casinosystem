@@ -124,6 +124,12 @@ export const moduleKeyForRoute = (to: string, label?: string): ModuleKey | null 
   if (base === "/logs") return "logs";
   if (base === "/admin" || base.startsWith("/admin/")) return "admin";
 
+  // ============= POS / BAR =============
+  // POS surfaces are gated by dedicated POS roles + PosLayout cross-role
+  // whitelist (manager/finance). They are intentionally NOT routed through
+  // the Permission Matrix.
+  if (base === "/pos" || base.startsWith("/pos/")) return null;
+
   // Label-based fallback (rare)
   if (label === "CCTV") return "cctv";
 

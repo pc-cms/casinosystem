@@ -4,11 +4,17 @@ import { Button } from "@/components/ui/button";
 import { LogOut, Coffee, Monitor, Settings } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
+// Casino-level managers / finance / surveillance get read-only access to POS
+// surfaces (Manager dashboard, Reports, Player Analytics). Operational POS
+// tabs (Waiter / Bar) remain limited to dedicated POS roles + super_admin.
 const isPosRole = (roles: readonly string[]) =>
   roles.includes("pos_waiter") ||
   roles.includes("pos_bartender") ||
   roles.includes("pos_manager") ||
-  roles.includes("super_admin");
+  roles.includes("super_admin") ||
+  roles.includes("manager") ||
+  roles.includes("finance_manager") ||
+  roles.includes("surveillance");
 
 export const PosLayout = () => {
   const { user, loading, roles: typedRoles } = useAuth();
@@ -33,7 +39,11 @@ export const PosLayout = () => {
 
   const canWaiter = roles.includes("pos_waiter") || roles.includes("pos_manager") || roles.includes("super_admin");
   const canBar = roles.includes("pos_bartender") || roles.includes("pos_manager") || roles.includes("super_admin");
-  const canManage = roles.includes("pos_manager") || roles.includes("super_admin");
+  const canManage =
+    roles.includes("pos_manager") ||
+    roles.includes("super_admin") ||
+    roles.includes("manager") ||
+    roles.includes("finance_manager");
 
   const linkCls = ({ isActive }: { isActive: boolean }) =>
     `flex-1 flex flex-col items-center justify-center gap-1 py-3 text-xs font-medium ${
