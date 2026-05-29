@@ -19,7 +19,9 @@ import { useToast } from "@/hooks/use-toast";
 export default function CompBudgetCard() {
   const { activeCasinoId } = useCasino();
   const { data: status } = usePosCompBudgetStatus(activeCasinoId);
+  const { data: overrides } = usePosCompBudgetOverrides(activeCasinoId, status?.month_start ?? null);
   const setBudget = useSetPosCompBudget();
+
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState("");
