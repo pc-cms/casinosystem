@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { useChipConservation } from "@/hooks/use-chip-conservation";
 import { useChipConservationMode } from "@/hooks/use-chip-conservation-mode";
 import { formatNumberSpaces, formatChipLabel } from "@/lib/currency";
+import ChipToken from "@/components/ChipToken";
 import { CheckCircle2, AlertTriangle, Coins, Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
 
