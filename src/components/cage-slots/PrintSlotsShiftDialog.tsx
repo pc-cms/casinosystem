@@ -254,6 +254,8 @@ const PrintSlotsShiftDialog = ({ open, onClose, shiftId }: Props) => {
       missCards: -Math.abs(missCardCount),  // shown as negative like paper
       casinoExpenses,
       tipsCollection: (tipsCd || []).reduce((s: number, t: any) => s + Number(t.amount || 0), 0),
+      tipsCollectionDay: (tipsCd || []).filter((t: any) => tipsBucketOf(t.created_at) === "day").reduce((s: number, t: any) => s + Number(t.amount || 0), 0),
+      tipsCollectionEvening: (tipsCd || []).filter((t: any) => tipsBucketOf(t.created_at) === "evening").reduce((s: number, t: any) => s + Number(t.amount || 0), 0),
       // Shift Balance is stored in the closing check totals; fallback chain:
       // shifts.balance (rarely populated) → closing check totals.shift_balance → totals.balance → 0
       aceBalance: Number(
