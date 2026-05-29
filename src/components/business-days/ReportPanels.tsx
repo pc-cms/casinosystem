@@ -8,6 +8,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell, TableFooter } from "@/components/ui/table";
 import { formatNumberSpaces, formatChipLabel, CASH_DENOMS, CHIP_DENOMS } from "@/lib/currency";
+import ChipToken from "@/components/ChipToken";
 import { CATEGORY_LABELS } from "@/hooks/use-finance";
 import BreaklistGrid from "@/components/pit/BreaklistGrid";
 
