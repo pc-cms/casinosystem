@@ -113,9 +113,10 @@ export const CashCount = () => {
   }, [quantities]);
 
   const mainCashTzs = useMemo(() =>
-    COUNTABLE_WALLETS.reduce((sum, wt) => sum + (walletTotals[wt]?.totalTzs || 0), 0),
+    (["main_cash", "office_safe"] as WalletType[]).reduce((sum, wt) => sum + (walletTotals[wt]?.totalTzs || 0), 0),
     [walletTotals]
   );
+  const barCashTzs = walletTotals["bar_cash"]?.totalTzs || 0;
 
   const cageSlotTotal = getCageSlotTotal(cageSafe);
   const cageTableTotal = getCageTableTotal(cageSafe);
