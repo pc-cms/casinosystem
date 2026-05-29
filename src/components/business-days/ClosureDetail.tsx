@@ -28,6 +28,7 @@ export const ClosureDetail = ({ closure }: { closure: BusinessDayClosure }) => {
     chip_miss_total?: number;
     cards_miss_total?: number;
     expenses_total?: number;
+    bar_pl?: number;
     net_result?: number;
   } | undefined;
   const bar = (snap as any).bar_totals as {
@@ -37,6 +38,8 @@ export const ClosureDetail = ({ closure }: { closure: BusinessDayClosure }) => {
     comp_house_tzs?: number;
     comp_player_tzs?: number;
     player_charge_tzs?: number;
+    cogs_tzs?: number;
+    pl_tzs?: number;
     bills_count?: number;
   } | undefined;
 
@@ -80,15 +83,16 @@ const DailyResultBlock = ({ daily }: { daily: any }) => {
         <h3 className="text-sm font-bold uppercase tracking-wider">Daily Result</h3>
         <span className={`font-mono text-2xl font-bold ${cls}`}>{fmt(net)}</span>
       </div>
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-xs">
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-2 text-xs">
         <Cell label="Tables"       value={Number(daily.tables_total || 0)}      signed />
         <Cell label="+ Slots"      value={Number(daily.slots_total || 0)}       signed />
         <Cell label="− Chip Miss"  value={-Number(daily.chip_miss_total || 0)}  signed />
         <Cell label="− Cards Miss" value={-Number(daily.cards_miss_total || 0)} signed />
         <Cell label="− Expenses"   value={-Number(daily.expenses_total || 0)}   signed />
+        <Cell label="+ Bar P&L"    value={Number(daily.bar_pl || 0)}            signed />
       </div>
       <p className="mt-2 text-[10px] text-muted-foreground">
-        Net = Tables + Slots − Chip Miss − Cards Miss − Expenses. Internal transfers (Collections, Fills, Slots↔Live) are excluded.
+        Net = Tables + Slots − Chip Miss − Cards Miss − Expenses + Bar P&L. Internal transfers (Collections, Fills, Slots↔Live) are excluded.
       </p>
     </div>
   );
@@ -96,22 +100,31 @@ const DailyResultBlock = ({ daily }: { daily: any }) => {
 
 const BarTotalsBlock = ({ bar }: { bar: any }) => {
   const gross = Number(bar.gross_tzs || 0);
+  const pl = Number(bar.pl_tzs || 0);
+  const plCls = pl < 0 ? "cms-amount-negative" : pl > 0 ? "cms-amount-positive" : "";
   return (
     <div className="rounded-md border border-border bg-card p-4">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-bold uppercase tracking-wider">Bar · POS</h3>
-        <span className="font-mono text-2xl font-bold">{fmt(gross)}</span>
+        <div className="flex items-baseline gap-3">
+          <span className="text-[10px] uppercase text-muted-foreground tracking-wider">Gross</span>
+          <span className="font-mono text-xl font-bold">{fmt(gross)}</span>
+          <span className="text-[10px] uppercase text-muted-foreground tracking-wider ml-2">P&L</span>
+          <span className={`font-mono text-2xl font-bold ${plCls}`}>{fmt(pl)}</span>
+        </div>
       </div>
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-2 text-xs">
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-2 text-xs">
         <Cell label="Bills"          value={Number(bar.bills_count || 0)} />
         <Cell label="Cash"           value={Number(bar.cash_tzs || 0)} signed />
         <Cell label="Card"           value={Number(bar.card_tzs || 0)} signed />
         <Cell label="Player charge"  value={Number(bar.player_charge_tzs || 0)} signed />
         <Cell label="Comp · House"   value={Number(bar.comp_house_tzs || 0)} signed />
         <Cell label="Comp · Player"  value={Number(bar.comp_player_tzs || 0)} signed />
+        <Cell label="− COGS"         value={-Number(bar.cogs_tzs || 0)} signed />
+        <Cell label="= P&L"          value={pl} signed />
       </div>
       <p className="mt-2 text-[10px] text-muted-foreground">
-        Bar revenue is tracked separately from gaming. Comps reduce settled cash but stay in gross sales. Player charges accrue on player tabs.
+        P&L = Gross − COGS (cost of goods sold at moving average cost). Comps reduce settled cash but stay in gross sales. Player charges accrue as separate expenses against the player.
       </p>
     </div>
   );

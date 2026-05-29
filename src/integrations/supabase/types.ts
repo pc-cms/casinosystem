@@ -4564,6 +4564,47 @@ export type Database = {
           },
         ]
       }
+      pos_comp_budgets: {
+        Row: {
+          casino_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          limit_tzs: number
+          month_start: string
+          note: string
+          updated_at: string
+        }
+        Insert: {
+          casino_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          limit_tzs: number
+          month_start: string
+          note?: string
+          updated_at?: string
+        }
+        Update: {
+          casino_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          limit_tzs?: number
+          month_start?: string
+          note?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_comp_budgets_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pos_inventory_movements: {
         Row: {
           created_at: string
@@ -7246,6 +7287,10 @@ export type Database = {
         Args: { _closing_cash: number; _shift_id: string }
         Returns: Json
       }
+      pos_comp_budget_status: {
+        Args: { _casino_id: string; _month_start?: string }
+        Returns: Json
+      }
       pos_compute_z_report: { Args: { _shift_id: string }; Returns: Json }
       pos_create_purchase: { Args: { _payload: Json }; Returns: string }
       pos_handover_shift: {
@@ -7538,6 +7583,7 @@ export type Database = {
         | "flight"
         | "other"
         | "pos_comp"
+        | "bar_charge"
       log_category:
         | "transaction"
         | "edit"
@@ -7604,6 +7650,7 @@ export type Database = {
         | "collection"
         | "adjustment"
         | "external_income"
+        | "pos_deposit"
       wallet_type:
         | "main_cash"
         | "office_safe"
@@ -7615,6 +7662,7 @@ export type Database = {
         | "cage_table"
         | "mobile_money"
         | "bank_account"
+        | "bar_cash"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -7803,6 +7851,7 @@ export const Constants = {
         "flight",
         "other",
         "pos_comp",
+        "bar_charge",
       ],
       log_category: [
         "transaction",
@@ -7874,6 +7923,7 @@ export const Constants = {
         "collection",
         "adjustment",
         "external_income",
+        "pos_deposit",
       ],
       wallet_type: [
         "main_cash",
@@ -7886,6 +7936,7 @@ export const Constants = {
         "cage_table",
         "mobile_money",
         "bank_account",
+        "bar_cash",
       ],
     },
   },

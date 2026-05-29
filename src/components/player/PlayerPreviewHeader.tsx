@@ -21,6 +21,7 @@ import { formatCurrency, formatNumberSpaces } from "@/lib/currency";
 import { cn } from "@/lib/utils";
 import { useCreatePlayerChipAdjustment } from "@/hooks/use-player-chip-adjustments";
 import { usePlayerDropSplit } from "@/hooks/use-drop-split";
+import { usePosPlayerOutstanding } from "@/hooks/use-pos-player-outstanding";
 
 interface Props {
   playerId?: string | null;
@@ -135,6 +136,7 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
     fromDate ? businessDayHourUTC(fromDate, 13) : undefined,
     toDate ? businessDayHourUTC(toDate, 13 + 24) : undefined,
   );
+  const { data: barOwed = 0 } = usePosPlayerOutstanding(playerId);
   const nav = useNavigate();
   const { roles } = useAuth();
   const showFinancials = canSeePlayerFinancials(roles || []);
@@ -299,6 +301,13 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
                     value={`${result > 0 ? "+" : ""}${formatCurrency(result)}`}
                     tone={result > 0 ? "positive" : result < 0 ? "negative" : "neutral"}
                   />
+                  {barOwed > 0 && (
+                    <StatTile
+                      label="F&B Owed"
+                      value={formatCurrency(barOwed)}
+                      tone="negative"
+                    />
+                  )}
                 </>
               )}
             </div>
