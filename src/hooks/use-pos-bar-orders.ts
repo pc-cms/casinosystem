@@ -72,7 +72,11 @@ export function useAdvancePosOrder() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: { order_id: string; to: "preparing" | "ready" | "served" }) => {
-      const patch: Record<string, unknown> = { status: input.to };
+      const patch: {
+        status: "preparing" | "ready" | "served";
+        ready_at?: string;
+        served_at?: string;
+      } = { status: input.to };
       if (input.to === "ready") patch.ready_at = new Date().toISOString();
       if (input.to === "served") patch.served_at = new Date().toISOString();
       const { error } = await supabase.from("pos_orders").update(patch).eq("id", input.order_id);
