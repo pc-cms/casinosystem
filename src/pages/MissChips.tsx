@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { formatChipLabel, formatNumberSpaces, CHIP_DENOMS } from "@/lib/currency";
+import ChipToken from "@/components/ChipToken";
 import { format, startOfMonth, endOfMonth, subMonths, addMonths } from "date-fns";
 import { Coins, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
