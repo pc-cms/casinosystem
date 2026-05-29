@@ -109,13 +109,19 @@ export function usePosCurrentShift(casinoId: string | null, userId: string | nul
 export function useOpenPosShift() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { casino_id: string; waiter_user_id: string; opening_cash: number }) => {
+    mutationFn: async (input: {
+      casino_id: string;
+      waiter_user_id: string;
+      opening_cash: number;
+      shift_type: PosShiftType;
+    }) => {
       const { data, error } = await supabase
         .from("pos_shifts")
         .insert({
           casino_id: input.casino_id,
           waiter_user_id: input.waiter_user_id,
           opening_cash: input.opening_cash,
+          shift_type: input.shift_type,
         })
         .select("*")
         .single();
@@ -127,6 +133,37 @@ export function useOpenPosShift() {
     },
   });
 }
+
+/**
+ * Handover shift: atomically close the outgoing shift and open a new one
+ * for the incoming waiter (opening_cash = closing_cash).
+ */
+export function useHandoverShift() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      closing_shift_id: string;
+      new_waiter_user_id: string;
+      new_shift_type: PosShiftType;
+      closing_cash: number;
+    }): Promise<{ closed_shift_id: string; new_shift_id: string; z_report: PosZReport }> => {
+      const { data, error } = await supabase.rpc("pos_handover_shift", {
+        _closing_shift_id: input.closing_shift_id,
+        _new_waiter_user_id: input.new_waiter_user_id,
+        _new_shift_type: input.new_shift_type,
+        _closing_cash: input.closing_cash,
+      });
+      if (error) throw error;
+      return data as any;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["pos-shift"] });
+      qc.invalidateQueries({ queryKey: ["pos-tabs"] });
+      qc.invalidateQueries({ queryKey: ["pos-zreport"] });
+    },
+  });
+}
+
 
 /** Any open POS shift in a casino (used by Pit quick-order). */
 export function usePosAnyOpenShift(casinoId: string | null) {
