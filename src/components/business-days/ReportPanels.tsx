@@ -513,3 +513,99 @@ export const CashPanel = ({ rows, businessDate, casinoId }: PanelProps) => {
     </div>
   );
 };
+
+/* ────────────────────────── BAR · POS SHIFTS ────────────────────────── */
+export const BarShiftsPanel = ({ rows }: PanelProps) => {
+  if (!rows.length) return <Empty msg="No POS bar shifts closed on this business day." />;
+  const tot = (r: Row, path: string[]) => {
+    let v: any = r?.z_report;
+    for (const p of path) v = v?.[p];
+    return num(v);
+  };
+  let gross = 0, cash = 0, card = 0, ch = 0, cp = 0, bills = 0;
+  rows.forEach(r => {
+    gross += tot(r, ["totals", "gross_tzs"]);
+    cash  += tot(r, ["totals", "cash"]);
+    card  += tot(r, ["totals", "card"]);
+    ch    += tot(r, ["totals", "comp_house"]);
+    cp    += tot(r, ["totals", "comp_player"]);
+    bills += tot(r, ["counts", "tabs_closed"]);
+  });
+
+  return (
+    <div className="border rounded-md">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="text-xs">Segment</TableHead>
+            <TableHead className="text-xs">Opened</TableHead>
+            <TableHead className="text-xs">Closed</TableHead>
+            <TableHead className="text-xs text-right">Bills</TableHead>
+            <TableHead className="text-xs text-right">Gross</TableHead>
+            <TableHead className="text-xs text-right">Cash</TableHead>
+            <TableHead className="text-xs text-right">Card</TableHead>
+            <TableHead className="text-xs text-right">Comp · House</TableHead>
+            <TableHead className="text-xs text-right">Comp · Player</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {rows.map((r, i) => (
+            <TableRow key={r.id ?? i}>
+              <TableCell className="text-xs py-1.5 capitalize">{r.shift_type}</TableCell>
+              <TableCell className="text-xs py-1.5 font-mono">{r.opened_at ? new Date(r.opened_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : "—"}</TableCell>
+              <TableCell className="text-xs py-1.5 font-mono">{r.closed_at ? new Date(r.closed_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : "—"}</TableCell>
+              <TableCell className="text-xs py-1.5 text-right font-mono">{tot(r, ["counts","tabs_closed"])}</TableCell>
+              <TableCell className="text-xs py-1.5 text-right"><Money v={tot(r, ["totals","gross_tzs"])} /></TableCell>
+              <TableCell className="text-xs py-1.5 text-right"><Money v={tot(r, ["totals","cash"])} /></TableCell>
+              <TableCell className="text-xs py-1.5 text-right"><Money v={tot(r, ["totals","card"])} /></TableCell>
+              <TableCell className="text-xs py-1.5 text-right"><Money v={tot(r, ["totals","comp_house"])} /></TableCell>
+              <TableCell className="text-xs py-1.5 text-right"><Money v={tot(r, ["totals","comp_player"])} /></TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+        <TableFooter>
+          <TableRow>
+            <TableCell className="text-xs font-semibold" colSpan={3}>Total</TableCell>
+            <TableCell className="text-xs text-right font-semibold font-mono">{bills}</TableCell>
+            <TableCell className="text-xs text-right font-semibold"><Money v={gross} /></TableCell>
+            <TableCell className="text-xs text-right font-semibold"><Money v={cash} /></TableCell>
+            <TableCell className="text-xs text-right font-semibold"><Money v={card} /></TableCell>
+            <TableCell className="text-xs text-right font-semibold"><Money v={ch} /></TableCell>
+            <TableCell className="text-xs text-right font-semibold"><Money v={cp} /></TableCell>
+          </TableRow>
+        </TableFooter>
+      </Table>
+    </div>
+  );
+};
+
+/* ────────────────────────── BAR · STOCK COUNTS ────────────────────────── */
+export const BarStockCountsPanel = ({ rows }: PanelProps) => {
+  if (!rows.length) return <Empty msg="No stock counts recorded on this business day." />;
+  return (
+    <div className="border rounded-md">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="text-xs">Time</TableHead>
+            <TableHead className="text-xs">Type</TableHead>
+            <TableHead className="text-xs">Bartender</TableHead>
+            <TableHead className="text-xs text-right">Items</TableHead>
+            <TableHead className="text-xs text-right">Variance (TZS)</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {rows.map((r, i) => (
+            <TableRow key={r.id ?? i}>
+              <TableCell className="text-xs py-1.5 font-mono">{r.created_at ? new Date(r.created_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : "—"}</TableCell>
+              <TableCell className="text-xs py-1.5 capitalize">{r.count_type}</TableCell>
+              <TableCell className="text-xs py-1.5">{r.counted_by_name ?? "—"}</TableCell>
+              <TableCell className="text-xs py-1.5 text-right font-mono">{num(r.items_count)}</TableCell>
+              <TableCell className="text-xs py-1.5 text-right"><Money v={num(r.total_variance_value_tzs)} signed /></TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  );
+};
