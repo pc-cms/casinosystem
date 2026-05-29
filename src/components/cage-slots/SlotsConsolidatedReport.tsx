@@ -59,7 +59,7 @@ const Cell = ({ value, align = "right", emphasize = false }: { value: number | s
       ? (value === 0 ? "" : formatNumberSpaces(value))
       : value;
   return (
-    <td className={`border border-black px-1.5 py-0.5 ${align === "right" ? "text-right" : align === "center" ? "text-center" : "text-left"} ${emphasize ? "font-bold bg-gray-200" : ""}`}>
+    <td className={`border border-black px-2 py-1.5 ${align === "right" ? "text-right" : align === "center" ? "text-center" : "text-left"} ${emphasize ? "font-bold bg-gray-200" : ""}`}>
       {display}
     </td>
   );
@@ -67,7 +67,7 @@ const Cell = ({ value, align = "right", emphasize = false }: { value: number | s
 
 const Row = ({ label, value, bold }: { label: string; value: number | string; bold?: boolean }) => (
   <tr>
-    <td className={`border border-black px-1.5 py-0.5 ${bold ? "font-semibold bg-gray-100" : ""}`}>{label}</td>
+    <td className={`border border-black px-2 py-1.5 ${bold ? "font-semibold bg-gray-100" : ""}`}>{label}</td>
     <Cell value={value} emphasize={bold} />
   </tr>
 );
