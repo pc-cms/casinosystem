@@ -18,6 +18,11 @@ import { useRealtimeSubscriptions } from "@/hooks/use-realtime";
 import { initSyncEngine } from "@/lib/sync-engine";
 import Login from "@/pages/Login";
 const Landing = lazy(() => import("@/pages/Landing"));
+const PosLayout = lazy(() => import("@/pages/pos/PosLayout"));
+const PosLogin = lazy(() => import("@/pages/pos/PosLogin"));
+const PosWaiter = lazy(() => import("@/pages/pos/PosWaiter"));
+const PosBar = lazy(() => import("@/pages/pos/PosBar"));
+const PosManager = lazy(() => import("@/pages/pos/PosManager"));
 
 // Lazy-loaded pages — each becomes a separate chunk
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
