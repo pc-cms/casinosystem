@@ -35,7 +35,9 @@ import {
   type PosShift,
   type PosShiftType,
 } from "@/hooks/use-pos-shift";
+import { useSavePosStockCount } from "@/hooks/use-pos-stock-counts";
 import ZReportView from "./ZReportView";
+import StockCountPanel from "./StockCountPanel";
 
 interface Props {
   open: boolean;
