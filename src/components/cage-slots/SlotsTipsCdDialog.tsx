@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { formatNumberSpaces } from "@/lib/currency";
 import { fmtDateTime } from "@/lib/format-date";
 import { useSlotsTipsCd, useCreateSlotsTipsCd } from "@/hooks/use-slots-tips-cd";
+import { tipsBucketOf, TIPS_BUCKET_LABEL, type TipsBucket } from "@/lib/slots-tips-bucket";
 
 interface Props {
   open: boolean;
