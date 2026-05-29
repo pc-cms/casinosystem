@@ -61,6 +61,7 @@ export const CloseBillDialog = ({ open, onOpenChange, tab, onClosed }: Props) =>
       await closeMut.mutateAsync({ tab_id: tab.id, total_tzs: total, payment_split: split });
       toast({ title: "Bill closed" });
       onOpenChange(false);
+      onClosed?.();
     } catch (e: any) {
       toast({ title: "Failed to close", description: e?.message, variant: "destructive" });
     }
