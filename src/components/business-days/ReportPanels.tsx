@@ -463,7 +463,7 @@ export const CashPanel = ({ rows, businessDate, casinoId }: PanelProps) => {
                   if (!q) return null;
                   return (
                     <TableRow key={d}>
-                      <TableCell className="text-xs py-1 font-mono">{ccy === "TZS" ? formatChipLabel(d) : d}</TableCell>
+                      <TableCell className="text-xs py-1 font-mono">{ccy === "TZS" ? <ChipToken denom={d} /> : d}</TableCell>
                       <TableCell className="text-xs py-1 text-right font-mono">{q}</TableCell>
                       <TableCell className="text-xs py-1 text-right font-mono">{formatNumberSpaces(d * q)}</TableCell>
                     </TableRow>
