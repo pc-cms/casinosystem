@@ -124,7 +124,7 @@ export const CashCount = () => {
   const mobileTotal = getMobileTotal(mobile);
   const bankTotalTzs = getBankTotalTzs(banks);
 
-  const totalRealMoney = mainCashTzs + cageTotal + mobileTotal + bankTotalTzs;
+  const totalRealMoney = mainCashTzs + barCashTzs + cageTotal + mobileTotal + bankTotalTzs;
 
   const grandExpected = useMemo(() => {
     const allWallets: WalletType[] = [...COUNTABLE_WALLETS, "cage_slot", "cage_table", "mobile_money", "bank_account"];
