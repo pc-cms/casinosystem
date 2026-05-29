@@ -241,22 +241,20 @@ const SlotsShiftReportBody = ({ id, showHeader = true, compact = false }: Props)
 
       <PageSection title="Balance Calculation">
         <div className="grid grid-cols-2 gap-3 text-sm font-mono">
-          <Field label="Opening Cash" value={formatNumberSpaces(openingTotal)} />
           <Field label="Closing Cash" value={formatNumberSpaces(closingCash)} />
-          <Field label="ΔCash (Closing − Opening)" value={(deltaCash >= 0 ? "+" : "") + formatNumberSpaces(deltaCash)} />
           <Field label="+ Expenses" value={formatNumberSpaces(expensesTotal)} />
+          <Field label="− Ace Fill" value={formatNumberSpaces(txAgg.fill)} />
           <Field label="+ Collection" value={formatNumberSpaces(txAgg.collection)} />
           <Field label="+ LG Out" value={formatNumberSpaces(txAgg.lg_out)} />
           <Field label="− LG In" value={formatNumberSpaces(txAgg.lg_in)} />
           <Field label="= Cash Desk Result" value={(cashDeskResult >= 0 ? "+" : "") + formatNumberSpaces(cashDeskResult)} emphasize />
-          <Field label="+ Ace Fill (ACE System Fill)" value={formatNumberSpaces(txAgg.fill)} />
           <Field label="System Result" value={(systemResult >= 0 ? "+" : "") + formatNumberSpaces(systemResult)} />
-          <Field label="− (System − Opening)" value={(expected >= 0 ? "+" : "") + formatNumberSpaces(expected)} />
-          <Field label="Slots Result (System − Opening − Ace Fill)" value={(slotsResult >= 0 ? "+" : "") + formatNumberSpaces(slotsResult)} />
+          <Field label="Slots Result (= System Result)" value={(slotsResult >= 0 ? "+" : "") + formatNumberSpaces(slotsResult)} />
           <Field label="− Cards Miss" value={(cardsMiss >= 0 ? "+" : "") + formatNumberSpaces(cardsMiss)} />
           <Field label="= Shift Balance" value={(balance >= 0 ? "+" : "") + formatNumberSpaces(balance)} emphasize />
         </div>
       </PageSection>
+
 
       {(shift.cashier_note || shift.manager_comment || comments.length > 0) && (
         <PageSection title="Notes & Comments">
