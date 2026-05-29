@@ -4793,6 +4793,83 @@ export type Database = {
           },
         ]
       }
+      pos_player_charges: {
+        Row: {
+          amount_tzs: number
+          business_date: string
+          casino_id: string
+          created_at: string
+          id: string
+          player_id: string
+          settled_at: string | null
+          settled_by: string | null
+          settlement_ref: string | null
+          status: string
+          tab_id: string
+          updated_at: string
+          void_reason: string | null
+        }
+        Insert: {
+          amount_tzs: number
+          business_date: string
+          casino_id: string
+          created_at?: string
+          id?: string
+          player_id: string
+          settled_at?: string | null
+          settled_by?: string | null
+          settlement_ref?: string | null
+          status?: string
+          tab_id: string
+          updated_at?: string
+          void_reason?: string | null
+        }
+        Update: {
+          amount_tzs?: number
+          business_date?: string
+          casino_id?: string
+          created_at?: string
+          id?: string
+          player_id?: string
+          settled_at?: string | null
+          settled_by?: string | null
+          settlement_ref?: string | null
+          status?: string
+          tab_id?: string
+          updated_at?: string
+          void_reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_player_charges_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_player_charges_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "player_economy"
+            referencedColumns: ["player_id"]
+          },
+          {
+            foreignKeyName: "pos_player_charges_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_player_charges_tab_id_fkey"
+            columns: ["tab_id"]
+            isOneToOne: true
+            referencedRelation: "pos_tabs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pos_shifts: {
         Row: {
           business_date: string | null
