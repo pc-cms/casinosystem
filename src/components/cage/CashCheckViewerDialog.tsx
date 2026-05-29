@@ -183,23 +183,21 @@ const CashCheckViewerDialog = ({
         {/* Totals strip */}
         {balanceMode === "slots" ? (
           <>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 cms-panel p-4">
-              <SlotsStat label="Cash Count" value={slotsCashCount} emphasize />
-              <SlotsStat label="System Result" value={slotsSystem} signed />
-              <SlotsStat label="Slot Result" value={slotsDerived} signed />
-              <div className="text-center rounded-md border-2 border-primary/40 bg-primary/5 p-2">
-                <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Shift Balance</p>
-                <p className={`font-mono text-2xl font-bold whitespace-nowrap ${slotsBalance < 0 ? "text-destructive" : slotsBalance > 0 ? "text-success" : "text-card-foreground"}`}>
-                  {slotsBalance > 0 ? "+" : ""}{formatCurrency(slotsBalance)}
-                </p>
-                <p className="text-[9px] text-muted-foreground mt-0.5">(CDR + Ace Fill) − (System − Opening) − Cards Miss</p>
-              </div>
+            <div className="cms-panel p-4 text-center rounded-md border-2 border-primary/40 bg-primary/5">
+              <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Shift Balance</p>
+              <p className={`font-mono text-3xl font-bold whitespace-nowrap ${slotsBalance < 0 ? "cms-amount-negative" : slotsBalance > 0 ? "cms-amount-positive" : "text-card-foreground"}`}>
+                {slotsBalance > 0 ? "+" : ""}{formatCurrency(slotsBalance)}
+              </p>
+              <p className="text-[9px] text-muted-foreground mt-0.5">CDR − System Result − Cards Miss</p>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 cms-panel p-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2 cms-panel p-3">
+              <SlotsStat label="System Result" value={slotsSystem} signed />
+              <SlotsStat label="Cash Counted" value={slotsCashCount} />
+              <SlotsStat label="Expenses" value={slotsExpenses} />
               <SlotsStat label="Cashless IN" value={slotsCashlessIn} />
               <SlotsStat label="Cashless OUT" value={slotsCashlessOut} />
-              <SlotsStat label="Cashless Balance (IN−OUT)" value={slotsCashlessBalance} signed />
-              <SlotsStat label="Cashless Final (print only)" value={slotsCashlessFinal} />
+              <SlotsStat label="Transfer IN" value={slotsTransferIn} />
+              <SlotsStat label="Transfer OUT" value={slotsTransferOut} />
             </div>
 
             {/* Per-provider breakdown: shows EXACTLY which provider contributes how much
