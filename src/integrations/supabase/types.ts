@@ -7369,6 +7369,31 @@ export type Database = {
         }
         Returns: string
       }
+      pos_shift_reconciliation: {
+        Args: { _casino_id: string; _from: string; _to: string }
+        Returns: {
+          business_date: string
+          card_tzs: number
+          cash_delta: number
+          cash_tzs: number
+          closed_at: string
+          closing_cash: number
+          comp_house_tzs: number
+          comp_player_tzs: number
+          expected_cash: number
+          gross_tzs: number
+          opened_at: string
+          opening_cash: number
+          outstanding_charges_tzs: number
+          overrides_count: number
+          shift_id: string
+          shift_type: string
+          status: string
+          stock_variance_tzs: number
+          waiter_name: string
+          waiter_user_id: string
+        }[]
+      }
       pos_suggested_price: { Args: { _item_id: string }; Returns: number }
       pos_tabs_recompute_total: {
         Args: { _tab_id: string }
