@@ -412,6 +412,7 @@ const AppRoutes = () => {
           <Route path="manager/menu" element={<PosManagerMenu />} />
           <Route path="manager/inventory" element={<PosManagerInventory />} />
           <Route path="manager/pricing" element={<PosManagerPricing />} />
+          <Route path="manager/stock-counts" element={<PosManagerStockCounts />} />
           <Route path="reports" element={<PosReports />} />
           <Route path="charges" element={<PosCharges />} />
           <Route path="purchases" element={<PosPurchases />} />
