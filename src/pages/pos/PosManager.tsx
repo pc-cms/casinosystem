@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { UtensilsCrossed, Receipt, Boxes, BarChart3, ReceiptText, ShoppingCart, Tag, ClipboardCheck } from "lucide-react";
+import { UtensilsCrossed, Receipt, Boxes, BarChart3, ReceiptText, ShoppingCart, Tag, ClipboardCheck, Users } from "lucide-react";
 
 const cards = [
   {
@@ -42,6 +42,13 @@ const cards = [
     title: "Reports",
     desc: "Sales by waiter, top items, payment mix",
     icon: BarChart3,
+    enabled: true,
+  },
+  {
+    to: "/pos/manager/player-analytics",
+    title: "Player analytics",
+    desc: "F&B consumption by player + drill-down",
+    icon: Users,
     enabled: true,
   },
   {
