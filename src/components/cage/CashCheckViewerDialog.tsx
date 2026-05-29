@@ -132,13 +132,13 @@ const CashCheckViewerDialog = ({
 
   // Slots canonical fields
   const slotsSystem = Number(t.system_result ?? t.slots_result ?? 0);
-  const slotsDerived = Number(t.slots_result_derived ?? t.slots_result ?? 0);
   const slotsBalance = Number(t.shift_balance ?? t.balance ?? 0);
   const slotsCashCount = Number(t.total_tzs ?? counted);
   const slotsCashlessIn = Number(t.cashless_in ?? 0);
   const slotsCashlessOut = Number(t.cashless_out ?? 0);
-  const slotsCashlessBalance = Number(t.cashless_balance ?? (slotsCashlessIn - slotsCashlessOut));
-  const slotsCashlessFinal = Number(t.cashless_final ?? 0);
+  const slotsExpenses = Number(t.expenses ?? 0);
+  const slotsTransferIn = Number(t.transfer_in ?? 0);
+  const slotsTransferOut = Number(t.transfer_out ?? 0);
 
   const balanced = !!t.balanced || diff === 0;
   const isOpening = !!t.is_opening;
