@@ -26,7 +26,11 @@ const SlotsTipsCdDialog = ({ open, onOpenChange, shiftId, readOnly }: Props) => 
   const [amount, setAmount] = useState<string>("");
   const [note, setNote] = useState<string>("");
 
-  const total = tips.reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+  const tipsWithBucket = tips.map((t: any) => ({ ...t, bucket: tipsBucketOf(t.created_at) as TipsBucket }));
+  const sumBy = (b: TipsBucket) => tipsWithBucket.filter((t: any) => t.bucket === b).reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+  const totalDay = sumBy("day");
+  const totalEvening = sumBy("evening");
+  const total = totalDay + totalEvening;
 
   const submit = async () => {
     const amt = Number(amount) || 0;
