@@ -77,12 +77,12 @@ export default function MarketingCampaigns() {
         icon={Megaphone}
         title="Marketing Campaigns"
         subtitle="Promotional budgets, expenses and ROI"
-        actions={
-          <Button onClick={() => setOpen(true)}>
-            <Plus className="h-4 w-4 mr-1" /> New Campaign
-          </Button>
-        }
-      />
+      >
+        <Button onClick={() => setOpen(true)}>
+          <Plus className="h-4 w-4 mr-1" /> New Campaign
+        </Button>
+      </PageHeader>
+
 
       <div className="flex flex-wrap items-end gap-3">
         <div className="space-y-1">
