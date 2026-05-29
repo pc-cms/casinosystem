@@ -42,6 +42,7 @@ export const WALLET_LABELS: Record<WalletType, string> = {
   cage_table: "Cage Table",
   mobile_money: "Mobile Money",
   bank_account: "Bank Account",
+  bar_cash: "Bar Cash",
 };
 
 export interface Wallet {
