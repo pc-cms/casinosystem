@@ -1,5 +1,5 @@
 /**
- * Close POS shift: preview Z-report + enter closing cash → calls pos_close_shift RPC.
+ * Close POS shift: preview Z-report + closing cash + REQUIRED closing stock count.
  * Server enforces: no open tabs, immutability after close, permission check.
  */
 import { useEffect, useState } from "react";
@@ -15,7 +15,9 @@ import {
   type PosShift,
   type PosZReport,
 } from "@/hooks/use-pos-shift";
+import { useSavePosStockCount } from "@/hooks/use-pos-stock-counts";
 import ZReportView from "./ZReportView";
+import StockCountPanel from "./StockCountPanel";
 
 interface Props {
   open: boolean;
@@ -27,14 +29,20 @@ interface Props {
 
 export const CloseShiftDialog = ({ open, onOpenChange, shift, openTabsCount, onClosed }: Props) => {
   const closeMut = useClosePosShift();
+  const saveCountMut = useSavePosStockCount();
   const { data: preview, isLoading } = usePosZReportPreview(shift?.id ?? null, open);
   const [closingCash, setClosingCash] = useState("0");
+  const [counts, setCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
     if (open && preview) {
       setClosingCash(String(preview.expected_cash ?? 0));
     }
   }, [open, preview]);
+
+  useEffect(() => {
+    if (open) setCounts({});
+  }, [open]);
 
   const previewWithCash: PosZReport | null = preview
     ? {
@@ -44,7 +52,9 @@ export const CloseShiftDialog = ({ open, onOpenChange, shift, openTabsCount, onC
       }
     : null;
 
-  const canClose = openTabsCount === 0 && !!shift && !!preview && !closeMut.isPending;
+  const countedItems = Object.keys(counts).length;
+  const busy = closeMut.isPending || saveCountMut.isPending;
+  const canClose = openTabsCount === 0 && !!shift && !!preview && countedItems > 0 && !busy;
 
   const handle = async () => {
     if (!shift) return;
@@ -52,7 +62,18 @@ export const CloseShiftDialog = ({ open, onOpenChange, shift, openTabsCount, onC
       toast({ title: "Close all open tabs first", variant: "destructive" });
       return;
     }
+    if (countedItems === 0) {
+      toast({ title: "Closing stock count required", description: "Enter at least one counted item.", variant: "destructive" });
+      return;
+    }
     try {
+      // 1. Save closing stock count first — attaches to shift while still open.
+      await saveCountMut.mutateAsync({
+        shift_id: shift.id,
+        count_type: "close",
+        items: Object.entries(counts).map(([item_id, counted_qty]) => ({ item_id, counted_qty })),
+      });
+      // 2. Close shift.
       const z = await closeMut.mutateAsync({
         shift_id: shift.id,
         closing_cash: Math.round(Number(closingCash) || 0),
@@ -94,10 +115,22 @@ export const CloseShiftDialog = ({ open, onOpenChange, shift, openTabsCount, onC
         {isLoading && <div className="text-sm text-muted-foreground">Computing report…</div>}
         {previewWithCash && <ZReportView z={previewWithCash} />}
 
+        <div className="space-y-2">
+          <div className="flex items-baseline justify-between">
+            <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground font-semibold">
+              Stock count · closing
+            </p>
+            <span className="text-[10px] text-muted-foreground">
+              Enter actual shelf qty per item. Expected qty is hidden; variance is recorded for the manager report.
+            </span>
+          </div>
+          <StockCountPanel value={counts} onChange={setCounts} />
+        </div>
+
         <ResponsiveDialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
           <Button onClick={handle} disabled={!canClose}>
-            {closeMut.isPending ? "Closing…" : "Confirm & close shift"}
+            {saveCountMut.isPending ? "Saving count…" : closeMut.isPending ? "Closing…" : "Confirm & close shift"}
           </Button>
         </ResponsiveDialogFooter>
       </div>
