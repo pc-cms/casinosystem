@@ -78,7 +78,7 @@ const PrintSlotsShiftDialog = ({ open, onClose, shiftId }: Props) => {
       return;
     }
     doc.open();
-    doc.write(`<!doctype html><html><head>${styles}<style>@media print { @page { size: 210mm 297mm !important; margin: 8mm !important; } html, body { margin: 0 !important; background: white !important; } .slots-print-area { display: block !important; width: 194mm !important; min-height: 281mm !important; } }</style></head><body>${source.innerHTML}</body></html>`);
+    doc.write(`<!doctype html><html><head>${styles}<style>@media print { @page { size: 210mm 297mm !important; margin: 8mm !important; } html, body { margin: 0 !important; background: white !important; } body, body * { visibility: visible !important; } .slots-print-area { display: block !important; width: 194mm !important; min-height: 281mm !important; page: auto !important; page-break-after: auto !important; break-after: auto !important; } }</style></head><body><div class="slots-print-area cms-print-root">${source.innerHTML}</div></body></html>`);
     doc.close();
     const cleanup = () => {
       setTimeout(() => {
