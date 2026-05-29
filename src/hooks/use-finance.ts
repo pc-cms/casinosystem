@@ -106,7 +106,7 @@ export function useInitializeWallets() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      const walletTypes: WalletType[] = ["main_cash", "office_safe", "rent_reserve", "license_reserve", "tax_reserve", "other_reserve", "cage_slot", "cage_table", "mobile_money", "bank_account"];
+      const walletTypes: WalletType[] = ["main_cash", "office_safe", "rent_reserve", "license_reserve", "tax_reserve", "other_reserve", "cage_slot", "cage_table", "mobile_money", "bank_account", "bar_cash"];
       const wallets = walletTypes.map(wt => ({
         casino_id: casinoId,
         wallet_type: wt,
