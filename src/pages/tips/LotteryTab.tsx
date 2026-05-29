@@ -38,10 +38,13 @@ const addDays = (iso: string, n: number): string => {
 };
 
 const ticketsForResult = (result: number): number => {
-  if (result <= 0) return 0;
-  const full = Math.floor(result / TICKET_UNIT);
-  const remainder = result - full * TICKET_UNIT;
-  return full + (remainder >= ROUNDUP_THRESHOLD ? 1 : 0);
+  const abs = Math.abs(result);
+  if (abs === 0) return 0;
+  const full = Math.floor(abs / TICKET_UNIT);
+  const remainder = abs - full * TICKET_UNIT;
+  const base = full + (remainder >= ROUNDUP_THRESHOLD ? 1 : 0);
+  // Losers get double tickets (compensation rule): −500 000 = 2 tickets.
+  return result < 0 ? base * 2 : base;
 };
 
 const playerName = (p: any) => {
