@@ -130,7 +130,7 @@ const PrintSlotsShiftDialog = ({ open, onClose, shiftId }: Props) => {
 
   const props = useMemo(() => {
     if (!data?.shift) return null;
-    const { shift, inventory, cards, rates, checks, cashless, transfers, expenses } = data;
+    const { shift, inventory, cards, rates, checks, cashless, transfers, expenses, tipsCd } = data as any;
 
     // Rates map
     const rateMap: Record<string, number> = { TZS: 1 };
