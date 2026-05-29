@@ -9,7 +9,8 @@ import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 
 export default function PosLogin() {
-  const { user, roles } = useAuth();
+  const { user, roles: typedRoles } = useAuth();
+  const roles = typedRoles as readonly string[];
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
