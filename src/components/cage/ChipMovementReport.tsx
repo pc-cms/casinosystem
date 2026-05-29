@@ -120,6 +120,7 @@ const DenomTable = ({ title, data, total, signed }: {
   total: number;
   signed?: boolean;
 }) => {
+  const { data: chipColorOverrides } = useChipColors();
   const fmtQty = (q: number) => {
     if (!q) return "";
     return signed && q !== 0 ? `${q > 0 ? "+" : ""}${q}` : String(q);
@@ -147,9 +148,17 @@ const DenomTable = ({ title, data, total, signed }: {
           {CHIP_DENOMS.map(d => {
             const q = data[d] || 0;
             const v = q * d;
+            const c = resolveChipColor(d, chipColorOverrides);
             return (
               <tr key={d}>
-                <td className="border border-black px-1 py-0.5 tabular-nums">{formatNumberSpaces(d)}</td>
+                <td className="border border-black px-1 py-0.5 tabular-nums">
+                  <span
+                    className="inline-block rounded-full border border-black px-1.5 py-0 text-[9px] font-bold tabular-nums leading-tight"
+                    style={{ background: c.bg, color: c.text, borderColor: c.edge, WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" } as any}
+                  >
+                    {formatNumberSpaces(d)}
+                  </span>
+                </td>
                 <td className="border border-black px-1 py-0.5 text-right tabular-nums">{fmtQty(q)}</td>
                 <td className="border border-black px-1 py-0.5 text-right tabular-nums">{fmtVal(v)}</td>
               </tr>
