@@ -2,19 +2,22 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   CashPanel, ExpensesPanel, CashlessPanel, TableCheckPanel,
   ChipCountPanel, BreaklistPanel, PlayerStatsPanel,
+  BarShiftsPanel, BarStockCountsPanel,
 } from "./ReportPanels";
 import type { BusinessDayClosure, SnapshotSection } from "@/hooks/use-business-day-history";
 
-type TabDef = { key: SnapshotSection; label: string; render: (rows: any[], date: string, casinoId: string) => JSX.Element };
+type TabDef = { key: string; label: string; render: (rows: any[], date: string, casinoId: string) => JSX.Element };
 
 const TABS: TabDef[] = [
-  { key: "cash_counts",    label: "Cash",        render: (rows, d, c) => <CashPanel        rows={rows} businessDate={d} casinoId={c} /> },
-  { key: "expenses",       label: "Expenses",    render: (rows, d, c) => <ExpensesPanel    rows={rows} businessDate={d} casinoId={c} /> },
-  { key: "cashless",       label: "Cashless",    render: (rows, d, c) => <CashlessPanel    rows={rows} businessDate={d} casinoId={c} /> },
-  { key: "table_tracker",  label: "Table Check", render: (rows, d, c) => <TableCheckPanel  rows={rows} businessDate={d} casinoId={c} /> },
-  { key: "chip_snapshots", label: "Chips Count", render: (rows, d, c) => <ChipCountPanel   rows={rows} businessDate={d} casinoId={c} /> },
-  { key: "breaklist",      label: "Breaklist",   render: (rows, d, c) => <BreaklistPanel   rows={rows} businessDate={d} casinoId={c} /> },
-  { key: "player_stats",   label: "Player Stats",render: (rows, d, c) => <PlayerStatsPanel rows={rows} businessDate={d} casinoId={c} /> },
+  { key: "cash_counts",      label: "Cash",        render: (rows, d, c) => <CashPanel        rows={rows} businessDate={d} casinoId={c} /> },
+  { key: "expenses",         label: "Expenses",    render: (rows, d, c) => <ExpensesPanel    rows={rows} businessDate={d} casinoId={c} /> },
+  { key: "cashless",         label: "Cashless",    render: (rows, d, c) => <CashlessPanel    rows={rows} businessDate={d} casinoId={c} /> },
+  { key: "table_tracker",    label: "Table Check", render: (rows, d, c) => <TableCheckPanel  rows={rows} businessDate={d} casinoId={c} /> },
+  { key: "chip_snapshots",   label: "Chips Count", render: (rows, d, c) => <ChipCountPanel   rows={rows} businessDate={d} casinoId={c} /> },
+  { key: "breaklist",        label: "Breaklist",   render: (rows, d, c) => <BreaklistPanel   rows={rows} businessDate={d} casinoId={c} /> },
+  { key: "player_stats",     label: "Player Stats",render: (rows, d, c) => <PlayerStatsPanel rows={rows} businessDate={d} casinoId={c} /> },
+  { key: "pos_shifts",       label: "Bar · Shifts",render: (rows, d, c) => <BarShiftsPanel   rows={rows} businessDate={d} casinoId={c} /> },
+  { key: "pos_stock_counts", label: "Bar · Stock", render: (rows, d, c) => <BarStockCountsPanel rows={rows} businessDate={d} casinoId={c} /> },
 ];
 
 export const ClosureDetail = ({ closure }: { closure: BusinessDayClosure }) => {
@@ -27,26 +30,34 @@ export const ClosureDetail = ({ closure }: { closure: BusinessDayClosure }) => {
     expenses_total?: number;
     net_result?: number;
   } | undefined;
+  const bar = (snap as any).bar_totals as {
+    gross_tzs?: number;
+    cash_tzs?: number;
+    card_tzs?: number;
+    comp_house_tzs?: number;
+    comp_player_tzs?: number;
+    player_charge_tzs?: number;
+    bills_count?: number;
+  } | undefined;
 
   return (
     <div className="space-y-3">
-      {daily && (
-        <DailyResultBlock daily={daily} />
-      )}
+      {daily && <DailyResultBlock daily={daily} />}
+      {bar && <BarTotalsBlock bar={bar} />}
       <Tabs defaultValue="cash_counts" className="w-full">
         <TabsList className="flex flex-wrap h-auto">
           {TABS.map(t => (
             <TabsTrigger key={t.key} value={t.key} className="text-xs">
               {t.label}
               <span className="ml-1.5 text-[10px] text-muted-foreground">
-                {Array.isArray(snap[t.key]) ? snap[t.key].length : 0}
+                {Array.isArray((snap as any)[t.key]) ? (snap as any)[t.key].length : 0}
               </span>
             </TabsTrigger>
           ))}
         </TabsList>
         {TABS.map(t => (
           <TabsContent key={t.key} value={t.key} className="mt-3">
-            {t.render(Array.isArray(snap[t.key]) ? snap[t.key] : [], closure.business_date, closure.casino_id)}
+            {t.render(Array.isArray((snap as any)[t.key]) ? (snap as any)[t.key] : [], closure.business_date, closure.casino_id)}
           </TabsContent>
         ))}
       </Tabs>
@@ -70,14 +81,37 @@ const DailyResultBlock = ({ daily }: { daily: any }) => {
         <span className={`font-mono text-2xl font-bold ${cls}`}>{fmt(net)}</span>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-xs">
-        <Cell label="Tables"      value={Number(daily.tables_total || 0)}      signed />
-        <Cell label="+ Slots"     value={Number(daily.slots_total || 0)}       signed />
-        <Cell label="− Chip Miss" value={-Number(daily.chip_miss_total || 0)}  signed />
+        <Cell label="Tables"       value={Number(daily.tables_total || 0)}      signed />
+        <Cell label="+ Slots"      value={Number(daily.slots_total || 0)}       signed />
+        <Cell label="− Chip Miss"  value={-Number(daily.chip_miss_total || 0)}  signed />
         <Cell label="− Cards Miss" value={-Number(daily.cards_miss_total || 0)} signed />
-        <Cell label="− Expenses"  value={-Number(daily.expenses_total || 0)}   signed />
+        <Cell label="− Expenses"   value={-Number(daily.expenses_total || 0)}   signed />
       </div>
       <p className="mt-2 text-[10px] text-muted-foreground">
         Net = Tables + Slots − Chip Miss − Cards Miss − Expenses. Internal transfers (Collections, Fills, Slots↔Live) are excluded.
+      </p>
+    </div>
+  );
+};
+
+const BarTotalsBlock = ({ bar }: { bar: any }) => {
+  const gross = Number(bar.gross_tzs || 0);
+  return (
+    <div className="rounded-md border border-border bg-card p-4">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-bold uppercase tracking-wider">Bar · POS</h3>
+        <span className="font-mono text-2xl font-bold">{fmt(gross)}</span>
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-2 text-xs">
+        <Cell label="Bills"          value={Number(bar.bills_count || 0)} />
+        <Cell label="Cash"           value={Number(bar.cash_tzs || 0)} signed />
+        <Cell label="Card"           value={Number(bar.card_tzs || 0)} signed />
+        <Cell label="Player charge"  value={Number(bar.player_charge_tzs || 0)} signed />
+        <Cell label="Comp · House"   value={Number(bar.comp_house_tzs || 0)} signed />
+        <Cell label="Comp · Player"  value={Number(bar.comp_player_tzs || 0)} signed />
+      </div>
+      <p className="mt-2 text-[10px] text-muted-foreground">
+        Bar revenue is tracked separately from gaming. Comps reduce settled cash but stay in gross sales. Player charges accrue on player tabs.
       </p>
     </div>
   );
