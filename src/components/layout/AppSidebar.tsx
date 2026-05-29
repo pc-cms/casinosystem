@@ -404,7 +404,14 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
     if (isSuper) return true;
     if (allowedModules === undefined) return false; // still loading → render nothing yet
     const mk = moduleKeyForRoute(item.to, item.label);
-    if (!mk) return true; // unmapped auxiliary entry
+    if (!mk) {
+      // Unmapped auxiliary entry (e.g. /pos/*) — gate by item.roles whitelist
+      // so cashier/cashier_slots/pit don't accidentally see BAR/POS nav items.
+      if (item.roles && item.roles.length > 0) {
+        return item.roles.some(r => roles.includes(r));
+      }
+      return true;
+    }
     return allowedModules.has(mk);
   });
 
