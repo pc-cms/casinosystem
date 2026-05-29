@@ -46,13 +46,15 @@ const SlotsTransfersForm = ({ shiftId }: Props) => {
 
   const [type, setType] = useState<SlotsTransferType>("fill");
   const [amount, setAmount] = useState("");
+  const [sign, setSign] = useState<1 | -1>(1);
   const [note, setNote] = useState("");
   const [showOverride, setShowOverride] = useState(false);
 
   const cfg = TYPE_OPTIONS.find(t => t.value === type)!;
-  const finalAmount = Number(amount) || 0;
+  const absAmount = Number(amount) || 0;
+  const finalAmount = absAmount * sign;
 
-  const reset = () => { setAmount(""); setNote(""); };
+  const reset = () => { setAmount(""); setNote(""); setSign(1); };
 
   const submit = (managerId: string) => {
     create.mutate({
@@ -66,10 +68,12 @@ const SlotsTransfersForm = ({ shiftId }: Props) => {
   };
 
   const handleSubmit = () => {
-    if (finalAmount <= 0) { toast.error("Amount must be greater than zero"); return; }
+    if (absAmount <= 0) { toast.error("Amount must be greater than zero"); return; }
+    if (sign === -1 && !note.trim()) { toast.error("Note is required for a reverse (negative) transfer"); return; }
     if (cfg.isCross && !lgShift) { toast.error("No open Live Game shift to pair with"); return; }
     if (!user) return;
-    if (cfg.needsOverride) setShowOverride(true);
+    // Negative (reverse) transfers always require manager override — they undo prior money movement.
+    if (cfg.needsOverride || sign === -1) setShowOverride(true);
     else submit(user.id);
   };
 
