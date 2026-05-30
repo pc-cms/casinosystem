@@ -475,6 +475,8 @@ const CloseShiftDialog = ({
                 </div>
                 <FormulaRow label="− Tables Result" value={`−(${resultTable >= 0 ? "+" : ""}${formatNumberSpaces(resultTable)})`} />
                 <FormulaRow label="− Miss Chips (signed)" value={`−(${balanceMissTotal >= 0 ? "+" : ""}${formatNumberSpaces(balanceMissTotal)})`} />
+                <FormulaRow label="− Tips (Live + Poker + Floor)" value={`−${formatNumberSpaces(tipsTotal)}`} />
+
                 <div className={cn(
                   "flex justify-between pt-3 mt-2 border-t-2 text-lg font-bold",
                   isBalanced ? "border-success/60" : "border-destructive/60",
