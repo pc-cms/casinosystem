@@ -64,6 +64,9 @@ const ShiftClosingReport = ({
   /** Authoritative per-table Result computed by DB RPC
    *  `compute_shift_table_results` — formula (Σ(actual−baseline)·denom) − Fill + Credit. */
   const [serverResults, setServerResults] = useState<Record<string, number>>({});
+  /** Tips for the business day, split by shift_type. Informational only —
+   *  tips are NOT part of Shift Balance. */
+  const [tipsByShift, setTipsByShift] = useState<{ day: number; night: number }>({ day: 0, night: 0 });
 
   useEffect(() => {
     let cancelled = false;
