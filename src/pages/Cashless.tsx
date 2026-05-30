@@ -180,12 +180,12 @@ const Cashless = () => {
                       type="button"
                       onClick={() => updateDraft(d.uid, { direction: "IN" })}
                       className={`px-3 text-xs font-medium ${d.direction === "IN" ? "bg-success/15 text-success" : "text-muted-foreground"}`}
-                    >IN</button>
+                    >Deposit</button>
                     <button
                       type="button"
                       onClick={() => updateDraft(d.uid, { direction: "OUT" })}
                       className={`px-3 text-xs font-medium ${d.direction === "OUT" ? "bg-destructive/15 text-destructive" : "text-muted-foreground"}`}
-                    >OUT</button>
+                    >Withdrawal</button>
                   </div>
                 </td>
                 <td className="px-2 py-1.5">
