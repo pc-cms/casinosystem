@@ -125,6 +125,7 @@ export const MODULES: ModuleDef[] = [
   { key: "payroll", label: "Payroll", group: "Finance" },
   { key: "cctv", label: "CCTV", group: "System" },
   { key: "cctv_dashboard", label: "CCTV Dashboard", group: "System" },
+  { key: "marketing_campaigns", label: "Marketing Campaigns", group: "Operations" },
   { key: "admin", label: "Admin Panel", group: "System" },
 ];
 
