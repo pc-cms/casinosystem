@@ -380,6 +380,9 @@ const ProtectedRoutes = () => {
           <Route path="/payroll/settings" element={<RoleGuard path="/payroll/settings"><ErrorBoundary><PayrollSettingsPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/payroll/bank-export" element={<RoleGuard path="/payroll/bank-export"><ErrorBoundary><PayrollBankExportPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/payroll/:id" element={<RoleGuard path="/payroll/:id"><ErrorBoundary><PayrollPeriodPage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/marketing" element={<Navigate to="/marketing/campaigns" replace />} />
+          <Route path="/marketing/campaigns" element={<RoleGuard path="/marketing/campaigns"><ErrorBoundary><MarketingCampaigns /></ErrorBoundary></RoleGuard>} />
+          <Route path="/marketing/campaigns/:id" element={<RoleGuard path="/marketing/campaigns/:id"><ErrorBoundary><MarketingCampaignDetail /></ErrorBoundary></RoleGuard>} />
         </Route>
         <Route path="*" element={<Suspense fallback={<PageLoader />}><NotFound /></Suspense>} />
       </Routes>
