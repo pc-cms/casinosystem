@@ -128,7 +128,7 @@ export default function CrmPlayers() {
         </Button>
       </PageHeader>
 
-      <PageSection>
+      <div className="space-y-3">
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
           <KpiCard label="Total" value={stats.total} />
           <KpiCard label="VIP" value={stats.vip} tone="vip" />
@@ -137,9 +137,9 @@ export default function CrmPlayers() {
           <KpiCard label="Birthdays · week" value={stats.bdayWeek} icon={Cake} />
           <KpiCard label="Unassigned host" value={stats.unassigned} />
         </div>
-      </PageSection>
+      </div>
 
-      <PageSection>
+      <div className="space-y-3">
         <div className="flex flex-wrap items-end gap-3">
           <div className="space-y-1 flex-1 min-w-[200px]">
             <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Search</Label>
@@ -165,7 +165,7 @@ export default function CrmPlayers() {
           ]} />
           <div className="text-xs text-muted-foreground">{rows.length} / {data.length}</div>
         </div>
-      </PageSection>
+      </div>
 
       <div className="rounded-md border border-border overflow-x-auto">
         <Table>
