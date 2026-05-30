@@ -233,7 +233,7 @@ const Cashless = () => {
           <thead>
             <tr className="border-b border-border text-[10px] uppercase tracking-wider text-muted-foreground">
               <th className="text-left px-3 py-2">Time</th>
-              <th className="text-left px-3 py-2">Dir</th>
+              <th className="text-left px-3 py-2">Type</th>
               <th className="text-left px-3 py-2">Provider</th>
               <th className="text-left px-3 py-2">Player</th>
               <th className="text-right px-3 py-2">Amount</th>
