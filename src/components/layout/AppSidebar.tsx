@@ -211,7 +211,7 @@ const SidebarSections = ({
     (acc[item.section] ||= []).push(item);
     return acc;
   }, {});
-  const sectionOrder: Section[] = ["OVERVIEW", "PIT", "CASHIER", "RECEPTION", "FINANCE", "HR", "ANALYTICS", "BAR", "SYSTEM"];
+  const sectionOrder: Section[] = ["OVERVIEW", "PIT", "CASHIER", "RECEPTION", "FINANCE", "HR", "ANALYTICS", "MARKETING", "BAR", "SYSTEM"];
   const sections = sectionOrder.filter(s => grouped[s]?.length || (s === "SYSTEM" && isManager));
 
   // Find which section contains the active route
