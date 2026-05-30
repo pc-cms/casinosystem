@@ -95,6 +95,8 @@ const CageSlotsReport = lazy(() => import("@/pages/CageSlotsReport"));
 const SlotsExpenses = lazy(() => import("@/pages/SlotsExpenses"));
 const ExpensesApprovals = lazy(() => import("@/pages/ExpensesApprovals"));
 const CloseTablesPage = lazy(() => import("@/pages/tables/CloseTablesPage"));
+const MarketingCampaigns = lazy(() => import("@/pages/marketing/MarketingCampaigns"));
+const MarketingCampaignDetail = lazy(() => import("@/pages/marketing/MarketingCampaignDetail"));
 
 const UserNewPage = lazy(() => import("@/pages/admin/UserNewPage"));
 const UserEditPage = lazy(() => import("@/pages/admin/UserEditPage"));
@@ -378,6 +380,9 @@ const ProtectedRoutes = () => {
           <Route path="/payroll/settings" element={<RoleGuard path="/payroll/settings"><ErrorBoundary><PayrollSettingsPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/payroll/bank-export" element={<RoleGuard path="/payroll/bank-export"><ErrorBoundary><PayrollBankExportPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/payroll/:id" element={<RoleGuard path="/payroll/:id"><ErrorBoundary><PayrollPeriodPage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/marketing" element={<Navigate to="/marketing/campaigns" replace />} />
+          <Route path="/marketing/campaigns" element={<RoleGuard path="/marketing/campaigns"><ErrorBoundary><MarketingCampaigns /></ErrorBoundary></RoleGuard>} />
+          <Route path="/marketing/campaigns/:id" element={<RoleGuard path="/marketing/campaigns/:id"><ErrorBoundary><MarketingCampaignDetail /></ErrorBoundary></RoleGuard>} />
         </Route>
         <Route path="*" element={<Suspense fallback={<PageLoader />}><NotFound /></Suspense>} />
       </Routes>

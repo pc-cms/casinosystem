@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 import PlayerPhotoLightbox from "@/components/player/PlayerPhotoLightbox";
 import { useNavigate } from "react-router-dom";
-import { X, ExternalLink, User, ArrowDownToLine, ArrowUpFromLine, Check, UtensilsCrossed } from "lucide-react";
+import { X, ExternalLink, User, ArrowDownToLine, ArrowUpFromLine, Check, UtensilsCrossed, Megaphone } from "lucide-react";
 import { PitQuickOrderDialog } from "@/components/pos/PitQuickOrderDialog";
+import { usePlayerPromoCampaigns } from "@/hooks/use-promo-campaigns";
 import { useQuery } from "@tanstack/react-query";
 import { formatCardId } from "@/lib/card-number";
 import { supabase } from "@/integrations/supabase/client";
@@ -187,6 +188,8 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
   const activeCard = cards.find((c) => c.is_active)?.card_number || cards[0]?.card_number || "";
   const visitsCount = visits.length;
   const result = dayStats?.result ?? 0;
+  const { data: promoTags = [] } = usePlayerPromoCampaigns(playerId);
+  const activePromo = promoTags.find((t) => t.status === "active") ?? promoTags[0];
 
   const submitAdj = () => {
     const inN = Number(chipIn) || 0;
@@ -262,6 +265,20 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
                 <span className="text-xs text-destructive truncate max-w-[520px]" title={blacklistReason}>
                   — {blacklistReason}
                 </span>
+              )}
+              {activePromo && (
+                <button
+                  type="button"
+                  onClick={() => nav(`/marketing/campaigns/${activePromo.campaign_id}`)}
+                  className="inline-flex items-center gap-1 text-xs uppercase tracking-wider px-2 py-0.5 rounded bg-amber-500/10 text-amber-600 border border-amber-500/30 hover:bg-amber-500/20 transition-colors"
+                  title={`Attributed to campaign · ${activePromo.campaign_name}`}
+                >
+                  <Megaphone className="h-3 w-3" />
+                  Promo: {activePromo.campaign_name}
+                  {promoTags.length > 1 && (
+                    <span className="ml-0.5 font-mono opacity-70">+{promoTags.length - 1}</span>
+                  )}
+                </button>
               )}
               <Button
                 size="sm"

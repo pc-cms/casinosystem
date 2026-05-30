@@ -242,3 +242,37 @@ export function usePromoKPI(campaignId: string | null) {
     },
   });
 }
+
+// ---------- Player attribution lookup ----------
+export type PlayerPromoTag = {
+  campaign_id: string;
+  campaign_name: string;
+  status: PromoCampaignStatus;
+  attributed_on: string;
+};
+
+/**
+ * Returns all promo campaigns a player has been attributed to, newest first.
+ * Used by Player Card to surface a "Promo: <campaign>" badge.
+ */
+export function usePlayerPromoCampaigns(playerId: string | null) {
+  return useQuery({
+    queryKey: ["player-promo-campaigns", playerId],
+    enabled: !!playerId,
+    staleTime: 60_000,
+    queryFn: async (): Promise<PlayerPromoTag[]> => {
+      const { data, error } = await supabase
+        .from("promo_campaign_players")
+        .select("attributed_on, campaign_id, promo_campaigns!inner(name, status)")
+        .eq("player_id", playerId!)
+        .order("attributed_on", { ascending: false });
+      if (error) throw error;
+      return ((data ?? []) as any[]).map((r) => ({
+        campaign_id: r.campaign_id,
+        campaign_name: r.promo_campaigns?.name ?? "—",
+        status: (r.promo_campaigns?.status ?? "planned") as PromoCampaignStatus,
+        attributed_on: r.attributed_on,
+      }));
+    },
+  });
+}
