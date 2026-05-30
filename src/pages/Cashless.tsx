@@ -116,14 +116,14 @@ const Cashless = () => {
         date
       />
 
-      {/* KPI cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+      {/* KPI cards — Deposit / Withdrawal / Net (no IN/OUT terminology) */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
         <div className="cms-panel p-3">
-          <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Total IN</p>
+          <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Total Deposit</p>
           <p className="font-mono text-lg font-bold cms-amount-positive">{formatCurrency(summary.totalIn)}</p>
         </div>
         <div className="cms-panel p-3">
-          <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Total OUT</p>
+          <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Total Withdrawal</p>
           <p className="font-mono text-lg font-bold cms-amount-negative">{formatCurrency(summary.totalOut)}</p>
         </div>
         <div className="cms-panel p-3">
@@ -132,23 +132,21 @@ const Cashless = () => {
             {summary.net >= 0 ? "+" : ""}{formatCurrency(summary.net)}
           </p>
         </div>
-        <div className="cms-panel p-3">
-          <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Pending OUT</p>
-          <p className="font-mono text-lg font-bold text-accent">{summary.pendingCount}</p>
-        </div>
       </div>
 
-      {/* Per provider */}
+      {/* Per provider — Deposit / Withdrawal / Net */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-6">
         {PROVIDERS.map(p => {
           const v = summary.perProvider[p.value];
+          const net = v.in - v.out;
           return (
             <div key={p.value} className="cms-panel p-2">
               <div className="flex items-center justify-between mb-1">
                 <span className={`text-[10px] font-mono uppercase px-1.5 py-0.5 rounded ${PROVIDER_COLORS[p.value]}`}>{p.label}</span>
               </div>
-              <p className="font-mono text-[10px] text-muted-foreground">IN: <span className="cms-amount-positive">{formatCurrency(v.in)}</span></p>
-              <p className="font-mono text-[10px] text-muted-foreground">OUT: <span className="cms-amount-negative">{formatCurrency(v.out)}</span></p>
+              <p className="font-mono text-[10px] text-muted-foreground">Deposit: <span className="cms-amount-positive">{formatCurrency(v.in)}</span></p>
+              <p className="font-mono text-[10px] text-muted-foreground">Withdrawal: <span className="cms-amount-negative">{formatCurrency(v.out)}</span></p>
+              <p className="font-mono text-[10px] text-muted-foreground">Net: <span className={net >= 0 ? "cms-amount-positive" : "cms-amount-negative"}>{net >= 0 ? "+" : ""}{formatCurrency(net)}</span></p>
             </div>
           );
         })}
