@@ -63,6 +63,7 @@ export type ModuleKey =
   | "cctv_dashboard"
   | "import_reports"
   | "marketing_campaigns"
+  | "crm_players"
   | "admin";
 
 export interface ModuleDef {
@@ -126,6 +127,7 @@ export const MODULES: ModuleDef[] = [
   { key: "cctv", label: "CCTV", group: "System" },
   { key: "cctv_dashboard", label: "CCTV Dashboard", group: "System" },
   { key: "marketing_campaigns", label: "Marketing Campaigns", group: "Operations" },
+  { key: "crm_players", label: "Player CRM", group: "Players" },
   { key: "admin", label: "Admin Panel", group: "System" },
 ];
 
