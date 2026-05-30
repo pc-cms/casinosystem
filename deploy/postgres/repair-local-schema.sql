@@ -1208,3 +1208,133 @@ GRANT EXECUTE ON FUNCTION public.sync_record_pull_ok(uuid) TO authenticated, ser
 GRANT EXECUTE ON FUNCTION public.sync_record_probe_sent(uuid,text) TO authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.sync_record_probe_ack(uuid,text,text) TO authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.sync_diagnostics_gc() TO authenticated, service_role;
+
+-- ───────────────────────────────────────────────────────────────────────────
+-- M10b: POS Stock Counts (added 2026-05-30 — fixes "pos_stock_count_items
+-- отсутствует" on installs that predate cloud-schema-export availability).
+-- Idempotent: safe to re-run.
+-- ───────────────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS public.pos_stock_counts (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  casino_id uuid NOT NULL,
+  shift_id uuid,
+  count_type text NOT NULL,
+  counted_by uuid NOT NULL,
+  counted_by_name text,
+  notes text,
+  total_variance_value_tzs bigint NOT NULL DEFAULT 0,
+  items_count integer NOT NULL DEFAULT 0,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+DO $$ BEGIN
+  ALTER TABLE public.pos_stock_counts
+    ADD CONSTRAINT pos_stock_counts_count_type_check
+    CHECK (count_type IN ('open','handover','close','adhoc'));
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  ALTER TABLE public.pos_stock_counts
+    ADD CONSTRAINT pos_stock_counts_shift_fk
+    FOREIGN KEY (shift_id) REFERENCES public.pos_shifts(id) ON DELETE SET NULL;
+EXCEPTION WHEN duplicate_object THEN NULL; WHEN undefined_table THEN NULL; END $$;
+
+GRANT SELECT, INSERT ON public.pos_stock_counts TO authenticated;
+GRANT ALL ON public.pos_stock_counts TO service_role;
+ALTER TABLE public.pos_stock_counts ENABLE ROW LEVEL SECURITY;
+
+CREATE TABLE IF NOT EXISTS public.pos_stock_count_items (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  count_id uuid NOT NULL,
+  item_id uuid NOT NULL,
+  expected_qty numeric NOT NULL,
+  counted_qty numeric NOT NULL,
+  variance_qty numeric GENERATED ALWAYS AS (counted_qty - expected_qty) STORED,
+  unit_cost_tzs bigint NOT NULL DEFAULT 0,
+  variance_value_tzs bigint NOT NULL DEFAULT 0,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+DO $$ BEGIN
+  ALTER TABLE public.pos_stock_count_items
+    ADD CONSTRAINT pos_stock_count_items_count_fk
+    FOREIGN KEY (count_id) REFERENCES public.pos_stock_counts(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  ALTER TABLE public.pos_stock_count_items
+    ADD CONSTRAINT pos_stock_count_items_item_fk
+    FOREIGN KEY (item_id) REFERENCES public.pos_menu_items(id);
+EXCEPTION WHEN duplicate_object THEN NULL; WHEN undefined_table THEN NULL; END $$;
+
+GRANT SELECT, INSERT ON public.pos_stock_count_items TO authenticated;
+GRANT ALL ON public.pos_stock_count_items TO service_role;
+ALTER TABLE public.pos_stock_count_items ENABLE ROW LEVEL SECURITY;
+
+CREATE INDEX IF NOT EXISTS idx_pos_stock_counts_casino_date
+  ON public.pos_stock_counts(casino_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_pos_stock_counts_shift
+  ON public.pos_stock_counts(shift_id);
+CREATE INDEX IF NOT EXISTS idx_pos_stock_count_items_count
+  ON public.pos_stock_count_items(count_id);
+CREATE INDEX IF NOT EXISTS idx_pos_stock_count_items_item
+  ON public.pos_stock_count_items(item_id);
+
+CREATE OR REPLACE FUNCTION public.pos_stock_counts_immutable()
+RETURNS trigger LANGUAGE plpgsql SET search_path = public AS $$
+BEGIN
+  RAISE EXCEPTION 'pos_stock_counts is immutable';
+END;
+$$;
+
+DO $$ BEGIN
+  CREATE TRIGGER pos_stock_counts_no_update BEFORE UPDATE ON public.pos_stock_counts
+    FOR EACH ROW EXECUTE FUNCTION public.pos_stock_counts_immutable();
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  CREATE TRIGGER pos_stock_counts_no_delete BEFORE DELETE ON public.pos_stock_counts
+    FOR EACH ROW EXECUTE FUNCTION public.pos_stock_counts_immutable();
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  CREATE TRIGGER pos_stock_count_items_no_update BEFORE UPDATE ON public.pos_stock_count_items
+    FOR EACH ROW EXECUTE FUNCTION public.pos_stock_counts_immutable();
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  CREATE TRIGGER pos_stock_count_items_no_delete BEFORE DELETE ON public.pos_stock_count_items
+    FOR EACH ROW EXECUTE FUNCTION public.pos_stock_counts_immutable();
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DROP POLICY IF EXISTS "pos_stock_counts read by casino access" ON public.pos_stock_counts;
+CREATE POLICY "pos_stock_counts read by casino access"
+  ON public.pos_stock_counts FOR SELECT TO authenticated
+  USING (
+    public.has_role(auth.uid(), 'super_admin'::public.app_role)
+    OR EXISTS (
+      SELECT 1 FROM public.user_casino_access uca
+      WHERE uca.user_id = auth.uid() AND uca.casino_id = pos_stock_counts.casino_id
+    )
+  );
+DROP POLICY IF EXISTS "pos_stock_counts insert via rpc only" ON public.pos_stock_counts;
+CREATE POLICY "pos_stock_counts insert via rpc only"
+  ON public.pos_stock_counts FOR INSERT TO authenticated WITH CHECK (false);
+
+DROP POLICY IF EXISTS "pos_stock_count_items read via parent" ON public.pos_stock_count_items;
+CREATE POLICY "pos_stock_count_items read via parent"
+  ON public.pos_stock_count_items FOR SELECT TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.pos_stock_counts c
+      WHERE c.id = pos_stock_count_items.count_id
+        AND (
+          public.has_role(auth.uid(), 'super_admin'::public.app_role)
+          OR EXISTS (
+            SELECT 1 FROM public.user_casino_access uca
+            WHERE uca.user_id = auth.uid() AND uca.casino_id = c.casino_id
+          )
+        )
+    )
+  );
+DROP POLICY IF EXISTS "pos_stock_count_items insert via rpc only" ON public.pos_stock_count_items;
+CREATE POLICY "pos_stock_count_items insert via rpc only"
+  ON public.pos_stock_count_items FOR INSERT TO authenticated WITH CHECK (false);
+
+DO $$ BEGIN
+  PERFORM public.sync_attach('public.pos_stock_counts'::regclass);
+  PERFORM public.sync_attach('public.pos_stock_count_items'::regclass);
+EXCEPTION WHEN undefined_function THEN NULL; WHEN undefined_table THEN NULL; END $$;
