@@ -32,6 +32,10 @@ interface Props {
   resultTable: number;
   balance: number;
   businessDate: string;
+  /** Tips total of THIS shift (already deducted from `balance` by caller).
+   *  When provided, the report uses it for the − Tips row instead of the
+   *  business-day aggregate computed locally from `tipsByShift`. */
+  tipsTotal?: number;
   cashierName?: string;
   managerName?: string;
 }
@@ -44,8 +48,9 @@ const sumChipsObj = (chips: Record<string | number, number> | undefined) => {
 const ShiftClosingReport = ({
   shift, tables, closingCount, openingFloat, exchangeRates,
   totalExpenses, missTotal, resultTable, balance, businessDate,
-  cashierName, managerName,
+  tipsTotal, cashierName, managerName,
 }: Props) => {
+
   const { casinoId } = useAuth();
   const [casinoName, setCasinoName] = useState("Casino");
   const [baselines, setBaselines] = useState<Record<string, number>>({}); // tableId -> TZS value
