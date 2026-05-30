@@ -382,10 +382,20 @@ const CashFlowColumn = ({
         ))}
         <Row label="Other in TZS" value={num(otherTzs)} />
         <Row label="Total Cash" value={formatNumberSpaces(totalCash)} bold framed />
-        {mp.map(p => (
-          <Row key={p} label={p === "Mpesa" ? "M Pessa" : p === "Tigo" ? "T Pesa" : p === "Halo" ? "H Pesa" : "Airtel Money"} value={num(mobile[p] || 0)} />
-        ))}
-        <Row label="Total CashLess" value={formatNumberSpaces(totalMobile)} bold framed />
+        {mp.map(p => {
+          // Mobile balances are taken from the manually entered column.
+          // If the cashier did not fill it in, we display a dash — never compute.
+          const raw = mobile?.[p];
+          const hasManual = raw !== undefined && raw !== null && String(raw) !== "";
+          return (
+            <Row
+              key={p}
+              label={p === "Mpesa" ? "M Pessa" : p === "Tigo" ? "T Pesa" : p === "Halo" ? "H Pesa" : "Airtel Money"}
+              value={hasManual ? (Number(raw) === 0 ? "0" : formatNumberSpaces(Number(raw))) : "—"}
+            />
+          );
+        })}
+        <Row label="Total CashLess" value={totalMobile === 0 ? "—" : formatNumberSpaces(totalMobile)} bold framed />
       </div>
       <div className="mt-2 pt-1 border-t border-black flex justify-between font-bold">
         <span>{totalLabel}</span>
