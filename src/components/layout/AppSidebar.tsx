@@ -104,6 +104,9 @@ const NAV_ITEMS: NavItem[] = [
 
   { to: "/table-results", icon: FileText, label: "Table Results", roles: ["super_admin", "manager", "floor_manager", "finance_manager", "surveillance"], section: "ANALYTICS" },
   { to: "/business-days", icon: CalendarDays, label: "Business Days", roles: ["super_admin", "manager", "floor_manager", "finance_manager"], section: "ANALYTICS" },
+
+  // MARKETING
+  { to: "/marketing/campaigns", icon: Megaphone, label: "Campaigns", roles: ["super_admin", "manager", "finance_manager"], section: "MARKETING" },
   
   // BAR / POS — visible only to super_admin and dedicated POS roles.
   { to: "/pos/manager", icon: Coffee, label: "Bar Manager", roles: ["super_admin", "pos_manager" as AppRole, "pos_bartender" as AppRole, "pos_waiter" as AppRole], section: "BAR" },
