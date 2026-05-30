@@ -600,7 +600,9 @@ const CloseShiftDialog = ({
                 missTotal={balanceMissTotal}
                 resultTable={resultTable}
                 balance={balance}
+                tipsTotal={tipsTotal}
                 businessDate={businessDate}
+
               />
               <ChipMovementReport
                 shift={shift}
