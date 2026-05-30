@@ -86,7 +86,7 @@ const Cashless = () => {
         business_date: businessDate,
       });
       setDrafts(d => [...d.filter(r => r.uid !== uid), newDraft()]);
-      toast.success(row.direction === "OUT" ? "Sent → pending" : "Recorded");
+      toast.success(row.direction === "OUT" ? "Withdrawal → pending" : "Deposit recorded");
     } catch {/* toast handled */}
   };
 
