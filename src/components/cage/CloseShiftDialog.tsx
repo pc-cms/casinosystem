@@ -806,6 +806,8 @@ const CloseShiftDialog = ({
           <div className="flex justify-between"><span className="text-muted-foreground">Cash Desk Result</span><span className="text-card-foreground">{cashDeskResult >= 0 ? "+" : ""}{formatNumberSpaces(cashDeskResult)}</span></div>
           <div className="flex justify-between"><span className="text-muted-foreground">− Tables Result</span><span className="text-card-foreground">−({resultTable >= 0 ? "+" : ""}{formatNumberSpaces(resultTable)})</span></div>
           <div className="flex justify-between"><span className="text-muted-foreground">− Miss Chips</span><span className="text-card-foreground">−({balanceMissTotal >= 0 ? "+" : ""}{formatNumberSpaces(balanceMissTotal)})</span></div>
+          <div className="flex justify-between"><span className="text-muted-foreground">− Tips</span><span className="text-card-foreground">−{formatNumberSpaces(tipsTotal)}</span></div>
+
           <div className="flex justify-between border-t border-border pt-2 mt-2 text-base font-bold">
             <span className="text-card-foreground">= Shift Balance</span>
             <span className={isBalanced ? "text-success" : balance > 0 ? "cms-amount-positive" : "cms-amount-negative"}>
