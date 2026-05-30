@@ -165,6 +165,27 @@ const CloseShiftDialog = ({
   // UI chip delta is counted − opening. Balance formula uses Miss as
   // opening − counted, so a missing 35 000 is stored/calculated as +35 000.
   const balanceMissTotal = -missTotal;
+
+  // Tips of THIS shift (live + poker + floor). Cashier holds them in the
+  // cage at close → they inflate ΔCash by exactly this amount and must be
+  // subtracted from Shift Balance.
+  const [tipsTotal, setTipsTotal] = useState(0);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!shift?.id) { setTipsTotal(0); return; }
+      const { data } = await supabase
+        .from("transactions")
+        .select("amount")
+        .eq("shift_id", shift.id)
+        .in("type", ["tips_live", "tips_poker", "tips_floor"] as any)
+        .is("cancelled_at", null);
+      if (cancelled) return;
+      setTipsTotal((data || []).reduce((s: number, r: any) => s + Number(r.amount || 0), 0));
+    })();
+    return () => { cancelled = true; };
+  }, [shift?.id]);
+
   const { cashDeskResult, shiftBalance: balance } = useMemo(
     () => computeShiftBalance({
       openingCash: openingCashEffective,
@@ -176,10 +197,12 @@ const CloseShiftDialog = ({
       slotsOut,
       miss: balanceMissTotal,
       tablesResult: resultTable,
+      tips: tipsTotal,
     }),
     [openingCashEffective, closingCashTotalTzs, totalExpenses, collectionTotal,
-     floatAdded, slotsIn, slotsOut, balanceMissTotal, resultTable],
+     floatAdded, slotsIn, slotsOut, balanceMissTotal, resultTable, tipsTotal],
   );
+
   const isBalanced = balance === 0;
   const requiresNote = !isBalanced;
   const noteValid = !requiresNote || notes.trim().length > 0;
