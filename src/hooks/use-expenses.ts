@@ -6,26 +6,39 @@ import { offlineMutation } from "@/lib/offline-mutation";
 import { toast } from "sonner";
 import type { SafeExpenseInsert } from "@/lib/safe-inserts";
 
-export const useExpenses = (date?: string, cageType: "live_game" | "slots" = "live_game") => {
+export const useExpenses = (
+  date?: string,
+  cageType: "live_game" | "slots" = "live_game",
+  range?: { from?: string; to?: string },
+) => {
   const { casinoId } = useAuth();
   return useQuery({
-    queryKey: ["expenses", casinoId, date, cageType],
+    queryKey: ["expenses", casinoId, date, cageType, range?.from, range?.to],
     queryFn: async () => {
       if (!casinoId) return [];
       let query = supabase
         .from("expenses")
-        .select("*, players(first_name, last_name)")
+        .select("*, players(id, first_name, last_name)")
         .eq("casino_id", casinoId)
         .eq("cage_type", cageType)
         .order("created_at", { ascending: false });
-      
-      if (date) {
-        const { businessDayHourUTC } = await import("@/lib/business-day");
-        query = query.gte("created_at", businessDayHourUTC(date, 11)).lt("created_at", businessDayHourUTC(date, 11 + 24));
+
+      const { businessDayHourUTC } = await import("@/lib/business-day");
+      if (range?.from || range?.to) {
+        const from = range.from || range.to!;
+        const to = range.to || range.from!;
+        query = query
+          .gte("created_at", businessDayHourUTC(from, 11))
+          .lt("created_at", businessDayHourUTC(to, 11 + 24))
+          .limit(2000);
+      } else if (date) {
+        query = query
+          .gte("created_at", businessDayHourUTC(date, 11))
+          .lt("created_at", businessDayHourUTC(date, 11 + 24));
       } else {
         query = query.limit(200);
       }
-      
+
       const { data, error } = await query;
       if (error) throw error;
       return data;
@@ -34,6 +47,7 @@ export const useExpenses = (date?: string, cageType: "live_game" | "slots" = "li
     staleTime: 1000 * 60 * 2,
   });
 };
+
 
 /** Slots cage expenses scoped to a single slots shift. */
 export const useSlotsExpenses = (slotsShiftId: string | undefined) => {
