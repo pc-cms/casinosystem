@@ -21,8 +21,10 @@ import { useBatchChipSnapshot } from "@/hooks/use-chips";
 import { useShiftTablesResultTotal } from "@/hooks/use-shift-tables-result";
 import { getBusinessDate } from "@/lib/business-day";
 import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
+import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import type { Tables } from "@/integrations/supabase/types";
+
 
 interface CloseShiftDialogProps {
   open: boolean;
@@ -163,6 +165,27 @@ const CloseShiftDialog = ({
   // UI chip delta is counted − opening. Balance formula uses Miss as
   // opening − counted, so a missing 35 000 is stored/calculated as +35 000.
   const balanceMissTotal = -missTotal;
+
+  // Tips of THIS shift (live + poker + floor). Cashier holds them in the
+  // cage at close → they inflate ΔCash by exactly this amount and must be
+  // subtracted from Shift Balance.
+  const [tipsTotal, setTipsTotal] = useState(0);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!shift?.id) { setTipsTotal(0); return; }
+      const { data } = await supabase
+        .from("transactions")
+        .select("amount")
+        .eq("shift_id", shift.id)
+        .in("type", ["tips_live", "tips_poker", "tips_floor"] as any)
+        .is("cancelled_at", null);
+      if (cancelled) return;
+      setTipsTotal((data || []).reduce((s: number, r: any) => s + Number(r.amount || 0), 0));
+    })();
+    return () => { cancelled = true; };
+  }, [shift?.id]);
+
   const { cashDeskResult, shiftBalance: balance } = useMemo(
     () => computeShiftBalance({
       openingCash: openingCashEffective,
@@ -174,10 +197,12 @@ const CloseShiftDialog = ({
       slotsOut,
       miss: balanceMissTotal,
       tablesResult: resultTable,
+      tips: tipsTotal,
     }),
     [openingCashEffective, closingCashTotalTzs, totalExpenses, collectionTotal,
-     floatAdded, slotsIn, slotsOut, balanceMissTotal, resultTable],
+     floatAdded, slotsIn, slotsOut, balanceMissTotal, resultTable, tipsTotal],
   );
+
   const isBalanced = balance === 0;
   const requiresNote = !isBalanced;
   const noteValid = !requiresNote || notes.trim().length > 0;
@@ -450,6 +475,8 @@ const CloseShiftDialog = ({
                 </div>
                 <FormulaRow label="− Tables Result" value={`−(${resultTable >= 0 ? "+" : ""}${formatNumberSpaces(resultTable)})`} />
                 <FormulaRow label="− Miss Chips (signed)" value={`−(${balanceMissTotal >= 0 ? "+" : ""}${formatNumberSpaces(balanceMissTotal)})`} />
+                <FormulaRow label="− Tips (Live + Poker + Floor)" value={`−${formatNumberSpaces(tipsTotal)}`} />
+
                 <div className={cn(
                   "flex justify-between pt-3 mt-2 border-t-2 text-lg font-bold",
                   isBalanced ? "border-success/60" : "border-destructive/60",
@@ -483,7 +510,7 @@ const CloseShiftDialog = ({
               </div>
               <p className="text-[10px] text-muted-foreground mt-2 italic">
                 Cash Desk Result = ΔCash + Expenses + Collection − AddFloat + SlotsOut − SlotsIn.
-                Shift Balance = Cash Desk Result − Tables Result − Miss. Must be zero.
+                Shift Balance = Cash Desk Result − Tables Result − Miss − Tips. Must be zero.
               </p>
             </div>
 
@@ -573,7 +600,9 @@ const CloseShiftDialog = ({
                 missTotal={balanceMissTotal}
                 resultTable={resultTable}
                 balance={balance}
+                tipsTotal={tipsTotal}
                 businessDate={businessDate}
+
               />
               <ChipMovementReport
                 shift={shift}
@@ -777,6 +806,8 @@ const CloseShiftDialog = ({
           <div className="flex justify-between"><span className="text-muted-foreground">Cash Desk Result</span><span className="text-card-foreground">{cashDeskResult >= 0 ? "+" : ""}{formatNumberSpaces(cashDeskResult)}</span></div>
           <div className="flex justify-between"><span className="text-muted-foreground">− Tables Result</span><span className="text-card-foreground">−({resultTable >= 0 ? "+" : ""}{formatNumberSpaces(resultTable)})</span></div>
           <div className="flex justify-between"><span className="text-muted-foreground">− Miss Chips</span><span className="text-card-foreground">−({balanceMissTotal >= 0 ? "+" : ""}{formatNumberSpaces(balanceMissTotal)})</span></div>
+          <div className="flex justify-between"><span className="text-muted-foreground">− Tips</span><span className="text-card-foreground">−{formatNumberSpaces(tipsTotal)}</span></div>
+
           <div className="flex justify-between border-t border-border pt-2 mt-2 text-base font-bold">
             <span className="text-card-foreground">= Shift Balance</span>
             <span className={isBalanced ? "text-success" : balance > 0 ? "cms-amount-positive" : "cms-amount-negative"}>

@@ -4,7 +4,12 @@
  *
  *   Cash Desk Result = ΔCash + Expenses + Collection − AddFloat
  *                    + SlotsOut − SlotsIn                         (NO miss)
- *   Shift Balance    = Cash Desk Result − Tables Result − Miss   (= 0 ideal)
+ *   Shift Balance    = Cash Desk Result − Tables Result − Miss − Tips
+ *
+ * Tips (`tips_live` + `tips_poker` + `tips_floor` transactions of THIS shift)
+ * sit physically inside the cage at close time. They inflate ΔCash exactly
+ * by their sum and must be subtracted so the cashier is not held responsible
+ * for that surplus.
  */
 export type CageBalanceInputs = {
   openingCash: number;
@@ -16,6 +21,7 @@ export type CageBalanceInputs = {
   slotsOut: number;
   miss: number;
   tablesResult: number;
+  tips?: number;
 };
 
 export type CageBalanceResult = {
@@ -28,9 +34,10 @@ export const computeShiftBalance = (i: CageBalanceInputs): CageBalanceResult => 
   const deltaCash = i.closingCash - i.openingCash;
   const cashDeskResult =
     deltaCash + i.expenses + i.collection - i.addFloat + i.slotsOut - i.slotsIn;
-  const shiftBalance = cashDeskResult - i.tablesResult - i.miss;
+  const shiftBalance = cashDeskResult - i.tablesResult - i.miss - (i.tips || 0);
   return { deltaCash, cashDeskResult, shiftBalance };
 };
+
 
 /**
  * Cage Slots balance — canonical formula (mirrors DB
