@@ -510,7 +510,7 @@ const CloseShiftDialog = ({
               </div>
               <p className="text-[10px] text-muted-foreground mt-2 italic">
                 Cash Desk Result = ΔCash + Expenses + Collection − AddFloat + SlotsOut − SlotsIn.
-                Shift Balance = Cash Desk Result − Tables Result − Miss. Must be zero.
+                Shift Balance = Cash Desk Result − Tables Result − Miss − Tips. Must be zero.
               </p>
             </div>
 
