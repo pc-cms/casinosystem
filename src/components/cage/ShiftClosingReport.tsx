@@ -341,18 +341,23 @@ const ShiftClosingReport = ({
           <SummaryRow label="Cash Desk Chips CREDIT" value={0} />
           <SummaryRow label="Miss Chips" value={missTotal} bold negative />
           <SummaryRow label="Casino Expenses" value={totalExpenses} bold />
+          {/* Tips are physically in the cage at close → deducted from
+              Shift Balance (caller already includes them in `balance`). */}
+          <SummaryRow label="Tips Day" value={tipsByShift.day} />
+          <SummaryRow label="Tips Night" value={tipsByShift.night} />
+          <SummaryRow
+            label="− Tips (this shift)"
+            value={tipsTotal ?? (tipsByShift.day + tipsByShift.night)}
+            negative
+          />
           <div className="mt-3 pt-2 border-t-2 border-black flex justify-between items-center">
             <span className="font-bold">Shift Balance</span>
             <span className="border border-black px-3 py-0.5 font-bold tabular-nums min-w-[110px] text-right">
               {balance === 0 ? "0" : (balance > 0 ? numAlways(balance) : `-${numAlways(Math.abs(balance))}`)}
             </span>
           </div>
-          {/* Tips — informational, NOT included in Shift Balance */}
-          <div className="mt-2 pt-1 border-t border-dashed border-gray-400 space-y-0.5">
-            <SummaryRow label="Tips Day" value={tipsByShift.day} />
-            <SummaryRow label="Tips Night" value={tipsByShift.night} />
-          </div>
         </div>
+
       </div>
 
       {/* Signatures */}
