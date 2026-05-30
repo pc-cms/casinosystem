@@ -251,7 +251,7 @@ const Cashless = () => {
                   {new Date(r.created_at).toLocaleTimeString("en-GB", { timeZone: "Africa/Dar_es_Salaam", hour: "2-digit", minute: "2-digit" })}
                 </td>
                 <td className="px-3 py-2">
-                  <Badge variant={r.direction === "IN" ? "default" : "secondary"} className="text-[10px]">{r.direction}</Badge>
+                  <Badge variant={r.direction === "IN" ? "default" : "secondary"} className="text-[10px]">{r.direction === "IN" ? "Deposit" : "Withdrawal"}</Badge>
                 </td>
                 <td className="px-3 py-2">
                   <span className={`text-[10px] font-mono uppercase px-1.5 py-0.5 rounded ${PROVIDER_COLORS[r.provider]}`}>{r.provider}</span>
