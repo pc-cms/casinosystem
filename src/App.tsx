@@ -95,6 +95,8 @@ const CageSlotsReport = lazy(() => import("@/pages/CageSlotsReport"));
 const SlotsExpenses = lazy(() => import("@/pages/SlotsExpenses"));
 const ExpensesApprovals = lazy(() => import("@/pages/ExpensesApprovals"));
 const CloseTablesPage = lazy(() => import("@/pages/tables/CloseTablesPage"));
+const MarketingCampaigns = lazy(() => import("@/pages/marketing/MarketingCampaigns"));
+const MarketingCampaignDetail = lazy(() => import("@/pages/marketing/MarketingCampaignDetail"));
 
 const UserNewPage = lazy(() => import("@/pages/admin/UserNewPage"));
 const UserEditPage = lazy(() => import("@/pages/admin/UserEditPage"));
