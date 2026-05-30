@@ -1,38 +1,53 @@
-## Что чинится
+# Apply tips-in-balance fix to historical shifts
 
-Чаевые (`tips_live`, `tips_poker`, `tips_floor`) физически лежат в кассе и попадают в `closingCashTotalTzs`, но в формуле Shift Balance их нет — отсюда «плюс» ровно на сумму tips (вчера +165 000).
+В прошлом шаге исправлен только клиент (`CloseShiftDialog`, `ShiftClosingReport`, `cage-balance.ts`). Сохранённые в БД `shifts.balance` / `shifts.cash_desk_result` для уже закрытых смен (включая вчера) посчитаны **по старой формуле без вычета tips**. Поэтому в любом отчёте/реprint за вчера баланс по-прежнему завышен на сумму tips. Нужно поправить DB-функцию и пересчитать историю.
 
-Текущая формула (`src/lib/cage-balance.ts` + DB RPC `compute_shift_balance`):
+## Что меняется
+
+### 1. DB migration — `compute_shift_balance_from_row`
+Добавить вычет tips этой смены в формулу:
+
+```sql
+v_tips := COALESCE((
+  SELECT SUM(amount) FROM public.transactions
+  WHERE shift_id = s.id
+    AND type IN ('tips_live','tips_poker','tips_floor')
+    AND cancelled_at IS NULL
+), 0)::bigint;
+
+v_balance := v_cash_desk - v_tables - v_miss - v_tips;
 ```
-Cash Desk Result = ΔCash + Expenses + Collection − AddFloat + SlotsOut − SlotsIn
-Shift Balance    = Cash Desk Result − Tables Result − Miss
+
+И добавить `'tips'` в возвращаемый jsonb. Триггер, который пишет `shifts.balance` / `shifts.cash_desk_result` при изменении смены, продолжит работать как есть — он уже опирается на эту функцию.
+
+### 2. Backfill для уже закрытых смен
+В той же миграции — однократный `UPDATE`:
+
+```sql
+UPDATE public.shifts s
+   SET balance = (public.compute_shift_balance_from_row(s) ->> 'shift_balance')::bigint
+ WHERE status = 'closed'
+   AND EXISTS (
+     SELECT 1 FROM public.transactions t
+      WHERE t.shift_id = s.id
+        AND t.type IN ('tips_live','tips_poker','tips_floor')
+        AND t.cancelled_at IS NULL
+   );
 ```
 
-Новая формула:
-```
-Shift Balance    = Cash Desk Result − Tables Result − Miss − Tips
-```
-(`Tips` = сумма `tips_live + tips_poker + tips_floor` транзакций **этой смены**.)
+Затрагивает только смены, у которых реально есть tips → безопасно для остальной истории. `daily_summaries.tables_result` не трогаем (там tables_result, не balance).
 
-## Изменения
+### 3. ReprintShiftDialog
+Уже читает `shifts.balance` напрямую — после backfill автоматически покажет правильное значение. Доп. правки не нужны.
 
-1. **`src/lib/cage-balance.ts`** — добавить опциональное поле `tips` в `CageBalanceInputs`, вычитать из `shiftBalance`. Комментарий канонической формулы обновить.
+### 4. Версия
+Bump `package.json` (backend change) — `1.3.198`.
 
-2. **`src/components/cage/CloseShiftDialog.tsx`**
-   - Загрузить tips текущей смены: `SELECT amount, type FROM transactions WHERE shift_id = :id AND type IN ('tips_live','tips_poker','tips_floor') AND cancelled_at IS NULL` (один useEffect или extend `useTransactions`).
-   - Передать `tips: tipsTotal` в `computeShiftBalance`.
-   - В правой панели формулы (≈ строка 452) добавить строку `− Tips` под `− Miss Chips`.
-   - В пропсы `<ShiftClosingReport …>` передать `tipsTotal` (для display-консистентности).
+## Что НЕ меняется
+- Клиентская формула (`src/lib/cage-balance.ts`) уже корректна.
+- `CloseShiftDialog` / `ShiftClosingReport` уже корректны.
+- `daily_summaries` не пересчитываем — `tables_result` от tips не зависит.
 
-3. **`src/components/cage/ShiftClosingReport.tsx`**
-   - `tipsByShift` уже грузится. Сейчас показывается как «informational, NOT included». Переместить блок Tips Day/Tips Night **внутрь Summary до Shift Balance** (между Casino Expenses и Shift Balance) с пометкой «− Tips» — чтобы печатный отчёт совпадал с диалогом. Сам `balance` приходит готовый из caller (CloseShiftDialog/Reprint), формула там уже скорректирована.
-
-4. **`src/components/cage/ReprintShiftDialog.tsx`** — пересчитать баланс на лету с учётом tips закрытой смены (либо взять сохранённый `cash_desk_balance` из `shifts`, если уже сохранён с правильной формулой → тогда менять не надо; проверю при имплементации).
-
-5. **DB RPC `compute_shift_balance`** — обновить миграцией: добавить `_tips` параметр или внутри функции SUM tips по `shift_id`. Это нужно чтобы исторические `shifts.cash_desk_balance`, перезаписи и `daily_summaries` тоже соответствовали. Auto-bump `package.json` версии (backend change).
-
-## Вопрос перед стартом
-
-Tips копятся отдельно (выплачиваются дилерам по ведомости в Monthly Tips). Когда касса физически отдаёт tips дилерам/poker/floor — это происходит **внутри той же смены** (тогда `ΔCash` сама себя обнуляет) или **позже из накопителя**? Если позже, моя правка корректна (вычитаем tips, чтобы остаток в кассе считался ожидаемым). Если в ту же смену через `expense`/выплату — двойного учёта не будет, но надо проверить, что выплата tips НЕ записывается как обычный expense.
-
-Если коротко: подтверди — **tips физически остаются в кассе на момент закрытия смены и выплачиваются позже** (тогда план как описан выше).
+## Проверка после миграции
+1. Открыть Cage → Reprint вчерашней смены, где были tips → строка `− Tips` присутствует, Balance уменьшен ровно на сумму tips.
+2. SQL спот-чек: `SELECT id, balance FROM shifts WHERE …` до/после backfill для затронутых смен.
