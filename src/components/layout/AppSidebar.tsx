@@ -33,7 +33,7 @@ import arushaLogo from "@/assets/arusha-logo.png";
 type AppRole = "cashier" | "cashier_slots" | "pit" | "manager" | "floor_manager" | "reception" | "finance_manager" | "surveillance" | "super_admin" | "hr";
 
 // Section labels for the hybrid grouping (roles + shared ANALYTICS)
-type Section = "OVERVIEW" | "PIT" | "CASHIER" | "RECEPTION" | "FINANCE" | "HR" | "ANALYTICS" | "MARKETING" | "BAR" | "SYSTEM";
+type Section = "OVERVIEW" | "PIT" | "CASHIER" | "RECEPTION" | "FINANCE" | "HR" | "ANALYTICS" | "CRM" | "MARKETING" | "BAR" | "SYSTEM";
 
 type NavItem = {
   to: string;
@@ -104,6 +104,9 @@ const NAV_ITEMS: NavItem[] = [
 
   { to: "/table-results", icon: FileText, label: "Table Results", roles: ["super_admin", "manager", "floor_manager", "finance_manager", "surveillance"], section: "ANALYTICS" },
   { to: "/business-days", icon: CalendarDays, label: "Business Days", roles: ["super_admin", "manager", "floor_manager", "finance_manager"], section: "ANALYTICS" },
+
+  // CRM
+  { to: "/crm/players", icon: UsersRound, label: "Player CRM", roles: ["super_admin", "manager", "floor_manager", "finance_manager", "reception", "hr"], section: "CRM" },
 
   // MARKETING
   { to: "/marketing/campaigns", icon: Megaphone, label: "Campaigns", roles: ["super_admin", "manager", "finance_manager"], section: "MARKETING" },
@@ -211,7 +214,7 @@ const SidebarSections = ({
     (acc[item.section] ||= []).push(item);
     return acc;
   }, {});
-  const sectionOrder: Section[] = ["OVERVIEW", "PIT", "CASHIER", "RECEPTION", "FINANCE", "HR", "ANALYTICS", "MARKETING", "BAR", "SYSTEM"];
+  const sectionOrder: Section[] = ["OVERVIEW", "PIT", "CASHIER", "RECEPTION", "FINANCE", "HR", "ANALYTICS", "CRM", "MARKETING", "BAR", "SYSTEM"];
   const sections = sectionOrder.filter(s => grouped[s]?.length || (s === "SYSTEM" && isManager));
 
   // Find which section contains the active route

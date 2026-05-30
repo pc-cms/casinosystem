@@ -4182,6 +4182,70 @@ export type Database = {
           },
         ]
       }
+      player_crm: {
+        Row: {
+          birthday_card_sent_year: number | null
+          casino_id: string
+          custom_tags: string[]
+          host_user_id: string | null
+          last_contact_at: string | null
+          last_contact_note: string
+          player_id: string
+          segment: Database["public"]["Enums"]["player_crm_segment"]
+          segment_locked: boolean
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          birthday_card_sent_year?: number | null
+          casino_id: string
+          custom_tags?: string[]
+          host_user_id?: string | null
+          last_contact_at?: string | null
+          last_contact_note?: string
+          player_id: string
+          segment?: Database["public"]["Enums"]["player_crm_segment"]
+          segment_locked?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          birthday_card_sent_year?: number | null
+          casino_id?: string
+          custom_tags?: string[]
+          host_user_id?: string | null
+          last_contact_at?: string | null
+          last_contact_note?: string
+          player_id?: string
+          segment?: Database["public"]["Enums"]["player_crm_segment"]
+          segment_locked?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "player_crm_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "player_crm_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: true
+            referencedRelation: "player_economy"
+            referencedColumns: ["player_id"]
+          },
+          {
+            foreignKeyName: "player_crm_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: true
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       player_daily_avg_bet_changes: {
         Row: {
           business_date: string
@@ -7240,6 +7304,33 @@ export type Database = {
         }
         Returns: Json
       }
+      crm_players_list: {
+        Args: { _casino: string }
+        Returns: {
+          birth_date: string
+          birthday_card_sent_year: number
+          card_number: string
+          category: Database["public"]["Enums"]["player_category"]
+          created_at: string
+          custom_tags: string[]
+          first_name: string
+          host_name: string
+          host_user_id: string
+          last_contact_at: string
+          last_contact_note: string
+          last_name: string
+          last_visit: string
+          nickname: string
+          phone: string
+          photo_url: string
+          player_id: string
+          segment: Database["public"]["Enums"]["player_crm_segment"]
+          segment_locked: boolean
+          status: Database["public"]["Enums"]["player_status"]
+          visits_90d: number
+          visits_total: number
+        }[]
+      }
       cron_health_overview: {
         Args: never
         Returns: {
@@ -7467,6 +7558,7 @@ export type Database = {
           drop_recycled: number
         }[]
       }
+      player_segment_recalc: { Args: { _casino: string }; Returns: number }
       populate_table_daily_results_for_day: {
         Args: { _business_date: string; _casino_id: string; _user: string }
         Returns: number
@@ -7829,6 +7921,7 @@ export type Database = {
         | "adjustments"
         | "other_office"
       player_category: "diamond" | "platinum" | "gold" | "normal"
+      player_crm_segment: "vip" | "regular" | "new" | "dormant" | "custom"
       player_status: "active" | "blacklist"
       player_type: "slots" | "table" | "mix"
       pos_order_status: "pending" | "preparing" | "ready" | "served" | "void"
@@ -8107,6 +8200,7 @@ export const Constants = {
         "other_office",
       ],
       player_category: ["diamond", "platinum", "gold", "normal"],
+      player_crm_segment: ["vip", "regular", "new", "dormant", "custom"],
       player_status: ["active", "blacklist"],
       player_type: ["slots", "table", "mix"],
       pos_order_status: ["pending", "preparing", "ready", "served", "void"],

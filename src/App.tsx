@@ -97,6 +97,7 @@ const ExpensesApprovals = lazy(() => import("@/pages/ExpensesApprovals"));
 const CloseTablesPage = lazy(() => import("@/pages/tables/CloseTablesPage"));
 const MarketingCampaigns = lazy(() => import("@/pages/marketing/MarketingCampaigns"));
 const MarketingCampaignDetail = lazy(() => import("@/pages/marketing/MarketingCampaignDetail"));
+const CrmPlayers = lazy(() => import("@/pages/crm/CrmPlayers"));
 
 const UserNewPage = lazy(() => import("@/pages/admin/UserNewPage"));
 const UserEditPage = lazy(() => import("@/pages/admin/UserEditPage"));
@@ -383,6 +384,8 @@ const ProtectedRoutes = () => {
           <Route path="/marketing" element={<Navigate to="/marketing/campaigns" replace />} />
           <Route path="/marketing/campaigns" element={<RoleGuard path="/marketing/campaigns"><ErrorBoundary><MarketingCampaigns /></ErrorBoundary></RoleGuard>} />
           <Route path="/marketing/campaigns/:id" element={<RoleGuard path="/marketing/campaigns/:id"><ErrorBoundary><MarketingCampaignDetail /></ErrorBoundary></RoleGuard>} />
+          <Route path="/crm" element={<Navigate to="/crm/players" replace />} />
+          <Route path="/crm/players" element={<RoleGuard path="/crm/players"><ErrorBoundary><CrmPlayers /></ErrorBoundary></RoleGuard>} />
         </Route>
         <Route path="*" element={<Suspense fallback={<PageLoader />}><NotFound /></Suspense>} />
       </Routes>

@@ -128,6 +128,9 @@ export const moduleKeyForRoute = (to: string, label?: string): ModuleKey | null 
   if (base === "/marketing/campaigns") return "marketing_campaigns";
   if (base.startsWith("/marketing/campaigns/")) return "marketing_campaigns";
 
+  // ============= CRM =============
+  if (base === "/crm/players" || base.startsWith("/crm/")) return "crm_players";
+
   // ============= POS / BAR =============
   // POS surfaces are gated by dedicated POS roles + PosLayout cross-role
   // whitelist (manager/finance). They are intentionally NOT routed through
