@@ -86,7 +86,7 @@ const Cashless = () => {
         business_date: businessDate,
       });
       setDrafts(d => [...d.filter(r => r.uid !== uid), newDraft()]);
-      toast.success(row.direction === "OUT" ? "Sent → pending" : "Recorded");
+      toast.success(row.direction === "OUT" ? "Withdrawal → pending" : "Deposit recorded");
     } catch {/* toast handled */}
   };
 
@@ -116,14 +116,14 @@ const Cashless = () => {
         date
       />
 
-      {/* KPI cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+      {/* KPI cards — Deposit / Withdrawal / Net (no IN/OUT terminology) */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
         <div className="cms-panel p-3">
-          <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Total IN</p>
+          <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Total Deposit</p>
           <p className="font-mono text-lg font-bold cms-amount-positive">{formatCurrency(summary.totalIn)}</p>
         </div>
         <div className="cms-panel p-3">
-          <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Total OUT</p>
+          <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Total Withdrawal</p>
           <p className="font-mono text-lg font-bold cms-amount-negative">{formatCurrency(summary.totalOut)}</p>
         </div>
         <div className="cms-panel p-3">
@@ -132,23 +132,21 @@ const Cashless = () => {
             {summary.net >= 0 ? "+" : ""}{formatCurrency(summary.net)}
           </p>
         </div>
-        <div className="cms-panel p-3">
-          <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Pending OUT</p>
-          <p className="font-mono text-lg font-bold text-accent">{summary.pendingCount}</p>
-        </div>
       </div>
 
-      {/* Per provider */}
+      {/* Per provider — Deposit / Withdrawal / Net */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-6">
         {PROVIDERS.map(p => {
           const v = summary.perProvider[p.value];
+          const net = v.in - v.out;
           return (
             <div key={p.value} className="cms-panel p-2">
               <div className="flex items-center justify-between mb-1">
                 <span className={`text-[10px] font-mono uppercase px-1.5 py-0.5 rounded ${PROVIDER_COLORS[p.value]}`}>{p.label}</span>
               </div>
-              <p className="font-mono text-[10px] text-muted-foreground">IN: <span className="cms-amount-positive">{formatCurrency(v.in)}</span></p>
-              <p className="font-mono text-[10px] text-muted-foreground">OUT: <span className="cms-amount-negative">{formatCurrency(v.out)}</span></p>
+              <p className="font-mono text-[10px] text-muted-foreground">Deposit: <span className="cms-amount-positive">{formatCurrency(v.in)}</span></p>
+              <p className="font-mono text-[10px] text-muted-foreground">Withdrawal: <span className="cms-amount-negative">{formatCurrency(v.out)}</span></p>
+              <p className="font-mono text-[10px] text-muted-foreground">Net: <span className={net >= 0 ? "cms-amount-positive" : "cms-amount-negative"}>{net >= 0 ? "+" : ""}{formatCurrency(net)}</span></p>
             </div>
           );
         })}
@@ -182,12 +180,12 @@ const Cashless = () => {
                       type="button"
                       onClick={() => updateDraft(d.uid, { direction: "IN" })}
                       className={`px-3 text-xs font-medium ${d.direction === "IN" ? "bg-success/15 text-success" : "text-muted-foreground"}`}
-                    >IN</button>
+                    >Deposit</button>
                     <button
                       type="button"
                       onClick={() => updateDraft(d.uid, { direction: "OUT" })}
                       className={`px-3 text-xs font-medium ${d.direction === "OUT" ? "bg-destructive/15 text-destructive" : "text-muted-foreground"}`}
-                    >OUT</button>
+                    >Withdrawal</button>
                   </div>
                 </td>
                 <td className="px-2 py-1.5">
@@ -235,7 +233,7 @@ const Cashless = () => {
           <thead>
             <tr className="border-b border-border text-[10px] uppercase tracking-wider text-muted-foreground">
               <th className="text-left px-3 py-2">Time</th>
-              <th className="text-left px-3 py-2">Dir</th>
+              <th className="text-left px-3 py-2">Type</th>
               <th className="text-left px-3 py-2">Provider</th>
               <th className="text-left px-3 py-2">Player</th>
               <th className="text-right px-3 py-2">Amount</th>
@@ -253,7 +251,7 @@ const Cashless = () => {
                   {new Date(r.created_at).toLocaleTimeString("en-GB", { timeZone: "Africa/Dar_es_Salaam", hour: "2-digit", minute: "2-digit" })}
                 </td>
                 <td className="px-3 py-2">
-                  <Badge variant={r.direction === "IN" ? "default" : "secondary"} className="text-[10px]">{r.direction}</Badge>
+                  <Badge variant={r.direction === "IN" ? "default" : "secondary"} className="text-[10px]">{r.direction === "IN" ? "Deposit" : "Withdrawal"}</Badge>
                 </td>
                 <td className="px-3 py-2">
                   <span className={`text-[10px] font-mono uppercase px-1.5 py-0.5 rounded ${PROVIDER_COLORS[r.provider]}`}>{r.provider}</span>

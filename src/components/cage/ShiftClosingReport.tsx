@@ -64,6 +64,9 @@ const ShiftClosingReport = ({
   /** Authoritative per-table Result computed by DB RPC
    *  `compute_shift_table_results` — formula (Σ(actual−baseline)·denom) − Fill + Credit. */
   const [serverResults, setServerResults] = useState<Record<string, number>>({});
+  /** Tips for the business day, split by shift_type. Informational only —
+   *  tips are NOT part of Shift Balance. */
+  const [tipsByShift, setTipsByShift] = useState<{ day: number; night: number }>({ day: 0, night: 0 });
 
   useEffect(() => {
     let cancelled = false;
@@ -141,6 +144,38 @@ const ShiftClosingReport = ({
       const sr: Record<string, number> = {};
       (srv || []).forEach((r: any) => { if (r?.table_id) sr[r.table_id] = Number(r.result || 0); });
       setServerResults(sr);
+
+      // Tips for this business day, grouped by shift_type (day / night).
+      if (businessDate) {
+        const fromUtc = `${businessDate}T02:00:00Z`;
+        const nx = new Date(`${businessDate}T00:00:00Z`);
+        nx.setUTCDate(nx.getUTCDate() + 1);
+        const toUtc = `${nx.toISOString().slice(0, 10)}T02:00:00Z`;
+        const { data: bdShifts } = await supabase
+          .from("shifts")
+          .select("id, shift_type")
+          .eq("casino_id", casinoId)
+          .gte("opened_at", fromUtc)
+          .lt("opened_at", toUtc);
+        const idMap = new Map<string, string>();
+        (bdShifts || []).forEach((s: any) => idMap.set(s.id, s.shift_type));
+        if (bdShifts && bdShifts.length) {
+          const { data: tipTx } = await supabase
+            .from("transactions")
+            .select("amount, shift_id, type")
+            .in("shift_id", bdShifts.map((s: any) => s.id))
+            .in("type", ["tips_live", "tips_poker", "tips_floor"] as any)
+            .is("cancelled_at", null);
+          let day = 0, night = 0;
+          (tipTx || []).forEach((t: any) => {
+            const st = idMap.get(t.shift_id);
+            const a = Number(t.amount || 0);
+            if (st === "day") day += a;
+            else if (st === "night") night += a;
+          });
+          if (!cancelled) setTipsByShift({ day, night });
+        }
+      }
     })();
     return () => { cancelled = true; };
   }, [casinoId, shift?.id, businessDate]);
@@ -301,12 +336,16 @@ const ShiftClosingReport = ({
           <SummaryRow label="Cash Desk Chips CREDIT" value={0} />
           <SummaryRow label="Miss Chips" value={missTotal} bold negative />
           <SummaryRow label="Casino Expenses" value={totalExpenses} bold />
-          <SummaryRow label="Tips" value={0} />
           <div className="mt-3 pt-2 border-t-2 border-black flex justify-between items-center">
             <span className="font-bold">Shift Balance</span>
             <span className="border border-black px-3 py-0.5 font-bold tabular-nums min-w-[110px] text-right">
               {balance === 0 ? "0" : (balance > 0 ? numAlways(balance) : `-${numAlways(Math.abs(balance))}`)}
             </span>
+          </div>
+          {/* Tips — informational, NOT included in Shift Balance */}
+          <div className="mt-2 pt-1 border-t border-dashed border-gray-400 space-y-0.5">
+            <SummaryRow label="Tips Day" value={tipsByShift.day} />
+            <SummaryRow label="Tips Night" value={tipsByShift.night} />
           </div>
         </div>
       </div>
@@ -343,10 +382,20 @@ const CashFlowColumn = ({
         ))}
         <Row label="Other in TZS" value={num(otherTzs)} />
         <Row label="Total Cash" value={formatNumberSpaces(totalCash)} bold framed />
-        {mp.map(p => (
-          <Row key={p} label={p === "Mpesa" ? "M Pessa" : p === "Tigo" ? "T Pesa" : p === "Halo" ? "H Pesa" : "Airtel Money"} value={num(mobile[p] || 0)} />
-        ))}
-        <Row label="Total CashLess" value={formatNumberSpaces(totalMobile)} bold framed />
+        {mp.map(p => {
+          // Mobile balances are taken from the manually entered column.
+          // If the cashier did not fill it in, we display a dash — never compute.
+          const raw = mobile?.[p];
+          const hasManual = raw !== undefined && raw !== null && String(raw) !== "";
+          return (
+            <Row
+              key={p}
+              label={p === "Mpesa" ? "M Pessa" : p === "Tigo" ? "T Pesa" : p === "Halo" ? "H Pesa" : "Airtel Money"}
+              value={hasManual ? (Number(raw) === 0 ? "0" : formatNumberSpaces(Number(raw))) : "—"}
+            />
+          );
+        })}
+        <Row label="Total CashLess" value={totalMobile === 0 ? "—" : formatNumberSpaces(totalMobile)} bold framed />
       </div>
       <div className="mt-2 pt-1 border-t border-black flex justify-between font-bold">
         <span>{totalLabel}</span>
