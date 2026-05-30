@@ -144,6 +144,38 @@ const ShiftClosingReport = ({
       const sr: Record<string, number> = {};
       (srv || []).forEach((r: any) => { if (r?.table_id) sr[r.table_id] = Number(r.result || 0); });
       setServerResults(sr);
+
+      // Tips for this business day, grouped by shift_type (day / night).
+      if (businessDate) {
+        const fromUtc = `${businessDate}T02:00:00Z`;
+        const nx = new Date(`${businessDate}T00:00:00Z`);
+        nx.setUTCDate(nx.getUTCDate() + 1);
+        const toUtc = `${nx.toISOString().slice(0, 10)}T02:00:00Z`;
+        const { data: bdShifts } = await supabase
+          .from("shifts")
+          .select("id, shift_type")
+          .eq("casino_id", casinoId)
+          .gte("opened_at", fromUtc)
+          .lt("opened_at", toUtc);
+        const idMap = new Map<string, string>();
+        (bdShifts || []).forEach((s: any) => idMap.set(s.id, s.shift_type));
+        if (bdShifts && bdShifts.length) {
+          const { data: tipTx } = await supabase
+            .from("transactions")
+            .select("amount, shift_id, type")
+            .in("shift_id", bdShifts.map((s: any) => s.id))
+            .in("type", ["tips_live", "tips_poker", "tips_floor"] as any)
+            .is("cancelled_at", null);
+          let day = 0, night = 0;
+          (tipTx || []).forEach((t: any) => {
+            const st = idMap.get(t.shift_id);
+            const a = Number(t.amount || 0);
+            if (st === "day") day += a;
+            else if (st === "night") night += a;
+          });
+          if (!cancelled) setTipsByShift({ day, night });
+        }
+      }
     })();
     return () => { cancelled = true; };
   }, [casinoId, shift?.id, businessDate]);
