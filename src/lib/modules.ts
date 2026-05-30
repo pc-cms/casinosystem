@@ -62,6 +62,7 @@ export type ModuleKey =
   | "cctv"
   | "cctv_dashboard"
   | "import_reports"
+  | "marketing_campaigns"
   | "admin";
 
 export interface ModuleDef {
