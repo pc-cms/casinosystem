@@ -115,51 +115,42 @@ export async function setupPWA() {
         console.log("[PWA] App ready for offline use");
       },
       onNeedRefresh() {
-        console.log("[PWA] New version available");
+        console.log("[PWA] New version available — forcing update");
 
-        // Dispatch global event so any UI can react
+        // Dispatch global event so any UI can react (blocking overlay)
         window.dispatchEvent(new CustomEvent("pwa:update-available", {
           detail: { update: updateSW },
         }));
 
-        // Also show a persistent toast as fallback
+        // Persistent toast as fallback
         const toastId = toast("Доступна новая версия", {
-          description: "Нажмите «Обновить», чтобы загрузить последнюю версию.",
+          description: "Приложение будет перезагружено автоматически.",
           duration: Infinity,
           action: {
-            label: "Обновить",
+            label: "Обновить сейчас",
             onClick: () => {
               updateSW(true);
             },
           },
-          cancel: {
-            label: "Позже",
-            onClick: () => {},
-          },
         });
 
-        // Auto-reload when user is idle and app is not busy.
-        const tryAutoReload = () => {
-          const idleFor = Date.now() - lastInteraction;
-          if (idleFor >= IDLE_AUTO_RELOAD_MS && !isAppBusy()) {
+        // FORCE UPDATE: reload as soon as the app is not busy.
+        // Poll every 10s — first safe moment wins. Hard cap at 2 minutes.
+        const startedAt = Date.now();
+        const HARD_CAP_MS = 2 * 60 * 1000;
+        const tryForceReload = () => {
+          const elapsed = Date.now() - startedAt;
+          if (!isAppBusy() || elapsed >= HARD_CAP_MS) {
             toast.dismiss(toastId);
+            console.log("[PWA] Force-reloading to apply update");
             updateSW(true);
             return;
           }
-          setTimeout(tryAutoReload, 30 * 1000);
+          setTimeout(tryForceReload, 10 * 1000);
         };
-        setTimeout(tryAutoReload, IDLE_AUTO_RELOAD_MS);
-
-        // Hard force-reload 10 minutes after the new version was detected,
-        // regardless of idle state or open dialogs. Ensures every active PWA
-        // picks up critical updates without waiting for the user.
-        const FORCE_RELOAD_MS = 10 * 60 * 1000;
-        setTimeout(() => {
-          toast.dismiss(toastId);
-          console.log("[PWA] Force-reloading to apply update");
-          updateSW(true);
-        }, FORCE_RELOAD_MS);
+        setTimeout(tryForceReload, 5 * 1000);
       },
+
     });
   } catch (e) {
     console.warn("[PWA] Registration failed:", e);
