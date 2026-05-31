@@ -323,6 +323,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
   };
 
   const confirmSubmitForReview = async () => {
+    const freshAgg = await fetchFreshTransfersAgg();
     await supabase
       .from("cage_slots_shifts")
       .update({ cashless_final: cashlessFinal } as any)
