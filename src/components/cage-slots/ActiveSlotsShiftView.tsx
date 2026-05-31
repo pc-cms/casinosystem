@@ -57,6 +57,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
   const { data: cashless = [] } = useSlotsCashless(shift.id);
   const { data: comments = [] } = useSlotsComments(shift.id);
   const { data: slotsExpenses = [] } = useSlotsExpenses(shift.id);
+  const { data: tipsCdRows = [] } = useSlotsTipsCd(shift.id);
   
   const { data: transfers = [] } = useSlotsTransfers(shift.id);
 
