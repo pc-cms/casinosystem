@@ -78,7 +78,8 @@ export const moduleKeyForRoute = (to: string, label?: string): ModuleKey | null 
   // /cage = cashier transactional surface; /cage/view = read-only history.
   if (base === "/cage") return "cage";
   if (base === "/cage/view") return "cage_view";
-  if (base === "/cage/closings") return "cage_closings";
+  if (base === "/cage/closings") return "closings";
+  if (base === "/closings") return "closings";
   if (base === "/cage/close-shift") return "cage";
   if (base.startsWith("/cage/shift/")) return "cage";
   // Slots Expenses lives inside the Cage Slots surface and must follow the
@@ -88,6 +89,7 @@ export const moduleKeyForRoute = (to: string, label?: string): ModuleKey | null 
 
   // ============= EXPENSES / CASHLESS =============
   if (base === "/expenses") return "expenses";
+  if (base === "/expenses/daily") return "daily_expenses";
   if (base === "/expenses/approvals") return "expenses_approvals";
   if (base === "/cashless") return "cashless";
 

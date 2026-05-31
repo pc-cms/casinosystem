@@ -21,6 +21,7 @@ export const useExpenses = (
         .select("*, players(id, first_name, last_name)")
         .eq("casino_id", casinoId)
         .eq("cage_type", cageType)
+        .neq("source", "office")
         .order("created_at", { ascending: false });
 
       const { businessDayHourUTC } = await import("@/lib/business-day");
@@ -61,6 +62,7 @@ export const useSlotsExpenses = (slotsShiftId: string | undefined) => {
         .select("*, players(first_name, last_name)")
         .eq("casino_id", casinoId)
         .eq("cage_slots_shift_id", slotsShiftId)
+        .neq("source", "office")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data;
