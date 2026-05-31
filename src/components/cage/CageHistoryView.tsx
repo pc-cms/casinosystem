@@ -72,23 +72,32 @@ const CageHistoryView = () => {
   // Cashless for the date
   const { data: cashless = [] } = useCashless(date);
 
-  // Cage transfers for the date
+  // Cage transfers for the date — merged Live + Slots cage
   const { data: cageTransfers = [] } = useQuery({
-    queryKey: ["surv-cage-transfers", casinoId, date],
+    queryKey: ["surv-cage-transfers-merged", casinoId, date],
     queryFn: async () => {
       if (!casinoId) return [] as any[];
-      const { data, error } = await supabase
-        .from("cage_transfers")
-        .select("*")
-        .eq("casino_id", casinoId)
-        .gte("created_at", businessDayHourUTC(date, 7))
-        .lt("created_at", businessDayHourUTC(date, 7 + 24))
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data || [];
+      const from = businessDayHourUTC(date, 7);
+      const to = businessDayHourUTC(date, 7 + 24);
+      const [{ data: live, error: e1 }, { data: slots, error: e2 }] = await Promise.all([
+        supabase.from("cage_transfers").select("*").eq("casino_id", casinoId)
+          .gte("created_at", from).lt("created_at", to).order("created_at", { ascending: false }),
+        (supabase as any).from("cage_slots_transfers").select("*").eq("casino_id", casinoId)
+          .gte("created_at", from).lt("created_at", to).order("created_at", { ascending: false }),
+      ]);
+      if (e1) throw e1;
+      if (e2) throw e2;
+      const liveRows = (live || []).map((r: any) => ({ ...r, _source: "live" }));
+      const slotsRows = (slots || []).map((r: any) => ({ ...r, _source: "slots" }));
+      return [...liveRows, ...slotsRows].sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
     },
     enabled: !!casinoId,
   });
+  const [transferSourceFilter, setTransferSourceFilter] = useState<"ALL" | "live" | "slots">("ALL");
+  const cageTransfersFiltered = useMemo(
+    () => transferSourceFilter === "ALL" ? cageTransfers : cageTransfers.filter((t: any) => t._source === transferSourceFilter),
+    [cageTransfers, transferSourceFilter]
+  );
 
   // Chip transfers for the date (uses existing hook scoped by day)
   const { data: chipTransfers = [] } = useChipTransfers(date);
@@ -310,7 +319,7 @@ const CageHistoryView = () => {
                           {new Date(cc.created_at).toLocaleTimeString("en-GB", { timeZone: "Africa/Dar_es_Salaam", hour: "2-digit", minute: "2-digit" })}
                         </td>
                         <td className="px-3 py-1.5">
-                          <span className={`cms-chip text-[9px] h-4 px-1.5 ${isSlots ? "bg-accent/20 text-accent-foreground" : "bg-primary/15 text-primary"}`}>
+                          <span className={`cms-chip text-[9px] h-4 px-1.5 font-bold ${isSlots ? "bg-amber-500/20 text-amber-600 dark:text-amber-300 border border-amber-500/40" : "bg-blue-500/20 text-blue-600 dark:text-blue-300 border border-blue-500/40"}`}>
                             {isSlots ? "SLOTS" : "LIVE"}
                           </span>
                         </td>
@@ -402,24 +411,46 @@ const CageHistoryView = () => {
           </div>
         </TabsContent>
 
-        {/* Cage transfers */}
+        {/* Cage transfers — Live + Slots merged with source filter */}
         <TabsContent value="cage" className="space-y-3">
           <div className="cms-panel">
-            <div className="cms-header">Cage Transfers ({cageTransfers.length})</div>
+            <div className="cms-header flex items-center justify-between gap-2 flex-wrap">
+              <span>Cage Transfers ({cageTransfersFiltered.length})</span>
+              <div className="flex items-center gap-1">
+                {(["ALL", "live", "slots"] as const).map(s => (
+                  <Button
+                    key={s}
+                    variant={transferSourceFilter === s ? "default" : "outline"}
+                    size="sm"
+                    className="h-7 text-[10px]"
+                    onClick={() => setTransferSourceFilter(s)}
+                  >
+                    {s === "ALL" ? "All" : s === "live" ? "Live Cage" : "Slots Cage"}
+                  </Button>
+                ))}
+              </div>
+            </div>
             <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
               <table className="w-full text-xs">
                 <thead className="sticky top-0 bg-card z-10">
                   <tr className="border-b border-border">
-                    {["Type", "Direction", "Table", "Amount", "Note", "Time"].map(h => (
+                    {["Source", "Type", "Direction", "Table", "Amount", "Note", "Time"].map(h => (
                       <th key={h} className="text-left px-3 py-1.5 font-medium text-muted-foreground uppercase">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {cageTransfers.length === 0 ? (
-                    <tr><td colSpan={6} className="text-center text-muted-foreground py-6">No cage transfers</td></tr>
-                  ) : cageTransfers.map((t: any) => (
-                    <tr key={t.id} className="border-b border-border last:border-0">
+                  {cageTransfersFiltered.length === 0 ? (
+                    <tr><td colSpan={7} className="text-center text-muted-foreground py-6">No cage transfers</td></tr>
+                  ) : cageTransfersFiltered.map((t: any) => {
+                    const isSlots = t._source === "slots";
+                    return (
+                    <tr key={`${t._source}-${t.id}`} className="border-b border-border last:border-0">
+                      <td className="px-3 py-1.5">
+                        <span className={`cms-chip text-[9px] h-4 px-1.5 font-bold ${isSlots ? "bg-amber-500/20 text-amber-600 dark:text-amber-300 border border-amber-500/40" : "bg-blue-500/20 text-blue-600 dark:text-blue-300 border border-blue-500/40"}`}>
+                          {isSlots ? "SLOTS" : "LIVE"}
+                        </span>
+                      </td>
                       <td className="px-3 py-1.5 font-mono uppercase text-[10px]">{t.transfer_type}</td>
                       <td className="px-3 py-1.5 text-muted-foreground font-mono text-[10px]">{t.direction}</td>
                       <td className="px-3 py-1.5 font-mono">{t.table_id ? tableMap.get(t.table_id)?.name || "—" : "—"}</td>
@@ -429,7 +460,7 @@ const CageHistoryView = () => {
                         {new Date(t.created_at).toLocaleTimeString("en-GB", { timeZone: "Africa/Dar_es_Salaam", hour: "2-digit", minute: "2-digit" })}
                       </td>
                     </tr>
-                  ))}
+                  );})}
                 </tbody>
               </table>
             </div>
