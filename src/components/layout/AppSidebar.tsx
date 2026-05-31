@@ -467,6 +467,9 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
           {/* Nav icons (only top-level items, no sub-tabs) */}
           <nav className="flex-1 flex flex-col items-center gap-0.5 w-full px-2 overflow-hidden">
             {visibleItems.map((item) => {
+              if (item.to.startsWith("__divider__")) {
+                return <div key={item.to} className="w-8 my-1 border-t border-sidebar-border/60" />;
+              }
               const isVirtual = item.to === "__attendance__" || item.to === "__rota__";
               const subs = item.to === "__attendance__" ? ATTENDANCE_SUBITEMS : item.to === "__rota__" ? ROTA_SUBITEMS : null;
               const targetTo = subs ? subs[0].to : item.to;
