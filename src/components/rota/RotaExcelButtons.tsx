@@ -119,7 +119,7 @@ export default function RotaExcelButtons({
       const firstCol = colLetter(3);
       const lastCol = colLetter(2 + ndays);
       const rowNum = 5 + i;
-      ws.dataValidations.add(`${firstCol}${rowNum}:${lastCol}${rowNum}`, {
+      (ws as any).dataValidations?.add?.(`${firstCol}${rowNum}:${lastCol}${rowNum}`, {
         type: "list",
         allowBlank: true,
         formulae: [`"${allowedShifts.join(",")}"`],
@@ -127,6 +127,7 @@ export default function RotaExcelButtons({
         errorTitle: "Invalid shift",
         error: `Allowed: ${allowedShifts.join(", ")}`,
       });
+
     });
 
     const buf = await wb.xlsx.writeBuffer();
