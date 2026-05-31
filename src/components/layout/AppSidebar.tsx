@@ -6,9 +6,9 @@ import {
   UsersRound, LogOut, Settings, FileBarChart,
   ListChecks, Eye, Target,
   Building2, UserCheck, ClipboardPen, ShieldCheck, ShieldOff,
-  Wallet, DoorOpen, ShieldAlert, Menu, Upload, FileText,
+  Wallet, DoorOpen, ShieldAlert, Menu, Upload,
   ChevronsLeft, ChevronsRight, CreditCard, CalendarDays, ChevronDown, ChevronRight, Coins, Briefcase,
-  RefreshCw, MessageSquare, AlertTriangle, User as UserIcon, Rows3, Rows2, Gift, CheckCircle2, Coffee, Megaphone,
+  RefreshCw, AlertTriangle, User as UserIcon, Rows3, Rows2, Gift, CheckCircle2, Coffee, Megaphone,
 } from "lucide-react";
 import { UserProfileDialog } from "@/components/UserProfileDialog";
 import { resetPWACache } from "@/lib/pwa-register";
