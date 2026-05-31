@@ -853,7 +853,7 @@ const DailyReport = ({ from, to }: { from: string; to: string }) => {
               <SortTh label="Result" k="result" sort={sort} toggle={toggle} align="right" />
               <SortTh label="Hold % (R/D)" k="hold" sort={sort} toggle={toggle} align="right" />
               <SortTh label="Player Result" k="playerResult" sort={sort} toggle={toggle} align="right" />
-              <SortTh label="Diff (R + P)" k="diff" sort={sort} toggle={toggle} align="right" />
+              <SortTh label="Diff (R + P − M)" k="diff" sort={sort} toggle={toggle} align="right" />
             </tr>
           </thead>
           <tbody>
