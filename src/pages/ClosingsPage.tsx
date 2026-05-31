@@ -1,0 +1,420 @@
+/**
+ * Closings Hub — single surface for all post-close inspection & printing.
+ * Tabs: Total | Live Game | Slots | Expenses. Replaces /cage/closings and
+ * the standalone /cage-slots/report/:id surfaces — print is centralised here.
+ */
+import { useMemo, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { addMonths, format, startOfMonth, subMonths } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth-context";
+import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Landmark, Coins, Receipt, BarChart3, Printer, ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
+import { formatNumberSpaces } from "@/lib/currency";
+import { fmtDate, fmtDateTime } from "@/lib/format-date";
+import ReprintShiftDialog from "@/components/cage/ReprintShiftDialog";
+import PrintSlotsShiftDialog from "@/components/cage-slots/PrintSlotsShiftDialog";
+import { useCageSlotsHistory } from "@/hooks/use-cage-slots";
+import { useDailyExpenses } from "@/hooks/use-daily-expenses";
+import { useCasino } from "@/lib/casino-context";
+import PrintPortal from "@/components/cage/PrintPortal";
+import ExpensesDayReport from "@/components/closings/ExpensesDayReport";
+import { businessDayHourUTC, getBusinessDate } from "@/lib/business-day";
+import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
+
+type TabKey = "total" | "live" | "slots" | "expenses";
+
+const ClosingsPage = () => {
+  const nav = useNavigate();
+  const [sp, setSp] = useSearchParams();
+  const tab = (sp.get("tab") as TabKey) || "total";
+  const setTab = (t: TabKey) => { sp.set("tab", t); setSp(sp, { replace: true }); };
+
+  return (
+    <PageShell>
+      <PageHeader
+        icon={BarChart3}
+        title="Closings"
+        subtitle="Per-day totals and printable shift reports"
+        date
+      />
+
+      <Tabs value={tab} onValueChange={(v) => setTab(v as TabKey)} className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="total" className="gap-1.5"><BarChart3 className="w-3.5 h-3.5" /> Total</TabsTrigger>
+          <TabsTrigger value="live" className="gap-1.5"><Landmark className="w-3.5 h-3.5" /> Live Game</TabsTrigger>
+          <TabsTrigger value="slots" className="gap-1.5"><Coins className="w-3.5 h-3.5" /> Slots</TabsTrigger>
+          <TabsTrigger value="expenses" className="gap-1.5"><Receipt className="w-3.5 h-3.5" /> Expenses</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="total"><TotalTab onJump={(t, d) => { sp.set("tab", t); if (d) sp.set("date", d); setSp(sp, { replace: true }); }} /></TabsContent>
+        <TabsContent value="live"><LiveTab /></TabsContent>
+        <TabsContent value="slots"><SlotsTab /></TabsContent>
+        <TabsContent value="expenses"><ExpensesTab /></TabsContent>
+      </Tabs>
+    </PageShell>
+  );
+};
+
+export default ClosingsPage;
+
+// ============================================================
+// TOTAL TAB — per-business-day rollup across Live + Slots + Expenses
+// ============================================================
+const TotalTab = ({ onJump }: { onJump: (tab: TabKey, date?: string) => void }) => {
+  const { casinoId } = useAuth();
+  const today = useMemo(() => new Date(), []);
+  const [monthAnchor, setMonthAnchor] = useState<Date>(startOfMonth(today));
+  const monthLabel = format(monthAnchor, "MMMM yyyy");
+  const monthStart = startOfMonth(monthAnchor);
+  const monthEnd = startOfMonth(addMonths(monthAnchor, 1));
+  const monthStartStr = format(monthStart, "yyyy-MM-dd");
+  const monthEndStr = format(monthEnd, "yyyy-MM-dd");
+
+  const { data: rows = [], isLoading } = useQuery({
+    queryKey: ["closings-total", casinoId, monthStartStr],
+    queryFn: async () => {
+      if (!casinoId) return [];
+      // Live shifts (closed) by business_date
+      const fromIso = businessDayHourUTC(monthStartStr, 11);
+      const toIso = businessDayHourUTC(monthEndStr, 11);
+
+      const [liveRes, slotsRes, expRes] = await Promise.all([
+        supabase
+          .from("shifts")
+          .select("id, opened_at, closed_at, cash_result, tables_result, balance, miss_total")
+          .eq("casino_id", casinoId)
+          .eq("status", "closed")
+          .gte("closed_at", fromIso)
+          .lt("closed_at", toIso)
+          .limit(500),
+        supabase
+          .from("cage_slots_shifts")
+          .select("id, business_date, status, slots_result, cash_desk_result, balance")
+          .eq("casino_id", casinoId)
+          .gte("business_date", monthStartStr)
+          .lt("business_date", monthEndStr)
+          .limit(500),
+        supabase
+          .from("expenses")
+          .select("amount, created_at, source")
+          .eq("casino_id", casinoId)
+          .gte("created_at", fromIso)
+          .lt("created_at", toIso)
+          .limit(5000),
+      ]);
+      if (liveRes.error) throw liveRes.error;
+      if (slotsRes.error) throw slotsRes.error;
+      if (expRes.error) throw expRes.error;
+
+      const eatDate = (iso: string) => {
+        const d = new Date(iso);
+        const hh = parseInt(d.toLocaleString("en-GB", { timeZone: "Africa/Dar_es_Salaam", hour: "2-digit", hour12: false }), 10);
+        const tgt = hh < 11 ? new Date(d.getTime() - 86400_000) : d;
+        return tgt.toLocaleDateString("en-CA", { timeZone: "Africa/Dar_es_Salaam" });
+      };
+
+      const map: Record<string, any> = {};
+      const row = (d: string) => (map[d] ||= { date: d, liveCash: 0, liveTables: 0, liveBalance: 0, slotsWin: 0, slotsBalance: 0, expenses: 0 });
+
+      (liveRes.data || []).forEach((s: any) => {
+        const d = s.closed_at ? eatDate(s.closed_at) : null;
+        if (!d) return;
+        const r = row(d);
+        r.liveCash += Number(s.cash_result || 0);
+        r.liveTables += Number(s.tables_result || 0);
+        r.liveBalance += Number(s.balance || 0);
+      });
+      (slotsRes.data || []).forEach((s: any) => {
+        const r = row(s.business_date);
+        r.slotsWin += Number(s.slots_result || 0);
+        r.slotsBalance += Number(s.balance || 0);
+      });
+      (expRes.data || []).forEach((e: any) => {
+        const r = row(eatDate(e.created_at));
+        r.expenses += Number(e.amount || 0);
+      });
+
+      return Object.values(map).sort((a: any, b: any) => (a.date < b.date ? 1 : -1));
+    },
+    enabled: !!casinoId,
+  });
+
+  return (
+    <div className="cms-panel">
+      <div className="cms-header flex items-center justify-between">
+        <span>Daily Totals · {monthLabel}</span>
+        <div className="flex items-center gap-1">
+          <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => setMonthAnchor(d => startOfMonth(subMonths(d, 1)))}><ChevronLeft className="h-3.5 w-3.5" /></Button>
+          <Button variant="outline" size="sm" className="h-7 font-mono min-w-[130px]" onClick={() => setMonthAnchor(startOfMonth(today))}>{monthLabel}</Button>
+          <Button variant="outline" size="icon" className="h-7 w-7" disabled={monthAnchor >= startOfMonth(today)} onClick={() => setMonthAnchor(d => startOfMonth(addMonths(d, 1)))}><ChevronRight className="h-3.5 w-3.5" /></Button>
+        </div>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-xs">
+          <thead className="bg-card">
+            <tr className="border-b border-border">
+              <th className="text-left px-3 py-2 uppercase text-muted-foreground">Business Day</th>
+              <th className="text-right px-3 py-2 uppercase text-muted-foreground">Live Cash</th>
+              <th className="text-right px-3 py-2 uppercase text-muted-foreground">Live Tables</th>
+              <th className="text-right px-3 py-2 uppercase text-muted-foreground">Live Balance</th>
+              <th className="text-right px-3 py-2 uppercase text-muted-foreground">Slots Win</th>
+              <th className="text-right px-3 py-2 uppercase text-muted-foreground">Slots Balance</th>
+              <th className="text-right px-3 py-2 uppercase text-muted-foreground">Expenses</th>
+              <th className="text-right px-3 py-2 uppercase text-muted-foreground">Net</th>
+            </tr>
+          </thead>
+          <tbody>
+            {isLoading ? <tr><td colSpan={8} className="text-center py-6 text-muted-foreground">Loading…</td></tr> :
+             rows.length === 0 ? <tr><td colSpan={8} className="text-center py-6 text-muted-foreground">No data</td></tr> :
+             rows.map((r: any) => {
+              const net = r.liveTables + r.slotsWin - r.expenses;
+              const cls = (n: number) => n < 0 ? "cms-amount-negative" : n > 0 ? "cms-amount-positive" : "text-muted-foreground";
+              return (
+                <tr key={r.date} className="border-b border-border hover:bg-muted/30">
+                  <td className="px-3 py-2 font-mono">{fmtDate(r.date)}</td>
+                  <td className={`px-3 py-2 text-right font-mono ${cls(r.liveCash)}`}>{formatNumberSpaces(r.liveCash)}</td>
+                  <td className={`px-3 py-2 text-right font-mono ${cls(r.liveTables)}`}>{formatNumberSpaces(r.liveTables)}</td>
+                  <td className={`px-3 py-2 text-right font-mono ${cls(r.liveBalance)}`}>{formatNumberSpaces(r.liveBalance)}</td>
+                  <td className={`px-3 py-2 text-right font-mono ${cls(r.slotsWin)}`}>{formatNumberSpaces(r.slotsWin)}</td>
+                  <td className={`px-3 py-2 text-right font-mono ${cls(r.slotsBalance)}`}>{formatNumberSpaces(r.slotsBalance)}</td>
+                  <td className="px-3 py-2 text-right font-mono text-muted-foreground">{formatNumberSpaces(r.expenses)}</td>
+                  <td className={`px-3 py-2 text-right font-mono font-semibold ${cls(net)}`}>{formatNumberSpaces(net)}</td>
+                </tr>
+              );
+             })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+
+// ============================================================
+// LIVE TAB
+// ============================================================
+const LiveTab = () => {
+  const { casinoId } = useAuth();
+  const [reprintId, setReprintId] = useState<string | null>(null);
+  const today = useMemo(() => new Date(), []);
+  const [monthAnchor, setMonthAnchor] = useState<Date>(startOfMonth(today));
+  const monthStart = startOfMonth(monthAnchor);
+  const monthEnd = startOfMonth(addMonths(monthAnchor, 1));
+
+  const { data: shifts = [], isLoading } = useQuery({
+    queryKey: ["closings-live", casinoId, monthStart.toISOString()],
+    queryFn: async () => {
+      if (!casinoId) return [];
+      const { data, error } = await supabase
+        .from("shifts")
+        .select("id, opened_at, closed_at, cash_result, miss_total, tables_result, balance, notes")
+        .eq("casino_id", casinoId)
+        .eq("status", "closed")
+        .gte("closed_at", monthStart.toISOString())
+        .lt("closed_at", monthEnd.toISOString())
+        .order("closed_at", { ascending: false })
+        .limit(200);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!casinoId,
+  });
+
+  return (
+    <div className="cms-panel">
+      <div className="cms-header flex items-center justify-between">
+        <span>Live Game Closings · {format(monthAnchor, "MMMM yyyy")} ({shifts.length})</span>
+        <div className="flex items-center gap-1">
+          <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => setMonthAnchor(d => startOfMonth(subMonths(d, 1)))}><ChevronLeft className="h-3.5 w-3.5" /></Button>
+          <Button variant="outline" size="sm" className="h-7 font-mono min-w-[130px]" onClick={() => setMonthAnchor(startOfMonth(today))}>{format(monthAnchor, "MMMM yyyy")}</Button>
+          <Button variant="outline" size="icon" className="h-7 w-7" disabled={monthAnchor >= startOfMonth(today)} onClick={() => setMonthAnchor(d => startOfMonth(addMonths(d, 1)))}><ChevronRight className="h-3.5 w-3.5" /></Button>
+        </div>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-xs">
+          <thead className="bg-card">
+            <tr className="border-b border-border">
+              {["Opened", "Closed", "Cash", "Miss", "Tables", "Balance", ""].map((h, i) => (
+                <th key={h+i} className={`px-3 py-2 uppercase text-muted-foreground ${i >= 2 && i <= 5 ? "text-right" : "text-left"}`}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {isLoading ? <tr><td colSpan={7} className="text-center py-6 text-muted-foreground">Loading…</td></tr> :
+             shifts.length === 0 ? <tr><td colSpan={7} className="text-center py-6 text-muted-foreground">No closings</td></tr> :
+             shifts.map((s: any) => {
+              const cash = Number(s.cash_result || 0);
+              const tables = Number(s.tables_result || 0);
+              const balance = Number(s.balance || 0);
+              const miss = Number(s.miss_total || 0);
+              const cls = (n: number) => n < 0 ? "cms-amount-negative" : n > 0 ? "cms-amount-positive" : "text-muted-foreground";
+              return (
+                <tr key={s.id} className="border-b border-border hover:bg-muted/30">
+                  <td className="px-3 py-2 font-mono text-[11px]">{s.opened_at ? fmtDateTime(s.opened_at) : "—"}</td>
+                  <td className="px-3 py-2 font-mono text-[11px]">{s.closed_at ? fmtDateTime(s.closed_at) : "—"}</td>
+                  <td className={`px-3 py-2 text-right font-mono ${cls(cash)}`}>{formatNumberSpaces(cash)}</td>
+                  <td className="px-3 py-2 text-right font-mono text-muted-foreground">{formatNumberSpaces(miss)}</td>
+                  <td className={`px-3 py-2 text-right font-mono font-semibold ${cls(tables)}`}>{formatNumberSpaces(tables)}</td>
+                  <td className={`px-3 py-2 text-right font-mono ${cls(balance)}`}>{formatNumberSpaces(balance)}</td>
+                  <td className="px-3 py-2 text-right">
+                    <Button size="sm" variant="outline" className="h-7 gap-1 text-[11px]" onClick={() => setReprintId(s.id)}>
+                      <Printer className="w-3 h-3" /> Print
+                    </Button>
+                  </td>
+                </tr>
+              );
+             })}
+          </tbody>
+        </table>
+      </div>
+      {reprintId && casinoId && (
+        <ReprintShiftDialog open onClose={() => setReprintId(null)} shiftId={reprintId} casinoId={casinoId} />
+      )}
+    </div>
+  );
+};
+
+// ============================================================
+// SLOTS TAB
+// ============================================================
+const SlotsTab = () => {
+  const { data: shifts = [], isLoading } = useCageSlotsHistory(120);
+  const [printId, setPrintId] = useState<string | null>(null);
+
+  return (
+    <div className="cms-panel">
+      <div className="cms-header">Slots Closings ({shifts.length})</div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-xs">
+          <thead className="bg-card">
+            <tr className="border-b border-border">
+              {["Business Day", "Type", "Status", "Slots Result", "Cash Desk", "Balance", ""].map((h, i) => (
+                <th key={h+i} className={`px-3 py-2 uppercase text-muted-foreground ${i >= 3 && i <= 5 ? "text-right" : "text-left"}`}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {isLoading ? <tr><td colSpan={7} className="text-center py-6 text-muted-foreground">Loading…</td></tr> :
+             shifts.length === 0 ? <tr><td colSpan={7} className="text-center py-6 text-muted-foreground">No closings</td></tr> :
+             shifts.map((s: any) => {
+              const slotsRes = Number(s.slots_result || 0);
+              const cdr = Number(s.cash_desk_result || 0);
+              const balance = Number(s.balance || 0);
+              const cls = (n: number) => n < 0 ? "cms-amount-negative" : n > 0 ? "cms-amount-positive" : "text-muted-foreground";
+              return (
+                <tr key={s.id} className="border-b border-border hover:bg-muted/30">
+                  <td className="px-3 py-2 font-mono">{fmtDate(s.business_date)}</td>
+                  <td className="px-3 py-2 uppercase">{s.shift_type}</td>
+                  <td className="px-3 py-2 text-muted-foreground uppercase text-[10px]">{String(s.status || "").replace("_", " ")}</td>
+                  <td className={`px-3 py-2 text-right font-mono ${cls(slotsRes)}`}>{formatNumberSpaces(slotsRes)}</td>
+                  <td className={`px-3 py-2 text-right font-mono ${cls(cdr)}`}>{formatNumberSpaces(cdr)}</td>
+                  <td className={`px-3 py-2 text-right font-mono ${cls(balance)}`}>{formatNumberSpaces(balance)}</td>
+                  <td className="px-3 py-2 text-right">
+                    <Button size="sm" variant="outline" className="h-7 gap-1 text-[11px]" onClick={() => setPrintId(s.id)}>
+                      <Printer className="w-3 h-3" /> Print
+                    </Button>
+                  </td>
+                </tr>
+              );
+             })}
+          </tbody>
+        </table>
+      </div>
+      {printId && (
+        <PrintSlotsShiftDialog open shiftId={printId} onClose={() => setPrintId(null)} />
+      )}
+    </div>
+  );
+};
+
+// ============================================================
+// EXPENSES TAB
+// ============================================================
+const ExpensesTab = () => {
+  const { data: serverDate } = useEffectiveBusinessDate();
+  const { activeCasino } = useCasino();
+  const [date, setDate] = useState<string>(() => serverDate || getBusinessDate());
+  const [source, setSource] = useState<"all" | "live_game" | "slots" | "office">("all");
+  const [print, setPrint] = useState(false);
+
+  const { data: rows = [], isLoading } = useDailyExpenses(date);
+  const filtered = useMemo(() => {
+    if (source === "all") return rows;
+    return rows.filter((r: any) => {
+      const s = (r.source || (r.cage_type === "slots" ? "slots" : "live_game")).toLowerCase();
+      return s === source;
+    });
+  }, [rows, source]);
+
+  const total = filtered.reduce((a: number, r: any) => a + Number(r.amount || 0), 0);
+
+  const shiftDate = (delta: number) => {
+    const d = new Date(date + "T12:00:00Z");
+    d.setUTCDate(d.getUTCDate() + delta);
+    setDate(d.toISOString().slice(0, 10));
+  };
+
+  return (
+    <div className="cms-panel">
+      <div className="cms-header flex items-center justify-between flex-wrap gap-2">
+        <span className="flex items-center gap-2"><CalendarDays className="w-3.5 h-3.5" /> Expenses · {fmtDate(date)} ({filtered.length})</span>
+        <div className="flex items-center gap-1">
+          <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => shiftDate(-1)}><ChevronLeft className="h-3.5 w-3.5" /></Button>
+          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="h-7 px-2 text-xs rounded border border-border bg-background font-mono" />
+          <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => shiftDate(1)}><ChevronRight className="h-3.5 w-3.5" /></Button>
+          <div className="mx-2 h-5 border-l border-border" />
+          {(["all", "live_game", "slots", "office"] as const).map(s => (
+            <Button key={s} size="sm" variant={source === s ? "default" : "outline"} className="h-7 text-[11px] uppercase" onClick={() => setSource(s)}>{s.replace("_", " ")}</Button>
+          ))}
+          <Button size="sm" variant="outline" className="h-7 gap-1 ml-2" onClick={() => setPrint(true)}><Printer className="w-3.5 h-3.5" /> Print</Button>
+        </div>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-xs">
+          <thead className="bg-card">
+            <tr className="border-b border-border">
+              {["Time", "Source", "Category", "Amount", "Description", "Player", "Approved"].map((h, i) => (
+                <th key={h} className={`px-3 py-2 uppercase text-muted-foreground ${i === 3 ? "text-right" : "text-left"}`}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {isLoading ? <tr><td colSpan={7} className="text-center py-6 text-muted-foreground">Loading…</td></tr> :
+             filtered.length === 0 ? <tr><td colSpan={7} className="text-center py-6 text-muted-foreground">No expenses</td></tr> :
+             filtered.map((r: any) => {
+              const src = (r.source || (r.cage_type === "slots" ? "slots" : "live_game")).toLowerCase();
+              const player = r.players ? `${r.players.first_name || ""} ${r.players.last_name || ""}`.trim() : r.player_name || "";
+              return (
+                <tr key={r.id} className="border-b border-border hover:bg-muted/30">
+                  <td className="px-3 py-2 font-mono text-[11px] text-muted-foreground">{fmtDateTime(r.created_at).slice(-5)}</td>
+                  <td className="px-3 py-2 uppercase text-[10px] font-bold">{src.replace("_", " ")}</td>
+                  <td className="px-3 py-2 uppercase">{r.category_code || r.category}</td>
+                  <td className="px-3 py-2 text-right font-mono">{formatNumberSpaces(Number(r.amount || 0))}</td>
+                  <td className="px-3 py-2 truncate max-w-[280px] text-muted-foreground">{r.description}</td>
+                  <td className="px-3 py-2 text-muted-foreground">{player || "—"}</td>
+                  <td className="px-3 py-2 text-center">{r.approved ? "✓" : ""}</td>
+                </tr>
+              );
+             })}
+          </tbody>
+          <tfoot>
+            <tr className="border-t-2 border-border font-semibold">
+              <td colSpan={3} className="px-3 py-2 text-right">TOTAL</td>
+              <td className="px-3 py-2 text-right font-mono">{formatNumberSpaces(total)}</td>
+              <td colSpan={3} />
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      {print && (
+        <PrintPortal open onClose={() => setPrint(false)} title={`Expenses · ${fmtDate(date)}`}>
+          <ExpensesDayReport casinoName={activeCasino?.name || ""} businessDate={date} rows={filtered as any} />
+        </PrintPortal>
+      )}
+    </div>
+  );
+};
