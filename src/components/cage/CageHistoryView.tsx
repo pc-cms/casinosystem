@@ -319,7 +319,7 @@ const CageHistoryView = () => {
                           {new Date(cc.created_at).toLocaleTimeString("en-GB", { timeZone: "Africa/Dar_es_Salaam", hour: "2-digit", minute: "2-digit" })}
                         </td>
                         <td className="px-3 py-1.5">
-                          <span className={`cms-chip text-[9px] h-4 px-1.5 ${isSlots ? "bg-accent/20 text-accent-foreground" : "bg-primary/15 text-primary"}`}>
+                          <span className={`cms-chip text-[9px] h-4 px-1.5 font-bold ${isSlots ? "bg-amber-500/20 text-amber-600 dark:text-amber-300 border border-amber-500/40" : "bg-blue-500/20 text-blue-600 dark:text-blue-300 border border-blue-500/40"}`}>
                             {isSlots ? "SLOTS" : "LIVE"}
                           </span>
                         </td>
