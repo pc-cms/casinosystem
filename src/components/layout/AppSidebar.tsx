@@ -310,6 +310,9 @@ const SidebarSections = ({
   };
 
   const renderItem = (item: NavItem, sectionCtx: Section) => {
+    if (item.to.startsWith("__divider__")) {
+      return <div key={`${sectionCtx}:${item.to}`} className="my-1 border-t border-sidebar-border/60" />;
+    }
     if (item.to === "__attendance__") return renderVirtualGroup("attendance", item, sectionCtx, ATTENDANCE_SUBITEMS);
     if (item.to === "__rota__") return renderVirtualGroup("rota", item, sectionCtx, ROTA_SUBITEMS);
     const { base: itemBase, tab: itemTab } = parseItemTo(item.to);
