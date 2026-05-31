@@ -118,21 +118,8 @@ const OpenSlotsShiftScreen = () => {
         )}
       </PageHeader>
 
-      <div className="flex items-center gap-2 mb-2">
-        <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Shift</span>
-        {(["day", "night"] as SlotsShiftType[]).map(t => (
-          <button
-            key={t}
-            type="button"
-            onClick={() => setShiftType(t)}
-            className={`px-2 py-1 rounded text-[11px] font-semibold uppercase transition-colors ${
-              shiftType === t ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/70"
-            }`}
-          >
-            {t}
-          </button>
-        ))}
-      </div>
+      {/* shift_type is fixed to 'day' going forward — single shift per business day.
+          Historical day/night rows remain unchanged. */}
 
       {step === 1 && (
         <div className="space-y-2">

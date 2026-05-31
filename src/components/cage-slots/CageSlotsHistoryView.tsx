@@ -42,7 +42,6 @@ const CageSlotsHistoryView = () => {
           <thead className="text-muted-foreground border-b border-border">
             <tr>
               <th className="text-left py-1.5">Business Day</th>
-              <th>Type</th>
               <th>Status</th>
               <th>Opened</th>
               <th>Closed</th>
@@ -59,7 +58,7 @@ const CageSlotsHistoryView = () => {
           </thead>
           <tbody>
             {shifts.length === 0 && !isLoading && (
-              <tr><td colSpan={14} className="text-center text-muted-foreground py-4">·</td></tr>
+              <tr><td colSpan={13} className="text-center text-muted-foreground py-4">·</td></tr>
             )}
             {shifts.map(s => {
               const ct = closingTotals[s.id];
@@ -118,7 +117,6 @@ const CageSlotsHistoryView = () => {
                       {fmtDate(s.business_date)}
                     </span>
                   </td>
-                  <td className="text-center uppercase">{s.shift_type}</td>
                   <td className="text-center"><Badge variant="outline" className="text-[10px] uppercase">{s.status.replace("_", " ")}</Badge></td>
                   <td className="text-center text-muted-foreground">{fmtDateTime(s.opened_at)}</td>
                   <td className="text-center text-muted-foreground">{s.closed_at ? fmtDateTime(s.closed_at) : "·"}</td>
@@ -152,7 +150,7 @@ const CageSlotsHistoryView = () => {
                 </tr>
                 {isExpanded && (
                   <tr className="bg-muted/10 border-b border-border">
-                    <td colSpan={14} className="p-3">
+                    <td colSpan={13} className="p-3">
                       <SlotsShiftReportBody id={s.id} showHeader={false} compact />
                     </td>
                   </tr>

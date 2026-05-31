@@ -26,7 +26,7 @@ import { getBusinessDate, businessDayHourUTC } from "@/lib/business-day";
 import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
 import { useCashChecksByBusinessDate } from "@/hooks/use-cash-checks-by-date";
 import CashCheckViewerDialog from "@/components/cage/CashCheckViewerDialog";
-import type { Tables } from "@/integrations/supabase/types";
+
 
 const MAX_DAYS_BACK = 90;
 
@@ -116,7 +116,8 @@ const CageHistoryView = () => {
     () => new Map((checkProfiles as any[]).map((p) => [p.user_id, p.display_name])),
     [checkProfiles]
   );
-  const [viewerCheck, setViewerCheck] = useState<Tables<"cash_counts"> | null>(null);
+  const [viewerCheck, setViewerCheck] = useState<any>(null);
+  const viewerSource = viewerCheck?.source as "live" | "slots" | undefined;
 
   // Cashless provider filter (Mobile Money providers)
   const [providerFilter, setProviderFilter] = useState<string>("ALL");
@@ -254,7 +255,7 @@ const CageHistoryView = () => {
 
 
 
-        {/* Cashier checks */}
+        {/* Cashier checks — unified: live game + slots, click → popup viewer */}
         <TabsContent value="checks" className="space-y-3">
           <div className="cms-panel">
             <div className="cms-header">Cashier Checks ({cashChecks.length})</div>
@@ -262,17 +263,21 @@ const CageHistoryView = () => {
               <table className="w-full text-xs">
                 <thead className="sticky top-0 bg-card z-10">
                   <tr className="border-b border-border">
-                    {["Time", "Cashier", "Counted", "Diff"].map(h => (
+                    {["Time", "Source", "Cashier", "Counted", "Diff"].map(h => (
                       <th key={h} className={`px-3 py-1.5 font-medium text-muted-foreground uppercase ${h === "Counted" || h === "Diff" || h === "Time" ? "text-right" : "text-left"}`}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {cashChecks.length === 0 ? (
-                    <tr><td colSpan={4} className="text-center text-muted-foreground py-6">No checks for this day</td></tr>
+                    <tr><td colSpan={5} className="text-center text-muted-foreground py-6">No checks for this day</td></tr>
                   ) : cashChecks.map((cc: any) => {
                     const t = (cc.denominations || {}).totals || {};
-                    const diff = Number(t.difference ?? 0);
+                    const isSlots = cc.source === "slots";
+                    // Slots checks balance on shift_balance, live on difference
+                    const diff = isSlots
+                      ? Number(t.shift_balance ?? t.balance ?? 0)
+                      : Number(t.difference ?? 0);
                     const balanced = !!t.balanced || diff === 0;
                     const kindTag = t.is_opening ? "Opening" : t.is_closing ? "Closing" : null;
                     return (
@@ -283,6 +288,11 @@ const CageHistoryView = () => {
                       >
                         <td className="px-3 py-1.5 text-right font-mono text-[10px] text-muted-foreground">
                           {new Date(cc.created_at).toLocaleTimeString("en-GB", { timeZone: "Africa/Dar_es_Salaam", hour: "2-digit", minute: "2-digit" })}
+                        </td>
+                        <td className="px-3 py-1.5">
+                          <span className={`cms-chip text-[9px] h-4 px-1.5 ${isSlots ? "bg-accent/20 text-accent-foreground" : "bg-primary/15 text-primary"}`}>
+                            {isSlots ? "SLOTS" : "LIVE"}
+                          </span>
                         </td>
                         <td className="px-3 py-1.5">
                           <span className="flex items-center gap-1.5">
@@ -456,8 +466,9 @@ const CageHistoryView = () => {
       <CashCheckViewerDialog
         open={!!viewerCheck}
         onOpenChange={(o) => { if (!o) setViewerCheck(null); }}
-        check={viewerCheck}
+        check={viewerCheck as any}
         cashierName={viewerCheck ? cashierMap.get(viewerCheck.counted_by) : undefined}
+        balanceMode={viewerSource === "slots" ? "slots" : "default"}
       />
     </PageShell>
   );
