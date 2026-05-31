@@ -26,7 +26,7 @@ import { getBusinessDate, businessDayHourUTC } from "@/lib/business-day";
 import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
 import { useCashChecksByBusinessDate } from "@/hooks/use-cash-checks-by-date";
 import CashCheckViewerDialog from "@/components/cage/CashCheckViewerDialog";
-import type { Tables } from "@/integrations/supabase/types";
+
 
 const MAX_DAYS_BACK = 90;
 
