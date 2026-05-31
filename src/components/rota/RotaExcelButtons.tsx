@@ -25,7 +25,7 @@ interface RotaExcelButtonsProps {
   /** code → human label, used in the legend row */
   shiftLabels: Record<string, string>;
   /** Called once per (employeeId, date) for cells whose value differs from existing. */
-  onSetCell: (employeeId: string, date: string, shift: string) => Promise<void> | void;
+  onSetCell: (employeeId: string, date: string, shift: string) => unknown;
   disabled?: boolean;
 }
 
