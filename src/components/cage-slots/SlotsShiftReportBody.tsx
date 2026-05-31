@@ -140,9 +140,8 @@ const SlotsShiftReportBody = ({ id, showHeader = true, compact = false }: Props)
     <div className={wrap}>
       {showHeader && (
         <PageSection title="Header">
-          <dl className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+          <dl className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
             <Field label="Business Day" value={fmtDate(shift.business_date)} />
-            <Field label="Shift Type" value={shift.shift_type.toUpperCase()} />
             <Field label="Opened" value={fmtDateTime(shift.opened_at)} />
             <Field label="Closed" value={shift.closed_at ? fmtDateTime(shift.closed_at) : "—"} />
           </dl>

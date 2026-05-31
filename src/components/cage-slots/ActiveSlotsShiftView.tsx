@@ -401,7 +401,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
         <PageHeader
           icon={Coins}
           title="Cage Slots · Manager Review"
-          subtitle={`Shift ${shift.shift_type.toUpperCase()} · Submitted ${shift.submitted_at ? fmtDateTime(shift.submitted_at) : "—"}`}
+          subtitle={`Submitted ${shift.submitted_at ? fmtDateTime(shift.submitted_at) : "—"}`}
           date
           context={<Badge className="uppercase text-[10px]">Awaiting Manager</Badge>}
         />
@@ -479,7 +479,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
       <PageHeader
         icon={Coins}
         title="Cage Slots"
-        subtitle={`Shift ${shift.shift_type.toUpperCase()} · Opened ${fmtDateTime(shift.opened_at)}`}
+        subtitle={`Opened ${fmtDateTime(shift.opened_at)}`}
         date
         context={
           <Badge variant={isReadyForReview ? "default" : "outline"} className="uppercase text-[10px]">
@@ -833,7 +833,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
         <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowClosingPreview(false)}>
           <div className="bg-card border border-border rounded-md shadow-lg p-5 max-w-2xl w-full space-y-4 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-lg">Closing Preview · Shift {shift.shift_type.toUpperCase()}</h3>
+              <h3 className="font-semibold text-lg">Closing Preview</h3>
               <Badge variant="outline" className="text-[10px]">REVIEW BEFORE SUBMIT</Badge>
             </div>
 
