@@ -1,101 +1,61 @@
-# Closings Hub + Expenses Restructure
+# Implementation Plan — Steps 2-4
 
-Большая работа в 5 блоков. Выполним последовательно, начнём с фундамента (БД и категории), затем UI.
+Backend (Step 1) уже выполнен: `expense_categories`, `expenses.source`, office-триггеры, RPC `create_office_expense`.
 
-## 1. Backend: категории, office expenses, scope
+## Step 2 — Closings Hub `/closings`
 
-### 1.1 Категории Expenses (per-casino)
-- Новая таблица `public.expense_categories`:
-  - `id`, `casino_id`, `code` (slug), `label`, `scope` enum (`live_game` | `slots` | `office` | `any`), `active`, `sort_order`, `created_at`
-  - UNIQUE (casino_id, code)
-  - GRANT + RLS: read для всех ролей казино, write только manager/finance/super_admin
-- Backfill — для каждого казино заполнить дефолтным набором из текущего хардкод-списка (`src/lib/expense-categories.ts` если есть, иначе из enum в таблице `expenses`).
-- Хук `useExpenseCategories(scope)` — фильтрует по `scope IN (запрошенный, 'any')`.
+Новая страница с 4 вкладками. Старые `/cage/closings` и `/cage-slots/report` редиректят на неё.
 
-### 1.2 Office expenses
-- В таблице `expenses` добавить колонку `source` text default `'live_game'` с CHECK (`live_game`,`slots`,`office`).
-- Backfill: всё, что `cage_slots_shift_id IS NOT NULL` → `slots`; всё остальное → `live_game` (office пока нет).
-- Триггер на INSERT office expense:
-  - Списывает с wallet `MAIN_CASH` через тот же путь, что collections (Финансовый ledger).
-  - НЕ требует approval (`approved=true` авто).
-  - НЕ привязан к `shift_id` / `cage_slots_shift_id` — не попадает в `cash_result` smen.
-- RPC `create_office_expense(category, amount, description, created_by)` — manager only.
+- **Total** — таблица по бизнес-дням: Live Cash / Live Tables / Live Balance / Slots Win / Slots Balance / Expenses / Net. Источник: `daily_summaries` + агрегаты `expenses` по `business_date`. Drill-down кликом → переход на нужную вкладку с выбранным днём.
+- **Live Game** — список Live-смен (как сейчас в `CageHistoryView`). Кнопка **Print** открывает `ReprintShiftDialog` (A4 portrait, как сделали ранее).
+- **Slots** — список `cage_slots_shifts`. Кнопка **Print** открывает `SlotsConsolidatedReport` (A4 portrait).
+- **Expenses** — date-picker (бизнес-день), таблица: Time / Source (Live/Slots/Office) / Category / Amount / Description / Player / Approved. Фильтры по source, сортировки. Кнопка **Print** → новый компонент `PrintExpensesReport` (A4 portrait, шапка с датой и итогами по source).
 
-### 1.3 Версия
-Авто-bump patch в `package.json` (правило memory).
+Убираем кнопки Print/Reprint из:
+- `ActiveShiftView` (после закрытия)
+- `ActiveSlotsShiftView`
+- `CageHistoryView` (Live history)
+- `CageSlotsHistoryView`
+- `CageSlotsReport` page
 
-## 2. Closings Hub (новый `/closings` с 4 вкладками)
+Печать только из `/closings`.
 
-Переименуем `CageClosingsPage` → `ClosingsHubPage` на маршруте `/closings` (старый `/cage/closings` → redirect).
+## Step 3 — Renaming и навигация
 
-```text
-┌─ Closings ────────────────────────────────────────┐
-│ [Total] [Live Game] [Slots] [Expenses]            │
-│ Месячный пикер (общий для всех вкладок)           │
-└───────────────────────────────────────────────────┘
-```
+- Sidebar: `Cage` → **Cage Live Game**; `Slots Expenses` → **Expenses Slots**; manager `Expenses` → **Expenses Live Game**; добавить **Daily Expenses** (`/expenses/daily`); добавить **Closings** (`/closings`).
+- `src/lib/modules.ts` + `src/lib/route-module-map.ts`: переименовать labels, добавить новые ModuleKeys `closings` и `daily_expenses` с правильным role-маппингом (Closings: cashier+manager+finance+pit+surveillance read; Daily Expenses: manager+finance).
+- Старые routes `/cage/closings`, `/cage-slots/report` → `<Navigate to="/closings?tab=..." />`.
 
-- **Total** — таблица по бизнес-дням: Date · Live Cash · Live Tables · Live Balance · Slots Win · Slots Balance · Total Expenses · Net. Клик по строке = drill в детали дня.
-- **Live Game** — текущая логика `CageClosingsPage` (по сменам Live), кнопка Print открывает `ReprintShiftDialog`. Manager Reopen остаётся.
-- **Slots** — аналогичная таблица по слот-сменам (`cage_slots_shifts`), кнопка Print открывает существующий `SlotsConsolidatedReport` в портретном А4.
-- **Expenses** — список расходов за выбранный день (date picker внутри вкладки). Колонки: Time · Source (Live/Slots/Office, badge) · Category · Amount · Description · Player · Created By · Approved. Сортировки/фильтры по source + category. Кнопка Print → одна таблица в А4 портрет.
+## Step 4 — Daily Expenses + Admin Categories
 
-### Удаление дублей кнопок
-- В `ActiveShiftView`, `ActiveSlotsShiftView`, `Cage history`, `CageSlotsHistoryView`, `CageSlotsReport`-странице — убрать кнопки Print/Reprint (печать только из Closings).
-- Сами компоненты репортов (`ShiftClosingReport`, `SlotsConsolidatedReport`, `ReprintShiftDialog`) остаются — переиспользуем из Closings.
+**`/expenses/daily`** (manager-only):
+- Date-picker, таблица всех расходов за день (Live/Slots/Office), фильтры/сортировки.
+- Кнопка **+ Add Office Expense** (только manager/finance) → диалог: category select (из `expense_categories` scope `office`/`any`), amount, description. Submit → RPC `create_office_expense`. Деньги уходят с MAIN_CASH автоматически (DB-trigger).
+- Office-расходы видны ТОЛЬКО здесь и в `/closings` (Expenses tab). НЕ показываются в Live Game / Slots expenses-listах.
 
-## 3. Переименования + навигация
+**Admin → Casino Settings → Expense Categories**:
+- Новая секция в `Admin.tsx` (или `CasinoSettingsTab`). CRUD-таблица per-casino: `code`, `label`, `scope` (live_game/slots/office/any), `active`, `sort_order`.
+- Доступ: manager, finance_manager, super_admin. Delete только super_admin (RLS уже это даёт).
 
-| Текущее | Новое |
-|---|---|
-| `Cage` (sidebar) | `Cage Live Game` |
-| `Slots Expenses` (`/cage-slots/expenses`) | `Expenses Slots` |
-| `Expenses` (manager, `/expenses`) | `Expenses Live Game` (на этой же странице) + новая `Daily Expenses` |
-| `Expenses Approvals` | без изменений |
-| `Cage Closings` (`/cage/closings`) | `Closings` (`/closings`) |
+**Хуки** (новые в `src/hooks/`):
+- `use-expense-categories.ts` — list/create/update/delete + фильтр по scope.
+- `use-closings-total.ts` — агрегат по business_date.
+- `use-daily-expenses.ts` — все расходы дня с фильтром по source.
+- `use-create-office-expense.ts` — обёртка над RPC.
 
-- `src/lib/modules.ts`: обновить labels, добавить ключи `closings_hub`, `expenses_office`, `expense_categories_admin`.
-- `src/lib/route-module-map.ts`: смапить `/closings` → `closings_hub`.
-- Sidebar (`AppLayout` / nav config) — переименовать пункты, добавить `Closings` в группу Operations.
-
-## 4. CCTV (Cage View) — Checks Live Game + Checks Slots
-
-В `src/pages/cage/CageViewPage.tsx` сейчас read-only Cage. Добавляем 2 новые секции/таба:
-- **Checks Live Game** — то же что Total в Closings, но read-only (без Reopen). Показывает таблицу Live смен + кнопку Print отчёта.
-- **Checks Slots** — то же для слот-смен.
-
-Все таблицы выровнять по стилю (одинаковые заголовки/паддинги/моноширинный шрифт) — общий компонент `<ClosingsTable role="cctv|manager" kind="live|slots|total|expenses" />` чтобы DRY.
-
-Доступ: роль `surveillance` получает permission на новые модули `cctv_checks_live`, `cctv_checks_slots`.
-
-## 5. Manager → Daily Expenses
-
-Текущая `src/pages/Expenses.tsx` (manager) переименовывается в **Expenses Live Game** (фильтр source=live). Новая страница **Daily Expenses** на `/expenses/daily`:
-- Date picker (любой бизнес-день).
-- Таблица всех расходов за день (Live + Slots + Office), source badge, фильтры/сортировка, печать (тот же layout что Closings → Expenses tab).
-- Кнопка "+ Add Office Expense" (manager only) → диалог: category (из `expense_categories` scope=office|any), amount, description. Создаёт через `create_office_expense` RPC, без approval, списывается с MAIN_CASH.
-- Office-расходы видны здесь, но **НЕ** появляются в Expenses Live Game / Expenses Slots.
-
-## 6. Admin → Casino Settings → Expense Categories
-
-В `Admin.tsx` добавить таб/секцию **Expense Categories**:
-- Таблица per-casino: code · label · scope · active · sort_order.
-- CRUD: Add / Edit / Toggle active. (Удаление soft через `active=false`.)
-- Доступно: manager/finance/super_admin.
+**Изменения в `use-expenses.ts`**: добавить фильтр `.neq('source', 'office')` в `useExpenses` чтобы office-расходы не появлялись в Live/Slots экранах. `useSlotsExpenses` — то же.
 
 ## Технические детали
 
-- **DB миграции** одной транзакцией: `expense_categories` (таблица + GRANT + RLS + seed), ALTER `expenses ADD COLUMN source` + backfill, триггер office-expense → MAIN_CASH ledger, RPC `create_office_expense`.
-- **Хуки**: `useClosingsLive(month)`, `useClosingsSlots(month)`, `useClosingsTotal(month)`, `useDailyExpenses(date)`, `useExpenseCategories(scope, casinoId)`, `useCreateOfficeExpense()`.
-- **Общие компоненты**: `ClosingsTable`, `PrintExpensesReport` (А4 портрет в стиле существующих отчётов: моноширинный, table border-collapse, signatures внизу).
-- **Удалить/redirect**: `/cage/closings` → `/closings`, `/cage-slots/report` остаётся как технический route но кнопка скрыта.
-- **Сохранение совместимости**: existing `expenses.cage_type` остаётся, новый `source` — primary. Хук `useExpenses` обновится фильтровать по `source` для разделения Live/Slots/Office.
+- Печатные отчёты в Closings — A4 portrait, единый стиль (шапка казино + дата + таблица + подпись). Reuse существующих `PrintFrame` помощников.
+- `daily_summaries` уже содержит cash_result/tables_result по shift; для Total-вкладки агрегируем по `business_date`.
+- Версия `package.json` — bump до `1.3.202` (backend triggers + UI).
 
-## Порядок имплементации (4 шага)
+## Порядок коммитов
 
-1. **Миграция БД**: `expense_categories` (+seed), `expenses.source` (+backfill), office-expense trigger + RPC.
-2. **Closings Hub**: `/closings` с 4 вкладками + удаление дублей Print во всех других местах + перенаправление `/cage/closings`.
-3. **CCTV Checks Live/Slots** в Cage View + переименования в sidebar/modules.
-4. **Daily Expenses + Office expenses UI** + Admin → Expense Categories editor.
-
-Каждый шаг — отдельный коммит/проверка перед следующим.
+1. Хуки + новые helpers.
+2. `/closings` страница + 4 вкладки + `PrintExpensesReport`.
+3. Renaming в `modules.ts` / `route-module-map.ts` / sidebar + redirects.
+4. `/expenses/daily` страница + Add Office Expense диалог.
+5. Admin → Expense Categories CRUD.
+6. Удаление Print/Reprint кнопок из старых мест.
