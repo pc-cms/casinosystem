@@ -65,11 +65,13 @@ const NAV_ITEMS: NavItem[] = [
   // CASHIER — transactional Cage operations.
   { to: "/cage", icon: Landmark, label: "Cage Live Game", roles: ["super_admin", "cashier"], section: "CASHIER" },
   { to: "/cage-slots", icon: Coins, label: "Cage Slots", roles: ["super_admin", "cashier_slots", "manager", "floor_manager", "finance_manager", "surveillance", "pit"], section: "CASHIER" },
-  { to: "/cage-slots/expenses", icon: Receipt, label: "Expenses Slots", roles: ["super_admin", "cashier_slots", "manager", "floor_manager", "finance_manager", "surveillance", "pit"], section: "CASHIER" },
-  { to: "/closings", icon: Landmark, label: "Closings", roles: ["super_admin", "manager", "floor_manager", "finance_manager", "pit", "surveillance", "cashier"], section: "CASHIER" },
-  { to: "/expenses", icon: Receipt, label: "Expenses Live Game", roles: ["super_admin", "cashier", "cashier_slots"], section: "CASHIER" },
+  // Expenses Slots / Expenses Live Game — visible ONLY to the respective cashier role.
+  { to: "/cage-slots/expenses", icon: Receipt, label: "Expenses Slots", roles: ["super_admin", "cashier_slots"], section: "CASHIER" },
+  { to: "/expenses", icon: Receipt, label: "Expenses Live Game", roles: ["super_admin", "cashier"], section: "CASHIER" },
+  // Closings hub — managerial surface only.
+  { to: "/closings", icon: Landmark, label: "Closings", roles: ["super_admin", "manager", "floor_manager", "finance_manager"], section: "CASHIER" },
+  // Daily Expenses — manager-only full-day view across all sources (Live, Slots, Office).
   { to: "/expenses/daily", icon: Receipt, label: "Daily Expenses", roles: ["super_admin", "manager", "floor_manager", "finance_manager"], section: "CASHIER" },
-  { to: "/expenses/approvals", icon: CheckCircle2, label: "Approvals", roles: ["super_admin", "manager", "floor_manager", "finance_manager"], section: "CASHIER" },
   { to: "/cashless", icon: CreditCard, label: "Cashless", roles: ["super_admin", "manager", "floor_manager", "cashier", "finance_manager"], section: "CASHIER" },
 
   // RECEPTION — Players & entry
@@ -401,13 +403,13 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
   // No hard-coded role whitelists — only super_admin bypass + the matrix.
   // Items without a module mapping (mk null) stay visible to everyone (they
   // are auxiliary entries that don't correspond to a gated module).
-  const hasExpensesApprovals = isSuper || roles.includes("manager" as AppRole) || roles.includes("floor_manager" as AppRole) || roles.includes("finance_manager" as AppRole);
   const visibleItems = NAV_ITEMS.filter(item => {
     // Cage and Cage View are separate top-level buttons, never parent/sub-items.
     if (item.to === "/cage" && !isSuper && !roles.includes("cashier" as AppRole)) return false;
     if (item.to === "/cage/view" && !isSuper && roles.includes("cashier" as AppRole)) return false;
-    // Dedupe: hide raw Expenses when user has Approvals (which covers oversight)
-    if (item.to === "/expenses" && hasExpensesApprovals) return false;
+    // Expenses Live Game / Expenses Slots — hard-gate by cashier role (never visible to managers).
+    if (item.to === "/expenses" && !isSuper && !roles.includes("cashier" as AppRole)) return false;
+    if (item.to === "/cage-slots/expenses" && !isSuper && !roles.includes("cashier_slots" as AppRole)) return false;
     if (isSuper) return true;
     if (allowedModules === undefined) return false; // still loading → render nothing yet
     const mk = moduleKeyForRoute(item.to, item.label);
