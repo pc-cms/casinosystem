@@ -674,7 +674,7 @@ const TrackerReport = ({ from, to }: { from: string; to: string }) => {
 // - Miss Chips= Σ shifts.miss_total
 // - Hold %    = Result / Drop(R) * 100
 // - Player Result = Cash In − Cashout (house gross from player tx)
-// - Diff      = Result − Player Result
+// - Diff      = Result + Player Result
 const DailyReport = ({ from, to }: { from: string; to: string }) => {
   const { casinoId } = useAuth();
 
@@ -789,7 +789,7 @@ const DailyReport = ({ from, to }: { from: string; to: string }) => {
           result: r.result,
           hold,
           playerResult,
-          diff: r.result - playerResult,
+          diff: r.result + playerResult,
         };
       });
     },
@@ -848,7 +848,7 @@ const DailyReport = ({ from, to }: { from: string; to: string }) => {
               <SortTh label="Result" k="result" sort={sort} toggle={toggle} align="right" />
               <SortTh label="Hold % (R/D)" k="hold" sort={sort} toggle={toggle} align="right" />
               <SortTh label="Player Result" k="playerResult" sort={sort} toggle={toggle} align="right" />
-              <SortTh label="Diff (R − P)" k="diff" sort={sort} toggle={toggle} align="right" />
+              <SortTh label="Diff (R + P)" k="diff" sort={sort} toggle={toggle} align="right" />
             </tr>
           </thead>
           <tbody>
