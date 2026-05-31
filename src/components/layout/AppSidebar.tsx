@@ -65,12 +65,12 @@ const NAV_ITEMS: NavItem[] = [
   // CASHIER — transactional Cage operations.
   { to: "/cage", icon: Landmark, label: "Cage Live Game", roles: ["super_admin", "cashier"], section: "CASHIER" },
   { to: "/cage-slots", icon: Coins, label: "Cage Slots", roles: ["super_admin", "cashier_slots", "manager", "floor_manager", "finance_manager", "surveillance", "pit"], section: "CASHIER" },
-  // Expenses Slots / Expenses Live Game — visible ONLY to the respective cashier role.
-  { to: "/cage-slots/expenses", icon: Receipt, label: "Expenses Slots", roles: ["super_admin", "cashier_slots"], section: "CASHIER" },
-  { to: "/expenses", icon: Receipt, label: "Expenses Live Game", roles: ["super_admin", "cashier"], section: "CASHIER" },
+  // Expenses — single button per cashier role; source is implied by login.
+  { to: "/cage-slots/expenses", icon: Receipt, label: "Expenses", roles: ["cashier_slots"], section: "CASHIER" },
+  { to: "/expenses", icon: Receipt, label: "Expenses", roles: ["cashier"], section: "CASHIER" },
   // Closings hub — managerial surface only.
   { to: "/closings", icon: Landmark, label: "Closings", roles: ["super_admin", "manager", "floor_manager", "finance_manager"], section: "CASHIER" },
-  // Daily Expenses — manager-only full-day view across all sources (Live, Slots, Office).
+  // Daily Expenses — manager full-day view; manager picks source (live / slots / office).
   { to: "/expenses/daily", icon: Receipt, label: "Daily Expenses", roles: ["super_admin", "manager", "floor_manager", "finance_manager"], section: "CASHIER" },
   { to: "/cashless", icon: CreditCard, label: "Cashless", roles: ["super_admin", "manager", "floor_manager", "cashier", "finance_manager"], section: "CASHIER" },
 
