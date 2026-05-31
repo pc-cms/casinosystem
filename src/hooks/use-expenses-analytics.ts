@@ -162,6 +162,7 @@ export const useExpenseAnalytics = (
       pendingAmount,
       pendingCount,
       byCategory,
+      bySource,
       topPlayers,
       barChargeTotal,
       barChargeCount,
@@ -174,6 +175,7 @@ export const useExpenseAnalytics = (
     filters?.categories?.join(","),
     filters?.target,
     filters?.status,
+    filters?.source,
     filters?.search,
   ]);
 };
