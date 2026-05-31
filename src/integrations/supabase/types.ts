@@ -999,6 +999,7 @@ export type Database = {
           difference_amount: number | null
           id: string
           manager_comment: string | null
+          manual_drop_slots: number
           opened_at: string
           opened_by: string
           reverses_id: string | null
@@ -1031,6 +1032,7 @@ export type Database = {
           difference_amount?: number | null
           id?: string
           manager_comment?: string | null
+          manual_drop_slots?: number
           opened_at?: string
           opened_by: string
           reverses_id?: string | null
@@ -1063,6 +1065,7 @@ export type Database = {
           difference_amount?: number | null
           id?: string
           manager_comment?: string | null
+          manual_drop_slots?: number
           opened_at?: string
           opened_by?: string
           reverses_id?: string | null
