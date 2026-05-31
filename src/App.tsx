@@ -302,11 +302,12 @@ const ProtectedRoutes = () => {
           <Route path="/cage" element={<RoleGuard path="/cage"><ErrorBoundary><Cage /></ErrorBoundary></RoleGuard>} />
           <Route path="/cage/view" element={<RoleGuard path="/cage/view"><ErrorBoundary><CageViewPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/cage/close-shift" element={<RoleGuard path="/cage"><ErrorBoundary><CloseShiftPage /></ErrorBoundary></RoleGuard>} />
-          <Route path="/cage/closings" element={<RoleGuard path="/cage/closings"><ErrorBoundary><CageClosingsPage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/cage/closings" element={<Navigate to="/closings?tab=live" replace />} />
+          <Route path="/closings" element={<RoleGuard path="/closings"><ErrorBoundary><ClosingsPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/cage/shift/:id/edit-opening" element={<RoleGuard path="/cage"><ErrorBoundary><EditOpeningChipsPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/cage-slots" element={<RoleGuard path="/cage-slots"><ErrorBoundary><CageSlots /></ErrorBoundary></RoleGuard>} />
           <Route path="/cage-slots/expenses" element={<RoleGuard path="/cage-slots/expenses"><ErrorBoundary><SlotsExpenses /></ErrorBoundary></RoleGuard>} />
-          <Route path="/cage-slots/report/:id" element={<RoleGuard path="/cage-slots"><ErrorBoundary><CageSlotsReport /></ErrorBoundary></RoleGuard>} />
+          <Route path="/cage-slots/report/:id" element={<Navigate to="/closings?tab=slots" replace />} />
           <Route path="/players/register" element={<RoleGuard path="/reception"><ErrorBoundary><RegisterPlayerPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/expenses/approvals" element={<RoleGuard path="/expenses/approvals"><ErrorBoundary><ExpensesApprovals /></ErrorBoundary></RoleGuard>} />
           <Route path="/reception" element={<RoleGuard path="/reception"><Reception /></RoleGuard>} />
@@ -321,6 +322,7 @@ const ProtectedRoutes = () => {
           <Route path="/table-tracker" element={<RoleGuard path="/table-tracker"><TableTracker /></RoleGuard>} />
           <Route path="/tables/analytics" element={<Navigate to="/table-tracker" replace />} />
           <Route path="/expenses" element={<RoleGuard path="/expenses"><Expenses /></RoleGuard>} />
+          <Route path="/expenses/daily" element={<RoleGuard path="/expenses/daily"><ErrorBoundary><DailyExpensesPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/cashless" element={<RoleGuard path="/cashless"><Cashless /></RoleGuard>} />
           {/* Phase 2 flat URLs — Pit (Live Game) */}
           <Route path="/breaklist" element={<RoleGuard path="/breaklist"><ErrorBoundary><BreaklistPage /></ErrorBoundary></RoleGuard>} />
