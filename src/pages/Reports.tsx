@@ -665,16 +665,16 @@ const TrackerReport = ({ from, to }: { from: string; to: string }) => {
 
 // =================== DAILY ANALYTICS REPORT ===================
 // Per business-day: Drop (R) / Cash In / Miss Chips / Result / Hold % (R/D) /
-// Player Result / Diff (Result - Player Result).
+// Player Result / Diff (Result + Player Result).
 //
-// - Cash In   = Σ player cash-in transactions (buy + in) in the business-day window
-// - Cashout   = Σ player cash-out transactions (cashout + out) in same window
-// - Drop (R)  = External new money (NEP-split drop_r), via compute_tables_drop_split
+// - Drop (R)  = External new money at tables (NEP-split drop_r)
+// - Cash In   = Total cash buy-in at tables = Drop(R) + Drop(V recycled).
+//               Pulled from same RPC as Drop so Cash In ≥ Drop (R) by construction.
 // - Result    = Σ shifts.tables_result (chip-based, canonical)
 // - Miss Chips= Σ shifts.miss_total
-// - Hold %    = Result / Drop(R) * 100
-// - Player Result = Cash In − Cashout (house gross from player tx)
-// - Diff      = Result + Player Result
+// - Hold %    = Result / Drop(R) * 100  (can be negative — red)
+// - Player Result = Cashout − Cash-In (player tx; positive = player wins)
+// - Diff      = Result + Player Result  (should converge to ~0)
 const DailyReport = ({ from, to }: { from: string; to: string }) => {
   const { casinoId } = useAuth();
 
@@ -699,7 +699,7 @@ const DailyReport = ({ from, to }: { from: string; to: string }) => {
       const winFrom = businessDayHourUTC(from, 11);
       const winTo = businessDayHourUTC(to, 35);
 
-      // 1) Shifts in range (for Result + Miss aggregated by opened business date)
+      // 1) Shifts (Result + Miss bucketed by opened_at → business date)
       const { data: shifts, error: sErr } = await supabase
         .from("shifts")
         .select("id, opened_at, tables_result, miss_total")
@@ -708,7 +708,7 @@ const DailyReport = ({ from, to }: { from: string; to: string }) => {
         .lt("opened_at", winTo);
       if (sErr) throw sErr;
 
-      // 2) Transactions in the window (for Cash In / Cashout)
+      // 2) Player transactions (Cashout / cash-in for Player Result)
       const { data: txs, error: tErr } = await supabase
         .from("transactions")
         .select("type, amount, created_at")
@@ -718,7 +718,7 @@ const DailyReport = ({ from, to }: { from: string; to: string }) => {
         .lt("created_at", winTo);
       if (tErr) throw tErr;
 
-      // 3) Per-day NEP split (drop_r) — one call per day in parallel
+      // 3) Per-day NEP split (Drop R + Drop V) — one RPC per day in parallel
       const splits = await Promise.all(
         dates.map(async (d) => {
           const f = businessDayHourUTC(d, 11);
@@ -728,34 +728,31 @@ const DailyReport = ({ from, to }: { from: string; to: string }) => {
             _from: f,
             _to: t,
           });
-          if (error) return { date: d, dropR: 0 };
+          if (error) return { date: d, dropR: 0, dropV: 0 };
           const dropR = (data || []).reduce((s: number, r: any) => s + Number(r.drop_r || 0), 0);
-          return { date: d, dropR };
+          const dropV = (data || []).reduce((s: number, r: any) => s + Number(r.drop_recycled || 0), 0);
+          return { date: d, dropR, dropV };
         }),
       );
-      const dropRByDate = new Map(splits.map((s) => [s.date, s.dropR]));
+      const splitByDate = new Map(splits.map((s) => [s.date, s]));
 
-      // Bucket by business date — use shift opened_at date for shift fields,
-      // and the business-window mapping for transactions.
       const byDate: Record<string, {
         date: string;
-        cashIn: number;
+        cashInTx: number;
         cashout: number;
         miss: number;
         result: number;
       }> = {};
       const ensure = (d: string) => {
-        if (!byDate[d]) byDate[d] = { date: d, cashIn: 0, cashout: 0, miss: 0, result: 0 };
+        if (!byDate[d]) byDate[d] = { date: d, cashInTx: 0, cashout: 0, miss: 0, result: 0 };
         return byDate[d];
       };
       dates.forEach((d) => ensure(d));
 
-      // Map a UTC ISO timestamp → business date (D where window is [D 11:00 EAT, D+1 11:00 EAT))
+      // Map UTC ISO timestamp → business date (rollover 11:00 EAT = 08:00 UTC)
       const tsToBusinessDate = (iso: string): string => {
         const t = new Date(iso).getTime();
-        // EAT = UTC+3, business day rolls at 11:00 EAT = 08:00 UTC
         const eatHours = t / 3600000 + 3;
-        // Subtract 11h so that 11:00 EAT becomes midnight of the business date
         const adj = new Date((eatHours - 11) * 3600000);
         return adj.toISOString().split("T")[0];
       };
@@ -769,22 +766,23 @@ const DailyReport = ({ from, to }: { from: string; to: string }) => {
 
       (txs || []).forEach((t: any) => {
         const d = tsToBusinessDate(t.created_at);
-        if (!dropRByDate.has(d)) return;
+        if (!splitByDate.has(d)) return;
         const row = ensure(d);
         const amt = Number(t.amount || 0);
-        if (t.type === "buy" || t.type === "in") row.cashIn += amt;
+        if (t.type === "buy" || t.type === "in") row.cashInTx += amt;
         else if (t.type === "cashout" || t.type === "out") row.cashout += amt;
       });
 
       return dates.map((d) => {
         const r = ensure(d);
-        const dropR = dropRByDate.get(d) || 0;
-        const playerResult = r.cashout - r.cashIn;
-        const hold = dropR > 0 ? (r.result / dropR) * 100 : null;
+        const sp = splitByDate.get(d) || { dropR: 0, dropV: 0 };
+        const cashIn = sp.dropR + sp.dropV; // total cash drop at tables (R + V)
+        const playerResult = r.cashout - r.cashInTx;
+        const hold = sp.dropR !== 0 ? (r.result / sp.dropR) * 100 : null;
         return {
           date: d,
-          dropR,
-          cashIn: r.cashIn,
+          dropR: sp.dropR,
+          cashIn,
           miss: r.miss,
           result: r.result,
           hold,
@@ -812,22 +810,29 @@ const DailyReport = ({ from, to }: { from: string; to: string }) => {
       },
       { dropR: 0, cashIn: 0, miss: 0, result: 0, playerResult: 0, diff: 0 },
     );
-    return { ...t, hold: t.dropR > 0 ? (t.result / t.dropR) * 100 : null };
+    return { ...t, hold: t.dropR !== 0 ? (t.result / t.dropR) * 100 : null };
   }, [rows]);
 
   const cls = (n: number) =>
     n > 0 ? "cms-amount-positive" : n < 0 ? "cms-amount-negative" : "text-card-foreground";
+  const holdCls = (h: number | null) =>
+    h == null ? "text-card-foreground" : h < 0 ? "cms-amount-negative" : "text-card-foreground";
+  const holdFmt = (h: number | null) => (h == null ? "·" : `${h.toFixed(1)}%`);
 
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-2 md:grid-cols-7 gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-[64px_repeat(7,minmax(0,1fr))] gap-2">
+        <div className="cms-panel p-2">
+          <p className="uppercase text-muted-foreground tracking-wider text-[10px]">Days</p>
+          <p className="font-mono text-sm font-bold text-card-foreground">{rows.length}</p>
+        </div>
         {[
-          { label: "Days", value: String(rows.length), cls: "text-card-foreground" },
           { label: "Drop (R)", value: formatCurrency(totals.dropR), cls: "text-card-foreground" },
           { label: "Cash In", value: formatCurrency(totals.cashIn), cls: "text-card-foreground" },
           { label: "Miss", value: formatCurrency(totals.miss), cls: "text-warning" },
           { label: "Result", value: formatCurrency(totals.result), cls: cls(totals.result) },
-          { label: "Hold %", value: totals.hold == null ? "—" : `${totals.hold.toFixed(1)}%`, cls: "text-card-foreground" },
+          { label: "Hold %", value: holdFmt(totals.hold), cls: holdCls(totals.hold) },
+          { label: "Player Result", value: formatCurrency(totals.playerResult), cls: cls(totals.playerResult) },
           { label: "Diff", value: formatCurrency(totals.diff), cls: cls(totals.diff) },
         ].map((c) => (
           <div key={c.label} className="cms-panel p-2">
@@ -863,8 +868,8 @@ const DailyReport = ({ from, to }: { from: string; to: string }) => {
                 <td className="px-3 py-2 text-right font-mono text-xs text-card-foreground">{formatCurrency(r.cashIn)}</td>
                 <td className="px-3 py-2 text-right font-mono text-xs text-warning">{formatCurrency(r.miss)}</td>
                 <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${cls(r.result)}`}>{formatCurrency(r.result)}</td>
-                <td className="px-3 py-2 text-right font-mono text-xs text-card-foreground">
-                  {r.hold == null ? "·" : `${r.hold.toFixed(1)}%`}
+                <td className={`px-3 py-2 text-right font-mono text-xs ${holdCls(r.hold)}`}>
+                  {holdFmt(r.hold)}
                 </td>
                 <td className={`px-3 py-2 text-right font-mono text-xs ${cls(r.playerResult)}`}>{formatCurrency(r.playerResult)}</td>
                 <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${cls(r.diff)}`}>{formatCurrency(r.diff)}</td>
@@ -877,8 +882,8 @@ const DailyReport = ({ from, to }: { from: string; to: string }) => {
                 <td className="px-3 py-2 text-right font-mono text-xs font-bold text-card-foreground">{formatCurrency(totals.cashIn)}</td>
                 <td className="px-3 py-2 text-right font-mono text-xs font-bold text-warning">{formatCurrency(totals.miss)}</td>
                 <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${cls(totals.result)}`}>{formatCurrency(totals.result)}</td>
-                <td className="px-3 py-2 text-right font-mono text-xs font-bold text-card-foreground">
-                  {totals.hold == null ? "·" : `${totals.hold.toFixed(1)}%`}
+                <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${holdCls(totals.hold)}`}>
+                  {holdFmt(totals.hold)}
                 </td>
                 <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${cls(totals.playerResult)}`}>{formatCurrency(totals.playerResult)}</td>
                 <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${cls(totals.diff)}`}>{formatCurrency(totals.diff)}</td>
