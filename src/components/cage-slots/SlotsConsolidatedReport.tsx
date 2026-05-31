@@ -91,8 +91,8 @@ const SlotsConsolidatedReport = ({
   const providerWithdrawTotal = Object.values(cashlessWithdrawByProvider).reduce((s, v) => s + Number(v || 0), 0);
   const depositTotal = providerDepositTotal || Number(cashlessDepositTotalTzs || 0);
   const withdrawTotal = providerWithdrawTotal || Number(cashlessWithdrawTotalTzs || 0);
-  const openerTotal = openerCashTotalTzs + openerCashlessTotalTzs + openerBankTotalTzs;
-  const closerTotal = closerCashTotalTzs + closerCashlessTotalTzs + closerBankTotalTzs;
+  const openerTotal = openerCashTotalTzs + openerBankTotalTzs;
+  const closerTotal = closerCashTotalTzs + closerBankTotalTzs;
 
   return (
     <div className="bg-white text-black p-2 flex flex-col" style={{ fontFamily: "Arial, sans-serif", fontSize: "11px", lineHeight: 1.15, width: "194mm", height: "281mm", boxSizing: "border-box", overflow: "hidden", pageBreakAfter: "avoid", breakAfter: "avoid" }}>
@@ -132,8 +132,6 @@ const SlotsConsolidatedReport = ({
             <Row label="Bank TZS" value={openerBankTzs} />
             <Row label="Bank USD" value={openerBankUsd} />
             <Row label="Total Bank (TZS)" value={openerBankTotalTzs} bold />
-            {PROVIDERS.map(p => <Row key={p.key} label={p.label} value={Number(openerCashlessByProvider[p.key] || 0)} />)}
-            <Row label="Total Cashless" value={openerCashlessTotalTzs} bold />
           </tbody>
           <tfoot>
             <tr>
@@ -155,8 +153,6 @@ const SlotsConsolidatedReport = ({
             <Row label="Bank TZS" value={closerBankTzs} />
             <Row label="Bank USD" value={closerBankUsd} />
             <Row label="Total Bank (TZS)" value={closerBankTotalTzs} bold />
-            {PROVIDERS.map(p => <Row key={p.key} label={p.label} value={Number(closerCashlessByProvider[p.key] || 0)} />)}
-            <Row label="Total Cashless" value={closerCashlessTotalTzs} bold />
           </tbody>
           <tfoot>
             <tr>
@@ -203,15 +199,16 @@ const SlotsConsolidatedReport = ({
         </tbody>
       </table>
 
-      {/* ============ CASH LESS SHIFT TRANSACTIONS ============ */}
+      {/* ============ END-OF-DAY MOBILE MONEY BALANCES ============ */}
       <table className="w-full border-collapse mb-0.5">
         <thead>
-          <tr><th colSpan={4} className="border border-black bg-gray-200 px-1.5 py-0.5 text-left">Cash Less Shift Transactions · IN − OUT = NET</th></tr>
+          <tr><th colSpan={5} className="border border-black bg-gray-200 px-1.5 py-0.5 text-left">End-of-Day Mobile Money Balances</th></tr>
           <tr>
             <th className="border border-black px-1.5 py-0.5 text-left w-1/3">Provider</th>
-            <th className="border border-black px-1.5 py-0.5 text-right">Cash Less Deposit (IN)</th>
-            <th className="border border-black px-1.5 py-0.5 text-right">Cash Less Withdraw (OUT)</th>
+            <th className="border border-black px-1.5 py-0.5 text-right">Deposit (IN)</th>
+            <th className="border border-black px-1.5 py-0.5 text-right">Withdraw (OUT)</th>
             <th className="border border-black px-1.5 py-0.5 text-right">NET (IN − OUT)</th>
+            <th className="border border-black px-1.5 py-0.5 text-right">Balance</th>
           </tr>
         </thead>
         <tbody>
@@ -219,6 +216,7 @@ const SlotsConsolidatedReport = ({
             const i = Number(cashlessDepositByProvider[p.key] || 0);
             const o = Number(cashlessWithdrawByProvider[p.key] || 0);
             const n = i - o;
+            const b = Number(closerCashlessByProvider[p.key] || 0);
             return (
               <tr key={p.key}>
                 <td className="border border-black px-1.5 py-0.5">{p.label}</td>
@@ -227,6 +225,7 @@ const SlotsConsolidatedReport = ({
                 <td className="border border-black px-1.5 py-0.5 text-right font-semibold">
                   {n !== 0 ? (n > 0 ? "+" : "") + formatNumberSpaces(n) : ""}
                 </td>
+                <td className="border border-black px-1.5 py-0.5 text-right font-semibold">{b ? formatNumberSpaces(b) : ""}</td>
               </tr>
             );
           })}
@@ -237,9 +236,11 @@ const SlotsConsolidatedReport = ({
             <td className="border border-black px-1.5 py-0.5 text-right font-bold bg-gray-100">
               {(depositTotal - withdrawTotal) > 0 ? "+" : ""}{formatNumberSpaces(depositTotal - withdrawTotal)}
             </td>
+            <td className="border border-black px-1.5 py-0.5 text-right font-bold bg-gray-100">{formatNumberSpaces(closerCashlessTotalTzs)}</td>
           </tr>
         </tbody>
       </table>
+
 
       {/* End-of-Day Mobile Money Balances removed — duplicates the M Pesa /
           T Pesa / H Pesa / Airtel rows already shown in Cash Flow Closer. */}
