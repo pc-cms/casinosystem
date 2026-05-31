@@ -73,11 +73,10 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/reports", icon: FileBarChart, label: "Reports", roles: ["super_admin", "manager", "floor_manager", "finance_manager"], section: "CASHIER" },
   { to: "/tips-and-bonuses", icon: Gift, label: "Tips & Bonuses", roles: ["super_admin", "manager", "floor_manager", "finance_manager", "surveillance"], section: "CASHIER" },
 
-  // RECEPTION — Players & entry
-  { to: "/reception", icon: DoorOpen, label: "Reception", roles: ["super_admin", "manager", "floor_manager", "reception", "finance_manager"], section: "RECEPTION" },
-  { to: "/guests", icon: UserCheck, label: "Guests", roles: ["super_admin", "manager", "floor_manager", "reception", "finance_manager", "surveillance"], section: "RECEPTION" },
-  
+  // RECEPTION — alphabetical
   { to: "/blacklist", icon: ShieldAlert, label: "Blacklist", roles: ["super_admin", "manager", "floor_manager", "reception", "finance_manager", "surveillance"], section: "RECEPTION" },
+  { to: "/guests", icon: UserCheck, label: "Guests", roles: ["super_admin", "manager", "floor_manager", "reception", "finance_manager", "surveillance"], section: "RECEPTION" },
+  { to: "/reception", icon: DoorOpen, label: "Reception", roles: ["super_admin", "manager", "floor_manager", "reception", "finance_manager"], section: "RECEPTION" },
 
   // FINANCE — alphabetical, separate routes (no tabs)
   { to: "/finance/budget", icon: Target, label: "Budget", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
