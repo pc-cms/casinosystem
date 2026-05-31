@@ -19,15 +19,14 @@ const PageLoader = () => (
 
 // Routes that need full-bleed width (no max-w container)
 const FULL_WIDTH_ROUTES = [
-  "/table-results",
+  "/reports",
   "/pit",
   "/staff",
   "/floor",
   "/player-statistics",
   "/incidents",
   "/table-tracker",
-  
-  "/business-days",
+
   "/logs",
   "/bank-checks",
 ];
