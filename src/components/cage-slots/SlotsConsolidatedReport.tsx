@@ -95,7 +95,8 @@ const SlotsConsolidatedReport = ({
   const closerTotal = closerCashTotalTzs + closerCashlessTotalTzs + closerBankTotalTzs;
 
   return (
-    <div className="bg-white text-black p-4 flex flex-col" style={{ fontFamily: "Arial, sans-serif", fontSize: "13.5px", lineHeight: 1.25, width: "194mm", minHeight: "281mm", boxSizing: "border-box" }}>
+    <div className="bg-white text-black p-2 flex flex-col" style={{ fontFamily: "Arial, sans-serif", fontSize: "11px", lineHeight: 1.15, width: "194mm", height: "281mm", boxSizing: "border-box", overflow: "hidden", pageBreakAfter: "avoid", breakAfter: "avoid" }}>
+
       {/* ============ TITLE ROW ============ */}
       <table className="w-full border-collapse mb-1">
         <tbody>
