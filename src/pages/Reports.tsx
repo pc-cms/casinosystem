@@ -829,7 +829,7 @@ const DailyReport = ({ from, to }: { from: string; to: string }) => {
         {[
           { label: "Drop (R)", value: formatCurrency(totals.dropR), cls: "text-card-foreground" },
           { label: "Cash In", value: formatCurrency(totals.cashIn), cls: "text-card-foreground" },
-          { label: "Miss", value: formatCurrency(totals.miss), cls: "text-warning" },
+          { label: "Miss", value: formatCurrency(totals.miss), cls: cls(totals.miss) },
           { label: "Result", value: formatCurrency(totals.result), cls: cls(totals.result) },
           { label: "Hold %", value: holdFmt(totals.hold), cls: holdCls(totals.hold) },
           { label: "Player Result", value: formatCurrency(totals.playerResult), cls: cls(totals.playerResult) },
