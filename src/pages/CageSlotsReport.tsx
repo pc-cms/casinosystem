@@ -28,7 +28,7 @@ const CageSlotsReport = () => {
       <PageHeader
         icon={Coins}
         title="Cage Slots · Shift Report"
-        subtitle={`${fmtDate(shift.business_date)} · ${shift.shift_type.toUpperCase()}`}
+        subtitle={fmtDate(shift.business_date)}
         context={<Badge variant="outline" className="uppercase text-[10px]">{shift.status.replace("_", " ")}</Badge>}
       >
         <Button onClick={() => setPrintOpen(true)} size="sm" variant="outline" className="gap-1.5 h-8 print:hidden">
