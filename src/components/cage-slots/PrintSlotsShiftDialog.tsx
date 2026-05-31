@@ -181,10 +181,21 @@ const PrintSlotsShiftDialog = ({ open, onClose, shiftId }: Props) => {
     };
 
     const openerCashlessByProvider = collectProviderSnap((openingCheck?.denominations as any)?.mobile);
-    const closerCashlessByProvider = collectProviderSnap((closingCheck?.denominations as any)?.mobile);
+    // Closer Balance comes STRICTLY from "Cashless FINAL · print only" manual entry
+    // (shifts.cashless_final_providers). If the cashier did not fill it, the report
+    // shows a dash — never falls back to the running snapshot / NET delta.
+    const finalProvRaw =
+      (shift as any).cashless_final_providers
+      ?? (closingCheck?.denominations as any)?.cashless_final_providers
+      ?? null;
+    const closerCashlessByProvider: Record<string, number> = finalProvRaw
+      ? collectProviderSnap(finalProvRaw)
+      : {}; // empty → report renders "—" per provider
     const sum = (obj: Record<string, number>) => Object.values(obj).reduce((s, v) => s + Number(v || 0), 0);
     const openerCashlessTotalTzs = sum(openerCashlessByProvider);
-    const closerCashlessTotalTzs = sum(closerCashlessByProvider);
+    const closerCashlessTotalTzs = Number(
+      (shift as any).cashless_final ?? (finalProvRaw ? sum(closerCashlessByProvider) : 0)
+    );
 
     // Cashless deposit/withdraw (per-provider) for the shift
     const deposit: Record<string, number> = { MPESA: 0, TIGO: 0, HALOTEL: 0, AIRTEL: 0 };
