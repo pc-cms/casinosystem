@@ -150,6 +150,32 @@ const Staff = ({ forcedTab, forcedGroup }: StaffProps = {}) => {
     if (wasDark) html.classList.add('dark');
   };
 
+  // Excel template/import for Staff rotas (Floor / Security / Office)
+  const rotaMonthStart = `${month}-01`;
+  const rotaMonthEnd = useMemo(() => {
+    const [yy, mm] = month.split("-").map(Number);
+    const dim = new Date(yy, mm, 0).getDate();
+    return `${month}-${String(dim).padStart(2, "0")}`;
+  }, [month]);
+  const { data: allStaff = [] } = useStaffMembers();
+  const { data: staffRotaForExcel = [] } = useStaffRotaRange(rotaMonthStart, rotaMonthEnd);
+  const setStaffRotaForExcel = useSetStaffRota();
+  const excelEmployees = useMemo(() => {
+    if (!rotaGroup) return [];
+    const deptSet = new Set(rotaGroup.departments as readonly string[]);
+    return (allStaff as any[])
+      .filter(s => s.is_active && deptSet.has(s.department))
+      .map(s => ({ id: s.id as string, name: s.name as string, department: DEPARTMENT_LABELS[s.department as StaffDepartment] || null }));
+  }, [allStaff, rotaGroup]);
+  const excelExisting = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const r of staffRotaForExcel as any[]) {
+      if (r?.shift) m.set(`${r.staff_id}|${r.date}`, String(r.shift).toUpperCase());
+    }
+    return m;
+  }, [staffRotaForExcel]);
+
+
   return (
     <div>
       <PageHeader
