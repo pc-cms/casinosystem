@@ -47,8 +47,6 @@ const NAV_ITEMS: NavItem[] = [
   // OVERVIEW
   { to: "/", icon: LayoutDashboard, label: "Dashboard", roles: ["super_admin", "manager", "pit", "reception", "finance_manager", "surveillance"], section: "OVERVIEW" },
 
-  // Cage View — read-only transactions for manager / floor_manager / CCTV.
-  { to: "/cage/view", icon: Landmark, label: "Cage View", roles: ["super_admin", "manager", "floor_manager", "surveillance"], section: "CASHIER" },
 
   // PIT — alphabetical order (trackers + incidents).
   { to: "/breaklist", icon: ListChecks, label: "Break List", roles: ["super_admin", "manager", "floor_manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
