@@ -779,7 +779,7 @@ const DailyReport = ({ from, to }: { from: string; to: string }) => {
       return dates.map((d) => {
         const r = ensure(d);
         const dropR = dropRByDate.get(d) || 0;
-        const playerResult = r.cashIn - r.cashout;
+        const playerResult = r.cashout - r.cashIn;
         const hold = dropR > 0 ? (r.result / dropR) * 100 : null;
         return {
           date: d,
