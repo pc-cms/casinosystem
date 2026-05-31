@@ -9,6 +9,9 @@
  *  - find shifts whose `opened_at` falls in the business-day window
  *  - return all cash_counts attached to those shifts
  *  - plus orphan checks (no shift_id) whose `created_at` falls in the window
+ *
+ * Slots checks are also included (source='slots'), normalised to the same shape
+ * so the Cage View checks tab can render both with a single popup viewer.
  */
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -22,15 +25,26 @@ const businessDayWindowUtc = (businessDate: string) => {
   return { start: start.toISOString(), end: end.toISOString() };
 };
 
+export type UnifiedCashCheck = {
+  id: string;
+  source: "live" | "slots";
+  created_at: string;
+  counted_by: string | null;
+  denominations: any;
+  total: number;
+  // Original row kept for viewer
+  _raw: any;
+};
+
 export const useCashChecksByBusinessDate = (businessDate: string | undefined, enabled = true) => {
   const { casinoId } = useAuth();
   return useQuery({
     queryKey: ["cash-checks-by-date", casinoId, businessDate],
-    queryFn: async () => {
+    queryFn: async (): Promise<UnifiedCashCheck[]> => {
       if (!casinoId || !businessDate) return [];
       const { start, end } = businessDayWindowUtc(businessDate);
 
-      // 1. Find shifts whose opening time falls within this business day.
+      // ---- LIVE GAME ----
       const { data: shifts, error: shiftErr } = await supabase
         .from("shifts")
         .select("id")
@@ -40,9 +54,7 @@ export const useCashChecksByBusinessDate = (businessDate: string | undefined, en
       if (shiftErr) throw shiftErr;
       const shiftIds = (shifts || []).map((s: any) => s.id);
 
-      // 2. Fetch all checks attached to those shifts (covers closing seed that
-      //    lands after the 05:00 rollover).
-      const byShiftPromise = shiftIds.length
+      const liveByShiftPromise = shiftIds.length
         ? supabase
             .from("cash_counts")
             .select("*")
@@ -51,8 +63,7 @@ export const useCashChecksByBusinessDate = (businessDate: string | undefined, en
             .in("shift_id", shiftIds)
         : Promise.resolve({ data: [], error: null } as any);
 
-      // 3. Fetch orphan checks (no shift_id) for completeness.
-      const orphanPromise = supabase
+      const liveOrphanPromise = supabase
         .from("cash_counts")
         .select("*")
         .eq("casino_id", casinoId)
@@ -61,22 +72,63 @@ export const useCashChecksByBusinessDate = (businessDate: string | undefined, en
         .gte("created_at", start)
         .lt("created_at", end);
 
-      const [byShift, orphan] = await Promise.all([byShiftPromise, orphanPromise]);
+      // ---- SLOTS ----
+      const { data: slotsShifts, error: slotsShiftErr } = await supabase
+        .from("cage_slots_shifts")
+        .select("id")
+        .eq("casino_id", casinoId)
+        .eq("business_date", businessDate);
+      if (slotsShiftErr) throw slotsShiftErr;
+      const slotsShiftIds = (slotsShifts || []).map((s: any) => s.id);
+
+      const slotsChecksPromise = slotsShiftIds.length
+        ? supabase
+            .from("cage_slots_cash_counts")
+            .select("*")
+            .eq("casino_id", casinoId)
+            .in("cage_slots_shift_id", slotsShiftIds)
+        : Promise.resolve({ data: [], error: null } as any);
+
+      const [byShift, orphan, slotsRes] = await Promise.all([
+        liveByShiftPromise,
+        liveOrphanPromise,
+        slotsChecksPromise,
+      ]);
       if ((byShift as any).error) throw (byShift as any).error;
       if (orphan.error) throw orphan.error;
+      if ((slotsRes as any).error) throw (slotsRes as any).error;
 
-      const merged = [...((byShift as any).data || []), ...(orphan.data || [])];
-      // De-dupe by id, then sort newest first.
+      const liveMerged = [...((byShift as any).data || []), ...(orphan.data || [])];
       const seen = new Set<string>();
-      const unique = merged.filter((r: any) => {
-        if (seen.has(r.id)) return false;
-        seen.add(r.id);
-        return true;
-      });
-      unique.sort((a: any, b: any) =>
-        (b.created_at || "").localeCompare(a.created_at || "")
-      );
-      return unique;
+      const unifiedLive: UnifiedCashCheck[] = liveMerged
+        .filter((r: any) => {
+          if (seen.has(r.id)) return false;
+          seen.add(r.id);
+          return true;
+        })
+        .map((r: any) => ({
+          id: r.id,
+          source: "live",
+          created_at: r.created_at,
+          counted_by: r.counted_by ?? null,
+          denominations: r.denominations,
+          total: Number(r.total ?? 0),
+          _raw: r,
+        }));
+
+      const unifiedSlots: UnifiedCashCheck[] = ((slotsRes as any).data || []).map((r: any) => ({
+        id: r.id,
+        source: "slots",
+        created_at: r.created_at,
+        counted_by: r.counted_by ?? null,
+        denominations: r.denominations,
+        total: Number(r.total_tzs ?? 0),
+        _raw: r,
+      }));
+
+      const all = [...unifiedLive, ...unifiedSlots];
+      all.sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""));
+      return all;
     },
     enabled: enabled && !!casinoId && !!businessDate,
   });
