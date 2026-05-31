@@ -150,7 +150,7 @@ const CageSlotsHistoryView = () => {
                 </tr>
                 {isExpanded && (
                   <tr className="bg-muted/10 border-b border-border">
-                    <td colSpan={14} className="p-3">
+                    <td colSpan={13} className="p-3">
                       <SlotsShiftReportBody id={s.id} showHeader={false} compact />
                     </td>
                   </tr>
