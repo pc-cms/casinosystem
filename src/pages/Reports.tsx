@@ -868,8 +868,8 @@ const DailyReport = ({ from, to }: { from: string; to: string }) => {
                 <td className="px-3 py-2 text-right font-mono text-xs text-card-foreground">{formatCurrency(r.cashIn)}</td>
                 <td className="px-3 py-2 text-right font-mono text-xs text-warning">{formatCurrency(r.miss)}</td>
                 <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${cls(r.result)}`}>{formatCurrency(r.result)}</td>
-                <td className="px-3 py-2 text-right font-mono text-xs text-card-foreground">
-                  {r.hold == null ? "·" : `${r.hold.toFixed(1)}%`}
+                <td className={`px-3 py-2 text-right font-mono text-xs ${holdCls(r.hold)}`}>
+                  {holdFmt(r.hold)}
                 </td>
                 <td className={`px-3 py-2 text-right font-mono text-xs ${cls(r.playerResult)}`}>{formatCurrency(r.playerResult)}</td>
                 <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${cls(r.diff)}`}>{formatCurrency(r.diff)}</td>
