@@ -209,10 +209,26 @@ const Pit = ({ forcedTab }: PitProps = {}) => {
         </>
       )}
       {activeTab === "rota" && (
-        <Button variant="outline" size="sm" className="gap-1 text-xs" onClick={() => { const html = document.documentElement; const wasDark = html.classList.contains('dark'); if (wasDark) html.classList.remove('dark'); window.print(); if (wasDark) html.classList.add('dark'); }}>
-          <Printer className="w-3.5 h-3.5" /> Print
-        </Button>
+        <>
+          {isManager && (
+            <RotaExcelButtons
+              scope="live-game"
+              month={month}
+              title={`Live Game Rota — ${monthLabel}`}
+              employees={pitExcelEmployees}
+              existing={pitRotaMap}
+              allowedShifts={ROTA_SHIFTS}
+              shiftLabels={SHIFT_LABELS}
+              onSetCell={(id, date, shift) => setPitRotaForExcel.mutateAsync({ dealer_id: id, date, shift })}
+              disabled={!!pitLock}
+            />
+          )}
+          <Button variant="outline" size="sm" className="gap-1 text-xs" onClick={() => { const html = document.documentElement; const wasDark = html.classList.contains('dark'); if (wasDark) html.classList.remove('dark'); window.print(); if (wasDark) html.classList.add('dark'); }}>
+            <Printer className="w-3.5 h-3.5" /> Print
+          </Button>
+        </>
       )}
+
       {activeTab === "attendance" && (
         <Button variant="outline" size="sm" className="gap-1 text-xs" onClick={() => { const html = document.documentElement; const wasDark = html.classList.contains('dark'); if (wasDark) html.classList.remove('dark'); window.print(); if (wasDark) html.classList.add('dark'); }}>
           <Printer className="w-3.5 h-3.5" /> Print
