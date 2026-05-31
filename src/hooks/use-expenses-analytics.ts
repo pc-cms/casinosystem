@@ -63,6 +63,9 @@ export const useExpenseAnalytics = (
         filters.status === "approved" ? e.approved : !e.approved,
       );
     }
+    if (filters?.source && filters.source !== "all") {
+      filtered = filtered.filter((e) => resolveSource(e) === filters.source);
+    }
     if (filters?.search?.trim()) {
       const q = filters.search.trim().toLowerCase();
       filtered = filtered.filter((e) => {
@@ -80,6 +83,26 @@ export const useExpenseAnalytics = (
     const approvedAmount = filtered.filter((e) => e.approved).reduce((s, e) => s + Number(e.amount), 0);
     const pendingAmount = filtered.filter((e) => !e.approved).reduce((s, e) => s + Number(e.amount), 0);
     const pendingCount = filtered.filter((e) => !e.approved).length;
+
+    // By category
+    const byCategory: Record<string, { total: number; count: number }> = {};
+    filtered.forEach((e) => {
+      if (!byCategory[e.category]) byCategory[e.category] = { total: 0, count: 0 };
+      byCategory[e.category].total += Number(e.amount);
+      byCategory[e.category].count += 1;
+    });
+
+    // By source
+    const bySource: Record<string, { total: number; count: number }> = {
+      live_game: { total: 0, count: 0 },
+      slots: { total: 0, count: 0 },
+      office: { total: 0, count: 0 },
+    };
+    filtered.forEach((e) => {
+      const s = resolveSource(e);
+      bySource[s].total += Number(e.amount);
+      bySource[s].count += 1;
+    });
 
     // By category
     const byCategory: Record<string, { total: number; count: number }> = {};
