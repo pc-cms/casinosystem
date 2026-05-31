@@ -61,24 +61,26 @@ export const useExpenses = (
 };
 
 
-/** Slots cage expenses scoped to a single slots shift. */
-export const useSlotsExpenses = (slotsShiftId: string | undefined) => {
+/** Slots cage expenses for a whole business day.
+ *  Slots expenses have NO shift split — both day and evening slots shifts
+ *  share the same business-day expense pool. */
+export const useSlotsExpenses = (businessDate: string | undefined) => {
   const { casinoId } = useAuth();
   return useQuery({
-    queryKey: ["expenses-slots", casinoId, slotsShiftId],
+    queryKey: ["expenses-slots", casinoId, businessDate],
     queryFn: async () => {
-      if (!casinoId || !slotsShiftId) return [];
+      if (!casinoId || !businessDate) return [];
       const { data, error } = await supabase
         .from("expenses")
         .select("*, players(first_name, last_name)")
         .eq("casino_id", casinoId)
-        .eq("cage_slots_shift_id", slotsShiftId)
-        .neq("source", "office")
+        .eq("business_date", businessDate)
+        .eq("source", "slots")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data;
     },
-    enabled: !!casinoId && !!slotsShiftId,
+    enabled: !!casinoId && !!businessDate,
     staleTime: 1000 * 60,
   });
 };
