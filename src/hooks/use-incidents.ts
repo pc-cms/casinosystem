@@ -36,9 +36,9 @@ export type IncidentInput = Omit<Incident, "id" | "casino_id" | "created_by" | "
 /**
  * Filter options:
  *  - days: keep incidents within last N calendar days (legacy).
- *  - businessDate: 11:00 → 11:00 EAT window for the given calendar date.
- *    Returns rows where (incident_date = D AND time >= 11:00)
- *                    OR (incident_date = D+1 AND time < 11:00).
+ *  - businessDate: 07:00 → 07:00 EAT window for the given calendar date.
+ *    Returns rows where (incident_date = D AND time >= 07:00)
+ *                    OR (incident_date = D+1 AND time < 07:00).
  */
 export const useIncidents = (
   days: number | null = null,

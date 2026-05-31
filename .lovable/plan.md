@@ -1,69 +1,46 @@
+# Аудит закрытия дня и триггеров — результаты + план фиксов
 
-## Правило rollover
+Полный аудит сделан. **Сама архитектура закрытия дня работает корректно** (manual close, auto-close cron 11:00 EAT, lock через `system_locks`, snapshot в одной транзакции, `trg_set_business_date` на новых записях — всё ок). Но миграция 07:00 EAT не дочистила 4 места, где остались старые часы (5/11) или UTC-дата вместо EAT.
 
-Бизнес-день D заканчивается в момент:
-```
-end(D) = min( 07:00 EAT дня D+1 ,  business_day_closures.closed_at для D )
-```
-- если день закрыт **руками** раньше 07:00 → используем фактический `closed_at`
-- иначе → 07:00 EAT (совпадает с реальностью: касса/смены к этому моменту закрыты)
+## Что нужно поправить
 
-Это правило заменяет все три текущих cutoff'а (5/11/13 EAT).
+### 🔴 P1 — Snapshot бьёт `player_stats` по UTC-дате (критично)
+**Файл:** новая миграция (исправление `build_business_day_snapshot`)
+**Проблема:** в `build_business_day_snapshot` бакет `player_stats` использует `s.started_at::date` (UTC), а `cash_counts` — `c.created_at::date` (UTC). Все остальные бакеты уже переведены на `business_date_of()`.
+**Последствие:** сессия, открытая в 06:30 EAT (= 03:30 UTC) попадает не в тот snapshot. Это и есть источник расхождения с Player Statistics, который ты подозревал.
+**Фикс:** заменить `s.started_at::date = _business_date` → `business_date_of(s.started_at) = _business_date`, аналогично для `cash_counts` и `expenses` fallback (`COALESCE(e.business_date, business_date_of(e.created_at))`).
 
-## Источник правды (DB)
+### 🟠 P2 — `ReprintShiftDialog` печатает не ту дату
+**Файл:** `src/components/cage/ReprintShiftDialog.tsx:36`
+**Проблема:** локальная `businessDateForEAT()` использует `eatHour < 11`. Печать смены, открытой в 09:00 EAT, покажет вчерашнюю дату, а БД считает сегодняшнюю.
+**Фикс:** `< 11` → `< 7`.
 
-Создать одну функцию + RPC, чтобы UI и DB бились по одному:
+### 🟡 P3 — `BreaklistGrid` овернайт-окно
+**Файл:** `src/components/pit/BreaklistGrid.tsx:65`
+**Проблема:** `h >= 18 || h < 5` — определяет «активная ночная смена». После сдвига роллвера на 07:00 окно должно быть `h < 7`, иначе с 05:00 до 07:00 EAT грид думает, что смена уже закончилась, хотя бизнес-день ещё открыт.
+**Фикс:** `h < 5` → `h < 7`. (Подтверди, если намерение было другим — это UI-замок брейклиста.)
 
-```sql
--- Возвращает границу окончания указанного бизнес-дня (UTC timestamptz)
-CREATE FUNCTION public.business_day_end(_casino_id uuid, _business_date date)
-RETURNS timestamptz
--- = min( (_business_date + 1) @ 07:00 EAT,  closures.closed_at )
+### 🟡 P4 — Устаревший комментарий
+**Файл:** `src/hooks/use-incidents.ts:41`
+**Проблема:** комментарий ссылается на старое правило 11:00. Только текст, поведение корректно.
+**Фикс:** обновить комментарий на 07:00.
 
--- Маппит произвольный момент в бизнес-дату (учитывает manual closures для прошлых дней)
-CREATE OR REPLACE FUNCTION public.business_date_of(_ts timestamptz, _casino_id uuid)
-RETURNS date
--- меняем сигнатуру: теперь принимает casino_id и учитывает closures
-```
+## Что НЕ трогаем (проверено и корректно)
 
-Обновить `get_current_business_date()` под то же правило (сейчас уже учитывает closures).
+- `business_date_of`, `get_current_business_date` — ✅ обе на 07:00 EAT.
+- `close_business_day` — ✅ lock, snapshot, `reset_operational_dashboards` в одной транзакции, авторизация (manager/pit для manual, definer для cron).
+- Cron `auto-close-business-day` (`5 * * * *` с guard `_eat_hour < 11`, целит на `_yesterday`) — ✅ никогда не закроет открытый день.
+- `trg_set_business_date` на transactions/expenses/chip_transfers/incidents — ✅ использует `get_current_business_date()`.
+- Все frontend `businessDayHourUTC(...)` вызовы — ✅ только 7 и 7+24.
+- `close_open_sessions_5am` — ✅ окно 05:00–10:59 EAT, безопасно (double-stop защищён NULL-guard'ом).
 
-## DB изменения
+## Версия
+Bump `package.json` → `1.3.213` (DB-изменение + UI).
 
-1. **`business_date_of`** (5:00 → правило выше). Затрагивает `compute_tables_drop_split`, NEP-сегментацию, RPC что бьют транзакции по дням.
-2. **`build_business_day_snapshot`** — заменить inline `EXTRACT(HOUR ...) < 5` на вызов новой функции для bucketing смен, expenses, table_tracker.
-3. **`get_current_business_date`** — текущая граница `now → min(07:00 EAT, открытый день)`.
-4. Бамп `package.json`.
+## План действий
+1. Миграция: переписать `build_business_day_snapshot` (player_stats, cash_counts, expenses fallback → `business_date_of`).
+2. Правка `ReprintShiftDialog.tsx`, `BreaklistGrid.tsx`, `use-incidents.ts`.
+3. Bump версии.
+4. Проверка: открыть PlayerStatistics и Closings за тот же бизнес-день — суммы должны сойтись.
 
-⚠️ Историю не пересчитываем — `business_day_closures.snapshot` уже сохранён по старому правилу 5:00 для закрытых дней. Новое правило начинает работать «вперёд». Для уже закрытых дней snapshot остаётся истиной.
-
-## Frontend изменения (src/)
-
-Все `businessDayHourUTC(date, 11|13|11+24|13+24)` → новая helper-функция `businessDayBoundsUTC(casinoId, date)`, которая дёргает RPC `business_day_end` (с кэшем) и возвращает `[start, end]`.
-
-Файлы:
-- `src/lib/business-day.ts` — добавить `businessDayBoundsUTC()`, оставить `businessDayHourUTC` для legacy
-- `src/pages/Reports.tsx` (Daily Report): окно + `tsToBusinessDate` → через RPC
-- `src/pages/PlayerStatistics.tsx`, `Tables.tsx`, `Dashboard.tsx`, `ClosingsPage.tsx`
-- `src/hooks/use-transactions.ts`, `use-expenses.ts`, `use-daily-expenses.ts`, `use-chip-transfers.ts`
-- `src/components/player/PlayerPreviewHeader.tsx`
-- `src/components/pit/ActivePlayers.tsx`
-- `src/components/cage/PlayerInfoCard.tsx`, `ActivePlayersList.tsx`, `CageHistoryView.tsx`
-
-Для перформанса — bulk RPC `business_day_bounds_bulk(casino_id, dates[])` чтобы Daily Report за месяц делал один вызов вместо 30.
-
-## Сверка
-
-После деплоя проверяю одну закрытую дату через `read_query`:
-- Daily Report `result/dropR/cashout` за дату D
-- vs `business_day_closures.snapshot` за дату D
-- vs Player Statistics за дату D
-Все три должны сойтись (для дат, закрытых после деплоя).
-
-## Память
-
-Обновить core-правило: rollover = `min(07:00 EAT, manual closure)`. Удалить «11:00 EAT» как cutoff (оставить только как cron-дедлайн auto-close, если он остаётся в 11:00 — уточните).
-
-## Открытый вопрос
-
-Авто-закрытие сейчас в **11:00 EAT**. Если rollover теперь в 07:00 — логично перенести cron auto-close тоже на 07:00 (или, скажем, 07:30 как grace period). Согласовать?
+**Примечание:** ретроактивно старые `business_day_closures.snapshot` не пересчитываем (как и в прошлый раз) — выравнивание начнёт работать со следующих закрытий.
