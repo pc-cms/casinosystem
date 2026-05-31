@@ -18,6 +18,8 @@ export type ModuleKey =
   | "cage"
   | "cage_view"
   | "cage_closings"
+  | "closings"
+  | "daily_expenses"
   | "cage_slots"
   | "tables"
   
@@ -79,9 +81,11 @@ export const MODULES: ModuleDef[] = [
   { key: "pit_attendance", label: "Live Attendance", group: "Operations" },
   { key: "pit_active_players", label: "Player Tracking", group: "Operations" },
   { key: "pit_dealers", label: "Live Game Dealers", group: "Operations" },
-  { key: "cage", label: "Cage (Cashier)", group: "Operations" },
+  { key: "cage", label: "Cage Live Game", group: "Operations" },
   { key: "cage_view", label: "Cage View (Read-only)", group: "Operations" },
-  { key: "cage_closings", label: "Cage Closings", group: "Operations" },
+  { key: "cage_closings", label: "Cage Closings (legacy)", group: "Operations" },
+  { key: "closings", label: "Closings", group: "Operations" },
+  { key: "daily_expenses", label: "Daily Expenses", group: "Finance" },
   { key: "cage_slots", label: "Cage Slots", group: "Operations" },
   { key: "tables", label: "Tables", group: "Operations" },
   

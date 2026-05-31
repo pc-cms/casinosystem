@@ -63,11 +63,12 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/incidents", icon: AlertTriangle, label: "Incidents", roles: ["super_admin", "manager", "floor_manager", "finance_manager", "surveillance"], section: "PIT" },
 
   // CASHIER — transactional Cage operations.
-  { to: "/cage", icon: Landmark, label: "Cage", roles: ["super_admin", "cashier"], section: "CASHIER" },
+  { to: "/cage", icon: Landmark, label: "Cage Live Game", roles: ["super_admin", "cashier"], section: "CASHIER" },
   { to: "/cage-slots", icon: Coins, label: "Cage Slots", roles: ["super_admin", "cashier_slots", "manager", "floor_manager", "finance_manager", "surveillance", "pit"], section: "CASHIER" },
-  { to: "/cage-slots/expenses", icon: Receipt, label: "Slots Expenses", roles: ["super_admin", "cashier_slots", "manager", "floor_manager", "finance_manager", "surveillance", "pit"], section: "CASHIER" },
-  { to: "/cage/closings", icon: Landmark, label: "Closings", roles: ["super_admin", "finance_manager"], section: "CASHIER" },
-  { to: "/expenses", icon: Receipt, label: "Expenses", roles: ["super_admin", "cashier", "cashier_slots"], section: "CASHIER" },
+  { to: "/cage-slots/expenses", icon: Receipt, label: "Expenses Slots", roles: ["super_admin", "cashier_slots", "manager", "floor_manager", "finance_manager", "surveillance", "pit"], section: "CASHIER" },
+  { to: "/closings", icon: Landmark, label: "Closings", roles: ["super_admin", "manager", "floor_manager", "finance_manager", "pit", "surveillance", "cashier"], section: "CASHIER" },
+  { to: "/expenses", icon: Receipt, label: "Expenses Live Game", roles: ["super_admin", "cashier", "cashier_slots"], section: "CASHIER" },
+  { to: "/expenses/daily", icon: Receipt, label: "Daily Expenses", roles: ["super_admin", "manager", "floor_manager", "finance_manager"], section: "CASHIER" },
   { to: "/expenses/approvals", icon: CheckCircle2, label: "Approvals", roles: ["super_admin", "manager", "floor_manager", "finance_manager"], section: "CASHIER" },
   { to: "/cashless", icon: CreditCard, label: "Cashless", roles: ["super_admin", "manager", "floor_manager", "cashier", "finance_manager"], section: "CASHIER" },
 
