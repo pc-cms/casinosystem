@@ -749,7 +749,7 @@ const DailyReport = ({ from, to }: { from: string; to: string }) => {
       };
       dates.forEach((d) => ensure(d));
 
-      // Map UTC ISO timestamp → business date (rollover 11:00 EAT = 08:00 UTC)
+      // Map UTC ISO timestamp → business date (rollover 07:00 EAT = 04:00 UTC)
       const tsToBusinessDate = (iso: string): string => {
         const t = new Date(iso).getTime();
         const eatHours = t / 3600000 + 3;
