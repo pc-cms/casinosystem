@@ -2719,6 +2719,50 @@ export type Database = {
         }
         Relationships: []
       }
+      expense_categories: {
+        Row: {
+          active: boolean
+          casino_id: string
+          code: string
+          created_at: string
+          id: string
+          label: string
+          scope: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          casino_id: string
+          code: string
+          created_at?: string
+          id?: string
+          label: string
+          scope?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          casino_id?: string
+          code?: string
+          created_at?: string
+          id?: string
+          label?: string
+          scope?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expense_categories_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       expenses: {
         Row: {
           amount: number
@@ -2730,6 +2774,7 @@ export type Database = {
           cage_type: string
           casino_id: string
           category: Database["public"]["Enums"]["expense_category"]
+          category_code: string | null
           created_at: string
           created_by: string
           description: string
@@ -2737,6 +2782,7 @@ export type Database = {
           player_id: string | null
           player_name: string
           shift_id: string | null
+          source: string
         }
         Insert: {
           amount: number
@@ -2748,6 +2794,7 @@ export type Database = {
           cage_type?: string
           casino_id: string
           category: Database["public"]["Enums"]["expense_category"]
+          category_code?: string | null
           created_at?: string
           created_by: string
           description?: string
@@ -2755,6 +2802,7 @@ export type Database = {
           player_id?: string | null
           player_name?: string
           shift_id?: string | null
+          source?: string
         }
         Update: {
           amount?: number
@@ -2766,6 +2814,7 @@ export type Database = {
           cage_type?: string
           casino_id?: string
           category?: Database["public"]["Enums"]["expense_category"]
+          category_code?: string | null
           created_at?: string
           created_by?: string
           description?: string
@@ -2773,6 +2822,7 @@ export type Database = {
           player_id?: string | null
           player_name?: string
           shift_id?: string | null
+          source?: string
         }
         Relationships: [
           {
@@ -7303,6 +7353,15 @@ export type Database = {
           _to_player: string
         }
         Returns: Json
+      }
+      create_office_expense: {
+        Args: {
+          p_amount: number
+          p_casino_id: string
+          p_category_code: string
+          p_description: string
+        }
+        Returns: string
       }
       crm_players_list: {
         Args: { _casino: string }
