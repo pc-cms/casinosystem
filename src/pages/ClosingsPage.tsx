@@ -22,6 +22,7 @@ import { useCageSlotsHistory } from "@/hooks/use-cage-slots";
 import { useDailyExpenses } from "@/hooks/use-daily-expenses";
 import { useCasino } from "@/lib/casino-context";
 import PrintPortal from "@/components/cage/PrintPortal";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import ExpensesDayReport from "@/components/closings/ExpensesDayReport";
 import { businessDayHourUTC, getBusinessDate } from "@/lib/business-day";
 import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
