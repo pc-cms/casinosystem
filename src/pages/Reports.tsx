@@ -100,8 +100,9 @@ const Reports = () => {
         <Input type="date" value={to} onChange={e => setTo(e.target.value)} className="w-40 font-mono text-xs h-9" />
       </PageHeader>
 
-      <Tabs defaultValue="shifts" className="space-y-3">
+      <Tabs defaultValue="daily" className="space-y-3">
         <TabsList className="flex-wrap">
+          <TabsTrigger value="daily" className="gap-1 text-xs"><CalendarDays className="w-3.5 h-3.5" /> Daily</TabsTrigger>
           <TabsTrigger value="shifts" className="gap-1 text-xs"><Landmark className="w-3.5 h-3.5" /> Shifts</TabsTrigger>
           <TabsTrigger value="tables" className="gap-1 text-xs"><Table2 className="w-3.5 h-3.5" /> Tables</TabsTrigger>
           <TabsTrigger value="players" className="gap-1 text-xs"><Users className="w-3.5 h-3.5" /> Players</TabsTrigger>
@@ -111,6 +112,7 @@ const Reports = () => {
           <TabsTrigger value="miss-chips" className="gap-1 text-xs"><Coins className="w-3.5 h-3.5" /> Miss Chips</TabsTrigger>
         </TabsList>
 
+        <TabsContent value="daily"><DailyReport from={from} to={to} /></TabsContent>
         <TabsContent value="shifts"><ShiftReport from={from} to={to} /></TabsContent>
         <TabsContent value="tables"><TableReport from={from} to={to} /></TabsContent>
         <TabsContent value="players"><PlayerReport from={from} to={to} /></TabsContent>
