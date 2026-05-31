@@ -118,6 +118,11 @@ const CageHistoryView = () => {
   );
   const [viewerCheck, setViewerCheck] = useState<any>(null);
   const viewerSource = viewerCheck?.source as "live" | "slots" | undefined;
+  const [checkSourceFilter, setCheckSourceFilter] = useState<"ALL" | "live" | "slots">("ALL");
+  const cashChecksFiltered = useMemo(
+    () => checkSourceFilter === "ALL" ? cashChecks : (cashChecks || []).filter((c: any) => c.source === checkSourceFilter),
+    [cashChecks, checkSourceFilter]
+  );
 
   // Cashless provider filter (Mobile Money providers)
   const [providerFilter, setProviderFilter] = useState<string>("ALL");
