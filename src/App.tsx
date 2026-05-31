@@ -90,6 +90,8 @@ const RegisterPlayerPage = lazy(() => import("@/pages/cage/RegisterPlayerPage"))
 const EditOpeningChipsPage = lazy(() => import("@/pages/cage/EditOpeningChipsPage"));
 const CageClosingsPage = lazy(() => import("@/pages/cage/CageClosingsPage"));
 const CageViewPage = lazy(() => import("@/pages/cage/CageViewPage"));
+const ClosingsPage = lazy(() => import("@/pages/ClosingsPage"));
+const DailyExpensesPage = lazy(() => import("@/pages/DailyExpensesPage"));
 const CageSlots = lazy(() => import("@/pages/CageSlots"));
 const CageSlotsReport = lazy(() => import("@/pages/CageSlotsReport"));
 const SlotsExpenses = lazy(() => import("@/pages/SlotsExpenses"));
