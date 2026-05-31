@@ -23,6 +23,7 @@ import { PitShell } from "@/components/pit/PitShell";
 import { CellPicker, type CellPickerRow } from "@/components/grids/CellPicker";
 import { useRotaLock, useRolesAtDate } from "@/hooks/use-rota-lock";
 import RotaLockButton from "@/components/rota/RotaLockButton";
+import RotaExcelButtons from "@/components/rota/RotaExcelButtons";
 
 
 const ROTA_SHIFTS = ["M", "N", "L", "E", "O"] as const;
