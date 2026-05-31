@@ -121,6 +121,36 @@ const Pit = ({ forcedTab }: PitProps = {}) => {
   const isPast = month < currentMonth;
   const canGoNext = activeTab === "rota" ? true : month < currentMonth;
   const { data: pitLock } = useRotaLock("pit", month);
+
+  // Rota Excel template/import — data is fetched at the page level so the
+  // header buttons can pre-fill the template with the current month's rota.
+  const rotaMonthStart = `${month}-01`;
+  const rotaMonthEnd = useMemo(() => {
+    const [yy, mm] = month.split("-").map(Number);
+    const dim = new Date(yy, mm, 0).getDate();
+    return `${month}-${String(dim).padStart(2, "0")}`;
+  }, [month]);
+  const { data: allDealersForExcel = [] } = useDealers();
+  const { data: pitRotaForExcel = [] } = usePitRotaRange(rotaMonthStart, rotaMonthEnd);
+  const setPitRotaForExcel = useSetPitRota();
+  const pitRotaMap = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const r of pitRotaForExcel as any[]) {
+      if (r?.shift) m.set(`${r.dealer_id}|${r.date}`, String(r.shift).toUpperCase());
+    }
+    return m;
+  }, [pitRotaForExcel]);
+  const pitExcelEmployees = useMemo(() =>
+    (allDealersForExcel as any[])
+      .filter(d => d.is_active)
+      .map(d => ({
+        id: d.id as string,
+        name: d.name as string,
+        department: d.is_pit_boss ? "Pit Boss" : (CATEGORY_LABELS[d.category as DealerCategory] || null),
+      })),
+    [allDealersForExcel]
+  );
+
   const centerControl = showMonthNav ? (
     <div className="flex items-center gap-2">
       <div className="flex items-center gap-1">
