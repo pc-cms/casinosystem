@@ -241,29 +241,10 @@ const SlotsConsolidatedReport = ({
         </tbody>
       </table>
 
-      {/* ============ END-OF-DAY MOBILE MONEY BALANCES (manual snapshot) ============ */}
-      <table className="w-full border-collapse mb-0.5">
-        <thead>
-          <tr><th colSpan={4} className="border border-black bg-gray-200 px-1.5 py-0.5 text-left">End-of-Day Mobile Money Balances</th></tr>
-          <tr>
-            {PROVIDERS.map(p => (
-              <th key={p.key} className="border border-black px-1.5 py-0.5 text-center w-1/4">{p.label}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            {PROVIDERS.map(p => {
-              const v = Number(closerCashlessByProvider[p.key] || 0);
-              return (
-                <td key={p.key} className="border border-black px-1.5 py-1.5 text-right font-mono">
-                  {v ? formatNumberSpaces(v) : ""}
-                </td>
-              );
-            })}
-          </tr>
-        </tbody>
-      </table>
+      {/* End-of-Day Mobile Money Balances removed — duplicates the M Pesa /
+          T Pesa / H Pesa / Airtel rows already shown in Cash Flow Closer. */}
+
+
 
       {/* ============ SIGNATURES ============ */}
       <table className="w-full border-collapse mt-auto pt-2">
