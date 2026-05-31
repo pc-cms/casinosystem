@@ -253,6 +253,9 @@ const SlotsConsolidatedReport = ({
 
 
 
+      {/* Spacer fills remaining A4 portrait height so signatures sit at the bottom */}
+      <div className="flex-1" />
+
       {/* ============ SIGNATURES ============ */}
       <table className="w-full border-collapse mt-4">
         <tbody>
