@@ -247,22 +247,8 @@ const Dashboard = () => {
                 </div>
               </Link>
             )}
-            {!isSurveillance && showFinancials && (
-              canApproveExpenses ? (
-                <StatCard label="Pending Expenses" value={pendingExpenses} icon={Receipt} href="/expenses/approvals" />
-              ) : (
-                <div className="cms-panel p-5 opacity-75">
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <div className="p-1.5 rounded-md bg-muted text-muted-foreground shrink-0">
-                      <Receipt className="w-4 h-4" />
-                    </div>
-                    <p className="text-xs font-medium uppercase tracking-wider truncate">Pending Expenses</p>
-                  </div>
-                  <div className="mt-3 overflow-x-auto scrollbar-hide">
-                    <p className="text-3xl font-bold font-mono whitespace-nowrap text-card-foreground">{pendingExpenses}</p>
-                  </div>
-                </div>
-              )
+            {!isSurveillance && showFinancials && canApproveExpenses && (
+              <StatCard label="Daily Expenses" value={pendingExpenses} icon={Receipt} href="/expenses/daily" />
             )}
             {!isSurveillance && showFinancials && (
               <StatCard label="Pending Cashless" value={pendingCashless} icon={Smartphone} href="/cashless" />
