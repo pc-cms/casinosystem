@@ -55,11 +55,12 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/tables", icon: Table2, label: "Tables Tracking", roles: ["super_admin", "manager", "floor_manager", "finance_manager", "surveillance"], section: "PIT" },
   { to: "/player-statistics", icon: Users, label: "Player Tracking", roles: ["super_admin", "manager", "floor_manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
   { to: "/table-tracker", icon: Target, label: "Table Check", roles: ["super_admin", "manager", "floor_manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
-  
+
+  // Divider — visual separation after Table Check.
+  { to: "__divider__pit", icon: ListChecks, label: "", roles: ["super_admin", "manager", "floor_manager", "pit", "finance_manager", "surveillance", "cashier", "cashier_slots", "reception", "hr"], section: "PIT" },
+
   { to: "__attendance__", icon: ClipboardPen, label: "Attendance", roles: ["super_admin", "manager", "floor_manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
   { to: "__rota__", icon: CalendarDays, label: "Rota", roles: ["super_admin", "manager", "floor_manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
-  { to: "/tips-and-bonuses", icon: Gift, label: "Tips & Bonuses", roles: ["super_admin", "manager", "floor_manager", "finance_manager", "surveillance"], section: "PIT" },
-  { to: "/pitbook", icon: MessageSquare, label: "Pitbook", roles: ["super_admin", "manager", "floor_manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
   { to: "/incidents", icon: AlertTriangle, label: "Incidents", roles: ["super_admin", "manager", "floor_manager", "finance_manager", "surveillance"], section: "PIT" },
 
   // CASHIER — transactional Cage operations.
@@ -70,7 +71,10 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/expenses", icon: Receipt, label: "Expenses", roles: ["super_admin", "manager", "floor_manager", "finance_manager", "cashier", "cashier_slots"], section: "CASHIER" },
   // Closings hub — managerial surface only.
   { to: "/closings", icon: Landmark, label: "Closings", roles: ["super_admin", "manager", "floor_manager", "finance_manager"], section: "CASHIER" },
+  { to: "/bank-checks", icon: CreditCard, label: "Bank", roles: ["super_admin", "manager", "floor_manager", "finance_manager"], section: "CASHIER" },
   { to: "/cashless", icon: CreditCard, label: "Cashless", roles: ["super_admin", "manager", "floor_manager", "cashier", "finance_manager"], section: "CASHIER" },
+  { to: "/tips-and-bonuses", icon: Gift, label: "Tips & Bonuses", roles: ["super_admin", "manager", "floor_manager", "finance_manager", "surveillance"], section: "CASHIER" },
+  { to: "/reports", icon: FileBarChart, label: "Reports", roles: ["super_admin", "manager", "floor_manager", "finance_manager"], section: "CASHIER" },
 
   // RECEPTION — Players & entry
   { to: "/reception", icon: DoorOpen, label: "Reception", roles: ["super_admin", "manager", "floor_manager", "reception", "finance_manager"], section: "RECEPTION" },
@@ -79,7 +83,6 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/blacklist", icon: ShieldAlert, label: "Blacklist", roles: ["super_admin", "manager", "floor_manager", "reception", "finance_manager", "surveillance"], section: "RECEPTION" },
 
   // FINANCE — alphabetical, separate routes (no tabs)
-  { to: "/bank-checks", icon: CreditCard, label: "Bank Checks", roles: ["super_admin", "manager", "floor_manager", "finance_manager"], section: "FINANCE" },
   { to: "/finance/budget", icon: Target, label: "Budget", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
   { to: "/finance/cash-count", icon: Coins, label: "Cash Count", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
   { to: "/finance/review", icon: ClipboardPen, label: "Daily Review", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
@@ -101,10 +104,6 @@ const NAV_ITEMS: NavItem[] = [
 
   // ANALYTICS — shared
   { to: "/groups", icon: UsersRound, label: "Groups", roles: ["super_admin", "manager", "floor_manager", "finance_manager"], section: "ANALYTICS" },
-  { to: "/reports", icon: FileBarChart, label: "Reports", roles: ["super_admin", "manager", "floor_manager", "finance_manager"], section: "ANALYTICS" },
-
-  { to: "/table-results", icon: FileText, label: "Table Results", roles: ["super_admin", "manager", "floor_manager", "finance_manager", "surveillance"], section: "ANALYTICS" },
-  { to: "/business-days", icon: CalendarDays, label: "Business Days", roles: ["super_admin", "manager", "floor_manager", "finance_manager"], section: "ANALYTICS" },
 
   // CRM
   { to: "/crm/players", icon: UsersRound, label: "Player CRM", roles: ["super_admin", "manager", "floor_manager", "finance_manager", "reception", "hr"], section: "CRM" },
