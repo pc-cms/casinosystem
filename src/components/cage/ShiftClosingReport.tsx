@@ -285,8 +285,8 @@ const ShiftClosingReport = ({
   // Mobile providers ordered as per legacy form
   const MP = ["Mpesa", "Tigo", "Halo", "AirTel"] as const;
 
-  const compact = reportTables.length > 12;
-  const rootFontSize = compact ? "9.5px" : "11px";
+  const compact = reportTables.length > 14;
+  const rootFontSize = compact ? "10.5px" : "13px";
 
   return (
     <div
@@ -295,7 +295,7 @@ const ShiftClosingReport = ({
       style={{
         fontFamily: "Arial, sans-serif",
         fontSize: rootFontSize,
-        lineHeight: 1.15,
+        lineHeight: 1.25,
         width: "194mm",
         minHeight: "281mm",
         boxSizing: "border-box",
