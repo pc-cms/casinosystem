@@ -412,9 +412,25 @@ const ExpensesTab = () => {
         </table>
       </div>
       {print && (
-        <PrintPortal open onClose={() => setPrint(false)} title={`Expenses · ${fmtDate(date)}`}>
-          <ExpensesDayReport casinoName={activeCasino?.name || ""} businessDate={date} rows={filtered as any} />
-        </PrintPortal>
+        <Dialog open onOpenChange={(v) => !v && setPrint(false)}>
+          <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader><DialogTitle>Expenses · {fmtDate(date)}</DialogTitle></DialogHeader>
+            <div className="border border-border rounded-md overflow-hidden bg-white print:hidden">
+              <div className="origin-top-left scale-[0.85] w-[117%]">
+                <ExpensesDayReport casinoName={activeCasino?.name || ""} businessDate={date} rows={filtered as any} />
+              </div>
+            </div>
+            <PrintPortal>
+              <div className="expenses-print-area hidden print:block">
+                <ExpensesDayReport casinoName={activeCasino?.name || ""} businessDate={date} rows={filtered as any} />
+              </div>
+            </PrintPortal>
+            <DialogFooter className="print:hidden">
+              <Button variant="outline" onClick={() => setPrint(false)}>Close</Button>
+              <Button onClick={() => window.print()} className="gap-1.5"><Printer className="w-4 h-4" /> Print</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );
