@@ -697,7 +697,7 @@ const DailyReport = ({ from, to }: { from: string; to: string }) => {
 
       // Window [from 11:00 EAT, to+1 11:00 EAT] in UTC
       const winFrom = businessDayHourUTC(from, 7);
-      const winTo = businessDayHourUTC(to, 35);
+      const winTo = businessDayHourUTC(to, 31);
 
       // 1) Shifts (Result + Miss bucketed by opened_at → business date)
       const { data: shifts, error: sErr } = await supabase
@@ -722,7 +722,7 @@ const DailyReport = ({ from, to }: { from: string; to: string }) => {
       const splits = await Promise.all(
         dates.map(async (d) => {
           const f = businessDayHourUTC(d, 7);
-          const t = businessDayHourUTC(d, 35);
+          const t = businessDayHourUTC(d, 31);
           const { data, error } = await (supabase as any).rpc("compute_tables_drop_split", {
             _casino_id: casinoId,
             _from: f,
@@ -753,7 +753,7 @@ const DailyReport = ({ from, to }: { from: string; to: string }) => {
       const tsToBusinessDate = (iso: string): string => {
         const t = new Date(iso).getTime();
         const eatHours = t / 3600000 + 3;
-        const adj = new Date((eatHours - 11) * 3600000);
+        const adj = new Date((eatHours - 7) * 3600000);
         return adj.toISOString().split("T")[0];
       };
 
