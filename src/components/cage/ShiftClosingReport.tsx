@@ -72,6 +72,11 @@ const ShiftClosingReport = ({
   /** Tips for the business day, split by shift_type. Informational only —
    *  tips are NOT part of Shift Balance. */
   const [tipsByShift, setTipsByShift] = useState<{ day: number; night: number }>({ day: 0, night: 0 });
+  /** Cashless IN / OUT per provider, scoped to THIS shift's window. */
+  const [cashlessIO, setCashlessIO] = useState<{
+    inByProv: Record<string, number>;
+    outByProv: Record<string, number>;
+  }>({ inByProv: {}, outByProv: {} });
 
   useEffect(() => {
     let cancelled = false;
