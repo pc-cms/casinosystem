@@ -153,8 +153,6 @@ const SlotsConsolidatedReport = ({
             <Row label="Bank TZS" value={closerBankTzs} />
             <Row label="Bank USD" value={closerBankUsd} />
             <Row label="Total Bank (TZS)" value={closerBankTotalTzs} bold />
-            {PROVIDERS.map(p => <Row key={p.key} label={p.label} value={Number(closerCashlessByProvider[p.key] || 0)} />)}
-            <Row label="Total Cashless" value={closerCashlessTotalTzs} bold />
           </tbody>
           <tfoot>
             <tr>
