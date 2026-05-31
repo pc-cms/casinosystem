@@ -357,31 +357,49 @@ const ShiftClosingReport = ({
         </tbody>
       </table>
 
-      {/* ============ CASH FLOW: OPENER | CLOSER ============ */}
-      <div className="grid grid-cols-2 gap-1 mb-1">
-        <CashFlowColumn
-          title="Cash Flow Opener"
-          cash={openerByCurrency}
-          mobile={openerMobile}
-          mp={[...MP]}
-          otherTzs={openerOtherTzs}
-          totalCash={openerCashTzs + openerOtherTzs}
-          totalMobile={openerMobileTotal}
-          totalLabel="Total Opener"
-          totalValue={openerTotal}
-        />
-        <CashFlowColumn
-          title="Cash Flow Closer"
-          cash={closerByCurrency}
-          mobile={closerMobile}
-          mp={[...MP]}
-          otherTzs={closerOtherTzs}
-          totalCash={closerCashTzs + closerOtherTzs}
-          totalMobile={closerMobileTotal}
-          totalLabel="Total Closer"
-          totalValue={closerTotal}
-        />
-      </div>
+      {/* ============ CASH FLOW: OPENER | CLOSER (as a table) ============ */}
+      <table className="w-full border-collapse mb-1 tabular-nums">
+        <thead>
+          <tr>
+            <th colSpan={3} className="border border-black bg-gray-200 px-1.5 py-0.5 text-left">
+              Cash Flow (Opener / Closer)
+            </th>
+          </tr>
+          <tr className="bg-gray-100">
+            <th className="border border-black px-1.5 py-0.5 text-left w-1/3">Item</th>
+            <th className="border border-black px-1.5 py-0.5 text-right">Opener</th>
+            <th className="border border-black px-1.5 py-0.5 text-right">Closer</th>
+          </tr>
+        </thead>
+        <tbody>
+          {CURRENCIES.map(c => {
+            const o = openerByCurrency[c] || 0;
+            const cl = closerByCurrency[c] || 0;
+            return (
+              <tr key={c}>
+                <td className="border border-black px-1.5 py-0.5">{c}</td>
+                <td className="border border-black px-1.5 py-0.5 text-right">{o ? numAlways(o) : "—"}</td>
+                <td className="border border-black px-1.5 py-0.5 text-right">{cl ? numAlways(cl) : "—"}</td>
+              </tr>
+            );
+          })}
+          <tr>
+            <td className="border border-black px-1.5 py-0.5">Other in TZS</td>
+            <td className="border border-black px-1.5 py-0.5 text-right">{openerOtherTzs ? numAlways(openerOtherTzs) : "—"}</td>
+            <td className="border border-black px-1.5 py-0.5 text-right">{closerOtherTzs ? numAlways(closerOtherTzs) : "—"}</td>
+          </tr>
+          <tr className="bg-gray-100 font-semibold">
+            <td className="border border-black px-1.5 py-0.5">Total Cash (TZS)</td>
+            <td className="border border-black px-1.5 py-0.5 text-right">{numAlways(openerCashTzs + openerOtherTzs)}</td>
+            <td className="border border-black px-1.5 py-0.5 text-right">{numAlways(closerCashTzs + closerOtherTzs)}</td>
+          </tr>
+          <tr className="bg-gray-200 font-bold">
+            <td className="border border-black px-1.5 py-0.5">Total</td>
+            <td className="border border-black px-1.5 py-0.5 text-right">{numAlways(openerTotal)}</td>
+            <td className="border border-black px-1.5 py-0.5 text-right">{numAlways(closerTotal)}</td>
+          </tr>
+        </tbody>
+      </table>
 
       {/* ============ CASH LESS SHIFT TRANSACTIONS ============ */}
       {(() => {
