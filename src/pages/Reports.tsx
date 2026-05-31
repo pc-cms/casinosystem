@@ -107,6 +107,7 @@ const Reports = () => {
           <TabsTrigger value="daily" className="gap-1 text-xs"><CalendarDays className="w-3.5 h-3.5" /> Daily</TabsTrigger>
           <TabsTrigger value="shifts" className="gap-1 text-xs"><Landmark className="w-3.5 h-3.5" /> Shifts</TabsTrigger>
           <TabsTrigger value="tables" className="gap-1 text-xs"><Table2 className="w-3.5 h-3.5" /> Tables</TabsTrigger>
+          <TabsTrigger value="table-results" className="gap-1 text-xs"><FileText className="w-3.5 h-3.5" /> Table Results</TabsTrigger>
           <TabsTrigger value="players" className="gap-1 text-xs"><Users className="w-3.5 h-3.5" /> Players</TabsTrigger>
           <TabsTrigger value="groups" className="gap-1 text-xs"><UsersRound className="w-3.5 h-3.5" /> Groups</TabsTrigger>
           <TabsTrigger value="expenses" className="gap-1 text-xs"><Receipt className="w-3.5 h-3.5" /> Expenses</TabsTrigger>
@@ -117,6 +118,11 @@ const Reports = () => {
         <TabsContent value="daily"><DailyReport from={from} to={to} /></TabsContent>
         <TabsContent value="shifts"><ShiftReport from={from} to={to} /></TabsContent>
         <TabsContent value="tables"><TableReport from={from} to={to} /></TabsContent>
+        <TabsContent value="table-results">
+          <Suspense fallback={<div className="py-8 text-center text-sm text-muted-foreground">Loading…</div>}>
+            <TableResultsPage />
+          </Suspense>
+        </TabsContent>
         <TabsContent value="players"><PlayerReport from={from} to={to} /></TabsContent>
         <TabsContent value="groups"><GroupReport from={from} to={to} /></TabsContent>
         <TabsContent value="expenses"><ExpenseReport from={from} to={to} /></TabsContent>
