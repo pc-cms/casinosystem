@@ -91,8 +91,8 @@ const SlotsConsolidatedReport = ({
   const providerWithdrawTotal = Object.values(cashlessWithdrawByProvider).reduce((s, v) => s + Number(v || 0), 0);
   const depositTotal = providerDepositTotal || Number(cashlessDepositTotalTzs || 0);
   const withdrawTotal = providerWithdrawTotal || Number(cashlessWithdrawTotalTzs || 0);
-  const openerTotal = openerCashTotalTzs + openerCashlessTotalTzs + openerBankTotalTzs;
-  const closerTotal = closerCashTotalTzs + closerCashlessTotalTzs + closerBankTotalTzs;
+  const openerTotal = openerCashTotalTzs + openerBankTotalTzs;
+  const closerTotal = closerCashTotalTzs + closerBankTotalTzs;
 
   return (
     <div className="bg-white text-black p-2 flex flex-col" style={{ fontFamily: "Arial, sans-serif", fontSize: "11px", lineHeight: 1.15, width: "194mm", height: "281mm", boxSizing: "border-box", overflow: "hidden", pageBreakAfter: "avoid", breakAfter: "avoid" }}>
