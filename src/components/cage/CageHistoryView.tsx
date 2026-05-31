@@ -411,14 +411,6 @@ const CageHistoryView = () => {
           </div>
         </TabsContent>
 
-        {/* Cage transfers */}
-        <TabsContent value="cage" className="space-y-3">
-          <div className="cms-panel">
-            <div className="cms-header">Cage Transfers ({cageTransfers.length})</div>
-            <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
-              <table className="w-full text-xs">
-                <thead className="sticky top-0 bg-card z-10">
-                  <tr className="border-b border-border">
         {/* Cage transfers — Live + Slots merged with source filter */}
         <TabsContent value="cage" className="space-y-3">
           <div className="cms-panel">
