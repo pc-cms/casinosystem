@@ -72,23 +72,32 @@ const CageHistoryView = () => {
   // Cashless for the date
   const { data: cashless = [] } = useCashless(date);
 
-  // Cage transfers for the date
+  // Cage transfers for the date — merged Live + Slots cage
   const { data: cageTransfers = [] } = useQuery({
-    queryKey: ["surv-cage-transfers", casinoId, date],
+    queryKey: ["surv-cage-transfers-merged", casinoId, date],
     queryFn: async () => {
       if (!casinoId) return [] as any[];
-      const { data, error } = await supabase
-        .from("cage_transfers")
-        .select("*")
-        .eq("casino_id", casinoId)
-        .gte("created_at", businessDayHourUTC(date, 7))
-        .lt("created_at", businessDayHourUTC(date, 7 + 24))
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data || [];
+      const from = businessDayHourUTC(date, 7);
+      const to = businessDayHourUTC(date, 7 + 24);
+      const [{ data: live, error: e1 }, { data: slots, error: e2 }] = await Promise.all([
+        supabase.from("cage_transfers").select("*").eq("casino_id", casinoId)
+          .gte("created_at", from).lt("created_at", to).order("created_at", { ascending: false }),
+        (supabase as any).from("cage_slots_transfers").select("*").eq("casino_id", casinoId)
+          .gte("created_at", from).lt("created_at", to).order("created_at", { ascending: false }),
+      ]);
+      if (e1) throw e1;
+      if (e2) throw e2;
+      const liveRows = (live || []).map((r: any) => ({ ...r, _source: "live" }));
+      const slotsRows = (slots || []).map((r: any) => ({ ...r, _source: "slots" }));
+      return [...liveRows, ...slotsRows].sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
     },
     enabled: !!casinoId,
   });
+  const [transferSourceFilter, setTransferSourceFilter] = useState<"ALL" | "live" | "slots">("ALL");
+  const cageTransfersFiltered = useMemo(
+    () => transferSourceFilter === "ALL" ? cageTransfers : cageTransfers.filter((t: any) => t._source === transferSourceFilter),
+    [cageTransfers, transferSourceFilter]
+  );
 
   // Chip transfers for the date (uses existing hook scoped by day)
   const { data: chipTransfers = [] } = useChipTransfers(date);
