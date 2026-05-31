@@ -202,12 +202,13 @@ const SlotsConsolidatedReport = ({
       {/* ============ CASH LESS SHIFT TRANSACTIONS ============ */}
       <table className="w-full border-collapse mb-0.5">
         <thead>
-          <tr><th colSpan={4} className="border border-black bg-gray-200 px-1.5 py-0.5 text-left">Cash Less Shift Transactions</th></tr>
+          <tr><th colSpan={5} className="border border-black bg-gray-200 px-1.5 py-0.5 text-left">Cash Less Shift Transactions</th></tr>
           <tr>
             <th className="border border-black px-1.5 py-0.5 text-left w-1/3">Provider</th>
             <th className="border border-black px-1.5 py-0.5 text-right">Deposit (IN)</th>
             <th className="border border-black px-1.5 py-0.5 text-right">Withdraw (OUT)</th>
             <th className="border border-black px-1.5 py-0.5 text-right">NET (IN − OUT)</th>
+            <th className="border border-black px-1.5 py-0.5 text-right">Balance</th>
           </tr>
         </thead>
         <tbody>
@@ -215,6 +216,8 @@ const SlotsConsolidatedReport = ({
             const i = Number(cashlessDepositByProvider[p.key] || 0);
             const o = Number(cashlessWithdrawByProvider[p.key] || 0);
             const n = i - o;
+            const rawB = closerCashlessByProvider[p.key];
+            const hasBalance = rawB !== null && rawB !== undefined && Number(rawB) !== 0;
             return (
               <tr key={p.key}>
                 <td className="border border-black px-1.5 py-0.5">{p.label}</td>
@@ -222,6 +225,9 @@ const SlotsConsolidatedReport = ({
                 <td className="border border-black px-1.5 py-0.5 text-right">{o ? formatNumberSpaces(o) : ""}</td>
                 <td className="border border-black px-1.5 py-0.5 text-right font-semibold">
                   {n !== 0 ? (n > 0 ? "+" : "") + formatNumberSpaces(n) : ""}
+                </td>
+                <td className="border border-black px-1.5 py-0.5 text-right font-semibold">
+                  {hasBalance ? formatNumberSpaces(Number(rawB)) : "—"}
                 </td>
               </tr>
             );
@@ -232,6 +238,9 @@ const SlotsConsolidatedReport = ({
             <td className="border border-black px-1.5 py-0.5 text-right font-bold bg-gray-100">{formatNumberSpaces(withdrawTotal)}</td>
             <td className="border border-black px-1.5 py-0.5 text-right font-bold bg-gray-100">
               {(depositTotal - withdrawTotal) > 0 ? "+" : ""}{formatNumberSpaces(depositTotal - withdrawTotal)}
+            </td>
+            <td className="border border-black px-1.5 py-0.5 text-right font-bold bg-gray-100">
+              {closerCashlessTotalTzs ? formatNumberSpaces(closerCashlessTotalTzs) : "—"}
             </td>
           </tr>
         </tbody>
