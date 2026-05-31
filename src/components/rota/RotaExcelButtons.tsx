@@ -178,7 +178,7 @@ export default function RotaExcelButtons({
           if ((existing.get(`${emp.id}|${date}`) || "") === code) continue;
           updates++;
           const r = onSetCell(emp.id, date, code);
-          if (r && typeof (r as Promise<unknown>).then === "function") tasks.push(r);
+          if (r && typeof (r as any).then === "function") tasks.push(r as Promise<unknown>);
         }
       });
 
