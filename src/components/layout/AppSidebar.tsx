@@ -6,9 +6,9 @@ import {
   UsersRound, LogOut, Settings, FileBarChart,
   ListChecks, Eye, Target,
   Building2, UserCheck, ClipboardPen, ShieldCheck, ShieldOff,
-  Wallet, DoorOpen, ShieldAlert, Menu, Upload, FileText,
+  Wallet, DoorOpen, ShieldAlert, Menu, Upload,
   ChevronsLeft, ChevronsRight, CreditCard, CalendarDays, ChevronDown, ChevronRight, Coins, Briefcase,
-  RefreshCw, MessageSquare, AlertTriangle, User as UserIcon, Rows3, Rows2, Gift, CheckCircle2, Coffee, Megaphone,
+  RefreshCw, AlertTriangle, User as UserIcon, Rows3, Rows2, Gift, CheckCircle2, Coffee, Megaphone,
 } from "lucide-react";
 import { UserProfileDialog } from "@/components/UserProfileDialog";
 import { resetPWACache } from "@/lib/pwa-register";
@@ -55,11 +55,12 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/tables", icon: Table2, label: "Tables Tracking", roles: ["super_admin", "manager", "floor_manager", "finance_manager", "surveillance"], section: "PIT" },
   { to: "/player-statistics", icon: Users, label: "Player Tracking", roles: ["super_admin", "manager", "floor_manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
   { to: "/table-tracker", icon: Target, label: "Table Check", roles: ["super_admin", "manager", "floor_manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
-  
+
+  // Divider — visual separation after Table Check.
+  { to: "__divider__pit", icon: ListChecks, label: "", roles: ["super_admin", "manager", "floor_manager", "pit", "finance_manager", "surveillance", "cashier", "cashier_slots", "reception", "hr"], section: "PIT" },
+
   { to: "__attendance__", icon: ClipboardPen, label: "Attendance", roles: ["super_admin", "manager", "floor_manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
   { to: "__rota__", icon: CalendarDays, label: "Rota", roles: ["super_admin", "manager", "floor_manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
-  { to: "/tips-and-bonuses", icon: Gift, label: "Tips & Bonuses", roles: ["super_admin", "manager", "floor_manager", "finance_manager", "surveillance"], section: "PIT" },
-  { to: "/pitbook", icon: MessageSquare, label: "Pitbook", roles: ["super_admin", "manager", "floor_manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
   { to: "/incidents", icon: AlertTriangle, label: "Incidents", roles: ["super_admin", "manager", "floor_manager", "finance_manager", "surveillance"], section: "PIT" },
 
   // CASHIER — transactional Cage operations.
@@ -70,7 +71,10 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/expenses", icon: Receipt, label: "Expenses", roles: ["super_admin", "manager", "floor_manager", "finance_manager", "cashier", "cashier_slots"], section: "CASHIER" },
   // Closings hub — managerial surface only.
   { to: "/closings", icon: Landmark, label: "Closings", roles: ["super_admin", "manager", "floor_manager", "finance_manager"], section: "CASHIER" },
+  { to: "/bank-checks", icon: CreditCard, label: "Bank", roles: ["super_admin", "manager", "floor_manager", "finance_manager"], section: "CASHIER" },
   { to: "/cashless", icon: CreditCard, label: "Cashless", roles: ["super_admin", "manager", "floor_manager", "cashier", "finance_manager"], section: "CASHIER" },
+  { to: "/tips-and-bonuses", icon: Gift, label: "Tips & Bonuses", roles: ["super_admin", "manager", "floor_manager", "finance_manager", "surveillance"], section: "CASHIER" },
+  { to: "/reports", icon: FileBarChart, label: "Reports", roles: ["super_admin", "manager", "floor_manager", "finance_manager"], section: "CASHIER" },
 
   // RECEPTION — Players & entry
   { to: "/reception", icon: DoorOpen, label: "Reception", roles: ["super_admin", "manager", "floor_manager", "reception", "finance_manager"], section: "RECEPTION" },
@@ -79,7 +83,6 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/blacklist", icon: ShieldAlert, label: "Blacklist", roles: ["super_admin", "manager", "floor_manager", "reception", "finance_manager", "surveillance"], section: "RECEPTION" },
 
   // FINANCE — alphabetical, separate routes (no tabs)
-  { to: "/bank-checks", icon: CreditCard, label: "Bank Checks", roles: ["super_admin", "manager", "floor_manager", "finance_manager"], section: "FINANCE" },
   { to: "/finance/budget", icon: Target, label: "Budget", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
   { to: "/finance/cash-count", icon: Coins, label: "Cash Count", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
   { to: "/finance/review", icon: ClipboardPen, label: "Daily Review", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
@@ -101,10 +104,6 @@ const NAV_ITEMS: NavItem[] = [
 
   // ANALYTICS — shared
   { to: "/groups", icon: UsersRound, label: "Groups", roles: ["super_admin", "manager", "floor_manager", "finance_manager"], section: "ANALYTICS" },
-  { to: "/reports", icon: FileBarChart, label: "Reports", roles: ["super_admin", "manager", "floor_manager", "finance_manager"], section: "ANALYTICS" },
-
-  { to: "/table-results", icon: FileText, label: "Table Results", roles: ["super_admin", "manager", "floor_manager", "finance_manager", "surveillance"], section: "ANALYTICS" },
-  { to: "/business-days", icon: CalendarDays, label: "Business Days", roles: ["super_admin", "manager", "floor_manager", "finance_manager"], section: "ANALYTICS" },
 
   // CRM
   { to: "/crm/players", icon: UsersRound, label: "Player CRM", roles: ["super_admin", "manager", "floor_manager", "finance_manager", "reception", "hr"], section: "CRM" },
@@ -311,6 +310,9 @@ const SidebarSections = ({
   };
 
   const renderItem = (item: NavItem, sectionCtx: Section) => {
+    if (item.to.startsWith("__divider__")) {
+      return <div key={`${sectionCtx}:${item.to}`} className="my-1 border-t border-sidebar-border/60" />;
+    }
     if (item.to === "__attendance__") return renderVirtualGroup("attendance", item, sectionCtx, ATTENDANCE_SUBITEMS);
     if (item.to === "__rota__") return renderVirtualGroup("rota", item, sectionCtx, ROTA_SUBITEMS);
     const { base: itemBase, tab: itemTab } = parseItemTo(item.to);
@@ -402,6 +404,8 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
   // Items without a module mapping (mk null) stay visible to everyone (they
   // are auxiliary entries that don't correspond to a gated module).
   const visibleItems = NAV_ITEMS.filter(item => {
+    // Dividers always pass through; SidebarSections renders them as <hr>.
+    if (item.to.startsWith("__divider__")) return true;
     // Cage and Cage View are separate top-level buttons, never parent/sub-items.
     if (item.to === "/cage" && !isSuper && !roles.includes("cashier" as AppRole)) return false;
     if (item.to === "/cage/view" && !isSuper && roles.includes("cashier" as AppRole)) return false;
@@ -463,6 +467,9 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
           {/* Nav icons (only top-level items, no sub-tabs) */}
           <nav className="flex-1 flex flex-col items-center gap-0.5 w-full px-2 overflow-hidden">
             {visibleItems.map((item) => {
+              if (item.to.startsWith("__divider__")) {
+                return <div key={item.to} className="w-8 my-1 border-t border-sidebar-border/60" />;
+              }
               const isVirtual = item.to === "__attendance__" || item.to === "__rota__";
               const subs = item.to === "__attendance__" ? ATTENDANCE_SUBITEMS : item.to === "__rota__" ? ROTA_SUBITEMS : null;
               const targetTo = subs ? subs[0].to : item.to;

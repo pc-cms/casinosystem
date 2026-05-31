@@ -71,7 +71,7 @@ const Reception = lazy(() => import("@/pages/Reception"));
 const Guests = lazy(() => import("@/pages/Guests"));
 const Blacklist = lazy(() => import("@/pages/Blacklist"));
 const ImportReports = lazy(() => import("@/pages/ImportReports"));
-const TableResults = lazy(() => import("@/pages/TableResults"));
+
 const BankChecks = lazy(() => import("@/pages/BankChecks"));
 const MissChips = lazy(() => import("@/pages/MissChips"));
 const PokerTipsReport = lazy(() => import("@/pages/reports/PokerTipsReport"));
@@ -81,9 +81,7 @@ const TableTracker = lazy(() => import("@/pages/TableTracker"));
 
 const PlayerStatistics = lazy(() => import("@/pages/PlayerStatistics"));
 const Cashless = lazy(() => import("@/pages/Cashless"));
-const BusinessDays = lazy(() => import("@/pages/BusinessDays"));
 
-const Pitbook = lazy(() => import("@/pages/Pitbook"));
 const Incidents = lazy(() => import("@/pages/Incidents"));
 const CloseShiftPage = lazy(() => import("@/pages/cage/CloseShiftPage"));
 const RegisterPlayerPage = lazy(() => import("@/pages/cage/RegisterPlayerPage"));
@@ -363,11 +361,11 @@ const ProtectedRoutes = () => {
           <Route path="/admin/sync-log" element={<RoleGuard path="/admin"><ErrorBoundary><SyncLogPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/admin/sync-queue" element={<RoleGuard path="/admin"><ErrorBoundary><SyncQueuePage /></ErrorBoundary></RoleGuard>} />
           <Route path="/import-reports" element={<RoleGuard path="/import-reports"><ImportReports /></RoleGuard>} />
-          <Route path="/table-results" element={<RoleGuard path="/table-results"><TableResults /></RoleGuard>} />
+          <Route path="/table-results" element={<Navigate to="/reports?tab=table-results" replace />} />
           <Route path="/bank-checks" element={<RoleGuard path="/bank-checks"><BankChecks /></RoleGuard>} />
           <Route path="/miss-chips" element={<RoleGuard path="/miss-chips"><MissChips /></RoleGuard>} />
           <Route path="/cancelled-transactions" element={<RoleGuard path="/cancelled-transactions"><CancelledTransactions /></RoleGuard>} />
-          <Route path="/business-days" element={<RoleGuard path="/business-days"><BusinessDays /></RoleGuard>} />
+          <Route path="/business-days" element={<Navigate to="/reports" replace />} />
           <Route path="/weekly-bonus" element={<Navigate to="/tips-and-bonuses?tab=weekly" replace />} />
           <Route path="/monthly-tips" element={<Navigate to="/tips-and-bonuses?tab=monthly" replace />} />
           <Route path="/tips-and-bonuses" element={<RoleGuard path="/tips-and-bonuses"><ErrorBoundary><TipsAndBonuses /></ErrorBoundary></RoleGuard>} />
@@ -376,7 +374,7 @@ const ProtectedRoutes = () => {
           <Route path="/reports/miss-chips" element={<Navigate to="/miss-chips" replace />} />
           <Route path="/reports/poker-tips" element={<Navigate to="/tips-and-bonuses?tab=poker" replace />} />
           <Route path="/reports/floor-tips" element={<Navigate to="/tips-and-bonuses?tab=floor" replace />} />
-          <Route path="/pitbook" element={<RoleGuard path="/pitbook"><ErrorBoundary><Pitbook /></ErrorBoundary></RoleGuard>} />
+          <Route path="/pitbook" element={<Navigate to="/" replace />} />
           <Route path="/incidents" element={<RoleGuard path="/incidents"><ErrorBoundary><Incidents /></ErrorBoundary></RoleGuard>} />
           <Route path="/staff/master" element={<RoleGuard path="/staff/master"><ErrorBoundary><StaffMaster /></ErrorBoundary></RoleGuard>} />
           <Route path="/attendance/monthly" element={<RoleGuard path="/attendance/monthly"><ErrorBoundary><AttendanceMonthly /></ErrorBoundary></RoleGuard>} />
