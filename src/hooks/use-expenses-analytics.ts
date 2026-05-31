@@ -104,13 +104,6 @@ export const useExpenseAnalytics = (
       bySource[s].count += 1;
     });
 
-    // By category
-    const byCategory: Record<string, { total: number; count: number }> = {};
-    filtered.forEach((e) => {
-      if (!byCategory[e.category]) byCategory[e.category] = { total: 0, count: 0 };
-      byCategory[e.category].total += Number(e.amount);
-      byCategory[e.category].count += 1;
-    });
 
     // By player (only those linked to a player)
     const byPlayer: Record<string, { name: string; total: number; count: number }> = {};
