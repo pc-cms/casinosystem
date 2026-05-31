@@ -102,7 +102,7 @@ const SlotsConsolidatedReport = ({
         <tbody>
           <tr>
             <td className="border border-black px-1.5 py-0.5 font-bold text-base" colSpan={4}>
-              {casinoName} ACE Slots Consolidating Cash Desk Report
+              {casinoName} ACE Cash Desk Report
             </td>
             <td className="border border-black px-1.5 py-0.5 font-semibold text-center w-24">Date</td>
             <td className="border border-black px-1.5 py-0.5 text-center w-32">{fmtDateOnly(businessDate)}</td>
