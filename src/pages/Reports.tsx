@@ -6,8 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatCurrency } from "@/lib/currency";
 import { Badge } from "@/components/ui/badge";
-import { BarChart3, Table2, Users, Receipt, Grid3X3, Landmark, UsersRound, FileBarChart, ArrowUp, ArrowDown, ArrowUpDown, Coins } from "lucide-react";
+import { BarChart3, Table2, Users, Receipt, Grid3X3, Landmark, UsersRound, FileBarChart, ArrowUp, ArrowDown, ArrowUpDown, Coins, CalendarDays } from "lucide-react";
 import MissChips from "@/pages/MissChips";
+import { businessDayHourUTC } from "@/lib/business-day";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { fmtDate } from "@/lib/format-date";
 import { supabase } from "@/integrations/supabase/client";
@@ -99,8 +100,9 @@ const Reports = () => {
         <Input type="date" value={to} onChange={e => setTo(e.target.value)} className="w-40 font-mono text-xs h-9" />
       </PageHeader>
 
-      <Tabs defaultValue="shifts" className="space-y-3">
+      <Tabs defaultValue="daily" className="space-y-3">
         <TabsList className="flex-wrap">
+          <TabsTrigger value="daily" className="gap-1 text-xs"><CalendarDays className="w-3.5 h-3.5" /> Daily</TabsTrigger>
           <TabsTrigger value="shifts" className="gap-1 text-xs"><Landmark className="w-3.5 h-3.5" /> Shifts</TabsTrigger>
           <TabsTrigger value="tables" className="gap-1 text-xs"><Table2 className="w-3.5 h-3.5" /> Tables</TabsTrigger>
           <TabsTrigger value="players" className="gap-1 text-xs"><Users className="w-3.5 h-3.5" /> Players</TabsTrigger>
@@ -110,6 +112,7 @@ const Reports = () => {
           <TabsTrigger value="miss-chips" className="gap-1 text-xs"><Coins className="w-3.5 h-3.5" /> Miss Chips</TabsTrigger>
         </TabsList>
 
+        <TabsContent value="daily"><DailyReport from={from} to={to} /></TabsContent>
         <TabsContent value="shifts"><ShiftReport from={from} to={to} /></TabsContent>
         <TabsContent value="tables"><TableReport from={from} to={to} /></TabsContent>
         <TabsContent value="players"><PlayerReport from={from} to={to} /></TabsContent>
@@ -652,6 +655,235 @@ const TrackerReport = ({ from, to }: { from: string; to: string }) => {
                 <td className="px-3 py-2 text-right font-mono text-xs font-bold text-card-foreground">{formatCurrency(d.total)}</td>
               </tr>
             ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+
+
+// =================== DAILY ANALYTICS REPORT ===================
+// Per business-day: Drop (R) / Cash In / Miss Chips / Result / Hold % (R/D) /
+// Player Result / Diff (Result - Player Result).
+//
+// - Cash In   = Σ player cash-in transactions (buy + in) in the business-day window
+// - Cashout   = Σ player cash-out transactions (cashout + out) in same window
+// - Drop (R)  = External new money (NEP-split drop_r), via compute_tables_drop_split
+// - Result    = Σ shifts.tables_result (chip-based, canonical)
+// - Miss Chips= Σ shifts.miss_total
+// - Hold %    = Result / Drop(R) * 100
+// - Player Result = Cash In − Cashout (house gross from player tx)
+// - Diff      = Result − Player Result
+const DailyReport = ({ from, to }: { from: string; to: string }) => {
+  const { casinoId } = useAuth();
+
+  // Enumerate business dates in range (inclusive)
+  const dates = useMemo(() => {
+    const out: string[] = [];
+    const start = new Date(`${from}T00:00:00`);
+    const end = new Date(`${to}T00:00:00`);
+    if (isNaN(start.getTime()) || isNaN(end.getTime()) || start > end) return out;
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      out.push(toIsoDate(d));
+    }
+    return out;
+  }, [from, to]);
+
+  const { data: rows = [], isLoading } = useQuery({
+    queryKey: ["daily-report", casinoId, from, to],
+    queryFn: async () => {
+      if (!casinoId || dates.length === 0) return [];
+
+      // Window [from 11:00 EAT, to+1 11:00 EAT] in UTC
+      const winFrom = businessDayHourUTC(from, 11);
+      const winTo = businessDayHourUTC(to, 35);
+
+      // 1) Shifts in range (for Result + Miss aggregated by opened business date)
+      const { data: shifts, error: sErr } = await supabase
+        .from("shifts")
+        .select("id, opened_at, tables_result, miss_total")
+        .eq("casino_id", casinoId)
+        .gte("opened_at", winFrom)
+        .lt("opened_at", winTo);
+      if (sErr) throw sErr;
+
+      // 2) Transactions in the window (for Cash In / Cashout)
+      const { data: txs, error: tErr } = await supabase
+        .from("transactions")
+        .select("type, amount, created_at")
+        .eq("casino_id", casinoId)
+        .in("type", ["buy", "in", "cashout", "out"])
+        .gte("created_at", winFrom)
+        .lt("created_at", winTo);
+      if (tErr) throw tErr;
+
+      // 3) Per-day NEP split (drop_r) — one call per day in parallel
+      const splits = await Promise.all(
+        dates.map(async (d) => {
+          const f = businessDayHourUTC(d, 11);
+          const t = businessDayHourUTC(d, 35);
+          const { data, error } = await (supabase as any).rpc("compute_tables_drop_split", {
+            _casino_id: casinoId,
+            _from: f,
+            _to: t,
+          });
+          if (error) return { date: d, dropR: 0 };
+          const dropR = (data || []).reduce((s: number, r: any) => s + Number(r.drop_r || 0), 0);
+          return { date: d, dropR };
+        }),
+      );
+      const dropRByDate = new Map(splits.map((s) => [s.date, s.dropR]));
+
+      // Bucket by business date — use shift opened_at date for shift fields,
+      // and the business-window mapping for transactions.
+      const byDate: Record<string, {
+        date: string;
+        cashIn: number;
+        cashout: number;
+        miss: number;
+        result: number;
+      }> = {};
+      const ensure = (d: string) => {
+        if (!byDate[d]) byDate[d] = { date: d, cashIn: 0, cashout: 0, miss: 0, result: 0 };
+        return byDate[d];
+      };
+      dates.forEach((d) => ensure(d));
+
+      // Map a UTC ISO timestamp → business date (D where window is [D 11:00 EAT, D+1 11:00 EAT))
+      const tsToBusinessDate = (iso: string): string => {
+        const t = new Date(iso).getTime();
+        // EAT = UTC+3, business day rolls at 11:00 EAT = 08:00 UTC
+        const eatHours = t / 3600000 + 3;
+        // Subtract 11h so that 11:00 EAT becomes midnight of the business date
+        const adj = new Date((eatHours - 11) * 3600000);
+        return adj.toISOString().split("T")[0];
+      };
+
+      (shifts || []).forEach((s: any) => {
+        const d = tsToBusinessDate(s.opened_at);
+        const row = ensure(d);
+        row.result += Number(s.tables_result || 0);
+        row.miss += Number(s.miss_total || 0);
+      });
+
+      (txs || []).forEach((t: any) => {
+        const d = tsToBusinessDate(t.created_at);
+        if (!dropRByDate.has(d)) return;
+        const row = ensure(d);
+        const amt = Number(t.amount || 0);
+        if (t.type === "buy" || t.type === "in") row.cashIn += amt;
+        else if (t.type === "cashout" || t.type === "out") row.cashout += amt;
+      });
+
+      return dates.map((d) => {
+        const r = ensure(d);
+        const dropR = dropRByDate.get(d) || 0;
+        const playerResult = r.cashIn - r.cashout;
+        const hold = dropR > 0 ? (r.result / dropR) * 100 : null;
+        return {
+          date: d,
+          dropR,
+          cashIn: r.cashIn,
+          miss: r.miss,
+          result: r.result,
+          hold,
+          playerResult,
+          diff: r.result - playerResult,
+        };
+      });
+    },
+    enabled: !!casinoId && dates.length > 0,
+    staleTime: 30_000,
+  });
+
+  const { sorted, sort, toggle } = useSorted(rows, { key: "date", dir: "desc" });
+
+  const totals = useMemo(() => {
+    const t = rows.reduce(
+      (a, r) => {
+        a.dropR += r.dropR;
+        a.cashIn += r.cashIn;
+        a.miss += r.miss;
+        a.result += r.result;
+        a.playerResult += r.playerResult;
+        a.diff += r.diff;
+        return a;
+      },
+      { dropR: 0, cashIn: 0, miss: 0, result: 0, playerResult: 0, diff: 0 },
+    );
+    return { ...t, hold: t.dropR > 0 ? (t.result / t.dropR) * 100 : null };
+  }, [rows]);
+
+  const cls = (n: number) =>
+    n > 0 ? "cms-amount-positive" : n < 0 ? "cms-amount-negative" : "text-card-foreground";
+
+  return (
+    <div className="space-y-3">
+      <div className="grid grid-cols-2 md:grid-cols-7 gap-2">
+        {[
+          { label: "Days", value: String(rows.length), cls: "text-card-foreground" },
+          { label: "Drop (R)", value: formatCurrency(totals.dropR), cls: "text-card-foreground" },
+          { label: "Cash In", value: formatCurrency(totals.cashIn), cls: "text-card-foreground" },
+          { label: "Miss", value: formatCurrency(totals.miss), cls: "text-warning" },
+          { label: "Result", value: formatCurrency(totals.result), cls: cls(totals.result) },
+          { label: "Hold %", value: totals.hold == null ? "—" : `${totals.hold.toFixed(1)}%`, cls: "text-card-foreground" },
+          { label: "Diff", value: formatCurrency(totals.diff), cls: cls(totals.diff) },
+        ].map((c) => (
+          <div key={c.label} className="cms-panel p-2">
+            <p className="uppercase text-muted-foreground tracking-wider text-[10px]">{c.label}</p>
+            <p className={`font-mono text-sm font-bold ${c.cls}`}>{c.value}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="cms-panel overflow-x-auto">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-border">
+              <SortTh label="Date" k="date" sort={sort} toggle={toggle} />
+              <SortTh label="Drop (R)" k="dropR" sort={sort} toggle={toggle} align="right" />
+              <SortTh label="Cash In" k="cashIn" sort={sort} toggle={toggle} align="right" />
+              <SortTh label="Miss Chips" k="miss" sort={sort} toggle={toggle} align="right" />
+              <SortTh label="Result" k="result" sort={sort} toggle={toggle} align="right" />
+              <SortTh label="Hold % (R/D)" k="hold" sort={sort} toggle={toggle} align="right" />
+              <SortTh label="Player Result" k="playerResult" sort={sort} toggle={toggle} align="right" />
+              <SortTh label="Diff (R − P)" k="diff" sort={sort} toggle={toggle} align="right" />
+            </tr>
+          </thead>
+          <tbody>
+            {isLoading ? (
+              <tr><td colSpan={8} className="text-center text-muted-foreground text-sm py-6">Loading…</td></tr>
+            ) : sorted.length === 0 ? (
+              <tr><td colSpan={8} className="text-center text-muted-foreground text-sm py-6">No data in range</td></tr>
+            ) : sorted.map((r) => (
+              <tr key={r.date} className="border-b border-border last:border-0 hover:bg-muted/30">
+                <td className="px-3 py-2 text-xs font-mono text-card-foreground">{fmtDate(r.date)}</td>
+                <td className="px-3 py-2 text-right font-mono text-xs text-card-foreground">{formatCurrency(r.dropR)}</td>
+                <td className="px-3 py-2 text-right font-mono text-xs text-card-foreground">{formatCurrency(r.cashIn)}</td>
+                <td className="px-3 py-2 text-right font-mono text-xs text-warning">{formatCurrency(r.miss)}</td>
+                <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${cls(r.result)}`}>{formatCurrency(r.result)}</td>
+                <td className="px-3 py-2 text-right font-mono text-xs text-card-foreground">
+                  {r.hold == null ? "·" : `${r.hold.toFixed(1)}%`}
+                </td>
+                <td className={`px-3 py-2 text-right font-mono text-xs ${cls(r.playerResult)}`}>{formatCurrency(r.playerResult)}</td>
+                <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${cls(r.diff)}`}>{formatCurrency(r.diff)}</td>
+              </tr>
+            ))}
+            {sorted.length > 0 && (
+              <tr className="border-t-2 border-primary/30 bg-muted/30">
+                <td className="px-3 py-2 text-xs font-bold text-card-foreground uppercase">Totals</td>
+                <td className="px-3 py-2 text-right font-mono text-xs font-bold text-card-foreground">{formatCurrency(totals.dropR)}</td>
+                <td className="px-3 py-2 text-right font-mono text-xs font-bold text-card-foreground">{formatCurrency(totals.cashIn)}</td>
+                <td className="px-3 py-2 text-right font-mono text-xs font-bold text-warning">{formatCurrency(totals.miss)}</td>
+                <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${cls(totals.result)}`}>{formatCurrency(totals.result)}</td>
+                <td className="px-3 py-2 text-right font-mono text-xs font-bold text-card-foreground">
+                  {totals.hold == null ? "·" : `${totals.hold.toFixed(1)}%`}
+                </td>
+                <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${cls(totals.playerResult)}`}>{formatCurrency(totals.playerResult)}</td>
+                <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${cls(totals.diff)}`}>{formatCurrency(totals.diff)}</td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
