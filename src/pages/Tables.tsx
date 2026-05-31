@@ -58,7 +58,7 @@ const Tables = () => {
   const navigate = useNavigate();
 
   const today = businessDay;
-  const windowStartUTC = businessDayHourUTC(today, 13);
+  const windowStartUTC = businessDayHourUTC(today, 7);
 
   // Close Table wizard
   

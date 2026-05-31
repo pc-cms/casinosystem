@@ -42,8 +42,8 @@ const usePeriodPlayerStats = (
     queryKey: ["player-period-stats", playerId, fromDate, toDate],
     queryFn: async () => {
       if (!playerId || !fromDate || !toDate) return { cashIn: 0, result: 0 };
-      const start = businessDayHourUTC(fromDate, 13);
-      const end = businessDayHourUTC(toDate, 13 + 24);
+      const start = businessDayHourUTC(fromDate, 7);
+      const end = businessDayHourUTC(toDate, 7 + 24);
       const { data, error } = await supabase
         .from("transactions")
         .select("type, amount")
@@ -134,8 +134,8 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
   const { data: dayStats } = usePeriodPlayerStats(playerId, fromDate, toDate);
   const { data: dropSplit } = usePlayerDropSplit(
     playerId || undefined,
-    fromDate ? businessDayHourUTC(fromDate, 13) : undefined,
-    toDate ? businessDayHourUTC(toDate, 13 + 24) : undefined,
+    fromDate ? businessDayHourUTC(fromDate, 7) : undefined,
+    toDate ? businessDayHourUTC(toDate, 7 + 24) : undefined,
   );
   const { data: barOwed = 0 } = usePosPlayerOutstanding(playerId);
   const nav = useNavigate();

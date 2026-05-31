@@ -37,7 +37,7 @@ export const useChipTransfers = (date?: string) => {
         .select("*")
         .eq("casino_id", casinoId)
         .order("created_at", { ascending: false });
-      if (date) q = q.gte("created_at", businessDayHourUTC(date, 13)).lt("created_at", businessDayHourUTC(date, 13 + 24));
+      if (date) q = q.gte("created_at", businessDayHourUTC(date, 7)).lt("created_at", businessDayHourUTC(date, 7 + 24));
       const { data, error } = await q.limit(500);
       if (error) throw error;
       return (data || []) as ChipTransfer[];

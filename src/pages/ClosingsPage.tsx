@@ -145,8 +145,8 @@ const TotalTab = () => {
     queryKey: ["closings-total", casinoId, monthStartStr],
     queryFn: async () => {
       if (!casinoId) return [];
-      const fromIso = businessDayHourUTC(monthStartStr, 11);
-      const toIso = businessDayHourUTC(monthEndStr, 11);
+      const fromIso = businessDayHourUTC(monthStartStr, 7);
+      const toIso = businessDayHourUTC(monthEndStr, 7);
 
       const [liveRes, slotsRes, expRes, dropRes] = await Promise.all([
         // Closed live shifts only

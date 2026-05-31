@@ -696,7 +696,7 @@ const DailyReport = ({ from, to }: { from: string; to: string }) => {
       if (!casinoId || dates.length === 0) return [];
 
       // Window [from 11:00 EAT, to+1 11:00 EAT] in UTC
-      const winFrom = businessDayHourUTC(from, 11);
+      const winFrom = businessDayHourUTC(from, 7);
       const winTo = businessDayHourUTC(to, 35);
 
       // 1) Shifts (Result + Miss bucketed by opened_at → business date)
@@ -721,7 +721,7 @@ const DailyReport = ({ from, to }: { from: string; to: string }) => {
       // 3) Per-day NEP split (Drop R + Drop V) — one RPC per day in parallel
       const splits = await Promise.all(
         dates.map(async (d) => {
-          const f = businessDayHourUTC(d, 11);
+          const f = businessDayHourUTC(d, 7);
           const t = businessDayHourUTC(d, 35);
           const { data, error } = await (supabase as any).rpc("compute_tables_drop_split", {
             _casino_id: casinoId,

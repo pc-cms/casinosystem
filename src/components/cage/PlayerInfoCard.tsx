@@ -29,7 +29,7 @@ const PlayerInfoCard = ({ player, tables, shiftTransactions = [] }: Props) => {
   const { casinoId } = useAuth();
   const { data: serverBusinessDate } = useEffectiveBusinessDate();
   const today = serverBusinessDate || getBusinessDate();
-  const windowStartUTC = businessDayHourUTC(today, 13);
+  const windowStartUTC = businessDayHourUTC(today, 7);
 
   const { data: currentSession } = useQuery({
     queryKey: ["player-current-session", player?.id, today],
