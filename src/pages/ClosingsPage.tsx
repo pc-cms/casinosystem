@@ -293,22 +293,23 @@ const TotalTab = () => {
             {isLoading ? <tr><td colSpan={7} className="text-center py-6 text-muted-foreground">Loading…</td></tr> :
              sorted.length === 0 ? <tr><td colSpan={7} className="text-center py-6 text-muted-foreground">No closed shifts</td></tr> :
              sorted.map((r: any) => {
-              const totalResults = r.tablesResult + r.slotsResult;
+              const totalResults = (r.tablesResult || 0) + (r.slotsResult || 0);
               const cls = (n: number) => n < 0 ? "cms-amount-negative" : n > 0 ? "cms-amount-positive" : "text-muted-foreground";
+              const slotsShiftIds: string[] = Array.isArray(r.slotsShiftIds) ? r.slotsShiftIds : [];
               return (
                 <tr key={r.date} className="border-b border-border hover:bg-muted/30">
                   <td className="px-3 py-2 font-mono">{fmtDate(r.date)}</td>
-                  <td className="px-3 py-2 text-right font-mono text-muted-foreground">{formatNumberSpaces(r.dropTables)}</td>
-                  <td className={`px-3 py-2 text-right font-mono font-semibold ${cls(r.tablesResult)}`}>{formatNumberSpaces(r.tablesResult)}</td>
+                  <td className="px-3 py-2 text-right font-mono text-muted-foreground">{formatNumberSpaces(r.dropTables || 0)}</td>
+                  <td className={`px-3 py-2 text-right font-mono font-semibold ${cls(r.tablesResult || 0)}`}>{formatNumberSpaces(r.tablesResult || 0)}</td>
                   <td className="px-3 py-2 text-right font-mono">
                     <DropSlotsCell
-                      value={r.dropSlots}
-                      canEdit={canEditDrop && r.slotsShiftIds.length > 0}
-                      onSave={(v) => updateDropSlots.mutate({ shiftIds: r.slotsShiftIds, value: v })}
+                      value={r.dropSlots || 0}
+                      canEdit={canEditDrop && slotsShiftIds.length > 0}
+                      onSave={(v) => updateDropSlots.mutate({ shiftIds: slotsShiftIds, value: v })}
                     />
                   </td>
-                  <td className={`px-3 py-2 text-right font-mono font-semibold ${cls(r.slotsResult)}`}>{formatNumberSpaces(r.slotsResult)}</td>
-                  <td className="px-3 py-2 text-right font-mono text-muted-foreground">{formatNumberSpaces(r.expenses)}</td>
+                  <td className={`px-3 py-2 text-right font-mono font-semibold ${cls(r.slotsResult || 0)}`}>{formatNumberSpaces(r.slotsResult || 0)}</td>
+                  <td className="px-3 py-2 text-right font-mono text-muted-foreground">{formatNumberSpaces(r.expenses || 0)}</td>
                   <td className={`px-3 py-2 text-right font-mono font-bold ${cls(totalResults)}`}>{formatNumberSpaces(totalResults)}</td>
                 </tr>
               );
