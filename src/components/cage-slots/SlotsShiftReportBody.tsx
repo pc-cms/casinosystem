@@ -63,7 +63,7 @@ const SlotsShiftReportBody = ({ id, showHeader = true, compact = false }: Props)
   const { data: rates = [] } = useSlotsRates(id);
   const { data: checks = [] } = useSlotsCashCounts(id);
   const { data: transfers = [] } = useSlotsTransfers(id);
-  const { data: expenses = [] } = useSlotsExpenses(id);
+  const { data: expenses = [] } = useSlotsExpenses(shift?.business_date);
 
   if (!shift) {
     return <p className="text-xs text-muted-foreground py-2">Loading…</p>;
