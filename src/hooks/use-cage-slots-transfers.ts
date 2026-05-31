@@ -77,9 +77,8 @@ export const useCreateSlotsTransfer = () => {
     }) => {
       if (!casinoId || !user) throw new Error("Not authenticated");
 
-      const isCross = input.transfer_type === "lg_in" || input.transfer_type === "lg_out";
-      // Cross-cage transfers no longer require approval — they are recorded immediately on both sides.
       const requiresApproval = false;
+
       const nowIso = new Date().toISOString();
 
       // 1) Insert slots-side transfer
