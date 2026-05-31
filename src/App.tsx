@@ -81,9 +81,7 @@ const TableTracker = lazy(() => import("@/pages/TableTracker"));
 
 const PlayerStatistics = lazy(() => import("@/pages/PlayerStatistics"));
 const Cashless = lazy(() => import("@/pages/Cashless"));
-const BusinessDays = lazy(() => import("@/pages/BusinessDays"));
 
-const Pitbook = lazy(() => import("@/pages/Pitbook"));
 const Incidents = lazy(() => import("@/pages/Incidents"));
 const CloseShiftPage = lazy(() => import("@/pages/cage/CloseShiftPage"));
 const RegisterPlayerPage = lazy(() => import("@/pages/cage/RegisterPlayerPage"));
