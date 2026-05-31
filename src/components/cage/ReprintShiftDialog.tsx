@@ -198,7 +198,7 @@ const ReprintShiftDialog = ({ open, onClose, shiftId, casinoId }: Props) => {
             </div>
 
             <PrintPortal>
-              <div className="hidden print:block">
+              <div className="live-game-print-area hidden print:block">
                 <ShiftClosingReport
                   shift={shift}
                   tables={tables}
@@ -225,7 +225,7 @@ const ReprintShiftDialog = ({ open, onClose, shiftId, casinoId }: Props) => {
               <Button variant="outline" onClick={onClose} className="gap-1.5">
                 <X className="w-4 h-4" /> Close
               </Button>
-              <Button onClick={() => window.print()} className="gap-1.5">
+              <Button onClick={printLiveGameReport} className="gap-1.5">
                 <Printer className="w-4 h-4" /> Print Reports
               </Button>
             </DialogFooter>
