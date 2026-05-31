@@ -695,7 +695,7 @@ const DailyReport = ({ from, to }: { from: string; to: string }) => {
     queryFn: async () => {
       if (!casinoId || dates.length === 0) return [];
 
-      // Window [from 11:00 EAT, to+1 11:00 EAT] in UTC
+      // Window [from 07:00 EAT, to+1 07:00 EAT] in UTC (matches DB business_date_of)
       const winFrom = businessDayHourUTC(from, 7);
       const winTo = businessDayHourUTC(to, 31);
 
