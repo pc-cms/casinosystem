@@ -118,6 +118,11 @@ const CageHistoryView = () => {
   );
   const [viewerCheck, setViewerCheck] = useState<any>(null);
   const viewerSource = viewerCheck?.source as "live" | "slots" | undefined;
+  const [checkSourceFilter, setCheckSourceFilter] = useState<"ALL" | "live" | "slots">("ALL");
+  const cashChecksFiltered = useMemo(
+    () => checkSourceFilter === "ALL" ? cashChecks : (cashChecks || []).filter((c: any) => c.source === checkSourceFilter),
+    [cashChecks, checkSourceFilter]
+  );
 
   // Cashless provider filter (Mobile Money providers)
   const [providerFilter, setProviderFilter] = useState<string>("ALL");
@@ -258,7 +263,22 @@ const CageHistoryView = () => {
         {/* Cashier checks — unified: live game + slots, click → popup viewer */}
         <TabsContent value="checks" className="space-y-3">
           <div className="cms-panel">
-            <div className="cms-header">Cashier Checks ({cashChecks.length})</div>
+            <div className="cms-header flex items-center justify-between gap-2 flex-wrap">
+              <span>Cashier Checks ({cashChecksFiltered.length})</span>
+              <div className="flex items-center gap-1">
+                {(["ALL", "live", "slots"] as const).map((v) => (
+                  <Button
+                    key={v}
+                    variant={checkSourceFilter === v ? "default" : "outline"}
+                    size="sm"
+                    className="h-7 text-[10px]"
+                    onClick={() => setCheckSourceFilter(v)}
+                  >
+                    {v === "ALL" ? "All" : v === "live" ? "Live Cage" : "Slots Cage"}
+                  </Button>
+                ))}
+              </div>
+            </div>
             <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
               <table className="w-full text-xs">
                 <thead className="sticky top-0 bg-card z-10">
@@ -269,9 +289,9 @@ const CageHistoryView = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {cashChecks.length === 0 ? (
+                  {cashChecksFiltered.length === 0 ? (
                     <tr><td colSpan={5} className="text-center text-muted-foreground py-6">No checks for this day</td></tr>
-                  ) : cashChecks.map((cc: any) => {
+                  ) : cashChecksFiltered.map((cc: any) => {
                     const t = (cc.denominations || {}).totals || {};
                     const isSlots = cc.source === "slots";
                     // Slots checks balance on shift_balance, live on difference
