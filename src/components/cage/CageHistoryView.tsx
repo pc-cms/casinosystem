@@ -466,7 +466,7 @@ const CageHistoryView = () => {
       <CashCheckViewerDialog
         open={!!viewerCheck}
         onOpenChange={(o) => { if (!o) setViewerCheck(null); }}
-        check={viewerCheck?._raw ?? viewerCheck}
+        check={viewerCheck as any}
         cashierName={viewerCheck ? cashierMap.get(viewerCheck.counted_by) : undefined}
         balanceMode={viewerSource === "slots" ? "slots" : "default"}
       />
