@@ -186,6 +186,12 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
     [slotsExpenses],
   );
 
+  // Tips CD recorded during this shift — physically removed from cage; added back in balance.
+  const tipsCdTotal = useMemo(() =>
+    (tipsCdRows as any[]).reduce((s, t) => s + Number(t.amount || 0), 0),
+    [tipsCdRows],
+  );
+
   // Slots balance is shown as explicit manual formula parts in the UI.
   const openingCashTzs = openingTotalTzs;
   // Mobile Money is derived from manual Cashless blocks:
