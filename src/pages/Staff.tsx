@@ -229,10 +229,24 @@ const Staff = ({ forcedTab, forcedGroup }: StaffProps = {}) => {
           </div>
         }
       >
+        {isRotaTab && rotaGroup && canManagePersonnel && (
+          <RotaExcelButtons
+            scope={rotaGroupKey || "floor"}
+            month={month}
+            title={`${rotaGroup.label} Rota — ${monthLabel}`}
+            employees={excelEmployees}
+            existing={excelExisting}
+            allowedShifts={rotaGroup.shifts}
+            shiftLabels={rotaGroup.shiftLabels}
+            onSetCell={(id, date, shift) => setStaffRotaForExcel.mutateAsync({ staff_id: id, date, shift })}
+            disabled={isLocked}
+          />
+        )}
         <Button variant="outline" size="sm" className="gap-1 text-xs" onClick={printRota}>
           <Printer className="w-3.5 h-3.5" /> Print
         </Button>
       </PageHeader>
+
 
       {activeTab === "employee" && <EmployeeList />}
       {isRotaTab && rotaGroupKey && <StaffRotaGrid month={month} groupKey={rotaGroupKey} monthLabel={monthLabel} readOnly={(isPast && !isMgr) || !canManagePersonnel || isLocked} />}
