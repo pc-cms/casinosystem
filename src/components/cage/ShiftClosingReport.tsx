@@ -72,6 +72,11 @@ const ShiftClosingReport = ({
   /** Tips for the business day, split by shift_type. Informational only —
    *  tips are NOT part of Shift Balance. */
   const [tipsByShift, setTipsByShift] = useState<{ day: number; night: number }>({ day: 0, night: 0 });
+  /** Cashless IN / OUT per provider, scoped to THIS shift's window. */
+  const [cashlessIO, setCashlessIO] = useState<{
+    inByProv: Record<string, number>;
+    outByProv: Record<string, number>;
+  }>({ inByProv: {}, outByProv: {} });
 
   useEffect(() => {
     let cancelled = false;
@@ -181,6 +186,33 @@ const ShiftClosingReport = ({
           if (!cancelled) setTipsByShift({ day, night });
         }
       }
+
+      // Cashless IN / OUT scoped to THIS shift's window (live_game cage only).
+      {
+        const fromIso = (shift as any).opened_at as string | null;
+        const toIso = ((shift as any).closed_at as string | null) ?? new Date().toISOString();
+        if (fromIso) {
+          let q = (supabase as any)
+            .from("cashless_transactions")
+            .select("direction, provider, amount, created_at")
+            .eq("casino_id", casinoId)
+            .eq("cage_type", "live_game")
+            .gte("created_at", fromIso)
+            .lte("created_at", toIso);
+          const { data: cl } = await q;
+          if (!cancelled) {
+            const inP: Record<string, number> = {};
+            const outP: Record<string, number> = {};
+            (cl || []).forEach((r: any) => {
+              const p = String(r.provider || "").toUpperCase();
+              const a = Number(r.amount || 0);
+              if (r.direction === "IN") inP[p] = (inP[p] || 0) + a;
+              else if (r.direction === "OUT") outP[p] = (outP[p] || 0) + a;
+            });
+            setCashlessIO({ inByProv: inP, outByProv: outP });
+          }
+        }
+      }
     })();
     return () => { cancelled = true; };
   }, [casinoId, shift?.id, businessDate]);
@@ -244,8 +276,8 @@ const ShiftClosingReport = ({
   const openerMobileTotal = Object.values(openerMobile).reduce((s, v) => s + (Number(v) || 0), 0);
   const closerMobileTotal = Object.values(closerMobile).reduce((s, v) => s + (Number(v) || 0), 0);
 
-  const openerTotal = openerCashTzs + openerOtherTzs + openerMobileTotal;
-  const closerTotal = closerCashTzs + closerOtherTzs + closerMobileTotal;
+  const openerTotal = openerCashTzs + openerOtherTzs;
+  const closerTotal = closerCashTzs + closerOtherTzs;
 
   const num = (n: number) => (n === 0 ? "" : formatNumberSpaces(n));
   const numAlways = (n: number) => formatNumberSpaces(n);
@@ -351,6 +383,81 @@ const ShiftClosingReport = ({
         />
       </div>
 
+      {/* ============ CASH LESS SHIFT TRANSACTIONS ============ */}
+      {(() => {
+        const PROV: Array<{ key: string; label: string }> = [
+          { key: "MPESA",   label: "M Pesa" },
+          { key: "TIGO",    label: "T Pesa" },
+          { key: "HALOTEL", label: "H Pesa" },
+          { key: "AIRTEL",  label: "Airtel Money" },
+        ];
+        const finalProvKey = (p: string) => {
+          // Closer mobile is keyed by "Mpesa | Tigo | Halo | AirTel".
+          if (p === "MPESA") return "Mpesa";
+          if (p === "TIGO") return "Tigo";
+          if (p === "HALOTEL") return "Halo";
+          return "AirTel";
+        };
+        const totIn  = PROV.reduce((s, p) => s + Number(cashlessIO.inByProv[p.key]  || 0), 0);
+        const totOut = PROV.reduce((s, p) => s + Number(cashlessIO.outByProv[p.key] || 0), 0);
+        const totBalRaw = closerMobile;
+        const hasAnyBal = PROV.some(p => {
+          const v = (totBalRaw as any)?.[finalProvKey(p.key)];
+          return v !== undefined && v !== null && Number(v) !== 0;
+        });
+        const totBal = hasAnyBal
+          ? PROV.reduce((s, p) => s + Number((totBalRaw as any)?.[finalProvKey(p.key)] || 0), 0)
+          : null;
+        return (
+          <table className="w-full border-collapse mb-1 tabular-nums">
+            <thead>
+              <tr><th colSpan={5} className="border border-black bg-gray-200 px-1.5 py-0.5 text-left">Cash Less Shift Transactions</th></tr>
+              <tr className="bg-gray-100">
+                <th className="border border-black px-1.5 py-0.5 text-left w-1/3">Provider</th>
+                <th className="border border-black px-1.5 py-0.5 text-right">Deposit (IN)</th>
+                <th className="border border-black px-1.5 py-0.5 text-right">Withdraw (OUT)</th>
+                <th className="border border-black px-1.5 py-0.5 text-right">NET (IN − OUT)</th>
+                <th className="border border-black px-1.5 py-0.5 text-right">Balance</th>
+              </tr>
+            </thead>
+            <tbody>
+              {PROV.map(p => {
+                const i = Number(cashlessIO.inByProv[p.key]  || 0);
+                const o = Number(cashlessIO.outByProv[p.key] || 0);
+                const n = i - o;
+                const rawB = (closerMobile as any)?.[finalProvKey(p.key)];
+                const hasBal = rawB !== undefined && rawB !== null && String(rawB) !== "";
+                return (
+                  <tr key={p.key}>
+                    <td className="border border-black px-1.5 py-0.5">{p.label}</td>
+                    <td className="border border-black px-1.5 py-0.5 text-right">{i ? numAlways(i) : ""}</td>
+                    <td className="border border-black px-1.5 py-0.5 text-right">{o ? numAlways(o) : ""}</td>
+                    <td className="border border-black px-1.5 py-0.5 text-right font-semibold">
+                      {n !== 0 ? (n > 0 ? "+" : "") + numAlways(n) : ""}
+                    </td>
+                    <td className="border border-black px-1.5 py-0.5 text-right font-semibold">
+                      {hasBal ? numAlways(Number(rawB)) : "—"}
+                    </td>
+                  </tr>
+                );
+              })}
+              <tr className="bg-gray-100 font-bold">
+                <td className="border border-black px-1.5 py-0.5">Total</td>
+                <td className="border border-black px-1.5 py-0.5 text-right">{numAlways(totIn)}</td>
+                <td className="border border-black px-1.5 py-0.5 text-right">{numAlways(totOut)}</td>
+                <td className="border border-black px-1.5 py-0.5 text-right">
+                  {(totIn - totOut) > 0 ? "+" : ""}{numAlways(totIn - totOut)}
+                </td>
+                <td className="border border-black px-1.5 py-0.5 text-right">
+                  {totBal === null ? "—" : numAlways(totBal)}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        );
+      })()}
+
+
       {/* ============ SUMMARY PANEL (full width 4-col table) ============ */}
       <table className="w-full border-collapse mb-1">
         <tbody>
@@ -446,20 +553,6 @@ const CashFlowColumn = ({
         ))}
         <Row label="Other in TZS" value={num(otherTzs)} />
         <Row label="Total Cash" value={formatNumberSpaces(totalCash)} bold framed />
-        {mp.map(p => {
-          // Mobile balances are taken from the manually entered column.
-          // If the cashier did not fill it in, we display a dash — never compute.
-          const raw = mobile?.[p];
-          const hasManual = raw !== undefined && raw !== null && String(raw) !== "";
-          return (
-            <Row
-              key={p}
-              label={p === "Mpesa" ? "M Pessa" : p === "Tigo" ? "T Pesa" : p === "Halo" ? "H Pesa" : "Airtel Money"}
-              value={hasManual ? (Number(raw) === 0 ? "0" : formatNumberSpaces(Number(raw))) : "—"}
-            />
-          );
-        })}
-        <Row label="Total CashLess" value={totalMobile === 0 ? "—" : formatNumberSpaces(totalMobile)} bold framed />
       </div>
       <div className="mt-2 pt-1 border-t border-black flex justify-between font-bold">
         <span>{totalLabel}</span>
