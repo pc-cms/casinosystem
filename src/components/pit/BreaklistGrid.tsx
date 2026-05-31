@@ -59,10 +59,10 @@ const getCurrentSlot = () => {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 };
 
-// Check if a slot is within working hours (18-05)
+// Check if a slot is within working hours (18-07, matches business-day rollover)
 const isInWorkingHours = (slot: string) => {
   const h = parseInt(slot.split(":")[0]);
-  return h >= 18 || h < 5;
+  return h >= 18 || h < 7;
 };
 
 // Map a stored role to the per-table exclusivity slot.

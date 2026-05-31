@@ -26,14 +26,14 @@ interface Props {
   casinoId: string;
 }
 
-/** Business date for an EAT timestamp using the 11:00 rollover rule. */
+/** Business date for an EAT timestamp using the 07:00 rollover rule. */
 const businessDateForEAT = (iso: string): string => {
   const d = new Date(iso);
   const eatHour = parseInt(
     d.toLocaleString("en-GB", { timeZone: "Africa/Dar_es_Salaam", hour: "2-digit", hour12: false }),
     10,
   );
-  const target = eatHour < 11 ? new Date(d.getTime() - 24 * 60 * 60 * 1000) : d;
+  const target = eatHour < 7 ? new Date(d.getTime() - 24 * 60 * 60 * 1000) : d;
   return target.toLocaleDateString("en-CA", { timeZone: "Africa/Dar_es_Salaam" });
 };
 
