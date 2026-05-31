@@ -6,6 +6,7 @@ import EditOpeningCardsDialog from "./EditOpeningCardsDialog";
 import SlotsTransfersForm from "./SlotsTransfersForm";
 import { useSlotsTransfers } from "@/hooks/use-cage-slots-transfers";
 import { useSlotsExpenses } from "@/hooks/use-expenses";
+import { useSlotsTipsCd } from "@/hooks/use-slots-tips-cd";
 
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -56,6 +57,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
   const { data: cashless = [] } = useSlotsCashless(shift.id);
   const { data: comments = [] } = useSlotsComments(shift.id);
   const { data: slotsExpenses = [] } = useSlotsExpenses(shift.id);
+  const { data: tipsCdRows = [] } = useSlotsTipsCd(shift.id);
   
   const { data: transfers = [] } = useSlotsTransfers(shift.id);
 
@@ -184,6 +186,12 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
     [slotsExpenses],
   );
 
+  // Tips CD recorded during this shift — physically removed from cage; added back in balance.
+  const tipsCdTotal = useMemo(() =>
+    (tipsCdRows as any[]).reduce((s, t) => s + Number(t.amount || 0), 0),
+    [tipsCdRows],
+  );
+
   // Slots balance is shown as explicit manual formula parts in the UI.
   const openingCashTzs = openingTotalTzs;
   // Mobile Money is derived from manual Cashless blocks:
@@ -215,7 +223,8 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
     closingCards,
     cardValue: cardDepositTzs,
     systemResult,
-  }), [openingCashTzs, closingCashTzs, expensesApproved, transfersAgg, cashlessInManualTzs, cashlessOutManualTzs, cashlessFinal, openingCardsCount, closingCards, cardDepositTzs, systemResult]);
+    tipsCd: tipsCdTotal,
+  }), [openingCashTzs, closingCashTzs, expensesApproved, transfersAgg, cashlessInManualTzs, cashlessOutManualTzs, cashlessFinal, openingCardsCount, closingCards, cardDepositTzs, systemResult, tipsCdTotal]);
 
   const { deltaCash, cashDeskResult, cardsMiss, slotsResult, cashlessBalance, shiftBalance } = balance;
 
@@ -853,7 +862,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
 
             <div className="rounded-md border border-primary/40 bg-primary/5 p-3">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] uppercase text-muted-foreground tracking-wider">Shift Balance = (CDR) − (System − Opening) − Cards Miss</span>
+                <span className="text-[11px] uppercase text-muted-foreground tracking-wider">Shift Balance = CDR − (System − Opening) − Cards Miss + Tips CD</span>
                 <span className={`font-mono font-bold text-lg ${shiftBalance < 0 ? "cms-amount-negative" : shiftBalance > 0 ? "cms-amount-positive" : ""}`}>
                   {shiftBalance > 0 ? "+" : ""}{formatNumberSpaces(shiftBalance)}
                 </span>

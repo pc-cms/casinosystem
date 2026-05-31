@@ -73,6 +73,7 @@ export type SlotsBalanceInputs = {
   closingCards: number;
   cardValue: number;
   systemResult: number;
+  tipsCd?: number;         // Tips CD — physically removed from cage, added back to balance
 };
 
 export type SlotsBalanceResult = {
@@ -84,6 +85,7 @@ export type SlotsBalanceResult = {
   cashlessBalance: number; // derived: IN − OUT (display)
   cashlessFinal: number;   // manual passthrough (print only)
   expected: number;        // = systemResult
+  tipsCd: number;
   shiftBalance: number;
 };
 
@@ -94,7 +96,10 @@ export const computeSlotsShiftBalance = (i: SlotsBalanceInputs): SlotsBalanceRes
   const cardsMiss = (i.openingCards - i.closingCards) * i.cardValue;
   const slotsResult = i.systemResult;
   const expected = i.systemResult;
-  const shiftBalance = cashDeskResult - i.systemResult - cardsMiss;
+  const tipsCd = i.tipsCd || 0;
+  // Shift Balance = CDR − SystemResult − Cards Miss + Tips CD
+  // (Tips CD physically removed from cage during shift → added back so balance reflects reality.)
+  const shiftBalance = cashDeskResult - i.systemResult - cardsMiss + tipsCd;
   return {
     deltaCash,
     cashDeskResult,
@@ -104,7 +109,9 @@ export const computeSlotsShiftBalance = (i: SlotsBalanceInputs): SlotsBalanceRes
     cashlessBalance: i.cashlessIn - i.cashlessOut,
     cashlessFinal: i.cashlessFinal,
     expected,
+    tipsCd,
     shiftBalance,
   };
 };
+
 
