@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Shield, Coins, Clock, Building2, Link2, Unlink, Globe, Palette, Settings, RefreshCw, LayoutGrid, ShieldCheck, Network } from "lucide-react";
+import { Plus, Shield, Coins, Clock, Building2, Link2, Unlink, Globe, Palette, Settings, RefreshCw, LayoutGrid, ShieldCheck, Network, Receipt } from "lucide-react";
 import { RoleDefaultsEditor } from "@/components/admin/RoleDefaultsEditor";
 import { PeerLinksPanel } from "@/components/admin/PeerLinksPanel";
 import { ServerIdentityPanel } from "@/components/admin/ServerIdentityPanel";
@@ -33,6 +33,7 @@ import { ChipConservationModeCard } from "@/components/admin/ChipConservationMod
 import { ChipEmissionDialog } from "@/components/chips/ChipEmissionDialog";
 import { useCasinoInfo, useUpdateCasinoSchedule, useCancelPendingSchedule } from "@/hooks/use-table-lifecycle";
 import { UsersTab } from "@/components/admin/users/UsersTab";
+import { ExpenseCategoriesSettings } from "@/components/admin/ExpenseCategoriesSettings";
 
 // (ROLES / ALL_ROLES / ROLE_LABELS moved to src/components/admin/users/users-hooks.ts)
 
@@ -142,6 +143,9 @@ const Admin = () => {
           <TabsTrigger value="chip-colors" className="gap-1.5">
             <Palette className="w-3.5 h-3.5" /> Chip Colors
           </TabsTrigger>
+          <TabsTrigger value="expense-categories" className="gap-1.5">
+            <Receipt className="w-3.5 h-3.5" /> Expense Categories
+          </TabsTrigger>
           {isSuperAdmin && (
             <TabsTrigger value="branding" className="gap-1.5">
               <Palette className="w-3.5 h-3.5" /> Branding
@@ -185,6 +189,7 @@ const Admin = () => {
           </div>
         </TabsContent>
         <TabsContent value="chip-colors"><ChipColorSettings /></TabsContent>
+        <TabsContent value="expense-categories"><ExpenseCategoriesSettings /></TabsContent>
         {isSuperAdmin && <TabsContent value="branding"><BrandingSettings /></TabsContent>}
       </Tabs>
     </div>
