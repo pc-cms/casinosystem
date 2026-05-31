@@ -252,17 +252,12 @@ const TotalTab = () => {
       // Apply the full value to the first shift; zero out the rest to avoid
       // duplication when historical data has multiple shifts per day.
       const [first, ...rest] = shiftIds;
-      const updates: Promise<any>[] = [
-        supabase.from("cage_slots_shifts").update({ manual_drop_slots: value } as any).eq("id", first),
-      ];
+      const r1 = await supabase.from("cage_slots_shifts").update({ manual_drop_slots: value } as any).eq("id", first);
+      if (r1.error) throw r1.error;
       if (rest.length) {
-        updates.push(
-          supabase.from("cage_slots_shifts").update({ manual_drop_slots: 0 } as any).in("id", rest),
-        );
+        const r2 = await supabase.from("cage_slots_shifts").update({ manual_drop_slots: 0 } as any).in("id", rest);
+        if (r2.error) throw r2.error;
       }
-      const results = await Promise.all(updates);
-      const err = results.find(r => r.error);
-      if (err?.error) throw err.error;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["closings-total"] });
