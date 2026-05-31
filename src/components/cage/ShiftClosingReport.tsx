@@ -276,8 +276,8 @@ const ShiftClosingReport = ({
   const openerMobileTotal = Object.values(openerMobile).reduce((s, v) => s + (Number(v) || 0), 0);
   const closerMobileTotal = Object.values(closerMobile).reduce((s, v) => s + (Number(v) || 0), 0);
 
-  const openerTotal = openerCashTzs + openerOtherTzs + openerMobileTotal;
-  const closerTotal = closerCashTzs + closerOtherTzs + closerMobileTotal;
+  const openerTotal = openerCashTzs + openerOtherTzs;
+  const closerTotal = closerCashTzs + closerOtherTzs;
 
   const num = (n: number) => (n === 0 ? "" : formatNumberSpaces(n));
   const numAlways = (n: number) => formatNumberSpaces(n);
