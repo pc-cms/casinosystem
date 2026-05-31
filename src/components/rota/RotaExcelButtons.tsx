@@ -155,7 +155,7 @@ export default function RotaExcelButtons({
 
       let updates = 0;
       let skipped = 0;
-      const tasks: Array<Promise<unknown> | void> = [];
+      const tasks: Promise<unknown>[] = [];
 
       // Data starts at row 5
       ws.eachRow((row, rowNum) => {
