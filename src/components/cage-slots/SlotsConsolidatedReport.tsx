@@ -202,7 +202,7 @@ const SlotsConsolidatedReport = ({
       {/* ============ END-OF-DAY MOBILE MONEY BALANCES ============ */}
       <table className="w-full border-collapse mb-0.5">
         <thead>
-          <tr><th colSpan={5} className="border border-black bg-gray-200 px-1.5 py-0.5 text-left">End-of-Day Mobile Money Balances</th></tr>
+          <tr><th colSpan={5} className="border border-black bg-gray-200 px-1.5 py-0.5 text-left">Cash Less Shift Transactions</th></tr>
           <tr>
             <th className="border border-black px-1.5 py-0.5 text-left w-1/3">Provider</th>
             <th className="border border-black px-1.5 py-0.5 text-right">Deposit (IN)</th>
