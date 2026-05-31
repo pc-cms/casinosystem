@@ -23,6 +23,7 @@ import { PitShell } from "@/components/pit/PitShell";
 import { CellPicker, type CellPickerRow } from "@/components/grids/CellPicker";
 import { useRotaLock, useRolesAtDate } from "@/hooks/use-rota-lock";
 import RotaLockButton from "@/components/rota/RotaLockButton";
+import RotaExcelButtons from "@/components/rota/RotaExcelButtons";
 
 
 const ROTA_SHIFTS = ["M", "N", "L", "E", "O"] as const;
@@ -120,6 +121,36 @@ const Pit = ({ forcedTab }: PitProps = {}) => {
   const isPast = month < currentMonth;
   const canGoNext = activeTab === "rota" ? true : month < currentMonth;
   const { data: pitLock } = useRotaLock("pit", month);
+
+  // Rota Excel template/import — data is fetched at the page level so the
+  // header buttons can pre-fill the template with the current month's rota.
+  const rotaMonthStart = `${month}-01`;
+  const rotaMonthEnd = useMemo(() => {
+    const [yy, mm] = month.split("-").map(Number);
+    const dim = new Date(yy, mm, 0).getDate();
+    return `${month}-${String(dim).padStart(2, "0")}`;
+  }, [month]);
+  const { data: allDealersForExcel = [] } = useDealers();
+  const { data: pitRotaForExcel = [] } = usePitRotaRange(rotaMonthStart, rotaMonthEnd);
+  const setPitRotaForExcel = useSetPitRota();
+  const pitRotaMap = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const r of pitRotaForExcel as any[]) {
+      if (r?.shift) m.set(`${r.dealer_id}|${r.date}`, String(r.shift).toUpperCase());
+    }
+    return m;
+  }, [pitRotaForExcel]);
+  const pitExcelEmployees = useMemo(() =>
+    (allDealersForExcel as any[])
+      .filter(d => d.is_active)
+      .map(d => ({
+        id: d.id as string,
+        name: d.name as string,
+        department: d.is_pit_boss ? "Pit Boss" : (CATEGORY_LABELS[d.category as DealerCategory] || null),
+      })),
+    [allDealersForExcel]
+  );
+
   const centerControl = showMonthNav ? (
     <div className="flex items-center gap-2">
       <div className="flex items-center gap-1">
@@ -178,10 +209,26 @@ const Pit = ({ forcedTab }: PitProps = {}) => {
         </>
       )}
       {activeTab === "rota" && (
-        <Button variant="outline" size="sm" className="gap-1 text-xs" onClick={() => { const html = document.documentElement; const wasDark = html.classList.contains('dark'); if (wasDark) html.classList.remove('dark'); window.print(); if (wasDark) html.classList.add('dark'); }}>
-          <Printer className="w-3.5 h-3.5" /> Print
-        </Button>
+        <>
+          {isManager && (
+            <RotaExcelButtons
+              scope="live-game"
+              month={month}
+              title={`Live Game Rota — ${monthLabel}`}
+              employees={pitExcelEmployees}
+              existing={pitRotaMap}
+              allowedShifts={ROTA_SHIFTS}
+              shiftLabels={SHIFT_LABELS}
+              onSetCell={(id, date, shift) => setPitRotaForExcel.mutateAsync({ dealer_id: id, date, shift })}
+              disabled={!!pitLock}
+            />
+          )}
+          <Button variant="outline" size="sm" className="gap-1 text-xs" onClick={() => { const html = document.documentElement; const wasDark = html.classList.contains('dark'); if (wasDark) html.classList.remove('dark'); window.print(); if (wasDark) html.classList.add('dark'); }}>
+            <Printer className="w-3.5 h-3.5" /> Print
+          </Button>
+        </>
       )}
+
       {activeTab === "attendance" && (
         <Button variant="outline" size="sm" className="gap-1 text-xs" onClick={() => { const html = document.documentElement; const wasDark = html.classList.contains('dark'); if (wasDark) html.classList.remove('dark'); window.print(); if (wasDark) html.classList.add('dark'); }}>
           <Printer className="w-3.5 h-3.5" /> Print
