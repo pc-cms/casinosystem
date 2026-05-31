@@ -404,6 +404,8 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
   // Items without a module mapping (mk null) stay visible to everyone (they
   // are auxiliary entries that don't correspond to a gated module).
   const visibleItems = NAV_ITEMS.filter(item => {
+    // Dividers always pass through; SidebarSections renders them as <hr>.
+    if (item.to.startsWith("__divider__")) return true;
     // Cage and Cage View are separate top-level buttons, never parent/sub-items.
     if (item.to === "/cage" && !isSuper && !roles.includes("cashier" as AppRole)) return false;
     if (item.to === "/cage/view" && !isSuper && roles.includes("cashier" as AppRole)) return false;
