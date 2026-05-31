@@ -103,39 +103,10 @@ export const useCreateSlotsTransfer = () => {
         .single();
       if (error) throw error;
 
-      // 2) Mirror to cage_transfers (Live Game side) when cross-cage
-      if (isCross && input.counterpart_lg_shift_id) {
-        // LG-side semantics: Slots receives money (lg_in) ⇒ LG sends (slots_out).
-        // Slots sends money (lg_out) ⇒ LG receives (slots_in).
-        const lgTransferType = input.transfer_type === "lg_in" ? "slots_out" : "slots_in";
-        const lgDirection = input.transfer_type === "lg_in" ? "cash_out" : "cash_in";
+      // NOTE: Cross-cage transfers are NO LONGER auto-mirrored to the other cage.
+      // Each cashier records their own side independently to avoid phantom rows
+      // and double-counting if the counterpart shift is wrong/closed.
 
-        const { data: lgRow, error: e2 } = await (supabase as any)
-          .from("cage_transfers")
-          .insert({
-            casino_id: casinoId,
-            shift_id: input.counterpart_lg_shift_id,
-            transfer_type: lgTransferType,
-            direction: lgDirection,
-            amount: input.amount,
-            note: input.note ?? "",
-            operator_id: user.id,
-            approved_by: input.approved_by,
-            requires_approval: false,
-            approved_at: nowIso,
-            approved_by_user: user.id,
-            counterpart_slots_transfer_id: slotsRow.id,
-          })
-          .select()
-          .single();
-        if (e2) throw e2;
-
-        // Back-link
-        await (supabase as any)
-          .from("cage_slots_transfers")
-          .update({ counterpart_lg_transfer_id: lgRow.id })
-          .eq("id", slotsRow.id);
-      }
 
       await logAction(casinoId, "system", "CAGE_SLOTS_TRANSFER_CREATED", {
         type: input.transfer_type, amount: input.amount, shift_id: input.cage_slots_shift_id,
