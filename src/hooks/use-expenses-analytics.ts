@@ -9,11 +9,22 @@ interface Expense {
   description?: string | null;
   approved: boolean;
   created_at: string;
+  source?: string | null;
+  cage_type?: string | null;
+  cage_slots_shift_id?: string | null;
   players?: { id?: string; first_name: string; last_name: string } | null;
 }
 
 export type ExpenseTarget = "all" | "casino" | "player";
 export type ExpenseStatus = "all" | "approved" | "pending";
+export type ExpenseSourceFilter = "all" | "live_game" | "slots" | "office";
+
+const resolveSource = (e: Expense): "live_game" | "slots" | "office" => {
+  const s = (e.source || "").toLowerCase();
+  if (s === "office" || s === "slots" || s === "live_game") return s;
+  if (e.cage_slots_shift_id || e.cage_type === "slots") return "slots";
+  return "live_game";
+};
 
 export interface ExpenseFilters {
   from?: string;
@@ -21,6 +32,7 @@ export interface ExpenseFilters {
   categories?: string[];
   target?: ExpenseTarget;
   status?: ExpenseStatus;
+  source?: ExpenseSourceFilter;
   search?: string;
 }
 
