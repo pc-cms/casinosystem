@@ -240,11 +240,28 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
     });
   };
 
+  // Pull fresh transfer aggregates straight from the DB so the snapshot is
+  // never stale relative to React Query cache (e.g. a transfer added seconds
+  // before pressing "Check" might not be in the local list yet).
+  const fetchFreshTransfersAgg = async () => {
+    const agg = { fill: 0, collection: 0, lg_in: 0, lg_out: 0 };
+    const { data } = await supabase
+      .from("cage_slots_transfers")
+      .select("transfer_type, amount")
+      .eq("cage_slots_shift_id", shift.id);
+    (data || []).forEach((t: any) => {
+      const k = t.transfer_type as keyof typeof agg;
+      if (k in agg) agg[k] += Number(t.amount || 0);
+    });
+    return agg;
+  };
+
   // Mid-shift cash check — snapshot of canonical balance fields.
   // Empty till is a valid state (negative balance reflects the shortage).
   // Mobile block is derived from the CURRENT cashless providers (IN − OUT) so
   // the saved check matches what's actually visible on screen — never stale.
-  const recordMidCheck = () => {
+  const recordMidCheck = async () => {
+    const freshAgg = await fetchFreshTransfersAgg();
     const bankTzs = bankTotalTzs(closingBanks, rateMap);
     const mobileBlock: MobileProviders = { ...emptyMobile() };
     MOBILE_PROVIDERS.forEach(p => {
@@ -273,10 +290,10 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
           slots_result: slotsResult,
           slots_result_derived: slotsResult,
           expenses: expensesApproved,
-          transfer_in: transfersAgg.lg_in,
-          transfer_out: transfersAgg.lg_out,
-          collection: transfersAgg.collection,
-          add_float: transfersAgg.fill,
+          transfer_in: freshAgg.lg_in,
+          transfer_out: freshAgg.lg_out,
+          collection: freshAgg.collection,
+          add_float: freshAgg.fill,
           cashless_in: cashlessInManualTzs,
           cashless_out: cashlessOutManualTzs,
           cashless_balance: cashlessBalance,
