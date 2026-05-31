@@ -1,53 +1,23 @@
-# Apply tips-in-balance fix to historical shifts
+## Live Game Cash Desk Report → A4 portrait
 
-В прошлом шаге исправлен только клиент (`CloseShiftDialog`, `ShiftClosingReport`, `cage-balance.ts`). Сохранённые в БД `shifts.balance` / `shifts.cash_desk_result` для уже закрытых смен (включая вчера) посчитаны **по старой формуле без вычета tips**. Поэтому в любом отчёте/реprint за вчера баланс по-прежнему завышен на сумму tips. Нужно поправить DB-функцию и пересчитать историю.
+Переделать `ShiftClosingReport` под вертикальную ориентацию по образцу `SlotsConsolidatedReport`. CSS-правило `@page cashdesk { portrait }` уже есть, но контент сейчас слишком широкий (grid-cols-3, p-6) и не вписывается в портрет.
 
-## Что меняется
+### Изменения
 
-### 1. DB migration — `compute_shift_balance_from_row`
-Добавить вычет tips этой смены в формулу:
+**`src/components/cage/ShiftClosingReport.tsx`** — перепаковка JSX (логика и data-fetch не трогается):
+- Корневой `<div id="shift-print-area">`: фиксированная ширина `194mm`, `minHeight: 281mm`, `display: flex; flex-direction: column`, Arial 11px, padding 0 (поля даёт `@page`).
+- Заголовок в одну табличную строку: `{casinoName} Live Game Cash Desk Report` + `Date {fmtDate(businessDate)}`.
+- Таблица столов (Table / Open / Fill / Credit / Close / IN / Result): `px-1.5 py-0.5`, `tabular-nums`, итоговая строка `Total` с серым фоном. При `tables.length > 12` — авто-сжатие шрифта до 9.5px, чтобы влезть на одну страницу.
+- Cash Flow Opener / Closer: две колонки рядом (`grid-cols-2 gap-1`), используем существующий компонент `CashFlowColumn`.
+- Summary panel вынесена **под** Cash Flow в виде широкой таблицы 4 колонки (label / value / label / value) с финальной строкой `Shift Balance` на всю ширину с серой заливкой. Включает: Tables Result, Casino Expenses, Cash Flow FILL/CREDIT, Cash Desk Chips FILL/CREDIT, Tips Day/Night, − Tips (this shift), Miss Chips, Shift Balance.
+- Подписи внизу страницы через `mt-auto` (Cashier / Manager).
 
-```sql
-v_tips := COALESCE((
-  SELECT SUM(amount) FROM public.transactions
-  WHERE shift_id = s.id
-    AND type IN ('tips_live','tips_poker','tips_floor')
-    AND cancelled_at IS NULL
-), 0)::bigint;
+### Не трогаем
+- `ChipMovementReport` — уже отдельная портретная страница.
+- RPC, расчёты, props, fetch-логика.
+- `index.css` (правило `@page cashdesk { portrait }` уже корректное).
+- `PrintPortal`, `ReprintShiftDialog` — без правок.
 
-v_balance := v_cash_desk - v_tables - v_miss - v_tips;
-```
-
-И добавить `'tips'` в возвращаемый jsonb. Триггер, который пишет `shifts.balance` / `shifts.cash_desk_result` при изменении смены, продолжит работать как есть — он уже опирается на эту функцию.
-
-### 2. Backfill для уже закрытых смен
-В той же миграции — однократный `UPDATE`:
-
-```sql
-UPDATE public.shifts s
-   SET balance = (public.compute_shift_balance_from_row(s) ->> 'shift_balance')::bigint
- WHERE status = 'closed'
-   AND EXISTS (
-     SELECT 1 FROM public.transactions t
-      WHERE t.shift_id = s.id
-        AND t.type IN ('tips_live','tips_poker','tips_floor')
-        AND t.cancelled_at IS NULL
-   );
-```
-
-Затрагивает только смены, у которых реально есть tips → безопасно для остальной истории. `daily_summaries.tables_result` не трогаем (там tables_result, не balance).
-
-### 3. ReprintShiftDialog
-Уже читает `shifts.balance` напрямую — после backfill автоматически покажет правильное значение. Доп. правки не нужны.
-
-### 4. Версия
-Bump `package.json` (backend change) — `1.3.198`.
-
-## Что НЕ меняется
-- Клиентская формула (`src/lib/cage-balance.ts`) уже корректна.
-- `CloseShiftDialog` / `ShiftClosingReport` уже корректны.
-- `daily_summaries` не пересчитываем — `tables_result` от tips не зависит.
-
-## Проверка после миграции
-1. Открыть Cage → Reprint вчерашней смены, где были tips → строка `− Tips` присутствует, Balance уменьшен ровно на сумму tips.
-2. SQL спот-чек: `SELECT id, balance FROM shifts WHERE …` до/после backfill для затронутых смен.
+### Технические детали
+- Заголовок отчёта меняется с `Consolidating Cash Desk Report` на `Live Game Cash Desk Report` для консистентности с `Slots Cash Desk Report`.
+- Чисто косметическая правка → версию пакета не бампим.

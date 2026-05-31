@@ -253,23 +253,44 @@ const ShiftClosingReport = ({
   // Mobile providers ordered as per legacy form
   const MP = ["Mpesa", "Tigo", "Halo", "AirTel"] as const;
 
-  return (
-    <div id="shift-print-area" className="bg-white text-black p-6 font-sans text-[11px] leading-snug">
-      {/* Header */}
-      <div className="flex items-start justify-between border-b-2 border-black pb-1.5 mb-2">
-        <h1 className="text-base font-bold">{casinoName} Consolidating Cash Desk Report</h1>
-        <div className="text-right">
-          <span className="font-semibold mr-2">Date</span>
-          <span className="border-b border-black px-2">{fmtDate(businessDate)}</span>
-        </div>
-      </div>
+  const compact = reportTables.length > 12;
+  const rootFontSize = compact ? "9.5px" : "11px";
 
-      {/* Tables grid */}
-      <table className="w-full border-collapse mb-3 text-[11px]">
+  return (
+    <div
+      id="shift-print-area"
+      className="bg-white text-black flex flex-col"
+      style={{
+        fontFamily: "Arial, sans-serif",
+        fontSize: rootFontSize,
+        lineHeight: 1.15,
+        width: "194mm",
+        minHeight: "281mm",
+        boxSizing: "border-box",
+        padding: 0,
+        pageBreakAfter: "avoid",
+        breakAfter: "avoid",
+      }}
+    >
+      {/* ============ TITLE ROW ============ */}
+      <table className="w-full border-collapse mb-1">
+        <tbody>
+          <tr>
+            <td className="border border-black px-1.5 py-0.5 font-bold text-base" colSpan={2}>
+              {casinoName} Live Game Cash Desk Report
+            </td>
+            <td className="border border-black px-1.5 py-0.5 font-semibold text-center w-24">Date</td>
+            <td className="border border-black px-1.5 py-0.5 text-center w-32">{fmtDate(businessDate)}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      {/* ============ TABLES GRID ============ */}
+      <table className="w-full border-collapse mb-1 tabular-nums">
         <thead>
-          <tr className="bg-gray-100">
+          <tr className="bg-gray-200">
             {["Table", "Open", "Fill", "Credit", "Close", "IN", "Result"].map(h => (
-              <th key={h} className="border border-black px-2 py-1 text-left font-semibold">{h}</th>
+              <th key={h} className="border border-black px-1.5 py-0.5 text-left font-semibold">{h}</th>
             ))}
           </tr>
         </thead>
@@ -278,36 +299,34 @@ const ShiftClosingReport = ({
             const { op, fl, cr, cl, inVal, res } = rowFor(t);
             return (
               <tr key={t.id}>
-                <td className="border border-black px-2 py-1 font-semibold">{t.name}</td>
-                <td className="border border-black px-2 py-1 text-right tabular-nums">{num(op)}</td>
-                <td className="border border-black px-2 py-1 text-right tabular-nums">{num(fl)}</td>
-                <td className="border border-black px-2 py-1 text-right tabular-nums">{num(cr)}</td>
-                <td className="border border-black px-2 py-1 text-right tabular-nums">{num(cl)}</td>
-                <td className="border border-black px-2 py-1 text-right tabular-nums">{num(inVal)}</td>
-                <td className="border border-black px-2 py-1 text-right tabular-nums font-semibold">
-                  {res === 0 ? "0" : (res > 0 ? numAlways(res) : `-${numAlways(Math.abs(res))}`)}
+                <td className="border border-black px-1.5 py-0.5 font-semibold">{t.name}</td>
+                <td className="border border-black px-1.5 py-0.5 text-right">{num(op)}</td>
+                <td className="border border-black px-1.5 py-0.5 text-right">{num(fl)}</td>
+                <td className="border border-black px-1.5 py-0.5 text-right">{num(cr)}</td>
+                <td className="border border-black px-1.5 py-0.5 text-right">{num(cl)}</td>
+                <td className="border border-black px-1.5 py-0.5 text-right">{num(inVal)}</td>
+                <td className="border border-black px-1.5 py-0.5 text-right font-semibold">
+                  {res === 0 ? "" : (res > 0 ? numAlways(res) : `-${numAlways(Math.abs(res))}`)}
                 </td>
               </tr>
             );
           })}
-          {/* Total row */}
-          <tr className="bg-gray-100 font-bold">
-            <td className="border border-black px-2 py-1">Total</td>
-            <td className="border border-black px-2 py-1 text-right tabular-nums">{numAlways(totals.open)}</td>
-            <td className="border border-black px-2 py-1 text-right tabular-nums">{numAlways(totals.fill)}</td>
-            <td className="border border-black px-2 py-1 text-right tabular-nums">{numAlways(totals.credit)}</td>
-            <td className="border border-black px-2 py-1 text-right tabular-nums">{numAlways(totals.close)}</td>
-            <td className="border border-black px-2 py-1 text-right tabular-nums">{numAlways(totals.in)}</td>
-            <td className="border border-black px-2 py-1 text-right tabular-nums">
+          <tr className="bg-gray-200 font-bold">
+            <td className="border border-black px-1.5 py-0.5">Total</td>
+            <td className="border border-black px-1.5 py-0.5 text-right">{numAlways(totals.open)}</td>
+            <td className="border border-black px-1.5 py-0.5 text-right">{numAlways(totals.fill)}</td>
+            <td className="border border-black px-1.5 py-0.5 text-right">{numAlways(totals.credit)}</td>
+            <td className="border border-black px-1.5 py-0.5 text-right">{numAlways(totals.close)}</td>
+            <td className="border border-black px-1.5 py-0.5 text-right">{numAlways(totals.in)}</td>
+            <td className="border border-black px-1.5 py-0.5 text-right">
               {totals.result >= 0 ? numAlways(totals.result) : `-${numAlways(Math.abs(totals.result))}`}
             </td>
           </tr>
         </tbody>
       </table>
 
-      {/* Cash Flow + Summary panel */}
-      <div className="grid grid-cols-3 gap-4">
-        {/* Opener */}
+      {/* ============ CASH FLOW: OPENER | CLOSER ============ */}
+      <div className="grid grid-cols-2 gap-1 mb-1">
         <CashFlowColumn
           title="Cash Flow Opener"
           cash={openerByCurrency}
@@ -319,7 +338,6 @@ const ShiftClosingReport = ({
           totalLabel="Total Opener"
           totalValue={openerTotal}
         />
-        {/* Closer */}
         <CashFlowColumn
           title="Cash Flow Closer"
           cash={closerByCurrency}
@@ -331,40 +349,76 @@ const ShiftClosingReport = ({
           totalLabel="Total Closer"
           totalValue={closerTotal}
         />
+      </div>
 
-        {/* Summary panel */}
-        <div className="space-y-1">
-          <SummaryRow label="Tables Result" value={totals.result} bold />
-          <SummaryRow label="Cash Flow FILL" value={cashFlowTransfers.addFloat} />
-          <SummaryRow label="Cash Flow CREDIT" value={cashFlowTransfers.slotsOut} />
-          <SummaryRow label="Cash Desk Chips FILL" value={0} />
-          <SummaryRow label="Cash Desk Chips CREDIT" value={0} />
-          <SummaryRow label="Miss Chips" value={missTotal} bold negative />
-          <SummaryRow label="Casino Expenses" value={totalExpenses} bold />
-          {/* Tips are physically in the cage at close → deducted from
-              Shift Balance (caller already includes them in `balance`). */}
-          <SummaryRow label="Tips Day" value={tipsByShift.day} />
-          <SummaryRow label="Tips Night" value={tipsByShift.night} />
-          <SummaryRow
-            label="− Tips (this shift)"
-            value={tipsTotal ?? (tipsByShift.day + tipsByShift.night)}
-            negative
-          />
-          <div className="mt-3 pt-2 border-t-2 border-black flex justify-between items-center">
-            <span className="font-bold">Shift Balance</span>
-            <span className="border border-black px-3 py-0.5 font-bold tabular-nums min-w-[110px] text-right">
+      {/* ============ SUMMARY PANEL (full width 4-col table) ============ */}
+      <table className="w-full border-collapse mb-1">
+        <tbody>
+          <tr>
+            <td className="border border-black bg-gray-200 px-1.5 py-0.5 font-semibold w-1/4">Tables Result</td>
+            <td className="border border-black px-1.5 py-0.5 text-right font-bold">
+              {totals.result >= 0 ? numAlways(totals.result) : `-${numAlways(Math.abs(totals.result))}`}
+            </td>
+            <td className="border border-black bg-gray-200 px-1.5 py-0.5 font-semibold w-1/4">Casino Expenses</td>
+            <td className="border border-black px-1.5 py-0.5 text-right">{num(totalExpenses)}</td>
+          </tr>
+          <tr>
+            <td className="border border-black px-1.5 py-0.5">Cash Flow FILL</td>
+            <td className="border border-black px-1.5 py-0.5 text-right">{num(cashFlowTransfers.addFloat)}</td>
+            <td className="border border-black px-1.5 py-0.5">Tips Day</td>
+            <td className="border border-black px-1.5 py-0.5 text-right">{num(tipsByShift.day)}</td>
+          </tr>
+          <tr>
+            <td className="border border-black px-1.5 py-0.5">Cash Flow CREDIT</td>
+            <td className="border border-black px-1.5 py-0.5 text-right">{num(cashFlowTransfers.slotsOut)}</td>
+            <td className="border border-black px-1.5 py-0.5">Tips Night</td>
+            <td className="border border-black px-1.5 py-0.5 text-right">{num(tipsByShift.night)}</td>
+          </tr>
+          <tr>
+            <td className="border border-black px-1.5 py-0.5">Cash Desk Chips FILL</td>
+            <td className="border border-black px-1.5 py-0.5 text-right"></td>
+            <td className="border border-black px-1.5 py-0.5">− Tips (this shift)</td>
+            <td className="border border-black px-1.5 py-0.5 text-right">
+              {(() => {
+                const v = tipsTotal ?? (tipsByShift.day + tipsByShift.night);
+                return v === 0 ? "" : `-${numAlways(Math.abs(v))}`;
+              })()}
+            </td>
+          </tr>
+          <tr>
+            <td className="border border-black px-1.5 py-0.5">Cash Desk Chips CREDIT</td>
+            <td className="border border-black px-1.5 py-0.5 text-right"></td>
+            <td className="border border-black px-1.5 py-0.5 font-semibold">Miss Chips</td>
+            <td className="border border-black px-1.5 py-0.5 text-right font-bold">
+              {missTotal === 0 ? "" : `-${numAlways(Math.abs(missTotal))}`}
+            </td>
+          </tr>
+          <tr>
+            <td className="border border-black bg-gray-300 px-1.5 py-0.5 font-bold" colSpan={3}>Shift Balance</td>
+            <td className="border border-black bg-gray-300 px-1.5 py-0.5 text-right font-bold">
               {balance === 0 ? "0" : (balance > 0 ? numAlways(balance) : `-${numAlways(Math.abs(balance))}`)}
-            </span>
-          </div>
-        </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
 
-      </div>
-
-      {/* Signatures */}
-      <div className="grid grid-cols-2 gap-8 mt-8">
-        <SignatureBlock label="Closing Shift Cashier" name={cashierName} />
-        <SignatureBlock label="Closing Shift Manager" name={managerName} />
-      </div>
+      {/* ============ SIGNATURES ============ */}
+      <table className="w-full border-collapse mt-auto pt-2">
+        <tbody>
+          <tr>
+            <td className="px-1.5 py-0.5 w-1/2 align-top">
+              <div className="font-semibold mb-0.5">Closing Shift Cashier:</div>
+              <div>Name: {cashierName ? <span className="font-semibold uppercase">{cashierName}</span> : "____________________________"}</div>
+              <div className="mt-3">Signature: ________________________</div>
+            </td>
+            <td className="px-1.5 py-0.5 w-1/2 align-top">
+              <div className="font-semibold mb-0.5">Closing Shift Manager:</div>
+              <div>Name: {managerName ? <span className="font-semibold uppercase">{managerName}</span> : "____________________________"}</div>
+              <div className="mt-3">Signature: ________________________</div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   );
 };
