@@ -787,7 +787,7 @@ const DailyReport = ({ from, to }: { from: string; to: string }) => {
           result: r.result,
           hold,
           playerResult,
-          diff: r.result + playerResult,
+          diff: r.result + playerResult - r.miss,
         };
       });
     },
@@ -829,7 +829,7 @@ const DailyReport = ({ from, to }: { from: string; to: string }) => {
         {[
           { label: "Drop (R)", value: formatCurrency(totals.dropR), cls: "text-card-foreground" },
           { label: "Cash In", value: formatCurrency(totals.cashIn), cls: "text-card-foreground" },
-          { label: "Miss", value: formatCurrency(totals.miss), cls: "text-warning" },
+          { label: "Miss", value: formatCurrency(totals.miss), cls: cls(totals.miss) },
           { label: "Result", value: formatCurrency(totals.result), cls: cls(totals.result) },
           { label: "Hold %", value: holdFmt(totals.hold), cls: holdCls(totals.hold) },
           { label: "Player Result", value: formatCurrency(totals.playerResult), cls: cls(totals.playerResult) },
@@ -853,7 +853,7 @@ const DailyReport = ({ from, to }: { from: string; to: string }) => {
               <SortTh label="Result" k="result" sort={sort} toggle={toggle} align="right" />
               <SortTh label="Hold % (R/D)" k="hold" sort={sort} toggle={toggle} align="right" />
               <SortTh label="Player Result" k="playerResult" sort={sort} toggle={toggle} align="right" />
-              <SortTh label="Diff (R + P)" k="diff" sort={sort} toggle={toggle} align="right" />
+              <SortTh label="Diff (R + P − M)" k="diff" sort={sort} toggle={toggle} align="right" />
             </tr>
           </thead>
           <tbody>
@@ -866,7 +866,7 @@ const DailyReport = ({ from, to }: { from: string; to: string }) => {
                 <td className="px-3 py-2 text-xs font-mono text-card-foreground">{fmtDate(r.date)}</td>
                 <td className="px-3 py-2 text-right font-mono text-xs text-card-foreground">{formatCurrency(r.dropR)}</td>
                 <td className="px-3 py-2 text-right font-mono text-xs text-card-foreground">{formatCurrency(r.cashIn)}</td>
-                <td className="px-3 py-2 text-right font-mono text-xs text-warning">{formatCurrency(r.miss)}</td>
+                <td className={`px-3 py-2 text-right font-mono text-xs ${cls(r.miss)}`}>{formatCurrency(r.miss)}</td>
                 <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${cls(r.result)}`}>{formatCurrency(r.result)}</td>
                 <td className={`px-3 py-2 text-right font-mono text-xs ${holdCls(r.hold)}`}>
                   {holdFmt(r.hold)}
@@ -880,7 +880,7 @@ const DailyReport = ({ from, to }: { from: string; to: string }) => {
                 <td className="px-3 py-2 text-xs font-bold text-card-foreground uppercase">Totals</td>
                 <td className="px-3 py-2 text-right font-mono text-xs font-bold text-card-foreground">{formatCurrency(totals.dropR)}</td>
                 <td className="px-3 py-2 text-right font-mono text-xs font-bold text-card-foreground">{formatCurrency(totals.cashIn)}</td>
-                <td className="px-3 py-2 text-right font-mono text-xs font-bold text-warning">{formatCurrency(totals.miss)}</td>
+                <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${cls(totals.miss)}`}>{formatCurrency(totals.miss)}</td>
                 <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${cls(totals.result)}`}>{formatCurrency(totals.result)}</td>
                 <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${holdCls(totals.hold)}`}>
                   {holdFmt(totals.hold)}
