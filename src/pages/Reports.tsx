@@ -89,6 +89,9 @@ const Reports = () => {
   const today = toIsoDate(now);
   const [from, setFrom] = useState(monthStart);
   const [to, setTo] = useState(today);
+  const initialTab = (typeof window !== "undefined"
+    ? new URLSearchParams(window.location.search).get("tab")
+    : null) || "daily";
 
   return (
     <div>
@@ -102,7 +105,7 @@ const Reports = () => {
         <Input type="date" value={to} onChange={e => setTo(e.target.value)} className="w-40 font-mono text-xs h-9" />
       </PageHeader>
 
-      <Tabs defaultValue="daily" className="space-y-3">
+      <Tabs defaultValue={initialTab} className="space-y-3">
         <TabsList className="flex-wrap">
           <TabsTrigger value="daily" className="gap-1 text-xs"><CalendarDays className="w-3.5 h-3.5" /> Daily</TabsTrigger>
           <TabsTrigger value="shifts" className="gap-1 text-xs"><Landmark className="w-3.5 h-3.5" /> Shifts</TabsTrigger>
