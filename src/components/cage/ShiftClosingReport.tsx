@@ -383,6 +383,81 @@ const ShiftClosingReport = ({
         />
       </div>
 
+      {/* ============ CASH LESS SHIFT TRANSACTIONS ============ */}
+      {(() => {
+        const PROV: Array<{ key: string; label: string }> = [
+          { key: "MPESA",   label: "M Pesa" },
+          { key: "TIGO",    label: "T Pesa" },
+          { key: "HALOTEL", label: "H Pesa" },
+          { key: "AIRTEL",  label: "Airtel Money" },
+        ];
+        const finalProvKey = (p: string) => {
+          // Closer mobile is keyed by "Mpesa | Tigo | Halo | AirTel".
+          if (p === "MPESA") return "Mpesa";
+          if (p === "TIGO") return "Tigo";
+          if (p === "HALOTEL") return "Halo";
+          return "AirTel";
+        };
+        const totIn  = PROV.reduce((s, p) => s + Number(cashlessIO.inByProv[p.key]  || 0), 0);
+        const totOut = PROV.reduce((s, p) => s + Number(cashlessIO.outByProv[p.key] || 0), 0);
+        const totBalRaw = closerMobile;
+        const hasAnyBal = PROV.some(p => {
+          const v = (totBalRaw as any)?.[finalProvKey(p.key)];
+          return v !== undefined && v !== null && Number(v) !== 0;
+        });
+        const totBal = hasAnyBal
+          ? PROV.reduce((s, p) => s + Number((totBalRaw as any)?.[finalProvKey(p.key)] || 0), 0)
+          : null;
+        return (
+          <table className="w-full border-collapse mb-1 tabular-nums">
+            <thead>
+              <tr><th colSpan={5} className="border border-black bg-gray-200 px-1.5 py-0.5 text-left">Cash Less Shift Transactions</th></tr>
+              <tr className="bg-gray-100">
+                <th className="border border-black px-1.5 py-0.5 text-left w-1/3">Provider</th>
+                <th className="border border-black px-1.5 py-0.5 text-right">Deposit (IN)</th>
+                <th className="border border-black px-1.5 py-0.5 text-right">Withdraw (OUT)</th>
+                <th className="border border-black px-1.5 py-0.5 text-right">NET (IN − OUT)</th>
+                <th className="border border-black px-1.5 py-0.5 text-right">Balance</th>
+              </tr>
+            </thead>
+            <tbody>
+              {PROV.map(p => {
+                const i = Number(cashlessIO.inByProv[p.key]  || 0);
+                const o = Number(cashlessIO.outByProv[p.key] || 0);
+                const n = i - o;
+                const rawB = (closerMobile as any)?.[finalProvKey(p.key)];
+                const hasBal = rawB !== undefined && rawB !== null && String(rawB) !== "";
+                return (
+                  <tr key={p.key}>
+                    <td className="border border-black px-1.5 py-0.5">{p.label}</td>
+                    <td className="border border-black px-1.5 py-0.5 text-right">{i ? numAlways(i) : ""}</td>
+                    <td className="border border-black px-1.5 py-0.5 text-right">{o ? numAlways(o) : ""}</td>
+                    <td className="border border-black px-1.5 py-0.5 text-right font-semibold">
+                      {n !== 0 ? (n > 0 ? "+" : "") + numAlways(n) : ""}
+                    </td>
+                    <td className="border border-black px-1.5 py-0.5 text-right font-semibold">
+                      {hasBal ? numAlways(Number(rawB)) : "—"}
+                    </td>
+                  </tr>
+                );
+              })}
+              <tr className="bg-gray-100 font-bold">
+                <td className="border border-black px-1.5 py-0.5">Total</td>
+                <td className="border border-black px-1.5 py-0.5 text-right">{numAlways(totIn)}</td>
+                <td className="border border-black px-1.5 py-0.5 text-right">{numAlways(totOut)}</td>
+                <td className="border border-black px-1.5 py-0.5 text-right">
+                  {(totIn - totOut) > 0 ? "+" : ""}{numAlways(totIn - totOut)}
+                </td>
+                <td className="border border-black px-1.5 py-0.5 text-right">
+                  {totBal === null ? "—" : numAlways(totBal)}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        );
+      })()}
+
+
       {/* ============ SUMMARY PANEL (full width 4-col table) ============ */}
       <table className="w-full border-collapse mb-1">
         <tbody>
