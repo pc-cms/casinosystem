@@ -65,7 +65,7 @@ const NAV_ITEMS: NavItem[] = [
   // CASHIER — transactional Cage operations.
   { to: "/cage", icon: Landmark, label: "Cage Live Game", roles: ["super_admin", "cashier"], section: "CASHIER" },
   // Cage Slots: cashier-only surface. Managers/Finance/Surveillance/Pit use Cage View (which shows slots checks too).
-  { to: "/cage-slots", icon: Coins, label: "Cage Slots", roles: ["super_admin", "cashier_slots"], section: "CASHIER" },
+  { to: "/cage-slots", icon: Coins, label: "Cage Slots", roles: ["cashier_slots"], section: "CASHIER" },
   // Expenses — single button per cashier role; source is implied by login.
   { to: "/cage-slots/expenses", icon: Receipt, label: "Expenses", roles: ["cashier_slots"], section: "CASHIER" },
   { to: "/expenses", icon: Receipt, label: "Expenses", roles: ["cashier"], section: "CASHIER" },
