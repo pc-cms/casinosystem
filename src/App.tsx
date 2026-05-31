@@ -71,7 +71,7 @@ const Reception = lazy(() => import("@/pages/Reception"));
 const Guests = lazy(() => import("@/pages/Guests"));
 const Blacklist = lazy(() => import("@/pages/Blacklist"));
 const ImportReports = lazy(() => import("@/pages/ImportReports"));
-const TableResults = lazy(() => import("@/pages/TableResults"));
+
 const BankChecks = lazy(() => import("@/pages/BankChecks"));
 const MissChips = lazy(() => import("@/pages/MissChips"));
 const PokerTipsReport = lazy(() => import("@/pages/reports/PokerTipsReport"));
