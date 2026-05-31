@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, lazy, Suspense } from "react";
 import { usePlayers, useTransactions, useGamingTables, useExpenses, usePlayerEconomy, useTableTracker, usePlayerGroups } from "@/hooks/use-casino-data";
 import { useAuth } from "@/lib/auth-context";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -6,13 +6,15 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatCurrency } from "@/lib/currency";
 import { Badge } from "@/components/ui/badge";
-import { BarChart3, Table2, Users, Receipt, Grid3X3, Landmark, UsersRound, FileBarChart, ArrowUp, ArrowDown, ArrowUpDown, Coins, CalendarDays } from "lucide-react";
+import { BarChart3, Table2, Users, Receipt, Grid3X3, Landmark, UsersRound, FileBarChart, ArrowUp, ArrowDown, ArrowUpDown, Coins, CalendarDays, FileText } from "lucide-react";
 import MissChips from "@/pages/MissChips";
 import { businessDayHourUTC } from "@/lib/business-day";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { fmtDate } from "@/lib/format-date";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
+
+const TableResultsPage = lazy(() => import("@/pages/TableResults"));
 
 // ----------- Sortable column helper -----------
 type SortDir = "asc" | "desc";
