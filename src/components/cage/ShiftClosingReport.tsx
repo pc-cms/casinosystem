@@ -186,6 +186,33 @@ const ShiftClosingReport = ({
           if (!cancelled) setTipsByShift({ day, night });
         }
       }
+
+      // Cashless IN / OUT scoped to THIS shift's window (live_game cage only).
+      {
+        const fromIso = (shift as any).opened_at as string | null;
+        const toIso = ((shift as any).closed_at as string | null) ?? new Date().toISOString();
+        if (fromIso) {
+          let q = (supabase as any)
+            .from("cashless_transactions")
+            .select("direction, provider, amount, created_at")
+            .eq("casino_id", casinoId)
+            .eq("cage_type", "live_game")
+            .gte("created_at", fromIso)
+            .lte("created_at", toIso);
+          const { data: cl } = await q;
+          if (!cancelled) {
+            const inP: Record<string, number> = {};
+            const outP: Record<string, number> = {};
+            (cl || []).forEach((r: any) => {
+              const p = String(r.provider || "").toUpperCase();
+              const a = Number(r.amount || 0);
+              if (r.direction === "IN") inP[p] = (inP[p] || 0) + a;
+              else if (r.direction === "OUT") outP[p] = (outP[p] || 0) + a;
+            });
+            setCashlessIO({ inByProv: inP, outByProv: outP });
+          }
+        }
+      }
     })();
     return () => { cancelled = true; };
   }, [casinoId, shift?.id, businessDate]);
