@@ -787,7 +787,7 @@ const DailyReport = ({ from, to }: { from: string; to: string }) => {
           result: r.result,
           hold,
           playerResult,
-          diff: r.result + playerResult,
+          diff: r.result + playerResult - r.miss,
         };
       });
     },
