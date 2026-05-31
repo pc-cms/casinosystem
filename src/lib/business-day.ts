@@ -1,9 +1,10 @@
 /**
  * Casino business day logic.
  * All time calculations use Africa/Dar_es_Salaam (EAT, UTC+3 — same as Africa/Nairobi).
- * Business-day rollover is at 11:00 EAT (matches DB get_current_business_date and
- * the auto-close cron). 05:00 EAT is casino checkout / open-sessions cleanup,
- * NOT a business-day rollover.
+ * Business-day rollover is at 07:00 EAT (matches DB business_date_of /
+ * get_current_business_date / build_business_day_snapshot). Manual Cage closures
+ * recorded in business_day_closures take precedence over the time-based fallback
+ * via the get_current_business_date RPC.
  */
 
 /** Get current date/time as a Date object whose LOCAL fields (getHours/getMinutes/getDate)
@@ -25,7 +26,7 @@ function ymdEAT(d: Date = new Date()): string {
   return d.toLocaleDateString("en-CA", { timeZone: "Africa/Dar_es_Salaam" });
 }
 
-export function getBusinessDate(shiftEndHour = 11): string {
+export function getBusinessDate(shiftEndHour = 7): string {
   const now = new Date();
   // Hour in EAT regardless of browser timezone
   const eatHour = parseInt(
@@ -43,7 +44,7 @@ export function getBusinessDate(shiftEndHour = 11): string {
 /**
  * Check if a given date string matches the current business day.
  */
-export function isBusinessToday(date: string, shiftEndHour = 11): boolean {
+export function isBusinessToday(date: string, shiftEndHour = 7): boolean {
   return date === getBusinessDate(shiftEndHour);
 }
 
@@ -80,10 +81,11 @@ export function isAfterBreaklistLock(lockTime = "05:30"): boolean {
  * Returns an ISO UTC timestamp corresponding to a wall-clock hour in EAT (UTC+3, no DST)
  * for a given business date (YYYY-MM-DD).
  *
- * Example: businessDayHourUTC("2026-05-01", 13) → "2026-05-01T10:00:00.000Z"
+ * Example: businessDayHourUTC("2026-05-01", 7) → "2026-05-01T04:00:00.000Z"
  */
 export function businessDayHourUTC(businessDate: string, hourEAT: number): string {
   const baseUtc = new Date(`${businessDate}T00:00:00.000Z`).getTime();
   const utcTime = baseUtc + (hourEAT - 3) * 60 * 60 * 1000;
   return new Date(utcTime).toISOString();
 }
+

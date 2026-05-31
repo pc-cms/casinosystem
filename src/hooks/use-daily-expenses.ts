@@ -17,8 +17,8 @@ export const useDailyExpenses = (businessDate?: string) => {
         .from("expenses")
         .select("*, players(id, first_name, last_name)")
         .eq("casino_id", casinoId)
-        .gte("created_at", businessDayHourUTC(businessDate, 11))
-        .lt("created_at", businessDayHourUTC(businessDate, 11 + 24))
+        .gte("created_at", businessDayHourUTC(businessDate, 7))
+        .lt("created_at", businessDayHourUTC(businessDate, 7 + 24))
         .order("created_at", { ascending: true })
         .limit(2000);
       if (error) throw error;

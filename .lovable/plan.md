@@ -1,61 +1,69 @@
-# Implementation Plan — Steps 2-4
 
-Backend (Step 1) уже выполнен: `expense_categories`, `expenses.source`, office-триггеры, RPC `create_office_expense`.
+## Правило rollover
 
-## Step 2 — Closings Hub `/closings`
+Бизнес-день D заканчивается в момент:
+```
+end(D) = min( 07:00 EAT дня D+1 ,  business_day_closures.closed_at для D )
+```
+- если день закрыт **руками** раньше 07:00 → используем фактический `closed_at`
+- иначе → 07:00 EAT (совпадает с реальностью: касса/смены к этому моменту закрыты)
 
-Новая страница с 4 вкладками. Старые `/cage/closings` и `/cage-slots/report` редиректят на неё.
+Это правило заменяет все три текущих cutoff'а (5/11/13 EAT).
 
-- **Total** — таблица по бизнес-дням: Live Cash / Live Tables / Live Balance / Slots Win / Slots Balance / Expenses / Net. Источник: `daily_summaries` + агрегаты `expenses` по `business_date`. Drill-down кликом → переход на нужную вкладку с выбранным днём.
-- **Live Game** — список Live-смен (как сейчас в `CageHistoryView`). Кнопка **Print** открывает `ReprintShiftDialog` (A4 portrait, как сделали ранее).
-- **Slots** — список `cage_slots_shifts`. Кнопка **Print** открывает `SlotsConsolidatedReport` (A4 portrait).
-- **Expenses** — date-picker (бизнес-день), таблица: Time / Source (Live/Slots/Office) / Category / Amount / Description / Player / Approved. Фильтры по source, сортировки. Кнопка **Print** → новый компонент `PrintExpensesReport` (A4 portrait, шапка с датой и итогами по source).
+## Источник правды (DB)
 
-Убираем кнопки Print/Reprint из:
-- `ActiveShiftView` (после закрытия)
-- `ActiveSlotsShiftView`
-- `CageHistoryView` (Live history)
-- `CageSlotsHistoryView`
-- `CageSlotsReport` page
+Создать одну функцию + RPC, чтобы UI и DB бились по одному:
 
-Печать только из `/closings`.
+```sql
+-- Возвращает границу окончания указанного бизнес-дня (UTC timestamptz)
+CREATE FUNCTION public.business_day_end(_casino_id uuid, _business_date date)
+RETURNS timestamptz
+-- = min( (_business_date + 1) @ 07:00 EAT,  closures.closed_at )
 
-## Step 3 — Renaming и навигация
+-- Маппит произвольный момент в бизнес-дату (учитывает manual closures для прошлых дней)
+CREATE OR REPLACE FUNCTION public.business_date_of(_ts timestamptz, _casino_id uuid)
+RETURNS date
+-- меняем сигнатуру: теперь принимает casino_id и учитывает closures
+```
 
-- Sidebar: `Cage` → **Cage Live Game**; `Slots Expenses` → **Expenses Slots**; manager `Expenses` → **Expenses Live Game**; добавить **Daily Expenses** (`/expenses/daily`); добавить **Closings** (`/closings`).
-- `src/lib/modules.ts` + `src/lib/route-module-map.ts`: переименовать labels, добавить новые ModuleKeys `closings` и `daily_expenses` с правильным role-маппингом (Closings: cashier+manager+finance+pit+surveillance read; Daily Expenses: manager+finance).
-- Старые routes `/cage/closings`, `/cage-slots/report` → `<Navigate to="/closings?tab=..." />`.
+Обновить `get_current_business_date()` под то же правило (сейчас уже учитывает closures).
 
-## Step 4 — Daily Expenses + Admin Categories
+## DB изменения
 
-**`/expenses/daily`** (manager-only):
-- Date-picker, таблица всех расходов за день (Live/Slots/Office), фильтры/сортировки.
-- Кнопка **+ Add Office Expense** (только manager/finance) → диалог: category select (из `expense_categories` scope `office`/`any`), amount, description. Submit → RPC `create_office_expense`. Деньги уходят с MAIN_CASH автоматически (DB-trigger).
-- Office-расходы видны ТОЛЬКО здесь и в `/closings` (Expenses tab). НЕ показываются в Live Game / Slots expenses-listах.
+1. **`business_date_of`** (5:00 → правило выше). Затрагивает `compute_tables_drop_split`, NEP-сегментацию, RPC что бьют транзакции по дням.
+2. **`build_business_day_snapshot`** — заменить inline `EXTRACT(HOUR ...) < 5` на вызов новой функции для bucketing смен, expenses, table_tracker.
+3. **`get_current_business_date`** — текущая граница `now → min(07:00 EAT, открытый день)`.
+4. Бамп `package.json`.
 
-**Admin → Casino Settings → Expense Categories**:
-- Новая секция в `Admin.tsx` (или `CasinoSettingsTab`). CRUD-таблица per-casino: `code`, `label`, `scope` (live_game/slots/office/any), `active`, `sort_order`.
-- Доступ: manager, finance_manager, super_admin. Delete только super_admin (RLS уже это даёт).
+⚠️ Историю не пересчитываем — `business_day_closures.snapshot` уже сохранён по старому правилу 5:00 для закрытых дней. Новое правило начинает работать «вперёд». Для уже закрытых дней snapshot остаётся истиной.
 
-**Хуки** (новые в `src/hooks/`):
-- `use-expense-categories.ts` — list/create/update/delete + фильтр по scope.
-- `use-closings-total.ts` — агрегат по business_date.
-- `use-daily-expenses.ts` — все расходы дня с фильтром по source.
-- `use-create-office-expense.ts` — обёртка над RPC.
+## Frontend изменения (src/)
 
-**Изменения в `use-expenses.ts`**: добавить фильтр `.neq('source', 'office')` в `useExpenses` чтобы office-расходы не появлялись в Live/Slots экранах. `useSlotsExpenses` — то же.
+Все `businessDayHourUTC(date, 11|13|11+24|13+24)` → новая helper-функция `businessDayBoundsUTC(casinoId, date)`, которая дёргает RPC `business_day_end` (с кэшем) и возвращает `[start, end]`.
 
-## Технические детали
+Файлы:
+- `src/lib/business-day.ts` — добавить `businessDayBoundsUTC()`, оставить `businessDayHourUTC` для legacy
+- `src/pages/Reports.tsx` (Daily Report): окно + `tsToBusinessDate` → через RPC
+- `src/pages/PlayerStatistics.tsx`, `Tables.tsx`, `Dashboard.tsx`, `ClosingsPage.tsx`
+- `src/hooks/use-transactions.ts`, `use-expenses.ts`, `use-daily-expenses.ts`, `use-chip-transfers.ts`
+- `src/components/player/PlayerPreviewHeader.tsx`
+- `src/components/pit/ActivePlayers.tsx`
+- `src/components/cage/PlayerInfoCard.tsx`, `ActivePlayersList.tsx`, `CageHistoryView.tsx`
 
-- Печатные отчёты в Closings — A4 portrait, единый стиль (шапка казино + дата + таблица + подпись). Reuse существующих `PrintFrame` помощников.
-- `daily_summaries` уже содержит cash_result/tables_result по shift; для Total-вкладки агрегируем по `business_date`.
-- Версия `package.json` — bump до `1.3.202` (backend triggers + UI).
+Для перформанса — bulk RPC `business_day_bounds_bulk(casino_id, dates[])` чтобы Daily Report за месяц делал один вызов вместо 30.
 
-## Порядок коммитов
+## Сверка
 
-1. Хуки + новые helpers.
-2. `/closings` страница + 4 вкладки + `PrintExpensesReport`.
-3. Renaming в `modules.ts` / `route-module-map.ts` / sidebar + redirects.
-4. `/expenses/daily` страница + Add Office Expense диалог.
-5. Admin → Expense Categories CRUD.
-6. Удаление Print/Reprint кнопок из старых мест.
+После деплоя проверяю одну закрытую дату через `read_query`:
+- Daily Report `result/dropR/cashout` за дату D
+- vs `business_day_closures.snapshot` за дату D
+- vs Player Statistics за дату D
+Все три должны сойтись (для дат, закрытых после деплоя).
+
+## Память
+
+Обновить core-правило: rollover = `min(07:00 EAT, manual closure)`. Удалить «11:00 EAT» как cutoff (оставить только как cron-дедлайн auto-close, если он остаётся в 11:00 — уточните).
+
+## Открытый вопрос
+
+Авто-закрытие сейчас в **11:00 EAT**. Если rollover теперь в 07:00 — логично перенести cron auto-close тоже на 07:00 (или, скажем, 07:30 как grace period). Согласовать?

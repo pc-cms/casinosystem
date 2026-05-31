@@ -29,13 +29,13 @@ export const useExpenses = (
         const from = range.from || range.to!;
         const to = range.to || range.from!;
         query = query
-          .gte("created_at", businessDayHourUTC(from, 11))
-          .lt("created_at", businessDayHourUTC(to, 11 + 24))
+          .gte("created_at", businessDayHourUTC(from, 7))
+          .lt("created_at", businessDayHourUTC(to, 7 + 24))
           .limit(2000);
       } else if (date) {
         query = query
-          .gte("created_at", businessDayHourUTC(date, 11))
-          .lt("created_at", businessDayHourUTC(date, 11 + 24));
+          .gte("created_at", businessDayHourUTC(date, 7))
+          .lt("created_at", businessDayHourUTC(date, 7 + 24));
       } else {
         query = query.limit(200);
       }

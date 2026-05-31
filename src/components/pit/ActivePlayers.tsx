@@ -24,7 +24,7 @@ const ActivePlayers = () => {
   const { data: tables = [] } = useGamingTables();
   const { data: serverBusinessDate } = useEffectiveBusinessDate();
   const today = serverBusinessDate || getBusinessDate();
-  const windowStartUTC = businessDayHourUTC(today, 13);
+  const windowStartUTC = businessDayHourUTC(today, 7);
   const { data: transactions = [] } = useTransactions(today);
   const { casinoId, user, roles } = useAuth();
   const canTransfer = roles.some(r => ["pit", "manager", "super_admin"].includes(r));

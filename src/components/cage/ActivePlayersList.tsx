@@ -24,7 +24,7 @@ const GuestsList = ({ players, tables, onSelect }: Props) => {
 
   const { data: serverBusinessDate } = useEffectiveBusinessDate();
   const today = serverBusinessDate || getBusinessDate();
-  const windowStartUTC = businessDayHourUTC(today, 13);
+  const windowStartUTC = businessDayHourUTC(today, 7);
 
   // Active table sessions — used to know which table each guest is seated at.
   const { data: sessions = [] } = useQuery({

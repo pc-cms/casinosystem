@@ -63,8 +63,8 @@ const Dashboard = () => {
 
   // NEP-aware Drop R for the current business day window — same source of truth as Player Tracking.
   // Raw sum of buy/in transactions double-counts returned winnings; Drop R excludes recycled cash.
-  const dropWindowStart = businessDayHourUTC(businessDate, 11);
-  const dropWindowEnd = businessDayHourUTC(businessDate, 11 + 24);
+  const dropWindowStart = businessDayHourUTC(businessDate, 7);
+  const dropWindowEnd = businessDayHourUTC(businessDate, 7 + 24);
   const { data: tablesDropSplit } = useTablesDropSplit(dropWindowStart, dropWindowEnd);
 
   const isInitialLoading = loadingPlayers && loadingTx;

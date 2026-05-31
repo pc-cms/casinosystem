@@ -59,8 +59,8 @@ const CageHistoryView = () => {
         .from("transactions")
         .select("*, players(first_name,last_name)")
         .eq("casino_id", casinoId)
-        .gte("created_at", businessDayHourUTC(date, 13))
-        .lt("created_at", businessDayHourUTC(date, 13 + 24))
+        .gte("created_at", businessDayHourUTC(date, 7))
+        .lt("created_at", businessDayHourUTC(date, 7 + 24))
         .order("created_at", { ascending: false })
         .limit(1000);
       if (error) throw error;
@@ -81,8 +81,8 @@ const CageHistoryView = () => {
         .from("cage_transfers")
         .select("*")
         .eq("casino_id", casinoId)
-        .gte("created_at", businessDayHourUTC(date, 13))
-        .lt("created_at", businessDayHourUTC(date, 13 + 24))
+        .gte("created_at", businessDayHourUTC(date, 7))
+        .lt("created_at", businessDayHourUTC(date, 7 + 24))
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data || [];

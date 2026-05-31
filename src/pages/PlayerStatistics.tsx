@@ -74,8 +74,8 @@ const PlayerStatistics = () => {
   const toDate = effectiveRange.to;
   const isMultiDay = fromDate !== toDate;
   const isHistorical = toDate !== today || fromDate !== today;
-  const windowStartUTC = businessDayHourUTC(fromDate, 13);
-  const windowEndUTC = businessDayHourUTC(toDate, 13 + 24);
+  const windowStartUTC = businessDayHourUTC(fromDate, 7);
+  const windowEndUTC = businessDayHourUTC(toDate, 7 + 24);
   const queryClient = useQueryClient();
   const canEditPosition = !isMultiDay && !isHistorical && roles.some(r => ["pit", "manager", "reception", "super_admin"].includes(r));
 
