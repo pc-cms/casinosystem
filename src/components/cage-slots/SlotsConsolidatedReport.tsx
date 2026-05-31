@@ -95,7 +95,7 @@ const SlotsConsolidatedReport = ({
   const closerTotal = closerCashTotalTzs + closerBankTotalTzs;
 
   return (
-    <div className="bg-white text-black p-2 flex flex-col" style={{ fontFamily: "Arial, sans-serif", fontSize: "11px", lineHeight: 1.15, width: "194mm", boxSizing: "border-box", pageBreakAfter: "avoid", breakAfter: "avoid" }}>
+    <div className="bg-white text-black p-2 flex flex-col" style={{ fontFamily: "Arial, sans-serif", fontSize: "13px", lineHeight: 1.25, width: "194mm", minHeight: "281mm", boxSizing: "border-box", pageBreakAfter: "avoid", breakAfter: "avoid" }}>
 
       {/* ============ TITLE ROW ============ */}
       <table className="w-full border-collapse mb-0.5">
@@ -252,6 +252,9 @@ const SlotsConsolidatedReport = ({
           T Pesa / H Pesa / Airtel rows already shown in Cash Flow Closer. */}
 
 
+
+      {/* Spacer fills remaining A4 portrait height so signatures sit at the bottom */}
+      <div className="flex-1" />
 
       {/* ============ SIGNATURES ============ */}
       <table className="w-full border-collapse mt-4">
