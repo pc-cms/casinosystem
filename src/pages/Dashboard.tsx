@@ -248,7 +248,7 @@ const Dashboard = () => {
               </Link>
             )}
             {!isSurveillance && showFinancials && canApproveExpenses && (
-              <StatCard label="Daily Expenses" value={pendingExpenses} icon={Receipt} href="/expenses/daily" />
+              <StatCard label="Daily Expenses" value={pendingExpenses} icon={Receipt} href="/expenses" />
             )}
             {!isSurveillance && showFinancials && (
               <StatCard label="Pending Cashless" value={pendingCashless} icon={Smartphone} href="/cashless" />

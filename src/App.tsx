@@ -91,10 +91,10 @@ const EditOpeningChipsPage = lazy(() => import("@/pages/cage/EditOpeningChipsPag
 const CageClosingsPage = lazy(() => import("@/pages/cage/CageClosingsPage"));
 const CageViewPage = lazy(() => import("@/pages/cage/CageViewPage"));
 const ClosingsPage = lazy(() => import("@/pages/ClosingsPage"));
-const DailyExpensesPage = lazy(() => import("@/pages/DailyExpensesPage"));
+// DailyExpensesPage and SlotsExpenses removed — unified into /expenses.
 const CageSlots = lazy(() => import("@/pages/CageSlots"));
 const CageSlotsReport = lazy(() => import("@/pages/CageSlotsReport"));
-const SlotsExpenses = lazy(() => import("@/pages/SlotsExpenses"));
+
 const ExpensesApprovals = lazy(() => import("@/pages/ExpensesApprovals"));
 const CloseTablesPage = lazy(() => import("@/pages/tables/CloseTablesPage"));
 const MarketingCampaigns = lazy(() => import("@/pages/marketing/MarketingCampaigns"));
@@ -306,7 +306,7 @@ const ProtectedRoutes = () => {
           <Route path="/closings" element={<RoleGuard path="/closings"><ErrorBoundary><ClosingsPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/cage/shift/:id/edit-opening" element={<RoleGuard path="/cage"><ErrorBoundary><EditOpeningChipsPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/cage-slots" element={<RoleGuard path="/cage-slots"><ErrorBoundary><CageSlots /></ErrorBoundary></RoleGuard>} />
-          <Route path="/cage-slots/expenses" element={<RoleGuard path="/cage-slots/expenses"><ErrorBoundary><SlotsExpenses /></ErrorBoundary></RoleGuard>} />
+          <Route path="/cage-slots/expenses" element={<Navigate to="/expenses" replace />} />
           <Route path="/cage-slots/report/:id" element={<Navigate to="/closings?tab=slots" replace />} />
           <Route path="/players/register" element={<RoleGuard path="/reception"><ErrorBoundary><RegisterPlayerPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/expenses/approvals" element={<RoleGuard path="/expenses/approvals"><ErrorBoundary><ExpensesApprovals /></ErrorBoundary></RoleGuard>} />
@@ -322,7 +322,7 @@ const ProtectedRoutes = () => {
           <Route path="/table-tracker" element={<RoleGuard path="/table-tracker"><TableTracker /></RoleGuard>} />
           <Route path="/tables/analytics" element={<Navigate to="/table-tracker" replace />} />
           <Route path="/expenses" element={<RoleGuard path="/expenses"><Expenses /></RoleGuard>} />
-          <Route path="/expenses/daily" element={<RoleGuard path="/expenses/daily"><ErrorBoundary><DailyExpensesPage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/expenses/daily" element={<Navigate to="/expenses" replace />} />
           <Route path="/cashless" element={<RoleGuard path="/cashless"><Cashless /></RoleGuard>} />
           {/* Phase 2 flat URLs — Pit (Live Game) */}
           <Route path="/breaklist" element={<RoleGuard path="/breaklist"><ErrorBoundary><BreaklistPage /></ErrorBoundary></RoleGuard>} />

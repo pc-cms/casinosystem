@@ -6,23 +6,34 @@ import { offlineMutation } from "@/lib/offline-mutation";
 import { toast } from "sonner";
 import type { SafeExpenseInsert } from "@/lib/safe-inserts";
 
+export type ExpenseSource = "live_game" | "slots" | "office" | "all";
+
 export const useExpenses = (
   date?: string,
   cageType: "live_game" | "slots" = "live_game",
   range?: { from?: string; to?: string },
+  options?: { source?: ExpenseSource },
 ) => {
   const { casinoId } = useAuth();
+  const source = options?.source;
   return useQuery({
-    queryKey: ["expenses", casinoId, date, cageType, range?.from, range?.to],
+    queryKey: ["expenses", casinoId, date, cageType, range?.from, range?.to, source ?? "_default"],
     queryFn: async () => {
       if (!casinoId) return [];
       let query = supabase
         .from("expenses")
         .select("*, players(id, first_name, last_name)")
         .eq("casino_id", casinoId)
-        .eq("cage_type", cageType)
-        .neq("source", "office")
         .order("created_at", { ascending: false });
+
+      // Source/cage_type gates
+      if (source === undefined) {
+        // Legacy behavior — Live cashier scope.
+        query = query.eq("cage_type", cageType).neq("source", "office");
+      } else if (source !== "all") {
+        query = query.eq("source", source);
+      }
+      // source === "all" → no extra gates (managers view across all sources)
 
       const { businessDayHourUTC } = await import("@/lib/business-day");
       if (range?.from || range?.to) {
@@ -94,6 +105,7 @@ export const useCreateSlotsExpense = () => {
         player_name: input.player_name || "",
         cage_slots_shift_id: input.slots_shift_id,
         cage_type: "slots",
+        source: "slots",
         created_by: user.id,
       });
       if (error) throw error;

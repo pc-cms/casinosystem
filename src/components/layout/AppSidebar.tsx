@@ -66,13 +66,10 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/cage", icon: Landmark, label: "Cage Live Game", roles: ["super_admin", "cashier"], section: "CASHIER" },
   // Cage Slots: cashier-only surface. Managers/Finance/Surveillance/Pit use Cage View (which shows slots checks too).
   { to: "/cage-slots", icon: Coins, label: "Cage Slots", roles: ["cashier_slots"], section: "CASHIER" },
-  // Expenses — single button per cashier role; source is implied by login.
-  { to: "/cage-slots/expenses", icon: Receipt, label: "Expenses", roles: ["cashier_slots"], section: "CASHIER" },
-  { to: "/expenses", icon: Receipt, label: "Expenses", roles: ["cashier"], section: "CASHIER" },
+  // Unified Expenses — single page; source filter (Live/Slots/Office) for managers, locked to role for cashiers.
+  { to: "/expenses", icon: Receipt, label: "Expenses", roles: ["super_admin", "manager", "floor_manager", "finance_manager", "cashier", "cashier_slots"], section: "CASHIER" },
   // Closings hub — managerial surface only.
   { to: "/closings", icon: Landmark, label: "Closings", roles: ["super_admin", "manager", "floor_manager", "finance_manager"], section: "CASHIER" },
-  // Daily Expenses — manager full-day view; manager picks source (live / slots / office).
-  { to: "/expenses/daily", icon: Receipt, label: "Daily Expenses", roles: ["super_admin", "manager", "floor_manager", "finance_manager"], section: "CASHIER" },
   { to: "/cashless", icon: CreditCard, label: "Cashless", roles: ["super_admin", "manager", "floor_manager", "cashier", "finance_manager"], section: "CASHIER" },
 
   // RECEPTION — Players & entry
@@ -181,7 +178,7 @@ const parseItemTo = (to: string) => {
   return { base, tab };
 };
 
-const EXACT_NAV_PATHS = new Set(["/cage", "/cage/view", "/closings", "/expenses", "/expenses/daily", "/expenses/approvals"]);
+const EXACT_NAV_PATHS = new Set(["/cage", "/cage/view", "/closings", "/expenses", "/expenses/approvals"]);
 
 const routeMatchesNavItem = (pathname: string, to: string) => {
   const { base, tab } = parseItemTo(to);
@@ -408,9 +405,7 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
     // Cage and Cage View are separate top-level buttons, never parent/sub-items.
     if (item.to === "/cage" && !isSuper && !roles.includes("cashier" as AppRole)) return false;
     if (item.to === "/cage/view" && !isSuper && roles.includes("cashier" as AppRole)) return false;
-    // Expenses Live Game / Expenses Slots — hard-gate by cashier role (never visible to managers).
-    if (item.to === "/expenses" && !isSuper && !roles.includes("cashier" as AppRole)) return false;
-    if (item.to === "/cage-slots/expenses" && !isSuper && !roles.includes("cashier_slots" as AppRole)) return false;
+    // (Unified /expenses is visible to all roles in its nav whitelist; gated via matrix module 'expenses'.)
     if (isSuper) return true;
     if (allowedModules === undefined) return false; // still loading → render nothing yet
     const mk = moduleKeyForRoute(item.to, item.label);

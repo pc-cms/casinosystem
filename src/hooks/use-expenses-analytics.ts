@@ -9,11 +9,22 @@ interface Expense {
   description?: string | null;
   approved: boolean;
   created_at: string;
+  source?: string | null;
+  cage_type?: string | null;
+  cage_slots_shift_id?: string | null;
   players?: { id?: string; first_name: string; last_name: string } | null;
 }
 
 export type ExpenseTarget = "all" | "casino" | "player";
 export type ExpenseStatus = "all" | "approved" | "pending";
+export type ExpenseSourceFilter = "all" | "live_game" | "slots" | "office";
+
+const resolveSource = (e: Expense): "live_game" | "slots" | "office" => {
+  const s = (e.source || "").toLowerCase();
+  if (s === "office" || s === "slots" || s === "live_game") return s;
+  if (e.cage_slots_shift_id || e.cage_type === "slots") return "slots";
+  return "live_game";
+};
 
 export interface ExpenseFilters {
   from?: string;
@@ -21,6 +32,7 @@ export interface ExpenseFilters {
   categories?: string[];
   target?: ExpenseTarget;
   status?: ExpenseStatus;
+  source?: ExpenseSourceFilter;
   search?: string;
 }
 
@@ -51,6 +63,9 @@ export const useExpenseAnalytics = (
         filters.status === "approved" ? e.approved : !e.approved,
       );
     }
+    if (filters?.source && filters.source !== "all") {
+      filtered = filtered.filter((e) => resolveSource(e) === filters.source);
+    }
     if (filters?.search?.trim()) {
       const q = filters.search.trim().toLowerCase();
       filtered = filtered.filter((e) => {
@@ -76,6 +91,19 @@ export const useExpenseAnalytics = (
       byCategory[e.category].total += Number(e.amount);
       byCategory[e.category].count += 1;
     });
+
+    // By source
+    const bySource: Record<string, { total: number; count: number }> = {
+      live_game: { total: 0, count: 0 },
+      slots: { total: 0, count: 0 },
+      office: { total: 0, count: 0 },
+    };
+    filtered.forEach((e) => {
+      const s = resolveSource(e);
+      bySource[s].total += Number(e.amount);
+      bySource[s].count += 1;
+    });
+
 
     // By player (only those linked to a player)
     const byPlayer: Record<string, { name: string; total: number; count: number }> = {};
@@ -134,6 +162,7 @@ export const useExpenseAnalytics = (
       pendingAmount,
       pendingCount,
       byCategory,
+      bySource,
       topPlayers,
       barChargeTotal,
       barChargeCount,
@@ -146,6 +175,7 @@ export const useExpenseAnalytics = (
     filters?.categories?.join(","),
     filters?.target,
     filters?.status,
+    filters?.source,
     filters?.search,
   ]);
 };
