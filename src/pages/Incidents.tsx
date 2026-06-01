@@ -269,13 +269,13 @@ const Incidents = () => {
         centerSlot={
           <div className="flex items-center gap-1.5 flex-wrap">
             <div className="inline-flex rounded-md border border-border overflow-hidden">
-              {(["day", "7d", "30d"] as const).map(m => (
+              {(["day", "7d", "30d", "all"] as const).map(m => (
                 <button
                   key={m}
                   onClick={() => setViewMode(m)}
                   className={`px-2 h-7 text-[10px] font-mono uppercase ${viewMode === m ? "bg-primary text-primary-foreground" : "bg-background hover:bg-muted text-muted-foreground"}`}
                 >
-                  {m === "day" ? "Day" : m}
+                  {m === "day" ? "Day" : m === "all" ? "All" : m}
                 </button>
               ))}
             </div>
