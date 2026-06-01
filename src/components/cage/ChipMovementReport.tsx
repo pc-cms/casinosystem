@@ -81,11 +81,11 @@ const ChipMovementReport = ({
   return (
     <div
       id="chip-print-area"
-      className="bg-white text-black font-sans"
+      className="bg-white text-black font-sans flex flex-col"
       style={{
         fontFamily: "Arial, sans-serif",
-        fontSize: "12px",
-        lineHeight: 1.3,
+        fontSize: "14px",
+        lineHeight: 1.5,
         width: "194mm",
         minHeight: "281mm",
         boxSizing: "border-box",
@@ -102,29 +102,28 @@ const ChipMovementReport = ({
         </colgroup>
         <tbody>
           <tr>
-            <td className="border border-black px-1.5 py-0.5 font-bold text-base">
+            <td className="border border-black px-2 py-1 font-bold text-base">
               {casinoName} Chips Movement Report
             </td>
-            <td className="border border-black px-1.5 py-0.5 font-semibold text-center">Date</td>
-            <td className="border border-black px-1.5 py-0.5 text-center">{fmtDate(businessDate)}</td>
-            <td className="border border-black px-1.5 py-0.5 font-semibold text-center">Cashier</td>
-            <td className="border border-black px-1.5 py-0.5 text-center uppercase">{cashierName || ""}</td>
+            <td className="border border-black px-2 py-1 font-semibold text-center">Date</td>
+            <td className="border border-black px-2 py-1 text-center">{fmtDate(businessDate)}</td>
+            <td className="border border-black px-2 py-1 font-semibold text-center">Cashier</td>
+            <td className="border border-black px-2 py-1 text-center uppercase">{cashierName || ""}</td>
           </tr>
         </tbody>
       </table>
 
-      {/* Opening row: Opener | Diff | Float Fill */}
-      <p className="font-semibold border-b border-black mb-1.5 text-[12px]">Chips Opening Report</p>
-      <div className="grid grid-cols-3 gap-2 mb-3">
+      {/* 3 rows × 2 cols — fills the full page */}
+      <p className="font-semibold border-b border-black mb-1.5 text-[13px]">Chips Opening Report</p>
+      <div className="grid grid-cols-2 gap-3 mb-3 flex-1">
         <DenomTable title="Cash Desk Chips Opener" data={openingChips} total={totals.opener} />
         <DenomTable title="Opening Chips Diff" data={openingDiff} total={totals.diff} signed />
         <DenomTable title="Cash Desk Float Fill" data={fillByDenom} total={totals.fill} />
+        <DenomTable title="Cash Desk Float Credit" data={creditByDenom} total={totals.credit} />
       </div>
 
-      {/* Closing row: Float Credit | Miss | Close */}
-      <p className="font-semibold border-b border-black mt-2 mb-1.5 text-[12px]">Chips Closing Report</p>
-      <div className="grid grid-cols-3 gap-2">
-        <DenomTable title="Cash Desk Float Credit" data={creditByDenom} total={totals.credit} />
+      <p className="font-semibold border-b border-black mb-1.5 text-[13px]">Chips Closing Report</p>
+      <div className="grid grid-cols-2 gap-3 flex-1">
         <DenomTable title="Miss Chips" data={missPerDenom} total={totals.miss} signed />
         <DenomTable title="Cash Desk Chips Close" data={closingChips} total={totals.close} />
       </div>
@@ -152,9 +151,9 @@ const DenomTable = ({ title, data, total, signed }: {
     return v > 0 ? formatNumberSpaces(v) : `-${formatNumberSpaces(Math.abs(v))}`;
   };
   return (
-    <div>
-      <p className="font-semibold text-center border border-black bg-gray-100 py-0.5 text-[12px]">{title}</p>
-      <table className="w-full border-collapse text-[12px]" style={{ tableLayout: "fixed" }}>
+    <div className="flex flex-col h-full">
+      <p className="font-semibold text-center border border-black bg-gray-100 py-1 text-[14px]">{title}</p>
+      <table className="w-full border-collapse text-[14px] flex-1" style={{ tableLayout: "fixed" }}>
         <colgroup>
           <col style={{ width: "40%" }} />
           <col style={{ width: "25%" }} />
@@ -162,9 +161,9 @@ const DenomTable = ({ title, data, total, signed }: {
         </colgroup>
         <thead>
           <tr className="bg-gray-50">
-            <th className="border border-black px-1 py-0.5 text-left font-semibold">Den</th>
-            <th className="border border-black px-1 py-0.5 text-right font-semibold">Qty</th>
-            <th className="border border-black px-1 py-0.5 text-right font-semibold">Value</th>
+            <th className="border border-black px-2 py-1 text-left font-semibold">Den</th>
+            <th className="border border-black px-2 py-1 text-right font-semibold">Qty</th>
+            <th className="border border-black px-2 py-1 text-right font-semibold">Value</th>
           </tr>
         </thead>
         <tbody>
@@ -174,23 +173,23 @@ const DenomTable = ({ title, data, total, signed }: {
             const c = resolveChipColor(d, chipColorOverrides);
             return (
               <tr key={d}>
-                <td className="border border-black px-1 py-0.5 tabular-nums">
+                <td className="border border-black px-2 py-1.5 tabular-nums">
                   <span
-                    className="inline-block rounded-full border border-black px-1.5 py-0 text-[10px] font-bold tabular-nums leading-tight"
+                    className="inline-block rounded-full border border-black px-2 py-0 text-[11px] font-bold tabular-nums leading-tight"
                     style={{ background: c.bg, color: c.text, borderColor: c.edge, WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" } as any}
                   >
                     {formatNumberSpaces(d)}
                   </span>
                 </td>
-                <td className="border border-black px-1 py-0.5 text-right tabular-nums">{fmtQty(q)}</td>
-                <td className="border border-black px-1 py-0.5 text-right tabular-nums">{fmtVal(v)}</td>
+                <td className="border border-black px-2 py-1.5 text-right tabular-nums">{fmtQty(q)}</td>
+                <td className="border border-black px-2 py-1.5 text-right tabular-nums">{fmtVal(v)}</td>
               </tr>
             );
           })}
           <tr className="bg-gray-100 font-bold">
-            <td className="border border-black px-1 py-0.5">Total</td>
-            <td className="border border-black px-1 py-0.5" />
-            <td className="border border-black px-1 py-0.5 text-right tabular-nums">{fmtTotal(total)}</td>
+            <td className="border border-black px-2 py-1.5">Total</td>
+            <td className="border border-black px-2 py-1.5" />
+            <td className="border border-black px-2 py-1.5 text-right tabular-nums">{fmtTotal(total)}</td>
           </tr>
         </tbody>
       </table>
