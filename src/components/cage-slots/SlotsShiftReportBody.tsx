@@ -15,9 +15,9 @@ import { useSlotsTransfers } from "@/hooks/use-cage-slots-transfers";
 import { useSlotsExpenses } from "@/hooks/use-expenses";
 
 const Field = ({ label, value, emphasize }: { label: string; value: string; emphasize?: boolean }) => (
-  <div>
-    <p className="text-[10px] uppercase text-muted-foreground tracking-wider">{label}</p>
-    <p className={`font-mono ${emphasize ? "text-base font-bold" : "text-sm"}`}>{value}</p>
+  <div className="leading-tight">
+    <p className="text-[9px] uppercase text-muted-foreground tracking-wider">{label}</p>
+    <p className={`font-mono ${emphasize ? "text-sm font-bold" : "text-xs"}`}>{value}</p>
   </div>
 );
 
