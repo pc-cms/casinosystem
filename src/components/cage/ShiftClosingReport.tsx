@@ -345,7 +345,7 @@ const ShiftClosingReport = ({
         </colgroup>
         <thead>
           <tr className="bg-gray-200">
-            {["Table", "Open", "Fill", "Credit", "Close", "IN", "Result"].map(h => (
+            {["Table", "Open", "Fill", "Credit", "Close", "DROP (NEP)", "Result"].map(h => (
               <th key={h} className="border border-black px-1.5 py-0.5 text-left font-semibold">{h}</th>
             ))}
           </tr>
