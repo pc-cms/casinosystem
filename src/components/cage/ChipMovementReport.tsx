@@ -79,22 +79,33 @@ const ChipMovementReport = ({
   }), [openingChips, openingDiff, fillByDenom, creditByDenom, missPerDenom, closingChips]);
 
   return (
-    <div id="chip-print-area" className="bg-white text-black p-6 font-sans text-[11px] leading-snug print:break-before-page">
+    <div
+      id="chip-print-area"
+      className="bg-white text-black p-2 font-sans"
+      style={{
+        fontFamily: "Arial, sans-serif",
+        fontSize: "12px",
+        lineHeight: 1.3,
+        width: "281mm",
+        minHeight: "194mm",
+        boxSizing: "border-box",
+      }}
+    >
       {/* Header */}
       <div className="grid grid-cols-3 gap-4 border-b-2 border-black pb-1.5 mb-3">
-        <h1 className="text-base font-bold">{casinoName} — Chips Movement Report</h1>
-        <div className="text-center">
+        <h1 className="text-lg font-bold">{casinoName} — Chips Movement Report</h1>
+        <div className="text-center text-[13px]">
           <span className="font-semibold mr-2">Date</span>
           <span className="border-b border-black px-2">{fmtDate(businessDate)}</span>
         </div>
-        <div className="text-right">
+        <div className="text-right text-[13px]">
           <span className="font-semibold mr-2">Cashier</span>
           <span className="border-b border-black px-2 uppercase">{cashierName || ""}</span>
         </div>
       </div>
 
       {/* Opening row: Opener | Diff | Float Fill */}
-      <p className="font-semibold border-b border-black mb-2">Chips Opening Report</p>
+      <p className="font-semibold border-b border-black mb-2 text-[13px]">Chips Opening Report</p>
       <div className="grid grid-cols-3 gap-4 mb-4">
         <DenomTable title="Cash Desk Chips Opener" data={openingChips} total={totals.opener} />
         <DenomTable title="Opening Chips Diff" data={openingDiff} total={totals.diff} signed />
@@ -102,14 +113,12 @@ const ChipMovementReport = ({
       </div>
 
       {/* Closing row: Float Credit | Miss | Close */}
-      <p className="font-semibold border-b border-black mt-3 mb-2">Chips Closing Report</p>
+      <p className="font-semibold border-b border-black mt-3 mb-2 text-[13px]">Chips Closing Report</p>
       <div className="grid grid-cols-3 gap-4">
         <DenomTable title="Cash Desk Float Credit" data={creditByDenom} total={totals.credit} />
         <DenomTable title="Miss Chips" data={missPerDenom} total={totals.miss} signed />
         <DenomTable title="Cash Desk Chips Close" data={closingChips} total={totals.close} />
       </div>
-      {/* Signatures intentionally omitted — they already appear on page 1
-          (ShiftClosingReport). Repeating them here pushes content to page 3. */}
     </div>
   );
 };
