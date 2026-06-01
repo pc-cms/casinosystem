@@ -29,7 +29,7 @@ export type SlotsTransferRow = {
 };
 
 export const SLOTS_TRANSFER_LABEL: Record<SlotsTransferType, string> = {
-  fill: "Ace Fill",
+  fill: "Add Float",
   collection: "Collect",
   lg_in: "Cage LG IN",
   lg_out: "Cage LG OUT",

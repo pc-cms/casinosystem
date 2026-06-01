@@ -1,47 +1,45 @@
-# Fix: восстановить формулу Cash Desk Result для Slots
+# Daily Totals cleanup + Slots transfer rename
 
-## Что произошло
+Pure frontend changes. Backend / formulas / version bump — не трогаем. ACE Fills и Slots Result в закрытии Slots остаются как есть (manual input, не участвует ни в одной формуле кроме `Slots Result = System − ACE Fills`).
 
-В миграции `20260601173505` при добавлении `ace_fills` я случайно переписал саму формулу `cash_desk_result` в `compute_slots_shift_balance_from_row`:
+## 1. `src/pages/ClosingsPage.tsx` — Daily Totals
 
-**Было (канон, мигр. 20260601140421 + `src/lib/cage-balance.ts`):**
-```
-CDR = ClosingCash + Expenses − AddFloat + Collection
-    + LG_Out − LG_In + TipsCdPayout
-```
+**Убрать колонку `System Shift Result`:**
+- Удалить `<SortTh label="System Shift Result" …/>` из `<thead>`.
+- Удалить соответствующую `<td>` с `r.systemShiftResult`.
+- Убрать `"systemShiftResult"` из `TotalSortKey`.
+- Очистить из агрегации: поле `systemShiftResult` в `row()`, накопление `r.systemShiftResult += …`, выборку `system_shift_result` в `cage_slots_shifts` select.
+- Поменять `colSpan={8}` → `colSpan={7}` в loading/empty строках.
 
-**Стало (сломано):**
-```
-CDR = ΔCash + Expenses + Collection − AddFloat
-    + LG_Out − LG_In + CashlessOut − CashlessIn
-```
+**Починить Drop Tables:**
+- Сейчас агрегируется `transactions.type = 'buy'`, но в проекте используется `'in'` (live game buy-in). Заменить:
+  ```ts
+  .eq("type", "buy")  →  .eq("type", "in")
+  ```
+- Это вернёт реальные данные в колонку Drop Tables (сейчас 0 / пусто).
 
-Три ошибки:
-1. `closing_cash` → `delta_cash` ⇒ баланс уехал ровно на `opening_cash` (это и есть «+1M от открытия», который виден в отчёте).
-2. Удалён `tips_cd_payout` — выплаты типов перестали возвращаться в CDR, баланс уезжает на сумму выплат.
-3. Добавлены `cashless_in/out` — их по канону в CDR нет (cashless — отдельный информативный блок).
+## 2. Slots Cage transfers — переименовать "Ace Fill" → "Add Float"
 
-Видно на скрине: `Balance ≈ −1M` стабильно почти на каждой смене — это именно `−opening_cash`.
+Тип `fill` в `cage_slots_transfers` остаётся как есть в БД (никаких миграций), меняется только UI-лейбл.
 
-## Что чиню
+- **`src/hooks/use-cage-slots-transfers.ts`** строка 32:  
+  `fill: "Ace Fill"` → `fill: "Add Float"`
+- **`src/components/cage-slots/SlotsTransfersForm.tsx`** строка 25:  
+  `label: "Ace Fill"` → `label: "Add Float"`  
+  description оставить либо обновить на нейтральное "Cash IN from manager safe to slots cage".
 
-Один новый миграционный файл, который:
+## 3. Закрытие Slots — без изменений
 
-1. Переписывает `compute_slots_shift_balance_from_row` так, чтобы:
-   - CDR-формула вернулась к канону (`closing_cash + expenses − add_float + collection + lg_out − lg_in + tips_cd_payout`).
-   - При этом сохраняются добавленные поля `ace_fills` и `slots_result = system_result − ace_fills` (это единственная новая логика, которая нужна).
-   - Подтягиваю `v_tips_cd_payout_day/_evening` из `cage_slots_tips_cd_payouts` как было раньше.
-   - JSON-выхлоп содержит и старые ключи (`tips_cd_payout`, `cashless_balance`, `cashless_final`, `slots_result_derived`), и новый `ace_fills`, чтобы ничего во фронте не отвалилось.
-2. Триггеры `trg_persist_slots_shift_balance` и `trg_cs_recompute_self` оставляю как сейчас (они корректно слушают `ace_fills`, просто пересчитывают через исправленную функцию).
-3. Бэкфилл: пройтись по всем `cage_slots_shifts` и пересчитать `cash_desk_result`, `balance`, `slots_result`, `cards_miss`, `actual_cage_result`, `difference_amount` исправленной формулой — это лечит уже сохранённые «сломанные» числа в Closings/истории/отчётах.
+Поля `ACE Fills (TZS)` и `Slots Result (TZS)` в `ActiveSlotsShiftView.tsx` уже работают как требовалось:
+- ACE Fills — manual numeric input в той же секции закрытия.
+- Slots Result = `system_shift_result − ace_fills` — информативная метрика, пишется в `cage_slots_shifts.slots_result`, не участвует в Cash Desk / Balance / Cards Miss.
 
-## Что НЕ трогаю
+Ничего здесь не трогаем.
 
-- `src/lib/cage-balance.ts` (фронтовый канон) — уже правильный.
-- UI шага закрытия и Closings — формулы там корректные, проблема чисто в БД.
-- `package.json` — патч-bump (бэкенд-изменение).
+## Files
 
-## Файлы
+- `src/pages/ClosingsPage.tsx` — удаление колонки + фикс типа транзакции
+- `src/hooks/use-cage-slots-transfers.ts` — лейбл
+- `src/components/cage-slots/SlotsTransfersForm.tsx` — лейбл
 
-- `supabase/migrations/<new>.sql` — fix функции + бэкфилл.
-- `package.json` — bump.
+Бэкенд (миграции, RPC, триггеры) не меняется → `package.json` НЕ бампается.
