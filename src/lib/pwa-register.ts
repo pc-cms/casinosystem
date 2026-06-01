@@ -158,19 +158,54 @@ export async function setupPWA() {
 }
 
 /**
- * Manually clear all SW caches and reload. Used by Admin "Reset cache" button.
+ * Manually clear all SW caches and reload. Used by Admin "Force update" button.
+ *
+ * Implementation notes (why it's not just caches.delete + reload):
+ *  - `location.reload()` may be intercepted by an SW that's still controlling
+ *    the page (unregister completes only when all clients unload). On iOS
+ *    Safari + Chrome Android this means the next page is served from the
+ *    OLD precache, version doesn't change, force update appears broken.
+ *  - We also bump `cms:app-version` to the current value so the in-app
+ *    versionBuster in main.tsx doesn't trigger a SECOND nuke+reload right
+ *    after this one (which compounds the white-screen wait).
+ *  - We navigate with a cache-busting query string via `location.replace`
+ *    to force a brand-new HTML fetch from the server, bypassing both HTTP
+ *    cache and any lingering SW controller.
  */
 export async function resetPWACache(): Promise<void> {
   try {
-    const cacheNames = await caches.keys();
-    await Promise.all(cacheNames.map((n) => caches.delete(n)));
-    const regs = await navigator.serviceWorker?.getRegistrations?.();
+    // 1) Wipe every Cache Storage bucket
+    const cacheNames = await caches.keys().catch(() => [] as string[]);
+    await Promise.all(cacheNames.map((n) => caches.delete(n).catch(() => false)));
+
+    // 2) Unregister every service worker on this origin
+    const regs = await navigator.serviceWorker?.getRegistrations?.().catch(() => []);
     if (regs) {
-      await Promise.all(regs.map((r) => r.unregister()));
+      await Promise.all(regs.map((r) => r.unregister().catch(() => false)));
     }
+
+    // 3) Sync the version-buster key so main.tsx doesn't loop another reload
+    try {
+      // @ts-expect-error injected by Vite define()
+      const v = typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "";
+      if (v) localStorage.setItem("cms:app-version", v);
+    } catch { /* ignore */ }
+
+    // 4) Drop stale persisted react-query cache that might reference old chunks
+    try {
+      localStorage.removeItem("REACT_QUERY_OFFLINE_CACHE");
+    } catch { /* ignore */ }
   } catch (e) {
     console.warn("[PWA] reset failed:", e);
   } finally {
-    window.location.reload();
+    // 5) Hard navigation with cache-buster — bypasses HTTP cache AND any SW
+    //    controller that's still claiming this page. `replace` keeps history clean.
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set("_cb", Date.now().toString(36));
+      window.location.replace(url.toString());
+    } catch {
+      window.location.reload();
+    }
   }
 }
