@@ -238,19 +238,32 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
 
   return (
     <div>
-      <PageHeader
-        icon={Receipt}
-        title="Expenses"
-        subtitle={`Immutable · ${analytics.filtered.length} of ${expenses.length} records · ${analytics.pendingCount} pending`}
-        date
-      />
+      {!embedded && (
+        <PageHeader
+          icon={Receipt}
+          title="Expenses"
+          subtitle={`Immutable · ${analytics.filtered.length} of ${expenses.length} records · ${analytics.pendingCount} pending`}
+          date
+        />
+      )}
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-        <div className="cms-panel p-3">
+        <button
+          type="button"
+          onClick={() => {
+            // Reset to All sources + all categories/targets/statuses (keep date range).
+            setSource(sourceLocked ? roleDefaultSource : "all");
+            setCategory("all");
+            setTarget("all");
+            setStatus("all");
+          }}
+          className="cms-panel p-3 text-left transition hover:bg-muted/40"
+          title="Show all sources"
+        >
           <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Total</p>
           <p className="font-mono text-lg font-bold text-card-foreground">{formatCurrency(analytics.totalAmount)}</p>
-        </div>
+        </button>
         <div className="cms-panel p-3">
           <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Approved</p>
           <p className="font-mono text-lg font-bold cms-amount-positive">{formatCurrency(analytics.approvedAmount)}</p>
