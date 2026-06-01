@@ -50,7 +50,7 @@ const SlotsTipsCdPage = () => {
     if (!shiftId) return;
     const amt = Number(amount) || 0;
     if (amt <= 0) return;
-    await create.mutateAsync({ shift_id: shiftId, amount: amt, note });
+    await create.mutateAsync({ shift_id: shiftId, amount: amt, bucket: addToBucket, note });
     setAmount("");
     setNote("");
   };
