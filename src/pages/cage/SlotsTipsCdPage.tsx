@@ -31,7 +31,7 @@ const SlotsTipsCdPage = () => {
   const create = useCreateSlotsTipsCd();
   const [amount, setAmount] = useState<string>("");
   const [note, setNote] = useState<string>("");
-  const [addToBucket, setAddToBucket] = useState<TipsBucket>(() => tipsBucketOf(new Date().toISOString()));
+  const [addToBucket, setAddToBucket] = useState<TipsBucket>("day");
   const [payoutBucket, setPayoutBucket] = useState<TipsBucket | null>(null);
 
   useEffect(() => {
