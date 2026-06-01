@@ -93,13 +93,36 @@ const ClosingsPage = () => {
   const tab = (sp.get("tab") as TabKey) || "total";
   const setTab = (t: TabKey) => { sp.set("tab", t); setSp(sp, { replace: true }); };
 
+  const today = useMemo(() => new Date(), []);
+  const [monthAnchor, setMonthAnchor] = useState<Date>(startOfMonth(today));
+  const monthLabel = format(monthAnchor, "MMMM yyyy");
+  const goPrev = () => setMonthAnchor((d) => startOfMonth(subMonths(d, 1)));
+  const goNext = () => setMonthAnchor((d) => startOfMonth(addMonths(d, 1)));
+  const goCurrent = () => setMonthAnchor(startOfMonth(today));
+  const nextDisabled = monthAnchor >= startOfMonth(today);
+
+  const showMonthNav = tab !== "expenses";
+
   return (
     <PageShell>
       <PageHeader
         icon={BarChart3}
         title="Closings"
-        subtitle="Per-day totals and printable shift reports"
+        subtitle={showMonthNav ? `Per-day totals and printable shift reports · ${monthLabel}` : "Per-day totals and printable shift reports"}
         date
+        centerSlot={showMonthNav ? (
+          <div className="flex items-center gap-1">
+            <Button variant="outline" size="icon" className="h-8 w-8" onClick={goPrev}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button variant="outline" size="sm" className="h-8 font-mono min-w-[140px]" onClick={goCurrent}>
+              {monthLabel}
+            </Button>
+            <Button variant="outline" size="icon" className="h-8 w-8" onClick={goNext} disabled={nextDisabled}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        ) : undefined}
       />
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as TabKey)} className="space-y-4">
@@ -110,9 +133,9 @@ const ClosingsPage = () => {
           <TabsTrigger value="expenses" className="gap-1.5"><Receipt className="w-3.5 h-3.5" /> Expenses</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="total"><TotalTab /></TabsContent>
-        <TabsContent value="live"><LiveTab /></TabsContent>
-        <TabsContent value="slots"><SlotsTab /></TabsContent>
+        <TabsContent value="total"><TotalTab monthAnchor={monthAnchor} /></TabsContent>
+        <TabsContent value="live"><LiveTab monthAnchor={monthAnchor} /></TabsContent>
+        <TabsContent value="slots"><SlotsTab monthAnchor={monthAnchor} /></TabsContent>
         <TabsContent value="expenses"><ExpensesTab /></TabsContent>
       </Tabs>
     </PageShell>
