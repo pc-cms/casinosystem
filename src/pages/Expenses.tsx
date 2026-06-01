@@ -475,136 +475,160 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
         </div>
       )}
 
-      {/* Entry table — every OK adds a fresh row */}
-      <div className="cms-panel overflow-visible mb-6">
-        <div className="px-4 py-2 border-b border-border flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-card-foreground">New entries</h3>
-          <Button size="sm" variant="outline" onClick={() => setDrafts((d) => [...d, newDraft(roleDefaultSource)])} className="h-8 gap-1.5">
-            <Plus className="w-3.5 h-3.5" /> Row
-          </Button>
+      {/* Entry table — every OK adds a fresh row (hidden in embedded/read-only mode) */}
+      {!embedded && (
+        <div className="cms-panel overflow-visible mb-6">
+          <div className="px-4 py-2 border-b border-border flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-card-foreground">New entries</h3>
+            <Button size="sm" variant="outline" onClick={() => setDrafts((d) => [...d, newDraft(roleDefaultSource)])} className="h-8 gap-1.5">
+              <Plus className="w-3.5 h-3.5" /> Row
+            </Button>
+          </div>
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-border text-[10px] uppercase tracking-wider text-muted-foreground">
+                {isManagerView && <th className="text-left px-3 py-2 w-[110px]">Source</th>}
+                <th className="text-left px-3 py-2">Target</th>
+                <th className="text-left px-3 py-2">Player</th>
+                <th className="text-left px-3 py-2">Category</th>
+                <th className="text-right px-3 py-2">Amount (TZS)</th>
+                <th className="text-left px-3 py-2">Description</th>
+                <th className="text-center px-3 py-2 w-[140px]">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {drafts.map((d) => (
+                <DraftRowView
+                  key={d.uid}
+                  draft={d}
+                  isManagerView={isManagerView}
+                  liveShift={liveShift}
+                  slotsShift={slotsShift}
+                  onChange={(patch) => updateDraft(d.uid, patch)}
+                  onRemove={() => removeDraft(d.uid)}
+                  onSubmit={() => submitDraft(d.uid)}
+                  canRemove={drafts.length > 1}
+                  isPending={create.isPending || createSlots.isPending || createOffice.isPending}
+                />
+              ))}
+            </tbody>
+          </table>
         </div>
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-border text-[10px] uppercase tracking-wider text-muted-foreground">
-              {isManagerView && <th className="text-left px-3 py-2 w-[110px]">Source</th>}
-              <th className="text-left px-3 py-2">Target</th>
-              <th className="text-left px-3 py-2">Player</th>
-              <th className="text-left px-3 py-2">Category</th>
-              <th className="text-right px-3 py-2">Amount (TZS)</th>
-              <th className="text-left px-3 py-2">Description</th>
-              <th className="text-center px-3 py-2 w-[140px]">Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {drafts.map((d) => (
-              <DraftRowView
-                key={d.uid}
-                draft={d}
-                isManagerView={isManagerView}
-                liveShift={liveShift}
-                slotsShift={slotsShift}
-                onChange={(patch) => updateDraft(d.uid, patch)}
-                onRemove={() => removeDraft(d.uid)}
-                onSubmit={() => submitDraft(d.uid)}
-                canRemove={drafts.length > 1}
-                isPending={create.isPending || createSlots.isPending || createOffice.isPending}
-              />
-            ))}
-          </tbody>
-        </table>
-      </div>
+      )}
 
-      {/* History */}
-      <div className="cms-panel overflow-hidden">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-border text-[10px] uppercase tracking-wider text-muted-foreground">
-              <th className="text-left px-3 py-2">Date</th>
-              <th className="text-left px-3 py-2">Time</th>
-              <th className="text-left px-3 py-2">Source</th>
-              <th className="text-left px-3 py-2">Category</th>
-              <th className="text-left px-3 py-2">Target / Player</th>
-              <th className="text-right px-3 py-2">Amount</th>
-              <th className="text-left px-3 py-2">Description</th>
-              <th className="text-center px-3 py-2">Status</th>
-              <th className="text-center px-3 py-2">Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {analytics.filtered.length === 0 ? (
-              <tr><td colSpan={9} className="text-center text-muted-foreground text-sm py-8">No expenses match the filters</td></tr>
-            ) : analytics.filtered.map((exp: any) => {
-              const playerName = exp.players
-                ? `${exp.players.first_name} ${exp.players.last_name}`
-                : exp.player_name || "Casino";
-              const src = resolveSource(exp);
-              const catLabel = exp.category_code || exp.category;
-              return (
-                <tr key={exp.id} className="border-b border-border last:border-0">
-                  <td className="px-3 py-2 text-xs font-mono text-muted-foreground">
-                    {fmtDateOnly(exp.created_at)}
-                  </td>
-                  <td className="px-3 py-2 text-xs font-mono text-muted-foreground">
-                    {new Date(exp.created_at).toLocaleTimeString("en-GB", { timeZone: "Africa/Dar_es_Salaam", hour: "2-digit", minute: "2-digit" })}
-                  </td>
-                  <td className="px-3 py-2">
-                    <span className={`text-[10px] font-mono uppercase px-1.5 py-0.5 rounded ${SRC_COLORS[src]}`}>
-                      {SRC_LABEL[src]}
-                    </span>
-                  </td>
-                  <td className="px-3 py-2">
-                    <span className={`text-[10px] font-mono uppercase px-1.5 py-0.5 rounded ${CAT_COLORS[exp.category] || CAT_COLORS.other}`}>
-                      {catLabel}
-                    </span>
-                  </td>
-                  <td className="px-3 py-2 text-sm">
-                    {exp.player_id ? (
-                      <Link
-                        to={`/players/${exp.player_id}`}
-                        className="text-primary hover:underline inline-flex items-center gap-1"
-                      >
-                        {playerName}
-                        <ExternalLink className="w-3 h-3 opacity-60" />
-                      </Link>
-                    ) : (
-                      <span className="text-muted-foreground">{playerName}</span>
-                    )}
-                  </td>
-                  <td className="px-3 py-2 text-right font-mono text-sm cms-amount-negative">
-                    {formatCurrency(Number(exp.amount))}
-                  </td>
-                  <td className="px-3 py-2 text-xs text-muted-foreground">{exp.description || "—"}</td>
-                  <td className="px-3 py-2 text-center">
-                    {exp.approved ? (
-                      <span className="cms-status-active text-xs"><CheckCircle className="w-3 h-3 inline mr-0.5" /> Approved</span>
-                    ) : (
-                      <Badge variant="secondary" className="text-[10px]">Pending</Badge>
-                    )}
-                  </td>
-                  <td className="px-3 py-2 text-center">
-                    <div className="inline-flex gap-1">
-                      {!exp.approved && isManager && (
-                        <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => approve.mutate(exp.id)} disabled={approve.isPending}>Approve</Button>
-                      )}
-                      {!exp.approved && exp.category !== "bar_charge" && src !== "office" && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
-                          onClick={() => del.mutate({ id: exp.id, amount: Number(exp.amount), category: exp.category })}
-                          title="Cancel expense"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </Button>
-                      )}
-                    </div>
-                  </td>
+      {/* History — sortable */}
+      {(() => {
+        const sortedExpenses = [...analytics.filtered].sort((a: any, b: any) => {
+          const dir = sort.dir === "asc" ? 1 : -1;
+          const get = (e: any): string | number => {
+            switch (sort.key) {
+              case "date":     return e.created_at;
+              case "source":   return resolveSource(e);
+              case "category": return e.category || "";
+              case "target":   return e.players ? `${e.players.first_name} ${e.players.last_name}` : (e.player_name || "Casino");
+              case "amount":   return Number(e.amount || 0);
+              case "status":   return e.approved ? "approved" : "pending";
+            }
+          };
+          const va = get(a); const vb = get(b);
+          if (typeof va === "number" && typeof vb === "number") return (va - vb) * dir;
+          return String(va).localeCompare(String(vb)) * dir;
+        });
+        return (
+          <div className="cms-panel overflow-hidden">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-border text-[10px] uppercase tracking-wider text-muted-foreground">
+                  <th className="text-left px-3 py-2 cursor-pointer select-none" onClick={() => toggleSort("date")}>Date{sortArrow("date")}</th>
+                  <th className="text-left px-3 py-2">Time</th>
+                  <th className="text-left px-3 py-2 cursor-pointer select-none" onClick={() => toggleSort("source")}>Source{sortArrow("source")}</th>
+                  <th className="text-left px-3 py-2 cursor-pointer select-none" onClick={() => toggleSort("category")}>Category{sortArrow("category")}</th>
+                  <th className="text-left px-3 py-2 cursor-pointer select-none" onClick={() => toggleSort("target")}>Target / Player{sortArrow("target")}</th>
+                  <th className="text-right px-3 py-2 cursor-pointer select-none" onClick={() => toggleSort("amount")}>Amount{sortArrow("amount")}</th>
+                  <th className="text-left px-3 py-2">Description</th>
+                  <th className="text-center px-3 py-2 cursor-pointer select-none" onClick={() => toggleSort("status")}>Status{sortArrow("status")}</th>
+                  {!embedded && <th className="text-center px-3 py-2">Action</th>}
                 </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+              </thead>
+              <tbody>
+                {sortedExpenses.length === 0 ? (
+                  <tr><td colSpan={embedded ? 8 : 9} className="text-center text-muted-foreground text-sm py-8">No expenses match the filters</td></tr>
+                ) : sortedExpenses.map((exp: any) => {
+                  const playerName = exp.players
+                    ? `${exp.players.first_name} ${exp.players.last_name}`
+                    : exp.player_name || "Casino";
+                  const src = resolveSource(exp);
+                  const catLabel = exp.category_code || exp.category;
+                  return (
+                    <tr key={exp.id} className="border-b border-border last:border-0">
+                      <td className="px-3 py-2 text-xs font-mono text-muted-foreground">
+                        {fmtDateOnly(exp.created_at)}
+                      </td>
+                      <td className="px-3 py-2 text-xs font-mono text-muted-foreground">
+                        {new Date(exp.created_at).toLocaleTimeString("en-GB", { timeZone: "Africa/Dar_es_Salaam", hour: "2-digit", minute: "2-digit" })}
+                      </td>
+                      <td className="px-3 py-2">
+                        <span className={`text-[10px] font-mono uppercase px-1.5 py-0.5 rounded ${SRC_COLORS[src]}`}>
+                          {SRC_LABEL[src]}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2">
+                        <span className={`text-[10px] font-mono uppercase px-1.5 py-0.5 rounded ${CAT_COLORS[exp.category] || CAT_COLORS.other}`}>
+                          {catLabel}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2 text-sm">
+                        {exp.player_id ? (
+                          <Link
+                            to={`/players/${exp.player_id}`}
+                            className="text-primary hover:underline inline-flex items-center gap-1"
+                          >
+                            {playerName}
+                            <ExternalLink className="w-3 h-3 opacity-60" />
+                          </Link>
+                        ) : (
+                          <span className="text-muted-foreground">{playerName}</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2 text-right font-mono text-sm cms-amount-negative">
+                        {formatCurrency(Number(exp.amount))}
+                      </td>
+                      <td className="px-3 py-2 text-xs text-muted-foreground">{exp.description || "—"}</td>
+                      <td className="px-3 py-2 text-center">
+                        {exp.approved ? (
+                          <span className="cms-status-active text-xs"><CheckCircle className="w-3 h-3 inline mr-0.5" /> Approved</span>
+                        ) : (
+                          <Badge variant="secondary" className="text-[10px]">Pending</Badge>
+                        )}
+                      </td>
+                      {!embedded && (
+                        <td className="px-3 py-2 text-center">
+                          <div className="inline-flex gap-1">
+                            {!exp.approved && isManager && (
+                              <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => approve.mutate(exp.id)} disabled={approve.isPending}>Approve</Button>
+                            )}
+                            {!exp.approved && exp.category !== "bar_charge" && src !== "office" && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                onClick={() => del.mutate({ id: exp.id, amount: Number(exp.amount), category: exp.category })}
+                                title="Cancel expense"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </Button>
+                            )}
+                          </div>
+                        </td>
+                      )}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        );
+      })()}
     </div>
   );
 };
