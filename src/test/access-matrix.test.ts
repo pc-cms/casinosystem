@@ -36,7 +36,7 @@ const FLOOR_MANAGER_ALLOWED: ReadonlySet<ModuleKey> = new Set<ModuleKey>([
   "pit_breaklist",
   "pit_dealers",
   "pit_rota",
-  "pitbook",
+  "closings",
   "players",
   "reception",
   "reports",
