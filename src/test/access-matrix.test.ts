@@ -40,7 +40,7 @@ const FLOOR_MANAGER_ALLOWED: ReadonlySet<ModuleKey> = new Set<ModuleKey>([
   "players",
   "reception",
   "reports",
-  "staff",
+  "groups",
   "staff_attendance",
   "staff_employees",
   "staff_rota",
