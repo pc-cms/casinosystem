@@ -872,42 +872,56 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
               <Badge variant="outline" className="text-[10px]">REVIEW BEFORE SUBMIT</Badge>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
-              <Stat label="Opening Cash" value={openingCashTzs} />
-              <Stat label="Closing Cash" value={closingCashTzs} />
-              <Stat label="ΔCash" value={deltaCash} signed />
-              <Stat label="Cash Desk Result" value={cashDeskResult} signed emphasize />
-              <Stat label="System Result" value={systemResult} signed />
-              <Stat label="Slots Result" value={slotsResult} signed />
-              <Stat label="Cards Miss" value={cardsMiss} signed />
-              <Stat label="Cashless IN" value={cashlessInManualTzs} />
-              <Stat label="Cashless OUT" value={cashlessOutManualTzs} />
-              <Stat label="Cashless Balance (IN−OUT)" value={cashlessBalance} signed />
-              <Stat label="Cashless Final (print only)" value={cashlessFinal} />
+            {/* Cash on Hand — 5 clean columns */}
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-bold mb-2">Cash on Hand (Closing)</p>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+                <BigTile label="TZS Cash" value={closingTzsTotal} />
+                <BigTile label="Foreign Cash" value={closingFxTzs} />
+                <BigTile label="Banks" value={bankTotalTzs(closingBanks, rateMap)} />
+                <BigTile label="Mobile Money" value={mobileMoneyTzs} signed />
+                <BigTile label="Total Closing Cash" value={closingCashTzs} emphasize />
+              </div>
             </div>
 
-            <div className="rounded-md border border-primary/40 bg-primary/5 p-3">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] uppercase text-muted-foreground tracking-wider">Shift Balance = CDR − (System − Opening) − Cards Miss + Tips CD</span>
-                <span className={`font-mono font-bold text-lg ${shiftBalance < 0 ? "cms-amount-negative" : shiftBalance > 0 ? "cms-amount-positive" : ""}`}>
-                  {shiftBalance > 0 ? "+" : ""}{formatNumberSpaces(shiftBalance)}
-                </span>
+            {/* Shift Result — one row, no duplicates */}
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-bold mb-2">Shift Result</p>
+              <div className={`grid grid-cols-2 ${tipsCdTotal > 0 ? "md:grid-cols-6" : "md:grid-cols-5"} gap-2`}>
+                <BigTile label="Opening Cash" value={openingCashTzs} />
+                <BigTile label="Closing Cash" value={closingCashTzs} />
+                <BigTile label="System Result" value={systemResult} signed />
+                <BigTile label="Cash Desk Result" value={cashDeskResult} signed />
+                <BigTile label="Cards Miss" value={cardsMiss} signed />
+                {tipsCdTotal > 0 && <BigTile label="Tips CD (−)" value={-tipsCdTotal} signed />}
               </div>
-              {Math.abs(shiftBalance) > 0 && (
-                <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1">
-                  Non-zero balance — manager will need to approve with a comment.
-                </p>
-              )}
             </div>
 
-            <div className="grid grid-cols-2 gap-3 text-xs">
+            {/* Shift Balance — big number, no formula */}
+            <div className="rounded-lg border-2 border-primary/50 bg-primary/5 p-5 flex items-center justify-between">
+              <span className="text-sm uppercase text-foreground tracking-[0.18em] font-bold">Shift Balance</span>
+              <span className={`font-mono font-extrabold text-5xl tabular-nums ${shiftBalance < 0 ? "cms-amount-negative" : shiftBalance > 0 ? "cms-amount-positive" : "text-emerald-500"}`}>
+                {shiftBalance === 0 ? "0" : `${shiftBalance > 0 ? "+" : ""}${formatNumberSpaces(shiftBalance)}`}
+              </span>
+            </div>
+            {Math.abs(shiftBalance) > 0 && (
+              <p className="text-[11px] text-amber-600 dark:text-amber-400 -mt-2">
+                Non-zero balance — manager will need to approve with a comment.
+              </p>
+            )}
+
+            <div className="grid grid-cols-3 gap-2 text-xs">
               <div className="rounded-md border border-border p-2">
-                <p className="text-[10px] uppercase text-muted-foreground tracking-wider mb-1">Cards</p>
-                <p className="font-mono">Open: {cards?.opening_card_count ?? 0} · Close: {closingCards}</p>
+                <p className="text-[10px] uppercase text-muted-foreground tracking-wider mb-1">Cashless IN / OUT</p>
+                <p className="font-mono">{formatNumberSpaces(cashlessInManualTzs)} / {formatNumberSpaces(cashlessOutManualTzs)}</p>
               </div>
               <div className="rounded-md border border-border p-2">
-                <p className="text-[10px] uppercase text-muted-foreground tracking-wider mb-1">Cashless / Expenses</p>
-                <p className="font-mono">{cashless.length} cashless · {slotsExpenses.length} expenses</p>
+                <p className="text-[10px] uppercase text-muted-foreground tracking-wider mb-1">Cashless Final (print only)</p>
+                <p className="font-mono">{formatNumberSpaces(cashlessFinal)}</p>
+              </div>
+              <div className="rounded-md border border-border p-2">
+                <p className="text-[10px] uppercase text-muted-foreground tracking-wider mb-1">Cards Open · Close</p>
+                <p className="font-mono">{cards?.opening_card_count ?? 0} · {closingCards}</p>
               </div>
             </div>
 
