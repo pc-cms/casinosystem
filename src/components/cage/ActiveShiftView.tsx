@@ -656,7 +656,8 @@ const CashCheckForm = ({ expectedBalance, shiftId, exchangeRates, cashChecks, bu
       <div className="cms-panel p-4">
         <CashCountGrid chips={chipCounts} onChipsChange={setChipCounts} cash={cash}
           onCashChange={(cur, v) => setCash(c => ({ ...c, [cur]: v }))} banks={bankBal} onBanksChange={setBankBal}
-          mobile={mobileBal} onMobileChange={setMobileBal} rates={exchangeRates} />
+          mobile={mobileBal} onMobileChange={setMobileBal} rates={exchangeRates}
+          mobileSuggestion={cashlessSug?.net} />
 
         <div className="grid grid-cols-3 gap-2 pt-3 mt-3 border-t border-border">
           <div className="text-center"><p className="text-[10px] uppercase tracking-wider text-muted-foreground">Expected</p><p className="font-mono text-xl font-bold text-card-foreground">{formatCurrency(expectedBalance)}</p></div>
