@@ -109,10 +109,9 @@ const GATED_ROUTES = [
   "/table-results",
   "/bank-checks",
   "/miss-chips",
-  "/business-days",
   "/tips-and-bonuses",
-  "/pitbook",
   "/incidents",
+  "/cancelled-transactions",
 ];
 
 const VALID_KEYS = new Set(MODULES.map(m => m.key));
