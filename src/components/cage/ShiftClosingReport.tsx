@@ -446,17 +446,25 @@ const ShiftClosingReport = ({
           ? PROV.reduce((s, p) => s + Number((totBalRaw as any)?.[finalProvKey(p.key)] || 0), 0)
           : null;
         return (
-          <table className="w-full border-collapse mb-1 tabular-nums">
+          <table className="w-full border-collapse mb-1 tabular-nums" style={{ tableLayout: "fixed" }}>
+            <colgroup>
+              <col style={{ width: "24%" }} />
+              <col style={{ width: "19%" }} />
+              <col style={{ width: "19%" }} />
+              <col style={{ width: "19%" }} />
+              <col style={{ width: "19%" }} />
+            </colgroup>
             <thead>
               <tr><th colSpan={5} className="border border-black bg-gray-200 px-1.5 py-0.5 text-left">Cash Less Shift Transactions</th></tr>
               <tr className="bg-gray-100">
-                <th className="border border-black px-1.5 py-0.5 text-left w-1/3">Provider</th>
+                <th className="border border-black px-1.5 py-0.5 text-left">Provider</th>
                 <th className="border border-black px-1.5 py-0.5 text-right">Deposit (IN)</th>
                 <th className="border border-black px-1.5 py-0.5 text-right">Withdraw (OUT)</th>
                 <th className="border border-black px-1.5 py-0.5 text-right">NET (IN − OUT)</th>
                 <th className="border border-black px-1.5 py-0.5 text-right">Balance</th>
               </tr>
             </thead>
+
             <tbody>
               {PROV.map(p => {
                 const i = Number(cashlessIO.inByProv[p.key]  || 0);
