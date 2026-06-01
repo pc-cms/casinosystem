@@ -107,13 +107,14 @@ const Reports = () => {
 
       <Tabs defaultValue={initialTab} className="space-y-3">
         <TabsList className="flex-wrap">
-          <TabsTrigger value="daily" className="gap-1 text-xs"><CalendarDays className="w-3.5 h-3.5" /> Daily</TabsTrigger>
+          <TabsTrigger value="daily" className="gap-1 text-xs"><CalendarDays className="w-3.5 h-3.5" /> Daily diff</TabsTrigger>
           <TabsTrigger value="shifts" className="gap-1 text-xs"><Landmark className="w-3.5 h-3.5" /> Shifts</TabsTrigger>
           <TabsTrigger value="slots" className="gap-1 text-xs"><Joystick className="w-3.5 h-3.5" /> Slots</TabsTrigger>
           <TabsTrigger value="tables" className="gap-1 text-xs"><Table2 className="w-3.5 h-3.5" /> Tables</TabsTrigger>
           <TabsTrigger value="players" className="gap-1 text-xs"><Users className="w-3.5 h-3.5" /> Players</TabsTrigger>
           <TabsTrigger value="groups" className="gap-1 text-xs"><UsersRound className="w-3.5 h-3.5" /> Groups</TabsTrigger>
           <TabsTrigger value="expenses" className="gap-1 text-xs"><Receipt className="w-3.5 h-3.5" /> Expenses</TabsTrigger>
+          <TabsTrigger value="cashless" className="gap-1 text-xs"><CreditCard className="w-3.5 h-3.5" /> Cashless</TabsTrigger>
           <TabsTrigger value="miss-chips" className="gap-1 text-xs"><Coins className="w-3.5 h-3.5" /> Miss Chips</TabsTrigger>
         </TabsList>
 
@@ -128,6 +129,7 @@ const Reports = () => {
         <TabsContent value="players"><PlayerReport from={from} to={to} /></TabsContent>
         <TabsContent value="groups"><GroupReport from={from} to={to} /></TabsContent>
         <TabsContent value="expenses"><Expenses embedded /></TabsContent>
+        <TabsContent value="cashless"><CashlessReport from={from} to={to} /></TabsContent>
         <TabsContent value="miss-chips"><MissChips /></TabsContent>
       </Tabs>
     </div>
