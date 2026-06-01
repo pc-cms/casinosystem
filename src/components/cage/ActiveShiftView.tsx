@@ -1,6 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { toast } from "sonner";
 import { useTransactions, useExpenses, useCreateTransaction } from "@/hooks/use-casino-data";
+import { useCashlessSuggestions } from "@/hooks/use-cashless";
 import { useCreateCashCount, useCashCounts } from "@/hooks/use-shift";
 import { useChipBaseline, useCloseAllTables, baselineToMap } from "@/hooks/use-table-lifecycle";
 import { getBusinessDate } from "@/lib/business-day";
