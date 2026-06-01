@@ -488,9 +488,19 @@ const LiveTab = ({ monthAnchor }: { monthAnchor: Date }) => {
 // ============================================================
 type SlotsSortKey = "date" | "slotsResult" | "cdr" | "balance";
 
-const SlotsTab = () => {
-  const { data: shiftsRaw = [], isLoading } = useCageSlotsHistory(120);
-  const shifts = useMemo(() => shiftsRaw.filter((s: any) => s.status === "closed"), [shiftsRaw]);
+const SlotsTab = ({ monthAnchor }: { monthAnchor: Date }) => {
+  const { data: shiftsRaw = [], isLoading } = useCageSlotsHistory(500);
+  const monthStartStr = format(startOfMonth(monthAnchor), "yyyy-MM-dd");
+  const monthEndStr = format(startOfMonth(addMonths(monthAnchor, 1)), "yyyy-MM-dd");
+  const monthLabel = format(monthAnchor, "MMMM yyyy");
+  const shifts = useMemo(
+    () => shiftsRaw.filter((s: any) =>
+      s.status === "closed" &&
+      s.business_date >= monthStartStr &&
+      s.business_date < monthEndStr
+    ),
+    [shiftsRaw, monthStartStr, monthEndStr]
+  );
   const [printId, setPrintId] = useState<string | null>(null);
   const sort = useSort<SlotsSortKey>("date", "desc");
 
@@ -509,7 +519,7 @@ const SlotsTab = () => {
 
   return (
     <div className="cms-panel">
-      <div className="cms-header">Slots Closings ({shifts.length})</div>
+      <div className="cms-header">Slots Closings · {monthLabel} ({shifts.length})</div>
       <div className="overflow-x-auto">
         <table className="w-full text-xs">
           <thead className="bg-card">
