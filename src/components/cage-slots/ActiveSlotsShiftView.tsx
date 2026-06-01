@@ -565,7 +565,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
               <FileText className="w-3.5 h-3.5" /> Check
             </Button>
             <Button
-              onClick={() => nav("/cage-slots/tips")}
+              onClick={() => navigate("/cage-slots/tips")}
               size="sm"
               variant="outline"
               className="gap-1.5 h-8 border-pink-500/60 text-pink-600 hover:bg-pink-500/10 dark:text-pink-400"
