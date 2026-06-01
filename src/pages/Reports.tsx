@@ -428,137 +428,49 @@ const GroupReport = ({ from, to }: { from: string; to: string }) => {
 };
 
 
-// =================== DAILY ANALYTICS REPORT ===================
-// Per business-day: Drop (R) / Cash In / Miss Chips / Result / Hold % (R/D) /
-// Player Result / Diff (Result + Player Result).
+// =================== DAILY DIFF REPORT ===================
+// Per business-day reconciliation via DB RPC `compute_daily_diff`.
 //
-// - Drop (R)  = External new money at tables (NEP-split drop_r)
-// - Cash In   = Total cash buy-in at tables = Drop(R) + Drop(V recycled).
-//               Pulled from same RPC as Drop so Cash In ≥ Drop (R) by construction.
-// - Result    = Σ shifts.tables_result (chip-based, canonical)
-// - Miss Chips= Σ shifts.miss_total
-// - Hold %    = Result / Drop(R) * 100  (can be negative — red)
-// - Player Result = Cashout − Cash-In (player tx; positive = player wins)
-// - Diff      = Result + Player Result  (should converge to ~0)
+// Window for Player Result and Drop split: 13:00 EAT → next-day 05:00 EAT
+// (active live-game session window — excludes early-morning cage paperwork).
+// Result comes from canonical `shifts.tables_result` (closed live shifts) bucketed
+// by `business_date_of(opened_at)` (07:00 rollover).
+//
+// - Drop (R)      = External new money at tables (NEP-split drop_r)
+// - Cash In       = Drop (R) + Drop (V recycled)
+// - Result        = Σ shifts.tables_result (chip-based, canonical)
+// - Miss Chips    = Σ shifts.miss_total (informational column only)
+// - Hold %        = Result / Drop (R) × 100
+// - Player Result = Cashout − Cash-in (player tx; positive = player wins)
+// - Diff          = Result + Player Result (should converge to ~0)
 const DailyReport = ({ from, to }: { from: string; to: string }) => {
   const { casinoId } = useAuth();
 
-  // Enumerate business dates in range (inclusive)
-  const dates = useMemo(() => {
-    const out: string[] = [];
-    const start = new Date(`${from}T00:00:00`);
-    const end = new Date(`${to}T00:00:00`);
-    if (isNaN(start.getTime()) || isNaN(end.getTime()) || start > end) return out;
-    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-      out.push(toIsoDate(d));
-    }
-    return out;
-  }, [from, to]);
-
   const { data: rows = [], isLoading } = useQuery({
-    queryKey: ["daily-report", casinoId, from, to],
+    queryKey: ["daily-diff", casinoId, from, to],
     queryFn: async () => {
-      if (!casinoId || dates.length === 0) return [];
-
-      // Window [from 07:00 EAT, to+1 07:00 EAT] in UTC (matches DB business_date_of)
-      const winFrom = businessDayHourUTC(from, 7);
-      const winTo = businessDayHourUTC(to, 31);
-
-      // 1) Shifts (Result + Miss bucketed by opened_at → business date)
-      const { data: shifts, error: sErr } = await supabase
-        .from("shifts")
-        .select("id, opened_at, tables_result, miss_total")
-        .eq("casino_id", casinoId)
-        .gte("opened_at", winFrom)
-        .lt("opened_at", winTo);
-      if (sErr) throw sErr;
-
-      // 2) Player transactions (Cashout / cash-in for Player Result)
-      const { data: txs, error: tErr } = await supabase
-        .from("transactions")
-        .select("type, amount, created_at")
-        .eq("casino_id", casinoId)
-        .in("type", ["buy", "in", "cashout", "out"])
-        .gte("created_at", winFrom)
-        .lt("created_at", winTo);
-      if (tErr) throw tErr;
-
-      // 3) Per-day NEP split (Drop R + Drop V) — one RPC per day in parallel
-      const splits = await Promise.all(
-        dates.map(async (d) => {
-          const f = businessDayHourUTC(d, 7);
-          const t = businessDayHourUTC(d, 31);
-          const { data, error } = await (supabase as any).rpc("compute_tables_drop_split", {
-            _casino_id: casinoId,
-            _from: f,
-            _to: t,
-          });
-          if (error) return { date: d, dropR: 0, dropV: 0 };
-          const dropR = (data || []).reduce((s: number, r: any) => s + Number(r.drop_r || 0), 0);
-          const dropV = (data || []).reduce((s: number, r: any) => s + Number(r.drop_recycled || 0), 0);
-          return { date: d, dropR, dropV };
-        }),
-      );
-      const splitByDate = new Map(splits.map((s) => [s.date, s]));
-
-      const byDate: Record<string, {
-        date: string;
-        cashInTx: number;
-        cashout: number;
-        miss: number;
-        result: number;
-      }> = {};
-      const ensure = (d: string) => {
-        if (!byDate[d]) byDate[d] = { date: d, cashInTx: 0, cashout: 0, miss: 0, result: 0 };
-        return byDate[d];
-      };
-      dates.forEach((d) => ensure(d));
-
-      // Map UTC ISO timestamp → business date (rollover 07:00 EAT = 04:00 UTC)
-      const tsToBusinessDate = (iso: string): string => {
-        const t = new Date(iso).getTime();
-        const eatHours = t / 3600000 + 3;
-        const adj = new Date((eatHours - 7) * 3600000);
-        return adj.toISOString().split("T")[0];
-      };
-
-      (shifts || []).forEach((s: any) => {
-        const d = tsToBusinessDate(s.opened_at);
-        const row = ensure(d);
-        row.result += Number(s.tables_result || 0);
-        row.miss += Number(s.miss_total || 0);
+      if (!casinoId || !from || !to || from > to) return [] as any[];
+      const { data, error } = await (supabase as any).rpc("compute_daily_diff", {
+        _casino_id: casinoId,
+        _from: from,
+        _to: to,
       });
-
-      (txs || []).forEach((t: any) => {
-        const d = tsToBusinessDate(t.created_at);
-        if (!splitByDate.has(d)) return;
-        const row = ensure(d);
-        const amt = Number(t.amount || 0);
-        if (t.type === "buy" || t.type === "in") row.cashInTx += amt;
-        else if (t.type === "cashout" || t.type === "out") row.cashout += amt;
-      });
-
-      return dates.map((d) => {
-        const r = ensure(d);
-        const sp = splitByDate.get(d) || { dropR: 0, dropV: 0 };
-        const cashIn = sp.dropR + sp.dropV; // total cash drop at tables (R + V)
-        const playerResult = r.cashout - r.cashInTx;
-        const hold = sp.dropR !== 0 ? (r.result / sp.dropR) * 100 : null;
-        return {
-          date: d,
-          dropR: sp.dropR,
-          cashIn,
-          miss: r.miss,
-          result: r.result,
-          hold,
-          playerResult,
-          diff: r.result + playerResult - r.miss,
-        };
-      });
+      if (error) throw error;
+      return (data || []).map((r: any) => ({
+        date: r.business_date,
+        dropR: Number(r.drop_r || 0),
+        cashIn: Number(r.cash_in || 0),
+        miss: Number(r.miss || 0),
+        result: Number(r.result || 0),
+        hold: r.hold == null ? null : Number(r.hold),
+        playerResult: Number(r.player_result || 0),
+        diff: Number(r.diff || 0),
+      }));
     },
-    enabled: !!casinoId && dates.length > 0,
+    enabled: !!casinoId,
     staleTime: 30_000,
   });
+
 
   const { sorted, sort, toggle } = useSorted(rows, { key: "date", dir: "desc" });
 
