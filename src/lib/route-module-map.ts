@@ -109,16 +109,17 @@ export const moduleKeyForRoute = (to: string, label?: string): ModuleKey | null 
   // ============= REPORTS =============
   if (base === "/miss-chips") return "miss_chips";
   if (base === "/reports") return "reports";
-  if (base === "/business-days") return "business_days";
+  if (base === "/business-days") return "reports";
   if (base === "/weekly-bonus") return "tips_and_bonuses";
   if (base === "/monthly-tips") return "tips_and_bonuses";
   if (base === "/tips-and-bonuses") return "tips_and_bonuses";
   if (base === "/reports/poker-tips") return "tips_and_bonuses";
   if (base === "/reports/floor-tips") return "tips_and_bonuses";
   if (base === "/hr/warnings") return "hr_warnings";
+  if (base === "/cancelled-transactions") return "cancelled_transactions";
 
   // ============= PIT EXTRAS =============
-  if (base === "/pitbook") return "pitbook";
+  if (base === "/pitbook") return null;
   if (base === "/incidents") return "incidents";
 
   // ============= SYSTEM =============
