@@ -38,7 +38,7 @@ const SlotsTipsCdPage = () => {
     if (!isLoading && !shift) nav("/cage-slots", { replace: true });
   }, [isLoading, shift, nav]);
 
-  const tipsWithBucket = (tips as any[]).map((t) => ({ ...t, bucket: tipsBucketOf(t.created_at) as TipsBucket }));
+  const tipsWithBucket = (tips as any[]).map((t) => ({ ...t, bucket: (t.bucket || "day") as TipsBucket }));
   const inBy = (b: TipsBucket) =>
     tipsWithBucket.filter((t) => t.bucket === b).reduce((s, t) => s + Number(t.amount || 0), 0);
   const payoutBy = (b: TipsBucket) => (payouts as any[]).find((p) => p.bucket === b) || null;
