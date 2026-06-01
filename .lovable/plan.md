@@ -1,61 +1,32 @@
-## Цель
-- **Slots**: 1 страница A4 портрет.
-- **Live Game**: 1 страница A4 портрет (Cash Desk) + 1 страница A4 альбом (Chips Movement).
-- Унифицировать визуальный стиль двух отчётов.
-- Зафиксировать ширины колонок (`table-layout: fixed` + `<colgroup>`), чтобы они не «плясали» между сменами.
-- Увеличить шрифт — место есть.
+План изменений:
 
-## Корневая причина 3-й страницы Live Game
-Print-iframe в `ReprintShiftDialog` задаёт `@page { size: 210mm 297mm }` (портрет) для всего документа. Отчёт фишек (`ChipMovementReport`) — это 3 колонки × 2 ряда плотных таблиц по 12 деноминаций, в портрет не помещается и переливается на 3-й лист. Решение — named CSS pages: cash-desk портрет, chips landscape.
+1. **Reports: Daily → Daily diff**
+   - Переименовать вкладку `Daily` в `Daily diff`.
+   - Оставить внутренний ключ `daily`, чтобы существующие ссылки `?tab=daily` не сломались.
 
-## Изменения
+2. **Исправить Daily diff формулы**
+   - Вынести расчёт Daily diff в единый backend RPC, чтобы не ловить лимит 1000 строк и не считать месяцы неполно.
+   - Для Player Result использовать окно **13:00 EAT → 05:00 EAT следующего дня**:
+     - `buy` / `in` = cash-in игрока;
+     - `cashout` / `out` = cashout игрока;
+     - `Player Result = Cashout − Cash-in`;
+     - исключать `cancelled_at IS NOT NULL`.
+   - `Drop (R)` и `Cash In` считать в том же окне 13:00 → 05:00 через существующую NEP/drop split логику, чтобы числа были в одном временном контуре.
+   - `Result` брать только из канонического `shifts.tables_result` по закрытым live shifts за business day.
+   - `Diff` привести к прямому сравнению: **`Result + Player Result`**. Miss Chips оставить отдельной колонкой, не вычитать из Diff.
+   - Для будущих business-day snapshots добавить тот же Daily diff блок, чтобы снимок закрытого дня совпадал с Reports.
 
-### 1. `src/components/cage/ReprintShiftDialog.tsx`
-Заменить единый `@page` в print-iframe на два named pages:
-```css
-@page portrait  { size: A4 portrait;  margin: 8mm; }
-@page landscape { size: A4 landscape; margin: 8mm; }
-#shift-print-area { page: portrait; }
-#chip-print-area  { page: landscape; page-break-before: always; }
-```
-Убрать жёсткий `width: 194mm` для `.live-game-print-area`, чтобы chip-area мог растянуться на альбомную ширину.
+3. **Cashless report после Expenses**
+   - Добавить вкладку `Cashless` сразу после `Expenses` в Reports.
+   - Сделать read-only отчёт по диапазону дат из общего фильтра Reports.
+   - Показать KPI: Deposit, Withdrawal, Net, Pending, Records.
+   - Добавить разбивку по провайдерам и таблицу истории.
+   - Фильтры: Source `All / Live / Slots`, Provider, Direction, Status, Search.
+   - Сортировки: Date, Source, Provider, Direction, Player, Amount, Status.
+   - Источник данных: `cashless_transactions`, с поддержкой большой глубины через range-query по `business_date` и увеличенный лимит.
 
-### 2. `src/components/cage/ChipMovementReport.tsx`
-- Контейнер: `width: 281mm; min-height: 194mm` (A4 landscape − 8 mm полей).
-- Снять `print:break-before-page` (управление через named page).
-- Шрифт: `10–11px` → **12px** (таблицы) и **13px** (заголовки).
-- На каждый `DenomTable`: `tableLayout: fixed` + `<colgroup>` `45% / 25% / 30%` (Den / Qty / Value) — все 6 таблиц одинаковые.
-
-### 3. `src/components/cage/ShiftClosingReport.tsx`
-- На все `<table>` (Tables grid, Cash Flow, Cashless, Summary) поставить `style={{ tableLayout: "fixed" }}` + явные `<colgroup>` с процентами.
-- Шрифт: `compact` 10.5px → **12px**, обычный 13px → **14px**.
-- Шапка/заголовки секций — выровнять под Slots (тот же `bg-gray-200`, тот же размер заголовка, та же логика итоговой панели).
-- Удалить мёртвые helper'ы (`CashFlowColumn`, `SummaryRow`, `SignatureBlock`, `Row`).
-
-### 4. `src/components/cage-slots/SlotsConsolidatedReport.tsx`
-- Те же `tableLayout: fixed` + `<colgroup>` на все таблицы.
-- Шрифт 13 → **14px**, заголовок 16 → **18px**.
-- Унифицировать с Live Game:
-  - заголовок: `<casino> Slots Cash Desk Report` + `Date` справа в одну строку;
-  - блок Cashless 5 колонок Provider / IN / OUT / NET / Balance — идентичен Live Game;
-  - подписи внизу — идентичный layout;
-  - `Shift Balance` — в `bg-gray-300` строке как в Live Game.
-
-### 5. `src/components/cage-slots/PrintSlotsShiftDialog.tsx`
-- Оставить портрет, но обновить `@page` `margin: 8mm`, добавить safety `overflow: hidden` на `.slots-print-area`.
-
-### 6. `package.json`
-- Bump `1.3.229` → `1.3.230` (чисто фронтовая правка печати, миграций нет).
-
-## Файлы
-- `src/components/cage/ReprintShiftDialog.tsx`
-- `src/components/cage/ChipMovementReport.tsx`
-- `src/components/cage/ShiftClosingReport.tsx`
-- `src/components/cage-slots/SlotsConsolidatedReport.tsx`
-- `src/components/cage-slots/PrintSlotsShiftDialog.tsx`
-- `package.json`
-
-## Итог
-- Slots → 1 × A4 портрет.
-- Live Game → 1 × A4 портрет + 1 × A4 альбом.
-- Единый visual язык, стабильные ширины колонок, читаемый шрифт.
+4. **Технически**
+   - Добавить migration с RPC и `GRANT EXECUTE`.
+   - Обновить `Reports.tsx` и добавить отдельный компонент `CashlessReport`.
+   - Переиспользовать существующие форматтеры дат/денег и semantic design tokens.
+   - Bump `package.json` patch: `1.3.230 → 1.3.231`.

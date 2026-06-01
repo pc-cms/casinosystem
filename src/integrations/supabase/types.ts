@@ -7294,6 +7294,19 @@ export type Database = {
         Args: { p_shift_id: string }
         Returns: Json
       }
+      compute_daily_diff: {
+        Args: { _casino_id: string; _from: string; _to: string }
+        Returns: {
+          business_date: string
+          cash_in: number
+          diff: number
+          drop_r: number
+          hold: number
+          miss: number
+          player_result: number
+          result: number
+        }[]
+      }
       compute_paye_for_amount: {
         Args: { _amount: number; _at: string }
         Returns: number
