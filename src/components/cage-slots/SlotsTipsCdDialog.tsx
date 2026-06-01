@@ -115,10 +115,10 @@ const SlotsTipsCdDialog = ({ open, onOpenChange, shiftId, readOnly }: Props) => 
             return (
               <div key={bucket} className="cms-panel p-0 overflow-hidden flex flex-col">
                 <div className="px-4 py-2.5 border-b border-border bg-muted/40 flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-bold uppercase tracking-wider">{TIPS_BUCKET_LABEL[bucket]}</p>
-                    <p className="text-[10px] text-muted-foreground">{BUCKET_HOURS[bucket]}</p>
-                  </div>
+                  <p className="text-sm font-bold uppercase tracking-wider">
+                    {TIPS_BUCKET_LABEL[bucket]}
+                    <span className="ml-2 text-[10px] font-normal text-muted-foreground normal-case tracking-normal">{BUCKET_HOURS[bucket]}</span>
+                  </p>
                   <Gift className="w-4 h-4 text-muted-foreground" />
                 </div>
 
