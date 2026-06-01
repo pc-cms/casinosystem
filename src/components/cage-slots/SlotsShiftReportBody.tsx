@@ -134,7 +134,7 @@ const SlotsShiftReportBody = ({ id, showHeader = true, compact = false }: Props)
   const dispCashlessOut = cashless.length > 0 ? cashlessOut : providerCashlessOut || Number(latestTotals.cashless_out || 0);
   const dispCashlessBalance = dispCashlessIn - dispCashlessOut;
 
-  const wrap = compact ? "space-y-2" : "space-y-4";
+  const wrap = compact ? "space-y-1.5" : "space-y-3";
 
   return (
     <div className={wrap}>
