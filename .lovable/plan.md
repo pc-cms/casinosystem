@@ -1,41 +1,56 @@
-## Изменения в `src/components/cage/ShiftClosingReport.tsx`
+## Изменения
 
-Сейчас в таблице первая колонка (Open) и Close часто пустые, потому что они тянутся из устаревшего `dailyResults` (legacy import path) и только при его отсутствии — из baseline/`closing_chips`. Также колонка `IN` берёт сумму из `transactions` (Cash Desk IN) — пользователь хочет переименовать её и подтянуть значения из финального снимка Пита.
+### 1. БД (миграция)
 
-### Новая логика колонок (per row)
+**`cage_slots_shifts`** — добавить колонку:
+```sql
+ALTER TABLE public.cage_slots_shifts
+  ADD COLUMN ace_fills bigint NOT NULL DEFAULT 0;
+```
 
-| Колонка | Источник |
-|---|---|
-| **Table** | `gaming_tables.name` |
-| **Open** | Сумма стандартного флота стола = `baselines[tableId]` (Σ baseline.expected × denom) — всегда из chip_baseline, без `dailyResults` |
-| **Fill** | `fillCredits[tableId].fill` (cage_transfers, type=`fill`) |
-| **Credit** | `fillCredits[tableId].credit` (cage_transfers, type=`credit`) |
-| **Close** | Σ (latest snapshot.actual × denom) по столу — из `snapshotIndex[tableId].perDenom` (финальный Chip Count Пита). Если снимка нет → пусто |
-| **DROP (NEP)** | переименовать заголовок `IN` → `DROP (NEP)`. Источник пока остаётся прежним (`inByTable` = Σ transactions type `buy`/`in` за смену) |
-| **Result** | `serverResults[tableId]` — авторитетный результат из RPC `compute_shift_table_results` (формула `(Σ(actual−baseline)·denom) − Fill + Credit`). Уже так есть |
+**`compute_slots_shift_balance_from_row(s)`** — переписать только блок результата:
+- `v_slots_result := COALESCE(s.system_shift_result,0) − COALESCE(s.ace_fills,0)` (раньше = system_shift_result).
+- `v_balance` продолжает вычитать `system_shift_result` (НЕ `slots_result`) — закрытие/баланс не меняется.
+- В возвращаемом JSON: `system_result` = system_shift_result, `slots_result` = новый (System − ACE).
 
-### Конкретные правки в `ShiftClosingReport.tsx`
+**Триггеры пересчёта** (`compute_slots_shift_balance_trigger` и подобные) — добавить `ace_fills` в список полей, при изменении которых пересчитывается `slots_result`.
 
-1. **`rowFor(t)`** (≈ строки 229–239): убрать ветку `if (dr) return ...` для Open/Fill/Credit/Close. Всегда вычислять:
-   - `op = baselines[t.id] || 0`
-   - `fl = fillCredits[t.id]?.fill || 0`
-   - `cr = fillCredits[t.id]?.credit || 0`
-   - `cl` = сумма из `snapshotIndex[t.id].perDenom` (Σ qty × denom). Если снимка нет — `0`.
-   - `inVal = inByTable[t.id] || 0`
-   - `res = serverResults[t.id] ?? 0`
-   
-   `dailyResults` оставляем загружаться (не ломаем другие потенциальные потребители), но в гриде не используем.
+Бамп `package.json` (patch) — обязателен из-за backend-изменений.
 
-2. **Заголовок столбца** (≈ строка 343): заменить `"IN"` на `"DROP (NEP)"`.
+### 2. UI — закрытие смены (`ActiveSlotsShiftView.tsx`)
 
-3. **Комментарии в шапке файла и над `rowFor`**: обновить описание колонок (Open = baseline, Close = последний снимок Пита, DROP (NEP) = транзакции кассы IN).
+В той же секции, где сейчас редактируется **System Result**, рядом добавить второй numeric input:
+- Поле **ACE Fills (TZS)** — `aceFillsInput` state, hydrated из `shift.ace_fills`, `onBlur` пишет `update cage_slots_shifts set ace_fills = ...`.
+- Под ним показать вычисленное **Slots Result = System − ACE Fills** (информативно, signed).
 
-4. **Totals** (`useMemo` строки 241–248): пересчёт автоматически подтянет новые значения, дополнительных правок не нужно — продолжает суммировать те же поля.
+Существующая плитка `Slots Result (TZS)` (строки ~671 «System − Opening − Ace Fill») переименовать в **System Shift Result** и оставить как есть (она = systemResult), а новую плитку **Slots Result** = `systemResult − aceFills` поставить рядом.
 
-### Bump
-- `package.json` → `1.3.239` (UI-only правка отчёта; backend не трогаем, но это печатный документ — bump чтобы пользователи получили свежий билд после force-reload).
+`computeSlotsShiftBalance` (lib/cage-balance.ts) и поле `addFloat = transfersAgg.fill` — НЕ ТРОГАЕМ. CDR/Shift Balance остаются без изменений (как пользователь и просил).
 
-### Что НЕ трогаем
-- `ChipMovementReport.tsx`, `ReprintShiftDialog.tsx` — без изменений.
-- RPC `compute_shift_table_results`, RLS, миграции — без изменений.
-- Логику Result и сам формат отчёта (шрифты, плотность, A4 portrait) — без изменений.
+### 3. UI — список закрытий
+
+**`ClosingsPage.tsx`** (Slots секция, ≈ строки 304, 528, 538):
+- Существующий столбец «Slots Result» (читает `s.slots_result`) → переименовать заголовок в **System Shift Result** и читать из `s.system_shift_result`.
+- Добавить новый столбец **Slots Result** справа от него, читающий `s.slots_result` (это уже = System − ACE из DB).
+- В SELECT-запросе добавить поля `system_shift_result, ace_fills` к существующему `slots_result`.
+- Сортировка/тоталы: добавить ключ `systemShiftResult` для нового столбца; оба идут в Total Results строки.
+
+**`CageSlotsHistoryView.tsx`** (≈ строки 49, 68–69):
+- Те же два столбца: System Shift Result + Slots Result.
+
+**`SlotsHistoryReport.tsx`** (≈ строки 55–56, 133, 156):
+- Аналогично: два столбца, две суммы в KPI-полосе.
+
+### 4. Что НЕ трогаем
+- `compute_slots_shift_balance` баланс/CDR — без изменений.
+- Transfers form (fill / collection / lg_in / lg_out) — без изменений.
+- Печатные отчёты слотов (`SlotsShiftReportBody`, `SlotsConsolidatedReport`, `PrintSlotsShiftDialog`) — в этом запросе не упомянуты, оставляю как есть; могу добавить отдельной задачей по запросу.
+- Daily Review / FinanceDashboard — продолжают использовать `system_shift_result` для расчётов баланса; `slots_result` теперь только информативный.
+
+### Файлы под редактирование
+- новая миграция `supabase/migrations/...`
+- `src/components/cage-slots/ActiveSlotsShiftView.tsx`
+- `src/pages/ClosingsPage.tsx`
+- `src/components/cage-slots/CageSlotsHistoryView.tsx`
+- `src/components/reports/SlotsHistoryReport.tsx`
+- `package.json` (bump)

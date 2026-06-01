@@ -147,7 +147,7 @@ export default ClosingsPage;
 // ============================================================
 // TOTAL TAB — per-business-day rollup with manual Drop Slots editing
 // ============================================================
-type TotalSortKey = "date" | "dropTables" | "tablesResult" | "dropSlots" | "slotsResult" | "expenses" | "totalResults";
+type TotalSortKey = "date" | "dropTables" | "tablesResult" | "dropSlots" | "systemShiftResult" | "slotsResult" | "expenses" | "totalResults";
 
 const TotalTab = ({ monthAnchor }: { monthAnchor: Date }) => {
   const { casinoId, roles } = useAuth();
@@ -182,7 +182,7 @@ const TotalTab = ({ monthAnchor }: { monthAnchor: Date }) => {
         // Closed slots shifts only
         supabase
           .from("cage_slots_shifts")
-          .select("id, business_date, status, slots_result, manual_drop_slots")
+          .select("id, business_date, status, system_shift_result, ace_fills, slots_result, manual_drop_slots")
           .eq("casino_id", casinoId)
           .eq("status", "closed")
           .gte("business_date", monthStartStr)
@@ -225,6 +225,7 @@ const TotalTab = ({ monthAnchor }: { monthAnchor: Date }) => {
         dropTables: 0,
         tablesResult: 0,
         dropSlots: 0,
+        systemShiftResult: 0,
         slotsResult: 0,
         expenses: 0,
         slotsShiftIds: [] as string[],
@@ -238,6 +239,7 @@ const TotalTab = ({ monthAnchor }: { monthAnchor: Date }) => {
       });
       (slotsRes.data || []).forEach((s: any) => {
         const r = row(s.business_date);
+        r.systemShiftResult += Number(s.system_shift_result || 0);
         r.slotsResult += Number(s.slots_result || 0);
         r.dropSlots += Number(s.manual_drop_slots || 0);
         r.slotsShiftIds.push(s.id);
@@ -301,14 +303,15 @@ const TotalTab = ({ monthAnchor }: { monthAnchor: Date }) => {
               <SortTh label="Drop Tables" sortKey="dropTables" sort={sort} align="right" />
               <SortTh label="Tables Result" sortKey="tablesResult" sort={sort} align="right" />
               <SortTh label="Drop Slots" sortKey="dropSlots" sort={sort} align="right" />
+              <SortTh label="System Shift Result" sortKey="systemShiftResult" sort={sort} align="right" />
               <SortTh label="Slots Result" sortKey="slotsResult" sort={sort} align="right" />
               <SortTh label="Expenses" sortKey="expenses" sort={sort} align="right" />
               <SortTh label="Total Results" sortKey="totalResults" sort={sort} align="right" />
             </tr>
           </thead>
           <tbody>
-            {isLoading ? <tr><td colSpan={7} className="text-center py-6 text-muted-foreground">Loading…</td></tr> :
-             sorted.length === 0 ? <tr><td colSpan={7} className="text-center py-6 text-muted-foreground">No closed shifts</td></tr> :
+            {isLoading ? <tr><td colSpan={8} className="text-center py-6 text-muted-foreground">Loading…</td></tr> :
+             sorted.length === 0 ? <tr><td colSpan={8} className="text-center py-6 text-muted-foreground">No closed shifts</td></tr> :
              sorted.map((r: any) => {
               const totalResults = (r.tablesResult || 0) + (r.slotsResult || 0);
               const cls = (n: number) => n < 0 ? "cms-amount-negative" : n > 0 ? "cms-amount-positive" : "text-muted-foreground";
@@ -325,6 +328,7 @@ const TotalTab = ({ monthAnchor }: { monthAnchor: Date }) => {
                       onSave={(v) => updateDropSlots.mutate({ shiftIds: slotsShiftIds, value: v })}
                     />
                   </td>
+                  <td className={`px-3 py-2 text-right font-mono ${cls(r.systemShiftResult || 0)}`}>{formatNumberSpaces(r.systemShiftResult || 0)}</td>
                   <td className={`px-3 py-2 text-right font-mono font-semibold ${cls(r.slotsResult || 0)}`}>{formatNumberSpaces(r.slotsResult || 0)}</td>
                   <td className="px-3 py-2 text-right font-mono text-muted-foreground">{formatNumberSpaces(r.expenses || 0)}</td>
                   <td className={`px-3 py-2 text-right font-mono font-bold ${cls(totalResults)}`}>{formatNumberSpaces(totalResults)}</td>
@@ -486,7 +490,7 @@ const LiveTab = ({ monthAnchor }: { monthAnchor: Date }) => {
 // ============================================================
 // SLOTS TAB — closed shifts only, no shift_type column, sortable
 // ============================================================
-type SlotsSortKey = "date" | "slotsResult" | "cdr" | "balance";
+type SlotsSortKey = "date" | "systemShiftResult" | "slotsResult" | "cdr" | "balance";
 
 const SlotsTab = ({ monthAnchor }: { monthAnchor: Date }) => {
   const { data: shiftsRaw = [], isLoading } = useCageSlotsHistory(500);
@@ -508,6 +512,7 @@ const SlotsTab = ({ monthAnchor }: { monthAnchor: Date }) => {
     const arr = [...shifts] as any[];
     const keyMap: Record<SlotsSortKey, (s: any) => any> = {
       date: s => s.business_date,
+      systemShiftResult: s => Number(s.system_shift_result || 0),
       slotsResult: s => Number(s.slots_result || 0),
       cdr: s => Number(s.cash_desk_result || 0),
       balance: s => Number(s.balance || 0),
@@ -525,6 +530,7 @@ const SlotsTab = ({ monthAnchor }: { monthAnchor: Date }) => {
           <thead className="bg-card">
             <tr className="border-b border-border">
               <SortTh label="Business Day" sortKey="date" sort={sort} />
+              <SortTh label="System Shift Result" sortKey="systemShiftResult" sort={sort} align="right" />
               <SortTh label="Slots Result" sortKey="slotsResult" sort={sort} align="right" />
               <SortTh label="Cash Desk" sortKey="cdr" sort={sort} align="right" />
               <SortTh label="Balance" sortKey="balance" sort={sort} align="right" />
@@ -532,9 +538,10 @@ const SlotsTab = ({ monthAnchor }: { monthAnchor: Date }) => {
             </tr>
           </thead>
           <tbody>
-            {isLoading ? <tr><td colSpan={5} className="text-center py-6 text-muted-foreground">Loading…</td></tr> :
-             sorted.length === 0 ? <tr><td colSpan={5} className="text-center py-6 text-muted-foreground">No closings</td></tr> :
+            {isLoading ? <tr><td colSpan={6} className="text-center py-6 text-muted-foreground">Loading…</td></tr> :
+             sorted.length === 0 ? <tr><td colSpan={6} className="text-center py-6 text-muted-foreground">No closings</td></tr> :
              sorted.map((s: any) => {
+              const sysRes = Number(s.system_shift_result || 0);
               const slotsRes = Number(s.slots_result || 0);
               const cdr = Number(s.cash_desk_result || 0);
               const balance = Number(s.balance || 0);
@@ -542,6 +549,7 @@ const SlotsTab = ({ monthAnchor }: { monthAnchor: Date }) => {
               return (
                 <tr key={s.id} className="border-b border-border hover:bg-muted/30">
                   <td className="px-3 py-2 font-mono">{fmtDate(s.business_date)}</td>
+                  <td className={`px-3 py-2 text-right font-mono ${cls(sysRes)}`}>{formatNumberSpaces(sysRes)}</td>
                   <td className={`px-3 py-2 text-right font-mono ${cls(slotsRes)}`}>{formatNumberSpaces(slotsRes)}</td>
                   <td className={`px-3 py-2 text-right font-mono ${cls(cdr)}`}>{formatNumberSpaces(cdr)}</td>
                   <td className={`px-3 py-2 text-right font-mono ${cls(balance)}`}>{formatNumberSpaces(balance)}</td>

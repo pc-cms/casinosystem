@@ -980,6 +980,7 @@ export type Database = {
       }
       cage_slots_shifts: {
         Row: {
+          ace_fills: number
           actual_cage_result: number | null
           balance: number | null
           business_date: string
@@ -1013,6 +1014,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          ace_fills?: number
           actual_cage_result?: number | null
           balance?: number | null
           business_date: string
@@ -1046,6 +1048,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          ace_fills?: number
           actual_cage_result?: number | null
           balance?: number | null
           business_date?: string

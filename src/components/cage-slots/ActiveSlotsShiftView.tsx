@@ -113,6 +113,9 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
   const [systemResultInput, setSystemResultInput] = useState<string>(
     shift.system_shift_result?.toString() ?? "",
   );
+  const [aceFillsInput, setAceFillsInput] = useState<string>(
+    (shift as any).ace_fills?.toString() ?? "",
+  );
   const [cashlessFinalInput, setCashlessFinalInput] = useState<string>(
     (shift as any).cashless_final?.toString() ?? "",
   );
@@ -231,6 +234,10 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
 
   const openingCardsCount = Number(cards?.opening_card_count || 0);
   const systemResult = Number(systemResultInput) || Number(shift.system_shift_result || 0);
+  const aceFills = Number(aceFillsInput) || Number((shift as any).ace_fills || 0);
+  // Informative metric: real slots P&L = System − manual ACE Fills.
+  // NOT used in CDR or Shift Balance; mirrored in DB column slots_result by trigger.
+  const slotsResultDerived = systemResult - aceFills;
 
   const cashlessFinal = Number(cashlessFinalInput) || 0;
 
@@ -622,8 +629,8 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
 
       {/* Tips CD payouts (Day / Evening cash-out) live inside the Tips CD modal. */}
 
-      {/* Summary strip — Opening / Cards Open / System (input) / Cards Closing (input) / Slots Result */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-2">
+      {/* Summary strip — Opening / Cards Open / System (input) / ACE Fills (input) / Cards Closing (input) / Slots Result */}
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-2 mb-2">
         <TileCard label="Opening (TZS)">
           <p className="font-mono text-2xl font-bold tabular-nums text-center">{formatNumberSpaces(openingTotalTzs)}</p>
         </TileCard>
@@ -656,6 +663,21 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
             disabled={shift.status !== "open"}
           />
         </TileCard>
+        <TileCard label="ACE Fills (TZS)" sub="Manual · subtracted from System">
+          <NumberInput
+            value={aceFillsInput}
+            onChange={v => setAceFillsInput(String(v))}
+            onBlur={async () => {
+              await supabase
+                .from("cage_slots_shifts")
+                .update({ ace_fills: Number(aceFillsInput) || 0 } as any)
+                .eq("id", shift.id);
+            }}
+            className="no-spin h-9 w-full text-center font-mono text-2xl font-bold tabular-nums"
+            placeholder="0"
+            disabled={shift.status !== "open"}
+          />
+        </TileCard>
         <TileCard
           label="Cards Closing"
           sub={`Miss: ${cards?.miss_card_count ?? (closingCards - (cards?.opening_card_count ?? 0))}`}
@@ -668,9 +690,9 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
             disabled={shift.status !== "open"}
           />
         </TileCard>
-        <TileCard label="Slots Result (TZS)" sub="System − Opening − Ace Fill" emphasize>
-          <p className={`font-mono text-2xl font-bold tabular-nums text-center ${slotsResult < 0 ? "cms-amount-negative" : slotsResult > 0 ? "cms-amount-positive" : ""}`}>
-            {slotsResult > 0 ? "+" : ""}{formatNumberSpaces(slotsResult)}
+        <TileCard label="Slots Result (TZS)" sub="System − ACE Fills · informative" emphasize>
+          <p className={`font-mono text-2xl font-bold tabular-nums text-center ${slotsResultDerived < 0 ? "cms-amount-negative" : slotsResultDerived > 0 ? "cms-amount-positive" : ""}`}>
+            {slotsResultDerived > 0 ? "+" : ""}{formatNumberSpaces(slotsResultDerived)}
           </p>
         </TileCard>
       </div>
