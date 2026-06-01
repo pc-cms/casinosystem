@@ -81,11 +81,11 @@ const ChipMovementReport = ({
   return (
     <div
       id="chip-print-area"
-      className="bg-white text-black font-sans"
+      className="bg-white text-black font-sans flex flex-col"
       style={{
         fontFamily: "Arial, sans-serif",
-        fontSize: "12px",
-        lineHeight: 1.3,
+        fontSize: "14px",
+        lineHeight: 1.5,
         width: "194mm",
         minHeight: "281mm",
         boxSizing: "border-box",
@@ -102,29 +102,28 @@ const ChipMovementReport = ({
         </colgroup>
         <tbody>
           <tr>
-            <td className="border border-black px-1.5 py-0.5 font-bold text-base">
+            <td className="border border-black px-2 py-1 font-bold text-base">
               {casinoName} Chips Movement Report
             </td>
-            <td className="border border-black px-1.5 py-0.5 font-semibold text-center">Date</td>
-            <td className="border border-black px-1.5 py-0.5 text-center">{fmtDate(businessDate)}</td>
-            <td className="border border-black px-1.5 py-0.5 font-semibold text-center">Cashier</td>
-            <td className="border border-black px-1.5 py-0.5 text-center uppercase">{cashierName || ""}</td>
+            <td className="border border-black px-2 py-1 font-semibold text-center">Date</td>
+            <td className="border border-black px-2 py-1 text-center">{fmtDate(businessDate)}</td>
+            <td className="border border-black px-2 py-1 font-semibold text-center">Cashier</td>
+            <td className="border border-black px-2 py-1 text-center uppercase">{cashierName || ""}</td>
           </tr>
         </tbody>
       </table>
 
-      {/* Opening row: Opener | Diff | Float Fill */}
-      <p className="font-semibold border-b border-black mb-1.5 text-[12px]">Chips Opening Report</p>
-      <div className="grid grid-cols-3 gap-2 mb-3">
+      {/* 3 rows × 2 cols — fills the full page */}
+      <p className="font-semibold border-b border-black mb-1.5 text-[13px]">Chips Opening Report</p>
+      <div className="grid grid-cols-2 gap-3 mb-3 flex-1">
         <DenomTable title="Cash Desk Chips Opener" data={openingChips} total={totals.opener} />
         <DenomTable title="Opening Chips Diff" data={openingDiff} total={totals.diff} signed />
         <DenomTable title="Cash Desk Float Fill" data={fillByDenom} total={totals.fill} />
+        <DenomTable title="Cash Desk Float Credit" data={creditByDenom} total={totals.credit} />
       </div>
 
-      {/* Closing row: Float Credit | Miss | Close */}
-      <p className="font-semibold border-b border-black mt-2 mb-1.5 text-[12px]">Chips Closing Report</p>
-      <div className="grid grid-cols-3 gap-2">
-        <DenomTable title="Cash Desk Float Credit" data={creditByDenom} total={totals.credit} />
+      <p className="font-semibold border-b border-black mb-1.5 text-[13px]">Chips Closing Report</p>
+      <div className="grid grid-cols-2 gap-3 flex-1">
         <DenomTable title="Miss Chips" data={missPerDenom} total={totals.miss} signed />
         <DenomTable title="Cash Desk Chips Close" data={closingChips} total={totals.close} />
       </div>
