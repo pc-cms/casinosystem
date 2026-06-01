@@ -113,6 +113,9 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
   const [systemResultInput, setSystemResultInput] = useState<string>(
     shift.system_shift_result?.toString() ?? "",
   );
+  const [aceFillsInput, setAceFillsInput] = useState<string>(
+    (shift as any).ace_fills?.toString() ?? "",
+  );
   const [cashlessFinalInput, setCashlessFinalInput] = useState<string>(
     (shift as any).cashless_final?.toString() ?? "",
   );
