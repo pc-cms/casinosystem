@@ -81,7 +81,6 @@ const printLiveGameReport = () => {
       #shift-print-area {
         page: portrait !important;
         width: 194mm !important;
-        min-height: 281mm !important;
         padding: 0 !important;
         page-break-after: always !important;
         break-after: page !important;
@@ -89,7 +88,6 @@ const printLiveGameReport = () => {
       #chip-print-area {
         page: portrait !important;
         width: 194mm !important;
-        min-height: 281mm !important;
         padding: 0 !important;
         page-break-before: always !important;
         break-before: page !important;
