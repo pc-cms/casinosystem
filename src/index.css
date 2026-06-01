@@ -370,7 +370,13 @@
     display: block !important;
   }
   /* Cash Desk report — A4 portrait (first page).
-   * Chip Movement report — A4 landscape (second page). */
+   * Chip Movement report — A4 landscape (second page).
+   * The global `@page { size: A4 landscape }` above is the default for
+   * Rota / Attendance prints. To force portrait for the cash desk report
+   * we apply the named page on BOTH the PrintPortal wrapper
+   * (`.cms-print-root`) AND html/body via `:has()` — Chrome only honors
+   * the named page on the very first page when an ancestor of the first
+   * box carries the `page` property. */
   @page cashdesk-portrait {
     size: A4 portrait;
     margin: 8mm;
@@ -378,6 +384,11 @@
   @page cashdesk-landscape {
     size: A4 landscape;
     margin: 8mm;
+  }
+  html:has(#shift-print-area),
+  body:has(#shift-print-area),
+  .cms-print-root:has(#shift-print-area) {
+    page: cashdesk-portrait;
   }
   #shift-print-area {
     page: cashdesk-portrait;
