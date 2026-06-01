@@ -95,28 +95,37 @@ const SlotsConsolidatedReport = ({
   const closerTotal = closerCashTotalTzs + closerBankTotalTzs;
 
   return (
-    <div className="bg-white text-black p-2 flex flex-col" style={{ fontFamily: "Arial, sans-serif", fontSize: "13px", lineHeight: 1.25, width: "194mm", minHeight: "281mm", boxSizing: "border-box", pageBreakAfter: "avoid", breakAfter: "avoid" }}>
+    <div className="bg-white text-black p-2 flex flex-col" style={{ fontFamily: "Arial, sans-serif", fontSize: "14px", lineHeight: 1.3, width: "194mm", minHeight: "281mm", boxSizing: "border-box" }}>
 
       {/* ============ TITLE ROW ============ */}
-      <table className="w-full border-collapse mb-0.5">
+      <table className="w-full border-collapse mb-1" style={{ tableLayout: "fixed" }}>
+        <colgroup>
+          <col style={{ width: "22%" }} />
+          <col style={{ width: "10%" }} />
+          <col style={{ width: "22%" }} />
+          <col style={{ width: "10%" }} />
+          <col style={{ width: "16%" }} />
+          <col style={{ width: "20%" }} />
+        </colgroup>
         <tbody>
           <tr>
-            <td className="border border-black px-1.5 py-0.5 font-bold text-base" colSpan={4}>
-              {casinoName} ACE Cash Desk Report
+            <td className="border border-black px-1.5 py-0.5 font-bold text-lg" colSpan={4}>
+              {casinoName} Slots Cash Desk Report
             </td>
-            <td className="border border-black px-1.5 py-0.5 font-semibold text-center w-24">Date</td>
-            <td className="border border-black px-1.5 py-0.5 text-center w-32">{fmtDateOnly(businessDate)}</td>
+            <td className="border border-black px-1.5 py-0.5 font-semibold text-center">Date</td>
+            <td className="border border-black px-1.5 py-0.5 text-center">{fmtDateOnly(businessDate)}</td>
           </tr>
           <tr>
-            <td className="border border-black px-1.5 py-0.5 font-semibold w-24">Cards Opener</td>
-            <td className="border border-black px-1.5 py-0.5 text-center w-16 font-bold">{cardsOpener}</td>
-            <td className="border border-black px-1.5 py-0.5 font-semibold w-24">Cards Closer</td>
-            <td className="border border-black px-1.5 py-0.5 text-center w-16 font-bold">{cardsCloser ?? ""}</td>
+            <td className="border border-black px-1.5 py-0.5 font-semibold">Cards Opener</td>
+            <td className="border border-black px-1.5 py-0.5 text-center font-bold">{cardsOpener}</td>
+            <td className="border border-black px-1.5 py-0.5 font-semibold">Cards Closer</td>
+            <td className="border border-black px-1.5 py-0.5 text-center font-bold">{cardsCloser ?? ""}</td>
             <td className="border border-black px-1.5 py-0.5 font-semibold text-center">Shift</td>
             <td className="border border-black px-1.5 py-0.5 text-center font-bold">{shiftLabel}</td>
           </tr>
         </tbody>
       </table>
+
 
       {/* ============ CASH FLOW: OPENER | CLOSER ============ */}
       <div className="grid grid-cols-2 gap-1 mb-0.5">
