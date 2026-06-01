@@ -93,13 +93,36 @@ const ClosingsPage = () => {
   const tab = (sp.get("tab") as TabKey) || "total";
   const setTab = (t: TabKey) => { sp.set("tab", t); setSp(sp, { replace: true }); };
 
+  const today = useMemo(() => new Date(), []);
+  const [monthAnchor, setMonthAnchor] = useState<Date>(startOfMonth(today));
+  const monthLabel = format(monthAnchor, "MMMM yyyy");
+  const goPrev = () => setMonthAnchor((d) => startOfMonth(subMonths(d, 1)));
+  const goNext = () => setMonthAnchor((d) => startOfMonth(addMonths(d, 1)));
+  const goCurrent = () => setMonthAnchor(startOfMonth(today));
+  const nextDisabled = monthAnchor >= startOfMonth(today);
+
+  const showMonthNav = tab !== "expenses";
+
   return (
     <PageShell>
       <PageHeader
         icon={BarChart3}
         title="Closings"
-        subtitle="Per-day totals and printable shift reports"
+        subtitle={showMonthNav ? `Per-day totals and printable shift reports · ${monthLabel}` : "Per-day totals and printable shift reports"}
         date
+        centerSlot={showMonthNav ? (
+          <div className="flex items-center gap-1">
+            <Button variant="outline" size="icon" className="h-8 w-8" onClick={goPrev}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button variant="outline" size="sm" className="h-8 font-mono min-w-[140px]" onClick={goCurrent}>
+              {monthLabel}
+            </Button>
+            <Button variant="outline" size="icon" className="h-8 w-8" onClick={goNext} disabled={nextDisabled}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        ) : undefined}
       />
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as TabKey)} className="space-y-4">
@@ -110,9 +133,9 @@ const ClosingsPage = () => {
           <TabsTrigger value="expenses" className="gap-1.5"><Receipt className="w-3.5 h-3.5" /> Expenses</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="total"><TotalTab /></TabsContent>
-        <TabsContent value="live"><LiveTab /></TabsContent>
-        <TabsContent value="slots"><SlotsTab /></TabsContent>
+        <TabsContent value="total"><TotalTab monthAnchor={monthAnchor} /></TabsContent>
+        <TabsContent value="live"><LiveTab monthAnchor={monthAnchor} /></TabsContent>
+        <TabsContent value="slots"><SlotsTab monthAnchor={monthAnchor} /></TabsContent>
         <TabsContent value="expenses"><ExpensesTab /></TabsContent>
       </Tabs>
     </PageShell>
@@ -126,11 +149,9 @@ export default ClosingsPage;
 // ============================================================
 type TotalSortKey = "date" | "dropTables" | "tablesResult" | "dropSlots" | "slotsResult" | "expenses" | "totalResults";
 
-const TotalTab = () => {
+const TotalTab = ({ monthAnchor }: { monthAnchor: Date }) => {
   const { casinoId, roles } = useAuth();
   const qc = useQueryClient();
-  const today = useMemo(() => new Date(), []);
-  const [monthAnchor, setMonthAnchor] = useState<Date>(startOfMonth(today));
   const monthLabel = format(monthAnchor, "MMMM yyyy");
   const monthStart = startOfMonth(monthAnchor);
   const monthEnd = startOfMonth(addMonths(monthAnchor, 1));
@@ -190,10 +211,11 @@ const TotalTab = () => {
       if (expRes.error) throw expRes.error;
       if (dropRes.error) throw dropRes.error;
 
+      // Canonical 07:00 EAT rollover (matches DB business_date_of).
       const eatDate = (iso: string) => {
         const d = new Date(iso);
         const hh = parseInt(d.toLocaleString("en-GB", { timeZone: "Africa/Dar_es_Salaam", hour: "2-digit", hour12: false }), 10);
-        const tgt = hh < 11 ? new Date(d.getTime() - 86400_000) : d;
+        const tgt = hh < 7 ? new Date(d.getTime() - 86400_000) : d;
         return tgt.toLocaleDateString("en-CA", { timeZone: "Africa/Dar_es_Salaam" });
       };
 
@@ -268,13 +290,8 @@ const TotalTab = () => {
 
   return (
     <div className="cms-panel">
-      <div className="cms-header flex items-center justify-between">
-        <span>Daily Totals · {monthLabel} (closed shifts only)</span>
-        <div className="flex items-center gap-1">
-          <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => setMonthAnchor(d => startOfMonth(subMonths(d, 1)))}><ChevronLeft className="h-3.5 w-3.5" /></Button>
-          <Button variant="outline" size="sm" className="h-7 font-mono min-w-[130px]" onClick={() => setMonthAnchor(startOfMonth(today))}>{monthLabel}</Button>
-          <Button variant="outline" size="icon" className="h-7 w-7" disabled={monthAnchor >= startOfMonth(today)} onClick={() => setMonthAnchor(d => startOfMonth(addMonths(d, 1)))}><ChevronRight className="h-3.5 w-3.5" /></Button>
-        </div>
+      <div className="cms-header">
+        Daily Totals · {monthLabel} (closed shifts only)
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-xs">
@@ -367,27 +384,31 @@ const DropSlotsCell = ({ value, canEdit, onSave }: { value: number; canEdit: boo
 // ============================================================
 type LiveSortKey = "opened" | "closed" | "cash" | "miss" | "tables" | "balance";
 
-const LiveTab = () => {
+const LiveTab = ({ monthAnchor }: { monthAnchor: Date }) => {
   const { casinoId } = useAuth();
   const [reprintId, setReprintId] = useState<string | null>(null);
-  const today = useMemo(() => new Date(), []);
-  const [monthAnchor, setMonthAnchor] = useState<Date>(startOfMonth(today));
   const monthStart = startOfMonth(monthAnchor);
   const monthEnd = startOfMonth(addMonths(monthAnchor, 1));
+  const monthStartStr = format(monthStart, "yyyy-MM-dd");
+  const monthEndStr = format(monthEnd, "yyyy-MM-dd");
   const sort = useSort<LiveSortKey>("closed", "desc");
 
   const { data: shifts = [], isLoading } = useQuery({
-    queryKey: ["closings-live", casinoId, monthStart.toISOString()],
+    queryKey: ["closings-live", casinoId, monthStartStr],
     queryFn: async () => {
       if (!casinoId) return [];
+      // Business-day window: [monthStart 07:00 EAT, nextMonth 07:00 EAT)
+      // so a shift closed at 05:00 EAT on the 1st belongs to the previous month.
+      const fromIso = businessDayHourUTC(monthStartStr, 7);
+      const toIso = businessDayHourUTC(monthEndStr, 7);
       const { data, error } = await supabase
         .from("shifts")
         .select("id, opened_at, closed_at, cash_result, miss_total, tables_result, balance, notes")
         .eq("casino_id", casinoId)
         .eq("status", "closed")
-        .gte("closed_at", monthStart.toISOString())
-        .lt("closed_at", monthEnd.toISOString())
-        .limit(200);
+        .gte("closed_at", fromIso)
+        .lt("closed_at", toIso)
+        .limit(500);
       if (error) throw error;
       return data || [];
     },
@@ -411,13 +432,8 @@ const LiveTab = () => {
 
   return (
     <div className="cms-panel">
-      <div className="cms-header flex items-center justify-between">
-        <span>Live Game Closings · {format(monthAnchor, "MMMM yyyy")} ({shifts.length})</span>
-        <div className="flex items-center gap-1">
-          <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => setMonthAnchor(d => startOfMonth(subMonths(d, 1)))}><ChevronLeft className="h-3.5 w-3.5" /></Button>
-          <Button variant="outline" size="sm" className="h-7 font-mono min-w-[130px]" onClick={() => setMonthAnchor(startOfMonth(today))}>{format(monthAnchor, "MMMM yyyy")}</Button>
-          <Button variant="outline" size="icon" className="h-7 w-7" disabled={monthAnchor >= startOfMonth(today)} onClick={() => setMonthAnchor(d => startOfMonth(addMonths(d, 1)))}><ChevronRight className="h-3.5 w-3.5" /></Button>
-        </div>
+      <div className="cms-header">
+        Live Game Closings · {format(monthAnchor, "MMMM yyyy")} ({shifts.length})
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-xs">
@@ -472,9 +488,19 @@ const LiveTab = () => {
 // ============================================================
 type SlotsSortKey = "date" | "slotsResult" | "cdr" | "balance";
 
-const SlotsTab = () => {
-  const { data: shiftsRaw = [], isLoading } = useCageSlotsHistory(120);
-  const shifts = useMemo(() => shiftsRaw.filter((s: any) => s.status === "closed"), [shiftsRaw]);
+const SlotsTab = ({ monthAnchor }: { monthAnchor: Date }) => {
+  const { data: shiftsRaw = [], isLoading } = useCageSlotsHistory(500);
+  const monthStartStr = format(startOfMonth(monthAnchor), "yyyy-MM-dd");
+  const monthEndStr = format(startOfMonth(addMonths(monthAnchor, 1)), "yyyy-MM-dd");
+  const monthLabel = format(monthAnchor, "MMMM yyyy");
+  const shifts = useMemo(
+    () => shiftsRaw.filter((s: any) =>
+      s.status === "closed" &&
+      s.business_date >= monthStartStr &&
+      s.business_date < monthEndStr
+    ),
+    [shiftsRaw, monthStartStr, monthEndStr]
+  );
   const [printId, setPrintId] = useState<string | null>(null);
   const sort = useSort<SlotsSortKey>("date", "desc");
 
@@ -493,7 +519,7 @@ const SlotsTab = () => {
 
   return (
     <div className="cms-panel">
-      <div className="cms-header">Slots Closings ({shifts.length})</div>
+      <div className="cms-header">Slots Closings · {monthLabel} ({shifts.length})</div>
       <div className="overflow-x-auto">
         <table className="w-full text-xs">
           <thead className="bg-card">
