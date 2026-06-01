@@ -105,19 +105,24 @@ const COLS = {
 const Incidents = () => {
   const { roles } = useAuth();
   const canPost = roles.some((r) => ["super_admin", "manager", "surveillance"].includes(r));
+  // Managers / Floor Managers / Super Admin / Surveillance see the full history by default.
+  // Operational roles (pit etc.) default to the current business day.
+  const isPrivileged = roles.some((r) =>
+    ["super_admin", "manager", "floor_manager", "surveillance", "finance_manager"].includes(r),
+  );
 
   const [search, setSearch] = useState("");
   const [form, setForm] = useState<IncidentInput>(emptyForm());
   const [uploading, setUploading] = useState(false);
   const [viewPhoto, setViewPhoto] = useState<string | null>(null);
-  // Journal view mode — "day" shows the selected business day, 7d/30d show a rolling window.
+  // Journal view mode — "day" shows the selected business day, 7d/30d rolling windows, "all" = full history.
   // The form.incident_date still controls the draft row date independently.
-  const [viewMode, setViewMode] = useState<"day" | "7d" | "30d">("day");
+  const [viewMode, setViewMode] = useState<"day" | "7d" | "30d" | "all">(isPrivileged ? "all" : "day");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Business-day window for "day", rolling N days for "7d"/"30d".
+  // Business-day window for "day", rolling N days for "7d"/"30d", no filter for "all".
   const { data: incidents = [], isLoading } = useIncidents(
-    viewMode === "day" ? null : viewMode === "7d" ? 7 : 30,
+    viewMode === "day" || viewMode === "all" ? null : viewMode === "7d" ? 7 : 30,
     viewMode === "day" ? form.incident_date : null,
   );
   const createMut = useCreateIncident();
@@ -264,13 +269,13 @@ const Incidents = () => {
         centerSlot={
           <div className="flex items-center gap-1.5 flex-wrap">
             <div className="inline-flex rounded-md border border-border overflow-hidden">
-              {(["day", "7d", "30d"] as const).map(m => (
+              {(["day", "7d", "30d", "all"] as const).map(m => (
                 <button
                   key={m}
                   onClick={() => setViewMode(m)}
                   className={`px-2 h-7 text-[10px] font-mono uppercase ${viewMode === m ? "bg-primary text-primary-foreground" : "bg-background hover:bg-muted text-muted-foreground"}`}
                 >
-                  {m === "day" ? "Day" : m}
+                  {m === "day" ? "Day" : m === "all" ? "All" : m}
                 </button>
               ))}
             </div>
