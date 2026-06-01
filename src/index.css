@@ -369,21 +369,27 @@
     margin: 0 !important;
     display: block !important;
   }
-  /* Each cash desk report = its own A4 portrait page */
-  @page cashdesk {
+  /* Cash Desk report — A4 portrait (first page).
+   * Chip Movement report — A4 landscape (second page). */
+  @page cashdesk-portrait {
     size: A4 portrait;
     margin: 8mm;
   }
+  @page cashdesk-landscape {
+    size: A4 landscape;
+    margin: 8mm;
+  }
   #shift-print-area {
-    page: cashdesk;
+    page: cashdesk-portrait;
     page-break-after: always;
     break-after: page;
   }
   #chip-print-area {
-    page: cashdesk;
+    page: cashdesk-landscape;
     page-break-before: always;
     break-before: page;
   }
+
 
   /* Print header shown at the top of each page/section */
   .print-header {
