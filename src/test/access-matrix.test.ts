@@ -22,7 +22,7 @@ import { MODULES, type ModuleKey } from "@/lib/modules";
 const FLOOR_MANAGER_ALLOWED: ReadonlySet<ModuleKey> = new Set<ModuleKey>([
   "bank_checks",
   "blacklist",
-  "business_days",
+  "cancelled_transactions",
   "cage_view",
   "cashless",
   "dashboard",
