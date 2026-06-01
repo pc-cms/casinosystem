@@ -1,65 +1,57 @@
-# Ревизия матрицы модулей и истории Cashless
+## Reports module — большое преображение
 
-## Проблема пользователя
-Floor manager имеет в `role_module_defaults` `cashless` и `expenses` с `day_horizon='all'`, но на страницах Cashless и Expenses нельзя выбрать прошлый день:
-- **Cashless** жёстко грузится только за текущий business date — нет date picker'а вообще.
-- **Expenses** имеет from/to, но по умолчанию today/today (не реальное ограничение).
-- Само поле `day_horizon` в матрице сейчас НЕ применяется на этих страницах — это декоративное поле.
+### 1. Tabs (новый порядок)
 
-Плюс в `MODULES` есть устаревшие/дубли и нет нескольких реальных модулей.
+```text
+Daily · Shifts · Slots · Tables · Players · Groups · Expenses · Miss Chips
+```
 
-## Часть 1 — Cashless: добавить выбор даты
-В `src/pages/Cashless.tsx`:
-- Добавить state `viewDate` (по умолчанию = текущий businessDate).
-- Кнопки «◀ / ▶ / Today» + `<input type="date">` в шапке (как в Expenses).
-- `useCashless(viewDate)` — история показывается за выбранный день.
-- Создание новых записей всё равно идёт с `business_date = businessDate` (текущий открытый день).
-- Заголовок секции истории показывает выбранную дату, "No cashless transactions" вместо "today".
+Удаляем:
+- `tables` (старый `TableReport` — Drop/Cashout/Result по столам из transactions)
+- `tracker` (`TrackerReport` целиком)
 
-## Часть 2 — Чистка `src/lib/modules.ts`
+Переименовываем:
+- `table-results` → `tables` (label «Tables», иконка `Table2`). Контент — текущий `TableResultsPage` без изменений.
 
-### Удалить (устаревшие/нерабочие)
-- `cage_closings` — помечен legacy, маршрут уже маппится на `closings`.
-- `staff` — помечен legacy.
-- `pitbook` — функционал убран, страницы нет в навигации, остался только маршрут.
-- `business_days` — недавно убрали кнопку и функционал.
-- `weekly_bonus`, `monthly_tips` — заменены на единый `tips_and_bonuses` (маршруты уже маппятся на него).
+Добавляем новую вкладку `slots`:
+- Слева — KPI-карточки за выбранный `from..to`: **Total Result**, **Total CDR**, **Total Cashless**, **Total Tips**, **Total Miss**, **Shifts count**. Стиль — как summary cards в Shifts.
+- Ниже — таблица истории закрытых смен (mirror `CageSlotsHistoryView`): дата, кассир, opening cash, closing cash, system result, CDR, cashless (miss), tips, balance. Раскрытие строки + кнопка **Print** (через `PrintSlotsShiftDialog`). Read-only — никакой правки/approve.
+- Фильтруется по `from..to` из шапки Reports.
+- Источник данных: `cage_slots_shifts` со статусом `closed` (как в существующем History компоненте).
 
-### Добавить (отсутствуют, но есть реальные страницы)
-- `tables_analytics` — `/tables/analytics` (есть в БД, нет в TS-каталоге).
-- `cancelled_transactions` — `/cage/cancelled` (если используется).
-- `cage_slots_report` — `/cage-slots/report`.
-- `cage_slots_expenses` — отдельная гранулярность для расходов слотов.
-- `payroll_settings`, `payroll_bank_export` — sub-страницы payroll.
-- `pos_*` модули (waiter/bar/manager/reports/inventory/menu/charges) — сейчас POS вообще не управляется матрицей.
+### 2. Expenses tab → полная копия `/expenses` (read-only)
 
-### Переименовать для ясности
-- `cage` → label "Cage Live Game (Cashier)" (writable surface).
-- `cage_view` → label "Cage History (Read-only)".
-- `staff_*` → "Floor Staff *" (уже частично сделано).
+Сейчас `ExpenseReport` показывает только By Category / By Player таблицы. Меняем на структуру страницы `/expenses`:
 
-## Часть 3 — `role_module_defaults` миграция
-Удалить из БД строки на удалённые модули (`cage_closings`, `staff`, `pitbook`, `business_days`, `weekly_bonus`, `monthly_tips`) для всех ролей.
+- **KPI-карточки**: Total, Approved, Pending, Bar charges. Все используют `useExpenseAnalytics` с фильтрами вкладки.
+- **By-source mini-cards** (Live Game / Slots / Office) — клик переключает фильтр source.
+- **NEW**: при клике на карточку **Total** — source сбрасывается в `"all"` (и сбрасываются category/target до `all`, диапазон дат не трогаем). Сейчас Total — статичный, не кликабельный.
+- **Фильтры**: те же что в /expenses (From/To preset-кнопки Today/7d/30d/All, Source select, Category, Target, Status, Search). From/To дублируют шапку Reports — при изменении синхронизируем.
+- **Таблица расходов** — те же колонки что в /expenses (`ExpensesTable`), **read-only** — без кнопок Edit/Delete/Approve и без формы добавления (`NewExpensesForm` и `ExpenseRowActions` не рендерим).
+- **Сортировки**: добавляем `useSorted` обёртку на главную таблицу (Date, Amount, Source, Category, Target, Player, Status) — сейчас её нет.
 
-Для **floor_manager** оставить `cashless=all`, `expenses=all` (уже так) — теперь это реально заработает после Части 1.
+Реализация: вынести существующую `/pages/Expenses.tsx` UI-часть в общий компонент `ExpensesView` (props: `readOnly: boolean`), и использовать его на обеих страницах. На странице `/expenses` — `readOnly=false`, в Reports — `readOnly=true`.
 
-Добавить дефолты для новых модулей (`tables_analytics`, `cancelled_transactions`, `cage_slots_report`, …) по ролям manager/floor_manager/finance_manager/super_admin.
+### 3. Сортировки в новых вкладках
 
-## Часть 4 — Синхронизация
-- Обновить `src/lib/route-module-map.ts`: убрать ссылки на удалённые ключи, добавить новые маршруты.
-- Обновить `src/test/access-matrix.test.ts`: `FLOOR_MANAGER_ALLOWED` пересобрать под новый набор.
-- Поднять patch-версию `package.json` (изменения в БД).
+В новой вкладке **Slots** — сортируемые заголовки (`SortTh` уже есть в Reports.tsx) для всех колонок таблицы истории.
 
-## Файлы
-- `src/pages/Cashless.tsx` — date picker.
-- `src/lib/modules.ts` — чистка + новые модули.
-- `src/lib/route-module-map.ts` — синхронизация.
-- `src/test/access-matrix.test.ts` — обновление контракта.
-- `supabase/migrations/*` — DELETE/INSERT в `role_module_defaults`.
-- `package.json` — version bump.
+### 4. Чистка
 
-## Не входит в этот план
-- Реальное применение `day_horizon` как auto-filter на всех страницах (большая работа, отдельный заход).
-- Удаление кода страниц Pitbook/BusinessDays/WeeklyBonus/MonthlyTips — оставляем как dead code до отдельной задачи.
+- Удалить из `Reports.tsx`: `TrackerReport`, старый `TableReport`, неиспользуемые импорты (`useTableTracker`, `useGamingTables` если больше не нужен, `Grid3X3`, `Table2` оставляем для новой Tables).
+- Удалить старый локальный `ExpenseReport` — заменён общим `ExpensesView` (read-only).
+- Удалить `useTransactions`/`useExpenses` импорты, если они становятся не нужны после удаления старых вкладок (Shift/Player/Group ещё пользуются — проверить).
 
-Подтверди — и я выполню всё одним заходом. Если хочешь сузить (например, только Часть 1 + Часть 3 по floor_manager), скажи.
+### 5. Файлы
+
+- `src/pages/Reports.tsx` — переработка табов, удаление 2 компонентов, добавление `SlotsReport`.
+- `src/components/cage-slots/SlotsHistoryReport.tsx` *(новый)* — KPI + таблица истории смен с раскрытием и Print.
+- `src/components/expenses/ExpensesView.tsx` *(новый)* — экстракт UI из `src/pages/Expenses.tsx` с пропом `readOnly`.
+- `src/pages/Expenses.tsx` — становится тонкой оболочкой над `ExpensesView` (`readOnly={false}`).
+- `package.json` — bump patch (фронтовый только, бэкенд не трогаем).
+
+### Не трогаем
+
+- БД, RPC, миграции — только фронт.
+- Логику Shifts / Daily / Players / Groups / Miss Chips — без изменений.
+- Доступ ролей к /expenses (sourceLocked для кассиров и т.п.) — переносим в `ExpensesView` как есть.
