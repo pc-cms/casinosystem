@@ -480,13 +480,13 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
 
           {/* Shift Result — single row, no duplicates, no formulas in headings */}
           <PageSection title="Shift Result">
-            <div className={`grid grid-cols-2 ${tipsCdTotal > 0 ? "md:grid-cols-6" : "md:grid-cols-5"} gap-2`}>
+            <div className={`grid grid-cols-2 ${tipsCdPayoutTotal > 0 ? "md:grid-cols-6" : "md:grid-cols-5"} gap-2`}>
               <BigTile label="Opening Cash" value={openingCashTzs} />
               <BigTile label="Closing Cash" value={closingCashTzs} />
               <BigTile label="System Result" value={systemResult} signed />
               <BigTile label="Cash Desk Result" value={cashDeskResult} signed />
               <BigTile label="Cards Miss" value={cardsMiss} signed />
-              {tipsCdTotal > 0 && <BigTile label="Tips CD (−)" value={-tipsCdTotal} signed />}
+              {tipsCdPayoutTotal > 0 && <BigTile label="Tips CD Paid (+)" value={tipsCdPayoutTotal} signed />}
             </div>
 
             {/* Shift Balance — big number, no formula text */}
