@@ -26,8 +26,34 @@ installAuthThrottle();
 // multiple tabs/windows on the same device.
 initAuthLeaderElection();
 
-runtimeReady.finally(() => {
+// One-time per-version cache buster: if the app version changed since the last
+// boot, purge all SW caches and unregister service workers BEFORE rendering.
+// Fixes "force update didn't pull new code" — guarantees a clean reload on
+// every version bump without manual user action.
+declare const __APP_VERSION__: string;
+const versionBuster = (async () => {
+  try {
+    const KEY = "cms:app-version";
+    const prev = localStorage.getItem(KEY);
+    const curr = __APP_VERSION__;
+    if (prev && prev !== curr) {
+      const cacheNames = await caches.keys().catch(() => [] as string[]);
+      await Promise.all(cacheNames.map((n) => caches.delete(n).catch(() => false)));
+      const regs = await navigator.serviceWorker?.getRegistrations?.().catch(() => []);
+      if (regs) await Promise.all(regs.map((r) => r.unregister().catch(() => false)));
+      localStorage.setItem(KEY, curr);
+      // Hard reload from network so the freshly-fetched HTML/JS replaces the stale shell.
+      window.location.reload();
+      // Block app boot until reload kicks in.
+      await new Promise(() => {});
+    }
+    localStorage.setItem(KEY, curr);
+  } catch { /* ignore */ }
+})();
+
+Promise.all([runtimeReady, versionBuster]).finally(() => {
   createRoot(document.getElementById("root")!).render(<App />);
   // Register PWA service worker (no-op in editor preview / iframe / dev)
   setupPWA();
 });
+
