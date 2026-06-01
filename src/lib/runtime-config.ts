@@ -41,10 +41,19 @@ export async function getRuntimeConfig(): Promise<RuntimeConfig> {
 
   loadPromise = (async () => {
     try {
-      // Никогда не кешируем — config может меняться при обновлении контейнера
-      const res = await fetch("/runtime-config.json", { cache: "no-store" });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const raw = await res.json();
+      // ВАЖНО: жёсткий таймаут 3 сек. Без него после resetPWACache() при медленной
+      // сети fetch /runtime-config.json висит → main.tsx не монтирует React →
+      // белый экран на 2-3 минуты пока браузер не сдастся.
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 3000);
+      let raw: any;
+      try {
+        const res = await fetch("/runtime-config.json", { cache: "no-store", signal: controller.signal });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        raw = await res.json();
+      } finally {
+        clearTimeout(timer);
+      }
 
       cached = {
         supabaseUrl: cleanValue(raw.supabaseUrl),
@@ -55,7 +64,7 @@ export async function getRuntimeConfig(): Promise<RuntimeConfig> {
         version: cleanValue(raw.version),
       };
     } catch {
-      // Файл отсутствует или невалидный — Cloud-режим, всё через .env
+      // Файл отсутствует / таймаут / невалидный — Cloud-режим, всё через .env
       cached = {
         supabaseUrl: null,
         supabasePublishableKey: null,
