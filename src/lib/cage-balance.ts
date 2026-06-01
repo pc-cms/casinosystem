@@ -99,9 +99,9 @@ export const computeSlotsShiftBalance = (i: SlotsBalanceInputs): SlotsBalanceRes
   const slotsResult = i.systemResult;
   const expected = i.systemResult;
   const tipsCd = i.tipsCd || 0;
-  // Shift Balance = CDR − SystemResult − Cards Miss
-  // Tips CD are physically removed from cage and accounted separately — NOT included in balance.
-  const shiftBalance = cashDeskResult - i.systemResult - cardsMiss;
+  // Shift Balance = CDR − SystemResult − Cards Miss − Tips CD
+  // Tips CD are included in the closing cash count → subtract them so balance reflects true variance.
+  const shiftBalance = cashDeskResult - i.systemResult - cardsMiss - tipsCd;
   return {
     deltaCash,
     cashDeskResult,
