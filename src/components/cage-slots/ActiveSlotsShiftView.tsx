@@ -39,6 +39,7 @@ import {
   useCreateSlotsCashCount, useSubmitSlotsForReview, useApproveSlotsShift,
   useCreateSlotsCashless, useReopenSlotsShift,
 } from "@/hooks/use-cage-slots";
+import { useCashlessSuggestions } from "@/hooks/use-cashless";
 import { useAuth } from "@/lib/auth-context";
 import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
 import type { Tables } from "@/integrations/supabase/types";
