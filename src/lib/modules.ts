@@ -17,12 +17,10 @@ export type ModuleKey =
   | "pit_dealers"
   | "cage"
   | "cage_view"
-  | "cage_closings"
   | "closings"
   | "daily_expenses"
   | "cage_slots"
   | "tables"
-  
   | "table_tracker"
   | "table_results"
   | "players"
@@ -46,15 +44,11 @@ export type ModuleKey =
   | "finance_payments"
   | "reports"
   | "miss_chips"
-  | "business_days"
-  | "weekly_bonus"
-  | "monthly_tips"
+  | "cancelled_transactions"
   | "tips_and_bonuses"
   | "hr_warnings"
   | "incidents"
-  | "pitbook"
   | "groups"
-  | "staff"
   | "staff_employees"
   | "staff_rota"
   | "staff_attendance"
@@ -75,42 +69,46 @@ export interface ModuleDef {
 }
 
 export const MODULES: ModuleDef[] = [
+  // Overview
   { key: "dashboard", label: "Dashboard", group: "Operations" },
+
+  // PIT
   { key: "pit_rota", label: "Live Rota", group: "Operations" },
   { key: "pit_breaklist", label: "Breaklist", group: "Operations" },
   { key: "pit_attendance", label: "Live Attendance", group: "Operations" },
   { key: "pit_active_players", label: "Player Tracking", group: "Operations" },
   { key: "pit_dealers", label: "Live Game Dealers", group: "Operations" },
-  { key: "cage", label: "Cage Live Game", group: "Operations" },
-  { key: "cage_view", label: "Cage View (Read-only)", group: "Operations" },
-  { key: "cage_closings", label: "Cage Closings (legacy)", group: "Operations" },
-  { key: "closings", label: "Closings", group: "Operations" },
-  { key: "daily_expenses", label: "Daily Expenses", group: "Finance" },
-  { key: "cage_slots", label: "Cage Slots", group: "Operations" },
+  { key: "incidents", label: "Incidents", group: "Operations" },
+
+  // Tables
   { key: "tables", label: "Tables", group: "Operations" },
-  
   { key: "table_tracker", label: "Table Check", group: "Operations" },
   { key: "table_results", label: "Table Results", group: "Reports" },
-  { key: "incidents", label: "Incidents", group: "Operations" },
-  { key: "pitbook", label: "Pitbook", group: "Operations" },
-  { key: "weekly_bonus", label: "Weekly Bonus", group: "Operations" },
-  { key: "monthly_tips", label: "Monthly Tips", group: "Operations" },
-  { key: "tips_and_bonuses", label: "Tips & Bonuses", group: "Operations" },
-  { key: "hr_warnings", label: "HR Warnings", group: "System" },
-  { key: "business_days", label: "Business Days", group: "Reports" },
+
+  // Cage / Cashier
+  { key: "cage", label: "Cage Live Game (Cashier)", group: "Operations" },
+  { key: "cage_view", label: "Cage History (Read-only)", group: "Operations" },
+  { key: "cage_slots", label: "Cage Slots", group: "Operations" },
+  { key: "closings", label: "Closings", group: "Operations" },
   { key: "cashless", label: "Cashless", group: "Operations" },
-  { key: "expenses_approvals", label: "Expenses Approvals", group: "Finance" },
-  { key: "finance_payments", label: "Finance Payments", group: "Finance" },
-  { key: "reception", label: "Reception", group: "Players" },
-  { key: "reception_checkin", label: "Reception · Check-in", group: "Players" },
-  { key: "reception_register", label: "Reception · Register", group: "Players" },
-  { key: "reception_update", label: "Reception · Update Data", group: "Players" },
+  { key: "tips_and_bonuses", label: "Tips & Bonuses", group: "Operations" },
+
+  // Players
   { key: "players", label: "Players", group: "Players" },
   { key: "in_casino", label: "Guests", group: "Players" },
   { key: "blacklist", label: "Blacklist", group: "Players" },
   { key: "groups", label: "Groups", group: "Players" },
-  { key: "bank_checks", label: "Bank Checks", group: "Finance" },
+  { key: "reception", label: "Reception", group: "Players" },
+  { key: "reception_checkin", label: "Reception · Check-in", group: "Players" },
+  { key: "reception_register", label: "Reception · Register", group: "Players" },
+  { key: "reception_update", label: "Reception · Update Data", group: "Players" },
+  { key: "crm_players", label: "Player CRM", group: "Players" },
+
+  // Finance
+  { key: "bank_checks", label: "Bank", group: "Finance" },
   { key: "expenses", label: "Expenses", group: "Finance" },
+  { key: "daily_expenses", label: "Daily Expenses", group: "Finance" },
+  { key: "expenses_approvals", label: "Expenses Approvals", group: "Finance" },
   { key: "finance_dashboard", label: "Finance Dashboard", group: "Finance" },
   { key: "finance_wallets", label: "Wallets", group: "Finance" },
   { key: "finance_cash_count", label: "Cash Count", group: "Finance" },
@@ -118,20 +116,25 @@ export const MODULES: ModuleDef[] = [
   { key: "finance_review", label: "Daily Review", group: "Finance" },
   { key: "finance_transfers", label: "Inter-Casino Transfers", group: "Finance" },
   { key: "finance_summary", label: "Finance Summary", group: "Finance" },
+  { key: "finance_payments", label: "Finance Payments", group: "Finance" },
+  { key: "payroll", label: "Payroll", group: "Finance" },
+
+  // Reports
   { key: "reports", label: "Reports", group: "Reports" },
   { key: "miss_chips", label: "Miss Chips Report", group: "Reports" },
+  { key: "cancelled_transactions", label: "Cancelled Transactions", group: "Reports" },
   { key: "import_reports", label: "Import Reports", group: "Reports" },
   { key: "logs", label: "Activity Logs", group: "Reports" },
-  { key: "staff", label: "Staff (legacy)", group: "System" },
+
+  // Staff / HR / System
   { key: "staff_employees", label: "Floor Staff Employees", group: "System" },
   { key: "staff_rota", label: "Floor Staff Rota", group: "System" },
   { key: "staff_attendance", label: "Floor Staff Attendance", group: "System" },
   { key: "staff_master", label: "Staff Master (HR)", group: "System" },
-  { key: "payroll", label: "Payroll", group: "Finance" },
+  { key: "hr_warnings", label: "HR Warnings", group: "System" },
   { key: "cctv", label: "CCTV", group: "System" },
   { key: "cctv_dashboard", label: "CCTV Dashboard", group: "System" },
   { key: "marketing_campaigns", label: "Marketing Campaigns", group: "Operations" },
-  { key: "crm_players", label: "Player CRM", group: "Players" },
   { key: "admin", label: "Admin Panel", group: "System" },
 ];
 
