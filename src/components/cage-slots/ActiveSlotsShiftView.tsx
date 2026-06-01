@@ -1117,6 +1117,20 @@ const Stat = ({ label, value, signed, emphasize }: { label: string; value: numbe
   </div>
 );
 
+const BigTile = ({ label, value, signed, emphasize }: { label: string; value: number; signed?: boolean; emphasize?: boolean }) => {
+  const colorCls = signed
+    ? value < 0 ? "cms-amount-negative" : value > 0 ? "cms-amount-positive" : ""
+    : "";
+  return (
+    <div className={`rounded-md border px-2 py-3 flex flex-col items-center justify-center min-h-[88px] ${emphasize ? "border-primary/60 bg-primary/10" : "border-border bg-card"}`}>
+      <p className="text-[10px] uppercase text-muted-foreground tracking-[0.14em] font-semibold text-center mb-1">{label}</p>
+      <p className={`font-mono font-bold tabular-nums text-center ${emphasize ? "text-2xl" : "text-xl"} ${colorCls}`}>
+        {signed && value > 0 ? "+" : ""}{formatNumberSpaces(value)}
+      </p>
+    </div>
+  );
+};
+
 const CashlessProvidersBlock = ({
   title, values, onChange, disabled, onBlur, tone = "default",
 }: {
