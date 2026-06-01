@@ -22,7 +22,7 @@ import { MODULES, type ModuleKey } from "@/lib/modules";
 const FLOOR_MANAGER_ALLOWED: ReadonlySet<ModuleKey> = new Set<ModuleKey>([
   "bank_checks",
   "blacklist",
-  "business_days",
+  "cancelled_transactions",
   "cage_view",
   "cashless",
   "dashboard",
@@ -36,11 +36,11 @@ const FLOOR_MANAGER_ALLOWED: ReadonlySet<ModuleKey> = new Set<ModuleKey>([
   "pit_breaklist",
   "pit_dealers",
   "pit_rota",
-  "pitbook",
+  "closings",
   "players",
   "reception",
   "reports",
-  "staff",
+  
   "staff_attendance",
   "staff_employees",
   "staff_rota",
@@ -109,10 +109,9 @@ const GATED_ROUTES = [
   "/table-results",
   "/bank-checks",
   "/miss-chips",
-  "/business-days",
   "/tips-and-bonuses",
-  "/pitbook",
   "/incidents",
+  "/cancelled-transactions",
 ];
 
 const VALID_KEYS = new Set(MODULES.map(m => m.key));
@@ -185,8 +184,8 @@ describe("floor_manager (Taras) — sidebar & route gate match matrix", () => {
       "/pit?tab=rota", "/staff", "/staff?tab=attendance",
       "/breaklist", "/rota/live", "/attendance/live",
       "/rota/floor", "/attendance/floor", "/staff/employees",
-      "/reports", "/table-results", "/business-days", "/tips-and-bonuses",
-      "/miss-chips", "/pitbook", "/incidents",
+      "/reports", "/table-results", "/tips-and-bonuses",
+      "/miss-chips", "/incidents",
     ];
     for (const r of permitted) {
       expect(isVisibleForRole(r, allow), `route ${r} must be visible`).toBe(true);

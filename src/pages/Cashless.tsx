@@ -51,11 +51,19 @@ const newDraft = (): DraftRow => ({
   reference: "",
 });
 
+const shiftDate = (d: string, days: number): string => {
+  const dt = new Date(d + "T00:00:00Z");
+  dt.setUTCDate(dt.getUTCDate() + days);
+  return dt.toISOString().slice(0, 10);
+};
+
 const Cashless = () => {
   const { isManager } = useAuth();
   const { data: serverBusinessDate } = useEffectiveBusinessDate();
   const businessDate = serverBusinessDate || getBusinessDate();
-  const { data: rows = [] } = useCashless(businessDate);
+  const [viewDate, setViewDate] = useState<string>(businessDate);
+  const isToday = viewDate === businessDate;
+  const { data: rows = [] } = useCashless(viewDate);
   
   const create = useCreateCashless();
   const approve = useApproveCashless();
@@ -229,6 +237,23 @@ const Cashless = () => {
 
       {/* History */}
       <div className="cms-panel overflow-hidden">
+        <div className="px-4 py-2 border-b border-border flex items-center justify-between gap-2 flex-wrap">
+          <h3 className="text-sm font-semibold text-card-foreground">
+            History {isToday ? "(today)" : `· ${viewDate}`}
+          </h3>
+          <div className="inline-flex items-center gap-1">
+            <Button size="sm" variant="outline" className="h-8 px-2" onClick={() => setViewDate(d => shiftDate(d, -1))}>◀</Button>
+            <Input
+              type="date"
+              value={viewDate}
+              max={businessDate}
+              onChange={e => setViewDate(e.target.value || businessDate)}
+              className="h-8 w-[150px] text-xs"
+            />
+            <Button size="sm" variant="outline" className="h-8 px-2" disabled={isToday} onClick={() => setViewDate(d => shiftDate(d, 1) > businessDate ? businessDate : shiftDate(d, 1))}>▶</Button>
+            <Button size="sm" variant={isToday ? "default" : "outline"} className="h-8" onClick={() => setViewDate(businessDate)}>Today</Button>
+          </div>
+        </div>
         <table className="w-full">
           <thead>
             <tr className="border-b border-border text-[10px] uppercase tracking-wider text-muted-foreground">
@@ -244,7 +269,7 @@ const Cashless = () => {
           </thead>
           <tbody>
             {rows.length === 0 ? (
-              <tr><td colSpan={8} className="text-center text-muted-foreground text-sm py-8">No cashless transactions today</td></tr>
+              <tr><td colSpan={8} className="text-center text-muted-foreground text-sm py-8">No cashless transactions for {isToday ? "today" : viewDate}</td></tr>
             ) : rows.map(r => (
               <tr key={r.id} className="border-b border-border last:border-0">
                 <td className="px-3 py-2 text-xs font-mono text-muted-foreground">
