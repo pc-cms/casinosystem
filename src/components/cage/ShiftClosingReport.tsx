@@ -568,8 +568,6 @@ const ShiftClosingReport = ({
         </tbody>
       </table>
 
-      {/* Spacer pushes signatures to the bottom of the A4 portrait page */}
-      <div className="flex-1" />
 
       {/* ============ SIGNATURES ============ */}
       <table className="w-full border-collapse mt-2 pt-2">
