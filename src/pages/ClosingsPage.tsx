@@ -211,10 +211,11 @@ const TotalTab = ({ monthAnchor }: { monthAnchor: Date }) => {
       if (expRes.error) throw expRes.error;
       if (dropRes.error) throw dropRes.error;
 
+      // Canonical 07:00 EAT rollover (matches DB business_date_of).
       const eatDate = (iso: string) => {
         const d = new Date(iso);
         const hh = parseInt(d.toLocaleString("en-GB", { timeZone: "Africa/Dar_es_Salaam", hour: "2-digit", hour12: false }), 10);
-        const tgt = hh < 11 ? new Date(d.getTime() - 86400_000) : d;
+        const tgt = hh < 7 ? new Date(d.getTime() - 86400_000) : d;
         return tgt.toLocaleDateString("en-CA", { timeZone: "Africa/Dar_es_Salaam" });
       };
 
