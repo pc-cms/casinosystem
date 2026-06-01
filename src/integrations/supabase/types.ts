@@ -1133,6 +1133,53 @@ export type Database = {
           },
         ]
       }
+      cage_slots_tips_cd_payouts: {
+        Row: {
+          amount: number
+          bucket: string
+          cage_slots_shift_id: string
+          casino_id: string
+          collected_amount: number
+          created_at: string
+          id: string
+          note: string | null
+          operator_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          bucket: string
+          cage_slots_shift_id: string
+          casino_id: string
+          collected_amount?: number
+          created_at?: string
+          id?: string
+          note?: string | null
+          operator_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          bucket?: string
+          cage_slots_shift_id?: string
+          casino_id?: string
+          collected_amount?: number
+          created_at?: string
+          id?: string
+          note?: string | null
+          operator_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cage_slots_tips_cd_payouts_cage_slots_shift_id_fkey"
+            columns: ["cage_slots_shift_id"]
+            isOneToOne: false
+            referencedRelation: "cage_slots_shifts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cage_slots_transfers: {
         Row: {
           amount: number

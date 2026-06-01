@@ -8,6 +8,9 @@ import SlotsTransfersForm from "./SlotsTransfersForm";
 import { useSlotsTransfers } from "@/hooks/use-cage-slots-transfers";
 import { useSlotsExpenses } from "@/hooks/use-expenses";
 import { useSlotsTipsCd } from "@/hooks/use-slots-tips-cd";
+import { useSlotsTipsCdPayouts } from "@/hooks/use-slots-tips-cd-payouts";
+import { tipsBucketOf } from "@/lib/slots-tips-bucket";
+import SlotsTipsCdPayoutDialog from "./SlotsTipsCdPayoutDialog";
 
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -59,6 +62,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
   const { data: comments = [] } = useSlotsComments(shift.id);
   const { data: slotsExpenses = [] } = useSlotsExpenses(shift.business_date);
   const { data: tipsCdRows = [] } = useSlotsTipsCd(shift.id);
+  const { data: tipsCdPayouts = [] } = useSlotsTipsCdPayouts(shift.id);
   
   const { data: transfers = [] } = useSlotsTransfers(shift.id);
 
@@ -187,10 +191,29 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
     [slotsExpenses],
   );
 
-  // Tips CD recorded during this shift — physically removed from cage; added back in balance.
+  // Tips CD collected during this shift — reporting log only (not in balance).
   const tipsCdTotal = useMemo(() =>
     (tipsCdRows as any[]).reduce((s, t) => s + Number(t.amount || 0), 0),
     [tipsCdRows],
+  );
+  // Per-bucket collected (derived from created_at via tipsBucketOf).
+  const collectedByBucket = useMemo(() => {
+    const out = { day: 0, evening: 0 };
+    (tipsCdRows as any[]).forEach((t) => {
+      const b = tipsBucketOf(t.created_at);
+      out[b] += Number(t.amount || 0);
+    });
+    return out;
+  }, [tipsCdRows]);
+  // Payout state per bucket.
+  const payoutByBucket = useMemo(() => {
+    const out: { day: any; evening: any } = { day: null, evening: null };
+    (tipsCdPayouts as any[]).forEach((p) => { out[p.bucket as "day" | "evening"] = p; });
+    return out;
+  }, [tipsCdPayouts]);
+  const tipsCdPayoutTotal = useMemo(() =>
+    (tipsCdPayouts as any[]).reduce((s, p) => s + Number(p.amount || 0), 0),
+    [tipsCdPayouts],
   );
 
   // Slots balance is shown as explicit manual formula parts in the UI.
@@ -224,8 +247,8 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
     closingCards,
     cardValue: cardDepositTzs,
     systemResult,
-    tipsCd: tipsCdTotal,
-  }), [openingCashTzs, closingCashTzs, expensesApproved, transfersAgg, cashlessInManualTzs, cashlessOutManualTzs, cashlessFinal, openingCardsCount, closingCards, cardDepositTzs, systemResult, tipsCdTotal]);
+    tipsCdPayout: tipsCdPayoutTotal,
+  }), [openingCashTzs, closingCashTzs, expensesApproved, transfersAgg, cashlessInManualTzs, cashlessOutManualTzs, cashlessFinal, openingCardsCount, closingCards, cardDepositTzs, systemResult, tipsCdPayoutTotal]);
 
   const { deltaCash, cashDeskResult, cardsMiss, slotsResult, cashlessBalance, shiftBalance } = balance;
 
@@ -314,6 +337,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
   const [showClosingPreview, setShowClosingPreview] = useState(false);
   const [showEditOpeningCards, setShowEditOpeningCards] = useState(false);
   const [showTipsCd, setShowTipsCd] = useState(false);
+  const [payoutDialog, setPayoutDialog] = useState<null | "day" | "evening">(null);
 
   const openClosingPreview = () => {
     if (!systemResultInput.trim()) {
@@ -457,13 +481,13 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
 
           {/* Shift Result — single row, no duplicates, no formulas in headings */}
           <PageSection title="Shift Result">
-            <div className={`grid grid-cols-2 ${tipsCdTotal > 0 ? "md:grid-cols-6" : "md:grid-cols-5"} gap-2`}>
+            <div className={`grid grid-cols-2 ${tipsCdPayoutTotal > 0 ? "md:grid-cols-6" : "md:grid-cols-5"} gap-2`}>
               <BigTile label="Opening Cash" value={openingCashTzs} />
               <BigTile label="Closing Cash" value={closingCashTzs} />
               <BigTile label="System Result" value={systemResult} signed />
               <BigTile label="Cash Desk Result" value={cashDeskResult} signed />
               <BigTile label="Cards Miss" value={cardsMiss} signed />
-              {tipsCdTotal > 0 && <BigTile label="Tips CD (−)" value={-tipsCdTotal} signed />}
+              {tipsCdPayoutTotal > 0 && <BigTile label="Tips CD Paid (+)" value={tipsCdPayoutTotal} signed />}
             </div>
 
             {/* Shift Balance — big number, no formula text */}
@@ -592,6 +616,61 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
               <Save className="w-5 h-5" /> Close Shift (Manager)
             </Button>
           </div>
+        </div>
+      )}
+
+      {/* Tips CD Payouts — Day / Evening cash-out before Close Shift. */}
+      {shift.status === "open" && (
+        <div className="mb-3 grid grid-cols-1 md:grid-cols-2 gap-2">
+          {(["day", "evening"] as const).map((bucket) => {
+            const paid = payoutByBucket[bucket];
+            const collected = collectedByBucket[bucket];
+            const label = bucket === "day" ? "Cash Out Day Tips" : "Cash Out Evening Tips";
+            const bucketHours = bucket === "day" ? "13:00–21:10" : "21:11–05:00";
+            if (paid) {
+              return (
+                <div key={bucket} className="rounded-md border-2 border-emerald-500/60 bg-emerald-500/10 p-3 flex items-center justify-between">
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wider text-emerald-700 dark:text-emerald-300 font-bold">
+                      {bucket === "day" ? "Day Tips" : "Evening Tips"} · Paid Out
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">
+                      Collected {formatNumberSpaces(Number(paid.collected_amount || collected))} · Paid {formatNumberSpaces(Number(paid.amount))}
+                      {Number(paid.amount) !== Number(paid.collected_amount || collected) && (
+                        <span className="ml-1 text-amber-600 dark:text-amber-400">
+                          (Δ {Number(paid.amount) - Number(paid.collected_amount || collected) > 0 ? "+" : ""}
+                          {formatNumberSpaces(Number(paid.amount) - Number(paid.collected_amount || collected))})
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                  <span className="font-mono font-bold text-xl tabular-nums">
+                    {formatNumberSpaces(Number(paid.amount))}
+                  </span>
+                </div>
+              );
+            }
+            return (
+              <Button
+                key={bucket}
+                onClick={() => setPayoutDialog(bucket)}
+                variant="outline"
+                className="h-auto py-3 px-4 border-2 border-pink-500/60 text-pink-700 dark:text-pink-300 hover:bg-pink-500/10 flex items-center justify-between gap-3"
+              >
+                <div className="text-left">
+                  <p className="text-[10px] uppercase tracking-wider font-bold flex items-center gap-1.5">
+                    <Gift className="w-3.5 h-3.5" /> {label}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground font-normal">
+                    Collected: {formatNumberSpaces(collected)} · {bucketHours}
+                  </p>
+                </div>
+                <span className="font-mono font-bold text-xl tabular-nums">
+                  {formatNumberSpaces(collected)}
+                </span>
+              </Button>
+            );
+          })}
         </div>
       )}
 
@@ -887,13 +966,13 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
             {/* Shift Result — one row, no duplicates */}
             <div>
               <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-bold mb-2">Shift Result</p>
-              <div className={`grid grid-cols-2 ${tipsCdTotal > 0 ? "md:grid-cols-6" : "md:grid-cols-5"} gap-2`}>
+              <div className={`grid grid-cols-2 ${tipsCdPayoutTotal > 0 ? "md:grid-cols-6" : "md:grid-cols-5"} gap-2`}>
                 <BigTile label="Opening Cash" value={openingCashTzs} />
                 <BigTile label="Closing Cash" value={closingCashTzs} />
                 <BigTile label="System Result" value={systemResult} signed />
                 <BigTile label="Cash Desk Result" value={cashDeskResult} signed />
                 <BigTile label="Cards Miss" value={cardsMiss} signed />
-                {tipsCdTotal > 0 && <BigTile label="Tips CD (−)" value={-tipsCdTotal} signed />}
+                {tipsCdPayoutTotal > 0 && <BigTile label="Tips CD Paid (+)" value={tipsCdPayoutTotal} signed />}
               </div>
             </div>
 
@@ -990,6 +1069,15 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
         shiftId={shift.id}
         readOnly={shift.status !== "open"}
       />
+      {payoutDialog && (
+        <SlotsTipsCdPayoutDialog
+          open={!!payoutDialog}
+          onOpenChange={(v) => !v && setPayoutDialog(null)}
+          shiftId={shift.id}
+          bucket={payoutDialog}
+          collectedAmount={collectedByBucket[payoutDialog]}
+        />
+      )}
 
       {/* Print Reports prompt — shown after manager approves & closes the shift */}
       {showPrintPrompt && (

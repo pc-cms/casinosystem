@@ -41,18 +41,22 @@ export const computeShiftBalance = (i: CageBalanceInputs): CageBalanceResult => 
 
 /**
  * Cage Slots balance — canonical formula (mirrors DB
- * `compute_slots_shift_balance_from_row`). Updated 29 May 2026.
+ * `compute_slots_shift_balance_from_row`). Updated 01 Jun 2026.
  *
  *   ΔCash            = ClosingCash − OpeningCash               (display only)
  *   Cash Desk Result = ClosingCash + Expenses − Ace Fill
- *                    + Collection + LG_Out − LG_In
+ *                    + Collection + LG_Out − LG_In + TipsCdPayout
  *   Cards Miss       = (OpeningCards − ClosingCards) × CardValue
  *   Slots Result     = System Result
  *   Expected         = System Result
  *
- *   Shift Balance    = Cash Desk Result − System Result − Cards Miss − Tips CD
- *   (Tips CD are included in the closing cash count, so they must be subtracted
- *    to avoid a false surplus in the balance.)
+ *   Shift Balance    = Cash Desk Result − System Result − Cards Miss
+ *
+ * Tips CD model (changed): tips are physically paid out of the cage BEFORE
+ * shift close via two payout events (Day / Evening). Each payout removes
+ * cash from the safe → closing cash naturally drops. We add the payout back
+ * into CDR so the balance is neutral relative to tips (same trick as
+ * Expenses). The collected log (`cage_slots_tips_cd`) is reporting-only.
  *
  *   Cashless Balance = Cashless IN − Cashless OUT   (derived, display only)
  *   Cashless Final   = manual entry, PRINT ONLY — never used in any formula.
@@ -75,33 +79,33 @@ export type SlotsBalanceInputs = {
   closingCards: number;
   cardValue: number;
   systemResult: number;
-  tipsCd?: number;         // Tips CD — physically removed from cage, added back to balance
+  tipsCdPayout?: number;   // Tips paid out of cage (Day + Evening)
 };
 
 export type SlotsBalanceResult = {
   deltaCash: number;
   cashDeskResult: number;
   cardsMiss: number;
-  slotsResult: number;     // = systemResult
+  slotsResult: number;
   systemResult: number;
-  cashlessBalance: number; // derived: IN − OUT (display)
-  cashlessFinal: number;   // manual passthrough (print only)
-  expected: number;        // = systemResult
-  tipsCd: number;
+  cashlessBalance: number;
+  cashlessFinal: number;
+  expected: number;
+  tipsCdPayout: number;
   shiftBalance: number;
 };
 
 export const computeSlotsShiftBalance = (i: SlotsBalanceInputs): SlotsBalanceResult => {
   const deltaCash = i.closingCash - i.openingCash;
+  const tipsCdPayout = i.tipsCdPayout || 0;
   const cashDeskResult =
-    i.closingCash + i.expenses - i.addFloat + i.collection + i.lgOut - i.lgIn;
+    i.closingCash + i.expenses - i.addFloat + i.collection
+    + i.lgOut - i.lgIn + tipsCdPayout;
   const cardsMiss = (i.openingCards - i.closingCards) * i.cardValue;
   const slotsResult = i.systemResult;
   const expected = i.systemResult;
-  const tipsCd = i.tipsCd || 0;
-  // Shift Balance = CDR − SystemResult − Cards Miss − Tips CD
-  // Tips CD are included in the closing cash count → subtract them so balance reflects true variance.
-  const shiftBalance = cashDeskResult - i.systemResult - cardsMiss - tipsCd;
+  // Balance = CDR − SystemResult − Cards Miss (no tips term)
+  const shiftBalance = cashDeskResult - i.systemResult - cardsMiss;
   return {
     deltaCash,
     cashDeskResult,
@@ -111,7 +115,7 @@ export const computeSlotsShiftBalance = (i: SlotsBalanceInputs): SlotsBalanceRes
     cashlessBalance: i.cashlessIn - i.cashlessOut,
     cashlessFinal: i.cashlessFinal,
     expected,
-    tipsCd,
+    tipsCdPayout,
     shiftBalance,
   };
 };

@@ -1,6 +1,11 @@
 /**
- * Cash Desk Tips for slots shifts — separate audit log.
- * NEVER included in shift balance / CDR. Shown separately in printed report.
+ * Cash Desk Tips for slots shifts — COLLECTION LOG (informational).
+ *
+ * Each entry records tips collected from the floor and physically placed into
+ * the cage. Tips are paid out before shift close via
+ * `cage_slots_tips_cd_payouts` (Day / Evening), which is the real cash-out
+ * event reflected in CDR. This log feeds the tips report so we can see how
+ * much was collected per shift.
  */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
