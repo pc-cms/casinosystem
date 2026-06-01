@@ -22,7 +22,7 @@ const TYPE_OPTIONS: Array<{
   value: SlotsTransferType; label: string; icon: typeof Banknote;
   description: string; needsOverride: boolean; isCross: boolean; tone: Tone;
 }> = [
-  { value: "fill", label: "Ace Fill", icon: Banknote, description: "ACE System Fill — cash IN from manager safe",
+  { value: "fill", label: "Add Float", icon: Banknote, description: "Cash IN from manager safe to slots cage",
     needsOverride: false, isCross: false,
     tone: { bg: "bg-emerald-500/10", text: "text-emerald-400", border: "border-emerald-500/30", activeBg: "bg-emerald-500/15", activeBorder: "border-emerald-500/50" } },
   { value: "collection", label: "Collect", icon: HandCoins, description: "Cash OUT to manager safe",
