@@ -727,6 +727,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
               onChange={setCashlessInProviders}
               onBlur={() => saveCashlessProviders("cashless_in_providers", cashlessInProviders)}
               disabled={shift.status !== "open"}
+              suggestions={cashlessSug?.in}
             />
             <CashlessProvidersBlock
               title="Cashless OUT"
@@ -735,6 +736,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
               onChange={setCashlessOutProviders}
               onBlur={() => saveCashlessProviders("cashless_out_providers", cashlessOutProviders)}
               disabled={shift.status !== "open"}
+              suggestions={cashlessSug?.out}
             />
             <CashlessProvidersBlock
               title="Cashless FINAL · print only"
