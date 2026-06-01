@@ -10,7 +10,7 @@ import { useSlotsExpenses } from "@/hooks/use-expenses";
 import { useSlotsTipsCd } from "@/hooks/use-slots-tips-cd";
 import { useSlotsTipsCdPayouts } from "@/hooks/use-slots-tips-cd-payouts";
 import { tipsBucketOf } from "@/lib/slots-tips-bucket";
-import SlotsTipsCdPayoutDialog from "./SlotsTipsCdPayoutDialog";
+
 
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -337,7 +337,6 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
   const [showClosingPreview, setShowClosingPreview] = useState(false);
   const [showEditOpeningCards, setShowEditOpeningCards] = useState(false);
   const [showTipsCd, setShowTipsCd] = useState(false);
-  const [payoutDialog, setPayoutDialog] = useState<null | "day" | "evening">(null);
 
   const openClosingPreview = () => {
     if (!systemResultInput.trim()) {
@@ -619,60 +618,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
         </div>
       )}
 
-      {/* Tips CD Payouts — Day / Evening cash-out before Close Shift. */}
-      {shift.status === "open" && (
-        <div className="mb-3 grid grid-cols-1 md:grid-cols-2 gap-2">
-          {(["day", "evening"] as const).map((bucket) => {
-            const paid = payoutByBucket[bucket];
-            const collected = collectedByBucket[bucket];
-            const label = bucket === "day" ? "Cash Out Day Tips" : "Cash Out Evening Tips";
-            const bucketHours = bucket === "day" ? "13:00–21:10" : "21:11–05:00";
-            if (paid) {
-              return (
-                <div key={bucket} className="rounded-md border-2 border-emerald-500/60 bg-emerald-500/10 p-3 flex items-center justify-between">
-                  <div>
-                    <p className="text-[10px] uppercase tracking-wider text-emerald-700 dark:text-emerald-300 font-bold">
-                      {bucket === "day" ? "Day Tips" : "Evening Tips"} · Paid Out
-                    </p>
-                    <p className="text-[11px] text-muted-foreground">
-                      Collected {formatNumberSpaces(Number(paid.collected_amount || collected))} · Paid {formatNumberSpaces(Number(paid.amount))}
-                      {Number(paid.amount) !== Number(paid.collected_amount || collected) && (
-                        <span className="ml-1 text-amber-600 dark:text-amber-400">
-                          (Δ {Number(paid.amount) - Number(paid.collected_amount || collected) > 0 ? "+" : ""}
-                          {formatNumberSpaces(Number(paid.amount) - Number(paid.collected_amount || collected))})
-                        </span>
-                      )}
-                    </p>
-                  </div>
-                  <span className="font-mono font-bold text-xl tabular-nums">
-                    {formatNumberSpaces(Number(paid.amount))}
-                  </span>
-                </div>
-              );
-            }
-            return (
-              <Button
-                key={bucket}
-                onClick={() => setPayoutDialog(bucket)}
-                variant="outline"
-                className="h-auto py-3 px-4 border-2 border-pink-500/60 text-pink-700 dark:text-pink-300 hover:bg-pink-500/10 flex items-center justify-between gap-3"
-              >
-                <div className="text-left">
-                  <p className="text-[10px] uppercase tracking-wider font-bold flex items-center gap-1.5">
-                    <Gift className="w-3.5 h-3.5" /> {label}
-                  </p>
-                  <p className="text-[11px] text-muted-foreground font-normal">
-                    Collected: {formatNumberSpaces(collected)} · {bucketHours}
-                  </p>
-                </div>
-                <span className="font-mono font-bold text-xl tabular-nums">
-                  {formatNumberSpaces(collected)}
-                </span>
-              </Button>
-            );
-          })}
-        </div>
-      )}
+      {/* Tips CD payouts (Day / Evening cash-out) live inside the Tips CD modal. */}
 
       {/* Summary strip — Opening / Cards Open / System (input) / Cards Closing (input) / Slots Result */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-2">
@@ -1069,15 +1015,6 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
         shiftId={shift.id}
         readOnly={shift.status !== "open"}
       />
-      {payoutDialog && (
-        <SlotsTipsCdPayoutDialog
-          open={!!payoutDialog}
-          onOpenChange={(v) => !v && setPayoutDialog(null)}
-          shiftId={shift.id}
-          bucket={payoutDialog}
-          collectedAmount={collectedByBucket[payoutDialog]}
-        />
-      )}
 
       {/* Print Reports prompt — shown after manager approves & closes the shift */}
       {showPrintPrompt && (
