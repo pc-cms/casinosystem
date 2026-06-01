@@ -1,32 +1,59 @@
-План изменений:
+# Slots Tips CD: переход на реальный cash-out
 
-1. **Reports: Daily → Daily diff**
-   - Переименовать вкладку `Daily` в `Daily diff`.
-   - Оставить внутренний ключ `daily`, чтобы существующие ссылки `?tab=daily` не сломались.
+## Что меняем
+Сейчас Tips CD — это просто log-запись, деньги остаются в кассе, формула «искусственно» вычитает `tipsCd`. Переводим на модель Live Cage: **Tips CD = реальная cash-out транзакция** из кассы. До закрытия смены кассир дважды нажимает кнопку выплаты — отдельно за дневной (13:00–21:10) и вечерний (21:11–05:00) бакеты. Деньги физически выходят из кассы → closing cash естественно ниже → формула чище.
 
-2. **Исправить Daily diff формулы**
-   - Вынести расчёт Daily diff в единый backend RPC, чтобы не ловить лимит 1000 строк и не считать месяцы неполно.
-   - Для Player Result использовать окно **13:00 EAT → 05:00 EAT следующего дня**:
-     - `buy` / `in` = cash-in игрока;
-     - `cashout` / `out` = cashout игрока;
-     - `Player Result = Cashout − Cash-in`;
-     - исключать `cancelled_at IS NOT NULL`.
-   - `Drop (R)` и `Cash In` считать в том же окне 13:00 → 05:00 через существующую NEP/drop split логику, чтобы числа были в одном временном контуре.
-   - `Result` брать только из канонического `shifts.tables_result` по закрытым live shifts за business day.
-   - `Diff` привести к прямому сравнению: **`Result + Player Result`**. Miss Chips оставить отдельной колонкой, не вычитать из Diff.
-   - Для будущих business-day snapshots добавить тот же Daily diff блок, чтобы снимок закрытого дня совпадал с Reports.
+## UI: шапка активной смены слотов
+Заменить текущую секцию ввода Tips CD на две большие кнопки:
 
-3. **Cashless report после Expenses**
-   - Добавить вкладку `Cashless` сразу после `Expenses` в Reports.
-   - Сделать read-only отчёт по диапазону дат из общего фильтра Reports.
-   - Показать KPI: Deposit, Withdrawal, Net, Pending, Records.
-   - Добавить разбивку по провайдерам и таблицу истории.
-   - Фильтры: Source `All / Live / Slots`, Provider, Direction, Status, Search.
-   - Сортировки: Date, Source, Provider, Direction, Player, Amount, Status.
-   - Источник данных: `cashless_transactions`, с поддержкой большой глубины через range-query по `business_date` и увеличенный лимит.
+```text
+[ Cash Out Day Tips  TZS 240 000 ]   [ Cash Out Evening Tips  TZS 0 ]
+   collected · paid: —                     collected · not yet
+```
 
-4. **Технически**
-   - Добавить migration с RPC и `GRANT EXECUTE`.
-   - Обновить `Reports.tsx` и добавить отдельный компонент `CashlessReport`.
-   - Переиспользовать существующие форматтеры дат/денег и semantic design tokens.
-   - Bump `package.json` patch: `1.3.230 → 1.3.231`.
+- Каждая кнопка показывает **collected** = сумма tips_cd записей за свой бакет.
+- При нажатии открывается мини-диалог: предзаполненная сумма = collected, кассир может **отредактировать на ФАКТИЧЕСКУЮ выплату** (если докладывал свои — ставит больше), опционально note.
+- Подтверждение создаёт `cage_slots_transactions` запись:
+  - `kind = 'tips_cd_payout'`, `direction = 'out'`
+  - `amount = entered_amount`
+  - `bucket = 'day' | 'evening'` (новая колонка)
+- После выплаты бакет помечается `paid` (по существованию payout-транзакции на эту смену+bucket) — кнопка дизейблится, показывает выплаченную сумму и кнопку «Reopen» (Manager Access only) на случай ошибки.
+
+## Backend
+- Миграция: `ALTER TABLE cage_slots_transactions ADD COLUMN bucket text` (nullable, проверка `bucket IN ('day','evening')` только когда `kind='tips_cd_payout'`).
+- Новый `kind = 'tips_cd_payout'` в существующем enum/check.
+- Существующие записи `cage_slots_tips_cd` остаются как **лог-журнал собранных чаевых** (для отчёта «сколько заработали»). Никаких удалений.
+- RPC / триггер `computeSlotsShiftBalance` и DB snapshot:
+  - `tips_cd_payout` транзакции уже учтены в `cash_desk_result` через ΔCash (cash-out уменьшает expected cash) — отдельной строки не нужно.
+  - **Убираем `- v_tips_cd`** из формулы balance в `cage-balance.ts` и в БД-функции.
+  - Новая формула: `Balance = CDR − SystemResult − CardsMiss`.
+- Отчёт по чаевым (`/reports/floor-tips` и monthly tips) продолжает читать `cage_slots_tips_cd` для отображения «сколько собрано Day/Evening», + добавляется колонка «Paid out» из транзакций.
+
+## UI: форма закрытия смены / отчёт
+- Блок «Tips CD» в Closing/Review:
+  - Day: Collected / Paid out / Δ (если докладывали — Δ показывается как «manager top-up»).
+  - Evening: то же.
+  - Total tips paid out (информационно).
+- Большая плитка `Tips CD (-)` из текущего макета **удаляется** (двойной минус больше не нужен).
+- Shift Balance остаётся одиночным крупным числом, формула в подписи: `CDR − SystemResult − CardsMiss`.
+
+## Валидация при закрытии
+При попытке Close Shift, если есть незакрытые tips_cd записи в каком-либо бакете без соответствующего payout — мягкий warning «Day tips not paid out yet. Proceed anyway?» (не блок, т.к. может быть смена без чаевых вообще).
+
+## Файлы
+
+**Frontend**
+- `src/components/cage-slots/ActiveSlotsShiftView.tsx` — заменить секцию tips_cd на две кнопки + диалог; удалить плитку Tips CD из шапки результата.
+- `src/hooks/use-slots-tips-cd.ts` — добавить хук `useCashOutSlotsTipsCd({ bucket, amount, note })`, который создаёт транзакцию. Поправить вводящие в заблуждение комментарии.
+- `src/lib/cage-balance.ts` (`computeSlotsShiftBalance`) — убрать `- tipsCd`, обновить описание.
+- `src/components/cage-slots/SlotsConsolidatedReport.tsx` — добавить колонки Collected/Paid per bucket.
+
+**Backend**
+- Миграция: `cage_slots_transactions.bucket` + допуск нового `kind`.
+- Обновить DB-функцию snapshot/balance: убрать вычитание tips_cd.
+- Bump `package.json` (backend change).
+
+## Не делаем
+- Live cage (tips_live/poker/floor) — не трогаем, там модель уже корректная.
+- Удаление существующих tips_cd записей или транзакций — нет.
+- Автоматическое распределение по бакету по времени — bucket определяется кнопкой, которую нажал кассир (не по `created_at` записи).
