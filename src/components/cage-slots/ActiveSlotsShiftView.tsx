@@ -337,6 +337,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
   const [showClosingPreview, setShowClosingPreview] = useState(false);
   const [showEditOpeningCards, setShowEditOpeningCards] = useState(false);
   const [showTipsCd, setShowTipsCd] = useState(false);
+  const [payoutDialog, setPayoutDialog] = useState<null | "day" | "evening">(null);
 
   const openClosingPreview = () => {
     if (!systemResultInput.trim()) {
