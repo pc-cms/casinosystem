@@ -444,38 +444,36 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
         />
 
         <div className="max-w-2xl mx-auto w-full space-y-3">
-          {/* Cash on hand */}
+          {/* Cash on Hand — 5 clean columns, no opening/delta duplication */}
           <PageSection title="Cash on Hand (Closing)">
             <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-              <Stat label="TZS Cash" value={closingTzsTotal} />
-              <Stat label="Foreign (TZS)" value={closingFxTzs} />
-              <Stat label="Banks" value={bankTotalTzs(closingBanks, rateMap)} />
-              <Stat label="Mobile (IN−OUT)" value={mobileMoneyTzs} signed />
-              <Stat label="Total Closing Cash" value={closingCashTzs} emphasize />
-            </div>
-            <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
-              <Stat label="Opening Cash" value={openingCashTzs} />
-              <Stat label="ΔCash" value={deltaCash} signed />
+              <BigTile label="TZS Cash" value={closingTzsTotal} />
+              <BigTile label="Foreign Cash" value={closingFxTzs} />
+              <BigTile label="Banks" value={bankTotalTzs(closingBanks, rateMap)} />
+              <BigTile label="Mobile Money" value={mobileMoneyTzs} signed />
+              <BigTile label="Total Closing Cash" value={closingCashTzs} emphasize />
             </div>
           </PageSection>
 
-          {/* Canonical Shift Result */}
+          {/* Shift Result — single row, no duplicates, no formulas in headings */}
           <PageSection title="Shift Result">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-              <Stat label="Opening Cash" value={openingCashTzs} />
-              <Stat label="Closing Cash" value={closingCashTzs} />
-              <Stat label="ΔCash" value={deltaCash} signed />
-              <Stat label="Cash Desk Result" value={cashDeskResult} signed emphasize />
-              <Stat label="System Result" value={systemResult} signed />
-              <Stat label="Slots Result" value={slotsResult} signed />
-              <Stat label="Cards Miss" value={cardsMiss} signed />
+            <div className={`grid grid-cols-2 ${tipsCdTotal > 0 ? "md:grid-cols-6" : "md:grid-cols-5"} gap-2`}>
+              <BigTile label="Opening Cash" value={openingCashTzs} />
+              <BigTile label="Closing Cash" value={closingCashTzs} />
+              <BigTile label="System Result" value={systemResult} signed />
+              <BigTile label="Cash Desk Result" value={cashDeskResult} signed />
+              <BigTile label="Cards Miss" value={cardsMiss} signed />
+              {tipsCdTotal > 0 && <BigTile label="Tips CD (−)" value={-tipsCdTotal} signed />}
             </div>
-            <div className="mt-3 rounded-md border-2 border-primary/40 bg-primary/5 p-3 flex items-center justify-between">
-              <span className="text-xs uppercase text-muted-foreground tracking-wider font-bold">Shift Balance = Cash Desk Result − Slots Result − Cards Miss</span>
-              <span className={`font-mono font-bold text-2xl ${shiftBalance < 0 ? "cms-amount-negative" : shiftBalance > 0 ? "cms-amount-positive" : "text-emerald-500"}`}>
-                {shiftBalance === 0 ? "BALANCED · 0" : `${shiftBalance > 0 ? "+" : ""}${formatNumberSpaces(shiftBalance)}`}
+
+            {/* Shift Balance — big number, no formula text */}
+            <div className="mt-4 rounded-lg border-2 border-primary/50 bg-primary/5 p-5 flex items-center justify-between">
+              <span className="text-sm uppercase text-foreground tracking-[0.18em] font-bold">Shift Balance</span>
+              <span className={`font-mono font-extrabold text-5xl tabular-nums ${shiftBalance < 0 ? "cms-amount-negative" : shiftBalance > 0 ? "cms-amount-positive" : "text-emerald-500"}`}>
+                {shiftBalance === 0 ? "0" : `${shiftBalance > 0 ? "+" : ""}${formatNumberSpaces(shiftBalance)}`}
               </span>
             </div>
+
             {cashierNote && (
               <div className="mt-3">
                 <p className="text-[10px] uppercase text-muted-foreground tracking-wider mb-1">Cashier note</p>
