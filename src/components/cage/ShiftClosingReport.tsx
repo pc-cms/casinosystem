@@ -223,18 +223,23 @@ const ShiftClosingReport = ({
     [tables],
   );
 
-  /** Result is computed by DB RPC `compute_shift_table_results`
-   *  (formula: (Σ(actual−baseline)·denom) − Fill + Credit). UI only displays it.
-   *  Open/Fill/Credit/Close/IN columns remain informational. */
+  /** Column data sources:
+   *  - Open       = standard chip baseline sum per table (chip_baseline)
+   *  - Fill/Credit= cage_transfers for this shift
+   *  - Close      = latest Pit chip snapshot Σ(actual·denom)
+   *  - DROP (NEP) = Σ Cash Desk IN transactions (`buy`/`in`) of this shift
+   *  - Result     = authoritative DB RPC `compute_shift_table_results`
+   *                 (formula: (Σ(actual−baseline)·denom) − Fill + Credit) */
   const rowFor = (t: Tables<"gaming_tables">) => {
-    const inVal = inByTable[t.id] || 0;
-    const dr = dailyResults[t.id];
-    const res = serverResults[t.id] ?? (dr ? dr.result : 0);
-    if (dr) return { op: dr.open, fl: dr.fill, cr: dr.credit, cl: dr.close, inVal, res };
     const op = baselines[t.id] || 0;
     const fl = fillCredits[t.id]?.fill || 0;
     const cr = fillCredits[t.id]?.credit || 0;
-    const cl = sumChipsObj(t.closing_chips as any);
+    const snap = snapshotIndex[t.id]?.perDenom;
+    const cl = snap
+      ? Object.entries(snap).reduce((s, [d, q]) => s + Number(d) * (Number(q) || 0), 0)
+      : 0;
+    const inVal = inByTable[t.id] || 0;
+    const res = serverResults[t.id] ?? 0;
     return { op, fl, cr, cl, inVal, res };
   };
 
@@ -340,7 +345,7 @@ const ShiftClosingReport = ({
         </colgroup>
         <thead>
           <tr className="bg-gray-200">
-            {["Table", "Open", "Fill", "Credit", "Close", "IN", "Result"].map(h => (
+            {["Table", "Open", "Fill", "Credit", "Close", "DROP (NEP)", "Result"].map(h => (
               <th key={h} className="border border-black px-1.5 py-0.5 text-left font-semibold">{h}</th>
             ))}
           </tr>

@@ -1,35 +1,41 @@
-## Проблема
+## Изменения в `src/components/cage/ShiftClosingReport.tsx`
 
-1. Каждый отчёт растягивается на 3 страницы вместо 1 (`min-height: 281mm` + padding `@page 8mm` + увеличенные шрифты/паддинги превышают полезную область A4).
-2. В сетке столов Cash Desk Report колонки **Open** и **Close** показывают пустоту/нули — суммы открытия и закрытия по столам не видны.
-3. Chip Movement Report (3×2) с увеличенными ячейками тоже не помещается.
+Сейчас в таблице первая колонка (Open) и Close часто пустые, потому что они тянутся из устаревшего `dailyResults` (legacy import path) и только при его отсутствии — из baseline/`closing_chips`. Также колонка `IN` берёт сумму из `transactions` (Cash Desk IN) — пользователь хочет переименовать её и подтянуть значения из финального снимка Пита.
 
-## Что делаю
+### Новая логика колонок (per row)
 
-### 1. `src/components/cage/ShiftClosingReport.tsx`
-- Убираю `minHeight: 281mm` и `flex flex-col` — пусть высота тянется по контенту, страница остаётся одна.
-- Возвращаю компактные размеры: `fontSize 11px` (10px при >14 столов), `lineHeight 1.3`, паддинги ячеек `2px/4px` (вместо 5px и `py-1.5`).
-- Убираю инлайновый `<style>` который форсил `padding-top/bottom: 5px` на всех td/th.
-- **Fix Open/Close totals:** проверяю `rowFor()` — если `dailyResults[t.id]` отсутствует, используется `baselines` (TZS-сумма baseline по чипам) и `sumChipsObj(closing_chips)`. Когда смена только-только закрыта и `table_daily_results` ещё не материализована, `baselines` пуст для конкретной смены — добавляю фолбэк через `baselineByDenom` суммированием по `CHIP_DENOMS`, и для Close — фолбэк на последний chip_snapshot `actual_quantity` если `closing_chips` пуст. Это вернёт реальные суммы Open/Close в строках и в итоговом ряду.
+| Колонка | Источник |
+|---|---|
+| **Table** | `gaming_tables.name` |
+| **Open** | Сумма стандартного флота стола = `baselines[tableId]` (Σ baseline.expected × denom) — всегда из chip_baseline, без `dailyResults` |
+| **Fill** | `fillCredits[tableId].fill` (cage_transfers, type=`fill`) |
+| **Credit** | `fillCredits[tableId].credit` (cage_transfers, type=`credit`) |
+| **Close** | Σ (latest snapshot.actual × denom) по столу — из `snapshotIndex[tableId].perDenom` (финальный Chip Count Пита). Если снимка нет → пусто |
+| **DROP (NEP)** | переименовать заголовок `IN` → `DROP (NEP)`. Источник пока остаётся прежним (`inByTable` = Σ transactions type `buy`/`in` за смену) |
+| **Result** | `serverResults[tableId]` — авторитетный результат из RPC `compute_shift_table_results` (формула `(Σ(actual−baseline)·denom) − Fill + Credit`). Уже так есть |
 
-### 2. `src/components/cage/ChipMovementReport.tsx`
-- Убираю `minHeight: 281mm` и `flex-1` на секциях/таблицах — высота по контенту.
-- Сжимаю `DenomTable`: `fontSize 11px`, `py-0.5`, заголовок секции `text-[11px]`. Сохраняю layout 3 ряда × 2 колонки.
-- Header (Casino · Date · Cashier) делаю одной компактной строкой.
-- В итоге 6 маленьких таблиц помещаются на одном A4 портрет.
+### Конкретные правки в `ShiftClosingReport.tsx`
 
-### 3. `src/index.css` (print rules)
-- Оставляю `@page cashdesk-portrait { size: A4 portrait; margin: 8mm }`.
-- Гарантирую `page-break-after: always` только для `#shift-print-area` и `page-break-before: always` для `#chip-print-area` — итого ровно 2 страницы (по одной на отчёт), без «хвостов» третьей.
-- Убираю любые forced `min-height` через `!important`, если такие остались.
+1. **`rowFor(t)`** (≈ строки 229–239): убрать ветку `if (dr) return ...` для Open/Fill/Credit/Close. Всегда вычислять:
+   - `op = baselines[t.id] || 0`
+   - `fl = fillCredits[t.id]?.fill || 0`
+   - `cr = fillCredits[t.id]?.credit || 0`
+   - `cl` = сумма из `snapshotIndex[t.id].perDenom` (Σ qty × denom). Если снимка нет — `0`.
+   - `inVal = inByTable[t.id] || 0`
+   - `res = serverResults[t.id] ?? 0`
+   
+   `dailyResults` оставляем загружаться (не ломаем другие потенциальные потребители), но в гриде не используем.
 
-### 4. `src/components/cage/ReprintShiftDialog.tsx`
-- Синхронизирую inline-стили iframe: `width: 194mm`, **без** `min-height: 281mm`, `page-break-after: always` для shift, `page-break-before: always` для chips.
+2. **Заголовок столбца** (≈ строка 343): заменить `"IN"` на `"DROP (NEP)"`.
 
-### 5. Bump версии
-- `package.json` 1.3.236 → 1.3.237 (изменения бекенда нет, но печать критична — пользователю нужен cache-bust).
+3. **Комментарии в шапке файла и над `rowFor`**: обновить описание колонок (Open = baseline, Close = последний снимок Пита, DROP (NEP) = транзакции кассы IN).
 
-## Результат
-- Cash Desk Report — 1 страница A4 портрет, видны Open/Fill/Credit/Close/IN/Result + суммы по всем столам.
-- Chip Movement Report — 1 страница A4 портрет, 3 ряда × 2 колонки (Opener · Diff / Fill · Credit / Miss · Close).
-- Всего печатается ровно 2 листа.
+4. **Totals** (`useMemo` строки 241–248): пересчёт автоматически подтянет новые значения, дополнительных правок не нужно — продолжает суммировать те же поля.
+
+### Bump
+- `package.json` → `1.3.239` (UI-only правка отчёта; backend не трогаем, но это печатный документ — bump чтобы пользователи получили свежий билд после force-reload).
+
+### Что НЕ трогаем
+- `ChipMovementReport.tsx`, `ReprintShiftDialog.tsx` — без изменений.
+- RPC `compute_shift_table_results`, RLS, миграции — без изменений.
+- Логику Result и сам формат отчёта (шрифты, плотность, A4 portrait) — без изменений.
