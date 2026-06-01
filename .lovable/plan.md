@@ -1,56 +1,47 @@
-## Изменения
+# Fix: восстановить формулу Cash Desk Result для Slots
 
-### 1. БД (миграция)
+## Что произошло
 
-**`cage_slots_shifts`** — добавить колонку:
-```sql
-ALTER TABLE public.cage_slots_shifts
-  ADD COLUMN ace_fills bigint NOT NULL DEFAULT 0;
+В миграции `20260601173505` при добавлении `ace_fills` я случайно переписал саму формулу `cash_desk_result` в `compute_slots_shift_balance_from_row`:
+
+**Было (канон, мигр. 20260601140421 + `src/lib/cage-balance.ts`):**
+```
+CDR = ClosingCash + Expenses − AddFloat + Collection
+    + LG_Out − LG_In + TipsCdPayout
 ```
 
-**`compute_slots_shift_balance_from_row(s)`** — переписать только блок результата:
-- `v_slots_result := COALESCE(s.system_shift_result,0) − COALESCE(s.ace_fills,0)` (раньше = system_shift_result).
-- `v_balance` продолжает вычитать `system_shift_result` (НЕ `slots_result`) — закрытие/баланс не меняется.
-- В возвращаемом JSON: `system_result` = system_shift_result, `slots_result` = новый (System − ACE).
+**Стало (сломано):**
+```
+CDR = ΔCash + Expenses + Collection − AddFloat
+    + LG_Out − LG_In + CashlessOut − CashlessIn
+```
 
-**Триггеры пересчёта** (`compute_slots_shift_balance_trigger` и подобные) — добавить `ace_fills` в список полей, при изменении которых пересчитывается `slots_result`.
+Три ошибки:
+1. `closing_cash` → `delta_cash` ⇒ баланс уехал ровно на `opening_cash` (это и есть «+1M от открытия», который виден в отчёте).
+2. Удалён `tips_cd_payout` — выплаты типов перестали возвращаться в CDR, баланс уезжает на сумму выплат.
+3. Добавлены `cashless_in/out` — их по канону в CDR нет (cashless — отдельный информативный блок).
 
-Бамп `package.json` (patch) — обязателен из-за backend-изменений.
+Видно на скрине: `Balance ≈ −1M` стабильно почти на каждой смене — это именно `−opening_cash`.
 
-### 2. UI — закрытие смены (`ActiveSlotsShiftView.tsx`)
+## Что чиню
 
-В той же секции, где сейчас редактируется **System Result**, рядом добавить второй numeric input:
-- Поле **ACE Fills (TZS)** — `aceFillsInput` state, hydrated из `shift.ace_fills`, `onBlur` пишет `update cage_slots_shifts set ace_fills = ...`.
-- Под ним показать вычисленное **Slots Result = System − ACE Fills** (информативно, signed).
+Один новый миграционный файл, который:
 
-Существующая плитка `Slots Result (TZS)` (строки ~671 «System − Opening − Ace Fill») переименовать в **System Shift Result** и оставить как есть (она = systemResult), а новую плитку **Slots Result** = `systemResult − aceFills` поставить рядом.
+1. Переписывает `compute_slots_shift_balance_from_row` так, чтобы:
+   - CDR-формула вернулась к канону (`closing_cash + expenses − add_float + collection + lg_out − lg_in + tips_cd_payout`).
+   - При этом сохраняются добавленные поля `ace_fills` и `slots_result = system_result − ace_fills` (это единственная новая логика, которая нужна).
+   - Подтягиваю `v_tips_cd_payout_day/_evening` из `cage_slots_tips_cd_payouts` как было раньше.
+   - JSON-выхлоп содержит и старые ключи (`tips_cd_payout`, `cashless_balance`, `cashless_final`, `slots_result_derived`), и новый `ace_fills`, чтобы ничего во фронте не отвалилось.
+2. Триггеры `trg_persist_slots_shift_balance` и `trg_cs_recompute_self` оставляю как сейчас (они корректно слушают `ace_fills`, просто пересчитывают через исправленную функцию).
+3. Бэкфилл: пройтись по всем `cage_slots_shifts` и пересчитать `cash_desk_result`, `balance`, `slots_result`, `cards_miss`, `actual_cage_result`, `difference_amount` исправленной формулой — это лечит уже сохранённые «сломанные» числа в Closings/истории/отчётах.
 
-`computeSlotsShiftBalance` (lib/cage-balance.ts) и поле `addFloat = transfersAgg.fill` — НЕ ТРОГАЕМ. CDR/Shift Balance остаются без изменений (как пользователь и просил).
+## Что НЕ трогаю
 
-### 3. UI — список закрытий
+- `src/lib/cage-balance.ts` (фронтовый канон) — уже правильный.
+- UI шага закрытия и Closings — формулы там корректные, проблема чисто в БД.
+- `package.json` — патч-bump (бэкенд-изменение).
 
-**`ClosingsPage.tsx`** (Slots секция, ≈ строки 304, 528, 538):
-- Существующий столбец «Slots Result» (читает `s.slots_result`) → переименовать заголовок в **System Shift Result** и читать из `s.system_shift_result`.
-- Добавить новый столбец **Slots Result** справа от него, читающий `s.slots_result` (это уже = System − ACE из DB).
-- В SELECT-запросе добавить поля `system_shift_result, ace_fills` к существующему `slots_result`.
-- Сортировка/тоталы: добавить ключ `systemShiftResult` для нового столбца; оба идут в Total Results строки.
+## Файлы
 
-**`CageSlotsHistoryView.tsx`** (≈ строки 49, 68–69):
-- Те же два столбца: System Shift Result + Slots Result.
-
-**`SlotsHistoryReport.tsx`** (≈ строки 55–56, 133, 156):
-- Аналогично: два столбца, две суммы в KPI-полосе.
-
-### 4. Что НЕ трогаем
-- `compute_slots_shift_balance` баланс/CDR — без изменений.
-- Transfers form (fill / collection / lg_in / lg_out) — без изменений.
-- Печатные отчёты слотов (`SlotsShiftReportBody`, `SlotsConsolidatedReport`, `PrintSlotsShiftDialog`) — в этом запросе не упомянуты, оставляю как есть; могу добавить отдельной задачей по запросу.
-- Daily Review / FinanceDashboard — продолжают использовать `system_shift_result` для расчётов баланса; `slots_result` теперь только информативный.
-
-### Файлы под редактирование
-- новая миграция `supabase/migrations/...`
-- `src/components/cage-slots/ActiveSlotsShiftView.tsx`
-- `src/pages/ClosingsPage.tsx`
-- `src/components/cage-slots/CageSlotsHistoryView.tsx`
-- `src/components/reports/SlotsHistoryReport.tsx`
-- `package.json` (bump)
+- `supabase/migrations/<new>.sql` — fix функции + бэкфилл.
+- `package.json` — bump.
