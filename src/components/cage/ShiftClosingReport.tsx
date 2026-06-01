@@ -286,7 +286,7 @@ const ShiftClosingReport = ({
   const MP = ["Mpesa", "Tigo", "Halo", "AirTel"] as const;
 
   const compact = reportTables.length > 14;
-  const rootFontSize = compact ? "10.5px" : "13px";
+  const rootFontSize = compact ? "12px" : "14px";
 
   return (
     <div
@@ -295,30 +295,42 @@ const ShiftClosingReport = ({
       style={{
         fontFamily: "Arial, sans-serif",
         fontSize: rootFontSize,
-        lineHeight: 1.25,
+        lineHeight: 1.3,
         width: "194mm",
         minHeight: "281mm",
         boxSizing: "border-box",
         padding: 0,
-        pageBreakAfter: "avoid",
-        breakAfter: "avoid",
       }}
     >
       {/* ============ TITLE ROW ============ */}
-      <table className="w-full border-collapse mb-1">
+      <table className="w-full border-collapse mb-1" style={{ tableLayout: "fixed" }}>
+        <colgroup>
+          <col />
+          <col style={{ width: "22mm" }} />
+          <col style={{ width: "34mm" }} />
+        </colgroup>
         <tbody>
           <tr>
-            <td className="border border-black px-1.5 py-0.5 font-bold text-base" colSpan={2}>
+            <td className="border border-black px-1.5 py-0.5 font-bold text-lg">
               {casinoName} Live Game Cash Desk Report
             </td>
-            <td className="border border-black px-1.5 py-0.5 font-semibold text-center w-24">Date</td>
-            <td className="border border-black px-1.5 py-0.5 text-center w-32">{fmtDate(businessDate)}</td>
+            <td className="border border-black px-1.5 py-0.5 font-semibold text-center">Date</td>
+            <td className="border border-black px-1.5 py-0.5 text-center">{fmtDate(businessDate)}</td>
           </tr>
         </tbody>
       </table>
 
       {/* ============ TABLES GRID ============ */}
-      <table className="w-full border-collapse mb-1 tabular-nums">
+      <table className="w-full border-collapse mb-1 tabular-nums" style={{ tableLayout: "fixed" }}>
+        <colgroup>
+          <col style={{ width: "18%" }} />
+          <col style={{ width: "13.6%" }} />
+          <col style={{ width: "13.6%" }} />
+          <col style={{ width: "13.6%" }} />
+          <col style={{ width: "13.6%" }} />
+          <col style={{ width: "13.6%" }} />
+          <col style={{ width: "14%" }} />
+        </colgroup>
         <thead>
           <tr className="bg-gray-200">
             {["Table", "Open", "Fill", "Credit", "Close", "IN", "Result"].map(h => (
@@ -331,7 +343,7 @@ const ShiftClosingReport = ({
             const { op, fl, cr, cl, inVal, res } = rowFor(t);
             return (
               <tr key={t.id}>
-                <td className="border border-black px-1.5 py-0.5 font-semibold">{t.name}</td>
+                <td className="border border-black px-1.5 py-0.5 font-semibold truncate">{t.name}</td>
                 <td className="border border-black px-1.5 py-0.5 text-right">{num(op)}</td>
                 <td className="border border-black px-1.5 py-0.5 text-right">{num(fl)}</td>
                 <td className="border border-black px-1.5 py-0.5 text-right">{num(cr)}</td>
@@ -356,6 +368,7 @@ const ShiftClosingReport = ({
           </tr>
         </tbody>
       </table>
+
 
       {/* ============ CASH FLOW: OPENER | CLOSER (as a table) ============ */}
       <table className="w-full border-collapse mb-1 tabular-nums">
