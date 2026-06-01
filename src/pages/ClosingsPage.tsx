@@ -225,6 +225,7 @@ const TotalTab = ({ monthAnchor }: { monthAnchor: Date }) => {
         dropTables: 0,
         tablesResult: 0,
         dropSlots: 0,
+        systemShiftResult: 0,
         slotsResult: 0,
         expenses: 0,
         slotsShiftIds: [] as string[],
@@ -238,6 +239,7 @@ const TotalTab = ({ monthAnchor }: { monthAnchor: Date }) => {
       });
       (slotsRes.data || []).forEach((s: any) => {
         const r = row(s.business_date);
+        r.systemShiftResult += Number(s.system_shift_result || 0);
         r.slotsResult += Number(s.slots_result || 0);
         r.dropSlots += Number(s.manual_drop_slots || 0);
         r.slotsShiftIds.push(s.id);
