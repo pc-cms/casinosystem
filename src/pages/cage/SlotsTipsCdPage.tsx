@@ -108,7 +108,7 @@ const SlotsTipsCdPage = () => {
               <Button onClick={submit} disabled={!Number(amount) || create.isPending} size="lg">Add</Button>
             </div>
             <p className="text-[10px] text-muted-foreground">
-              Bucket is auto-derived from time of entry; the selector is informational only.
+              Pick the shift bucket explicitly — the entry is assigned to whichever shift you select.
             </p>
           </div>
         )}
