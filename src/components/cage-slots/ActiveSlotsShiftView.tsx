@@ -234,6 +234,10 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
 
   const openingCardsCount = Number(cards?.opening_card_count || 0);
   const systemResult = Number(systemResultInput) || Number(shift.system_shift_result || 0);
+  const aceFills = Number(aceFillsInput) || Number((shift as any).ace_fills || 0);
+  // Informative metric: real slots P&L = System − manual ACE Fills.
+  // NOT used in CDR or Shift Balance; mirrored in DB column slots_result by trigger.
+  const slotsResultDerived = systemResult - aceFills;
 
   const cashlessFinal = Number(cashlessFinalInput) || 0;
 
