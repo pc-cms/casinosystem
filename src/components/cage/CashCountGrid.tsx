@@ -10,6 +10,7 @@ const CashCountGrid = ({
   banks, onBanksChange,
   mobile, onMobileChange,
   chipPlaceholder,
+  mobileSuggestion,
   rates,
   hideChips = false,
   hideMobile = false,
@@ -23,6 +24,9 @@ const CashCountGrid = ({
   mobile: MobileProviders;
   onMobileChange: (v: MobileProviders) => void;
   chipPlaceholder?: Record<number, number>;
+  /** Per-provider gray suggestion (net IN−OUT from /cashless for this business day).
+   *  Shown as input placeholder when the cashier hasn't entered a value. */
+  mobileSuggestion?: Partial<Record<string, number>>;
   rates?: Record<string, number>;
   /** Hide the TZS Chips column when chips are entered elsewhere (e.g. Close Shift). */
   hideChips?: boolean;
@@ -40,6 +44,23 @@ const CashCountGrid = ({
   const sectionCls = "rounded-xl border border-border bg-background/40 p-3 flex flex-col";
   const titleCls = "text-xs font-bold text-foreground uppercase tracking-[0.22em] mb-2";
   const stackCls = "flex flex-col gap-3 h-full";
+
+  const suggestionTotal = mobileSuggestion
+    ? Object.values(mobileSuggestion).reduce((s, v) => s + (Number(v) || 0), 0)
+    : 0;
+  const hasSuggestions = !!mobileSuggestion && suggestionTotal !== 0;
+
+  const applySuggestions = () => {
+    if (!mobileSuggestion) return;
+    const next: MobileProviders = { ...mobile };
+    MOBILE_PROVIDERS.forEach(p => {
+      if (!mobile[p]) {
+        const s = Number(mobileSuggestion[p]) || 0;
+        if (s) next[p] = s;
+      }
+    });
+    onMobileChange(next);
+  };
 
   return (
     <div className={`grid grid-cols-1 md:grid-cols-2 gap-3 items-stretch ${hideChips ? "lg:grid-cols-3" : "lg:grid-cols-4"}`}>
@@ -68,26 +89,49 @@ const CashCountGrid = ({
 
         {!hideMobile && (
           <section className={sectionCls}>
-            <p className={titleCls}>Mobile Money</p>
+            <div className="flex items-center justify-between mb-2">
+              <p className={titleCls + " mb-0"}>Mobile Money</p>
+              {hasSuggestions && (
+                <button
+                  type="button"
+                  onClick={applySuggestions}
+                  className="text-[9px] uppercase tracking-wider text-muted-foreground hover:text-foreground underline-offset-2 hover:underline"
+                  title="Fill empty rows from /cashless transactions"
+                >
+                  Apply hint
+                </button>
+              )}
+            </div>
             <div className="space-y-1">
-              {MOBILE_PROVIDERS.map(provider => (
-                <div key={provider} className={mdRow}>
-                  <span className={mdChip}>{provider}</span>
-                  <NumberInput
-                    value={mobile[provider] || ""}
-                    onChange={v => onMobileChange({ ...mobile, [provider]: Number(v) || 0 })}
-                    className={mdInput}
-                    placeholder="0"
-                  />
-                </div>
-              ))}
+              {MOBILE_PROVIDERS.map(provider => {
+                const hint = Number(mobileSuggestion?.[provider]) || 0;
+                const placeholder = hint ? formatNumberSpaces(hint) : "0";
+                return (
+                  <div key={provider} className={mdRow}>
+                    <span className={mdChip}>{provider}</span>
+                    <NumberInput
+                      value={mobile[provider] || ""}
+                      onChange={v => onMobileChange({ ...mobile, [provider]: Number(v) || 0 })}
+                      className={mdInput}
+                      placeholder={placeholder}
+                    />
+                  </div>
+                );
+              })}
             </div>
             <div className="flex items-center justify-between gap-2 pt-2 mt-2 border-t border-border">
               <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Total</span>
               <span className="font-mono text-sm font-bold text-card-foreground whitespace-nowrap">TZS {formatNumberSpaces(mobTotal)}</span>
             </div>
+            {hasSuggestions && (
+              <div className="flex items-center justify-between gap-2 pt-1">
+                <span className="text-[9px] uppercase tracking-wider text-muted-foreground">Hint · Cashless net</span>
+                <span className="font-mono text-[10px] text-muted-foreground whitespace-nowrap">TZS {formatNumberSpaces(suggestionTotal)}</span>
+              </div>
+            )}
           </section>
         )}
+
 
         <section className={sectionCls}>
           <p className={titleCls}>Banks</p>
