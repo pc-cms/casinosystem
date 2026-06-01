@@ -115,10 +115,7 @@ const SlotsTipsCdDialog = ({ open, onOpenChange, shiftId, readOnly }: Props) => 
             return (
               <div key={bucket} className="cms-panel p-0 overflow-hidden flex flex-col">
                 <div className="px-4 py-2.5 border-b border-border bg-muted/40 flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-bold uppercase tracking-wider">{TIPS_BUCKET_LABEL[bucket]}</p>
-                    <p className="text-[10px] text-muted-foreground">{BUCKET_HOURS[bucket]}</p>
-                  </div>
+                  <p className="text-sm font-bold uppercase tracking-wider">{TIPS_BUCKET_LABEL[bucket]}</p>
                   <Gift className="w-4 h-4 text-muted-foreground" />
                 </div>
 
@@ -182,13 +179,13 @@ const SlotsTipsCdDialog = ({ open, onOpenChange, shiftId, readOnly }: Props) => 
                         <p className="text-xs text-muted-foreground">Not paid out</p>
                       ) : (
                         <Button
-                          size="lg"
+                          size="sm"
                           variant="outline"
                           onClick={() => setPayoutBucket(bucket)}
-                          className="h-12 px-5 border-2 border-pink-500/60 text-pink-700 dark:text-pink-300 hover:bg-pink-500/10"
+                          className="h-11 px-3 w-full border-2 border-pink-500/60 text-pink-700 dark:text-pink-300 hover:bg-pink-500/10"
                         >
-                          <ArrowUpFromLine className="w-4 h-4 mr-2" />
-                          Cash Out {bucket === "day" ? "Day" : "Evening"}
+                          <ArrowUpFromLine className="w-4 h-4 mr-1.5 shrink-0" />
+                          <span className="truncate">Cash Out {bucket === "day" ? "Day" : "Evening"}</span>
                         </Button>
                       )}
                     </div>
