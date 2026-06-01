@@ -432,13 +432,8 @@ const LiveTab = ({ monthAnchor }: { monthAnchor: Date }) => {
 
   return (
     <div className="cms-panel">
-      <div className="cms-header flex items-center justify-between">
-        <span>Live Game Closings · {format(monthAnchor, "MMMM yyyy")} ({shifts.length})</span>
-        <div className="flex items-center gap-1">
-          <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => setMonthAnchor(d => startOfMonth(subMonths(d, 1)))}><ChevronLeft className="h-3.5 w-3.5" /></Button>
-          <Button variant="outline" size="sm" className="h-7 font-mono min-w-[130px]" onClick={() => setMonthAnchor(startOfMonth(today))}>{format(monthAnchor, "MMMM yyyy")}</Button>
-          <Button variant="outline" size="icon" className="h-7 w-7" disabled={monthAnchor >= startOfMonth(today)} onClick={() => setMonthAnchor(d => startOfMonth(addMonths(d, 1)))}><ChevronRight className="h-3.5 w-3.5" /></Button>
-        </div>
+      <div className="cms-header">
+        Live Game Closings · {format(monthAnchor, "MMMM yyyy")} ({shifts.length})
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-xs">
