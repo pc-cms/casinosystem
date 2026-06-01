@@ -15,9 +15,9 @@ import { useSlotsTransfers } from "@/hooks/use-cage-slots-transfers";
 import { useSlotsExpenses } from "@/hooks/use-expenses";
 
 const Field = ({ label, value, emphasize }: { label: string; value: string; emphasize?: boolean }) => (
-  <div>
-    <p className="text-[10px] uppercase text-muted-foreground tracking-wider">{label}</p>
-    <p className={`font-mono ${emphasize ? "text-base font-bold" : "text-sm"}`}>{value}</p>
+  <div className="leading-tight">
+    <p className="text-[9px] uppercase text-muted-foreground tracking-wider">{label}</p>
+    <p className={`font-mono ${emphasize ? "text-sm font-bold" : "text-xs"}`}>{value}</p>
   </div>
 );
 
@@ -134,7 +134,7 @@ const SlotsShiftReportBody = ({ id, showHeader = true, compact = false }: Props)
   const dispCashlessOut = cashless.length > 0 ? cashlessOut : providerCashlessOut || Number(latestTotals.cashless_out || 0);
   const dispCashlessBalance = dispCashlessIn - dispCashlessOut;
 
-  const wrap = compact ? "space-y-2" : "space-y-4";
+  const wrap = compact ? "space-y-1.5" : "space-y-3";
 
   return (
     <div className={wrap}>
@@ -167,7 +167,7 @@ const SlotsShiftReportBody = ({ id, showHeader = true, compact = false }: Props)
       </div>
 
       <PageSection title="Plastic Cards">
-        <div className="grid grid-cols-4 gap-3 text-sm">
+        <div className="grid grid-cols-4 gap-2 text-sm">
           <Field label="Opening Cards" value={String(cards?.opening_card_count ?? 0)} />
           <Field label="Closing Cards" value={String(cards?.closing_card_count ?? "—")} />
           <Field label="Miss" value={String(cards?.miss_card_count ?? 0)} />
@@ -239,7 +239,7 @@ const SlotsShiftReportBody = ({ id, showHeader = true, compact = false }: Props)
       </PageSection>
 
       <PageSection title="Balance Calculation">
-        <div className="grid grid-cols-2 gap-3 text-sm font-mono">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-1.5 text-sm font-mono">
           <Field label="Closing Cash" value={formatNumberSpaces(closingCash)} />
           <Field label="+ Expenses" value={formatNumberSpaces(expensesTotal)} />
           <Field label="− Ace Fill" value={formatNumberSpaces(txAgg.fill)} />
@@ -248,7 +248,6 @@ const SlotsShiftReportBody = ({ id, showHeader = true, compact = false }: Props)
           <Field label="− LG In" value={formatNumberSpaces(txAgg.lg_in)} />
           <Field label="= Cash Desk Result" value={(cashDeskResult >= 0 ? "+" : "") + formatNumberSpaces(cashDeskResult)} emphasize />
           <Field label="System Result" value={(systemResult >= 0 ? "+" : "") + formatNumberSpaces(systemResult)} />
-          <Field label="Slots Result (= System Result)" value={(slotsResult >= 0 ? "+" : "") + formatNumberSpaces(slotsResult)} />
           <Field label="− Cards Miss" value={(cardsMiss >= 0 ? "+" : "") + formatNumberSpaces(cardsMiss)} />
           <Field label="= Shift Balance" value={(balance >= 0 ? "+" : "") + formatNumberSpaces(balance)} emphasize />
         </div>
