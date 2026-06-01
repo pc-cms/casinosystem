@@ -70,12 +70,11 @@ const SlotsTipsCdPage = () => {
         icon={Gift}
         title="Tips CD · Cash Desk Tips"
         subtitle="Each shift has an IN log (collected tips) and an OUT cash-out (actual payout). Print report includes only IN."
-        actions={
-          <Button variant="outline" size="sm" onClick={() => nav("/cage-slots")} className="gap-1.5">
-            <ArrowLeft className="w-4 h-4" /> Back to Cage Slots
-          </Button>
-        }
-      />
+      >
+        <Button variant="outline" size="sm" onClick={() => nav("/cage-slots")} className="gap-1.5">
+          <ArrowLeft className="w-4 h-4" /> Back to Cage Slots
+        </Button>
+      </PageHeader>
 
       <div className="space-y-5">
         {!readOnly && (
