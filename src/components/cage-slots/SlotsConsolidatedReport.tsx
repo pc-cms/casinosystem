@@ -95,36 +95,47 @@ const SlotsConsolidatedReport = ({
   const closerTotal = closerCashTotalTzs + closerBankTotalTzs;
 
   return (
-    <div className="bg-white text-black p-2 flex flex-col" style={{ fontFamily: "Arial, sans-serif", fontSize: "13px", lineHeight: 1.25, width: "194mm", minHeight: "281mm", boxSizing: "border-box", pageBreakAfter: "avoid", breakAfter: "avoid" }}>
+    <div className="bg-white text-black p-2 flex flex-col" style={{ fontFamily: "Arial, sans-serif", fontSize: "14px", lineHeight: 1.3, width: "194mm", minHeight: "281mm", boxSizing: "border-box" }}>
 
       {/* ============ TITLE ROW ============ */}
-      <table className="w-full border-collapse mb-0.5">
+      <table className="w-full border-collapse mb-1" style={{ tableLayout: "fixed" }}>
+        <colgroup>
+          <col style={{ width: "22%" }} />
+          <col style={{ width: "10%" }} />
+          <col style={{ width: "22%" }} />
+          <col style={{ width: "10%" }} />
+          <col style={{ width: "16%" }} />
+          <col style={{ width: "20%" }} />
+        </colgroup>
         <tbody>
           <tr>
-            <td className="border border-black px-1.5 py-0.5 font-bold text-base" colSpan={4}>
-              {casinoName} ACE Cash Desk Report
+            <td className="border border-black px-1.5 py-0.5 font-bold text-lg" colSpan={4}>
+              {casinoName} Slots Cash Desk Report
             </td>
-            <td className="border border-black px-1.5 py-0.5 font-semibold text-center w-24">Date</td>
-            <td className="border border-black px-1.5 py-0.5 text-center w-32">{fmtDateOnly(businessDate)}</td>
+            <td className="border border-black px-1.5 py-0.5 font-semibold text-center">Date</td>
+            <td className="border border-black px-1.5 py-0.5 text-center">{fmtDateOnly(businessDate)}</td>
           </tr>
           <tr>
-            <td className="border border-black px-1.5 py-0.5 font-semibold w-24">Cards Opener</td>
-            <td className="border border-black px-1.5 py-0.5 text-center w-16 font-bold">{cardsOpener}</td>
-            <td className="border border-black px-1.5 py-0.5 font-semibold w-24">Cards Closer</td>
-            <td className="border border-black px-1.5 py-0.5 text-center w-16 font-bold">{cardsCloser ?? ""}</td>
+            <td className="border border-black px-1.5 py-0.5 font-semibold">Cards Opener</td>
+            <td className="border border-black px-1.5 py-0.5 text-center font-bold">{cardsOpener}</td>
+            <td className="border border-black px-1.5 py-0.5 font-semibold">Cards Closer</td>
+            <td className="border border-black px-1.5 py-0.5 text-center font-bold">{cardsCloser ?? ""}</td>
             <td className="border border-black px-1.5 py-0.5 font-semibold text-center">Shift</td>
             <td className="border border-black px-1.5 py-0.5 text-center font-bold">{shiftLabel}</td>
           </tr>
         </tbody>
       </table>
 
+
       {/* ============ CASH FLOW: OPENER | CLOSER ============ */}
       <div className="grid grid-cols-2 gap-1 mb-0.5">
         {/* OPENER */}
-        <table className="w-full border-collapse">
+        <table className="w-full border-collapse" style={{ tableLayout: "fixed" }}>
+          <colgroup><col style={{ width: "55%" }} /><col style={{ width: "45%" }} /></colgroup>
           <thead>
             <tr><th colSpan={2} className="border border-black bg-gray-200 px-1.5 py-0.5 text-left">Cash Flow Opener</th></tr>
           </thead>
+
           <tbody>
             {CURRENCIES.map(c => <Row key={c} label={c} value={Number(openerByCurrency[c] || 0)} />)}
             <Row label="Other in TZS" value={Number(openerByCurrency.OTHER_TZS || 0)} />
@@ -142,7 +153,8 @@ const SlotsConsolidatedReport = ({
         </table>
 
         {/* CLOSER */}
-        <table className="w-full border-collapse">
+        <table className="w-full border-collapse" style={{ tableLayout: "fixed" }}>
+          <colgroup><col style={{ width: "55%" }} /><col style={{ width: "45%" }} /></colgroup>
           <thead>
             <tr><th colSpan={2} className="border border-black bg-gray-200 px-1.5 py-0.5 text-left">Cash Flow Closer</th></tr>
           </thead>
@@ -164,24 +176,30 @@ const SlotsConsolidatedReport = ({
       </div>
 
       {/* ============ RIGHT METRICS / SYSTEM RESULT ============ */}
-      <table className="w-full border-collapse mb-0.5">
+      <table className="w-full border-collapse mb-0.5" style={{ tableLayout: "fixed" }}>
+        <colgroup>
+          <col style={{ width: "25%" }} />
+          <col style={{ width: "25%" }} />
+          <col style={{ width: "25%" }} />
+          <col style={{ width: "25%" }} />
+        </colgroup>
         <tbody>
           <tr>
-            <td className="border border-black bg-gray-200 px-1.5 py-0.5 font-semibold w-1/3">System Shift Result</td>
+            <td className="border border-black bg-gray-200 px-1.5 py-0.5 font-semibold">System Shift Result</td>
             <td className="border border-black px-1.5 py-0.5 text-right font-bold">{formatNumberSpaces(systemShiftResult)}</td>
-            <td className="border border-black bg-gray-200 px-1.5 py-0.5 font-semibold w-1/4">Casino Expenses</td>
+            <td className="border border-black bg-gray-200 px-1.5 py-0.5 font-semibold">Casino Expenses</td>
             <td className="border border-black px-1.5 py-0.5 text-right">{formatNumberSpaces(casinoExpenses)}</td>
           </tr>
           <tr>
             <td className="border border-black px-1.5 py-0.5">Cash Flow FILL</td>
             <td className="border border-black px-1.5 py-0.5 text-right">{cashFlowFill ? formatNumberSpaces(cashFlowFill) : ""}</td>
-            <td className="border border-black px-1.5 py-0.5">Tips CD · Day (13:00–21:10)</td>
+            <td className="border border-black px-1.5 py-0.5">Tips CD · Day</td>
             <td className="border border-black px-1.5 py-0.5 text-right">{tipsCollectionDay ? formatNumberSpaces(tipsCollectionDay) : ""}</td>
           </tr>
           <tr>
             <td className="border border-black px-1.5 py-0.5">Cash Flow CREDIT</td>
             <td className="border border-black px-1.5 py-0.5 text-right">{cashFlowCredit ? formatNumberSpaces(cashFlowCredit) : ""}</td>
-            <td className="border border-black px-1.5 py-0.5">Tips CD · Evening (21:11–05:00)</td>
+            <td className="border border-black px-1.5 py-0.5">Tips CD · Evening</td>
             <td className="border border-black px-1.5 py-0.5 text-right">{tipsCollectionEvening ? formatNumberSpaces(tipsCollectionEvening) : ""}</td>
           </tr>
           <tr>
@@ -193,20 +211,28 @@ const SlotsConsolidatedReport = ({
           <tr>
             <td className="border border-black px-1.5 py-0.5">Cash Desk Cards CREDIT</td>
             <td className="border border-black px-1.5 py-0.5 text-right">{cashDeskCardsCredit ? formatNumberSpaces(cashDeskCardsCredit) : ""}</td>
-            <td className="border border-black bg-gray-200 px-1.5 py-0.5 font-semibold">Shift Balance</td>
-            <td className="border border-black px-1.5 py-0.5 text-right font-bold">{formatNumberSpaces(aceBalance)}</td>
+            <td className="border border-black bg-gray-300 px-1.5 py-0.5 font-bold">Shift Balance</td>
+            <td className="border border-black bg-gray-300 px-1.5 py-0.5 text-right font-bold">{formatNumberSpaces(aceBalance)}</td>
           </tr>
         </tbody>
       </table>
 
       {/* ============ CASH LESS SHIFT TRANSACTIONS ============ */}
-      <table className="w-full border-collapse mb-0.5">
+      <table className="w-full border-collapse mb-0.5" style={{ tableLayout: "fixed" }}>
+        <colgroup>
+          <col style={{ width: "24%" }} />
+          <col style={{ width: "19%" }} />
+          <col style={{ width: "19%" }} />
+          <col style={{ width: "19%" }} />
+          <col style={{ width: "19%" }} />
+        </colgroup>
         <thead>
           <tr><th colSpan={5} className="border border-black bg-gray-200 px-1.5 py-0.5 text-left">Cash Less Shift Transactions</th></tr>
-          <tr>
-            <th className="border border-black px-1.5 py-0.5 text-left w-1/3">Provider</th>
+          <tr className="bg-gray-100">
+            <th className="border border-black px-1.5 py-0.5 text-left">Provider</th>
             <th className="border border-black px-1.5 py-0.5 text-right">Deposit (IN)</th>
             <th className="border border-black px-1.5 py-0.5 text-right">Withdraw (OUT)</th>
+
             <th className="border border-black px-1.5 py-0.5 text-right">NET (IN − OUT)</th>
             <th className="border border-black px-1.5 py-0.5 text-right">Balance</th>
           </tr>
