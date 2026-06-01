@@ -43,8 +43,8 @@ const ensureLiveGamePortraitPrintStyle = () => {
   styleEl.setAttribute("data-live-game-print", "1");
   styleEl.textContent = `
     @media print {
-      @page { size: 210mm 297mm !important; margin: 8mm !important; }
-      .live-game-print-area { width: 194mm !important; min-height: 281mm !important; }
+      @page portrait  { size: A4 portrait;  margin: 8mm; }
+      @page landscape { size: A4 landscape; margin: 8mm; }
     }
   `;
   if (!existing) document.head.appendChild(styleEl);
@@ -73,7 +73,31 @@ const printLiveGameReport = () => {
     return;
   }
   doc.open();
-  doc.write(`<!doctype html><html><head>${styles}<style>@media print { @page { size: 210mm 297mm !important; margin: 8mm !important; } html, body { margin: 0 !important; background: white !important; } body, body * { visibility: visible !important; } .live-game-print-area { display: block !important; width: 194mm !important; min-height: 281mm !important; page: auto !important; } #shift-print-area, #chip-print-area { page: auto !important; page-break-after: always !important; break-after: page !important; page-break-before: auto !important; break-before: auto !important; } #chip-print-area { page-break-after: auto !important; break-after: auto !important; } }</style></head><body><div class="live-game-print-area cms-print-root">${source.innerHTML}</div></body></html>`);
+  doc.write(`<!doctype html><html><head>${styles}<style>
+    @media print {
+      @page portrait  { size: A4 portrait;  margin: 8mm; }
+      @page landscape { size: A4 landscape; margin: 8mm; }
+      html, body { margin: 0 !important; background: white !important; }
+      body, body * { visibility: visible !important; }
+      .live-game-print-area { display: block !important; }
+      #shift-print-area {
+        page: portrait !important;
+        width: 194mm !important;
+        min-height: 281mm !important;
+        page-break-after: always !important;
+        break-after: page !important;
+      }
+      #chip-print-area {
+        page: landscape !important;
+        width: 281mm !important;
+        min-height: 194mm !important;
+        page-break-before: always !important;
+        break-before: page !important;
+        page-break-after: auto !important;
+        break-after: auto !important;
+      }
+    }
+  </style></head><body><div class="live-game-print-area cms-print-root">${source.innerHTML}</div></body></html>`);
   doc.close();
   const cleanup = () => {
     setTimeout(() => {
