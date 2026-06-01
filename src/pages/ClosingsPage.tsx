@@ -303,14 +303,15 @@ const TotalTab = ({ monthAnchor }: { monthAnchor: Date }) => {
               <SortTh label="Drop Tables" sortKey="dropTables" sort={sort} align="right" />
               <SortTh label="Tables Result" sortKey="tablesResult" sort={sort} align="right" />
               <SortTh label="Drop Slots" sortKey="dropSlots" sort={sort} align="right" />
+              <SortTh label="System Shift Result" sortKey="systemShiftResult" sort={sort} align="right" />
               <SortTh label="Slots Result" sortKey="slotsResult" sort={sort} align="right" />
               <SortTh label="Expenses" sortKey="expenses" sort={sort} align="right" />
               <SortTh label="Total Results" sortKey="totalResults" sort={sort} align="right" />
             </tr>
           </thead>
           <tbody>
-            {isLoading ? <tr><td colSpan={7} className="text-center py-6 text-muted-foreground">Loading…</td></tr> :
-             sorted.length === 0 ? <tr><td colSpan={7} className="text-center py-6 text-muted-foreground">No closed shifts</td></tr> :
+            {isLoading ? <tr><td colSpan={8} className="text-center py-6 text-muted-foreground">Loading…</td></tr> :
+             sorted.length === 0 ? <tr><td colSpan={8} className="text-center py-6 text-muted-foreground">No closed shifts</td></tr> :
              sorted.map((r: any) => {
               const totalResults = (r.tablesResult || 0) + (r.slotsResult || 0);
               const cls = (n: number) => n < 0 ? "cms-amount-negative" : n > 0 ? "cms-amount-positive" : "text-muted-foreground";
@@ -327,6 +328,7 @@ const TotalTab = ({ monthAnchor }: { monthAnchor: Date }) => {
                       onSave={(v) => updateDropSlots.mutate({ shiftIds: slotsShiftIds, value: v })}
                     />
                   </td>
+                  <td className={`px-3 py-2 text-right font-mono ${cls(r.systemShiftResult || 0)}`}>{formatNumberSpaces(r.systemShiftResult || 0)}</td>
                   <td className={`px-3 py-2 text-right font-mono font-semibold ${cls(r.slotsResult || 0)}`}>{formatNumberSpaces(r.slotsResult || 0)}</td>
                   <td className="px-3 py-2 text-right font-mono text-muted-foreground">{formatNumberSpaces(r.expenses || 0)}</td>
                   <td className={`px-3 py-2 text-right font-mono font-bold ${cls(totalResults)}`}>{formatNumberSpaces(totalResults)}</td>
