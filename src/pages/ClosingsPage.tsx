@@ -149,11 +149,9 @@ export default ClosingsPage;
 // ============================================================
 type TotalSortKey = "date" | "dropTables" | "tablesResult" | "dropSlots" | "slotsResult" | "expenses" | "totalResults";
 
-const TotalTab = () => {
+const TotalTab = ({ monthAnchor }: { monthAnchor: Date }) => {
   const { casinoId, roles } = useAuth();
   const qc = useQueryClient();
-  const today = useMemo(() => new Date(), []);
-  const [monthAnchor, setMonthAnchor] = useState<Date>(startOfMonth(today));
   const monthLabel = format(monthAnchor, "MMMM yyyy");
   const monthStart = startOfMonth(monthAnchor);
   const monthEnd = startOfMonth(addMonths(monthAnchor, 1));
