@@ -286,7 +286,8 @@ const ShiftClosingReport = ({
   const MP = ["Mpesa", "Tigo", "Halo", "AirTel"] as const;
 
   const compact = reportTables.length > 14;
-  const rootFontSize = compact ? "12px" : "14px";
+  const rootFontSize = compact ? "13px" : "16px";
+  const rootLineHeight = compact ? 1.4 : 1.7;
 
   return (
     <div
@@ -295,13 +296,19 @@ const ShiftClosingReport = ({
       style={{
         fontFamily: "Arial, sans-serif",
         fontSize: rootFontSize,
-        lineHeight: 1.3,
+        lineHeight: rootLineHeight,
         width: "194mm",
         minHeight: "281mm",
         boxSizing: "border-box",
         padding: 0,
       }}
     >
+      <style>{`
+        #shift-print-area td, #shift-print-area th {
+          padding-top: ${compact ? "2px" : "5px"} !important;
+          padding-bottom: ${compact ? "2px" : "5px"} !important;
+        }
+      `}</style>
       {/* ============ TITLE ROW ============ */}
       <table className="w-full border-collapse mb-1" style={{ tableLayout: "fixed" }}>
         <colgroup>
