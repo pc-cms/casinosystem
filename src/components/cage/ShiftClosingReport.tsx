@@ -286,27 +286,27 @@ const ShiftClosingReport = ({
   const MP = ["Mpesa", "Tigo", "Halo", "AirTel"] as const;
 
   const compact = reportTables.length > 14;
-  const rootFontSize = compact ? "13px" : "16px";
-  const rootLineHeight = compact ? 1.4 : 1.7;
+  const rootFontSize = compact ? "9.5px" : "10.5px";
+  const rootLineHeight = compact ? 1.15 : 1.25;
+  const cellPadY = compact ? "1px" : "2px";
 
   return (
     <div
       id="shift-print-area"
-      className="bg-white text-black flex flex-col"
+      className="bg-white text-black"
       style={{
         fontFamily: "Arial, sans-serif",
         fontSize: rootFontSize,
         lineHeight: rootLineHeight,
         width: "194mm",
-        minHeight: "281mm",
         boxSizing: "border-box",
         padding: 0,
       }}
     >
       <style>{`
         #shift-print-area td, #shift-print-area th {
-          padding-top: ${compact ? "2px" : "5px"} !important;
-          padding-bottom: ${compact ? "2px" : "5px"} !important;
+          padding-top: ${cellPadY} !important;
+          padding-bottom: ${cellPadY} !important;
         }
       `}</style>
       {/* ============ TITLE ROW ============ */}
