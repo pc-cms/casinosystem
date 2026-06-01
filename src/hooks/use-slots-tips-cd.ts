@@ -33,12 +33,13 @@ export const useCreateSlotsTipsCd = () => {
   const qc = useQueryClient();
   const { casinoId, user } = useAuth();
   return useMutation({
-    mutationFn: async (input: { shift_id: string; amount: number; note?: string }) => {
+    mutationFn: async (input: { shift_id: string; amount: number; bucket: "day" | "evening"; note?: string }) => {
       if (!casinoId || !user) throw new Error("Not authenticated");
       const { error } = await (supabase as any).from("cage_slots_tips_cd").insert({
         casino_id: casinoId,
         cage_slots_shift_id: input.shift_id,
         amount: Math.round(input.amount),
+        bucket: input.bucket,
         note: input.note || "",
         operator_id: user.id,
       });

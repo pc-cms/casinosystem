@@ -18,7 +18,7 @@ import { useActiveCageSlotsShift } from "@/hooks/use-cage-slots";
 import { useSlotsTipsCd, useCreateSlotsTipsCd } from "@/hooks/use-slots-tips-cd";
 import { useSlotsTipsCdPayouts } from "@/hooks/use-slots-tips-cd-payouts";
 import SlotsTipsCdPayoutDialog from "@/components/cage-slots/SlotsTipsCdPayoutDialog";
-import { tipsBucketOf, TIPS_BUCKET_LABEL, type TipsBucket } from "@/lib/slots-tips-bucket";
+import { TIPS_BUCKET_LABEL, type TipsBucket } from "@/lib/slots-tips-bucket";
 
 const SlotsTipsCdPage = () => {
   const nav = useNavigate();
@@ -31,14 +31,14 @@ const SlotsTipsCdPage = () => {
   const create = useCreateSlotsTipsCd();
   const [amount, setAmount] = useState<string>("");
   const [note, setNote] = useState<string>("");
-  const [addToBucket, setAddToBucket] = useState<TipsBucket>(() => tipsBucketOf(new Date().toISOString()));
+  const [addToBucket, setAddToBucket] = useState<TipsBucket>("day");
   const [payoutBucket, setPayoutBucket] = useState<TipsBucket | null>(null);
 
   useEffect(() => {
     if (!isLoading && !shift) nav("/cage-slots", { replace: true });
   }, [isLoading, shift, nav]);
 
-  const tipsWithBucket = (tips as any[]).map((t) => ({ ...t, bucket: tipsBucketOf(t.created_at) as TipsBucket }));
+  const tipsWithBucket = (tips as any[]).map((t) => ({ ...t, bucket: (t.bucket || "day") as TipsBucket }));
   const inBy = (b: TipsBucket) =>
     tipsWithBucket.filter((t) => t.bucket === b).reduce((s, t) => s + Number(t.amount || 0), 0);
   const payoutBy = (b: TipsBucket) => (payouts as any[]).find((p) => p.bucket === b) || null;
@@ -50,7 +50,7 @@ const SlotsTipsCdPage = () => {
     if (!shiftId) return;
     const amt = Number(amount) || 0;
     if (amt <= 0) return;
-    await create.mutateAsync({ shift_id: shiftId, amount: amt, note });
+    await create.mutateAsync({ shift_id: shiftId, amount: amt, bucket: addToBucket, note });
     setAmount("");
     setNote("");
   };
@@ -108,7 +108,7 @@ const SlotsTipsCdPage = () => {
               <Button onClick={submit} disabled={!Number(amount) || create.isPending} size="lg">Add</Button>
             </div>
             <p className="text-[10px] text-muted-foreground">
-              Bucket is auto-derived from time of entry; the selector is informational only.
+              Pick the shift bucket explicitly — the entry is assigned to whichever shift you select.
             </p>
           </div>
         )}

@@ -1101,6 +1101,7 @@ export type Database = {
       cage_slots_tips_cd: {
         Row: {
           amount: number
+          bucket: string
           cage_slots_shift_id: string
           casino_id: string
           created_at: string
@@ -1110,6 +1111,7 @@ export type Database = {
         }
         Insert: {
           amount: number
+          bucket?: string
           cage_slots_shift_id: string
           casino_id: string
           created_at?: string
@@ -1119,6 +1121,7 @@ export type Database = {
         }
         Update: {
           amount?: number
+          bucket?: string
           cage_slots_shift_id?: string
           casino_id?: string
           created_at?: string
