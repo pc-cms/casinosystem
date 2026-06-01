@@ -147,7 +147,7 @@ export default ClosingsPage;
 // ============================================================
 // TOTAL TAB — per-business-day rollup with manual Drop Slots editing
 // ============================================================
-type TotalSortKey = "date" | "dropTables" | "tablesResult" | "dropSlots" | "slotsResult" | "expenses" | "totalResults";
+type TotalSortKey = "date" | "dropTables" | "tablesResult" | "dropSlots" | "systemShiftResult" | "slotsResult" | "expenses" | "totalResults";
 
 const TotalTab = ({ monthAnchor }: { monthAnchor: Date }) => {
   const { casinoId, roles } = useAuth();
