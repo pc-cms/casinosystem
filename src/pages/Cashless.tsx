@@ -51,11 +51,19 @@ const newDraft = (): DraftRow => ({
   reference: "",
 });
 
+const shiftDate = (d: string, days: number): string => {
+  const dt = new Date(d + "T00:00:00Z");
+  dt.setUTCDate(dt.getUTCDate() + days);
+  return dt.toISOString().slice(0, 10);
+};
+
 const Cashless = () => {
   const { isManager } = useAuth();
   const { data: serverBusinessDate } = useEffectiveBusinessDate();
   const businessDate = serverBusinessDate || getBusinessDate();
-  const { data: rows = [] } = useCashless(businessDate);
+  const [viewDate, setViewDate] = useState<string>(businessDate);
+  const isToday = viewDate === businessDate;
+  const { data: rows = [] } = useCashless(viewDate);
   
   const create = useCreateCashless();
   const approve = useApproveCashless();
