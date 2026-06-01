@@ -1,48 +1,42 @@
 /**
- * SlotsTipsCdDialog — Cash Desk Tips for a slots shift.
- *
- * Two shift sections (Day 13:00–21:10, Evening 21:11–05:00).
- * Each section has TWO columns:
- *   · IN  — every collected tip entry (immutable audit log, written to print report)
- *   · OUT — the single cash-out payout (money actually paid out of the cage)
- *
- * IN entries are reporting-only and NEVER folded into the shift balance.
- * The OUT payout adds back to the Cash Desk Result so cash leaving the safe is
- * neutral against the balance.
+ * Slots Cash Desk Tips — full page (replaces SlotsTipsCdDialog modal).
+ * Two shift sections (Day 13:00–21:10, Evening 21:11–05:00) with IN log and
+ * OUT cash-out per bucket. Read-only when shift is not open.
  */
-import { useState } from "react";
-import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { CardSkeleton } from "@/components/LoadingSkeletons";
 import { Button } from "@/components/ui/button";
 import { NumberInput } from "@/components/ui/number-input";
 import { Input } from "@/components/ui/input";
-import { Gift, ArrowDownToLine, ArrowUpFromLine } from "lucide-react";
+import { Gift, ArrowDownToLine, ArrowUpFromLine, ArrowLeft } from "lucide-react";
 import { formatNumberSpaces } from "@/lib/currency";
 import { fmtDateTime } from "@/lib/format-date";
+import { useActiveCageSlotsShift } from "@/hooks/use-cage-slots";
 import { useSlotsTipsCd, useCreateSlotsTipsCd } from "@/hooks/use-slots-tips-cd";
 import { useSlotsTipsCdPayouts } from "@/hooks/use-slots-tips-cd-payouts";
-import SlotsTipsCdPayoutDialog from "./SlotsTipsCdPayoutDialog";
+import SlotsTipsCdPayoutDialog from "@/components/cage-slots/SlotsTipsCdPayoutDialog";
 import { tipsBucketOf, TIPS_BUCKET_LABEL, type TipsBucket } from "@/lib/slots-tips-bucket";
 
-interface Props {
-  open: boolean;
-  onOpenChange: (v: boolean) => void;
-  shiftId: string;
-  readOnly?: boolean;
-}
+const SlotsTipsCdPage = () => {
+  const nav = useNavigate();
+  const { data: shift, isLoading } = useActiveCageSlotsShift();
+  const shiftId = shift?.id;
+  const readOnly = !shift || shift.status !== "open";
 
-const BUCKET_HOURS: Record<TipsBucket, string> = {
-  day: "13:00–21:10",
-  evening: "21:11–05:00",
-};
-
-const SlotsTipsCdDialog = ({ open, onOpenChange, shiftId, readOnly }: Props) => {
-  const { data: tips = [] } = useSlotsTipsCd(open ? shiftId : undefined);
-  const { data: payouts = [] } = useSlotsTipsCdPayouts(open ? shiftId : undefined);
+  const { data: tips = [] } = useSlotsTipsCd(shiftId);
+  const { data: payouts = [] } = useSlotsTipsCdPayouts(shiftId);
   const create = useCreateSlotsTipsCd();
   const [amount, setAmount] = useState<string>("");
   const [note, setNote] = useState<string>("");
   const [addToBucket, setAddToBucket] = useState<TipsBucket>(() => tipsBucketOf(new Date().toISOString()));
   const [payoutBucket, setPayoutBucket] = useState<TipsBucket | null>(null);
+
+  useEffect(() => {
+    if (!isLoading && !shift) nav("/cage-slots", { replace: true });
+  }, [isLoading, shift, nav]);
 
   const tipsWithBucket = (tips as any[]).map((t) => ({ ...t, bucket: tipsBucketOf(t.created_at) as TipsBucket }));
   const inBy = (b: TipsBucket) =>
@@ -53,6 +47,7 @@ const SlotsTipsCdDialog = ({ open, onOpenChange, shiftId, readOnly }: Props) => 
   const totalOut = (payouts as any[]).reduce((s, p) => s + Number(p.amount || 0), 0);
 
   const submit = async () => {
+    if (!shiftId) return;
     const amt = Number(amount) || 0;
     if (amt <= 0) return;
     await create.mutateAsync({ shift_id: shiftId, amount: amt, note });
@@ -60,14 +55,27 @@ const SlotsTipsCdDialog = ({ open, onOpenChange, shiftId, readOnly }: Props) => 
     setNote("");
   };
 
+  if (isLoading || !shift) {
+    return (
+      <PageShell>
+        <PageHeader icon={Gift} title="Tips CD · Cash Desk Tips" subtitle="Loading…" />
+        <CardSkeleton count={2} />
+      </PageShell>
+    );
+  }
+
   return (
-    <ResponsiveDialog
-      open={open}
-      onOpenChange={onOpenChange}
-      title="Tips CD · Cash Desk Tips"
-      description="Each shift has an IN log (collected tips) and an OUT cash-out (actual payout). Print report includes only IN."
-      size="xl"
-    >
+    <PageShell>
+      <PageHeader
+        icon={Gift}
+        title="Tips CD · Cash Desk Tips"
+        subtitle="Each shift has an IN log (collected tips) and an OUT cash-out (actual payout). Print report includes only IN."
+      >
+        <Button variant="outline" size="sm" onClick={() => nav("/cage-slots")} className="gap-1.5">
+          <ArrowLeft className="w-4 h-4" /> Back to Cage Slots
+        </Button>
+      </PageHeader>
+
       <div className="space-y-5">
         {!readOnly && (
           <div className="cms-panel p-4 space-y-3">
@@ -128,7 +136,7 @@ const SlotsTipsCdDialog = ({ open, onOpenChange, shiftId, readOnly }: Props) => 
                       </span>
                       <span className="font-mono text-base font-bold tabular-nums">{formatNumberSpaces(inTotal)}</span>
                     </div>
-                    <div className="max-h-56 overflow-y-auto">
+                    <div className="max-h-72 overflow-y-auto">
                       <table className="w-full text-xs">
                         <tbody>
                           {rows.length === 0 && (
@@ -214,7 +222,7 @@ const SlotsTipsCdDialog = ({ open, onOpenChange, shiftId, readOnly }: Props) => 
         )}
       </div>
 
-      {payoutBucket && (
+      {payoutBucket && shiftId && (
         <SlotsTipsCdPayoutDialog
           open={!!payoutBucket}
           onOpenChange={(v) => !v && setPayoutBucket(null)}
@@ -223,8 +231,8 @@ const SlotsTipsCdDialog = ({ open, onOpenChange, shiftId, readOnly }: Props) => 
           collectedAmount={inBy(payoutBucket)}
         />
       )}
-    </ResponsiveDialog>
+    </PageShell>
   );
 };
 
-export default SlotsTipsCdDialog;
+export default SlotsTipsCdPage;

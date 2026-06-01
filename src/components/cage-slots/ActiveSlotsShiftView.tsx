@@ -1,7 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Coins, Send, RotateCcw, Printer, FileText, CreditCard, Save, ArrowLeftRight, History, Pencil, Gift } from "lucide-react";
-import SlotsTipsCdDialog from "./SlotsTipsCdDialog";
 import PrintSlotsShiftDialog from "./PrintSlotsShiftDialog";
 import EditOpeningCardsDialog from "./EditOpeningCardsDialog";
 import SlotsTransfersForm from "./SlotsTransfersForm";
@@ -345,7 +344,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
   // Closing preview dialog (Live Game-style: review before submit-for-review).
   const [showClosingPreview, setShowClosingPreview] = useState(false);
   const [showEditOpeningCards, setShowEditOpeningCards] = useState(false);
-  const [showTipsCd, setShowTipsCd] = useState(false);
+  
 
   const openClosingPreview = () => {
     if (!systemResultInput.trim()) {
@@ -566,7 +565,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
               <FileText className="w-3.5 h-3.5" /> Check
             </Button>
             <Button
-              onClick={() => setShowTipsCd(true)}
+              onClick={() => navigate("/cage-slots/tips")}
               size="sm"
               variant="outline"
               className="gap-1.5 h-8 border-pink-500/60 text-pink-600 hover:bg-pink-500/10 dark:text-pink-400"
@@ -1035,12 +1034,6 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
           onClose={() => setShowEditOpeningCards(false)}
         />
       )}
-      <SlotsTipsCdDialog
-        open={showTipsCd}
-        onOpenChange={setShowTipsCd}
-        shiftId={shift.id}
-        readOnly={shift.status !== "open"}
-      />
 
       {/* Print Reports prompt — shown after manager approves & closes the shift */}
       {showPrintPrompt && (
