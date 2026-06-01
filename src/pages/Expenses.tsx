@@ -287,9 +287,36 @@ const Expenses = () => {
         <div className="flex items-center gap-2 mb-2">
           <Filter className="w-3.5 h-3.5 text-muted-foreground" />
           <h3 className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Filters</h3>
-          <Button variant="ghost" size="sm" className="h-7 text-xs ml-auto" onClick={resetFilters}>
-            Reset
-          </Button>
+          <div className="ml-auto flex items-center gap-1">
+            {(() => {
+              const shift = (days: number) => {
+                const d = new Date(businessDate + "T00:00:00Z");
+                d.setUTCDate(d.getUTCDate() - days);
+                return d.toISOString().slice(0, 10);
+              };
+              const presets: Array<{ label: string; from: string; to: string }> = [
+                { label: "Today", from: businessDate, to: businessDate },
+                { label: "7d",    from: shift(6),   to: businessDate },
+                { label: "30d",   from: shift(29),  to: businessDate },
+                { label: "All",   from: "2020-01-01", to: businessDate },
+              ];
+              return presets.map(p => {
+                const active = from === p.from && to === p.to;
+                return (
+                  <Button
+                    key={p.label}
+                    size="sm"
+                    variant={active ? "default" : "outline"}
+                    className="h-7 px-2 text-xs"
+                    onClick={() => { setFrom(p.from); setTo(p.to); }}
+                  >{p.label}</Button>
+                );
+              });
+            })()}
+            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={resetFilters}>
+              Reset
+            </Button>
+          </div>
         </div>
         <div className={`grid grid-cols-2 ${sourceLocked ? "md:grid-cols-6" : "md:grid-cols-7"} gap-2`}>
           <div>
