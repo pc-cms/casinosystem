@@ -18,7 +18,7 @@ import { useActiveCageSlotsShift } from "@/hooks/use-cage-slots";
 import { useSlotsTipsCd, useCreateSlotsTipsCd } from "@/hooks/use-slots-tips-cd";
 import { useSlotsTipsCdPayouts } from "@/hooks/use-slots-tips-cd-payouts";
 import SlotsTipsCdPayoutDialog from "@/components/cage-slots/SlotsTipsCdPayoutDialog";
-import { tipsBucketOf, TIPS_BUCKET_LABEL, type TipsBucket } from "@/lib/slots-tips-bucket";
+import { TIPS_BUCKET_LABEL, type TipsBucket } from "@/lib/slots-tips-bucket";
 
 const SlotsTipsCdPage = () => {
   const nav = useNavigate();
