@@ -130,10 +130,12 @@ const SlotsConsolidatedReport = ({
       {/* ============ CASH FLOW: OPENER | CLOSER ============ */}
       <div className="grid grid-cols-2 gap-1 mb-0.5">
         {/* OPENER */}
-        <table className="w-full border-collapse">
+        <table className="w-full border-collapse" style={{ tableLayout: "fixed" }}>
+          <colgroup><col style={{ width: "55%" }} /><col style={{ width: "45%" }} /></colgroup>
           <thead>
             <tr><th colSpan={2} className="border border-black bg-gray-200 px-1.5 py-0.5 text-left">Cash Flow Opener</th></tr>
           </thead>
+
           <tbody>
             {CURRENCIES.map(c => <Row key={c} label={c} value={Number(openerByCurrency[c] || 0)} />)}
             <Row label="Other in TZS" value={Number(openerByCurrency.OTHER_TZS || 0)} />
