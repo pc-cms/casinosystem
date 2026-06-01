@@ -50,8 +50,9 @@ export const computeShiftBalance = (i: CageBalanceInputs): CageBalanceResult => 
  *   Slots Result     = System Result
  *   Expected         = System Result
  *
- *   Shift Balance    = Cash Desk Result − System Result − Cards Miss
- *   (Tips CD are physically removed from cage and accounted separately — NOT in balance.)
+ *   Shift Balance    = Cash Desk Result − System Result − Cards Miss − Tips CD
+ *   (Tips CD are included in the closing cash count, so they must be subtracted
+ *    to avoid a false surplus in the balance.)
  *
  *   Cashless Balance = Cashless IN − Cashless OUT   (derived, display only)
  *   Cashless Final   = manual entry, PRINT ONLY — never used in any formula.
