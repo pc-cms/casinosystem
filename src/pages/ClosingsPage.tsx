@@ -384,27 +384,31 @@ const DropSlotsCell = ({ value, canEdit, onSave }: { value: number; canEdit: boo
 // ============================================================
 type LiveSortKey = "opened" | "closed" | "cash" | "miss" | "tables" | "balance";
 
-const LiveTab = () => {
+const LiveTab = ({ monthAnchor }: { monthAnchor: Date }) => {
   const { casinoId } = useAuth();
   const [reprintId, setReprintId] = useState<string | null>(null);
-  const today = useMemo(() => new Date(), []);
-  const [monthAnchor, setMonthAnchor] = useState<Date>(startOfMonth(today));
   const monthStart = startOfMonth(monthAnchor);
   const monthEnd = startOfMonth(addMonths(monthAnchor, 1));
+  const monthStartStr = format(monthStart, "yyyy-MM-dd");
+  const monthEndStr = format(monthEnd, "yyyy-MM-dd");
   const sort = useSort<LiveSortKey>("closed", "desc");
 
   const { data: shifts = [], isLoading } = useQuery({
-    queryKey: ["closings-live", casinoId, monthStart.toISOString()],
+    queryKey: ["closings-live", casinoId, monthStartStr],
     queryFn: async () => {
       if (!casinoId) return [];
+      // Business-day window: [monthStart 07:00 EAT, nextMonth 07:00 EAT)
+      // so a shift closed at 05:00 EAT on the 1st belongs to the previous month.
+      const fromIso = businessDayHourUTC(monthStartStr, 7);
+      const toIso = businessDayHourUTC(monthEndStr, 7);
       const { data, error } = await supabase
         .from("shifts")
         .select("id, opened_at, closed_at, cash_result, miss_total, tables_result, balance, notes")
         .eq("casino_id", casinoId)
         .eq("status", "closed")
-        .gte("closed_at", monthStart.toISOString())
-        .lt("closed_at", monthEnd.toISOString())
-        .limit(200);
+        .gte("closed_at", fromIso)
+        .lt("closed_at", toIso)
+        .limit(500);
       if (error) throw error;
       return data || [];
     },
