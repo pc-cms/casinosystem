@@ -978,6 +978,41 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
         shiftId={shift.id}
         readOnly={shift.status !== "open"}
       />
+
+      {/* Print Reports prompt — shown after manager approves & closes the shift */}
+      {showPrintPrompt && (
+        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowPrintPrompt(false)}>
+          <div className="bg-card border border-border rounded-md shadow-lg p-5 max-w-sm w-full space-y-4" onClick={e => e.stopPropagation()}>
+            <div>
+              <h3 className="font-semibold text-base">Print Reports?</h3>
+              <p className="text-xs text-muted-foreground mt-1">
+                Shift closed successfully. Do you want to print the shift report now?
+              </p>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" size="sm" onClick={() => setShowPrintPrompt(false)}>No</Button>
+              <Button
+                size="sm"
+                className="gap-1.5"
+                onClick={() => {
+                  setShowPrintPrompt(false);
+                  setShowPrintDialog(true);
+                }}
+              >
+                <Printer className="w-3.5 h-3.5" /> Yes, Print
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showPrintDialog && (
+        <PrintSlotsShiftDialog
+          open
+          shiftId={shift.id}
+          onClose={() => setShowPrintDialog(false)}
+        />
+      )}
     </PageShell>
   );
 };
