@@ -376,16 +376,25 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
   const [showApprove, setShowApprove] = useState(false);
   const [managerComment, setManagerComment] = useState("");
   const [viewerCheck, setViewerCheck] = useState<Tables<"cash_counts"> | null>(null);
+  const [showPrintPrompt, setShowPrintPrompt] = useState(false);
+  const [showPrintDialog, setShowPrintDialog] = useState(false);
   const needsComment = Math.abs(shiftBalance) > 0;
 
   const doApprove = (managerId: string) => {
-    approve.mutate({
-      shift_id: shift.id,
-      manager_id: managerId,
-      manager_comment: managerComment || (needsComment ? "" : "Approved with zero balance"),
-    });
-    setShowApprove(false);
-    setManagerComment("");
+    approve.mutate(
+      {
+        shift_id: shift.id,
+        manager_id: managerId,
+        manager_comment: managerComment || (needsComment ? "" : "Approved with zero balance"),
+      },
+      {
+        onSuccess: () => {
+          setShowApprove(false);
+          setManagerComment("");
+          setShowPrintPrompt(true);
+        },
+      },
+    );
   };
 
   // Cashless entry
