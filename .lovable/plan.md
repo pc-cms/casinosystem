@@ -1,58 +1,35 @@
-# Cashless in Check & Close (Live Game + Slots)
+## Проблема
 
-Mirror the Expenses pattern: cashier enters Cashless IN/OUT per provider directly inside the shift's Check / Close screens. Numbers from `/cashless` for the current business day appear as **gray placeholders** (suggestions). The cashier may accept (leave blank → use suggestion) or override with their own number — the entered value always wins.
+1. Каждый отчёт растягивается на 3 страницы вместо 1 (`min-height: 281mm` + padding `@page 8mm` + увеличенные шрифты/паддинги превышают полезную область A4).
+2. В сетке столов Cash Desk Report колонки **Open** и **Close** показывают пустоту/нули — суммы открытия и закрытия по столам не видны.
+3. Chip Movement Report (3×2) с увеличенными ячейками тоже не помещается.
 
-## Scope confirmed
+## Что делаю
 
-- **Both cashboxes:** Live Game (`cage_type='live_game'`) and Slots (`cage_type='slots'`).
-- **Shift binding:** by `business_date + cage_type` — no schema change to `cashless_transactions`.
-- **Suggestion source:** sum of `cashless_transactions` rows for the current business day, filtered by `cage_type` and grouped by `provider × direction`.
-- **Override:** placeholder text in input; empty save = suggestion accepted; any number = manual override.
+### 1. `src/components/cage/ShiftClosingReport.tsx`
+- Убираю `minHeight: 281mm` и `flex flex-col` — пусть высота тянется по контенту, страница остаётся одна.
+- Возвращаю компактные размеры: `fontSize 11px` (10px при >14 столов), `lineHeight 1.3`, паддинги ячеек `2px/4px` (вместо 5px и `py-1.5`).
+- Убираю инлайновый `<style>` который форсил `padding-top/bottom: 5px` на всех td/th.
+- **Fix Open/Close totals:** проверяю `rowFor()` — если `dailyResults[t.id]` отсутствует, используется `baselines` (TZS-сумма baseline по чипам) и `sumChipsObj(closing_chips)`. Когда смена только-только закрыта и `table_daily_results` ещё не материализована, `baselines` пуст для конкретной смены — добавляю фолбэк через `baselineByDenom` суммированием по `CHIP_DENOMS`, и для Close — фолбэк на последний chip_snapshot `actual_quantity` если `closing_chips` пуст. Это вернёт реальные суммы Open/Close в строках и в итоговом ряду.
 
-## Live Game — what to add
+### 2. `src/components/cage/ChipMovementReport.tsx`
+- Убираю `minHeight: 281mm` и `flex-1` на секциях/таблицах — высота по контенту.
+- Сжимаю `DenomTable`: `fontSize 11px`, `py-0.5`, заголовок секции `text-[11px]`. Сохраняю layout 3 ряда × 2 колонки.
+- Header (Casino · Date · Cashier) делаю одной компактной строкой.
+- В итоге 6 маленьких таблиц помещаются на одном A4 портрет.
 
-`src/components/cage/ActiveShiftView.tsx` does not yet have a cashless block. Add an IN/OUT providers grid identical in shape to the Slots one:
+### 3. `src/index.css` (print rules)
+- Оставляю `@page cashdesk-portrait { size: A4 portrait; margin: 8mm }`.
+- Гарантирую `page-break-after: always` только для `#shift-print-area` и `page-break-before: always` для `#chip-print-area` — итого ровно 2 страницы (по одной на отчёт), без «хвостов» третьей.
+- Убираю любые forced `min-height` через `!important`, если такие остались.
 
-- 4 providers × 2 columns (IN, OUT): AirTel, M-Pesa, Tigo, Halotel.
-- Values persisted on `shifts` row as `cashless_in_providers` / `cashless_out_providers` (JSONB). If columns don't exist for live shifts, reuse the same column names (Slots already has them) via a small additive migration that ensures both `live_game` and `slots` shifts have those JSONB columns nullable.
-- Totals feed into the existing cash formula (currently no cashless term for Live Game): show as a read-only "Mobile Money (Cashless IN − OUT)" line; **do not** change the expected-cash formula in this first pass (kept out of scope to avoid balance regressions — confirm separately if you want it included).
-- Print/Check report: include the per-provider IN values (matches the "report writes only IN" rule already used for tips).
+### 4. `src/components/cage/ReprintShiftDialog.tsx`
+- Синхронизирую inline-стили iframe: `width: 194mm`, **без** `min-height: 281mm`, `page-break-after: always` для shift, `page-break-before: always` для chips.
 
-## Slots — what changes
+### 5. Bump версии
+- `package.json` 1.3.236 → 1.3.237 (изменения бекенда нет, но печать критична — пользователю нужен cache-bust).
 
-`src/components/cage-slots/ActiveSlotsShiftView.tsx` already has `CashlessProvidersBlock` for IN / OUT / FINAL. Only the placeholder layer is added — no structural changes, no behavior changes to balance math.
-
-## Suggestion layer (shared)
-
-New hook `useCashlessSuggestions(businessDate, cageType)`:
-
-```ts
-// returns { IN: Record<Provider, number>, OUT: Record<Provider, number> }
-// reads cashless_transactions WHERE casino_id, business_date, cage_type
-// aggregates amount by provider × direction
-```
-
-`CashlessProvidersBlock` gets an optional `suggestions?: Record<Provider, number>` prop:
-
-- For each provider input where the stored value is `0` / empty, render the suggested number as the input's `placeholder` (already grayed via shadcn `Input`).
-- A small "Apply all" ghost button per block fills empty fields with suggestions in one click (optional convenience, keeps manual control).
-- On blur / save, the stored value is what the cashier typed; if untouched, it stays `0` — saved totals do not auto-include suggestions (cashier's choice must be explicit, matching the manual-entry philosophy).
-
-## Files to touch
-
-- `src/hooks/use-cashless.ts` — add `useCashlessSuggestions(date, cageType)` query.
-- `src/components/cage-slots/CashlessProvidersBlock.tsx` — accept `suggestions` prop, render as placeholders, add "Apply suggestions" ghost button.
-- `src/components/cage-slots/ActiveSlotsShiftView.tsx` — wire suggestions into the three existing blocks (IN, OUT, FINAL stays manual — no suggestion).
-- `src/components/cage/ActiveShiftView.tsx` — add IN / OUT provider blocks (read & persist `cashless_in_providers` / `cashless_out_providers` on the live shift), wire suggestions.
-- `src/pages/cage/CloseShiftPage.tsx` + `CloseShiftDialog` (live) — show the same blocks on close, persisted values used.
-- Print report bodies (live + slots) — include per-provider IN values; OUT visible only on screen.
-
-## Migration (additive, minimal)
-
-If `shifts.cashless_in_providers` / `cashless_out_providers` are slots-only today, extend them to apply for both cage types (same nullable JSONB columns are reused — no new columns required). Verify with one `read_query` before writing the migration. Version bump per project rule.
-
-## Out of scope (ask separately if needed)
-
-- Including Cashless totals in Live Game **expected cash** formula (would change Balance math).
-- Per-shift binding via `shift_id` on `cashless_transactions` (we agreed to use `business_date + cage_type`).
-- Slots `cage_type` page filter on `/cashless` (currently the page is filtered to `live_game`; suggestions for Slots will read directly from DB by `cage_type='slots'`, page UI itself unchanged).
+## Результат
+- Cash Desk Report — 1 страница A4 портрет, видны Open/Fill/Credit/Close/IN/Result + суммы по всем столам.
+- Chip Movement Report — 1 страница A4 портрет, 3 ряда × 2 колонки (Opener · Diff / Fill · Credit / Miss · Close).
+- Всего печатается ровно 2 листа.
