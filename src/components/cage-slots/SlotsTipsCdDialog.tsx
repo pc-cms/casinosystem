@@ -179,13 +179,13 @@ const SlotsTipsCdDialog = ({ open, onOpenChange, shiftId, readOnly }: Props) => 
                         <p className="text-xs text-muted-foreground">Not paid out</p>
                       ) : (
                         <Button
-                          size="lg"
+                          size="sm"
                           variant="outline"
                           onClick={() => setPayoutBucket(bucket)}
-                          className="h-12 px-5 border-2 border-pink-500/60 text-pink-700 dark:text-pink-300 hover:bg-pink-500/10"
+                          className="h-11 px-3 w-full border-2 border-pink-500/60 text-pink-700 dark:text-pink-300 hover:bg-pink-500/10"
                         >
-                          <ArrowUpFromLine className="w-4 h-4 mr-2" />
-                          Cash Out {bucket === "day" ? "Day" : "Evening"}
+                          <ArrowUpFromLine className="w-4 h-4 mr-1.5 shrink-0" />
+                          <span className="truncate">Cash Out {bucket === "day" ? "Day" : "Evening"}</span>
                         </Button>
                       )}
                     </div>
