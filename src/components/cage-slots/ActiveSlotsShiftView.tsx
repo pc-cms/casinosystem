@@ -1034,12 +1034,6 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
           onClose={() => setShowEditOpeningCards(false)}
         />
       )}
-      <SlotsTipsCdDialog
-        open={showTipsCd}
-        onOpenChange={setShowTipsCd}
-        shiftId={shift.id}
-        readOnly={shift.status !== "open"}
-      />
 
       {/* Print Reports prompt — shown after manager approves & closes the shift */}
       {showPrintPrompt && (
