@@ -182,7 +182,7 @@ const TotalTab = ({ monthAnchor }: { monthAnchor: Date }) => {
         // Closed slots shifts only
         supabase
           .from("cage_slots_shifts")
-          .select("id, business_date, status, slots_result, manual_drop_slots")
+          .select("id, business_date, status, system_shift_result, ace_fills, slots_result, manual_drop_slots")
           .eq("casino_id", casinoId)
           .eq("status", "closed")
           .gte("business_date", monthStartStr)
