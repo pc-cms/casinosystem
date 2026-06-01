@@ -39,6 +39,7 @@ import {
   useCreateSlotsCashCount, useSubmitSlotsForReview, useApproveSlotsShift,
   useCreateSlotsCashless, useReopenSlotsShift,
 } from "@/hooks/use-cage-slots";
+import { useCashlessSuggestions } from "@/hooks/use-cashless";
 import { useAuth } from "@/lib/auth-context";
 import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
 import type { Tables } from "@/integrations/supabase/types";
@@ -61,6 +62,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
   const { data: cashless = [] } = useSlotsCashless(shift.id);
   const { data: comments = [] } = useSlotsComments(shift.id);
   const { data: slotsExpenses = [] } = useSlotsExpenses(shift.business_date);
+  const { data: cashlessSug } = useCashlessSuggestions(shift.business_date, "slots");
   const { data: tipsCdRows = [] } = useSlotsTipsCd(shift.id);
   const { data: tipsCdPayouts = [] } = useSlotsTipsCdPayouts(shift.id);
   
@@ -725,6 +727,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
               onChange={setCashlessInProviders}
               onBlur={() => saveCashlessProviders("cashless_in_providers", cashlessInProviders)}
               disabled={shift.status !== "open"}
+              suggestions={cashlessSug?.in}
             />
             <CashlessProvidersBlock
               title="Cashless OUT"
@@ -733,6 +736,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
               onChange={setCashlessOutProviders}
               onBlur={() => saveCashlessProviders("cashless_out_providers", cashlessOutProviders)}
               disabled={shift.status !== "open"}
+              suggestions={cashlessSug?.out}
             />
             <CashlessProvidersBlock
               title="Cashless FINAL · print only"
@@ -1157,7 +1161,7 @@ const BigTile = ({ label, value, signed, emphasize }: { label: string; value: nu
 };
 
 const CashlessProvidersBlock = ({
-  title, values, onChange, disabled, onBlur, tone = "default",
+  title, values, onChange, disabled, onBlur, tone = "default", suggestions,
 }: {
   title: string;
   values: MobileProviders;
@@ -1165,6 +1169,8 @@ const CashlessProvidersBlock = ({
   disabled?: boolean;
   onBlur?: () => void;
   tone?: "default" | "in" | "out" | "final";
+  /** Gray placeholder per provider (e.g. /cashless sum for this business day). */
+  suggestions?: Partial<Record<string, number>>;
 }) => {
   const total = mobileTotal(values);
   const toneCls =
@@ -1175,28 +1181,69 @@ const CashlessProvidersBlock = ({
   const row = "flex items-center gap-2";
   const chip = "cms-chip text-[10px] bg-muted text-foreground h-7 w-16 shrink-0 justify-center";
   const input = "no-spin font-mono text-sm h-8 w-24 flex-1 min-w-0 rounded border border-border bg-background px-2 text-right text-foreground focus:outline-none focus:ring-1 focus:ring-primary";
+
+  const hintTotal = suggestions
+    ? Object.values(suggestions).reduce((s, v) => s + (Number(v) || 0), 0)
+    : 0;
+  const hasHints = !!suggestions && hintTotal !== 0;
+
+  const applyHints = () => {
+    if (!suggestions) return;
+    const next: MobileProviders = { ...values };
+    MOBILE_PROVIDERS.forEach(p => {
+      if (!values[p]) {
+        const s = Number(suggestions[p]) || 0;
+        if (s) next[p] = s;
+      }
+    });
+    onChange(next);
+    onBlur?.();
+  };
+
   return (
     <section className={`rounded-xl border ${toneCls} bg-background/40 p-3 flex flex-col`}>
-      <p className="text-xs font-bold text-foreground uppercase tracking-[0.22em] mb-2">{title}</p>
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-xs font-bold text-foreground uppercase tracking-[0.22em]">{title}</p>
+        {hasHints && !disabled && (
+          <button
+            type="button"
+            onClick={applyHints}
+            className="text-[9px] uppercase tracking-wider text-muted-foreground hover:text-foreground underline-offset-2 hover:underline"
+            title="Fill empty rows from /cashless transactions"
+          >
+            Apply hint
+          </button>
+        )}
+      </div>
       <div className="space-y-1">
-        {MOBILE_PROVIDERS.map(provider => (
-          <div key={provider} className={row}>
-            <span className={chip}>{provider}</span>
-            <NumberInput
-              value={values[provider] || ""}
-              onChange={v => onChange({ ...values, [provider]: Number(v) || 0 })}
-              onBlur={onBlur}
-              className={input}
-              placeholder="0"
-              disabled={disabled}
-            />
-          </div>
-        ))}
+        {MOBILE_PROVIDERS.map(provider => {
+          const hint = Number(suggestions?.[provider]) || 0;
+          const placeholder = hint ? formatNumberSpaces(hint) : "0";
+          return (
+            <div key={provider} className={row}>
+              <span className={chip}>{provider}</span>
+              <NumberInput
+                value={values[provider] || ""}
+                onChange={v => onChange({ ...values, [provider]: Number(v) || 0 })}
+                onBlur={onBlur}
+                className={input}
+                placeholder={placeholder}
+                disabled={disabled}
+              />
+            </div>
+          );
+        })}
       </div>
       <div className="flex items-center justify-between gap-2 pt-2 mt-2 border-t border-border">
         <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Total</span>
         <span className="font-mono text-sm font-bold text-card-foreground whitespace-nowrap">TZS {formatNumberSpaces(total)}</span>
       </div>
+      {hasHints && (
+        <div className="flex items-center justify-between gap-2 pt-1">
+          <span className="text-[9px] uppercase tracking-wider text-muted-foreground">Hint · Cashless</span>
+          <span className="font-mono text-[10px] text-muted-foreground whitespace-nowrap">TZS {formatNumberSpaces(hintTotal)}</span>
+        </div>
+      )}
     </section>
   );
 };

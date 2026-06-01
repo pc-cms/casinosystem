@@ -21,6 +21,7 @@ import { useBatchChipSnapshot } from "@/hooks/use-chips";
 import { useShiftTablesResultTotal } from "@/hooks/use-shift-tables-result";
 import { getBusinessDate } from "@/lib/business-day";
 import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
+import { useCashlessSuggestions } from "@/hooks/use-cashless";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import type { Tables } from "@/integrations/supabase/types";
@@ -214,6 +215,7 @@ const CloseShiftDialog = ({
 
   const { data: serverBusinessDate } = useEffectiveBusinessDate();
   const businessDate = serverBusinessDate || getBusinessDate();
+  const { data: cashlessSug } = useCashlessSuggestions(businessDate, "live_game");
 
   const handleManagerConfirmed = (managerId: string) => {
     setShowManagerConfirm(false);
@@ -780,6 +782,7 @@ const CloseShiftDialog = ({
           mobile={mobileBal}
           onMobileChange={setMobileBal}
           chipPlaceholder={openingChips}
+          mobileSuggestion={cashlessSug?.net}
           rates={rates}
           hideChips
         />

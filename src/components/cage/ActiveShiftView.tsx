@@ -1,6 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { toast } from "sonner";
 import { useTransactions, useExpenses, useCreateTransaction } from "@/hooks/use-casino-data";
+import { useCashlessSuggestions } from "@/hooks/use-cashless";
 import { useCreateCashCount, useCashCounts } from "@/hooks/use-shift";
 import { useChipBaseline, useCloseAllTables, baselineToMap } from "@/hooks/use-table-lifecycle";
 import { getBusinessDate } from "@/lib/business-day";
@@ -598,6 +599,7 @@ const CashCheckForm = ({ expectedBalance, shiftId, exchangeRates, cashChecks, bu
   businessDate: string;
 }) => {
   const { hasRole } = useAuth();
+  const { data: cashlessSug } = useCashlessSuggestions(businessDate, "live_game");
   const canBrowseHistory = hasRole("manager") || hasRole("pit") || hasRole("surveillance") || hasRole("finance_manager") || hasRole("super_admin");
 
   const createCount = useCreateCashCount();
@@ -654,7 +656,8 @@ const CashCheckForm = ({ expectedBalance, shiftId, exchangeRates, cashChecks, bu
       <div className="cms-panel p-4">
         <CashCountGrid chips={chipCounts} onChipsChange={setChipCounts} cash={cash}
           onCashChange={(cur, v) => setCash(c => ({ ...c, [cur]: v }))} banks={bankBal} onBanksChange={setBankBal}
-          mobile={mobileBal} onMobileChange={setMobileBal} rates={exchangeRates} />
+          mobile={mobileBal} onMobileChange={setMobileBal} rates={exchangeRates}
+          mobileSuggestion={cashlessSug?.net} />
 
         <div className="grid grid-cols-3 gap-2 pt-3 mt-3 border-t border-border">
           <div className="text-center"><p className="text-[10px] uppercase tracking-wider text-muted-foreground">Expected</p><p className="font-mono text-xl font-bold text-card-foreground">{formatCurrency(expectedBalance)}</p></div>
