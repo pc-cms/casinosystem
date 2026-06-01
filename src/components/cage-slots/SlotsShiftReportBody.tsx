@@ -167,7 +167,7 @@ const SlotsShiftReportBody = ({ id, showHeader = true, compact = false }: Props)
       </div>
 
       <PageSection title="Plastic Cards">
-        <div className="grid grid-cols-4 gap-3 text-sm">
+        <div className="grid grid-cols-4 gap-2 text-sm">
           <Field label="Opening Cards" value={String(cards?.opening_card_count ?? 0)} />
           <Field label="Closing Cards" value={String(cards?.closing_card_count ?? "—")} />
           <Field label="Miss" value={String(cards?.miss_card_count ?? 0)} />
