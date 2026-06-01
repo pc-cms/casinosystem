@@ -1069,6 +1069,15 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
         shiftId={shift.id}
         readOnly={shift.status !== "open"}
       />
+      {payoutDialog && (
+        <SlotsTipsCdPayoutDialog
+          open={!!payoutDialog}
+          onOpenChange={(v) => !v && setPayoutDialog(null)}
+          shiftId={shift.id}
+          bucket={payoutDialog}
+          collectedAmount={collectedByBucket[payoutDialog]}
+        />
+      )}
 
       {/* Print Reports prompt — shown after manager approves & closes the shift */}
       {showPrintPrompt && (
