@@ -144,12 +144,17 @@ const DenomTable = ({ title, data, total, signed }: {
   };
   return (
     <div>
-      <p className="font-semibold text-center border border-black bg-gray-100 py-0.5 text-[11px]">{title}</p>
-      <table className="w-full border-collapse text-[10px]">
+      <p className="font-semibold text-center border border-black bg-gray-100 py-0.5 text-[12px]">{title}</p>
+      <table className="w-full border-collapse text-[12px]" style={{ tableLayout: "fixed" }}>
+        <colgroup>
+          <col style={{ width: "40%" }} />
+          <col style={{ width: "25%" }} />
+          <col style={{ width: "35%" }} />
+        </colgroup>
         <thead>
           <tr className="bg-gray-50">
             <th className="border border-black px-1 py-0.5 text-left font-semibold">Den</th>
-            <th className="border border-black px-1 py-0.5 text-right font-semibold">Qunnt</th>
+            <th className="border border-black px-1 py-0.5 text-right font-semibold">Qty</th>
             <th className="border border-black px-1 py-0.5 text-right font-semibold">Value</th>
           </tr>
         </thead>
@@ -162,7 +167,7 @@ const DenomTable = ({ title, data, total, signed }: {
               <tr key={d}>
                 <td className="border border-black px-1 py-0.5 tabular-nums">
                   <span
-                    className="inline-block rounded-full border border-black px-1.5 py-0 text-[9px] font-bold tabular-nums leading-tight"
+                    className="inline-block rounded-full border border-black px-1.5 py-0 text-[10px] font-bold tabular-nums leading-tight"
                     style={{ background: c.bg, color: c.text, borderColor: c.edge, WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" } as any}
                   >
                     {formatNumberSpaces(d)}
