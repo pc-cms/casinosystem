@@ -1,13 +1,13 @@
 import { useState, useMemo, lazy, Suspense } from "react";
-import { usePlayers, useTransactions, useGamingTables, useExpenses, usePlayerEconomy, useTableTracker, usePlayerGroups } from "@/hooks/use-casino-data";
+import { usePlayers, useTransactions, useExpenses, usePlayerGroups } from "@/hooks/use-casino-data";
 import { useAuth } from "@/lib/auth-context";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatCurrency } from "@/lib/currency";
-import { Badge } from "@/components/ui/badge";
-import { BarChart3, Table2, Users, Receipt, Grid3X3, Landmark, UsersRound, FileBarChart, ArrowUp, ArrowDown, ArrowUpDown, Coins, CalendarDays, FileText } from "lucide-react";
+import { BarChart3, Table2, Users, Receipt, Landmark, UsersRound, FileBarChart, ArrowUp, ArrowDown, ArrowUpDown, Coins, CalendarDays, Joystick } from "lucide-react";
 import MissChips from "@/pages/MissChips";
+import Expenses from "@/pages/Expenses";
+import SlotsHistoryReport from "@/components/reports/SlotsHistoryReport";
 import { businessDayHourUTC } from "@/lib/business-day";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { fmtDate } from "@/lib/format-date";
@@ -109,27 +109,25 @@ const Reports = () => {
         <TabsList className="flex-wrap">
           <TabsTrigger value="daily" className="gap-1 text-xs"><CalendarDays className="w-3.5 h-3.5" /> Daily</TabsTrigger>
           <TabsTrigger value="shifts" className="gap-1 text-xs"><Landmark className="w-3.5 h-3.5" /> Shifts</TabsTrigger>
+          <TabsTrigger value="slots" className="gap-1 text-xs"><Joystick className="w-3.5 h-3.5" /> Slots</TabsTrigger>
           <TabsTrigger value="tables" className="gap-1 text-xs"><Table2 className="w-3.5 h-3.5" /> Tables</TabsTrigger>
-          <TabsTrigger value="table-results" className="gap-1 text-xs"><FileText className="w-3.5 h-3.5" /> Table Results</TabsTrigger>
           <TabsTrigger value="players" className="gap-1 text-xs"><Users className="w-3.5 h-3.5" /> Players</TabsTrigger>
           <TabsTrigger value="groups" className="gap-1 text-xs"><UsersRound className="w-3.5 h-3.5" /> Groups</TabsTrigger>
           <TabsTrigger value="expenses" className="gap-1 text-xs"><Receipt className="w-3.5 h-3.5" /> Expenses</TabsTrigger>
-          <TabsTrigger value="tracker" className="gap-1 text-xs"><Grid3X3 className="w-3.5 h-3.5" /> Tracker</TabsTrigger>
           <TabsTrigger value="miss-chips" className="gap-1 text-xs"><Coins className="w-3.5 h-3.5" /> Miss Chips</TabsTrigger>
         </TabsList>
 
         <TabsContent value="daily"><DailyReport from={from} to={to} /></TabsContent>
         <TabsContent value="shifts"><ShiftReport from={from} to={to} /></TabsContent>
-        <TabsContent value="tables"><TableReport from={from} to={to} /></TabsContent>
-        <TabsContent value="table-results">
+        <TabsContent value="slots"><SlotsHistoryReport from={from} to={to} /></TabsContent>
+        <TabsContent value="tables">
           <Suspense fallback={<div className="py-8 text-center text-sm text-muted-foreground">Loading…</div>}>
             <TableResultsPage />
           </Suspense>
         </TabsContent>
         <TabsContent value="players"><PlayerReport from={from} to={to} /></TabsContent>
         <TabsContent value="groups"><GroupReport from={from} to={to} /></TabsContent>
-        <TabsContent value="expenses"><ExpenseReport from={from} to={to} /></TabsContent>
-        <TabsContent value="tracker"><TrackerReport from={from} to={to} /></TabsContent>
+        <TabsContent value="expenses"><Expenses embedded /></TabsContent>
         <TabsContent value="miss-chips"><MissChips /></TabsContent>
       </Tabs>
     </div>
@@ -259,73 +257,6 @@ const ShiftReport = ({ from, to }: { from: string; to: string }) => {
           </tbody>
         </table>
       </div>
-    </div>
-  );
-};
-
-// =================== TABLE REPORT ===================
-const TableReport = ({ from, to }: { from: string; to: string }) => {
-  const { data: tables = [] } = useGamingTables();
-  const { data: transactions = [] } = useTransactions();
-
-  const tableData = useMemo(() => {
-    const filtered = transactions.filter(t => {
-      const d = t.created_at.split("T")[0];
-      return d >= from && d <= to;
-    });
-    return tables.map(table => {
-      const tTx = filtered.filter(t => t.table_id === table.id);
-      const drop = tTx.filter(t => (t.type === "buy" || t.type === "in")).reduce((s, t) => s + Number(t.amount), 0);
-      const cashout = tTx.filter(t => (t.type === "cashout" || t.type === "out")).reduce((s, t) => s + Number(t.amount), 0);
-      return { ...table, float_amount_num: Number(table.float_amount), drop, cashout, result: cashout - drop, txCount: tTx.length };
-    }).filter(t => t.txCount > 0);
-  }, [tables, transactions, from, to]);
-
-  const { sorted, sort, toggle } = useSorted(tableData, { key: "drop", dir: "desc" });
-
-  return (
-    <div className="cms-panel overflow-x-auto">
-      <table className="w-full">
-        <thead>
-          <tr className="border-b border-border">
-            <SortTh label="Table" k="name" sort={sort} toggle={toggle} />
-            <SortTh label="Game" k="game" sort={sort} toggle={toggle} />
-            <SortTh label="Float" k="float_amount_num" sort={sort} toggle={toggle} align="right" />
-            <SortTh label="Drop" k="drop" sort={sort} toggle={toggle} align="right" />
-            <SortTh label="Cashout" k="cashout" sort={sort} toggle={toggle} align="right" />
-            <SortTh label="Result" k="result" sort={sort} toggle={toggle} align="right" />
-            <SortTh label="Txns" k="txCount" sort={sort} toggle={toggle} align="right" />
-          </tr>
-        </thead>
-        <tbody>
-          {sorted.length === 0 ? (
-            <tr><td colSpan={7} className="text-center text-muted-foreground text-sm py-6">No table data</td></tr>
-          ) : sorted.map(t => (
-            <tr key={t.id} className="border-b border-border last:border-0 hover:bg-muted/30">
-              <td className="px-3 py-2 text-sm font-medium text-card-foreground">{t.name}</td>
-              <td className="px-3 py-2 text-xs text-muted-foreground">{t.game}</td>
-              <td className="px-3 py-2 text-right font-mono text-xs text-card-foreground">{formatCurrency(t.float_amount_num)}</td>
-              <td className="px-3 py-2 text-right font-mono text-xs text-card-foreground">{formatCurrency(t.drop)}</td>
-              <td className="px-3 py-2 text-right font-mono text-xs text-card-foreground">{formatCurrency(t.cashout)}</td>
-              <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${t.result >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
-                {t.result >= 0 ? "+" : ""}{formatCurrency(t.result)}
-              </td>
-              <td className="px-3 py-2 text-right font-mono text-xs text-muted-foreground">{t.txCount}</td>
-            </tr>
-          ))}
-          {sorted.length > 0 && (
-            <tr className="border-t-2 border-primary/30 bg-muted/30">
-              <td colSpan={3} className="px-3 py-2 text-xs font-bold text-card-foreground uppercase">Totals</td>
-              <td className="px-3 py-2 text-right font-mono text-xs font-bold text-card-foreground">{formatCurrency(sorted.reduce((s, t) => s + t.drop, 0))}</td>
-              <td className="px-3 py-2 text-right font-mono text-xs font-bold text-card-foreground">{formatCurrency(sorted.reduce((s, t) => s + t.cashout, 0))}</td>
-              <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${sorted.reduce((s, t) => s + t.result, 0) >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
-                {formatCurrency(sorted.reduce((s, t) => s + t.result, 0))}
-              </td>
-              <td className="px-3 py-2 text-right font-mono text-xs font-bold text-muted-foreground">{sorted.reduce((s, t) => s + t.txCount, 0)}</td>
-            </tr>
-          )}
-        </tbody>
-      </table>
     </div>
   );
 };
@@ -490,185 +421,6 @@ const GroupReport = ({ from, to }: { from: string; to: string }) => {
           ))}
         </tbody>
       </table>
-    </div>
-  );
-};
-
-// =================== EXPENSE REPORT ===================
-const ExpenseReport = ({ from, to }: { from: string; to: string }) => {
-  const { data: expenses = [] } = useExpenses();
-
-  const data = useMemo(() => {
-    const filtered = expenses.filter((e: any) => {
-      const d = e.created_at.split("T")[0];
-      return d >= from && d <= to;
-    });
-
-    const byCategory: Record<string, { total: number; count: number }> = {};
-    const byPlayer: Record<string, { name: string; total: number; count: number }> = {};
-
-    filtered.forEach((e: any) => {
-      if (!byCategory[e.category]) byCategory[e.category] = { total: 0, count: 0 };
-      byCategory[e.category].total += Number(e.amount);
-      byCategory[e.category].count += 1;
-
-      if (e.player_id && e.players) {
-        if (!byPlayer[e.player_id]) byPlayer[e.player_id] = { name: `${e.players.first_name} ${e.players.last_name}`, total: 0, count: 0 };
-        byPlayer[e.player_id].total += Number(e.amount);
-        byPlayer[e.player_id].count += 1;
-      }
-    });
-
-    const total = filtered.reduce((s: number, e: any) => s + Number(e.amount), 0);
-    const approved = filtered.filter((e: any) => e.approved).reduce((s: number, e: any) => s + Number(e.amount), 0);
-    const pending = total - approved;
-
-    const catList = Object.entries(byCategory).map(([category, v]) => ({ category, total: v.total, count: v.count }));
-    const playerList = Object.entries(byPlayer).map(([id, v]) => ({ id, name: v.name, total: v.total, count: v.count }));
-
-    return { total, approved, pending, count: filtered.length, catList, playerList };
-  }, [expenses, from, to]);
-
-  const catSort = useSorted(data.catList, { key: "total", dir: "desc" });
-  const playerSort = useSorted(data.playerList, { key: "total", dir: "desc" });
-
-  return (
-    <div className="space-y-3">
-      <div className="grid grid-cols-3 gap-2">
-        <div className="cms-panel p-2"><p className="uppercase text-muted-foreground tracking-wider text-lg">Total</p><p className="font-mono text-sm font-bold text-card-foreground">{formatCurrency(data.total)}</p></div>
-        <div className="cms-panel p-2"><p className="uppercase text-muted-foreground tracking-wider text-lg">Approved</p><p className="font-mono font-bold text-success text-3xl">{formatCurrency(data.approved)}</p></div>
-        <div className="cms-panel p-2"><p className="uppercase text-muted-foreground tracking-wider text-lg">Pending</p><p className="font-mono text-sm font-bold text-warning">{formatCurrency(data.pending)}</p></div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {/* By Category */}
-        <div className="cms-panel overflow-x-auto">
-          <div className="cms-header text-xs">By Category</div>
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-border">
-                <SortTh label="Category" k="category" sort={catSort.sort} toggle={catSort.toggle} />
-                <SortTh label="Count" k="count" sort={catSort.sort} toggle={catSort.toggle} align="right" />
-                <SortTh label="Total" k="total" sort={catSort.sort} toggle={catSort.toggle} align="right" />
-              </tr>
-            </thead>
-            <tbody>
-              {catSort.sorted.length === 0 ? (
-                <tr><td colSpan={3} className="text-center text-muted-foreground text-xs py-4">No expenses</td></tr>
-              ) : catSort.sorted.map(c => (
-                <tr key={c.category} className="border-b border-border last:border-0 hover:bg-muted/30">
-                  <td className="px-3 py-2">
-                    <Badge variant="outline" className="text-[10px] font-mono capitalize">{c.category}</Badge>
-                  </td>
-                  <td className="px-3 py-2 text-right font-mono text-xs text-muted-foreground">×{c.count}</td>
-                  <td className="px-3 py-2 text-right font-mono text-xs font-medium text-card-foreground">{formatCurrency(c.total)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* By Player */}
-        <div className="cms-panel overflow-x-auto">
-          <div className="cms-header text-xs">By Player</div>
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-border">
-                <SortTh label="Player" k="name" sort={playerSort.sort} toggle={playerSort.toggle} />
-                <SortTh label="Count" k="count" sort={playerSort.sort} toggle={playerSort.toggle} align="right" />
-                <SortTh label="Total" k="total" sort={playerSort.sort} toggle={playerSort.toggle} align="right" />
-              </tr>
-            </thead>
-            <tbody>
-              {playerSort.sorted.length === 0 ? (
-                <tr><td colSpan={3} className="text-center text-muted-foreground text-xs py-4">No player-linked expenses</td></tr>
-              ) : playerSort.sorted.map(p => (
-                <tr key={p.id} className="border-b border-border last:border-0 hover:bg-muted/30">
-                  <td className="px-3 py-2 text-xs text-card-foreground">{p.name}</td>
-                  <td className="px-3 py-2 text-right font-mono text-xs text-muted-foreground">×{p.count}</td>
-                  <td className="px-3 py-2 text-right font-mono text-xs font-medium text-card-foreground">{formatCurrency(p.total)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// =================== TRACKER REPORT ===================
-const TrackerReport = ({ from, to }: { from: string; to: string }) => {
-  const { casinoId } = useAuth();
-  const { data: tables = [] } = useGamingTables();
-
-  const { data: trackerData = [] } = useQuery({
-    queryKey: ["tracker-report", casinoId, from, to],
-    queryFn: async () => {
-      if (!casinoId) return [];
-      const { data, error } = await supabase.from("table_tracker").select("*").eq("casino_id", casinoId).gte("date", from).lte("date", to);
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!casinoId,
-  });
-
-  const openTables = useMemo(() => tables.filter(t => t.status === "open"), [tables]);
-
-  const byDate = useMemo(() => {
-    const map: Record<string, { date: string; total: number; byTable: Record<string, number> }> = {};
-    trackerData.forEach(t => {
-      if (!map[t.date]) map[t.date] = { date: t.date, total: 0, byTable: {} };
-      map[t.date].total += Number(t.value);
-      map[t.date].byTable[t.table_id] = (map[t.date].byTable[t.table_id] || 0) + Number(t.value);
-    });
-    // Build flat objects for sorting that include each table column as a sortable key
-    return Object.values(map).map(row => {
-      const out: any = { date: row.date, total: row.total, byTable: row.byTable };
-      for (const t of openTables) out[`t_${t.id}`] = row.byTable[t.id] || 0;
-      return out;
-    });
-  }, [trackerData, openTables]);
-
-  const { sorted, sort, toggle } = useSorted(byDate, { key: "date", dir: "asc" });
-
-  const grandTotal = trackerData.reduce((s, t) => s + Number(t.value), 0);
-
-  return (
-    <div className="space-y-3">
-      <div className="cms-panel p-2 flex items-center justify-between">
-        <span className="text-xs text-muted-foreground">{sorted.length} days tracked</span>
-        <span className="font-mono text-sm font-bold text-primary">{formatCurrency(grandTotal)}</span>
-      </div>
-
-      <div className="cms-panel overflow-x-auto">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-border">
-              <SortTh label="Date" k="date" sort={sort} toggle={toggle} />
-              {openTables.map(t => (
-                <SortTh key={t.id} label={t.name} k={`t_${t.id}`} sort={sort} toggle={toggle} align="right" />
-              ))}
-              <SortTh label="Total" k="total" sort={sort} toggle={toggle} align="right" />
-            </tr>
-          </thead>
-          <tbody>
-            {sorted.length === 0 ? (
-              <tr><td colSpan={openTables.length + 2} className="text-center text-muted-foreground text-sm py-6">No tracker data</td></tr>
-            ) : sorted.map(d => (
-              <tr key={d.date} className="border-b border-border last:border-0 hover:bg-muted/30">
-                <td className="px-3 py-2 text-xs font-mono text-card-foreground">{d.date}</td>
-                {openTables.map(t => (
-                  <td key={t.id} className="px-3 py-2 text-right font-mono text-xs text-card-foreground">
-                    {d.byTable[t.id] ? formatCurrency(d.byTable[t.id]) : "—"}
-                  </td>
-                ))}
-                <td className="px-3 py-2 text-right font-mono text-xs font-bold text-card-foreground">{formatCurrency(d.total)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
     </div>
   );
 };
