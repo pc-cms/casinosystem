@@ -504,16 +504,23 @@ const ShiftClosingReport = ({
 
 
       {/* ============ SUMMARY PANEL (full width 4-col table) ============ */}
-      <table className="w-full border-collapse mb-1">
+      <table className="w-full border-collapse mb-1" style={{ tableLayout: "fixed" }}>
+        <colgroup>
+          <col style={{ width: "25%" }} />
+          <col style={{ width: "25%" }} />
+          <col style={{ width: "25%" }} />
+          <col style={{ width: "25%" }} />
+        </colgroup>
         <tbody>
           <tr>
-            <td className="border border-black bg-gray-200 px-1.5 py-0.5 font-semibold w-1/4">Tables Result</td>
+            <td className="border border-black bg-gray-200 px-1.5 py-0.5 font-semibold">Tables Result</td>
             <td className="border border-black px-1.5 py-0.5 text-right font-bold">
               {totals.result >= 0 ? numAlways(totals.result) : `-${numAlways(Math.abs(totals.result))}`}
             </td>
-            <td className="border border-black bg-gray-200 px-1.5 py-0.5 font-semibold w-1/4">Casino Expenses</td>
+            <td className="border border-black bg-gray-200 px-1.5 py-0.5 font-semibold">Casino Expenses</td>
             <td className="border border-black px-1.5 py-0.5 text-right">{num(totalExpenses)}</td>
           </tr>
+
           <tr>
             <td className="border border-black px-1.5 py-0.5">Cash Flow FILL</td>
             <td className="border border-black px-1.5 py-0.5 text-right">{num(cashFlowTransfers.addFloat)}</td>
