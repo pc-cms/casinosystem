@@ -147,7 +147,7 @@ export default ClosingsPage;
 // ============================================================
 // TOTAL TAB — per-business-day rollup with manual Drop Slots editing
 // ============================================================
-type TotalSortKey = "date" | "dropTables" | "tablesResult" | "dropSlots" | "systemShiftResult" | "slotsResult" | "expenses" | "totalResults";
+type TotalSortKey = "date" | "dropTables" | "tablesResult" | "dropSlots" | "slotsResult" | "expenses" | "totalResults";
 
 const TotalTab = ({ monthAnchor }: { monthAnchor: Date }) => {
   const { casinoId, roles } = useAuth();
@@ -182,7 +182,7 @@ const TotalTab = ({ monthAnchor }: { monthAnchor: Date }) => {
         // Closed slots shifts only
         supabase
           .from("cage_slots_shifts")
-          .select("id, business_date, status, system_shift_result, ace_fills, slots_result, manual_drop_slots")
+          .select("id, business_date, status, ace_fills, slots_result, manual_drop_slots")
           .eq("casino_id", casinoId)
           .eq("status", "closed")
           .gte("business_date", monthStartStr)
@@ -200,7 +200,7 @@ const TotalTab = ({ monthAnchor }: { monthAnchor: Date }) => {
           .from("transactions")
           .select("amount, created_at, type")
           .eq("casino_id", casinoId)
-          .eq("type", "buy")
+          .eq("type", "in")
           .is("cancelled_at", null)
           .gte("created_at", fromIso)
           .lt("created_at", toIso)
@@ -225,7 +225,6 @@ const TotalTab = ({ monthAnchor }: { monthAnchor: Date }) => {
         dropTables: 0,
         tablesResult: 0,
         dropSlots: 0,
-        systemShiftResult: 0,
         slotsResult: 0,
         expenses: 0,
         slotsShiftIds: [] as string[],
@@ -239,7 +238,6 @@ const TotalTab = ({ monthAnchor }: { monthAnchor: Date }) => {
       });
       (slotsRes.data || []).forEach((s: any) => {
         const r = row(s.business_date);
-        r.systemShiftResult += Number(s.system_shift_result || 0);
         r.slotsResult += Number(s.slots_result || 0);
         r.dropSlots += Number(s.manual_drop_slots || 0);
         r.slotsShiftIds.push(s.id);
@@ -303,15 +301,14 @@ const TotalTab = ({ monthAnchor }: { monthAnchor: Date }) => {
               <SortTh label="Drop Tables" sortKey="dropTables" sort={sort} align="right" />
               <SortTh label="Tables Result" sortKey="tablesResult" sort={sort} align="right" />
               <SortTh label="Drop Slots" sortKey="dropSlots" sort={sort} align="right" />
-              <SortTh label="System Shift Result" sortKey="systemShiftResult" sort={sort} align="right" />
               <SortTh label="Slots Result" sortKey="slotsResult" sort={sort} align="right" />
               <SortTh label="Expenses" sortKey="expenses" sort={sort} align="right" />
               <SortTh label="Total Results" sortKey="totalResults" sort={sort} align="right" />
             </tr>
           </thead>
           <tbody>
-            {isLoading ? <tr><td colSpan={8} className="text-center py-6 text-muted-foreground">Loading…</td></tr> :
-             sorted.length === 0 ? <tr><td colSpan={8} className="text-center py-6 text-muted-foreground">No closed shifts</td></tr> :
+            {isLoading ? <tr><td colSpan={7} className="text-center py-6 text-muted-foreground">Loading…</td></tr> :
+             sorted.length === 0 ? <tr><td colSpan={7} className="text-center py-6 text-muted-foreground">No closed shifts</td></tr> :
              sorted.map((r: any) => {
               const totalResults = (r.tablesResult || 0) + (r.slotsResult || 0);
               const cls = (n: number) => n < 0 ? "cms-amount-negative" : n > 0 ? "cms-amount-positive" : "text-muted-foreground";
@@ -328,7 +325,6 @@ const TotalTab = ({ monthAnchor }: { monthAnchor: Date }) => {
                       onSave={(v) => updateDropSlots.mutate({ shiftIds: slotsShiftIds, value: v })}
                     />
                   </td>
-                  <td className={`px-3 py-2 text-right font-mono ${cls(r.systemShiftResult || 0)}`}>{formatNumberSpaces(r.systemShiftResult || 0)}</td>
                   <td className={`px-3 py-2 text-right font-mono font-semibold ${cls(r.slotsResult || 0)}`}>{formatNumberSpaces(r.slotsResult || 0)}</td>
                   <td className="px-3 py-2 text-right font-mono text-muted-foreground">{formatNumberSpaces(r.expenses || 0)}</td>
                   <td className={`px-3 py-2 text-right font-mono font-bold ${cls(totalResults)}`}>{formatNumberSpaces(totalResults)}</td>
