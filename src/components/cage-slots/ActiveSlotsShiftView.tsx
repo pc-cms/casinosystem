@@ -191,10 +191,29 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
     [slotsExpenses],
   );
 
-  // Tips CD recorded during this shift — physically removed from cage; added back in balance.
+  // Tips CD collected during this shift — reporting log only (not in balance).
   const tipsCdTotal = useMemo(() =>
     (tipsCdRows as any[]).reduce((s, t) => s + Number(t.amount || 0), 0),
     [tipsCdRows],
+  );
+  // Per-bucket collected (derived from created_at via tipsBucketOf).
+  const collectedByBucket = useMemo(() => {
+    const out = { day: 0, evening: 0 };
+    (tipsCdRows as any[]).forEach((t) => {
+      const b = tipsBucketOf(t.created_at);
+      out[b] += Number(t.amount || 0);
+    });
+    return out;
+  }, [tipsCdRows]);
+  // Payout state per bucket.
+  const payoutByBucket = useMemo(() => {
+    const out: { day: any; evening: any } = { day: null, evening: null };
+    (tipsCdPayouts as any[]).forEach((p) => { out[p.bucket as "day" | "evening"] = p; });
+    return out;
+  }, [tipsCdPayouts]);
+  const tipsCdPayoutTotal = useMemo(() =>
+    (tipsCdPayouts as any[]).reduce((s, p) => s + Number(p.amount || 0), 0),
+    [tipsCdPayouts],
   );
 
   // Slots balance is shown as explicit manual formula parts in the UI.
