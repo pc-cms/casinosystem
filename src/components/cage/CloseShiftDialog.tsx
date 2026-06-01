@@ -215,6 +215,7 @@ const CloseShiftDialog = ({
 
   const { data: serverBusinessDate } = useEffectiveBusinessDate();
   const businessDate = serverBusinessDate || getBusinessDate();
+  const { data: cashlessSug } = useCashlessSuggestions(businessDate, "live_game");
 
   const handleManagerConfirmed = (managerId: string) => {
     setShowManagerConfirm(false);
