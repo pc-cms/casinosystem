@@ -51,6 +51,7 @@ export const computeShiftBalance = (i: CageBalanceInputs): CageBalanceResult => 
  *   Expected         = System Result
  *
  *   Shift Balance    = Cash Desk Result − System Result − Cards Miss
+ *   (Tips CD are physically removed from cage and accounted separately — NOT in balance.)
  *
  *   Cashless Balance = Cashless IN − Cashless OUT   (derived, display only)
  *   Cashless Final   = manual entry, PRINT ONLY — never used in any formula.
@@ -97,9 +98,9 @@ export const computeSlotsShiftBalance = (i: SlotsBalanceInputs): SlotsBalanceRes
   const slotsResult = i.systemResult;
   const expected = i.systemResult;
   const tipsCd = i.tipsCd || 0;
-  // Shift Balance = CDR − SystemResult − Cards Miss + Tips CD
-  // (Tips CD physically removed from cage during shift → added back so balance reflects reality.)
-  const shiftBalance = cashDeskResult - i.systemResult - cardsMiss + tipsCd;
+  // Shift Balance = CDR − SystemResult − Cards Miss
+  // Tips CD are physically removed from cage and accounted separately — NOT included in balance.
+  const shiftBalance = cashDeskResult - i.systemResult - cardsMiss;
   return {
     deltaCash,
     cashDeskResult,

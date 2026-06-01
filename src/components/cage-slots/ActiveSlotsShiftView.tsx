@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Coins, Send, RotateCcw, Printer, FileText, CreditCard, Save, ArrowLeftRight, History, Pencil, Gift } from "lucide-react";
 import SlotsTipsCdDialog from "./SlotsTipsCdDialog";
+import PrintSlotsShiftDialog from "./PrintSlotsShiftDialog";
 import EditOpeningCardsDialog from "./EditOpeningCardsDialog";
 import SlotsTransfersForm from "./SlotsTransfersForm";
 import { useSlotsTransfers } from "@/hooks/use-cage-slots-transfers";
@@ -376,16 +377,25 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
   const [showApprove, setShowApprove] = useState(false);
   const [managerComment, setManagerComment] = useState("");
   const [viewerCheck, setViewerCheck] = useState<Tables<"cash_counts"> | null>(null);
+  const [showPrintPrompt, setShowPrintPrompt] = useState(false);
+  const [showPrintDialog, setShowPrintDialog] = useState(false);
   const needsComment = Math.abs(shiftBalance) > 0;
 
   const doApprove = (managerId: string) => {
-    approve.mutate({
-      shift_id: shift.id,
-      manager_id: managerId,
-      manager_comment: managerComment || (needsComment ? "" : "Approved with zero balance"),
-    });
-    setShowApprove(false);
-    setManagerComment("");
+    approve.mutate(
+      {
+        shift_id: shift.id,
+        manager_id: managerId,
+        manager_comment: managerComment || (needsComment ? "" : "Approved with zero balance"),
+      },
+      {
+        onSuccess: () => {
+          setShowApprove(false);
+          setManagerComment("");
+          setShowPrintPrompt(true);
+        },
+      },
+    );
   };
 
   // Cashless entry
@@ -968,6 +978,41 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
         shiftId={shift.id}
         readOnly={shift.status !== "open"}
       />
+
+      {/* Print Reports prompt — shown after manager approves & closes the shift */}
+      {showPrintPrompt && (
+        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowPrintPrompt(false)}>
+          <div className="bg-card border border-border rounded-md shadow-lg p-5 max-w-sm w-full space-y-4" onClick={e => e.stopPropagation()}>
+            <div>
+              <h3 className="font-semibold text-base">Print Reports?</h3>
+              <p className="text-xs text-muted-foreground mt-1">
+                Shift closed successfully. Do you want to print the shift report now?
+              </p>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" size="sm" onClick={() => setShowPrintPrompt(false)}>No</Button>
+              <Button
+                size="sm"
+                className="gap-1.5"
+                onClick={() => {
+                  setShowPrintPrompt(false);
+                  setShowPrintDialog(true);
+                }}
+              >
+                <Printer className="w-3.5 h-3.5" /> Yes, Print
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showPrintDialog && (
+        <PrintSlotsShiftDialog
+          open
+          shiftId={shift.id}
+          onClose={() => setShowPrintDialog(false)}
+        />
+      )}
     </PageShell>
   );
 };
