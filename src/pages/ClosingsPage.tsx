@@ -490,7 +490,7 @@ const LiveTab = ({ monthAnchor }: { monthAnchor: Date }) => {
 // ============================================================
 // SLOTS TAB — closed shifts only, no shift_type column, sortable
 // ============================================================
-type SlotsSortKey = "date" | "slotsResult" | "cdr" | "balance";
+type SlotsSortKey = "date" | "systemShiftResult" | "slotsResult" | "cdr" | "balance";
 
 const SlotsTab = ({ monthAnchor }: { monthAnchor: Date }) => {
   const { data: shiftsRaw = [], isLoading } = useCageSlotsHistory(500);
@@ -512,6 +512,7 @@ const SlotsTab = ({ monthAnchor }: { monthAnchor: Date }) => {
     const arr = [...shifts] as any[];
     const keyMap: Record<SlotsSortKey, (s: any) => any> = {
       date: s => s.business_date,
+      systemShiftResult: s => Number(s.system_shift_result || 0),
       slotsResult: s => Number(s.slots_result || 0),
       cdr: s => Number(s.cash_desk_result || 0),
       balance: s => Number(s.balance || 0),
@@ -529,6 +530,7 @@ const SlotsTab = ({ monthAnchor }: { monthAnchor: Date }) => {
           <thead className="bg-card">
             <tr className="border-b border-border">
               <SortTh label="Business Day" sortKey="date" sort={sort} />
+              <SortTh label="System Shift Result" sortKey="systemShiftResult" sort={sort} align="right" />
               <SortTh label="Slots Result" sortKey="slotsResult" sort={sort} align="right" />
               <SortTh label="Cash Desk" sortKey="cdr" sort={sort} align="right" />
               <SortTh label="Balance" sortKey="balance" sort={sort} align="right" />
@@ -536,9 +538,10 @@ const SlotsTab = ({ monthAnchor }: { monthAnchor: Date }) => {
             </tr>
           </thead>
           <tbody>
-            {isLoading ? <tr><td colSpan={5} className="text-center py-6 text-muted-foreground">Loading…</td></tr> :
-             sorted.length === 0 ? <tr><td colSpan={5} className="text-center py-6 text-muted-foreground">No closings</td></tr> :
+            {isLoading ? <tr><td colSpan={6} className="text-center py-6 text-muted-foreground">Loading…</td></tr> :
+             sorted.length === 0 ? <tr><td colSpan={6} className="text-center py-6 text-muted-foreground">No closings</td></tr> :
              sorted.map((s: any) => {
+              const sysRes = Number(s.system_shift_result || 0);
               const slotsRes = Number(s.slots_result || 0);
               const cdr = Number(s.cash_desk_result || 0);
               const balance = Number(s.balance || 0);
@@ -546,6 +549,7 @@ const SlotsTab = ({ monthAnchor }: { monthAnchor: Date }) => {
               return (
                 <tr key={s.id} className="border-b border-border hover:bg-muted/30">
                   <td className="px-3 py-2 font-mono">{fmtDate(s.business_date)}</td>
+                  <td className={`px-3 py-2 text-right font-mono ${cls(sysRes)}`}>{formatNumberSpaces(sysRes)}</td>
                   <td className={`px-3 py-2 text-right font-mono ${cls(slotsRes)}`}>{formatNumberSpaces(slotsRes)}</td>
                   <td className={`px-3 py-2 text-right font-mono ${cls(cdr)}`}>{formatNumberSpaces(cdr)}</td>
                   <td className={`px-3 py-2 text-right font-mono ${cls(balance)}`}>{formatNumberSpaces(balance)}</td>
