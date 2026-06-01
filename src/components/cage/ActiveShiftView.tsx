@@ -599,6 +599,7 @@ const CashCheckForm = ({ expectedBalance, shiftId, exchangeRates, cashChecks, bu
   businessDate: string;
 }) => {
   const { hasRole } = useAuth();
+  const { data: cashlessSug } = useCashlessSuggestions(businessDate, "live_game");
   const canBrowseHistory = hasRole("manager") || hasRole("pit") || hasRole("surveillance") || hasRole("finance_manager") || hasRole("super_admin");
 
   const createCount = useCreateCashCount();
