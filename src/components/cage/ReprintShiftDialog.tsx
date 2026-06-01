@@ -43,8 +43,7 @@ const ensureLiveGamePortraitPrintStyle = () => {
   styleEl.setAttribute("data-live-game-print", "1");
   styleEl.textContent = `
     @media print {
-      @page portrait  { size: A4 portrait;  margin: 8mm; }
-      @page landscape { size: A4 landscape; margin: 8mm; }
+      @page portrait { size: A4 portrait; margin: 8mm; }
     }
   `;
   if (!existing) document.head.appendChild(styleEl);
@@ -75,8 +74,7 @@ const printLiveGameReport = () => {
   doc.open();
   doc.write(`<!doctype html><html><head>${styles}<style>
     @media print {
-      @page portrait  { size: A4 portrait;  margin: 8mm; }
-      @page landscape { size: A4 landscape; margin: 8mm; }
+      @page portrait { size: A4 portrait; margin: 8mm; }
       html, body { margin: 0 !important; background: white !important; }
       body, body * { visibility: visible !important; }
       .live-game-print-area { display: block !important; }
@@ -84,13 +82,15 @@ const printLiveGameReport = () => {
         page: portrait !important;
         width: 194mm !important;
         min-height: 281mm !important;
+        padding: 0 !important;
         page-break-after: always !important;
         break-after: page !important;
       }
       #chip-print-area {
-        page: landscape !important;
-        width: 281mm !important;
-        min-height: 194mm !important;
+        page: portrait !important;
+        width: 194mm !important;
+        min-height: 281mm !important;
+        padding: 0 !important;
         page-break-before: always !important;
         break-before: page !important;
         page-break-after: auto !important;
