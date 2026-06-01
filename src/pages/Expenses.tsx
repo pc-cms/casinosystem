@@ -86,7 +86,16 @@ const newDraft = (defaultSource: SourceVal): DraftRow => ({
   description: "",
 });
 
-const Expenses = () => {
+type SortKey = "date" | "source" | "category" | "target" | "amount" | "status";
+type SortDir = "asc" | "desc";
+
+interface ExpensesProps {
+  /** When true, render without page header, without "New entries" form,
+   *  and hide row Approve/Cancel actions (used inside Reports tab). */
+  embedded?: boolean;
+}
+
+const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
   const { isManager, roles } = useAuth();
   const isCashierLive = roles.includes("cashier") && !roles.includes("cashier_slots");
   const isCashierSlots = roles.includes("cashier_slots") && !roles.includes("cashier");
