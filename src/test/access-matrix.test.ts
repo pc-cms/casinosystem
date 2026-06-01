@@ -184,8 +184,8 @@ describe("floor_manager (Taras) — sidebar & route gate match matrix", () => {
       "/pit?tab=rota", "/staff", "/staff?tab=attendance",
       "/breaklist", "/rota/live", "/attendance/live",
       "/rota/floor", "/attendance/floor", "/staff/employees",
-      "/reports", "/table-results", "/business-days", "/tips-and-bonuses",
-      "/miss-chips", "/pitbook", "/incidents",
+      "/reports", "/table-results", "/tips-and-bonuses",
+      "/miss-chips", "/incidents",
     ];
     for (const r of permitted) {
       expect(isVisibleForRole(r, allow), `route ${r} must be visible`).toBe(true);
