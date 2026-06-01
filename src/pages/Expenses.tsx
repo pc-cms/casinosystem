@@ -121,6 +121,10 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
   );
   const [search, setSearch] = useState<string>("");
   const [showBarDetails, setShowBarDetails] = useState<boolean>(false);
+  const [sort, setSort] = useState<{ key: SortKey; dir: SortDir }>({ key: "date", dir: "desc" });
+  const toggleSort = (k: SortKey) =>
+    setSort(s => (s.key === k ? { key: k, dir: s.dir === "asc" ? "desc" : "asc" } : { key: k, dir: "desc" }));
+  const sortArrow = (k: SortKey) => sort.key === k ? (sort.dir === "asc" ? " ↑" : " ↓") : "";
 
   const isSingleDay = from === to;
   const { data: liveShift } = useActiveShift();
