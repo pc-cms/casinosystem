@@ -63,12 +63,18 @@ const PrintSlotsShiftDialog = ({ open, onClose, shiftId }: Props) => {
     ensureSlotsPortraitPrintStyle();
     const iframe = document.createElement("iframe");
     iframe.setAttribute("aria-hidden", "true");
+    // Give the iframe a real A4-portrait viewport. Chromium can paint a
+    // BLANK page when the iframe is 0×0 because layout collapses before
+    // print() rasterizes the document.
     iframe.style.position = "fixed";
     iframe.style.right = "0";
     iframe.style.bottom = "0";
-    iframe.style.width = "0";
-    iframe.style.height = "0";
+    iframe.style.width = "794px";   // ≈ 210mm @ 96dpi
+    iframe.style.height = "1123px"; // ≈ 297mm @ 96dpi
     iframe.style.border = "0";
+    iframe.style.opacity = "0";
+    iframe.style.pointerEvents = "none";
+    const baseHref = `${location.origin}/`;
     const styles = Array.from(document.querySelectorAll<HTMLStyleElement | HTMLLinkElement>('style, link[rel="stylesheet"]'))
       .map((node) => node.outerHTML)
       .join("\n");
@@ -79,25 +85,40 @@ const PrintSlotsShiftDialog = ({ open, onClose, shiftId }: Props) => {
       return;
     }
     doc.open();
-    doc.write(`<!doctype html><html><head>${styles}<style>@media print { @page { size: 210mm 297mm !important; margin: 8mm !important; } html, body { margin: 0 !important; background: white !important; } body, body * { visibility: visible !important; } .slots-print-area { display: block !important; width: 194mm !important; min-height: 281mm !important; page: auto !important; page-break-after: auto !important; break-after: auto !important; } }</style></head><body><div class="slots-print-area cms-print-root">${source.innerHTML}</div></body></html>`);
+    doc.write(`<!doctype html><html><head><base href="${baseHref}">${styles}<style>@media print { @page { size: 210mm 297mm !important; margin: 8mm !important; } html, body { margin: 0 !important; background: white !important; } body, body * { visibility: visible !important; } .slots-print-area { display: block !important; width: 194mm !important; min-height: 281mm !important; page: auto !important; page-break-after: auto !important; break-after: auto !important; } } html, body { margin: 0; background: white; }</style></head><body><div class="slots-print-area cms-print-root">${source.innerHTML}</div></body></html>`);
     doc.close();
     const cleanup = () => {
       setTimeout(() => {
         if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
-      }, 500);
+      }, 1000);
     };
     let didPrint = false;
-    const runPrint = () => {
+    const runPrint = async () => {
       if (didPrint) return;
       didPrint = true;
-      requestAnimationFrame(() => {
-        iframe.contentWindow?.focus();
-        iframe.contentWindow?.print();
-        cleanup();
-      });
+      try {
+        // Wait for every <link rel="stylesheet"> inside the iframe to finish
+        // loading. Without this, print() can fire before Tailwind CSS lands
+        // and the printed page comes out blank.
+        const links = Array.from(doc.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]'));
+        await Promise.all(links.map((l) => {
+          if ((l as any).sheet) return Promise.resolve();
+          return new Promise<void>((resolve) => {
+            const done = () => resolve();
+            l.addEventListener("load", done, { once: true });
+            l.addEventListener("error", done, { once: true });
+            setTimeout(done, 3000); // hard cap so we never hang
+          });
+        }));
+        await new Promise((r) => requestAnimationFrame(() => r(null)));
+        await new Promise((r) => setTimeout(r, 80));
+      } catch { /* ignore */ }
+      iframe.contentWindow?.focus();
+      iframe.contentWindow?.print();
+      cleanup();
     };
-    iframe.onload = runPrint;
-    setTimeout(runPrint, 250);
+    iframe.onload = () => { void runPrint(); };
+    setTimeout(() => { void runPrint(); }, 800);
   };
 
   const { data, isLoading } = useQuery({
