@@ -525,7 +525,7 @@ const ScheduleSettings = () => {
 const AppCacheCard = () => {
   const [busy, setBusy] = useState(false);
   const handleReset = async () => {
-    if (!confirm("Сбросить кэш приложения и перезагрузить?\n\nЭто очистит все локальные кэши и принудительно загрузит свежую версию.")) return;
+    if (!confirm("Force update and reload?\n\nThis clears local app caches and pulls a fresh version. Your session is kept.")) return;
     setBusy(true);
     try {
       await resetPWACache();
