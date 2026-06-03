@@ -174,6 +174,7 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
 
   const isBlacklisted = player?.status === "blacklist";
   const { data: notes = [] } = usePlayerNotes(playerId || undefined, isBlacklisted);
+  const { data: promoTags = [] } = usePlayerPromoCampaigns(playerId || undefined);
 
   if (!playerId) return null;
 
@@ -188,7 +189,6 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
   const activeCard = cards.find((c) => c.is_active)?.card_number || cards[0]?.card_number || "";
   const visitsCount = visits.length;
   const result = dayStats?.result ?? 0;
-  const { data: promoTags = [] } = usePlayerPromoCampaigns(playerId);
   const activePromo = promoTags.find((t) => t.status === "active") ?? promoTags[0];
 
   const submitAdj = () => {
