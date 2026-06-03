@@ -406,6 +406,7 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
     // Cage and Cage View are separate top-level buttons, never parent/sub-items.
     if (item.to === "/cage" && !isSuper && !roles.includes("cashier" as AppRole)) return false;
     if (item.to === "/cage/view" && !isSuper && roles.includes("cashier" as AppRole)) return false;
+    if (item.to === "/crm/players" && !item.roles.some(r => roles.includes(r))) return false;
     // (Unified /expenses is visible to all roles in its nav whitelist; gated via matrix module 'expenses'.)
     if (isSuper) return true;
     if (allowedModules === undefined) return false; // still loading → render nothing yet
