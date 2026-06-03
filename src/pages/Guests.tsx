@@ -189,15 +189,27 @@ const Guests = () => {
   const checkIn = useMutation({
     mutationFn: async (playerId: string) => {
       if (!casinoId || !user) throw new Error("Not authenticated");
+      const today = new Date().toISOString().slice(0, 10);
+      // Find ANY visit (open or closed) for this player today — unique constraint
+      // prevents duplicate (casino_id, player_id, date) rows, so we must reopen
+      // a closed visit rather than insert a new one.
       const { data: existing } = await supabase
         .from("casino_visits")
         .select("id, checked_out_at")
         .eq("casino_id", casinoId)
         .eq("player_id", playerId)
-        .eq("date", new Date().toISOString().slice(0, 10))
-        .is("checked_out_at", null)
+        .eq("date", today)
         .maybeSingle();
-      if (existing) return existing.id;
+      if (existing && !existing.checked_out_at) return existing.id;
+      if (existing && existing.checked_out_at) {
+        const { error } = await supabase
+          .from("casino_visits")
+          .update({ checked_out_at: null, checked_in_by: user.id })
+          .eq("id", existing.id);
+        if (error) throw error;
+        await logAction(casinoId, "player", "PLAYER_CHECKED_IN", { player_id: playerId, reopened: true });
+        return existing.id;
+      }
       const { error } = await supabase.from("casino_visits").insert({
         casino_id: casinoId,
         player_id: playerId,
