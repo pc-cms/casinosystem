@@ -50,6 +50,7 @@ export type ModuleKey =
   | "incidents"
   | "groups"
   | "staff_employees"
+  | "employee_playlist"
   | "staff_rota"
   | "staff_attendance"
   | "staff_master"
@@ -128,6 +129,7 @@ export const MODULES: ModuleDef[] = [
 
   // Staff / HR / System
   { key: "staff_employees", label: "Floor Staff Employees", group: "System" },
+  { key: "employee_playlist", label: "Employee Playlist", group: "System" },
   { key: "staff_rota", label: "Floor Staff Rota", group: "System" },
   { key: "staff_attendance", label: "Floor Staff Attendance", group: "System" },
   { key: "staff_master", label: "Staff Master (HR)", group: "System" },

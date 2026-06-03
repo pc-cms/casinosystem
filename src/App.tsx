@@ -49,6 +49,7 @@ const PitRotaPage = lazy(() => import("@/pages/flat/PitFlat").then(m => ({ defau
 const PitAttendancePage = lazy(() => import("@/pages/flat/PitFlat").then(m => ({ default: m.PitAttendancePage })));
 const DealersPage = lazy(() => import("@/pages/flat/PitFlat").then(m => ({ default: m.DealersPage })));
 const StaffEmployeesPage = lazy(() => import("@/pages/flat/StaffFlat").then(m => ({ default: m.StaffEmployeesPage })));
+const EmployeePlaylist = lazy(() => import("@/pages/EmployeePlaylist"));
 const RotaFloorPage = lazy(() => import("@/pages/flat/StaffFlat").then(m => ({ default: m.RotaFloorPage })));
 const RotaSecurityPage = lazy(() => import("@/pages/flat/StaffFlat").then(m => ({ default: m.RotaSecurityPage })));
 const RotaOfficePage = lazy(() => import("@/pages/flat/StaffFlat").then(m => ({ default: m.RotaOfficePage })));
@@ -332,6 +333,7 @@ const ProtectedRoutes = () => {
 
           {/* Phase 2 flat URLs — Floor Staff */}
           <Route path="/staff/employees" element={<RoleGuard path="/staff/employees"><ErrorBoundary><StaffEmployeesPage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/staff/playlist" element={<RoleGuard path="/staff/playlist"><ErrorBoundary><EmployeePlaylist /></ErrorBoundary></RoleGuard>} />
           <Route path="/rota/floor" element={<RoleGuard path="/rota/floor"><ErrorBoundary><RotaFloorPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/rota/security" element={<RoleGuard path="/rota/security"><ErrorBoundary><RotaSecurityPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/rota/office" element={<RoleGuard path="/rota/office"><ErrorBoundary><RotaOfficePage /></ErrorBoundary></RoleGuard>} />

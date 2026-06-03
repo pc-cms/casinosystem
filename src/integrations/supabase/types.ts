@@ -2561,6 +2561,38 @@ export type Database = {
           },
         ]
       }
+      employee_playlist_notes: {
+        Row: {
+          casino_id: string
+          employee_id: string
+          note: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          casino_id: string
+          employee_id: string
+          note?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          casino_id?: string
+          employee_id?: string
+          note?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_playlist_notes_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: true
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employee_role_history: {
         Row: {
           created_at: string
