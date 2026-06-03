@@ -205,13 +205,12 @@ export default function EmployeePlaylist() {
       <PageHeader
         title="Employee Playlist"
         subtitle="Active employees with quick comments and birthdays"
-        actions={
-          <Button size="sm" variant="outline" onClick={exportExcel} disabled={isLoading || filtered.length === 0}>
-            <FileSpreadsheet className="w-4 h-4 mr-2" />
-            Export Excel
-          </Button>
-        }
-      />
+      >
+        <Button size="sm" variant="outline" onClick={exportExcel} disabled={isLoading || filtered.length === 0}>
+          <FileSpreadsheet className="w-4 h-4 mr-2" />
+          Export Excel
+        </Button>
+      </PageHeader>
 
       {upcomingBirthdays.length > 0 && (
         <PageSection>
