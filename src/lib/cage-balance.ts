@@ -41,22 +41,24 @@ export const computeShiftBalance = (i: CageBalanceInputs): CageBalanceResult => 
 
 /**
  * Cage Slots balance — canonical formula (mirrors DB
- * `compute_slots_shift_balance_from_row`). Updated 01 Jun 2026.
+ * `compute_slots_shift_balance_from_row`). Updated 03 Jun 2026.
  *
  *   ΔCash            = ClosingCash − OpeningCash               (display only)
  *   Cash Desk Result = ClosingCash + Expenses − Ace Fill
- *                    + Collection + LG_Out − LG_In + TipsCdPayout
+ *                    + Collection + LG_Out − LG_In
  *   Cards Miss       = (OpeningCards − ClosingCards) × CardValue
  *   Slots Result     = System Result
  *   Expected         = System Result
  *
  *   Shift Balance    = Cash Desk Result − System Result − Cards Miss
  *
- * Tips CD model (changed): tips are physically paid out of the cage BEFORE
- * shift close via two payout events (Day / Evening). Each payout removes
- * cash from the safe → closing cash naturally drops. We add the payout back
- * into CDR so the balance is neutral relative to tips (same trick as
- * Expenses). The collected log (`cage_slots_tips_cd`) is reporting-only.
+ * Tips CD model: tips collected throughout the shift physically sit in the
+ * cage cash → they are already included in the closing cash count. When the
+ * cashier later pays them out (Day / Evening payout events), the cash count
+ * drops by the same amount. Net effect on cage is ZERO, so `tipsCdPayout`
+ * MUST NOT be added back into CDR (doing so previously inflated the Shift
+ * Balance by the tips amount). The collected log (`cage_slots_tips_cd`)
+ * and payouts (`cage_slots_tips_cd_payouts`) remain audit-only here.
  *
  *   Cashless Balance = Cashless IN − Cashless OUT   (derived, display only)
  *   Cashless Final   = manual entry, PRINT ONLY — never used in any formula.
@@ -98,9 +100,12 @@ export type SlotsBalanceResult = {
 export const computeSlotsShiftBalance = (i: SlotsBalanceInputs): SlotsBalanceResult => {
   const deltaCash = i.closingCash - i.openingCash;
   const tipsCdPayout = i.tipsCdPayout || 0;
+  // Tips CD are cage-neutral (collection inflow + later payout net to zero
+  // inside the physical cash count). They must NOT be added to CDR — doing
+  // so previously caused tips to surface as a positive Shift Balance.
   const cashDeskResult =
     i.closingCash + i.expenses - i.addFloat + i.collection
-    + i.lgOut - i.lgIn + tipsCdPayout;
+    + i.lgOut - i.lgIn;
   const cardsMiss = (i.openingCards - i.closingCards) * i.cardValue;
   const slotsResult = i.systemResult;
   const expected = i.systemResult;

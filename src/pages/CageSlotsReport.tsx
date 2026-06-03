@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useParams } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useParams, useSearchParams } from "react-router-dom";
 import { Coins, Printer } from "lucide-react";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -12,8 +12,20 @@ import SlotsShiftReportBody from "@/components/cage-slots/SlotsShiftReportBody";
 
 const CageSlotsReport = () => {
   const { id } = useParams<{ id: string }>();
+  const [params, setParams] = useSearchParams();
   const [printOpen, setPrintOpen] = useState(false);
   const { data: shift } = useCageSlotsShift(id);
+
+  // Auto-open print dialog when navigated here with ?print=1 (used right
+  // after manager approves & closes the slots shift).
+  useEffect(() => {
+    if (params.get("print") === "1" && shift) {
+      setPrintOpen(true);
+      const next = new URLSearchParams(params);
+      next.delete("print");
+      setParams(next, { replace: true });
+    }
+  }, [params, shift, setParams]);
 
   if (!shift || !id) {
     return (
