@@ -1,9 +1,8 @@
 /**
- * PWAUpdateNotification — full-screen blocking overlay when a new version
- * is available. Cannot be dismissed without updating.
+ * PWAUpdateNotification — full-screen blocking overlay shown when a new
+ * version is available. User MUST click "Update now". No auto-reload.
  *
- * Listens for the "pwa:update-available" CustomEvent dispatched from
- * pwa-register.ts and forces the user to reload.
+ * Listens for "pwa:update-available" dispatched from pwa-register.ts.
  */
 import { useEffect, useState } from "react";
 import { RefreshCw, Download, AlertTriangle } from "lucide-react";
@@ -32,13 +31,11 @@ export const PWAUpdateNotification = () => {
       const detail = (e as CustomEvent).detail as { update?: UpdateFn } | undefined;
       if (detail?.update) {
         setUpdateFn(() => detail.update as UpdateFn);
-        setVisible(true);
       }
+      setVisible(true);
     };
 
     window.addEventListener("pwa:update-available", handler);
-    // If event already fired before listener mounted, check for a sticky flag
-    // (pwa-register.ts dispatches immediately on detection)
     return () => window.removeEventListener("pwa:update-available", handler);
   }, []);
 
@@ -64,20 +61,21 @@ export const PWAUpdateNotification = () => {
         </div>
 
         <h2 className="text-xl font-semibold text-foreground mb-2">
-          Доступна новая версия
+          New version available
         </h2>
         <p className="text-sm text-muted-foreground mb-4">
-          Обновление системы Casino Management уже загружено. Для продолжения работы необходимо перезагрузить приложение.
+          A newer version of Casino System is ready. Click Update now to load it.
+          Your session will be kept.
         </p>
 
         <div className="bg-muted/50 rounded-lg p-3 mb-5 text-left space-y-1">
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <RefreshCw className="w-3.5 h-3.5" />
-            <span>Текущая: {currentVersion || "загружается…"}</span>
+            <span>Current: {currentVersion || "loading…"}</span>
           </div>
           <div className="flex items-center gap-2 text-xs text-primary font-medium">
             <AlertTriangle className="w-3.5 h-3.5" />
-            <span>Новая версия готова к установке</span>
+            <span>New version ready to install</span>
           </div>
         </div>
 
@@ -90,11 +88,11 @@ export const PWAUpdateNotification = () => {
             )}
           >
             <RefreshCw className="w-4 h-4 mr-2" />
-            Обновить сейчас
+            Update now
           </Button>
 
           <p className="text-[10px] text-muted-foreground mt-1">
-            Без обновления возможны ошибки синхронизации данных.
+            Skipping the update may cause data-sync errors.
           </p>
         </div>
       </div>
