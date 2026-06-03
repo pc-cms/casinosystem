@@ -58,7 +58,7 @@ const NAV_ITEMS: NavItem[] = [
   // STAFF — Attendance + Rota (each expands to Live/Floor/Security/Office).
   { to: "__attendance__", icon: ClipboardPen, label: "Attendance", roles: ["super_admin", "manager", "floor_manager", "pit", "finance_manager", "surveillance"], section: "STAFF" },
   { to: "__rota__", icon: CalendarDays, label: "Rota", roles: ["super_admin", "manager", "floor_manager", "pit", "finance_manager", "surveillance"], section: "STAFF" },
-  { to: "/staff/playlist", icon: UserCheck, label: "Playlist", roles: ["super_admin", "manager", "floor_manager", "surveillance"], section: "STAFF" },
+  { to: "/staff/playlist", icon: UserCheck, label: "Employee List", roles: ["super_admin", "manager", "floor_manager", "surveillance"], section: "STAFF" },
 
   // CASHIER — transactional Cage operations.
   { to: "/cage/view", icon: Landmark, label: "Cage View", roles: ["super_admin", "manager", "floor_manager", "surveillance"], section: "CASHIER" },
