@@ -954,14 +954,18 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
             {/* Shift Result — one row, no duplicates */}
             <div>
               <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-bold mb-2">Shift Result</p>
-              <div className={`grid grid-cols-2 ${tipsCdPayoutTotal > 0 ? "md:grid-cols-6" : "md:grid-cols-5"} gap-2`}>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
                 <BigTile label="Opening Cash" value={openingCashTzs} />
                 <BigTile label="Closing Cash" value={closingCashTzs} />
                 <BigTile label="System Result" value={systemResult} signed />
                 <BigTile label="Cash Desk Result" value={cashDeskResult} signed />
                 <BigTile label="Cards Miss" value={cardsMiss} signed />
-                {tipsCdPayoutTotal > 0 && <BigTile label="Tips CD Paid (+)" value={tipsCdPayoutTotal} signed />}
               </div>
+              {tipsCdPayoutTotal > 0 && (
+                <p className="text-[11px] text-muted-foreground mt-2">
+                  Tips CD paid out this shift: <span className="font-mono">{formatNumberSpaces(tipsCdPayoutTotal)}</span> — cage-neutral, does not affect balance.
+                </p>
+              )}
             </div>
 
             {/* Shift Balance — big number, no formula */}
