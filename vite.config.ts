@@ -50,14 +50,18 @@ export default defineConfig(({ mode }) => ({
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         runtimeCaching: [
           {
-            // HTML navigations — always try network first so deploys propagate
+            // HTML navigations — always try network. Generous timeout so a
+            // slow network still gets a chance at fresh HTML before falling
+            // back to cache (short timeouts were silently serving stale HTML
+            // and keeping computers on old versions).
             urlPattern: ({ request }) => request.mode === "navigate",
             handler: "NetworkFirst",
             options: {
               cacheName: "html",
-              networkTimeoutSeconds: 3,
+              networkTimeoutSeconds: 10,
             },
           },
+
           {
             // Supabase REST/Realtime/Storage: NEVER cache via SW.
             // Caching here caused the "either-or" symptom — slow network + 5s
