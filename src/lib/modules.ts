@@ -129,7 +129,7 @@ export const MODULES: ModuleDef[] = [
 
   // Staff / HR / System
   { key: "staff_employees", label: "Floor Staff Employees", group: "System" },
-  { key: "employee_playlist", label: "Employee Playlist", group: "System" },
+  { key: "employee_playlist", label: "Employee List", group: "System" },
   { key: "staff_rota", label: "Floor Staff Rota", group: "System" },
   { key: "staff_attendance", label: "Floor Staff Attendance", group: "System" },
   { key: "staff_master", label: "Staff Master (HR)", group: "System" },
