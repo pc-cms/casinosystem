@@ -962,9 +962,9 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
                 <BigTile label="Cash Desk Result" value={cashDeskResult} signed />
                 <BigTile label="Cards Miss" value={cardsMiss} signed />
               </div>
-              {tipsCdPayoutTotal > 0 && (
+              {(tipsCdTotal > 0 || tipsCdPayoutTotal > 0) && (
                 <p className="text-[11px] text-muted-foreground mt-2">
-                  Tips CD paid out this shift: <span className="font-mono">{formatNumberSpaces(tipsCdPayoutTotal)}</span> — cage-neutral, does not affect balance.
+                  Tips CD this shift: IN <span className="font-mono cms-amount-positive">+{formatNumberSpaces(tipsCdTotal)}</span> · OUT <span className="font-mono cms-amount-negative">−{formatNumberSpaces(tipsCdPayoutTotal)}</span> — neutralized in Cash Desk Result.
                 </p>
               )}
             </div>
