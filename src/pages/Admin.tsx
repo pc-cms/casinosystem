@@ -525,7 +525,7 @@ const ScheduleSettings = () => {
 const AppCacheCard = () => {
   const [busy, setBusy] = useState(false);
   const handleReset = async () => {
-    if (!confirm("Сбросить кэш приложения и перезагрузить?\n\nЭто очистит все локальные кэши и принудительно загрузит свежую версию.")) return;
+    if (!confirm("Force update and reload?\n\nThis clears local app caches and pulls a fresh version. Your session is kept.")) return;
     setBusy(true);
     try {
       await resetPWACache();
@@ -538,9 +538,10 @@ const AppCacheCard = () => {
       <div>
         <h3 className="text-sm font-semibold text-card-foreground">App Cache</h3>
         <p className="text-xs text-muted-foreground">
-          Очищает Service Worker и локальные кэши, затем перезагружает страницу.
-          Используется, если приложение «застряло» на старой версии.
+          Clears the service worker and local caches, then reloads. Use this if
+          the app appears stuck on an old version. Your login session is kept.
         </p>
+
       </div>
       <Button variant="outline" onClick={handleReset} disabled={busy} className="gap-2 shrink-0">
         <RefreshCw className={`w-4 h-4 ${busy ? "animate-spin" : ""}`} />

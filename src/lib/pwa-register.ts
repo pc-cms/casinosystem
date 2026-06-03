@@ -1,10 +1,15 @@
 /**
- * PWA service worker registration with strict guards + update UX.
+ * PWA service worker registration with strict guards + manual update UX.
  *
- * - Skips registration in Lovable editor preview / iframes / dev.
- * - Polls for updates every 30 minutes.
- * - When a new version is available, shows a toast asking the user to reload.
- * - If the user is idle (no input/click for 5 min) and no dialog is open, auto-reloads.
+ * Update policy (deliberate, do not "improve" without discussion):
+ *   - SW polls for updates every 30 min + on focus/visibility/online.
+ *   - When new version is available we ONLY dispatch `pwa:update-available`
+ *     and show a persistent toast. NO automatic reload during work.
+ *   - User clicks "Update now" → updateSW(true) → page reloads with new code.
+ *   - Force Update button calls resetPWACache() and is the manual escape hatch.
+ *
+ * No auto-reload, no idle timers — these caused screens to self-refresh
+ * mid-shift and were removed deliberately.
  */
 
 import { toast } from "sonner";
@@ -24,34 +29,7 @@ const isPreviewHost =
   host.includes("localhost") ||
   host.startsWith("127.");
 
-const IDLE_AUTO_RELOAD_MS = 5 * 60 * 1000;
 const UPDATE_CHECK_INTERVAL_MS = 30 * 60 * 1000;
-
-let lastInteraction = Date.now();
-const bumpInteraction = () => {
-  lastInteraction = Date.now();
-};
-
-const installInteractionListeners = () => {
-  ["pointerdown", "keydown", "touchstart", "wheel"].forEach((ev) =>
-    window.addEventListener(ev, bumpInteraction, { passive: true }),
-  );
-};
-
-const isAppBusy = () => {
-  // Don't auto-reload if a modal/dialog/sheet/drawer is open or any input is focused.
-  const hasOpenOverlay = !!document.querySelector(
-    '[role="dialog"][data-state="open"], [data-state="open"][role="alertdialog"]',
-  );
-  const ae = document.activeElement;
-  const isEditing =
-    !!ae &&
-    (ae.tagName === "INPUT" ||
-      ae.tagName === "TEXTAREA" ||
-      ae.tagName === "SELECT" ||
-      (ae as HTMLElement).isContentEditable);
-  return hasOpenOverlay || isEditing;
-};
 
 export async function setupPWA() {
   if (typeof window === "undefined") return;
@@ -68,8 +46,6 @@ export async function setupPWA() {
     return;
   }
 
-  installInteractionListeners();
-
   // Production, top-level window, real domain — register PWA.
   try {
     const { registerSW } = await import("virtual:pwa-register");
@@ -80,9 +56,8 @@ export async function setupPWA() {
         if (!registration) return;
 
         // One-time cleanup: previous builds cached Supabase REST in a SW cache
-        // called "supabase-api". That cache occasionally served empty/stale
-        // arrays after a 5s timeout, causing the "either-or" empty-tab bug.
-        // We no longer cache the API in the SW — purge any leftover entries.
+        // called "supabase-api". That cache served empty/stale arrays after
+        // a 5s timeout — purge any leftover entries.
         try {
           const names = await caches.keys();
           await Promise.all(
@@ -92,16 +67,12 @@ export async function setupPWA() {
           );
         } catch { /* ignore */ }
 
-        // 1) Check immediately on app open (don't wait for the 30-min timer).
+        // Check immediately + periodically + on visibility/focus/online.
         registration.update().catch(() => {});
-
-        // 2) Periodic background polling.
         setInterval(() => {
           registration.update().catch(() => {});
         }, UPDATE_CHECK_INTERVAL_MS);
 
-        // 3) Check whenever the tab becomes visible / regains focus —
-        //    covers PWAs resumed from background after hours/days.
         const checkNow = () => {
           if (document.visibilityState === "visible") {
             registration.update().catch(() => {});
@@ -115,42 +86,23 @@ export async function setupPWA() {
         console.log("[PWA] App ready for offline use");
       },
       onNeedRefresh() {
-        console.log("[PWA] New version available — forcing update");
+        console.log("[PWA] New version available — waiting for user to confirm");
 
-        // Dispatch global event so any UI can react (blocking overlay)
+        // Fire global event so the blocking dialog can react.
         window.dispatchEvent(new CustomEvent("pwa:update-available", {
           detail: { update: updateSW },
         }));
 
-        // Persistent toast as fallback
-        const toastId = toast("Доступна новая версия", {
-          description: "Приложение будет перезагружено автоматически.",
+        // Persistent toast fallback (no auto-reload).
+        toast("New version available", {
+          description: "Click Update now to load it.",
           duration: Infinity,
           action: {
-            label: "Обновить сейчас",
-            onClick: () => {
-              updateSW(true);
-            },
+            label: "Update now",
+            onClick: () => { updateSW(true); },
           },
         });
-
-        // FORCE UPDATE: reload as soon as the app is not busy.
-        // Poll every 10s — first safe moment wins. Hard cap at 2 minutes.
-        const startedAt = Date.now();
-        const HARD_CAP_MS = 2 * 60 * 1000;
-        const tryForceReload = () => {
-          const elapsed = Date.now() - startedAt;
-          if (!isAppBusy() || elapsed >= HARD_CAP_MS) {
-            toast.dismiss(toastId);
-            console.log("[PWA] Force-reloading to apply update");
-            updateSW(true);
-            return;
-          }
-          setTimeout(tryForceReload, 10 * 1000);
-        };
-        setTimeout(tryForceReload, 5 * 1000);
       },
-
     });
   } catch (e) {
     console.warn("[PWA] Registration failed:", e);
@@ -158,19 +110,19 @@ export async function setupPWA() {
 }
 
 /**
- * Manually clear all SW caches and reload. Used by Admin "Force update" button.
+ * Manually clear SW caches and reload. Used by Admin "Force update" button.
  *
- * Implementation notes (why it's not just caches.delete + reload):
- *  - `location.reload()` may be intercepted by an SW that's still controlling
- *    the page (unregister completes only when all clients unload). On iOS
- *    Safari + Chrome Android this means the next page is served from the
- *    OLD precache, version doesn't change, force update appears broken.
- *  - We also bump `cms:app-version` to the current value so the in-app
- *    versionBuster in main.tsx doesn't trigger a SECOND nuke+reload right
- *    after this one (which compounds the white-screen wait).
- *  - We navigate with a cache-busting query string via `location.replace`
- *    to force a brand-new HTML fetch from the server, bypassing both HTTP
- *    cache and any lingering SW controller.
+ * IMPORTANT — what this MUST NOT do:
+ *   - Do not touch Supabase auth keys in localStorage (sb-*-auth-token).
+ *     Wiping them logs the user out and triggers a slow re-login.
+ *   - Do not clear sessionStorage globally.
+ *
+ * What it does:
+ *   1. Wipe Cache Storage (precache + runtime caches).
+ *   2. Unregister all service workers on this origin.
+ *   3. Drop stale React Query offline cache (may reference old chunks).
+ *   4. Sync cms:app-version so any version check sees the new build.
+ *   5. Hard navigate to current URL with a cache-buster.
  */
 export async function resetPWACache(): Promise<void> {
   try {
@@ -184,7 +136,7 @@ export async function resetPWACache(): Promise<void> {
       await Promise.all(regs.map((r) => r.unregister().catch(() => false)));
     }
 
-    // 3) Sync the version-buster key so main.tsx doesn't loop another reload
+    // 3) Sync the version-buster key (no longer triggers a reload — see main.tsx)
     try {
       // @ts-expect-error injected by Vite define()
       const v = typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "";
@@ -199,7 +151,7 @@ export async function resetPWACache(): Promise<void> {
     console.warn("[PWA] reset failed:", e);
   } finally {
     // 5) Hard navigation with cache-buster — bypasses HTTP cache AND any SW
-    //    controller that's still claiming this page. `replace` keeps history clean.
+    //    controller still claiming this page. `replace` keeps history clean.
     try {
       const url = new URL(window.location.href);
       url.searchParams.set("_cb", Date.now().toString(36));
