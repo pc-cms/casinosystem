@@ -98,9 +98,12 @@ export type SlotsBalanceResult = {
 export const computeSlotsShiftBalance = (i: SlotsBalanceInputs): SlotsBalanceResult => {
   const deltaCash = i.closingCash - i.openingCash;
   const tipsCdPayout = i.tipsCdPayout || 0;
+  // Tips CD are cage-neutral (collection inflow + later payout net to zero
+  // inside the physical cash count). They must NOT be added to CDR — doing
+  // so previously caused tips to surface as a positive Shift Balance.
   const cashDeskResult =
     i.closingCash + i.expenses - i.addFloat + i.collection
-    + i.lgOut - i.lgIn + tipsCdPayout;
+    + i.lgOut - i.lgIn;
   const cardsMiss = (i.openingCards - i.closingCards) * i.cardValue;
   const slotsResult = i.systemResult;
   const expected = i.systemResult;
