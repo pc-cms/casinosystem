@@ -492,14 +492,19 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
 
           {/* Shift Result — single row, no duplicates, no formulas in headings */}
           <PageSection title="Shift Result">
-            <div className={`grid grid-cols-2 ${tipsCdPayoutTotal > 0 ? "md:grid-cols-6" : "md:grid-cols-5"} gap-2`}>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
               <BigTile label="Opening Cash" value={openingCashTzs} />
               <BigTile label="Closing Cash" value={closingCashTzs} />
               <BigTile label="System Result" value={systemResult} signed />
               <BigTile label="Cash Desk Result" value={cashDeskResult} signed />
               <BigTile label="Cards Miss" value={cardsMiss} signed />
-              {tipsCdPayoutTotal > 0 && <BigTile label="Tips CD Paid (+)" value={tipsCdPayoutTotal} signed />}
             </div>
+
+            {tipsCdPayoutTotal > 0 && (
+              <p className="text-[11px] text-muted-foreground mt-2">
+                Tips CD paid out this shift: <span className="font-mono">{formatNumberSpaces(tipsCdPayoutTotal)}</span> — cage-neutral, does not affect balance.
+              </p>
+            )}
 
             {/* Shift Balance — big number, no formula text */}
             <div className="mt-4 rounded-lg border-2 border-primary/50 bg-primary/5 p-5 flex items-center justify-between">
@@ -523,8 +528,16 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
             )}
           </PageSection>
 
-          {/* Two buttons */}
+          {/* Action buttons */}
           <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={() => navigate(`/cage-slots/report/${shift.id}`)}
+              className="gap-1.5"
+            >
+              <Printer className="w-4 h-4" /> Print Report
+            </Button>
             <Button
               variant="outline"
               size="lg"
