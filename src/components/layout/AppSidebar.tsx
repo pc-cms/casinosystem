@@ -103,7 +103,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/groups", icon: UsersRound, label: "Groups", roles: ["super_admin", "manager", "floor_manager", "finance_manager"], section: "ANALYTICS" },
 
   // CRM
-  { to: "/crm/players", icon: UsersRound, label: "Player CRM", roles: ["super_admin", "manager", "floor_manager", "finance_manager", "reception", "hr"], section: "CRM" },
+  { to: "/crm/players", icon: UsersRound, label: "Player CRM", roles: ["super_admin", "manager", "floor_manager", "finance_manager", "hr"], section: "CRM" },
 
   // MARKETING
   { to: "/marketing/campaigns", icon: Megaphone, label: "Campaigns", roles: ["super_admin", "manager", "finance_manager"], section: "MARKETING" },
