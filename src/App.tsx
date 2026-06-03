@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect } from "react";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { QueryClient } from "@tanstack/react-query";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
-import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
+import { BrowserRouter, Route, Routes, Navigate, useLocation } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -16,6 +16,7 @@ import { createIDBPersister } from "@/lib/query-persister";
 import { usePrefetchCriticalData } from "@/hooks/use-prefetch";
 import { useRealtimeSubscriptions } from "@/hooks/use-realtime";
 import { initSyncEngine } from "@/lib/sync-engine";
+import { clearSelectedPlayer } from "@/hooks/use-selected-player";
 import Login from "@/pages/Login";
 const Landing = lazy(() => import("@/pages/Landing"));
 const PosLayout = lazy(() => import("@/pages/pos/PosLayout"));
@@ -399,6 +400,16 @@ const ProtectedRoutes = () => {
   );
 };
 
+const PlayerPreviewRouteReset = () => {
+  const location = useLocation();
+
+  useEffect(() => {
+    clearSelectedPlayer();
+  }, [location.pathname]);
+
+  return null;
+};
+
 const AppRoutes = () => {
   const { user, loading, roles } = useAuth();
   const detectedSlug = getSlugFromHostname();
@@ -460,6 +471,7 @@ const App = () => (
                 <Toaster />
                 <Sonner />
                 <BrowserRouter>
+                  <PlayerPreviewRouteReset />
                   <AppRoutes />
                 </BrowserRouter>
               </BrandingProvider>

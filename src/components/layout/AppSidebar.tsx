@@ -103,7 +103,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/groups", icon: UsersRound, label: "Groups", roles: ["super_admin", "manager", "floor_manager", "finance_manager"], section: "ANALYTICS" },
 
   // CRM
-  { to: "/crm/players", icon: UsersRound, label: "Player CRM", roles: ["super_admin", "manager", "floor_manager", "finance_manager", "reception", "hr"], section: "CRM" },
+  { to: "/crm/players", icon: UsersRound, label: "Player CRM", roles: ["super_admin", "manager", "floor_manager", "finance_manager", "hr"], section: "CRM" },
 
   // MARKETING
   { to: "/marketing/campaigns", icon: Megaphone, label: "Campaigns", roles: ["super_admin", "manager", "finance_manager"], section: "MARKETING" },
@@ -406,6 +406,7 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
     // Cage and Cage View are separate top-level buttons, never parent/sub-items.
     if (item.to === "/cage" && !isSuper && !roles.includes("cashier" as AppRole)) return false;
     if (item.to === "/cage/view" && !isSuper && roles.includes("cashier" as AppRole)) return false;
+    if (item.to === "/crm/players" && !item.roles.some(r => roles.includes(r))) return false;
     // (Unified /expenses is visible to all roles in its nav whitelist; gated via matrix module 'expenses'.)
     if (isSuper) return true;
     if (allowedModules === undefined) return false; // still loading → render nothing yet
