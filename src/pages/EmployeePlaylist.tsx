@@ -1,5 +1,5 @@
 /**
- * Employee Playlist — Excel-like roster of every active employee in the casino.
+ * Employee List — Excel-like roster of every active employee in the casino.
  *
  * Accessible to Surveillance (CCTV), Manager, Floor Manager, Super Admin.
  * Shows: Name, Position, Department, Tenure (years in company), Birthday,
@@ -7,18 +7,18 @@
  */
 import { useMemo, useState, useEffect, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Cake, FileSpreadsheet, Search } from "lucide-react";
+import { Cake, FileSpreadsheet, Search, Eye, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { useEmployees } from "@/hooks/use-payroll";
 import { useAuth } from "@/lib/auth-context";
 import { useCasino } from "@/lib/casino-context";
 import { supabase } from "@/integrations/supabase/client";
 import { downloadXlsx } from "@/lib/excel-export";
+import { PlayerPhotoLightbox } from "@/components/player/PlayerPhotoLightbox";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -43,24 +43,29 @@ const tenureLabel = (start: string | null) => {
   return months > 0 ? `${years}y ${months}mo` : `${years}y`;
 };
 
-const isBirthdaySoon = (b: string | null) => {
-  if (!b) return false;
-  const d = new Date(b);
-  if (isNaN(d.getTime())) return false;
-  const today = new Date();
-  const next = new Date(today.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
-  if (next.getTime() < today.getTime() - 24 * 3600 * 1000) next.setUTCFullYear(today.getUTCFullYear() + 1);
-  const diff = (next.getTime() - today.getTime()) / (24 * 3600 * 1000);
-  return diff >= 0 && diff <= 14;
+const tenureDays = (start: string | null) => {
+  if (!start) return -1;
+  const s = new Date(start);
+  if (isNaN(s.getTime())) return -1;
+  return Math.floor((Date.now() - s.getTime()) / 86400000);
 };
 
-const isBirthdayToday = (b: string | null) => {
-  if (!b) return false;
+const daysUntilBirthday = (b: string | null) => {
+  if (!b) return Number.POSITIVE_INFINITY;
   const d = new Date(b);
-  if (isNaN(d.getTime())) return false;
+  if (isNaN(d.getTime())) return Number.POSITIVE_INFINITY;
   const today = new Date();
-  return d.getUTCMonth() === today.getUTCMonth() && d.getUTCDate() === today.getUTCDate();
+  const next = new Date(today.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+  if (next.getTime() < today.getTime() - 86400000) next.setUTCFullYear(today.getUTCFullYear() + 1);
+  return Math.floor((next.getTime() - today.getTime()) / 86400000);
 };
+
+const isBirthdaySoon = (b: string | null) => {
+  const d = daysUntilBirthday(b);
+  return d >= 0 && d <= 14;
+};
+
+const isBirthdayToday = (b: string | null) => daysUntilBirthday(b) === 0;
 
 interface PlaylistNote {
   employee_id: string;
@@ -122,17 +127,36 @@ const NoteCell = ({ employeeId, value }: { employeeId: string; value: string }) 
   }, [dirty, draft, employeeId, save]);
 
   return (
-    <Textarea
+    <Input
       value={draft}
       onChange={(e) => { setDraft(e.target.value); setDirty(true); }}
       onBlur={commit}
+      onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
       placeholder="Add comment…"
-      rows={2}
-      className={cn(
-        "min-h-[44px] text-sm resize-y w-full",
-        dirty && "border-primary/60",
-      )}
+      className={cn("h-8 text-sm w-full", dirty && "border-primary/60")}
     />
+  );
+};
+
+type SortKey = "full_name" | "position" | "department" | "tenure" | "birthday";
+type SortDir = "asc" | "desc";
+
+const SortHeader = ({
+  label, k, sortKey, sortDir, onSort,
+}: { label: string; k: SortKey; sortKey: SortKey; sortDir: SortDir; onSort: (k: SortKey) => void }) => {
+  const active = sortKey === k;
+  const Icon = !active ? ArrowUpDown : sortDir === "asc" ? ArrowUp : ArrowDown;
+  return (
+    <th className="px-3 py-2 font-medium select-none">
+      <button
+        type="button"
+        onClick={() => onSort(k)}
+        className={cn("inline-flex items-center gap-1 hover:text-foreground", active ? "text-foreground" : "text-muted-foreground")}
+      >
+        {label}
+        <Icon className="w-3 h-3" />
+      </button>
+    </th>
   );
 };
 
@@ -141,6 +165,14 @@ export default function EmployeePlaylist() {
   const { data: notes = {} } = usePlaylistNotes();
   const [query, setQuery] = useState("");
   const [dept, setDept] = useState<string>("all");
+  const [sortKey, setSortKey] = useState<SortKey>("full_name");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
+  const [photo, setPhoto] = useState<{ src?: string | null; alt?: string } | null>(null);
+
+  const toggleSort = (k: SortKey) => {
+    if (k === sortKey) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else { setSortKey(k); setSortDir("asc"); }
+  };
 
   const active = useMemo(
     () => employees.filter((e) => e.payroll_status === "active"),
@@ -154,30 +186,38 @@ export default function EmployeePlaylist() {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return active
+    const list = active
       .filter((e) => dept === "all" || e.department === dept)
       .filter((e) => {
         if (!q) return true;
         const hay = `${e.full_name} ${e.position} ${e.department} ${notes[e.id] ?? ""}`.toLowerCase();
         return hay.includes(q);
-      })
-      .sort((a, b) => (a.full_name || "").localeCompare(b.full_name || ""));
-  }, [active, dept, query, notes]);
+      });
+    const dir = sortDir === "asc" ? 1 : -1;
+    const cmp = (a: any, b: any): number => {
+      switch (sortKey) {
+        case "full_name": return (a.full_name || "").localeCompare(b.full_name || "") * dir;
+        case "position":  return (a.position  || "").localeCompare(b.position  || "") * dir;
+        case "department":return (a.department|| "").localeCompare(b.department|| "") * dir;
+        case "tenure": {
+          const ax = tenureDays(a.contract_start ?? a.onboarding_date ?? a.employment_date);
+          const bx = tenureDays(b.contract_start ?? b.onboarding_date ?? b.employment_date);
+          return (ax - bx) * dir;
+        }
+        case "birthday": {
+          const ax = daysUntilBirthday(a.birthday);
+          const bx = daysUntilBirthday(b.birthday);
+          return (ax - bx) * dir;
+        }
+      }
+    };
+    return [...list].sort(cmp);
+  }, [active, dept, query, notes, sortKey, sortDir]);
 
   const upcomingBirthdays = useMemo(
     () => active
       .filter((e) => isBirthdaySoon(e.birthday))
-      .sort((a, b) => {
-        const ad = new Date(a.birthday!);
-        const bd = new Date(b.birthday!);
-        const today = new Date();
-        const next = (d: Date) => {
-          const n = new Date(today.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
-          if (n.getTime() < today.getTime() - 24 * 3600 * 1000) n.setUTCFullYear(today.getUTCFullYear() + 1);
-          return n.getTime();
-        };
-        return next(ad) - next(bd);
-      })
+      .sort((a, b) => daysUntilBirthday(a.birthday) - daysUntilBirthday(b.birthday))
       .slice(0, 8),
     [active],
   );
@@ -195,15 +235,15 @@ export default function EmployeePlaylist() {
         notes[e.id] ?? "",
       ]),
     ];
-    await downloadXlsx(`employee-playlist-${new Date().toISOString().slice(0, 10)}.xlsx`, [
-      { name: "Playlist", rows },
+    await downloadXlsx(`employee-list-${new Date().toISOString().slice(0, 10)}.xlsx`, [
+      { name: "Employees", rows },
     ]);
   };
 
   return (
     <PageShell>
       <PageHeader
-        title="Employee Playlist"
+        title="Employee List"
         subtitle="Active employees with quick comments and birthdays"
       >
         <Button size="sm" variant="outline" onClick={exportExcel} disabled={isLoading || filtered.length === 0}>
@@ -266,33 +306,45 @@ export default function EmployeePlaylist() {
           <table className="w-full text-sm">
             <thead className="bg-muted sticky top-0 z-10">
               <tr className="text-left">
-                <th className="px-3 py-2 font-medium">Name</th>
-                <th className="px-3 py-2 font-medium">Position</th>
-                <th className="px-3 py-2 font-medium">Department</th>
-                <th className="px-3 py-2 font-medium">Tenure</th>
-                <th className="px-3 py-2 font-medium">Birthday</th>
-                <th className="px-3 py-2 font-medium w-[28%]">Comment</th>
+                <th className="px-3 py-2 font-medium w-10"></th>
+                <SortHeader label="Name" k="full_name" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+                <SortHeader label="Position" k="position" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+                <SortHeader label="Department" k="department" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+                <SortHeader label="Tenure" k="tenure" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+                <SortHeader label="Birthday" k="birthday" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+                <th className="px-3 py-2 font-medium w-[32%]">Comment</th>
               </tr>
             </thead>
             <tbody>
               {isLoading && (
-                <tr><td colSpan={6} className="px-3 py-6 text-center text-muted-foreground">Loading…</td></tr>
+                <tr><td colSpan={7} className="px-3 py-6 text-center text-muted-foreground">Loading…</td></tr>
               )}
               {!isLoading && filtered.length === 0 && (
-                <tr><td colSpan={6} className="px-3 py-6 text-center text-muted-foreground">No employees match the filter.</td></tr>
+                <tr><td colSpan={7} className="px-3 py-6 text-center text-muted-foreground">No employees match the filter.</td></tr>
               )}
               {filtered.map((e) => {
                 const start = e.contract_start ?? e.onboarding_date ?? e.employment_date;
                 const bdayToday = isBirthdayToday(e.birthday);
                 return (
-                  <tr key={e.id} className="border-t hover:bg-muted/30 align-top">
-                    <td className="px-3 py-2 font-medium whitespace-nowrap">{e.full_name}</td>
-                    <td className="px-3 py-2 whitespace-nowrap">{e.position || <span className="text-muted-foreground">·</span>}</td>
-                    <td className="px-3 py-2 whitespace-nowrap">{e.department || <span className="text-muted-foreground">·</span>}</td>
-                    <td className="px-3 py-2 whitespace-nowrap" title={start ? fmtDate(start) : ""}>
+                  <tr key={e.id} className="border-t hover:bg-muted/30">
+                    <td className="px-2 py-1.5">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7"
+                        title="View photo"
+                        onClick={() => setPhoto({ src: e.photo_url, alt: e.full_name })}
+                      >
+                        <Eye className="w-4 h-4" />
+                      </Button>
+                    </td>
+                    <td className="px-3 py-1.5 font-medium whitespace-nowrap">{e.full_name}</td>
+                    <td className="px-3 py-1.5 whitespace-nowrap">{e.position || <span className="text-muted-foreground">·</span>}</td>
+                    <td className="px-3 py-1.5 whitespace-nowrap">{e.department || <span className="text-muted-foreground">·</span>}</td>
+                    <td className="px-3 py-1.5 whitespace-nowrap" title={start ? fmtDate(start) : ""}>
                       {start ? tenureLabel(start) : <span className="text-muted-foreground">·</span>}
                     </td>
-                    <td className={cn("px-3 py-2 whitespace-nowrap", bdayToday && "text-pink-600 font-semibold")}>
+                    <td className={cn("px-3 py-1.5 whitespace-nowrap", bdayToday && "text-pink-600 font-semibold")}>
                       {e.birthday ? (
                         <span className="inline-flex items-center gap-1">
                           {bdayToday && <Cake className="w-3.5 h-3.5" />}
@@ -300,7 +352,7 @@ export default function EmployeePlaylist() {
                         </span>
                       ) : <span className="text-muted-foreground">·</span>}
                     </td>
-                    <td className="px-3 py-2">
+                    <td className="px-3 py-1.5">
                       <NoteCell employeeId={e.id} value={notes[e.id] ?? ""} />
                     </td>
                   </tr>
@@ -310,6 +362,13 @@ export default function EmployeePlaylist() {
           </table>
         </div>
       </PageSection>
+
+      <PlayerPhotoLightbox
+        open={!!photo}
+        onOpenChange={(v) => { if (!v) setPhoto(null); }}
+        src={photo?.src}
+        alt={photo?.alt}
+      />
     </PageShell>
   );
 }
