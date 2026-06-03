@@ -46,19 +46,20 @@ export const computeShiftBalance = (i: CageBalanceInputs): CageBalanceResult => 
  *   ΔCash            = ClosingCash − OpeningCash               (display only)
  *   Cash Desk Result = ClosingCash + Expenses − Ace Fill
  *                    + Collection + LG_Out − LG_In
+ *                    − TipsIN + TipsOut                        (tips-neutral)
  *   Cards Miss       = (OpeningCards − ClosingCards) × CardValue
  *   Slots Result     = System Result
  *   Expected         = System Result
  *
  *   Shift Balance    = Cash Desk Result − System Result − Cards Miss
  *
- * Tips CD model: tips collected throughout the shift physically sit in the
- * cage cash → they are already included in the closing cash count. When the
- * cashier later pays them out (Day / Evening payout events), the cash count
- * drops by the same amount. Net effect on cage is ZERO, so `tipsCdPayout`
- * MUST NOT be added back into CDR (doing so previously inflated the Shift
- * Balance by the tips amount). The collected log (`cage_slots_tips_cd`)
- * and payouts (`cage_slots_tips_cd_payouts`) remain audit-only here.
+ * Tips CD model: Tips IN are cash physically dropped into the cage drawer →
+ * they are already counted in Closing Cash. Tips OUT (Cash Out Day/Evening)
+ * physically reduce the drawer. To make tips fully neutral on Shift Balance
+ * (IN +, OUT −, zero net if IN = OUT), we SUBTRACT TipsIN and ADD TipsOut to
+ * CDR — this cancels their effect on the closing cash count. Unpaid tips that
+ * remain in the drawer at handover are tracked as a debt to staff in the
+ * tips_cd ledger and do NOT inflate the cage balance.
  *
  *   Cashless Balance = Cashless IN − Cashless OUT   (derived, display only)
  *   Cashless Final   = manual entry, PRINT ONLY — never used in any formula.
@@ -81,6 +82,7 @@ export type SlotsBalanceInputs = {
   closingCards: number;
   cardValue: number;
   systemResult: number;
+  tipsCdIn?: number;       // Tips collected this shift (already in closing cash)
   tipsCdPayout?: number;   // Tips paid out of cage (Day + Evening)
 };
 
@@ -93,23 +95,24 @@ export type SlotsBalanceResult = {
   cashlessBalance: number;
   cashlessFinal: number;
   expected: number;
+  tipsCdIn: number;
   tipsCdPayout: number;
   shiftBalance: number;
 };
 
 export const computeSlotsShiftBalance = (i: SlotsBalanceInputs): SlotsBalanceResult => {
   const deltaCash = i.closingCash - i.openingCash;
+  const tipsCdIn = i.tipsCdIn || 0;
   const tipsCdPayout = i.tipsCdPayout || 0;
-  // Tips CD are cage-neutral (collection inflow + later payout net to zero
-  // inside the physical cash count). They must NOT be added to CDR — doing
-  // so previously caused tips to surface as a positive Shift Balance.
+  // Tips IN are inside closing cash → subtract. Tips OUT removed cash from
+  // drawer → add back. Net effect: tips are neutral on Shift Balance.
   const cashDeskResult =
     i.closingCash + i.expenses - i.addFloat + i.collection
-    + i.lgOut - i.lgIn;
+    + i.lgOut - i.lgIn
+    - tipsCdIn + tipsCdPayout;
   const cardsMiss = (i.openingCards - i.closingCards) * i.cardValue;
   const slotsResult = i.systemResult;
   const expected = i.systemResult;
-  // Balance = CDR − SystemResult − Cards Miss (no tips term)
   const shiftBalance = cashDeskResult - i.systemResult - cardsMiss;
   return {
     deltaCash,
@@ -120,6 +123,7 @@ export const computeSlotsShiftBalance = (i: SlotsBalanceInputs): SlotsBalanceRes
     cashlessBalance: i.cashlessIn - i.cashlessOut,
     cashlessFinal: i.cashlessFinal,
     expected,
+    tipsCdIn,
     tipsCdPayout,
     shiftBalance,
   };
