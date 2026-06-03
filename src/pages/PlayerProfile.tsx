@@ -392,7 +392,7 @@ const PlayerProfile = () => {
               <Ban className="w-3.5 h-3.5 mr-1.5" /> Add to Blacklist
             </Button>
           )}
-          {(isManager || roles.includes("super_admin")) && (
+          {(isManager || roles.some(r => ["super_admin", "manager", "floor_manager", "reception", "pit"].includes(r))) && (
             <Button variant="outline" size="sm" className="h-9" onClick={() => setEditOpen(true)}>
               Edit player
             </Button>
