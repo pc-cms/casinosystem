@@ -480,6 +480,7 @@ const AppRoutes = () => {
             <Route path="/club/shop" element={<ClubShop />} />
             <Route path="/club/tickets" element={<ClubTickets />} />
             <Route path="/club/profile" element={<ClubProfile />} />
+            <Route path="/club/verify" element={<ClubVerifyWizard />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
@@ -501,6 +502,7 @@ const AppRoutes = () => {
           <Route path="/club/shop" element={<ClubShop />} />
           <Route path="/club/tickets" element={<ClubTickets />} />
           <Route path="/club/profile" element={<ClubProfile />} />
+          <Route path="/club/verify" element={<ClubVerifyWizard />
         </Route>
         <Route path="/pos" element={<PosLayout />}>
           <Route index element={<Navigate to="/pos/waiter" replace />} />
