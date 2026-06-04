@@ -403,7 +403,15 @@ const KycReviewsPage = () => {
                       <td className="p-2 text-xs">{p.birth_date ? fmtDateOnly(p.birth_date) : "—"}</td>
                       <td className="p-2 text-xs">{p.casinos?.name ?? "—"}</td>
                       <td className="p-2 text-xs text-muted-foreground">{fmtDateTime(p.created_at)}</td>
-                      <td className="p-2 text-right">
+                      <td className="p-2 text-right whitespace-nowrap">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="mr-2"
+                          onClick={() => setTrust({ player_id: p.id, name: p.full_name ?? `${p.first_name} ${p.last_name}` })}
+                        >
+                          <ShieldCheck className="size-3.5" /> Mark Trusted
+                        </Button>
                         <Button
                           size="sm"
                           variant="ghost"
