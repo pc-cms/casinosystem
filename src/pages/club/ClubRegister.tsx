@@ -121,6 +121,7 @@ export default function ClubRegister() {
           dob,
           id_number: idNumber || null,
           casino_slug: casinoSlug,
+          password,
         }),
       });
       const json = await res.json();
