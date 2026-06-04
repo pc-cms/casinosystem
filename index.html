@@ -70,6 +70,14 @@
               var tc = document.querySelector('meta[name="theme-color"]');
               if (tc) tc.setAttribute("content", branch.themeColor);
             }
+            if (canonical === "club") {
+              var desc = document.querySelector('meta[name="description"]');
+              if (desc) desc.setAttribute("content", "Premier Club — premium gaming rewards, wallet & exclusive perks in Tanzania.");
+              var ogt = document.querySelector('meta[property="og:title"]');
+              if (ogt) ogt.setAttribute("content", "Premier Club");
+              var ogd = document.querySelector('meta[property="og:description"]');
+              if (ogd) ogd.setAttribute("content", "Premium gaming rewards, wallet & exclusive perks in Tanzania.");
+            }
           }
         } catch (e) { /* noop */ }
       })();
