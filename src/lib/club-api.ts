@@ -37,8 +37,13 @@ async function callFn<T = any>(name: string, body: any, withAuth = false): Promi
     headers,
     body: JSON.stringify(body ?? {}),
   });
-  const json = await res.json();
-  if (!res.ok || json.error) throw new Error(json.error || `request_failed_${res.status}`);
+  const text = await res.text();
+  let json: any = {};
+  try { json = text ? JSON.parse(text) : {}; } catch { /* non-JSON body */ }
+  if (!res.ok || json.error) {
+    const msg = json.error || (text && text.length < 200 ? text : `request_failed_${res.status}`);
+    throw new Error(msg);
+  }
   return json as T;
 }
 
