@@ -838,9 +838,16 @@ export const RegisterTab = ({ onRegistered }: { onRegistered?: () => void } = {}
           onClick={handleSubmit}
           disabled={!canSubmit}
           className="w-full gap-1.5 h-12 text-base"
+          title={canSubmit ? "" : "Requires first name, last name, phone, and date of birth (18+)"}
         >
-          <UserPlus className="w-5 h-5" /> Register Player
+          <UserPlus className="w-5 h-5" /> Save
         </Button>
+        {!isAdult && form.birth_date && (
+          <p className="text-xs text-destructive text-center -mt-2">Player must be at least 18 years old.</p>
+        )}
+        <p className="text-[10px] text-muted-foreground text-center -mt-1">
+          Save creates an unverified player. Add photo + ID to use Verify &amp; Save below.
+        </p>
 
         {/* Verify & Save — single-tap verified registration */}
         {(() => {
