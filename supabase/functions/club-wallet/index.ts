@@ -24,22 +24,24 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ ok: true, player: null, balance: 0, grants: [], redemptions: [] }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const { data: grants = [] } = await sb
+    const { data: grantsRaw } = await sb
       .from("promo_grants")
       .select("id, amount, remaining, status, source, expires_at, created_at, notes")
       .eq("player_id", player.id)
       .eq("status", "active")
       .gt("remaining", 0)
       .order("expires_at", { ascending: true, nullsFirst: false });
+    const grants = grantsRaw ?? [];
 
-    const balance = (grants ?? []).reduce((s, g: any) => s + Number(g.remaining || 0), 0);
+    const balance = grants.reduce((s, g: any) => s + Number(g.remaining || 0), 0);
 
-    const { data: redemptions = [] } = await sb
+    const { data: redemptionsRaw } = await sb
       .from("promo_redemptions")
       .select("id, amount, payout_type, created_at, casino_id")
       .eq("player_id", player.id)
       .order("created_at", { ascending: false })
       .limit(20);
+    const redemptions = redemptionsRaw ?? [];
 
     // Short-lived rotating token used as the cashier QR payload (60s).
     const redeem_token = await issueClubToken(session.phone, 60);
