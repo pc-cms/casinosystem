@@ -130,6 +130,7 @@ const ActiveShiftView = ({ shift, players, tables }: {
   const navigate = useNavigate();
   const [showCloseTables, setShowCloseTables] = useState(false);
   const [tipsKind, setTipsKind] = useState<TipsKind | null>(null);
+  const [showPromoIn, setShowPromoIn] = useState(false);
   
   
 
