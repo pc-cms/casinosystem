@@ -30,7 +30,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { cn } from "@/lib/utils";
 import arushaLogo from "@/assets/arusha-logo.png";
 
-type AppRole = "cashier" | "cashier_slots" | "pit" | "manager" | "floor_manager" | "reception" | "finance_manager" | "surveillance" | "super_admin" | "hr";
+type AppRole = "cashier" | "cashier_slots" | "pit" | "manager" | "floor_manager" | "reception" | "finance_manager" | "surveillance" | "super_admin" | "hr" | "account_manager";
 
 // Section labels for the hybrid grouping (roles + shared ANALYTICS)
 type Section = "OVERVIEW" | "PIT" | "STAFF" | "CASHIER" | "RECEPTION" | "FINANCE" | "HR" | "ANALYTICS" | "CRM" | "MARKETING" | "BAR" | "PROMO" | "SYSTEM";
@@ -45,7 +45,7 @@ type NavItem = {
 
 const NAV_ITEMS: NavItem[] = [
   // OVERVIEW
-  { to: "/", icon: LayoutDashboard, label: "Dashboard", roles: ["super_admin", "manager", "pit", "reception", "finance_manager", "surveillance"], section: "OVERVIEW" },
+  { to: "/", icon: LayoutDashboard, label: "Dashboard", roles: ["super_admin", "manager", "pit", "reception", "finance_manager", "surveillance", "account_manager" as AppRole], section: "OVERVIEW" },
 
 
   // PIT — alphabetical order (trackers + incidents).
@@ -75,8 +75,8 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/tips-and-bonuses", icon: Gift, label: "Tips & Bonuses", roles: ["super_admin", "manager", "floor_manager", "finance_manager", "surveillance"], section: "CASHIER" },
 
   // RECEPTION — alphabetical
-  { to: "/blacklist", icon: ShieldAlert, label: "Blacklist", roles: ["super_admin", "manager", "floor_manager", "reception", "finance_manager", "surveillance"], section: "RECEPTION" },
-  { to: "/guests", icon: UserCheck, label: "Guests", roles: ["super_admin", "manager", "floor_manager", "reception", "finance_manager", "surveillance"], section: "RECEPTION" },
+  { to: "/blacklist", icon: ShieldAlert, label: "Blacklist", roles: ["super_admin", "manager", "floor_manager", "reception", "finance_manager", "surveillance", "account_manager" as AppRole], section: "RECEPTION" },
+  { to: "/guests", icon: UserCheck, label: "Guests", roles: ["super_admin", "manager", "floor_manager", "reception", "finance_manager", "surveillance", "account_manager" as AppRole], section: "RECEPTION" },
   { to: "/reception", icon: DoorOpen, label: "Reception", roles: ["super_admin", "manager", "floor_manager", "reception", "finance_manager"], section: "RECEPTION" },
 
   // FINANCE — alphabetical, separate routes (no tabs)
@@ -103,10 +103,10 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/groups", icon: UsersRound, label: "Groups", roles: ["super_admin", "manager", "floor_manager", "finance_manager"], section: "ANALYTICS" },
 
   // CRM
-  { to: "/crm/players", icon: UsersRound, label: "Player CRM", roles: ["super_admin", "manager", "floor_manager", "finance_manager", "hr"], section: "CRM" },
+  { to: "/crm/players", icon: UsersRound, label: "Player CRM", roles: ["super_admin", "manager", "floor_manager", "finance_manager", "hr", "account_manager" as AppRole], section: "CRM" },
 
   // MARKETING
-  { to: "/marketing/campaigns", icon: Megaphone, label: "Campaigns", roles: ["super_admin", "manager", "finance_manager"], section: "MARKETING" },
+  { to: "/marketing/campaigns", icon: Megaphone, label: "Campaigns", roles: ["super_admin", "manager", "finance_manager", "account_manager" as AppRole], section: "MARKETING" },
   
   // BAR / POS — visible only to super_admin and dedicated POS roles.
   { to: "/pos/manager", icon: Coffee, label: "Bar Manager", roles: ["super_admin", "pos_manager" as AppRole, "pos_bartender" as AppRole, "pos_waiter" as AppRole], section: "BAR" },
@@ -115,21 +115,21 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/pos/manager/stock-counts", icon: ClipboardList, label: "Bar · Stock Counts", roles: ["super_admin", "pos_manager" as AppRole, "pos_bartender" as AppRole, "pos_waiter" as AppRole], section: "BAR" },
 
   // PROMO — Premier Club promo campaigns, codes, wallet, lottery, shop
-  { to: "/admin/promo-codes", icon: Gift, label: "Promo Codes", roles: ["super_admin", "manager", "finance_manager"], section: "PROMO" },
-  { to: "/admin/promo-grants", icon: Gift, label: "Promo Grants", roles: ["super_admin", "manager", "finance_manager"], section: "PROMO" },
-  { to: "/admin/lotteries", icon: Gift, label: "Lotteries", roles: ["super_admin", "manager", "finance_manager"], section: "PROMO" },
-  { to: "/admin/shop", icon: Gift, label: "Shop Catalog", roles: ["super_admin", "manager", "finance_manager"], section: "PROMO" },
-  { to: "/admin/shop/orders", icon: ClipboardList, label: "Shop Orders", roles: ["super_admin", "manager", "finance_manager"], section: "PROMO" },
+  { to: "/admin/promo-codes", icon: Gift, label: "Promo Codes", roles: ["super_admin", "manager", "finance_manager", "account_manager" as AppRole], section: "PROMO" },
+  { to: "/admin/promo-grants", icon: Gift, label: "Promo Grants", roles: ["super_admin", "manager", "finance_manager", "account_manager" as AppRole], section: "PROMO" },
+  { to: "/admin/lotteries", icon: Gift, label: "Lotteries", roles: ["super_admin", "manager", "finance_manager", "account_manager" as AppRole], section: "PROMO" },
+  { to: "/admin/shop", icon: Gift, label: "Shop Catalog", roles: ["super_admin", "manager", "finance_manager", "account_manager" as AppRole], section: "PROMO" },
+  { to: "/admin/shop/orders", icon: ClipboardList, label: "Shop Orders", roles: ["super_admin", "manager", "finance_manager", "account_manager" as AppRole], section: "PROMO" },
   { to: "/admin/kyc", icon: ShieldCheck, label: "KYC Reviews", roles: ["super_admin", "manager", "finance_manager"], section: "PROMO" },
-  { to: "/admin/am-budget", icon: Wallet, label: "My AM Budget", roles: ["super_admin", "manager", "finance_manager"], section: "PROMO" },
-  { to: "/admin/am-performance", icon: TrendingUp, label: "AM Performance", roles: ["super_admin", "manager", "finance_manager"], section: "PROMO" },
+  { to: "/admin/am-budget", icon: Wallet, label: "My AM Budget", roles: ["super_admin", "manager", "finance_manager", "account_manager" as AppRole], section: "PROMO" },
+  { to: "/admin/am-performance", icon: TrendingUp, label: "AM Performance", roles: ["super_admin", "manager", "finance_manager", "account_manager" as AppRole], section: "PROMO" },
   { to: "/admin/fm-topups", icon: Wallet, label: "FM Top-ups", roles: ["super_admin", "finance_manager"], section: "PROMO" },
-  { to: "/reports/promo-issuance", icon: FileBarChart, label: "Report · Issuance", roles: ["super_admin", "manager", "finance_manager"], section: "PROMO" },
-  { to: "/reports/promo-redemptions", icon: FileBarChart, label: "Report · Redemptions", roles: ["super_admin", "manager", "finance_manager"], section: "PROMO" },
-  { to: "/reports/promo-expiry", icon: FileBarChart, label: "Report · Expiry", roles: ["super_admin", "manager", "finance_manager"], section: "PROMO" },
-  { to: "/reports/promo-codes", icon: FileBarChart, label: "Report · Codes", roles: ["super_admin", "manager", "finance_manager"], section: "PROMO" },
-  { to: "/reports/cashback", icon: FileBarChart, label: "Report · Cashback", roles: ["super_admin", "manager", "finance_manager"], section: "PROMO" },
-  { to: "/reports/lottery-sales", icon: FileBarChart, label: "Report · Lottery Sales", roles: ["super_admin", "manager", "finance_manager"], section: "PROMO" },
+  { to: "/reports/promo-issuance", icon: FileBarChart, label: "Report · Issuance", roles: ["super_admin", "manager", "finance_manager", "account_manager" as AppRole], section: "PROMO" },
+  { to: "/reports/promo-redemptions", icon: FileBarChart, label: "Report · Redemptions", roles: ["super_admin", "manager", "finance_manager", "account_manager" as AppRole], section: "PROMO" },
+  { to: "/reports/promo-expiry", icon: FileBarChart, label: "Report · Expiry", roles: ["super_admin", "manager", "finance_manager", "account_manager" as AppRole], section: "PROMO" },
+  { to: "/reports/promo-codes", icon: FileBarChart, label: "Report · Codes", roles: ["super_admin", "manager", "finance_manager", "account_manager" as AppRole], section: "PROMO" },
+  { to: "/reports/cashback", icon: FileBarChart, label: "Report · Cashback", roles: ["super_admin", "manager", "finance_manager", "account_manager" as AppRole], section: "PROMO" },
+  { to: "/reports/lottery-sales", icon: FileBarChart, label: "Report · Lottery Sales", roles: ["super_admin", "manager", "finance_manager", "account_manager" as AppRole], section: "PROMO" },
   { to: "/reports/am-budget", icon: FileBarChart, label: "Report · AM Budget", roles: ["super_admin", "finance_manager"], section: "PROMO" },
 
   // SYSTEM — admin/system tools

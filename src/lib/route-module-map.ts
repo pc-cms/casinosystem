@@ -126,6 +126,16 @@ export const moduleKeyForRoute = (to: string, label?: string): ModuleKey | null 
   // ============= SYSTEM =============
   if (base === "/import-reports") return "import_reports";
   if (base === "/logs") return "logs";
+  // Premier Club / AM admin surfaces — gated by their own module keys (NOT 'admin').
+  if (base === "/admin/promo-codes") return "promo_codes" as ModuleKey;
+  if (base === "/admin/promo-grants") return "promo_grants" as ModuleKey;
+  if (base === "/admin/lotteries") return "lotteries" as ModuleKey;
+  if (base === "/admin/shop") return "shop_catalog" as ModuleKey;
+  if (base === "/admin/shop/orders") return "shop_orders" as ModuleKey;
+  if (base === "/admin/am-budget") return "am_budget" as ModuleKey;
+  if (base === "/admin/am-performance") return "am_performance" as ModuleKey;
+  if (base === "/admin/kyc") return "admin";
+  if (base === "/admin/fm-topups") return "admin";
   if (base === "/admin" || base.startsWith("/admin/")) return "admin";
 
   // ============= MARKETING =============

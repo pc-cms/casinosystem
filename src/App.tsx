@@ -386,22 +386,22 @@ const ProtectedRoutes = () => {
           <Route path="/admin/users/:id/edit" element={<RoleGuard path="/admin"><ErrorBoundary><UserEditPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/admin/sync-log" element={<RoleGuard path="/admin"><ErrorBoundary><SyncLogPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/admin/sync-queue" element={<RoleGuard path="/admin"><ErrorBoundary><SyncQueuePage /></ErrorBoundary></RoleGuard>} />
-          <Route path="/admin/promo-codes" element={<RoleGuard path="/admin"><ErrorBoundary><PromoCodesPage /></ErrorBoundary></RoleGuard>} />
-          <Route path="/admin/shop" element={<RoleGuard path="/admin"><ErrorBoundary><ShopCatalogPage /></ErrorBoundary></RoleGuard>} />
-          <Route path="/admin/shop/orders" element={<RoleGuard path="/admin"><ErrorBoundary><ShopOrdersPage /></ErrorBoundary></RoleGuard>} />
-          <Route path="/admin/lotteries" element={<RoleGuard path="/admin"><ErrorBoundary><LotteriesPage /></ErrorBoundary></RoleGuard>} />
-          <Route path="/admin/promo-grants" element={<RoleGuard path="/admin"><ErrorBoundary><PromoGrantsPage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/admin/promo-codes" element={<RoleGuard path="/admin/promo-codes"><ErrorBoundary><PromoCodesPage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/admin/shop" element={<RoleGuard path="/admin/shop"><ErrorBoundary><ShopCatalogPage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/admin/shop/orders" element={<RoleGuard path="/admin/shop/orders"><ErrorBoundary><ShopOrdersPage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/admin/lotteries" element={<RoleGuard path="/admin/lotteries"><ErrorBoundary><LotteriesPage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/admin/promo-grants" element={<RoleGuard path="/admin/promo-grants"><ErrorBoundary><PromoGrantsPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/admin/kyc" element={<RoleGuard path="/admin"><ErrorBoundary><KycReviewsPage /></ErrorBoundary></RoleGuard>} />
-          <Route path="/admin/am-budget" element={<RoleGuard path="/admin"><ErrorBoundary><AmBudgetPage /></ErrorBoundary></RoleGuard>} />
-          <Route path="/admin/am-performance" element={<RoleGuard path="/admin"><ErrorBoundary><AmPerformancePage /></ErrorBoundary></RoleGuard>} />
-          <Route path="/reports/promo-issuance" element={<RoleGuard path="/admin"><ErrorBoundary><PromoIssuanceReport /></ErrorBoundary></RoleGuard>} />
-          <Route path="/reports/promo-redemptions" element={<RoleGuard path="/admin"><ErrorBoundary><PromoRedemptionsReport /></ErrorBoundary></RoleGuard>} />
-          <Route path="/reports/promo-expiry" element={<RoleGuard path="/admin"><ErrorBoundary><PromoExpiryReport /></ErrorBoundary></RoleGuard>} />
-          <Route path="/reports/cashback" element={<RoleGuard path="/admin"><ErrorBoundary><CashbackReport /></ErrorBoundary></RoleGuard>} />
+          <Route path="/admin/am-budget" element={<RoleGuard path="/admin/am-budget"><ErrorBoundary><AmBudgetPage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/admin/am-performance" element={<RoleGuard path="/admin/am-performance"><ErrorBoundary><AmPerformancePage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/reports/promo-issuance" element={<ErrorBoundary><PromoIssuanceReport /></ErrorBoundary>} />
+          <Route path="/reports/promo-redemptions" element={<ErrorBoundary><PromoRedemptionsReport /></ErrorBoundary>} />
+          <Route path="/reports/promo-expiry" element={<ErrorBoundary><PromoExpiryReport /></ErrorBoundary>} />
+          <Route path="/reports/cashback" element={<ErrorBoundary><CashbackReport /></ErrorBoundary>} />
           <Route path="/reports/am-budget" element={<RoleGuard path="/admin"><ErrorBoundary><AmBudgetReport /></ErrorBoundary></RoleGuard>} />
           <Route path="/admin/fm-topups" element={<RoleGuard path="/admin"><ErrorBoundary><FmTopupsPage /></ErrorBoundary></RoleGuard>} />
-          <Route path="/reports/promo-codes" element={<RoleGuard path="/admin"><ErrorBoundary><PromoCodesReport /></ErrorBoundary></RoleGuard>} />
-          <Route path="/reports/lottery-sales" element={<RoleGuard path="/admin"><ErrorBoundary><LotterySalesReport /></ErrorBoundary></RoleGuard>} />
+          <Route path="/reports/promo-codes" element={<ErrorBoundary><PromoCodesReport /></ErrorBoundary>} />
+          <Route path="/reports/lottery-sales" element={<ErrorBoundary><LotterySalesReport /></ErrorBoundary>} />
           <Route path="/import-reports" element={<RoleGuard path="/import-reports"><ImportReports /></RoleGuard>} />
           <Route path="/table-results" element={<Navigate to="/reports?tab=table-results" replace />} />
           <Route path="/bank-checks" element={<RoleGuard path="/bank-checks"><BankChecks /></RoleGuard>} />

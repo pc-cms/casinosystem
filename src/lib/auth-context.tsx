@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
 
-type AppRole = "cashier" | "cashier_slots" | "pit" | "manager" | "floor_manager" | "reception" | "finance_manager" | "surveillance" | "super_admin" | "hr";
+type AppRole = "cashier" | "cashier_slots" | "pit" | "manager" | "floor_manager" | "reception" | "finance_manager" | "surveillance" | "super_admin" | "hr" | "account_manager";
 
 type ManagerOverride = {
   active: boolean;
