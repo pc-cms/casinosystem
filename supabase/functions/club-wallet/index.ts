@@ -19,10 +19,15 @@ Deno.serve(async (req) => {
     if (!session) return new Response(JSON.stringify({ error: "invalid token" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
     const sb = createClient(SUPABASE_URL, SERVICE_KEY);
-    const { data: player } = await sb.from("players").select("id, first_name, last_name, phone, verification_status").eq("phone", session.phone).maybeSingle();
+    const { data: player } = await sb
+      .from("players")
+      .select("id, first_name, last_name, phone, verification_status, dob, id_number, casino_id, casinos(name)")
+      .eq("phone", session.phone)
+      .maybeSingle();
     if (!player) {
       return new Response(JSON.stringify({ ok: true, player: null, balance: 0, grants: [], redemptions: [] }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
+    const playerOut = { ...player, casino_name: (player as any).casinos?.name ?? null };
 
     const { data: grantsRaw } = await sb
       .from("promo_grants")
