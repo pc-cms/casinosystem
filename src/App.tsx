@@ -377,6 +377,10 @@ const ProtectedRoutes = () => {
           <Route path="/admin/shop" element={<RoleGuard path="/admin"><ErrorBoundary><ShopCatalogPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/admin/shop/orders" element={<RoleGuard path="/admin"><ErrorBoundary><ShopOrdersPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/admin/lotteries" element={<RoleGuard path="/admin"><ErrorBoundary><LotteriesPage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/admin/promo-grants" element={<RoleGuard path="/admin"><ErrorBoundary><PromoGrantsPage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/admin/kyc" element={<RoleGuard path="/admin"><ErrorBoundary><KycReviewsPage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/reports/promo-issuance" element={<RoleGuard path="/admin"><ErrorBoundary><PromoIssuanceReport /></ErrorBoundary></RoleGuard>} />
+          <Route path="/reports/promo-redemptions" element={<RoleGuard path="/admin"><ErrorBoundary><PromoRedemptionsReport /></ErrorBoundary></RoleGuard>} />
           <Route path="/import-reports" element={<RoleGuard path="/import-reports"><ImportReports /></RoleGuard>} />
           <Route path="/table-results" element={<Navigate to="/reports?tab=table-results" replace />} />
           <Route path="/bank-checks" element={<RoleGuard path="/bank-checks"><BankChecks /></RoleGuard>} />
