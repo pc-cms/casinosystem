@@ -46,6 +46,14 @@ Deno.serve(async (req) => {
     const dob = String(body.dob ?? "").trim(); // YYYY-MM-DD
     const idNum = String(body.id_number ?? "").trim();
     const casinoSlug = String(body.casino_slug ?? "").trim().toLowerCase();
+    const password = String(body.password ?? "");
+
+    const pwErr = validatePasswordStrength(password);
+    if (pwErr) {
+      return new Response(JSON.stringify({ error: pwErr }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     if (!ALLOWED_SLUGS.has(casinoSlug)) {
       return new Response(JSON.stringify({ error: ERROR_MESSAGES.invalid_casino }), {
