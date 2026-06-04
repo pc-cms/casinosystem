@@ -1,8 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
-import { clubApi } from "@/lib/club-api";
+import { clubApi, getClubToken } from "@/lib/club-api";
 import { formatNumberSpaces } from "@/lib/currency";
 import { fmtDateTime } from "@/lib/format-date";
-import { Sparkles } from "lucide-react";
+import { Sparkles, QrCode } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
 
 export default function ClubWallet() {
   const { data, isLoading, error } = useQuery({
