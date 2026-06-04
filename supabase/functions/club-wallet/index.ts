@@ -52,7 +52,7 @@ Deno.serve(async (req) => {
     const redeem_token = await issueClubToken(session.phone, 60);
     const redeem_token_exp = Math.floor(Date.now() / 1000) + 60;
 
-    return new Response(JSON.stringify({ ok: true, player, balance, grants, redemptions, redeem_token, redeem_token_exp }), {
+    return new Response(JSON.stringify({ ok: true, player: playerOut, balance, grants, redemptions, redeem_token, redeem_token_exp }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
