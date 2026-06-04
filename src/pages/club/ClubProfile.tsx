@@ -38,13 +38,22 @@ const Field = ({ label, children }: { label: string; children: React.ReactNode }
   </label>
 );
 
-const TextInput = (props: React.InputHTMLAttributes<HTMLInputElement>) => (
-  <input
-    {...props}
-    className={`w-full h-12 rounded-md border px-3 outline-none ${props.className ?? ""}`}
-    style={{ ...inputStyle, ...(props.style || {}) }}
-  />
-);
+const TextInput = (props: React.InputHTMLAttributes<HTMLInputElement>) => {
+  const isDate = props.type === "date";
+  return (
+    <input
+      {...props}
+      className={`w-full h-12 rounded-md border px-3 outline-none min-w-0 ${props.className ?? ""}`}
+      style={{
+        ...inputStyle,
+        ...(isDate
+          ? { fontSize: "14px", textAlign: "left", WebkitAppearance: "none", appearance: "none" as any }
+          : {}),
+        ...(props.style || {}),
+      }}
+    />
+  );
+};
 
 const Row = ({ icon: Icon, label, value }: { icon: any; label: string; value?: string | null }) => (
   <div className="flex items-center gap-3 px-4 py-3">
