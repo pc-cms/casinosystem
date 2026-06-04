@@ -286,7 +286,7 @@ const KycReviewsPage = () => {
                         <Button
                           size="sm"
                           variant="destructive"
-                          onClick={() => setRevoke({ player_id: p.id, name: p.full_name ?? `${p.first_name} ${p.last_name}` })}
+                          onClick={() => setRevoke({ player_id: p.id, name: p.full_name ?? `${p.first_name} ${p.last_name}`, source: "reception" })}
                         >
                           <RotateCcw className="size-3.5" /> Revoke
                         </Button>
