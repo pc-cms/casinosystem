@@ -44,9 +44,9 @@ export default function ClubWallet() {
       </div>
 
       <section className="flex flex-col items-center gap-3 rounded-2xl border border-border bg-card p-4">
-        {showQr && token ? (
+        {showQr && qrPayload ? (
           <>
-            <QRCodeSVG value={token} size={192} bgColor="#ffffff" fgColor="#000000" includeMargin />
+            <QRCodeSVG value={qrPayload} size={192} bgColor="#ffffff" fgColor="#000000" includeMargin />
             <p className="text-xs text-muted-foreground text-center">Show this code to the cashier to redeem your credits.</p>
             <Button variant="outline" size="sm" onClick={() => setShowQr(false)}>Hide QR</Button>
           </>
