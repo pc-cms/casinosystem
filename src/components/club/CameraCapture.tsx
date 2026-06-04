@@ -48,12 +48,14 @@ async function fileToCompressedDataUrl(file: File, maxSize: number, quality: num
 }
 
 export default function CameraCapture({
-  facing, label, value, onChange, gold, goldDeep, maxSize = 1600, quality = 0.82,
+  facing, label, value, onChange, gold, goldDeep, maxSize = 1600, quality = 0.82, allowGallery = false,
 }: Props) {
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const galleryRef = useRef<HTMLInputElement | null>(null);
   const [busy, setBusy] = useState(false);
 
   const pick = () => inputRef.current?.click();
+  const pickGallery = () => galleryRef.current?.click();
 
   const handleChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
