@@ -462,6 +462,24 @@ const AppRoutes = () => {
     );
   }
 
+  // club.casinosystem.app → Premier Club PWA only (no staff app)
+  if (detectedSlug === "__club__") {
+    return (
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          <Route path="/club" element={<ClubLayout />}>
+            <Route index element={<Navigate to="/club/login" replace />} />
+            <Route path="login" element={<ClubLogin />} />
+            <Route path="wallet" element={<ClubWallet />} />
+            <Route path="shop" element={<ClubShop />} />
+            <Route path="tickets" element={<ClubTickets />} />
+          </Route>
+          <Route path="*" element={<Navigate to="/club/login" replace />} />
+        </Routes>
+      </Suspense>
+    );
+  }
+
   if (loading) return <FullScreenLoader label="Restoring session..." />;
   const defaultRoute = user ? getDefaultRoute(roles) : "/";
   return (
