@@ -181,6 +181,11 @@ export default function ClubProfile() {
           {player.first_name} {player.last_name}
         </h1>
         <div className="mt-2"><StatusBadge /></div>
+        {isVerified && (player as any).verified_source === "reception" && (
+          <p className="mt-1.5 text-[10px] tracking-[0.2em] uppercase" style={{ color: GOLD_DEEP }}>
+            Verified at reception{(player as any).verified_at ? ` · ${new Date((player as any).verified_at).toLocaleDateString("en-GB")}` : ""}
+          </p>
+        )}
       </div>
 
       {/* ===== Walk-in QR (verified only) ===== */}
