@@ -1,109 +1,100 @@
+# Premier Club — Self-service profile + Get Verified (KYC)
 
-# Premier Club — Brand-Accurate Landing + Auth + Registration
+## Flow summary
 
-Rebuild `club.*` subdomain as a player-facing brand experience using the Premier Casino brand book. Replaces the current bare OTP screen with a cinematic landing, a polished OTP login, and a self-service registration flow — all in the official brand identity.
+1. **Registration** = только phone + password + First, Last, DOB (минимум для 18+). Создаётся stub `players` (`verification_status='unverified'`) + `club_accounts`.
+2. **Profile** редактируется свободно пока `unverified`. Большая кнопка **Get Verified** запускает wizard.
+3. **Wizard**: Selfie → ID front → ID back → OCR auto-fill (имя/DOB/ID) → Review → Send to verify. Создаёт `kyc_reviews(status='pending')`, `verification_status='pending'`. Профиль становится read-only с бейджем "In review" и кнопкой **Cancel review** (откатывает в `unverified`, перезаливает).
+4. **AM** в CRM апрувит → `verification_status='verified'` → бейдж "Verified", всё залочено.
+5. **Restrictions** для unverified+pending: блок на Shop, Lottery, promo grants. Walk-in QR и просмотр баланса доступны всегда.
 
-## Brand System (from Guideline 2025)
+## Registration (minimal)
 
-| Token | Hex | Use |
-|---|---|---|
-| `brand-red` | `#A0000D` | Predominant background |
-| `brand-red-2` | `#D00D13` | Hover / accent red |
-| `brand-magenta` | `#EE49C3` | Gradient accent only |
-| `brand-soft-gold` | `#E8C688` | Type & accents on dark |
-| `brand-dark-gold` | `#A68E61` | Type & accents on light |
-| `brand-light-blue` | `#B1EFFF` | Inverted backgrounds / chip |
-| `brand-ink` | `#0a0a0a` | Deep contrast |
+`ClubRegister.tsx`: phone → OTP → форма (First, Last, DOB, Password). Branch выбирается потом в Profile (по умолчанию central Premier Club casino).
 
-**Fonts**: Faberge (display headings — already loaded as `/fonts/Faberge-*.otf`) + Inter (body — already loaded). Aquawax FX is paywalled; we approximate with Inter as documented in the brand book's intent (clean modern sans).
+`club-register-player` упрощается: принимает только обязательные поля, `id_number=''`, `casino_slug` defaults to `premier`.
 
-**Signature pattern**: SVG of concentric rings + dotted halo over dark-red background (matches pages 21-23 of the guide).
+## Profile page (editable while unverified)
 
-**Slogans used**:
-- Hero: "Premium gaming in Tansania"
-- Sub-hero: "Only for those who dare"
-- Footer mark: "Subtle. Seductive. Prestigious."
+`ClubProfile.tsx` показывает форму вместо read-only сетки:
 
-**Logo**: reuse `/public/arusha-premier-logo.svg` (already in project, same elephant+chip mark).
+- Поля: First, Last, DOB, ID number (опц.), Home branch (dropdown).
+- Status badge: `Unverified` / `In review` / `Verified`.
+- **CTA**:
+  - `unverified` → **Save** (silent patch) + большая **Get Verified** → `/club/verify`.
+  - `pending` → форма read-only + **Cancel review** (вторичная кнопка, confirm dialog) → откат в `unverified`, kyc_reviews row → `status='cancelled'`.
+  - `verified` → read-only.
+- Walk-in QR остаётся сверху всегда.
 
-## Scope
+Новые edge functions:
+- `club-update-profile` (club token): patch first/last/dob/id_number/casino_id. Allowed только если `verification_status='unverified'`.
+- `club-cancel-kyc`: переводит player → `unverified`, помечает pending kyc_review → `cancelled`.
 
-### 1. Routing (`src/App.tsx`)
-Inside the existing `__club__` subdomain block:
-- `/` → **ClubLanding** (new public marketing page)
-- `/club` → redirect to `/`
-- `/club/login` → redesigned OTP login (existing logic, new look)
-- `/club/register` → new 3-step registration wizard
-- `/club/wallet | /shop | /tickets` — unchanged behavior, inherit new theme tokens
+## Get Verified wizard `/club/verify`
 
-### 2. ClubLanding (`/`)
-Single-scroll mobile-first page on dark-red brand canvas with dotted pattern overlay.
+Полноэкранный wizard (gold/red, бренд Premier Club, не WizardShell — отдельная стилизованная обёртка). 4 шага:
 
-1. **Hero** — fullscreen `#A0000D` with concentric-rings SVG, elephant logo top-center, Faberge headline `PREMIER CLUB`, gold tagline "Premium gaming in Tansania", and two CTAs:
-   - Primary: **Join the Club** → `/club/register` (soft-gold filled)
-   - Ghost: **Sign In** → `/club/login` (gold outline)
-2. **Manifesto strip** — italic Faberge "Only for those who dare." over dot pattern.
-3. **Member Benefits** — 4 glass-on-red cards with gold icons: Cashback, Promo Codes, Lottery Tickets, Exclusive Shop.
-4. **How it works** — 3 numbered gold steps: Register → Play → Redeem, with hairline gold connectors.
-5. **Network** — 4 gold pill badges: Arusha · Mwanza · Dodoma · Mbeya.
-6. **Footer** — small Faberge "Subtle. Seductive. Prestigious.", © 2025 Premier Casino.
+1. **Selfie** — `<input type="file" accept="image/*" capture="user">`, preview + retake.
+2. **ID front** — `capture="environment"`, preview + retake.
+3. **ID back** — то же.
+4. **Confirm details** — OCR результат (вызов `ocr-document` на ID front после upload) подставляется в форму. Поля First, Last, DOB, ID number — все editable. Review-блок с тремя миниатюрами фото.
+5. **Submit** — кнопка **Send to verify**.
 
-### 3. ClubLogin (`/club/login`) — restyled
-Same `clubApi.sendOtp`/`verifyOtp` logic. New look:
-- Dark-red canvas + dot pattern.
-- Centered black glass card with soft-gold hairline border (1px `#E8C688`/40%).
-- Faberge headline "Welcome back" in soft gold.
-- Phone step → 6-digit OTP step with large monospace input.
-- Secondary link "New here? Create an account" → `/club/register`.
+Photos → private bucket `club-kyc`, путь `{player_id}/selfie.jpg`, `id-front.jpg`, `id-back.jpg`. Upload через edge function (multipart) либо signed-upload URL, чтобы не давать клиенту прямой доступ к bucket.
 
-### 4. ClubRegister (`/club/register`) — NEW
-Wizard, single glass card, gold-on-red:
-1. **Phone** → `club-send-otp` (reused).
-2. **Verify** (6-digit) → `club-verify-otp`. If `player_exists` → `/club/wallet`. Else next step.
-3. **Profile** — First name, Last name, Date of birth (18+ guard), ID number (optional), preferred branch (Arusha / Mwanza / Dodoma / Mbeya). Submit → new edge function `club-register-player`.
-4. **Done** — gold check, "Welcome to Premier Club" + button to wallet.
+`club-submit-kyc`:
+- Валидирует player owns session, `verification_status='unverified'`.
+- Сохраняет URLs в `players.photo_url` (selfie) и `players.id_document_url` (id-front).
+- Patches first/last/birth_date/id_number.
+- INSERT `kyc_reviews(player_id, casino_id, source='club_app', status='pending', ai_result=<ocr_json + paths>)`.
+- Sets `players.verification_status='pending'`.
 
-**New edge function `club-register-player`**:
-- Auth: club session token (`verifyClubToken` from `_shared/club-token.ts`).
-- Validates: 18+ DOB, unique phone, optional unique ID, valid branch slug.
-- Creates `players` row (`verification_status='pending'`, `source='self_registration'`, `preferred_casino_id`).
-- Ensures `club_accounts` row.
-- Returns the player.
+## Restrictions для unverified/pending
 
-No new tables — uses existing `players`, `club_accounts`, `club_otp_codes`.
+Добавить в edge functions проверку `verification_status='verified'`:
+- `club-shop-order` → отказ `kyc_required`.
+- `club-buy-ticket` → отказ `kyc_required`.
+- AM при выдаче grant (UI в CRM) — disable кнопку для unverified/pending игроков (frontend gate; backend RPC уже проверяет AM role).
 
-### 5. Theme isolation
-- New `.club-theme` block in `index.css` declaring the brand tokens (HSL) — does not touch global CMS theme.
-- `ClubLayout` wraps content in `<div className="club-theme">`. Header/bottom-nav hidden on `/` and `/club/register`.
-- Reusable `ClubBackdrop` component renders the concentric-rings + dot SVG (no extra deps).
-- Faberge already loaded globally via `index.css`.
+Frontend: на `/club/shop` и `/club/tickets` показывать баннер "Complete verification to unlock purchases" + disabled CTA для unverified/pending.
 
-## Technical Section
+## DB migration
 
-### Files to create
-- `src/pages/club/ClubLanding.tsx`
-- `src/pages/club/ClubRegister.tsx`
-- `src/components/club/ClubBackdrop.tsx` — SVG dot/rings pattern.
-- `src/components/club/ClubCard.tsx` — black-glass card with gold hairline.
-- `supabase/functions/club-register-player/index.ts`
-- Migration: SECURITY DEFINER RPC `club_self_register(_phone, _first, _last, _dob, _id, _casino_slug)` invoked by the edge function with service role; keeps RLS strict on `players`.
+- Enum `player_verification_status`: убедиться что есть `unverified`, `pending`, `verified`, `rejected`. Добавить недостающие.
+- `kyc_review_status`: добавить `cancelled` если отсутствует.
+- `kyc_review_source`: добавить `club_app` если отсутствует.
+- Private bucket `club-kyc` (через `storage_create_bucket`).
+- RLS на `storage.objects/club-kyc`: AM/super_admin/manager — read; service role — write (uploads only через edge function).
+- RPC `club_update_profile`, `club_submit_kyc`, `club_cancel_kyc` (SECURITY DEFINER, accept player_id) — вызываются из edge functions с service key, поэтому RLS не блокирует.
+- Cross-casino read: `players` rows клуб-зарегистрированных игроков (имеют `club_accounts`) видимы reception/cashier на любой ветке через дополнительный SELECT policy.
 
-### Files to edit
-- `src/App.tsx` — add `/` (landing) + `/club/register` routes inside `__club__` branch.
-- `src/pages/club/ClubLayout.tsx` — hide chrome on landing & register; wrap with `.club-theme`.
-- `src/pages/club/ClubLogin.tsx` — restyle with brand tokens, add "Create account" link.
-- `src/lib/club-api.ts` — add `register(payload)`.
-- `index.css` — append `.club-theme` block with brand HSL tokens + `.club-pattern` utility.
-- `package.json` — patch bump.
+## Files
 
-### Out of scope
-- KYC document upload (we just set `verification_status='pending'`).
-- Push notifications, native PWA install prompt copy changes.
-- Restyling `/club/wallet`, `/club/shop`, `/club/tickets` deep visuals (they inherit new tokens automatically; no layout changes).
+**Created**
+- `supabase/functions/club-update-profile/index.ts`
+- `supabase/functions/club-submit-kyc/index.ts`
+- `supabase/functions/club-cancel-kyc/index.ts`
+- `src/pages/club/ClubVerifyWizard.tsx`
+- `src/components/club/CameraCapture.tsx` — file+camera input wrapper c preview/retake
 
-## Verification
-- Visit `club.casinosystem.app` → brand-accurate landing renders (dark red, Faberge, elephant logo, dot pattern).
-- "Join the Club" → 3-step register → creates `players` + `club_accounts` → redirects to wallet.
-- "Sign In" → existing OTP works.
-- Other subdomains (`arusha.*`, `mwanza.*`, root admin) unchanged.
-- `bun vitest run` green.
+**Edited**
+- `src/pages/club/ClubRegister.tsx` — добавить First/Last/DOB (убрать ID, branch)
+- `src/pages/club/ClubProfile.tsx` — editable форма + статус-CTA
+- `src/pages/club/ClubWallet.tsx` — баннер "Get verified" для unverified
+- `src/pages/club/ClubShop.tsx`, `ClubTickets.tsx` — баннер + disabled CTA
+- `src/lib/club-api.ts` — `updateProfile`, `submitKyc`, `cancelKyc`
+- `src/App.tsx` — `/club/verify`
+- `supabase/functions/club-register-player/index.ts` — упростить до minimal
+- `supabase/functions/club-shop-order`, `club-buy-ticket` — gate by verified
+- `supabase/functions/club-wallet/index.ts` — отдавать `verification_status` (уже есть)
+- DB migration: enums, RPCs, bucket policies
+- `package.json` — bump
+
+## Open question
+
+Один остался: на каком экране выбирать **Home branch**?
+- (A) В Registration форме сразу dropdown (как сейчас).
+- (B) В Profile после первого входа (default Premier Club central).
+- (C) В Get Verified wizard на шаге Confirm.
+
+Если без ответа — иду по (B).
