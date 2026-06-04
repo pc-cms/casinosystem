@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { ShieldCheck, Check, X } from "lucide-react";
+import { useState, useMemo } from "react";
+import { ShieldCheck, Check, X, RotateCcw, ExternalLink } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
@@ -7,29 +7,79 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { DataTable } from "@/components/ui/data-table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ResponsiveDialog, ResponsiveDialogFooter } from "@/components/ui/responsive-dialog";
 import { toast } from "sonner";
-import { fmtDateTime } from "@/lib/format-date";
+import { fmtDateTime, fmtDateOnly } from "@/lib/format-date";
 
 const KycReviewsPage = () => {
   const qc = useQueryClient();
   const [decision, setDecision] = useState<{ id: string; approve: boolean } | null>(null);
   const [notes, setNotes] = useState("");
+  const [revoke, setRevoke] = useState<{ player_id: string; name: string } | null>(null);
+  const [revokeReason, setRevokeReason] = useState("");
+  const [search, setSearch] = useState("");
 
-  const { data: reviews = [], isLoading } = useQuery({
-    queryKey: ["kyc_reviews"],
+  // ============= Queries =============
+  // Tab 1: club app pending queue
+  const { data: queue = [], isLoading: queueLoading } = useQuery({
+    queryKey: ["kyc_reviews", "queue"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("kyc_reviews")
-        .select("id, player_id, casino_id, source, status, ai_result, am_decision_at, am_notes, created_at, players(full_name, phone)")
-        .order("created_at", { ascending: false })
+        .select("id, player_id, casino_id, source, status, ai_result, created_at, players(full_name, phone)")
+        .eq("status", "pending")
+        .order("created_at", { ascending: true })
         .limit(200);
       if (error) throw error;
       return data as any[];
     },
   });
 
+  // Tab 2: verified by reception
+  const { data: receptionVerified = [], isLoading: rvLoading } = useQuery({
+    queryKey: ["players", "reception_verified"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("players")
+        .select("id, full_name, first_name, last_name, phone, id_number, casino_id, verified_at, verified_by, casinos(name)")
+        .eq("verified_source", "reception")
+        .eq("verification_status", "verified")
+        .order("verified_at", { ascending: false })
+        .limit(300);
+      if (error) throw error;
+      return data as any[];
+    },
+  });
+
+  // Tab 3: not verified (unverified + rejected) — priority: pending kyc first
+  const { data: notVerified = [], isLoading: nvLoading } = useQuery({
+    queryKey: ["players", "not_verified"],
+    queryFn: async () => {
+      const { data: players, error } = await supabase
+        .from("players")
+        .select("id, full_name, first_name, last_name, phone, birth_date, verification_status, created_at, casino_id, casinos(name)")
+        .in("verification_status", ["unverified", "rejected"])
+        .order("created_at", { ascending: false })
+        .limit(500);
+      if (error) throw error;
+      const ids = (players ?? []).map((p) => p.id);
+      let pendingMap = new Set<string>();
+      if (ids.length) {
+        const { data: revs } = await supabase
+          .from("kyc_reviews")
+          .select("player_id, source")
+          .in("player_id", ids)
+          .eq("status", "pending");
+        pendingMap = new Set((revs ?? []).map((r: any) => r.player_id));
+      }
+      return (players ?? []).map((p) => ({ ...p, has_pending_kyc: pendingMap.has(p.id) }));
+    },
+  });
+
+  // ============= Mutations =============
   const decide = useMutation({
     mutationFn: async () => {
       if (!decision) return;
@@ -45,87 +95,238 @@ const KycReviewsPage = () => {
       setDecision(null);
       setNotes("");
       qc.invalidateQueries({ queryKey: ["kyc_reviews"] });
+      qc.invalidateQueries({ queryKey: ["players"] });
     },
     onError: (e: any) => toast.error(e.message ?? "Failed"),
   });
 
-  const pending = reviews.filter((r) => r.status === "pending");
-  const decided = reviews.filter((r) => r.status !== "pending");
+  const revokeMut = useMutation({
+    mutationFn: async () => {
+      if (!revoke) return;
+      const { error } = await supabase.rpc("kyc_revoke_reception" as any, {
+        p_player_id: revoke.player_id,
+        p_reason: revokeReason.trim(),
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Verification revoked");
+      setRevoke(null);
+      setRevokeReason("");
+      qc.invalidateQueries({ queryKey: ["players"] });
+    },
+    onError: (e: any) => toast.error(e.message ?? "Failed"),
+  });
+
+  // ============= Filters =============
+  const rvFiltered = useMemo(() => {
+    if (!search.trim()) return receptionVerified;
+    const q = search.toLowerCase();
+    return receptionVerified.filter(
+      (p) =>
+        p.full_name?.toLowerCase().includes(q) ||
+        p.phone?.toLowerCase().includes(q) ||
+        p.id_number?.toLowerCase().includes(q)
+    );
+  }, [receptionVerified, search]);
+
+  const nvFiltered = useMemo(() => {
+    let list = notVerified;
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      list = list.filter((p) => p.full_name?.toLowerCase().includes(q) || p.phone?.toLowerCase().includes(q));
+    }
+    return [...list].sort((a, b) => {
+      if (a.has_pending_kyc !== b.has_pending_kyc) return a.has_pending_kyc ? -1 : 1;
+      return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+    });
+  }, [notVerified, search]);
 
   return (
     <PageShell>
-      <PageHeader icon={ShieldCheck} title="KYC Reviews" subtitle="Approve or reject player verifications" />
+      <PageHeader
+        icon={ShieldCheck}
+        title="KYC Reviews"
+        subtitle="Verify players, audit reception verifications, work the queue"
+      />
 
-      <PageSection title={`Pending (${pending.length})`} bodyClassName="p-0">
-        <DataTable>
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border bg-muted/30 text-xs uppercase">
-                <th className="text-left p-2">Player</th>
-                <th className="text-left p-2">Phone</th>
-                <th className="text-left p-2">Source</th>
-                <th className="text-left p-2">AI</th>
-                <th className="text-left p-2">Submitted</th>
-                <th className="text-right p-2">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {isLoading && <tr><td colSpan={6} className="p-4 text-center text-muted-foreground">Loading…</td></tr>}
-              {!isLoading && pending.length === 0 && <tr><td colSpan={6} className="p-4 text-center text-muted-foreground">No pending reviews</td></tr>}
-              {pending.map((r) => (
-                <tr key={r.id} className="border-b border-border/50 hover:bg-muted/20">
-                  <td className="p-2 font-medium">{r.players?.full_name ?? "—"}</td>
-                  <td className="p-2 text-xs">{r.players?.phone ?? "—"}</td>
-                  <td className="p-2"><Badge variant="outline" className="text-xs">{r.source}</Badge></td>
-                  <td className="p-2 text-xs text-muted-foreground">
-                    {r.ai_result ? (r.ai_result.confidence ? `${(r.ai_result.confidence * 100).toFixed(0)}%` : "✓") : "—"}
-                  </td>
-                  <td className="p-2 text-xs text-muted-foreground">{fmtDateTime(r.created_at)}</td>
-                  <td className="p-2 text-right">
-                    <Button size="sm" variant="outline" className="mr-2" onClick={() => setDecision({ id: r.id, approve: true })}>
-                      <Check className="size-3.5" /> Approve
-                    </Button>
-                    <Button size="sm" variant="destructive" onClick={() => setDecision({ id: r.id, approve: false })}>
-                      <X className="size-3.5" /> Reject
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </DataTable>
-      </PageSection>
+      <Tabs defaultValue="queue" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="queue" className="gap-2">
+            Queue
+            {queue.length > 0 && <Badge variant="destructive" className="text-[10px] px-1.5">{queue.length}</Badge>}
+          </TabsTrigger>
+          <TabsTrigger value="reception" className="gap-2">
+            Verified by Reception
+            {receptionVerified.length > 0 && <Badge variant="secondary" className="text-[10px] px-1.5">{receptionVerified.length}</Badge>}
+          </TabsTrigger>
+          <TabsTrigger value="notverified" className="gap-2">
+            Not Verified
+            {notVerified.length > 0 && <Badge variant="outline" className="text-[10px] px-1.5">{notVerified.length}</Badge>}
+          </TabsTrigger>
+        </TabsList>
 
-      <PageSection title="History" bodyClassName="p-0">
-        <DataTable>
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border bg-muted/30 text-xs uppercase">
-                <th className="text-left p-2">Player</th>
-                <th className="text-left p-2">Source</th>
-                <th className="text-left p-2">Status</th>
-                <th className="text-left p-2">Decided</th>
-                <th className="text-left p-2">Notes</th>
-              </tr>
-            </thead>
-            <tbody>
-              {decided.length === 0 && <tr><td colSpan={5} className="p-4 text-center text-muted-foreground">No history</td></tr>}
-              {decided.map((r) => (
-                <tr key={r.id} className="border-b border-border/50">
-                  <td className="p-2">{r.players?.full_name ?? "—"}</td>
-                  <td className="p-2 text-xs">{r.source}</td>
-                  <td className="p-2">
-                    <Badge variant={r.status === "approved" ? "default" : "destructive"} className="text-xs">{r.status}</Badge>
-                  </td>
-                  <td className="p-2 text-xs text-muted-foreground">{r.am_decision_at ? fmtDateTime(r.am_decision_at) : "—"}</td>
-                  <td className="p-2 text-xs">{r.am_notes ?? "—"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </DataTable>
-      </PageSection>
+        {/* ============ TAB 1: QUEUE ============ */}
+        <TabsContent value="queue">
+          <PageSection title={`Pending club submissions (${queue.length})`} bodyClassName="p-0">
+            <DataTable>
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border bg-muted/30 text-xs uppercase">
+                    <th className="text-left p-2">Player</th>
+                    <th className="text-left p-2">Phone</th>
+                    <th className="text-left p-2">Source</th>
+                    <th className="text-left p-2">AI</th>
+                    <th className="text-left p-2">Submitted</th>
+                    <th className="text-right p-2">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {queueLoading && <tr><td colSpan={6} className="p-4 text-center text-muted-foreground">Loading…</td></tr>}
+                  {!queueLoading && queue.length === 0 && <tr><td colSpan={6} className="p-4 text-center text-muted-foreground">No pending reviews</td></tr>}
+                  {queue.map((r) => (
+                    <tr key={r.id} className="border-b border-border/50 hover:bg-muted/20">
+                      <td className="p-2 font-medium">{r.players?.full_name ?? "—"}</td>
+                      <td className="p-2 text-xs">{r.players?.phone ?? "—"}</td>
+                      <td className="p-2"><Badge variant="outline" className="text-xs">{r.source}</Badge></td>
+                      <td className="p-2 text-xs text-muted-foreground">
+                        {r.ai_result?.confidence ? `${(r.ai_result.confidence * 100).toFixed(0)}%` : "—"}
+                      </td>
+                      <td className="p-2 text-xs text-muted-foreground">{fmtDateTime(r.created_at)}</td>
+                      <td className="p-2 text-right whitespace-nowrap">
+                        <Button size="sm" variant="outline" className="mr-2" onClick={() => setDecision({ id: r.id, approve: true })}>
+                          <Check className="size-3.5" /> Approve
+                        </Button>
+                        <Button size="sm" variant="destructive" onClick={() => setDecision({ id: r.id, approve: false })}>
+                          <X className="size-3.5" /> Reject
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </DataTable>
+          </PageSection>
+        </TabsContent>
 
+        {/* ============ TAB 2: VERIFIED BY RECEPTION ============ */}
+        <TabsContent value="reception">
+          <PageSection
+            title={`Verified by Reception (${rvFiltered.length})`}
+            headerExtra={
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search name / phone / ID…"
+                className="max-w-xs"
+              />
+            }
+            bodyClassName="p-0"
+          >
+            <DataTable>
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border bg-muted/30 text-xs uppercase">
+                    <th className="text-left p-2">Player</th>
+                    <th className="text-left p-2">Phone</th>
+                    <th className="text-left p-2">ID Number</th>
+                    <th className="text-left p-2">Casino</th>
+                    <th className="text-left p-2">Verified At</th>
+                    <th className="text-right p-2">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rvLoading && <tr><td colSpan={6} className="p-4 text-center text-muted-foreground">Loading…</td></tr>}
+                  {!rvLoading && rvFiltered.length === 0 && <tr><td colSpan={6} className="p-4 text-center text-muted-foreground">No reception verifications</td></tr>}
+                  {rvFiltered.map((p) => (
+                    <tr key={p.id} className="border-b border-border/50 hover:bg-muted/20">
+                      <td className="p-2 font-medium">{p.full_name ?? `${p.first_name} ${p.last_name}`}</td>
+                      <td className="p-2 text-xs">{p.phone ?? "—"}</td>
+                      <td className="p-2 text-xs font-mono">{p.id_number ?? "—"}</td>
+                      <td className="p-2 text-xs">{p.casinos?.name ?? "—"}</td>
+                      <td className="p-2 text-xs text-muted-foreground">{p.verified_at ? fmtDateTime(p.verified_at) : "—"}</td>
+                      <td className="p-2 text-right">
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => setRevoke({ player_id: p.id, name: p.full_name ?? `${p.first_name} ${p.last_name}` })}
+                        >
+                          <RotateCcw className="size-3.5" /> Revoke
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </DataTable>
+          </PageSection>
+        </TabsContent>
+
+        {/* ============ TAB 3: NOT VERIFIED ============ */}
+        <TabsContent value="notverified">
+          <PageSection
+            title={`Not Verified (${nvFiltered.length})`}
+            headerExtra={
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search name / phone…"
+                className="max-w-xs"
+              />
+            }
+            bodyClassName="p-0"
+          >
+            <DataTable>
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border bg-muted/30 text-xs uppercase">
+                    <th className="text-left p-2">Status</th>
+                    <th className="text-left p-2">Player</th>
+                    <th className="text-left p-2">Phone</th>
+                    <th className="text-left p-2">DOB</th>
+                    <th className="text-left p-2">Casino</th>
+                    <th className="text-left p-2">Created</th>
+                    <th className="text-right p-2"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {nvLoading && <tr><td colSpan={7} className="p-4 text-center text-muted-foreground">Loading…</td></tr>}
+                  {!nvLoading && nvFiltered.length === 0 && <tr><td colSpan={7} className="p-4 text-center text-muted-foreground">All players verified</td></tr>}
+                  {nvFiltered.map((p) => (
+                    <tr key={p.id} className="border-b border-border/50 hover:bg-muted/20">
+                      <td className="p-2">
+                        {p.has_pending_kyc ? (
+                          <Badge variant="destructive" className="text-[10px]">Pending review</Badge>
+                        ) : p.verification_status === "rejected" ? (
+                          <Badge variant="outline" className="text-[10px] border-destructive/40 text-destructive">Rejected</Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-[10px]">Unverified</Badge>
+                        )}
+                      </td>
+                      <td className="p-2 font-medium">{p.full_name ?? `${p.first_name} ${p.last_name}`}</td>
+                      <td className="p-2 text-xs">{p.phone ?? "—"}</td>
+                      <td className="p-2 text-xs">{p.birth_date ? fmtDateOnly(p.birth_date) : "—"}</td>
+                      <td className="p-2 text-xs">{p.casinos?.name ?? "—"}</td>
+                      <td className="p-2 text-xs text-muted-foreground">{fmtDateTime(p.created_at)}</td>
+                      <td className="p-2 text-right">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => window.open(`/players/${p.id}`, "_blank")}
+                        >
+                          <ExternalLink className="size-3.5" />
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </DataTable>
+          </PageSection>
+        </TabsContent>
+      </Tabs>
+
+      {/* ============ Approve / Reject dialog ============ */}
       <ResponsiveDialog
         open={!!decision}
         onOpenChange={(o) => !o && setDecision(null)}
@@ -144,6 +345,34 @@ const KycReviewsPage = () => {
             disabled={decide.isPending}
           >
             {decide.isPending ? "Saving…" : decision?.approve ? "Approve" : "Reject"}
+          </Button>
+        </ResponsiveDialogFooter>
+      </ResponsiveDialog>
+
+      {/* ============ Revoke dialog ============ */}
+      <ResponsiveDialog
+        open={!!revoke}
+        onOpenChange={(o) => { if (!o) { setRevoke(null); setRevokeReason(""); } }}
+        title="Revoke verification"
+        description={revoke ? `${revoke.name} will be returned to Unverified. Reason is required and logged for audit.` : ""}
+      >
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Reason <span className="text-destructive">*</span></label>
+          <Textarea
+            value={revokeReason}
+            onChange={(e) => setRevokeReason(e.target.value)}
+            placeholder="Why is this verification being revoked? (min 5 chars)"
+            rows={3}
+          />
+        </div>
+        <ResponsiveDialogFooter>
+          <Button variant="outline" onClick={() => { setRevoke(null); setRevokeReason(""); }}>Cancel</Button>
+          <Button
+            variant="destructive"
+            onClick={() => revokeMut.mutate()}
+            disabled={revokeMut.isPending || revokeReason.trim().length < 5}
+          >
+            {revokeMut.isPending ? "Revoking…" : "Revoke verification"}
           </Button>
         </ResponsiveDialogFooter>
       </ResponsiveDialog>
