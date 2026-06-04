@@ -80,6 +80,15 @@ export default function CameraCapture({
         className="hidden"
         onChange={handleChange}
       />
+      {allowGallery && (
+        <input
+          ref={galleryRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleChange}
+        />
+      )}
 
       {value ? (
         <div className="space-y-2">
@@ -89,35 +98,60 @@ export default function CameraCapture({
           >
             <img src={value} alt={label} className="w-full h-64 object-cover" />
           </div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={pick}
+              className="flex-1 h-11 rounded-md border font-faberge text-[10px] tracking-[0.3em] uppercase flex items-center justify-center gap-2"
+              style={{ color: gold, borderColor: `${gold}55`, backgroundColor: "rgba(0,0,0,0.4)" }}
+            >
+              <RotateCcw className="w-4 h-4" /> Retake
+            </button>
+            {allowGallery && (
+              <button
+                type="button"
+                onClick={pickGallery}
+                className="flex-1 h-11 rounded-md border font-faberge text-[10px] tracking-[0.3em] uppercase flex items-center justify-center gap-2"
+                style={{ color: gold, borderColor: `${gold}55`, backgroundColor: "rgba(0,0,0,0.4)" }}
+              >
+                <ImagePlus className="w-4 h-4" /> Gallery
+              </button>
+            )}
+          </div>
+        </div>
+      ) : (
+        <>
           <button
             type="button"
             onClick={pick}
-            className="w-full h-11 rounded-md border font-faberge text-[10px] tracking-[0.3em] uppercase flex items-center justify-center gap-2"
-            style={{ color: gold, borderColor: `${gold}55`, backgroundColor: "rgba(0,0,0,0.4)" }}
+            disabled={busy}
+            className="w-full h-64 rounded-lg border-2 border-dashed flex flex-col items-center justify-center gap-3 transition-colors"
+            style={{
+              borderColor: `${gold}55`,
+              backgroundColor: "rgba(0,0,0,0.4)",
+              color: gold,
+            }}
           >
-            <RotateCcw className="w-4 h-4" /> Retake
+            <Camera className="w-10 h-10" />
+            <span className="font-faberge text-[11px] tracking-[0.3em] uppercase">
+              {busy ? "Processing…" : `Tap to capture ${label}`}
+            </span>
+            <span className="text-[9px] tracking-[0.25em] uppercase" style={{ color: goldDeep }}>
+              {facing === "user" ? "Front camera" : "Back camera"}
+            </span>
           </button>
-        </div>
-      ) : (
-        <button
-          type="button"
-          onClick={pick}
-          disabled={busy}
-          className="w-full h-64 rounded-lg border-2 border-dashed flex flex-col items-center justify-center gap-3 transition-colors"
-          style={{
-            borderColor: `${gold}55`,
-            backgroundColor: "rgba(0,0,0,0.4)",
-            color: gold,
-          }}
-        >
-          <Camera className="w-10 h-10" />
-          <span className="font-faberge text-[11px] tracking-[0.3em] uppercase">
-            {busy ? "Processing…" : `Tap to capture ${label}`}
-          </span>
-          <span className="text-[9px] tracking-[0.25em] uppercase" style={{ color: goldDeep }}>
-            {facing === "user" ? "Front camera" : "Back camera"}
-          </span>
-        </button>
+          {allowGallery && (
+            <button
+              type="button"
+              onClick={pickGallery}
+              disabled={busy}
+              className="w-full h-11 rounded-md border font-faberge text-[10px] tracking-[0.3em] uppercase flex items-center justify-center gap-2"
+              style={{ color: gold, borderColor: `${gold}55`, backgroundColor: "rgba(0,0,0,0.4)" }}
+            >
+              <ImagePlus className="w-4 h-4" /> Upload from gallery
+            </button>
+          )}
+        </>
       )}
     </div>
   );
