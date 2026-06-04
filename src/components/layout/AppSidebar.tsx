@@ -75,8 +75,8 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/tips-and-bonuses", icon: Gift, label: "Tips & Bonuses", roles: ["super_admin", "manager", "floor_manager", "finance_manager", "surveillance"], section: "CASHIER" },
 
   // RECEPTION — alphabetical
-  { to: "/blacklist", icon: ShieldAlert, label: "Blacklist", roles: ["super_admin", "manager", "floor_manager", "reception", "finance_manager", "surveillance"], section: "RECEPTION" },
-  { to: "/guests", icon: UserCheck, label: "Guests", roles: ["super_admin", "manager", "floor_manager", "reception", "finance_manager", "surveillance"], section: "RECEPTION" },
+  { to: "/blacklist", icon: ShieldAlert, label: "Blacklist", roles: ["super_admin", "manager", "floor_manager", "reception", "finance_manager", "surveillance", "account_manager" as AppRole], section: "RECEPTION" },
+  { to: "/guests", icon: UserCheck, label: "Guests", roles: ["super_admin", "manager", "floor_manager", "reception", "finance_manager", "surveillance", "account_manager" as AppRole], section: "RECEPTION" },
   { to: "/reception", icon: DoorOpen, label: "Reception", roles: ["super_admin", "manager", "floor_manager", "reception", "finance_manager"], section: "RECEPTION" },
 
   // FINANCE — alphabetical, separate routes (no tabs)
