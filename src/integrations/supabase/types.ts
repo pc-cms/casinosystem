@@ -2430,6 +2430,44 @@ export type Database = {
           },
         ]
       }
+      club_daily_spend_limits: {
+        Row: {
+          casino_id: string
+          daily_cap_credits: number
+          effective_from: string
+          id: string
+          notes: string | null
+          set_at: string
+          set_by: string | null
+        }
+        Insert: {
+          casino_id: string
+          daily_cap_credits?: number
+          effective_from?: string
+          id?: string
+          notes?: string | null
+          set_at?: string
+          set_by?: string | null
+        }
+        Update: {
+          casino_id?: string
+          daily_cap_credits?: number
+          effective_from?: string
+          id?: string
+          notes?: string | null
+          set_at?: string
+          set_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "club_daily_spend_limits_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       club_otp_codes: {
         Row: {
           attempts: number
@@ -3591,6 +3629,117 @@ export type Database = {
           },
           {
             foreignKeyName: "kyc_reviews_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lotteries: {
+        Row: {
+          casino_id: string
+          closed_at: string | null
+          closed_by: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          draw_business_date: string
+          id: string
+          max_tickets_per_player: number | null
+          name: string
+          prize_fund_description: string | null
+          status: string
+          ticket_price_credits: number
+          total_tickets_cap: number | null
+        }
+        Insert: {
+          casino_id: string
+          closed_at?: string | null
+          closed_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          draw_business_date: string
+          id?: string
+          max_tickets_per_player?: number | null
+          name: string
+          prize_fund_description?: string | null
+          status?: string
+          ticket_price_credits: number
+          total_tickets_cap?: number | null
+        }
+        Update: {
+          casino_id?: string
+          closed_at?: string | null
+          closed_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          draw_business_date?: string
+          id?: string
+          max_tickets_per_player?: number | null
+          name?: string
+          prize_fund_description?: string | null
+          status?: string
+          ticket_price_credits?: number
+          total_tickets_cap?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lotteries_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lottery_tickets: {
+        Row: {
+          id: string
+          lottery_id: string
+          paid_credits: number
+          player_id: string
+          purchased_at: string
+          purchased_via: string
+          ticket_number: number
+        }
+        Insert: {
+          id?: string
+          lottery_id: string
+          paid_credits: number
+          player_id: string
+          purchased_at?: string
+          purchased_via?: string
+          ticket_number: number
+        }
+        Update: {
+          id?: string
+          lottery_id?: string
+          paid_credits?: number
+          player_id?: string
+          purchased_at?: string
+          purchased_via?: string
+          ticket_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lottery_tickets_lottery_id_fkey"
+            columns: ["lottery_id"]
+            isOneToOne: false
+            referencedRelation: "lotteries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lottery_tickets_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "player_economy"
+            referencedColumns: ["player_id"]
+          },
+          {
+            foreignKeyName: "lottery_tickets_player_id_fkey"
             columns: ["player_id"]
             isOneToOne: false
             referencedRelation: "players"
@@ -6163,10 +6312,14 @@ export type Database = {
       promo_codes: {
         Row: {
           amount: number
+          assigned_player_id: string | null
+          batch_id: string | null
+          batch_label: string | null
           campaign_id: string | null
           code: string
           code_active_from: string | null
           code_active_until: string | null
+          code_kind: string
           created_at: string
           created_by: string | null
           current_uses: number
@@ -6176,13 +6329,19 @@ export type Database = {
           id: string
           max_uses_total: number | null
           per_player_limit: number
+          redeemed_at: string | null
+          redeemed_by_player_id: string | null
         }
         Insert: {
           amount: number
+          assigned_player_id?: string | null
+          batch_id?: string | null
+          batch_label?: string | null
           campaign_id?: string | null
           code: string
           code_active_from?: string | null
           code_active_until?: string | null
+          code_kind?: string
           created_at?: string
           created_by?: string | null
           current_uses?: number
@@ -6192,13 +6351,19 @@ export type Database = {
           id?: string
           max_uses_total?: number | null
           per_player_limit?: number
+          redeemed_at?: string | null
+          redeemed_by_player_id?: string | null
         }
         Update: {
           amount?: number
+          assigned_player_id?: string | null
+          batch_id?: string | null
+          batch_label?: string | null
           campaign_id?: string | null
           code?: string
           code_active_from?: string | null
           code_active_until?: string | null
+          code_kind?: string
           created_at?: string
           created_by?: string | null
           current_uses?: number
@@ -6208,13 +6373,43 @@ export type Database = {
           id?: string
           max_uses_total?: number | null
           per_player_limit?: number
+          redeemed_at?: string | null
+          redeemed_by_player_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "promo_codes_assigned_player_id_fkey"
+            columns: ["assigned_player_id"]
+            isOneToOne: false
+            referencedRelation: "player_economy"
+            referencedColumns: ["player_id"]
+          },
+          {
+            foreignKeyName: "promo_codes_assigned_player_id_fkey"
+            columns: ["assigned_player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "promo_codes_campaign_id_fkey"
             columns: ["campaign_id"]
             isOneToOne: false
             referencedRelation: "premier_promo_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promo_codes_redeemed_by_player_id_fkey"
+            columns: ["redeemed_by_player_id"]
+            isOneToOne: false
+            referencedRelation: "player_economy"
+            referencedColumns: ["player_id"]
+          },
+          {
+            foreignKeyName: "promo_codes_redeemed_by_player_id_fkey"
+            columns: ["redeemed_by_player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
             referencedColumns: ["id"]
           },
         ]
@@ -6546,6 +6741,190 @@ export type Database = {
             columns: ["casino_id"]
             isOneToOne: false
             referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shop_items: {
+        Row: {
+          casino_id: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          photo_url: string | null
+          price_credits: number
+          sku: string | null
+          stock_qty: number
+          updated_at: string
+        }
+        Insert: {
+          casino_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          photo_url?: string | null
+          price_credits: number
+          sku?: string | null
+          stock_qty?: number
+          updated_at?: string
+        }
+        Update: {
+          casino_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          photo_url?: string | null
+          price_credits?: number
+          sku?: string | null
+          stock_qty?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shop_items_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shop_orders: {
+        Row: {
+          cancel_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
+          casino_id: string
+          fulfilled_at: string | null
+          fulfilled_by: string | null
+          id: string
+          notes: string | null
+          ordered_at: string
+          player_id: string
+          qty: number
+          shop_item_id: string
+          status: string
+          total_credits: number
+          unit_price_credits: number
+        }
+        Insert: {
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          casino_id: string
+          fulfilled_at?: string | null
+          fulfilled_by?: string | null
+          id?: string
+          notes?: string | null
+          ordered_at?: string
+          player_id: string
+          qty?: number
+          shop_item_id: string
+          status?: string
+          total_credits: number
+          unit_price_credits: number
+        }
+        Update: {
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          casino_id?: string
+          fulfilled_at?: string | null
+          fulfilled_by?: string | null
+          id?: string
+          notes?: string | null
+          ordered_at?: string
+          player_id?: string
+          qty?: number
+          shop_item_id?: string
+          status?: string
+          total_credits?: number
+          unit_price_credits?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shop_orders_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shop_orders_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "player_economy"
+            referencedColumns: ["player_id"]
+          },
+          {
+            foreignKeyName: "shop_orders_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shop_orders_shop_item_id_fkey"
+            columns: ["shop_item_id"]
+            isOneToOne: false
+            referencedRelation: "shop_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shop_stock_movements: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          delta: number
+          id: string
+          notes: string | null
+          reason: string
+          ref_order_id: string | null
+          shop_item_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          delta: number
+          id?: string
+          notes?: string | null
+          reason: string
+          ref_order_id?: string | null
+          shop_item_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          delta?: number
+          id?: string
+          notes?: string | null
+          reason?: string
+          ref_order_id?: string | null
+          shop_item_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shop_stock_movements_ref_order_id_fkey"
+            columns: ["ref_order_id"]
+            isOneToOne: false
+            referencedRelation: "shop_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shop_stock_movements_shop_item_id_fkey"
+            columns: ["shop_item_id"]
+            isOneToOne: false
+            referencedRelation: "shop_items"
             referencedColumns: ["id"]
           },
         ]
