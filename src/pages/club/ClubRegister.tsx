@@ -12,13 +12,6 @@ const GOLD_DEEP = "#A68E61";
 
 type Step = "phone" | "code" | "profile" | "done";
 
-const BRANCHES: { slug: string; label: string }[] = [
-  { slug: "arusha", label: "Arusha" },
-  { slug: "mwanza", label: "Mwanza" },
-  { slug: "dodoma", label: "Dodoma" },
-  { slug: "mbeya", label: "Mbeya" },
-];
-
 const inputStyle: React.CSSProperties = {
   backgroundColor: "rgba(0,0,0,0.55)",
   borderColor: `${GOLD}55`,
