@@ -202,17 +202,18 @@ const PlayerStatistics = () => {
     queryKey: ["player-lifetime-visits", casinoId, visitPlayerIds.sort().join(",")],
     queryFn: async () => {
       if (!casinoId || visitPlayerIds.length === 0) return {} as Record<string, number>;
-      const { data } = await supabase
-        .from("casino_visits")
-        .select("player_id")
-        .eq("casino_id", casinoId)
-        .in("player_id", visitPlayerIds);
+      // Use server-side aggregate (GROUP BY) instead of fetching every visit row.
+      const { data, error } = await (supabase.rpc as any)("player_lifetime_visit_counts", {
+        _casino_id: casinoId,
+        _player_ids: visitPlayerIds,
+      });
+      if (error) throw error;
       const m: Record<string, number> = {};
-      for (const r of (data || []) as any[]) m[r.player_id] = (m[r.player_id] || 0) + 1;
+      for (const r of (data || []) as any[]) m[r.player_id] = Number(r.visit_count) || 0;
       return m;
     },
     enabled: !!casinoId && visitPlayerIds.length > 0,
-    staleTime: 60000,
+    staleTime: 5 * 60_000,
   });
 
 
