@@ -375,8 +375,15 @@ const ActiveShiftView = ({ shift, players, tables }: {
         />
       )}
 
-
-
+      <PromoInDialog
+        open={showPromoIn}
+        onOpenChange={setShowPromoIn}
+        players={players}
+        tables={tables}
+        shiftId={shift.id}
+        casinoId={shift.casino_id}
+        cashierId={user?.id ?? ""}
+      />
 
     </PageShell>
   );
