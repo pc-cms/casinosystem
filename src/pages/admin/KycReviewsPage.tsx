@@ -56,6 +56,22 @@ const KycReviewsPage = () => {
     },
   });
 
+  // Tab 2b: AM-trusted (verified bypass, no docs)
+  const { data: trustedPlayers = [], isLoading: trustedLoading } = useQuery({
+    queryKey: ["players", "am_trusted"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("players")
+        .select("id, full_name, first_name, last_name, phone, id_number, casino_id, verified_at, verified_by, casinos(name)")
+        .eq("verified_source", "am_trusted")
+        .eq("verification_status", "verified")
+        .order("verified_at", { ascending: false })
+        .limit(300);
+      if (error) throw error;
+      return data as any[];
+    },
+  });
+
   // Tab 3: not verified (unverified + rejected) — priority: pending kyc first
   const { data: notVerified = [], isLoading: nvLoading } = useQuery({
     queryKey: ["players", "not_verified"],
@@ -105,7 +121,8 @@ const KycReviewsPage = () => {
   const revokeMut = useMutation({
     mutationFn: async () => {
       if (!revoke) return;
-      const { error } = await supabase.rpc("kyc_revoke_reception" as any, {
+      const rpcName = revoke.source === "am_trusted" ? "am_revoke_verification" : "kyc_revoke_reception";
+      const { error } = await supabase.rpc(rpcName as any, {
         p_player_id: revoke.player_id,
         p_reason: revokeReason.trim(),
       });
@@ -115,6 +132,24 @@ const KycReviewsPage = () => {
       toast.success("Verification revoked");
       setRevoke(null);
       setRevokeReason("");
+      qc.invalidateQueries({ queryKey: ["players"] });
+    },
+    onError: (e: any) => toast.error(e.message ?? "Failed"),
+  });
+
+  const trustMut = useMutation({
+    mutationFn: async () => {
+      if (!trust) return;
+      const { error } = await supabase.rpc("am_trust_player" as any, {
+        p_player_id: trust.player_id,
+        p_reason: trustReason.trim(),
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Player marked as Trusted");
+      setTrust(null);
+      setTrustReason("");
       qc.invalidateQueries({ queryKey: ["players"] });
     },
     onError: (e: any) => toast.error(e.message ?? "Failed"),
