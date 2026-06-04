@@ -66,7 +66,7 @@ export default function ClubLanding() {
               className="font-faberge text-xs tracking-[0.4em] uppercase"
               style={{ color: GOLD_DEEP }}
             >
-              In Tansania
+              In Tanzania
             </p>
           </div>
 
@@ -224,7 +224,7 @@ export default function ClubLanding() {
             className="font-faberge text-[10px] tracking-[0.4em] uppercase"
             style={{ color: GOLD_DEEP }}
           >
-            Premier Casino · Tansania
+            Premier Casino · Tanzania
           </p>
           <p
             className="font-faberge text-[10px] tracking-[0.4em]"
