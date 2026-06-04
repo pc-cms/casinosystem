@@ -100,6 +100,10 @@ export default function ClubRegister() {
       toast.error("Please fill all required fields");
       return;
     }
+    if (password.length < 8 || !/[A-Za-z]/.test(password) || !/\d/.test(password)) {
+      toast.error("Password must be at least 8 characters and include letters and numbers");
+      return;
+    }
     setBusy(true);
     try {
       const FN_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`;
