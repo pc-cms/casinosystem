@@ -82,6 +82,82 @@ export type Database = {
         }
         Relationships: []
       }
+      am_budget_ledger: {
+        Row: {
+          am_user_id: string
+          casino_id: string
+          created_at: string
+          created_by: string | null
+          delta: number
+          id: string
+          reason: string
+          ref_id: string | null
+          ref_type: string | null
+        }
+        Insert: {
+          am_user_id: string
+          casino_id: string
+          created_at?: string
+          created_by?: string | null
+          delta: number
+          id?: string
+          reason: string
+          ref_id?: string | null
+          ref_type?: string | null
+        }
+        Update: {
+          am_user_id?: string
+          casino_id?: string
+          created_at?: string
+          created_by?: string | null
+          delta?: number
+          id?: string
+          reason?: string
+          ref_id?: string | null
+          ref_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "am_budget_ledger_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      am_budgets: {
+        Row: {
+          am_user_id: string
+          balance: number
+          casino_id: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          am_user_id: string
+          balance?: number
+          casino_id: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          am_user_id?: string
+          balance?: number
+          casino_id?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "am_budgets_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       attendance_holidays: {
         Row: {
           casino_id: string
@@ -1868,6 +1944,7 @@ export type Database = {
           denomination: number
           edge_color: string
           id: string
+          is_promo: boolean
           text_color: string
           updated_at: string
           updated_by: string | null
@@ -1879,6 +1956,7 @@ export type Database = {
           denomination: number
           edge_color?: string
           id?: string
+          is_promo?: boolean
           text_color?: string
           updated_at?: string
           updated_by?: string | null
@@ -1890,6 +1968,7 @@ export type Database = {
           denomination?: number
           edge_color?: string
           id?: string
+          is_promo?: boolean
           text_color?: string
           updated_at?: string
           updated_by?: string | null
@@ -2303,6 +2382,81 @@ export type Database = {
           status?: string
           sync_secret?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      club_accounts: {
+        Row: {
+          created_at: string
+          id: string
+          last_login_at: string | null
+          phone: string
+          player_id: string
+          totp_secret_enc: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_login_at?: string | null
+          phone: string
+          player_id: string
+          totp_secret_enc?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_login_at?: string | null
+          phone?: string
+          player_id?: string
+          totp_secret_enc?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "club_accounts_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "player_economy"
+            referencedColumns: ["player_id"]
+          },
+          {
+            foreignKeyName: "club_accounts_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      club_otp_codes: {
+        Row: {
+          attempts: number
+          code_hash: string
+          created_at: string
+          expires_at: string
+          id: string
+          phone: string
+          used_at: string | null
+        }
+        Insert: {
+          attempts?: number
+          code_hash: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          phone: string
+          used_at?: string | null
+        }
+        Update: {
+          attempts?: number
+          code_hash?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          phone?: string
+          used_at?: string | null
         }
         Relationships: []
       }
@@ -3084,6 +3238,73 @@ export type Database = {
           },
         ]
       }
+      house_promo_fund: {
+        Row: {
+          balance: number
+          casino_id: string
+          updated_at: string
+        }
+        Insert: {
+          balance?: number
+          casino_id: string
+          updated_at?: string
+        }
+        Update: {
+          balance?: number
+          casino_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "house_promo_fund_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: true
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      house_promo_ledger: {
+        Row: {
+          casino_id: string
+          created_at: string
+          created_by: string | null
+          delta: number
+          id: string
+          reason: string
+          ref_id: string | null
+          ref_type: string | null
+        }
+        Insert: {
+          casino_id: string
+          created_at?: string
+          created_by?: string | null
+          delta: number
+          id?: string
+          reason: string
+          ref_id?: string | null
+          ref_type?: string | null
+        }
+        Update: {
+          casino_id?: string
+          created_at?: string
+          created_by?: string | null
+          delta?: number
+          id?: string
+          reason?: string
+          ref_id?: string | null
+          ref_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "house_promo_ledger_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       incidents: {
         Row: {
           business_date: string | null
@@ -3309,6 +3530,70 @@ export type Database = {
             columns: ["to_casino_id"]
             isOneToOne: false
             referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kyc_reviews: {
+        Row: {
+          ai_result: Json | null
+          am_decision_at: string | null
+          am_notes: string | null
+          am_user_id: string | null
+          casino_id: string
+          created_at: string
+          id: string
+          player_id: string
+          source: Database["public"]["Enums"]["kyc_review_source"]
+          status: Database["public"]["Enums"]["kyc_review_status"]
+          updated_at: string
+        }
+        Insert: {
+          ai_result?: Json | null
+          am_decision_at?: string | null
+          am_notes?: string | null
+          am_user_id?: string | null
+          casino_id: string
+          created_at?: string
+          id?: string
+          player_id: string
+          source: Database["public"]["Enums"]["kyc_review_source"]
+          status?: Database["public"]["Enums"]["kyc_review_status"]
+          updated_at?: string
+        }
+        Update: {
+          ai_result?: Json | null
+          am_decision_at?: string | null
+          am_notes?: string | null
+          am_user_id?: string | null
+          casino_id?: string
+          created_at?: string
+          id?: string
+          player_id?: string
+          source?: Database["public"]["Enums"]["kyc_review_source"]
+          status?: Database["public"]["Enums"]["kyc_review_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kyc_reviews_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kyc_reviews_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "player_economy"
+            referencedColumns: ["player_id"]
+          },
+          {
+            foreignKeyName: "kyc_reviews_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
             referencedColumns: ["id"]
           },
         ]
@@ -4706,6 +4991,8 @@ export type Database = {
       }
       players: {
         Row: {
+          am_reviewed_at: string | null
+          am_reviewed_by: string | null
           birth_date: string | null
           casino_id: string
           category: Database["public"]["Enums"]["player_category"]
@@ -4715,14 +5002,20 @@ export type Database = {
           id_document_url: string | null
           id_number: string
           last_name: string
+          locked_at: string | null
           nickname: string
           phone: string
           photo_url: string | null
           player_type: Database["public"]["Enums"]["player_type"]
           status: Database["public"]["Enums"]["player_status"]
           updated_at: string
+          verification_status: Database["public"]["Enums"]["player_verification_status"]
+          verified_at: string | null
+          verified_by: string | null
         }
         Insert: {
+          am_reviewed_at?: string | null
+          am_reviewed_by?: string | null
           birth_date?: string | null
           casino_id: string
           category?: Database["public"]["Enums"]["player_category"]
@@ -4732,14 +5025,20 @@ export type Database = {
           id_document_url?: string | null
           id_number?: string
           last_name: string
+          locked_at?: string | null
           nickname?: string
           phone?: string
           photo_url?: string | null
           player_type?: Database["public"]["Enums"]["player_type"]
           status?: Database["public"]["Enums"]["player_status"]
           updated_at?: string
+          verification_status?: Database["public"]["Enums"]["player_verification_status"]
+          verified_at?: string | null
+          verified_by?: string | null
         }
         Update: {
+          am_reviewed_at?: string | null
+          am_reviewed_by?: string | null
           birth_date?: string | null
           casino_id?: string
           category?: Database["public"]["Enums"]["player_category"]
@@ -4749,12 +5048,16 @@ export type Database = {
           id_document_url?: string | null
           id_number?: string
           last_name?: string
+          locked_at?: string | null
           nickname?: string
           phone?: string
           photo_url?: string | null
           player_type?: Database["public"]["Enums"]["player_type"]
           status?: Database["public"]["Enums"]["player_status"]
           updated_at?: string
+          verification_status?: Database["public"]["Enums"]["player_verification_status"]
+          verified_at?: string | null
+          verified_by?: string | null
         }
         Relationships: [
           {
@@ -5569,6 +5872,74 @@ export type Database = {
           },
         ]
       }
+      premier_promo_campaigns: {
+        Row: {
+          active: boolean
+          active_from: string | null
+          active_until: string | null
+          amount: number
+          casino_id: string | null
+          created_at: string
+          created_by: string | null
+          funding_source: Database["public"]["Enums"]["promo_funding_source"]
+          grant_fixed_business_date: string | null
+          grant_lifetime_days: number | null
+          grant_lifetime_mode: Database["public"]["Enums"]["promo_grant_lifetime_mode"]
+          id: string
+          name: string
+          scope: Database["public"]["Enums"]["promo_campaign_scope"]
+          total_cap: number | null
+          updated_at: string
+          used_amount: number
+        }
+        Insert: {
+          active?: boolean
+          active_from?: string | null
+          active_until?: string | null
+          amount: number
+          casino_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          funding_source: Database["public"]["Enums"]["promo_funding_source"]
+          grant_fixed_business_date?: string | null
+          grant_lifetime_days?: number | null
+          grant_lifetime_mode?: Database["public"]["Enums"]["promo_grant_lifetime_mode"]
+          id?: string
+          name: string
+          scope: Database["public"]["Enums"]["promo_campaign_scope"]
+          total_cap?: number | null
+          updated_at?: string
+          used_amount?: number
+        }
+        Update: {
+          active?: boolean
+          active_from?: string | null
+          active_until?: string | null
+          amount?: number
+          casino_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          funding_source?: Database["public"]["Enums"]["promo_funding_source"]
+          grant_fixed_business_date?: string | null
+          grant_lifetime_days?: number | null
+          grant_lifetime_mode?: Database["public"]["Enums"]["promo_grant_lifetime_mode"]
+          id?: string
+          name?: string
+          scope?: Database["public"]["Enums"]["promo_campaign_scope"]
+          total_cap?: number | null
+          updated_at?: string
+          used_amount?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "premier_promo_campaigns_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           casino_id: string
@@ -5739,6 +6110,312 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      promo_code_redemptions: {
+        Row: {
+          business_date: string
+          code_id: string
+          created_at: string
+          grant_id: string | null
+          id: string
+          player_id: string
+        }
+        Insert: {
+          business_date: string
+          code_id: string
+          created_at?: string
+          grant_id?: string | null
+          id?: string
+          player_id: string
+        }
+        Update: {
+          business_date?: string
+          code_id?: string
+          created_at?: string
+          grant_id?: string | null
+          id?: string
+          player_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "promo_code_redemptions_code_id_fkey"
+            columns: ["code_id"]
+            isOneToOne: false
+            referencedRelation: "promo_codes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promo_code_redemptions_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "player_economy"
+            referencedColumns: ["player_id"]
+          },
+          {
+            foreignKeyName: "promo_code_redemptions_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      promo_codes: {
+        Row: {
+          amount: number
+          campaign_id: string | null
+          code: string
+          code_active_from: string | null
+          code_active_until: string | null
+          created_at: string
+          created_by: string | null
+          current_uses: number
+          grant_fixed_business_date: string | null
+          grant_lifetime_days: number | null
+          grant_lifetime_mode: Database["public"]["Enums"]["promo_grant_lifetime_mode"]
+          id: string
+          max_uses_total: number | null
+          per_player_limit: number
+        }
+        Insert: {
+          amount: number
+          campaign_id?: string | null
+          code: string
+          code_active_from?: string | null
+          code_active_until?: string | null
+          created_at?: string
+          created_by?: string | null
+          current_uses?: number
+          grant_fixed_business_date?: string | null
+          grant_lifetime_days?: number | null
+          grant_lifetime_mode?: Database["public"]["Enums"]["promo_grant_lifetime_mode"]
+          id?: string
+          max_uses_total?: number | null
+          per_player_limit?: number
+        }
+        Update: {
+          amount?: number
+          campaign_id?: string | null
+          code?: string
+          code_active_from?: string | null
+          code_active_until?: string | null
+          created_at?: string
+          created_by?: string | null
+          current_uses?: number
+          grant_fixed_business_date?: string | null
+          grant_lifetime_days?: number | null
+          grant_lifetime_mode?: Database["public"]["Enums"]["promo_grant_lifetime_mode"]
+          id?: string
+          max_uses_total?: number | null
+          per_player_limit?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "promo_codes_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "premier_promo_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      promo_grants: {
+        Row: {
+          amount: number
+          casino_id: string
+          created_at: string
+          created_by: string | null
+          expires_business_date: string | null
+          funding_pool: Database["public"]["Enums"]["promo_funding_source"]
+          funding_pool_ref: string | null
+          id: string
+          issued_business_date: string
+          player_id: string
+          remaining: number
+          source: Database["public"]["Enums"]["promo_grant_source"]
+          source_ref: string | null
+          status: Database["public"]["Enums"]["promo_grant_status"]
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          casino_id: string
+          created_at?: string
+          created_by?: string | null
+          expires_business_date?: string | null
+          funding_pool: Database["public"]["Enums"]["promo_funding_source"]
+          funding_pool_ref?: string | null
+          id?: string
+          issued_business_date: string
+          player_id: string
+          remaining: number
+          source: Database["public"]["Enums"]["promo_grant_source"]
+          source_ref?: string | null
+          status?: Database["public"]["Enums"]["promo_grant_status"]
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          casino_id?: string
+          created_at?: string
+          created_by?: string | null
+          expires_business_date?: string | null
+          funding_pool?: Database["public"]["Enums"]["promo_funding_source"]
+          funding_pool_ref?: string | null
+          id?: string
+          issued_business_date?: string
+          player_id?: string
+          remaining?: number
+          source?: Database["public"]["Enums"]["promo_grant_source"]
+          source_ref?: string | null
+          status?: Database["public"]["Enums"]["promo_grant_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "promo_grants_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promo_grants_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "player_economy"
+            referencedColumns: ["player_id"]
+          },
+          {
+            foreignKeyName: "promo_grants_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      promo_redemptions: {
+        Row: {
+          amount: number
+          cage_id: string | null
+          cashier_id: string | null
+          casino_id: string
+          created_at: string
+          grant_breakdown: Json
+          id: string
+          payout_type: string
+          player_id: string
+          shift_id: string | null
+        }
+        Insert: {
+          amount: number
+          cage_id?: string | null
+          cashier_id?: string | null
+          casino_id: string
+          created_at?: string
+          grant_breakdown: Json
+          id?: string
+          payout_type: string
+          player_id: string
+          shift_id?: string | null
+        }
+        Update: {
+          amount?: number
+          cage_id?: string | null
+          cashier_id?: string | null
+          casino_id?: string
+          created_at?: string
+          grant_breakdown?: Json
+          id?: string
+          payout_type?: string
+          player_id?: string
+          shift_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "promo_redemptions_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promo_redemptions_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "player_economy"
+            referencedColumns: ["player_id"]
+          },
+          {
+            foreignKeyName: "promo_redemptions_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      promo_wallet_ledger: {
+        Row: {
+          business_date: string
+          created_at: string
+          created_by: string | null
+          delta: number
+          grant_id: string
+          id: string
+          player_id: string
+          reason: string
+          ref_id: string | null
+          ref_type: string | null
+        }
+        Insert: {
+          business_date: string
+          created_at?: string
+          created_by?: string | null
+          delta: number
+          grant_id: string
+          id?: string
+          player_id: string
+          reason: string
+          ref_id?: string | null
+          ref_type?: string | null
+        }
+        Update: {
+          business_date?: string
+          created_at?: string
+          created_by?: string | null
+          delta?: number
+          grant_id?: string
+          id?: string
+          player_id?: string
+          reason?: string
+          ref_id?: string | null
+          ref_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "promo_wallet_ledger_grant_id_fkey"
+            columns: ["grant_id"]
+            isOneToOne: false
+            referencedRelation: "promo_grants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promo_wallet_ledger_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "player_economy"
+            referencedColumns: ["player_id"]
+          },
+          {
+            foreignKeyName: "promo_wallet_ledger_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       role_module_defaults: {
         Row: {
@@ -7605,6 +8282,10 @@ export type Database = {
           raw_value: string
         }[]
       }
+      get_promo_wallet_balance: {
+        Args: { p_player_id: string }
+        Returns: number
+      }
       get_user_casino_id: { Args: { _user_id: string }; Returns: string }
       has_any_pos_role: { Args: { _user: string }; Returns: boolean }
       has_role: {
@@ -7615,6 +8296,7 @@ export type Database = {
         Returns: boolean
       }
       is_manager_op: { Args: { _uid: string }; Returns: boolean }
+      is_promo_chip: { Args: { p_chip_color_id: string }; Returns: boolean }
       is_super_admin: { Args: { _uid: string }; Returns: boolean }
       list_open_cycles_for_day: { Args: { _casino_id: string }; Returns: Json }
       local_servers_overview: {
@@ -8001,6 +8683,7 @@ export type Database = {
         | "pos_waiter"
         | "pos_bartender"
         | "pos_manager"
+        | "account_manager"
       cage_slots_comment_type:
         | "cashier_note"
         | "manager_comment"
@@ -8050,6 +8733,8 @@ export type Database = {
         | "other"
         | "pos_comp"
         | "bar_charge"
+      kyc_review_source: "reception" | "club"
+      kyc_review_status: "pending" | "approved" | "rejected"
       log_category:
         | "transaction"
         | "edit"
@@ -8084,8 +8769,14 @@ export type Database = {
       player_crm_segment: "vip" | "regular" | "new" | "dormant" | "custom"
       player_status: "active" | "blacklist"
       player_type: "slots" | "table" | "mix"
+      player_verification_status: "unverified" | "verified" | "rejected"
       pos_order_status: "pending" | "preparing" | "ready" | "served" | "void"
       pos_payment_mode: "cash" | "card" | "comp_player" | "comp_house"
+      promo_campaign_scope:
+        | "reception_verify"
+        | "club_verify"
+        | "code"
+        | "manual"
       promo_campaign_status: "planned" | "active" | "completed" | "cancelled"
       promo_campaign_type:
         | "event"
@@ -8093,6 +8784,20 @@ export type Database = {
         | "advertising"
         | "sponsorship"
         | "other"
+      promo_funding_source: "house" | "am_budget" | "campaign_budget"
+      promo_grant_lifetime_mode:
+        | "lifetime"
+        | "days_after_redeem"
+        | "fixed_business_date"
+      promo_grant_source:
+        | "verification_bonus"
+        | "manual_am"
+        | "cashback"
+        | "campaign"
+        | "code_redeem"
+        | "reversal"
+        | "expiry_writeoff"
+      promo_grant_status: "active" | "exhausted" | "expired" | "reversed"
       shift_type: "M" | "N" | "A" | "S" | "E" | "L"
       staff_department:
         | "security"
@@ -8278,6 +8983,7 @@ export const Constants = {
         "pos_waiter",
         "pos_bartender",
         "pos_manager",
+        "account_manager",
       ],
       cage_slots_comment_type: [
         "cashier_note",
@@ -8327,6 +9033,8 @@ export const Constants = {
         "pos_comp",
         "bar_charge",
       ],
+      kyc_review_source: ["reception", "club"],
+      kyc_review_status: ["pending", "approved", "rejected"],
       log_category: [
         "transaction",
         "edit",
@@ -8363,8 +9071,15 @@ export const Constants = {
       player_crm_segment: ["vip", "regular", "new", "dormant", "custom"],
       player_status: ["active", "blacklist"],
       player_type: ["slots", "table", "mix"],
+      player_verification_status: ["unverified", "verified", "rejected"],
       pos_order_status: ["pending", "preparing", "ready", "served", "void"],
       pos_payment_mode: ["cash", "card", "comp_player", "comp_house"],
+      promo_campaign_scope: [
+        "reception_verify",
+        "club_verify",
+        "code",
+        "manual",
+      ],
       promo_campaign_status: ["planned", "active", "completed", "cancelled"],
       promo_campaign_type: [
         "event",
@@ -8373,6 +9088,22 @@ export const Constants = {
         "sponsorship",
         "other",
       ],
+      promo_funding_source: ["house", "am_budget", "campaign_budget"],
+      promo_grant_lifetime_mode: [
+        "lifetime",
+        "days_after_redeem",
+        "fixed_business_date",
+      ],
+      promo_grant_source: [
+        "verification_bonus",
+        "manual_am",
+        "cashback",
+        "campaign",
+        "code_redeem",
+        "reversal",
+        "expiry_writeoff",
+      ],
+      promo_grant_status: ["active", "exhausted", "expired", "reversed"],
       shift_type: ["M", "N", "A", "S", "E", "L"],
       staff_department: [
         "security",
