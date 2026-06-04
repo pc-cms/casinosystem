@@ -1,0 +1,18 @@
+{
+  "name": "Premier Club",
+  "short_name": "Premier Club",
+  "description": "Premier Club — premium gaming rewards & wallet.",
+  "start_url": "/",
+  "id": "/club",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#A0000D",
+  "theme_color": "#A0000D",
+  "icons": [
+    { "src": "/icon-192-club.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512-club.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-192-club-maskable.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/icon-512-club-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

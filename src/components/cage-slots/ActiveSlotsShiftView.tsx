@@ -534,7 +534,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
             <Button
               variant="outline"
               size="lg"
-              onClick={() => navigate(`/cage-slots/report/${shift.id}`)}
+              onClick={() => setShowPrintDialog(true)}
               className="gap-1.5"
             >
               <Printer className="w-4 h-4" /> Print Report
@@ -554,6 +554,14 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
             />
           </div>
         </div>
+
+        {showPrintDialog && (
+          <PrintSlotsShiftDialog
+            open={showPrintDialog}
+            shiftId={shift.id}
+            onClose={() => setShowPrintDialog(false)}
+          />
+        )}
       </PageShell>
     );
   }
