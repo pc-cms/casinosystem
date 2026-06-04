@@ -18,8 +18,10 @@ const KycReviewsPage = () => {
   const qc = useQueryClient();
   const [decision, setDecision] = useState<{ id: string; approve: boolean } | null>(null);
   const [notes, setNotes] = useState("");
-  const [revoke, setRevoke] = useState<{ player_id: string; name: string } | null>(null);
+  const [revoke, setRevoke] = useState<{ player_id: string; name: string; source: "reception" | "am_trusted" } | null>(null);
   const [revokeReason, setRevokeReason] = useState("");
+  const [trust, setTrust] = useState<{ player_id: string; name: string } | null>(null);
+  const [trustReason, setTrustReason] = useState("");
   const [search, setSearch] = useState("");
 
   // ============= Queries =============
