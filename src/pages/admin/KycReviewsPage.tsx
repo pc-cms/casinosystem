@@ -213,7 +213,7 @@ const KycReviewsPage = () => {
         <TabsContent value="reception">
           <PageSection
             title={`Verified by Reception (${rvFiltered.length})`}
-            headerExtra={
+            titleRight={
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -266,7 +266,7 @@ const KycReviewsPage = () => {
         <TabsContent value="notverified">
           <PageSection
             title={`Not Verified (${nvFiltered.length})`}
-            headerExtra={
+            titleRight={
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
