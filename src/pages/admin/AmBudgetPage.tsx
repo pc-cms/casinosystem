@@ -126,22 +126,33 @@ const AmBudgetPage = () => {
           <div><Label className="text-xs">To</Label><Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} /></div>
         </div>
 
-        <DataTable
-          columns={[
-            { key: "date", header: "Date", render: (r: any) => fmtDateTime(r.created_at) },
-            { key: "casino", header: "Casino", render: (r: any) => r.casinos?.name ?? "—" },
-            { key: "reason", header: "Reason", render: (r: any) => <Badge variant="outline">{r.reason}</Badge> },
-            { key: "ref", header: "Ref", render: (r: any) => r.ref_type ?? "—" },
-            { key: "delta", header: "Delta", align: "right", render: (r: any) => (
-              <span className={`font-mono font-bold ${Number(r.delta) >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
-                {Number(r.delta) >= 0 ? "+" : ""}{fmt(Number(r.delta))}
-              </span>
-            ) },
-          ]}
-          rows={ledger}
-          rowKey={(r: any) => r.id}
-          emptyMessage="No ledger entries"
-        />
+        <DataTable>
+          <thead>
+            <tr>
+              <th className="text-left text-xs uppercase text-muted-foreground px-2 py-1.5">Date</th>
+              <th className="text-left text-xs uppercase text-muted-foreground px-2 py-1.5">Casino</th>
+              <th className="text-left text-xs uppercase text-muted-foreground px-2 py-1.5">Reason</th>
+              <th className="text-left text-xs uppercase text-muted-foreground px-2 py-1.5">Ref</th>
+              <th className="text-right text-xs uppercase text-muted-foreground px-2 py-1.5">Delta</th>
+            </tr>
+          </thead>
+          <tbody>
+            {ledger.length === 0 ? (
+              <tr><td colSpan={5} className="text-center text-muted-foreground py-6 text-sm">No ledger entries</td></tr>
+            ) : ledger.map((r: any) => (
+              <tr key={r.id} className="border-t border-border">
+                <td className="px-2 py-1.5 text-sm">{fmtDateTime(r.created_at)}</td>
+                <td className="px-2 py-1.5 text-sm">{r.casinos?.name ?? "—"}</td>
+                <td className="px-2 py-1.5"><Badge variant="outline">{r.reason}</Badge></td>
+                <td className="px-2 py-1.5 text-xs text-muted-foreground">{r.ref_type ?? "—"}</td>
+                <td className={`px-2 py-1.5 text-right font-mono font-bold ${Number(r.delta) >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
+                  {Number(r.delta) >= 0 ? "+" : ""}{fmt(Number(r.delta))}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </DataTable>
+
       </PageSection>
     </PageShell>
   );
