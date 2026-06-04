@@ -33,7 +33,7 @@ import arushaLogo from "@/assets/arusha-logo.png";
 type AppRole = "cashier" | "cashier_slots" | "pit" | "manager" | "floor_manager" | "reception" | "finance_manager" | "surveillance" | "super_admin" | "hr";
 
 // Section labels for the hybrid grouping (roles + shared ANALYTICS)
-type Section = "OVERVIEW" | "PIT" | "STAFF" | "CASHIER" | "RECEPTION" | "FINANCE" | "HR" | "ANALYTICS" | "CRM" | "MARKETING" | "BAR" | "SYSTEM";
+type Section = "OVERVIEW" | "PIT" | "STAFF" | "CASHIER" | "RECEPTION" | "FINANCE" | "HR" | "ANALYTICS" | "CRM" | "MARKETING" | "BAR" | "PROMO" | "SYSTEM";
 
 type NavItem = {
   to: string;
@@ -113,6 +113,22 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/pos/reports", icon: FileBarChart, label: "Bar Reports", roles: ["super_admin", "pos_manager" as AppRole, "pos_bartender" as AppRole, "pos_waiter" as AppRole], section: "BAR" },
   { to: "/pos/manager/player-analytics", icon: Users, label: "Bar · Player Analytics", roles: ["super_admin", "pos_manager" as AppRole, "pos_bartender" as AppRole, "pos_waiter" as AppRole], section: "BAR" },
   { to: "/pos/manager/stock-counts", icon: ClipboardList, label: "Bar · Stock Counts", roles: ["super_admin", "pos_manager" as AppRole, "pos_bartender" as AppRole, "pos_waiter" as AppRole], section: "BAR" },
+
+  // PROMO — Premier Club promo campaigns, codes, wallet, lottery, shop
+  { to: "/admin/promo-codes", icon: Gift, label: "Promo Codes", roles: ["super_admin", "manager", "finance_manager"], section: "PROMO" },
+  { to: "/admin/promo-grants", icon: Gift, label: "Promo Grants", roles: ["super_admin", "manager", "finance_manager"], section: "PROMO" },
+  { to: "/admin/lotteries", icon: Gift, label: "Lotteries", roles: ["super_admin", "manager", "finance_manager"], section: "PROMO" },
+  { to: "/admin/shop-catalog", icon: Gift, label: "Shop Catalog", roles: ["super_admin", "manager", "finance_manager"], section: "PROMO" },
+  { to: "/admin/shop-orders", icon: ClipboardList, label: "Shop Orders", roles: ["super_admin", "manager", "finance_manager"], section: "PROMO" },
+  { to: "/admin/kyc", icon: ShieldCheck, label: "KYC Reviews", roles: ["super_admin", "manager", "finance_manager"], section: "PROMO" },
+  { to: "/admin/am-budget", icon: Wallet, label: "My AM Budget", roles: ["super_admin", "manager", "finance_manager"], section: "PROMO" },
+  { to: "/admin/fm-topups", icon: Wallet, label: "FM Top-ups", roles: ["super_admin", "finance_manager"], section: "PROMO" },
+  { to: "/reports/promo-issuance", icon: FileBarChart, label: "Report · Issuance", roles: ["super_admin", "manager", "finance_manager"], section: "PROMO" },
+  { to: "/reports/promo-redemptions", icon: FileBarChart, label: "Report · Redemptions", roles: ["super_admin", "manager", "finance_manager"], section: "PROMO" },
+  { to: "/reports/promo-expiry", icon: FileBarChart, label: "Report · Expiry", roles: ["super_admin", "manager", "finance_manager"], section: "PROMO" },
+  { to: "/reports/promo-codes", icon: FileBarChart, label: "Report · Codes", roles: ["super_admin", "manager", "finance_manager"], section: "PROMO" },
+  { to: "/reports/cashback", icon: FileBarChart, label: "Report · Cashback", roles: ["super_admin", "manager", "finance_manager"], section: "PROMO" },
+  { to: "/reports/am-budget", icon: FileBarChart, label: "Report · AM Budget", roles: ["super_admin", "finance_manager"], section: "PROMO" },
 
   // SYSTEM — admin/system tools
   { to: "/import-reports", icon: Upload, label: "Import Reports", roles: ["super_admin", "manager"], section: "SYSTEM" },
@@ -211,7 +227,7 @@ const SidebarSections = ({
     (acc[item.section] ||= []).push(item);
     return acc;
   }, {});
-  const sectionOrder: Section[] = ["OVERVIEW", "PIT", "STAFF", "CASHIER", "RECEPTION", "FINANCE", "HR", "ANALYTICS", "CRM", "MARKETING", "BAR", "SYSTEM"];
+  const sectionOrder: Section[] = ["OVERVIEW", "PIT", "STAFF", "CASHIER", "RECEPTION", "FINANCE", "HR", "ANALYTICS", "CRM", "MARKETING", "BAR", "PROMO", "SYSTEM"];
   const sections = sectionOrder.filter(s => grouped[s]?.length || (s === "SYSTEM" && isManager));
 
   // Find which section contains the active route
