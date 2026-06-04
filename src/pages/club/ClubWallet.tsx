@@ -16,6 +16,8 @@ export default function ClubWallet() {
     refetchInterval: showQr ? 30_000 : 60_000,
   });
   const qrPayload = data?.redeem_token ?? getClubToken();
+  const grants = data?.grants ?? [];
+  const redemptions = data?.redemptions ?? [];
 
   if (isLoading) return <p className="text-sm text-muted-foreground">Loading…</p>;
   if (error) return <p className="text-sm text-destructive">{(error as Error).message}</p>;
