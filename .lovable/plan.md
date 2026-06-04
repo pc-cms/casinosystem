@@ -1,100 +1,105 @@
-# Premier Club — Self-service profile + Get Verified (KYC)
+## Цель
 
-## Flow summary
+1. Reception одной кнопкой **Verify** переводит игрока в `verified` (с заполнением минимума полей). Игрок логинится через OTP по своему телефону — никаких SMS-паролей не отправляем.
+2. AM получает 3-tab рабочее место с приоритизацией: club-app-очередь, контроль reception-verify, и общий хвост unverified+pending.
+3. AM может **Revoke** reception-verify с обязательной причиной — событие пишется в `kyc_reviews` (audit + видно в истории игрока).
 
-1. **Registration** = только phone + password + First, Last, DOB (минимум для 18+). Создаётся stub `players` (`verification_status='unverified'`) + `club_accounts`.
-2. **Profile** редактируется свободно пока `unverified`. Большая кнопка **Get Verified** запускает wizard.
-3. **Wizard**: Selfie → ID front → ID back → OCR auto-fill (имя/DOB/ID) → Review → Send to verify. Создаёт `kyc_reviews(status='pending')`, `verification_status='pending'`. Профиль становится read-only с бейджем "In review" и кнопкой **Cancel review** (откатывает в `unverified`, перезаливает).
-4. **AM** в CRM апрувит → `verification_status='verified'` → бейдж "Verified", всё залочено.
-5. **Restrictions** для unverified+pending: блок на Shop, Lottery, promo grants. Walk-in QR и просмотр баланса доступны всегда.
+---
 
-## Registration (minimal)
+## Backend
 
-`ClubRegister.tsx`: phone → OTP → форма (First, Last, DOB, Password). Branch выбирается потом в Profile (по умолчанию central Premier Club casino).
+### 1. Новый enum-значение и поля
 
-`club-register-player` упрощается: принимает только обязательные поля, `id_number=''`, `casino_slug` defaults to `premier`.
+- `kyc_review_source`: добавить `'reception'` (если ещё нет — проверим в миграции).
+- `kyc_reviews.status`: добавить `'revoked'` (статус для отменённых reception-verify, чтобы они оставались в истории).
+- `players`: новые колонки
+  - `verified_by` uuid null — кто перевёл в verified (employees.id или auth.users.id)
+  - `verified_at` timestamptz null
+  - `verified_source` text null — `'reception' | 'club_app'`
 
-## Profile page (editable while unverified)
+### 2. RPC `reception_verify_player(_player_id uuid, _first text, _last text, _dob date, _id_number text, _photo_url text, _id_doc_url text)`
+- SECURITY DEFINER, доступ ролям `reception | manager | super_admin | floor_manager`.
+- Валидация: имя/фамилия/dob/id_number обязательны; 18+; duplicate id_number блокируется.
+- `UPDATE players SET ... verification_status='verified', verified_source='reception', verified_by=auth.uid(), verified_at=now()`.
+- `INSERT INTO kyc_reviews (player_id, casino_id, source='reception', status='approved', am_decision_at=now(), am_user_id=auth.uid(), ai_result=jsonb_build_object('verified_by_reception',true))` — чтобы AM видел запись в "Verified by Reception".
 
-`ClubProfile.tsx` показывает форму вместо read-only сетки:
+### 3. RPC `kyc_revoke_reception(_player_id uuid, _reason text)`
+- Доступ: `account_manager | manager | super_admin`.
+- `_reason` обязателен (length > 0).
+- Если `players.verified_source <> 'reception'` → exception `not_reception_verified` (revoke касается только этого источника; club_app KYC откатывается через стандартный reject существующей `kyc_decide`).
+- `UPDATE players SET verification_status='unverified', verified_source=null, verified_by=null, verified_at=null`.
+- `INSERT INTO kyc_reviews (player_id, casino_id, source='reception', status='revoked', am_user_id=auth.uid(), am_decision_at=now(), am_notes=_reason)`.
 
-- Поля: First, Last, DOB, ID number (опц.), Home branch (dropdown).
-- Status badge: `Unverified` / `In review` / `Verified`.
-- **CTA**:
-  - `unverified` → **Save** (silent patch) + большая **Get Verified** → `/club/verify`.
-  - `pending` → форма read-only + **Cancel review** (вторичная кнопка, confirm dialog) → откат в `unverified`, kyc_reviews row → `status='cancelled'`.
-  - `verified` → read-only.
-- Walk-in QR остаётся сверху всегда.
+### 4. RLS / Grants
+- `EXECUTE` на обе RPC — `authenticated`.
+- Существующая RLS на `kyc_reviews` уже разрешает чтение AM-ролям; новые `revoked`/`reception` записи попадут под те же policy.
 
-Новые edge functions:
-- `club-update-profile` (club token): patch first/last/dob/id_number/casino_id. Allowed только если `verification_status='unverified'`.
-- `club-cancel-kyc`: переводит player → `unverified`, помечает pending kyc_review → `cancelled`.
+### 5. Edge function `club-wallet`
+- Уже возвращает `verification_status`. Добавить `verified_source` чтобы UI club-app мог отличить «verified at reception» (показывать "Verified at <Casino Name>").
 
-## Get Verified wizard `/club/verify`
+---
 
-Полноэкранный wizard (gold/red, бренд Premier Club, не WizardShell — отдельная стилизованная обёртка). 4 шага:
+## Frontend
 
-1. **Selfie** — `<input type="file" accept="image/*" capture="user">`, preview + retake.
-2. **ID front** — `capture="environment"`, preview + retake.
-3. **ID back** — то же.
-4. **Confirm details** — OCR результат (вызов `ocr-document` на ID front после upload) подставляется в форму. Поля First, Last, DOB, ID number — все editable. Review-блок с тремя миниатюрами фото.
-5. **Submit** — кнопка **Send to verify**.
+### A. Reception side
 
-Photos → private bucket `club-kyc`, путь `{player_id}/selfie.jpg`, `id-front.jpg`, `id-back.jpg`. Upload через edge function (multipart) либо signed-upload URL, чтобы не давать клиенту прямой доступ к bucket.
+В существующий `RegisterPlayerPage` (или его эквивалент в Cage) добавляем:
+- Кнопку **"Verify & Save"** рядом с обычным Save — показывается только когда заполнены: first, last, dob, id_number, фото селфи, фото документа.
+- Подтверждение через `ResponsiveDialog`: "This player will be marked verified. The Account Manager will be notified for QA."
+- Вызывает `reception_verify_player`. На успех — toast "Verified. Player can log in via OTP."
 
-`club-submit-kyc`:
-- Валидирует player owns session, `verification_status='unverified'`.
-- Сохраняет URLs в `players.photo_url` (selfie) и `players.id_document_url` (id-front).
-- Patches first/last/birth_date/id_number.
-- INSERT `kyc_reviews(player_id, casino_id, source='club_app', status='pending', ai_result=<ocr_json + paths>)`.
-- Sets `players.verification_status='pending'`.
+### B. AM workspace — `KycReviewsPage` reworked
 
-## Restrictions для unverified/pending
+Три таба (`Tabs` shadcn внутри PageShell, без раздельных страниц):
 
-Добавить в edge functions проверку `verification_status='verified'`:
-- `club-shop-order` → отказ `kyc_required`.
-- `club-buy-ticket` → отказ `kyc_required`.
-- AM при выдаче grant (UI в CRM) — disable кнопку для unverified/pending игроков (frontend gate; backend RPC уже проверяет AM role).
+**Tab 1 — Queue (club app)** *(default, badge с count pending)*
+- Источник: `kyc_reviews.source='club_app' AND status='pending'`.
+- Действия: Approve / Reject (существующая `kyc_decide` RPC).
+- Сортировка: oldest first.
 
-Frontend: на `/club/shop` и `/club/tickets` показывать баннер "Complete verification to unlock purchases" + disabled CTA для unverified/pending.
+**Tab 2 — Verified by Reception** *(badge с count last 30 days)*
+- Источник: `players.verified_source='reception' AND verification_status='verified'`, JOIN на последнюю `kyc_reviews` где source='reception' для verified_at/verified_by.
+- Колонки: Name, Phone, ID number, Casino, Verified at, Verified by (employee name).
+- Действие на строке: **Revoke** → диалог с обязательным `Textarea` (reason, min 5 chars) → `kyc_revoke_reception`.
+- Фильтр: select по casino, search по name/phone, date range.
 
-## DB migration
+**Tab 3 — Not Verified** *(badge с total)*
+- Источник: `players WHERE verification_status IN ('unverified','pending')`.
+- Колонки: Status badge (Unverified / Pending review), Name, Phone, DOB, Created at, Source (`club_app` если есть `club_accounts` для этого игрока, иначе `reception_stub`).
+- Действие: открыть профиль игрока в новой вкладке (для дальнейшей работы вне этой страницы).
+- Priority sort: pending → unverified, oldest first.
 
-- Enum `player_verification_status`: убедиться что есть `unverified`, `pending`, `verified`, `rejected`. Добавить недостающие.
-- `kyc_review_status`: добавить `cancelled` если отсутствует.
-- `kyc_review_source`: добавить `club_app` если отсутствует.
-- Private bucket `club-kyc` (через `storage_create_bucket`).
-- RLS на `storage.objects/club-kyc`: AM/super_admin/manager — read; service role — write (uploads only через edge function).
-- RPC `club_update_profile`, `club_submit_kyc`, `club_cancel_kyc` (SECURITY DEFINER, accept player_id) — вызываются из edge functions с service key, поэтому RLS не блокирует.
-- Cross-casino read: `players` rows клуб-зарегистрированных игроков (имеют `club_accounts`) видимы reception/cashier на любой ветке через дополнительный SELECT policy.
+Realtime: подписка на `players` и `kyc_reviews` для текущего casino, чтобы badge counts обновлялись live.
 
-## Files
+### C. Club app
 
-**Created**
-- `supabase/functions/club-update-profile/index.ts`
-- `supabase/functions/club-submit-kyc/index.ts`
-- `supabase/functions/club-cancel-kyc/index.ts`
-- `src/pages/club/ClubVerifyWizard.tsx`
-- `src/components/club/CameraCapture.tsx` — file+camera input wrapper c preview/retake
+В `ClubProfile` если `verified_source='reception'` — мелкий tagline под "Verified" badge: "Verified at reception · <date>".
 
-**Edited**
-- `src/pages/club/ClubRegister.tsx` — добавить First/Last/DOB (убрать ID, branch)
-- `src/pages/club/ClubProfile.tsx` — editable форма + статус-CTA
-- `src/pages/club/ClubWallet.tsx` — баннер "Get verified" для unverified
-- `src/pages/club/ClubShop.tsx`, `ClubTickets.tsx` — баннер + disabled CTA
-- `src/lib/club-api.ts` — `updateProfile`, `submitKyc`, `cancelKyc`
-- `src/App.tsx` — `/club/verify`
-- `supabase/functions/club-register-player/index.ts` — упростить до minimal
-- `supabase/functions/club-shop-order`, `club-buy-ticket` — gate by verified
-- `supabase/functions/club-wallet/index.ts` — отдавать `verification_status` (уже есть)
-- DB migration: enums, RPCs, bucket policies
-- `package.json` — bump
+---
 
-## Open question
+## Migration policy
 
-Один остался: на каком экране выбирать **Home branch**?
-- (A) В Registration форме сразу dropdown (как сейчас).
-- (B) В Profile после первого входа (default Premier Club central).
-- (C) В Get Verified wizard на шаге Confirm.
+- Существующие игроки с `verification_status='verified'` без `verified_source` — оставляем как есть; в Tab 2 они **не** покажутся (фильтр требует `verified_source='reception'`). Это правильно: AM ревьюит только новые reception-verify, исторические остаются нетронутыми.
 
-Если без ответа — иду по (B).
+---
+
+## Не входит в этот план (отдельно)
+
+- SMS-нотификации игроку об изменении статуса.
+- Email-уведомления AM о новых заявках.
+- Tier-badge в Club app (отдельный таск из прошлого обсуждения).
+- Bulk-actions (массовый approve/revoke).
+
+---
+
+## Файлы
+
+**Новые**
+- `supabase/migrations/<ts>_reception_verify_and_revoke.sql`
+
+**Изменяются**
+- `src/pages/admin/KycReviewsPage.tsx` — переписать с 3-tab структурой.
+- `src/pages/cage/RegisterPlayerPage.tsx` — кнопка "Verify & Save".
+- `supabase/functions/club-wallet/index.ts` — отдать `verified_source`.
+- `src/pages/club/ClubProfile.tsx` — tagline под badge.
+- `package.json` — bump patch.
